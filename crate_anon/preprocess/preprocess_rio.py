@@ -24,11 +24,402 @@ crate_anon/preprocess/preprocess_rio.py
 
 ===============================================================================
 
+**Preprocess RiO tables for CRATE.**
+
+RiO is a mental health EMR system from Servelec.
+
+
+**Things to do**
+
+TODO:
+    preprocess_rio: specific supposed PK failing (non-unique) on incremental
+
+TODO:
+    preprocess_rio: Imperfectly tested: Audit_Created_Date, Audit_Updated_Date
+    ... some data for Audit_Created_Date, but incomplete audit table
+
+TODO:
+    preprocess_rio: Similarly, all cross-checks to RCEP output (currently
+    limited by data availability)
+
+
+**Primary keys**
+
+In RCEP, Document_ID is VARCHAR(MAX), and is often:
+
+.. code-block:: none
+
+    'global_table_id_9_or_10_digits' + '_' + 'pk_int_as_string'
+
+HOWEVER, the last part is not always unique; e.g. Care_Plan_Interventions.
+
+-   Care_Plan_Interventions has massive tranches of ENTIRELY identical rows,
+    including a column called, ironically, "Unique_Key".
+
+-   Therefore, we could either ditch the key entirely, or just use a non-UNIQUE
+    index (and call it "key" not "pk").
+
+-   AND THEN... In Client_Family, we have Document_ID values like
+
+    .. code-block:: none
+
+        773577794_1000000_1000001
+        ^^^^^^^^^ ^^^^^^^ ^^^^^^^
+        table ID  RiO#    Family member's RiO#
+
+    ... there is no unique ID. And we don't need the middle part as we already
+    have Client_ID. So this is not very useful. We could mangle out the second
+    and subsequent '_' characters to give a unique number here, which would
+    meaning having PK as BIGINT not INTEGER.
+
+-   SQL Server's ``ROW_NUMBER()`` relates to result sets.
+
+-   However, ``ADD pkname INT IDENTITY(1, 1)`` works beautifully and
+    autopopulates existing tables.
+
+-   CHUCKED this way of back-mangling DocumentID, since it doesn't work well:
+
+    .. code-block:: none
+
+        ensure_columns_present(... RCEP_COL_MANGLED_KEY...)
+
+        {pk} = CAST(
+            SUBSTRING(
+                {rcep_mangled_pk},
+                CHARINDEX('_', {rcep_mangled_pk}) + 1,
+                LEN({rcep_mangled_pk}) - CHARINDEX('_', {rcep_mangled_pk})
+            ) AS INTEGER
+        ),
+
+        # pk=CRATE_COL_PK,
+        # rcep_mangled_pk=RCEP_COL_MANGLED_KEY,
+
+
+**How is RiO non-core structured?**
+
+- Index tables
+
+  .. code-block:: none
+
+    AssessmentDates
+        associates AssessmentID and ClientID with dates
+
+    AssessmentFormGroupsIndex, e.g.:
+        Name               Description          Version    Deleted
+        CoreAssess         Core Assessment      16          0
+        CoreAssess         Core Assessment      17          0
+        CoreAssessNewV1    Core Assessment v1   0           0
+        CoreAssessNewV1    Core Assessment v1   1           0
+        CoreAssessNewV2    Core Assessment v2   0           0
+        CoreAssessNewV2    Core Assessment v2   1           0
+        CoreAssessNewV2    Core Assessment v2   2           0
+        ^^^                ^^^
+        RiO form groups    Nice names
+
+    AssessmentFormGroupsStructure, e.g.:
+        name            FormName           AddedDate FormgroupVersion FormOrder
+        CoreAssessNewV2	coreasspresprob	    2013-10-30 15:46:00.000	0	0
+        CoreAssessNewV2	coreassesspastpsy	2013-10-30 15:46:00.000	0	1
+        CoreAssessNewV2	coreassessbackhist	2013-10-30 15:46:00.000	0	2
+        CoreAssessNewV2	coreassesmentstate	2013-10-30 15:46:00.000	0	3
+        CoreAssessNewV2	coreassescapsafrisk	2013-10-30 15:46:00.000	0	4
+        CoreAssessNewV2	coreasssumminitplan	2013-10-30 15:46:00.000	0	5
+        CoreAssessNewV2	coreasspresprob	    2014-12-14 19:19:06.410	1	0
+        CoreAssessNewV2	coreassesspastpsy	2014-12-14 19:19:06.410	1	1
+        CoreAssessNewV2	coreassessbackhist	2014-12-14 19:19:06.413	1	2
+        CoreAssessNewV2	coreassesmentstate	2014-12-14 19:19:06.413	1	3
+        CoreAssessNewV2	coreassescapsafrisk	2014-12-14 19:19:06.417	1	4
+        CoreAssessNewV2	coreasssumminitplan	2014-12-14 19:19:06.417	1	5
+        CoreAssessNewV2	coresocial1	        2014-12-14 19:19:06.420	1	6
+        CoreAssessNewV2	coreasspresprob	    2014-12-14 19:31:25.377	2	0 } NB
+        CoreAssessNewV2	coreassesspastpsy	2014-12-14 19:31:25.377	2	1 }
+        CoreAssessNewV2	coreassessbackhist	2014-12-14 19:31:25.380	2	2 }
+        CoreAssessNewV2	coreassesmentstate	2014-12-14 19:31:25.380	2	3 }
+        CoreAssessNewV2	coreassescapsafrisk	2014-12-14 19:31:25.380	2	4 }
+        CoreAssessNewV2	coreasssumminitplan	2014-12-14 19:31:25.383	2	5 }
+        CoreAssessNewV2	coresocial1	        2014-12-14 19:31:25.383	2	6 }
+        CoreAssessNewV2	kcsahyper	        2014-12-14 19:31:25.387	2	7 }
+        ^^^             ^^^
+        Form groups     RiO forms; these correspond to UserAssess___ tables.
+
+    AssessmentFormsIndex, e.g.
+        Name                InUse Style Deleted    Description  ...
+        core_10             1     6     0    Clinical Outcomes in Routine Evaluation Screening Measure-10 (core-10)
+        corealcsub          1     6     0    Alcohol and Substance Misuse
+        coreassescapsafrisk 1     6     0    Capacity, Safeguarding and Risk
+        coreassesmentstate  1     6     0    Mental State
+        coreassessbackhist  1     6     0    Background and History
+        coreassesspastpsy   1     6     0    Past Psychiatric History and Physical Health
+        coreasspresprob     1     6     0    Presenting Problem
+        coreasssumminitplan 1     6     0    Summary and Initial Plan
+        corecarer           1     6     0    Carers and Cared For
+        corediversity       1     6     0    Diversity Needs
+        coremedsum          1     6     0    Medication, Allergies and Adverse Reactions
+        coremenhis          1     6     0    Mental Health / Psychiatric History
+        coremenstate        1     6     0    Mental State and Formulation
+        coreperdev          1     6     0    Personal History and Developmental History
+        ^^^                                  ^^^
+        |||                                  Nice names.
+        RiO forms; these correspond to UserAssess___ tables,
+        e.g. UserAssesscoreassesmentstate
+
+    AssessmentFormsLocks
+        system only; not relevant
+
+    AssessmentFormsTimeout
+        system only; not relevant
+
+    AssessmentImageForms
+        SequenceID, FormName, ClientID, AssessmentDate, UserID, ImagePath
+        ?
+        no data
+
+    AssessmentIndex, e.g.
+        Name          InUse Version DateBound RequiresClientID  Deleted Description ...
+        ConsentShare  1     3       1         0                 1       Consent to Share Information
+        CoreAssess    1     1       0         1                 0       Core Assessment
+        CoreAssess    1     2       0         1                 0       Core Assessment
+        CoreAssess    1     3       0         1                 0       Core Assessment
+        CoreAssess    1     4       0         1                 0       Core Assessment
+        CoreAssess    1     5       0         1                 0       Core Assessment
+        CoreAssess    1     6       0         1                 0       Core Assessment
+        CoreAssess    1     7       0         1                 0       Core Assessment
+        crhtaaucp     1     1       0         0                 0       CRHTT / AAU Care Plan
+        ^^^
+        These correspond to AssessmentStructure.Assessment
+
+    AssessmentMasterTableIndex, e.g.
+        TableName       TableDescription
+        core10          core10
+        Corealc1        TAUDIT - Q1
+        Corealc2        TAUDIT Q2
+        Corealc3        TAUDIT - Q3,4,5,6,7,8
+        Corealc4        TAUDIT - Q9,10
+        Corealc5        Dependence
+        Corealc6        Cocaine Use
+        CoreOtherAssess Other Assessments
+        crhttcpstat     CRHTT Care Plan Status
+        ^^^
+        These correspond to UserMaster___ tables.
+        ... Find with:
+            SELECT * FROM rio_data_raw.information_schema.columns
+            WHERE table_name LIKE '%core10%';
+
+    AssessmentPseudoForms, e.g. (all rows):
+        Name            Link
+        CaseNoteBar     ../Letters/LetterEditableMain.aspx?ClientID
+        CaseNoteoview   ../Reports/RioReports.asp?ReportID=15587&ClientID
+        kcsahyper       tfkcsa
+        physv1hypa      physassess16a&readonlymode=1
+        physv1hypb1     physasses16b1&readonlymode=1
+        physv1hypb2     physasses16b22&readonlymode=1
+        physv1hypbody   testbmap&readonlymode=1
+        physv1hypvte    vte&readonlymode=1
+
+    AssessmentReadOnlyFields, e.g.
+        Code        CodeDescription       SQLStatementLookup    SQLStatementSearch
+        ADCAT       Adminstrative Cat...  SELECT TOP 1 u.Cod... ...
+        ADD         Client  Address       SELECT '$LookupVal... ...
+        AdmCons     Consultant            SELECT '$LookupVal... ...
+        AdmglStat   Status at Admission   SELECT '$LookupVal... ...
+        AdmitDate   Admission Date        SELECT '$LookupVal... ...
+        AEDEXLI     AED Exceptions...     SELECT TOP 1 ISNUL... ...
+        Age         Client Age            SELECT '$LookupVal... ...
+        Allergies   Client Allergies      SELECT dbo.LocalCo... ...
+        bg          Background (PSOC323)  SELECT TOP 1 ISNUL... ...
+
+        That Allergies one in full:
+        - SQLStatementLookup
+            SELECT dbo.LocalConfig_GetClientAllergies('$key$') AS Allergies
+        - SQLStatementSearch = SQLStatementLookup
+
+        And the bg/Background... one:
+        - SQLStatementLookup
+            SELECT TOP 1
+                ISNULL(Men03,'History of Mental Health Problems / Psychiatric History section of core assessment not filled'),
+                ISNULL(Men03,'History of Mental Health Problems / Psychiatric History section of core assessment not filled')
+            FROM dbo.view_userassesscoremenhis
+              -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              -- view in which data column names renamed 'Men01', 'Men02'...
+            WHERE ClientID = '$ClientID$'
+            AND dbo.udf_Config_SystemValidationStatus(system_validationData,'Men03','v') = 1
+            ORDER BY
+                AssessmentDate DESC,
+                type12_UpdatedDate DESC
+        - SQLStatementSearch = SQLStatementLookup
+
+        - EXEC sp_helptext 'production.rio62camlive.dbo.udf_Config_SystemValidationStatus';
+          ... can't view this at present (am on the wrong machine?).
+
+    AssessmentStructure, e.g.:
+        FormGroup       Assessment  AssessmentVersion FormGroupVersion FormGroupOrder
+        CoreAssessNewV1 CoreAssess    7    1    1
+        CoreAssessNewV2 CoreAssess    7    2    0
+        CoreAssessNewV2 CoreAssess    6    1    0
+        CoreAssessNewV2 CoreAssess    5    0    0
+        CoreAssessNewV2 CoreAssess    2    0    1
+        CoreAssessNewV2 CoreAssess    3    0    0
+
+        ... FORM GROUP to ASSESSMENT mapping
+
+- Main data tables
+
+  .. code-block:: none
+
+    e.g.:
+    UserAssesscoreassesmentstate
+        ClientID
+        system_ValidationData  -- e.g. (with newlines added):
+            '<v n="3">
+                <MentState s="v" a="<userID>" v="" d="" e="10/11/2013 13:23" o="1" n="3" b="" c="">
+                </MentState>
+            </v>'
+            ... where <userID> was a specific user ID
+        NHSNum  -- as VARCHAR
+        AssessmentDate
+        ServRef
+        MentState   -- this contains the text
+        type12_NoteID -- PK
+        type12_OriginalNoteID  -- can be NULL
+        type12_DeletedDate  -- can be NULL
+        type12_UpdatedBy
+        type12_UpdatedDate
+        formref
+
+    UserAssesscoreassesspastpsy
+        ClientID
+        system_ValidationData
+        NHSNum
+        AssessmentDate
+        ServRef
+        PastPsyHist  -- contains text
+        PhyHealth    -- contains text
+        Allergies    -- contains text
+        type12_NoteID
+        type12_OriginalNoteID
+        type12_DeletedDate
+        type12_UpdatedBy
+        type12_UpdatedDate
+        formref
+        frailty  -- numeric; in passing, here's the Rockwood frailty score
+
+- Lookup tables
+
+  .. code-block:: none
+
+    UserMasterfrailty, in full:
+        Code CodeDescription            Deleted
+        1    1 - Very Fit               0
+        2    2 - Well                   0
+        3    3 - Managing Well          0
+        4    4 - Vulnerable             0
+        5    5 - Mildly Frail           0
+        7    7 - Severely Frail         0
+        6    6 - Moderately Frail       0
+        9    9 - Terminally Ill         0
+        8    8 - Very Serverely Frail   0
+
+- So, overall structure, approximately:
+
+  .. code-block:: none
+
+    RiO front-end example:
+        Assessments [on menu]
+            -> Core Assessment [menu dropdown]
+            -> Core Assessment v2 [LHS, expands to...]
+                ->  Presenting Problem [LHS]
+                    Past Psychiatric History and Physical Health
+                        ->  Service/Team
+                            Past Psychiatric History
+                            Physical Health / Medical History
+                            Allergies
+                            Frailty Score
+                    Background and History
+                    Mental State
+                    Capacity, Safeguarding and Risk
+                    Summary and Initial Plan
+                    Social Circumstances and Employment
+                    Keeping Children Safe Assessment
+
+    So, hierarchy at the backend (> forward, < backward keys):
+
+        AssessmentIndex.Name(>) / .Description ('Core Assessment')
+            AssessmentStructure.Assessment(<) / .FormGroup(>)
+                AssessmentFormGroupsIndex.Name(<) / .Description ('Core Assessment v2')
+                AssessmentFormGroupsStructure.name(<) / .FormName(>) ('coreassesspastpsy')
+                    AssessmentFormsIndex.Name(<) / .Description ('Past Psychiatric History and Physical Health')
+                    UserAssesscoreassesspastpsy = data
+                              _________________(<)
+                        UserAssesscoreassesspastpsy.frailty(>) [lookup]
+                            UserMasterfrailty.Code(<) / .CodeDescription
+
+- Simplifying views (for core and non-core RiO) could be implemented in the
+  preprocessor, or after anonymisation.
+
+  Better to do it in the preprocessor, because this knows about RiO.
+  The two points of "RiO knowledge" should be:
+
+  - the preprocessor;
+
+    - PK, RiO number as integer, views
+
+  - the ddgen_* information in the anonymiser config file.
+
+    - tables to omit
+    - fields to omit
+    - default actions on fields
+
+      - e.g. exclude if type12_DeletedDate is None
+      - however, we could also do that more efficiently as a view, and that
+        suits all use cases so far.
+
+
+**Scrubbing references to other patients**
+
+There are two ways to do this, in principle.
+
+The first is to reshape the data so that data from "referred-to" patients
+appear in fields that can be marked as "third-party". The difficulty is that
+the mapping is not 1:1 with any database row. For example, if row A has
+fields "MainCarer" and "OtherCarer" that can refer to other patients, then
+if the "OtherCarer" field changes, the number of rows to be examined changes.
+This prohibits using a real-world PK. (A view that joined according to these
+fields would not have an immutable pseudo-PK either.) And that causes
+difficulties for a change-detection system. One would have to mark such a view
+as something not otherwise read/copied by the anonymiser.
+
+The other method, which is more powerful, is to do this work in the anonymiser
+itself, by defining fields that are marked as "third_party_xref_pid", and
+building the scrubber recursively with "depth" and "max_depth" parameters;
+if depth > 0, the information is taken as third-party.
+
+Well, that sounds achievable.
+
+Done.
+
+**RiO audit trail and change history**
+
+.. code-block:: none
+
+    - AuditTrail
+        SequenceID -- PK for AuditTrail
+        UserNumber -- FK to GenUser.UserNumber
+        ActionDateTime
+        AuditAction -- 2 = insert, 3 = update
+        RowID -- row number -- how does that work?
+            ... cheerfully, SQL Server doesn't have an automatic row ID;
+            http://stackoverflow.com/questions/909155/equivalent-of-oracles-rowid-in-sql-server  # noqa
+            ... so is it the PK we've already identified and called crate_pk?
+        TableNumber -- FK to GenTable.Code
+        ClientID -- FK to ClientIndex.ClientID
+        ...
+
+
 """
 
 import argparse
 import logging
-from typing import Any, List
+from typing import List
 
 from cardinal_pythonlib.debugging import pdb_run
 from cardinal_pythonlib.logs import configure_logger_for_colour
@@ -104,7 +495,10 @@ from crate_anon.preprocess.rio_ddgen import (
 from crate_anon.preprocess.rio_pk import (
     RIO_6_2_ATYPICAL_PATIENT_ID_COLS,
 )
-from crate_anon.preprocess.rio_view_func import rio_add_audit_info
+from crate_anon.preprocess.rio_view_func import (
+    rio_add_audit_info,
+    RioViewConfigOptions,
+)
 from crate_anon.preprocess.rio_views import RIO_VIEWS
 
 log = logging.getLogger(__name__)
@@ -115,16 +509,33 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 def table_is_rio_type(tablename: str,
-                      progargs: Any) -> bool:
-    if progargs.rio:
+                      configoptions: RioViewConfigOptions) -> bool:
+    """
+    Is the named table one that uses the original RiO format?
+
+    Args:
+        tablename: name of the table
+        configoptions: instance of :class:`RioViewConfigOptions`
+    """
+    if configoptions.rio:
         return True
-    if not progargs.cpft:
+    if not configoptions.cpft:
         return False
     # RCEP + CPFT modifications: there's one RiO table in the mix
-    return tablename == progargs.full_prognotes_table
+    return tablename == configoptions.full_prognotes_table
 
 
 def get_rio_patient_id_col(table: Table) -> str:
+    """
+    Returns the RiO patient ID column for a table.
+
+    Args:
+        table: SQLAlchemy Table
+
+    Returns:
+        the column name for patient ID
+
+    """
     patient_id_col = RIO_6_2_ATYPICAL_PATIENT_ID_COLS.get(table.name,
                                                           RIO_COL_PATIENT_ID)
     # log.debug("get_rio_patient_id_col: {} -> {}".format(table.name,
@@ -132,9 +543,22 @@ def get_rio_patient_id_col(table: Table) -> str:
     return patient_id_col
 
 
-def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
+def process_patient_table(table: Table, engine: Engine,
+                          configoptions: RioViewConfigOptions) -> None:
+    """
+    Processes a RiO or RiO-like table:
+
+    - Add ``pk`` and ``rio_number`` columns, if not present
+    - Update ``pk`` and ``rio_number`` values, if not NULL
+    - Add indexes, if absent
+
+    Args:
+        table: SQLAlchemy Table to process
+        engine: an SQLAlchemy database Engine
+        configoptions: instance of :class:`RioViewConfigOptions`
+    """
     log.info("Preprocessing patient table: {}".format(repr(table.name)))
-    rio_type = table_is_rio_type(table.name, progargs)
+    rio_type = table_is_rio_type(table.name, configoptions)
     if rio_type:
         pk_col = get_effective_int_pk_col(table)
         rio_pk = pk_col if pk_col != CRATE_COL_PK else None
@@ -144,7 +568,7 @@ def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
         rio_pk = None
         required_cols = [RCEP_COL_PATIENT_ID]
         string_pt_id = RCEP_COL_PATIENT_ID
-    if not progargs.print:
+    if not configoptions.print_sql_only:
         required_cols.extend([CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
 
     # -------------------------------------------------------------------------
@@ -226,14 +650,31 @@ def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
 
 
 def drop_for_patient_table(table: Table, engine: Engine) -> None:
+    """
+    Drop CRATE indexes and CRATE columns for a patient table.
+
+    Args:
+        table: SQLAlchemy Table to process
+        engine: an SQLAlchemy database Engine
+    """
     drop_indexes(engine, table, [CRATE_IDX_PK, CRATE_IDX_RIONUM])
     drop_columns(engine, table, [CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
 
 
 def process_nonpatient_table(table: Table,
                              engine: Engine,
-                             progargs: Any) -> None:
-    if progargs.rcep:
+                             configoptions: RioViewConfigOptions) -> None:
+    """
+    Process a RiO or RiO-like non-patient table:
+    - ensure it has an integer PK
+    - add indexes
+
+    Args:
+        table: SQLAlchemy Table to process
+        engine: an SQLAlchemy database Engine
+        configoptions: instance of :class:`RioViewConfigOptions`
+    """
+    if configoptions.rcep:
         return
     log.info("Preprocessing non-patient table {}".format(repr(table.name)))
     pk_col = get_effective_int_pk_col(table)
@@ -245,7 +686,7 @@ def process_nonpatient_table(table: Table,
                                                         engine.dialect)
     table.append_column(crate_pk_col)  # must be Table-bound, as above
     add_columns(engine, table, [crate_pk_col])
-    if not progargs.print:
+    if not configoptions.print_sql_only:
         ensure_columns_present(engine, tablename=table.name,
                                column_names=[CRATE_COL_PK])
     if other_pk_col:
@@ -261,6 +702,13 @@ def process_nonpatient_table(table: Table,
 
 
 def drop_for_nonpatient_table(table: Table, engine: Engine) -> None:
+    """
+    Drop CRATE indexes and CRATE columns for a non-patient table.
+
+    Args:
+        table: SQLAlchemy Table to process
+        engine: an SQLAlchemy database Engine
+    """
     drop_indexes(engine, table, [CRATE_IDX_PK])
     drop_columns(engine, table, [CRATE_COL_PK])
 
@@ -271,12 +719,22 @@ def drop_for_nonpatient_table(table: Table, engine: Engine) -> None:
 
 def process_master_patient_table(table: Table,
                                  engine: Engine,
-                                 progargs: Any) -> None:
+                                 configoptions: RioViewConfigOptions) -> None:
+    """
+    Process a RiO master patient table:
+
+    - Add an integer version of the NHS number.
+
+    Args:
+        table: SQLAlchemy Table to process
+        engine: an SQLAlchemy database Engine
+        configoptions: instance of :class:`RioViewConfigOptions`
+    """
     crate_col_nhs_number = Column(CRATE_COL_NHS_NUMBER, BigInteger,
                                   nullable=True)
     table.append_column(crate_col_nhs_number)
     add_columns(engine, table, [crate_col_nhs_number])
-    if progargs.rcep:
+    if configoptions.rcep:
         nhscol = RCEP_COL_NHS_NUMBER
     else:
         nhscol = RIO_COL_NHS_NUMBER
@@ -284,7 +742,7 @@ def process_master_patient_table(table: Table,
                                                    repr(nhscol)))
     ensure_columns_present(engine, tablename=table.name,
                            column_names=[nhscol])
-    if not progargs.print:
+    if not configoptions.print_sql_only:
         ensure_columns_present(engine, tablename=table.name,
                                column_names=[CRATE_COL_NHS_NUMBER])
     execute(engine, """
@@ -299,12 +757,32 @@ def process_master_patient_table(table: Table,
 
 
 def drop_for_master_patient_table(table: Table, engine: Engine) -> None:
+    """
+    Drop CRATE columns for the RiO master patient table.
+
+    Args:
+        table: SQLAlchemy Table to process
+        engine: an SQLAlchemy database Engine
+    """
     drop_columns(engine, table, [CRATE_COL_NHS_NUMBER])
 
 
 def process_progress_notes(table: Table,
                            engine: Engine,
-                           progargs: Any) -> None:
+                           configoptions: RioViewConfigOptions) -> None:
+    """
+    Process the RiO Progress Notes table.
+
+    - Index by patient ID/note number.
+    - Add/calculate/index the ``crate_max_subnum_for_notenum`` column.
+    - Add/calculate/index the ``crate_last_note_in_edit_chain`` column.
+    - If on an RCEP database, create a view.
+
+    Args:
+        table: SQLAlchemy Table to process
+        engine: an SQLAlchemy database Engine
+        configoptions: instance of :class:`RioViewConfigOptions`
+    """
     crate_col_max_subnum = Column(CRATE_COL_MAX_SUBNUM, Integer, nullable=True)
     crate_col_last_note = Column(CRATE_COL_LAST_NOTE, Integer, nullable=True)
     table.append_column(crate_col_max_subnum)
@@ -329,7 +807,7 @@ def process_progress_notes(table: Table,
 
     ensure_columns_present(engine, tablename=table.name, column_names=[
         "NoteNum", "SubNum", "EnteredInError", "EnteredInError"])
-    if not progargs.print:
+    if not configoptions.print_sql_only:
         ensure_columns_present(engine, tablename=table.name, column_names=[
             CRATE_COL_MAX_SUBNUM, CRATE_COL_LAST_NOTE, CRATE_COL_RIO_NUMBER])
 
@@ -372,7 +850,7 @@ def process_progress_notes(table: Table,
     ))
 
     # Create a view, if we're on an RCEP database
-    if progargs.rcep and progargs.cpft:
+    if configoptions.rcep and configoptions.cpft:
         select_sql = """
             SELECT *
             FROM {tablename}
@@ -387,6 +865,14 @@ def process_progress_notes(table: Table,
 
 
 def drop_for_progress_notes(table: Table, engine: Engine) -> None:
+    """
+    Reverses the changes made by :func:`process_progress_notes` to the RiO
+    Progress Note table.
+
+    Args:
+        table: SQLAlchemy Table to process
+        engine: an SQLAlchemy database Engine
+    """
     drop_view(engine, VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT)
     drop_indexes(engine, table, [CRATE_IDX_RIONUM_NOTENUM,
                                  CRATE_IDX_MAX_SUBNUM,
@@ -395,8 +881,21 @@ def drop_for_progress_notes(table: Table, engine: Engine) -> None:
                                  CRATE_COL_LAST_NOTE])
 
 
-def process_clindocs_table(table: Table, engine: Engine, progargs: Any) -> None:
-    # For RiO only, not RCEP
+def process_clindocs_table(table: Table, engine: Engine,
+                           configoptions: RioViewConfigOptions) -> None:
+    """
+    Process the RiO (not RCEP) Clinical Documents Table.
+
+    - For RiO only, not RCEP.
+    - Index on document serial number.
+    - Add/calculate/index the ``crate_max_docver_for_doc`` column.
+    - Add/calculate/index the ``crate_last_doc_in_chain`` column.
+
+    Args:
+        table: SQLAlchemy Table to process
+        engine: an SQLAlchemy database Engine
+        configoptions: instance of :class:`RioViewConfigOptions`
+    """
     crate_col_max_docver = Column(CRATE_COL_MAX_DOCVER, Integer, nullable=True)
     crate_col_last_doc = Column(CRATE_COL_LAST_DOC, Integer, nullable=True)
     table.append_column(crate_col_max_docver)
@@ -419,7 +918,7 @@ def process_clindocs_table(table: Table, engine: Engine, progargs: Any) -> None:
     ])
 
     required_cols = ["SerialNumber", "RevisionID"]
-    if not progargs.print:
+    if not configoptions.print_sql_only:
         required_cols.extend([CRATE_COL_MAX_DOCVER,
                               CRATE_COL_LAST_DOC,
                               CRATE_COL_RIO_NUMBER])
@@ -466,6 +965,14 @@ def process_clindocs_table(table: Table, engine: Engine, progargs: Any) -> None:
 
 
 def drop_for_clindocs_table(table: Table, engine: Engine) -> None:
+    """
+    Reverses the changes made by :func:`process_clindocs_table` to the RiO
+    Clinical Documents table.
+
+    Args:
+        table: SQLAlchemy Table to process
+        engine: an SQLAlchemy database Engine
+    """
     drop_indexes(engine, table, [CRATE_IDX_RIONUM_SERIALNUM,
                                  CRATE_IDX_MAX_DOCVER,
                                  CRATE_IDX_LAST_DOC])
@@ -478,11 +985,27 @@ def drop_for_clindocs_table(table: Table, engine: Engine) -> None:
 # =============================================================================
 
 def get_rio_views(engine: Engine,
-                  progargs: None,
+                  configoptions: RioViewConfigOptions,
                   ddhint: DDHint,
                   suppress_basetables: bool = True,
                   suppress_lookup: bool = True) -> List[ViewMaker]:
-    # ddhint modified
+    """
+    Gets all view definitions for RiO.
+
+    Args:
+        engine: an SQLAlchemy database Engine
+        configoptions: instance of :class:`RioViewConfigOptions`
+        ddhint: a :class:`crate_anon/preprocess/ddhint.DDHint`, which will be
+            modified
+        suppress_basetables: suppress (for data-dictionary generating hints)
+            the RiO base tables for views that are made on them?
+        suppress_lookup: suppress (for data-dictionary generating hints) lookup
+            tables whose information has been linked into views?
+
+    Returns:
+        a list of :class:`crate_anon.common.sql.ViewMaker` objects
+
+    """
     views = []  # type: List[ViewMaker]
     all_tables_lower = get_table_names(engine, to_lower=True)
     all_views_lower = get_view_names(engine, to_lower=True)
@@ -505,16 +1028,19 @@ def get_rio_views(engine: Engine,
         # noinspection PyTypeChecker
         viewmaker = ViewMaker(
             viewname=viewname,
-            engine=engine, basetable=basetable,
-            rename=rename, progargs=progargs,
-            enforce_same_n_rows_as_base=enforce_same_n_rows_as_base)
+            engine=engine,
+            basetable=basetable,
+            rename=rename,
+            userobj=configoptions,
+            enforce_same_n_rows_as_base=enforce_same_n_rows_as_base
+        )
         if 'add' in viewdetails:
             for addition in viewdetails['add']:
                 func = addition['function']
                 kwargs = addition.get('kwargs', {})
                 kwargs['viewmaker'] = viewmaker
                 func(**kwargs)  # will alter viewmaker
-        if progargs.audit_info:
+        if configoptions.audit_info:
             rio_add_audit_info(viewmaker)  # will alter viewmaker
         if suppress_lookup:
             ddhint.suppress_tables(viewmaker.get_lookup_tables())
@@ -526,19 +1052,39 @@ def get_rio_views(engine: Engine,
 
 def create_rio_views(engine: Engine,
                      metadata: MetaData,
-                     progargs: Any,
-                     ddhint: DDHint) -> None:  # ddhint modified
-    rio_views = get_rio_views(engine, progargs, ddhint)
+                     configoptions: RioViewConfigOptions,
+                     ddhint: DDHint) -> None:
+    """
+    Creates all views on a RiO/RCEP database.
+
+    Args:
+        engine: an SQLAlchemy Engine
+        metadata: SQLAlchemy MetaData containing reflected details of database
+        configoptions: an instance of :class:`RioViewConfigOptions`
+        ddhint: a :class:`crate_anon/preprocess/ddhint.DDHint`, which will be
+            modified
+    """
+    rio_views = get_rio_views(engine, configoptions, ddhint)
     for viewmaker in rio_views:
         viewmaker.create_view(engine)
-    ddhint.add_indexes(engine, metadata)
+    ddhint.create_indexes(engine, metadata)
 
 
 def drop_rio_views(engine: Engine,
                    metadata: MetaData,
-                   progargs: Any,
+                   configoptions: RioViewConfigOptions,
                    ddhint: DDHint) -> None:  # ddhint modified
-    rio_views = get_rio_views(engine, progargs, ddhint)
+    """
+    Drops all views on a RiO/RCEP database.
+
+    Args:
+        engine: an SQLAlchemy Engine
+        metadata: SQLAlchemy MetaData containing reflected details of database
+        configoptions: an instance of :class:`RioViewConfigOptions`
+        ddhint: a :class:`crate_anon/preprocess/ddhint.DDHint`, which will be
+            modified
+    """
+    rio_views = get_rio_views(engine, configoptions, ddhint)
     ddhint.drop_indexes(engine, metadata)
     for viewmaker in rio_views:
         viewmaker.drop_view(engine)
@@ -549,11 +1095,23 @@ def drop_rio_views(engine: Engine,
 # =============================================================================
 
 def add_postcode_geography_view(engine: Engine,
-                                progargs: Any,
-                                ddhint: DDHint) -> None:  # ddhint modified
+                                configoptions: RioViewConfigOptions,
+                                ddhint: DDHint) -> None:
+    """
+    Modifies a viewmaker to add geography columns to views on RiO tables. For
+    example, if you start with an address table including postcodes, and you're
+    building a view involving it, then you can link in LSOA or IMD information
+    with this function.
+
+    Args:
+        engine: an SQLAlchemy Engine
+        configoptions: an instance of :class:`RioViewConfigOptions`
+        ddhint: a :class:`crate_anon/preprocess/ddhint.DDHint`, which will be
+            modified
+    """
     # Re-read column names, as we may have inserted some recently by hand that
     # may not be in the initial metadata.
-    if progargs.rio:
+    if configoptions.rio:
         addresstable = RIO_TABLE_ADDRESS
         rio_postcodecol = RIO_COL_POSTCODE
     else:
@@ -564,7 +1122,7 @@ def add_postcode_geography_view(engine: Engine,
 
     # Remove any original column names being overridden by new ones.
     # (Could also do this the other way around!)
-    geogcols_lowercase = [x.lower() for x in progargs.geogcols]
+    geogcols_lowercase = [x.lower() for x in configoptions.geogcols]
     orig_column_names = [x for x in orig_column_names
                          if x.lower() not in geogcols_lowercase]
 
@@ -573,17 +1131,17 @@ def add_postcode_geography_view(engine: Engine,
         for col in orig_column_names
     ]
     geog_col_specs = [
-        "{db}.{t}.{c}".format(db=progargs.postcodedb,
+        "{db}.{t}.{c}".format(db=configoptions.postcodedb,
                               t=ONSPD_TABLE_POSTCODE,
                               c=col)
-        for col in sorted(progargs.geogcols, key=lambda x: x.lower())
+        for col in sorted(configoptions.geogcols, key=lambda x: x.lower())
     ]
-    overlap = set(orig_column_names) & set(progargs.geogcols)
+    overlap = set(orig_column_names) & set(configoptions.geogcols)
     if overlap:
         raise ValueError(
             "Columns overlap: address table contains columns {}; "
             "geogcols = {}; overlap = {}".format(
-                orig_column_names, progargs.geogcols, overlap))
+                orig_column_names, configoptions.geogcols, overlap))
     ensure_columns_present(engine, tablename=addresstable, column_names=[
         rio_postcodecol])
     select_sql = """
@@ -602,7 +1160,7 @@ def add_postcode_geography_view(engine: Engine,
         addresstable=addresstable,
         origcols=",\n            ".join(orig_column_specs),
         geogcols=",\n            ".join(geog_col_specs),
-        pdb=progargs.postcodedb,
+        pdb=configoptions.postcodedb,
         pcdtab=ONSPD_TABLE_POSTCODE,
         rio_postcodecol=rio_postcodecol,
     )
@@ -616,29 +1174,40 @@ def add_postcode_geography_view(engine: Engine,
 # Table action selector
 # =============================================================================
 
-def process_table(table: Table, engine: Engine, progargs: Any) -> None:
+def process_table(table: Table, engine: Engine,
+                  configoptions: RioViewConfigOptions) -> None:
+    """
+    Process a RiO-like table; the specific action is selected by the database
+    type and there are custom processors for some tables (e.g. master patient
+    table, progress notes, clinical documents).
+
+    Args:
+        table: SQLAlchemy Table to process
+        engine: an SQLAlchemy database Engine
+        configoptions: instance of :class:`RioViewConfigOptions`
+    """
     tablename = table.name
     column_names = table.columns.keys()
     log.debug("TABLE: {}; COLUMNS: {}".format(tablename, column_names))
-    if progargs.rio:
+    if configoptions.rio:
         patient_table_indicator_column = get_rio_patient_id_col(table)
     else:  # RCEP:
         patient_table_indicator_column = RCEP_COL_PATIENT_ID
 
     is_patient_table = (patient_table_indicator_column in column_names or
-                        tablename == progargs.full_prognotes_table)
+                        tablename == configoptions.full_prognotes_table)
     # ... special for RCEP/CPFT, where a RiO table (with different patient ID
     # column) lives within an RCEP database.
-    if progargs.drop_danger_drop:
+    if configoptions.drop_not_create:
         # ---------------------------------------------------------------------
         # DROP STUFF! Opposite order to creation (below)
         # ---------------------------------------------------------------------
         # Specific
-        if tablename == progargs.master_patient_table:
+        if tablename == configoptions.master_patient_table:
             drop_for_master_patient_table(table, engine)
-        elif tablename == progargs.full_prognotes_table:
+        elif tablename == configoptions.full_prognotes_table:
             drop_for_progress_notes(table, engine)
-        elif progargs.rio and tablename == RIO_TABLE_CLINICAL_DOCUMENTS:
+        elif configoptions.rio and tablename == RIO_TABLE_CLINICAL_DOCUMENTS:
             drop_for_clindocs_table(table, engine)
         # Generic
         if is_patient_table:
@@ -651,24 +1220,32 @@ def process_table(table: Table, engine: Engine, progargs: Any) -> None:
         # ---------------------------------------------------------------------
         # Generic
         if is_patient_table:
-            process_patient_table(table, engine, progargs)
+            process_patient_table(table, engine, configoptions)
         else:
-            process_nonpatient_table(table, engine, progargs)
+            process_nonpatient_table(table, engine, configoptions)
         # Specific
-        if tablename == progargs.master_patient_table:
-            process_master_patient_table(table, engine, progargs)
-        elif progargs.rio and tablename == RIO_TABLE_CLINICAL_DOCUMENTS:
-            process_clindocs_table(table, engine, progargs)
-        elif tablename == progargs.full_prognotes_table:
-            process_progress_notes(table, engine, progargs)
+        if tablename == configoptions.master_patient_table:
+            process_master_patient_table(table, engine, configoptions)
+        elif configoptions.rio and tablename == RIO_TABLE_CLINICAL_DOCUMENTS:
+            process_clindocs_table(table, engine, configoptions)
+        elif tablename == configoptions.full_prognotes_table:
+            process_progress_notes(table, engine, configoptions)
 
 
 def process_all_tables(engine: Engine,
                        metadata: MetaData,
-                       progargs: Any) -> None:
+                       configoptions: RioViewConfigOptions) -> None:
+    """
+    Process all RiO-like tables via :func:`process_table`.
+
+    Args:
+        metadata: SQLAlchemy MetaData containing reflected details of database
+        engine: an SQLAlchemy database Engine
+        configoptions: instance of :class:`RioViewConfigOptions`
+    """
     for table in sorted(metadata.tables.values(),
                         key=lambda t: t.name.lower()):
-        process_table(table, engine, progargs)
+        process_table(table, engine, configoptions)
 
 
 # =============================================================================
@@ -676,6 +1253,9 @@ def process_all_tables(engine: Engine,
 # =============================================================================
 
 def main() -> None:
+    """
+    Command-line parser. See command-line help.
+    """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -708,7 +1288,7 @@ def main() -> None:
     parser.add_argument(
         "--cpft", action="store_true",
         help="Apply hacks for Cambridgeshire & Peterborough NHS Foundation "
-             "Trust (CPFT) RCEP database. Only appicable with --rcep")
+             "Trust (CPFT) RCEP database. Only applicable with --rcep")
 
     parser.add_argument(
         "--debug-skiptables", action="store_true",
@@ -790,22 +1370,22 @@ def main() -> None:
     configure_logger_for_colour(
         rootlogger, level=logging.DEBUG if progargs.verbose else logging.INFO)
 
-    progargs.rio = not progargs.rcep
+    rio = not progargs.rcep
     if progargs.rcep:
         # RCEP
-        progargs.master_patient_table = RCEP_TABLE_MASTER_PATIENT
+        master_patient_table = RCEP_TABLE_MASTER_PATIENT
         if progargs.cpft:
-            progargs.full_prognotes_table = CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES
+            full_prognotes_table = CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES
             # We (CPFT) may have a hacked-in copy of the RiO main progress
             # notes table added to the RCEP output database.
         else:
-            progargs.full_prognotes_table = None
+            full_prognotes_table = None
             # The RCEP does not export sufficient information to distinguish
             # current and non-current versions of progress notes.
     else:
         # RiO
-        progargs.master_patient_table = RIO_TABLE_MASTER_PATIENT
-        progargs.full_prognotes_table = RIO_TABLE_PROGRESS_NOTES
+        master_patient_table = RIO_TABLE_MASTER_PATIENT
+        full_prognotes_table = RIO_TABLE_PROGRESS_NOTES
 
     log.info("CRATE in-place preprocessor for RiO or RiO CRIS Extract Program "
              "(RCEP) databases")
@@ -832,23 +1412,38 @@ def main() -> None:
     metadata.reflect(engine)
     log.info("... inspection complete")
 
+    configoptions = RioViewConfigOptions(
+        rio=rio,
+        rcep=progargs.rcep,
+        cpft=progargs.cpft,
+        print_sql_only=progargs.print,
+        drop_not_create=progargs.drop_danger_drop,
+        master_patient_table=master_patient_table,
+        full_prognotes_table=full_prognotes_table,
+        prognotes_current_only=progargs.prognotes_current_only,
+        clindocs_current_only=progargs.clindocs_current_only,
+        allergies_current_only=progargs.allergies_current_only,
+        audit_info=progargs.audit_info,
+        postcodedb=progargs.postcodedb,
+        geogcols=progargs.geogcols,
+    )
     ddhint = DDHint()
 
     if progargs.drop_danger_drop:
         # Drop views (and view-induced table indexes) first
         if progargs.rio:
-            drop_rio_views(engine, metadata, progargs, ddhint)
+            drop_rio_views(engine, metadata, configoptions, ddhint)
         drop_view(engine, VIEW_ADDRESS_WITH_GEOGRAPHY)
         if not progargs.debug_skiptables:
-            process_all_tables(engine, metadata, progargs)
+            process_all_tables(engine, metadata, configoptions)
     else:
         # Tables first, then views
         if not progargs.debug_skiptables:
-            process_all_tables(engine, metadata, progargs)
+            process_all_tables(engine, metadata, configoptions)
         if progargs.postcodedb:
-            add_postcode_geography_view(engine, progargs, ddhint)
+            add_postcode_geography_view(engine, configoptions, ddhint)
         if progargs.rio:
-            create_rio_views(engine, metadata, progargs, ddhint)
+            create_rio_views(engine, metadata, configoptions, ddhint)
 
     if progargs.settings_filename:
         with open(progargs.settings_filename, 'w') as f:

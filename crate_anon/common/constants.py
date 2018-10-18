@@ -24,6 +24,8 @@ crate_anon/common/constants.py
 
 ===============================================================================
 
+**Constants used throughout CRATE.**
+
 """
 
 import os

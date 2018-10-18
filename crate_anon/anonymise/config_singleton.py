@@ -24,7 +24,7 @@ crate_anon/anonymise/config_singleton.py
 
 ===============================================================================
 
-**Singleton CRATE anonymiser config object.***
+**Singleton CRATE anonymiser config object.**
 
 A singleton class here is messy. The reason we use it is that class
 definitions, such as :class:`crate_anon.anonymise.models.PatientInfo`, depend

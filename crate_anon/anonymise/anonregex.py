@@ -102,8 +102,8 @@ def get_anon_fragments_from_string(s: str) -> List[str]:
     - Note that this is a LIBERAL algorithm, i.e. one prone to anonymise too
       much (e.g. all instances of ``"Street"`` if someone has that as part of
       their address).
-    - NOTE THAT WE USE THE "WORD BOUNDARY" FACILITY WHEN REPLACING, AND THAT
-      TREATS APOSTROPHES AND HYPHENS AS WORD BOUNDARIES.
+    - *Note that we use the "word boundary" facility when replacing, and that
+      treats apostrophes and hyphens as word boundaries.*
       Therefore, we don't need the largest-level chunks, like ``D'Souza``.
     """
     return NON_ALPHANUMERIC_SPLITTERS.split(s)

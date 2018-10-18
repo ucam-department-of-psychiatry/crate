@@ -65,6 +65,10 @@ from crate_anon.anonymise.models import (
 )
 from crate_anon.anonymise.patient import Patient
 from crate_anon.anonymise.ddr import DataDictionaryRow
+from crate_anon.common.file_io import (
+    gen_integers_from_file,
+    gen_words_from_file,
+)
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.common.parallel import is_my_job_by_hash, is_my_job_by_int
 from crate_anon.common.sql import matches_tabledef
@@ -345,7 +349,7 @@ def get_valid_pid_subset(given_pids: List[Any]) -> List[str]:
     if pid_is_integer:
         # Remove non-integer values of pid if pids are supposed to be integer
         final_given_pids = []
-        for pid in enumerate(given_pids):
+        for pid in given_pids:
             try:
                 int(pid)
                 final_given_pids.append(pid)
@@ -406,7 +410,7 @@ def get_pid_subset_from_field(field: str,
 
     then a call like
 
-    .. code-block:: python:
+    .. code-block:: python
 
         get_subset_from_field("mydb.mystudyinfo.include_in_extract",
                               ["yes", "1", "definitely"])
@@ -515,7 +519,7 @@ def fieldname_is_pid(field: str) -> bool:
 
 
 def get_pids_from_file(field: str, filename: str) -> List[str]:
-    """"
+    """
     Takes a field name, and a filename of values of that field, and returns
     a list of PIDs associated with them.
 
@@ -644,7 +648,7 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[Any]:
 
     then a call like
 
-    .. code-block:: python:
+    .. code-block:: python
 
         get_subset_from_field("mydb.myoptouts.opt_out_level", 2, 3)
 
@@ -1512,37 +1516,6 @@ def drop_remake(incremental: bool = False,
             delete_dest_rows_with_no_src_row(
                 d, t, report_every=config.report_every_n_rows,
                 chunksize=config.chunksize)
-
-
-def gen_words_from_file(filename: str) -> Generator[str, None, None]:
-    """
-    Generate words from a file.
-
-    Args:
-        filename:
-
-    Yields:
-        each word
-    """
-    for line in open(filename):
-        for word in line.split():
-            yield word
-
-
-def gen_integers_from_file(filename: str) -> Generator[int, None, None]:
-    """
-    Generates integers from a file.
-
-    Args:
-        filename: filename to parse
-
-    Yields:
-        all valid integers from words in the file
-    """
-    for word in gen_words_from_file(filename):
-        if word.isdigit():
-            pid = int(word)
-            yield pid
 
 
 def gen_opt_out_pids_from_file(mpid: bool = False) \

@@ -33,7 +33,7 @@ Eponyms from 2018-03-27 snapshot of:
 Remember the following:
 
 - Patient names should be removed using their identifiable information.
-  This is just an additional experimental safety measure.
+  Removing all known names is just an additional experimental safety measure.
 - The eponyms are removed from the name lists, before the name lists are
   used to scrub text -- so we don't scrub "Parkinson's disease", as an
   obvious example.

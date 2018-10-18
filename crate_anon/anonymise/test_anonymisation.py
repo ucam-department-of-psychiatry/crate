@@ -71,6 +71,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from cardinal_pythonlib.fileops import mkdir_p
 from cardinal_pythonlib.logs import configure_logger_for_colour
+from cardinal_pythonlib.typing_helpers import CSVWriterType
 
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.patient import Patient
@@ -79,13 +80,38 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
+# Imports
+# =============================================================================
+
+DEFAULT_LIMIT = 100
+
+
+# =============================================================================
 # Specific tests
 # =============================================================================
 
 class FieldInfo(object):
+    """
+    Fetches useful subsets from the data dictionary (DD), for tables that have
+    a primary key, a patient ID, and some text field of interest.
+
+    Reads the singleton :class:`crate_anon.anonymise.config.Config`.
+    """
     def __init__(self, table: str, field: str) -> None:
         """
-        Fetches useful subsets from the data dictionary.
+        Reads the data dictionary and populates:
+
+        - :attribute:`pk_ddrow`: DD row (DDR) for the table's PK
+        - :attribute:`pid_ddrow`: DDR for the table's PID field
+        - :attribute:`text_ddrow`: DDR for the table's text field (as
+          chosen by the ``field`` parameter)
+
+        Args:
+            table: destination table to read information for
+            field: destination text field to read information for
+
+        Raises:
+            :exc:`ValueError` if appropriate fields cannot be found
         """
         ddrows = config.dd.get_rows_for_dest_table(table)
         if not ddrows:
@@ -118,7 +144,17 @@ def get_patientnum_rawtext(docid: int,
                                                           Optional[str]]:
     """
     Fetches the original text for a given document PK, plus the associated
-    patient ID.
+    patient ID (PID).
+
+    Args:
+        docid: integer PK for the document
+        fieldinfo: :class:`FieldInfo` describing the table
+
+    Returns:
+        tuple: ``pid, text``, or ``None, None`` if none found
+
+    Raises:
+        :exc:`ValueError` if appropriate fields cannot be found
     """
     db = config.sources[fieldinfo.text_ddrow.src_db]
     table = fieldinfo.text_ddrow.src_table
@@ -167,19 +203,26 @@ def get_patientnum_anontext(docid: int,
                                                            Optional[str]]:
     """
     Fetches the anonymised text for a given document PK, plus the associated
-    patient ID.
+    research ID (RID).
+
+    Args:
+        docid: integer PK for the document
+        fieldinfo: :class:`FieldInfo` describing the table
+
+    Returns:
+        tuple: ``rid, text``, or ``None, None`` if none found
     """
     db = config.destdb
     table = fieldinfo.text_ddrow.dest_table
     textfield = fieldinfo.text_ddrow.dest_field
-    pidfield = fieldinfo.pid_ddrow.dest_field
+    ridfield = fieldinfo.pid_ddrow.dest_field
     pkfield = fieldinfo.pk_ddrow.dest_field
     query = """
-        SELECT {pidfield}, {textfield}
+        SELECT {ridfield}, {textfield}
         FROM {table}
         WHERE {pkfield} = ?
     """.format(
-        pidfield=pidfield,
+        ridfield=ridfield,
         textfield=textfield,
         table=table,
         pkfield=pkfield,
@@ -188,35 +231,53 @@ def get_patientnum_anontext(docid: int,
     result = db.fetchone(query, docid)
     if not result:
         return None, None
-    pid, text = result
-    return pid, text
+    rid, text = result
+    return rid, text
 
 
 def process_doc(docid: int,
-                args: Any,
+                rawdir: str,
+                anondir: str,
                 fieldinfo: FieldInfo,
-                csvwriter: Any,
+                csvwriter: CSVWriterType,
                 first: bool,
                 scrubdict: Dict[int, Dict[str, Any]]) -> int:
     """
-    Write the original and anonymised documents to disk, plus some
-    counts to a CSV file.
-    """
+    For a given document ID, write the original and anonymised documents to
+    disk, plus some counts to a CSV file. Also saves scrubber information for
+    each patient.
+
+    Args:
+        docid: integer PK for the document
+        rawdir: directory to store raw documents in
+        anondir: directory to store anonymised documents in
+        fieldinfo: :class:`FieldInfo` describing the table
+        csvwriter: a ``csv.writer()`` object to write summary data to
+        first: is this the first document being processed? If so, we'll add
+            a CSV header
+        scrubdict: a dictionary with ``{pid: scrubber_info}`` information,
+            which is written to by this function. The scrubber information
+            comes from
+            :meth:`crate_anon.anonymise.scrub.PersonalizedScrubber.get_raw_info`
+
+    Returns:
+        the patient ID number (PID)
+    """  # noqa
     # Get stuff
-    patientnum, rawtext = get_patientnum_rawtext(docid, fieldinfo)
-    patientnum2, anontext = get_patientnum_anontext(docid, fieldinfo)
-    # patientnum is raw; patientnum2 is hashed
+    pid, rawtext = get_patientnum_rawtext(docid, fieldinfo)
+    rid, anontext = get_patientnum_anontext(docid, fieldinfo)
 
     # Get scrubbing info
-    patient = Patient(patientnum)
-    scrubber = patient.scrubber
-    scrubdict[patientnum] = scrubber.get_raw_info()
+    if pid not in scrubdict:
+        patient = Patient(pid)
+        # ... builds the scrubber by reading the source database
+        scrubber = patient.scrubber
+        scrubdict[pid] = scrubber.get_raw_info()
 
     # Write text
-    rawfilename = os.path.join(args.rawdir,
-                               "{}_{}.txt".format(patientnum, docid))
-    anonfilename = os.path.join(args.anondir,
-                                "{}_{}.txt".format(patientnum, docid))
+    common_filename_stem = "{}_{}.txt".format(pid, docid)
+    rawfilename = os.path.join(rawdir, common_filename_stem)
+    anonfilename = os.path.join(anondir, common_filename_stem)
     with open(rawfilename, 'w') as f:
         if rawtext:
             f.write(rawtext)
@@ -240,7 +301,7 @@ def process_doc(docid: int,
     summary["src_db"] = fieldinfo.text_ddrow.src_db
     summary["src_table"] = fieldinfo.text_ddrow.src_table
     summary["src_field_pid"] = fieldinfo.pid_ddrow.src_field
-    summary["pid"] = patientnum
+    summary["pid"] = pid
     summary["src_field_pk"] = fieldinfo.pk_ddrow.src_field
     summary["docid"] = docid
     summary["src_field_text"] = fieldinfo.text_ddrow.src_field
@@ -263,14 +324,31 @@ def process_doc(docid: int,
         csvwriter.writerow(list(summary.keys()))
     csvwriter.writerow(list(summary.values()))
 
-    return patientnum
+    return pid
 
 
-def get_docids(args: Any,
-               fieldinfo: FieldInfo,
+def get_docids(fieldinfo: FieldInfo,
+               uniquepatients: bool = True,
+               limit: int = DEFAULT_LIMIT,
                from_src: bool = True) -> List[int]:
     """
-    Generate a limited set of PKs for the documents.
+    Returns a limited number of document PKs (which we will use to summarize
+    anonymisation performance).
+
+    Args:
+        fieldinfo:
+            :class:`FieldInfo` describing the table
+        uniquepatients:
+            fetch one document each for a lot of patients (rather than a lot of
+            documents, potentially from the same patient or a small number)?
+        limit:
+            maximum number of documents to retrieve
+        from_src:
+            retrieve IDs from the source database, not the destination
+            database?
+
+    Returns:
+        a list of document IDs
     """
     if from_src:
         db = config.sources[fieldinfo.text_ddrow.src_db]
@@ -282,7 +360,7 @@ def get_docids(args: Any,
         table = fieldinfo.pk_ddrow.dest_table
         pkfield = fieldinfo.pk_ddrow.dest_field
         pidfield = fieldinfo.pid_ddrow.dest_field
-    if args.uniquepatients:
+    if uniquepatients:
         query = """
             SELECT MIN({pkfield}), {pidfield}
             FROM {table}
@@ -293,7 +371,7 @@ def get_docids(args: Any,
             pkfield=pkfield,
             pidfield=pidfield,
             table=table,
-            limit=args.limit,
+            limit=limit,
         )
         return db.fetchallfirstvalues(query)
     else:
@@ -305,38 +383,80 @@ def get_docids(args: Any,
         """.format(
             pkfield=pkfield,
             table=table,
-            limit=args.limit,
+            limit=limit,
         )
         return db.fetchallfirstvalues(query)
 
 
-def test_anon(args: Any) -> None:
+def test_anon(uniquepatients: bool,
+              limit: int,
+              from_src: bool,
+              rawdir: str,
+              anondir: str,
+              scrubfile: str,
+              resultsfile: str,
+              dsttable: str,
+              dstfield: str) -> None:
     """
-    Fetch raw and anonymised documents and store them in files for
-    comparison, along with some summary information.
+    Fetch raw and anonymised documents and store them in files for comparison,
+    along with some summary information.
+
+    Args:
+        uniquepatients:
+            fetch one document each for a lot of patients (rather than a lot of
+            documents, potentially from the same patient or a small number)?
+        limit:
+            maximum number of documents to retrieve
+        from_src:
+            retrieve IDs from the source database, not the destination
+            database?
+        rawdir:
+            directory to store raw documents in
+        anondir:
+            directory to store anonymised documents in
+        scrubfile:
+            filename to store scrubber information in (as JSON)
+        resultsfile:
+            filename to store CSV summaries in
+        dsttable:
+            name of the destination table
+        dstfield:
+            name of the destination table's text field of interest
     """
-    fieldinfo = FieldInfo(args.dsttable, args.dstfield)
-    docids = get_docids(args, fieldinfo, args.from_src)
-    mkdir_p(args.rawdir)
-    mkdir_p(args.anondir)
+    fieldinfo = FieldInfo(dsttable, dstfield)
+    docids = get_docids(
+        fieldinfo=fieldinfo,
+        uniquepatients=uniquepatients,
+        limit=limit,
+        from_src=from_src
+    )
+    mkdir_p(rawdir)
+    mkdir_p(anondir)
     scrubdict = {}
     pidset = set()
-    with open(args.resultsfile, 'w') as csvfile:
+    with open(resultsfile, 'w') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter='\t')
         first = True
         for docid in docids:
             # noinspection PyTypeChecker
-            pid = process_doc(docid, args, fieldinfo, csvwriter, first,
-                              scrubdict)
+            pid = process_doc(
+                docid=docid,
+                rawdir=rawdir,
+                anondir=anondir,
+                fieldinfo=fieldinfo,
+                csvwriter=csvwriter,
+                first=first,
+                scrubdict=scrubdict
+            )
             first = False
             pidset.add(pid)
-    with open(args.scrubfile, 'w') as f:
+    with open(scrubfile, 'w') as f:
         f.write(json.dumps(scrubdict, indent=4))
-    log.info("Finished. See {} for a summary.".format(args.resultsfile))
+    log.info("Finished. See {} for a summary.".format(resultsfile))
     log.info(
         "Use meld to compare directories {} and {}".format(
-            args.rawdir,
-            args.anondir,
+            rawdir,
+            anondir,
         )
     )
     log.info("To install meld on Debian/Ubuntu: sudo apt-get install meld")
@@ -349,7 +469,7 @@ def test_anon(args: Any) -> None:
 
 def main() -> None:
     """
-    Command-line entry point.
+    Command-line entry point. See command-line help.
     """
     parser = argparse.ArgumentParser(
         description='Test anonymisation',
@@ -360,7 +480,7 @@ def main() -> None:
                         help='Destination table')
     parser.add_argument('--dstfield', required=True,
                         help='Destination column')
-    parser.add_argument('--limit', type=int, default=100,
+    parser.add_argument('--limit', type=int, default=DEFAULT_LIMIT,
                         help='Limit on number of documents')
     parser.add_argument('--rawdir', default='raw',
                         help='Directory for raw output text files')
@@ -403,7 +523,17 @@ def main() -> None:
     log.info("... config loaded")
 
     # Do it
-    test_anon(args)
+    test_anon(
+        anondir=args.anondir,
+        dstfield=args.dstfield,
+        dsttable=args.dsttable,
+        from_src=args.from_src,
+        limit=args.limit,
+        rawdir=args.rawdir,
+        resultsfile=args.resultsfile,
+        scrubfile=args.scrubfile,
+        uniquepatients=args.uniquepatients,
+    )
 
 
 if __name__ == '__main__':

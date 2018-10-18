@@ -24,6 +24,8 @@ crate_anon/preprocess/rio_constants.py
 
 ===============================================================================
 
+**Constants used for Servelec RiO/RCEP databases.**
+
 """
 
 # Tables in RiO v6.2 Core:

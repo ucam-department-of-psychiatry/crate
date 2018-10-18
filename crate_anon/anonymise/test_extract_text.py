@@ -24,7 +24,7 @@ crate_anon/anonymise/test_extract_text.py
 
 ===============================================================================
 
-Anonymise multiple SQL-based databases using a data dictionary.
+**Test CRATE's text-extraction system.**
 
 """
 
@@ -40,6 +40,9 @@ from crate_anon.common.stringfunc import uprint
 
 
 def main():
+    """
+    Command-line entry point. See command-line help.
+    """
     parser = argparse.ArgumentParser(
         description="Test CRATE text extraction",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)

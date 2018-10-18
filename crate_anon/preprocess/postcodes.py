@@ -24,6 +24,8 @@ crate_anon/preprocess/postcodes.py
 
 ===============================================================================
 
+**Fetches UK postcode information and creates a database.**
+
 Code-Point Open, CSV, GB
 
 - https://www.ordnancesurvey.co.uk/business-and-government/products/opendata-products.html
@@ -40,22 +42,27 @@ Office for National Statistics Postcode Database (ONSPD):
 Background:
 
 - OA = Output Area
-  ... smallest: >=40 households, >=100 people
-  ... 181,408 OAs in England & Wales
+
+  - smallest: >=40 households, >=100 people
+  - 181,408 OAs in England & Wales
 
 - LSOA = Lower Layer Super Output Area
-  ... 34,753 LSOAs in England & Wales
+
+  - 34,753 LSOAs in England & Wales
 
 - MSOA = Middle Layer Super Output Area
-  ... 7,201 MSOAs in England & Wales
+
+  - 7,201 MSOAs in England & Wales
 
 - WZ = Workplace Zone
 
   - https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#workplace-zone-wz
 
 - https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#output-area-oa
+
 """  # noqa
 
+from abc import ABCMeta, abstractmethod
 import argparse
 import csv
 import datetime
@@ -84,6 +91,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
+from sqlalchemy.sql.schema import Table
 import xlrd
 
 from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
@@ -104,39 +112,65 @@ NAME_LEN = 80  # seems about right; a bit more than the length of many
 # Ancillary functions
 # =============================================================================
 
-def convert_date(kwargs: Dict[str, Any], field: str) -> None:
-    if field not in kwargs:
+def convert_date(d: Dict[str, Any], key: str) -> None:
+    """
+    Modifies ``d[key]``, if it exists, to convert it to a
+    :class:`datetime.datetime` or ``None``.
+
+    Args:
+        d: dictionary
+        key: key
+    """
+    if key not in d:
         return
-    value = kwargs[field]
+    value = d[key]
     if value:
-        kwargs[field] = datetime.datetime.strptime(value,
-                                                   YEAR_MONTH_FMT)
+        d[key] = datetime.datetime.strptime(value,
+                                            YEAR_MONTH_FMT)
     else:
-        kwargs[field] = None
+        d[key] = None
 
 
-def convert_int(kwargs: Dict[str, Any], field: str) -> None:
-    if field not in kwargs:
+def convert_int(d: Dict[str, Any], key: str) -> None:
+    """
+    Modifies ``d[key]``, if it exists, to convert it to an int or ``None``.
+
+    Args:
+        d: dictionary
+        key: key
+    """
+    if key not in d:
         return
-    value = kwargs[field]
+    value = d[key]
     if value is None or (isinstance(value, str) and not value.strip()):
-        kwargs[field] = None
+        d[key] = None
     else:
-        kwargs[field] = int(value)
+        d[key] = int(value)
 
 
-def convert_float(kwargs: Dict[str, Any], field: str) -> None:
-    if field not in kwargs:
+def convert_float(d: Dict[str, Any], key: str) -> None:
+    """
+    Modifies ``d[key]``, if it exists, to convert it to a float or ``None``.
+
+    Args:
+        d: dictionary
+        key: key
+    """
+    if key not in d:
         return
-    value = kwargs[field]
+    value = d[key]
     if value is None or (isinstance(value, str) and not value.strip()):
-        kwargs[field] = None
+        d[key] = None
     else:
-        kwargs[field] = float(value)
+        d[key] = float(value)
 
 
 def values_from_row(row: Iterable[Cell]) -> List[Any]:
-    """For openpyxl interface to XLSX files."""
+    """
+    Returns all values from a spreadsheet row.
+
+    For the ``openpyxl`` interface to XLSX files.
+    """
     values = []
     for cell in row:
         values.append(cell.value)
@@ -144,6 +178,9 @@ def values_from_row(row: Iterable[Cell]) -> List[Any]:
 
 
 def commit_and_announce(session: Session) -> None:
+    """
+    Commits an SQLAlchemy ORM session and says so.
+    """
     log.info("COMMIT")
     session.commit()
 
@@ -154,10 +191,47 @@ def commit_and_announce(session: Session) -> None:
 # =============================================================================
 
 class ExtendedBase(object):
+    """
+    Mixin to extend the SQLAlchemy ORM Base class by specifying table creation
+    parameters (specifically, for MySQL, to set the character set and
+    MySQL engine).
+
+    Only used in the creation of Base; everything else then inherits from Base
+    as usual.
+    """
     __table_args__ = TABLE_KWARGS
 
 
 Base = declarative_base(metadata=metadata, cls=ExtendedBase)
+
+
+class GenericLookupClassType(Base, metaclass=ABCMeta):
+    """
+    Type hint for our various simple lookup classes.
+
+    Alternatives that don't work: Type[Base], Type[BASETYPE], type(Base).
+    """
+
+    @abstractmethod
+    def __call__(self, *args, **kwargs) -> None:
+        # Represents __init__... not sure I have this quite right, but it
+        # appeases PyCharm; see populate_generic_lookup_table()
+        pass
+
+    @property
+    @abstractmethod
+    def __table__(self) -> Table:
+        pass
+
+    @property
+    @abstractmethod
+    def __tablename__(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def __filename__(self) -> str:
+        pass
 
 
 # =============================================================================
@@ -165,7 +239,9 @@ Base = declarative_base(metadata=metadata, cls=ExtendedBase)
 # =============================================================================
 
 class Postcode(Base):
-    """Maps individual postcodes to... lots of things. Large table."""
+    """
+    Maps individual postcodes to... lots of things. Large table.
+    """
     __tablename__ = 'postcode'
 
     pcd_nospace = Column(String(8), primary_key=True,
@@ -410,6 +486,9 @@ class Postcode(Base):
 # =============================================================================
 
 class OAClassification(Base):
+    """
+    Represents 2011 Census Output Area (OA) classification names/codes.
+    """
     __filename__ = "2011 Census Output Area Classification Names and Codes " \
                    "UK.xlsx"
     __tablename__ = "output_area_classification_2011"
@@ -432,6 +511,9 @@ class OAClassification(Base):
 
 
 class BUA(Base):
+    """
+    Represents England & Wales 2013 build-up area (BUA) codes/names.
+    """
     __filename__ = "BUA_names and codes EW as at 12_13.xlsx"
     __tablename__ = "bua_built_up_area_england_wales_2013"
 
@@ -445,6 +527,9 @@ class BUA(Base):
 
 
 class BUASD(Base):
+    """
+    Represents built-up area subdivisions (BUASD) in England & Wales 2013.
+    """
     __filename__ = "BUASD_names and codes EW as at 12_13.xlsx"
     __tablename__ = "buasd_built_up_area_subdivision_england_wales_2013"
 
@@ -458,6 +543,11 @@ class BUASD(Base):
 
 
 class CASWard(Base):
+    """
+    Represents censua area statistics (CAS) wards in the UK, 2003.
+    
+    - https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#statistical-wards-cas-wards-and-st-wards
+    """  # noqa
     __filename__ = "CAS ward names and codes UK as at 01_03.xlsx"
     __tablename__ = "cas_ward_2003"
 
@@ -471,6 +561,9 @@ class CASWard(Base):
 
 
 class CCG(Base):
+    """
+    Represents clinical commissioning groups (CCGs), England 2015.
+    """
     __filename__ = "CCG names and codes EN as at 07_15.xlsx"
     __tablename__ = "ccg_clinical_commissioning_group_england_2015"
 
@@ -486,6 +579,9 @@ class CCG(Base):
 
 
 class CHP(Base):
+    """
+    Represents community health partnerships (CHPs), Scotland 2012.
+    """
     __filename__ = "CHP names and codes SC as at 04_12.xlsx"
     __tablename__ = "chp_community_health_partnership_scotland_2012"
 
@@ -499,6 +595,11 @@ class CHP(Base):
 
 
 class Country(Base):
+    """
+    Represents UK countries, 2012.
+
+    This is not a long table.
+    """
     __filename__ = "Country names and codes UK as at 08_12.xls"
     __tablename__ = "country_2012"
 
@@ -514,6 +615,9 @@ class Country(Base):
 
 
 class County1991(Base):
+    """
+    Represents counties of England & Wales 1991.
+    """
     __filename__ = "County names and codes EW as at 21_04_91.xls"
     __tablename__ = "county_england_wales_1991"
     __headings__ = ["county_code_census", "county_code_ogss",
@@ -543,6 +647,9 @@ class County1991(Base):
 
 
 class County2010(Base):
+    """
+    Represents counties, England 2010.
+    """
     __filename__ = "County names and codes EN as at 12_10.xls"
     __tablename__ = "county_england_2010"
 
@@ -556,6 +663,9 @@ class County2010(Base):
 
 
 class Datazone(Base):
+    """
+    Represents datazones, Scotland 2011.
+    """
     __filename__ = "Datazone (2011) names and codes SC as at 11_14.xlsx"
     __tablename__ = "dz_datazone_scotland_2011"
 
@@ -569,6 +679,10 @@ class Datazone(Base):
 
 
 class DCELLS(Base):
+    """
+    Represents Department for Children, Education, Lifelong Learning and Skills
+    (DCELLS) names/codes, Wales 2010.
+    """
     __filename__ = "DCELLS names and codes WA as at 12_10.xls"
     __tablename__ = "dcells_dept_children_wales_2010"
 
@@ -582,6 +696,9 @@ class DCELLS(Base):
 
 
 class District(Base):
+    """
+    Represents districts, England & Wales 1991.
+    """
     __filename__ = "District names and codes EW as at 21_4_91.xls"
     __headings__ = ["district_name", "district_code_census",
                     "district_code_ogss", "district_code_ons"]
@@ -597,6 +714,9 @@ class District(Base):
 
 
 class EER(Base):
+    """
+    Represents European electoral regions (EERs), UK 2010.
+    """
     __filename__ = "EER names and codes UK as at 12_10.xls"
     __tablename__ = "eer_european_electoral_region_2010"
 
@@ -610,6 +730,9 @@ class EER(Base):
 
 
 class EnterpriseRegion(Base):
+    """
+    Represents Enterprise Region (ER) names/codes, Scotland 2010.
+    """
     __filename__ = "Enterprise Region names and codes SC as at 12_10.xls"
     __tablename__ = "er_enterprise_region_scotland_2010"
 
@@ -625,6 +748,9 @@ class EnterpriseRegion(Base):
 
 
 class HealthAuthority(Base):
+    """
+    Represents health authorities and health boards, Great Britain 2001.
+    """
     __filename__ = "Health Authority & Health Board names and codes GB as " \
                    "at 12_01.xls"
     __tablename__ = "ha_health_authority_2001"
@@ -639,6 +765,9 @@ class HealthAuthority(Base):
 
 
 class HealthBoardNI(Base):
+    """
+    Represents health boards, Northern Ireland 2003.
+    """
     __filename__ = "Health Board names and codes NI as at 2003.xls"
     __tablename__ = "hb_health_board_n_ireland_2003"
 
@@ -652,6 +781,9 @@ class HealthBoardNI(Base):
 
 
 class HealthBoardSC(Base):
+    """
+    Represents health boards, Scotland 2014.
+    """
     __filename__ = "Health Board names and codes SC as at 12_14.xlsx"
     __tablename__ = "hb_health_board_scotland_2014"
 
@@ -665,6 +797,10 @@ class HealthBoardSC(Base):
 
 
 class HSCBNI(Base):
+    """
+    Represents Health and Social Care Board (HSCB) names/codes, Northern
+    Ireland 2010.
+    """
     __filename__ = "HSCB name and code NI as at 12_10.xls"
     __tablename__ = "hscb_health_social_care_board_n_ireland_2010"
 
@@ -680,6 +816,12 @@ class HSCBNI(Base):
 
 
 class IMDLookupEN(Base):
+    """
+    Represents the Index of Multiple Deprivation (IMD), England 2015.
+
+    **This is quite an important one to us!** IMDs are mapped to LSOAs; see
+    e.g. :class:`LSOAEW2011`.
+    """
     __filename__ = "IMD lookup EN as at 12_15.xlsx"
     __tablename__ = "imd_index_multiple_deprivation_england_2015"
 
@@ -696,6 +838,9 @@ class IMDLookupEN(Base):
 
 
 class IMDLookupNI(Base):
+    """
+    Represents the Index of Multiple Deprivation (IMD), Northern Ireland 2010.
+    """
     __filename__ = "IMD lookup NI as at 12_10.xlsx"
     __tablename__ = "imd_index_multiple_deprivation_n_ireland_2010"
 
@@ -710,6 +855,9 @@ class IMDLookupNI(Base):
 
 
 class IMDLookupSC(Base):
+    """
+    Represents the Index of Multiple Deprivation (IMD), Scotland 2012.
+    """
     __filename__ = "IMD lookup SC as at 12_12.xlsx"
     __tablename__ = "imd_index_multiple_deprivation_scotland_2012"
 
@@ -724,6 +872,9 @@ class IMDLookupSC(Base):
 
 
 class IMDLookupWA(Base):
+    """
+    Represents the Index of Multiple Deprivation (IMD), Wales 2014.
+    """
     __filename__ = "IMD lookup WA as at 12_14.xlsx"
     __tablename__ = "imd_index_multiple_deprivation_wales_2014"
 
@@ -740,6 +891,9 @@ class IMDLookupWA(Base):
 
 
 class IZ2005(Base):
+    """
+    Represents Intermediate Zones (IZ), Scotland 2005.
+    """
     __filename__ = "IZ (2001) names and codes SC as at 11_11.xls"
     # definitely 2005, from metadata
     __tablename__ = "iz_intermediate_zone_scotland_2005"
@@ -754,6 +908,9 @@ class IZ2005(Base):
 
 
 class IZ2011(Base):
+    """
+    Represents Intermediate Zones (IZ), Scotland 2011.
+    """
     __filename__ = "IZ (2011) names and codes SC as at 11_14.xlsx"
     __tablename__ = "iz_intermediate_zone_scotland_2011"
 
@@ -767,6 +924,9 @@ class IZ2011(Base):
 
 
 class LAU(Base):
+    """
+    Represents European Union Local Administrative Units (LAUs), UK 2015.
+    """
     __filename__ = "LAU215_LAU115_NUTS315_NUTS215_NUTS115_UK_LUv2.xlsx"
     __tablename__ = "lau_eu_local_administrative_unit_2015"
 
@@ -796,6 +956,9 @@ class LAU(Base):
 
 
 class LAD(Base):
+    """
+    Represents local authority districts (LADs), UK 2016.
+    """
     __filename__ = "LA_UA names and codes UK as at 02_16.xlsx"
     __tablename__ = "lad_local_authority_district_2016"
 
@@ -809,6 +972,9 @@ class LAD(Base):
 
 
 class LCG(Base):
+    """
+    Represents local commissioning groups (LCGs), Northern Ireland 2010.
+    """
     __filename__ = "LCG names and codes NI as at 12_10.xls"
     __tablename__ = "lcg_local_commissioning_group_n_ireland_2010"
 
@@ -824,6 +990,9 @@ class LCG(Base):
 
 
 class LEA(Base):
+    """
+    Represents Local Education Authorities (LEAs), UK 2009,
+    """
     __filename__ = "LEA and ELB names and codes UK as at 04_09.xls"
     __tablename__ = "lea_local_education_authority_2009"
     # __debug_content__ = True
@@ -838,6 +1007,9 @@ class LEA(Base):
 
 
 class LEP(Base):
+    """
+    Represents Local Enterprise Partnerships (LEPs), England 2013.
+    """
     __filename__ = "LEP names and codes EN as at 12_13.xlsx"
     __tablename__ = "lep_local_enterprise_partnership_england_2013"
     # __debug_content__ = True
@@ -852,6 +1024,9 @@ class LEP(Base):
 
 
 class LHB2014(Base):
+    """
+    Represents Local Health Boards (LHBs), Wales 2014.
+    """
     __filename__ = "LHB names and codes WA as at 12_14.xlsx"
     __tablename__ = "lhb_local_health_board_wales_2014"
     # __debug_content__ = True
@@ -868,6 +1043,9 @@ class LHB2014(Base):
 
 
 class LHB2006(Base):
+    """
+    Represents Local Health Boards (LHBs), Wales 2006.
+    """
     __filename__ = "Local Health Boards names and codes WA as at 06_06.xls"
     __tablename__ = "lhb_local_health_board_wales_2006"
 
@@ -881,6 +1059,9 @@ class LHB2006(Base):
 
 
 class LLSC(Base):
+    """
+    Represents Local Learning [and?] Skills Councils (LLSCs), England 2010.
+    """
     __filename__ = "LLSC names and codes EN as at 12_10.xls"
     __tablename__ = "llsc_local_learning_skills_council_england_2010"
 
@@ -894,6 +1075,9 @@ class LLSC(Base):
 
 
 class LSOAEW2004(Base):
+    """
+    Represents lower layer super output area (LSOAs), England & Wales 2004.
+    """
     __filename__ = "LSOA (2001) names and codes EW as at 02_04.xls"
     __tablename__ = "lsoa_lower_layer_super_output_area_england_wales_2004"
 
@@ -920,6 +1104,12 @@ class LSOANI2005(Base):
 
 
 class LSOAEW2011(Base):
+    """
+    Represents lower layer super output area (LSOAs), England & Wales 2011.
+
+    **This is quite an important one.** LSOAs map to IMDs; see
+    :class:`IMDLookupEN`.
+    """
     __filename__ = "LSOA (2011) names and codes EW as at 12_12.xlsx"
     __tablename__ = "lsoa_lower_layer_super_output_area_england_wales_2011"
 
@@ -933,6 +1123,9 @@ class LSOAEW2011(Base):
 
 
 class MSOAEW2004(Base):
+    """
+    Represents middle layer super output areas (MSOAs), England & Wales 2004.
+    """
     __filename__ = "MSOA (2001) names and codes EW as at 08_04.xls"
     __tablename__ = "msoa_middle_layer_super_output_area_england_wales_2004"
 
@@ -946,6 +1139,9 @@ class MSOAEW2004(Base):
 
 
 class MSOAEW2011(Base):
+    """
+    Represents middle layer super output areas (MSOAs), England & Wales 2011.
+    """
     __filename__ = "MSOA (2011) names and codes EW as at 12_12.xlsx"
     __tablename__ = "msoa_middle_layer_super_output_area_england_wales_2011"
 
@@ -959,6 +1155,9 @@ class MSOAEW2011(Base):
 
 
 class NationalPark(Base):
+    """
+    Represents national parks, Great Britain 2010.
+    """
     __filename__ = "National Park names and codes GB as at 10_10.xls"
     __tablename__ = "park_national_park_2010"
 
@@ -972,6 +1171,9 @@ class NationalPark(Base):
 
 
 class PanSHA(Base):
+    """
+    Represents pan-Strategic Health Authority names/codes, England 2010.
+    """
     __filename__ = "Pan SHA names and codes EN as at 12_10.xls"
     __tablename__ = "psha_pan_strategic_health_authority_aka_hro_england_2010"
 
@@ -987,6 +1189,9 @@ class PanSHA(Base):
 
 
 class Parish(Base):
+    """
+    Represents parishes, England & Wales 2014.
+    """
     __filename__ = "Parish LAD names and codes EW as at 12_14.xlsx"
     __tablename__ = "parish_lad_england_wales_2014"
 
@@ -1004,6 +1209,11 @@ class Parish(Base):
 
 
 class PCT2011(Base):
+    """
+    Represents Primary Care Trust (PCT) organizations, England 2011.
+
+    The forerunner of CCGs (q.v.).
+    """
     __filename__ = "PCO names and codes EN as at 04_11.xls"
     __tablename__ = "pct_primary_care_trust_organization_england_2011"
 
@@ -1019,6 +1229,9 @@ class PCT2011(Base):
 
 
 class PCT2005(Base):
+    """
+    Represents Primary Care Trust (PCT) organizations, England 2005.
+    """
     __filename__ = "PCO names and codes EN as at 10_05.xls"
     __tablename__ = "pct_primary_care_trust_organization_england_2005"
 
@@ -1032,6 +1245,9 @@ class PCT2005(Base):
 
 
 class PFA(Base):
+    """
+    Represents police force areas (PFAs), Great Britain 2015.
+    """
     __filename__ = "PFA names and codes GB as at 12_15.xlsx"
     __tablename__ = "pfa_police_force_area_2015"
 
@@ -1045,6 +1261,9 @@ class PFA(Base):
 
 
 class GOR(Base):
+    """
+    Represents Government Office Regions (GORs), England 2010.
+    """
     __filename__ = "Region (GOR) names and codes EN as at 12_10.xls"
     __tablename__ = "gor_govt_office_region_england_2010"
 
@@ -1060,6 +1279,9 @@ class GOR(Base):
 
 
 class SHA2004(Base):
+    """
+    Represents Strategic Health Authorities (SHAs), England 2004.
+    """
     __filename__ = "SHA names and codes EN as at 09_02_04.xls"
     __tablename__ = "sha_strategic_health_authority_england_2004"
 
@@ -1073,6 +1295,9 @@ class SHA2004(Base):
 
 
 class SHA2010(Base):
+    """
+    Represents Strategic Health Authorities (SHAs), England 2010.
+    """
     __filename__ = "SHA names and codes EN as at 12_10.xls"
     __tablename__ = "sha_strategic_health_authority_england_2010"
 
@@ -1086,6 +1311,9 @@ class SHA2010(Base):
 
 
 class SSR(Base):
+    """
+    Represents Standard Statistical Regions (SSRs), England 1995.
+    """
     __filename__ = "SSR names and codes EN as at 12_05.xls"
     __tablename__ = "ssr_standard_statistical_region_england_1995"
 
@@ -1100,6 +1328,9 @@ class SSR(Base):
 
 
 class Ward1991(Base):
+    """
+    Represents electoral wards, UK 1991.
+    """
     __filename__ = "Ward names and codes UK as at 21_04_91.xls"
     __tablename__ = "electoral_ward_1991"
 
@@ -1117,6 +1348,9 @@ class Ward1991(Base):
 
 
 class Ward1998(Base):
+    """
+    Represents electoral wards, UK 1998.
+    """
     __filename__ = "Ward names and codes UK as at 12_98.xls"
     __tablename__ = "electoral_ward_1998"
 
@@ -1130,6 +1364,9 @@ class Ward1998(Base):
 
 
 class Ward2005(Base):
+    """
+    Represents electoral wards, UK 2005.
+    """
     __filename__ = "Statistical ward names and codes UK as at 2005.xls"
     __tablename__ = "electoral_ward_2005"
 
@@ -1143,6 +1380,9 @@ class Ward2005(Base):
 
 
 class Ward2016(Base):
+    """
+    Represents electoral wards, UK 2016.
+    """
     __filename__ = "Ward names and codes UK as at 05_16.xlsx"
     __tablename__ = "electoral_ward_2016"
 
@@ -1156,6 +1396,9 @@ class Ward2016(Base):
 
 
 class TTWA(Base):
+    """
+    Represents travel-to-work area (TTWAs), UK 2011.
+    """
     __filename__ = "TTWA names and codes UK as at 12_11 v5.xlsx"
     __tablename__ = "ttwa_travel_to_work_area_2011"
 
@@ -1169,6 +1412,9 @@ class TTWA(Base):
 
 
 class NCP(Base):
+    """
+    Represents non-civil parish (NCP) area ("unparished areas"), England 2014.
+    """
     __filename__ = "Unparished areas names and codes EN as at 12_14.xlsx"
     __tablename__ = "ncp_non_civil_parish_2014"
 
@@ -1182,6 +1428,9 @@ class NCP(Base):
 
 
 class WestminsterConstituency(Base):
+    """
+    Represents Westminster parliamentary constituencies, UK 2014.
+    """
     __filename__ = "Westminster Parliamentary Constituency names and codes " \
                    "UK as at 12_14.xlsx"
     __tablename__ = "pcon_westminster_parliamentary_constituency_2014"
@@ -1198,7 +1447,7 @@ class WestminsterConstituency(Base):
 # =============================================================================
 # Models: centroids
 # =============================================================================
-# http://webarchive.nationalarchives.gov.uk/20160105160709/http://www.ons.gov.uk/ons/guide-method/geography/products/census/spatial/centroids/index.html
+# http://webarchive.nationalarchives.gov.uk/20160105160709/http://www.ons.gov.uk/ons/guide-method/geography/products/census/spatial/centroids/index.html  # noqa
 #
 # Looking at lower_layer_super_output_areas_(e+w)_2011_population_weighted_centroids_v2.zip : # noqa
 # - LSOA_2011_EW_PWC.shp -- probably a Shape file;
@@ -1208,6 +1457,14 @@ class WestminsterConstituency(Base):
 # - LSOA_2011_EW_PWC_COORD_V2.CSV  -- LSOA to centroid coordinates
 
 class PopWeightedCentroidsLsoa2011(Base):
+    """
+    Represents a population-weighted centroid of a lower layer super output
+    area (LSOA).
+    
+    That is, the geographical centre of the LSOA, weighted by population. (A
+    first approximation: imagine every person pulling on the centroid
+    simultaneously and with equal force from their home. Where will it end up?)
+    """  # noqa
     __filename__ = "LSOA_2011_EW_PWC_COORD_V2.CSV"
     __tablename__ = "pop_weighted_centroids_lsoa_2011"
     # __debug_content__ = True
@@ -1249,12 +1506,31 @@ class PopWeightedCentroidsLsoa2011(Base):
 
 def populate_postcode_table(filename: str,
                             session: Session,
-                            args: Any,
-                            commit: bool = True) -> None:
+                            replace: bool = False,
+                            startswith: List[str] = None,
+                            reportevery: int = DEFAULT_REPORT_EVERY,
+                            commit: bool = True,
+                            commitevery: int = DEFAULT_COMMIT_EVERY) -> None:
+    """
+    Populates the :class:`Postcode` table, which is very big, from Office of
+    National Statistics Postcode Database (ONSPD) database that you have
+    downloaded.
+
+    Args:
+        filename: CSV file to read
+        session: SQLAlchemy ORM database session
+        replace: replace tables even if they exist? (Otherwise, skip existing
+            tables.)
+        startswith: if specified, restrict to postcodes that start with one of
+            these strings
+        reportevery: report to the Python log every *n* rows
+        commit: COMMIT the session once we've inserted the data?
+        commitevery: if committing: commit every *n* rows inserted
+    """
     tablename = Postcode.__tablename__
     # noinspection PyUnresolvedReferences
     table = Postcode.__table__
-    if not args.replace:
+    if not replace:
         engine = session.bind
         if engine.has_table(tablename):
             log.info("Table {} exists; skipping".format(tablename))
@@ -1271,7 +1547,7 @@ def populate_postcode_table(filename: str,
         reader = csv.DictReader(csvfile)
         for row in reader:
             n += 1
-            if n % args.reportevery == 0:
+            if n % reportevery == 0:
                 log.info("Processing row {}: {} ({} inserted)".format(
                     n, row['pcds'], n_inserted))
                 # log.debug(row)
@@ -1287,9 +1563,9 @@ def populate_postcode_table(filename: str,
                         extra_fields))
             for k in extra_fields:
                 del row[k]
-            if args.startswith:
+            if startswith:
                 ok = False
-                for s in args.startswith:
+                for s in startswith:
                     if row['pcd'].startswith(s):
                         ok = True
                         break
@@ -1298,7 +1574,7 @@ def populate_postcode_table(filename: str,
             obj = Postcode(**row)
             session.add(obj)
             n_inserted += 1
-            if commit and n % args.commitevery == 0:
+            if commit and n % commitevery == 0:
                 commit_and_announce(session)
     if commit:
         commit_and_announce(session)
@@ -1309,19 +1585,35 @@ def populate_postcode_table(filename: str,
 # https://docs.python.org/3/library/typing.html
 
 
-def populate_generic_lookup_table(sa_class: Any,  # Type[Base], Type[BASETYPE] fail on methods  # noqa
-                                  datadir: str,
-                                  session: Session,
-                                  args: Any,
-                                  commit: bool = True) -> None:
+def populate_generic_lookup_table(
+        sa_class: GenericLookupClassType,
+        datadir: str,
+        session: Session,
+        replace: bool = False,
+        commit: bool = True,
+        commitevery: int = DEFAULT_COMMIT_EVERY) -> None:
     """
-    The .TXT files look at first glance like tab-separated values files,
+    Populates one of many generic lookup tables with ONSPD data.
+
+    We find the data filename from the ``__filename__`` property of the
+    specific class, hunting for it within ``datadir`` and its subdirectories.
+
+    The ``.TXT`` files look at first glance like tab-separated values files,
     but in some cases have inconsistent numbers of tabs (e.g. "2011 Census
     Output Area Classification Names and Codes UK.txt"). So we'll use the
-    .XLSX files.
+    ``.XLSX`` files.
 
     If the headings parameter is passed, those headings are used. Otherwise,
     the first row is used for headings.
+
+    Args:
+        sa_class: SQLAlchemy ORM class
+        datadir: root directory of ONSPD data
+        session: SQLAlchemy ORM database session
+        replace: replace tables even if they exist? (Otherwise, skip existing
+            tables.)
+        commit: COMMIT the session once we've inserted the data?
+        commitevery: if committing: commit every *n* rows inserted
     """
     tablename = sa_class.__tablename__
     filename = find_first(sa_class.__filename__, datadir)
@@ -1329,7 +1621,7 @@ def populate_generic_lookup_table(sa_class: Any,  # Type[Base], Type[BASETYPE] f
     debug = getattr(sa_class, '__debug_content__', False)
     n = 0
 
-    if not args.replace:
+    if not replace:
         engine = session.bind
         if engine.has_table(tablename):
             log.info("Table {} exists; skipping".format(tablename))
@@ -1381,7 +1673,7 @@ def populate_generic_lookup_table(sa_class: Any,  # Type[Base], Type[BASETYPE] f
         datadict = {k: v for k, v in datadict.items() if k}
         obj = sa_class(**datadict)
         session.add(obj)
-        if commit and n % args.commitevery == 0:
+        if commit and n % commitevery == 0:
             commit_and_announce(session)
     if commit:
         commit_and_announce(session)
@@ -1396,6 +1688,10 @@ def populate_generic_lookup_table(sa_class: Any,  # Type[Base], Type[BASETYPE] f
 # =============================================================================
 
 def show_docs() -> None:
+    """
+    Print the column ``doc`` attributes from the :class:`Postcode` class, in
+    tabular form, to stdout.
+    """
     # noinspection PyUnresolvedReferences
     table = Postcode.__table__
     columns = sorted(table.columns.keys())
@@ -1422,6 +1718,9 @@ def show_docs() -> None:
 # =============================================================================
 
 def main() -> None:
+    """
+    Command-line entry point. See command-line help.
+    """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=
@@ -1599,10 +1898,24 @@ def main() -> None:
                     "ccg_clinical_commissioning_group_england_2015"):
                 log.warning("Ignore warning 'Discarded range with reserved "
                             "name' below; it works regardless")
-            populate_generic_lookup_table(sa_class, lookupdir, session, args)
+            populate_generic_lookup_table(
+                sa_class=sa_class,
+                datadir=lookupdir,
+                session=session,
+                replace=args.replace,
+                commit=args.commit,
+                commitevery=args.commitevery
+            )
     if not args.skippostcodes:
-        populate_postcode_table(find_first("ONSPD_*.csv", datadir),
-                                session, args)
+        populate_postcode_table(
+            filename=find_first("ONSPD_*.csv", datadir),
+            session=session,
+            replace=args.replace,
+            startswith=args.startswith,
+            reportevery=args.reportevery,
+            commit=args.commit,
+            commitevery=args.commitevery
+        )
 
 
 if __name__ == '__main__':

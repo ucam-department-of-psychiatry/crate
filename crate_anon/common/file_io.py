@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/testdocs_for_text_extraction/__init__.py
+crate_anon/anonymise/anonymise.py
 
 ===============================================================================
 
@@ -24,10 +24,39 @@ crate_anon/testdocs_for_text_extraction/__init__.py
 
 ===============================================================================
 
-The mere existence of this file makes Python treat the directory as a package.
-
-However, it's a bit pointless here because the directory doesn't contain Python
-files.
+**Simple functions for file I/O.**
 
 """
 
+from typing import Generator
+
+
+def gen_words_from_file(filename: str) -> Generator[str, None, None]:
+    """
+    Generate words from a file.
+
+    Args:
+        filename:
+
+    Yields:
+        each word
+    """
+    for line in open(filename):
+        for word in line.split():
+            yield word
+
+
+def gen_integers_from_file(filename: str) -> Generator[int, None, None]:
+    """
+    Generates integers from a file.
+
+    Args:
+        filename: filename to parse
+
+    Yields:
+        all valid integers from words in the file
+    """
+    for word in gen_words_from_file(filename):
+        if word.isdigit():
+            pid = int(word)
+            yield pid

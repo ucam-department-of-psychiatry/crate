@@ -24,9 +24,11 @@ crate_anon/preprocess/rio_view_func.py
 
 ===============================================================================
 
+**Assistance functions for RiO view creation.**
+
 """
 
-from typing import Dict, Iterable, Union
+from typing import Dict, Iterable, List, Union
 
 from crate_anon.common.sql import (
     sql_string_literal,
@@ -44,13 +46,96 @@ from crate_anon.preprocess.rio_constants import (
 # RiO view creators: generic
 # =============================================================================
 
+class RioViewConfigOptions(object):
+    """
+    Simple class to store some command-line options for RiO view creation
+    """
+    def __init__(self,
+                 rio: bool,
+                 rcep: bool,
+                 cpft: bool,
+                 print_sql_only: bool,
+                 drop_not_create: bool,
+                 master_patient_table: str,
+                 full_prognotes_table: str,
+                 prognotes_current_only: bool = True,
+                 clindocs_current_only: bool = True,
+                 allergies_current_only: bool = True,
+                 audit_info: bool = False,
+                 postcodedb: str = "",
+                 geogcols: List[str] = None) -> None:
+        """
+        Args:
+            rio:
+                Treat the source database as a direct copy of RiO?
+            rcep:
+                Treat the source database as the product of Servelec's RiO CRIS
+                Extract Program v2 (instead of raw RiO)?
+            cpft:
+                Apply hacks for Cambridgeshire & Peterborough NHS Foundation
+                Trust (CPFT) RCEP database?
+            print_sql_only:
+                print SQL rather than executing it?
+            drop_not_create:
+                REMOVES new columns/indexes, rather than creating them.
+                (Not really very dangerous, but might take some time to
+                recreate.)
+            prognotes_current_only:
+                restrict Progress Note records to current versions only?
+            clindocs_current_only:
+                restrict Clinical Document records to current versions only?
+            allergies_current_only:
+                restrict Allergy records to current versions only?
+            audit_info:
+                include audit trail information in the research database?
+            postcodedb:
+                Specify database (schema) name for ONS Postcode Database (as
+                imported by CRATE) to link in. With SQL Server, you will have
+                to specify the schema as well as the database; e.g.
+                ``ONS_PD.dbo"``.
+            geogcols:
+                List of geographical information columns to link in from ONS
+                Postcode Database. BEWARE that you do not specify anything too
+                identifying.
+        """
+        assert rio != rcep, "Use either RiO or RCEP format"
+        self.rio = rio
+        self.rcep = rcep
+        self.cpft = cpft
+        self.print_sql_only = print_sql_only
+        self.drop_not_create = drop_not_create
+        self.master_patient_table = master_patient_table
+        self.full_prognotes_table = full_prognotes_table
+        self.prognotes_current_only = prognotes_current_only
+        self.clindocs_current_only = clindocs_current_only
+        self.allergies_current_only = allergies_current_only
+        self.audit_info = audit_info
+        self.postcodedb = postcodedb
+        self.geogcols = geogcols or []  # type: List[str]
+
+
 def lookup_from_fragment(lookup_table: str,
                          aliased_lookup_table: str,
                          lookup_pk: str,
                          basetable: str,
                          basecolumn: str) -> str:
     """
-    For when lookup_pk is really a PK.
+    Returns ``LEFT JOIN`` SQL to implement a lookup from a system lookup
+    table.
+
+    For when ``lookup_pk`` is really a PK.
+
+    Args:
+        lookup_table: name of the lookup table
+        aliased_lookup_table: alias to use (in SQL) for the lookup table
+        lookup_pk: PK in the lookup table
+        basetable: name of the base table from which to look up information
+        basecolumn: name of the column in the base table that maps to the PK
+            in the lookup table
+
+    Returns:
+        an SQL string like
+        ``LEFT JOIN lookuptable lkalias ON lkalias.pk = basetable.somecol``
     """
     return (
         "LEFT JOIN {lookup_table} {aliased_lookup_table}\n"
@@ -71,6 +156,21 @@ def lookup_from_fragment_first_row(lookup_table: str,
                                    basetable: str,
                                    basecolumn: str) -> str:
     """
+    Returns ``LEFT JOIN`` SQL to look up values from a lookup table that might
+    give us multiple values and we only want the first. See below.
+
+    Args:
+        lookup_table: name of the lookup table
+        aliased_lookup_table: alias to use (in SQL) for the lookup table
+        lookup_key: a field we'll match to ``basetable.basecolumn``
+        lookup_unique_field: the field from which we want the first value 
+        basetable: name of the base table from which to look up information
+        basecolumn: name of the column in the base table that maps to the PK
+            in the lookup table
+
+    Returns:
+        an SQL string
+
     Modified 2017-01-23, because sometimes the lookup column is not unique,
     e.g. lookup from "Code" to "CodeDescription" in NNNStatus (see also
     rio_views.py). The LEFT JOIN was giving us duplicate rows. We want only
@@ -134,12 +234,26 @@ def lookup_from_fragment_first_row_outer_apply(lookup_fields: Iterable[str],
                                                basetable: str,
                                                basecolumn: str) -> str:
     """
-    As for lookup_from_fragment_first_row, but works without a unique
-    field in the lookup table.
+    As for :func:`lookup_from_fragment_first_row` (q.v.), but works without a
+    unique field in the lookup table.
 
-    http://stackoverflow.com/questions/2043259/sql-server-how-to-join-to-first-row  # noqa
-    http://stackoverflow.com/questions/9275132/real-life-example-when-to-use-outer-cross-apply-in-sql  # noqa
-    """
+    Args:
+        lookup_fields: field(s) to look up the first values from 
+        lookup_table: name of the lookup table
+        aliased_lookup_table: alias to use (in SQL) for the lookup table
+        lookup_key: a field we'll match to ``basetable.basecolumn``
+        basetable: name of the base table from which to look up information
+        basecolumn: name of the column in the base table that maps to the PK
+            in the lookup table
+
+    Returns:
+        an SQL string
+
+    See
+    
+    - http://stackoverflow.com/questions/2043259/sql-server-how-to-join-to-first-row
+    - http://stackoverflow.com/questions/9275132/real-life-example-when-to-use-outer-cross-apply-in-sql
+    """  # noqa
     return (
         "OUTER APPLY ("
         " SELECT TOP 1 {lookup_fields}"
@@ -161,6 +275,20 @@ def simple_lookup_join(viewmaker: ViewMaker,
                        lookup_pk: str,
                        lookup_fields_aliases: Dict[str, str],
                        internal_alias_prefix: str) -> None:
+    """
+    Modifies the ViewMaker to add a simple lookup join.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: name of the column in the base table to look up from
+        lookup_table: name of the lookup table
+        lookup_pk: PK of the lookup table
+        lookup_fields_aliases: dictionary mapping lookup field names (in the
+            lookup table) to aliases in the SELECT part of the SQL statement
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     assert basecolumn, "Missing basecolumn"
     assert lookup_table, "Missing lookup_table"
     assert lookup_pk, "Missing lookup_pk"
@@ -189,6 +317,20 @@ def standard_rio_code_lookup(viewmaker: ViewMaker,
                              lookup_table: str,
                              column_prefix: str,
                              internal_alias_prefix: str) -> None:
+    """
+    Implements a standard RiO lookup using a lookup table with ``Code`` /
+    ``CodeDescription`` fields.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: name of the column in the base table to look up from
+        lookup_table: name of the lookup table
+        column_prefix: prefix for the view alias that describes the thing being
+            looked up
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     assert basecolumn, "Missing basecolumn"
     assert lookup_table, "Missing lookup_table"
     assert column_prefix, "Missing column_prefix"
@@ -221,6 +363,20 @@ def standard_rio_code_lookup_with_national_code(
         lookup_table: str,
         column_prefix: str,
         internal_alias_prefix: str) -> None:
+    """
+    Implements a standard RiO lookup using a lookup table with ``Code``,
+    ``CodeDescription``, and ``NationalCode`` fields.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: name of the column in the base table to look up from
+        lookup_table: name of the lookup table
+        column_prefix: prefix for the view alias that describes the thing being
+            looked up
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     assert basecolumn, "Missing basecolumn"
     assert lookup_table, "Missing lookup_table"
     assert column_prefix, "Missing column_prefix"
@@ -249,6 +405,23 @@ def standard_rio_code_lookup_with_national_code(
 
 
 def view_formatting_dict(viewmaker: ViewMaker) -> Dict[str, str]:
+    """
+    Produces a dictionary that can be used for automatically formatting
+    templatized SQL.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`
+
+    Returns:
+        dict: dictionary with the following keys:
+
+            =============== ===================================================
+            Key             Meaning
+            =============== ===================================================
+            ``basetable``   Base table of the view
+            =============== ===================================================
+
+    """
     return {
         'basetable': viewmaker.basetable,
     }
@@ -257,6 +430,14 @@ def view_formatting_dict(viewmaker: ViewMaker) -> Dict[str, str]:
 def simple_view_expr(viewmaker: ViewMaker,
                      expr: str,
                      alias: str) -> None:
+    """
+    Adds a simple SQL expression to a viewmaker.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        expr: SQL expression; e.g. ``42``, ``mycol + 17``
+        alias: alias to apply (``... AS somealias``)
+    """
     assert expr, "Missing expr"
     assert alias, "Missing alias"
     vd = view_formatting_dict(viewmaker)
@@ -267,6 +448,16 @@ def simple_view_expr(viewmaker: ViewMaker,
 def simple_view_where(viewmaker: ViewMaker,
                       where_clause: str,
                       index_cols: Iterable[str] = None) -> None:
+    """
+    Applies a simple ``WHERE`` clause to a viewmaker.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        where_clause: WHERE clause, e.g. ``somecol = 1``
+        index_cols: names of columns that are part of the WHERE condition and
+            would benefit from being indexed, for speed
+    """
+
     assert where_clause, "Missing where_clause"
     index_cols = index_cols or []
     viewmaker.add_where(where_clause)
@@ -278,6 +469,15 @@ def simple_view_where(viewmaker: ViewMaker,
 def add_index_only(viewmaker: ViewMaker,
                    table: str,
                    column_or_columns: Union[str, Iterable[str]]) -> None:
+    """
+    Adds an index request to a viewmaker.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        table: table name
+        column_or_columns: column name (string or list of strings) to index
+            within that table
+    """
     viewmaker.record_lookup_table_keyfield(table, column_or_columns)
 
 
@@ -289,8 +489,22 @@ def rio_add_user_lookup(viewmaker: ViewMaker,
                         basecolumn: str,
                         column_prefix: str = None,
                         internal_alias_prefix: str = None) -> None:
-    # NOT VERIFIED IN FULL - insufficient data with just top 1000 rows for
-    # each table (2016-07-12).
+    """
+    Adds a user lookup. For example, RiO tables tend to have columns like
+    "modified_by_user" with a cryptic ID; this function adds views so we can
+    see who that was.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: user ID column from the base table
+        column_prefix: column prefix describing the kind of user
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+
+    NOT VERIFIED IN FULL - insufficient data with just top 1000 rows for
+    each table (2016-07-12).
+    """
     assert basecolumn, "Missing basecolumn"
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
@@ -382,6 +596,18 @@ def rio_add_consultant_lookup(viewmaker: ViewMaker,
                               basecolumn: str,
                               column_prefix: str = None,
                               internal_alias_prefix: str = None) -> None:
+    """
+    Adds a user lookup where that lookup is a hospital consultant.
+    Compare :func:`rio_add_user_lookup`.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: user ID column from the base table
+        column_prefix: column prefix describing the kind of user
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     assert basecolumn, "Missing basecolumn"
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
@@ -418,6 +644,17 @@ def rio_add_team_lookup(viewmaker: ViewMaker,
                         basecolumn: str,
                         column_prefix: str = None,
                         internal_alias_prefix: str = None) -> None:
+    """
+    Adds a team lookup (from team ID to team details).
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: team ID column from the base table
+        column_prefix: column prefix describing the kind of team
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     assert basecolumn, "Missing basecolumn"
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
@@ -453,6 +690,17 @@ def rio_add_carespell_lookup(viewmaker: ViewMaker,
                              basecolumn: str,
                              column_prefix: str = None,
                              internal_alias_prefix: str = None) -> None:
+    """
+    Adds a care spell lookup.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: ID column from the base table
+        column_prefix: column prefix describing the kind of care spell this is
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     assert basecolumn, "Missing basecolumn"
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
@@ -494,6 +742,21 @@ def rio_add_diagnosis_lookup(viewmaker: ViewMaker,
                              alias_code: str,
                              alias_description: str,
                              internal_alias_prefix: str = None) -> None:
+    """
+    Adds a diagnosis lookup.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn_scheme: base table column giving the diagnostic scheme (e.g.
+            a column containing "ICD-10")
+        basecolumn_code: base table column containing the diagnostic code
+        alias_scheme: alias to be used for "diagnostic scheme"
+        alias_code: alias to be used for "diagnostic code"
+        alias_description: alias to be used for "description of diagnosis"
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     # Can't use simple_lookup_join as we have to join on two fields,
     # diagnostic scheme and diagnostic code.
     assert basecolumn_scheme, "Missing basecolumn_scheme"
@@ -541,6 +804,17 @@ def rio_add_ims_event_lookup(viewmaker: ViewMaker,
                              basecolumn_event_num: str,
                              column_prefix: str,
                              internal_alias_prefix: str) -> None:
+    """
+    Adds an IMS event lookup. (?)
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn_event_num: ID column from the base table
+        column_prefix: column prefix describing the kind of care spell this is
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     # There is a twin key: ClientID and EventNumber
     # However, we have made crate_rio_number, so we'll use that instead.
     # Key to the TABLE, not the VIEW.
@@ -575,6 +849,17 @@ def rio_add_gp_lookup(viewmaker: ViewMaker,
                       basecolumn: str,
                       column_prefix: str,
                       internal_alias_prefix: str) -> None:
+    """
+    Adds a general practitioner (GP) lookup.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: ID column from the base table
+        column_prefix: column prefix describing the kind of GP this is
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     assert basecolumn, "Missing basecolumn"
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
@@ -606,6 +891,17 @@ def rio_add_gp_practice_lookup(viewmaker: ViewMaker,
                                basecolumn: str,
                                column_prefix: str,
                                internal_alias_prefix: str) -> None:
+    """
+    Adds a GP practice lookup.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: ID column from the base table
+        column_prefix: column prefix describing the kind of GP practice this is
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     assert basecolumn, "Missing basecolumn"
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
@@ -640,6 +936,17 @@ def rio_add_gp_lookup_with_practice(viewmaker: ViewMaker,
                                     basecolumn: str,
                                     column_prefix: str,
                                     internal_alias_prefix: str) -> None:
+    """
+    Adds a GP-with-their-practice lookup.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: ID column from the base table
+        column_prefix: column prefix describing the kind of GP this is
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     assert basecolumn, "Missing basecolumn"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
     if column_prefix:
@@ -687,7 +994,15 @@ def rio_add_gp_lookup_with_practice(viewmaker: ViewMaker,
 
 
 def where_prognotes_current(viewmaker: ViewMaker) -> None:
-    if not viewmaker.progargs.prognotes_current_only:
+    """
+    Apply a WHERE clause restricting a progress notes table to current versions
+    of progress notes only.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+    """
+    configoptions = viewmaker.userobj  # type: RioViewConfigOptions
+    if not configoptions.prognotes_current_only:
         return
     viewmaker.add_where(
         "({bt}.EnteredInError <> 1 OR {bt}.EnteredInError IS NULL) "
@@ -701,7 +1016,15 @@ def where_prognotes_current(viewmaker: ViewMaker) -> None:
 
 
 def where_clindocs_current(viewmaker: ViewMaker) -> None:
-    if not viewmaker.progargs.clindocs_current_only:
+    """
+    Apply a WHERE clause restricting a clinical documents table to current
+    versions of documents only.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+    """
+    configoptions = viewmaker.userobj  # type: RioViewConfigOptions
+    if not configoptions.clindocs_current_only:
         return
     viewmaker.add_where(
         "{bt}.{last_doc_col} = 1 AND {bt}.DeletedDate IS NULL".format(
@@ -713,12 +1036,27 @@ def where_clindocs_current(viewmaker: ViewMaker) -> None:
 
 
 def where_allergies_current(viewmaker: ViewMaker) -> None:
-    if not viewmaker.progargs.allergies_current_only:
+    """
+    Apply a WHERE clause restricting an allergies table to current versions of
+    records only.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+    """
+    configoptions = viewmaker.userobj  # type: RioViewConfigOptions
+    if not configoptions.allergies_current_only:
         return
     where_not_deleted_flag(viewmaker, 'Deleted')
 
 
 def where_not_deleted_flag(viewmaker: ViewMaker, basecolumn: str) -> None:
+    """
+    Apply a WHERE clause restricting a table to "non-deleted" records only.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: name of column indicating "deleted" status
+    """
     assert basecolumn, "Missing basecolumn"
     viewmaker.add_where(
         "({table}.{col} IS NULL OR {table}.{col} = 0)".format(
@@ -732,6 +1070,18 @@ def rio_add_bay_lookup(viewmaker: ViewMaker,
                        basecolumn_bay: str,
                        column_prefix: str,
                        internal_alias_prefix: str) -> None:
+    """
+    Adds a ward bed-bay lookup.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn_ward: ward ID column from the base table
+        basecolumn_bay: bay ID column from the base table
+        column_prefix: column prefix describing the kind of GP this is
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     assert basecolumn_ward, "Missing basecolumn_ward"
     assert basecolumn_bay, "Missing basecolumn_bay"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
@@ -770,6 +1120,17 @@ def rio_add_location_lookup(viewmaker: ViewMaker,
                             basecolumn: str,
                             column_prefix: str,
                             internal_alias_prefix: str) -> None:
+    """
+    Adds a location (institutional address) lookup.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: ID column from the base table
+        column_prefix: column prefix describing the kind of location this is
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     assert basecolumn, "Missing basecolumn"
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
@@ -811,6 +1172,18 @@ def rio_add_org_contact_lookup(viewmaker: ViewMaker,
                                basecolumn: str,
                                column_prefix: str,
                                internal_alias_prefix: str) -> None:
+    """
+    Adds an organisation lookup.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: ID column from the base table
+        column_prefix: column prefix describing the kind of organisation this
+            is
+        internal_alias_prefix: prefix to add to the lookup table's name to
+            make it unique, in case the SELECT statement uses the same lookup
+            table more than once
+    """
     assert basecolumn, "Missing basecolumn"
     assert column_prefix, "Missing column_prefix"
     viewmaker.add_select("""
@@ -874,6 +1247,16 @@ def rio_add_org_contact_lookup(viewmaker: ViewMaker,
 
 
 def rio_amend_standard_noncore(viewmaker: ViewMaker) -> None:
+    """
+    Modifies a standard RiO "non-core" table (a table defined by the using
+    institution -- e.g. CPFT "Core Assessment" tables...).
+
+    - Adds a user lookup on ``type12_UpdatedBy``.
+    - Omits deleted records based on ``type12_DeletedDate``.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+    """
     # Add user:
     rio_add_user_lookup(viewmaker, "type12_UpdatedBy",
                         column_prefix="Updated_By", internal_alias_prefix="ub")
@@ -888,6 +1271,15 @@ def rio_amend_standard_noncore(viewmaker: ViewMaker) -> None:
 def rio_noncore_yn(viewmaker: ViewMaker,
                    basecolumn: str,
                    result_alias: str) -> None:
+    """
+    Modifies a standard RiO "non-core" table to map a field using "1 = yes,
+    2 = no" encoding to a more conventional Boolean (1 = yes, 0 = no).
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+        basecolumn: column name in the base table
+        result_alias: what to call the result
+    """
     # 1 = yes, 2 = no
     # ... clue: "pregnant?" for males, in UserAssesstfkcsa.expectQ
     assert basecolumn, "Missing basecolumn"
@@ -907,9 +1299,17 @@ def rio_noncore_yn(viewmaker: ViewMaker,
 
 
 def rio_add_audit_info(viewmaker: ViewMaker) -> None:
-    # - In RCEP: lots of tables have Created_Date, Updated_Date with no source
-    #   column; likely from audit table.
-    # - Here: Audit_Created_Date, Audit_Updated_Date
+    """
+    Modifies a RiO view to add audit information.
+
+    Args:
+        viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
+
+    - In RCEP: lots of tables have Created_Date, Updated_Date with no source
+      column; likely from the audit table.
+
+    - Here, we call them: Audit_Created_Date, Audit_Updated_Date
+    """
     ap1 = "_au_cr"
     ap2 = "_au_up"
     viewmaker.add_select("""

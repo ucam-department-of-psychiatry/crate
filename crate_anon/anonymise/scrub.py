@@ -76,7 +76,9 @@ class ScrubberBase(object):
     def __init__(self, hasher: GenericHasher) -> None:
         """
         Args:
-            hasher: object implementing :class:`GenericHasher` interface
+            hasher:
+                :class:`GenericHasher` to use to hash this scrubber (for
+                change-detection purposes); should be a secure hasher
         """
         self.hasher = hasher
 
@@ -152,7 +154,7 @@ class WordList(ScrubberBase):
                 replace sensitive content with this string
             hasher:
                 :class:`GenericHasher` to use to hash this scrubber (for
-                change-detection purposes)
+                change-detection purposes); should be a secure hasher
             suffixes:
                 append each of these suffixes to each word
             at_word_boundaries_only:
@@ -238,6 +240,8 @@ class WordList(ScrubberBase):
         return word.lower() in self.words
 
     def get_hash(self) -> str:
+        # docstring in parent class
+
         # A set is unordered.
         # We want the hash to be the same if we have the same words, even if
         # they were entered in a different order, so we need to sort:
@@ -246,6 +250,7 @@ class WordList(ScrubberBase):
         return self._cached_hash
 
     def scrub(self, text: str) -> str:
+        # docstring in parent class
         if not self._built:
             self.build()
         if self.regex_method:
@@ -311,7 +316,7 @@ class NonspecificScrubber(ScrubberBase):
                 replace sensitive content with this string
             hasher:
                 :class:`GenericHasher` to use to hash this scrubber (for
-                change-detection purposes)
+                change-detection purposes); should be a secure hasher
             anonymise_codes_at_word_boundaries_only:
                 For codes: Boolean. Ensure that the regex begins and ends with
                 a word boundary requirement.
@@ -345,6 +350,7 @@ class NonspecificScrubber(ScrubberBase):
         self.build_regex()
 
     def get_hash(self) -> str:
+        # docstring in parent class
         if not self._cached_hash:
             self._cached_hash = self.hasher.hash([
                 # signature, used for hashing:
@@ -357,6 +363,7 @@ class NonspecificScrubber(ScrubberBase):
         return self._cached_hash
 
     def scrub(self, text: str) -> str:
+        # docstring in parent class
         if not self._regex_built:
             self.build_regex()
         if self.blacklist:
@@ -420,7 +427,7 @@ class PersonalizedScrubber(ScrubberBase):
                 replace sensitive "third party" content with this string
             hasher:
                 :class:`GenericHasher` to use to hash this scrubber (for
-                change-detection purposes)
+                change-detection purposes); should be a secure hasher
             anonymise_codes_at_word_boundaries_only:
                 For codes: Boolean. Ensure that the regex begins and ends with
                 a word boundary requirement.
@@ -718,6 +725,7 @@ class PersonalizedScrubber(ScrubberBase):
                 self.get_tp_regex_string()))
 
     def scrub(self, text: str) -> Optional[str]:
+        # docstring in parent class
         if text is None:
             return None
         if not self.regexes_built:
@@ -732,14 +740,20 @@ class PersonalizedScrubber(ScrubberBase):
         return text
 
     def get_hash(self) -> str:
+        # docstring in parent class
         return self.hasher.hash(self.get_raw_info())
 
     def get_raw_info(self) -> Dict[str, Any]:
         """
+        Summarizes settings and (sensitive) data for this scrubber.
+
         This is both a summary for debugging and the basis for our
         change-detection hash (and for the latter reason we need order etc. to
         be consistent). For any information we put in here, changes will cause
         data to be re-scrubbed.
+
+        Note that the hasher should be a secure one, because this is sensitive
+        information.
         """
         # We use a list of tuples to make an OrderedDict.
         d = (

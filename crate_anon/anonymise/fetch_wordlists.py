@@ -29,13 +29,14 @@ and surnames.**
 
 See:
 
-    https://stackoverflow.com/questions/1803628/raw-list-of-person-names
-    http://www.dicts.info/dictionaries.php
+- https://stackoverflow.com/questions/1803628/raw-list-of-person-names
+- http://www.dicts.info/dictionaries.php
 
 For the Moby project:
-    https://en.wikipedia.org/wiki/Moby_Project
-    https://www.gutenberg.org/ebooks/3201
-    https://www.gutenberg.org/files/3201/3201.txt  -- explains other files
+
+- https://en.wikipedia.org/wiki/Moby_Project
+- https://www.gutenberg.org/ebooks/3201
+- https://www.gutenberg.org/files/3201/3201.txt -- explains other files
 
 and default URLs in command-line parameters
 
@@ -481,6 +482,7 @@ def gen_us_surname_1990_info(lines: Iterable[str]) -> \
         lines: iterable of lines, with this format:
         
         .. code-block:: none
+
             # Format is e.g.
             SMITH          1.006  1.006      1
             # which is:

@@ -24,6 +24,11 @@ crate_anon/preprocess/rio_ddgen.py
 
 ===============================================================================
 
+**Generate hints for Servelec RiO/RCEP databases, so CRATE can draft an
+appropriate data dictionary.**
+
+The results should still be reviewed by a human!
+
 """
 
 from crate_anon.preprocess.ddhint import DDHint
@@ -40,6 +45,16 @@ from crate_anon.preprocess.rio_constants import (
 # =============================================================================
 
 def get_rio_dd_settings(ddhint: DDHint) -> str:
+    """
+    Draft CRATE config file settings that will allow CRATE to create a RiO
+    data dictionary near-automatically.
+
+    Args:
+        ddhint: :class:`crate_anon.preprocess.ddhint.DDHint`
+
+    Returns:
+        the config file settings, as a string
+    """
     return """
 ddgen_omit_by_default = True
 

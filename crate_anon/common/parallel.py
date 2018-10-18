@@ -24,6 +24,8 @@ crate_anon/common/parallel.py
 
 ===============================================================================
 
+**Assistance functions for "embarrassingly parallel" job assignment.**
+
 """
 
 import logging
@@ -35,6 +37,24 @@ log = logging.getLogger(__name__)
 
 
 def is_my_job_by_int(value: int, tasknum: int, ntasks: int) -> bool:
+    """
+    "Is it my job to do this work?"
+
+    Args:
+        value: some integer value that is fairly evenly distributed, to spread
+            the workload
+        tasknum: which task number am I?
+        ntasks: how many tasks are there in total?
+
+    Returns:
+        is it my job?
+
+    Algorithm:
+
+    - if there's only one task: yes
+    - otherwise, return ``value % ntasks == tasknum``
+
+    """
     if ntasks == 1:
         return True
     return value % ntasks == tasknum
@@ -42,27 +62,50 @@ def is_my_job_by_int(value: int, tasknum: int, ntasks: int) -> bool:
 
 def is_my_job_by_hash(value: Any, tasknum: int, ntasks: int) -> bool:
     """
-    We convert some non-integer thing into a deterministic but roughly
-    randomly distributed integer using hash64. That produces a signed integer,
-    which is OK because % works nonetheless.
+    "Is it my job to do this work?"
 
-    We use this function to parallelize for non-integer PKs.
+    Args:
+        value: anything that's hashable
+        tasknum: which task number am I?
+        ntasks: how many tasks are there in total?
 
-    This is less efficient than dividing the work up via SQL, because we have
-    to fetch/hash something.
+    Returns:
+        is it my job?
 
-    Perform this test ASAP in loops, for speed.
+    Algorithm:
+
+    - We convert some non-integer thing into a deterministic but roughly
+      randomly distributed integer using :func:`hash64`. That produces a signed
+      integer, which is OK because ``%`` works nonetheless.
+
+    When we use it:
+
+    - We use this function to parallelize for non-integer PKs.
+
+    - This is less efficient than dividing the work up via SQL, because we have
+      to fetch/hash something.
+
+    - Perform this test ASAP in loops, for speed.
     """
     if ntasks == 1:
         return True
     return hash64(value) % ntasks == tasknum
 
 
-def is_my_job_by_hash_prehashed(hashed_value: Any,
+def is_my_job_by_hash_prehashed(hashed_value: int,
                                 tasknum: int,
                                 ntasks: int) -> bool:
     """
-    A version of ``is_my_job_by_hash()`` for use when you have pre-hashed
-    the value, and ntasks is guaranteed to be >1.
+    A version of :func:`is_my_job_by_hash` for use when you have pre-hashed
+    the value, and ``ntasks`` is guaranteed to be >1.
+
+    Args:
+        hashed_value: integer hashed value
+        tasknum: which task number am I?
+        ntasks: how many tasks are there in total?
+
+    Returns:
+        is it my job?
+
     """
     return hashed_value % ntasks == tasknum

@@ -24,6 +24,8 @@ crate_anon/preprocess/rio_pk.py
 
 ===============================================================================
 
+**Details of the names of primary keys in selected RiO tables.**
+
 """
 
 __SUPERSEDED = """

@@ -70,6 +70,14 @@ class CratewebService(WindowsService):
     # -------------------------------------------------------------------------
 
     def service(self) -> None:
+        """
+        Run the service.
+
+        - Reads the log directory from the environment variable
+          ``CRATE_WINSERVICE_LOGDIR``.
+        - Launches the Django process (front-end web service).
+        - Launches the Celery process (back-end job management).
+        """
         # Read from environment
         # self.info(repr(os.environ))
         try:

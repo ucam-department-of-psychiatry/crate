@@ -24,6 +24,8 @@ crate_anon/preprocess/rio_views.py
 
 ===============================================================================
 
+**Constants that define RiO views we want to create.**
+
 """
 
 from collections import OrderedDict
