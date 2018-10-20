@@ -24,8 +24,10 @@ crate_anon/nlp_manager/parse_gate.py
 
 ===============================================================================
 
-The pipe encoding (Python -> Java stdin, Java stdout -> Python) is fixed at
-UTF-8 here and in the Java code.
+**NLP handler for external GATE NLP tools.**
+
+The pipe encoding (Python -> Java stdin, Java stdout -> Python) is fixed to be
+UTF-8, here and in the Java code.
 
 """
 
@@ -34,7 +36,7 @@ import os
 import shlex
 import subprocess
 import sys
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator, List, TextIO, Tuple
 
 from cardinal_pythonlib.dicts import (
     rename_keys_in_dict,
@@ -77,28 +79,35 @@ FN_CONTENT = '_content'
 class Gate(BaseNlpParser):
     """
     Class controlling an external process, typically our Java interface to
-    GATE programs, CrateGatePipeline.java (but it could be any external
+    GATE programs, ``CrateGatePipeline.java`` (but it could be any external
     program).
 
     We send text to it, it parses the text, and it sends us back results, which
     we return as dictionaries. The specific text sought depends on the
     configuration file and the specific GATE program used.
-    """
-    _ = """
-    PROBLEM when attempting to use KConnect (Bio-YODIE): its source code is
-    full of direct calls to System.out.println().
 
-    POTENTIAL SOLUTIONS
-    - named pipes:
-        os.mkfifo() - Unix only.
-        win32pipe - http://stackoverflow.com/questions/286614
-    - ZeroMQ with some sort of security
-        - pip install zmq
-        - some sort of Java binding (jzmq, jeromq...)
-    - redirect stdout in our Java handler
-        System.setOut()
-        ... yes, that works.
-        Implemented and exposed as --suppress_gate_stdout.
+    Notes:
+
+    - PROBLEM when attempting to use KConnect (Bio-YODIE): its source code is
+      full of direct calls to ``System.out.println()``.
+
+      POTENTIAL SOLUTIONS:
+
+      - named pipes:
+
+        - ``os.mkfifo()`` - Unix only.
+        - ``win32pipe`` - http://stackoverflow.com/questions/286614
+
+      - ZeroMQ with some sort of security
+
+        - ``pip install zmq``
+        - some sort of Java binding (``jzmq``, ``jeromq``...)
+
+      - redirect ``stdout`` in our Java handler
+
+        - ``System.setOut()``... yes, that works.
+        - Implemented and exposed as ``--suppress_gate_stdout``.
+
     """
     NAME = "GATE"
 
@@ -106,6 +115,17 @@ class Gate(BaseNlpParser):
                  nlpdef: NlpDefinition,
                  cfgsection: str,
                  commit: bool = False) -> None:
+        """
+        Args:
+            nlpdef:
+                a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+            cfgsection:
+                the name of a CRATE NLP config file section (from which we may
+                choose to get extra config information)
+            commit:
+                force a COMMIT whenever we insert data? You should specify this
+                in multiprocess mode, or you may get database deadlocks.
+        """
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
 
         if not nlpdef and not cfgsection:
@@ -175,7 +195,8 @@ class Gate(BaseNlpParser):
                     MAX_SQL_FIELD_LEN))
 
     @classmethod
-    def print_info(cls, file=sys.stdout):
+    def print_info(cls, file: TextIO = sys.stdout) -> None:
+        # docstring in superclass
         print("NLP class to talk to GATE apps (https://www.gate.ac.uk/).",
               file=file)
 
@@ -185,7 +206,7 @@ class Gate(BaseNlpParser):
 
     def _start(self) -> None:
         """
-        Launch the external process.
+        Launch the external process, with stdin/stdout connections to it.
         """
         if self._started:
             return
@@ -204,19 +225,25 @@ class Gate(BaseNlpParser):
         self._started = True
 
     def _encode_to_subproc_stdin(self, text: str) -> None:
-        """Send text to the external program (via its stdin), encoding it in
-        the process (typically to UTF-8)."""
+        """
+        Send text to the external program (via its stdin), encoding it in the
+        process (typically to UTF-8).
+        """
         log.debug("SENDING: " + text)
         bytes_ = text.encode(self._pipe_encoding)
         self._p.stdin.write(bytes_)
 
     def _flush_subproc_stdin(self) -> None:
-        """Flushes what we're sending to the external program via its stdin."""
+        """
+        Flushes what we're sending to the external program via its stdin.
+        """
         self._p.stdin.flush()
 
     def _decode_from_subproc_stdout(self) -> str:
-        """Translate what we've received from the external program's stdout,
-        from its specific encoding (usually UTF-8) to a Python string."""
+        """
+        Decode what we've received from the external program's stdout, from its
+        specific encoding (usually UTF-8) to a Python string.
+        """
         bytes_ = self._p.stdout.readline()
         text = bytes_.decode(self._pipe_encoding)
         log.debug("RECEIVING: " + repr(text))
@@ -291,7 +318,7 @@ class Gate(BaseNlpParser):
 
     def test(self, verbose: bool=False) -> None:
         """
-        Test the send function.
+        Test the :func:`send` function.
         """
         self.test_parser([
             "Bob Hope visited Seattle.",
@@ -304,6 +331,9 @@ class Gate(BaseNlpParser):
 
     @staticmethod
     def _standard_columns() -> List[Column]:
+        """
+        Returns standard columns for GATE output.
+        """
         return [
             Column(FN_SET, SqlTypeDbIdentifier,
                    doc="GATE output set name"),
@@ -321,11 +351,15 @@ class Gate(BaseNlpParser):
 
     @staticmethod
     def _standard_indexes() -> List[Index]:
+        """
+        Returns standard indexes for GATE output.
+        """
         return [
             Index('_idx__set', FN_SET, mysql_length=MAX_SQL_FIELD_LEN),
         ]
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
+        # docstring in superclass
         tables = {}  # type: Dict[str, List[Column]]
         for anottype, otconfig in self._outputtypemap.items():
             tables[otconfig.get_tablename()] = (
@@ -335,6 +369,7 @@ class Gate(BaseNlpParser):
         return tables
 
     def dest_tables_indexes(self) -> Dict[str, List[Index]]:
+        # docstring in superclass
         tables = {}  # type: Dict[str, List[Index]]
         for anottype, otconfig in self._outputtypemap.items():
             tables[otconfig.get_tablename()] = (

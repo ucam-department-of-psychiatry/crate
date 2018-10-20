@@ -24,6 +24,21 @@ crate_anon/nlp_manager/parse_cognitive.py
 
 ===============================================================================
 
+**Python regex-based NLP processors for cognitive tests.**
+
+All inherit from
+:class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`
+and are constructed with these arguments:
+
+nlpdef:
+    a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+cfgsection:
+    the name of a CRATE NLP config file section (from which we may
+    choose to get extra config information)
+commit:
+    force a COMMIT whenever we insert data? You should specify this
+    in multiprocess mode, or you may get database deadlocks.
+
 """
 
 import logging
@@ -47,7 +62,9 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 class Mmse(NumeratorOutOfDenominatorParser):
-    """Mini-mental state examination (MMSE)."""
+    """
+    Mini-mental state examination (MMSE).
+    """
     MMSE = r"""
         (?: {WORD_BOUNDARY}
             (?: MMSE | mini[-\s]*mental (?: \s+ state)?
@@ -60,6 +77,7 @@ class Mmse(NumeratorOutOfDenominatorParser):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
@@ -71,6 +89,7 @@ class Mmse(NumeratorOutOfDenominatorParser):
         )
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
         self.test_numerator_denominator_parser([
             ("MMSE", []),  # should fail; no values
             ("MMSE 30/30", [(30, 30)]),
@@ -87,11 +106,16 @@ class Mmse(NumeratorOutOfDenominatorParser):
 
 
 class MmseValidator(ValidatorBase):
-    """Validator for Mmse (see ValidatorBase for explanation)."""
+    """
+    Validator for Mmse
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[Mmse.MMSE],
@@ -104,7 +128,9 @@ class MmseValidator(ValidatorBase):
 # =============================================================================
 
 class Ace(NumeratorOutOfDenominatorParser):
-    """Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III)."""
+    """
+    Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III) total score.
+    """
     NAME = "ACE"
     ACE = r"""
         (?: {WORD_BOUNDARY}
@@ -129,6 +155,7 @@ class Ace(NumeratorOutOfDenominatorParser):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
@@ -140,6 +167,7 @@ class Ace(NumeratorOutOfDenominatorParser):
         )
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
         self.test_numerator_denominator_parser([
             ("MMSE", []),
             ("MMSE 30/30", []),
@@ -191,11 +219,16 @@ class Ace(NumeratorOutOfDenominatorParser):
 
 
 class AceValidator(ValidatorBase):
-    """Validator for Ace (see ValidatorBase for explanation)."""
+    """
+    Validator for Ace
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[Ace.ACE],
@@ -203,6 +236,7 @@ class AceValidator(ValidatorBase):
                          commit=commit)
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
         self.test_validator([
             ("pass me my mace, my boy", False),
             ("he scored 10 on the ACE today", True),
@@ -223,7 +257,9 @@ class AceValidator(ValidatorBase):
 # =============================================================================
 
 class MiniAce(NumeratorOutOfDenominatorParser):
-    """Mini-Addenbrooke's Cognitive Examination (M-ACE)."""
+    """
+    Mini-Addenbrooke's Cognitive Examination (M-ACE).
+    """
     MACE = r"""
         (?: {WORD_BOUNDARY}
             (?: mini | M ) \s* -? \s*
@@ -237,17 +273,19 @@ class MiniAce(NumeratorOutOfDenominatorParser):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
             commit=commit,
             variable_name=self.NAME,
             variable_regex_str=self.MACE,
-            expected_denominator=30,
+            expected_denominator=30,  # mini-ACE is out of 30
             take_absolute=True
         )
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
         self.test_numerator_denominator_parser([
             ("MMSE 30", []),
             ("ACE 79", []),
@@ -268,11 +306,16 @@ class MiniAce(NumeratorOutOfDenominatorParser):
 
 
 class MiniAceValidator(ValidatorBase):
-    """Validator for MiniAce (see ValidatorBase for explanation)."""
+    """
+    Validator for MiniAce
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[MiniAce.MACE],
@@ -285,7 +328,9 @@ class MiniAceValidator(ValidatorBase):
 # =============================================================================
 
 class Moca(NumeratorOutOfDenominatorParser):
-    """Montreal Cognitive Assessment (MOCA)."""
+    """
+    Montreal Cognitive Assessment (MOCA).
+    """
     MOCA = r"""
         (?: {WORD_BOUNDARY}
             (?: MOCA | (?: Montreal \s+ cognitive \s+ assessment ) )
@@ -297,6 +342,7 @@ class Moca(NumeratorOutOfDenominatorParser):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
@@ -308,6 +354,7 @@ class Moca(NumeratorOutOfDenominatorParser):
         )
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
         self.test_numerator_denominator_parser([
             ("MOCA 30", [(30, None)]),
             ("MOCA 30/30", [(30, 30)]),
@@ -320,11 +367,16 @@ class Moca(NumeratorOutOfDenominatorParser):
 
 
 class MocaValidator(ValidatorBase):
-    """Validator for MiniAce (see ValidatorBase for explanation)."""
+    """
+    Validator for Moca
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[MiniAce.MACE],
@@ -337,6 +389,9 @@ class MocaValidator(ValidatorBase):
 # =============================================================================
 
 def test_all(verbose: bool = False) -> None:
+    """
+    Test all parsers in this module.
+    """
     mmse = Mmse(None, None)
     mmse.test(verbose=verbose)
 
@@ -356,4 +411,4 @@ if __name__ == '__main__':
     test_all(verbose=True)
 
 
-# support also "scored X on the MOCA"?
+# .. todo:: MOCA NLP parser: support also "scored X on the MOCA"?

@@ -24,6 +24,8 @@ crate_anon/nlp_manager/regex_units.py
 
 ===============================================================================
 
+**Regular expressions to detect physical units.**
+
 """
 
 from typing import List, Optional, Tuple
@@ -45,6 +47,18 @@ OUT_OF_SEPARATOR = r"(?: \/ | \b out \s+ of \b )"
 
 def per(numerator: str, denominator: str,
         include_power_minus1: bool = True) -> str:
+    """
+    Returns regex text representing "X per Y"; e.g. "millimoles per litre",
+    "cells per cubic millimetre".
+
+    Args:
+        numerator: regex representing the numerator
+        denominator: regex representing the denominator
+        include_power_minus1: include the "n d -1" format for "n/d"
+
+    Returns:
+
+    """
     # Copes with blank/optional numerators, too.
     options = [
         r"(?: {numerator} \s* (?: \/ | \b per \b) \s* {denominator} )".format(
@@ -58,7 +72,13 @@ def per(numerator: str, denominator: str,
     # Use of "\s* \b" rather than "\s+" is so we can have a BLANK numerator.
 
 
-def _out_of_str(n_as_regex: str):
+def _out_of_str(n_as_regex: str) -> str:
+    """
+    Returns regex text representing "out of N".
+
+    Args:
+        n_as_regex: the "N", as a regular expression
+    """
     # / n
     # out of n
     return r"(?: {out_of} \s* {n} \b)".format(out_of=OUT_OF_SEPARATOR,
@@ -66,15 +86,32 @@ def _out_of_str(n_as_regex: str):
 
 
 def out_of(n: int) -> str:
+    """
+    Returns regex text representing "out of N".
+
+    Args:
+        n: the number N
+    """
     return _out_of_str(str(n))
 
 
 def out_of_anything() -> str:
-    # out_of(n) where n is any number
+    """
+    Returns:
+        regex representing "out of N" where N is any number
+    """
     return _out_of_str(PLAIN_INTEGER)
 
 
 def power(x: str, n: int, allow_no_operator: bool=False) -> str:
+    """
+    Returns regex text representing "x to the power n".
+
+    Args:
+        x: base
+        n: exponent
+        allow_no_operator: make the operator (like ``^`` or ``**``) optional?
+    """
     return r"(?: {x} \s* {power}{optional} \s* {n})".format(
         x=x,
         power=POWER,
@@ -84,7 +121,12 @@ def power(x: str, n: int, allow_no_operator: bool=False) -> str:
 
 
 def units_times(*args: str) -> str:
-    """For units, where they are notionally multiplied."""
+    """
+    Returns regular expression text combining all its inputs with optional
+    multiplication.
+
+    For units, where they are notionally multiplied.
+    """
     multiply = MULTIPLY_OR_SPACE + "?"
     joined = multiply.join(args)
     return r"(?: {} )".format(joined)
@@ -92,6 +134,13 @@ def units_times(*args: str) -> str:
 
 def units_by_dimension(*args: Tuple[str, int],  # specify type of *one* arg!
                        allow_no_operator: bool=False) -> str:
+    """
+    Returns regex text for a unit where we specify them by their dimensions.
+
+    Args:
+        *args: each is a tuple ``unit, power``
+        allow_no_operator: make the operator (like ``^`` or ``**``) optional?
+    """
     multiply = " " + MULTIPLY_OR_SPACE + " "
     power_elements = []  # type: List[str]
     for i, unit_exponent in enumerate(args):
@@ -239,6 +288,13 @@ KG_PER_SQ_M = r"(?: {kg_per_sqm} | {kg_sqm_pow_minus2} )".format(
 def kg_from_st_lb_oz(stones: float = 0,
                      pounds: float = 0,
                      ounces: float = 0) -> Optional[float]:
+    """
+    Convert Imperial to metric mass.
+
+    Returns:
+        mass in kg
+
+    """
     # 16 ounces in a pound
     # 14 pounds in a stone
     # 1 avoirdupois pound = 0.45359237 kg
@@ -252,6 +308,13 @@ def kg_from_st_lb_oz(stones: float = 0,
 
 
 def m_from_ft_in(feet: float = 0, inches: float = 0) -> Optional[float]:
+    """
+    Converts Imperial to metric length.
+
+    Returns:
+        length in m
+
+    """
     # 12 inches in a foot
     # 1 inch = 25.4 mm
     try:
@@ -262,6 +325,9 @@ def m_from_ft_in(feet: float = 0, inches: float = 0) -> Optional[float]:
 
 
 def m_from_m_cm(metres: float = 0, centimetres: float = 0) -> Optional[float]:
+    """
+    Converts metres/centimetres to metres.
+    """
     try:
         return metres + (centimetres / 100)
     except (TypeError, ValueError):
@@ -269,7 +335,9 @@ def m_from_m_cm(metres: float = 0, centimetres: float = 0) -> Optional[float]:
 
 
 def assemble_units(components: List[Optional[str]]) -> str:
-    """Takes e.g. ["ft", "in"] and makes "ft in"."""
+    """
+    Takes e.g. ``["ft", "in"]`` and makes ``"ft in"``.
+    """
     active_components = [c for c in components if c]
     return " ".join(active_components)
 
@@ -279,6 +347,9 @@ def assemble_units(components: List[Optional[str]]) -> str:
 # =============================================================================
 
 def test_unit_regexes(verbose: bool = False) -> None:
+    """
+    Test all "unit" regexes.
+    """
     test_text_regex("per(n, d)", per("n", "d"), [
         ("blah n per d blah", ["n per d"]),
         ("blah n/d blah", ["n/d"]),
@@ -446,6 +517,9 @@ def test_unit_regexes(verbose: bool = False) -> None:
 
 
 def test_all(verbose: bool = False) -> None:
+    """
+    Test all regexes in this module.
+    """
     test_unit_regexes(verbose=verbose)
 
 

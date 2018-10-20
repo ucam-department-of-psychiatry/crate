@@ -24,7 +24,8 @@ crate_anon/nlp_manager/build_gate_java_interface.py
 
 ===============================================================================
 
-Script to compile Java source for CrateGatePipeline
+**Script to compile Java source for CrateGatePipeline.**
+
 """
 
 import argparse
@@ -49,6 +50,9 @@ DEFAULT_JAVAC = 'javac'
 
 
 def main() -> None:
+    """
+    Command-line processor. See command-line help.
+    """
     parser = argparse.ArgumentParser(
         description="Compile Java classes for CRATE's interface to GATE")
     parser.add_argument(

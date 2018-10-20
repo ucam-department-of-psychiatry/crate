@@ -70,12 +70,22 @@ _srcpkstr           VARCHAR(64)     NULL if the table has an integer PK, but
 _srcfield           VARCHAR(64)     Field (column) name of source text
 
 _srcdatetimefield   DATETIME        Field (column) name containing the source
-                                    date/time.
+                                    date/time. (Added in v0.18.52.)
 
 _srcdatetimeval     DATETIME        Date/time of the source field.
+                                    (Added in v0.18.52.)
+
+_crate_version      VARCHAR(147)    Version of CRATE that generated this NLP
+                                    record, in semantic version form.
+                                    (Added in v0.18.53.)
+
+_when_fetched_utc   DATETIME        Date/time (in UTC) that the NLP processor
+                                    fetched the record from the source
+                                    database. (Added in v0.18.53.)
 =================== =============== ===========================================
 
-The length of the VARCHAR field is set by the `MAX_SQL_FIELD_LEN` constant.
+The length of the VARCHAR fields that refer to relational database entity names
+is set by the `MAX_SQL_FIELD_LEN` constant.
 
 These default output columns are prefixed with an underscore to reduce the
 risk of name clashes (for example, with :ref:`GATE NLP applications <gate_nlp>`

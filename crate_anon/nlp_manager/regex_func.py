@@ -24,6 +24,8 @@ crate_anon/nlp_manager/regex_func.py
 
 ===============================================================================
 
+**Functions to assist in building regular expressions.**
+
 """
 
 from typing import Any, Dict, Optional, Pattern, Tuple
@@ -48,6 +50,8 @@ REGEX_COMPILE_FLAGS = (regex.IGNORECASE | regex.MULTILINE | regex.VERBOSE |
 
 def at_wb_start_end(regex_str: str) -> str:
     """
+    Returns a version of the regex starting and ending with a word boundary.
+
     Caution using this. Digits do not end a word, so "mm3" will not match if
     your "mm" group ends in a word boundary.
     """
@@ -56,6 +60,8 @@ def at_wb_start_end(regex_str: str) -> str:
 
 def at_start_wb(regex_str: str) -> str:
     """
+    Returns a version of the regex starting with a word boundary.
+
     With word boundary at start. Beware, though; e.g. "3kg" is reasonable, and
     this does NOT have a word boundary in.
     """
@@ -63,6 +69,9 @@ def at_start_wb(regex_str: str) -> str:
 
 
 def compile_regex(regex_str: str) -> Pattern:
+    """
+    Compiles a regular expression with our standard flags.
+    """
     try:
         return regex.compile(regex_str, REGEX_COMPILE_FLAGS)
     except _regex_core.error:
@@ -72,6 +81,10 @@ def compile_regex(regex_str: str) -> Pattern:
 
 def compile_regex_dict(regexstr_to_value_dict: Dict[str, Any]) \
         -> Dict[Pattern, Any]:
+    """
+    Converts a dictionary ``{regex_str: value}`` to a dictionary
+    ``{compiled_regex: value}``.
+    """
     return {
         compile_regex(k): v
         for k, v in regexstr_to_value_dict.items()
@@ -82,7 +95,23 @@ def get_regex_dict_match(text: Optional[str],
                          regex_to_value_dict: Dict[Pattern, Any],
                          default: Any = None) \
         -> Tuple[bool, Any]:
-    """Returns (matched, result)."""
+    """
+    Checks text against a set of regular expressions. Returns whether there is
+    a match, and if there was a match, the value that was associated (in the
+    dictionary) with the matching regex.
+
+    Args:
+        text:
+            text to test
+        regex_to_value_dict:
+            dictionary mapping ``{compiled_regex: value}``
+        default:
+            value to return if there is no match
+
+    Returns:
+        tuple: ``matched, associated_value_or_default``
+
+    """
     if text:
         for r, value in regex_to_value_dict.items():
             if r.match(text):

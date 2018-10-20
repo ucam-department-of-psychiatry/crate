@@ -114,12 +114,12 @@ If we're using SQLAlchemy, then use things like func.substr instead, but it's
 a reasonable compromise for now to say that a specific database like PCMIS is
 going to be hosted on SQL Server, since PCMIS uses that
 
-    --------------  -------------------
+    =============== ===================
     SQL Server      SQLAlchemy
-    --------------  -------------------
+    =============== ===================
     SUBSTR          func.substr
     ASCII
-    --------------  -------------------
+    =============== ===================
 
 What about CaseNumber -- is that identifying? If not, it can remain the
 internal key to identify cases. If it is, then we have to replace it.

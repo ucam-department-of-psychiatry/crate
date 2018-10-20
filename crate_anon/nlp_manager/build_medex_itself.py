@@ -24,7 +24,8 @@ crate_anon/nlp_manager/build_medex_itself.py
 
 ===============================================================================
 
-Script to compile Java source for MedEx-UIMA.
+**Script to compile (and modify slightly) Java source for MedEx-UIMA.**
+
 """
 
 import argparse
@@ -142,21 +143,40 @@ SOURCE_END_MARKER = "// END CRATE MODIFICATIONS"
 
 
 def terminate(x: str) -> str:
+    """
+    Terminates its input with a newline.
+    """
     return x + '\n'
 
 
 def lex_freq(x: str) -> str:
-    """For MedEx's lexicon.cfg: a frequency line"""
+    """
+    For MedEx's ``lexicon.cfg``: creates a frequency line.
+    """
     return "{}\tFREQ".format(x)
 
 
 def lex_route(x: str) -> str:
-    """For MedEx's lexicon.cfg: a route line"""
+    """
+    For MedEx's ``lexicon.cfg``: creates a route line.
+    """
     return "{}\tRUT".format(x)
 
 
 def semantic_rule_engine_line(frequency: str,
                               dots_optional: bool = True) -> str:
+    """
+    For MedEx: create a semantic rule engine line (a line of Java to be
+    inserted).
+
+    Args:
+        frequency: string representing the frequency, e.g. "b.d."
+        dots_optional: if ``frequency`` contains full stops, are they
+            optional?
+
+    Returns:
+        a line of Java code
+    """
     # NB case-insensitive regexes in SemanticRuleEngine.java, so ignore case
     # here
     # If you need to put in a \, double it to \\ for Java's benefit.
@@ -177,6 +197,19 @@ def semantic_rule_engine_line(frequency: str,
 
 def frequency_rules_line(frequency: str, timex: str,
                          dots_optional: bool) -> str:
+    """
+    Creates a line for MedEx's ``frequency_rules`` file.
+
+    Args:
+        frequency: the string representing a drug frequency, e.g. "b.d."
+        timex: a TIMEX version of this frequency
+        dots_optional: if ``frequency`` contains full stops, are they
+            optional?
+
+    Returns:
+        a line to go into the ``frequency_rules`` file
+
+    """
     # NB case-sensitive regexes in Rule.java, so offer upper- and lower-case
     # alternatives here.
     # No need for word boundaries with \b, since at this stage all words have
@@ -199,7 +232,15 @@ def frequency_rules_line(frequency: str, timex: str,
 
 
 def add_lines_if_not_in(filename: str, lines: List[str]) -> None:
-    """Elements of lines should not have their own \n characters."""
+    """
+    Adds lines to a file, if they're not already there.
+
+    Args:
+        filename: name of file to modify
+        lines: lines to insert
+
+    Elements of lines should not have their own ``\n`` characters.
+    """
     with open(filename, 'r') as f:
         existing = f.readlines()  # will have trailing newlines
     log.info("Read {} lines from {}".format(len(existing), filename))
@@ -214,7 +255,27 @@ def add_lines_if_not_in(filename: str, lines: List[str]) -> None:
 def add_lines_after_trigger(filename: str, trigger: str,
                             start_marker: str, end_marker: str,
                             lines: List[str]) -> None:
-    """Elements of lines should not have their own \n characters."""
+    """
+    Adds lines to a file, after a triggering line.
+
+    Args:
+        filename:
+            name of file to modify
+        trigger:
+            line that begins the section of interest; we don't start paying
+            attention until this is encountered
+        start_marker: see below
+        end_marker: see below
+        lines: lines to insert
+
+    Immediately after we've encountered ``trigger``, we insert
+    ``start_marker``, then ``lines``, then ``end_marker``.
+
+    If the file already has such a block, we chop out the old block before
+    inserting the new.
+
+    Elements of lines should not have their own ``\n`` characters.
+    """
     with open(filename, 'r') as f:
         existing = f.readlines()
     log.info("Read {} lines from {}".format(len(existing), filename))
@@ -247,7 +308,24 @@ def add_lines_after_trigger(filename: str, trigger: str,
 def replace_in_file(filename: str, changes: List[Tuple[str, str]],
                     count: int = -1, encoding: str = 'utf8',
                     backup_suffix: str = "~") -> None:
-    """Replaces all old by new in file filename."""
+    """
+    Replaces content in a file.
+
+    Args:
+        filename:
+            name of file to modify
+        changes:
+            list of ``old, new`` tuples; we will replace ``old`` by ``new`` in
+            each case
+        count:
+            up to how many times should we perform the replacement?
+            See :func:`str.replace`.
+        encoding:
+            character encoding to be used
+        backup_suffix:
+            we'll create a backup file; what should we append to the filename
+            to give the name of the backup file?
+    """
     log.info("Replacing code in file: {}".format(filename))
     # Read contents
     with open(filename, encoding=encoding) as input_file:
@@ -270,6 +348,9 @@ def replace_in_file(filename: str, changes: List[Tuple[str, str]],
 
 
 def main() -> None:
+    """
+    Command-line processor. See command-line help.
+    """
     # -------------------------------------------------------------------------
     # Arguments
     # -------------------------------------------------------------------------

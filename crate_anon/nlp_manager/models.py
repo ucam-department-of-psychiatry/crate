@@ -24,6 +24,8 @@ crate_anon/nlp_manager/models.py
 
 ===============================================================================
 
+**SQLAlchemy ORM models for the NLP progress database.**
+
 """
 
 from sqlalchemy.ext.declarative import declarative_base
@@ -54,8 +56,9 @@ SqlTypeHash = HashClass("dummysalt").sqla_column_type()
 
 class NlpRecord(ProgressBase):
     """
-    Class to record the fact of processing a source record (and to keep a hash
-    allowing identification of altered source contents later).
+    Class to record the fact of processing a source record for a particular
+    kind of NLP (and to keep a hash allowing identification of altered source
+    contents later).
     """
     __tablename__ = 'crate_nlp_progress'
     __table_args__ = (

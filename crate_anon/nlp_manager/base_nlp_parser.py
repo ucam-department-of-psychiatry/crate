@@ -24,22 +24,27 @@ crate_anon/nlp_manager/base_nlp_parser.py
 
 ===============================================================================
 
-"""
+**Simple base class for all our NLP parsers (GATE, regex, ...)**
 
-# Simple base class for all our NLP parsers (GATE, regex, ...)
+"""
 
 from functools import lru_cache
 import logging
 import sys
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import (
+    Any, Dict, Generator, Iterable, List, Optional, TextIO, Tuple
+)
 
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 from cardinal_pythonlib.sqlalchemy.schema import (
     column_lists_equal,
     index_lists_equal
 )
+from sqlalchemy.engine.base import Engine
+from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
+from sqlalchemy.sql.schema import MetaData
 
 from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
@@ -65,11 +70,27 @@ TIMING_HANDLE_PARSED = "handled_parsed"
 # =============================================================================
 
 class BaseNlpParser(object):
+    """
+    Base class for all CRATE NLP processors, including those that talk to
+    third-party software. Manages the interface to databases for results
+    storage, etc.
+    """
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        """
+        Args:
+            nlpdef:
+                a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+            cfgsection:
+                the name of a CRATE NLP config file section (from which we may
+                choose to get extra config information)
+            commit:
+                force a COMMIT whenever we insert data? You should specify this
+                in multiprocess mode, or you may get database deadlocks.
+        """
         self._nlpdef = nlpdef
         self._cfgsection = cfgsection
         self._commit = commit
@@ -81,42 +102,98 @@ class BaseNlpParser(object):
             self._destdb = nlpdef.get_database(self._destdb_name)
 
     @classmethod
-    def print_info(cls, file=sys.stdout):
+    def print_info(cls, file: TextIO = sys.stdout) -> None:
+        """
+        Print general information about this NLP processor.
+
+        Args:
+            file: file to print to (default: stdout)
+        """
         print("Base class for all CRATE NLP parsers", file=file)
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         """
-        Returns a dictionary of {tablename: destination_columns}.
+        Describes the destination table(s) that this NLP processor wants to
+        write to.
+
+        Returns:
+             dict: a dictionary of ``{tablename: destination_columns}``, where
+             ``destination_columns`` is a list of SQLAlchemy :class:`Column`
+             objects.
         """
         raise NotImplementedError
 
     def dest_tables_indexes(self) -> Dict[str, List[Index]]:
+        """
+        Describes indexes that this NLP processor suggests for its destination
+        table(s).
+
+        Returns:
+             dict: a dictionary of ``{tablename: indexes}``, where ``indexes``
+             is a list of SQLAlchemy :class:`Index` objects.
+        """
         return {}
 
-    def get_metadata(self):
+    def get_metadata(self) -> MetaData:
+        """
+        Returns the SQLAlchemy metadata for the destination database (which this
+        NLP processor was told about at construction).
+        """
         return self._destdb.metadata
 
-    def get_session(self):
+    def get_session(self) -> Session:
+        """
+        Returns the SQLAlchemy ORM Session for the destination database (which
+        this NLP processor was told about at construction).
+        """
         return self._destdb.session
 
-    def get_engine(self):
+    def get_engine(self) -> Engine:
+        """
+        Returns the SQLAlchemy database Engine for the destination database
+        (which this NLP processor was told about at construction).
+        """
         return self._destdb.engine
 
     def get_nlpdef_name(self) -> Optional[str]:
+        """
+        Returns the name of our
+        :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`, if we
+        have one, or ``None``.
+        """
         if self._nlpdef is None:
             return None
         return self._nlpdef.get_name()
 
     def get_parser_name(self) -> str:
+        """
+        Returns the NLP parser's name, from our :attr:`NAME` attribute.
+        """
         return getattr(self, 'NAME', None)
 
     def get_dbname(self) -> str:
+        """
+        Returns the friendly name for the destination database (which this NLP
+        processor was told about at construction).
+        """
         return self._destdb_name
 
     @staticmethod
     def _assert_no_overlap(description1: str, cols1: List[Column],
                            description2: str, cols2: List[Column]) -> None:
-        """Used for ensuring non-overlapping column names."""
+        """
+        Asserts that the two column lists do not include overlapping column
+        names.
+
+        Used for ensuring non-overlapping column names when we add NLP-specific
+        columns to generic columns (e.g. about the source data).
+
+        Args:
+            description1: description of group 1, used for error messages
+            cols1: list 1 of SQLAlchemy :class:`Column` objects
+            description2: description of group 2, used for error messages
+            cols2: list 2 of SQLAlchemy :class:`Column` objects
+        """
         set1 = set(c.name for c in cols1)
         set2 = set(c.name for c in cols2)
         assert not (set1 & set2), (
@@ -127,6 +204,9 @@ class BaseNlpParser(object):
     @staticmethod
     def _assert_column_lists_identical(
             list_of_column_lists: List[List[Column]]) -> None:
+        """
+        Ensure that every column list (in a list of column lists) is identical.
+        """
         n = len(list_of_column_lists)
         if n <= 1:
             return
@@ -158,6 +238,9 @@ class BaseNlpParser(object):
     @staticmethod
     def _assert_index_lists_identical(
             list_of_index_lists: List[List[Index]]) -> None:
+        """
+        Ensure that every index list (in a list of index lists) is identical.
+        """
         n = len(list_of_index_lists)
         if n <= 1:
             return
@@ -189,7 +272,9 @@ class BaseNlpParser(object):
     @lru_cache(maxsize=None)
     def tables(self) -> Dict[str, Table]:
         """
-        Returns a dictionary of {tablename: Table}.
+        Returns a dictionary of ``{tablename: Table}``, mapping table names
+        to SQLAlchemy Table objects, for all destination tables of this NLP
+        processor.
         """
         # Obtain a single set of copy columns
         ifconfigs = self._nlpdef.get_ifconfigs()
@@ -248,15 +333,28 @@ class BaseNlpParser(object):
         return tables
 
     def get_tablenames(self) -> Iterable[str]:
+        """
+        Returns all destination table names for this NLP processor.
+        """
         return self.dest_tables_columns().keys()
 
     def get_table(self, tablename: str) -> Table:
+        """
+        Returns an SQLAlchemy :class:`Table` for a given destination table of
+        this NLP processor whose name is ``tablename``.
+        """
         tables = self.tables()
-        assert tablename in tables
         return tables[tablename]
 
     def make_tables(self, drop_first: bool = False) -> List[str]:
-        assert self._destdb, "Cannot use tables() call without a database"
+        """
+        Creates all destination tables for this NLP processor in the
+        destination database.
+
+        Args:
+            drop_first: drop the tables first?
+        """
+        assert self._destdb, "No database specified!"
         engine = self.get_engine()
         tables = self.tables()
         pretty_names = []  # type: List[str]
@@ -270,13 +368,20 @@ class BaseNlpParser(object):
             pretty_names.append(pretty_name)
         return pretty_names
 
-    def parse(self, text: str) -> Iterator[Tuple[str, Dict[str, Any]]]:
+    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
+                                            None, None]:
         """
-        Takes the raw text as input.
-        Yields (tablename, valuedict) tuples, where valuedict is
-        a dictionary of {column: value}. The values returned are ONLY those
-        generated by NLP, and do not include either (a) the source reference
-        values (_srcdb, _srctable, etc.) or the "copy" fields.
+        Main parsing function.
+
+        Args:
+            text: the raw text to parse
+
+        Yields:
+            tuple: ``tablename, valuedict``, where ``valuedict`` is
+            a dictionary of ``{columnname: value}``. The values returned are
+            ONLY those generated by NLP, and do not include either (a) the
+            source reference values (``_srcdb``, ``_srctable``, etc.) or the
+            "copy" fields.
         """
         raise NotImplementedError
 
@@ -284,8 +389,21 @@ class BaseNlpParser(object):
                 starting_fields_values: Dict[str, Any]) -> None:
         """
         The core function that takes a single piece of text and feeds it
-        through a single NLP processor, yielding zero, one, or many output
-        records.
+        through a single NLP processor. This may produce zero, one, or many
+        output records. Those records are then merged with information about
+        their source (etc)., and inserted into the destination database.
+
+        Args:
+            text:
+                the raw text to parse
+            starting_fields_values:
+                a dictionary of the format ``{columnname: value}`` that should
+                be added to whatever the NLP processor comes up with. This
+                will, in practice, include source metadata (which table,
+                row [PK], and column did the text come from), processing
+                metadata (when did the NLP processing take place?), and other
+                values that the user has told us to copy across from the source
+                database.
         """
         if not text:
             return
@@ -316,16 +434,28 @@ class BaseNlpParser(object):
                     with MultiTimerContext(timer, TIMING_INSERT):
                         session.execute(insertquery)
                     self._nlpdef.notify_transaction(
-                        session, n_rows=1, n_bytes=sys.getsizeof(final_values),
-                        force_commit=self._commit)  # or we get deadlocks in multiprocess mode  # noqa
+                        session,
+                        n_rows=1,
+                        n_bytes=sys.getsizeof(final_values),
+                        force_commit=self._commit
+                    )
                     n_values += 1
         log.debug("NLP processor {}/{}: found {} values".format(
             self.get_nlpdef_name(), self.get_parser_name(), n_values))
 
-    def test(self, verbose: bool=False):
+    def test(self, verbose: bool=False) -> None:
+        """
+        Performs a self-test on the NLP processor.
+
+        Args:
+            verbose: be verbose?
+        """
         pass
 
     def test_parser(self, test_strings: List[str]) -> None:
+        """
+        Tests the NLP processor's parser with a set of test strings.
+        """
         print("Testing parser: {}".format(type(self).__name__))
         for text in test_strings:
             print("    {} -> {}".format(text, list(self.parse(text))))
@@ -336,10 +466,26 @@ class BaseNlpParser(object):
                            srcpkstr: Optional[str],
                            commit: bool = False) -> None:
         """
-        Used during incremental updates.
-        For when a record (specified by srcpkval) has been updated in the
-        source; wipe older entries for it in the destination database(s).
-        """
+        Deletes all destination records for a given source record.
+        
+        - Used during incremental updates.
+        - For when a record (specified by ``srcpkval``) has been updated in the
+          source; wipe older entries for it in the destination database(s).
+
+        Args:
+            ifconfig:
+                :class:`crate_anon.nlp_manager.input_field_config.InputFieldConfig`
+                that defines the source database, table, and field (column)
+            srcpkval:
+                integer primary key (PK) value 
+            srcpkstr:
+                for tables with string PKs: the string PK value
+            commit:
+                execute a COMMIT after we have deleted the records?
+                If you don't do this, we will get deadlocks in incremental mode.
+                See e.g.
+                http://dev.mysql.com/doc/refman/5.5/en/innodb-deadlocks.html
+        """  # noqa
         session = self.get_session()
         srcdb = ifconfig.get_srcdb()
         srctable = ifconfig.get_srctable()
@@ -366,12 +512,26 @@ class BaseNlpParser(object):
                 session.execute(delquery)
             if commit:
                 self._nlpdef.commit(session)
-                # ... or we get deadlocks in incremental updates
-                # http://dev.mysql.com/doc/refman/5.5/en/innodb-deadlocks.html
 
     def delete_where_srcpk_not(self,
                                ifconfig: InputFieldConfig,
                                temptable: Optional[Table]) -> None:
+        """
+        Function to help with deleting NLP destination records whose source
+        records have been deleted.
+
+        See :func:`crate_anon.nlp_manager.nlp_manager.delete_where_no_source`.
+
+        Args:
+            ifconfig:
+                :class:`crate_anon.nlp_manager.input_field_config.InputFieldConfig`
+                that defines the source database, table, and field (column).
+            temptable:
+                If this is specified (as an SQLAlchemy) table, we delete NLP
+                destination records whose source PK has not been inserted into
+                this table. Otherwise, we delete *all* NLP destination records
+                from the source column.
+        """
         destsession = self.get_session()
         srcdb = ifconfig.get_srcdb()
         srctable = ifconfig.get_srctable()

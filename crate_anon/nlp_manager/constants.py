@@ -24,6 +24,8 @@ crate_anon/nlp_manager/constants.py
 
 ===============================================================================
 
+**Constants for CRATE NLP, including a demo config file.**
+
 """
 
 from cardinal_pythonlib.hash import HmacMD5Hasher

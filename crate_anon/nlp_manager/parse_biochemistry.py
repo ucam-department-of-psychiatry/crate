@@ -24,6 +24,21 @@ crate_anon/nlp_manager/parse_biochemistry.py
 
 ===============================================================================
 
+**Python regex-based NLP processors for biochemistry data.**
+
+All inherit from
+:class:`crate_anon.nlp_manager.regex_parser.SimpleNumericalResultParser` and
+are constructed with these arguments:
+
+nlpdef:
+    a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+cfgsection:
+    the name of a CRATE NLP config file section (from which we may
+    choose to get extra config information)
+commit:
+    force a COMMIT whenever we insert data? You should specify this
+    in multiprocess mode, or you may get database deadlocks.
+
 """
 
 import logging
@@ -59,7 +74,7 @@ log = logging.getLogger(__name__)
 
 class Crp(SimpleNumericalResultParser):
     """
-    C-reactive protein.
+    C-reactive protein (CRP).
 
     CRP units:
 
@@ -73,8 +88,7 @@ class Crp(SimpleNumericalResultParser):
       - http://www.ncbi.nlm.nih.gov/pubmed/7705110
       - http://emedicine.medscape.com/article/2086909-overview
 
-    - 1 mg/dL = 10 mg/L
-      ... so normal in mg/dL is <=1 roughly.
+    - 1 mg/dL = 10 mg/L, so normal in mg/dL is <=1 roughly.
 
     """
 
@@ -116,6 +130,7 @@ class Crp(SimpleNumericalResultParser):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
@@ -128,6 +143,7 @@ class Crp(SimpleNumericalResultParser):
         )
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in parent class
         self.test_numerical_parser([
             ("CRP", []),  # should fail; no values
             ("CRP 6", [6]),
@@ -160,11 +176,16 @@ class Crp(SimpleNumericalResultParser):
 
 
 class CrpValidator(ValidatorBase):
-    """Validator for CRP (see ValidatorBase for explanation)."""
+    """
+    Validator for CRP
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[Crp.CRP],
@@ -178,7 +199,9 @@ class CrpValidator(ValidatorBase):
 # ... handy to check approximately expected distribution of results!
 
 class Sodium(SimpleNumericalResultParser):
-    """Sodium (Na)."""
+    """
+    Sodium (Na).
+    """
     SODIUM = r"""
         (?: {WORD_BOUNDARY} (?: Na | Sodium ) {WORD_BOUNDARY} )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
@@ -221,6 +244,7 @@ class Sodium(SimpleNumericalResultParser):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
@@ -233,6 +257,7 @@ class Sodium(SimpleNumericalResultParser):
         )
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in parent class
         self.test_numerical_parser([
             ("Na", []),  # should fail; no values
             ("Na 120", [120]),
@@ -253,11 +278,16 @@ class Sodium(SimpleNumericalResultParser):
 
 
 class SodiumValidator(ValidatorBase):
-    """Validator for Sodium (see ValidatorBase for explanation)."""
+    """
+    Validator for Sodium
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[Sodium.SODIUM],
@@ -270,7 +300,9 @@ class SodiumValidator(ValidatorBase):
 # =============================================================================
 
 class Tsh(SimpleNumericalResultParser):
-    """Thyroid-stimulating hormone (TSH)."""
+    """
+    Thyroid-stimulating hormone (TSH).
+    """
     TSH = r"""
         (?: {WORD_BOUNDARY}
             (?: TSH | thyroid [-\s]+ stimulating [-\s]+ hormone )
@@ -309,6 +341,7 @@ class Tsh(SimpleNumericalResultParser):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
@@ -321,6 +354,7 @@ class Tsh(SimpleNumericalResultParser):
         )
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
         self.test_numerical_parser([
             ("TSH", []),  # should fail; no values
             ("TSH 1.5", [1.5]),
@@ -336,11 +370,16 @@ class Tsh(SimpleNumericalResultParser):
 
 
 class TshValidator(ValidatorBase):
-    """Validator for TSH (see ValidatorBase for explanation)."""
+    """
+    Validator for TSH
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[Tsh.TSH],

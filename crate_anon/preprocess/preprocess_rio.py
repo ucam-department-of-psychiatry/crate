@@ -117,49 +117,50 @@ HOWEVER, the last part is not always unique; e.g. Care_Plan_Interventions.
         RiO form groups    Nice names
 
     AssessmentFormGroupsStructure, e.g.:
-        name            FormName           AddedDate FormgroupVersion FormOrder
-        CoreAssessNewV2	coreasspresprob	    2013-10-30 15:46:00.000	0	0
-        CoreAssessNewV2	coreassesspastpsy	2013-10-30 15:46:00.000	0	1
-        CoreAssessNewV2	coreassessbackhist	2013-10-30 15:46:00.000	0	2
-        CoreAssessNewV2	coreassesmentstate	2013-10-30 15:46:00.000	0	3
-        CoreAssessNewV2	coreassescapsafrisk	2013-10-30 15:46:00.000	0	4
-        CoreAssessNewV2	coreasssumminitplan	2013-10-30 15:46:00.000	0	5
-        CoreAssessNewV2	coreasspresprob	    2014-12-14 19:19:06.410	1	0
-        CoreAssessNewV2	coreassesspastpsy	2014-12-14 19:19:06.410	1	1
-        CoreAssessNewV2	coreassessbackhist	2014-12-14 19:19:06.413	1	2
-        CoreAssessNewV2	coreassesmentstate	2014-12-14 19:19:06.413	1	3
-        CoreAssessNewV2	coreassescapsafrisk	2014-12-14 19:19:06.417	1	4
-        CoreAssessNewV2	coreasssumminitplan	2014-12-14 19:19:06.417	1	5
-        CoreAssessNewV2	coresocial1	        2014-12-14 19:19:06.420	1	6
-        CoreAssessNewV2	coreasspresprob	    2014-12-14 19:31:25.377	2	0 } NB
-        CoreAssessNewV2	coreassesspastpsy	2014-12-14 19:31:25.377	2	1 }
-        CoreAssessNewV2	coreassessbackhist	2014-12-14 19:31:25.380	2	2 }
-        CoreAssessNewV2	coreassesmentstate	2014-12-14 19:31:25.380	2	3 }
-        CoreAssessNewV2	coreassescapsafrisk	2014-12-14 19:31:25.380	2	4 }
-        CoreAssessNewV2	coreasssumminitplan	2014-12-14 19:31:25.383	2	5 }
-        CoreAssessNewV2	coresocial1	        2014-12-14 19:31:25.383	2	6 }
-        CoreAssessNewV2	kcsahyper	        2014-12-14 19:31:25.387	2	7 }
+        name            FormName            AddedDate               FormgroupVersion FormOrder
+        CoreAssessNewV2 coreasspresprob     2013-10-30 15:46:00.000 0                0
+        CoreAssessNewV2 coreassesspastpsy   2013-10-30 15:46:00.000 0                1
+        CoreAssessNewV2 coreassessbackhist  2013-10-30 15:46:00.000 0                2
+        CoreAssessNewV2 coreassesmentstate  2013-10-30 15:46:00.000 0                3
+        CoreAssessNewV2 coreassescapsafrisk 2013-10-30 15:46:00.000 0                4
+        CoreAssessNewV2 coreasssumminitplan 2013-10-30 15:46:00.000 0                5
+        CoreAssessNewV2 coreasspresprob     2014-12-14 19:19:06.410 1                0
+        CoreAssessNewV2 coreassesspastpsy   2014-12-14 19:19:06.410 1                1
+        CoreAssessNewV2 coreassessbackhist  2014-12-14 19:19:06.413 1                2
+        CoreAssessNewV2 coreassesmentstate  2014-12-14 19:19:06.413 1                3
+        CoreAssessNewV2 coreassescapsafrisk 2014-12-14 19:19:06.417 1                4
+        CoreAssessNewV2 coreasssumminitplan 2014-12-14 19:19:06.417 1                5
+        CoreAssessNewV2 coresocial1         2014-12-14 19:19:06.420 1                6
+        CoreAssessNewV2 coreasspresprob     2014-12-14 19:31:25.377 2                0 } NB
+        CoreAssessNewV2 coreassesspastpsy   2014-12-14 19:31:25.377 2                1 }
+        CoreAssessNewV2 coreassessbackhist  2014-12-14 19:31:25.380 2                2 }
+        CoreAssessNewV2 coreassesmentstate  2014-12-14 19:31:25.380 2                3 }
+        CoreAssessNewV2 coreassescapsafrisk 2014-12-14 19:31:25.380 2                4 }
+        CoreAssessNewV2 coreasssumminitplan 2014-12-14 19:31:25.383 2                5 }
+        CoreAssessNewV2 coresocial1         2014-12-14 19:31:25.383 2                6 }
+        CoreAssessNewV2 kcsahyper           2014-12-14 19:31:25.387 2                7 }
         ^^^             ^^^
         Form groups     RiO forms; these correspond to UserAssess___ tables.
 
     AssessmentFormsIndex, e.g.
-        Name                InUse Style Deleted    Description  ...
-        core_10             1     6     0    Clinical Outcomes in Routine Evaluation Screening Measure-10 (core-10)
-        corealcsub          1     6     0    Alcohol and Substance Misuse
-        coreassescapsafrisk 1     6     0    Capacity, Safeguarding and Risk
-        coreassesmentstate  1     6     0    Mental State
-        coreassessbackhist  1     6     0    Background and History
-        coreassesspastpsy   1     6     0    Past Psychiatric History and Physical Health
-        coreasspresprob     1     6     0    Presenting Problem
-        coreasssumminitplan 1     6     0    Summary and Initial Plan
-        corecarer           1     6     0    Carers and Cared For
-        corediversity       1     6     0    Diversity Needs
-        coremedsum          1     6     0    Medication, Allergies and Adverse Reactions
-        coremenhis          1     6     0    Mental Health / Psychiatric History
-        coremenstate        1     6     0    Mental State and Formulation
-        coreperdev          1     6     0    Personal History and Developmental History
-        ^^^                                  ^^^
-        |||                                  Nice names.
+        Name                InUse Style Deleted    Description ...
+        core_10             1     6     0          Clinical Outcomes in Routine Evaluation Screening Measure-10 (core-10)
+        corealcsub          1     6     0          Alcohol and Substance Misuse
+        coreassescapsafrisk 1     6     0          Capacity, Safeguarding and Risk
+        coreassesmentstate  1     6     0          Mental State
+        coreassessbackhist  1     6     0          Background and History
+        coreassesspastpsy   1     6     0          Past Psychiatric History and Physical Health
+        coreasspresprob     1     6     0          Presenting Problem
+        coreasssumminitplan 1     6     0          Summary and Initial Plan
+        corecarer           1     6     0          Carers and Cared For
+        corediversity       1     6     0          Diversity Needs
+        coremedsum          1     6     0          Medication, Allergies and Adverse Reactions
+        coremenhis          1     6     0          Mental Health / Psychiatric History
+        coremenstate        1     6     0          Mental State and Formulation
+        coreperdev          1     6     0          Personal History and Developmental History
+        ^^^                                        ^^^
+        |||                                        Nice names.
+        |||
         RiO forms; these correspond to UserAssess___ tables,
         e.g. UserAssesscoreassesmentstate
 

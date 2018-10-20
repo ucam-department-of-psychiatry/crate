@@ -24,13 +24,13 @@ crate_anon/nlp_manager/regex_parser.py
 
 ===============================================================================
 
-"""
+**Shared elements for regex-based NLP work.**
 
-# Shared elements for regex-based NLP work.
+"""
 
 import logging
 import sys
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 
 from sqlalchemy import Column, Integer, Float, String, Text
 
@@ -208,12 +208,21 @@ MAX_TENSE_TEXT_LENGTH = 50
 MAX_TENSE_LENGTH = max(len(x) for x in TENSE_LOOKUP.values())
 
 
-def common_tense(tense_text: str, relation_text: str) -> Tuple[str, str]:
+def common_tense(tense_text: Optional[str], relation_text: Optional[str]) \
+        -> Tuple[Optional[str], Optional[str]]:
     """
-    Sort out tense, if known, and impute that "CRP was 72" means that
-    relation was EQ in the PAST, etc.
+    Takes strings potentially representing "tense" and "equality" concepts
+    and unifies them.
 
-    Returns (tense, relation).
+    - Used, for example, to help impute that "CRP was 72" means that relation
+      was EQ in the PAST, etc.
+
+    Args:
+        tense_text: putative tense information
+        relation_text: putative relationship (equals, less than, etc.)
+
+    Returns:
+         tuple: ``tense, relation``; either may be ``None``.
     """
     tense = None
     if tense_text:
@@ -227,8 +236,10 @@ def common_tense(tense_text: str, relation_text: str) -> Tuple[str, str]:
 
 
 class NumericalResultParser(BaseNlpParser):
-    """DO NOT USE DIRECTLY. Base class for generic numerical results, where
-    a SINGLE variable is produced."""
+    """
+    DO NOT USE DIRECTLY. Base class for generic numerical results, where
+    a SINGLE variable is produced.
+    """
 
     def __init__(self,
                  nlpdef: NlpDefinition,
@@ -237,6 +248,22 @@ class NumericalResultParser(BaseNlpParser):
                  target_unit: str,
                  regex_str_for_debugging: str,
                  commit: bool = False) -> None:
+        """
+        Args:
+            nlpdef:
+                :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+            cfgsection:
+                config section name in the :ref:`NLP config file <nlp_config>`
+            variable:
+                used by subclasses as the record value for ``variable_name``
+            target_unit:
+                fieldname used for the primary output quantity
+            regex_str_for_debugging:
+                string form of regex, for debugging
+            commit:
+                force a COMMIT whenever we insert data? You should specify this
+                in multiprocess mode, or you may get database deadlocks.
+        """
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
         self.variable = variable
         self.target_unit = target_unit
@@ -256,19 +283,26 @@ class NumericalResultParser(BaseNlpParser):
             "Variable name too long (max {} characters)".format(
                 MAX_SQL_FIELD_LEN))
 
-    def print_info(self, file=sys.stdout):
+    def print_info(self, file: TextIO = sys.stdout) -> None:
+        # docstring in superclass
         print(
             "NLP class to find numerical results. Regular expression: "
             "\n\n{}".format(self.regex_str_for_debugging), file=file)
 
     def get_regex_str_for_debugging(self) -> str:
+        """
+        Returns the string version of the regex, for debugging.
+        """
         return self.regex_str_for_debugging
 
     def set_tablename(self, tablename: str) -> None:
-        """In case a friend class wants to override."""
+        """
+        In case a friend class wants to override.
+        """
         self.tablename = tablename
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
+        # docstring in superclass
         return {self.tablename: [
             Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
                    doc=HELP_VARIABLE_NAME),
@@ -288,9 +322,9 @@ class NumericalResultParser(BaseNlpParser):
             Column(FN_TENSE, String(MAX_TENSE_LENGTH), doc=HELP_TENSE),
         ]}
 
-    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]], None,
-                                            None]:
-        """Default parser for NumericalResultParser."""
+    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
+                                            None, None]:
+        # docstring in superclass
         raise NotImplementedError
 
     def test_numerical_parser(
@@ -298,10 +332,17 @@ class NumericalResultParser(BaseNlpParser):
             test_expected_list: List[Tuple[str, List[float]]],
             verbose: bool = False) -> None:
         """
-        test_expected_list: list of tuples of (a) test string and
-        (b) list of expected numerical (float) results, which can be an
-        empty list
-        Returne: none; will assert on failure
+        Args:
+            test_expected_list:
+                list of tuples ``test_string, expected_values``. The parser
+                will parse ``test_string`` and compare the result (each value
+                of the target unit) to ``expected_values``, which is a list of
+                numerical (``float``), and can be an empty list.
+            verbose:
+                show the regex string too
+
+        Raises:
+            :exc:`AssertionError` if a comparison fails
         """
         print("Testing parser: {}".format(type(self).__name__))
         if verbose:
@@ -325,6 +366,27 @@ class NumericalResultParser(BaseNlpParser):
     # noinspection PyUnusedLocal
     def detailed_test(self, text: str, expected: List[Dict[str, Any]],
                       verbose: bool = False) -> None:
+        """
+        Runs a more detailed check. Whereas :func:`test_numerical_parser` tests
+        the primary numerical results, this function tests other key/value
+        pairs returned by the parser.
+
+        Args:
+            text:
+                text to parse
+            expected:
+                list of ``resultdict`` dictionaries (each mapping column names
+                to values).
+
+                - The parser should return one result dictionary for
+                  every entry in ``expected``.
+                - It's fine for the ``resultdict`` not to include all the
+                  columns returned for the parser. However, for any column that
+                  is present, the parser must provide the corresponding value.
+
+            verbose:
+                unused
+        """
         i = 0
         for _, values in self.parse(text):
             if i >= len(expected):
@@ -350,9 +412,11 @@ class NumericalResultParser(BaseNlpParser):
 
 
 class SimpleNumericalResultParser(NumericalResultParser):
-    """Base class for simple single-format numerical results. Use this when
-    not only do you have a single variable to produce, but you have a single
-    regex (in a standard format) that can produce it."""
+    """
+    Base class for simple single-format numerical results. Use this when not
+    only do you have a single variable to produce, but you have a single regex
+    (in a standard format) that can produce it.
+    """
     def __init__(self,
                  nlpdef: NlpDefinition,
                  cfgsection: str,
@@ -364,38 +428,74 @@ class SimpleNumericalResultParser(NumericalResultParser):
                  commit: bool = False,
                  debug: bool = False) -> None:
         """
-        This class operates with compiled regexes having this group format:
-          - variable
-          - tense_indicator
-          - relation
-          - value
-          - units
+        Args:
 
-        units_to_factor: dictionary, mapping
-            FROM (compiled regex for units)
-            TO EITHER
-                - float [multiple] to multiple those units by, to get preferred
-                   unit
-            OR  - function taking text parameter and returning float value
-                  in preferred unit
+            nlpdef:
+                :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
 
-            - any units present in the regex but absent from units_to_factor
-              will lead the result to be ignored -- for example, allowing you
-              to ignore a relative neutrophil count ("neutrophils 2.2%") while
-              detecting absolute neutrophil counts ("neutrophils 2.2"), or
-              ignoring "docusate sodium 100mg" but detecting "sodium 140 mM".
+            cfgsection:
+                config section name in the :ref:`NLP config file <nlp_config>`
 
-        take_absolute: converts negative values to positive ones.
-            Typical text requiring this might look like:
-                CRP-4
-                CRP-106
-                CRP -97
-                Blood results for today as follows: Na- 142, K-4.1, ...
-            ... occurring in 23 / 8054 for CRP of one test set in our data.
-            For many quantities, we know that they cannot be negative,
-            so this is just a notation rather than a minus sign.
-            We have to account for it, or it'll distort our values.
-            Preferable to account for it here rather than later; see manual.
+            regex_str:
+                Regular expression, in string format.
+
+                This class operates with compiled regexes having this group
+                format (capture groups in this sequence):
+
+                - variable
+                - tense_indicator
+                - relation
+                - value
+                - units
+
+            variable:
+                used as the record value for ``variable_name``
+
+            target_unit:
+                fieldname used for the primary output quantity
+
+            units_to_factor:
+                dictionary, mapping
+
+                - FROM (compiled regex for units)
+                - TO EITHER a float (multiple) to multiply those units by, to
+                  get the preferred unit
+                - OR a function taking a text parameter and returning a float
+                  value in preferred unit
+
+                Any units present in the regex but absent from
+                ``units_to_factor`` will lead the result to be ignored. For
+                example, this allows you to ignore a relative neutrophil count
+                ("neutrophils 2.2%") while detecting absolute neutrophil counts
+                ("neutrophils 2.2"), or ignoring "docusate sodium 100mg" but
+                detecting "sodium 140 mM".
+
+            take_absolute:
+                Convert negative values to positive ones? Typical text
+                requiring this option might look like:
+
+                .. code-block:: none
+
+                    CRP-4
+                    CRP-106
+                    CRP -97
+                    Blood results for today as follows: Na- 142, K-4.1, ...
+
+                ... occurring in 23 out of 8054 hits for CRP of one test set in
+                our data.
+
+                For many quantities, we know that they cannot be negative, so
+                this is just a notation rather than a minus sign. We have to
+                account for it, or it'll distort our values. Preferable to
+                account for it here rather than later; see manual.
+
+            commit:
+                force a COMMIT whenever we insert data? You should specify this
+                in multiprocess mode, or you may get database deadlocks.
+
+            debug:
+                print the regex?
+
         """
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
@@ -412,7 +512,7 @@ class SimpleNumericalResultParser(NumericalResultParser):
     def parse(self, text: str,
               debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
                                                 None, None]:
-        """Default parser for SimpleNumericalResultParser."""
+        # docstring in superclass
         if not text:
             return
         for m in self.compiled_regex.finditer(text):
@@ -474,9 +574,12 @@ class SimpleNumericalResultParser(NumericalResultParser):
 
 
 class NumeratorOutOfDenominatorParser(BaseNlpParser):
-    """Base class for X-out-of-Y numerical results, e.g. for MMSE/ACE.
-    Integer denominator, expected to be positive.
-    Otherwise similar to SimpleNumericalResultParser."""
+    """
+    Base class for X-out-of-Y numerical results, e.g. for MMSE/ACE.
+
+    - Integer denominator, expected to be positive.
+    - Otherwise similar to :class:`SimpleNumericalResultParser`.
+    """
     def __init__(self,
                  nlpdef: NlpDefinition,
                  cfgsection: str,
@@ -494,6 +597,48 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
         """
         This class operates with compiled regexes having this group format:
           - quantity_regex_str: e.g. to find "MMSE"
+
+        Args:
+            nlpdef:
+                a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+            cfgsection:
+                the name of a CRATE NLP config file section (from which we may
+                choose to get extra config information)
+            variable_name:
+                becomes the content of the ``variable_name`` output column
+            variable_regex_str:
+                regex for the text that states the variable
+            expected_denominator:
+                the integer value that's expected as the "out of Y" part. For
+                example, an MMSE is out of 30; an ACE-III total is out of 100.
+                If the text just says "MMSE 17", we will infer "17 out of 30";
+                so, for the MMSE, ``expected_denominator`` should be 30.
+            numerator_text_fieldname:
+                field (column) name in which to store the text retrieved as the
+                numerator
+            numerator_fieldname:
+                field (column) name in which to store the numerical value
+                retrieved as the numerator
+            denominator_text_fieldname:
+                field (column) name in which to store the text retrieved as the
+                denominator
+            denominator_fieldname:
+                field (column) name in which to store the numerical value
+                retrieved as the denominator
+            correct_numerator_fieldname:
+                field (column) name in which we store the principal validated
+                numerator. For example, if an MMSE processor sees "17" or
+                "17/30", this field will end up containing 17; but if it sees
+                "17/100", it will remain NULL.
+            take_absolute:
+                Convert negative values to positive ones?
+                As for :class:`SimpleNumericalResultParser`.
+            commit:
+                force a COMMIT whenever we insert data? You should specify this
+                in multiprocess mode, or you may get database deadlocks.
+            debug:
+                print the regex?
+
         """
         self.variable_name = variable_name
         assert(expected_denominator > 0)
@@ -545,12 +690,14 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
         self.regex_str = regex_str
         self.compiled_regex = compile_regex(regex_str)
 
-    def print_info(self, file=sys.stdout):
+    def print_info(self, file: TextIO = sys.stdout) -> None:
+        # docstring in superclass
         print(
             "NLP class to find X-out-of-Y results. Regular expression: "
             "\n\n{}".format(self.regex_str), file=file)
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
+        # docstring in superclass
         return {self.tablename: [
             Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
                    doc=HELP_VARIABLE_NAME),
@@ -581,7 +728,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
     def parse(self, text: str,
               debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
                                                 None, None]:
-        """Default parser for NumeratorOutOfDenominatorParser."""
+        # docstring in superclass
         for m in self.compiled_regex.finditer(text):
             startpos = m.start()
             endpos = m.end()
@@ -643,11 +790,19 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
             ],
             verbose: bool = False) -> None:
         """
-        test_expected_list: list of tuples of (a) test string and
-        (b) list of expected numerical (numerator, denominator) results, which
-        can be an empty list
+        Test the parser.
 
-        Returns: none; will assert on failure
+        Args:
+            test_expected_list:
+                list of tuples ``test_string, expected_values``. The parser
+                will parse ``test_string`` and compare the result (each value
+                of the target unit) to ``expected_values``, which is a list of
+                tuples ``numerator, denominator``, and can be an empty list.
+            verbose:
+                print the regex?
+
+        Raises:
+            :exc:`AssertionError` if a comparison fails
         """
         print("Testing parser: {}".format(type(self).__name__))
         if verbose:
@@ -675,7 +830,9 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
 
 class ValidatorBase(BaseNlpParser):
     """
-    DO NOT USE DIRECTLY. Base class for validating regex parser sensitivity.
+    DO NOT USE DIRECTLY. Base class for **validating** regex parser
+    sensitivity.
+
     The validator will find fields that refer to the variable, whether or not
     they meet the other criteria of the actual NLP processors (i.e. whether or
     not they contain a valid value). More explanation below.
@@ -686,27 +843,30 @@ class ValidatorBase(BaseNlpParser):
     - software decision: Y yes, N no
     - signal detection theory classification:
 
-        hit = Pr & Y = true positive
-        miss = Pr & N = false negative
-        false alarm = Ab & Y = false positive
-        correct rejection = Ab & N = true negative
+      - hit = Pr & Y = true positive
+      - miss = Pr & N = false negative
+      - false alarm = Ab & Y = false positive
+      - correct rejection = Ab & N = true negative
 
     - common SDT metrics:
 
-        positive predictive value, PPV = P(Pr | Y) = precision (*)
-        negative predictive value, NPV = P(Ab | N)
-        sensitivity = P(Y | Pr) = recall (*) = true positive rate
-        specificity = P(N | Ab) = true negative rate
-        (*) common names used in the NLP context.
+      - positive predictive value, PPV = P(Pr | Y) = precision (\*)
+      - negative predictive value, NPV = P(Ab | N)
+      - sensitivity = P(Y | Pr) = recall (*) = true positive rate
+      - specificity = P(N | Ab) = true negative rate
+
+      (\*) common names used in the NLP context.
 
     - other common classifier metric:
+
+      .. code-block:: none
 
         F_beta score = (1 + beta^2) * precision * recall /
                        ((beta^2 * precision) + recall)
 
-        ... which measures performance when you value recall beta times as
-        much as precision; e.g. the F1 score when beta = 1. See
-        https://en.wikipedia.org/wiki/F1_score
+      ... which measures performance when you value recall beta times as much
+      as precision (thus, for example, the F1 score when beta = 1). See
+      https://en.wikipedia.org/wiki/F1_score/
 
     Working from source to NLP, we can see there are a few types of "absent":
 
@@ -752,10 +912,12 @@ class ValidatorBase(BaseNlpParser):
     The key metrics are:
 
     - precision = positive predictive value = P(Pr | Y)
+
       ... relatively easy to check; find all the "Y" records and check
       manually that they're correct.
 
     - sensitivity = recall = P(Y | Pr)
+
       ... Here, we want a sample that is enriched for "symptom actually
       present", for human reasons. For example, if 0.1% of text entries
       refer to CRP, then to assess 100 "Pr" samples we would have to
@@ -765,13 +927,15 @@ class ValidatorBase(BaseNlpParser):
 
     You can enrich for "Pr" records with SQL, e.g.
 
+    .. code-block:: sql
+
         SELECT textfield FROM sometable WHERE (
             textfield LIKE '%CRP%'
             OR textfield LIKE '%C-reactive protein%');
 
     or similar, but really we want the best "CRP detector" possible. That is
-    probably to use a regex, either in SQL (... "WHERE textfield REGEX
-    'myregex'") or using these validator classes. (The main NLP regexes don't
+    probably to use a regex, either in SQL (... ``WHERE textfield REGEX
+    'myregex'``) or using these validator classes. (The main NLP regexes don't
     distinguish between "CRP present, no valid value" and "CRP absent",
     because regexes either match or don't.)
 
@@ -779,6 +943,7 @@ class ValidatorBase(BaseNlpParser):
     corresponding NLP regex class, but without the value or units. For example,
     the CRP class looks for things like "CRP is 6" or "CRP 20 mg/L", whereas
     the CRP validator looks for things like "CRP".
+
     """
 
     def __init__(self,
@@ -788,8 +953,30 @@ class ValidatorBase(BaseNlpParser):
                  validated_variable: str,
                  commit: bool = False) -> None:
         """
-        This class operates with compiled regexes having this group format:
-          - variable
+        Args:
+            nlpdef:
+                :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+
+            cfgsection:
+                config section name in the :ref:`NLP config file <nlp_config>`
+
+            regex_str_list:
+                List of regular expressions, each in string format.
+
+                This class operates with compiled regexes having this group
+                format (capture groups in this sequence):
+
+                - variable
+
+            validated_variable:
+                used to set our ``variable`` attribute and thus the value of
+                the field ``variable_name`` in the NLP output; for example, if
+                ``validated_variable == 'crp'``, then the ``variable_name``
+                field will be set to ``crp_validator``.
+
+            commit:
+                force a COMMIT whenever we insert data? You should specify this
+                in multiprocess mode, or you may get database deadlocks.
         """
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
         self.regex_str_list = regex_str_list  # for debugging only
@@ -803,7 +990,8 @@ class ValidatorBase(BaseNlpParser):
             self.tablename = nlpdef.opt_str(
                 cfgsection, 'desttable', required=True)
 
-    def print_info(self, file=sys.stdout):
+    def print_info(self, file: TextIO = sys.stdout) -> None:
+        # docstring in superclass
         print("NLP class to validate other NLP processors. Regular "
               "expressions:\n\n", file=file)
         print("\n\n".join(self.regex_str_list), file=file)
@@ -813,6 +1001,7 @@ class ValidatorBase(BaseNlpParser):
         self.tablename = tablename
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
+        # docstring in superclass
         return {self.tablename: [
             Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
                    doc=HELP_VARIABLE_NAME),
@@ -823,7 +1012,7 @@ class ValidatorBase(BaseNlpParser):
 
     def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
                                             None, None]:
-        """Parser for ValidatorBase."""
+        # docstring in superclass
         for compiled_regex in self.compiled_regex_list:
             for m in compiled_regex.finditer(text):
                 startpos = m.start()
@@ -879,6 +1068,9 @@ class ValidatorBase(BaseNlpParser):
 # =============================================================================
 
 def learning_alternative_regex_groups():
+    """
+    Function to learn about regex syntax.
+    """
     regex_str = r"""
         (
             (?:
@@ -902,6 +1094,9 @@ def learning_alternative_regex_groups():
 
 
 def test_base_regexes(verbose: bool = False) -> None:
+    """
+    Test all the base regular expressions.
+    """
     # -------------------------------------------------------------------------
     # Operators, etc.
     # -------------------------------------------------------------------------
@@ -1129,6 +1324,9 @@ def test_base_regexes(verbose: bool = False) -> None:
 # =============================================================================
 
 def test_all(verbose: bool = False) -> None:
+    """
+    Test all regexes in this module.
+    """
     test_base_regexes(verbose=verbose)
     # learning_alternative_regex_groups()
 

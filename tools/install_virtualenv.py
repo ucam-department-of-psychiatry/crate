@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# ... unusual shebang; need system Python 3
 
 """
 tools/install_virtualenv.py

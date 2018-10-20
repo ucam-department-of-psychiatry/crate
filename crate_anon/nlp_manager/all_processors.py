@@ -24,6 +24,8 @@ crate_anon/nlp_manager/all_processors.py
 
 ===============================================================================
 
+**Factory functions to manage all NLP processor classes.**
+
 """
 
 # noinspection PyUnresolvedReferences
@@ -84,6 +86,17 @@ ignore(Eosinophils)
 
 
 def get_all_subclasses(cls: ClassType) -> List[ClassType]:
+    """
+    Returns all subclasses of ``cls``. Checks that they all have unique names
+    in lower case.
+
+    Args:
+        cls: class into which to recurse
+
+    Returns:
+        list of classes
+
+    """
     # Type hinting, but not quite:
     #   http://stackoverflow.com/questions/35655257
     # Getting derived subclasses: http://stackoverflow.com/questions/3862310
@@ -105,6 +118,10 @@ def get_all_subclasses(cls: ClassType) -> List[ClassType]:
 
 
 def all_parser_classes() -> List[Type[BaseNlpParser]]:
+    """
+    Return all classes that are subclasses of
+    :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`.
+    """
     # noinspection PyTypeChecker
     return get_all_subclasses(BaseNlpParser)  # type: List[Type[BaseNlpParser]]
 
@@ -112,6 +129,24 @@ def all_parser_classes() -> List[Type[BaseNlpParser]]:
 def make_processor(processor_type: str,
                    nlpdef: NlpDefinition,
                    section: str) -> BaseNlpParser:
+    """
+    Fetch an NLP processor instance by name.
+
+    Args:
+        processor_type: the name of the processor
+        nlpdef: a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+        section: the name of a CRATE NLP config file section, passed to the NLP
+            parser as we create it (for it to get extra config information if
+            it wishes)
+
+    Returns:
+        an NLP processor instance whose class name matches (in case-insensitive
+        fashion) ``processor_type``.
+
+    Raises:
+        :exc:`ValueError` if no such processor is found
+
+    """
     for cls in all_parser_classes():
         if processor_type.lower() == cls.__name__.lower():
             return cls(nlpdef, section)
@@ -122,6 +157,16 @@ def make_processor(processor_type: str,
 
 
 def get_nlp_parser_class(classname: str):  # -> Optional[Type[BaseNlpParser]]:
+    """
+    Fetch an NLP parser class (not instance) by name.
+
+    Args:
+        classname: the name of the NLP parser class
+
+    Returns:
+        the class, or ``None`` if there isn't one with that name
+
+    """
     classes = all_parser_classes()
     for cls in classes:
         if cls.__name__ == classname:
@@ -130,6 +175,16 @@ def get_nlp_parser_class(classname: str):  # -> Optional[Type[BaseNlpParser]]:
 
 
 def get_nlp_parser_debug_instance(classname: str):  # -> Optional[BaseNlpParser]:  # noqa
+    """
+    Get a debugging (unconfigured) instance of an NLP parser.
+
+    Args:
+        classname: the name of the NLP parser class
+
+    Returns:
+        the class, or ``None`` if there isn't one with that name
+
+    """
     cls = get_nlp_parser_class(classname)
     if cls:
         return cls(None, None)
@@ -137,10 +192,17 @@ def get_nlp_parser_debug_instance(classname: str):  # -> Optional[BaseNlpParser]
 
 
 def possible_processor_names() -> List[str]:
+    """
+    Returns all NLP processor names.
+    """
     return [cls.__name__ for cls in all_parser_classes()]
 
 
 def possible_processor_table() -> str:
+    """
+    Returns a pretty-formatted string containing a table of all NLP processors
+    and their description.
+    """
     pt = prettytable.PrettyTable(["NLP name", "Description"],
                                  header=True,
                                  border=True)
@@ -156,6 +218,12 @@ def possible_processor_table() -> str:
 
 
 def test_all_processors(verbose: bool = False) -> None:
+    """
+    Self-tests all NLP processors.
+
+    Args:
+        verbose: be verbose?
+    """
     for cls in all_parser_classes():
         if cls.__name__ in ('Gate',
                             'Medex',

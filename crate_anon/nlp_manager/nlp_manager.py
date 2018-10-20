@@ -24,7 +24,7 @@ crate_anon/nlp_manager/nlp_manager.py
 
 ===============================================================================
 
-Manage natural-language processing (NLP) via external tools.
+**Manage natural-language processing (NLP) via internal and external tools.**
 
 Speed testing:
 
@@ -129,18 +129,30 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     """
     Delete destination records where source records no longer exist.
 
+    Args:
+        nlpdef:
+            :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+        ifconfig:
+            `crate_anon.nlp_manager.input_field_config.InputFieldConfig`
+        report_every:
+            report to the log every *n* source rows
+        chunksize:
+            insert into the SQLAlchemy session every *n* records
+
+    Development thoughts:
+
     - Can't do this in a single SQL command, since the engine can't necessarily
       see both databases.
     - Can't use a single temporary table, since the progress database isn't
       necessarily the same as any of the destination database(s).
     - Can't do this in a multiprocess way, because we're trying to do a
-      DELETE WHERE NOT IN.
-    - So we fetch all source PKs (which, by definition, do exist), stash them
-      keep them in memory, and do a DELETE WHERE NOT IN based on those
-      specified values (or, if there are no PKs in the source, delete
+      ``DELETE WHERE NOT IN``.
+    - So my first attempt was: fetch all source PKs (which, by definition, do
+      exist), stash them in memory, and do a ``DELETE WHERE NOT IN`` based on
+      those specified values (or, if there are no PKs in the source, delete
       everything from the destination).
 
-    Problems:
+    Problems with that:
 
     - This is IMPERFECT if we have string source PKs and there are hash
       collisions (e.g. PKs for records X and Y both hash to the same thing;
@@ -156,7 +168,8 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     - populate that table with (source PK integer/hash, source PK string) pairs
     - delete where pairs don't match -- is that portable SQL?
       http://stackoverflow.com/questions/7356108/sql-query-for-deleting-rows-with-not-in-using-2-columns  # noqa
-    - More efficient would be to make one table per destination database.
+
+    More efficient would be to make one table per destination database.
 
     On the "delete where multiple fields don't match":
 
@@ -176,15 +189,16 @@ def delete_where_no_source(nlpdef: NlpDefinition,
             AND a.a2 = b.b2
         )
 
-    - In SQLAlchemy, exists():
+    - In SQLAlchemy, :func:`exists`:
+
       - http://stackoverflow.com/questions/14600619
       - http://docs.sqlalchemy.org/en/latest/core/selectable.html
 
-    - Furthermore, in SQL ``NULL = NULL`` is false, and ``NULL <> NULL`` is
-      also false, so we have to do an explicit null check.
-      You do that with ``field == None``. See
-      http://stackoverflow.com/questions/21668606.
-      We're aiming, therefore, for:
+    - Furthermore, in SQL ``NULL = NULL`` is false (it's null), and ``NULL <>
+      NULL`` is also false (it's null), so we have to do an explicit null
+      check. You do that with ``field == None``. See
+      http://stackoverflow.com/questions/21668606. We're aiming, therefore,
+      for:
 
       .. code-block:: sql
 
@@ -196,6 +210,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
                 OR (a.a2 IS NULL AND b.b2 IS NULL)
             )
         )
+
     """
 
     # -------------------------------------------------------------------------
@@ -324,8 +339,17 @@ def process_nlp(nlpdef: NlpDefinition,
                 tasknum: int = 0,
                 ntasks: int = 1) -> None:
     """
-    Main NLP processing function. Fetch text, send it to the GATE app
-    (storing the results), and make a note in the progress database.
+    Main NLP processing function. Fetch text, send it to the NLP processor(s),
+    storing the results, and make a note in the progress database.
+
+    Args:
+        nlpdef:
+            :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+        incremental:
+            incremental processing (skip previously processed records)
+        report_every: report to the log every *n* source rows
+        tasknum: which task number am I?
+        ntasks: how many tasks are there in total?
     """
     log.info(SEP + "NLP")
     session = nlpdef.get_progdb_session()
@@ -435,12 +459,23 @@ def process_nlp(nlpdef: NlpDefinition,
     nlpdef.commit_all()
 
 
-def drop_remake(progargs,
-                nlpdef: NlpDefinition,
+def drop_remake(nlpdef: NlpDefinition,
                 incremental: bool = False,
-                skipdelete: bool = False) -> None:
+                skipdelete: bool = False,
+                report_every: int = DEFAULT_REPORT_EVERY,
+                chunksize: int = DEFAULT_CHUNKSIZE) -> None:
     """
     Drop output tables and recreate them.
+
+    Args:
+        nlpdef:
+            :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+        incremental: incremental processing mode?
+        skipdelete:
+            For incremental updates, skip deletion of rows present in the
+            destination but not the source
+        report_every: report to the log every *n* source rows
+        chunksize: insert into the SQLAlchemy session every *n* records
     """
     # Not parallel.
     # -------------------------------------------------------------------------
@@ -476,8 +511,8 @@ def drop_remake(progargs,
                 if not skipdelete:
                     delete_where_no_source(
                         nlpdef, ifconfig,
-                        report_every=progargs.report_every_fast,
-                        chunksize=progargs.chunksize)
+                        report_every=report_every,
+                        chunksize=chunksize)
             else:  # full
                 ifconfig.delete_all_progress_records()
 
@@ -489,7 +524,11 @@ def drop_remake(progargs,
 
 def show_source_counts(nlpdef: NlpDefinition) -> None:
     """
-    Show the number of records in all source tables.
+    Print (to stdout) the number of records in all source tables.
+
+    Args:
+        nlpdef:
+            :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
     """
     print("SOURCE TABLE RECORD COUNTS:")
     counts = []  # type: List[Tuple[str, int]]
@@ -504,7 +543,11 @@ def show_source_counts(nlpdef: NlpDefinition) -> None:
 
 def show_dest_counts(nlpdef: NlpDefinition) -> None:
     """
-    Show the number of records in all destination tables.
+    Print (to stdout) the number of records in all destination tables.
+
+    Args:
+        nlpdef:
+            :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
     """
     print("DESTINATION TABLE RECORD COUNTS:")
     counts = []  # type: List[Tuple[str, int]]
@@ -523,7 +566,7 @@ def show_dest_counts(nlpdef: NlpDefinition) -> None:
 
 def main() -> None:
     """
-    Command-line entry point.
+    Command-line entry point. See command-line help.
     """
     version = "Version {} ({})".format(CRATE_VERSION, CRATE_VERSION_DATE)
     description = "NLP manager. {version}. By Rudolf Cardinal.".format(
@@ -672,8 +715,11 @@ def main() -> None:
     # 1. Drop/remake tables. Single-tasking only.
     with MultiTimerContext(timer, TIMING_DROP_REMAKE):
         if args.dropremake or everything:
-            drop_remake(args, config, incremental=args.incremental,
-                        skipdelete=args.skipdelete)
+            drop_remake(config,
+                        incremental=args.incremental,
+                        skipdelete=args.skipdelete,
+                        report_every=args.report_every_fast,
+                        chunksize=args.chunksize)
 
     # From here, in a multiprocessing environment, trap any errors simply so
     # we can report the process number clearly.

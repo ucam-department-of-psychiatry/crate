@@ -24,10 +24,10 @@ crate_anon/nlp_manager/launch_multiprocess_nlp.py
 
 ===============================================================================
 
+**Launch the NLP processor in multiprocess mode.**
+
 """
 
-# Launch nlp_manager.py in multiprocess mode.
-#
 # Previous bash version:
 #
 # http://stackoverflow.com/questions/356100
@@ -44,7 +44,6 @@ crate_anon/nlp_manager/launch_multiprocess_nlp.py
 # http://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python  # noqa
 
 import argparse
-# import atexit
 import logging
 import multiprocessing
 import sys
@@ -71,6 +70,9 @@ CPUCOUNT = multiprocessing.cpu_count()
 # =============================================================================
 
 def main() -> None:
+    """
+    Command-line processor. See command-line help.
+    """
     version = "Version {} ({})".format(CRATE_VERSION, CRATE_VERSION_DATE)
     description = (
         "Runs the CRATE NLP manager in parallel. {}. Note that all arguments "

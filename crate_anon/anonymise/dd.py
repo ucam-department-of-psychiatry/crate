@@ -807,7 +807,7 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def has_active_destination(self, src_db: str, src_table: str) -> bool:
         """
-        For a given source database name and table: does it have an active
+        For a given source database name and table, does it have an active
         destination?
         """
         for ddr in self.rows:

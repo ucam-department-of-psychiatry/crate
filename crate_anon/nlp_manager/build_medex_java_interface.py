@@ -24,7 +24,8 @@ crate_anon/nlp_manager/build_medex_java_interface.py
 
 ===============================================================================
 
-Script to compile Java source for CrateMedexPipeline
+**Script to compile Java source for CrateMedexPipeline.**
+
 """
 
 import argparse
@@ -54,6 +55,9 @@ DEFAULT_JAVAC = 'javac'
 
 
 def main() -> None:
+    """
+    Command-line processor. See command-line help.
+    """
     parser = argparse.ArgumentParser(
         description="Compile Java classes for CRATE's interface to MedEx-UIMA")
     parser.add_argument(

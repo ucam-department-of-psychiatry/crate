@@ -24,6 +24,8 @@ crate_anon/nlp_manager/input_field_config.py
 
 ===============================================================================
 
+**Class to define input fields for NLP.**
+
 """
 
 import logging
@@ -84,12 +86,23 @@ TIMING_PROGRESS_DB_DELETE = "progress_db_delete"
 
 class InputFieldConfig(object):
     """
-    Class defining configuration for an input field (containing text).
+    Class defining an input field for NLP (containing text).
+
+    See the documentation for the :ref:`NLP config file <nlp_config>`.
     """
 
     def __init__(self, nlpdef: NlpDefinition, section: str) -> None:
         """
-        Read config from a configparser section.
+        Read config from a configparser section, and also associate with a
+        specific NLP definition.
+
+        Args:
+            nlpdef:
+                :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`,
+                the master NLP definition, referring to the master config file
+                etc.
+            section:
+                config section name for the input field definition
         """
         def opt_str(option: str, required: bool = True) -> str:
             return nlpdef.opt_str(section, option, required=required)
@@ -152,37 +165,71 @@ class InputFieldConfig(object):
         self._db = nlpdef.get_database(self._srcdb)
 
     def get_srcdb(self) -> str:
+        """
+        Returns the name of the source database.
+        """
         return self._srcdb
 
     def get_srctable(self) -> str:
+        """
+        Returns the name of the source table.
+        """
         return self._srctable
 
     def get_srcpkfield(self) -> str:
+        """
+        Returns the name of the primary key (PK) field (column) in the source
+        table.
+        """
         return self._srcpkfield
 
     def get_srcfield(self) -> str:
+        """
+        Returns the name of the text field (column) in the source table.
+        """
         return self._srcfield
 
     def get_srcdatetimefield(self) -> str:  # new in v0.18.52
+        """
+        Returns the name of the field (column) in the source table that defines
+        the date/time of the source text.
+        """
         return self._srcdatetimefield
 
     def get_source_session(self):
+        """
+        Returns the SQLAlchemy ORM :class:`Session` for the source database.
+        """
         return self._db.session
 
     def _get_source_metadata(self):
+        """
+        Returns the SQLAlchemy :class:`Metadata` for the source database,
+        used for reflection (inspection) of the source database structure.
+        """
         return self._db.metadata
 
     def _get_source_engine(self):
+        """
+        Returns the SQLAlchemy Core :class:`Engine` for the source database.
+        """
         return self._db.engine
 
     def _get_progress_session(self):
+        """
+        Returns the SQLAlchemy ORM :class:`Session` for the progress database.
+        """
         return self._nlpdef.get_progdb_session()
 
     @staticmethod
     def get_core_columns_for_dest() -> List[Column]:
         """
-        Core columns in NLP destination tables, primarily referring to the
-        source.
+        Returns the columns used NLP destination tables, primarily describing
+        the source. See :ref:`Standard NLP output columns
+        <standard_nlp_output_columns>`.
+
+        Returns:
+            a list of SQLAlchemy :class:`Column` objects
         """
         return [
             Column(FN_PK, BigInteger, primary_key=True,
@@ -196,10 +243,6 @@ class InputFieldConfig(object):
                    doc="Source table name"),
             Column(FN_SRCPKFIELD, SqlTypeDbIdentifier,
                    doc="PK field (column) name in source table"),
-            Column(FN_SRCDATETIMEFIELD, SqlTypeDbIdentifier,
-                   doc="Date/time field (column) name in source table"),
-            Column(FN_SRCDATETIMEVAL, DateTime, nullable=True,
-                   doc="Date/time of source field"),
             Column(FN_SRCPKVAL, BigInteger,
                    doc="PK of source record (or integer hash of PK if the PK "
                        "is a string)"),
@@ -209,6 +252,10 @@ class InputFieldConfig(object):
                        "Max length: {}".format(MAX_STRING_PK_LENGTH)),
             Column(FN_SRCFIELD, SqlTypeDbIdentifier,
                    doc="Field (column) name of source text"),
+            Column(FN_SRCDATETIMEFIELD, SqlTypeDbIdentifier,
+                   doc="Date/time field (column) name in source table"),
+            Column(FN_SRCDATETIMEVAL, DateTime, nullable=True,
+                   doc="Date/time of source field"),
             Column(FN_CRATE_VERSION_FIELD,
                    String(MAX_SEMANTIC_VERSION_STRING_LENGTH), nullable=True,
                    doc="Version of CRATE that generated this NLP record."),
@@ -219,8 +266,17 @@ class InputFieldConfig(object):
 
     @staticmethod
     def get_core_indexes_for_dest() -> List[Index]:
-        """Indexes for columns, primarily referring to the source."""
-        # http://stackoverflow.com/questions/179085/multiple-indexes-vs-multi-column-indexes  # noqa
+        """
+        Returns the core indexes to be applied to the destination tables.
+        Primarily, these are for columns that refer to the source.
+        
+        Returns:
+            a list of SQLAlchemy :class:`Index` objects
+        
+        See
+        
+        - http://stackoverflow.com/questions/179085/multiple-indexes-vs-multi-column-indexes
+        """  # noqa
         return [
             Index('_idx_srcref',
                   # Remember, order matters; more to less specific
@@ -243,13 +299,24 @@ class InputFieldConfig(object):
         ]
 
     def _require_table_or_view_exists(self) -> None:
+        """
+        Ensure that the source table exists, or raise :exc:`RuntimeError`.
+        """
         if not table_or_view_exists(self._get_source_engine(), self._srctable):
             msg = "Missing source table: {}.{}".format(self._srcdb,
                                                        self._srctable)
             log.critical(msg)
-            raise ValueError(msg)
+            raise RuntimeError(msg)
 
     def get_copy_columns(self) -> List[Column]:
+        """
+        Returns the columns that the user has requested to be copied from the
+        source table to the NLP destination table.
+
+        Returns:
+            a list of SQLAlchemy :class:`Column` objects
+
+        """
         # We read the column type from the source database.
         self._require_table_or_view_exists()
         meta = self._get_source_metadata()
@@ -272,7 +339,7 @@ class InputFieldConfig(object):
         # Check all requested fields are present:
         missing = set(self._copyfields) - set(processed_copy_column_names)
         if missing:
-            raise ValueError(
+            raise RuntimeError(
                 "The following fields were requested to be copied but are "
                 "absent from the source (NB case-sensitive): {}".format(
                     missing))
@@ -280,6 +347,14 @@ class InputFieldConfig(object):
         return copy_columns
 
     def get_copy_indexes(self) -> List[Index]:
+        """
+        Returns indexes that should be made in the destination table for
+        columns that the user has requested to be copied from the source.
+
+        Returns:
+            a list of SQLAlchemy :class:`Index` objects
+
+        """
         self._require_table_or_view_exists()
         meta = self._get_source_metadata()
         t = Table(self._srctable, meta, autoload=True)
@@ -303,6 +378,9 @@ class InputFieldConfig(object):
         return copy_indexes
 
     def is_pk_integer(self):
+        """
+        Is the primary key (PK) of the source table an integer?
+        """
         pkcoltype = get_column_type(self._get_source_engine(), self._srctable,
                                     self._srcpkfield)
         if not pkcoltype:
@@ -317,9 +395,12 @@ class InputFieldConfig(object):
                  ntasks: int = 1) -> Generator[Tuple[str, Dict[str, Any]],
                                                None, None]:
         """
-        Generate text strings from the input database.
-        Yields tuple of (text, dict), where the dict is a column-to-value
-        mapping for all other fields (source reference fields, copy fields).
+        Generate text strings from the source database.
+
+        Yields:
+            tuple: ``text, dict``, where ``text`` is the source text and
+            ``dict`` is a column-to-value mapping for all other fields (source
+            reference fields, copy fields).
         """
         if 1 < ntasks <= tasknum:
             raise Exception("Invalid tasknum {}; must be <{}".format(
@@ -434,7 +515,8 @@ class InputFieldConfig(object):
 
     def get_count(self) -> int:
         """
-        Counts records in the input table for the given InputFieldConfig.
+        Counts records in the source table.
+
         Used for progress monitoring.
         """
         return count_star(session=self.get_source_session(),
@@ -444,8 +526,10 @@ class InputFieldConfig(object):
                             srcpkval: int,
                             srcpkstr: str = None) -> Optional[NlpRecord]:
         """
-        Fetch a progress record (NlpRecord) for the given source record, if one
-        exists.
+        Fetch a progress record for the given source record, if one exists.
+
+        Returns:
+            :class:`crate_anon.nlp_manager.models.NlpRecord`, or ``None``
         """
         session = self._get_progress_session()
         query = (
@@ -468,9 +552,14 @@ class InputFieldConfig(object):
 
     def gen_src_pks(self) -> Generator[Tuple[int, Optional[str]], None, None]:
         """
-        Generate integer PKs from the source table specified for the
-        InputFieldConfig.
-        Timing is subsumed under TIMING_DELETE_WHERE_NO_SOURCE.
+        Generate integer PKs from the source table.
+
+        For tables with an integer PK, yields tuples: ``pk_value, None``.
+
+        For tables with a string PK, yields tuples: ``pk_hash, pk_value``.
+
+        - Timing is subsumed under the timer named
+          ``TIMING_DELETE_WHERE_NO_SOURCE``.
         """
         session = self.get_source_session()
         query = (
@@ -489,6 +578,16 @@ class InputFieldConfig(object):
     def delete_progress_records_where_srcpk_not(
             self,
             temptable: Optional[Table]) -> None:
+        """
+        If ``temptable`` is None, deletes all progress records for this input
+        field/NLP definition.
+
+        If ``temptable`` is a table, deletes records from the progress database
+        (from this input field/NLP definition) whose source PK is not in the
+        temporary table. (Used for deleting NLP records when the source has
+        subsequently been deleted.)
+
+        """
         progsession = self._get_progress_session()
         log.debug("delete_progress_records_where_srcpk_not... {}.{} -> "
                   "progressdb".format(self._srcdb, self._srctable))
@@ -525,6 +624,10 @@ class InputFieldConfig(object):
         self._nlpdef.commit(progsession)
 
     def delete_all_progress_records(self) -> None:
+        """
+        Deletes **all** records from the progress database for this NLP
+        definition (across all source tables/columns).
+        """
         progsession = self._get_progress_session()
         prog_deletion_query = (
             progsession.query(NlpRecord).

@@ -24,6 +24,8 @@ crate_anon/nlp_manager/test_all_regex.py
 
 ===============================================================================
 
+**Test all simple regexes and regex-based NLP parsers.**
+
 """
 
 import argparse
@@ -36,6 +38,9 @@ from crate_anon.nlp_manager import (
 
 
 def test_all_regex_nlp(verbose: bool = False) -> None:
+    """
+    Test all NLP-related regular expressions.
+    """
     regex_parser.test_all(verbose=verbose)  # basic regexes
     regex_units.test_all(verbose=verbose)
     all_processors.test_all_processors(verbose=verbose)

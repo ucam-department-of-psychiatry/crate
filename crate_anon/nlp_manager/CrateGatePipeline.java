@@ -102,6 +102,12 @@ import gate.util.GateException;
 import gate.util.InvalidOffsetException;
 import gate.util.persistence.PersistenceManager;
 
+/**
+ * CrateGatePipeline is a command-line program that fires up a specific GATE
+ * app, reads text from stdin, sends it to GATE, and prints the results to
+ * stdout.
+ */
+
 public class CrateGatePipeline {
 
     // ========================================================================
@@ -158,6 +164,8 @@ public class CrateGatePipeline {
     // ========================================================================
     // Constructor
     // ========================================================================
+
+    /** Process command-line arguments and execute the pipeline. */
 
     public CrateGatePipeline(String args[])
             throws GateException, IOException, ResourceInstantiationException {
@@ -278,6 +286,11 @@ public class CrateGatePipeline {
         }
     }
 
+    /**
+     * Run a GATE pipeline; read text from stdin; send it to GATE; write
+     * results to stdout.
+     */
+
     private void runPipeline()
             throws GateException, IOException, ResourceInstantiationException {
         setupGate();
@@ -308,13 +321,19 @@ public class CrateGatePipeline {
     // Handling of args, exiting, etc.
     // ========================================================================
 
+    /** Exit in a happy way. */
+
     private void exit() {
         System.exit(0);
     }
 
+    /** Exit in a sad way. */
+
     private void abort() {
         System.exit(1);
     }
+
+    /** Complain that the user has passed bad command-line arguments. Exit. */
 
     private void argfail(String msg) {
         // Don't use the log; it's not configured yet.
@@ -322,6 +341,8 @@ public class CrateGatePipeline {
         reportArgs(false);
         abort();
     }
+
+    /** Show a usage message. */
 
     private void usage() {
         writeStderr(
@@ -426,6 +447,10 @@ public class CrateGatePipeline {
 "                   Verbose (use up to 3 times to be more verbose).\n"
         );
     }
+
+    /**
+     * Process command-line arguments from m_args, and set internal variables.
+     */
 
     private void processArgs() {
         int i = 0;
@@ -559,6 +584,8 @@ public class CrateGatePipeline {
         }
     }
 
+    /** Report command-line arguments (from m_args). */
+
     private void reportArgs(boolean to_log) {
         for (int i = 0; i < m_args.length; i++) {
             String s = "Arg " + i + " = " + m_args[i];
@@ -574,6 +601,8 @@ public class CrateGatePipeline {
     // Escaping text
     // ========================================================================
 
+    /** Escape tabs and newlines with backslash-escaping. */
+
     private String escapeTabsNewlines(String s) {
         if (s == null) {
             return s;
@@ -584,6 +613,11 @@ public class CrateGatePipeline {
         s = s.replace("\t", "\\t");
         return s;
     }
+
+    /**
+     * Escape % to %% (to avoid log strings being interpreted as format
+     * strings).
+     */
 
     private String escapePercent(String s) {
         if (s == null) {
@@ -596,6 +630,8 @@ public class CrateGatePipeline {
     private static final char CONTROL_LIMIT = ' ';
     private static final char PRINTABLE_LIMIT = '\u007e';
     private static final char[] HEX_DIGITS = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+
+    /** Create an escaped representation of a string, for debugging. */
 
     public static String toPrintable(String source) {
         // https://stackoverflow.com/questions/1350397/java-equivalent-of-python-repr
@@ -641,6 +677,11 @@ public class CrateGatePipeline {
     // stdin handling
     // ========================================================================
 
+    /**
+      * Represents text read from stdin, and whether we have seen the "please
+      * end" special string and therefore are completely finished.
+      */
+
     private final class StdinResult {
         public String contents;
         public boolean finished;
@@ -653,6 +694,11 @@ public class CrateGatePipeline {
             this.finished = false;
         }
     }
+
+    /**
+     * Read from stdin until we receive a terminator (either "end of this
+     * string" or "end of all strings" and return a StdinResult object.
+     */
 
     private StdinResult readStdin() throws IOException {
         BufferedReader br = new BufferedReader(
@@ -680,13 +726,19 @@ public class CrateGatePipeline {
     // stdout/stderr/log handling
     // ========================================================================
 
+    /** Write a message to stderr. */
+
     private void writeStderr(String msg) {
         System.err.println(msg);
     }
 
+    /** Write a message to stdout. */
+
     private void print(String msg) {
         m_out.print(msg);
     }
+
+    /** Write a message to stdout and line-terminate it. */
 
     private void println(String msg) {
         m_out.println(msg);
@@ -695,6 +747,8 @@ public class CrateGatePipeline {
     // ========================================================================
     // File handling
     // ========================================================================
+
+    /** Write text to a file. */
 
     private void writeToFile(String filename, String contents)
             throws FileNotFoundException, UnsupportedEncodingException,
@@ -712,6 +766,8 @@ public class CrateGatePipeline {
         out.close();
     }
 
+    /** Write XML to a file, naming it according to m_count. */
+
     private void writeXml(String stem, String xml)
             throws FileNotFoundException, UnsupportedEncodingException,
             IOException {
@@ -722,6 +778,8 @@ public class CrateGatePipeline {
     // ========================================================================
     // GATE input processing
     // ========================================================================
+
+    /** Initialize GATE. */
 
     private void setupGate()
             throws GateException, IOException, ResourceInstantiationException {
@@ -742,6 +800,11 @@ public class CrateGatePipeline {
         m_controller.setCorpus(m_corpus);
         m_log.info("... corpus initialized");
     }
+
+    /**
+     * Send some text to the GATE app, then call reportOutput() to process
+     * the results.
+     */
 
     private void processInput(String text)
             throws ResourceInstantiationException, ExecutionException,
@@ -768,6 +831,11 @@ public class CrateGatePipeline {
     // ========================================================================
     // GATE output processing
     // ========================================================================
+
+    /**
+     * Does the user wish us to process GATE annotations from a specific
+     * annotation set?
+     */
 
     private boolean useSet(String setname) {
         // Check set name against inclusion/exclusion lists.
@@ -804,6 +872,8 @@ public class CrateGatePipeline {
         return false;
     }
 
+    /** Which annotation sets does the document provide that the user wants? */
+
     private Map<String, AnnotationSet> getAnnotationSets(Document doc) {
         // The default of doc.getAnnotations() only gets the default (unnamed)
         // AnnotationSet. But for KConnect/Bio-YODIE, we find an unnamed set,
@@ -831,6 +901,12 @@ public class CrateGatePipeline {
         return sets;
     }
 
+    /**
+     * For a given set of annotations from a GATE document, find ones of
+     * particular types. Process each via processAnnotation(). Also adds them
+     * to annotations_to_write, for XML output.
+     */
+
     private void fetchAndProcessAnnotations(
                 Document doc,
                 PrintStream outtsv,
@@ -856,6 +932,11 @@ public class CrateGatePipeline {
             }
         }
     }
+
+    /**
+     * Trawl a processed GATE document, find relevant annotations, and write
+     * them to our target outputs.
+     */
 
     private void reportOutput(Document doc)
             throws IOException, InvalidOffsetException {
@@ -959,6 +1040,11 @@ public class CrateGatePipeline {
         // http://stackoverflow.com/questions/7166328
     }
 
+    /**
+     * Take a GATE annotation, convert it into a key/value output map, and
+     * write it to the desired output (e.g. stdout +/- a TSV file).
+     */
+
     private void processAnnotation(String setname, Annotation a, Document doc,
                                    PrintStream outtsv)
             throws InvalidOffsetException, IOException {
@@ -998,6 +1084,8 @@ public class CrateGatePipeline {
         m_log.debug(m_sep2);
     }
 
+    /** Write a key/value map to an output stream as TSV. */
+
     private void printMapAsTsvLine(Map<String, String> map,
                                    PrintStream stream) {
         boolean first = true;
@@ -1013,6 +1101,8 @@ public class CrateGatePipeline {
         stream.print("\n");
     }
 
+    /** Write a key/value map to the debugging log. */
+
     private void reportMap(Map<String, String> map) {
         for (Map.Entry<String, String> entry : map.entrySet()) {
             m_log.debug(entry.getKey() + ":" +
@@ -1024,7 +1114,10 @@ public class CrateGatePipeline {
     // Main (run from the command line)
     // ========================================================================
 
+    /** main(); create and run our pipeline. */
+
     public static void main(String args[]) throws GateException, IOException {
         CrateGatePipeline pipeline = new CrateGatePipeline(args);
     }
+
 }

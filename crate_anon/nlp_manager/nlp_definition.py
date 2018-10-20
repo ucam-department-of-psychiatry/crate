@@ -24,6 +24,8 @@ crate_anon/nlp_manager/nlp_definition.py
 
 ===============================================================================
 
+**NLP definition class.**
+
 """
 
 # =============================================================================
@@ -88,13 +90,28 @@ log = logging.getLogger(__name__)
 
 class NlpDefinition(object):
     """
-    Class representing NLP master configuration as read from config file.
+    Class representing an NLP master definition as read from config file.
+
+    An NLP definition represents the combination of
+
+    - one or more NLP processors (e.g. "CRATE's C-reactive protein finder")
+    - one or more input fields in the source database
+
+    The NLP definition can therefore be used to say "run this set of NLP
+    processors over this set of textual fields in my database".
+
+    See the documentation for the :ref:`NLP config file <nlp_config>`.
     """
 
     # noinspection PyUnresolvedReferences
     def __init__(self, nlpname: str, logtag: str = "") -> None:
         """
         Read config from file.
+
+        Args:
+            nlpname: config section name for this NLP definition
+            logtag: text that may be passed to child processes to identify
+                the NLP definition in their log output
         """
 
         # DELAYED IMPORTS (to make life simpler for classes deriving from
@@ -179,21 +196,53 @@ class NlpDefinition(object):
         # dictionary of session -> TransactionSizeLimiter
 
     def get_name(self) -> str:
+        """
+        Returns the name of the NLP definition.
+        """
         return self._nlpname
 
     def get_logtag(self) -> str:
+        """
+        Returns the log tag of the NLP definition (may be used by child
+        processes to provide more information for logs).
+        """
         return self._logtag
 
     def get_parser(self) -> ExtendedConfigParser:
+        """
+        Returns the
+        :class:`crate_anon.common.extendedconfigparser.ExtendedConfigParser` in
+        use.
+        """
         return self._parser
 
     def hash(self, text: str) -> str:
+        """
+        Hash text via this NLP definition's hasher. The hash will be stored in
+        a secret progress database and to detect later changes in the source
+        records.
+
+        Args:
+            text: text (typically from the source database) to be hashed
+
+        Returns:
+            the hashed value
+        """
         return self._hasher.hash(text)
 
     def get_temporary_tablename(self) -> str:
+        """
+        Temporary tablename to use.
+
+        See the documentation for the :ref:`NLP config file <nlp_config>`.
+        """
         return self._temporary_tablename
 
     def set_echo(self, echo: bool) -> None:
+        """
+        Set the SQLAlchemy ``echo`` parameter (to echo SQL) for all our
+        source databases.
+        """
         self._progdb.engine.echo = echo
         for db in self._databases.values():
             db.engine.echo = echo
@@ -205,6 +254,10 @@ class NlpDefinition(object):
             logger.handlers = []  # type: List[logging.Handler]
 
     def require_section(self, section: str) -> None:
+        """
+        Require that the config file has a section with the specified name, or
+        raise :exc:`ValueError`.
+        """
         if not self._parser.has_section(section):
             msg = "Missing config section: {}".format(section)
             log.critical(msg)
@@ -212,25 +265,72 @@ class NlpDefinition(object):
 
     def opt_str(self, section: str, option: str, required: bool = False,
                 default: str = None) -> str:
+        """
+        Returns a string option from the config file.
+
+        Args:
+            section: config section name
+            option: parameter (option) name
+            required: is the parameter required?
+            default: default if not found and not required
+        """
         return self._parser.get_str(section, option, default=default,
                                     required=required)
 
     def opt_strlist(self, section: str, option: str, required: bool = False,
                     lower: bool = True, as_words: bool = True) -> List[str]:
+        """
+        Returns a list of strings from the config file.
+
+        Args:
+            section: config section name
+            option: parameter (option) name
+            required: is the parameter required?
+            lower: convert to lower case?
+            as_words: split as words, rather than as lines?
+        """
         return self._parser.get_str_list(section, option, as_words=as_words,
                                          lower=lower, required=required)
 
     def opt_int(self, section: str, option: str,
                 default: Optional[int]) -> Optional[int]:
+        """
+        Returns an integer parameter from the config file.
+
+        Args:
+            section: config section name
+            option: parameter (option) name
+            default: default if not found and not required
+        """
         return self._parser.getint(section, option, fallback=default)
 
     def opt_bool(self, section: str, option: str, default: bool) -> bool:
+        """
+        Returns a Boolean parameter from the config file.
+
+        Args:
+            section: config section name
+            option: parameter (option) name
+            default: default if not found and not required
+        """
         return self._parser.getboolean(section, option, fallback=default)
 
     def get_database(self, name_and_cfg_section: str,
                      with_session: bool = True,
                      with_conn: bool = False,
                      reflect: bool = False) -> DatabaseHolder:
+        """
+        Returns a :class:`crate_anon.anonymise.dbholder.DatabaseHolder` from
+        the config file, containing information abuot a database.
+
+        Args:
+            name_and_cfg_section:
+                string that is the name of the database, and also the config
+                file section name describing the database
+            with_session: create an SQLAlchemy Session?
+            with_conn: create an SQLAlchemy connection (via an Engine)?
+            reflect: read the database structure (when required)?
+        """
         if name_and_cfg_section in self._databases:
             return self._databases[name_and_cfg_section]
         assert len(name_and_cfg_section) <= MAX_SQL_FIELD_LEN
@@ -241,22 +341,46 @@ class NlpDefinition(object):
         self._databases[name_and_cfg_section] = db
         return db
 
-    def get_env_dict(self, section: str,
-                     parent_env: Optional[Dict]=None) -> Dict:
+    def get_env_dict(
+            self,
+            section: str,
+            parent_env: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+        """
+        Gets an operating system environment variable dictionary (``variable:
+        value`` mapping) from the config file.
+
+        Args:
+            section: config section name
+            parent_env: optional starting point (e.g. parent OS environment)
+
+        Returns:
+            a dictionary suitable for use as an OS environment
+
+        """
         return self._parser.get_env_dict(section, parent_env=parent_env)
 
     def get_progdb_session(self) -> Session:
+        """
+        Returns an SQLAlchemy ORM :class:`Session` for the progress database.
+        """
         return self._progdb.session
 
     def get_progdb_engine(self) -> Engine:
+        """
+        Returns an SQLAlchemy Core :class:`Engine` for the progress database.
+        """
         return self._progdb.engine
 
     def get_progdb_metadata(self) -> MetaData:
+        """
+        Returns the SQLAlchemy :class:`MetaData` for the progress database.
+        """
         return self._progdb.metadata
 
     def commit_all(self) -> None:
         """
-        Execute a COMMIT on all databases (destination + progress).
+        Execute a COMMIT on all databases (all destination database and the
+        progress database).
         """
         self.commit(self.get_progdb_session())
         for db in self._databases.values():
@@ -264,6 +388,17 @@ class NlpDefinition(object):
 
     def get_transation_limiter(self,
                                session: Session) -> TransactionSizeLimiter:
+        """
+        Returns (or creates and returns) a transaction limiter for a given
+        SQLAlchemy session.
+
+        Args:
+            session: SQLAlchemy ORM :class:`Session`
+
+        Returns:
+            a :class:`crate_anon.common.sql.TransactionSizeLimiter`
+
+        """
         if session not in self._transaction_limiters:
             self._transaction_limiters[session] = TransactionSizeLimiter(
                 session,
@@ -274,20 +409,57 @@ class NlpDefinition(object):
     def notify_transaction(self, session: Session,
                            n_rows: int, n_bytes: int,
                            force_commit: bool=False) -> None:
+        """
+        Tell our transaction limiter about a transaction that's occurred on
+        one of our databases. This may trigger a COMMIT.
+
+        Args:
+            session: SQLAlchemy ORM :class:`Session` that was used
+            n_rows: number of rows inserted
+            n_bytes: number of bytes inserted
+            force_commit: force a COMMIT?
+        """
         tl = self.get_transation_limiter(session)
         tl.notify(n_rows=n_rows, n_bytes=n_bytes, force_commit=force_commit)
 
     def commit(self, session: Session) -> None:
+        """
+        Executes a COMMIT on a specific session.
+
+        Args:
+            session: SQLAlchemy ORM :class:`Session`
+        """
         tl = self.get_transation_limiter(session)
         tl.commit()
 
     # noinspection PyUnresolvedReferences
     def get_processors(self) -> List['base_nlp_parser.BaseNlpParser']:  # typing / circular reference problem  # noqa
+        """
+        Returns all NLP processors used by this NLP definition.
+
+        Returns:
+            list of objects derived from
+            :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
+
+        """
         return self._processors
 
     # noinspection PyUnresolvedReferences
     def get_ifconfigs(self) -> Iterable['input_field_config.InputFieldConfig']:  # typing / circular reference problem  # noqa
+        """
+        Returns all input field configurations used by this NLP definition.
+
+        Returns:
+            list of
+            `crate_anon.nlp_manager.input_field_config.InputFieldConfig`
+            objects
+
+        """
         return self._inputfieldmap.values()
 
     def get_now(self) -> datetime.datetime:
+        """
+        Returns the time this NLP definition was created (in UTC). Used to
+        time-stamp NLP runs.
+        """
         return self._now

@@ -254,3 +254,7 @@ autodoc_mock_imports = [
 # ... see crate_anon/crateweb/config/settings.py  # noqa
 os.environ['DJANGO_SETTINGS_MODULE'] = 'crate_anon.crateweb.config.settings'
 django.setup()
+
+
+# https://stackoverflow.com/questions/5599254/how-to-use-sphinxs-autodoc-to-document-a-classs-init-self-method  # noqa
+autoclass_content = "both"

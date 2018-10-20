@@ -62,7 +62,7 @@ Background:
 
 """  # noqa
 
-from abc import ABCMeta, abstractmethod
+from abc import ABC, ABCMeta, abstractmethod
 import argparse
 import csv
 import datetime
@@ -84,14 +84,13 @@ from sqlalchemy import (
     create_engine,
     Date,
     Integer,
-    MetaData,
     Numeric,
     String,
 )
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
-from sqlalchemy.sql.schema import Table
+from sqlalchemy.sql.schema import MetaData, Table
 import xlrd
 
 from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
@@ -187,7 +186,6 @@ def commit_and_announce(session: Session) -> None:
 
 # =============================================================================
 # Extend SQLAlchemy Base class
-# http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/mixins.html
 # =============================================================================
 
 class ExtendedBase(object):
@@ -198,6 +196,9 @@ class ExtendedBase(object):
 
     Only used in the creation of Base; everything else then inherits from Base
     as usual.
+
+    See
+    http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/mixins.html
     """
     __table_args__ = TABLE_KWARGS
 
@@ -205,12 +206,51 @@ class ExtendedBase(object):
 Base = declarative_base(metadata=metadata, cls=ExtendedBase)
 
 
-class GenericLookupClassType(Base, metaclass=ABCMeta):
+# =============================================================================
+# Go to considerable faff to provide type hints for lookup classes
+# =============================================================================
+
+class GenericLookupClassMeta(DeclarativeMeta, ABCMeta):
+    """
+    To avoid: "TypeError: metaclass conflict: the metaclass of a derived class
+    must be a (non-strict) subclass of the metaclasses of all its bases".
+
+    We want a class that's a subclass of Base and ABC. So we can work out their
+    metaclasses:
+
+    .. code-block:: python
+
+        from abc import ABC
+        from sqlalchemy.ext.declarative import declarative_base
+        from sqlalchemy.sql.schema import MetaData
+
+        class ExtendedBase(object):
+            __table_args__ = {'mysql_charset': 'utf8', 'mysql_engine': 'InnoDB'}
+
+        metadata = MetaData()
+        Base = declarative_base(metadata=metadata, cls=ExtendedBase)
+
+        type(Base)  # metaclass of Base: <class: 'sqlalchemy.ext.declarative.api.DeclarativeMeta'>
+        type(ABC)  # metaclass of ABC: <class 'abc.ABCMeta'>
+
+    and thus define this class to inherit from those two metaclasses, so it can
+    be the metaclass we want.
+
+    """  # noqa
+    pass
+
+
+class GenericLookupClassType(Base, ABC, metaclass=GenericLookupClassMeta):
     """
     Type hint for our various simple lookup classes.
 
     Alternatives that don't work: Type[Base], Type[BASETYPE], type(Base).
     """
+    __abstract__ = True  # abstract as seen by SQLAlchemy
+    # ... avoids SQLAlchemy error: "sqlalchemy.exc.InvalidRequestError: Class
+    # <class '__main__.GenericLookupClassType'> does not have a __table__ or
+    # __tablename__ specified and does not inherit from an existing
+    # table-mapped class."
 
     @abstractmethod
     def __call__(self, *args, **kwargs) -> None:

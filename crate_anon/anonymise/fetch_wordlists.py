@@ -452,8 +452,9 @@ class UsSurname2010Info(NameInfo):
                 "Percent Hispanic or Latino origin" [1, 2]
 
         [1] will be filtered through :func:`float_or_na_for_us_surnames`.
+
         [2] these mean "of people with this name, the percentage who are X
-            race"
+        race"
         """
         self.rank = int(rank)
         self.count = int(count)
@@ -479,14 +480,15 @@ def gen_us_surname_1990_info(lines: Iterable[str]) -> \
     information from the 1990 census data.
     
     Args:
-        lines: iterable of lines, with this format:
+        lines:
+            iterable of lines, with this format:
         
-        .. code-block:: none
+            .. code-block:: none
 
-            # Format is e.g.
-            SMITH          1.006  1.006      1
-            # which is:
-            # name, frequency (%), cumulative frequency (%), rank
+                # Format is e.g.
+                SMITH          1.006  1.006      1
+                # which is:
+                # name, frequency (%), cumulative frequency (%), rank
 
     Yields:
         :class:`UsSurname1990Info` objects

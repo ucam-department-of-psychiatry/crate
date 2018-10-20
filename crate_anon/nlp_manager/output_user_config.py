@@ -24,6 +24,8 @@ crate_anon/nlp_manager/output_user_config.py
 
 ===============================================================================
 
+**Define output configuration for GATE NLP applications.**
+
 """
 
 import ast
@@ -39,7 +41,8 @@ from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.sqlalchemy.schema import (
     get_sqla_coltype_from_dialect_str,
 )
-from sqlalchemy import Column, Index
+from sqlalchemy.engine.base import Engine
+from sqlalchemy.schema import Column, Index
 
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
@@ -52,12 +55,26 @@ from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 class OutputUserConfig(object):
     """
     Class defining configuration for the output of a given GATE app.
+
+    See the documentation for the :ref:`NLP config file <nlp_config>`.
     """
 
     def __init__(self, parser: ExtendedConfigParser, section: str) -> None:
         """
         Read config from a configparser section.
-        """
+
+        Args:
+            parser:
+                :class:`crate_anon.common.extendedconfigparser.ExtendedConfigParser` 
+            section:
+                config file section name -- this is the second of the pair of
+                strings in the ``outputtypemap`` part of the GATE NLP app 
+                config section. See
+                
+                - :ref:`NLP config file <nlp_config>`
+                - :class:`crate_anon.nlp_manager.parse_gate.Gate`
+        """  # noqa
+
         def opt_str(option: str, required: bool = False) -> str:
             return parser.get_str(section, option, required=required)
 
@@ -164,9 +181,23 @@ class OutputUserConfig(object):
                 self._indexlengths.append(length)
 
     def get_tablename(self) -> str:
+        """
+        Returns the name of the destination table.
+        """
         return self._desttable
 
-    def get_columns(self, engine) -> List[Column]:
+    def get_columns(self, engine: Engine) -> List[Column]:
+        """
+        Return all SQLAlchemy :class:`Column` definitions for the destination
+        table.
+
+        Args:
+            engine: SQLAlchemy database :class:`Engine`
+
+        Returns:
+            list of SQLAlchemy :class:`Column` objects
+
+        """
         columns = []  # type: List[Column]
         for i, field in enumerate(self._destfields):
             datatype = self._dest_datatypes[i]
@@ -177,6 +208,14 @@ class OutputUserConfig(object):
         return columns
 
     def get_indexes(self) -> List[Index]:
+        """
+        Return all SQLAlchemy :class:`Index` definitions for the destination
+        table.
+
+        Returns:
+            list of SQLAlchemy :class:`Index` objects
+
+        """
         indexes = []  # type: List[Index]
         for i, field in enumerate(self._indexfields):
             index_name = '_idx_{}'.format(field)
@@ -186,7 +225,25 @@ class OutputUserConfig(object):
         return indexes
 
     def renames(self) -> Dict[str, str]:
+        """
+        Return the "rename dictionary": a dictionary mapping GATE annotation
+        names to fieldnames in the NLP destination table.
+
+        See
+
+        - ``renames`` in the :ref:`NLP config file <nlp_config>`.
+        - :meth:`crate_anon.nlp_manager.parse_gate.Gate.parse`
+        """
         return self._renames
 
     def null_literals(self) -> List[str]:
+        """
+        Returns string values from the GATE output that will be interpreted as
+        NULL values.
+
+        See
+
+        - ``null_literals`` in the :ref:`NLP config file <nlp_config>`.
+        - :meth:`crate_anon.nlp_manager.parse_gate.Gate.parse`.
+        """
         return self._null_literals

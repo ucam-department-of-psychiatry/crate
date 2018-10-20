@@ -24,6 +24,21 @@ crate_anon/nlp_manager/parse_haematology.py
 
 ===============================================================================
 
+**Python regex-based NLP processors for haematology tests.**
+
+All inherit from
+:class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`
+and are constructed with these arguments:
+
+nlpdef:
+    a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+cfgsection:
+    the name of a CRATE NLP config file section (from which we may
+    choose to get extra config information)
+commit:
+    force a COMMIT whenever we insert data? You should specify this
+    in multiprocess mode, or you may get database deadlocks.
+
 """
 
 import logging
@@ -56,7 +71,9 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 class Esr(SimpleNumericalResultParser):
-    """Erythrocyte sedimentation rate (ESR)."""
+    """
+    Erythrocyte sedimentation rate (ESR).
+    """
     ESR = r"""
         (?: {WORD_BOUNDARY}
             (?: (?: Erythrocyte [\s]+ sed(?:\.|imentation)? [\s]+ rate)
@@ -98,6 +115,7 @@ class Esr(SimpleNumericalResultParser):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
@@ -110,6 +128,7 @@ class Esr(SimpleNumericalResultParser):
         )
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
         self.test_numerical_parser([
             ("ESR (should fail)", []),  # should fail; no values
             ("ESR 6 (should succeed)", [6]),
@@ -135,11 +154,16 @@ class Esr(SimpleNumericalResultParser):
 
 
 class EsrValidator(ValidatorBase):
-    """Validator for Esr (see ValidatorBase for explanation)."""
+    """
+    Validator for Esr
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[Esr.ESR],
@@ -161,7 +185,9 @@ class EsrValidator(ValidatorBase):
 # of "T2 N0 M0 ..." cancer staging?
 
 class WbcBase(SimpleNumericalResultParser):
-    """DO NOT USE DIRECTLY. White cell count base class."""
+    """
+    DO NOT USE DIRECTLY. White cell count base class.
+    """
     PREFERRED_UNIT_COLUMN = "value_billion_per_l"
     UNIT_MAPPING = {
         BILLION_PER_L: 1,     # preferred unit: 10^9 / L
@@ -176,6 +202,23 @@ class WbcBase(SimpleNumericalResultParser):
                  cell_type_regex_text: str,
                  variable: str,
                  commit: bool = False) -> None:
+        """
+
+        Args:
+            nlpdef:
+                a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+            cfgsection:
+                the name of a CRATE NLP config file section (from which we may
+                choose to get extra config information)
+            cell_type_regex_text:
+                text for regex for the cell type, representing e.g.
+                "monocytes" or "basophils"
+            variable:
+                used as the record value for ``variable_name``
+            commit:
+                force a COMMIT whenever we insert data? You should specify this
+                in multiprocess mode, or you may get database deadlocks.
+        """
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
@@ -189,6 +232,10 @@ class WbcBase(SimpleNumericalResultParser):
 
     @staticmethod
     def make_wbc_regex(cell_type_regex_text: str) -> str:
+        """
+        Makes a regular expression (as text) from text representing a cell
+        type.
+        """
         return r"""
             ({CELL_TYPE})                   # group for cell type name
             {OPTIONAL_RESULTS_IGNORABLES}
@@ -220,7 +267,9 @@ class WbcBase(SimpleNumericalResultParser):
 # -----------------------------------------------------------------------------
 
 class Wbc(WbcBase):
-    """White cell count (WBC, WCC)."""
+    """
+    White cell count (WBC, WCC).
+    """
     WBC = r"""
         (?: \b (?:
             (?:                 # White blood cells, white cell count, etc.
@@ -241,6 +290,7 @@ class Wbc(WbcBase):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          commit=commit,
@@ -248,6 +298,7 @@ class Wbc(WbcBase):
                          variable=self.NAME)
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
         self.test_numerical_parser([
             ("WBC (should fail)", []),  # should fail; no values
             ("WBC 6", [6]),
@@ -272,11 +323,16 @@ class Wbc(WbcBase):
 
 
 class WbcValidator(ValidatorBase):
-    """Validator for Wbc (see ValidatorBase for explanation)."""
+    """
+    Validator for Wbc
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[Wbc.WBC],
@@ -289,7 +345,9 @@ class WbcValidator(ValidatorBase):
 # -----------------------------------------------------------------------------
 
 class Neutrophils(WbcBase):
-    """Neutrophil count (absolute)."""
+    """
+    Neutrophil count (absolute).
+    """
     NEUTROPHILS = r"""
         (?:
             (?: \b absolute \s* )?
@@ -303,6 +361,7 @@ class Neutrophils(WbcBase):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          commit=commit,
@@ -310,6 +369,7 @@ class Neutrophils(WbcBase):
                          variable=self.NAME)
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
         self.test_numerical_parser([
             ("neutrophils (should fail)", []),  # should fail; no values
             ("absolute neutrophil count 6", [6]),
@@ -330,11 +390,16 @@ class Neutrophils(WbcBase):
 
 
 class NeutrophilsValidator(ValidatorBase):
-    """Validator for Neutrophils (see ValidatorBase for explanation)."""
+    """
+    Validator for Neutrophils
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[Neutrophils.NEUTROPHILS],
@@ -347,7 +412,9 @@ class NeutrophilsValidator(ValidatorBase):
 # -----------------------------------------------------------------------------
 
 class Lymphocytes(WbcBase):
-    """Lymphocyte count (absolute)."""
+    """
+    Lymphocyte count (absolute).
+    """
     LYMPHOCYTES = r"""
         (?:
             (?: \b absolute \s* )?
@@ -361,6 +428,7 @@ class Lymphocytes(WbcBase):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          commit=commit,
@@ -368,6 +436,7 @@ class Lymphocytes(WbcBase):
                          variable=self.NAME)
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
         self.test_numerical_parser([
             ("lymphocytes (should fail)", []),  # should fail; no values
             ("absolute lymphocyte count 6", [6]),
@@ -390,11 +459,16 @@ class Lymphocytes(WbcBase):
 
 
 class LymphocytesValidator(ValidatorBase):
-    """Validator for Lymphocytes (see ValidatorBase for explanation)."""
+    """
+    Validator for Lymphocytes
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[Lymphocytes.LYMPHOCYTES],
@@ -407,7 +481,9 @@ class LymphocytesValidator(ValidatorBase):
 # -----------------------------------------------------------------------------
 
 class Monocytes(WbcBase):
-    """Monocyte count (absolute)."""
+    """
+    Monocyte count (absolute).
+    """
     MONOCYTES = r"""
         (?:
             (?: \b absolute \s* )?
@@ -421,6 +497,7 @@ class Monocytes(WbcBase):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          commit=commit,
@@ -428,6 +505,7 @@ class Monocytes(WbcBase):
                          variable=self.NAME)
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
         self.test_numerical_parser([
             ("monocytes (should fail)", []),  # should fail; no values
             ("absolute monocyte count 6", [6]),
@@ -448,11 +526,16 @@ class Monocytes(WbcBase):
 
 
 class MonocytesValidator(ValidatorBase):
-    """Validator for Monocytes (see ValidatorBase for explanation)."""
+    """
+    Validator for Monocytes
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[Monocytes.MONOCYTES],
@@ -465,7 +548,9 @@ class MonocytesValidator(ValidatorBase):
 # -----------------------------------------------------------------------------
 
 class Basophils(WbcBase):
-    """Basophil count (absolute)."""
+    """
+    Basophil count (absolute).
+    """
     BASOPHILS = r"""
         (?:
             (?: \b absolute \s* )?
@@ -479,6 +564,7 @@ class Basophils(WbcBase):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          commit=commit,
@@ -486,6 +572,7 @@ class Basophils(WbcBase):
                          variable=self.NAME)
 
     def test(self, verbose=False) -> None:
+        # docstring in superclass
         self.test_numerical_parser([
             ("basophils (should fail)", []),  # should fail; no values
             ("absolute basophil count 6", [6]),
@@ -506,11 +593,16 @@ class Basophils(WbcBase):
 
 
 class BasophilsValidator(ValidatorBase):
-    """Validator for Basophils (see ValidatorBase for explanation)."""
+    """
+    Validator for Basophils
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[Basophils.BASOPHILS],
@@ -523,7 +615,9 @@ class BasophilsValidator(ValidatorBase):
 # -----------------------------------------------------------------------------
 
 class Eosinophils(WbcBase):
-    """Eosinophil count (absolute)."""
+    """
+    Eosinophil count (absolute).
+    """
     EOSINOPHILS = r"""
         (?:
             (?: \b absolute \s* )?
@@ -537,6 +631,7 @@ class Eosinophils(WbcBase):
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          commit=commit,
@@ -544,6 +639,7 @@ class Eosinophils(WbcBase):
                          variable=self.NAME)
 
     def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
         self.test_numerical_parser([
             ("eosinophils (should fail)", []),  # should fail; no values
             ("absolute eosinophil count 6", [6]),
@@ -564,11 +660,16 @@ class Eosinophils(WbcBase):
 
 
 class EosinophilsValidator(ValidatorBase):
-    """Validator for Eosinophils (see ValidatorBase for explanation)."""
+    """
+    Validator for Eosinophils
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
+        # see documentation above
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          regex_str_list=[Eosinophils.EOSINOPHILS],
@@ -581,6 +682,10 @@ class EosinophilsValidator(ValidatorBase):
 # =============================================================================
 
 def test_all(verbose: bool = False) -> None:
+    """
+    Test all parsers in this module.
+    """
+
     # ESR
     esr = Esr(None, None)
     esr.test(verbose=verbose)

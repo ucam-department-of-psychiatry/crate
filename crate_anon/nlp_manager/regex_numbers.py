@@ -24,6 +24,9 @@ crate_anon/nlp_manager/regex_numbers.py
 
 ===============================================================================
 
+**Constants and functions to assist in making regular expressions relating to
+numbers (e.g. integers, floating-point, scientific notation...).**
+
 """
 
 
@@ -37,7 +40,10 @@ POWER = r"(?: \^ | \*\* )"  # ^, **
 POWER_INC_E = r"(?: e | \^ | \*\* )"  # e, ^, **
 
 
-def times_ten_to_power(n):
+def times_ten_to_power(n: int) -> str:
+    """
+    For a power *n*, returns a regex to capture "10^n" and similar notations.
+    """
     return r"(?: {MULTIPLY}? \s* 10 \s* {POWER_INC_E} \s* {n})".format(
         MULTIPLY=MULTIPLY, POWER_INC_E=POWER_INC_E, n=n)
 

@@ -24,6 +24,9 @@ crate_anon/nlp_manager/parse_medex.py
 
 ===============================================================================
 
+**NLP handler for the external MedEx-UIMA tool, to find references to
+drugs (medication.**
+
 - MedEx-UIMA
 
   - can't find Python version of MedEx (which preceded MedEx-UIMA)
@@ -72,7 +75,7 @@ How do we clean up the temporary directories?
 
 - ``__del__`` is not the opposite of ``__init__``;
   http://www.algorithm.co.il/blogs/programming/python-gotchas-1-__del__-is-not-the-opposite-of-__init__/
-- http://eli.thegreenplace.net/2009/06/12/safely-using-destructors-in-python  # noqa
+- http://eli.thegreenplace.net/2009/06/12/safely-using-destructors-in-python
 
 PROBLEMS:
 
@@ -394,7 +397,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 
 from cardinal_pythonlib.fileops import mkdir_p
 from sqlalchemy import Column, Index, Integer, String, Text
@@ -478,8 +481,9 @@ class PseudoTempDir(object):
 
 
 class Medex(BaseNlpParser):
-    """Class controlling a Medex-UIMA external process, via our custom
-    Java interface, CrateMedexPipeline.java.
+    """
+    Class controlling a Medex-UIMA external process, via our custom Java
+    interface, ``CrateMedexPipeline.java``.
     """
 
     NAME = "MedEx"
@@ -488,6 +492,17 @@ class Medex(BaseNlpParser):
                  nlpdef: NlpDefinition,
                  cfgsection: str,
                  commit: bool = False) -> None:
+        """
+        Args:
+            nlpdef:
+                a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+            cfgsection:
+                the name of a CRATE NLP config file section (from which we may
+                choose to get extra config information)
+            commit:
+                force a COMMIT whenever we insert data? You should specify this
+                in multiprocess mode, or you may get database deadlocks.
+        """
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
 
         self._tablename = nlpdef.opt_str(
@@ -541,7 +556,8 @@ class Medex(BaseNlpParser):
         self._started = False
 
     @classmethod
-    def print_info(cls, file=sys.stdout):
+    def print_info(cls, file: TextIO = sys.stdout) -> None:
+        # docstring in superclass
         print("NLP class to talk to MedEx-UIMA, a medication-finding tool "
               "(https://www.ncbi.nlm.nih.gov/pubmed/25954575).", file=file)
 
@@ -551,7 +567,8 @@ class Medex(BaseNlpParser):
 
     def _start(self) -> None:
         """
-        Launch the external process.
+        Launch the external process. We will save and retrieve data via files,
+        and send signals ("data ready", "results ready) via stdin/stout.
         """
         if self._started:
             return
@@ -585,19 +602,25 @@ class Medex(BaseNlpParser):
         os.chdir(cwd)
 
     def _encode_to_subproc_stdin(self, text: str) -> None:
-        """Send text to the external program (via its stdin), encoding it in
-        the process (typically to UTF-8)."""
+        """
+        Send text to the external program (via its stdin), encoding it in
+        the process (typically to UTF-8).
+        """
         log.debug("SENDING: " + text)
         bytes_ = text.encode(self._pipe_encoding)
         self._p.stdin.write(bytes_)
 
     def _flush_subproc_stdin(self) -> None:
-        """Flushes what we're sending to the external program via its stdin."""
+        """
+        Flushes what we're sending to the external program via its stdin.
+        """
         self._p.stdin.flush()
 
     def _decode_from_subproc_stdout(self) -> str:
-        """Translate what we've received from the external program's stdout,
-        from its specific encoding (usually UTF-8) to a Python string."""
+        """
+        Decode what we've received from the external program's stdout,
+        from its specific encoding (usually UTF-8) to a Python string.
+        """
         bytes_ = self._p.stdout.readline()
         text = bytes_.decode(self._pipe_encoding)
         log.debug("RECEIVING: " + repr(text))
@@ -613,7 +636,12 @@ class Medex(BaseNlpParser):
         self._started = False
 
     def _signal_data_ready(self) -> bool:
-        """Returns: OK?"""
+        """
+        Signals to the child process that we have written data to files, and
+        it's now ready for reading by MedEx.
+
+        Returns: OK?
+        """
         if self._finished():
             return False
         self._encode_to_subproc_stdin(MEDEX_DATA_READY_SIGNAL + os.linesep)
@@ -621,7 +649,11 @@ class Medex(BaseNlpParser):
         return True
 
     def _await_results_ready(self) -> bool:
-        """Returns: ok?"""
+        """
+        Waits until MedEx has signalled us that results are ready.
+
+        Returns: OK?
+        """
         while True:
             if self._finished():
                 return False
@@ -630,6 +662,9 @@ class Medex(BaseNlpParser):
                 return True
 
     def _finished(self) -> bool:
+        """
+        Has MedEx finished?
+        """
         if not self._started:
             return True
         self._p.poll()
@@ -791,9 +826,17 @@ class Medex(BaseNlpParser):
                                                               Optional[int],
                                                               Optional[int]]:
         """
-        MedEx returns 'drug', 'strength', etc. as "aspirin[7,14]", where the
+        MedEx returns "drug", "strength", etc. as ``aspirin[7,14]``, where the
         text is followed by the start position (zero-indexed) and the end
-        position (one beyond the last character) (zero-indexed).
+        position (one beyond the last character) (zero-indexed). This function
+        converts a string like ``aspirin[7,14]`` to a tuple like ``"aspirin",
+        7, 14``.
+
+        Args:
+            medex_str: string from MedEx
+
+        Returns:
+            tuple: ``text, start_pos, end_pos``; values may be ``None``
         """
         if not medex_str:
             return None, None, None
@@ -814,6 +857,9 @@ class Medex(BaseNlpParser):
 
     @staticmethod
     def int_or_none(text: Optional[str]) -> Optional[int]:
+        """
+        Takes text and returns an integer version or ``None``.
+        """
         try:
             return int(text)
         except (TypeError, ValueError):
@@ -821,12 +867,17 @@ class Medex(BaseNlpParser):
 
     @staticmethod
     def str_or_none(text: Optional[str]) -> Optional[str]:
+        """
+        If the string is non-empty, return the string; otherwise return
+        ``None``.
+        """
         return None if not text else text
 
     @staticmethod
     def frequency_and_timex(text: str) -> Tuple[Optional[str], Optional[str]]:
         """
-        Splits e.g. b.i.d.(R1P12H)
+        Splits a MedEx frequency/TIMEX strings to its frequency and TIMEX
+        parts; e.g. splits ``b.i.d.(R1P12H)`` to ``"b.i.d.", "R1P12H"``.
         """
         if not text:
             return None, None
@@ -856,6 +907,7 @@ class Medex(BaseNlpParser):
     # -------------------------------------------------------------------------
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
+        # docstring in superclass
         startposdef = "Start position (zero-based) of "
         endposdef = (
             "End position (zero-based index of one beyond last character) of ")
@@ -944,9 +996,10 @@ class Medex(BaseNlpParser):
         }
 
     def dest_tables_indexes(self) -> Dict[str, List[Index]]:
+        # docstring in superclass
+        return {}
         # return {
         #     self._tablename: [
         #         Index('idx_generic_name', 'generic_name'),
         #     ]
         # }
-        return {}

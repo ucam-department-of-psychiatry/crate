@@ -48,6 +48,11 @@ import java.text.SimpleDateFormat;
 
 import org.apache.medex.MedTagger;
 
+/**
+ * CrateMedexPipeline is a command-line program that fires up MedEx, reads
+ * "data ready" signals from stdin, asks MedEx to process input disk files into
+ * output disk files, and writes "results ready" signals to stdout.
+ */
 
 public class CrateMedexPipeline {
 
@@ -100,6 +105,8 @@ public class CrateMedexPipeline {
     // Constructor
     // ========================================================================
 
+    /** Process command-line arguments and execute the pipeline. */
+
     public CrateMedexPipeline(String args[]) throws IOException {
         m_stdout = new PrintStream(System.out, true, m_pipe_encoding);
         m_args = args;
@@ -120,6 +127,12 @@ public class CrateMedexPipeline {
             // search for printStackTrace.
         }
     }
+
+    /**
+     * Starts MedEx; read "data ready" signals from stdin; asks MedEx to
+     * batch-process files on disk (creating output disk files); writes
+     * "results ready" signals to stdout.
+     */
 
     private void runPipeline() throws IOException {
         setupMedex();
@@ -150,19 +163,27 @@ public class CrateMedexPipeline {
     // Handling of args, stdin, etc.
     // ========================================================================
 
+    /** Exit in a happy way. */
+
     private void exit() {
         System.exit(0);
     }
 
+    /** Exit in a sad way. */
+
     private void abort() {
         System.exit(1);
     }
+
+    /** Complain that the user has passed bad command-line arguments. Exit. */
 
     private void fail(String msg) {
         status(msg);
         reportArgs();
         abort();
     }
+
+    /** Show a usage message. */
 
     private void usage() {
         status(
@@ -195,6 +216,10 @@ public class CrateMedexPipeline {
             false
         );
     }
+
+    /**
+     * Process command-line arguments from m_args, and set internal variables.
+     */
 
     private void processArgs() {
         int i = 0;
@@ -250,11 +275,17 @@ public class CrateMedexPipeline {
         }
     }
 
+    /** Report command-line arguments (from m_args). */
+
     private void reportArgs() {
         for (int i = 0; i < m_args.length; i++) {
             status("Arg " + i + " = " + m_args[i]);
         }
     }
+
+    /**
+     * Set the log tag (providing extra information relating to who called us.
+     */
 
     private void setLogTag(String msg) {
         m_logprefix = m_defaultlogprefix;
@@ -263,21 +294,31 @@ public class CrateMedexPipeline {
         }
     }
 
+    /** Returns the current date/time, for log output. */
+
     private String now() {
         return m_datetimefmt.format(Calendar.getInstance().getTime());
     }
+
+    /** Write a (prefixed) status message to the log. */
 
     private void status(String msg) {
         status(msg, true);
     }
 
+    /** Write a message to the log, optionally with a date/time/logtag prefix. */
+
     private void status(String msg, boolean prefix) {
         System.err.println((prefix ? (now() + ":" + m_logprefix) : "") + msg);
     }
 
+    /** Prints a string to stdout. */
+
     private void print(String msg) {
         m_stdout.print(msg);
     }
+
+    /** Prints a string to stdout and line-terminates it. */
 
     private void println(String msg) {
         // status("println: " + msg);
@@ -288,9 +329,13 @@ public class CrateMedexPipeline {
     // MedEx input processing
     // ========================================================================
 
+    /** Returns the filename of a MedEx resource file. */
+
     private String resource(String stem) {
         return m_location + ".." + File.separator + "resources" + File.separator + stem;
     }
+
+    /** Creates a MedEx processor (tagger). */
 
     private void setupMedex() throws IOException {
         status("Starting MedEx...");
@@ -312,6 +357,11 @@ public class CrateMedexPipeline {
         status("... done");
     }
 
+    /**
+     * Asks MedEx to batch-process files in our input directory and write
+     * results to our output directory.
+     */
+
     private void processInput() throws IOException {
         m_medtagger.run_batch_medtag();
     }
@@ -319,6 +369,8 @@ public class CrateMedexPipeline {
     // ========================================================================
     // MedEx output processing
     // ========================================================================
+
+    /** Indicate on stdout that results are ready in our output files. */
 
     private void signalResultsReady() throws IOException {
         println(m_results_ready_signal);
@@ -329,6 +381,8 @@ public class CrateMedexPipeline {
     // ========================================================================
     // Main (run from the command line)
     // ========================================================================
+
+    /** main(); create and run our pipeline. */
 
     public static void main(String args[]) throws IOException {
         CrateMedexPipeline medex = new CrateMedexPipeline(args);

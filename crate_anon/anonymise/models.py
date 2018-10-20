@@ -145,7 +145,7 @@ class PatientInfo(AdminBase):
 
     def ensure_rid(self) -> None:
         """
-        Ensure that :attribute:`rid` is a hashed version of :attribute:`pid`.
+        Ensure that :attr:`rid` is a hashed version of :attr:`pid`.
         """
         assert self.pid is not None
         if self.rid is not None:
@@ -154,7 +154,7 @@ class PatientInfo(AdminBase):
 
     def ensure_trid(self, session: Session) -> None:
         """
-        Ensure that :attribute:`trid` is a suitable transient research ID
+        Ensure that :attr:`trid` is a suitable transient research ID
         (TRID): the TRID we have already generated for this PID, or a fresh
         random integer that we'll remember.
 
@@ -180,8 +180,8 @@ class PatientInfo(AdminBase):
 
     def set_scrubber_info(self, scrubber: "PersonalizedScrubber") -> None:
         """
-        Sets our :attribute:`scrubber_hash` to be the hash of the scrubber
-        passed as a parameter.
+        Sets our :attr:`scrubber_hash` to be the hash of the scrubber passed as
+        a parameter.
 
         If our :class:`crate_anon.anonymise.config.Config` has its
         ``save_scrubbers`` flag set, then we also save the textual regex

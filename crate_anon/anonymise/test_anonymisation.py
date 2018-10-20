@@ -101,10 +101,10 @@ class FieldInfo(object):
         """
         Reads the data dictionary and populates:
 
-        - :attribute:`pk_ddrow`: DD row (DDR) for the table's PK
-        - :attribute:`pid_ddrow`: DDR for the table's PID field
-        - :attribute:`text_ddrow`: DDR for the table's text field (as
-          chosen by the ``field`` parameter)
+        - :attr:`pk_ddrow`: DD row (DDR) for the table's PK
+        - :attr:`pid_ddrow`: DDR for the table's PID field
+        - :attr:`text_ddrow`: DDR for the table's text field (as chosen by the
+          ``field`` parameter)
 
         Args:
             table: destination table to read information for

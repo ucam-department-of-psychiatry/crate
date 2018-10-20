@@ -22,6 +22,16 @@ Things to do
 
 .. todolist::
 
+- **debug** RDBM admin -> Studies:
+
+  .. code-block:: none
+
+    OperationalError at /mgr_admin/consent/study/
+
+    (1054, "Unknown column 'consent_study.p_summary' in 'field list'")
+
+- **check** command-line param method for restricted anon
+
 - BENCHMARK name blacklisting (with forenames + surnames – English words –
   eponyms): speed, precision, recall. Share results with MB.
 
@@ -68,39 +78,6 @@ Things to do
     timestamp of some type, like: ``MAX(DATE_CREATED) FROM
     RIO.DBO.Clinical_Documents + MAX(whenprocessedutc)) FROM
     [RiONLP].[dbo].[crate_nlp_progress] + …``
-
-  - Database views accessible via the front-end that present data more simply
-    and appropriately, for instance one I’ve found useful is this that adds a
-    date (well doc date) to the NLP results:
-
-    .. code-block:: sql
-
-        -- Dates from NLP
-
-        WITH getdateCTE AS (
-            SELECT cdd.rid as patientID,
-                CONVERT(
-                    date,
-                    CASE mm._srctable
-                        WHEN 'Clinical_Documents' THEN (SELECT CONVERT(VARCHAR(max),Date_Created, 103) FROM RiO.dbo.Clinical_Documents WHERE _srcpkval = crate_pk)
-                        WHEN 'Progress_Notes' THEN (SELECT CONVERT(VARCHAR(max),Created_Date, 103) FROM RiO.dbo.Progress_Notes WHERE _srcpkval = crate_pk)
-                        WHEN 'CPFT_Core_Assessment_v2_Presenting_Problem' THEN (SELECT CONVERT(VARCHAR(max),Assessment_Date, 103) FROM RiO.dbo.CPFT_Core_Assessment_v2_Presenting_Problem WHERE _srcpkval = crate_pk)
-                        WHEN 'CPFT_Core_Assessment_v2_PPH_PMH_Allergies_Frailty' THEN (SELECT CONVERT(VARCHAR(max),Assessment_Date, 103) FROM RiO.dbo.CPFT_Core_Assessment_v2_PPH_PMH_Allergies_Frailty WHERE _srcpkval = crate_pk)
-                        WHEN 'CPFT_Core_Assessment_v2_Summary_Initial_Plan' THEN (SELECT CONVERT(VARCHAR(max),Assessment_Date, 103) FROM RiO.dbo.CPFT_Core_Assessment_v2_Summary_Initial_Plan WHERE _srcpkval = crate_pk)
-                        WHEN 'CPFT_Core_Assessment_v2_Background_History' THEN (SELECT CONVERT(VARCHAR(max),Assessment_Date, 103) FROM RiO.dbo.CPFT_Core_Assessment_v2_Background_History WHERE _srcpkval = crate_pk)
-                        WHEN 'CPFT_Core_Assessment_v2_Mental_State' THEN (SELECT CONVERT(VARCHAR(max),Assessment_Date, 103) FROM RiO.dbo.CPFT_Core_Assessment_v2_Mental_State WHERE _srcpkval = crate_pk)
-                        ELSE 'Wibble'
-                    END,
-                    103
-                ) AS DocDate,
-                _srctable as source, variable_name, variable_text, out_of_100
-                --  The things you want from the table e.g.drug, generic_name,sentence_text as text
-            FROM RiONLP.dbo.ace mm
-            INNER JOIN Workspace.dbo.frailtyRID cdd
-            ON mm.rid = cdd.rid
-            -- WHERE
-        )
-        SELECT * FROM getdateCTE
 
 - When the Windows service stops, it is still failing to kill child processes.
   See ``crate_anon/tools/winservice.py``.
