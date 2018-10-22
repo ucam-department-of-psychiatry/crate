@@ -24,6 +24,8 @@ crate_anon/crateweb/research/forms.py
 
 ===============================================================================
 
+**Django forms for the research site.**
+
 """
 
 import datetime
@@ -62,6 +64,10 @@ log = logging.getLogger(__name__)
 
 
 class AddQueryForm(ModelForm):
+    """
+    Form to add or edit an SQL
+    :class:`crate_anon.crateweb.research.models.Query`.
+    """
     class Meta:
         model = Query
         fields = ['sql']
@@ -71,36 +77,59 @@ class AddQueryForm(ModelForm):
 
 
 class BlankQueryForm(ModelForm):
+    """
+    Unused? For :class:`crate_anon.crateweb.research.models.Query`.
+    """
     class Meta:
         model = Query
         fields = []
 
 
 class AddHighlightForm(ModelForm):
+    """
+    Form to add/edit a :class:`crate_anon.crateweb.research.models.Highlight`.
+    """
     class Meta:
         model = Highlight
         fields = ['colour', 'text']
 
 
 class BlankHighlightForm(ModelForm):
+    """
+    Unused? For :class:`crate_anon.crateweb.research.models.Highlight`.
+    """
     class Meta:
         model = Highlight
         fields = []
 
 
 class DatabasePickerForm(forms.Form):
+    """
+    Form to choose a research database.
+    """
     database = ChoiceField(label="Database", required=True)
 
     def __init__(self,
                  *args,
                  dbinfolist: List[SingleResearchDatabase],
                  **kwargs) -> None:
+        """
+        Args:
+            dbinfolist:
+                list of all
+                :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`.
+        """  # noqa
         super().__init__(*args, **kwargs)
         f = self.fields['database']  # type: ChoiceField
         f.choices = [(d.name, d.description) for d in dbinfolist]
 
 
 class PidLookupForm(forms.Form):
+    """
+    Form to look up patient IDs from RIDs, MRIDs, and/or TRIDs.
+
+    For the RDBM.
+    """
     rids = MultipleWordAreaField(required=False)
     mrids = MultipleWordAreaField(required=False)
     trids = MultipleIntAreaField(required=False)
@@ -109,6 +138,12 @@ class PidLookupForm(forms.Form):
                  *args,
                  dbinfo: SingleResearchDatabase,
                  **kwargs) -> None:
+        """
+        Args:
+            dbinfo:
+                research database to look up descriptions from, as a
+                :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase` 
+        """  # noqa
         super().__init__(*args, **kwargs)
         rids = self.fields['rids']  # type: MultipleIntAreaField
         mrids = self.fields['mrids']  # type: MultipleIntAreaField
@@ -122,6 +157,11 @@ class PidLookupForm(forms.Form):
 
 
 class RidLookupForm(forms.Form):
+    """
+    Form to look up RIDs from PIDs/MPIDs.
+
+    For clinicians: "get the RID for my patient".
+    """
     pids = MultipleWordAreaField(required=False)
     mpids = MultipleWordAreaField(required=False)
 
@@ -129,6 +169,12 @@ class RidLookupForm(forms.Form):
                  *args,
                  dbinfo: SingleResearchDatabase,
                  **kwargs) -> None:
+        """
+        Args:
+            dbinfo:
+                research database to look up descriptions from, as a
+                :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase` 
+        """  # noqa
         super().__init__(*args, **kwargs)
         pids = self.fields['pids']  # type: MultipleIntAreaField
         mpids = self.fields['mpids']  # type: MultipleIntAreaField
@@ -140,8 +186,12 @@ DEFAULT_MIN_TEXT_FIELD_LENGTH = 100
 
 
 class FieldPickerInfo(object):
+    """
+    Describes a database field for when the user is asked to choose one via a
+    web form.
+    """
     def __init__(self, value: str, description: str, type_: Type,
-                 permits_empty_id: bool):
+                 permits_empty_id: bool) -> None:
         self.value = value
         self.description = description
         self.type_ = type_
@@ -149,6 +199,22 @@ class FieldPickerInfo(object):
 
 
 class SQLHelperTextAnywhereForm(forms.Form):
+    """
+    Form for "find text anywhere in a patient's record".
+
+    The user gets to pick
+
+    - a field name (consistent across tables) representing a patient research
+      ID (see :class:`FieldPickerInfo`);
+    - a RID value
+    - details of the text to search for
+    - options to restrict which text fields are searched
+    - an option to use full-text indexing where available
+    - display options
+
+    This research-oriented form is then subclassed for clinicians; see
+    :class:`ClinicianAllTextFromPidForm`.
+    """
     fkname = ChoiceField(required=True)
     patient_id = CharField(label="ID value (to restrict to a single patient)",
                            required=False)
@@ -209,10 +275,15 @@ class SQLHelperTextAnywhereForm(forms.Form):
 
 
 class ClinicianAllTextFromPidForm(SQLHelperTextAnywhereForm):
+    """
+    A slightly restricted form of :class:`SQLHelperTextAnywhereForm` for
+    clinicians.
+
+    The clinician version always requires an ID (no "patient browsing"; that's
+    in the domain of research as it might yield patients that aren't being
+    cared for by this clinician).
+    """
     patient_id = CharField(label="ID value", required=True)
-    # ... the clinician view always requires an ID (no "patient browsing";
-    # that's in the domain of research as it might yield patients that aren't
-    # being cared for by this clinician)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args,
@@ -232,19 +303,59 @@ class ClinicianAllTextFromPidForm(SQLHelperTextAnywhereForm):
 
 
 def html_form_date_to_python(text: str) -> datetime.datetime:
+    """
+    Converts a date from the textual form used in HTML forms to a Python
+    ``datetime.datetime`` object.
+
+    Args:
+        text: text to convert
+
+    Returns:
+        a ``datetime.datetime``
+    """
     return datetime.datetime.strptime(text, "%Y-%m-%d")
 
 
 def int_validator(text: str) -> str:
+    """
+    Takes text and returns a string version of an integer version of it.
+
+    Args:
+        text:
+
+    Returns:
+        the same thing, usually (though any redundant ".0" will be removed)
+
+    Raises:
+        :exc:`TypeError` or :exc:`ValueError` if something is wrong
+
+    """
     return str(int(text))  # may raise ValueError, TypeError
 
 
 def float_validator(text: str) -> str:
+    """
+    Takes text and returns a string version of a float version of it.
+
+    Args:
+        text:
+
+    Returns:
+        the same thing, usually
+
+    Raises:
+        :exc:`TypeError` or :exc:`ValueError` if something is wrong
+
+    """
     return str(float(text))  # may raise ValueError, TypeError
 
 
 class QueryBuilderForm(forms.Form):
-    # See also querybuilder.js
+    """
+    Form to build an SQL query using a web interface.
+
+    Works hand in hand with ``querybuilder.js`` on the client side; q.v.
+    """
 
     database = CharField(label="Schema", required=False)
     schema = CharField(label="Schema", required=True)
@@ -362,6 +473,11 @@ class QueryBuilderForm(forms.Form):
 
 
 class ManualPeQueryForm(forms.Form):
+    """
+    Simple form for the "manual" section of the "Build Patient Explorer" page.
+
+    Allows the user to enter raw SQL.
+    """
     sql = CharField(
         required=False,
         widget=forms.Textarea(attrs={'rows': 20, 'cols': 80})

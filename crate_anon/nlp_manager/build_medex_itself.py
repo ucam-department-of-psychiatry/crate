@@ -232,7 +232,7 @@ def frequency_rules_line(frequency: str, timex: str,
 
 
 def add_lines_if_not_in(filename: str, lines: List[str]) -> None:
-    """
+    r"""
     Adds lines to a file, if they're not already there.
 
     Args:
@@ -255,7 +255,7 @@ def add_lines_if_not_in(filename: str, lines: List[str]) -> None:
 def add_lines_after_trigger(filename: str, trigger: str,
                             start_marker: str, end_marker: str,
                             lines: List[str]) -> None:
-    """
+    r"""
     Adds lines to a file, after a triggering line.
 
     Args:
@@ -264,9 +264,12 @@ def add_lines_after_trigger(filename: str, trigger: str,
         trigger:
             line that begins the section of interest; we don't start paying
             attention until this is encountered
-        start_marker: see below
-        end_marker: see below
-        lines: lines to insert
+        start_marker:
+            see below
+        end_marker:
+            see below
+        lines:
+            lines to insert
 
     Immediately after we've encountered ``trigger``, we insert
     ``start_marker``, then ``lines``, then ``end_marker``.

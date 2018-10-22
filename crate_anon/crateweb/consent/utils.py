@@ -24,6 +24,8 @@ crate_anon/crateweb/consent/utils.py
 
 ===============================================================================
 
+**Utility functions for the consent-to-contact system.**
+
 """
 
 import datetime
@@ -43,6 +45,14 @@ from django.template.loader import render_to_string
 # =============================================================================
 
 def read_static_file_contents(filename: str) -> str:
+    """
+    Returns the text contents of a static file.
+
+    Args:
+        filename:
+            filename (within the local static directory as determined by
+            ``settings.LOCAL_STATIC_DIR``
+    """
     with open(os.path.join(settings.LOCAL_STATIC_DIR, filename)) as f:
         return f.read()
 
@@ -52,6 +62,14 @@ def read_static_file_contents(filename: str) -> str:
 # =============================================================================
 
 def pdf_css(patient: bool = True) -> str:
+    """
+    Returns CSS for use in PDF letters etc.
+
+    Args:
+        patient:
+            patient settings (e.g. "large print"), rather than researcher
+            settings ("cram it in")?
+    """
     contents = read_static_file_contents('base.css')
     context = {
         'fontsize': (settings.PATIENT_FONTSIZE
@@ -64,6 +82,14 @@ def pdf_css(patient: bool = True) -> str:
 @django_cache_function(timeout=None)
 # @lru_cache(maxsize=None)
 def pdf_template_dict(patient: bool = True) -> Dict[str, str]:
+    """
+    Returns a template dictionary for use in generating PDF letters etc.
+
+    Args:
+        patient:
+            patient CSS settings (e.g. "large print"), rather than researcher
+            CSS settings ("cram it in")?
+    """
     return {
         'css': pdf_css(patient),
         'PDF_LOGO_ABS_URL': settings.PDF_LOGO_ABS_URL,
@@ -77,12 +103,31 @@ def pdf_template_dict(patient: bool = True) -> Dict[str, str]:
 def render_pdf_html_to_string(template: str,
                               context: Dict[str, Any] = None,
                               patient: bool = True) -> str:
+    """
+    Renders a template into HTML that can be used for making PDFs.
+
+    Args:
+        template:
+            filename of the Django template
+        context:
+            template context dictionary (which will be augmented with
+            PDF-specific content)
+        patient:
+            patient CSS settings (e.g. "large print"), rather than researcher
+            CSS settings ("cram it in")?
+
+    Returns:
+        HTML
+    """
     context = context or {}
     context.update(pdf_template_dict(patient))
     return render_to_string(template, context)
 
 
 def email_css() -> str:
+    """
+    Returns CSS for use in e-mails to clinicians.
+    """
     contents = read_static_file_contents('base.css')
     contents += render_to_string('email.css')
     return contents
@@ -91,6 +136,9 @@ def email_css() -> str:
 @django_cache_function(timeout=None)
 # @lru_cache(maxsize=None)
 def email_template_dict() -> Dict[str, str]:
+    """
+    Returns a template dictionary for use in generating e-mails.
+    """
     return {
         'css': email_css(),
     }
@@ -98,6 +146,19 @@ def email_template_dict() -> Dict[str, str]:
 
 def render_email_html_to_string(template: str,
                                 context: Dict[str, Any] = None) -> str:
+    """
+    Renders a template into HTML that can be used for making PDFs.
+
+    Args:
+        template:
+            filename of the Django template
+        context:
+            template context dictionary (which will be augmented with
+            email-specific content)
+
+    Returns:
+        HTML
+    """
     context = context or {}
     context.update(email_template_dict())
     return render_to_string(template, context)
@@ -108,7 +169,17 @@ def render_email_html_to_string(template: str,
 # =============================================================================
 
 def get_domain_from_email(email: str) -> str:
-    # Very simple version...
+    """
+    Extracts the domain part from an e-mail address.
+
+    Args:
+        email: the e-mail address, e.g. "someone@cam.ac.uk"
+
+    Returns:
+        the domain part, e.g. "cam.ac.uk"
+
+    Very simple algorithm...
+    """
     try:
         return email.split('@')[1]
     except (AttributeError, IndexError):
@@ -116,6 +187,22 @@ def get_domain_from_email(email: str) -> str:
 
 
 def validate_researcher_email_domain(email: str) -> None:
+    """
+    Ensures that an e-mail address is acceptable as a researcher e-mail
+    address. We may be sending patient-identifiable information (with consent)
+    via this method, so we want to be sure that nobody's put dodgy researcher
+    e-mails in our system.
+
+    We validate the e-mail domain against
+    ``settings.VALID_RESEARCHER_EMAIL_DOMAINS``, if set.
+
+    Args:
+        email: an e-mail address
+
+    Raises:
+        :class:`django.core.exceptions.ValidationError` on failure
+
+    """
     if not settings.VALID_RESEARCHER_EMAIL_DOMAINS:
         # Anything goes.
         return
@@ -134,6 +221,20 @@ def make_forename_surname_email_address(forename: str,
                                         surname: str,
                                         domain: str,
                                         default: str = '') -> str:
+    """
+    Converts a forename and surname into an e-mail address of the form
+    ``forename.surname@domain``. Not guaranteed to work.
+
+    Args:
+        forename: forename
+        surname: surname
+        domain: domain, e.g. "cpft.nhs.uk"
+        default: value to return if something looks wrong
+
+    Returns:
+        e-mail address (or ``default``)
+
+    """
     if not forename or not surname:  # in case one is None
         return default
     forename = forename.replace(" ", "")
@@ -158,6 +259,18 @@ def make_forename_surname_email_address(forename: str,
 
 def make_cpft_email_address(forename: str, surname: str,
                             default: str = '') -> str:
+    """
+    Make a CPFT e-mail address. Not guaranteed to work.
+
+    Args:
+        forename: forename
+        surname: surname
+        default: value to return if something looks wrong
+
+    Returns:
+        e-mail address: ``forename.surname@cpft.nhs.uk``, or ``default``
+
+    """
     return make_forename_surname_email_address(forename, surname,
                                                "cpft.nhs.uk", default)
 
@@ -168,9 +281,17 @@ def make_cpft_email_address(forename: str, surname: str,
 
 def days_to_years(days: int, dp: int = 1) -> str:
     """
-    For "consent after discharge", primarily.
-    Returns the number of years to specified number of dp.
-    Assumes 365 days/year, not 365.24.
+    Converts days to years, in string form.
+
+    Args:
+        days: number of days
+        dp: number of decimal places
+
+    Returns:
+        str: number of years
+
+    - For "consent after discharge", primarily.
+    - Assumes 365 days/year, not 365.24.
     """
     try:
         years = days / 365
@@ -183,6 +304,10 @@ def days_to_years(days: int, dp: int = 1) -> str:
 
 
 def latest_date(*args) -> Optional[datetime.date]:
+    """
+    Returns the latest of a bunch of dates, or ``None`` if there are no dates
+    specified at all.
+    """
     latest = None
     for d in args:
         if d is None:
@@ -196,6 +321,9 @@ def latest_date(*args) -> Optional[datetime.date]:
 
 def to_date(d: Optional[Union[datetime.date,
                               datetime.datetime]]) -> Optional[datetime.date]:
+    """
+    Converts any of various date-like things to ``datetime.date`` objects.
+    """
     if isinstance(d, datetime.datetime):
         return d.date()
     return d  # datetime.date, or None

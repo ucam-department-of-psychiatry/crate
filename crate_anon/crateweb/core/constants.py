@@ -24,6 +24,8 @@ crate_anon/crateweb/core/constants.py
 
 ===============================================================================
 
+**Core constantsly, like field lengths.**
+
 """
 
 DJANGO_DEFAULT_CONNECTION = 'default'  # key to django.db.connections

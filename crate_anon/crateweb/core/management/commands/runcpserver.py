@@ -24,7 +24,7 @@ crate_anon/crateweb/core/management/commands/runcpserver.py
 
 ===============================================================================
 
-Django management command framework for CherryPy.
+**Django management command framework for CherryPy.**
 
 - Based on https://lincolnloop.com/blog/2008/mar/25/serving-django-cherrypy/
 - Idea and code snippets borrowed from
@@ -36,11 +36,16 @@ Django management command framework for CherryPy.
 - Then daemonizing code removed: https://code.djangoproject.com/ticket/4996
 
 TEST COMMAND:
-./manage.py runcpserver --port 8080 --ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem --ssl_private_key /etc/ssl/private/ssl-cert-snakeoil.key
+
+.. code-block:: bash
+
+    ./manage.py runcpserver --port 8080 --ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem --ssl_private_key /etc/ssl/private/ssl-cert-snakeoil.key
+
 """  # noqa
 
 from argparse import ArgumentParser, Namespace
 import logging
+from typing import Any
 # import errno
 # import os
 # import signal
@@ -73,10 +78,14 @@ DEFAULT_ROOT = settings.FORCE_SCRIPT_NAME
 
 
 class Command(BaseCommand):
+    """
+    Django management command to run this project in a CherryPy web server.
+    """
     help = ("Run this project in a CherryPy webserver. To do this, "
             "CherryPy is required (pip install cherrypy).")
 
     def add_arguments(self, parser: ArgumentParser) -> None:
+        # docstring in superclass
         parser.add_argument(
             '--host', type=str, default="127.0.0.1",
             help="hostname to listen on (default: 127.0.0.1)")
@@ -130,7 +139,8 @@ class Command(BaseCommand):
         #     "--stop", action="store_true",
         #     help="stop server")
 
-    def handle(self, *args, **options):
+    def handle(self, *args: str, **options: Any) -> None:
+        # docstring in superclass
         opts = Namespace(**options)
         # Activate the current language, because it won't get activated later.
         try:
@@ -218,7 +228,9 @@ class Command(BaseCommand):
 
 
 class Missing(object):
-    """Basic web interface to say "not here"."""
+    """
+    CherryPy "application" that is a basic web interface to say "not here".
+    """
     config = {
         '/': {
             # Anything so as to prevent complaints about an empty config.
@@ -227,47 +239,70 @@ class Missing(object):
     }
 
     @cherrypy.expose
-    def index(self):
-        return "[CherryPy server says:] Nothing to see here. Wrong URL path."
+    def index(self) -> str:
+        return (
+            "[CRATE CherryPy server says:] "
+            "Nothing to see here. Wrong URL path."
+        )
 
 
 # noinspection PyUnresolvedReferences
-def start_server(opts: Namespace) -> None:
+def start_server(host: str,
+                 port: int,
+                 threads: int,
+                 server_name: str,
+                 root_path: str,
+                 log_screen: bool,
+                 ssl_certificate: str,
+                 ssl_private_key: str,
+                 debug_static: bool) -> None:
     """
-    Start CherryPy server
+    Start CherryPy server.
+
+    Args:
+        host: hostname to listen on (e.g. ``127.0.0.1``)
+        port: port number to listen on
+        threads: number of threads to use in the thread pool
+        server_name: CherryPy SERVER_NAME environment variable (e.g.
+            ``localhost``)
+        root_path: root path to mount server at
+        log_screen: show log to console?
+        ssl_certificate: optional filename of an SSL certificate
+        ssl_private_key: optional filename of an SSL private key
+        debug_static: show debug info for static requests?
     """
 
-    # if opts.daemonize and opts.server_user and opts.server_group:
+    # if daemonize and server_user and server_group:
     #     # ensure the that the daemon runs as specified user
-    #     change_uid_gid(opts.server_user, opts.server_group)
+    #     change_uid_gid(server_user, server_group)
 
     cherrypy.config.update({
-        'server.socket_host': opts.host,
-        'server.socket_port': opts.port,
-        'server.thread_pool': opts.threads,
-        'server.server_name': opts.server_name,
-        'server.log_screen': opts.log_screen,
+        'server.socket_host': host,
+        'server.socket_port': port,
+        'server.thread_pool': threads,
+        'server.server_name': server_name,
+        'server.log_screen': log_screen,
     })
-    if opts.ssl_certificate and opts.ssl_private_key:
+    if ssl_certificate and ssl_private_key:
         cherrypy.config.update({
             'server.ssl_module': 'builtin',
-            'server.ssl_certificate': opts.ssl_certificate,
-            'server.ssl_private_key': opts.ssl_private_key,
+            'server.ssl_certificate': ssl_certificate,
+            'server.ssl_private_key': ssl_private_key,
         })
 
-    log.info("Starting on host: {}".format(opts.host))
-    log.info("Starting on port: {}".format(opts.port))
+    log.info("Starting on host: {}".format(host))
+    log.info("Starting on port: {}".format(port))
     log.info("Static files will be served from filesystem path: {}".format(
         settings.STATIC_ROOT))
     log.info("Static files will be served at URL path: {}".format(
         CRATE_STATIC_URL_PATH))
-    log.info("CRATE will be at: {}".format(opts.root_path))
-    log.info("Thread pool size: {}".format(opts.threads))
+    log.info("CRATE will be at: {}".format(root_path))
+    log.info("Thread pool size: {}".format(threads))
 
     static_config = {
         '/': {
             'tools.staticdir.root': settings.STATIC_ROOT,
-            'tools.staticdir.debug': opts.debug_static,
+            'tools.staticdir.debug': debug_static,
         },
         CRATE_STATIC_URL_PATH: {
             'tools.staticdir.on': True,
@@ -275,7 +310,7 @@ def start_server(opts: Namespace) -> None:
         },
     }
     cherrypy.tree.mount(Missing(), '', config=static_config)
-    cherrypy.tree.graft(wsgi_application, opts.root_path)
+    cherrypy.tree.graft(wsgi_application, root_path)
 
     # noinspection PyBroadException,PyPep8
     try:
@@ -286,6 +321,14 @@ def start_server(opts: Namespace) -> None:
 
 
 def runcpserver(opts: Namespace) -> None:
+    """
+    Launch the CherryPy server using arguments from an
+    :class:`argparse.Namespace`.
+
+    Args:
+        opts: the command-line :class:`argparse.Namespace`
+    """
+
     # if opts.stop:
     #     if not opts.pidfile:
     #         raise ValueError("Must specify --pidfile to use --stop")
@@ -309,10 +352,23 @@ def runcpserver(opts: Namespace) -> None:
 
     # Start the webserver
     log.info('starting server with options {}'.format(opts))
-    start_server(opts)
+    start_server(
+        host=opts.host,
+        port=opts.port,
+        threads=opts.threads,
+        server_name=opts.server_name,
+        root_path=opts.root_path,
+        log_screen=opts.log_screen,
+        ssl_certificate=opts.ssl_certificate,
+        ssl_private_key=opts.ssl_private_key,
+        debug_static=opts.debug_static,
+    )
 
 
 def main():
+    """
+    Command-line entry point (not typically used directly).
+    """
     command = Command()
     parser = ArgumentParser()
     command.add_arguments(parser)

@@ -24,6 +24,8 @@ crate_anon/crateweb/core/views.py
 
 ===============================================================================
 
+**A few core views, like the home page.**
+
 """
 
 import logging
@@ -43,6 +45,9 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 def home(request: HttpRequest) -> HttpResponse:
+    """
+    The home (main menu) view.
+    """
     # leaflets = [{'key': x[0], 'name': x[1]} for x in Leaflet.LEAFLET_CHOICES]
     # assert False
     # log.critical("IP Address for debug-toolbar: " + request.META['REMOTE_ADDR'])  # noqa
@@ -64,6 +69,9 @@ def home(request: HttpRequest) -> HttpResponse:
 # =============================================================================
 
 def about(request: HttpRequest) -> HttpResponse:
+    """
+    The "about CRATE" view.
+    """
     context = {
         'VERSION': CRATE_VERSION,
         'VERSION_DATE': CRATE_VERSION_DATE,

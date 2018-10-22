@@ -24,6 +24,9 @@ crate_anon/crateweb/manage.py
 
 ===============================================================================
 
+**Command-line entry point so we can call Django management commands directly
+from the command line if we want.**
+
 """
 
 import logging
@@ -59,6 +62,9 @@ django.setup()
 
 
 def main(argv: List[str] = None) -> None:
+    """
+    Command-line entry point. Calls the Django command-line processor.
+    """
     if argv is None:
         argv = sys.argv
     # print(argv)
@@ -66,12 +72,22 @@ def main(argv: List[str] = None) -> None:
 
 
 def runserver() -> None:
+    """
+    Launch the Django development web server. (Not for proper use.)
+
+    Modifies ``argv`` and calls :func:`main`.
+    """
     argv = sys.argv[:]  # copy
     argv.insert(1, 'runserver')
     main(argv)
 
 
 def runcpserver() -> None:
+    """
+    Launch the CherryPy web server.
+
+    Modifies ``argv`` and calls :func:`main`.
+    """
     argv = sys.argv[:]  # copy
     argv.insert(1, 'runcpserver')
     extraargs = shlex.split(os.environ.get(CHERRYPY_EXTRA_ARGS_ENV_VAR, ''))
@@ -81,6 +97,11 @@ def runcpserver() -> None:
 
 
 def fetch_optouts() -> None:
+    """
+    Fetch details of patients opting out.
+
+    Modifies ``argv`` and calls :func:`main`.
+    """
     argv = sys.argv[:]  # copy
     argv.insert(1, 'fetch_optouts')
     extraargs = shlex.split(os.environ.get(CHERRYPY_EXTRA_ARGS_ENV_VAR, ''))

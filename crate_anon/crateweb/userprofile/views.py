@@ -24,9 +24,11 @@ crate_anon/crateweb/userprofile/views.py
 
 ===============================================================================
 
+**View to edit an extended user profile.**
+
 """
 
-from django.http import HttpResponse
+from django.http.response import HttpResponse
 from django.http.request import HttpRequest
 from django.shortcuts import redirect, render
 from crate_anon.crateweb.userprofile.forms import UserProfileForm
@@ -39,6 +41,16 @@ from crate_anon.crateweb.userprofile.forms import UserProfileForm
 # ... e.g. slide 72
 
 def edit_profile(request: HttpRequest) -> HttpResponse:
+    """
+    View to edit an extended user profile.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    """
     profile = request.user.profile
     form = UserProfileForm(request.POST if request.method == 'POST' else None,
                            instance=profile)

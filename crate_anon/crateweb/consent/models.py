@@ -24,6 +24,8 @@ crate_anon/crateweb/consent/models.py
 
 ===============================================================================
 
+**Django ORM models for the consent-to-contact system.**
+
 """
 
 import datetime
@@ -58,6 +60,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
+from django.utils.html import escape
 
 from crate_anon.common.contenttypes import ContentType
 from crate_anon.crateweb.config.constants import (
@@ -129,9 +132,13 @@ def study_details_upload_to(instance: STUDY_FWD_REF, filename: str) -> str:
     Determines the filename used for study information PDF uploads.
 
     Args:
-        instance: instance of Study (potentially unsaved)
-            ... and you can't call save(); it goes into infinite recursion
+        instance: instance of :class:`Study` (potentially unsaved;
+            and you can't call :func:`save`; it goes into infinite recursion)
         filename: uploaded filename
+
+    Returns:
+        filename with extension but without path, to be used on the server
+        filesystem
     """
     extension = os.path.splitext(filename)[1]  # includes the '.' if present
     return os.path.join("study", "{}_details_{}{}".format(
@@ -146,8 +153,13 @@ def study_form_upload_to(instance: STUDY_FWD_REF, filename: str) -> str:
     Determines the filename used for study clinician-form PDF uploads.
 
     Args:
-        instance: instance of Study (potentially unsaved)
+        instance: instance of :class:`Study` (potentially unsaved
+            and you can't call :func:`save`; it goes into infinite recursion)
         filename: uploaded filename
+
+    Returns:
+        filename with extension but without path, to be used on the server
+        filesystem
     """
     extension = os.path.splitext(filename)[1]
     return os.path.join("study", "{}_form_{}{}".format(
@@ -157,6 +169,9 @@ def study_form_upload_to(instance: STUDY_FWD_REF, filename: str) -> str:
 
 
 class Study(models.Model):
+    """
+    Represents a research study.
+    """
     # implicit 'id' field
     institutional_id = models.PositiveIntegerField(
         verbose_name="Institutional (e.g. NHS Trust) study number",
@@ -172,9 +187,9 @@ class Study(models.Model):
         null=True, blank=True,
         verbose_name="When was the study registered?")
     summary = models.TextField(verbose_name="Summary of study")
-    p_summary = models.TextField(
-        default=None,
-        verbose_name="Summary of study with paragraph tags")
+    summary_is_html = models.BooleanField(
+        default=False,
+        verbose_name="Is the summary in HTML (not plain text) format?")
     search_methods_planned = models.TextField(
         blank=True,
         verbose_name="Search methods planned")
@@ -220,7 +235,7 @@ class Study(models.Model):
     class Meta:
         verbose_name_plural = "studies"
 
-    def __str__(self):
+    def __str__(self) -> str:
         # noinspection PyUnresolvedReferences
         return "[Study {}] {}: {} / {}".format(
             self.id,
@@ -230,6 +245,10 @@ class Study(models.Model):
         )
 
     def get_lead_researcher_name_address(self) -> List[str]:
+        """
+        Returns name/address components (as lines you might use on a letter or
+        envelope) for the study's lead researcher.
+        """
         # noinspection PyUnresolvedReferences
         return (
             [self.lead_researcher.profile.get_title_forename_surname()] +
@@ -237,10 +256,19 @@ class Study(models.Model):
         )
 
     def get_lead_researcher_salutation(self) -> str:
+        """
+        Returns the salutation for the study's lead researcher (e.g.
+        "Prof. Jones").
+        """
         # noinspection PyUnresolvedReferences
         return self.lead_researcher.profile.get_salutation()
 
     def get_involves_lack_of_capacity(self) -> str:
+        """
+        Returns a human-readable string indicating whether or not the study
+        involves patients lacking capacity (and if so, whether it's a clinical
+        trial [CTIMP]).
+        """
         if not self.include_lack_capacity:
             return "No"
         if self.clinical_trial:
@@ -249,6 +277,10 @@ class Study(models.Model):
 
     @staticmethod
     def get_queryset_possible_contact_studies() -> QuerySet:
+        """
+        Returns all approved studies involving direct patient contact that
+        have a properly identifiable lead researcher.
+        """
         return (
             Study.objects
             .filter(patient_contact=True)
@@ -264,28 +296,51 @@ class Study(models.Model):
     def filter_studies_for_researcher(
             queryset: QuerySet,
             user: settings.AUTH_USER_MODEL) -> QuerySet:
+        """
+        Filters the supplied query set down to those studies for which the
+        given user is a researcher on.
+        """
         return queryset.filter(Q(lead_researcher=user) |
                                Q(researchers__in=[user]))\
                        .distinct()
 
-    def add_p_tags(self) -> str:
+    @property
+    def html_summary(self) -> str:
+        """
+        Returns a version of the study's summary with HTML tags marking up
+        paragraphs. If the summary is already in HTML format, just return
+        that.
+        """
         # Check if summary exists and if not return the empty string
-        summary_or_empty = getattr(self, 'summary', "")
-        if not summary_or_empty:
+        summary = self.summary
+        if not summary:
             return ""
-        else:
-            summary_list = summary_or_empty.splitlines()
-            summary_list = [x for x in summary_list if x]
-            p_summary = "</p><p>".join(summary_list)
-            p_summary = "<p>" + p_summary + "</p>"
-            return p_summary
 
-    def save(self, *args, **kwargs) -> None:
-        """
-        Custom save method. Sets p_summary based on summary.
-        """
-        self.p_summary = self.add_p_tags()
-        super().save(*args, **kwargs)
+        # If the summary is already HTML, return it as it is.
+        if self.summary_is_html:
+            return summary
+
+        # Split lines and ensure each line is HTML-escaped (e.g. if there's a
+        # "<" or similar in the raw text).
+        paragraphs = [escape(x) for x in summary.splitlines() if x]
+
+        # NB an equivalent to
+        #   [x for x in something if x]
+        # is
+        #   list(filter(None, something))
+
+        if len(paragraphs) <= 1:
+            # 0 or 1 paragraphs; no point using <p>
+            return "".join(paragraphs)
+        # Otherwise:
+
+        # Method 1: with <p>
+        # Visually better once CSS fixed.
+        return "".join("<p>{}</p>".format(x) for x in paragraphs)
+
+        # Method 2: with <br>
+        # Wider gaps.
+        # return "<br><br>".join(paragraphs)
 
 
 # noinspection PyUnusedLocal
@@ -293,7 +348,11 @@ class Study(models.Model):
 def auto_delete_study_files_on_delete(sender: Type[Study],
                                       instance: Study,
                                       **kwargs: Any) -> None:
-    """Deletes files from filesystem when Study object is deleted."""
+    """
+    Django signal receiver.
+
+    Deletes files from filesystem when :class:`Study` object is deleted.
+    """
     auto_delete_files_on_instance_delete(instance,
                                          Study.AUTODELETE_OLD_FILE_FIELDS)
 
@@ -303,7 +362,11 @@ def auto_delete_study_files_on_delete(sender: Type[Study],
 def auto_delete_study_files_on_change(sender: Type[Study],
                                       instance: Study,
                                       **kwargs: Any) -> None:
-    """Deletes files from filesystem when Study object is changed."""
+    """
+    Django signal receiver.
+
+    Deletes files from filesystem when :class:`Study` object is changed.
+    """
     auto_delete_files_on_instance_change(instance,
                                          Study.AUTODELETE_OLD_FILE_FIELDS,
                                          Study)
@@ -318,9 +381,13 @@ def leaflet_upload_to(instance: LEAFLET_FWD_REF, filename: str) -> str:
     Determines the filename used for leaflet uploads.
 
     Args:
-        instance: instance of Leaflet (potentially unsaved)
-            ... and you can't call save(); it goes into infinite recursion
+        instance: instance of :class:`Leaflet` (potentially unsaved;
+            and you can't call :func:`save`; it goes into infinite recursion)
         filename: uploaded filename
+
+    Returns:
+        filename with extension but without path, to be used on the server
+        filesystem
     """
     extension = os.path.splitext(filename)[1]  # includes the '.' if present
     return os.path.join("leaflet", "{}_{}{}".format(
@@ -331,6 +398,9 @@ def leaflet_upload_to(instance: LEAFLET_FWD_REF, filename: str) -> str:
 
 
 class Leaflet(models.Model):
+    """
+    Represents a system-wide patient information leaflet.
+    """
     CPFT_TPIR = 'cpft_tpir'  # mandatory
     NIHR_YHRSL = 'nihr_yhrsl'  # not used automatically
     CPFT_TRAFFICLIGHT_CHOICE = 'cpft_trafficlight_choice'
@@ -357,7 +427,7 @@ class Leaflet(models.Model):
         max_upload_size=settings.MAX_UPLOAD_SIZE_BYTES,
         upload_to=leaflet_upload_to)
 
-    def __str__(self):
+    def __str__(self) -> str:
         for x in Leaflet.LEAFLET_CHOICES:
             if x[0] == self.name:
                 name = x[1]
@@ -368,7 +438,9 @@ class Leaflet(models.Model):
 
     @staticmethod
     def populate() -> None:
-        # Pre-create instances
+        """
+        Pre-create records for all the system-wide leaflets we use.
+        """
         keys = [x[0] for x in Leaflet.LEAFLET_CHOICES]
         for x in keys:
             if not Leaflet.objects.filter(name=x).exists():
@@ -381,7 +453,11 @@ class Leaflet(models.Model):
 def auto_delete_leaflet_files_on_delete(sender: Type[Leaflet],
                                         instance: Leaflet,
                                         **kwargs: Any) -> None:
-    """Deletes files from filesystem when Leaflet object is deleted."""
+    """
+    Django signal receiver.
+
+    Deletes files from filesystem when :class:`Leaflet` object is deleted.
+    """
     auto_delete_files_on_instance_delete(instance, ['pdf'])
 
 
@@ -390,7 +466,10 @@ def auto_delete_leaflet_files_on_delete(sender: Type[Leaflet],
 def auto_delete_leaflet_files_on_change(sender: Type[Leaflet],
                                         instance: Leaflet,
                                         **kwargs: Any) -> None:
-    """Deletes files from filesystem when Leaflet object is changed."""
+    """
+    Django signal receiver.
+    Deletes files from filesystem when Leaflet object is changed.
+    """
     auto_delete_files_on_instance_change(instance, ['pdf'], Leaflet)
 
 
@@ -399,6 +478,10 @@ def auto_delete_leaflet_files_on_change(sender: Type[Leaflet],
 # =============================================================================
 
 class Decision(models.Model):
+    """
+    Abstract class to represent how a decision has been made (e.g. by a patient
+    or their surrogate decision-maker or clinician).
+    """
     # Note that Decision._meta.get_fields() doesn't care about the
     # ordering of its fields (and, I think, they can change). So:
     FIELDS = [
@@ -435,6 +518,9 @@ class Decision(models.Model):
         abstract = True
 
     def decision_valid(self) -> bool:
+        """
+        Does the decision meet our rules about who can make decisions?
+        """
         # We can never electronically validate being under 16 (time may have
         # passed since the lookup) or, especially, lacking capacity, so let's
         # just trust the user
@@ -455,6 +541,10 @@ class Decision(models.Model):
         )
 
     def validate_decision(self) -> None:
+        """
+        Ensure that the decision is valid according to our rules, or raise
+        :exc:`django.forms.ValidationError`.
+        """
         if not self.decision_valid():
             raise forms.ValidationError(
                 "Invalid decision. Options are: "
@@ -469,6 +559,14 @@ class Decision(models.Model):
 # =============================================================================
 
 class ClinicianInfoHolder(object):
+    """
+    Represents information about a clinician (relating to a patient, whose
+    details are not held here). Also embodies information about which sort of
+    clinician we prefer to ask about patient contact requests (via
+    :attr:`clinician_preference_order`).
+
+    Python object only; not stored in the database.
+    """
     CARE_COORDINATOR = 'care_coordinator'
     CONSULTANT = 'consultant'
     HCP = 'HCP'
@@ -478,8 +576,30 @@ class ClinicianInfoHolder(object):
                  title: str, first_name: str, surname: str, email: str,
                  signatory_title: str, is_consultant: bool,
                  start_date: Union[datetime.date, datetime.datetime],
-                 end_date: Union[datetime.date, datetime.datetime],
+                 end_date: Optional[Union[datetime.date, datetime.datetime]],
                  address_components: List[str] = None) -> None:
+        """
+        Args:
+            clinician_type: one of our special strings indicating what type
+                of clinician (e.g. care coordinator, consultant, other
+                healthcare professional, authorized clinical team
+                representative).
+            title: clinician's title
+            first_name: clinician's first name
+            surname: clinician's surname
+            email: clinician's e-mail address
+            signatory_title: when the clinician signs a letter, what should
+                go under their name to say what job they do? (For example:
+                "Consultant psychiatrist"; "Care coordinator").
+            is_consultant: is the clinician an NHS consultant? (Relates to
+                special legal rules regarding CTIMPs.)
+            start_date:
+                when did this clinician's involvement start?
+            end_date:
+                when did this clinician's involvement end?
+            address_components:
+                address lines for the clinician
+        """
         self.clinician_type = clinician_type
         self.title = title
         self.first_name = first_name
@@ -517,15 +637,23 @@ class ClinicianInfoHolder(object):
         ])
 
     def current(self) -> bool:
+        """
+        Is the clinician currently involved (with this patient's care)?
+        """
         return self.end_date is None or self.end_date >= datetime.date.today()
 
     def contactable(self) -> bool:
+        """
+        Do we have enough information to contact the clinician
+        (electronically)?
+        """
         return bool(self.surname and self.email)
 
 
 class PatientLookupBase(models.Model):
     """
-    Base class for PatientLookup and DummyPatientSourceInfo.
+    Base class for :class:`PatientLookup` and :class:`DummyPatientSourceInfo`.
+
     Must be able to be instantiate with defaults, for the "not found"
     situation.
 
@@ -680,20 +808,33 @@ class PatientLookupBase(models.Model):
     # -------------------------------------------------------------------------
 
     def pt_salutation(self) -> str:
+        """
+        Returns a salutation for the patient, like "Mrs Smith".
+        """
         # noinspection PyTypeChecker
         return salutation(self.pt_title, self.pt_first_name, self.pt_last_name,
                           sex=self.pt_sex)
 
     def pt_title_forename_surname(self) -> str:
+        """
+        Returns the patient's title/forename/surname, like "Mrs Ann Smith".
+        """
         # noinspection PyTypeChecker
         return title_forename_surname(self.pt_title, self.pt_first_name,
                                       self.pt_last_name)
 
     def pt_forename_surname(self) -> str:
+        """
+        Returns the patient's forename/surname, like "Ann Smith".
+        """
         # noinspection PyTypeChecker
         return forename_surname(self.pt_first_name, self.pt_last_name)
 
     def pt_address_components(self) -> List[str]:
+        """
+        Returns lines of the patient's address (e.g. for letter headings or
+        envelopes).
+        """
         return list(filter(None, [
             self.pt_address_1,
             self.pt_address_2,
@@ -705,14 +846,24 @@ class PatientLookupBase(models.Model):
         ]))
 
     def pt_address_components_str(self) -> str:
+        """
+        Returns the patient's address as a single (one-line) string.
+        """
         return ", ".join(filter(None, self.pt_address_components()))
 
     def pt_name_address_components(self) -> List[str]:
+        """
+        Returns the patient's name and address, as lines (e.g. for an
+        envelope).
+        """
         return [
             self.pt_title_forename_surname()
         ] + self.pt_address_components()
 
-    def get_id_numbers_html_bold(self) -> str:
+    def get_id_numbers_as_str(self) -> str:
+        """
+        Returns ID numbers, in a format like "NHS#: 123. RiO# 456."
+        """
         # Note that self.nhs_number must be implemented by derived classes:
         # noinspection PyUnresolvedReferences
         idnums = ["NHS#: {}".format(self.nhs_number)]
@@ -722,6 +873,9 @@ class PatientLookupBase(models.Model):
         return ". ".join(idnums)
 
     def get_pt_age_years(self) -> Optional[int]:
+        """
+        Returns the patient's current age in years, or ``None`` if unknown.
+        """
         if self.pt_dob is None:
             return None
         now = datetime.datetime.now()  # timezone-naive
@@ -729,17 +883,23 @@ class PatientLookupBase(models.Model):
         return relativedelta(now, self.pt_dob).years
 
     def is_under_16(self) -> bool:
+        """
+        Is the patient under 16?
+        """
         age = self.get_pt_age_years()
         return age is not None and age < 16
 
     def is_under_15(self) -> bool:
+        """
+        Is the patient under 15?
+        """
         age = self.get_pt_age_years()
         return age is not None and age < 15
 
     def days_since_discharge(self) -> Optional[int]:
         """
-        Returns days since discharge, or None if the patient is not
-        discharged (or unknown).
+        Returns the number of days since discharge, or ``None`` if the patient
+        is not discharged (or if we don't know).
         """
         if not self.pt_discharged or not self.pt_discharge_date:
             return None
@@ -767,11 +927,18 @@ class PatientLookupBase(models.Model):
     # -------------------------------------------------------------------------
 
     def gp_title_forename_surname(self) -> str:
+        """
+        Returns the title/forename/surname for the patient's GP, like
+        "Dr Joe Bloggs".
+        """
         return title_forename_surname(self.gp_title, self.gp_first_name,
                                       self.gp_last_name, always_title=True,
                                       assume_dr=True)
 
     def gp_address_components(self) -> List[str]:
+        """
+        Returns address lines for the GP (e.g. for an envelope).
+        """
         return list(filter(None, [
             self.gp_address_1,
             self.gp_address_2,
@@ -783,9 +950,15 @@ class PatientLookupBase(models.Model):
         ]))
 
     def gp_address_components_str(self) -> str:
+        """
+        Returns the GP's address as a single line.
+        """
         return ", ".join(self.gp_address_components())
 
     def gp_name_address_str(self) -> str:
+        """
+        Returns the GP's name and address as a single line.
+        """
         return ", ".join(filter(None, [self.gp_title_forename_surname(),
                                        self.gp_address_components_str()]))
 
@@ -795,8 +968,14 @@ class PatientLookupBase(models.Model):
                                decisions: List[str],
                                secret_decisions: List[str]) -> None:
         """
-        Takes name, and stores it in the gp_title, gp_first_name, and
-        gp_last_name fields.
+        Takes a name, splits it into components as best it can, and stores it
+        in the ``gp_title``, ``gp_first_name``, and ``gp_last_name`` fields.
+
+        Args:
+            name: GP name, e.g. "Dr Joe Bloggs"
+            decisions: list of human-readable decisions; will be modified
+            secret_decisions: list of human-readable decisions containing
+                secret (identifiable) information; will be modified
         """
         secret_decisions.append(
             "Setting GP name components from: {}.".format(name))
@@ -810,9 +989,9 @@ class PatientLookupBase(models.Model):
             # A very odd thing like "LINTON H C (PL)"
             self.gp_last_name = name
             return
-        (initial, surname) = get_initial_surname_tuple_from_string(name)
-        initial = initial.title()
-        surname = surname.title()
+        initial, surname = get_initial_surname_tuple_from_string(name)
+        initial = initial.title()  # title case
+        surname = surname.title()  # title case
         self.gp_title = "Dr"
         self.gp_first_name = initial + ("." if initial else "")
         self.gp_last_name = surname
@@ -822,19 +1001,32 @@ class PatientLookupBase(models.Model):
     # -------------------------------------------------------------------------
 
     def clinician_salutation(self) -> str:
+        """
+        Returns the salutation for the patient's clinician (e.g. "Dr
+        Paroxetine").
+        """
         # noinspection PyTypeChecker
         return salutation(self.clinician_title, self.clinician_first_name,
                           self.clinician_last_name, assume_dr=True)
 
     def clinician_title_forename_surname(self) -> str:
+        """
+        Returns the title/forename/surname for the patient's clinician (e.g.
+        "Dr Petra Paroxetine").
+        """
         # noinspection PyTypeChecker
         return title_forename_surname(self.clinician_title,
                                       self.clinician_first_name,
                                       self.clinician_last_name)
 
     def clinician_address_components(self) -> List[str]:
-        # We're going to put the clinician's postal address into letters to
-        # patients. Therefore, we need a sensible fallback, i.e. the RDBM's.
+        """
+        Returns the clinician's address -- or the Research Database Manager's
+        (with "c/o") if we don't know the clinician's.
+
+        (We're going to put the clinician's postal address into letters to
+        patients. Therefore, we need a sensible fallback, i.e. the RDBM's.)
+        """
         address_components = [
             self.clinician_address_1,
             self.clinician_address_2,
@@ -851,9 +1043,15 @@ class PatientLookupBase(models.Model):
         return list(filter(None, address_components))
 
     def clinician_address_components_str(self) -> str:
+        """
+        Returns the clinician's address in single-line format.
+        """
         return ", ".join(self.clinician_address_components())
 
     def clinician_name_address_str(self) -> str:
+        """
+        Returns the clinician's name and address in single-line format.
+        """
         return ", ".join(filter(None, [
             self.clinician_title_forename_surname(),
             self.clinician_address_components_str()]))
@@ -863,6 +1061,10 @@ class PatientLookupBase(models.Model):
     # -------------------------------------------------------------------------
 
     def get_traffic_light_decision_form(self) -> str:
+        """
+        Returns HTML for a traffic-light decision form, customized to this
+        patient.
+        """
         context = {
             'patient_lookup': self,
             'settings': settings,
@@ -872,6 +1074,9 @@ class PatientLookupBase(models.Model):
 
 
 class DummyPatientSourceInfo(PatientLookupBase):
+    """
+    A patient lookup class that is a dummy one, for testing.
+    """
     # Key
     nhs_number = models.BigIntegerField(verbose_name="NHS number",
                                         unique=True)
@@ -879,7 +1084,7 @@ class DummyPatientSourceInfo(PatientLookupBase):
     class Meta:
         verbose_name_plural = "Dummy patient source information"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             "[DummyPatientSourceInfo {}] "
             "Dummy patient lookup for NHS# {}".format(
@@ -892,7 +1097,8 @@ class PatientLookup(PatientLookupBase):
     Represents a moment of lookup up identifiable data about patient, GP,
     and clinician from the relevant clinical database.
 
-    Inherits from PatientLookupBase so it has the same fields, and more.
+    Inherits from :class:`PatientLookupBase` so it has the same fields, and
+    more.
     """
 
     nhs_number = models.BigIntegerField(
@@ -924,10 +1130,10 @@ class PatientLookup(PatientLookupBase):
     clinician_found = models.BooleanField(default=False,
                                           verbose_name="Clinician found")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return modelrepr(self)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "[PatientLookup {}] NHS# {}".format(
             self.id,
             self.nhs_number,
@@ -935,8 +1141,10 @@ class PatientLookup(PatientLookupBase):
 
     def get_first_traffic_light_letter_html(self) -> str:
         """
-        REC DOCUMENT 06. Covering letter to patient for first enquiry about
-        research preference
+        **REC DOCUMENT 06. Covering letter to patient for first enquiry about
+        research preference.**
+
+        Returns HTML for this document, customized to the patient.
         """
         context = {
             # Letter bits
@@ -954,6 +1162,10 @@ class PatientLookup(PatientLookupBase):
 
     def set_from_clinician_info_holder(
             self, info: ClinicianInfoHolder) -> None:
+        """
+        Sets the clinician information fields from the supplied
+        :class:`ClinicianInfoHolder`.
+        """
         self.clinician_found = True
         self.clinician_title = info.title
         self.clinician_first_name = info.first_name
@@ -977,7 +1189,12 @@ class PatientLookup(PatientLookupBase):
 # =============================================================================
 
 class TeamInfo(object):
-    """Class only exists to be able to use @cached_property."""
+    """
+    Represents information about all clinical teams, fetched from a clinical
+    source database.
+
+    Class only exists to be able to use ``@cached_property``.
+    """
     @cached_property
     def teams(self) -> List[str]:
         log.debug("Fetching/caching clinical teams")
@@ -994,7 +1211,7 @@ all_teams_info = TeamInfo()
 
 class TeamRep(models.Model):
     """
-    Clinical team representatives are recorded in CRATE.
+    Represents a clinical team representative, which is recorded in CRATE.
     """
     team = models.CharField(max_length=LEN_NAME, unique=True,
                             choices=all_teams_info.team_choices,
@@ -1014,6 +1231,9 @@ class TeamRep(models.Model):
 #   http://goodcode.io/articles/django-singleton-models/
 
 class CharityPaymentRecord(models.Model):
+    """
+    A record of a payment made to charity.
+    """
     created_at = models.DateTimeField(verbose_name="When created",
                                       auto_now_add=True)
     payee = models.CharField(max_length=255)
@@ -1025,6 +1245,9 @@ class CharityPaymentRecord(models.Model):
 # =============================================================================
 
 class ConsentMode(Decision):
+    """
+    Represents a consent-to-contact consent mode for a patient.
+    """
     RED = 'red'
     YELLOW = 'yellow'
     GREEN = 'green'
@@ -1088,23 +1311,24 @@ class ConsentMode(Decision):
 
     def save(self, *args, **kwargs) -> None:
         """
-        Custom save method.
-        Ensures that only one ConsentMode has current == True for a given
-        patient.
+        Custom save method. Ensures that only one :class:`ConsentMode` has
+        ``current == True`` for a given patient.
 
-        Better than a get_latest_by clause, because with a flag like this, we
-        can have a simple query that says "get the current records for all
-        patients" -- harder if done by date (group by patient, order by
-        patient/date, pick last one for each patient...).
-        """
-        # http://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa
+        This is better than a ``get_latest_by`` clause, because with a flag
+        like this, we can have a simple query that says "get the current
+        records for all patients" -- which is harder if done by date (group by
+        patient, order by patient/date, pick last one for each patient...).
+        
+        See
+        http://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django
+        """  # noqa
         if self.current:
             ConsentMode.objects\
                        .filter(nhs_number=self.nhs_number, current=True)\
                        .update(current=False)
         super().save(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "[ConsentMode {}] NHS# {}, {}".format(
             self.id,
             self.nhs_number,
@@ -1117,7 +1341,7 @@ class ConsentMode(Decision):
             nhs_number: int,
             created_by: settings.AUTH_USER_MODEL) -> CONSENT_MODE_FWD_REF:
         """
-        Fetches the current ConsentMode for this patient.
+        Fetches the current :class:`ConsentMode` for this patient.
         If there isn't one, creates a default one and returns that.
         """
         try:
@@ -1145,8 +1369,8 @@ class ConsentMode(Decision):
     def get_or_none(cls,
                     nhs_number: int) -> Optional[CONSENT_MODE_FWD_REF]:
         """
-        Fetches the current ConsentMode for this patient.
-        If there isn't one, returns None
+        Fetches the current :class:`ConsentMode` for this patient.
+        If there isn't one, returns ``None``.
         """
         try:
             return cls.objects.get(nhs_number=nhs_number, current=True)
@@ -1264,13 +1488,19 @@ class ConsentMode(Decision):
             # do nothing else
 
     def get_latest_patient_lookup(self) -> PatientLookup:
+        """
+        Returns the latest :class:`PatientLookup` information (from the CRATE
+        admin database) for this patient.
+        """
         from crate_anon.crateweb.consent.lookup import lookup_patient  # delayed import  # noqa
         # noinspection PyTypeChecker
         return lookup_patient(self.nhs_number, existing_ok=True)
 
     def get_confirm_traffic_to_patient_letter_html(self) -> str:
         """
-        REC DOCUMENT 07. Confirming patient's traffic-light choice.
+        **REC DOCUMENT 07. Confirming patient's traffic-light choice.**
+
+        Returns HTML for this letter, customized to the patient.
         """
         patient_lookup = self.get_latest_patient_lookup()
         context = {
@@ -1301,6 +1531,15 @@ class ConsentMode(Decision):
     def notify_rdbm_of_work(self,
                             letter: LETTER_FWD_REF,
                             to_researcher: bool = False) -> None:
+        """
+        E-mail the RDBM saying that there's new work to do: a letter to be
+        sent.
+
+        Args:
+            letter: :class:`Letter`
+            to_researcher: is it a letter that needs to go to a researcher,
+                rather than to a patient?
+        """
         subject = ("WORK FROM RESEARCH DATABASE COMPUTER"
                    " - consent mode {}".format(self.id))
         if to_researcher:
@@ -1313,6 +1552,12 @@ class ConsentMode(Decision):
 
     @staticmethod
     def get_unprocessed() -> QuerySet:
+        """
+        Return all :class:`ConsentMode` objects that need processing.
+
+        See :func:`crate_anon.crateweb.consent.tasks.process_consent_change`
+        and :func:`process_change`, which does the work.
+        """
         return ConsentMode.objects.filter(
             needs_processing=True,
             current=True,
@@ -1322,8 +1567,10 @@ class ConsentMode(Decision):
     def process_change(self) -> None:
         """
         Called upon saving.
-        Will create a letter to patient.
-        May create a withdrawal-of-consent letter to researcher.
+
+        - Will create a letter to patient.
+        - May create a withdrawal-of-consent letter to researcher.
+        - Marks the :class:`ConsentMode` as having been processed.
 
         **Major Amendment 1 (Oct 2014) to 12/EE/0407:** always withdraw consent
         and tell researchers, i.e. "active cancellation" of ongoing permission,
@@ -1358,6 +1605,10 @@ class ConsentMode(Decision):
 # =============================================================================
 
 class ContactRequest(models.Model):
+    """
+    Represents a contact request to a patient (directly or indirectly) about a
+    study.
+    """
     CLINICIAN_INVOLVEMENT_NONE = 0
     CLINICIAN_INVOLVEMENT_REQUESTED = 1
     CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW = 2
@@ -1421,7 +1672,11 @@ class ContactRequest(models.Model):
     consent_withdrawn_at = models.DateTimeField(
         verbose_name="When consent withdrawn", null=True)
 
-    def __str__(self):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.decisionlist = []  # type: List[str]
+
+    def __str__(self) -> str:
         return "[ContactRequest {}] Study {}".format(
             self.id,
             self.study_id,
@@ -1435,7 +1690,21 @@ class ContactRequest(models.Model):
                lookup_nhs_number: int = None,
                lookup_rid: str = None,
                lookup_mrid: str = None) -> CONTACT_REQUEST_FWD_REF:
-        """Create a contact request and act on it."""
+        """
+        Create a contact request and act on it.
+
+        Args:
+            request: the :class:`django.http.request.HttpRequest`
+            study: the :class:`Study`
+            request_direct_approach: would the researchers prefer to approach
+                the patient directly, if permitted?
+            lookup_nhs_number: NHS number to look up patient from
+            lookup_rid: research ID (RID) to look up patient from
+            lookup_mrid: master research ID (MRID) to look up patient from
+
+        Returns:
+            a :class:`ContactRequest`
+        """
         # https://docs.djangoproject.com/en/1.9/ref/request-response/
         # noinspection PyTypeChecker
         cr = cls(request_by=request.user,
@@ -1452,14 +1721,24 @@ class ContactRequest(models.Model):
 
     @staticmethod
     def get_unprocessed() -> QuerySet:
+        """
+        Return all :class:`ContactRequest` objects that need processing.
+
+        See :func:`crate_anon.crateweb.consent.tasks.process_contact_request`
+        and :func:`process_request`, which does the work.
+        """
         return ContactRequest.objects.filter(processed=False)
 
     def process_request(self) -> None:
+        """
+        Processes the :class:`ContactRequest` and marks it as processed. The
+        main work is done by :func:`process_request_main`.
+        """
         if self.processed:
             log.warning("ContactRequest #{}: already processed; "
                         "not processing again".format(self.id))
             return
-        self.decisionlist = []
+        self.decisionlist = []  # type: List[str]
         self.process_request_main()
         self.decisions = " ".join(self.decisionlist)
         self.processed = True
@@ -1469,9 +1748,10 @@ class ContactRequest(models.Model):
     def process_request_main(self) -> None:
         """
         Act on a contact request and store the decisions made.
+
         **CORE DECISION-MAKING FUNCTION FOR THE CONSENT-TO-CONTACT PROCESS.**
 
-        The decisions parameter is a list that's appended to.
+        Writes to :attr:`decisionlist`.
         """
         from crate_anon.crateweb.consent.lookup import lookup_patient  # delayed import  # noqa
 
@@ -1680,6 +1960,18 @@ class ContactRequest(models.Model):
     @staticmethod
     def get_clinician_involvement(consent_mode_str: str,
                                   request_direct_approach: bool) -> int:
+        """
+        Returns a number indicating why a clinician is involved.
+
+        Args:
+            consent_mode_str: consent mode in use (see :class:`ConsentMode`)
+            request_direct_approach: do the researchers request direct
+                approach to the patient, if permitted?
+
+        Returns:
+            an integer constant; see :class:`ContactRequest`
+
+        """
         # Let's be precise about why the clinician is involved.
         if not request_direct_approach:
             return ContactRequest.CLINICIAN_INVOLVEMENT_REQUESTED
@@ -1690,19 +1982,31 @@ class ContactRequest(models.Model):
             return ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_UNKNOWN
 
     def decide(self, msg: str) -> None:
+        """
+        Make a note of a decision.
+        """
         self.decisionlist.append(msg)
 
     def stop(self, msg: str) -> None:
+        """
+        Make a note of a decision and that we have finished processing this
+        contact request, taking no further action.
+        """
         self.decide("Stopping: " + msg)
         self.decided_no_action = True
 
     def calc_approaches_in_past_year(self) -> None:
-        # How best to count this?
-        # Not by e.g. calendar year, with a flag that gets reset to zero
-        # annually, because you might have a limit of 5, and get 4 requests in
-        # Dec 2020 and then another 4 in Jan 2021 just after the flag resets.
-        # Instead, we count the number of requests to that patient in the past
-        # year.
+        """
+        Sets :attr:`approaches_in_past_year` to indicate the number of
+        approaches in the past year to this patient via CRATE.
+
+        How best to count this? Not by e.g. calendar year, with a flag that
+        gets reset to zero annually, because you might have a limit of 5, and
+        get 4 requests in Dec 2020 and then another 4 in Jan 2021 just after
+        the flag resets. Instead, we count the number of requests to that
+        patient in the past year.
+
+        """
         one_year_ago = timezone.now() - datetime.timedelta(days=365)
 
         self.approaches_in_past_year = ContactRequest.objects.filter(
@@ -1715,6 +2019,16 @@ class ContactRequest(models.Model):
         ).count()
 
     def withdraw_consent(self) -> Tuple[LETTER_FWD_REF, bool]:
+        """
+        Withdraws consent that had previously been given. Will e-mail the
+        researcher to let them know, if it can.
+
+        Returns:
+            tuple: ``letter, email_succeeded`` where ``letter`` is a
+            :class:`Letter` to the researcher and ``email_succeeded`` indicates
+            whether we managed to e-mail the researcher.
+
+        """
         self.consent_withdrawn = True
         self.consent_withdrawn_at = timezone.now()
         self.save()
@@ -1734,8 +2048,10 @@ class ContactRequest(models.Model):
         return letter, email_succeeded
 
     def get_permission_date(self) -> Optional[datetime.datetime]:
-        """When was the researcher given permission? Used for the letter
-        withdrawing permission."""
+        """
+        When was the researcher given permission? Used for the letter
+        withdrawing permission.
+        """
         if self.decided_no_action:
             return None
         if self.decided_send_to_researcher:
@@ -1752,6 +2068,15 @@ class ContactRequest(models.Model):
     def notify_rdbm_of_work(self,
                             letter: LETTER_FWD_REF,
                             to_researcher: bool = False) -> None:
+        """
+        E-mail the RDBM to say that there's work to do.
+
+        Args:
+            letter: a :class:`Letter`
+            to_researcher: is it a letter that needs to go to a researcher
+                manually, rather than a letter that a clinician wants the
+                RDBM to send on their behalf?
+        """
         subject = ("CHEERFUL WORK FROM RESEARCH DATABASE COMPUTER"
                    " - contact request {}".format(self.id))
         if to_researcher:
@@ -1763,6 +2088,9 @@ class ContactRequest(models.Model):
         email.send()
 
     def notify_rdbm_of_bad_progress(self) -> None:
+        """
+        Lets the RDBM know that a clinician refused (vetoed) a request.
+        """
         subject = ("INFO ONLY - clinician refused Research Database request"
                    " - contact request {}".format(self.id))
         html = render_email_html_to_string('email_rdbm_bad_progress.html', {
@@ -1774,6 +2102,10 @@ class ContactRequest(models.Model):
         email.send()
 
     def notify_rdbm_of_good_progress(self) -> None:
+        """
+        Lets the RDBM know that a clinician said yes to a request and wishes to
+        do the work themselves.
+        """
         subject = ("INFO ONLY - clinician agreed to Research Database request"
                    " - contact request {}".format(self.id))
         html = render_email_html_to_string('email_rdbm_good_progress.html', {
@@ -1786,16 +2118,24 @@ class ContactRequest(models.Model):
 
     def get_clinician_email_html(self, save: bool = True) -> str:
         """
-        REC DOCUMENTS 09, 11, 13 (A): E-mail to clinician
-        E-mail to clinician asking them to pass on contact request.
+        **REC DOCUMENTS 09, 11, 13 (A): E-mail to clinician asking them to pass
+        on contact request.**
 
-        URL method (path, querystring, both?): see notes in core/utils.py
+        Args:
+            save: save the e-mail to the database? (Only false for testing.)
 
-        In this case, decision: since we are creating a ClinicianResponse, we
-        should use its ModelForm.
+        Returns:
+            HTML for this e-mail
 
-        - URL path for PK
-        - querystring for other parameters, with form-based validation
+        - When we create a URL, should we put parameters in the path,
+          querystring, or both?
+
+          - see notes in ``core/utils.py``
+          - In this case, we decide as follows: since we are creating a
+            :class:`ClinicianResponse`, we should use its ModelForm.
+          - URL path for PK
+          - querystring for other parameters, with form-based validation
+
         """
         clinician_response = ClinicianResponse.create(self, save=save)
         if not save:
@@ -1819,8 +2159,9 @@ class ContactRequest(models.Model):
 
     def get_approval_letter_html(self) -> str:
         """
-        REC DOCUMENT 15.
-        Letter to researcher approving contact.
+        **REC DOCUMENT 15. Letter to researcher approving contact.**
+
+        Returns the HTML for this letter.
         """
         context = {
             # Letter bits
@@ -1851,8 +2192,10 @@ class ContactRequest(models.Model):
 
     def get_withdrawal_letter_html(self) -> str:
         """
-        REC DOCUMENT 16.
-        Letter to researcher notifying them of withdrawal of consent.
+        **REC DOCUMENT 16. Letter to researcher notifying them of withdrawal of
+        consent.**
+
+        Returns the HTML for this letter.
         """
         context = {
             # Letter bits
@@ -1874,7 +2217,10 @@ class ContactRequest(models.Model):
                                          context, patient=False)
 
     def get_approval_email_html(self) -> str:
-        """Simple e-mail to researcher attaching letter."""
+        """
+        Returns HTML for a simple e-mail to the researcher attaching an
+        approval letter.
+        """
         context = {
             'contact_request': self,
             'study': self.study,
@@ -1885,7 +2231,10 @@ class ContactRequest(models.Model):
                                            context)
 
     def get_withdrawal_email_html(self) -> str:
-        """Simple e-mail to researcher attaching letter."""
+        """
+        Returns HTML for a simple e-mail to the researcher attaching an
+        withdrawal-of-previous-consent letter.
+        """
         context = {
             'contact_request': self,
             'study': self.study,
@@ -1897,8 +2246,10 @@ class ContactRequest(models.Model):
 
     def get_letter_clinician_to_pt_re_study(self) -> str:
         """
-        REC DOCUMENTS 10, 12, 14: draft letters from clinician to patient, with
-        decision form.
+        **REC DOCUMENTS 10, 12, 14: draft letters from clinician to patient, with
+        decision form.**
+
+        Returns the HTML for this letter.
         """
         patient_lookup = self.patient_lookup
         if not patient_lookup:
@@ -1929,6 +2280,10 @@ class ContactRequest(models.Model):
             context, patient=True)
 
     def is_extra_form(self) -> bool:
+        """
+        Is there an extra form from the researchers that they wish passed on to
+        the patient?
+        """
         study = self.study
         clinician_requested = not self.request_direct_approach
         extra_form = (clinician_requested and
@@ -1938,9 +2293,16 @@ class ContactRequest(models.Model):
         return extra_form
 
     def is_consent_mode_unknown(self) -> bool:
+        """
+        Is the consent mode "unknown" (NULL in the database)?
+        """
         return not self.consent_mode.consent_mode
 
     def get_decision_form_to_pt_re_study(self) -> str:
+        """
+        Returns HTML for the form for the patient to decide about this
+        study.
+        """
         n_forms = 1
         extra_form = self.is_extra_form()
         if extra_form:
@@ -1965,6 +2327,10 @@ class ContactRequest(models.Model):
             'decision_form_to_patient_re_study.html', context, patient=True)
 
     def get_clinician_pack_pdf(self) -> bytes:
+        """
+        Returns a PDF of the "clinician pack": a cover letter, decision forms,
+        and any other information required, customized for this request.
+        """
         # Order should match letter...
 
         # Letter to patient from clinician
@@ -2034,6 +2400,10 @@ class ContactRequest(models.Model):
         return get_concatenated_pdf_in_memory(pdf_plans, start_recto=True)
 
     def get_mgr_admin_url(self) -> str:
+        """
+        Returns the URL for the admin site to view this
+        :class:`ContactRequest`.
+        """
         from crate_anon.crateweb.core.admin import mgr_admin_site  # delayed import  # noqa
         return admin_view_url(mgr_admin_site, self)
 
@@ -2043,6 +2413,10 @@ class ContactRequest(models.Model):
 # =============================================================================
 
 class ClinicianResponse(models.Model):
+    """
+    Represents the response of a clinician to a :class:`ContactRequest` that
+    was routed to them.
+    """
     TOKEN_LENGTH_CHARS = 20
     # info_bits = math.log(math.pow(26 + 26 + 10, TOKEN_LENGTH_CHARS), 2)
     # p_guess = math.pow(0.5, info_bits)
@@ -2107,6 +2481,9 @@ class ClinicianResponse(models.Model):
     processed_at = models.DateTimeField(null=True)  # added 2018-06-29
 
     def get_response_explanation(self) -> str:
+        """
+        Returns the human-readable description of the clinician's response.
+        """
         # log.debug("get_response_explanation: {}".format(self.response))
         # noinspection PyTypeChecker
         return choice_explanation(self.response, ClinicianResponse.RESPONSES)
@@ -2115,6 +2492,17 @@ class ClinicianResponse(models.Model):
     def create(cls,
                contact_request: ContactRequest,
                save: bool = True) -> CLINICIAN_RESPONSE_FWD_REF:
+        """
+        Creates a new clinician response object.
+
+        Args:
+            contact_request: a :class:`ContactRequest`
+            save: save to the database? (Only false for debugging.)
+
+        Returns:
+            a :class:`ClinicianResponse`
+
+        """
         newtoken = get_random_string(ClinicianResponse.TOKEN_LENGTH_CHARS)
         # https://github.com/django/django/blob/master/django/utils/crypto.py#L51  # noqa
         clinician_response = cls(
@@ -2126,31 +2514,69 @@ class ClinicianResponse(models.Model):
         return clinician_response
 
     def get_abs_url_path(self) -> str:
+        """
+        Returns an absolute URL path to the page that lets the clinician
+        respond for this :class:`ClinicianResponse`.
+
+        This is used in the e-mail to the clinician.
+        """
         rev = reverse('clinician_response', args=[self.id])
         url = site_absolute_url(rev)
         return url
 
     def get_common_querydict(self, email_choice: str) -> QueryDict:
+        """
+        Returns a query dictionary that will contribute to our final URLs. That
+        is, information about the clinician's choice (and also a security
+        token) that will be added to the base "response" URL path.
+
+        Args:
+            email_choice: code for the clinician's choice
+
+        Returns:
+            a :class:`django.http.request.QueryDict`
+
+        """
         querydict = QueryDict(mutable=True)
         querydict['token'] = self.token
         querydict['email_choice'] = email_choice
         return querydict
 
     def get_abs_url(self, email_choice: str) -> str:
+        """
+        Returns an absolute URL representing a specific choice for the
+        clinician.
+
+        Args:
+            email_choice: code for the clinician's choice
+
+        Returns:
+            a URL
+
+        """
         path = self.get_abs_url_path()
         querydict = self.get_common_querydict(email_choice)
         return url_with_querystring(path, querydict)
 
     def get_abs_url_yes(self) -> str:
+        """
+        Returns an absolute URL for "clinician says yes".
+        """
         return self.get_abs_url(ClinicianResponse.EMAIL_CHOICE_Y)
 
     def get_abs_url_no(self) -> str:
+        """
+        Returns an absolute URL for "clinician says no".
+        """
         return self.get_abs_url(ClinicianResponse.EMAIL_CHOICE_N)
 
     def get_abs_url_maybe(self) -> str:
+        """
+        Returns an absolute URL for "clinician says tell me more".
+        """
         return self.get_abs_url(ClinicianResponse.EMAIL_CHOICE_TELL_ME_MORE)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "[ClinicianResponse {}] ContactRequest {}".format(
             self.id,
             self.contact_request_id,
@@ -2159,7 +2585,8 @@ class ClinicianResponse(models.Model):
     def finalize_a(self) -> None:
         """
         Call this when the clinician completes their response.
-        Part A: immediate, for acknowledgement.
+
+        Part A: immediate, called from the web front end, for acknowledgement.
         """
         self.responded = True
         self.responded_at = timezone.now()
@@ -2173,7 +2600,9 @@ class ClinicianResponse(models.Model):
     def finalize_b(self) -> None:
         """
         Call this when the clinician completes their response.
-        Part B: background.
+
+        Part B: called by the background task processor, for the slower
+        aspects.
         """
         if self.processed:
             log.warning("ClinicianResponse #{}: already processed; "
@@ -2213,6 +2642,11 @@ PATIENT_RESPONSE_FWD_REF = "PatientResponse"
 
 
 class PatientResponse(Decision):
+    """
+    Represents the patient's decision about a specific study. (We get one of
+    these if the clinician passed details to the patient and the patient has
+    responded.)
+    """
     YES = 1
     NO = 2
     RESPONSES = (
@@ -2233,7 +2667,7 @@ class PatientResponse(Decision):
     processed = models.BooleanField(default=False)  # added 2018-06-29
     processed_at = models.DateTimeField(null=True)  # added 2018-06-29
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.response:
             # noinspection PyTypeChecker
             suffix = "response was {}".format(choice_explanation(
@@ -2250,15 +2684,36 @@ class PatientResponse(Decision):
     @classmethod
     def create(cls, contact_request: ContactRequest) \
             -> PATIENT_RESPONSE_FWD_REF:
+        """
+        Creates a patient response object for a given contact request.
+
+        Args:
+            contact_request: a :class:`ContactRequest`
+
+        Returns:
+            :class:`PatientResponse`
+
+        """
         patient_response = cls(contact_request=contact_request)
         patient_response.save()
         return patient_response
 
     @staticmethod
     def get_unprocessed() -> QuerySet:
+        """
+        Return all :class:`PatientResponse` objects that need processing.
+
+        See :func:`crate_anon.crateweb.consent.tasks.process_patient_response`
+        and :func:`process_response`, which does the work.
+        """
         return PatientResponse.objects.filter(processed=False)
 
     def process_response(self) -> None:
+        """
+        Processes the :class:`PatientResponse` and marks it as processed.
+
+        If the patient said yes, this triggers a letter to the researcher.
+        """
         # log.debug("process_response: PatientResponse: {}".format(
         #     modelrepr(self)))
         if self.processed:
@@ -2287,6 +2742,9 @@ class PatientResponse(Decision):
 # =============================================================================
 
 class Letter(models.Model):
+    """
+    Represents a letter (e.g. to a patient, clinician, or researcher).
+    """
     created_at = models.DateTimeField(verbose_name="When created",
                                       auto_now_add=True)
     pdf = models.FileField(storage=privatestorage)
@@ -2300,7 +2758,7 @@ class Letter(models.Model):
                                         on_delete=models.PROTECT, null=True)
     sent_manually_at = models.DateTimeField(null=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Letter {}".format(self.id)
 
     @classmethod
@@ -2315,12 +2773,35 @@ class Letter(models.Model):
                study: Study = None,
                contact_request: ContactRequest = None,
                debug_store_html: bool = False) -> LETTER_FWD_REF:
+        """
+        Creates a letter.
+
+        Args:
+            basefilename: filename to be used to store a PDF copy of the letter
+                on disk (without a path)
+            html: for letters supplied as HTML, the HTML
+            pdf: for letters supplied as PDF, the PDF
+            to_clinician: is the letter to a clinician?
+            to_researcher: is the letter to a researcher?
+            to_patient: is the letter to a patient?
+            rdbm_may_view: may the RDBM view this letter?
+            study: which :class:`Study` does it relate to, if any?
+            contact_request: which :class:`ContactRequest` does it relate to,
+                if any?
+            debug_store_html: should we store the HTML of the letter, as well
+                as the PDF (for letters originating in HTML only)?
+
+        Returns:
+            a :class:`Letter`
+
+        """
         # Writing to a FileField directly: you can use field.save(), but then
         # you having to write one file and copy to another, etc.
         # Here we use the method of assigning to field.name (you can't assign
         # to field.path). Also, note that you should never read
         # the path attribute if name is blank; it raises an exception.
-        if (html and pdf) or (not html and not pdf):
+        if bool(html) == bool(pdf):
+            # One or the other!
             raise ValueError("Invalid html/pdf options to Letter.create")
         filename_in_storage = os.path.join("letter", basefilename)
         abs_filename = os.path.join(settings.PRIVATE_FILE_STORAGE_ROOT,
@@ -2353,6 +2834,16 @@ class Letter(models.Model):
     @classmethod
     def create_researcher_approval(cls, contact_request: ContactRequest) \
             -> LETTER_FWD_REF:
+        """
+        Creates a letter to a researcher giving approval to contact a patient.
+
+        Args:
+            contact_request: a :class:`ContactRequest`
+
+        Returns:
+            a :class:`Letter`
+
+        """
         basefilename = "cr{}_res_approve_{}.pdf".format(
             contact_request.id,
             string_time_now(),
@@ -2369,6 +2860,17 @@ class Letter(models.Model):
     @classmethod
     def create_researcher_withdrawal(cls, contact_request: ContactRequest) \
             -> LETTER_FWD_REF:
+        """
+        Creates a letter to a researcher withdrawing previous approval to
+        contact a patient.
+
+        Args:
+            contact_request: a :class:`ContactRequest`
+
+        Returns:
+            a :class:`Letter`
+
+        """
         basefilename = "cr{}_res_withdraw_{}.pdf".format(
             contact_request.id,
             string_time_now(),
@@ -2387,6 +2889,16 @@ class Letter(models.Model):
                                   contact_request: ContactRequest,
                                   rdbm_may_view: bool = False) \
             -> LETTER_FWD_REF:
+        """
+        Creates a letter to a patient asking them about a specific study.
+
+        Args:
+            contact_request: a :class:`ContactRequest`
+
+        Returns:
+            a :class:`Letter`
+
+        """
         basefilename = "cr{}_to_pt_{}.pdf".format(
             contact_request.id,
             string_time_now(),
@@ -2407,6 +2919,17 @@ class Letter(models.Model):
     @classmethod
     def create_consent_confirmation_to_patient(
             cls, consent_mode: ConsentMode) -> LETTER_FWD_REF:
+        """
+        Creates a letter to a patient confirming their traffic-light
+        consent-mode choice.
+
+        Args:
+            consent_mode: a :class:`ConsentMode`
+
+        Returns:
+            a :class:`Letter`
+
+        """
         basefilename = "cm{}_to_pt_{}.pdf".format(
             consent_mode.id,
             string_time_now(),
@@ -2418,6 +2941,9 @@ class Letter(models.Model):
                           rdbm_may_view=True)
 
     def mark_sent(self):
+        """
+        Mark the letter as having been sent now.
+        """
         self.sent_manually_at = timezone.now()
         self.save()
 
@@ -2427,7 +2953,11 @@ class Letter(models.Model):
 def auto_delete_letter_files_on_delete(sender: Type[Letter],
                                        instance: Letter,
                                        **kwargs: Any) -> None:
-    """Deletes files from filesystem when Letter object is deleted."""
+    """
+    Django signal receiver.
+
+    Deletes files from filesystem when a :class:`Letter` object is deleted.
+    """
     auto_delete_files_on_instance_delete(instance, ['pdf'])
 
 
@@ -2436,7 +2966,11 @@ def auto_delete_letter_files_on_delete(sender: Type[Letter],
 def auto_delete_letter_files_on_change(sender: Type[Letter],
                                        instance: Letter,
                                        **kwargs: Any) -> None:
-    """Deletes files from filesystem when Letter object is changed."""
+    """
+    Django signal receiver.
+
+    Deletes files from filesystem when a :class:`Letter` object is changed.
+    """
     auto_delete_files_on_instance_change(instance, ['pdf'], Letter)
 
 
@@ -2444,11 +2978,29 @@ def auto_delete_letter_files_on_change(sender: Type[Letter],
 # Record of sent e-mails
 # =============================================================================
 
+def _get_default_email_sender() -> str:
+    """
+    Returns the default e-mail sender.
+    
+    Using a callable, ``default=_get_default_email_sender``, rather than a
+    value, ``default=settings.EMAIL_SENDER``, makes the Django migration system
+    stop implementing pointless changes when local settings change.
+    
+    See
+    https://docs.djangoproject.com/en/2.1/ref/models/fields/#django.db.models.Field.default
+    """  # noqa
+    return settings.EMAIL_SENDER
+
+
 class Email(models.Model):
+    """
+    Represents an e-mail sent (or to be sent) from CRATE.
+    """
     # Let's not record host/port/user. It's configured into the settings.
     created_at = models.DateTimeField(verbose_name="When created",
                                       auto_now_add=True)
-    sender = models.CharField(max_length=255, default=settings.EMAIL_SENDER)
+    sender = models.CharField(max_length=255,
+                              default=_get_default_email_sender)
     recipient = models.CharField(max_length=255)
     subject = models.CharField(max_length=255)
     msg_text = models.TextField()
@@ -2464,12 +3016,23 @@ class Email(models.Model):
     # Transmission attempts are in EmailTransmission.
     # Except that filtering in the admin
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Email {} to {}".format(self.id, self.recipient)
 
     @classmethod
     def create_clinician_email(cls, contact_request: ContactRequest) \
             -> EMAIL_FWD_REF:
+        """
+        Creates an e-mail to a clinician, asking them to consider a request
+        from a study about a patient.
+
+        Args:
+            contact_request: a :class:`ContactRequest`
+
+        Returns:
+            an :class:`Email`
+
+        """
         recipient = contact_request.patient_lookup.clinician_email
         # noinspection PyUnresolvedReferences
         subject = (
@@ -2495,6 +3058,18 @@ class Email(models.Model):
             cls,
             contact_request: ContactRequest,
             letter: Letter) -> EMAIL_FWD_REF:
+        """
+        Creates an e-mail to a researcher, enclosing a letter giving them
+        permission to contact a patient.
+
+        Args:
+            contact_request: a :class:`ContactRequest`
+            letter: a :class:`Letter`
+
+        Returns:
+            an :class:`Email`
+
+        """
         # noinspection PyUnresolvedReferences
         recipient = contact_request.study.lead_researcher.email
         subject = (
@@ -2523,6 +3098,18 @@ class Email(models.Model):
             cls,
             contact_request: ContactRequest,
             letter: Letter) -> EMAIL_FWD_REF:
+        """
+        Creates an e-mail to a researcher, enclosing a letter withdrawing their
+        permission to contact a patient.
+
+        Args:
+            contact_request: a :class:`ContactRequest`
+            letter: a :class:`Letter`
+
+        Returns:
+            an :class:`Email`
+
+        """
         # noinspection PyUnresolvedReferences
         recipient = contact_request.study.lead_researcher.email
         subject = (
@@ -2548,6 +3135,17 @@ class Email(models.Model):
 
     @classmethod
     def create_rdbm_email(cls, subject: str, html: str) -> EMAIL_FWD_REF:
+        """
+        Create an HTML-based e-mail to the RDBM.
+
+        Args:
+            subject: subject line
+            html: HTML body
+
+        Returns:
+            an :class:`Email`
+
+        """
         email = cls(recipient=settings.RDBM_EMAIL,
                     subject=subject,
                     msg_html=html)
@@ -2556,6 +3154,17 @@ class Email(models.Model):
 
     @classmethod
     def create_rdbm_text_email(cls, subject: str, text: str) -> EMAIL_FWD_REF:
+        """
+        Create an text-based e-mail to the RDBM.
+
+        Args:
+            subject: subject line
+            text: message body
+
+        Returns:
+            an :class:`Email`
+
+        """
         email = cls(recipient=settings.RDBM_EMAIL,
                     subject=subject,
                     msg_text=text)
@@ -2563,20 +3172,26 @@ class Email(models.Model):
         return email
 
     def has_been_sent(self) -> bool:
+        """
+        Has this e-mail been sent?
+
+        (Internally: does an :class:`EmailTransmission` for this e-mail
+        exist with its ``sent`` flag set?)
+        """
         return self.emailtransmission_set.filter(sent=True).exists()
 
     def send(self,
              user: settings.AUTH_USER_MODEL = None,
              resend: bool = False) -> Optional[EMAIL_TRANSMISSION_FWD_REF]:
         """
-        Sends the e-mail.
+        Sends the e-mail. Makes a record.
 
         Args:
             user: the sender.
             resend: say that it's OK to resend one that's already been sent.
 
         Returns:
-            an EmailTransmission object.
+            an :class:`EmailTransmission` object.
         """
         if self.has_been_sent() and not resend:
             log.error("Trying to send e-mail twice: ID={}".format(self.id))
@@ -2627,6 +3242,9 @@ class Email(models.Model):
         return emailtransmission
 
     def resend(self, user: settings.AUTH_USER_MODEL) -> None:
+        """
+        Resend this e-mail.
+        """
         return self.send(user=user, resend=True)
 
 
@@ -2634,9 +3252,17 @@ EMAIL_ATTACHMENT_FWD_REF = "EmailAttachment"
 
 
 class EmailAttachment(models.Model):
-    """E-mail attachment class that does NOT manage its own files, i.e. if
-    the attachment object is deleted, the files won't be. Use this for
-    referencing files already stored elsewhere in the database."""
+    """
+    E-mail attachment class.
+
+    Typically, this does NOT manage its own files (i.e. if the attachment
+    object is deleted, the files won't be). Use this method for referencing
+    files already stored elsewhere in the database.
+
+    If the :attr:`owns_file` attribute is set, however, the associated file
+    *is* "owned" by this object, and the file will be deleted when the database
+    object is.
+    """
     email = models.ForeignKey(Email, on_delete=models.PROTECT)
     file = models.FileField(storage=privatestorage)
     sent_filename = models.CharField(null=True, max_length=255)
@@ -2644,11 +3270,18 @@ class EmailAttachment(models.Model):
     owns_file = models.BooleanField(default=False)
 
     def exists(self) -> bool:
+        """
+        Does the attached file exist on disk?
+        """
         if not self.file:
             return False
         return os.path.isfile(self.file.path)
 
     def size(self) -> int:
+        """
+        Returns the size of the attachment in bytes, if it exists on disk
+        (otherwise 0).
+        """
         if not self.file:
             return 0
         return os.path.getsize(self.file.path)
@@ -2660,6 +3293,24 @@ class EmailAttachment(models.Model):
                content_type: str,
                sent_filename: str = None,
                owns_file=False) -> EMAIL_ATTACHMENT_FWD_REF:
+        """
+        Creates an e-mail attachment object and attaches it to an e-mail.
+        When the e-mail is sent, the file thus referenced will be sent along
+        with the e-mail; see :meth:`Email.send`.
+
+        Args:
+            email: an :class:`Email`, to which this attachment is attached
+            fileobj: a :class:`django.db.models.FileField` representing the
+                file (on disk) to be attached
+            content_type: HTTP content type string
+            sent_filename: name of the filename as seen within the e-mail
+            owns_file: (see class help) Should the file on disk be deleted
+                if/when this database object is deleted?
+
+        Returns:
+            a :class:`EmailAttachment`
+
+        """
         if sent_filename is None:
             sent_filename = os.path.basename(fileobj.name)
         attachment = cls(email=email,
@@ -2676,7 +3327,12 @@ class EmailAttachment(models.Model):
 def auto_delete_emailattachment_files_on_delete(sender: Type[EmailAttachment],
                                                 instance: EmailAttachment,
                                                 **kwargs: Any) -> None:
-    """Deletes files from filesystem when EmailAttachment object is deleted."""
+    """
+    Django signal receiver.
+
+    Deletes files from filesystem when :class:`EmailAttachment` object is
+    deleted, if its :attr:`owns_file` flag is set.
+    """
     if instance.owns_file:
         auto_delete_files_on_instance_delete(instance, ['file'])
 
@@ -2686,13 +3342,21 @@ def auto_delete_emailattachment_files_on_delete(sender: Type[EmailAttachment],
 def auto_delete_emailattachment_files_on_change(sender: Type[EmailAttachment],
                                                 instance: EmailAttachment,
                                                 **kwargs: Any) -> None:
-    """Deletes files from filesystem when EmailAttachment object is changed."""
+    """
+    Django signal receiver.
+
+    Deletes files from filesystem when :class:`EmailAttachment` object is
+    changed, if its :attr:`owns_file` flag is set.
+    """
     if instance.owns_file:
         auto_delete_files_on_instance_change(instance, ['file'],
                                              EmailAttachment)
 
 
 class EmailTransmission(models.Model):
+    """
+    Represents an e-mail transmission attempt.
+    """
     email = models.ForeignKey(Email, on_delete=models.PROTECT)
     at = models.DateTimeField(verbose_name="When sent", auto_now_add=True)
     by = models.ForeignKey(settings.AUTH_USER_MODEL,
@@ -2702,7 +3366,7 @@ class EmailTransmission(models.Model):
     sent = models.BooleanField(default=False)
     failure_reason = models.TextField(verbose_name="Reason sending failed")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Email transmission at {} by {}: {}".format(
             self.at,
             self.by or "(system)",
@@ -2718,6 +3382,10 @@ class EmailTransmission(models.Model):
 # =============================================================================
 
 class DummyObjectCollection(object):
+    """
+    A collection of dummy objects within the consent-to-contact system, for
+    testing templates.
+    """
     def __init__(self,
                  contact_request: ContactRequest,
                  consent_mode: ConsentMode,
@@ -2733,8 +3401,17 @@ class DummyObjectCollection(object):
 
 def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     """
+    Returns a collection of dummy objects, for testing consent-to-contact
+    templates without using live patient data.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`DummyObjectCollection`
+
     We want to create these objects in memory, without saving to the DB.
-    However, Django  is less good at SQLAlchemy for this, and saves.
+    However, Django is less good at SQLAlchemy for this, and saves.
 
     - http://stackoverflow.com/questions/7908349/django-making-relationships-in-memory-without-saving-to-db  # noqa
     - https://code.djangoproject.com/ticket/17253
@@ -2744,18 +3421,20 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     A simple method works for an SQLite backend database but fails with
     an IntegrityError for MySQL/SQL Server. For example:
 
+    .. code-block:: none
+
         IntegrityError at /draft_traffic_light_decision_form/-1/html/
         (1452, 'Cannot add or update a child row: a foreign key constraint
         fails (`crate_django`.`consent_study_researchers`, CONSTRAINT
         `consent_study_researchers_study_id_19bb255f_fk_consent_study_id`
         FOREIGN KEY (`study_id`) REFERENCES `consent_study` (`id`))')
 
-    This occurs in the first creation, of a Study, and only if you specify
-    'researchers'.
+    This occurs in the first creation, of a :class:`Study`, and only if you
+    specify ``researchers``.
 
-    The reason for the crash is that 'researchers' is a ManyToManyField, and
-    Django is trying to set the user.studies_as_researcher back-reference, but
-    can't do so because the Study doesn't have a PK yet.
+    The reason for the crash is that ``researchers`` is a ManyToManyField, and
+    Django is trying to set the ``user.studies_as_researcher`` back-reference,
+    but can't do so because the :class:`Study` doesn't have a PK yet.
 
     Since this is a minor thing, and templates are unaffected, and this is only
     for debugging, let's ignore it.
@@ -2790,6 +3469,26 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     consent_after_discharge = bool(get_int('consent_after_discharge', 0))
 
     nhs_number = 1234567890
+    study_summary_plaintext = (
+        "An investigation of the change in blood-oxygen-level-"
+        "dependent (BOLD) functional magnetic resonance imaging "
+        "(fMRI) signals during the experience of quaint and "
+        "fanciful humorous activity.\n"
+        "\n"
+        "This is paragraph 2.\n"
+        "\n"
+        "For patients aged >18 and <65."
+    )
+    study_summary_html = """
+        <p>An investigation of the change in <b>blood-oxygen-level-dependent
+        (BOLD)</b> <i>functional magnetic resonance imaging (fMRI)</i> signals
+        during the experience of quaint and fanciful humour activity.</p>
+        
+        <p>Now with extra HTML.</p>
+        
+        <p>For patients aged &gt;18 and &lt;65.</p> 
+    """
+    use_html = False
     study = Study(
         id=TEST_ID,
         institutional_id=9999999999999,
@@ -2801,10 +3500,8 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         #   ReverseManyToOneDescriptor.__set__(), calling
         #   manager.set(value)
         registered_at=datetime.datetime.now(),
-        summary="An investigation of the change in blood-oxygen-level-"
-                "dependent (BOLD) functional magnetic resonance imaging "
-                "(fMRI) signals during the experience of quaint and "
-                "fanciful humorous activity",
+        summary=study_summary_html if use_html else study_summary_plaintext,
+        summary_is_html=use_html,
         search_methods_planned="Generalized trawl",
         patient_contact=True,
         include_under_16s=True,

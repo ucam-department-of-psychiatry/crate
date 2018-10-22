@@ -24,6 +24,8 @@ crate_anon/crateweb/core/auth_views.py
 
 ===============================================================================
 
+**Authentication views.**
+
 """
 
 import logging
@@ -38,6 +40,9 @@ log = logging.getLogger(__name__)
 
 
 def login_view(request: HttpRequest) -> HttpResponse:
+    """
+    Main login view.
+    """
     # don't call it login (name clash with django.contrib.auth.login)
     # https://www.fir3net.com/Web-Development/Django/django.html
     # http://www.flagonwiththedragon.com/2011/06/16/django-authenticationform-for-user-login/  # noqa
@@ -58,11 +63,17 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
 
 def logout_view(request: HttpRequest) -> HttpResponse:
+    """
+    "You have logged out" view.
+    """
     logout(request)
     return render(request, 'logged_out.html')
 
 
 def password_change(request: HttpRequest) -> HttpResponse:
+    """
+    View to change your password.
+    """
     # https://docs.djangoproject.com/en/1.8/topics/auth/default/#module-django.contrib.auth.forms  # noqa
     form = PasswordChangeForm(
         data=request.POST if request.method == 'POST' else None,

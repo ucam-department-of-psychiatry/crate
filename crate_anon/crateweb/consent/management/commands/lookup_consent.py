@@ -24,11 +24,13 @@ crate_anon/crateweb/consent/management/commands/lookup_consent.py
 
 ===============================================================================
 
+**Django management command to test consent-mode lookup.**
+
 """
 
 from argparse import ArgumentParser, Namespace
 import logging
-from typing import List
+from typing import Any, List
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -40,16 +42,21 @@ log = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
+    """
+    Django management command to test consent-mode lookup.
+    """
     help = (
         "Tests lookup of the consent mode from the relevant CLINICAL database."
     )
 
     def add_arguments(self, parser: ArgumentParser) -> None:
+        # docstring in superclass
         parser.add_argument(
             "--nhs_numbers", required=True, type=int, nargs="+",
             help="NHS numbers to look up")
 
-    def handle(self, *args, **options):
+    def handle(self, *args: str, **options: Any) -> None:
+        # docstring in superclass
         opts = Namespace(**options)
         # Activate the current language, because it won't get activated later.
         try:
@@ -57,11 +64,17 @@ class Command(BaseCommand):
         except AttributeError:
             pass
         # noinspection PyTypeChecker
-        cli_lookup_consent(opts)
+        cli_lookup_consent(opts.nhs_numbers)
 
 
-def cli_lookup_consent(opts: Namespace) -> None:
-    nhs_numbers = opts.nhs_numbers  # type: List[int]
+def cli_lookup_consent(nhs_numbers: List[int]) -> None:
+    """
+    Look up consent modes for all specified NHS numbers, and display them to
+    the Python log.
+
+    Args:
+        nhs_numbers: list of NHS numbers (as integers)
+    """
     source_db = settings.CLINICAL_LOOKUP_CONSENT_DB
     log.info("Testing consent lookup from clinical database: {}.".format(
         source_db))
@@ -79,11 +92,14 @@ def cli_lookup_consent(opts: Namespace) -> None:
 
 
 def main():
+    """
+    Command-line entry point (not typically used directly).
+    """
     command = Command()
     parser = ArgumentParser()
     command.add_arguments(parser)
     cmdargs = parser.parse_args()
-    cli_lookup_consent(cmdargs)
+    cli_lookup_consent(cmdargs.nhs_numbers)
 
 
 if __name__ == '__main__':

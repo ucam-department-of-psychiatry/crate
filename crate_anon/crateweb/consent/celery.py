@@ -24,7 +24,9 @@ crate_anon/crateweb/consent/celery.py
 
 ===============================================================================
 
-**To test:**
+**Set up the Celery app for CRATE's web service back end.**
+
+*To test:*
 
 1. Launch the Celery worker:
 
@@ -54,7 +56,7 @@ crate_anon/crateweb/consent/celery.py
 
 **Command-line testing under Windows (2016-05-12):**
 
-1.  Run crate_launch_celery (which runs the "celery worker" command).
+1.  Run ``crate_launch_celery`` (which runs the "celery worker" command).
     With that running...
 
 2.  Do this:
@@ -237,5 +239,8 @@ app.autodiscover_tasks(['crate_anon.crateweb.consent'])  # simpler!
 
 @app.task(bind=True)
 def debug_task(self) -> None:
+    """
+    Debugging task for Celery that shows some request information only.
+    """
     print('Request: {0!r}'.format(self.request))
     print('Backend: {}'.format(current_task.backend))

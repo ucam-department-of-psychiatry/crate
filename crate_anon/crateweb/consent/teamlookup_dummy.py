@@ -24,9 +24,11 @@ crate_anon/crateweb/consent/teamlookup_dummy.py
 
 ===============================================================================
 
-Note that teamlookup* files are separate from patient lookup files to avoid
-circular imports, because teams are cached very early on (including for Django
-field choices).
+**Function to get made-up clinical teams from a dummay database.**
+
+Note that ``teamlookup*.py`` files are separate from patient lookup files to
+avoid circular imports, because teams are cached very early on (including for
+Django field choices).
 
 """
 
@@ -38,4 +40,7 @@ from typing import List
 # =============================================================================
 
 def get_dummy_teams() -> List[str]:
+    """
+    Returns a fictional list of clinical teams.
+    """
     return ["dummy_team_one", "dummy_team_two", "dummy_team_three"]

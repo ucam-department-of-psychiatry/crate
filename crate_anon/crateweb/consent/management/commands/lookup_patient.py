@@ -24,6 +24,9 @@ crate_anon/crateweb/consent/management/commands/lookup_patient.py
 
 ===============================================================================
 
+**Django management command to test patient lookup from the clinical
+database.**
+
 """
 
 from argparse import ArgumentParser, Namespace
@@ -31,7 +34,7 @@ import logging
 import pdb
 import sys
 import traceback
-from typing import List
+from typing import Any, List
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -43,16 +46,22 @@ log = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
+    """
+    Django management command to test patient lookup from the clinical
+    database.
+    """
     help = (
         "Tests lookup of patient details from the relevant CLINICAL database."
     )
 
     def add_arguments(self, parser: ArgumentParser) -> None:
+        # docstring in superclass
         parser.add_argument(
             "--nhs_numbers", required=True, type=int, nargs="+",
             help="NHS numbers to look up")
 
-    def handle(self, *args, **options):
+    def handle(self, *args: str, **options: Any) -> None:
+        # docstring in superclass
         opts = Namespace(**options)
         # Activate the current language, because it won't get activated later.
         try:
@@ -62,15 +71,21 @@ class Command(BaseCommand):
         # noinspection PyBroadException,PyPep8
         try:
             # noinspection PyTypeChecker
-            cli_lookup_patient(opts)
+            cli_lookup_patient(opts.nhs_numbers)
         except:
             type_, value, tb = sys.exc_info()
             traceback.print_exc()
             pdb.post_mortem(tb)
 
 
-def cli_lookup_patient(opts: Namespace) -> None:
-    nhs_numbers = opts.nhs_numbers  # type: List[int]
+def cli_lookup_patient(nhs_numbers: List[int]) -> None:
+    """
+    Look up patient details for all specified NHS numbers, and display them to
+    the Python log.
+
+    Args:
+        nhs_numbers: list of NHS numbers (as integers)
+    """
     source_db = settings.CLINICAL_LOOKUP_DB
     log.info("Testing patient lookup from clinical database: {}.".format(
         source_db))
@@ -87,11 +102,14 @@ def cli_lookup_patient(opts: Namespace) -> None:
 
 
 def main():
+    """
+    Command-line entry point (not typically used directly).
+    """
     command = Command()
     parser = ArgumentParser()
     command.add_arguments(parser)
     cmdargs = parser.parse_args()
-    cli_lookup_patient(cmdargs)
+    cli_lookup_patient(cmdargs.nhs_numbers)
 
 
 if __name__ == '__main__':

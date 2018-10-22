@@ -24,9 +24,11 @@ crate_anon/crateweb/consent/teamlookup.py
 
 ===============================================================================
 
-Note that teamlookup* files are separate from patient lookup files to avoid
-circular imports, because teams are cached very early on (including for Django
-field choices).
+**Function to get clinical teams from our clinical source database.**
+
+Note that ``teamlookup*.py`` files are separate from patient lookup files to
+avoid circular imports, because teams are cached very early on (including for
+Django field choices).
 
 """
 
@@ -44,6 +46,10 @@ from crate_anon.crateweb.consent.teamlookup_rio import get_rio_teams_rcep_crate
 # =============================================================================
 
 def get_teams() -> List[str]:
+    """
+    Return all clinical team names from our clinical source database (as
+    determined by ``settings.CLINICAL_LOOKUP_DB``).
+    """
     source_db = settings.CLINICAL_LOOKUP_DB
     if settings.CLINICAL_LOOKUP_DB in (
             ClinicalDatabaseType.CPFT_RIO_RCEP,

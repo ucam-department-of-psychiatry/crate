@@ -24,8 +24,11 @@ crate_anon/crateweb/consent/__init__.py
 
 ===============================================================================
 
+This ``__init__.py`` file imports the Celery app.
+
+This ensures the app is always imported when Django starts, so that
+``shared_task`` will use this app.
+
 """
 
-# This will make sure the app is always imported when
-# Django starts so that shared_task will use this app.
 from crate_anon.crateweb.consent.celery import app as celery_app  # noqa

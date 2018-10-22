@@ -634,6 +634,9 @@ Changes
 - ``django==2.0.6`` to ``django==2.1.2`` given security vulnerabilities
   reported in Django versions [2.0, 2.0.8).
 
+- Bugfix: ``mark_safe`` decorator added to all Django admin site parts with
+  ``allow_tags = True`` set (for embedded URLs).
+
 - ``django-debug-toolbar==1.9.1`` to ``django-debug-toolbar==1.10.1``
 
 - Improved docstrings.
@@ -643,6 +646,16 @@ Changes
 - ``_addition_only`` DDR flag only permitted on PK fields. (Was only attended
   to for them in any case!)
 
+- Bugfix to :func:`crate_anon.crateweb.consent.views.validate_email_request`
+  and :func:`crate_anon.crateweb.consent.views.validate_letter_request`; these
+  were returning rather than raising. Testing showed that something else was
+  also blocking permission to access such things inappropriately, but fixed
+  anyway!
+
+- Renamed ``generate_fake_nhs`` to ``generate_random_nhs`` to emphasize what
+  this does.
+
+- :meth:`crate_anon.crateweb.consent.models.Study.html_summary`
 
 .. rubric:: Footnotes
 

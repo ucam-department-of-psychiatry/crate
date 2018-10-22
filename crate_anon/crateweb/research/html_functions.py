@@ -24,6 +24,9 @@ crate_anon/crateweb/research/html_functions.py
 
 ===============================================================================
 
+**Helper functions for low-level HTML, used in the "research" section of the
+CRATE web site.**
+
 """
 
 import logging

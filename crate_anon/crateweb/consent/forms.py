@@ -24,6 +24,8 @@ crate_anon/crateweb/consent/forms.py
 
 ===============================================================================
 
+**Django forms for the consent-to-contact system.**
+
 """
 
 import logging
@@ -46,10 +48,16 @@ log = logging.getLogger(__name__)
 
 
 class SingleNhsNumberForm(forms.Form):
+    """
+    Form to capture an NHS number.
+    """
     nhs_number = SingleNhsNumberField(label="NHS number")
 
 
 class AbstractContactRequestForm(forms.Form):
+    """
+    Base class for contact requets.
+    """
     def clean(self) -> None:
         cleaned_data = super().clean()
 
@@ -64,6 +72,9 @@ class AbstractContactRequestForm(forms.Form):
 
 
 class SuperuserSubmitContactRequestForm(AbstractContactRequestForm):
+    """
+    Form for superusers (the RDBM) to submit a contact request.
+    """
     study = forms.ModelChoiceField(
         queryset=Study.get_queryset_possible_contact_studies())
     request_direct_approach = forms.BooleanField(
@@ -91,6 +102,9 @@ class SuperuserSubmitContactRequestForm(AbstractContactRequestForm):
 
 
 class ResearcherSubmitContactRequestForm(AbstractContactRequestForm):
+    """
+    Form for researchers to submit a contact request for their own studies.
+    """
     study = forms.ModelChoiceField(queryset=None)
     # ... queryset changed below
     request_direct_approach = forms.BooleanField(
@@ -124,6 +138,9 @@ class ResearcherSubmitContactRequestForm(AbstractContactRequestForm):
 
 
 class ClinicianResponseForm(forms.ModelForm):
+    """
+    Form for clinicians to respond to a contact request.
+    """
     class Meta:
         model = ClinicianResponse
         fields = [

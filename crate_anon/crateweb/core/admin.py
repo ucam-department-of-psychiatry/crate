@@ -24,6 +24,10 @@ crate_anon/crateweb/core/admin.py
 
 ===============================================================================
 
+**The Django admin site, with parts for researchers (staff), parts for RDBMs
+(superusers) and parts for developers (superusers with the developer flag
+set).**
+
 """
 
 # NOTE that
@@ -52,6 +56,7 @@ from django.http.request import HttpRequest
 from django.template.defaultfilters import yesno
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy
 
 from crate_anon.crateweb.extra.admin import (
@@ -94,6 +99,10 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 class QueryMgrAdmin(ReadOnlyModelAdmin):
+    """
+    Read-only admin view to inspect SQL queries used by researchers (that is,
+    to perform a query audit).
+    """
     model = QueryAudit
     # Make all fields read-only (see also ReadOnlyModelAdmin):
     readonly_fields = ('id', 'when', 'get_user', 'get_sql', 'get_count_only',
@@ -141,13 +150,21 @@ class QueryMgrAdmin(ReadOnlyModelAdmin):
 # -----------------------------------------------------------------------------
 
 class StudyInline(admin.TabularInline):
+    """
+    Use this to represent :class:`crate_anon.crateweb.consent.models.Study`
+    inline.
+    """
     model = Study
 
 
 class StudyMgrAdmin(admin.ModelAdmin):
+    """
+    RDBM admin view on :class:`crate_anon.crateweb.consent.models.Study`.
+    """
     fields = (
         'institutional_id',
-        'title', 'lead_researcher', 'registered_at', 'summary',
+        'title', 'lead_researcher', 'registered_at',
+        'summary', 'summary_is_html',
         'search_methods_planned', 'patient_contact', 'include_under_16s',
         'include_lack_capacity', 'clinical_trial', 'include_discharged',
         'request_direct_approach', 'approved_by_rec', 'rec_reference',
@@ -161,9 +178,14 @@ class StudyMgrAdmin(admin.ModelAdmin):
 
 
 class StudyResAdmin(AllStaffReadOnlyModelAdmin):
+    """
+    Researcher admin view on RDBM admin view on
+    :class:`crate_anon.crateweb.consent.models.Study`.
+    """
     fields = (
         'institutional_id',
-        'title', 'lead_researcher', 'registered_at', 'summary',
+        'title', 'lead_researcher', 'registered_at',
+        'summary', 'summary_is_html',
         'search_methods_planned', 'patient_contact', 'include_under_16s',
         'include_lack_capacity', 'clinical_trial', 'include_discharged',
         'request_direct_approach', 'approved_by_rec', 'rec_reference',
@@ -186,21 +208,27 @@ class StudyResAdmin(AllStaffReadOnlyModelAdmin):
 # -----------------------------------------------------------------------------
 
 class LeafletMgrAdmin(EditOnlyModelAdmin):
+    """
+    RDBM admin view on :class:`crate_anon.crateweb.consent.models.Leaflet`.
+    """
     fields = ('name', 'pdf')
     readonly_fields = ('name', )
 
 
 class LeafletResAdmin(AllStaffReadOnlyModelAdmin):
+    """
+    Researcher admin view on
+    :class:`crate_anon.crateweb.consent.models.Leaflet`.
+    """
     fields = ('name', 'get_pdf')
     readonly_fields = fields
 
     def get_pdf(self, obj: Leaflet) -> str:
         if not obj.pdf:
             return "(Missing)"
-        return '<a href="{}">PDF</a>'.format(
-            reverse("leaflet", args=[obj.name]))
+        return mark_safe('<a href="{}">PDF</a>'.format(
+            reverse("leaflet", args=[obj.name])))
     get_pdf.short_description = "Leaflet PDF"
-    get_pdf.allow_tags = True
 
 
 # -----------------------------------------------------------------------------
@@ -208,6 +236,10 @@ class LeafletResAdmin(AllStaffReadOnlyModelAdmin):
 # -----------------------------------------------------------------------------
 
 class EmailSentListFilter(SimpleListFilter):
+    """
+    Filter for :class:`crate_anon.crateweb.consent.models.Email` based on
+    whether they're sent or not.
+    """
     title = 'email sent'
     parameter_name = 'email_sent'
 
@@ -227,6 +259,9 @@ class EmailSentListFilter(SimpleListFilter):
 
 
 class EmailDevAdmin(ReadOnlyModelAdmin):
+    """
+    Developer admin view on :class:`crate_anon.crateweb.consent.models.Email`.
+    """
     model = Email
     readonly_fields = (
         'id', 'created_at', 'sender', 'recipient', 'subject',
@@ -252,10 +287,10 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
 
     def get_view_msg_html(self, obj: Email) -> str:
         url = reverse('view_email_html', args=[obj.id])
-        return '<a href="{}">View HTML message</a> ({} bytes)'.format(
-            url, len(obj.msg_html))
+        return mark_safe(
+            '<a href="{}">View HTML message</a> ({} bytes)'.format(
+                url, len(obj.msg_html)))
     get_view_msg_html.short_description = "Message HTML"
-    get_view_msg_html.allow_tags = True
 
     def get_view_attachments(self, obj: Email) -> str:
         attachments = obj.emailattachment_set.all()
@@ -283,9 +318,8 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
                     attachment.file,
                     attachment.sent_filename,
                 )
-        return html
+        return mark_safe(html)
     get_view_attachments.short_description = "Attachments"
-    get_view_attachments.allow_tags = True
 
     def resend(self, request: HttpRequest, queryset: QuerySet) -> None:
         email_ids = []
@@ -301,9 +335,9 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
     resend.short_description = "Resend selected e-mails"
 
     def get_transmissions(self, obj: Email) -> str:
-        return "<br>".join(str(x) for x in obj.emailtransmission_set.all())
+        return mark_safe(
+            "<br>".join(str(x) for x in obj.emailtransmission_set.all()))
     get_transmissions.short_description = "Transmissions"
-    get_transmissions.allow_tags = True
 
     def get_sent(self, obj: Email) -> bool:
         return obj.has_been_sent()
@@ -311,26 +345,25 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
     get_sent.boolean = True
 
     def get_letter(self, obj: Email) -> str:
-        return admin_view_fk_link(self, obj, "letter")
+        return mark_safe(admin_view_fk_link(self, obj, "letter"))
     get_letter.short_description = "Letter"
-    get_letter.allow_tags = True
 
     def get_study(self, obj: Email) -> str:
-        return admin_view_fk_link(self, obj, "study")
+        return mark_safe(admin_view_fk_link(self, obj, "study"))
     get_study.short_description = "Study"
-    get_study.allow_tags = True
 
     def get_contact_request(self, obj: Email) -> str:
-        return admin_view_fk_link(self, obj, "contact_request")
+        return mark_safe(admin_view_fk_link(self, obj, "contact_request"))
     get_contact_request.short_description = "Contact request"
-    get_contact_request.allow_tags = True
 
 
 class EmailMgrAdmin(EmailDevAdmin):
     """
-    Restrict to e-mails/information visible to the RDBM.
-    Also, since we're not inhering from AllStaffReadOnlyModelAdmin, give
-    admin read permissions to all staff.
+    RDBM admin view on :class:`crate_anon.crateweb.consent.models.Email`.
+
+    Restrict to e-mails/information visible to the RDBM. Also, since we're not
+    inhering from :class:`AllStaffReadOnlyModelAdmin`, give admin read
+    permissions to all staff.
     """
     readonly_fields = (
         'id', 'created_at', 'sender', 'recipient', 'subject',
@@ -365,23 +398,24 @@ class EmailMgrAdmin(EmailDevAdmin):
     def get_restricted_msg_html(self, obj: Email) -> str:
         if not self.rdbm_may_view(obj):
             return "(Not authorized)"
-        return self.get_view_msg_html(obj)
+        return mark_safe(self.get_view_msg_html(obj))
     get_restricted_msg_html.short_description = "Message HTML"
-    get_restricted_msg_html.allow_tags = True
 
     def get_restricted_attachments(self, obj: Email) -> str:
         if not self.rdbm_may_view(obj):
             return "(Not authorized)"
-        return self.get_view_attachments(obj)
+        return mark_safe(self.get_view_attachments(obj))
     get_restricted_attachments.short_description = "Attachments"
-    get_restricted_attachments.allow_tags = True
 
 
 class EmailResAdmin(EmailDevAdmin):
     """
-    Restrict to e-mails visible to a researcher.
-    Also, since we're not inhering from AllStaffReadOnlyModelAdmin, give
-    admin read permissions to all staff.
+    Researcher RDBM admin view on
+    :class:`crate_anon.crateweb.consent.models.Email`.
+
+    Restrict to e-mails visible to a researcher. Also, since we're not inhering
+    from :class:`AllStaffReadOnlyModelAdmin`, give admin read permissions to
+    all staff.
     """
     readonly_fields = (
         'id', 'created_at', 'sender', 'recipient', 'subject',
@@ -413,6 +447,10 @@ class EmailResAdmin(EmailDevAdmin):
 # -----------------------------------------------------------------------------
 
 class DummyPatientSourceInfoDevAdmin(admin.ModelAdmin):
+    """
+    Developer admin view on
+    :class:`crate_anon.crateweb.consent.models.DummyPatientSourceInfo`.
+    """
     fields = (
         # Patient
         'nhs_number',
@@ -447,6 +485,10 @@ class DummyPatientSourceInfoDevAdmin(admin.ModelAdmin):
 # -----------------------------------------------------------------------------
 
 class PatientLookupDevAdmin(ReadOnlyModelAdmin):
+    """
+    Developer admin view on
+    :class:`crate_anon.crateweb.consent.models.PatientLookup`.
+    """
     readonly_fields = (
         # Lookup details
         'lookup_at', 'source_db', 'nhs_number',
@@ -489,17 +531,20 @@ class PatientLookupDevAdmin(ReadOnlyModelAdmin):
     search_fields = ('nhs_number', 'pt_first_name', 'pt_last_name')
 
     def get_test_views(self, obj: PatientLookup) -> str:
-        return '''
-            <a href="{}">Draft letter to patient re first traffic-light
-                choice (as HTML)</a><br>
-            <a href="{}">Draft letter to patient re first traffic-light
-                choice (as PDF)</a>
-        '''.format(
-            reverse('draft_first_traffic_light_letter', args=[obj.id, "html"]),
-            reverse('draft_first_traffic_light_letter', args=[obj.id, "pdf"]),
+        return mark_safe(
+            '''
+                <a href="{}">Draft letter to patient re first traffic-light
+                    choice (as HTML)</a><br>
+                <a href="{}">Draft letter to patient re first traffic-light
+                    choice (as PDF)</a>
+            '''.format(
+                reverse('draft_first_traffic_light_letter',
+                        args=[obj.id, "html"]),
+                reverse('draft_first_traffic_light_letter',
+                        args=[obj.id, "pdf"]),
+            )
         )
     get_test_views.short_description = "Test views"
-    get_test_views.allow_tags = True
 
 
 # -----------------------------------------------------------------------------
@@ -507,10 +552,18 @@ class PatientLookupDevAdmin(ReadOnlyModelAdmin):
 # -----------------------------------------------------------------------------
 
 class ConsentModeInline(admin.TabularInline):
+    """
+    Use this to represent
+    :class:`crate_anon.crateweb.consent.models.ConsentMode` inline.
+    """
     model = ConsentMode
 
 
 class ConsentModeAdminForm(forms.ModelForm):
+    """
+    Admin form to edit a
+    :class:`crate_anon.crateweb.consent.models.ConsentMode`.
+    """
     def clean(self) -> Dict[str, Any]:
         if not self.cleaned_data.get('changed_by_clinician_override'):
             kwargs = {}
@@ -522,6 +575,11 @@ class ConsentModeAdminForm(forms.ModelForm):
 
 
 class ConsentModeMgrAdmin(AddOnlyModelAdmin):
+    """
+    RDBM admin view on a
+    :class:`crate_anon.crateweb.consent.models.ConsentMode`.
+    """
+
     # To switch off the Boolean icons: replace exclude_entirely with
     # exclude_entirely_col in the fieldlist, and define the function as:
     #
@@ -610,6 +668,10 @@ class ConsentModeMgrAdmin(AddOnlyModelAdmin):
 
 
 class ConsentModeDevAdmin(ReadOnlyModelAdmin):
+    """
+    Developer admin view on a
+    :class:`crate_anon.crateweb.consent.models.ConsentMode`.
+    """
     readonly_fields = [
         'nhs_number',
         'current', 'created_at', 'created_by',
@@ -639,19 +701,20 @@ class ConsentModeDevAdmin(ReadOnlyModelAdmin):
     )
 
     def get_test_views(self, obj: ConsentMode) -> str:
-        return '''
-            <a href="{}">Draft letter to patient confirming traffic-light
-                choice (as HTML)</a><br>
-            <a href="{}">Draft letter to patient confirming traffic-light
-                choice (as PDF)</a>
-        '''.format(
-            reverse('draft_confirm_traffic_light_letter',
-                    args=[obj.id, "html"]),
-            reverse('draft_confirm_traffic_light_letter',
-                    args=[obj.id, "pdf"]),
+        return mark_safe(
+            '''
+                <a href="{}">Draft letter to patient confirming traffic-light
+                    choice (as HTML)</a><br>
+                <a href="{}">Draft letter to patient confirming traffic-light
+                    choice (as PDF)</a>
+            '''.format(
+                reverse('draft_confirm_traffic_light_letter',
+                        args=[obj.id, "html"]),
+                reverse('draft_confirm_traffic_light_letter',
+                        args=[obj.id, "pdf"]),
+            )
         )
     get_test_views.short_description = "Test views"
-    get_test_views.allow_tags = True
 
 
 # -----------------------------------------------------------------------------
@@ -659,6 +722,9 @@ class ConsentModeDevAdmin(ReadOnlyModelAdmin):
 # -----------------------------------------------------------------------------
 
 class TeamRepMgrAdmin(admin.ModelAdmin):
+    """
+    RDBM admin view on a :class:`crate_anon.crateweb.consent.models.TeamRep`.
+    """
     fields = ('team', 'user')
     list_display = ('team', 'user')
     search_fields = ('team', )
@@ -669,6 +735,10 @@ class TeamRepMgrAdmin(admin.ModelAdmin):
 # -----------------------------------------------------------------------------
 
 class CharityPaymentRecordMgrAdmin(AddOnlyModelAdmin):
+    """
+    RDBM admin view on a
+    :class:`crate_anon.crateweb.consent.models.CharityPaymentRecord`.
+    """
     fields = ('payee', 'amount')
     fields_for_viewing = fields
     list_display = ('id', 'created_at', 'payee', 'amount')
@@ -682,6 +752,10 @@ class CharityPaymentRecordMgrAdmin(AddOnlyModelAdmin):
 # -----------------------------------------------------------------------------
 
 class ClinicianRespondedListFilter(SimpleListFilter):
+    """
+    Filter for :class:`crate_anon.crateweb.consent.models.ContactRequest` based
+    on whether the clinician has responded.
+    """
     title = 'clinician responded'
     parameter_name = 'clinician_responded'
 
@@ -709,6 +783,10 @@ class ClinicianRespondedListFilter(SimpleListFilter):
 
 
 class ContactRequestMgrAdmin(ReadOnlyModelAdmin):
+    """
+    RDBM admin view on
+    :class:`crate_anon.crateweb.consent.models.ContactRequest`.
+    """
     NONCONFIDENTIAL_FIELDS = (
         'id', 'created_at', 'request_by', 'get_study',
         'request_direct_approach',
@@ -754,8 +832,7 @@ class ContactRequestMgrAdmin(ReadOnlyModelAdmin):
     get_consent_mode.short_description = "Consent mode"
 
     def get_study(self, obj: ContactRequest) -> str:
-        return admin_view_fk_link(self, obj, "study")
-    get_study.allow_tags = True
+        return mark_safe(admin_view_fk_link(self, obj, "study"))
     get_study.short_description = "Study"
 
     def get_clinician_email_address(self, obj: ContactRequest) -> str:
@@ -773,17 +850,19 @@ class ContactRequestMgrAdmin(ReadOnlyModelAdmin):
     get_clinician_responded.boolean = True
 
     def get_letters(self, obj: ContactRequest) -> str:
-        return admin_view_reverse_fk_links(self, obj, "letter_set")
+        return mark_safe(admin_view_reverse_fk_links(self, obj, "letter_set"))
     get_letters.short_description = "Letter(s)"
-    get_letters.allow_tags = True
 
     def get_emails(self, obj: ContactRequest) -> str:
-        return admin_view_reverse_fk_links(self, obj, "email_set")
+        return mark_safe(admin_view_reverse_fk_links(self, obj, "email_set"))
     get_emails.short_description = "E-mail(s)"
-    get_emails.allow_tags = True
 
 
 class ContactRequestResAdmin(ContactRequestMgrAdmin):
+    """
+    Researcher admin view on
+    :class:`crate_anon.crateweb.consent.models.ContactRequest`.
+    """
     fields = ContactRequestMgrAdmin.NONCONFIDENTIAL_FIELDS
     readonly_fields = fields
     list_display = ContactRequestMgrAdmin.NONCONFIDENTIAL_LIST_DISPLAY
@@ -804,6 +883,10 @@ class ContactRequestResAdmin(ContactRequestMgrAdmin):
 
 
 class ContactRequestDevAdmin(ContactRequestMgrAdmin):
+    """
+    Developer admin view on
+    :class:`crate_anon.crateweb.consent.models.ContactRequest`.
+    """
     fields = ContactRequestMgrAdmin.NONCONFIDENTIAL_FIELDS + (
         # RDBM can also see
         'get_clinician_email_address',
@@ -828,32 +911,27 @@ class ContactRequestDevAdmin(ContactRequestMgrAdmin):
     )
 
     def get_link_clinician_email(self, obj: ContactRequest) -> str:
-        return admin_view_reverse_fk_links(self, obj, "email_set")
+        return mark_safe(admin_view_reverse_fk_links(self, obj, "email_set"))
     get_link_clinician_email.short_description = "E-mail to clinician"
-    get_link_clinician_email.allow_tags = True
 
     def get_link_clinician_response(self, obj: ContactRequest) -> str:
-        return admin_view_fk_link(self, obj, "clinician_response")
+        return mark_safe(admin_view_fk_link(self, obj, "clinician_response"))
     get_link_clinician_response.short_description = "Clinician response"
-    get_link_clinician_response.allow_tags = True
 
     def get_patient_lookup(self, obj: ContactRequest) -> str:
-        return admin_view_fk_link(self, obj, "patient_lookup")
+        return mark_safe(admin_view_fk_link(self, obj, "patient_lookup"))
     get_patient_lookup.short_description = "Patient lookup"
-    get_patient_lookup.allow_tags = True
 
     def get_consent_mode(self, obj: ContactRequest) -> str:
-        return admin_view_fk_link(self, obj, "consent_mode")
+        return mark_safe(admin_view_fk_link(self, obj, "consent_mode"))
     get_consent_mode.short_description = "Consent mode"
-    get_consent_mode.allow_tags = True
 
     def get_letters(self, obj: ContactRequest) -> str:
-        return admin_view_reverse_fk_links(self, obj, "letter_set")
-    get_letters.allow_tags = True
+        return mark_safe(admin_view_reverse_fk_links(self, obj, "letter_set"))
     get_letters.short_description = "Letter(s)"
 
     def get_test_views(self, obj: ContactRequest) -> str:
-        return '''
+        html = '''
             <a href="{}">Draft e-mail to clinician</a><br>
             <a href="{}">Draft letter from clinician to patient re study
                 (HTML)</a></br>
@@ -884,8 +962,8 @@ class ContactRequestDevAdmin(ContactRequestMgrAdmin):
             reverse('draft_withdrawal_letter', args=[obj.id, "pdf"]),
             reverse('draft_withdrawal_email', args=[obj.id]),
         )
+        return mark_safe(html)
     get_test_views.short_description = "Test views"
-    get_test_views.allow_tags = True
 
 
 # -----------------------------------------------------------------------------
@@ -893,6 +971,10 @@ class ContactRequestDevAdmin(ContactRequestMgrAdmin):
 # -----------------------------------------------------------------------------
 
 class ClinicianResponseDevAdmin(ReadOnlyModelAdmin):
+    """
+    Developer admin view on
+    :class:`crate_anon.crateweb.consent.models.ClinicianResponse`.
+    """
     fields = [
         'created_at', 'contact_request', 'token',
         'responded', 'responded_at', 'response_route',
@@ -907,8 +989,7 @@ class ClinicianResponseDevAdmin(ReadOnlyModelAdmin):
     date_hierarchy = 'created_at'
 
     def get_contact_request(self, obj: ClinicianResponse) -> str:
-        return admin_view_fk_link(self, obj, "contact_request")
-    get_contact_request.allow_tags = True
+        return mark_safe(admin_view_fk_link(self, obj, "contact_request"))
     get_contact_request.short_description = "Contact request"
 
 
@@ -917,6 +998,10 @@ class ClinicianResponseDevAdmin(ReadOnlyModelAdmin):
 # -----------------------------------------------------------------------------
 
 class PatientResponseAdminForm(forms.ModelForm):
+    """
+    Admin form to edit a
+    :class:`crate_anon.crateweb.consent.models.PatientResponse`.
+    """
     def clean(self) -> Dict[str, Any]:
         kwargs = {}
         for field in Decision.FIELDS:
@@ -927,6 +1012,10 @@ class PatientResponseAdminForm(forms.ModelForm):
 
 
 class PatientResponseMgrAdmin(EditOnceOnlyModelAdmin):
+    """
+    RDBM admin view on a
+    :class:`crate_anon.crateweb.consent.models.PatientResponse`.
+    """
     form = PatientResponseAdminForm
     fields = [
         'id', 'created_at', 'get_contact_request', 'response'
@@ -960,9 +1049,8 @@ class PatientResponseMgrAdmin(EditOnceOnlyModelAdmin):
         return True
 
     def get_contact_request(self, obj: PatientResponse) -> str:
-        return admin_view_fk_link(self, obj, "contact_request")
+        return mark_safe(admin_view_fk_link(self, obj, "contact_request"))
     get_contact_request.short_description = "Contact request"
-    get_contact_request.allow_tags = True
 
     def get_queryset(self, request: HttpRequest) -> QuerySet:
         # Restrict to unresponded ones
@@ -970,14 +1058,17 @@ class PatientResponseMgrAdmin(EditOnceOnlyModelAdmin):
 
 
 class PatientResponseDevAdmin(ReadOnlyModelAdmin):
+    """
+    Developer admin view on a
+    :class:`crate_anon.crateweb.consent.models.PatientResponse`.
+    """
     fields = PatientResponseMgrAdmin.fields
     readonly_fields = fields
     date_hierarchy = 'created_at'
 
     def get_contact_request(self, obj: PatientResponse) -> str:
-        return admin_view_fk_link(self, obj, "contact_request")
+        return mark_safe(admin_view_fk_link(self, obj, "contact_request"))
     get_contact_request.short_description = "Contact request"
-    get_contact_request.allow_tags = True
 
 
 # -----------------------------------------------------------------------------
@@ -985,6 +1076,10 @@ class PatientResponseDevAdmin(ReadOnlyModelAdmin):
 # -----------------------------------------------------------------------------
 
 class LetterSendingStatusFilter(SimpleListFilter):
+    """
+    Filter for :class:`crate_anon.crateweb.consent.models.Letter` based on
+    whether they're sent or not.
+    """
     title = "sending status"
     parameter_name = 'sending_status'
 
@@ -1023,6 +1118,9 @@ class LetterSendingStatusFilter(SimpleListFilter):
 
 
 class LetterDevAdmin(ReadOnlyModelAdmin):
+    """
+    Developer admin view on :class:`crate_anon.crateweb.consent.models.Letter`.
+    """
     fields = ('id', 'created_at', 'pdf',
               'to_clinician', 'to_researcher', 'to_patient',
               'get_study', 'get_contact_request',
@@ -1054,23 +1152,22 @@ class LetterDevAdmin(ReadOnlyModelAdmin):
     mark_sent.short_description = "Mark selected letters as printed/sent"
 
     def get_study(self, obj: Letter) -> str:
-        return admin_view_fk_link(self, obj, "study")
-    get_study.allow_tags = True
+        return mark_safe(admin_view_fk_link(self, obj, "study"))
     get_study.short_description = "Study"
 
     def get_contact_request(self, obj: Letter) -> str:
-        return admin_view_fk_link(self, obj, "contact_request")
-    get_contact_request.allow_tags = True
+        return mark_safe(admin_view_fk_link(self, obj, "contact_request"))
     get_contact_request.short_description = "Contact request"
 
     def get_emails(self, obj: Letter) -> str:
-        return admin_view_reverse_fk_links(self, obj, "email_set")
-    get_emails.allow_tags = True
+        return mark_safe(admin_view_reverse_fk_links(self, obj, "email_set"))
     get_emails.short_description = "E-mail(s)"
 
 
 class LetterMgrAdmin(LetterDevAdmin):
-    """Restrict to letters visible to a researcher."""
+    """
+    RDBM admin view on :class:`crate_anon.crateweb.consent.models.Letter`.
+    """
     def get_queryset(self, request: HttpRequest) -> QuerySet:
         return (
             super().get_queryset(request)
@@ -1079,12 +1176,18 @@ class LetterMgrAdmin(LetterDevAdmin):
 
 
 class LetterResAdmin(LetterDevAdmin):
+    """
+    Researcher admin view on
+    :class:`crate_anon.crateweb.consent.models.Letter`.
+
+    Restrict to letters visible to a researcher.
+    """
     fields = ('id', 'created_at', 'get_pdf',
               'to_clinician', 'to_researcher', 'to_patient',
               'study', 'contact_request',
               'sent_manually_at', 'email')
     readonly_fields = fields
-    """Restrict to letters visible to a researcher."""
+
     def get_queryset(self, request: HttpRequest) -> QuerySet:
         qs = super().get_queryset(request).filter(to_researcher=True)
         studies = Study.filter_studies_for_researcher(Study.objects.all(),
@@ -1102,10 +1205,9 @@ class LetterResAdmin(LetterDevAdmin):
     def get_pdf(self, obj: Letter) -> str:
         if not obj.pdf:
             return "(Missing)"
-        return '<a href="{}">PDF</a>'.format(
-            reverse("letter", args=[obj.id]))
+        return mark_safe('<a href="{}">PDF</a>'.format(
+            reverse("letter", args=[obj.id])))
     get_pdf.short_description = "Letter PDF"
-    get_pdf.allow_tags = True
 
 
 # =============================================================================
@@ -1113,6 +1215,10 @@ class LetterResAdmin(LetterDevAdmin):
 # =============================================================================
 
 class UserProfileInline(admin.StackedInline):
+    """
+    Use this to represent
+    :class:`crate_anon.crateweb.userprofile.models.UserProfile` inline.
+    """
     model = UserProfile
     max_num = 1
     can_delete = False
@@ -1132,15 +1238,15 @@ class UserProfileInline(admin.StackedInline):
 
     def get_studies_as_lead(self, obj: settings.AUTH_USER_MODEL) -> str:
         studies = obj.user.studies_as_lead.all()
-        return render_to_string('shortlist_studies.html', {'studies': studies})
+        return mark_safe(
+            render_to_string('shortlist_studies.html', {'studies': studies}))
     get_studies_as_lead.short_description = "Studies as lead researcher"
-    get_studies_as_lead.allow_tags = True
 
     def get_studies_as_researcher(self, obj: settings.AUTH_USER_MODEL) -> str:
         studies = obj.user.studies_as_researcher.all()
-        return render_to_string('shortlist_studies.html', {'studies': studies})
+        return mark_safe(
+            render_to_string('shortlist_studies.html', {'studies': studies}))
     get_studies_as_researcher.short_description = "Studies as researcher"
-    get_studies_as_researcher.allow_tags = True
 
     def enough_info_for_researcher(self,
                                    obj: settings.AUTH_USER_MODEL) -> bool:
@@ -1156,6 +1262,10 @@ class UserProfileInline(admin.StackedInline):
 
 
 class ExtendedUserMgrAdmin(UserAdmin):
+    """
+    RDBM admin view on the Django user class with its associated
+    :class:`crate_anon.crateweb.userprofile.models.UserProfile`.
+    """
     inlines = [UserProfileInline]
     list_display = (
         'username', 'email', 'first_name', 'last_name', 'is_staff',
@@ -1182,6 +1292,9 @@ class ExtendedUserMgrAdmin(UserAdmin):
 # http://stackoverflow.com/questions/3400641/how-do-i-inline-edit-a-django-user-profile-in-the-admin-interface  # noqa
 
 class MgrAdminSite(admin.AdminSite):
+    """
+    RDBM admin site.
+    """
     # Text to put at the end of each page's <title>.
     site_title = ugettext_lazy(settings.RESEARCH_DB_TITLE + ' manager admin')
     # Text to put in each page's <h1>.
@@ -1219,6 +1332,9 @@ mgr_admin_site.register(User, ExtendedUserMgrAdmin)
 # http://stackoverflow.com/questions/3400641/how-do-i-inline-edit-a-django-user-profile-in-the-admin-interface  # noqa
 
 class DevAdminSite(admin.AdminSite):
+    """
+    Developer admin site.
+    """
     site_title = ugettext_lazy(settings.RESEARCH_DB_TITLE + ' dev admin')
     site_header = ugettext_lazy(settings.RESEARCH_DB_TITLE +
                                 ": developer admin")
@@ -1253,6 +1369,9 @@ dev_admin_site.register(User, ExtendedUserMgrAdmin)
 # =============================================================================
 
 class ResearcherAdminSite(admin.AdminSite):
+    """
+    Researcher admin site.
+    """
     site_title = ugettext_lazy(settings.RESEARCH_DB_TITLE +
                                ' researcher admin views')
     site_header = ugettext_lazy(settings.RESEARCH_DB_TITLE +

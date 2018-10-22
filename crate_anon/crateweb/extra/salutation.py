@@ -24,6 +24,8 @@ crate_anon/crateweb/extra/salutation.py
 
 ===============================================================================
 
+**Converts names to salutations and parses names into component parts.**
+
 """
 
 from typing import Optional, Tuple
@@ -40,15 +42,28 @@ def title_forename_surname(title: Optional[str],
                            sex: str = '',
                            assume_dr: bool = False) -> str:
     """
-    When reporting names:
+    Used when reporting names. Returns a string of the format ``Title Forename
+    Surname``, as far as we can work it out.
 
-    .. code-block:: none
+    Args:
+        title: title
+        forename: forename
+        surname: surname
+        always_title: if we don't know the title, guess one?
+        sex: ``"M"`` or ``"F"`` or other/unknown
+        assume_dr: assume the person has the title "Dr"?
 
-        Prof. John Smith
-        John Smith
-        Prof. Smith
+    Returns:
+        str: a string of a format like
 
-    etc.
+        .. code-block:: none
+
+            Prof. John Smith
+            John Smith
+            Prof. Smith
+
+        etc.
+
     """
     if always_title and not title:
         title = salutation_default_title(sex, assume_dr)
@@ -58,11 +73,30 @@ def title_forename_surname(title: Optional[str],
 def forename_surname(forename: Optional[str], surname: Optional[str]) -> str:
     """
     For use when reporting names.
+
+    Args:
+        forename: forename
+        surname: surname
+
+    Returns:
+        str: a string of the style ``Forename Surname``
+
     """
     return " ".join(filter(None, [forename, surname]))
 
 
 def salutation_default_title(sex: str = '', assume_dr: bool = False) -> str:
+    """
+    Returns a guess as to someone's title.
+
+    Args:
+        sex: ``"M"`` or ``"F"`` or other/unknown
+        assume_dr: assume the person has the title "Dr"?
+
+    Returns:
+        a title
+
+    """
     if assume_dr:
         return "Dr"
     if sex.upper() == 'M':
@@ -80,7 +114,18 @@ def salutation(title: Optional[str],
                sex: str = '',
                assume_dr: bool = False) -> str:
     """
-    For salutations: Dear ...
+    For salutations: "Dear ..."
+
+    Args:
+        title: title
+        forename: forename
+        surname: surname
+        sex: ``"M"`` or ``"F"`` or other/unknown
+        assume_dr: assume the person has the title "Dr"?
+
+    Returns:
+        a salutation like ``Prof. Smith``
+
     """
     if not title:
         title = salutation_default_title(sex, assume_dr)
@@ -97,6 +142,8 @@ def get_initial_surname_tuple_from_string(s: str) -> Tuple[str, str]:
     """
     Parses a name-like string into plausible parts. Try:
 
+    .. code-block:: python
+
         get_initial_surname_tuple_from_string("AJ VAN DEN BERG")
         get_initial_surname_tuple_from_string("VAN DEN BERG AJ")
         get_initial_surname_tuple_from_string("J Smith")
@@ -105,6 +152,9 @@ def get_initial_surname_tuple_from_string(s: str) -> Tuple[str, str]:
         get_initial_surname_tuple_from_string("Smith JKC")
         get_initial_surname_tuple_from_string("Dr Bob Smith")
         get_initial_surname_tuple_from_string("LINTON H C (PL)")
+
+    Returns:
+        tuple: ``initial, surname``
     """
     parts = s.split() if s else []
     nparts = len(parts)

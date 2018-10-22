@@ -24,7 +24,11 @@ crate_anon/crateweb/consent/management/commands/test_email.py
 
 ===============================================================================
 
+**Django management command to test sending an e-mail.**
+
 """
+
+from typing import Any
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -32,9 +36,14 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
+    """
+    Django management command to test sending an e-mail to the RDBM (without
+    saving it to the database).
+    """
     help = "Test email to RDBM (without saving to database)"
 
-    def handle(self, *args, **options):
+    def handle(self, *args: str, **options: Any) -> None:
+        # docstring in superclass
         sender = settings.EMAIL_SENDER
         recipient = settings.DEVELOPER_EMAIL
         send_mail(

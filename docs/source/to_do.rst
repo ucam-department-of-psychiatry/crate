@@ -22,13 +22,17 @@ Things to do
 
 .. todolist::
 
-- **debug** RDBM admin -> Studies:
+- **ongoing**
 
-  .. code-block:: none
+  - 2018-10-21: Fixed bug in :menuselection:`RDBM admin --> Studies`:
 
-    OperationalError at /mgr_admin/consent/study/
+    .. code-block:: none
 
-    (1054, "Unknown column 'consent_study.p_summary' in 'field list'")
+        OperationalError at /mgr_admin/consent/study/
+
+        (1054, "Unknown column 'consent_study.p_summary' in 'field list'")
+
+    Changed ``p_summary`` to a property.
 
 - **check** command-line param method for restricted anon
 

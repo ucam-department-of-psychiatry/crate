@@ -169,6 +169,7 @@ def generic_error(request: HttpRequest, error: str) -> HttpResponse:
 @django_cache_function(timeout=None)
 # @lru_cache(maxsize=None)
 def get_db_structure_json() -> str:
+    log.debug("get_db_structure_json")
     colinfolist = research_database_info.get_colinfolist()
     if not colinfolist:
         log.warning("get_db_structure_json(): colinfolist is empty")
@@ -219,6 +220,7 @@ def get_db_structure_json() -> str:
                 'schema': dbinfo.schema_name,
                 'tables': table_info,
             })
+    log.debug("... get_db_structure_json complete")
     return json.dumps(info)
 
 

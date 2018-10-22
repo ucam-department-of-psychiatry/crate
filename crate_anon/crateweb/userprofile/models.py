@@ -24,6 +24,8 @@ crate_anon/crateweb/userprofile/models.py
 
 ===============================================================================
 
+**Extended user profile for Django, with all our user configuration details.**
+
 """
 
 from typing import Any, List, Optional, Type
@@ -49,11 +51,16 @@ from crate_anon.crateweb.extra.salutation import (
 # =============================================================================
 # User profile information
 # =============================================================================
-# This is used for:
-#   - stuff the user might edit, e.g. per_page
-#   - a representation of the user as a researcher (or maybe clinician)
 
 class UserProfile(models.Model):
+    """
+    User profile information.
+
+    This is used for:
+
+    - stuff the user might edit, e.g. per_page
+    - a representation of the user as a researcher (or maybe clinician)
+    """
     user = models.OneToOneField(settings.AUTH_USER_MODEL,
                                 primary_key=True,
                                 on_delete=models.CASCADE,
@@ -156,22 +163,34 @@ class UserProfile(models.Model):
     # Functions
     # -------------------------------------------------------------------------
     def get_address_components(self) -> List[str]:
+        """
+        Returns the user's address lines.
+        """
         return list(filter(None,
                            [self.address_1, self.address_2, self.address_3,
                             self.address_4, self.address_5, self.address_6,
                             self.address_7]))
 
     def get_title_forename_surname(self) -> str:
+        """
+        Returns the user's name in the form "Dr Joe Bloggs".
+        """
         # noinspection PyTypeChecker,PyUnresolvedReferences
         return title_forename_surname(self.title, self.user.first_name,
                                       self.user.last_name)
 
     def get_salutation(self) -> str:
+        """
+        Returns a salutation for the user (e.g. "Dr Bloggs").
+        """
         # noinspection PyTypeChecker,PyUnresolvedReferences
         return salutation(self.title, self.user.first_name,
                           self.user.last_name, assume_dr=True)
 
     def get_forename_surname(self) -> str:
+        """
+        Returns the user's name in the form "Joe Bloggs".
+        """
         # noinspection PyUnresolvedReferences
         return forename_surname(self.user.first_name, self.user.last_name)
 
@@ -182,6 +201,20 @@ def user_saved_so_create_profile(sender: Type[settings.AUTH_USER_MODEL],
                                  instance: settings.AUTH_USER_MODEL,
                                  created: bool,
                                  **kwargs: Any) -> None:
+    """
+    Django signal receiver.
+
+    Called when a Django User object has been saved. Attaches
+
+    Args:
+        sender: the model class (User)
+        instance: will be the User object
+        created: was a new record created?
+        **kwargs: other arguments we don't care about
+
+    See https://docs.djangoproject.com/en/2.1/ref/signals/#post-save.
+
+    """
     UserProfile.objects.get_or_create(user=instance)
 
 
@@ -191,12 +224,36 @@ def user_saved_so_create_profile(sender: Type[settings.AUTH_USER_MODEL],
 
 
 def get_per_page(request: HttpRequest) -> Optional[int]:
+    """
+    Returns the number of items per page (a pagination preference) of the
+    current user.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        the number of items per page, or ``None`` if the user was not
+        authenticated
+
+    """
     if not request.user.is_authenticated:
         return None
     return request.user.profile.per_page
 
 
 def get_patients_per_page(request: HttpRequest) -> Optional[int]:
+    """
+    Returns the number of patients per page (a pagination preference, for the
+    Patient Explorer view) of the current user.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        the number of patients per page, or ``None`` if the user was not
+        authenticated
+
+    """
     if not request.user.is_authenticated:
         return None
     return request.user.profile.patients_per_page

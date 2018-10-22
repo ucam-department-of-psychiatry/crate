@@ -24,6 +24,8 @@ crate_anon/crateweb/config/constants.py
 
 ===============================================================================
 
+**Configuration constants for the CRATE web interface.**
+
 """
 
 CRATEWEB_CONFIG_ENV_VAR = 'CRATE_WEB_LOCAL_SETTINGS'
@@ -33,7 +35,8 @@ CELERY_APP_NAME = 'crate_anon.crateweb.consent'
 
 class ResearchDbInfoKeys(object):
     """
-    Keys for each dictionary within settings.RESEARCH_DB_INFO
+    Keys for each dictionary within ``settings.RESEARCH_DB_INFO``, representing
+    a description of a research database that CRATE will provide a view on.
     """
     NAME = 'name'
     DESCRIPTION = 'description'
@@ -65,6 +68,10 @@ SOURCE_DB_NAME_MAX_LENGTH = 20
 
 
 class ClinicalDatabaseType(object):
+    """
+    Possible source clinical database types that CRATE knows about, and can
+    look up patient details for the consent-to-contact system.
+    """
     # NB the following strings mustn't be longer than SOURCE_DB_NAME_MAX_LENGTH
     DUMMY_CLINICAL = 'dummy_clinical'
     CPFT_CRS = 'cpft_crs'

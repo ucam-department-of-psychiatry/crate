@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/crateweb/research/context_processors.py
+crate_anon/crateweb/core/context_processors.py
 
 ===============================================================================
 
@@ -24,18 +24,28 @@ crate_anon/crateweb/research/context_processors.py
 
 ===============================================================================
 
+**A common context dictionary for all Django requests.**
+
 """
 
 from typing import Any, Dict
 
 from django.conf import settings
 from django.http.request import HttpRequest
-# from crate_anon.crateweb.research.models import Query
-# from crate_anon.crateweb.extra.request_cache import get_request_cache
 
 
 # noinspection PyUnusedLocal
 def common_context(request: HttpRequest) -> Dict[str, Any]:
+    """
+    Returns a context used across the site.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        dict: a context dictionary
+
+    """
     return {
         'RESEARCH_DB_TITLE': settings.RESEARCH_DB_TITLE,
         'nav_on_main_menu': False,

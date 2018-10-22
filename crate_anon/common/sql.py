@@ -28,7 +28,6 @@ crate_anon/common/sql.py
 
 """
 
-import argparse
 from collections import OrderedDict
 import functools
 import logging

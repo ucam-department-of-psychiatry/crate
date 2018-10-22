@@ -24,7 +24,7 @@ crate_anon/crateweb/config/wsgi.py
 
 ===============================================================================
 
-WSGI config for crateweb project.
+**WSGI config for crateweb project.**
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

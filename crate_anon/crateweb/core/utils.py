@@ -24,6 +24,8 @@ crate_anon/crateweb/core/utils.py
 
 ===============================================================================
 
+**Core utility functions for the web interface.**
+
 """
 
 import datetime
@@ -48,8 +50,15 @@ log = logging.getLogger(__name__)
 
 def is_superuser(user: settings.AUTH_USER_MODEL) -> bool:
     """
-    Function for user with decorator, e.g.
+    Is the user a superuser?
+
+    Function for use with a decorator, e.g.
+
+    .. code-block:: python
+
         @user_passes_test(is_superuser)
+        def some_view(request: HttpRequest) -> HttpResponse:
+            pass
 
     Superuser equates to Research Database Manager.
     """
@@ -58,12 +67,20 @@ def is_superuser(user: settings.AUTH_USER_MODEL) -> bool:
 
 
 def is_developer(user: settings.AUTH_USER_MODEL) -> bool:
+    """
+    Is the user a developer?
+
+    (Developers are a subset of superusers.)
+    """
     if not user.is_authenticated:
         return False  # won't have a profile
     return user.profile.is_developer
 
 
 def is_clinician(user: settings.AUTH_USER_MODEL) -> bool:
+    """
+    Is the user a clinician?
+    """
     if not user.is_authenticated:
         return False  # won't have a profile
     return user.profile.is_clinician
@@ -76,6 +93,18 @@ def is_clinician(user: settings.AUTH_USER_MODEL) -> bool:
 def paginate(request: HttpRequest,
              all_items: Union[QuerySet, List[Any]],
              per_page: int = None) -> Page:
+    """
+    Paginate a list or a Django QuerySet.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        all_items: a list or a :class:`django.db.models.QuerySet`
+        per_page: number of items per page
+
+    Returns:
+        a :class:`django.core.paginator.Page`
+
+    """
     if per_page is None:
         per_page = get_per_page(request)
     paginator = Paginator(all_items, per_page)
@@ -94,9 +123,23 @@ def paginate(request: HttpRequest,
 # =============================================================================
 
 def url_with_querystring(path: str,
-                         querydict: Dict[str, Any] = None,
-                         **kwargs) -> str:
-    """Add GET arguments to a URL from named arguments or a QueryDict."""
+                         querydict: QueryDict = None,
+                         **kwargs: Any) -> str:
+    """
+    Add GET arguments to a URL from named arguments or a QueryDict.
+
+    Args:
+        path:
+            a base URL path
+        querydict:
+            a :class:`django.http.QueryDict`
+        **kwargs:
+            as an alternative to the ``querydict``, we can use ``kwargs`` as a
+            dictionary of query attribute-value pairs
+
+    Returns:
+        the URL with query parameters
+    """
     if querydict is not None and not isinstance(querydict, QueryDict):
         raise ValueError("Bad querydict value")
     if querydict and kwargs:
@@ -133,14 +176,14 @@ def site_absolute_url(path: str) -> str:
 
     **IMPORTANT**
 
-    BEWARE: reverse() will produce something different inside a request and
-    outside it.
+    BEWARE: :func:`reverse` will produce something different inside a request
+    and outside it.
 
     - http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell  # noqa
 
     So the only moderately clean way of doing this is to do this in the Celery
-    backend jobs, for anything that uses Django URLs (e.g. reverse) -- NOT
-    necessary for anything using only static URLs (e.g. pictures in PDFs).
+    backend jobs, for anything that uses Django URLs (e.g. :func:`reverse`) --
+    NOT necessary for anything using only static URLs (e.g. pictures in PDFs).
 
     .. code-block:: python
 
@@ -162,6 +205,9 @@ def site_absolute_url(path: str) -> str:
 # =============================================================================
 
 def get_friendly_date(date: datetime.datetime) -> str:
+    """
+    Returns a string form of a date/datetime.
+    """
     if date is None:
         return ""
     try:
@@ -175,5 +221,7 @@ def get_friendly_date(date: datetime.datetime) -> str:
 # =============================================================================
 
 def string_time_now() -> str:
-    """Returns current time in short-form ISO-8601 UTC, for filenames."""
+    """
+    Returns the current time in short-form ISO-8601 UTC, for filenames.
+    """
     return timezone.now().strftime("%Y%m%dT%H%M%SZ")

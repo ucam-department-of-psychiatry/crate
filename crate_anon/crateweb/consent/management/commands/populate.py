@@ -24,7 +24,11 @@ crate_anon/crateweb/consent/management/commands/populate.py
 
 ===============================================================================
 
+**Django management command to populate the database with leaflet entries.**
+
 """
+
+from typing import Any
 
 from django.core.management.base import BaseCommand
 
@@ -32,8 +36,12 @@ from crate_anon.crateweb.consent.models import Leaflet
 
 
 class Command(BaseCommand):
+    """
+    Django management command to populate the database with leaflet entries.
+    """
     help = "Populate the database with leaflet entries if necessary"
 
-    def handle(self, *args, **options):
+    def handle(self, *args: str, **options: Any) -> None:
+        # docstring in superclass
         Leaflet.populate()
         self.stdout.write("Successfully populated leaflets")

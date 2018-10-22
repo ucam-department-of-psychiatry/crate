@@ -24,14 +24,16 @@ crate_anon/crateweb/consent/tasks.py
 
 ===============================================================================
 
-See also :mod:`crate_anon.crateweb.consent.celery`, which defines the app
+**Celery tasks for the CRATE consent-to-contact system.**
+
+See also :mod:`crate_anon.crateweb.consent.celery`, which defines the ``app``.
 
 **If you get a "received unregistered task" error:**
 
 1.  Restart the Celery worker. That may fix it.
 
 2.  If that fails, consider: SPECIFY ABSOLUTE NAMES FOR TASKS.
-    e.g. with @shared_task(name="myfuncname")
+    e.g. with ``@shared_task(name="myfuncname")``.
     Possible otherwise that if this module is imported in different ways
     (e.g. absolute, relative), you'll get a "Received unregistered task"
     error.
@@ -55,7 +57,7 @@ See also :mod:`crate_anon.crateweb.consent.celery`, which defines the app
 
 **Circular imports:**
 
-- http://stackoverflow.com/questions/17313532/django-import-loop-between-celery-tasks-and-my-models  # noqa
+- http://stackoverflow.com/questions/17313532/django-import-loop-between-celery-tasks-and-my-models
 
 - The potential circularity is:
 
@@ -78,16 +80,16 @@ See also :mod:`crate_anon.crateweb.consent.celery`, which defines the app
 
   Object is received by Celery in the state before save() at step 3.
 
-- http://celery.readthedocs.org/en/latest/userguide/tasks.html#database-transactions  # noqa
+- http://celery.readthedocs.org/en/latest/userguide/tasks.html#database-transactions
 
-- http://stackoverflow.com/questions/26862942/django-related-objects-are-missing-from-celery-task-race-condition  # noqa
+- http://stackoverflow.com/questions/26862942/django-related-objects-are-missing-from-celery-task-race-condition
 
 - https://code.djangoproject.com/ticket/14051
 
 - https://github.com/aaugustin/django-transaction-signals
 
 - SOLUTION:
-  https://docs.djangoproject.com/en/dev/topics/db/transactions/#django.db.transaction.on_commit  # noqa
+  https://docs.djangoproject.com/en/dev/topics/db/transactions/#django.db.transaction.on_commit
 
   .. code-block:: python
 
@@ -96,7 +98,7 @@ See also :mod:`crate_anon.crateweb.consent.celery`, which defines the app
 
   Requires Django 1.9. As of 2015-11-21, that means 1.9rc1
 
-"""
+"""  # noqa
 
 import logging
 from celery import shared_task
@@ -110,6 +112,17 @@ log = logging.getLogger(__name__)
 # noinspection PyCallingNonCallable
 @shared_task(ignore_result=True)
 def add(x: float, y: float) -> float:
+    """
+    Task to add two numbers. For testing!
+
+    Args:
+        x: a float
+        y: another float
+
+    Returns:
+        x + y
+
+    """
     return x + y
 
 
@@ -118,6 +131,7 @@ def add(x: float, y: float) -> float:
 def resend_email(email_id: int, user_id: int) -> None:
     """
     Celery task to resend a pre-existing e-mail.
+
     Args:
         email_id: ID of the e-mail
         user_id: ID of the sending user
@@ -139,15 +153,17 @@ def resend_email(email_id: int, user_id: int) -> None:
 @shared_task(ignore_result=True)
 def process_contact_request(contact_request_id: int) -> None:
     """
-    Celery task to act on a contact request.
-    For example, might send an e-mail to a clinician, or generate a letter to
-    the researcher.
+    Celery task to act on a contact request. For example, might send an e-mail
+    to a clinician, or generate a letter to the researcher.
 
     Callers include
     - :meth:`crate_anon.crateweb.consent.models.ContactRequest.create`
 
     Sets ``processed = True`` and ``processed_at`` for the
     :class:`crate_anon.crateweb.consent.models.ContactRequest`.
+
+    Args:
+        contact_request_id: PK of the contact request
     """
     from crate_anon.crateweb.consent.models import ContactRequest  # delayed import  # noqa
     set_script_prefix(settings.FORCE_SCRIPT_NAME)  # see site_absolute_url
@@ -168,6 +184,9 @@ def finalize_clinician_response(clinician_response_id: int) -> None:
 
     Sets ``processed = True`` and ``processed_at`` for the
     :class:`crate_anon.crateweb.consent.models.ClinicianResponse`.
+
+    Args:
+        clinician_response_id: PK of the clinician response
     """  # noqa
     from crate_anon.crateweb.consent.models import ClinicianResponse  # delayed import  # noqa
     clinician_response = ClinicianResponse.objects.get(
@@ -191,6 +210,8 @@ def process_consent_change(consent_mode_id: int) -> None:
 
     .. todo: don't process twice
 
+    Args:
+        consent_mode_id: PK of the consent mode
     """
     from crate_anon.crateweb.consent.models import ConsentMode  # delayed import  # noqa
     consent_mode = ConsentMode.objects.get(pk=consent_mode_id)
@@ -206,6 +227,9 @@ def process_patient_response(patient_response_id: int) -> None:
 
     Sets ``processed = True`` and ``processed_at`` for the
     :class:`crate_anon.crateweb.consent.models.PatientResponse`.
+
+    Args:
+        patient_response_id: PK of the patient response
     """
     from crate_anon.crateweb.consent.models import PatientResponse  # delayed import  # noqa
     patient_response = PatientResponse.objects.get(pk=patient_response_id)
@@ -237,6 +261,10 @@ def email_rdbm_task(subject: str, text: str) -> None:
     Creates/saves an
     :class:`crate_anon.crateweb.consent.models.Email` and an
     :class:`crate_anon.crateweb.consent.models.EmailTransmission`.
+
+    Args:
+        subject: e-mail subject
+        text: e-mail body text
     """
     from crate_anon.crateweb.consent.models import Email  # delayed import
     email = Email.create_rdbm_text_email(subject, text)

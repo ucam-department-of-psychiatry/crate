@@ -24,9 +24,12 @@ crate_anon/crateweb/consent/management/commands/resubmit_unprocessed_tasks.py
 
 ===============================================================================
 
+**Django management command to resubmit unprocessed tasks.**
+
 """
 
 import logging
+from typing import Any
 
 from django.core.management.base import BaseCommand
 
@@ -36,9 +39,14 @@ log = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
+    """
+    Django management command to resubmit unprocessed tasks (in case Celery
+    jobs have been lost).
+    """
     help = "Resubmit unprocessed tasks (in case Celery jobs have been lost)"
 
-    def handle(self, *args, **options):
+    def handle(self, *args: str, **options: Any) -> None:
+        # docstring in superclass
         resubmit_unprocessed_tasks_task.delay()
         log.info("Initial Celery task submitted; this will trigger "
                  "more tasks for any unprocessed work.")

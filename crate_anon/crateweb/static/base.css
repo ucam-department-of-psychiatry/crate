@@ -38,6 +38,10 @@ th, td {
 p {
     margin: 0.4em 0;
 }
+td p {
+    /* p within td */
+    margin: 0 0 0.4em 0;
+}
 ul {
     margin: 0.25em 0;
 }

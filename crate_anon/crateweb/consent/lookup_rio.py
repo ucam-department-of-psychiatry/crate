@@ -24,6 +24,9 @@ crate_anon/crateweb/consent/lookup_rio.py
 
 ===============================================================================
 
+**Functions to look up patient details from various versions of a Servelec
+RiO clinical database.**
+
 """
 
 from operator import attrgetter
@@ -62,14 +65,21 @@ def lookup_cpft_rio_crate_preprocessed(lookup: PatientLookup,
                                        decisions: List[str],
                                        secret_decisions: List[str]) -> None:
     """
+    Look up patient details from a CRATE-preprocessed RiO database.
+
+    Args:
+        lookup: a :class:`crate_anon.crateweb.consent.models.PatientLookup`
+        decisions: list of human-readable decisions; will be modified
+        secret_decisions: list of human-readable decisions containing secret
+            (identifiable) information; will be modified
+
     Here, we use the version of RiO preprocessed by the CRATE preprocessor.
     This is almost identical to the RCEP version, saving us some thought and
     lots of repetition of complex JOIN code to deal with the raw RiO database.
 
-    However, the CRATE preprocessor does this with views.
-    We would need to index the underlying tables; however, the CRATE
-    processor has also done this for us for the lookup tables, so we
-    don't need so many.
+    However, the CRATE preprocessor does this with views. We would need to
+    index the underlying tables; however, the CRATE processor has also done
+    this for us for the lookup tables, so we don't need so many.
 
     .. code-block:: sql
 
@@ -127,6 +137,15 @@ def lookup_cpft_rio_rcep(lookup: PatientLookup,
                          decisions: List[str],
                          secret_decisions: List[str]) -> None:
     """
+    Look up patient details from a RiO database that's been preprocessed
+    through Servelec's RCEP (RiO CRIS Extraction Program) tool.
+
+    Args:
+        lookup: a :class:`crate_anon.crateweb.consent.models.PatientLookup`
+        decisions: list of human-readable decisions; will be modified
+        secret_decisions: list of human-readable decisions containing secret
+            (identifiable) information; will be modified
+
     **RiO notes, 2015-05-19**
 
     ... ADDENDUM 2017-02-27: this is the RiO database as modified by Servelec's
@@ -186,6 +205,17 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                             secret_decisions: List[str],
                             as_crate_not_rcep: bool) -> None:
     """
+    Look up patient details from a RiO database, either as a CRATE-processed
+    or an RCEP-processed version. (They are very similar.)
+
+    Args:
+        lookup: a :class:`crate_anon.crateweb.consent.models.PatientLookup`
+        decisions: list of human-readable decisions; will be modified
+        secret_decisions: list of human-readable decisions containing secret
+            (identifiable) information; will be modified
+        as_crate_not_rcep: is it a CRATE-preprocessed, rather than an
+            RCEP-preprocessed, database?
+
     Main:
 
     .. code-block:: none
@@ -874,6 +904,21 @@ def get_latest_consent_mode_from_rio_generic(
         raw_rio: bool = False,
         cpft_datamart: bool = False) -> Optional[ConsentMode]:
     """
+    Returns the latest consent mode for a patient, from some style of RiO
+    database.
+
+    Args:
+        nhs_number: NHS number
+        source_db: the type of the source database; see
+            :class:`crate_anon.crateweb.config.constants.ClinicalDatabaseType`
+        decisions: list of human-readable decisions; will be modified
+        raw_rio: is the source database a raw copy of RiO?
+        cpft_datamart: is the source database the version from the CPFT
+            data warehouse?
+
+    Returns:
+        a :class:`crate_anon.crateweb.consent.models.ConsentMode`, or ``None``
+
     Shared function as very similar for the various copies of RiO data.
 
     In raw RiO at CPFT, the traffic-light table is UserAssessConsentrd.
@@ -1128,6 +1173,20 @@ def get_latest_consent_mode_from_rio_cpft_datamart(
         nhs_number: int,
         source_db: str,
         decisions: List[str]) -> Optional[ConsentMode]:
+    """
+    Returns the latest consent mode for a patient from the copy of RiO in
+    the CPFT data warehouse.
+
+    Args:
+        nhs_number: NHS number
+        source_db: the type of the source database; see
+            :class:`crate_anon.crateweb.config.constants.ClinicalDatabaseType`
+        decisions: list of human-readable decisions; will be modified
+
+    Returns:
+        a :class:`crate_anon.crateweb.consent.models.ConsentMode`, or ``None``
+
+    """
     return get_latest_consent_mode_from_rio_generic(
         nhs_number=nhs_number,
         source_db=source_db,
@@ -1140,6 +1199,19 @@ def get_latest_consent_mode_from_rio_raw(
         nhs_number: int,
         source_db: str,
         decisions: List[str]) -> Optional[ConsentMode]:
+    """
+    Returns the latest consent mode for a patient from a raw copy of RiO.
+
+    Args:
+        nhs_number: NHS number
+        source_db: the type of the source database; see
+            :class:`crate_anon.crateweb.config.constants.ClinicalDatabaseType`
+        decisions: list of human-readable decisions; will be modified
+
+    Returns:
+        a :class:`crate_anon.crateweb.consent.models.ConsentMode`, or ``None``
+
+    """
     return get_latest_consent_mode_from_rio_generic(
         nhs_number=nhs_number,
         source_db=source_db,
@@ -1154,7 +1226,19 @@ def gen_opt_out_pids_mpids_rio_generic(
         cpft_datamart: bool = False) -> Generator[Tuple[str, str],
                                                   None, None]:
     """
-    Generates (pid, mpid) tuples.
+    Generates PIDs/MPIDs from all patients opting out, from a RiO database of
+    some sort.
+
+    Args:
+        source_db: the type of the source database; see
+            :class:`crate_anon.crateweb.config.constants.ClinicalDatabaseType`
+        raw_rio: is the source database a raw copy of RiO?
+        cpft_datamart: is the source database the version from the CPFT
+            data warehouse?
+
+    Yields:
+        tuple: ``rio_number, nhs_number`` for each patient opting out; both are
+        in string format
     """
     assert sum([raw_rio, cpft_datamart]) == 1, (
         "Specify exactly one database type to look up from"
@@ -1202,6 +1286,18 @@ def gen_opt_out_pids_mpids_rio_generic(
 
 def gen_opt_out_pids_mpids_rio_cpft_datamart(source_db: str) -> Generator[
         Tuple[str, str], None, None]:
+    """
+    Generates PIDs/MPIDs from all patients opting out, from a RiO database that
+    is the version in the CPFT data warehouse.
+
+    Args:
+        source_db: the type of the source database; see
+            :class:`crate_anon.crateweb.config.constants.ClinicalDatabaseType`
+
+    Yields:
+        tuple: ``rio_number, nhs_number`` for each patient opting out; both are
+        in string format
+    """
     return gen_opt_out_pids_mpids_rio_generic(
         source_db=source_db,
         cpft_datamart=True
@@ -1210,6 +1306,17 @@ def gen_opt_out_pids_mpids_rio_cpft_datamart(source_db: str) -> Generator[
 
 def gen_opt_out_pids_mpids_rio_raw(source_db: str) -> Generator[
         Tuple[str, str], None, None]:
+    """
+    Generates PIDs/MPIDs from all patients opting out, from a raw RiO database.
+
+    Args:
+        source_db: the type of the source database; see
+            :class:`crate_anon.crateweb.config.constants.ClinicalDatabaseType`
+
+    Yields:
+        tuple: ``rio_number, nhs_number`` for each patient opting out; both are
+        in string format
+    """
     return gen_opt_out_pids_mpids_rio_generic(
         source_db=source_db,
         raw_rio=True

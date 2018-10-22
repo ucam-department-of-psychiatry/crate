@@ -24,6 +24,11 @@ crate_anon/crateweb/consent/lookup.py
 
 ===============================================================================
 
+**Core functions to look up patient details from a clinical database.**
+
+These functions then send the request to specialized functions according to
+which type of clinical database is in use.
+
 """
 
 import logging
@@ -60,6 +65,22 @@ def lookup_patient(nhs_number: int,
                    source_db: str = None,
                    save: bool = True,
                    existing_ok: bool = False) -> PatientLookup:
+    """
+    Looks up details of a patient.
+
+    Args:
+        nhs_number: NHS number
+        source_db: the type of the source database; see
+            :class:`crate_anon.crateweb.config.constants.ClinicalDatabaseType`
+        save: save the lookup in our admin database?
+        existing_ok: if we have a lookup saved in our admin database, use that?
+            (If ``False``, fetch a new one from the primary source,
+            regardless.)
+
+    Returns:
+        a :class:`crate_anon.crateweb.consent.models.PatientLookup`
+
+    """
     source_db = source_db or settings.CLINICAL_LOOKUP_DB
     if existing_ok:
         try:
@@ -73,8 +94,8 @@ def lookup_patient(nhs_number: int,
     lookup = PatientLookup(nhs_number=nhs_number,
                            source_db=source_db)
     # ... this object will be modified by the subsequent calls
-    decisions = []
-    secret_decisions = []
+    decisions = []  # type: List[str]
+    secret_decisions = []  # type: List[str]
     if source_db == ClinicalDatabaseType.DUMMY_CLINICAL:
         lookup_dummy_clinical(lookup, decisions, secret_decisions)
     elif source_db == ClinicalDatabaseType.CPFT_PCMIS:
@@ -106,8 +127,18 @@ def lookup_consent(nhs_number: int,
                    decisions: List[str],
                    source_db: str = None) -> Optional[ConsentMode]:
     """
-    Returns the latest ConsentMode for this patient from the primary clinical
-    source, or None. Writes to decisions.
+    Returns the latest :class:`crate_anon.crateweb.consent.models.ConsentMode`
+    for this patient from the primary clinical source, or ``None``. Writes to
+    ``decisions`` as it goes.
+
+    Args:
+        nhs_number: NHS number
+        decisions: list of human-readable decisions; will be modified
+        source_db: the type of the source database; see
+            :class:`crate_anon.crateweb.config.constants.ClinicalDatabaseType`
+
+    Returns:
+        a :class:`crate_anon.crateweb.consent.models.ConsentMode` or ``None``
     """
     source_db = source_db or settings.CLINICAL_LOOKUP_CONSENT_DB
     if source_db == ClinicalDatabaseType.CPFT_RIO_DATAMART:
@@ -136,7 +167,16 @@ def gen_opt_out_pids_mpids(source_db: str) -> Generator[
         Tuple[Union[int, str], Union[int, str]],
         None, None]:
     """
-    Generates (pid, mpid) tuples.
+    Generates PID/MPID information for all patients wishing to opt out of the
+    anonymous database.
+
+    Args:
+        source_db: the type of the source database; see
+            :class:`crate_anon.crateweb.config.constants.ClinicalDatabaseType`
+
+    Yields:
+        tuples: ``pid, mpid`` for each patient opting out
+
     """
     if source_db == ClinicalDatabaseType.CPFT_RIO_DATAMART:
         generator = gen_opt_out_pids_mpids_rio_cpft_datamart(source_db)

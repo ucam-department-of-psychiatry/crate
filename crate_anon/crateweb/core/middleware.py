@@ -24,6 +24,8 @@ crate_anon/crateweb/core/middleware.py
 
 ===============================================================================
 
+**Middleware.**
+
 """
 
 from django.core.exceptions import ImproperlyConfigured
@@ -42,7 +44,7 @@ from crate_anon.crateweb.core.utils import is_developer
 
 class RestrictAdminMiddleware(MiddlewareMixin):
     """
-    A middleware that restricts different admin sites depending on user
+    A middleware that restricts the different admin sites depending on user
     privileges.
     """
     @staticmethod

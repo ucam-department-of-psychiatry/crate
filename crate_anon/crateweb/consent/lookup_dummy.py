@@ -24,6 +24,8 @@ crate_anon/crateweb/consent/lookup_dummy.py
 
 ===============================================================================
 
+**Function to "look up" patient details from a fictional dummy database.**
+
 """
 
 from typing import List
@@ -47,6 +49,12 @@ def lookup_dummy_clinical(lookup: PatientLookup,
                           secret_decisions: List[str]) -> None:
     """
     Looks up a patient from the fictional dummy database.
+
+    Args:
+        lookup: a :class:`crate_anon.crateweb.consent.models.PatientLookup`
+        decisions: list of human-readable decisions; will be modified
+        secret_decisions: list of human-readable decisions containing secret
+            (identifiable) information; will be modified
     """
     try:
         dummylookup = DummyPatientSourceInfo.objects.get(

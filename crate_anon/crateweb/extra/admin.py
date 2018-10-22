@@ -24,6 +24,8 @@ crate_anon/crateweb/extra/admin.py
 
 ===============================================================================
 
+**Extensions to Django admin site classes.**
+
 """
 
 import logging
@@ -45,7 +47,10 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 class ReadOnlyChangeList(ChangeList):
-    # See ChangeList in django.contrib.admin.views.main
+    """
+    Variant of :class:`django.contrib.admin.views.main.ChangeList` that that
+    changes the text for a read-only context.
+    """
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         if self.is_popup:
@@ -57,7 +62,7 @@ class ReadOnlyChangeList(ChangeList):
 
 class ReadOnlyModelAdmin(ModelAdmin):
     """
-    Allows view ("change"), but not add/edit/delete.
+    ModelAdmin that allows users to view ("change"), but not add/edit/delete.
 
     You also need to do this:
 
@@ -120,9 +125,9 @@ class ReadOnlyModelAdmin(ModelAdmin):
 
 class AddOnlyModelAdmin(ModelAdmin):
     """
-    Allows add, but not edit or delete.
-    Optional extra class attribute:
-        fields_for_viewing
+    ModelAdmin that allows add, but not edit or delete.
+
+    Optional extra class attribute: ``fields_for_viewing``.
     """
     actions = None
 
@@ -178,9 +183,10 @@ class AddOnlyModelAdmin(ModelAdmin):
 
 class EditOnlyModelAdmin(ModelAdmin):
     """
-    Allows editing, but not add or delete.
-    Designed for e.g. when you have a fixed set of PKs.
-    In that situation, ensure the PK field is in readonly_fields.
+    ModelAdmin that allows editing, but not add or delete.
+
+    Designed for e.g. when you have a fixed set of PKs. In that situation,
+    ensure the PK field is in ``readonly_fields``.
     """
     actions = None
 
@@ -193,9 +199,10 @@ class EditOnlyModelAdmin(ModelAdmin):
 
 class EditOnceOnlyModelAdmin(ModelAdmin):
     """
-    Allows editing, but not add or delete.
-    Designed for e.g. when you have a fixed set of PKs.
-    In that situation, ensure the PK field is in readonly_fields.
+    ModelAdmin that allows editing, but not add or delete.
+
+    Designed for e.g. when you have a fixed set of PKs. In that situation,
+    ensure the PK field is in ``readonly_fields``.
     """
     actions = None
 
@@ -210,7 +217,7 @@ class EditOnceOnlyModelAdmin(ModelAdmin):
 
 class AllStaffReadOnlyModelAdmin(ReadOnlyModelAdmin):
     """
-    ReadOnlyModelAdmin but allows access to all staff, not just superusers.
+    ReadOnlyModelAdmin that allows access to all staff, not just superusers.
     (No easy way to make this work via multiple inheritance.)
     """
     def has_module_permission(self, request: HttpRequest) -> bool:
@@ -218,4 +225,3 @@ class AllStaffReadOnlyModelAdmin(ReadOnlyModelAdmin):
 
     def has_change_permission(self, request: HttpRequest, obj=None) -> bool:
         return request.user.is_staff
-

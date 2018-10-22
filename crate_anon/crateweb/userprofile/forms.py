@@ -24,6 +24,8 @@ crate_anon/crateweb/userprofile/forms.py
 
 ===============================================================================
 
+**Forms for editing user profiles.**
+
 """
 
 from django.forms import ModelForm
@@ -31,6 +33,9 @@ from crate_anon.crateweb.userprofile.models import UserProfile
 
 
 class UserProfileForm(ModelForm):
+    """
+    Form to edit a :class:`crate_anon.crateweb.userprofile.models.UserProfile`.
+    """
     class Meta:
         model = UserProfile
         fields = ['per_page', 'patients_per_page',

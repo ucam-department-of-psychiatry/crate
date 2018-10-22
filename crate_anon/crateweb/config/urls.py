@@ -24,7 +24,7 @@ crate_anon/crateweb/config/urls.py
 
 ===============================================================================
 
-crateweb URL Configuration
+**crateweb Django URL configuration**
 
 The `urlpatterns` list routes URLs to views. For more information please see:
 https://docs.djangoproject.com/en/1.8/topics/http/urls/
@@ -277,8 +277,8 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # Developer functions and test views
     # -------------------------------------------------------------------------
-    url(r'^generate_fake_nhs/$', consent_views.generate_fake_nhs,
-        name='generate_fake_nhs'),
+    url(r'^generate_random_nhs/$', consent_views.generate_random_nhs,
+        name='generate_random_nhs'),
     url(r'^test_patient_lookup/$', consent_views.test_patient_lookup,
         name='test_patient_lookup'),
     url(r'^test_consent_lookup/$', consent_views.test_consent_lookup,

@@ -24,6 +24,8 @@ crate_anon/crateweb/consent/views.py
 
 ===============================================================================
 
+**Django views for the consent-to-contact system.**
+
 """
 
 import logging
@@ -38,6 +40,7 @@ from cardinal_pythonlib.django.serve import (
 from cardinal_pythonlib.nhs import generate_random_nhs_number
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import HttpResponse, Http404, HttpResponseForbidden
 from django.http.response import HttpResponseBase
@@ -87,7 +90,18 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 def validate_email_request(user: settings.AUTH_USER_MODEL,
-                           email: Email) -> Optional[HttpResponseForbidden]:
+                           email: Email) -> None:
+    """
+    Checks that the current user has permission to view the specified e-mail.
+
+    Args:class
+        user: current Django user object
+        email: :class:`crate_anon.crateweb.consent.models.Email`
+
+    Raises:
+        :exc:`django.core.exceptions.PermissionDenied` on failure
+
+    """
     if user.profile.is_developer:
         return  # the developer sees all
     if email.to_researcher:
@@ -101,11 +115,22 @@ def validate_email_request(user: settings.AUTH_USER_MODEL,
     elif email.to_patient:
         if user.is_superuser:
             return  # RDBM can see any e-mail to a patient
-    return HttpResponseForbidden("Not authorized")
+    raise PermissionDenied("Not authorized")
 
 
 def validate_letter_request(user: settings.AUTH_USER_MODEL,
-                            letter: Letter) -> Optional[HttpResponseForbidden]:
+                            letter: Letter) -> None:
+    """
+    Checks that the current user has permission to view the specified letter.
+
+    Args:
+        user: current Django user object
+        letter: :class:`crate_anon.crateweb.consent.models.Letter`
+
+    Raises:
+        :exc:`django.core.exceptions.PermissionDenied` on failure
+
+    """
     if user.profile.is_developer:
         return  # the developer sees all
     if user.is_superuser:
@@ -115,7 +140,7 @@ def validate_letter_request(user: settings.AUTH_USER_MODEL,
                                                       user)
         if letter.study in studies:
             return  # this e-mail belongs to this researcher
-    return HttpResponseForbidden("Not authorized")
+    raise PermissionDenied("Not authorized")
 
 
 # =============================================================================
@@ -124,6 +149,19 @@ def validate_letter_request(user: settings.AUTH_USER_MODEL,
 
 def get_contact_request(request: HttpRequest,
                         contact_request_id: str) -> ContactRequest:
+    """
+    Return the specified contact request.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        contact_request_id: PK
+
+    Returns:
+        :class:`crate_anon.crateweb.consent.models.ContactRequest`
+
+    Raises:
+        :exc:`django.http.Http404` if not found
+    """
     if contact_request_id == TEST_ID_STR:
         return make_dummy_objects(request).contact_request
     return get_object_or_404(
@@ -132,6 +170,19 @@ def get_contact_request(request: HttpRequest,
 
 def get_patient_lookup(request: HttpRequest,
                        patient_lookup_id: str) -> PatientLookup:
+    """
+    Return the specified patient lookup.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        patient_lookup_id: PK
+
+    Returns:
+        :class:`crate_anon.crateweb.consent.models.PatientLookup`
+
+    Raises:
+        :exc:`django.http.Http404` if not found
+    """
     if patient_lookup_id == TEST_ID_STR:
         return make_dummy_objects(request).patient_lookup
     return get_object_or_404(
@@ -140,6 +191,19 @@ def get_patient_lookup(request: HttpRequest,
 
 def get_consent_mode(request: HttpRequest,
                      consent_mode_id: str) -> ConsentMode:
+    """
+    Return the specified consent mode.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        consent_mode_id: PK
+
+    Returns:
+        :class:`crate_anon.crateweb.consent.models.ConsentMode`
+
+    Raises:
+        :exc:`django.http.Http404` if not found
+    """
     if consent_mode_id == TEST_ID_STR:
         return make_dummy_objects(request).consent_mode
     return get_object_or_404(
@@ -152,6 +216,13 @@ def get_consent_mode(request: HttpRequest,
 
 # noinspection PyUnusedLocal
 def study_details(request: HttpRequest, study_id: str) -> HttpResponseBase:
+    """
+    View details of a study.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        study_id: PK for :class:`crate_anon.crateweb.consent.models.Study`
+    """
     if study_id == TEST_ID_STR:
         study = make_dummy_objects(request).study
     else:
@@ -169,6 +240,14 @@ study_details.login_required = False
 
 # noinspection PyUnusedLocal
 def study_form(request: HttpRequest, study_id: str) -> HttpResponseBase:
+    """
+    For a study, view the PDF form that researchers would like clinicians to
+    complete.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        study_id: PK for :class:`crate_anon.crateweb.consent.models.Study`
+    """
     study = get_object_or_404(Study, pk=study_id)  # type: Study
     if not study.subject_form_template_pdf:
         raise Http404("No study form for clinicians to complete")
@@ -183,6 +262,14 @@ study_form.login_required = False
 
 # noinspection PyUnusedLocal
 def study_pack(request: HttpRequest, study_id: str) -> HttpResponseBase:
+    """
+    View a PDF "pack" for a study, including the study details and its
+    additional form for clinicians, if provided.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        study_id: PK for :class:`crate_anon.crateweb.consent.models.Study`
+    """
     study = get_object_or_404(Study, pk=study_id)  # type: Study
     # noinspection PyUnresolvedReferences
     filenames = filter(None, [
@@ -206,7 +293,15 @@ study_pack.login_required = False
 @user_passes_test(is_superuser)
 def download_privatestorage(request: HttpRequest,
                             filename: str) -> HttpResponseBase:
-    """Superuser access function, used for admin interface only."""
+    """
+    Download a file from the private storage area.
+
+    Superuser access function, used for admin interface only.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        filename: filename within the private storage area
+    """
     fullpath = privatestorage.path(filename)
     content_type = mimetypes.guess_type(filename, strict=False)[0]
     # ... guess_type returns a (content_type, encoding) tuple
@@ -214,15 +309,32 @@ def download_privatestorage(request: HttpRequest,
 
 
 @user_passes_test(is_developer)
-def generate_fake_nhs(request: HttpRequest, n: str = 10) -> HttpResponse:
+def generate_random_nhs(request: HttpRequest, n: str = 10) -> HttpResponse:
+    """
+    Display random NHS numbers to the requestor.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        n: how many random NHS numbers to generate?
+    """
     nhs_numbers = [generate_random_nhs_number()
                    for _ in range(int(n))]
-    return render(request, 'generate_fake_nhs.html', {
+    return render(request, 'generate_random_nhs.html', {
         'nhs_numbers': nhs_numbers
     })
 
 
 def view_email_html(request: HttpRequest, email_id: str) -> HttpResponse:
+    """
+    View the HTML for an e-mail.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        email_id: PK for :class:`crate_anon.crateweb.consent.models.Email`
+
+    Raises:
+        :exc:`django.http.Http404` if not found
+    """
     email = get_object_or_404(Email, pk=email_id)  # type: Email
     # noinspection PyTypeChecker
     validate_email_request(request.user, email)
@@ -231,6 +343,17 @@ def view_email_html(request: HttpRequest, email_id: str) -> HttpResponse:
 
 def view_email_attachment(request: HttpRequest,
                           attachment_id: str) -> HttpResponseBase:
+    """
+    View the HTML for an e-mail.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        attachment_id: PK for
+            :class:`crate_anon.crateweb.consent.models.EmailAttachment`
+
+    Raises:
+        :exc:`django.http.Http404` if not found
+    """
     attachment = get_object_or_404(EmailAttachment, pk=attachment_id)  # type: EmailAttachment  # noqa
     # noinspection PyTypeChecker
     validate_email_request(request.user, attachment.email)
@@ -243,6 +366,13 @@ def view_email_attachment(request: HttpRequest,
 
 @user_passes_test(is_developer)
 def test_patient_lookup(request: HttpRequest) -> HttpResponse:
+    """
+    Looks up a patient's details and shows the results without saving the
+    lookup.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+    """
     form = SingleNhsNumberForm(
         request.POST if request.method == 'POST' else None)
     if form.is_valid():
@@ -256,6 +386,13 @@ def test_patient_lookup(request: HttpRequest) -> HttpResponse:
 
 @user_passes_test(is_developer)
 def test_consent_lookup(request: HttpRequest) -> HttpResponse:
+    """
+    Looks up a patient's consent mode and shows the results without saving the
+    lookup.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+    """
     form = SingleNhsNumberForm(
         request.POST if request.method == 'POST' else None)
     if form.is_valid():
@@ -278,6 +415,14 @@ def test_consent_lookup(request: HttpRequest) -> HttpResponse:
 
 # noinspection PyUnusedLocal
 def view_leaflet(request: HttpRequest, leaflet_name: str) -> HttpResponseBase:
+    """
+    Views a system-wide leaflet.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        leaflet_name: name of the leaflet; see
+            :class:`crate_anon.crateweb.consent.models.Leaflet`
+    """
     leaflet = get_object_or_404(Leaflet, name=leaflet_name)  # type: Leaflet
     if not leaflet.pdf:
         raise Http404("Missing leaflet")
@@ -291,6 +436,16 @@ view_leaflet.login_required = False
 
 
 def view_letter(request: HttpRequest, letter_id: str) -> HttpResponseBase:
+    """
+    View a letter (as a PDF).
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        letter_id: PK for :class:`crate_anon.crateweb.consent.models.Letter`
+
+    Raises:
+        :exc:`django.http.Http404` if not found
+    """
     letter = get_object_or_404(Letter, pk=letter_id)  # type: Letter
     # noinspection PyTypeChecker
     validate_letter_request(request.user, letter)
@@ -302,6 +457,12 @@ def view_letter(request: HttpRequest, letter_id: str) -> HttpResponseBase:
 
 
 def submit_contact_request(request: HttpRequest) -> HttpResponse:
+    """
+    Submits a contact request for a study, potentially for multiple patients.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+    """
     dbinfo = research_database_info.dbinfo_for_contact_lookup
     if request.user.is_superuser:
         form = SuperuserSubmitContactRequestForm(
@@ -358,6 +519,16 @@ def submit_contact_request(request: HttpRequest) -> HttpResponse:
 def finalize_clinician_response_in_background(
         request: HttpRequest,
         clinician_response: ClinicianResponse) -> HttpResponse:
+    """
+    Submits a background processing job to complete processing a clinician's
+    response, and return a short thank-you response to the clinician.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        clinician_response:
+            :class:`crate_anon.crateweb.consent.models.ClinicianResponse`
+            object
+    """
     clinician_response.finalize_a()  # first part of processing
     transaction.on_commit(
         lambda: finalize_clinician_response.delay(clinician_response.id)
@@ -370,7 +541,15 @@ def finalize_clinician_response_in_background(
 def clinician_response_view(request: HttpRequest,
                             clinician_response_id: str) -> HttpResponse:
     """
-    REC DOCUMENTS 09, 11, 13 (B): Web form for clinicians to respond with
+    Shows the response choices to the clinician. They'll get here by clicking
+    on a link in an e-mail.
+
+    **REC DOCUMENTS 09, 11, 13 (B): Web form for clinicians to respond with.**
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        clinician_response_id: PK for
+            :class:`crate_anon.crateweb.consent.models.ClinicianResponse`
     """
     if clinician_response_id == TEST_ID_STR:
         dummies = make_dummy_objects(request)
@@ -500,6 +679,17 @@ clinician_response_view.login_required = False
 def clinician_pack(request: HttpRequest,
                    clinician_response_id: str,
                    token: str) -> HttpResponse:
+    """
+    Shows a clinician "pack" as a PDF, including a letter from them to the
+    patient, details of the study, forms for the patient to respond, etc.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        clinician_response_id: PK for
+            :class:`crate_anon.crateweb.consent.models.ClinicianResponse`
+        token: security token (which we'll check against the one we sent to
+            the clinician)
+    """
     if clinician_response_id == TEST_ID_STR:
         dummies = make_dummy_objects(request)
         clinician_response = dummies.clinician_response
@@ -533,6 +723,14 @@ clinician_pack.login_required = False
 @user_passes_test(is_developer)
 def draft_clinician_email(request: HttpRequest,
                           contact_request_id: str) -> HttpResponse:
+    """
+    Developer view: draft e-mail to clinician.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        contact_request_id: PK for
+            :class:`crate_anon.crateweb.consent.models.ContactRequest`
+    """
     contact_request = get_contact_request(request, contact_request_id)
     return HttpResponse(
         contact_request.get_clinician_email_html(save=False)
@@ -542,6 +740,14 @@ def draft_clinician_email(request: HttpRequest,
 @user_passes_test(is_developer)
 def draft_approval_email(request: HttpRequest,
                          contact_request_id: str) -> HttpResponse:
+    """
+    Developer view: draft e-mail to researcher, giving permission.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        contact_request_id: PK for
+            :class:`crate_anon.crateweb.consent.models.ContactRequest`
+    """
     contact_request = get_contact_request(request, contact_request_id)
     return HttpResponse(contact_request.get_approval_email_html())
 
@@ -549,6 +755,14 @@ def draft_approval_email(request: HttpRequest,
 @user_passes_test(is_developer)
 def draft_withdrawal_email(request: HttpRequest,
                            contact_request_id: str) -> HttpResponse:
+    """
+    Developer view: draft e-mail to researcher, withdrawing permission.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        contact_request_id: PK for
+            :class:`crate_anon.crateweb.consent.models.ContactRequest`
+    """
     contact_request = get_contact_request(request, contact_request_id)
     return HttpResponse(contact_request.get_withdrawal_email_html())
 
@@ -561,6 +775,15 @@ def draft_withdrawal_email(request: HttpRequest,
 def draft_approval_letter(request: HttpRequest,
                           contact_request_id: str,
                           viewtype: str) -> HttpResponse:
+    """
+    Developer view: draft letter to researcher, giving permission.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        contact_request_id: PK for
+            :class:`crate_anon.crateweb.consent.models.ContactRequest`
+        viewtype: ``"pdf"`` or ``"html"``
+    """
     contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_approval_letter_html()
     return serve_html_or_pdf(html, viewtype)
@@ -570,6 +793,15 @@ def draft_approval_letter(request: HttpRequest,
 def draft_withdrawal_letter(request: HttpRequest,
                             contact_request_id: str,
                             viewtype: str) -> HttpResponse:
+    """
+    Developer view: draft letter to researcher, withdrawing permission.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        contact_request_id: PK for
+            :class:`crate_anon.crateweb.consent.models.ContactRequest`
+        viewtype: ``"pdf"`` or ``"html"``
+    """
     contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_withdrawal_letter_html()
     return serve_html_or_pdf(html, viewtype)
@@ -579,6 +811,15 @@ def draft_withdrawal_letter(request: HttpRequest,
 def draft_first_traffic_light_letter(request: HttpRequest,
                                      patient_lookup_id: str,
                                      viewtype: str) -> HttpResponse:
+    """
+    Developer view: draft first traffic-light letter to patient.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        patient_lookup_id: PK for
+            :class:`crate_anon.crateweb.consent.models.PatientLookup`
+        viewtype: ``"pdf"`` or ``"html"``
+    """
     patient_lookup = get_patient_lookup(request, patient_lookup_id)
     html = patient_lookup.get_first_traffic_light_letter_html()
     return serve_html_or_pdf(html, viewtype)
@@ -588,6 +829,15 @@ def draft_first_traffic_light_letter(request: HttpRequest,
 def draft_confirm_traffic_light_letter(request: HttpRequest,
                                        consent_mode_id: str,
                                        viewtype: str) -> HttpResponse:
+    """
+    Developer view: draft letter to patient confirming traffic-light decision.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        consent_mode_id: PK for
+            :class:`crate_anon.crateweb.consent.models.ConsentMode`
+        viewtype: ``"pdf"`` or ``"html"``
+    """
     consent_mode = get_consent_mode(request, consent_mode_id)
     html = consent_mode.get_confirm_traffic_to_patient_letter_html()
     return serve_html_or_pdf(html, viewtype)
@@ -597,6 +847,15 @@ def draft_confirm_traffic_light_letter(request: HttpRequest,
 def draft_traffic_light_decision_form(request: HttpRequest,
                                       patient_lookup_id: str,
                                       viewtype: str) -> HttpResponse:
+    """
+    Developer view: draft traffic-light decision form.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        patient_lookup_id: PK for
+            :class:`crate_anon.crateweb.consent.models.PatientLookup`
+        viewtype: ``"pdf"`` or ``"html"``
+    """
     patient_lookup = get_patient_lookup(request, patient_lookup_id)
     html = patient_lookup.get_traffic_light_decision_form()
     return serve_html_or_pdf(html, viewtype)
@@ -606,6 +865,15 @@ def draft_traffic_light_decision_form(request: HttpRequest,
 def draft_letter_clinician_to_pt_re_study(request: HttpRequest,
                                           contact_request_id: str,
                                           viewtype: str) -> HttpResponse:
+    """
+    Developer view: draft letter from clinician to patient, offering a study.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        contact_request_id: PK for
+            :class:`crate_anon.crateweb.consent.models.ContactRequest`
+        viewtype: ``"pdf"`` or ``"html"``
+    """
     contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_letter_clinician_to_pt_re_study()
     return serve_html_or_pdf(html, viewtype)
@@ -615,6 +883,15 @@ def draft_letter_clinician_to_pt_re_study(request: HttpRequest,
 def decision_form_to_pt_re_study(request: HttpRequest,
                                  contact_request_id: str,
                                  viewtype: str) -> HttpResponse:
+    """
+    Developer view: decision form to patient about a study.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        contact_request_id: PK for
+            :class:`crate_anon.crateweb.consent.models.ContactRequest`
+        viewtype: ``"pdf"`` or ``"html"``
+    """
     contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_decision_form_to_pt_re_study()
     return serve_html_or_pdf(html, viewtype)
@@ -622,6 +899,13 @@ def decision_form_to_pt_re_study(request: HttpRequest,
 
 @user_passes_test(is_superuser)
 def charity_report(request: HttpRequest) -> HttpResponse:
+    """
+    Show a summary of charity payments (triggered in response to clinicians
+    answering requests).
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+    """
     responses = ClinicianResponse.objects.filter(charity_amount_due__gt=0)
     payments = CharityPaymentRecord.objects.all()
     total_due = sum([x.charity_amount_due for x in responses])
@@ -638,6 +922,13 @@ def charity_report(request: HttpRequest) -> HttpResponse:
 
 @user_passes_test(is_superuser)
 def exclusion_report(request: HttpRequest) -> HttpResponse:
+    """
+    Show NHS numbers of patients to exclude from the anonymised database
+    entirely.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+    """
     consent_modes = ConsentMode.objects.filter(current=True,
                                                exclude_entirely=True)
     return render(request, 'exclusion_report.html', {
@@ -647,6 +938,12 @@ def exclusion_report(request: HttpRequest) -> HttpResponse:
 
 @user_passes_test(is_superuser)
 def test_email_rdbm(request: HttpRequest) -> HttpResponse:
+    """
+    Tests the backend system (Celery etc.) by sending an e-mail to the RDBM.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+    """
     test_email_rdbm_task.delay()
     return render(request, 'test_email_rdbm_ack.html', {
         'settings': settings,

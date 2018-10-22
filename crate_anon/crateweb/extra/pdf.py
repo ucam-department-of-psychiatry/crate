@@ -24,6 +24,8 @@ crate_anon/crateweb/extra/pdf.py
 
 ===============================================================================
 
+**Assistance functions for working with PDFs.**
+
 """
 
 import logging
@@ -44,7 +46,8 @@ log = logging.getLogger(__name__)
 
 class CratePdfPlan(PdfPlan):
     """
-    Specializes PdfPlan for default header/footer.
+    Specializes :class:`cardinal_pythonlib.pdf.PdfPlan` for our default
+    header/footer.
     """
     def __init__(self, *args, **kwargs):
         if 'header_html' not in kwargs:
@@ -71,6 +74,15 @@ def get_pdf_from_html_with_django_settings(
         debug_content: bool = False,
         debug_options: bool = False,
         fix_pdfkit_encoding_bug: bool = None) -> bytes:
+    """
+    Applies our ``settings.WKHTMLTOPDF_OPTIONS`` and then makes a PDF from the
+    supplied HTML.
+
+    See the arguments to :func:`cardinal_pythonlib.pdf.make_pdf_from_html`.
+
+    Returns:
+        a binary PDF
+    """
     # Customized for this Django site
     wkhtmltopdf_filename = wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME  # noqa
     if wkhtmltopdf_options is None:
@@ -102,6 +114,15 @@ def make_pdf_on_disk_from_html_with_django_settings(
         debug_content: bool = False,
         debug_options: bool = False,
         fix_pdfkit_encoding_bug: bool = None) -> bool:
+    """
+    Applies our ``settings.WKHTMLTOPDF_OPTIONS`` and then makes a PDF from the
+    supplied ``html`` and stores it in the file named by ``output_path``.
+
+    See the arguments to :func:`cardinal_pythonlib.pdf.make_pdf_from_html`.
+
+    Returns:
+        success?
+    """
     # Customized for this Django site
     wkhtmltopdf_filename = wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME  # noqa
     if wkhtmltopdf_options is None:
@@ -130,7 +151,14 @@ def make_pdf_on_disk_from_html_with_django_settings(
 def serve_pdf_from_html(html: str,
                         offered_filename: str = "test.pdf",
                         **kwargs) -> HttpResponse:
-    """Same args as pdf_from_html."""
+    """
+    Converts HTML into a PDF and serves it.
+
+    Args:
+        html: HTML to make into a PDF and serve
+        offered_filename: filename from the user's perspective
+        **kwargs: passed to :func:`get_pdf_from_html_with_django_settings`
+    """
     pdf = get_pdf_from_html_with_django_settings(html, **kwargs)
     return serve_buffer(pdf,
                         offered_filename=offered_filename,
@@ -141,10 +169,12 @@ def serve_pdf_from_html(html: str,
 
 def serve_html_or_pdf(html: str, viewtype: str) -> HttpResponse:
     """
-    For development.
+    Serves some HTML as HTML or after converting it to a PDF in our letter
+    style. For development.
 
-    HTML = contents
-    viewtype = "pdf" or "html"
+    Args:
+        html: contents
+        viewtype: ``"pdf"`` or ``"html"``
     """
     if viewtype == "pdf":
         return serve_pdf_from_html(

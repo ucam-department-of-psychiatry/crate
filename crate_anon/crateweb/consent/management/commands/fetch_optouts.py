@@ -24,10 +24,15 @@ crate_anon/crateweb/consent/management/commands/fetch_optouts.py
 
 ===============================================================================
 
+**Django management command to fetch PIDs/MPIDs from the consent-mode
+database for patients who wish to opt out entirely, and store them in a file
+(e.g. for the CRATE anonymiser).**
+
 """
 
 from argparse import ArgumentParser, Namespace
 import logging
+from typing import Any
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -39,6 +44,11 @@ log = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
+    """
+    Django management command to fetch PIDs/MPIDs for opt-out patients from the
+    clinical consent-mode lookup database, and store them in a file (e.g. for
+    use by the CRATE anonymiser).
+    """
     help = (
         "Fetch patient IDs (PIDs) and master patient IDs (MPIDs, e.g. NHS "
         "numbers) from the clinical consent-mode lookup database, and store "
@@ -46,6 +56,7 @@ class Command(BaseCommand):
     )
 
     def add_arguments(self, parser: ArgumentParser) -> None:
+        # docstring in superclass
         parser.add_argument(
             "--pidfile", required=True,
             help="Filename to store PIDs in (one line per PID)")
@@ -53,7 +64,8 @@ class Command(BaseCommand):
             "--mpidfile", required=True,
             help="Filename to store MPIDs in (one line per PID)")
 
-    def handle(self, *args, **options):
+    def handle(self, *args: str, **options: Any) -> None:
+        # docstring in superclass
         opts = Namespace(**options)
         # Activate the current language, because it won't get activated later.
         try:
@@ -61,12 +73,22 @@ class Command(BaseCommand):
         except AttributeError:
             pass
         # noinspection PyTypeChecker
-        fetch_optouts(opts)
+        fetch_optouts(
+            pid_filename=opts.pid_filename,
+            mpid_filename=opts.mpid_filename,
+        )
 
 
-def fetch_optouts(opts: Namespace) -> None:
-    pid_filename = opts.pidfile  # type: str
-    mpid_filename = opts.mpidfile  # type: str
+def fetch_optouts(pid_filename: str, mpid_filename: str) -> None:
+    """
+    Fetch opt-out PIDs/MPIDs from the clinical consent-mode lookup database
+    (defined via Django ``settings.CLINICAL_LOOKUP_CONSENT_DB``) and write them
+    to files.
+
+    Args:
+        pid_filename: name of the filename to receive PIDs
+        mpid_filename: name of the filename to receive MPIDs
+    """
     log.info(
         "Fetching opt-outs from database to files. Storing PIDs to {!r}, "
         "MPIDs to {!r}.".format(pid_filename, mpid_filename))
@@ -81,12 +103,18 @@ def fetch_optouts(opts: Namespace) -> None:
     log.info("Done.")
 
 
-def main():
+def main() -> None:
+    """
+    Command-line entry point (not typically used directly).
+    """
     command = Command()
     parser = ArgumentParser()
     command.add_arguments(parser)
     cmdargs = parser.parse_args()
-    fetch_optouts(cmdargs)
+    fetch_optouts(
+        pid_filename=cmdargs.pid_filename,
+        mpid_filename=cmdargs.mpid_filename,
+    )
 
 
 if __name__ == '__main__':

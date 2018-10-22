@@ -24,11 +24,17 @@ crate_anon/crateweb/consent/lookup_crs.py
 
 ===============================================================================
 
+**Function to look up patient details from CPFT's now-defunct
+CRS (Care Records System) database.**
+
 """
+
+from typing import List
 
 from cardinal_pythonlib.dbfunc import dictfetchall, dictfetchone
 from django.db import connections
 
+from crate_anon.crateweb.consent.models import ConsentMode, PatientLookup
 from crate_anon.crateweb.consent.utils import make_cpft_email_address
 
 
@@ -36,7 +42,18 @@ from crate_anon.crateweb.consent.utils import make_cpft_email_address
 # CPFT Care Records System (CRS)
 # =============================================================================
 
-def lookup_cpft_crs(lookup, decisions, secret_decisions):
+def lookup_cpft_crs(lookup: PatientLookup,
+                    decisions: List[str],
+                    secret_decisions: List[str]) -> None:
+    """
+    Looks up patient details from the (defunct) CPFT CRS database.
+
+    Args:
+        lookup: a :class:`crate_anon.crateweb.consent.models.PatientLookup`
+        decisions: list of human-readable decisions; will be modified
+        secret_decisions: list of human-readable decisions containing secret
+            (identifiable) information; will be modified
+    """
     cursor = connections[lookup.source_db].cursor()
     # -------------------------------------------------------------------------
     # CRS 1. Fetch basic details
