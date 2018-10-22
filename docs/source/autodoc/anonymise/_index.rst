@@ -28,6 +28,7 @@ crate_anon/anonymise
 ..  toctree::
     :maxdepth: 1
 
+    __init__.py.rst
     altermethod.py.rst
     anonregex.py.rst
     anonymise.py.rst

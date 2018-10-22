@@ -68,21 +68,32 @@ COPYRIGHT_COMMENT = r"""
 
 """
 
+SKIP_GLOBS = [
+    # we include "__init__.py"
+    # "crateweb_local_settings.py",
+    "jquery*",
+    "modernizr*",
+    "jquery*/*",
+    "static_collected/*",
+]
 
-def make_subindex(directory: str,
-                  skip_globs: List[str] = None) -> AutodocIndex:
+
+def make_subindex(directory: str) -> AutodocIndex:
     return AutodocIndex(
         index_filename=os.path.join(AUTODOC_DIR, directory, INDEX_FILENAME),
         project_root_dir=PACKAGE_ROOT_DIR,
         autodoc_rst_root_dir=AUTODOC_DIR,
         highest_code_dir=CODE_ROOT_DIR,
         source_filenames_or_globs=[
+            os.path.join(CODE_ROOT_DIR, directory, "**/*.css"),
+            os.path.join(CODE_ROOT_DIR, directory, "**/*.html"),
             os.path.join(CODE_ROOT_DIR, directory, "**/*.py"),
             os.path.join(CODE_ROOT_DIR, directory, "**/*.java"),
+            os.path.join(CODE_ROOT_DIR, directory, "**/*.js"),
         ],
         rst_prefix=COPYRIGHT_COMMENT,
         title="crate_anon/" + directory,  # path style, not module style
-        skip_globs=skip_globs,
+        skip_globs=SKIP_GLOBS,
         # source_rst_title_style_python=False,
     )
 
@@ -106,8 +117,7 @@ def make_autodoc(make: bool, destroy_first: bool) -> None:
     top_idx.add_indexes([
         make_subindex("anonymise"),
         make_subindex("common"),
-        make_subindex("crateweb", skip_globs=["__init__.py",
-                                              "crateweb_local_settings.py"]),
+        make_subindex("crateweb"),
         make_subindex("nlp_manager"),
         make_subindex("preprocess"),
         make_subindex("tools"),

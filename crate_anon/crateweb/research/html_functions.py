@@ -62,6 +62,25 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 def visibility_button(tag: str, small: bool = True,
                       title_html: str = '', as_span: bool = False,
                       as_visibility: bool = True) -> str:
+    """
+    Returns HTML for a "(+)/(-)" button. Used for:
+
+    - visibility (show/hide): to show/hide things
+    - collapse (expand/collapse): to collapse large cells in query results.
+
+    Args:
+        tag: tag used for this set of elements; used as part of the parameters
+            to Javascript ``toggleVisible`` or ``toggleCollapsed`` functions;
+            see ``crate_anon/crateweb/static/collapse.js``
+        small: start small?
+        title_html: HTML to put inside the element
+        as_span: return a ``<span>`` element rather than a ``<div>` element?
+        as_visibility: "visibility" style, rather than "collapse" style?
+
+    Returns:
+        str: HTML
+
+    """
     eltype = "span" if as_span else "div"
     togglefunc = "toggleVisible" if as_visibility else "toggleCollapsed"
     return """

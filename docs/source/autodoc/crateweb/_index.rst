@@ -28,17 +28,22 @@ crate_anon/crateweb
 ..  toctree::
     :maxdepth: 1
 
+    __init__.py.rst
+    config/__init__.py.rst
     config/apps.py.rst
     config/constants.py.rst
     config/settings.py.rst
     config/urls.py.rst
     config/wsgi.py.rst
+    consent/__init__.py.rst
     consent/celery.py.rst
     consent/forms.py.rst
     consent/lookup.py.rst
     consent/lookup_crs.py.rst
     consent/lookup_dummy.py.rst
     consent/lookup_rio.py.rst
+    consent/management/__init__.py.rst
+    consent/management/commands/__init__.py.rst
     consent/management/commands/fetch_optouts.py.rst
     consent/management/commands/lookup_consent.py.rst
     consent/management/commands/lookup_patient.py.rst
@@ -55,26 +60,75 @@ crate_anon/crateweb
     consent/migrations/0008_auto_20170507_1218.py.rst
     consent/migrations/0009_auto_20180629_1132.py.rst
     consent/migrations/0010_auto_20180629_1238.py.rst
+    consent/migrations/0011_auto_20181022_0801.py.rst
+    consent/migrations/__init__.py.rst
     consent/models.py.rst
     consent/storage.py.rst
     consent/tasks.py.rst
     consent/teamlookup.py.rst
     consent/teamlookup_dummy.py.rst
     consent/teamlookup_rio.py.rst
+    consent/templates/charity_report.html.rst
+    consent/templates/clinician_already_responded.html.rst
+    consent/templates/clinician_confirm_response.html.rst
+    consent/templates/clinician_notes.html.rst
+    consent/templates/clinician_response.html.rst
+    consent/templates/clinician_response.js.rst
+    consent/templates/consent_lookup_get_nhs.html.rst
+    consent/templates/consent_lookup_result.html.rst
+    consent/templates/consent_table.html.rst
+    consent/templates/contact_after_discharge_permission_phrase.html.rst
+    consent/templates/contact_request_result.html.rst
+    consent/templates/contact_request_submit.html.rst
+    consent/templates/decision_form_to_patient_re_study.html.rst
+    consent/templates/discharged_phrase.html.rst
+    consent/templates/email_clinician.html.rst
+    consent/templates/email_rdbm_bad_progress.html.rst
+    consent/templates/email_rdbm_good_progress.html.rst
+    consent/templates/email_rdbm_new_work_pt_from_clinician.html.rst
+    consent/templates/email_rdbm_new_work_pt_from_rdbm.html.rst
+    consent/templates/email_rdbm_new_work_researcher.html.rst
+    consent/templates/email_researcher_approval.html.rst
+    consent/templates/email_researcher_withdrawal.html.rst
+    consent/templates/exclusion_report.html.rst
+    consent/templates/generate_random_nhs.html.rst
+    consent/templates/letter_patient_confirm_traffic.html.rst
+    consent/templates/letter_patient_first_traffic_light.html.rst
+    consent/templates/letter_patient_from_clinician_re_study.html.rst
+    consent/templates/letter_researcher_approve.html.rst
+    consent/templates/letter_researcher_withdraw.html.rst
+    consent/templates/office_div.html.rst
+    consent/templates/patient_lookup_get_nhs.html.rst
+    consent/templates/patient_lookup_result.html.rst
+    consent/templates/patient_p.html.rst
+    consent/templates/patient_table.html.rst
+    consent/templates/phrase_green.html.rst
+    consent/templates/phrase_never_affect.html.rst
+    consent/templates/phrase_red.html.rst
+    consent/templates/phrase_yellow.html.rst
+    consent/templates/signature_box_patient.html.rst
+    consent/templates/study_table.html.rst
+    consent/templates/test_email_rdbm_ack.html.rst
+    consent/templates/traffic_light_decision_form.html.rst
     consent/utils.py.rst
     consent/views.py.rst
+    core/__init__.py.rst
     core/admin.py.rst
     core/auth_views.py.rst
     core/constants.py.rst
+    core/context_processors.py.rst
+    core/management/__init__.py.rst
+    core/management/commands/__init__.py.rst
     core/management/commands/runcpserver.py.rst
     core/middleware.py.rst
     core/utils.py.rst
     core/views.py.rst
+    extra/__init__.py.rst
     extra/admin.py.rst
     extra/pdf.py.rst
     extra/salutation.py.rst
     manage.py.rst
-    research/context_processors.py.rst
+    research/__init__.py.rst
     research/forms.py.rst
     research/html_functions.py.rst
     research/migrations/0001_initial.py.rst
@@ -83,11 +137,185 @@ crate_anon/crateweb
     research/migrations/0004_auto_20170212_0137.py.rst
     research/migrations/0005_query_sql_hash.py.rst
     research/migrations/0006_patientexplorer_pmq_hash.py.rst
+    research/migrations/0007_sitewidequery.py.rst
+    research/migrations/__init__.py.rst
     research/models.py.rst
     research/research_db_info.py.rst
     research/sql_writer.py.rst
+    research/templates/clinician_form_all_text_from_pid.html.rst
+    research/templates/clinician_form_all_text_from_pid_choose_db.html.rst
+    research/templates/database_structure.html.rst
+    research/templates/database_structure_table.html.rst
+    research/templates/database_structure_tree.html.rst
+    research/templates/highlight_bad_id.html.rst
+    research/templates/highlight_edit_select.html.rst
+    research/templates/local_structure_help.html.rst
+    research/templates/page_nav_results.html.rst
+    research/templates/pe_bad.html.rst
+    research/templates/pe_bad_id.html.rst
+    research/templates/pe_build.html.rst
+    research/templates/pe_choose.html.rst
+    research/templates/pe_df_result.html.rst
+    research/templates/pe_missing.html.rst
+    research/templates/pe_monster_result.html.rst
+    research/templates/pe_result.html.rst
+    research/templates/pe_table_browser.html.rst
+    research/templates/pid_abbrev_explanation.html.rst
+    research/templates/pid_lookup_choose_db.html.rst
+    research/templates/pid_lookup_form.html.rst
+    research/templates/pid_lookup_result.html.rst
+    research/templates/query_add_sitewide.html.rst
+    research/templates/query_bad.html.rst
+    research/templates/query_bad_id.html.rst
+    research/templates/query_build.html.rst
+    research/templates/query_count.html.rst
+    research/templates/query_edit_select.html.rst
+    research/templates/query_missing.html.rst
+    research/templates/query_nav.html.rst
+    research/templates/query_none_selected.html.rst
+    research/templates/query_result.html.rst
+    research/templates/querybuilder_extrahead.html.rst
+    research/templates/querybuilder_form.html.rst
+    research/templates/rid_lookup_choose_db.html.rst
+    research/templates/rid_lookup_form.html.rst
+    research/templates/rid_lookup_result.html.rst
+    research/templates/show_sitewide_queries.html.rst
+    research/templates/sql_fragment.html.rst
+    research/templates/sqlhelper_form_text_anywhere.html.rst
+    research/templates/sqlhelper_form_text_anywhere_choose_db.html.rst
     research/tests.py.rst
     research/views.py.rst
+    specimen_secret_local_settings/__init__.py.rst
+    specimen_secret_local_settings/crateweb_local_settings.py.rst
+    static/base.css.rst
+    static/collapse.js.rst
+    static/jquery-ui-1.12.1/index.html.rst
+    static/querybuilder.js.rst
+    static/web.css.rst
+    static_collected/admin/css/autocomplete.css.rst
+    static_collected/admin/css/base.css.rst
+    static_collected/admin/css/changelists.css.rst
+    static_collected/admin/css/dashboard.css.rst
+    static_collected/admin/css/fonts.css.rst
+    static_collected/admin/css/forms.css.rst
+    static_collected/admin/css/login.css.rst
+    static_collected/admin/css/responsive.css.rst
+    static_collected/admin/css/responsive_rtl.css.rst
+    static_collected/admin/css/rtl.css.rst
+    static_collected/admin/css/vendor/select2/select2.css.rst
+    static_collected/admin/css/vendor/select2/select2.min.css.rst
+    static_collected/admin/css/widgets.css.rst
+    static_collected/admin/js/SelectBox.js.rst
+    static_collected/admin/js/SelectFilter2.js.rst
+    static_collected/admin/js/actions.js.rst
+    static_collected/admin/js/actions.min.js.rst
+    static_collected/admin/js/admin/DateTimeShortcuts.js.rst
+    static_collected/admin/js/admin/RelatedObjectLookups.js.rst
+    static_collected/admin/js/autocomplete.js.rst
+    static_collected/admin/js/calendar.js.rst
+    static_collected/admin/js/cancel.js.rst
+    static_collected/admin/js/change_form.js.rst
+    static_collected/admin/js/collapse.js.rst
+    static_collected/admin/js/collapse.min.js.rst
+    static_collected/admin/js/core.js.rst
+    static_collected/admin/js/inlines.js.rst
+    static_collected/admin/js/inlines.min.js.rst
+    static_collected/admin/js/popup_response.js.rst
+    static_collected/admin/js/prepopulate.js.rst
+    static_collected/admin/js/prepopulate.min.js.rst
+    static_collected/admin/js/prepopulate_init.js.rst
+    static_collected/admin/js/timeparse.js.rst
+    static_collected/admin/js/urlify.js.rst
+    static_collected/admin/js/vendor/select2/i18n/ar.js.rst
+    static_collected/admin/js/vendor/select2/i18n/az.js.rst
+    static_collected/admin/js/vendor/select2/i18n/bg.js.rst
+    static_collected/admin/js/vendor/select2/i18n/ca.js.rst
+    static_collected/admin/js/vendor/select2/i18n/cs.js.rst
+    static_collected/admin/js/vendor/select2/i18n/da.js.rst
+    static_collected/admin/js/vendor/select2/i18n/de.js.rst
+    static_collected/admin/js/vendor/select2/i18n/el.js.rst
+    static_collected/admin/js/vendor/select2/i18n/en.js.rst
+    static_collected/admin/js/vendor/select2/i18n/es.js.rst
+    static_collected/admin/js/vendor/select2/i18n/et.js.rst
+    static_collected/admin/js/vendor/select2/i18n/eu.js.rst
+    static_collected/admin/js/vendor/select2/i18n/fa.js.rst
+    static_collected/admin/js/vendor/select2/i18n/fi.js.rst
+    static_collected/admin/js/vendor/select2/i18n/fr.js.rst
+    static_collected/admin/js/vendor/select2/i18n/gl.js.rst
+    static_collected/admin/js/vendor/select2/i18n/he.js.rst
+    static_collected/admin/js/vendor/select2/i18n/hi.js.rst
+    static_collected/admin/js/vendor/select2/i18n/hr.js.rst
+    static_collected/admin/js/vendor/select2/i18n/hu.js.rst
+    static_collected/admin/js/vendor/select2/i18n/id.js.rst
+    static_collected/admin/js/vendor/select2/i18n/is.js.rst
+    static_collected/admin/js/vendor/select2/i18n/it.js.rst
+    static_collected/admin/js/vendor/select2/i18n/ja.js.rst
+    static_collected/admin/js/vendor/select2/i18n/km.js.rst
+    static_collected/admin/js/vendor/select2/i18n/ko.js.rst
+    static_collected/admin/js/vendor/select2/i18n/lt.js.rst
+    static_collected/admin/js/vendor/select2/i18n/lv.js.rst
+    static_collected/admin/js/vendor/select2/i18n/mk.js.rst
+    static_collected/admin/js/vendor/select2/i18n/ms.js.rst
+    static_collected/admin/js/vendor/select2/i18n/nb.js.rst
+    static_collected/admin/js/vendor/select2/i18n/nl.js.rst
+    static_collected/admin/js/vendor/select2/i18n/pl.js.rst
+    static_collected/admin/js/vendor/select2/i18n/pt-BR.js.rst
+    static_collected/admin/js/vendor/select2/i18n/pt.js.rst
+    static_collected/admin/js/vendor/select2/i18n/ro.js.rst
+    static_collected/admin/js/vendor/select2/i18n/ru.js.rst
+    static_collected/admin/js/vendor/select2/i18n/sk.js.rst
+    static_collected/admin/js/vendor/select2/i18n/sr-Cyrl.js.rst
+    static_collected/admin/js/vendor/select2/i18n/sr.js.rst
+    static_collected/admin/js/vendor/select2/i18n/sv.js.rst
+    static_collected/admin/js/vendor/select2/i18n/th.js.rst
+    static_collected/admin/js/vendor/select2/i18n/tr.js.rst
+    static_collected/admin/js/vendor/select2/i18n/uk.js.rst
+    static_collected/admin/js/vendor/select2/i18n/vi.js.rst
+    static_collected/admin/js/vendor/select2/i18n/zh-CN.js.rst
+    static_collected/admin/js/vendor/select2/i18n/zh-TW.js.rst
+    static_collected/admin/js/vendor/select2/select2.full.js.rst
+    static_collected/admin/js/vendor/select2/select2.full.min.js.rst
+    static_collected/admin/js/vendor/xregexp/xregexp.js.rst
+    static_collected/admin/js/vendor/xregexp/xregexp.min.js.rst
+    static_collected/base.css.rst
+    static_collected/collapse.js.rst
+    static_collected/debug_toolbar/css/print.css.rst
+    static_collected/debug_toolbar/css/toolbar.css.rst
+    static_collected/debug_toolbar/js/toolbar.js.rst
+    static_collected/debug_toolbar/js/toolbar.profiling.js.rst
+    static_collected/debug_toolbar/js/toolbar.sql.js.rst
+    static_collected/debug_toolbar/js/toolbar.template.js.rst
+    static_collected/debug_toolbar/js/toolbar.timer.js.rst
+    static_collected/jquery-ui-1.12.1/index.html.rst
+    static_collected/querybuilder.js.rst
+    static_collected/web.css.rst
+    templates/404.html.rst
+    templates/405.html.rst
+    templates/500.html.rst
+    templates/about.html.rst
+    templates/admin/edit_once_view_form.html.rst
+    templates/admin/readonly_view_form.html.rst
+    templates/admin/save_only_submit_row.html.rst
+    templates/admin/viewchange_admin_app_index.html.rst
+    templates/admin/viewchange_admin_index.html.rst
+    templates/base.html.rst
+    templates/base_email.html.rst
+    templates/base_pdf.html.rst
+    templates/base_pdf_letter.html.rst
+    templates/email.css.rst
+    templates/expand_collapse_buttons.html.rst
+    templates/generic_error.html.rst
+    templates/global_header.html.rst
+    templates/home.html.rst
+    templates/logged_out.html.rst
+    templates/login.html.rst
+    templates/page_nav.html.rst
+    templates/password_change.html.rst
+    templates/pdf.css.rst
+    templates/shortlist_studies.html.rst
+    templates/show_form_errors.html.rst
+    templates/show_hide_buttons.html.rst
+    userprofile/__init__.py.rst
     userprofile/forms.py.rst
     userprofile/migrations/0001_initial.py.rst
     userprofile/migrations/0002_userprofile_sql_scratchpad.py.rst
@@ -96,5 +324,7 @@ crate_anon/crateweb
     userprofile/migrations/0005_userprofile_patient_multiquery_scratchpad.py.rst
     userprofile/migrations/0006_auto_20170212_0137.py.rst
     userprofile/migrations/0007_auto_20170507_1218.py.rst
+    userprofile/migrations/__init__.py.rst
     userprofile/models.py.rst
+    userprofile/templates/edit_profile.html.rst
     userprofile/views.py.rst

@@ -28,6 +28,7 @@ crate_anon/preprocess
 ..  toctree::
     :maxdepth: 1
 
+    __init__.py.rst
     ddhint.py.rst
     postcodes.py.rst
     preprocess_pcmis.py.rst

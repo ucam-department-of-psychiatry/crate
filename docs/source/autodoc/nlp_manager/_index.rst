@@ -30,6 +30,7 @@ crate_anon/nlp_manager
 
     CrateGatePipeline.java.rst
     CrateMedexPipeline.java.rst
+    __init__.py.rst
     all_processors.py.rst
     base_nlp_parser.py.rst
     build_gate_java_interface.py.rst
