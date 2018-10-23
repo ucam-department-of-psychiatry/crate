@@ -26,6 +26,8 @@ crate_anon/crateweb/research/tests.py
 
 **Django unit tests.**
 
+Not currently used.
+
 """
 
 # from django.test import TestCase

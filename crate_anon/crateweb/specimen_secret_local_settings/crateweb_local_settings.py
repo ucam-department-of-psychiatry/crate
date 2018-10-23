@@ -30,6 +30,7 @@ Put the secret stuff here.
 
 SPECIMEN FILE ONLY - edit to your own requirements.
 IT WILL NOT WORK until you've edited it.
+
 """
 
 import os

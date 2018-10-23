@@ -24,6 +24,8 @@ crate_anon/crateweb/research/views.py
 
 ===============================================================================
 
+**CRATE views on the research database.**
+
 """
 
 import datetime
@@ -31,7 +33,7 @@ import datetime
 import json
 import logging
 # import pprint
-from typing import Any, Dict, List, Type, Union
+from typing import Any, Dict, Iterable, List, Type, Union
 
 from cardinal_pythonlib.dbfunc import get_fieldnames_from_cursor
 from cardinal_pythonlib.django.function_cache import django_cache_function
@@ -123,6 +125,13 @@ def validate_blank_form(request: HttpRequest) -> None:
     """
     Checks that the request is (a) a POST request, and (b) passes CRSF
     validation.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Raises:
+        :exc:`django.core.exceptions.ValidationError` if it fails
+
     """
     if request.method != "POST":
         raise ValidationError("Use HTTP POST, not HTTP GET or other methods")
@@ -132,6 +141,25 @@ def validate_blank_form(request: HttpRequest) -> None:
 
 
 def query_context(request: HttpRequest) -> Dict[str, Any]:
+    """
+    Query context dictionary used for (nearly?) *every* request.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        dict: a dictionary with core information about the request, like the
+        currently selected query/Patient Explorer ID for the user.
+
+    Notes:
+
+    - Try to minimize SQL here, as these calls will be used for EVERY
+      request.
+
+      - This problem can be circumvented with a per-request cache; see
+        http://stackoverflow.com/questions/3151469/per-request-cache-in-django
+
+    """
     query_id = Query.get_active_query_id_or_none(request)
     pe_id = PatientExplorer.get_active_pe_id_or_none(request)
     return {
@@ -140,10 +168,6 @@ def query_context(request: HttpRequest) -> Dict[str, Any]:
         'pe_selected': pe_id is not None,
         'current_pe_id': pe_id,
     }
-    # Try to minimize SQL here, as these calls will be used for EVERY
-    # request.
-    # This problem can be circumvented with a per-request cache; see
-    # http://stackoverflow.com/questions/3151469/per-request-cache-in-django
 
 
 def datetime_iso_for_filename() -> str:
@@ -156,6 +180,17 @@ def datetime_iso_for_filename() -> str:
 # =============================================================================
 
 def generic_error(request: HttpRequest, error: str) -> HttpResponse:
+    """
+    Returns a generic error response.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        error: the error text
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    """
     context = {
         'error': error,
     }
@@ -169,6 +204,9 @@ def generic_error(request: HttpRequest, error: str) -> HttpResponse:
 @django_cache_function(timeout=None)
 # @lru_cache(maxsize=None)
 def get_db_structure_json() -> str:
+    """
+    Returns the research database structure in JSON format.
+    """
     log.debug("get_db_structure_json")
     colinfolist = research_database_info.get_colinfolist()
     if not colinfolist:
@@ -226,7 +264,14 @@ def get_db_structure_json() -> str:
 
 def query_build(request: HttpRequest) -> HttpResponse:
     """
-    Assisted query builder, based on the data dictionary.
+    Assisted query builder, based on the data structure read from the research
+    database.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     # NOTES FOR FIRST METHOD, with lots (and lots) of forms.
     # - In what follows, we want a normal template but we want to include a
@@ -387,17 +432,53 @@ def query_build(request: HttpRequest) -> HttpResponse:
 
 
 def get_all_queries(request: HttpRequest) -> QuerySet:
+    """
+    Return all database queries for the current user.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        request: a :class:`django.db.models.QuerySet` for
+        :class:`crate_anon.crateweb.research.models.Query` objects
+
+    """
     return Query.objects.filter(user=request.user, deleted=False)\
                         .order_by('-active', '-created')
 
 
 def get_all_sitewide_queries() -> QuerySet:
+    """
+    Returns all site-wide queries.
+
+    Returns:
+        request: a :class:`django.db.models.QuerySet` for
+        :class:`crate_anon.crateweb.research.models.SitewideQuery` objects
+
+    """
     return SitewideQuery.objects.filter(deleted=False)\
                                 .order_by('-created')
 
 
 def get_identical_queries(request: HttpRequest, sql: str,
                           sitewide: bool = False) -> List[Query]:
+    """
+    Returns all queries that are identical to the SQL provided.
+
+    This saves us creating a new query when one exists already that's
+    identical.
+
+    We check by hash.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        sql: SQL text
+        sitewide: check sitewide, rather than user-specific, queries?
+
+    Returns:
+        list: :class:`crate_anon.crateweb.research.models.Query` objects
+
+    """
     if sitewide:
         all_queries = get_all_sitewide_queries()
     else:
@@ -482,11 +563,19 @@ def get_identical_queries(request: HttpRequest, sql: str,
 
 def query_submit(request: HttpRequest,
                  sql: str,
-                 run: bool = False,
-                 from_sitewide: bool = False) -> HttpResponse:
+                 run: bool = False) -> HttpResponse:
     """
     Ancillary function to add a query, and redirect to the editing or
     run page.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        sql: SQL text
+        run: execute the query and show the results? Otherwise, save the
+            query and return to the editing page
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     identical_queries = get_identical_queries(request, sql)
     if identical_queries:
@@ -500,15 +589,19 @@ def query_submit(request: HttpRequest,
     # redirect to a new URL:
     if run:
         return redirect('results', query_id)
-    elif from_sitewide:
-        return redirect('standard_queries')
     else:
         return redirect('query')
 
 
 def query_edit_select(request: HttpRequest) -> HttpResponse:
     """
-    Edit or select SQL for current query.
+    View to edit SQL for the current ``SELECT`` query (and/or run it).
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     # log.debug("query")
     # if this is a POST request we need to process the form data
@@ -564,7 +657,13 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
 @user_passes_test(is_superuser)
 def query_add_sitewide(request: HttpRequest) -> HttpResponse:
     """
-    Superuser can add or edit sitewide queries and their descriptions.
+    Superuser view to add or edit sitewide queries and their descriptions.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     if 'submit_add' in request.POST:
         sql = request.POST['sql']
@@ -607,6 +706,16 @@ def query_add_sitewide(request: HttpRequest) -> HttpResponse:
 
 
 def show_sitewide_queries(request: HttpRequest) -> HttpResponse:
+    """
+    View to show all site-wide queries.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    """
     queries = get_all_sitewide_queries()
     context = {
         'queries': queries,
@@ -615,6 +724,17 @@ def show_sitewide_queries(request: HttpRequest) -> HttpResponse:
 
 
 def query_activate(request: HttpRequest, query_id: str) -> HttpResponse:
+    """
+    Activate the specified query for the current user.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        query_id: string form of the integer PK of the
+            :class:`crate_anon.crateweb.research.models.Query`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     validate_blank_form(request)
     query = get_object_or_404(Query, id=query_id)  # type: Query
     query.activate()
@@ -622,6 +742,18 @@ def query_activate(request: HttpRequest, query_id: str) -> HttpResponse:
 
 
 def query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
+    """
+    Delete (or hide if required for audit purposes) the specified query for the
+    current user.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        query_id: string form of the integer PK of the
+            :class:`crate_anon.crateweb.research.models.Query`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     validate_blank_form(request)
     query = get_object_or_404(Query, id=query_id)  # type: Query
     query.delete_if_permitted()
@@ -630,17 +762,47 @@ def query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
 
 @user_passes_test(is_superuser)
 def sitewide_query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
+    """
+    Delete a site-wide query.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        query_id: string form of the integer PK of the
+            :class:`crate_anon.crateweb.research.models.SitewideQuery`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    Note:
+
+    - When sitewide queries are used, their SQL is added to the user's
+      personal libraries. All auditing therefore relates to users' personal
+      query libraries. Sitewide queries cannot be executed "standalone".
+    - As a result, we use a raw
+      :meth:`crate_anon.crateweb.research.models.SitewideQuery.delete``, rather
+      than the system used by
+      :meth:`crate_anon.crateweb.research.models.Query.delete_if_permitted()`.
+
+    """
     validate_blank_form(request)
-    query = get_object_or_404(SitewideQuery, id=query_id)
+    query = get_object_or_404(SitewideQuery, id=query_id)  # type: SitewideQuery  # noqa
     query.delete()
     return redirect('sitewide_queries')
 
 
 def sitewide_query_process(request: HttpRequest, query_id: str) -> HttpResponse:
     """
-    Takes a sitewide query id and receives through POST replacements for the
-    placeholders. Then adds the code to user's personal library or runs and
-    adds it.
+    Takes a sitewide query ID and receives (through ``POST``) replacements for
+    the placeholders. Then adds the code to user's personal library or adds and
+    runs it.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        query_id: string form of the integer PK of the
+            :class:`crate_anon.crateweb.research.models.SitewideQuery`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     validate_blank_form(request)
     cmd_add = 'submit_add' in request.POST
@@ -660,19 +822,35 @@ def sitewide_query_process(request: HttpRequest, query_id: str) -> HttpResponse:
                 else:
                     replacement = ""
                 sql += replacement
-        return query_submit(request, sql, run=cmd_run,
-                            from_sitewide=True)
+        return query_submit(request, sql, run=cmd_run)
     else:
         return redirect('standard_queries')
 
 
 def no_query_selected(request: HttpRequest) -> HttpResponse:
+    """
+    View to say "no query selected" when one should have been.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     return render(request, 'query_none_selected.html', query_context(request))
 
 
 def query_count(request: HttpRequest, query_id: str) -> HttpResponse:
     """
-    View COUNT(*) from specific query.
+    View ``COUNT(*)`` from the specific query.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        query_id: string form of the integer PK of the
+            :class:`crate_anon.crateweb.research.models.Query`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     if query_id is None:
         return no_query_selected(request)
@@ -692,7 +870,13 @@ def query_count(request: HttpRequest, query_id: str) -> HttpResponse:
 
 def query_count_current(request: HttpRequest) -> HttpResponse:
     """
-    View COUNT(*) from current query.
+    View ``COUNT(*)`` from the user's current query.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     query = Query.get_active_query_or_none(request)
     if query is None:
@@ -702,7 +886,15 @@ def query_count_current(request: HttpRequest) -> HttpResponse:
 
 def query_results(request: HttpRequest, query_id: str) -> HttpResponse:
     """
-    View results of chosen query, in tabular format
+    View the results of chosen query, in conventional tabular format.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        query_id: string form of the integer PK of the
+            :class:`crate_anon.crateweb.research.models.Query`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     if query_id is None:
         return no_query_selected(request)
@@ -722,7 +914,15 @@ def query_results(request: HttpRequest, query_id: str) -> HttpResponse:
 def query_results_recordwise(request: HttpRequest,
                              query_id: str) -> HttpResponse:
     """
-    View results of chosen query, in tabular format
+    View results of chosen query, in recordwise tabular format.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        query_id: string form of the integer PK of the
+            :class:`crate_anon.crateweb.research.models.Query`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     if query_id is None:
         return no_query_selected(request)
@@ -742,7 +942,15 @@ def query_results_recordwise(request: HttpRequest,
 
 def query_tsv(request: HttpRequest, query_id: str) -> HttpResponse:
     """
-    Download TSV of current query.
+    Download TSV of the specified query.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        query_id: string form of the integer PK of the
+            :class:`crate_anon.crateweb.research.models.Query`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     query = get_object_or_404(Query, id=query_id)  # type: Query
     try:
@@ -759,6 +967,17 @@ def query_tsv(request: HttpRequest, query_id: str) -> HttpResponse:
 
 
 def query_excel(request: HttpRequest, query_id: str) -> HttpResponse:
+    """
+    Serves an XLSX (Excel) file with the results of the specified query.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        query_id: string form of the integer PK of the
+            :class:`crate_anon.crateweb.research.models.Query`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     query = get_object_or_404(Query, id=query_id)  # type: Query
     try:
         return file_response(
@@ -814,6 +1033,13 @@ def query_excel(request: HttpRequest, query_id: str) -> HttpResponse:
 def render_resultcount(request: HttpRequest, query: Query) -> HttpResponse:
     """
     Displays the number of rows that a given query will fetch.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        query: a :class:`crate_anon.crateweb.research.models.Query`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     if query is None:
         return render_missing_query(request)
@@ -847,6 +1073,52 @@ def resultset_html_table(fieldnames: List[str],
                          ditto_html: str = '″',
                          no_ditto_cols: List[int] = None,
                          null: str = '<i>NULL</i>') -> str:
+    """
+    Returns an HTML table representing a set of results from a query. Its
+    columns are the database columns; its rows are the database rows.
+    
+    Args:
+        fieldnames:
+            list of column names 
+        rows:
+            list of rows (each row being a list of values in the same order as
+            ``fieldnames``)
+        element_counter:
+            a :class:`crate_anon.crateweb.research.html_functions.HtmlElementCounter`,
+            which will be modified
+        start_index:
+            the zero-based index of the first row in this table (used for
+            pagination, when the second and subsequent tables don't start with
+            the first row of the result set)
+        highlight_dict:
+            an optional dictionary mapping highlight colour to all the
+            :class:`crate_anon.crateweb.research.models.Highlight` objects that
+            use it (e.g.: ``2`` maps to highlight objects for all the separate
+            pieces of text to be highlighted in colour 2)
+        collapse_at_len:
+            if specified, the string length beyond which the cell will be
+            collapsed
+        collapse_at_n_lines:
+            if specified, the number of lines beyond which the cell will be
+            collapsed
+        line_length:
+            if specified, the line length to word-wrap at
+        ditto:
+            whether to replace cells that are identical to the cell immediately
+            above with ditto marks 
+        ditto_html: 
+            the HTML string to use as a ditto mark
+        no_ditto_cols:
+            column indexes (zero-based) for which ditto marks should never be
+            used
+        null:
+            the HTML string to use for database ``NULL`` (Python ``None``)
+            values
+
+    Returns:
+        str: HTML
+
+    """  # noqa
     # Considered but not implemented: hiding table columns
     # ... see esp "tr > *:nth-child(n)" at
     # http://stackoverflow.com/questions/5440657/how-to-hide-columns-in-html-table  # noqa
@@ -896,6 +1168,39 @@ def single_record_html_table(fieldnames: List[str],
                              collapse_at_len: int = None,
                              collapse_at_n_lines: int = None,
                              line_length: int = None) -> str:
+    """
+    Returns an HTML table representing a set of results from a query, in
+    recordwise format. It has two columns, effectively "database column" and
+    "value"; its rows are the database columns; it displays a single database
+    result row.
+    
+    Args:
+        fieldnames:
+            list of column names 
+        record:
+            a single result row, i.e. a list of values in the same order as
+            ``fieldnames``
+        element_counter:
+            a :class:`crate_anon.crateweb.research.html_functions.HtmlElementCounter`,
+            which will be modified
+        highlight_dict:
+            an optional dictionary mapping highlight colour to all the
+            :class:`crate_anon.crateweb.research.models.Highlight` objects that
+            use it (e.g.: ``2`` maps to highlight objects for all the separate
+            pieces of text to be highlighted in colour 2)
+        collapse_at_len:
+            if specified, the string length beyond which the cell will be
+            collapsed
+        collapse_at_n_lines:
+            if specified, the number of lines beyond which the cell will be
+            collapsed
+        line_length:
+            if specified, the line length to word-wrap at
+
+    Returns:
+        str: HTML
+
+    """  # noqa
     table_html = '<table>\n'
     for col_index, value in enumerate(record):
         fieldname = fieldnames[col_index]
@@ -923,12 +1228,42 @@ def single_record_html_table(fieldnames: List[str],
 
 def render_resultset(request: HttpRequest,
                      query: Query,
-                     highlights: Union[QuerySet, List[Highlight]],
+                     highlights: Iterable[Highlight],
                      collapse_at_len: int = None,
                      collapse_at_n_lines: int = None,
                      line_length: int = None,
                      ditto: bool = True,
                      ditto_html: str = '″') -> HttpResponse:
+    """
+    Show the results of a user's query in paginated, tabular format.
+    
+    Args:
+        request:
+            the :class:`django.http.request.HttpRequest`
+        query:
+            a :class:`crate_anon.crateweb.research.models.Query` to execute
+        highlights:
+            an iterable of
+            :class:`crate_anon.crateweb.research.models.Highlight` objects to
+            apply colourful highlighting to the results
+        collapse_at_len:
+            if specified, the string length beyond which the cell will be
+            collapsed
+        collapse_at_n_lines:
+            if specified, the number of lines beyond which the cell will be
+            collapsed
+        line_length:
+            if specified, the line length to word-wrap at
+        ditto:
+            whether to replace cells that are identical to the cell immediately
+            above with ditto marks
+        ditto_html:
+            the HTML string to use as a ditto mark
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    """
     # Query
     if query is None:
         return render_missing_query(request)
@@ -978,10 +1313,35 @@ def render_resultset(request: HttpRequest,
 
 def render_resultset_recordwise(request: HttpRequest,
                                 query: Query,
-                                highlights: Union[QuerySet, List[Highlight]],
+                                highlights: Iterable[Highlight],
                                 collapse_at_len: int = None,
                                 collapse_at_n_lines: int = None,
                                 line_length: int = None) -> HttpResponse:
+    """
+    Show the results of a user's query in recordwise format.
+
+    Args:
+        request:
+            the :class:`django.http.request.HttpRequest`
+        query:
+            a :class:`crate_anon.crateweb.research.models.Query` to execute
+        highlights:
+            an iterable of
+            :class:`crate_anon.crateweb.research.models.Highlight` objects to
+            apply colourful highlighting to the results
+        collapse_at_len:
+            if specified, the string length beyond which the cell will be
+            collapsed
+        collapse_at_n_lines:
+            if specified, the number of lines beyond which the cell will be
+            collapsed
+        line_length:
+            if specified, the line length to word-wrap at
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    """
     # Query
     if query is None:
         return render_missing_query(request)
@@ -1030,12 +1390,39 @@ def render_resultset_recordwise(request: HttpRequest,
 
 
 def render_missing_query(request: HttpRequest) -> HttpResponse:
+    """
+    A view saying "missing query".
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     return render(request, 'query_missing.html', query_context(request))
 
 
 def render_bad_query(request: HttpRequest,
                      query: Query,
                      exception: Exception) -> HttpResponse:
+    """
+    A view saying "your query failed". This is the normal thing to see if the
+    user has entered bad SQL.
+
+    Args:
+        request:
+            the :class:`django.http.request.HttpRequest`
+        query:
+            the :class:`crate_anon.crateweb.research.models.Query` that went
+            wrong
+        exception:
+            the Python exception that resulted, which may have had extra
+            information attached via
+            :func:`cardinal_pythonlib.exceptions.add_info_to_exception`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     info = recover_info_from_exception(exception)
     final_sql = info.get('sql', '')
     args = info.get('args', [])
@@ -1050,6 +1437,16 @@ def render_bad_query(request: HttpRequest,
 
 
 def render_bad_query_id(request: HttpRequest, query_id: str) -> HttpResponse:
+    """
+    A view saying "bad query ID".
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        query_id: the query ID that was bad
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     context = {'query_id': query_id}
     context.update(query_context(request))
     return render(request, 'query_bad_id.html', context)
@@ -1061,7 +1458,14 @@ def render_bad_query_id(request: HttpRequest, query_id: str) -> HttpResponse:
 
 def highlight_edit_select(request: HttpRequest) -> HttpResponse:
     """
-    Edit or select highlighting for current query.
+    Edit or activate highlighting (which will apply to any queries that the
+    user runs).
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     all_highlights = Highlight.objects.filter(user=request.user)\
                                       .order_by('text', 'colour')
@@ -1099,6 +1503,17 @@ def highlight_edit_select(request: HttpRequest) -> HttpResponse:
 
 def highlight_activate(request: HttpRequest,
                        highlight_id: str) -> HttpResponse:
+    """
+    Activate a highlight.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        highlight_id: string form of the integer PK for
+            :class:`crate_anon.crateweb.research.models.Highlight`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     validate_blank_form(request)
     highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
     highlight.activate()
@@ -1107,6 +1522,17 @@ def highlight_activate(request: HttpRequest,
 
 def highlight_deactivate(request: HttpRequest,
                          highlight_id: str) -> HttpResponse:
+    """
+    Deactivate a highlight.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        highlight_id: string form of the integer PK for
+            :class:`crate_anon.crateweb.research.models.Highlight`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     validate_blank_form(request)
     highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
     highlight.deactivate()
@@ -1115,6 +1541,17 @@ def highlight_deactivate(request: HttpRequest,
 
 def highlight_delete(request: HttpRequest,
                      highlight_id: str) -> HttpResponse:
+    """
+    Delete a highlight.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        highlight_id: string form of the integer PK for
+            :class:`crate_anon.crateweb.research.models.Highlight`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     validate_blank_form(request)
     highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
     highlight.delete()
@@ -1130,8 +1567,18 @@ def highlight_delete(request: HttpRequest,
 def get_highlight_descriptions(
         highlight_dict: Dict[int, List[Highlight]]) -> List[str]:
     """
-    Returns a list of length up to N_CSS_HIGHLIGHT_CLASSES of HTML
+    Returns a list of length up to ``N_CSS_HIGHLIGHT_CLASSES`` of HTML
     elements illustrating the highlights.
+
+    Args:
+        highlight_dict:
+            a dictionary mapping highlight colour to all the
+            :class:`crate_anon.crateweb.research.models.Highlight` objects that
+            use it (e.g.: ``2`` maps to highlight objects for all the separate
+            pieces of text to be highlighted in colour 2)
+
+    Returns:
+        str: HTML describing the highlights
     """
     desc = []
     for n in range(N_CSS_HIGHLIGHT_CLASSES):
@@ -1155,7 +1602,20 @@ def pid_rid_lookup(request: HttpRequest,
                    with_db_url_name: str,
                    html_filename: str) -> HttpResponse:
     """
-    Common functionality for pidlookup, ridlookup.
+    Common functionality for :func`pidlookup`, :func:`ridlookup`.
+
+    Provides a view/form allowing the user to choose a database, if more than
+    one is possible, and then redirect to another view once we have that
+    database choice.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        with_db_url_name: URL name to redirect to, passed as a parameter to
+            :func:`django.urls.reverse`
+        html_filename: Django HTML template filename
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     dbinfolist = research_database_info.dbs_with_secret_map
     n = len(dbinfolist)
@@ -1183,7 +1643,23 @@ def pid_rid_lookup_with_db(
         formclass: Any,
         result_html_filename: str) -> HttpResponse:
     """
-    Common functionality for pidlookup_with_db, ridlookup_with_db.
+    Common functionality for :func:`pidlookup_with_db`,
+    :func:`ridlookup_with_db`.
+
+    Args:
+        request:
+            the :class:`django.http.request.HttpRequest`
+        dbname:
+            name of the research database to use
+        form_html_filename:
+            Django HTML template filename to ask for PID/RID/etc. details
+        formclass:
+            form class to use for requesting PID/RID/etc.
+        result_html_filename:
+            Django HTML template filename to display results
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     # There's a bug in the Python 3.5 typing module; we can't use
     # Union[Type[PidLookupForm], Type[RidLookupForm]] yet; we get
@@ -1217,6 +1693,12 @@ def pid_rid_lookup_with_db(
 def pidlookup(request: HttpRequest) -> HttpResponse:
     """
     Look up PID information from RID information.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     return pid_rid_lookup(request=request,
                           with_db_url_name="pidlookup_with_db",
@@ -1228,6 +1710,13 @@ def pidlookup_with_db(request: HttpRequest,
                       dbname: str) -> HttpResponse:
     """
     Look up PID information from RID information, for a specific database.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        dbname: name of the research database to use
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     return pid_rid_lookup_with_db(
         request=request,
@@ -1241,6 +1730,12 @@ def pidlookup_with_db(request: HttpRequest,
 def ridlookup(request: HttpRequest) -> HttpResponse:
     """
     Look up RID information from PID information.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     return pid_rid_lookup(request=request,
                           with_db_url_name="ridlookup_with_db",
@@ -1252,6 +1747,13 @@ def ridlookup_with_db(request: HttpRequest,
                       dbname: str) -> HttpResponse:
     """
     Look up RID information from PID information, for a specific database.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        dbname: name of the research database to use
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     return pid_rid_lookup_with_db(
         request=request,
@@ -1271,7 +1773,29 @@ def render_lookup(request: HttpRequest,
                   mpids: List[int] = None) -> HttpResponse:
     """
     Shows the output of a PID/RID lookup.
-    """
+
+    Args:
+        request:
+            the :class:`django.http.request.HttpRequest`
+        dbinfo:
+            a :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`
+            detailing the research database to use
+        result_html_filename:
+            Django HTML template filename to display results
+        trids:
+            list of TRIDs to look up from
+        rids:
+            list of RIDs to look up from 
+        mrids:
+            list of MRIDs to look up from 
+        pids:
+            list of PIDs to look up from
+        mpids:
+            list of MPIDs to look up from 
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """  # noqa
     # if not request.user.superuser:
     #    return HttpResponse('Forbidden', status=403)
     #    # http://stackoverflow.com/questions/3297048/403-forbidden-vs-401-unauthorized-http-responses  # noqa
@@ -1308,6 +1832,15 @@ def render_lookup(request: HttpRequest,
 # =============================================================================
 
 def structure_table_long(request: HttpRequest) -> HttpResponse:
+    """
+    Shows the table structure of the research database(s) in long format.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     colinfolist = research_database_info.get_colinfolist()
     rowcount = len(colinfolist)
     context = {
@@ -1322,6 +1855,15 @@ def structure_table_long(request: HttpRequest) -> HttpResponse:
 
 
 def structure_table_paginated(request: HttpRequest) -> HttpResponse:
+    """
+    Shows the table structure of the research database(s) in paginated format.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     colinfolist = research_database_info.get_colinfolist()
     rowcount = len(colinfolist)
     colinfolist = paginate(request, colinfolist)
@@ -1339,6 +1881,13 @@ def structure_table_paginated(request: HttpRequest) -> HttpResponse:
 @django_cache_function(timeout=None)
 # @lru_cache(maxsize=None)
 def get_structure_tree_html() -> str:
+    """
+    Returns HTML for an expand-and-collapse tree showing the table structure of
+    the research database(s).
+
+    Returns:
+        str: HTML
+    """
     table_to_colinfolist = research_database_info.get_colinfolist_by_tables()
     content = ""
     element_counter = HtmlElementCounter()
@@ -1367,6 +1916,16 @@ def get_structure_tree_html() -> str:
 
 
 def structure_tree(request: HttpRequest) -> HttpResponse:
+    """
+    Shows an expand-and-collapse tree view of the table structure of the
+    research database(s).
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     context = {
         'content': get_structure_tree_html(),
         'default_database': research_database_info.get_default_database_name(),
@@ -1377,6 +1936,15 @@ def structure_tree(request: HttpRequest) -> HttpResponse:
 
 # noinspection PyUnusedLocal
 def structure_tsv(request: HttpRequest) -> HttpResponse:
+    """
+    Serves the table structure of the research database(s) as TSV.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     return file_response(
         research_database_info.get_tsv(),
         content_type=ContentType.TSV,
@@ -1386,6 +1954,16 @@ def structure_tsv(request: HttpRequest) -> HttpResponse:
 
 # noinspection PyUnusedLocal
 def structure_excel(request: HttpRequest) -> HttpResponse:
+    """
+    Serves the table structure of the research database(s) as an Excel XLSX
+    file.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     return file_response(
         research_database_info.get_excel(),
         content_type=ContentType.TSV,
@@ -1398,6 +1976,15 @@ def structure_excel(request: HttpRequest) -> HttpResponse:
 # =============================================================================
 
 def local_structure_help(request: HttpRequest) -> HttpResponse:
+    """
+    Serves a locally specifed help page.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     if settings.DATABASE_HELP_HTML_FILENAME:
         with open(settings.DATABASE_HELP_HTML_FILENAME, 'r') as infile:
             content = infile.read()
@@ -1416,6 +2003,23 @@ def textmatch(column_name: str,
               fragment: str,
               as_fulltext: bool,
               dialect: str = 'mysql') -> str:
+    """
+    Returns SQL to check for the presence of text anywhere in a field.
+
+    Args:
+        column_name: name of the column
+        fragment: piece of text to look for
+        as_fulltext: use a FULLTEXT search if the database dialect supports it
+        dialect: dialect name (``mysql``, ``mssql`` are known)
+
+    Returns:
+        str: SQL fragment like:
+
+        - ``column LIKE '%fragment%'`` (ANSI SQL)
+        - ``MATCH(column) AGAINST ('fragment')`` (MySQL full-text)
+        - ``CONTAINS(column, 'fragment')`` (Microsoft SQL Server full-text)
+
+    """
     if as_fulltext and dialect == 'mysql':
         return "MATCH({column}) AGAINST ('{fragment}')".format(
             column=column_name, fragment=fragment)
@@ -1437,16 +2041,38 @@ def textfinder_sql(patient_id_fieldname: str,
                    extra_fieldname: str = None,
                    extra_value: Union[int, str] = None) -> str:
     """
-    Returns SQL to find the text in fragment across all tables that contain the
-    field indicated by patient_id_fieldname, where the length of the text field
-    is at least min_length.
+    Returns SQL to find the text in ``fragment`` across all tables that contain
+    the field indicated by ``patient_id_fieldname``, where the length of the
+    text field is at least ``min_length``.
 
-    use_fulltext_index: use database full-text indexing
-    include_content: include the text fields in the output
-    patient_id_value: restrict to a single patient
+    Args:
+        patient_id_fieldname:
+            field (column) name across all tables that contains the patient ID;
+            any tables that don't contain this column will be ignored
+        fragment:
+            fragment of text to find (e.g. "paracetamol")
+        min_length:
+            text fields must be at least this large to bother searching; use
+            this option to exclude e.g. ``VARCHAR(1)`` columns from the search
+        use_fulltext_index:
+            use database full-text indexing?
+        include_content:
+            include the text fields in the output?
+        include_datetime: 
+            include the date/time of each record, if known (see
+            :meth:`crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo.get_default_date_column`
+        patient_id_value:
+            specify this to restrict to a single patient; the value of the
+            patient ID column (see ``patient_id_fieldname``) to restrict to
+        extra_fieldname: 
+        extra_value: 
 
-    Will raise ValueError if no tables match the request.
-    """
+    Returns:
+        str: SQL query
+
+    Raises:
+        :exc:`ValueError` if no tables match the request
+    """  # noqa
     grammar = research_database_info.grammar
     tables = research_database_info.tables_containing_field(
         patient_id_fieldname)
@@ -1574,8 +2200,29 @@ def common_find_text(request: HttpRequest,
                      permit_pid_search: bool,
                      html_filename: str) -> HttpResponse:
     """
-    Creates SQL to find text anywhere in the database(s) via a UNION query.
-    """
+    Finds and displays text anywhere in the database(s), via a ``UNION`` query.
+
+    Args:
+        request:
+            the :class:`django.http.request.HttpRequest`
+        dbinfo: 
+            a :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`
+            detailing the research database to use
+        form_class:
+            form class to use to specify search options;
+            :class:`crate_anon.crateweb.research.forms.SQLHelperTextAnywhereForm`
+            or a subclass of it (like
+            `crate_anon.crateweb.research.forms.ClinicianAllTextFromPidForm`)
+        default_values:
+            default values to be passed to the form (see ``form_class``) 
+        permit_pid_search:
+            allow the user to search by PID/MPID (for clinicians)?
+        html_filename:
+            Django HTML template filename to capture search options
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """  # noqa
     # When you forget about Django forms, go back to:
     # http://www.slideshare.net/pydanny/advanced-django-forms-usage
 
@@ -1737,7 +2384,14 @@ def common_find_text(request: HttpRequest,
 
 def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
     """
-    Picks a database, then redirects to sqlhelper_text_anywhere_with_db.
+    Picks a database, then redirects to
+    :func:`sqlhelper_text_anywhere_with_db`.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     if research_database_info.single_research_db:
         dbname = research_database_info.first_dbinfo.name
@@ -1759,7 +2413,14 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
 def sqlhelper_text_anywhere_with_db(request: HttpRequest,
                                     dbname: str) -> HttpResponse:
     """
-    Creates SQL to find text anywhere in the database(s) via a UNION query.
+    Finds text anywhere in the database(s) via a ``UNION`` query.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        dbname: name of the research database to use
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
@@ -1785,7 +2446,13 @@ def sqlhelper_text_anywhere_with_db(request: HttpRequest,
 @user_passes_test(is_clinician)
 def all_text_from_pid(request: HttpRequest) -> HttpResponse:
     """
-    Picks a database, then redirects to all_text_from_pid_with_db.
+    Picks a database, then redirects to :func:`all_text_from_pid_with_db`.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     dbinfolist = research_database_info.dbs_with_secret_map
     n = len(dbinfolist)
@@ -1814,6 +2481,13 @@ def all_text_from_pid_with_db(request: HttpRequest,
     """
     Clinician view to look up a patient's RID from their PID and display
     text from any field.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        dbname: name of the research database to use
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
     """
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
@@ -1840,6 +2514,17 @@ def all_text_from_pid_with_db(request: HttpRequest,
 # =============================================================================
 
 def pe_build(request: HttpRequest) -> HttpResponse:
+    """
+    View to build/edit a Patient Explorer (see
+    :class:`crate_anon.crateweb.research.models.PatientExplorer`).
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    """
     profile = request.user.profile
     default_database = research_database_info.get_default_database_name()
     default_schema = research_database_info.get_default_schema_name()
@@ -1994,6 +2679,16 @@ def pe_build(request: HttpRequest) -> HttpResponse:
 
 
 def pe_choose(request: HttpRequest) -> HttpResponse:
+    """
+    Choose one of the user's Patient Explorers (see
+    :class:`crate_anon.crateweb.research.models.PatientExplorer`).
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     all_pes = get_all_pes(request)
     patient_explorers = paginate(request, all_pes)
     context = {
@@ -2006,6 +2701,17 @@ def pe_choose(request: HttpRequest) -> HttpResponse:
 
 
 def pe_activate(request: HttpRequest, pe_id: str) -> HttpResponse:
+    """
+    Activate one of the user's Patient Explorers.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pe_id: string form of the integer PK of a
+            :class:`crate_anon.crateweb.research.models.PatientExplorer`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     validate_blank_form(request)
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     pe.activate()
@@ -2013,6 +2719,17 @@ def pe_activate(request: HttpRequest, pe_id: str) -> HttpResponse:
 
 
 def pe_delete(request: HttpRequest, pe_id: str) -> HttpResponse:
+    """
+    Delete one of the user's Patient Explorers.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pe_id: string form of the integer PK of a
+            :class:`crate_anon.crateweb.research.models.PatientExplorer`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     validate_blank_form(request)
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     pe.delete_if_permitted()
@@ -2020,6 +2737,17 @@ def pe_delete(request: HttpRequest, pe_id: str) -> HttpResponse:
 
 
 def pe_edit(request: HttpRequest, pe_id: str) -> HttpResponse:
+    """
+    Edit one of the user's Patient Explorers.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pe_id: string form of the integer PK of a
+            :class:`crate_anon.crateweb.research.models.PatientExplorer`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     validate_blank_form(request)
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     profile = request.user.profile
@@ -2029,6 +2757,17 @@ def pe_edit(request: HttpRequest, pe_id: str) -> HttpResponse:
 
 
 def pe_results(request: HttpRequest, pe_id: str) -> HttpResponse:
+    """
+    Show the results of a Patient Explorer, in paginated tabular form.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pe_id: string form of the integer PK of a
+            :class:`crate_anon.crateweb.research.models.PatientExplorer`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     grammar = research_database_info.grammar
     profile = request.user.profile
@@ -2040,7 +2779,7 @@ def pe_results(request: HttpRequest, pe_id: str) -> HttpResponse:
     try:
         mrids = pe.get_patient_mrids()
         page = paginate(request, mrids, per_page=patients_per_page)
-        active_mrids = list(page)
+        active_mrids = list(page)  # type: List[str]
         results = []
         if active_mrids:
             for tsa in pe.all_queries(mrids=active_mrids):
@@ -2084,6 +2823,16 @@ def pe_results(request: HttpRequest, pe_id: str) -> HttpResponse:
 
 
 def render_missing_pe(request: HttpRequest) -> HttpResponse:
+    """
+    Tell the user that there's no Patient Explorer selected, when there should
+    have been.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     return render(request, 'pe_missing.html', query_context(request))
 
 
@@ -2091,6 +2840,23 @@ def render_missing_pe(request: HttpRequest) -> HttpResponse:
 def render_bad_pe(request: HttpRequest,
                   pe: PatientExplorer,
                   exception: Exception) -> HttpResponse:
+    """
+    A view saying "your Patient Explorer failed".
+
+    Args:
+        request:
+            the :class:`django.http.request.HttpRequest`
+        pe:
+            the :class:`crate_anon.crateweb.research.models.PatientExplorer`
+            that went wrong
+        exception:
+            the Python exception that resulted, which may have had extra
+            information attached via
+            :func:`cardinal_pythonlib.exceptions.add_info_to_exception`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     info = recover_info_from_exception(exception)
     final_sql = info.get('sql', '')
     args = info.get('args', [])
@@ -2110,13 +2876,37 @@ def render_bad_pe(request: HttpRequest,
 
 
 def get_all_pes(request: HttpRequest) -> QuerySet:
+    """
+    Return all Patient Explorers for the current user.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        request: a :class:`django.db.models.QuerySet` for
+        :class:`crate_anon.crateweb.research.models.PatientExplorer` objects
+
+    """
     return PatientExplorer.objects\
         .filter(user=request.user, deleted=False)\
         .order_by('-active', '-created')
 
 
 def get_identical_pes(request: HttpRequest,
-                      pmq: PatientMultiQuery) -> List[PatientMultiQuery]:
+                      pmq: PatientMultiQuery) -> List[PatientExplorer]:
+    """
+    Return all Patient Explorers for the current user whose query is identical
+    to the query specified.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pmq: a :class:`crate_anon.crateweb.research.models.PatientMultiQuery`
+
+    Returns:
+        a list of :class:`crate_anon.crateweb.research.models.PatientExplorer`
+        objects
+
+    """
     all_pes = get_all_pes(request)
 
     # identical_pes = all_pes.filter(patient_multiquery=pmq)
@@ -2137,6 +2927,20 @@ def get_identical_pes(request: HttpRequest,
 def pe_submit(request: HttpRequest,
               pmq: PatientMultiQuery,
               run: bool = False) -> HttpResponse:
+    """
+    Save a :class:`crate_anon.crateweb.research.models.PatientMultiQuery` as a
+    :class:`crate_anon.crateweb.research.models.PatientExplorer` for the
+    current user.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pmq: a :class:`crate_anon.crateweb.research.models.PatientMultiQuery`
+        run: run and show results? Otherwise, save and return to the choice view
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    """
     identical_pes = get_identical_pes(request, pmq)
     if identical_pes:
         identical_pes[0].activate()
@@ -2156,6 +2960,19 @@ def pe_submit(request: HttpRequest,
 
 
 def pe_tsv_zip(request: HttpRequest, pe_id: str) -> HttpResponse:
+    """
+    Return the results of a
+    :class:`crate_anon.crateweb.research.models.PatientExplorer` as a ZIP file
+    of TSV files.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pe_id: string form of the integer PK of a
+            :class:`crate_anon.crateweb.research.models.PatientExplorer`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     # http://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
@@ -2172,6 +2989,19 @@ def pe_tsv_zip(request: HttpRequest, pe_id: str) -> HttpResponse:
 
 
 def pe_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
+    """
+    Return the results of a
+    :class:`crate_anon.crateweb.research.models.PatientExplorer` as an Excel
+    XLSX file.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pe_id: string form of the integer PK of a
+            :class:`crate_anon.crateweb.research.models.PatientExplorer`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
         return file_response(
@@ -2187,6 +3017,19 @@ def pe_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
 
 
 def pe_data_finder_results(request: HttpRequest, pe_id: str) -> HttpResponse:
+    """
+    Shows the **data finder** view of a
+    :class:`crate_anon.crateweb.research.models.PatientExplorer`. This counts
+    records for each table (by patient), without showing all the data.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pe_id: string form of the integer PK of a
+            :class:`crate_anon.crateweb.research.models.PatientExplorer`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     profile = request.user.profile
     patients_per_page = get_patients_per_page(request)
@@ -2198,15 +3041,17 @@ def pe_data_finder_results(request: HttpRequest, pe_id: str) -> HttpResponse:
     try:
         mrids = pe.get_patient_mrids()
         page = paginate(request, mrids, per_page=patients_per_page)
-        active_mrids = list(page)
+        active_mrids = list(page)  # type: List[str]
         results_table_html = ''
         query_html = ''
         if active_mrids:
             fieldnames = []
             rows = []
-            for table_identifier, sql, args in \
-                    pe.patient_multiquery.gen_data_finder_queries(
+            for tsa in pe.patient_multiquery.gen_data_finder_queries(
                         mrids=active_mrids):
+                table_identifier = tsa.table_id
+                sql = tsa.sql
+                args = tsa.args
                 with pe.get_executed_cursor(sql, args) as cursor:
                     if not fieldnames:
                         fieldnames = get_fieldnames_from_cursor(cursor)
@@ -2243,6 +3088,20 @@ def pe_data_finder_results(request: HttpRequest, pe_id: str) -> HttpResponse:
 
 
 def pe_data_finder_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
+    """
+    Serves the data finder view of a
+    :class:`crate_anon.crateweb.research.models.PatientExplorer` (see
+    :func:`pe_data_finder_results`) as an Excel XLSX file.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pe_id: string form of the integer PK of a
+            :class:`crate_anon.crateweb.research.models.PatientExplorer`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
         return file_response(
@@ -2258,6 +3117,20 @@ def pe_data_finder_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
 
 
 def pe_monster_results(request: HttpRequest, pe_id: str) -> HttpResponse:
+    """
+    Shows the **monster data** view of a
+    :class:`crate_anon.crateweb.research.models.PatientExplorer`. This performs
+    a ``SELECT(*)`` for all rows retrieved by the PatientExplorer.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pe_id: string form of the integer PK of a
+            :class:`crate_anon.crateweb.research.models.PatientExplorer`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     grammar = research_database_info.grammar
     profile = request.user.profile
@@ -2273,7 +3146,10 @@ def pe_monster_results(request: HttpRequest, pe_id: str) -> HttpResponse:
         results = []
         pmq = pe.patient_multiquery
         if active_rids:
-            for table_id, sql, args in pmq.gen_monster_queries(mrids=active_rids):  # noqa
+            for tsa in pmq.gen_monster_queries(mrids=active_rids):
+                table_id = tsa.table_id
+                sql = tsa.sql
+                args = tsa.args
                 with pe.get_executed_cursor(sql, args) as cursor:
                     fieldnames = get_fieldnames_from_cursor(cursor)
                     rows = cursor.fetchall()
@@ -2314,6 +3190,21 @@ def pe_monster_results(request: HttpRequest, pe_id: str) -> HttpResponse:
 
 
 def pe_table_browser(request: HttpRequest, pe_id: str) -> HttpResponse:
+    """
+    Shows the **table browser** view of a
+    :class:`crate_anon.crateweb.research.models.PatientExplorer`. This shows a
+    list of all tables in the database, with hyperlinks to a single-table
+    Patient Explorer view for each.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pe_id: string form of the integer PK of a
+            :class:`crate_anon.crateweb.research.models.PatientExplorer`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     tables = research_database_info.get_tables()
     with_database = research_database_info.uses_database_level()
@@ -2333,6 +3224,23 @@ def pe_table_browser(request: HttpRequest, pe_id: str) -> HttpResponse:
 
 def pe_one_table(request: HttpRequest, pe_id: str,
                  schema: str, table: str, db: str = '') -> HttpResponse:
+    """
+    Shows the **single table** view of a
+    :class:`crate_anon.crateweb.research.models.PatientExplorer`. This shows
+    results from a single table.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        pe_id: string form of the integer PK of a
+            :class:`crate_anon.crateweb.research.models.PatientExplorer`
+        schema: name of the table's schema
+        table: name of the table
+        db: name of the table's database (above the schema level), if appliable
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     table_id = TableId(db=db, schema=schema, table=table)
     grammar = research_database_info.grammar

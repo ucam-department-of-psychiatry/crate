@@ -307,10 +307,11 @@ class Highlight(models.Model):
         return max(0, min(self.colour, N_CSS_HIGHLIGHT_CLASSES - 1))
 
     @staticmethod
-    def as_ordered_dict(highlight_list) -> Dict[int, List[HIGHLIGHT_FWD_REF]]:
+    def as_ordered_dict(highlight_list: Iterable[HIGHLIGHT_FWD_REF]) \
+            -> Dict[int, List[HIGHLIGHT_FWD_REF]]:
         """
-        Converts a list of :class:`Highlight` objects into a dictionary that
-        collects them by highlight number.
+        Converts a iterable of :class:`Highlight` objects into a dictionary
+        that collects them by highlight number.
 
         Args:
             highlight_list: list of :class:`Highlight` objects
@@ -321,7 +322,7 @@ class Highlight(models.Model):
             :class:`Highlight` objects using that highlight colour number
 
         """
-        d = dict()
+        d = dict()  # type: Dict[int, List[HIGHLIGHT_FWD_REF]]
         for highlight in highlight_list:
             n = highlight.get_safe_colour()
             if n not in d:
@@ -1592,7 +1593,8 @@ class PatientMultiQuery(object):
         """
         Generates a set of queries that, when executed, return ``SELECT *``
         from each of our tables, filtered for patients by our
-        :meth:`where_patient_clause`.
+        :meth:`where_patient_clause`. So it's like the basic Patient Explorer
+        but with all columns in the output.
 
         These queries are used in the Patient Explorer "Monster Data" view.
 
@@ -1629,7 +1631,7 @@ class PatientMultiQuery(object):
                 formatted=False)
             sql += " ORDER BY " + mrid_col.identifier(grammar)
             sql = format_sql(sql)
-            yield table_id, sql, args
+            yield TableQueryArgs(table_id, sql, args)
 
 
 # =============================================================================

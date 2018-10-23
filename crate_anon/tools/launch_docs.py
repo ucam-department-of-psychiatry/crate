@@ -30,26 +30,15 @@ crate_anon/tools/launch_docs.py
 
 from cardinal_pythonlib.process import launch_external_file
 
-
-# THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-# DOCS_INDEX = os.path.abspath(os.path.join(
-#     THIS_DIR,  # crate_anon/tools
-#     os.pardir,  # crate_anon
-#     "docs",
-#     "build",
-#     "html",
-#     "index.html"
-# ))
-
-DOCS_INDEX = "https://crateanon.readthedocs.io/"
+from crate_anon.common.constants import CRATE_DOCS_URL
 
 
 def main():
     """
     Command-line entry point.
     """
-    print("Launching help: {}".format(DOCS_INDEX))
-    launch_external_file(DOCS_INDEX)
+    print("Launching help: {}".format(CRATE_DOCS_URL))
+    launch_external_file(CRATE_DOCS_URL)
 
 
 if __name__ == '__main__':

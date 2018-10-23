@@ -24,6 +24,8 @@ crate_anon/crateweb/research/migrations/0001_initial.py
 
 ===============================================================================
 
+**Research app, migration 0001.**
+
 """
 
 from __future__ import unicode_literals

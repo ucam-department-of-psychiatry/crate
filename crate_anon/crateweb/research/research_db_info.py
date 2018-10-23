@@ -1014,7 +1014,7 @@ class ResearchDatabaseInfo(object):
         ``settings.RESEARCH_DB_INFO``) is ``name``.
 
         Args:
-            name: the name of a database, as per ``settings.RESEARCH_DB_INFO
+            name: the name of a database, as per ``settings.RESEARCH_DB_INFO``
 
         Returns:
             a :class:`SingleResearchDatabase`

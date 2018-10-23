@@ -23,6 +23,18 @@ Using the CRATE web interface
 ..  toctree::
     :maxdepth: 2
 
+    clinician_researcher_overview.rst
     research_queries.rst
 
 .. todo:: "Using the CRATE web interface": Write more documentation here!
+
+- page for standard queries
+- page for Patient Explorer views
+- page for SQL helpers
+- page for database structure
+
+- page for contacting patients
+
+- page for RDBM
+
+- page for developers

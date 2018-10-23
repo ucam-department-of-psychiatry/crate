@@ -23,6 +23,12 @@ CRATE: Clinical Records Anonymisation and Text Extraction
 
 By Rudolf Cardinal <rudolf@pobox.com>.
 
+.. note::
+
+    If you're a clinician or a researcher using a CRATE web site to explore a
+    research database, see the :ref:`Overview for clinicians and researchers
+    <crateweb_clinician_researcher_overview>`.
+
 ..  toctree::
     :maxdepth: 2
     :numbered:

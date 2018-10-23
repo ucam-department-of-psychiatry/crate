@@ -24,5 +24,6 @@ crate_anon/crateweb/specimen_secret_local_settings/__init__.py
 
 ===============================================================================
 
-"""
+The mere existence of this file makes Python treat the directory as a package.
 
+"""

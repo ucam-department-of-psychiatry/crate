@@ -55,11 +55,12 @@
 
     <ul>
         <li>
-            Enter the SQL you want to add, with placeholders in double square brackets eg:<br />
-            SELECT * FROM [[table]] WHERE brcid="[[brcid]]";
+            Enter the SQL you want to add, with placeholders in double square brackets, e.g.<br />
+            <pre>SELECT * FROM [[table]] WHERE brcid = '[[brcid]]'</pre>
         </li>
         <li>The placeholders act as hints for the user.</li>
         <li>Remember to put quotes around placeholders if they're needed.</li>
+        <li>Remember that SQL uses single quotes.</li>
     </ul>
 
 {% endblock %}

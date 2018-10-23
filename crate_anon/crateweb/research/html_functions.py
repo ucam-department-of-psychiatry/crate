@@ -74,7 +74,7 @@ def visibility_button(tag: str, small: bool = True,
             see ``crate_anon/crateweb/static/collapse.js``
         small: start small (or invisible) rather than big (or visible)?
         title_html: HTML to put inside the element
-        as_span: return a ``<span>`` element rather than a ``<div>` element?
+        as_span: return a ``<span>`` element rather than a ``<div>`` element?
         as_visibility: "visibility" style, rather than "collapse" style?
 
     Returns:
