@@ -24,6 +24,9 @@ crate_anon/crateweb/research/sql_writer.py
 
 ===============================================================================
 
+**Automatically create/manipulate SQL statements based on our extra knowledge
+of the fields that can be used to link across tables/databases.**
+
 """
 
 import logging
@@ -57,8 +60,7 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Automagically create/manipulate SQL statements based on our extra knowledge
-# of the fields that can be used to link across tables/databases.
+# Automatic SQL generation functions
 # =============================================================================
 
 def get_join_info(grammar: SqlGrammar,
@@ -67,8 +69,38 @@ def get_join_info(grammar: SqlGrammar,
                   magic_join: bool = False,
                   nonmagic_join_type: str = "INNER JOIN",
                   nonmagic_join_condition: str = '') -> List[JoinInfo]:
-    # Returns e.g. ["INNER JOIN", "tablename", "WHERE somecondition"].
-    # INNER JOIN etc. is part of ANSI SQL
+    """
+    Works out how to join a new table into an existing SQL ``SELECT`` query.
+
+    Args:
+        grammar:
+            :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar`
+            representing the SQL dialect/grammar in use
+        parsed:
+            existing :class:`pyparsing.ParseResults` representing the
+            ``SELECT`` statement so far
+        jointable:
+            :class:`crate_anon.common.sql.TableId` representing the table to be
+            joined in
+        magic_join:
+            perform a "magic join", i.e. join the new table in based on our
+            knowledge of the research database structure?
+        nonmagic_join_type:
+            if ``not magic_join``, this is an SQL string specifying the join
+            type, e.g. ``"INNER JOIN"``
+        nonmagic_join_condition:
+            if ``not magic_join``, this is an SQL string specifying the join
+            condition, e.g. ``"ON x = y"``
+
+    Returns:
+        a list of :class:`crate_anon.common.sql.JoinInfo` objects, e.g.
+        ``[JoinInfo("tablename", "INNER JOIN", "WHERE somecondition")]``.
+
+    Notes:
+
+    - ``INNER JOIN`` etc. is part of ANSI SQL
+
+    """
     first_from_table = get_first_from_table(parsed)
     from_table_in_join_schema = get_first_from_table(
         parsed,
@@ -186,11 +218,30 @@ def get_join_info(grammar: SqlGrammar,
 
 
 class SelectElement(object):
+    """
+    Class to represent a result column in an SQL ``SELECT`` statement.
+    """
     def __init__(self,
                  column_id: ColumnId = None,
                  raw_select: str = '',
                  from_table_for_raw_select: TableId = None,
                  alias: str = ''):
+        """
+        Args:
+            column_id:
+                a :class:`crate_anon.common.sql.ColumnId` object; using this
+                will automatically add the column's table to the ``FROM``
+                clause
+            raw_select:
+                as an alternative to ``column_id``, raw SQL for the ``SELECT``
+                clause
+            from_table_for_raw_select:
+                if ``raw_select`` is used, a
+                :class:`crate_anon.common.sql.TableId` that should be added to
+                the ``FROM`` clause
+            alias:
+                alias to be used, i.e. for ``SELECT something AS alias``
+        """
         self.column_id = column_id
         self.raw_select = raw_select
         self.from_table_for_raw_select = from_table_for_raw_select
@@ -214,23 +265,70 @@ class SelectElement(object):
         )
 
     def sql_select_column(self, grammar: SqlGrammar) -> str:
+        """
+        Return the raw SQL for this ``SELECT`` result column.
+
+        Args:
+            grammar:
+                :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar`
+                representing the SQL dialect/grammar in use
+
+        Returns:
+            str: SQL like ``colname`` or ``expression`` or ``colname AS alias``
+
+        """
         result = self.raw_select or self.column_id.identifier(grammar)
         if self.alias:
             result += " AS " + self.alias
         return result
 
     def from_table(self) -> Optional[TableId]:
+        """
+        Returns details of the table to be added to the ``FROM`` clause of the
+        ``SELECT`` statement.
+
+        Returns:
+            a :class:`crate_anon.common.sql.TableId`, or ``None`` (if
+            ``raw_select`` is used and ``from_table_for_raw_select`` was not
+            specified)
+
+        """
         if self.raw_select:
             return self.from_table_for_raw_select
         return self.column_id.table_id
 
     def from_table_str(self, grammar: SqlGrammar) -> str:
+        """
+        Returns a string form of :meth:`from_table`, i.e. an SQL identifier
+        for the ``FROM`` clause.
+
+        Args:
+            grammar:
+                :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar`
+                representing the SQL dialect/grammar in use
+
+        Returns:
+            str: SQL like ``from_table``
+
+        """
         table_id = self.from_table()
         if not table_id:
             return ''
         return table_id.identifier(grammar)
 
     def sql_select_from(self, grammar: SqlGrammar) -> str:
+        """
+        Returns a full ``SELECT... FROM...`` statement.
+
+        Args:
+            grammar:
+                :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar`
+                representing the SQL dialect/grammar in use
+
+        Returns:
+            str: SQL like ``SELECT colname AS alias FROM from_table``
+
+        """
         sql = "SELECT " + self.sql_select_column(grammar=grammar)
         from_table = self.from_table()
         if from_table:
@@ -241,7 +339,12 @@ class SelectElement(object):
 def reparse_select(p: ParseResults, grammar: SqlGrammar) -> ParseResults:
     """
     Internal function for when we get desperate trying to hack around
-    the results of pyparsing's efforts.
+    the results of ``pyparsing``'s efforts.
+
+    - takes a :class:`pyparsing.ParseResults`
+    - converts it to an SQL string
+    - parses the string as a ``SELECT`` statement
+    - returns the resulting :class:`pyparsing.ParseResults`
     """
     return grammar.get_select_statement().parseString(
         text_from_parsed(p, formatted=False),
@@ -254,7 +357,7 @@ def add_to_select(sql: str,
                   select_elements: List[SelectElement] = None,
                   where_conditions: List[WhereCondition] = None,
                   # For SELECT:
-                  distinct: bool = None,  # True, False, or None to leave as is
+                  distinct: bool = None,
                   # For WHERE:
                   where_type: str = "AND",
                   bracket_where: bool = False,
@@ -268,19 +371,65 @@ def add_to_select(sql: str,
                   debug_verbose: bool = False) -> str:
     """
     This function encapsulates our query builder's common operations.
+
     One premise is that SQL parsing is relatively slow, so we should do this
     only once. We parse; add bits to the parsed structure as required; then
     re-convert to text.
 
-    If you specify table/column, elements will be added to SELECT and FROM
-    unless they already exist.
+    If you specify table/column, elements will be added to ``SELECT`` and
+    ``FROM`` unless they already exist.
 
-    If you specify where_expression, elements will be added to WHERE.
-    In this situation, you should also specify where_table; if the where_table
-    isn't yet in the FROM clause, this will be added as well.
+    If you specify ``where_expression``, elements will be added to ``WHERE``.
+    In this situation, you should also specify ``where_table``; if the
+    ``where_table`` isn't yet in the ``FROM`` clause, this will be added as
+    well.
 
     Parsing is SLOW, so we should do as much as possible in a single call to
     this function.
+
+    Args:
+        sql:
+            existing SQL statement
+        grammar:
+            :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar`
+            representing the SQL dialect/grammar in use
+        select_elements:
+            optional list of :class:`SelectElement` objects representing
+            things to add to the ``SELECT`` clause of the ``SELECT`` statement
+            (i.e. results columns)
+        where_conditions:
+            optional list of :class:`crate_anon.common.sql.WhereCondition`
+            representing conditions to add to the ``WHERE`` clause of the
+            ``SELECT`` statement
+        distinct:
+            if ``True``, make the ``SELECT`` statement a ``SELECT DISTINCT``;
+            if ``False``, remove any ``DISTINCT``; if ``None``, leave the
+            ``DISTINCT`` status as it is.
+        where_type:
+            logical operator with which to join multiple parts of the ``WHERE``
+            expression, typically ``AND`` (but maybe ``OR``, etc.)
+        bracket_where:
+            put brackets ``()`` around each new part of the ``WHERE``
+            expression?
+        magic_join:
+            perform a "magic join", i.e. join the new table in based on our
+            knowledge of the research database structure?
+        join_type:
+            if ``not magic_join``, this is an SQL string specifying the join
+            type, e.g. ``"INNER JOIN"``
+        join_condition:
+            if ``not magic_join``, this is an SQL string specifying the join
+            condition, e.g. ``"ON x = y"``
+        formatted:
+            reformat the SQL to look pretty?
+        debug:
+            show debugging information
+        debug_verbose:
+            show verbose debugging information
+
+    Returns:
+        str: SQL statement
+
     """
     select_elements = select_elements or []  # type: List[SelectElement]
     where_conditions = where_conditions or []  # type: List[WhereCondition]
@@ -400,6 +549,9 @@ def add_to_select(sql: str,
 # =============================================================================
 
 def unit_tests() -> None:
+    """
+    Unit tests.
+    """
     grammar = make_grammar(SqlaDialectName.MYSQL)
     log.info(add_to_select(
         "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",

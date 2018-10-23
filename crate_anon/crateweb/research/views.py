@@ -608,8 +608,6 @@ def query_add_sitewide(request: HttpRequest) -> HttpResponse:
 
 def show_sitewide_queries(request: HttpRequest) -> HttpResponse:
     queries = get_all_sitewide_queries()
-    for query in queries:
-        query.get_sql_chunks()
     context = {
         'queries': queries,
     }
@@ -649,16 +647,14 @@ def sitewide_query_process(request: HttpRequest, query_id: str) -> HttpResponse:
     cmd_run = 'submit_run' in request.POST
     if cmd_add or cmd_run:
         query = get_object_or_404(SitewideQuery, id=query_id)
-        # if query.sql_chunks is null:
-        query.get_sql_chunks()
         sql = ""
         for i, chunk in enumerate(query.sql_chunks):
             if i % 2 == 0:
-                # add the original sql - the even numbered chunks
+                # add the original SQL - the even-numbered chunks
                 sql += chunk
             else:
-                # add sql to replace the placeholders
-                chunknum = "chunk{}".format(i+1)
+                # add SQL to replace the placeholders
+                chunknum = "chunk{}".format(i + 1)
                 if chunknum in request.POST:
                     replacement = request.POST[chunknum]
                 else:
@@ -2047,7 +2043,10 @@ def pe_results(request: HttpRequest, pe_id: str) -> HttpResponse:
         active_mrids = list(page)
         results = []
         if active_mrids:
-            for table_id, sql, args in pe.all_queries(mrids=active_mrids):
+            for tsa in pe.all_queries(mrids=active_mrids):
+                table_id = tsa.table_id
+                sql = tsa.sql
+                args = tsa.args
                 with pe.get_executed_cursor(sql, args) as cursor:
                     fieldnames = get_fieldnames_from_cursor(cursor)
                     rows = cursor.fetchall()

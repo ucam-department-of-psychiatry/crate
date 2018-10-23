@@ -73,8 +73,8 @@ SKIP_GLOBS = [
     # "crateweb_local_settings.py",
     "jquery*",
     "modernizr*",
-    "jquery*/*",
-    "static_collected/*",
+    "**/jquery*/*",
+    "**/static_collected/*",
 ]
 
 

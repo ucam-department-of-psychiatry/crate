@@ -72,13 +72,15 @@ def visibility_button(tag: str, small: bool = True,
         tag: tag used for this set of elements; used as part of the parameters
             to Javascript ``toggleVisible`` or ``toggleCollapsed`` functions;
             see ``crate_anon/crateweb/static/collapse.js``
-        small: start small?
+        small: start small (or invisible) rather than big (or visible)?
         title_html: HTML to put inside the element
         as_span: return a ``<span>`` element rather than a ``<div>` element?
         as_visibility: "visibility" style, rather than "collapse" style?
 
     Returns:
         str: HTML
+
+    See :func:`visibility_contentdiv` for the associated content.
 
     """
     eltype = "span" if as_span else "div"
@@ -102,6 +104,23 @@ def visibility_contentdiv(tag: str,
                           extra_div_classes: Iterable[str] = None,
                           small: bool = True,
                           as_visibility: bool = True) -> str:
+    """
+    Returns HTML for a content ``<div>`` that can be collapsed by a button
+    (for which, see :func:`visibility_button`).
+
+    Args:
+        tag: tag used for this set of elements; used as part of the parameters
+            to Javascript ``toggleVisible`` or ``toggleCollapsed`` functions;
+            see ``crate_anon/crateweb/static/collapse.js``
+        contents: HTML contents of the ``div``
+        extra_div_classes: extra CSS classes to add to the ``div``
+        small: start small (or invisible) rather than big (or visible)?
+        as_visibility: "visibility" style, rather than "collapse" style?
+
+    Returns:
+        str: HTML
+
+    """
     extra_div_classes = extra_div_classes or []
     div_classes = ["collapsible"] + extra_div_classes
     if as_visibility:
@@ -130,7 +149,24 @@ def visibility_div_with_divbutton(tag: str,
                                   title_html: str = '',
                                   extra_div_classes: Iterable[str] = None,
                                   small: bool = True) -> str:
-    # The HTML pre-hides, rather than using an onload method
+    """
+    Returns an HTML ``<div>`` with a show/hide button and contents.
+
+    Args:
+        tag: tag used for this set of elements; used as part of the parameters
+            to Javascript ``toggleVisible`` or ``toggleCollapsed`` functions;
+            see ``crate_anon/crateweb/static/collapse.js``
+        contents: HTML contents of the content ``div``
+        title_html: HTML to put inside the button element
+        extra_div_classes: extra CSS classes to add to the content ``div``
+        small: start invisible rather than visible?
+
+    Returns:
+        str: HTML
+
+    - The HTML pre-hides, rather than using an onload method.
+
+    """
     button = visibility_button(tag=tag, small=small,
                                title_html=title_html, as_visibility=True)
     contents = visibility_contentdiv(tag=tag, contents=contents,
@@ -143,6 +179,20 @@ def overflow_div(tag: str,
                  contents: str,
                  extra_div_classes: Iterable[str] = None,
                  small: bool = True) -> str:
+    """
+    Returns an HTML ``<div>`` with an expand/collapse button and contents.
+
+    Args:
+        tag: tag used for this set of elements; used as part of the parameters
+            to Javascript ``toggleVisible`` or ``toggleCollapsed`` functions;
+            see ``crate_anon/crateweb/static/collapse.js``
+        contents: HTML contents of the content ``div``
+        extra_div_classes: extra CSS classes to add to the content ``div``
+        small: start collapsed rather than expanded?
+
+    Returns:
+        str: HTML
+    """
     button = visibility_button(tag=tag, small=small,
                                as_visibility=False)
     contentdiv = visibility_contentdiv(tag=tag, contents=contents,
@@ -157,36 +207,71 @@ def overflow_div(tag: str,
 
 
 # =============================================================================
-# Class to maintain element counters, for use with pages having lots of
-# collapsible divs (or other HTML elements requiring individual numbering)
+# HtmlElementCounter
 # =============================================================================
 
 class HtmlElementCounter(object):
-    def __init__(self, prefix: str = ''):
+    """
+    Class to maintain element counters, for use with pages having lots of
+    collapsible divs (or other HTML elements requiring individual numbering).
+    """
+    def __init__(self, prefix: str = '') -> None:
+        """
+        Args:
+            prefix: text to be prefixed to the tag used for HTML elements
+        """
         self.elementnum = 0
         self.prefix = prefix
 
-    def next(self):
+    def next(self) -> None:
+        """
+        Increments the ``elementnum`` counter.
+        """
         self.elementnum += 1
 
-    def tag(self):
+    def tag(self) -> str:
+        """
+        Returns a tag based on the prefix and current element number.
+        """
         return self.prefix + str(self.elementnum)
 
     def visibility_div_with_divbutton(self,
                                       contents: str,
                                       title_html: str = '',
                                       extra_div_classes: Iterable[str] = None,
-                                      visible: bool = True) -> str:
+                                      small: bool = True) -> str:
+        """
+        Returns a "visibility" ``<div>`` with a show/hide button.
+
+        Args:
+            contents: HTML contents of the content ``div``
+            title_html: HTML to put inside the button element
+            extra_div_classes: extra CSS classes to add to the content ``div``
+            small: start invisible, rather than visible?
+
+        Returns:
+            str: HTML
+        """
         result = visibility_div_with_divbutton(
             tag=self.tag(),
             contents=contents,
             title_html=title_html,
             extra_div_classes=extra_div_classes,
-            small=visible)
+            small=small)
         self.next()
         return result
 
     def visibility_div_spanbutton(self, small: bool = True) -> str:
+        """
+        Returns a visibility button in an HTML ``<span>``.
+
+        Args:
+            small: start in "hidden" rather than "visible" mode?
+
+        Returns:
+            str: HTML
+
+        """
         return visibility_button(tag=self.tag(), as_visibility=True,
                                  small=small, as_span=True)
 
@@ -194,6 +279,18 @@ class HtmlElementCounter(object):
                                   contents: str,
                                   extra_div_classes: Iterable[str] = None,
                                   small: bool = True) -> str:
+        """
+        Returns a "visibility" content ``<div>``.
+
+        Args:
+            contents: HTML contents of the content ``div``
+            extra_div_classes: extra CSS classes to add to the ``div``
+            small: start invisible, rather than visible?
+
+        Returns:
+            str: HTML
+
+        """
         result = visibility_contentdiv(
             tag=self.tag(),
             contents=contents,
@@ -207,6 +304,17 @@ class HtmlElementCounter(object):
                                    contents: str,
                                    extra_div_classes: Iterable[str] = None,
                                    small: bool = True) -> str:
+        """
+        Returns a "collapsible" content ``<div>``
+
+        Args:
+            contents: HTML contents of the ``div``
+            extra_div_classes: extra CSS classes to add to the content ``div``
+            small: start collapsed, rather than expanded?
+
+        Returns:
+            str: HTML
+        """
         result = visibility_contentdiv(
             tag=self.tag(),
             contents=contents,
@@ -218,11 +326,23 @@ class HtmlElementCounter(object):
 
     def overflow_div(self,
                      contents: str,
-                     extradivclasses: Iterable[str] = None,
+                     extra_div_classes: Iterable[str] = None,
                      small: bool = True) -> str:
+        """
+        Returns a "overflow" ``<div>`` with content and an expand/collapse
+        button.
+
+        Args:
+            contents: HTML contents of the ``div``
+            extra_div_classes: extra CSS classes to add to the content ``div``
+            small: start collapsed, rather than expanded?
+
+        Returns:
+            str: HTML
+        """
         result = overflow_div(tag=self.tag(),
                               contents=contents,
-                              extra_div_classes=extradivclasses,
+                              extra_div_classes=extra_div_classes,
                               small=small)
         self.next()
         return result
@@ -239,8 +359,8 @@ def escape_literal_string_for_regex(s: str) -> str:
     r"""
     Escape any regex characters.
 
-    Start with \ -> \\
-        ... this should be the first replacement in REGEX_METACHARS.
+    - Start with `\` -> ``\\``.
+      This should be the first replacement in REGEX_METACHARS.
     """
     for c in REGEX_METACHARS:
         s.replace(c, "\\" + c)
@@ -250,6 +370,20 @@ def escape_literal_string_for_regex(s: str) -> str:
 def get_regex_from_highlights(highlight_list: Iterable[HIGHLIGHT_FWD_REF],
                               at_word_boundaries_only: bool = False) \
         -> Pattern:
+    """
+    Takes a list of the user's chosen highlights to apply to results, and
+    builds a compiled regular expression for (any of) them.
+
+    Args:
+        highlight_list: list of
+            :class:`crate_anon.crateweb.research.models.Highlight` objects,
+            which represent text to find and a colour to highlight it with
+        at_word_boundaries_only: match at word boundaries only?
+
+    Returns:
+        a compiled regular expression (case-insensitive)
+
+    """
     elements = []
     wb = r"\b"  # word boundary; escape the slash if not using a raw string
     for hl in highlight_list:
@@ -263,15 +397,36 @@ def get_regex_from_highlights(highlight_list: Iterable[HIGHLIGHT_FWD_REF],
 
 
 def highlight_text(x: str, n: int = 0) -> str:
+    """
+    Transforms text (from a query result) into HTML that highlights it.
+
+    Args:
+        x: original text
+        n: highlight colour number to use (as per our ``static/base.css``)
+
+    Returns:
+
+    """
     n %= N_CSS_HIGHLIGHT_CLASSES
     return r'<span class="highlight{n}">{x}</span>'.format(n=n, x=x)
 
 
 def make_highlight_replacement_regex(n: int = 0) -> str:
+    r"""
+    Makes a regex replacement string that highlights the first "found" group
+    with a specific highlight colour.
+
+    Args:
+        n: highlight colour number to use (as per our ``static/base.css``)
+
+    Returns:
+        str: regex text like ``<span class="highlight1">\1</span>``
+
+    """
     return highlight_text(r"\1", n=n)
 
 
-def make_result_element(x: Optional[str],
+def make_result_element(x: Any,
                         element_counter: HtmlElementCounter,
                         highlight_dict: Dict[int,
                                              List[HIGHLIGHT_FWD_REF]] = None,
@@ -281,6 +436,31 @@ def make_result_element(x: Optional[str],
                         keep_existing_newlines: bool = True,
                         collapsed: bool = True,
                         null: str = '<i>NULL</i>') -> str:
+    """
+    Returns a collapsible HTML ``<div>`` for a result cell, with optional
+    highlighting of results.
+
+    Args:
+        x: the value
+        element_counter: a :class:``HtmlElementCounter``, used for
+            distinguishing multiple elements; it will be modified
+        highlight_dict: an optional dictionary mapping highlight colour to all
+            the :class:`crate_anon.crateweb.research.models.Highlight` objects
+            that use it (e.g.: ``2`` maps to highlight objects for all the
+            separate pieces of text to be highlighted in colour 2)
+        collapse_at_len: if specified, the string length beyond which the cell
+            will be collapsed
+        collapse_at_n_lines: if specified, the number of lines beyond which the
+            cell will be collapsed
+        line_length: if specified, the line length to word-wrap at
+        keep_existing_newlines: retain existing newlines from the source?
+        collapsed: start cells collapsed rather than expanded?
+        null: HTML string to use for database NULL values
+
+    Returns:
+        str: HTML
+
+    """
     # return escape(repr(x))
     if x is None:
         return null
@@ -320,6 +500,16 @@ def make_result_element(x: Optional[str],
 
 
 def pre(x: str = '') -> str:
+    """
+    Applies an HTML ``<pre>...</pre>`` tag.
+
+    Args:
+        x: input
+
+    Returns:
+        the input within a ``pre`` tag
+
+    """
     return "<pre>{}</pre>".format(x)
 
 
@@ -335,6 +525,18 @@ SQL_LEXER = SqlLexer()
 def prettify_sql_html(sql: str,
                       reformat: bool = False,
                       indent_width: int = 4) -> str:
+    """
+    Formats SQL (optionally), and highlights it with Pygments.
+
+    Args:
+        sql: raw SQL text
+        reformat: reformat the layout?
+        indent_width: if reformatting, what indent should we use?
+
+    Returns:
+        str: HTML
+
+    """
     if reformat:
         sql = sqlparse.format(sql, reindent=True, indent_width=indent_width)
     return highlight(sql, SQL_LEXER, SQL_FORMATTER)
@@ -342,12 +544,28 @@ def prettify_sql_html(sql: str,
 
 @django_cache_function(timeout=None)
 def prettify_sql_css() -> str:
+    """
+    Returns the CSS used by the Pygments SQL formatter.
+    """
     return SQL_FORMATTER.get_style_defs()
 
 
 def prettify_sql_and_args(sql: str, args: List[Any] = None,
                           reformat: bool = False,
                           indent_width: int = 4) -> str:
+    """
+    Returns HTML for both some SQL and its arguments.
+
+    Args:
+        sql: SQL text
+        args: optional list of arguments
+        reformat: reformat the layout?
+        indent_width: if reformatting, what indent should we use?
+
+    Returns:
+        str: HTML
+
+    """
     sql = prettify_sql_html(sql, reformat=reformat, indent_width=indent_width)
     if args:
         formatted_args = "\n".join(textwrap.wrap(repr(args)))
@@ -356,16 +574,33 @@ def prettify_sql_and_args(sql: str, args: List[Any] = None,
         return sql
 
 
-def make_collapsible_sql_query(x: Optional[str],
+def make_collapsible_sql_query(sql: Optional[str],
                                element_counter: HtmlElementCounter,
                                args: List[Any] = None,
                                collapse_at_len: int = 400,
                                collapse_at_n_lines: int = 5) -> str:
-    x = x or ''
-    x = str(x)
-    xlen = len(x)
-    n_lines = len(x.split('\n'))
-    formatted = prettify_sql_and_args(x, args, reformat=False)
+    """
+    Formats an SQL query (and its arguments, if any) in a collapsible HTML
+    ``<div>``.
+
+    Args:
+        sql: SQL text
+        element_counter:
+        args: optional list of arguments
+        collapse_at_len: if specified, the string length beyond which the cell
+            will be collapsed
+        collapse_at_n_lines: if specified, the number of lines beyond which the
+            cell will be collapsed
+
+    Returns:
+        str: HTML
+
+    """
+    sql = sql or ''
+    sql = str(sql)
+    xlen = len(sql)
+    n_lines = len(sql.split('\n'))
+    formatted = prettify_sql_and_args(sql, args, reformat=False)
     # x = linebreaksbr(escape(x))
     if ((collapse_at_len and xlen >= collapse_at_len) or
             (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):

@@ -24,6 +24,8 @@ crate_anon/crateweb/research/research_db_info.py
 
 ===============================================================================
 
+**Represents information about the structure of our research database(s).**
+
 """
 
 from collections import OrderedDict
@@ -90,6 +92,9 @@ SUPPORTED_DIALECTS = [
 
 
 class PatientFieldPythonTypes(object):
+    """
+    Represents Python types for each type of patient ID field.
+    """
     PID = int
     MPID = int
     RID = str
@@ -102,7 +107,12 @@ class PatientFieldPythonTypes(object):
 # =============================================================================
 
 class ColumnInfo(object):
-    # See also querybuilder.js
+    """
+    Represents information about a database column, reflected from the
+    database.
+
+    See also ``querybuilder.js``.
+    """
 
     def __init__(self, **kwargs) -> None:
         self.table_catalog = kwargs.pop('table_catalog')  # type: str
@@ -117,12 +127,16 @@ class ColumnInfo(object):
 
     @property
     def basetype(self) -> str:
+        """
+        Returns the SQL base type, such as ``VARCHAR``.
+        """
         return self.column_type.split("(")[0].upper()
 
     @property
     def querybuilder_type(self) -> str:
         """
-        Returns a string that is defined in querybuilder.js
+        Returns a string that is defined in ``querybuilder.js`` and that
+        defines our field type, like ``"int"`` or ``"date"``. See source.
         """
         basetype = self.basetype
         if basetype in SQLTYPES_FLOAT:
@@ -140,6 +154,10 @@ class ColumnInfo(object):
 
     @property
     def column_id(self) -> ColumnId:
+        """
+        Returns a :class:`crate_anon.common.sql.ColumnId` describing this
+        column.
+        """
         return ColumnId(db=self.table_catalog,
                         schema=self.table_schema,
                         table=self.table_name,
@@ -147,6 +165,10 @@ class ColumnInfo(object):
 
     @property
     def table_id(self) -> TableId:
+        """
+        Returns a :class:`crate_anon.common.sql.TableId` describing this
+        column's table.
+        """
         return TableId(db=self.table_catalog,
                        schema=self.table_schema,
                        table=self.table_name)
@@ -161,14 +183,38 @@ class ColumnInfo(object):
 class SingleResearchDatabase(object):
     """
     Represents, and adds information to, a single entry from the
-    RESEARCH_DB_INFO list. (It's a list because it's ordered.)
+    ``RESEARCH_DB_INFO`` list: that is, a research database. (It's a list
+    because it's ordered.)
     """
     def __init__(self,
                  index: int,
                  grammar: SqlGrammar,
                  rdb_info: "ResearchDatabaseInfo",
-                 connection,
-                 vendor) -> None:
+                 connection: BaseDatabaseWrapper,
+                 vendor: str) -> None:
+        """
+        Instantiates, reading database information as follows:
+
+        - the relevant dictionary is ``settings.RESEARCH_DB_INFO[index]``
+        - the keys to that dictionary are in
+          :class:`crate_anon.crateweb.config.constants.ResearchDbInfoKeys`
+
+        Args:
+            index:
+                Python zero-based index to ``settings.RESEARCH_DB_INFO``
+            grammar:
+                a :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar`,
+                for the SQL dialect we're using
+            rdb_info:
+                a :class:`ResearchDatabaseInfo`, describing the structure of
+                the research database
+            connection:
+                a :class:`django.db.backends.base.base.BaseDatabaseWrapper`,
+                i.e. a Django database connection
+            vendor:
+                the Django database vendor name; see e.g.
+                https://docs.djangoproject.com/en/2.1/ref/models/options/
+        """
         assert 0 <= index <= len(settings.RESEARCH_DB_INFO)
         infodict = settings.RESEARCH_DB_INFO[index]
 
@@ -299,10 +345,21 @@ class SingleResearchDatabase(object):
 
     @property
     def schema_identifier(self) -> str:
+        """
+        Returns the SQL schema identifier.
+        """
         return self.schema_id.identifier(self.grammar)
 
     @property
     def eligible_for_query_builder(self) -> bool:
+        """
+        Is this database eligible to participate in the CRATE assisted query
+        builder?
+
+        This is ``True`` if it's the first database, or if it can link directly
+        to the first database (shares a common RID), or if it and the first
+        database share a common MRID.
+        """
         if self.is_first_db:
             # First one: always eligible
             return True
@@ -314,22 +371,45 @@ class SingleResearchDatabase(object):
 
     @property
     def talks_to_world(self) -> bool:
+        """
+        Does this database "talk to the world", i.e. have an MRID?
+        """
         return self.has_mrid
 
     @property
     def has_mrid(self) -> bool:
+        """
+        Does this database have a defined master research ID (MRID), i.e. a
+        table with one row per patient and one column that is the MRID?
+        """
         return bool(self.mrid_table and self.mrid_field)
 
     def can_communicate_directly(self,
                                  other: "SingleResearchDatabase") -> bool:
+        """
+        Can this database "talk" (link, join) to another?
+
+        Args:
+            other: the other :class:`SingleResearchDatabase`
+
+        Returns:
+            ``True`` if they are the same database or share a common RID type
+
+        """
         if self.schema_id == other.schema_id:
             return True
         return self.rid_family == other.rid_family
 
     def get_default_date_field(self, table_id: TableId) -> Optional[ColumnId]:
         """
-        Gets the default date column for the specified table, or None
-        if none exists.
+        Gets the default date column for the specified table, or ``None`` if
+        none exists.
+
+        Args:
+            table_id: a :class:`crate_anon.common.sql.TableId`
+
+        Returns:
+            a :class:`crate_anon.common.sql.ColumnId`, or ``None``
         """
         if table_id.table in self.date_fields_by_table:
             # We've been told about a specific date column for this table.
@@ -356,6 +436,12 @@ class SingleResearchDatabase(object):
         return None
 
     def column_present(self, column_id: ColumnId) -> bool:
+        """
+        Is the named column present in this database?
+
+        Args:
+            column_id: a :class:`crate_anon.common.sql.ColumnId`
+        """
         for ci in self.colinfolist:
             if ci.column_id == column_id:
                 return True
@@ -370,16 +456,35 @@ class SingleResearchDatabase(object):
             cls,
             db_name: str,
             schema_names: List[str]) -> SqlArgsTupleType:
+        """
+        Returns a query to fetche the database structure from an SQL Server
+        database.
+        
+        The columns returned are as expected by
+        :func:`get_schema_infodictlist`.
+        
+        Args:
+            db_name: a database name
+            schema_names: a list of schema names within the database
+
+        Returns:
+            tuple: ``sql, args``
+            
+        Notes:
+            
+        - SQL Server ``INFORMATION_SCHEMA.COLUMNS``: see
+          https://msdn.microsoft.com/en-us/library/ms188348.aspx
+        - Re fulltext indexes:
+        
+          - http://stackoverflow.com/questions/16280918/how-to-find-full-text-indexing-on-database-in-sql-server-2008
+          - ``sys.fulltext_indexes``: https://msdn.microsoft.com/en-us/library/ms186903.aspx
+          - ``sys.fulltext_catalogs``: https://msdn.microsoft.com/en-us/library/ms188779.aspx
+          - ``sys.fulltext_index_columns``: https://msdn.microsoft.com/en-us/library/ms188335.aspx
+
+        """  # noqa
         if not schema_names:
             raise ValueError("No schema_names specified (for SQL Server "
                              "database)")
-        # SQL Server INFORMATION_SCHEMA.COLUMNS:
-        # - https://msdn.microsoft.com/en-us/library/ms188348.aspx
-        # Re fulltext indexes:
-        # - http://stackoverflow.com/questions/16280918/how-to-find-full-text-indexing-on-database-in-sql-server-2008  # noqa
-        # - sys.fulltext_indexes: https://msdn.microsoft.com/en-us/library/ms186903.aspx  # noqa
-        # - sys.fulltext_catalogs: https://msdn.microsoft.com/en-us/library/ms188779.aspx  # noqa
-        # - sys.fulltext_index_columns: https://msdn.microsoft.com/en-us/library/ms188335.aspx  # noqa
         schema_placeholder = ",".join(["?"] * len(schema_names))
         sql = translate_sql_qmark_to_percent("""
 SELECT
@@ -439,6 +544,24 @@ ORDER BY
 
     @classmethod
     def _schema_query_mysql(cls, db_and_schema_name: str) -> SqlArgsTupleType:
+        """
+        Returns a query to fetche the database structure from a MySQL database.
+
+        The columns returned are as expected by
+        :func:`get_schema_infodictlist`.
+
+        Args:
+            db_and_schema_name: the database (and schema) name
+
+        Returns:
+            tuple: ``sql, args``
+
+        Notes:
+
+        - MySQL's ``INFORMATION_SCHEMA.COLUMNS``: see
+          https://dev.mysql.com/doc/refman/5.7/en/tables-table.html
+
+        """
         # ---------------------------------------------------------------------
         # Method A. Stupidly slow, e.g. 47s for the query.
         # ---------------------------------------------------------------------
@@ -479,7 +602,7 @@ ORDER BY
         #     schema_placeholder=",".join(["?"] * len(schemas)),
         # ))
         # args = schemas
-        #
+
         # ---------------------------------------------------------------------
         # Method B. Much faster, e.g. 0.35s for the same thing.
         # ---------------------------------------------------------------------
@@ -489,9 +612,6 @@ ORDER BY
         # columns for non-indexed fields.
         # However, you can have more than one index on a column, in which
         # case the column appears in two rows.
-        #
-        # MySQL's INFORMATION_SCHEMA.COLUMNS:
-        # - https://dev.mysql.com/doc/refman/5.7/en/tables-table.html
         sql = translate_sql_qmark_to_percent("""
 SELECT
     '' AS table_catalog,
@@ -548,20 +668,41 @@ ORDER BY
     @classmethod
     def _schema_query_postgres(cls,
                                schema_names: List[str]) -> SqlArgsTupleType:
-        # A PostgreSQL connection is always to a single database.
-        # http://stackoverflow.com/questions/10335561/use-database-name-command-in-postgresql  # noqa
+        """
+        Returns a query to fetche the database structure from an SQL Server
+        database.
+
+        The columns returned are as expected by
+        :func:`get_schema_infodictlist`.
+
+        Args:
+            schema_names: a list of schema names within the database
+
+        Returns:
+            tuple: ``sql, args``
+            
+        Notes:
+            
+        - A PostgreSQL connection is always to a single database; see
+          http://stackoverflow.com/questions/10335561/use-database-name-command-in-postgresql
+        - http://dba.stackexchange.com/questions/75015
+        - http://stackoverflow.com/questions/14713774
+        - Note that creating a GIN index looks like:
+        
+          .. code-block:: sql
+          
+            ALTER TABLE t ADD COLUMN tsv_mytext TSVECTOR;
+            UPDATE t SET tsv_mytext = to_tsvector(mytext);
+            CREATE INDEX idx_t_mytext_gin ON t USING GIN(tsv_mytext);
+            
+        - PostgreSQL ``INFORMATION_SCHEMA.COLUMNS``: see
+          https://www.postgresql.org/docs/9.1/static/infoschema-columns.html
+
+        """  # noqa
         if not schema_names:
             raise ValueError("No schema_names specified (for PostgreSQL "
                              "database)")
-        # http://dba.stackexchange.com/questions/75015
-        # http://stackoverflow.com/questions/14713774
-        # Note that creating a GIN index looks like:
-        #       ALTER TABLE t ADD COLUMN tsv_mytext TSVECTOR;
-        #       UPDATE t SET tsv_mytext = to_tsvector(mytext);
-        #       CREATE INDEX idx_t_mytext_gin ON t USING GIN(tsv_mytext);
         schema_placeholder = ",".join(["?"] * len(schema_names))
-        # PostgreSQL INFORMATION_SCHEMA.COLUMNS:
-        # - https://www.postgresql.org/docs/9.1/static/infoschema-columns.html
         sql = translate_sql_qmark_to_percent("""
 SELECT
     '' AS table_catalog,
@@ -629,6 +770,26 @@ ORDER BY
                                 connection: BaseDatabaseWrapper,
                                 vendor: str,
                                 debug: bool = False) -> List[Dict[str, Any]]:
+        """
+        Fetch structure information for a specific database, by asking the
+        database.
+
+        Args:
+            connection:
+                a :class:`django.db.backends.base.base.BaseDatabaseWrapper`,
+                i.e. a Django database connection
+            vendor:
+                the Django database vendor name; see e.g.
+                https://docs.djangoproject.com/en/2.1/ref/models/options/
+            debug:
+                be verbose to the log?
+
+        Returns:
+            A list of dictionaries, each mapping column names to values.
+            The dictionaries are suitable for use as ``**kwargs`` to
+            :class:`ColumnInfo`.
+
+        """
         db_name = self.database
         schema_name = self.schema_name
         log.debug("Fetching/caching database structure (for database {!r}, "
@@ -683,10 +844,15 @@ ORDER BY
 @register_for_json(method=METHOD_NO_ARGS)
 class ResearchDatabaseInfo(object):
     """
-    Fetches schema information from the research database.
-    Class primarily exists to be able to use @cached_property.
-    ... replaced by @lru_cache
-    ... replaced by @django_cache_function
+    Fetches schema information from the research databases. There can be
+    several, and this class represents the whole collection.
+
+    Notes:
+
+    - Class primarily exists to be able to use ``@cached_property``.
+
+      - ... replaced by ``@lru_cache``
+      - ... replaced by ``@django_cache_function``
     """
     # We fetch the dialect at first request; this enables us to import the
     # class without Django configured.
@@ -750,10 +916,24 @@ class ResearchDatabaseInfo(object):
 
     @classmethod
     def _connection(cls) -> BaseDatabaseWrapper:
+        """
+        Returns the Django connection to the research database(s), from
+        ``connections[RESEARCH_DB_CONNECTION_NAME]``, meaning
+        ``connections['research']``.
+
+        **This must be a read-only connection, enforced by the database.
+        Researchers will be allowed to execute unrestricted SQL via this
+        connection.**
+
+        """
         return connections[RESEARCH_DB_CONNECTION_NAME]
 
     @classmethod
     def uses_database_level(cls) -> bool:
+        """
+        Does the database simultaneously offer a "database" level above its
+        "schema" level?
+        """
         return cls._offers_db_above_schema(cls._connection())
 
     @classmethod
@@ -765,9 +945,22 @@ class ResearchDatabaseInfo(object):
 
     @staticmethod
     def _offers_db_above_schema(connection: BaseDatabaseWrapper) -> bool:
+        """
+        Does the database simultaneously offer a "database" level above its
+        "schema" level?
+
+        - True for Microsoft SQL Server
+        - False for MySQL (in which "database" and "schema" are synonymous)
+        - False for PostgreSQL (in which a connection can only talk to one
+          database at once, though there can be many schemas within each
+          database).
+
+        Args:
+            connection:
+                a :class:`django.db.backends.base.base.BaseDatabaseWrapper`,
+                i.e. a Django database connection
+        """
         return connection.vendor in [ConnectionVendors.MICROSOFT]
-        # not MySQL ("database" concept = "schema" concept)
-        # not PostgreSQL (only one database per connection)
 
     # -------------------------------------------------------------------------
     # Whole-database/schema information
@@ -775,21 +968,61 @@ class ResearchDatabaseInfo(object):
 
     @property
     def single_research_db(self) -> bool:
+        """
+        Do we have only a single research database?
+        """
         return len(self.dbinfolist) == 1
 
     @property
     def single_research_db_with_secret_map(self) -> bool:
+        """
+        Do we have only one database that has an associated secret lookup
+        database to patient IDs?
+        """
         return len(self.dbs_with_secret_map) == 1
 
     @property
     def dbs_with_secret_map(self) -> List[SingleResearchDatabase]:
+        """
+        Which of our databases has an associated secret lookup database to
+        patient IDs?
+
+        Returns:
+            a list of :class:`SingleResearchDatabase` objects
+        """
         return [db for db in self.dbinfolist if db.secret_lookup_db]
 
     def _get_dbinfo_by_index(self, index: int) -> SingleResearchDatabase:
-        assert 0 <= index <= len(self.dbinfolist)
+        """
+        Returns a :class:`SingleResearchDatabase` by its zero-based index, and
+        assert if the index is bad.
+
+        Args:
+            index: a zero-based index
+
+        Returns:
+            a :class:`SingleResearchDatabase`
+
+        Raises:
+            :exc:`IndexError` if the index was bad
+        """
         return self.dbinfolist[index]
 
     def get_dbinfo_by_name(self, name: str) -> SingleResearchDatabase:
+        """
+        Returns the research database whose name (from
+        ``settings.RESEARCH_DB_INFO``) is ``name``.
+
+        Args:
+            name: the name of a database, as per ``settings.RESEARCH_DB_INFO
+
+        Returns:
+            a :class:`SingleResearchDatabase`
+
+        Raises:
+            :exc:`ValueError` if none is found
+
+        """
         try:
             return next(x for x in self.dbinfolist if x.name == name)
         except StopIteration:
@@ -797,14 +1030,37 @@ class ResearchDatabaseInfo(object):
 
     def get_dbinfo_by_schema_id(self,
                                 schema_id: SchemaId) -> SingleResearchDatabase:
+        """
+        Returns the first database representing the specified schema.
+
+        Args:
+            schema_id: a :class:`crate_anon.common.sql.SchemaId`
+
+        Returns:
+            a :class:`SingleResearchDatabase`
+
+        Raises:
+            :exc:`StopIteration` if none is found
+
+        - This is probably a functional duplicate of
+          :func:`_get_db_info`!
+        """
         return next(x for x in self.dbinfolist if x.schema_id == schema_id)
 
     @property
     def first_dbinfo(self) -> SingleResearchDatabase:
+        """
+        Returns the first :class:`SingleResearchDatabase` that we know about.
+        """
         return self._get_dbinfo_by_index(0)
 
     @property
     def first_dbinfo_with_secret_map(self) -> Optional[SingleResearchDatabase]:
+        """
+        Returns the first :class:`SingleResearchDatabase` that has a secret map
+        (an associated secret lookup database to patient IDs), or ``None`` if
+        there isn't one.
+        """
         dbs = self.dbs_with_secret_map
         if len(dbs) == 0:
             return None
@@ -812,9 +1068,21 @@ class ResearchDatabaseInfo(object):
 
     @property
     def researchdb_schemas(self) -> List[SchemaId]:
+        """
+        Returns all :class:`crate_anon.common.sql.SchemaId` values for our
+        databases (one per database).
+        """
         return [x.schema_id for x in self.dbinfolist]
 
     def get_default_database_name(self) -> str:
+        """
+        Returns the default "database name" for our dialect.
+
+        - For Microsoft SQL Server, this is
+          ``settings.DATABASES['research']['NAME']``
+        - For MySQL, this is blank
+        - For PostgreSQL, this is blank
+        """
         dialect = self.dialect
         if dialect == SqlaDialectName.MSSQL:
             return settings.DATABASES[RESEARCH_DB_CONNECTION_NAME]['NAME']
@@ -826,6 +1094,14 @@ class ResearchDatabaseInfo(object):
             raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
 
     def get_default_schema_name(self) -> str:
+        """
+        Returns the default "schema name" for our dialect.
+
+        - For Microsoft SQL Server, this is ``'dbo'``
+        - For PostgreSQL, this is ``'public'``
+        - For MySQL, this is ``settings.DATABASES['research']['NAME']``
+
+        """
         dialect = self.dialect
         if dialect == SqlaDialectName.MSSQL:
             return MSSQL_DEFAULT_SCHEMA
@@ -836,12 +1112,28 @@ class ResearchDatabaseInfo(object):
         else:
             raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
 
-    def _get_db_info(self, schema: SchemaId) -> SingleResearchDatabase:
+    def _get_db_info(self, schema_id: SchemaId) -> SingleResearchDatabase:
+        """
+        Returns the first database representing the specified schema.
+
+        Args:
+            schema_id: a :class:`crate_anon.common.sql.SchemaId`
+
+        Returns:
+            a :class:`SingleResearchDatabase`
+
+        Raises:
+            :exc:`ValueError` if none is found
+
+        - This is probably a functional duplicate of
+          :func:`get_dbinfo_by_schema_id`!
+
+        """
         try:
-            return next(d for d in self.dbinfolist if d.schema_id == schema)
+            return next(d for d in self.dbinfolist if d.schema_id == schema_id)
         except StopIteration:
             raise ValueError("No such database/schema: {!}".format(
-                schema.identifier(self.grammar)
+                schema_id.identifier(self.grammar)
             ))
 
     # -------------------------------------------------------------------------
@@ -849,29 +1141,77 @@ class ResearchDatabaseInfo(object):
     # -------------------------------------------------------------------------
 
     def get_rid_column(self, table: TableId) -> ColumnId:
-        # RID column in the specified table (which may or may not exist)
+        """
+        Returns the RID column in the specified table (which may or may not
+        exist).
+
+        Args:
+            table: a :class:`crate_anon.common.sql.TableId`
+
+        Returns:
+            a :class:`crate_anon.common.sql.ColumnId`, which may be blank
+
+        """
         dbinfo = self._get_db_info(table.schema_id)
         return table.column_id(dbinfo.rid_field)
 
     def get_trid_column(self, table: TableId) -> ColumnId:
-        # TRID column in the specified table (which may or may not exist)
+        """
+        Returns the TRID column in the specified table (which may or may not
+        exist).
+
+        Args:
+            table: a :class:`crate_anon.common.sql.TableId`
+
+        Returns:
+            a :class:`crate_anon.common.sql.ColumnId`, which may be blank
+
+        """
         dbinfo = self._get_db_info(table.schema_id)
         return table.column_id(dbinfo.trid_field)
 
     def get_mrid_column_from_schema(self, schema: SchemaId) -> ColumnId:
-        # MRID column in the MRID master table
+        """
+        Returns the MRID column in the MRID master table for a given
+        schema/database.
+
+        Args:
+            schema: a :class:`crate_anon.common.sql.SchemaId`
+
+        Returns:
+            a :class:`crate_anon.common.sql.ColumnId`, which may be blank
+
+        """
         dbinfo = self._get_db_info(schema)
         return schema.column_id(table=dbinfo.mrid_table,
                                 column=dbinfo.mrid_field)
 
     def get_mrid_column_from_table(self, table: TableId) -> ColumnId:
-        # MRID column in the MRID master table
+        """
+        Returns the MRID column in the specified table (which may or may not
+        exist).
+
+        Args:
+            table: a :class:`crate_anon.common.sql.TableId`; this should be the
+                MRID master table
+
+        Returns:
+            a :class:`crate_anon.common.sql.ColumnId`, which may be blank
+
+        """
         return self.get_mrid_column_from_schema(table.schema_id)
 
     def get_linked_mrid_column(self, table: TableId) -> Optional[ColumnId]:
         """
-        Returns either the MRID column in the schema containing the table
-        specified, or one that can be linked to it automatically.
+        Returns either (a) the MRID column in the schema containing the table
+        specified, or (b) one that can be linked to it automatically.
+
+        Args:
+            table: a :class:`crate_anon.common.sql.TableId`
+
+        Returns:
+            a :class:`crate_anon.common.sql.ColumnId`, or ``None``
+
         """
         mrid_in_same_db = self.get_mrid_column_from_table(table)
         if mrid_in_same_db:
@@ -887,6 +1227,17 @@ class ResearchDatabaseInfo(object):
             return self.get_mrid_column_from_schema(first_db.schema_id)
 
     def get_default_date_column(self, table: TableId) -> Optional[ColumnId]:
+        """
+        Returns the default date column in the specified table (which may or
+        may not exist).
+
+        Args:
+            table: a :class:`crate_anon.common.sql.TableId`
+
+        Returns:
+            a :class:`crate_anon.common.sql.ColumnId`, which may be blank
+
+        """
         dbinfo = self._get_db_info(table.schema_id)
         return dbinfo.get_default_date_field(table)
 
@@ -895,26 +1246,44 @@ class ResearchDatabaseInfo(object):
     # -------------------------------------------------------------------------
 
     @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def get_schema_infodictlist(self) -> List[Dict[str, Any]]:
+        """
+        Get details of all columns in all research databases.
+
+        Returns:
+            list: across all databases, of all dictionaries provided by their
+            :meth:`SingleResearchDatabase.get_schema_infodictlist` function
+        """
         results = []  # type: List[Dict[str, Any]]
         for dbinfo in self.dbinfolist:
             results.extend(dbinfo.schema_infodictlist)
         return results
 
     @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def get_colinfolist(self) -> List[ColumnInfo]:
+        """
+        Get details of all columns in all research databases.
+
+        Returns:
+            list: across all databases, of :class:`ColumnInfo` objects
+        """
         colinfolist = []  # type: List[ColumnInfo]
         for dbi in self.dbinfolist:
             colinfolist.extend(dbi.colinfolist)
         return colinfolist
 
     @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
-    def get_colinfolist_by_tables(self) -> OrderedDict:
+    def get_colinfolist_by_tables(self) -> Dict[TableId, List[ColumnInfo]]:
+        """
+        Get details of all columns in all research databases, by table.
+
+        Returns:
+            OrderedDict: across all databases, ``{table_id: columns}`` where
+            ``table_id`` is a :class:`crate_anon.common.sql.TableId` and
+            ``columns`` is a list of :class:`ColumnInfo` objects
+        """
         colinfolist = self.get_colinfolist()
-        table_to_colinfolist = {}
+        table_to_colinfolist = {}  # type: Dict[TableId, List[ColumnInfo]]
         for c in colinfolist:
             table_id = c.table_id
             if table_id not in table_to_colinfolist:
@@ -924,8 +1293,15 @@ class ResearchDatabaseInfo(object):
         return OrderedDict(sorted(table_to_colinfolist.items()))
 
     @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def get_colinfolist_by_schema(self) -> Dict[SchemaId, List[ColumnInfo]]:
+        """
+        Get details of all columns in all research databases, by schema.
+
+        Returns:
+            OrderedDict: across all databases, ``{schema_id: columns}`` where
+            ``schema_id`` is a :class:`crate_anon.common.sql.SchemaId` and
+            ``columns`` is a list of :class:`ColumnInfo` objects
+        """
         colinfolist = self.get_colinfolist()
         schema_to_colinfolist = {}  # type: Dict[SchemaId, List[ColumnInfo]]
         for c in colinfolist:
@@ -939,8 +1315,18 @@ class ResearchDatabaseInfo(object):
 
     def tables_containing_field(self, fieldname: str) -> List[TableId]:
         """
-        We won't use a SELECT on INFORMATION_SCHEMA here, since we already
-        have the information.
+        Returns all tables containing the column (field) with the specified
+        name.
+
+        Args:
+            fieldname: field (column) name
+
+        Returns:
+            a list of :class:`crate_anon.common.sql.TableId` objects
+
+        - We won't use a ``SELECT`` on ``INFORMATION_SCHEMA`` here, since we
+          already have the information.
+
         """
         columns = self.get_colinfolist()
         results = []
@@ -953,6 +1339,17 @@ class ResearchDatabaseInfo(object):
 
     def text_columns(self, table_id: TableId,
                      min_length: int = 1) -> List[ColumnInfo]:
+        """
+        Returns all text columns from the specified table.
+
+        Args:
+            table_id: a :class:`crate_anon.common.sql.TableId`
+            min_length: the minimum SQL text length to include the column
+
+        Returns:
+            a list of :class:`crate_anon.common.sql.ColumnInfo` objects
+
+        """
         results = []
         for column in self.get_colinfolist():
             if column.table_id != table_id:
@@ -967,8 +1364,17 @@ class ResearchDatabaseInfo(object):
         return results
 
     @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=1000)
     def all_columns(self, table_id: TableId) -> List[ColumnInfo]:
+        """
+        Returns all columns from the specified table.
+
+        Args:
+            table_id: a :class:`crate_anon.common.sql.TableId`
+
+        Returns:
+            a list of :class:`crate_anon.common.sql.ColumnInfo` objects
+
+        """
         results = []
         for column in self.get_colinfolist():
             if column.table_id != table_id:
@@ -977,9 +1383,25 @@ class ResearchDatabaseInfo(object):
         return results
 
     def get_tsv(self) -> str:
+        """
+        Returns a tab-separated value (TSV) file detailing of all columns in
+        all research databases.
+
+        Returns:
+            str: TSV
+
+        """
         return dictlist_to_tsv(self.get_schema_infodictlist())
 
     def get_excel(self) -> bytes:
+        """
+        Returns an XLSX (Excel) file detailing of all columns in all research
+        databases.
+
+        Returns:
+            bytes: binary XLSX file
+
+        """
         wb = Workbook()
         wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
         schema_colinfolist_dict = self.get_colinfolist_by_schema()
@@ -1001,31 +1423,55 @@ class ResearchDatabaseInfo(object):
         return excel_to_bytes(wb)
 
     @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def get_tables(self) -> List[TableId]:
+        """
+        Returns all tables in the research database(s).
+
+        Returns:
+            a list of :class:`crate_anon.common.sql.TableId` objects
+        """
         tables = set()
         for column in self.get_colinfolist():
             tables.add(column.table_id)
         return sorted(list(tables))
 
     @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=1000)
-    def table_contains_rid(self, table: TableId):
-        target_rid_column = self.get_rid_column(table)
+    def table_contains_rid(self, table_id: TableId) -> bool:
+        """
+        Does the specified table contain a research ID (RID)?
+
+        Args:
+            table_id: a :class:`crate_anon.common.sql.TableId`
+        """
+        target_rid_column = self.get_rid_column(table_id)
         for column in self.get_colinfolist():
             if column.column_id == target_rid_column:
                 return True
         return False
 
-    def table_contains(self, table: TableId, column: ColumnId):
-        for c in self.all_columns(table):
-            if c.column_id == column:
+    def table_contains(self, table_id: TableId, column_id: ColumnId) -> bool:
+        """
+        Does the specified table contain the specified column?
+
+        Args:
+            table_id: a :class:`crate_anon.common.sql.TableId`
+            column_id: a :class:`crate_anon.common.sql.ColumnId`
+        """
+        for c in self.all_columns(table_id):
+            if c.column_id == column_id:
                 return True
         return False
 
     @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def get_mrid_linkable_patient_tables(self) -> List[TableId]:
+        """
+        Returns all tables in the research database(s) that are linkable on
+        MRID (i.e. that contain a RID and live in a database with a RID-to-MRID
+        lookup table).
+
+        Returns:
+            a list of :class:`crate_anon.common.sql.TableId` objects
+        """
         eligible_tables = set()
         for table in self.get_tables():
             dbinfo = self._get_db_info(table.schema_id)

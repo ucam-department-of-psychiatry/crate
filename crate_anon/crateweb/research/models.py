@@ -160,12 +160,29 @@ if getattr(settings, 'DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET',
 # =============================================================================
 
 def debug_query() -> None:
+    """
+    Executes a test query that just selects a constant, using the research
+    database (i.e. ``connections['research']``).
+    """
     cursor = connections[RESEARCH_DB_CONNECTION_NAME].cursor()
     cursor.execute("SELECT 'debug'")
 
 
 def get_executed_researchdb_cursor(sql: str,
                                    args: List[Any] = None) -> CursorWrapper:
+    """
+    Executes a query on the research database.
+
+    Args:
+        sql: SQL text
+        args: arguments to SQL query
+
+    Returns:
+        a :class:`django.db.backends.utils.CursorWrapper`, which is a context
+        manager that behaves as the executed cursor and also closes it on
+        completion
+
+    """
     args = args or []
     cursor = connections[RESEARCH_DB_CONNECTION_NAME].cursor()
     try:
@@ -190,11 +207,20 @@ def gen_excel_row_elements(worksheet: Worksheet,
     Given an Excel worksheet row, generate individual cell contents, cell by
     cell.
 
+    Args:
+        worksheet: a :class:`openpyxl.worksheet.worksheet.Worksheet`, which we
+            need in order to find the worksheet's encoding
+        row: the row to iterate through
+
+    Yields:
+        the contents of each cell
+
     Reasons for this function:
 
-    1.  Need a tuple/list/generator, as openpyxl checks its types manually.
+    1. We need a tuple/list/generator, as ``openpyxl`` checks its types
+       manually.
 
-      - We want to have a Worksheet object from openpyxl, and say something
+      - We want to have a Worksheet object from ``openpyxl``, and say something
         like
 
         .. code-block:: python
@@ -203,7 +229,7 @@ def gen_excel_row_elements(worksheet: Worksheet,
 
         where "row" has come from a database query.
 
-      - However, openpyxl doesn't believe in duck-typing; see
+      - However, ``openpyxl`` doesn't believe in duck-typing; see
         ``Worksheet.append()`` in ``openpyxl/worksheet/worksheet.py``. So
         sometimes the plain append works (e.g. from MySQL results), but
         sometimes it fails, e.g. when the row is of type ``pyodbc.Row``.
@@ -212,11 +238,11 @@ def gen_excel_row_elements(worksheet: Worksheet,
 
       - A generator will be the most efficient.
 
-    2.  If a string fails certain checks, openpyxl will raise an
-        IllegalCharacterError exception. We need to work around that. We'll use
-        the "forgiveness, not permission" maxim.
-        Specifically, it dislikes strings matching its ILLEGAL_CHARACTERS_RE,
-        which contains unprintable low characters matching this:
+    2. If a string fails certain checks, openpyxl will raise an
+       :exc:`IllegalCharacterError` exception. We need to work around that.
+       We'll use the "forgiveness, not permission" maxim. Specifically, it
+       dislikes strings matching its ``ILLEGAL_CHARACTERS_RE``, which contains
+       unprintable low characters matching this:
 
         .. code-block:: python
 
@@ -224,15 +250,16 @@ def gen_excel_row_elements(worksheet: Worksheet,
 
         Note the use of octal; ``\037`` is decimal 31.
 
-        openpyxl gets to its Cell.check_string() function for these types:
+        ``openpyxl`` gets to its ``Cell.check_string()`` function for these
+        types:
 
         .. code-block:: python
 
             STRING_TYPES = (basestring, unicode, bytes)
 
-        In Python 3, this means (str, str, bytes).
-        So we should check str and bytes. (For bytes, we'll follow its method
-        of converting to str in the encoding of the worksheet's choice.)
+        In Python 3, this means ``(str, str, bytes)``. So we should check
+        ``str`` and ``bytes``. (For ``bytes``, we'll follow its method of
+        converting to ``str`` in the encoding of the worksheet's choice.)
     """
     # Docstring must be a raw string for Sphinx! See
     # http://openalea.gforge.inria.fr/doc/openalea/doc/_build/html/source/sphinx/rest_syntax.html#text-syntax-bold-italic-verbatim-and-special-characters  # noqa
@@ -271,12 +298,29 @@ class Highlight(models.Model):
         return "colour={}, text={}".format(self.colour, self.text)
 
     def get_safe_colour(self) -> int:
+        """
+        Returns our ``colour`` attribute, coerced to the range ``[0,
+        N_CSS_HIGHLIGHT_CLASSES - 1]`` (inclusive).
+        """
         if self.colour is None:
             return 0
-        return min(self.colour, N_CSS_HIGHLIGHT_CLASSES - 1)
+        return max(0, min(self.colour, N_CSS_HIGHLIGHT_CLASSES - 1))
 
     @staticmethod
     def as_ordered_dict(highlight_list) -> Dict[int, List[HIGHLIGHT_FWD_REF]]:
+        """
+        Converts a list of :class:`Highlight` objects into a dictionary that
+        collects them by highlight number.
+
+        Args:
+            highlight_list: list of :class:`Highlight` objects
+
+        Returns:
+            an OrderedDict whose keys are highlight colour numbers (in
+            ascending order), and whose values are lists of all the
+            :class:`Highlight` objects using that highlight colour number
+
+        """
         d = dict()
         for highlight in highlight_list:
             n = highlight.get_safe_colour()
@@ -287,13 +331,30 @@ class Highlight(models.Model):
 
     @staticmethod
     def get_active_highlights(request: HttpRequest) -> QuerySet:
+        """
+        Return all active highlights for the current user.
+
+        Args:
+            request: the :class:`django.http.request.HttpRequest`
+
+        Returns:
+            a :class:`django.db.models.QuerySet` of the :class:`Highlight`
+            objects
+
+        """
         return Highlight.objects.filter(user=request.user, active=True)
 
     def activate(self) -> None:
+        """
+        Mark this highlight as active.
+        """
         self.active = True
         self.save()
 
     def deactivate(self) -> None:
+        """
+        Mark this highlight as inactive.
+        """
         self.active = False
         self.save()
 
@@ -342,13 +403,26 @@ class QueryBase(models.Model):
     # -------------------------------------------------------------------------
 
     def get_original_sql(self) -> str:
+        """
+        Returns the stored raw SQL.
+        """
         # noinspection PyTypeChecker
         return self.sql
 
     def get_sql_args_for_django(self) -> Tuple[str, Optional[List[Any]]]:
         """
-        Get sql/args in a format suitable for Django, with %s placeholders,
+        Get sql/args in a format suitable for Django, with ``%s`` placeholders,
         or as escaped raw SQL.
+
+        Returns:
+            tuple: ``sql, args``
+
+        - If :attr:`raw` is set, return our raw SQL with ``%`` escaped to
+          ``%%``;
+        - otherwise, if :attr:`qmark` is set, return our raw SQL with ``?``
+          argument placeholders translated to ``%s`` argument placeholders;
+        - otherwise, return the raw SQL.
+
         """
         if self.raw:
             # noinspection PyTypeChecker
@@ -365,9 +439,18 @@ class QueryBase(models.Model):
 
     def get_executed_cursor(self, sql_append_raw: str = None) -> CursorWrapper:
         """
-        Get cursor with a query executed
+        Get cursor with a query executed (based on our attributes :attr:`sql`,
+        :attr:`args`, :attr:`raw`, :attr:`qmark`).
+
+        Args:
+            sql_append_raw:
+                raw SQL to be appended to the SQL we'd otherwise use
+
+        Returns:
+            a :class:`django.db.backends.utils.CursorWrapper`
+
         """
-        (sql, args) = self.get_sql_args_for_django()
+        sql, args = self.get_sql_args_for_django()
         if sql_append_raw:
             sql += sql_append_raw
         return get_executed_researchdb_cursor(sql, args)
@@ -394,6 +477,9 @@ class QueryBase(models.Model):
     #             row = cursor.fetchone()
 
     def make_tsv(self) -> str:
+        """
+        Executes the query and returns a TSV result (as a multiline string).
+        """
         with self.get_executed_cursor() as cursor:
             fieldnames = get_fieldnames_from_cursor(cursor)
             tsv = make_tsv_row(fieldnames)
@@ -404,6 +490,9 @@ class QueryBase(models.Model):
         return tsv
 
     def make_excel(self) -> bytes:
+        """
+        Executes the query and returns an Excel workbook, in binary.
+        """
         wb = Workbook()
         wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
         sheetname = "query_{}".format(self.id)
@@ -431,7 +520,10 @@ class QueryBase(models.Model):
         return excel_to_bytes(wb)
 
     def dictfetchall(self) -> List[Dict[str, Any]]:
-        """Generates all results as a list of OrderedDicts."""
+        """
+        Executes the query and returns all results as a list of OrderedDicts
+        (one for each row, mapping column names to values).
+        """
         with self.get_executed_cursor() as cursor:
             return dictfetchall(cursor)
 
@@ -448,6 +540,9 @@ class Query(QueryBase):
     audited = models.BooleanField(default=False)
 
     def activate(self) -> None:
+        """
+        Activate this query (and deactivates any others).
+        """
         self.active = True
         self.save()
 
@@ -457,9 +552,8 @@ class Query(QueryBase):
 
     def save(self, *args, **kwargs) -> None:
         """
-        Custom save method.
-        Ensures that only one Query has active == True for a given user.
-        Also sets the hash.
+        Custom save method. Ensures that only one :class:`Query` has ``active
+        == True`` for a given user. Also sets the hash.
         """
         # http://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa
         if self.active:
@@ -475,6 +569,16 @@ class Query(QueryBase):
     @staticmethod
     def get_active_query_or_none(request: HttpRequest) \
             -> Optional[QUERY_FWD_REF]:
+        """
+        Returns the active query for this user, or ``None``.
+
+        Args:
+            request: the :class:`django.http.request.HttpRequest`
+
+        Returns:
+            a :class:`Query`, or ``None``.
+
+        """
         if not request.user.is_authenticated:
             return None
         try:
@@ -484,6 +588,16 @@ class Query(QueryBase):
 
     @staticmethod
     def get_active_query_id_or_none(request: HttpRequest) -> Optional[int]:
+        """
+        Returns the active query's integer ID for this user, or ``None``.
+
+        Args:
+            request: the :class:`django.http.request.HttpRequest`
+
+        Returns:
+            the active query's integer PK, or ``None``.
+
+        """
         if not request.user.is_authenticated:
             return None
         try:
@@ -499,6 +613,14 @@ class Query(QueryBase):
     # This isn't needed in the base class because it only applies to
     # audited queries
     def mark_deleted(self) -> None:
+        """
+        Mark the query as deleted.
+
+        This will stop it being shown. It will not delete it from the database.
+
+        We use this deletion method for queries that have been executed, so
+        need an audit trail.
+        """
         if self.deleted:
             # log.debug("pointless")
             return
@@ -509,6 +631,10 @@ class Query(QueryBase):
         # log.debug("saved")
 
     def mark_audited(self) -> None:
+        """
+        Mark the query as having been executed and audited. (This prevents it
+        from being wholly deleted.)
+        """
         if self.audited:
             return
         self.audited = True
@@ -516,6 +642,19 @@ class Query(QueryBase):
 
     def audit(self, count_only: bool = False, n_records: int = 0,
               failed: bool = False, fail_msg: str = "") -> None:
+        """
+        Audit the execution of this query:
+
+        - insert an audit entry referring to this query
+        - mark the query as having been audited (so it's not deleted)
+
+        Args:
+            count_only: did we know (in advance) that this was a
+                ``COUNT()``-only query?
+            n_records: how many records were returned?
+            failed: did the query fail?
+            fail_msg: if the query failed, the associated failure message
+        """
         a = QueryAudit(query=self,
                        count_only=count_only,
                        n_records=n_records,
@@ -525,7 +664,13 @@ class Query(QueryBase):
         self.mark_audited()
 
     def delete_if_permitted(self) -> None:
-        """If a query has been audited, it isn't properly deleted."""
+        """
+        Delete the query.
+
+        - If a query has been executed and therefore audited, it isn't properly
+          deleted; it's just marked as deleted.
+        - If a query has never been executed, we can delete it entirely.
+        """
         if self.deleted:
             log.debug("already flagged as deleted")
             return
@@ -540,48 +685,74 @@ class Query(QueryBase):
 
 class SitewideQuery(QueryBase):
     """
-    Class to query the research database. Queries are not attatched
-    to any particular user.
+    Class representing a site-wide query for research database.
+
+    - Site-wide queries are not attached to any particular user.
+    - They are templatized with placeholders.
+    - Placeholders begin with ``[[`` and end with ``]]``.
+    - The user is asked to fill in values for the placeholders.
+
     """
 
     description = models.TextField(verbose_name='query description',
                                    default="")
 
-    def get_sql_chunks(self):
+    @property
+    def sql_chunks(self) -> List[str]:
         """
-        Finds a list of sql chunks and placeholders made from the original sql
-        and sets sql_chunks to this value. E.g., if the sql is
-        'SELECT * FROM [[table]] WHERE brcid="[[brcid]]";' sql_chunks will be
-        set to: ['SELECT * FROM ', 'table', ' WHERE brcid="', 'brcid', '";']
-        Note that the fist elements (and all even ones) are sql - not
-        placeholders.
+        Returns a list of SQL chunks and placeholders made from the original
+        SQL. Placeholders begin with ``[[`` and end with ``]]``.
+
+        For example, if the sql is
+
+        .. code-block:: none
+
+            SELECT * FROM [[table]] WHERE brcid="[[brcid]]";
+
+        then ``sql_chunks`` will be
+
+        .. code-block:: python
+
+            [
+                'SELECT * FROM ',
+                'table',
+                ' WHERE brcid="',
+                'brcid',
+                '";'
+            ]
+
+        Note that the first element (and all elements with even [zero-based]
+        list indexes) are SQL, not placeholders. All elements with odd indexes
+        are placeholders.
         """
         sql_string = self.sql
-        first = "[["
-        last = "]]"
-        sql_chunks = []
-        index1 = sql_string.find(first)
-        index2 = sql_string.find(last)
-        while index1 != -1 and index2 != -1:
+        placeholder_start = "[["
+        placeholder_end = "]]"
+        startlen = len(placeholder_start)
+        endlen = len(placeholder_end)
+        chunks = []  # type: List[str]
+        index1 = sql_string.find(placeholder_start)
+        index2 = sql_string.find(placeholder_end)
+        while index1 != -1 and index2 != -1:  # placeholder present
             # get bit of sql up to next '[['
             chunk = sql_string[:index1]
             # get bit of sql between '[[' and ']]'
-            placeholder = sql_string[index1+2: index2]
-            sql_chunks.append(chunk)
-            sql_chunks.append(placeholder)
+            placeholder = sql_string[index1 + startlen:index2]
+            chunks.append(chunk)
+            chunks.append(placeholder)
             # get bit of sql after '[[' - this forms new substring to check
-            sql_string = sql_string[index2+2:]
-            index1 = sql_string.find(first)
-            index2 = sql_string.find(last)
+            sql_string = sql_string[index2 + endlen:]
+            index1 = sql_string.find(placeholder_start)
+            index2 = sql_string.find(placeholder_end)
+        # Deal with any remainder
         if sql_string:
-            sql_chunks.append(sql_string)
+            chunks.append(sql_string)
 
-        self.sql_chunks = sql_chunks
+        return chunks
 
     def save(self, *args, **kwargs) -> None:
         """
-        Custom save method.
-        Sets the hash.
+        Custom save method. Sets the hash.
         """
         self.sql_hash = hash64(self.sql)
         super().save(*args, **kwargs)
@@ -640,15 +811,17 @@ class QueryAudit(models.Model):
 class PidLookup(models.Model):
     """
     Lookup class for secret RID-to-PID conversion.
-    Used via one or other of the 'secret' database connections.
-    Intended for READ-ONLY access to that table.
 
-    Since we have fixed the tablenames for the anonymiser, we remove the
-    settings.SECRET_MAP option. See PatientInfo in
-    crate_anon/anonymise/models.py. Moreover, we fix the maximum length,
-    regardless of the specifics of the config used.
+    - Used via one or other of the 'secret' database connections.
+    - Intended for READ-ONLY access to that table.
 
-    Use as e.g. Lookup(pid=XXX)
+    - Since we have fixed the tablenames for the anonymiser, we remove the
+      ``settings.SECRET_MAP`` option. See
+      :class:`crate_anon.anonymise.models.PatientInfo`. Moreover, we fix the
+      maximum length, regardless of the specifics of the config used.
+
+    - Use as e.g. ``Lookup(pid=XXX)``.
+
     """
     pid = models.PositiveIntegerField(
         primary_key=True,
@@ -682,6 +855,26 @@ def get_pid_lookup(dbinfo: SingleResearchDatabase,
                    trid: int = None,
                    rid: str = None,
                    mrid: str = None) -> Optional[PidLookup]:
+    """
+    Looks up a patient in the secret lookup database associated with a
+    database, from one of several possible identifiers.
+    
+    Args:
+        dbinfo: a
+            :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`
+        pid: optional patient identifier (PID) value
+        mpid: optional master patient identifier (MPID) value
+        trid: optional transient research identifier (TRID) value
+        rid: optional research identifier (RID) value
+        mrid: optional master research identifier (MRID) value
+
+    Returns:
+        a :class:`crate_anon.crateweb.research.models.PidLookup` or ``None``
+        
+    Raises:
+        :exc:`ValueError` if none of the IDs was specified
+
+    """  # noqa
     dbalias = dbinfo.secret_lookup_db
     assert dbalias
     q = PidLookup.objects.using(dbalias)
@@ -704,6 +897,22 @@ def get_mpid(dbinfo: SingleResearchDatabase,
              trid: int = None,
              rid: str = None,
              mrid: str = None) -> int:
+    """
+    Returns the MPID for a patient, looked up from one of the research IDs.
+
+    Args:
+        dbinfo: a
+            :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`
+        trid: optional transient research identifier (TRID) value
+        rid: optional research identifier (RID) value
+        mrid: optional master research identifier (MRID) value
+
+    Returns:
+        the integer MPID, or ``None``
+
+    Raises:
+        :exc:`ValueError` if none of the IDs was specified
+    """  # noqa
     lookup = get_pid_lookup(dbinfo=dbinfo, trid=trid, rid=rid, mrid=mrid)
     # noinspection PyTypeChecker
     return lookup.mpid
@@ -713,107 +922,163 @@ def get_pid(dbinfo: SingleResearchDatabase,
             trid: int = None,
             rid: str = None,
             mrid: str = None) -> int:
+    """
+    Returns the PID for a patient, looked up from one of the research IDs.
+
+    Args:
+        dbinfo: a
+            :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`
+        trid: optional transient research identifier (TRID) value
+        rid: optional research identifier (RID) value
+        mrid: optional master research identifier (MRID) value
+
+    Returns:
+        the integer PID, or ``None``
+
+    Raises:
+        :exc:`ValueError` if none of the IDs was specified
+    """  # noqa
     lookup = get_pid_lookup(dbinfo=dbinfo, trid=trid, rid=rid, mrid=mrid)
     # noinspection PyTypeChecker
     return lookup.pid
 
 
 # =============================================================================
-# Patient Explorer multi-query class
+# Patient Explorer multi-query classes
 # =============================================================================
 
-"""
+class TableQueryArgs(object):
+    """
+    Represents SQL for a specific table, with arguments for the SQL. Used by
+    :class:`PatientMultiQuery`.
+    """
+    def __init__(self,
+                 table_id: TableId,
+                 sql: str,
+                 args: List[Any]) -> None:
+        """
+        Args:
+            table_id: a :class:`crate_anon.common.sql.TableId` that this query
+                is selecting from
+            sql: SQL text
+            args: a list of arguments to the SQL
+        """
+        self.table_id = table_id
+        self.sql = sql
+        self.args = args
 
-1. Patient ID query
-
-- Single database is easy; we can use RID or TRID, and therefore TRID for
-  performance.
-  Note that UNION gives only DISTINCT results by default ("UNION ALL" gives
-  everything).
-  ... http://stackoverflow.com/questions/49925/what-is-the-difference-between-union-and-union-all
-
-    -- Clear, but extensibility of boolean logic less clear:
-    SELECT trid
-        FROM diagnosis_table
-        WHERE diagnosis LIKE 'F20%'
-    INTERSECT
-    SELECT trid
-        FROM progress_note_table
-        WHERE note LIKE '%schizophreni%' OR note LIKE '%depression%'
-    ORDER BY trid
-    ... logic across tables requires careful arrangement of UNION vs. INTERSECT
-    ... logic for multiple fields within one table can be done with AND/OR
-
-    -- Slower (?), but simpler to manipulate logic?
-    SELECT DISTINCT something.trid
-    FROM diagnosis_table INNER JOIN progress_note_table
-    ON diagnosis_table.trid = progress_note_table.trid
-    WHERE
-        diagnosis_table.diagnosis LIKE 'F20%'
-        AND (progress_note_table.note LIKE '%schizophreni%'
-             OR progress_note_table.notenote LIKE '%depression%')
-    ORDER BY something.trid
-    -- ... boolean logic can all be encapsulated in a single WHERE clause
-    -- ... can also share existing join code
-    -- ... ?reasonable speed since the TRID fields will be indexed
-    -- ... preferable.
-
-1b. Which ID for the patient ID query
-
-    ... the TRID (for speed, inc. sorting) of the first database
-    ... can use the TRID from the first "where clause" table
-        (don't have to join to a master patient table)
-    ... join everything across databases as before
-
-2. Results queries
-
-    -- Something like:
-
-    SELECT rid, date_of_note, note
-    FROM progress_note_table
-    WHERE trid IN ( ... patient_id_query ... )
-    ORDER BY trid
-
-    SELECT rid, date_of_diagnosis, diagnosis, diagnosis_description
-    FROM diagnosis_table
-    WHERE trid IN ( ... patient_id_query ... )
-    ORDER BY trid
-
-
-This means we will repeat the patient_id_query, which may be inefficient.
-Options:
-- store the TRIDs in Python, then pass them as arguments
-  ... at which point the SQL string/packet length becomes relevant;
-  ... http://stackoverflow.com/questions/1869753/maximum-size-for-a-sql-server-query-in-clause-is-there-a-better-approach
-  ... http://stackoverflow.com/questions/16335011/what-is-maximum-query-size-for-mysql
-  ... http://stackoverflow.com/questions/96553/practical-limit-to-length-of-sql-query-specifically-mysql
-- let the database worry about it
-  ... probably best for now!
-
-
-3. Display
-
-    One patient per page, with multiple results tables.
-
-===========
-
-- Boolean logic on patient selection
-    ... within
-
-
-"""  # noqa
-
-
-# =============================================================================
-# PatientMultiQuery
-# =============================================================================
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
 class PatientMultiQuery(object):
+    """
+    Represents a set of queries across many tables relating to one or several
+    patients (but the same patients across all the tables).
+    
+    Used for the Patient Explorer.
+    
+    *Development notes:*
+        
+    - Patient ID query
+    
+      - Single database is easy; we can use RID or TRID, and therefore TRID for
+        performance.
+        
+        Note that ``UNION`` gives only ``DISTINCT`` results by default (``UNION
+        ALL`` gives everything); see
+        http://stackoverflow.com/questions/49925/what-is-the-difference-between-union-and-union-all.
+        
+        .. code-block:: sql
+    
+            -- Clear, but extensibility of boolean logic less clear:
+            SELECT trid
+                FROM diagnosis_table
+                WHERE diagnosis LIKE 'F20%'
+            INTERSECT
+            SELECT trid
+                FROM progress_note_table
+                WHERE note LIKE '%schizophreni%' OR note LIKE '%depression%'
+            ORDER BY trid
+            -- ... logic across tables requires careful arrangement of UNION vs. INTERSECT
+            -- ... logic for multiple fields within one table can be done with AND/OR
+    
+            -- Slower (?), but simpler to manipulate logic?
+            SELECT DISTINCT something.trid
+            FROM diagnosis_table INNER JOIN progress_note_table
+            ON diagnosis_table.trid = progress_note_table.trid
+            WHERE
+                diagnosis_table.diagnosis LIKE 'F20%'
+                AND (progress_note_table.note LIKE '%schizophreni%'
+                     OR progress_note_table.notenote LIKE '%depression%')
+            ORDER BY something.trid
+            -- ... boolean logic can all be encapsulated in a single WHERE clause
+            -- ... can also share existing join code
+            -- ... ?reasonable speed since the TRID fields will be indexed
+            -- ... preferable.
+    
+    - Which ID for the patient ID query?
+    
+      - the TRID (for speed, inc. sorting) of the first database
+      - can use the TRID from the first "where clause" table
+        (don't have to join to a master patient table)
+      - join everything across databases as before
+    
+    - Results queries
+    
+      .. code-block:: none
+    
+        -- Something like:
+    
+        SELECT rid, date_of_note, note
+        FROM progress_note_table
+        WHERE trid IN ( ... patient_id_query ... )
+        ORDER BY trid
+    
+        SELECT rid, date_of_diagnosis, diagnosis, diagnosis_description
+        FROM diagnosis_table
+        WHERE trid IN ( ... patient_id_query ... )
+        ORDER BY trid
+
+      This means we will repeat the patient_id_query, which may be inefficient.
+      Options:
+    
+      - store the TRIDs in Python, then pass them as arguments
+    
+        - at which point the SQL string/packet length becomes relevant;
+        - http://stackoverflow.com/questions/1869753/maximum-size-for-a-sql-server-query-in-clause-is-there-a-better-approach
+        - http://stackoverflow.com/questions/16335011/what-is-maximum-query-size-for-mysql
+        - http://stackoverflow.com/questions/96553/practical-limit-to-length-of-sql-query-specifically-mysql
+      
+      - let the database worry about it
+    
+        - probably best for now!
+
+    - Display
+
+      - One patient per page, with multiple results tables.
+
+    - Boolean logic on patient selection
+    
+      - ... within
+    
+    """  # noqa
     def __init__(self,
                  output_columns: List[ColumnId] = None,
                  patient_conditions: List[WhereCondition] = None,
                  manual_patient_id_query: str = ''):
+        """
+        Args:
+            output_columns:
+                database columns that will be in the output, as
+                list of :class:`crate_anon.common.sql.ColumnId` objects
+            patient_conditions:
+                restrictions on the patient, as a list of
+                :class:`crate_anon.common.sql.WhereCondition` objects; they
+                will be joined with ``AND``
+            manual_patient_id_query:
+                raw SQL; if specified, overrides ``patient_conditions`` and is
+                used as the patient-finding part of the query; see
+                :func:`set_override_query`
+        """
         self._output_columns = output_columns or []  # type: List[ColumnId]
         self._patient_conditions = patient_conditions or []  # type: List[WhereCondition]  # noqa
         self._manual_patient_id_query = manual_patient_id_query or ''
@@ -851,48 +1116,113 @@ class PatientMultiQuery(object):
 
     @property
     def hash64(self) -> int:
+        """
+        Return an integer (non-cryptographic) hash of the query.
+        """
         return hash64(json_encode(self))
 
     @property
     def output_columns(self) -> List[ColumnId]:
+        """
+        Returns the output columns, as a list of
+        :class:`crate_anon.common.sql.ColumnId` objects.
+        """
         return self._output_columns
 
     @property
     def has_output_columns(self) -> bool:
+        """
+        Does this multiquery have any output columns?
+        """
         return bool(self._output_columns)
 
     @property
     def ok_to_run(self) -> bool:
+        """
+        Is this OK to run, i.e. does it have a patient ID query and some output
+        columns?
+        """
         return self.has_output_columns and self.has_patient_id_query
 
     @property
     def patient_conditions(self) -> List[WhereCondition]:
+        """
+        Returns all ``WHERE`` conditions restricting the patient, as a list of
+        :class:`crate_anon.common.sql.WhereCondition` objects.
+        """
         return self._patient_conditions
 
     @property
     def manual_patient_id_query(self) -> str:
+        """
+        Returns the manual override SQL for the patient ID query.
+        """
         return self._manual_patient_id_query
 
     def add_output_column(self, column_id: ColumnId) -> None:
+        """
+        Adds a database column to the output.
+        """
         if column_id not in self._output_columns:
             self._output_columns.append(column_id)
             self._output_columns.sort()
 
     def clear_output_columns(self) -> None:
+        """
+        Removes all output columns from the multiquery.
+        """
         self._output_columns = []
 
     def add_patient_condition(self, where: WhereCondition) -> None:
+        """
+        Adds a patient ``WHERE`` condition.
+
+        Args:
+            where: a :class:`crate_anon.common.sql.WhereCondition`
+        """
         if where not in self._patient_conditions:
             self._patient_conditions.append(where)
             self._patient_conditions.sort()
 
     def clear_patient_conditions(self) -> None:
+        """
+        Removes all ``WHERE`` conditions on the patient.
+        """
         self._patient_conditions = []
 
     def set_override_query(self, query: str) -> None:
+        """
+        Sets the manual override SQL for the patient ID query.
+
+        Args:
+            query: raw SQL
+
+        This query should return a single column of MRID values that is fetched
+        into Python and used to restrict other queries. Here's a fictional
+        example to fetch the MRIDs for all patients who have the word
+        "neutrophils" in their notes:
+
+        .. code-block:: sql
+
+            SELECT DISTINCT anonymous_output.patient.nhshash AS _mrid
+            FROM anonymous_output.patient
+            INNER JOIN anonymous_output.note ON anonymous_output.note.trid = anonymous_output.patient.trid
+            WHERE MATCH (anonymous_output.note.note) AGAINST ('neutrophils')
+                AND anonymous_output.patient.nhshash IS NOT NULL
+            ORDER BY _mrid
+            
+        """  # noqa
         self._manual_patient_id_query = query
 
     def _get_select_mrid_column(self) -> Optional[ColumnId]:
+        """
+        Returns the MRID column from the first table in the patient ``WHERE``
+        conditions, or ``None``.
+
+        Returns:
+            a :class:`crate_anon.common.sql.ColumnId` or ``None``
+
+        """
         if not self._patient_conditions:
             return None
         return research_database_info.get_linked_mrid_column(
@@ -900,6 +1230,11 @@ class PatientMultiQuery(object):
 
     @property
     def has_patient_id_query(self) -> bool:
+        """
+        Does this multiquery have a patient ID query? This can either be one
+        that the user has specified manually, or one built from ``WHERE``
+        conditions that appears to refer to an MRID.
+        """
         if self._manual_patient_id_query:
             return True
         if self._patient_conditions:
@@ -909,8 +1244,22 @@ class PatientMultiQuery(object):
         return False
 
     def patient_id_query(self, with_order_by: bool = True) -> str:
-        # Returns an SQL SELECT statement based on the list of WHERE conditions
-        # already stored, joined with AND by default.
+        """
+        Returns an SQL ``SELECT`` statement based on the list of ``WHERE``
+        conditions already stored, joined with ``AND`` by default. (If a manual
+        patient ID query has been specified, return that instead.)
+
+        Args:
+            with_order_by: add an ``ORDER BY`` query on the MRID; such an
+                ordering is important for consistency across runs (but is
+                prohibited by SQL Server in subqueries -- "The ORDER BY clause
+                is invalid in views, inline functions, derived tables,
+                subqueries, ... unless TOP, OFFSET or FOR XML is specified.")
+
+        Returns:
+            str: SQL
+
+        """
 
         if self._manual_patient_id_query:
             # User has specified one manually.
@@ -943,23 +1292,62 @@ class PatientMultiQuery(object):
         )
         if with_order_by:
             sql += " ORDER BY " + mrid_alias
-            # ... ORDER BY is important for consistency across runs
         sql = format_sql(sql)
         # log.critical(sql)
         return sql
 
     @property
-    def all_full_queries(self) -> List[Tuple[TableId, str, List[Any]]]:
+    def all_full_queries(self) -> List[TableQueryArgs]:
+        """
+        Returns all final queries. This is a list of multiple SQL queries, each
+        retrieving information from one table, and all retrieving information
+        for the same patient(s).
+
+        The patients we use are defined by our :meth:`patient_id_query`.
+
+        Returns:
+            list: a list of :class:`TableQueryArgs` objects (q.v.)
+
+        """
         return self.all_queries(mrids=None)
 
     def all_queries_specific_patients(
             self,
-            mrids: List[int]) -> List[Tuple[TableId, str, List[Any]]]:
+            mrids: List[int]) -> List[TableQueryArgs]:
+        """
+        Returns all final queries. This is a list of multiple SQL queries, each
+        retrieving information from one table, and all retrieving information
+        for the same patient(s).
+
+        The patients we use are defined by the MRID list given.
+
+        Args:
+            mrids: list of MRIDs
+
+        Returns:
+            list: a list of :class:`TableQueryArgs` objects (q.v.)
+
+        """
         return self.all_queries(mrids=mrids)
 
     def all_queries(self,
-                    mrids: List[Any] = None) -> List[Tuple[TableId, str,
-                                                           List[Any]]]:
+                    mrids: List[Any] = None) -> List[TableQueryArgs]:
+        """
+        Returns all final queries. This is a list of multiple SQL queries, each
+        retrieving information from one table, and all retrieving information
+        for the same patient(s).
+
+        The patients we use are defined either by the MRID list given, or if
+        that is empty or blank, our :meth:`patient_id_query`.
+
+        Args:
+            mrids: list of MRIDs; if this is ``None`` or empty, use the
+                patients fetched (live) by our :meth:`patient_id_query`.
+
+        Returns:
+            list: a list of :class:`TableQueryArgs` objects (q.v.)
+
+        """
         queries = []
         table_columns_map = columns_to_table_column_hierarchy(
             self._output_columns, sort=True)
@@ -973,7 +1361,22 @@ class PatientMultiQuery(object):
     def where_patient_clause(self, table_id: TableId,
                              grammar: SqlGrammar,
                              mrids: List[Any] = None) -> SqlArgsTupleType:
-        """Returns (sql, args)."""
+        """
+        Returns an SQL WHERE clauses similar to ``sometable.mrid IN (1, 2, 3)``
+        or ``sometable.mridcol IN (SELECT mrid FROM masterpatienttable)``. The
+        clause is used to restrict patients by MRID.
+
+        Args:
+            table_id: :class:`crate_anon.common.sql.TableId` for the table
+                whose MRID column we will apply the ``WHERE`` clause to
+            grammar: :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar`
+                to use
+            mrids: list of MRIDs; if this is ``None`` or empty, use the
+                patients fetched (live) by our :meth:`patient_id_query`.
+
+        Returns:
+            tuple: ``sql, args``
+        """
         mrid_column = research_database_info.get_mrid_column_from_table(
             table_id)
         if mrids:
@@ -997,7 +1400,29 @@ class PatientMultiQuery(object):
     def make_query(self,
                    table_id: TableId,
                    columns: List[ColumnId],
-                   mrids: List[Any] = None) -> Tuple[TableId, str, List[Any]]:
+                   mrids: List[Any] = None) -> TableQueryArgs:
+        """
+        Returns an SQL query to retrieve information from a single table for
+        certain patients. This query is similar to ``SELECT a, b, c FROM
+        sometable WHERE sometable.mrid IN (1, 2, 3)`` or ``SELECT a, b, c FROM
+        sometable WHERE sometable.mrid IN (SELECT mrid FROM
+        masterpatienttable)``. This then forms one query from (potentially)
+        many for our patient(s).
+
+        Args:
+            table_id: a :class:`crate_anon.common.sql.TableId` for the SELECT
+                FROM table
+            columns: columns, specified as a list of
+                :class:`crate_anon.common.sql.ColumnId`, to select from the
+                table (in addition to which, we will always select the MRID
+                column from that table)
+            mrids: list of MRIDs; if this is ``None`` or empty, use the
+                patients fetched (live) by our :meth:`patient_id_query`.
+
+        Returns:
+            a :class:`TableQueryArgs` object (q.v.)
+
+        """
         if not columns:
             raise ValueError("No columns specified")
         grammar = research_database_info.grammar
@@ -1018,7 +1443,7 @@ class PatientMultiQuery(object):
                             where_conditions=where_conditions,
                             magic_join=True,
                             formatted=True)
-        return table_id, sql, args
+        return TableQueryArgs(table_id, sql, args)
 
     # -------------------------------------------------------------------------
     # Display
@@ -1026,6 +1451,9 @@ class PatientMultiQuery(object):
 
     @property
     def output_cols_html(self) -> str:
+        """
+        Returns all our output columns in HTML format.
+        """
         grammar = research_database_info.grammar
         return prettify_sql_html("\n".join(
             [column_id.identifier(grammar)
@@ -1033,13 +1461,30 @@ class PatientMultiQuery(object):
 
     @property
     def pt_conditions_html(self) -> str:
+        """
+        Returns all our patient WHERE conditions in HTML format.
+        """
         grammar = research_database_info.grammar
         return prettify_sql_html("\nAND ".join([
             wc.sql(grammar) for wc in self.patient_conditions]))
 
     def summary_html(self, element_counter: HtmlElementCounter) -> str:
+        """
+        Returns an HTML representation of this multiquery.
+        
+        Args:
+            element_counter: a
+                :class:`crate_anon.crateweb.research.html_functions.HtmlElementCounter`,
+                which will be modified
+
+        Returns:
+            str: HTML
+
+        """  # noqa
+
         def collapser(x: str) -> str:
             return element_counter.overflow_div(contents=x)
+
         outcols = self.output_cols_html
         manual_query = self.manual_patient_id_query
         if manual_query:
@@ -1064,11 +1509,31 @@ class PatientMultiQuery(object):
     # -------------------------------------------------------------------------
 
     def gen_data_finder_queries(self, mrids: List[Any] = None) \
-            -> Generator[Tuple[str, str, List[Any]], None, None]:
+            -> Generator[TableQueryArgs, None, None]:
         """
-        Generates (table_identifier, sql, args).
-        When executed, query gives:
-            research_id, table_name, n_records, min_date, max_date
+        Generates a set of queries that, when executed, return the following
+        summary columns from each of our tables, filtered for patients by our
+        :meth:`where_patient_clause`, and grouped by ``master_research_id``
+        (MRID):
+
+        .. code-block:: sql
+
+            master_research_id,
+            table_name,
+            COUNT(*) AS n_records,
+            MIN(date_column) AS min_date,  -- NULL if no date column
+            MAX(date_column) AS max_date   -- NULL if no date column
+
+        These queries can be used to see quickly which tables have interesting
+        information in.
+
+        Args:
+            mrids: list of MRIDs; if this is ``None`` or empty, use the
+                patients fetched (live) by our :meth:`patient_id_query`.
+
+        Yields:
+            :class:`TableQueryArgs` objects (q.v.)
+
         """
         grammar = research_database_info.grammar
         mrid_alias = 'master_research_id'
@@ -1116,14 +1581,29 @@ class PatientMultiQuery(object):
             sql += "\nGROUP BY " + mrid_col.identifier(grammar)
             sql += "\nORDER BY " + mrid_alias
             sql = format_sql(sql)
-            yield table_identifier, sql, args
+            yield TableQueryArgs(table_identifier, sql, args)
 
     # -------------------------------------------------------------------------
     # Monster data: SELECT * for all patient tables
     # -------------------------------------------------------------------------
 
     def gen_monster_queries(self, mrids: List[int] = None) \
-            -> Generator[List[Tuple[TableId, str, List[Any]]], None, None]:
+            -> Generator[TableQueryArgs, None, None]:
+        """
+        Generates a set of queries that, when executed, return ``SELECT *``
+        from each of our tables, filtered for patients by our
+        :meth:`where_patient_clause`.
+
+        These queries are used in the Patient Explorer "Monster Data" view.
+
+        Args:
+            mrids: list of MRIDs; if this is ``None`` or empty, use the
+                patients fetched (live) by our :meth:`patient_id_query`.
+
+        Yields:
+            :class:`TableQueryArgs` objects (q.v.)
+
+        """
         grammar = research_database_info.grammar
         for table_id in research_database_info.get_mrid_linkable_patient_tables():  # noqa
             mrid_col = research_database_info.get_mrid_column_from_table(
@@ -1193,9 +1673,8 @@ class PatientExplorer(models.Model):
 
     def save(self, *args, **kwargs) -> None:
         """
-        Custom save method. Ensures that only one PatientExplorer has
-        active == True for a given user.
-        Also sets the hash.
+        Custom save method. Ensures that only one :class:`PatientExplorer` has
+        ``active == True`` for a given user. Also sets the hash.
         """
         if self.active:
             PatientExplorer.objects\
@@ -1213,6 +1692,14 @@ class PatientExplorer(models.Model):
     @staticmethod
     def get_active_pe_or_none(request: HttpRequest) \
             -> Optional[PATIENT_EXPLORER_FWD_REF]:
+        """
+        Args:
+            request: the :class:`django.http.request.HttpRequest`
+
+        Returns:
+            The active :class:`PatientExplorer` for the user, or ``None``.
+
+        """
         if not request.user.is_authenticated:
             return None
         try:
@@ -1222,6 +1709,15 @@ class PatientExplorer(models.Model):
 
     @staticmethod
     def get_active_pe_id_or_none(request: HttpRequest) -> Optional[int]:
+        """
+        Args:
+            request: the :class:`django.http.request.HttpRequest`
+
+        Returns:
+            The integer PK of the active :class:`PatientExplorer` for the user,
+            or ``None``.
+
+        """
         if not request.user.is_authenticated:
             return None
         try:
@@ -1235,16 +1731,31 @@ class PatientExplorer(models.Model):
     # -------------------------------------------------------------------------
 
     def activate(self) -> None:
+        """
+        Activates this :class:`PatientExplorer` (and deactivates any others).
+        """
         self.active = True
         self.save()
 
     def mark_audited(self) -> None:
+        """
+        Mark the query as having been executed and audited. (This prevents it
+        from being wholly deleted.)
+        """
         if self.audited:
             return
         self.audited = True
         self.save()
 
     def mark_deleted(self) -> None:
+        """
+        Mark the query as deleted.
+
+        This will stop it being shown. It will not delete it from the database.
+
+        We use this deletion method for queries that have been executed, so
+        need an audit trail.
+        """
         if self.deleted:
             # log.debug("pointless")
             return
@@ -1255,7 +1766,13 @@ class PatientExplorer(models.Model):
         # log.debug("saved")
 
     def delete_if_permitted(self) -> None:
-        """If a PE has been audited, it isn't properly deleted."""
+        """
+        Delete the query.
+
+        - If a query has been executed and therefore audited, it isn't properly
+          deleted; it's just marked as deleted.
+        - If a query has never been executed, we can delete it entirely.
+        """
         if self.deleted:
             log.debug("already flagged as deleted")
             return
@@ -1269,6 +1786,19 @@ class PatientExplorer(models.Model):
 
     def audit(self, count_only: bool = False, n_records: int = 0,
               failed: bool = False, fail_msg: str = "") -> None:
+        """
+        Audit the execution of this query:
+
+        - insert an audit entry referring to this query
+        - mark the query as having been audited (so it's not deleted)
+
+        Args:
+            count_only: did we know (in advance) that this was a
+                ``COUNT()``-only query?
+            n_records: how many records were returned?
+            failed: did the query fail?
+            fail_msg: if the query failed, the associated failure message
+        """
         a = PatientExplorerAudit(patient_explorer=self,
                                  count_only=count_only,
                                  n_records=n_records,
@@ -1282,31 +1812,63 @@ class PatientExplorer(models.Model):
     # -------------------------------------------------------------------------
 
     def all_queries(self,
-                    mrids: List[Any] = None) -> List[Tuple[TableId, str,
-                                                           List[Any]]]:
+                    mrids: List[Any] = None) -> List[TableQueryArgs]:
+        """
+        Returns all queries from our :attr:`patient_multiquery`. See
+        :meth:`PatientMultiQuery.all_queries`
+
+        Args:
+            mrids: list of MRIDs; if this is ``None`` or empty, use the
+                patients fetched (live) by our :attr:`patient_multiquery`'s
+                :meth:`PatientMultiQuery.patient_id_query`.
+
+        Returns:
+            list: a list of :class:`TableQueryArgs` objects (q.v.)
+
+        """
         return self.patient_multiquery.all_queries(mrids=mrids)
 
     @staticmethod
     def get_executed_cursor(sql: str, args: List[Any] = None) -> CursorWrapper:
         """
-        Get cursor with a query executed
+        Executes a query (via the research database) and returns its cursor.
+
+        Args:
+            sql: SQL text
+            args: arguments to SQL query
+
+        Returns:
+            a :class:`django.db.backends.utils.CursorWrapper`, which is a
+            context manager that behaves as the executed cursor and also closes
+            it on completion
         """
         sql = translate_sql_qmark_to_percent(sql)
         return get_executed_researchdb_cursor(sql, args)
 
     def get_patient_mrids(self) -> List[int]:
+        """
+        Returns all MRIDs from our :attr:`patient_multiquery`'s
+        :meth:`PatientMultiQuery.patient_id_query`.
+        """
         sql = self.patient_multiquery.patient_id_query(with_order_by=True)
         # log.critical(sql)
         with self.get_executed_cursor(sql) as cursor:
             return [row[0] for row in cursor.fetchall()]
 
     def get_zipped_tsv_binary(self) -> bytes:
+        """
+        Returns a ZIP file containing TSVs, one for each table in our
+        :attr:`patient_multiquery`.
+        """
         # Don't pass giant result sets around beyond what's necessary.
         # Use cursor.fetchone()
         grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
         memfile = io.BytesIO()
         z = zipfile.ZipFile(memfile, "w")
-        for table_id, sql, args in self.patient_multiquery.all_queries():
+        for tsa in self.patient_multiquery.all_queries():
+            table_id = tsa.table_id
+            sql = tsa.sql
+            args = tsa.args
             with self.get_executed_cursor(sql, args) as cursor:
                 fieldnames = get_fieldnames_from_cursor(cursor)
                 tsv = make_tsv_row(fieldnames)
@@ -1321,18 +1883,24 @@ class PatientExplorer(models.Model):
 
     def get_xlsx_binary(self) -> bytes:
         """
+        Returns an XLSX (Excel) file containing spreadsheets, one for each
+        table in our :attr:`patient_multiquery`.
+
         Other notes:
 
-        - cell size:
-          http://stackoverflow.com/questions/13197574/python-openpyxl-column-width-size-adjust
-          ... and the "auto_size" / "bestFit" options don't really do the job,
-          according to the interweb
+        - cell size: see
+          http://stackoverflow.com/questions/13197574/python-openpyxl-column-width-size-adjust;
+          and the "auto_size" / "bestFit" options don't really do the job,
+          according to the interweb.
 
         """  # noqa
         wb = Workbook()
         wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
         sqlsheet_rows = [["Table", "SQL", "Args", "Executed_at"]]
-        for table_id, sql, args in self.patient_multiquery.all_queries():
+        for tsa in self.patient_multiquery.all_queries():
+            table_id = tsa.table_id
+            sql = tsa.sql
+            args = tsa.args
             sqlsheet_rows.append([str(table_id), sql, repr(args),
                                   datetime.datetime.now()])
             ws = wb.create_sheet(title=str(table_id))
@@ -1353,6 +1921,13 @@ class PatientExplorer(models.Model):
     # -------------------------------------------------------------------------
 
     def get_patient_id_query(self, with_order_by: bool = True) -> str:
+        """
+        Returns SQL from our :attr:`patient_multiquery`'s
+        :meth:`PatientMultiQuery.patient_id_query` (q.v.).
+
+        Args:
+            with_order_by: see :meth:`PatientMultiQuery.patient_id_query`
+        """
         return self.patient_multiquery.patient_id_query(
             with_order_by=with_order_by)
 
@@ -1362,6 +1937,9 @@ class PatientExplorer(models.Model):
 
     @property
     def summary_html(self) -> str:
+        """
+        Return HTML summarizing this object.
+        """
         # Nasty hack. We want collapsing things, so we want HTML element IDs.
         # We could build the HTML table in code for the Patient Explorer
         # chooser, but I was trying to do it in Django templates.
@@ -1374,10 +1952,20 @@ class PatientExplorer(models.Model):
 
     @property
     def has_patient_id_query(self) -> bool:
+        """
+        Does our our :attr:`patient_multiquery` have a patient ID query?
+
+        See :meth:`PatientMultiQuery.has_patient_id_query`.
+        """
         return self.patient_multiquery.has_patient_id_query
 
     @property
     def has_output_columns(self) -> bool:
+        """
+        Does our our :attr:`patient_multiquery` have output columns?
+
+        See :meth:`PatientMultiQuery.has_output_columns`.
+        """
         return self.patient_multiquery.has_output_columns
 
     # -------------------------------------------------------------------------
@@ -1387,8 +1975,10 @@ class PatientExplorer(models.Model):
     @property
     def data_finder_excel(self) -> bytes:
         """
-        Performs a SELECT COUNT(*)
-        Returns (fieldnames, rows).
+        Returns an XSLX (Excel) file containing summary (count) information
+        for each table.
+
+        See :meth:`PatientMultiQuery.gen_data_finder_queries`.
         """
         fieldnames = []
         wb = Workbook()
@@ -1397,8 +1987,10 @@ class PatientExplorer(models.Model):
         sql_ws = wb.create_sheet("SQL")
         sql_ws.append(["Table", "SQL", "Args", "Executed_at"])
 
-        for table_identifier, sql, args in \
-                self.patient_multiquery.gen_data_finder_queries():
+        for tsa in self.patient_multiquery.gen_data_finder_queries():
+            table_identifier = tsa.table_id
+            sql = tsa.sql
+            args = tsa.args
             sql_ws.append([table_identifier,
                            format_sql(sql),
                            repr(args),

@@ -1,6 +1,6 @@
 /* collapse.js */
 
-/* PLUS_IMAGE, MINUS_IMAGE are defined in the HTML, for static file URLS. */
+/* PLUS_IMAGE, MINUS_IMAGE are defined in the HTML, for static file URLs. */
 
 var getElementsByClassName = function (className, tag, elm) {
     // http://robertnyman.com/2008/05/27/
