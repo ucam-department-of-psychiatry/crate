@@ -24,7 +24,7 @@ Change log/history
 Contributors
 ------------
 
-- Rudolf Cardinal, 2015–.
+- Rudolf Cardinal <rudolf@pobox.com>, 2015–.
 - Francesca Spivack, 2018–.
 
 Changes
@@ -38,29 +38,34 @@ Changes
 
 - Bug fix for incremental update (previous version inserted rather than
   updating when the source content had changed); search for
-  update_on_duplicate_key.
+  ``update_on_duplicate_key``.
 
 - Checks for missing/extra fields in destination.
 
-- “No separator” allowed for get_date_regex_elements(), allowing anonymisation
-  of e.g. 19Mar2015, 19800101.
+- “No separator” allowed for
+  :func:`crate_anon.anonymise.anonregex.get_date_regex_elements`, allowing
+  anonymisation of e.g. ``19Mar2015``, ``19800101``.
 
-- New default at_word_boundaries_only=False for get_date_regex_elements(),
-  allowing anonymisation of ISO8601-format dates (e.g. 1980-10-01T0000), etc.
+- New default ``at_word_boundaries_only=False`` for
+  :func:`crate_anon.anonymise.anonregex.get_date_regex_elements`, allowing
+  anonymisation of ISO8601-format dates (e.g. ``1980-10-01T0000``), etc.
 
-- Similar option for get_code_regex_elements().
+- Similar option for
+  :func:`crate_anon.anonymise.anonregex.get_code_regex_elements`.
 
-- Similar option for get_string_regex_elements().
+- Similar option for
+  :func:`crate_anon.anonymise.anonregex.get_string_regex_elements`.
 
 - Options in config to control these.
 
-- Fuzzy matching for get_string_regex_elements(); string_max_regex_errors
-  option in config. The downside is the potential for greedy matching; for
-  example, if you anonymise “Ronald MacDonald” with “Ronald” and “MacDonald”,
-  you can end up with “XXX MacXXX”, as the regex greedy-matches “Donald” to
-  “Ronald” with a typo, and therefore fails to process the whole “MacDonald”.
-  On the other hand, this protects against simple typos, which are probably
-  more common.
+- Fuzzy matching for
+  :func:`crate_anon.anonymise.anonregex.get_string_regex_elements`;
+  ``string_max_regex_errors`` option in config. The downside is the potential
+  for greedy matching; for example, if you anonymise “Ronald MacDonald” with
+  “Ronald” and “MacDonald”, you can end up with “XXX MacXXX”, as the regex
+  greedy-matches “Donald” to “Ronald” with a typo, and therefore fails to
+  process the whole “MacDonald”. On the other hand, this protects against
+  simple typos, which are probably more common.
 
 - Audit database/table.
 
@@ -80,64 +85,67 @@ Changes
 
 - Made date element separators broader in anonymisation regex.
 
-- min_string_length_for_errors option
+- ``min_string_length_for_errors`` option
 
-- min_string_length_to_scrub_with option
+- ``min_string_length_to_scrub_with`` option
 
-- words_not_to_scrub option
+- ``words_not_to_scrub`` option
 
 - bugfix: date regex couldn't cope with years prior to 1900
 
-- gen_all_values_for_patient() was inefficient in that it would process the
-  same source table multiple times to retrieve different fields.
+- :func:`crate_anon.anonymise.patient.gen_all_values_for_patient` was
+  inefficient in that it would process the same source table multiple times to
+  retrieve different fields.
 
-- ddgen_index_fields option
+- ``ddgen_index_fields`` option
 
-- simplification of get_anon_fragments_from_string()
+- simplification of
+  :func:`crate_anon.anonymise.anonregex.get_anon_fragments_from_string`
 
-- SCRUBMETHOD.CODE, particularly for postcodes. (Not very different from
-  SCRUBMETHOD.NUMERIC, but a little different.)
+- ``SCRUBMETHOD.CODE``, particularly for postcodes. (Not very different from
+  ``SCRUBMETHOD.NUMERIC``, but a little different.)
 
-- debug_row_limit applies to patient-based tables (as a per-thread limit); was
-  previously implemented as a per-patient limit, which was silly.
+- ``debug_row_limit`` applies to patient-based tables (as a per-thread limit);
+  was previously implemented as a per-patient limit, which was silly.
 
 - Indirection step in config for destination/admin databases.
 
-- ddgen_allow_fulltext_indexing option, for old MySQL versions.
+- ``ddgen_allow_fulltext_indexing`` option, for old MySQL versions.
 
 **v0.06, 2015-06-25**
 
-- Option: replace_nonspecific_info_with
+- Option: ``replace_nonspecific_info_with``
 
-- Option: scrub_all_numbers_of_n_digits
+- Option: ``scrub_all_numbers_of_n_digits``
 
-- Option: scrub_all_uk_postcodes
+- Option: ``scrub_all_uk_postcodes``
 
 **v0.06, 2015-07-14**
 
-- bugfix: if a source scrub-from value was a number with value '.', the regex
-  went haywire... so regex builders now check for blanks.
+- bugfix: if a source scrub-from value was a number with value ``'.'``, the
+  regex went haywire... so regex builders now check for blanks.
 
 **v0.07, 2015-07-16**
 
-- regex.ENHANCEMATCH flag tried unsuccessfully (segmentation fault, i.e.
-  internal error in regex module, likely because generated regular expressions
-  got too complicated for it).
+- ``regex.ENHANCEMATCH`` flag tried unsuccessfully (segmentation fault, i.e.
+  internal error in ``regex`` module, likely because generated regular
+  expressions got too complicated for it).
 
 **v0.08, 2015-07-20**
 
-- SCRUBMETHOD.WORDS renamed SCRUBMETHOD.WORDS
+- ``SCRUBMETHOD.WORDS`` renamed ``SCRUBMETHOD.WORDS`` [? typo in changelog!]
 
-- SCRUBMETHOD.PHRASE added
+- ``SCRUBMETHOD.PHRASE`` added
 
-- ddgen_scrubmethod_phrase_fields added
+- ``ddgen_scrubmethod_phrase_fields`` added
 
 **v0.09, 2015-07-28**
 
-- debug_max_n_patients option, used with gen_patient_ids(), to reduce the
-  number of patients processed for “full rebuild” debugging.
+- ``debug_max_n_patients`` option, used with
+  :func:`crate_anon.anonymise.anonymise.gen_patient_ids`, to reduce the number
+  of patients processed for “full rebuild” debugging.
 
-- debug_pid_list option, similarly
+- ``debug_pid_list`` option, similarly
 
 **v0.10, 2015-09-02 to 2015-09-13**
 
@@ -145,7 +153,8 @@ Changes
 
 - Default hasher changed to SHA256.
 
-- Bugfix to datatypes in delete_dest_rows_with_no_src_row().
+- Bugfix to datatypes in
+  :func:`crate_anon.anonymise.delete_dest_rows_with_no_src_row`.
 
 **v0.11, 2015-09-16**
 
@@ -153,7 +162,9 @@ Changes
 
 **v0.12, 2015-09-21**
 
-- Database interface renamed from mysqldb to mysql, to allow for PyMySQL support as well (backend details otherwise irrelevant to front-end application).
+- Database interface renamed from mysqldb to mysql, to allow for PyMySQL
+  support as well (backend details otherwise irrelevant to front-end
+  application).
 
 **v0.13, 2015-10-06**
 
@@ -164,20 +175,21 @@ Changes
 - Code cleanup.
 
 - HMAC for RID generation, replacing simpler hashes, for improved security.
-  Default becomes HMAC_MD5.
+  Default becomes ``HMAC_MD5``.
 
-- New option: secret_trid_cache_tablename
+- New option: ``secret_trid_cache_tablename``
 
-- Removed option: words_not_to_scrub
+- Removed option: ``words_not_to_scrub``
 
-- New options: whitelist_filenames (replaces words_not_to_scrub),
-  blacklist_filenames.
+- New options: ``whitelist_filenames`` (replaces ``words_not_to_scrub``),
+  ``blacklist_filenames``.
 
-- Transition from cardinal_pythonlib.rnc_db to SQLAlchemy for anonymiser
+- Transition from ``cardinal_pythonlib.rnc_db`` to SQLAlchemy for anonymiser
   database interface.
 
-- Environment variable changed from CRATE_LOCAL_SETTINGS to
-  CRATE_WEB_LOCAL_SETTINGS and coded into crate_anon/config/constants.py.
+- Environment variable changed from ``CRATE_LOCAL_SETTINGS`` to
+  ``CRATE_WEB_LOCAL_SETTINGS`` and coded into
+  ``crate_anon/config/constants.py``.
 
 - Web front end now happy getting structure from SQL Server and PostgreSQL.
 
@@ -189,12 +201,13 @@ Changes
 **v0.16.0, 2016-06-04**
 
 - Fixes to work properly with SQL Server, including proper automatic conversion
-  of VARCHAR(MAX) and NVARCHAR(MAX) to MySQL TEXT fields. Note: also needs
-  SQLAlchemy 1.1 or higher [#f1]_, currently available only via (1) fetching
-  source via ``git clone https://github.com/zzzeek/sqlalchemy`` and changing
-  into the ‘sqlalchemy’ directory this will create; (2) activating your CRATE
-  virtual environment; (3) ``pip install .`` to install SQLAlchemy from your
-  source copy. Further note: as of v0.18.2, this is done via PyPI again.
+  of ``VARCHAR(MAX)`` and ``NVARCHAR(MAX)`` to MySQL ``TEXT`` fields. Note:
+  also needs SQLAlchemy 1.1 or higher [#f1]_, currently available only via (1)
+  fetching source via ``git clone https://github.com/zzzeek/sqlalchemy`` and
+  changing into the ‘sqlalchemy’ directory this will create; (2) activating
+  your CRATE virtual environment; (3) ``pip install .`` to install SQLAlchemy
+  from your source copy. Further note: as of v0.18.2, this is done via PyPI
+  again.
 
 - Opt-out management (1) manually; (2) via disk file; (3) via database fields.
 
@@ -219,7 +232,7 @@ Changes
 
 **v0.18.1, 2016-11-04**
 
-- v0.18.1 (2016-11-04): new anonymise_numbers_at_numeric_boundaries_only
+- v0.18.1 (2016-11-04): new ``anonymise_numbers_at_numeric_boundaries_only``
   option, to prevent e.g. ‘23’ being scrubbed from ‘1234’ unless you really
   want to.
 
@@ -236,21 +249,21 @@ Changes
 - Support for non-integer PKs for NLP, to allow us to operate with tables we
   have only read-only access to. This is a bit tricky. To parallelize, it helps
   to be able to convert a non-integer to an integer for use with the modulo
-  operator, %. In addition, we store PK values to speed up incremental updates.
-  It becomes messy if we have to cope with lots and lots of types of PKs. Also,
-  Python’s hash() function is inconsistent across invocations [#f2]_. This is
-  not a cryptographic application, so we can use anything simple and fast
-  [#f3]_. It looks like MurmurHash3 is suitable (hash DDoS attacks are not
-  relevant here) [#f4]_. However, the problem then is with collisions [#f5]_.
-  We want to ask “has this PK been processed before?” Realistically, the only
-  types of PKs are integers and strings; it would be crazy to use
-  floating-point numbers or BLOBs or something. So let’s put a cap at
-  VARCHAR(n), where n comes from MAX_STRING_PK_LENGTH; store a 64-bit integer
-  hash for speed, and then use the hash to say quickly “no, not processed” and
-  check the original PK if processed. If the PK field is integer, we can just
-  use the integer field for the PK itself. Note that the delete_where_no_source
-  function may be imperfect now under hash collisions (and it may be imperfect
-  in other ways too).
+  operator, ``%``. In addition, we store PK values to speed up incremental
+  updates. It becomes messy if we have to cope with lots and lots of types of
+  PKs. Also, Python’s :func:`hash` function is inconsistent across invocations
+  [#f2]_. This is not a cryptographic application, so we can use anything
+  simple and fast [#f3]_. It looks like MurmurHash3 is suitable (hash DDoS
+  attacks are not relevant here) [#f4]_. However, the problem then is with
+  collisions [#f5]_. We want to ask “has this PK been processed before?”
+  Realistically, the only types of PKs are integers and strings; it would be
+  crazy to use floating-point numbers or BLOBs or something. So let’s put a cap
+  at ``VARCHAR(n)``, where ``n`` comes from ``MAX_STRING_PK_LENGTH``; store a
+  64-bit integer hash for speed, and then use the hash to say quickly “no, not
+  processed” and check the original PK if processed. If the PK field is
+  integer, we can just use the integer field for the PK itself. Note that the
+  ``delete_where_no_source`` function may be imperfect now under hash
+  collisions (and it may be imperfect in other ways too).
 
 - This system not implemented for anonymisation; it just gets too confusing
   (PIDs, MPIDs, uniqueness of PID for TRID generation, etc.).
@@ -280,7 +293,7 @@ Changes
 
 - Optional NLP record limit for debugging.
 
-- Speed increases by not requesting unnecessary ORDER BY conditions.
+- Speed increases by not requesting unnecessary ``ORDER BY`` conditions.
 
 - Commit-every options for NLP (every n bytes and/or every n rows).
 
@@ -289,50 +302,53 @@ Changes
 - Timing framework for NLP (for when it’s dreadfully slow and you think the
   problem might be the source database).
 
-- Significant NLP performance enhancement by altering progress DB lookup methods.
+- Significant NLP performance enhancement by altering progress DB lookup
+  methods.
 
 **v0.18.9, 2016-12-02**
 
-- Regex NLP: option in SimpleNumericalResultParser to take absolute values,
-  e.g. to deal with text like “Na-142, K-4.1, CRP-97”, which use “-” simply as
-  punctuation, rather than as a minus sign. Failing to account for these would
-  distort results.
+- Regex NLP: option in
+  :class:`crate_anon.nlp_manager.regex_parser.SimpleNumericalResultParser` to
+  take absolute values, e.g. to deal with text like ``Na-142, K-4.1, CRP-97``,
+  which use ``-`` simply as punctuation, rather than as a minus sign. Failing
+  to account for these would distort results.
 
 - No attempt is made to specify maximum or minimum values, which can easily be
   excluded as required from the resulting data set. One could of course use the
-  SQL ABS() function to deal with negative values post hoc, but some things
+  SQL ``ABS()`` function to deal with negative values post hoc, but some things
   have no physical meaning when negative, such as a white cell count or CRP
   value, so it’s preferable to fix these at source to reduce the chance of user
   error through not noticing negative values.
 
-- The “take_absolute” option is applied to: CRP, sodium, TSH, BMI, MMSE, ACE,
+- The ``take_absolute`` option is applied to: CRP, sodium, TSH, BMI, MMSE, ACE,
   mini-ACE, MOCA, ESR, and white cell/differential counts. (NLP processors for
   height, BP already enforced positive values. Weight must be able to handle
   negatives, like “weight change –0.4kg”.)
 
 - Similarly, hyphen followed by whitespace treated as ignorable in regex NLP
-  (e.g. in “weight - 48 kg”; though spaces are meaningful for mathematical
-  operations (“a – b = c”), it is syntactically wrong to use “- 4” as a unary
+  (e.g. in ``weight - 48 kg``; though spaces are meaningful for mathematical
+  operations (“a – b = c”), it is syntactically wrong to use ``- 4`` as a unary
   minus sign to indicate a negative number (–4) and much more likely that this
   context means a dash.
 
-- En and em dashes, and a double-hyphen as a dash (“--”) treated as ignorables
-  in regex NLP.
+- En and em dashes, and a double-hyphen as a dash (``--``) treated as
+  ignorables in regex NLP.
 
-- At present, Unicode minus signs (−) are not handled. For reference [#dashes]_:
+- At present, Unicode minus signs (``−``) are not handled. For reference
+  [#dashes]_:
 
     =============== =========== =========================== ======================================
     name            character   code                        handling
     =============== =========== =========================== ======================================
-    hyphen-minus    -           Unicode 002D or ASCII 45    minus sign if context correct
-    formal hyphen   ‐           Unicode 2010                not handled at present
-    minus sign      −           Unicode 2212                not handled at present
-    en dash         –           Unicode 2013                treated as ignorable [#ignoreendash]_
-    em dash         —           Unicode 2014                treated as ignorable
+    hyphen-minus    ``-``       Unicode 002D or ASCII 45    minus sign if context correct
+    formal hyphen   ``‐``       Unicode 2010                not handled at present
+    minus sign      ``−``       Unicode 2212                not handled at present
+    en dash         ``–``       Unicode 2013                treated as ignorable [#ignoreendash]_
+    em dash         ``—``       Unicode 2014                treated as ignorable
     =============== =========== =========================== ======================================
 
 - Improved regex self-testing, including new test framework in
-  crate_anon/nlp_manager/test_all_regex.py.
+  ``crate_anon/nlp_manager/test_all_regex.py``.
 
 **v0.18.10, 2016-12-11**
 
@@ -344,7 +360,8 @@ Changes
 - Full-text indexing: optional in SQL Server 2008, 2012, 2014 and 2016
   [#sqlserverfulltext]_; basic SELECT syntax is ``WHERE CONTAINS(fieldname,
   "word")``, and index creation with ``CREATE FULLTEXT INDEX ON table_name
-  (column_name) KEY INDEX index_name ...``. Added to crate_anon/common/sqla.py.
+  (column_name) KEY INDEX index_name ...``. Added to
+  ``crate_anon/common/sqla.py``.
 
 - Support for SQL query building, with user-configurable selector mechanism.
   See Transact-SQL syntax reference [#tsql]_. We use the Django setting
@@ -376,7 +393,8 @@ Changes
 
 **v0.18.15-v0.18.16, 2017-03-06 to 2017-03-13**
 
-- Full-text finder generates CONTAINS(column, ‘word’) properly for SQL Server.
+- Full-text finder generates ``CONTAINS(column, 'word')`` properly for SQL
+  Server.
 
 - Bugfix to Patient Explorer (wasn’t offering WHERE options always).
 
@@ -384,18 +402,19 @@ Changes
 
 - Bugfix to Windows service. Problem: a Python process was occasionally being
   “left over” by the Windows service, i.e. not being killed properly. Process
-  Explorer indicated it was the one launched as “python
-  launch_cherrypy_server.py”. The Windows event log has a message reading
+  Explorer indicated it was the one launched as ``python
+  launch_cherrypy_server.py``. The Windows event log has a message reading
   “Process 1/2 (Django/CherryPy) (PID=62516): Subprocess finished cleanly
   (return code 0).” The problem was probably that in
-  crate_anon/crateweb/core/management/commands/runcpserver.py, the
-  cherrypy.engine.stop() call was only made upon a KeyboardInterrupt exception,
-  and not on other exceptions. Solution: broadened to all exceptions.
+  ``crate_anon/crateweb/core/management/commands/runcpserver.py``, the
+  ``cherrypy.engine.stop()`` call was only made upon a KeyboardInterrupt
+  exception, and not on other exceptions. Solution: broadened to all
+  exceptions.
 
 **v0.18.17, 2017-03-17**
 
 - Removed erroneous debugging code from
-  crate_anon.nlp_manager.parse_medex.Medex.parse
+  :meth:`crate_anon.nlp_manager.parse_medex.Medex.parse`.
 
 - If you mis-configured the Java interface to a GATE application, it crashed
   quickly, which was helpful. If you mis-configured the Java interface to
@@ -412,18 +431,18 @@ Changes
 
 **v0.18.23 to v0.18.33, 2017-05-02**
 
-- NLP “value_text” field (FN_VALUE_TEXT in code) given maximum length, rather
-  than 50, for the regex parsers, as it was overflowing (e.g. when a lot of
-  whitespace was present). See
-  regex_parser.NumericalResultParser.dest_tables_columns.
+- NLP ``value_text`` field (``FN_VALUE_TEXT`` in code) given maximum length,
+  rather than 50, for the regex parsers, as it was overflowing (e.g. when a lot
+  of whitespace was present). See
+  :meth:`crate_anon.nlp_manager.regex_parser.NumericalResultParser.dest_tables_columns`.
 
-- Supports more simple text file types (.csv, .msg, .htm).
+- Supports more simple text file types (``.csv``, ``.msg``, ``.htm``).
 
-- New option: ddgen_rename_tables_remove_suffixes.
+- New option: ``ddgen_rename_tables_remove_suffixes``.
 
 - Bugfix to CRATE GATE handler’s stdout-suppression switch.
 
-- New option: ddgen_extra_hash_fields.
+- New option: ``ddgen_extra_hash_fields``.
 
 - **PCMIS preprocessor.**
 
@@ -432,36 +451,39 @@ Changes
   number, and another using a string NHS number, the same number will hash to
   the same result if you use the same key.
 
-- Hashing of additional fields, initially to support the PCMIS CaseNumber (as
-  well as PatientId).
+- Hashing of additional fields, initially to support the PCMIS ``CaseNumber``
+  (as well as ``PatientId``).
 
 **v0.18.34 to v0.18.39, 2017-06-05**
 
 - For SLAM BRC GATE pharmacotherapy app: add support for output columns whose
-  SQL column name is different to the GATE tag (e.g. when “dose-value” must be
-  changed to “dose_value”); see **``renames``** option. GATE output fields now
-  preserve case. Another option (null_literals) to allow GATE output of ‘null’
-  to be changed to an SQL NULL. Also added _set column to GATE output.
+  SQL column name is different to the GATE tag (e.g. when ``dose-value`` must
+  be changed to ``dose_value``); see **``renames``** option. GATE output fields
+  now preserve case. Another option (``null_literals``) to allow GATE output of
+  ``null`` to be changed to an SQL NULL. Also added ``_set`` column to GATE
+  output.
 
 **v0.18.40, 2017-07-20**
 
-- Fixed Python type-checking bug in crate_anon/anonymise/crateconfigparser.py
-  (ExtendedConfigParser.get_pyvalue_list); changed from Generic to Any.
+- Fixed Python type-checking bug in
+  :meth:`crate_anon.common.extendedconfigparser.ExtendedConfigParser.get_pyvalue_list`;
+  changed from ``Generic`` to ``Any``.
 
 **v0.18.41, 2017-07-21**
 
-- Support for MySQL ENUM types. However, see
+- Support for MySQL ``ENUM`` types. However, see
   http://komlenic.com/244/8-reasons-why-mysqls-enum-data-type-is-evil/ also!
 
 **To v0.18.46, 2017-07-28 to 2017-08-05**
 
-- Fix to coerce_to_date (for date types), renamed to coerce_to_datetime.
+- Fix to ``coerce_to_date`` (for date types), renamed to
+  ``coerce_to_datetime``.
 
-- NLP bug fixed relating to a missing ‘pytz’ import.
+- NLP bug fixed relating to a missing ``pytz`` import.
 
 - Fixes to NLP, including accepting views (not just tables) as input. Note that
   under SQL Server, you should not have to specify ‘dbo’ anywhere in the config
-  (but consider setting ALTER USER... WITH DEFAULT SCHEMA as above).
+  (but consider setting ``ALTER USER... WITH DEFAULT SCHEMA`` as above).
 
 - Manual and 2017 paper distributed with package.
 
@@ -481,17 +503,17 @@ Changes
 
 **v0.18.49, 2018-01-07, 2018-03-21, 2018-03-27, published 2018-04-20**
 
-- Use flashtext (rather than regex) for blacklisting words; this is much faster
-  and allows large blacklists (e.g. a long list of all known
+- Use ``flashtext`` (rather than ``regex``) for blacklisting words; this is
+  much faster and allows large blacklists (e.g. a long list of all known
   forenames/surnames).
 
-- Provides the crate_fetch_wordlists tool to fetch names and English words (and
-  perform in-A-not-B functions, e.g. to generate a list of names that are not
-  English words).
+- Provides the ``crate_fetch_wordlists`` tool to fetch names and English words
+  (and perform in-A-not-B functions, e.g. to generate a list of names that are
+  not English words).
 
 - Extend CRATE’s GATE pipeline to include or exclude GATE sets, since some
   applications produce results just in one set, and some produce them twice
-  (e.g. in the unnamed set, named “”, and in a specific named set).
+  (e.g. in the unnamed set, named ``""``, and in a specific named set).
 
 - Medical eponym list.
 
@@ -656,6 +678,10 @@ Changes
   this does.
 
 - :meth:`crate_anon.crateweb.consent.models.Study.html_summary`
+
+- Sitewide queries.
+
+
 
 .. rubric:: Footnotes
 
