@@ -629,7 +629,7 @@ Changes
   :meth:`crate_anon.nlp_manager.input_field_config.InputFieldConfig.gen_text`.
 
 
-**v0.18.53, IN PROGRESS**
+**v0.18.53, to 2018-10-24**
 
 - Added ``Client_Demographic_Details.National_Insurance_Number`` and
   ``ClientOtherDetail.NINumber`` to RiO automatic data dictionary generator as
@@ -648,8 +648,12 @@ Changes
 - NLP supports "cmm" as an abbreviation for cubic mm (seen in CPFT and as
   per https://medical-dictionary.thefreedictionary.com/cmm).
 
-- ``cardinal_pythonlib==1.0.25`` with updates to :func:`document_to_text`
+- To ``cardinal_pythonlib==1.0.25`` with updates to :func:`document_to_text`
   parameter handling, then to ``1.0.32``.
+
+  - Note that ``cardinal_pythonlib==1.0.25`` also fixes a bug related to
+    SQLAlchemy that manifested as ``AttributeError: module
+    'sqlalchemy.sql.sqltypes' has no attribute '_DateAffinity'``.
 
 - NLPRP draft to 0.1.0.
 
@@ -681,6 +685,15 @@ Changes
 
 - Sitewide queries.
 
+
+**v0.18.54, 2018-10-26**
+
+- Deferred load of clinical team info. (Main research database structure is
+  still loaded at the start; I think my intention was to fail as early as
+  possible if it's going to fail, and/or ensure that "filling the cache" time
+  is not experienced by the end user).
+
+- Fixed packaging bug in ``setup.py``.
 
 
 .. rubric:: Footnotes

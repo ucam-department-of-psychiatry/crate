@@ -49,7 +49,7 @@ import fnmatch
 import os
 import platform
 from pprint import pformat
-# import subprocess
+import shutil
 import sys
 from typing import List
 
@@ -107,6 +107,7 @@ CRATE_ROOT_DIR = os.path.join(THIS_DIR, "crate_anon")  # .../crate/crate_anon/
 # DOC_ROOT_DIR = os.path.join(CRATE_ROOT_DIR, "docs")
 DOC_ROOT_DIR = os.path.join(THIS_DIR, "docs")
 DOC_HTML_DIR = os.path.join(DOC_ROOT_DIR, "build", "html")
+EGG_DIR = os.path.join(THIS_DIR, "crate_anon.egg-info")
 
 # Files
 DOCMAKER = os.path.join(DOC_ROOT_DIR, "rebuild_docs.py")
@@ -194,6 +195,58 @@ DEVELOPMENT_ONLY_REQUIRES = [
     'sphinx==1.7.5',  # documentation
 ]
 
+
+# =============================================================================
+# Helper functions
+# =============================================================================
+
+def deltree(path: str, verbose: bool = False) -> None:
+    if verbose:
+        print("Deleting directory: {}".format(path))
+    shutil.rmtree(path, ignore_errors=True)
+
+
+def add_all_files(root_dir: str,
+                  filelist: List[str],
+                  absolute: bool = False,
+                  relative_to: str = "",
+                  include_n_parents: int = 0,
+                  verbose: bool = False,
+                  skip_patterns: List[str] = None) -> None:
+    skip_patterns = skip_patterns or SKIP_PATTERNS
+    if absolute or relative_to:
+        base_dir = root_dir
+    else:
+        base_dir = os.path.abspath(
+            os.path.join(root_dir, *(['..'] * include_n_parents)))
+    for dir_, subdirs, files in os.walk(root_dir, topdown=True):
+        if absolute or relative_to:
+            final_dir = dir_
+        else:
+            final_dir = os.path.relpath(dir_, base_dir)
+        for filename in files:
+            _, ext = os.path.splitext(filename)
+            final_filename = os.path.join(final_dir, filename)
+            if relative_to:
+                final_filename = os.path.relpath(final_filename, relative_to)
+            if any(fnmatch.fnmatch(final_filename, pattern)
+                   for pattern in skip_patterns):
+                if verbose:
+                    print("Skipping: {}".format(final_filename))
+                continue
+            if verbose:
+                print("Adding: {}".format(final_filename))
+            filelist.append(final_filename)
+
+
+# =============================================================================
+# There's a nasty caching effect. So remove the old ".egg_info" directory
+# =============================================================================
+# http://blog.codekills.net/2011/07/15/lies,-more-lies-and-python-packaging-documentation-on--package_data-/  # noqa
+
+deltree(EGG_DIR, verbose=True)
+
+
 # =============================================================================
 # If we run this with "python setup.py sdist --extras", we *BUILD* the package
 # and do all the extras. (When the end user installs it, that argument will be
@@ -213,19 +266,43 @@ sys.argv[1:] = leftover_args
 
 extra_files = []  # type: List[str]
 
+SKIP_PATTERNS = ["*.pyc"]
+
 if getattr(our_args, EXTRAS_ARG):
     # Here's where we do the extra stuff.
 
-    # New Sphinx documentation
-    # print("Building and copying documentation...")
-    # subprocess.call([DOCMAKER])
+    # -------------------------------------------------------------------------
+    # Add extra files
+    # -------------------------------------------------------------------------
 
-    # Add files to the distribution
-    # add_all_files(DOC_HTML_DIR, extra_files,
-    #               absolute=False, include_n_parents=4)
-    # ... magic number! Means that "crate_anon/docs/build/html" is included.
+    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/consent/templates'),
+                  extra_files, relative_to=THIS_DIR,
+                  skip_patterns=SKIP_PATTERNS)
+    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/research/templates'),
+                  extra_files, relative_to=THIS_DIR,
+                  skip_patterns=SKIP_PATTERNS)
+    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/static'),
+                  extra_files, relative_to=THIS_DIR,
+                  skip_patterns=SKIP_PATTERNS)
+    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/templates'),
+                  extra_files, relative_to=THIS_DIR,
+                  skip_patterns=SKIP_PATTERNS)
+    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/userprofile/templates'),
+                  extra_files, relative_to=THIS_DIR,
+                  skip_patterns=SKIP_PATTERNS)
+    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crate_anon/nlp_manager'),
+                  extra_files, relative_to=THIS_DIR,
+                  skip_patterns=SKIP_PATTERNS)
+    add_all_files(os.path.join(CRATE_ROOT_DIR, 'testdocs_for_text_extraction'),
+                  extra_files, relative_to=THIS_DIR,
+                  skip_patterns=SKIP_PATTERNS)
 
-    # Write the manifest.
+    extra_files.sort()
+    print("EXTRA_FILES: \n{}".format(pformat(extra_files)))
+
+    # -------------------------------------------------------------------------
+    # Write the manifest (ensures files get into the source distribution).
+    # -------------------------------------------------------------------------
     extra_files.sort()
     print("EXTRA_FILES: \n{}".format(pformat(extra_files)))
     manifest_lines = ['include ' + x for x in extra_files]
@@ -235,20 +312,10 @@ if getattr(our_args, EXTRAS_ARG):
             "NOT EDIT BY HAND"])
         manifest.write("\n\n" + "\n".join(manifest_lines) + "\n")
 
-    # Does autowriting requirements.txt help PyCharm?
-    # Old one was:
-    _ = """
-# use:
-#       pip install -r THISFILE
-# where pip is your virtualenv version of pip
-# Note also that this file can include others with "-r OTHERFILE".
-
-# refer to setup.py; see https://caremad.io/2013/07/setup-vs-requirement/
---index-url https://pypi.python.org/simple/
--e .
-    """
+    # -------------------------------------------------------------------------
+    # Write requirements.txt (helps PyCharm)
+    # -------------------------------------------------------------------------
     with open(PIP_REQ_FILE, "w") as req_file:
-        # subprocess.run(["pip", "freeze"], stdout=req_file)
         for line in INSTALL_REQUIRES:
             req_file.write(line + "\n")
 
@@ -310,45 +377,11 @@ setup(
     packages=find_packages(),  # finds all the .py files in subdirectories
 
     package_data={
-        '': [
-            'README.rst'
-        ],
         'crate_anon': extra_files,
-        'crate_anon.crateweb': [
-            # Don't use 'static/*', or at the point of installation it gets
-            # upset about "demo_logo" ("can't copy... doesn't exist or not
-            # a regular file). Keep running "python setup.py sdist >/dev/null"
-            # until stderr comes up clean.
-            'consent/templates/*.html',
-            'consent/templates/*.js',
-            'research/templates/*.html',
-            'static/demo_logo/*',
-            'static/jquery-ui-1.12.1/external/*',
-            'static/jquery-ui-1.12.1/external/jquery/*',
-            'static/jquery-ui-1.12.1/images/*',
-            'static/jquery-ui-1.12.1/*',
-            'static/*.css',
-            'static/*.gif',
-            'static/*.ico',
-            'static/*.js',
-            'static/*.png',
-            'templates/admin/*.html',
-            'templates/*.css',
-            'templates/*.html',
-            'templates/*.js',
-            'userprofile/templates/*.html',
-        ],
-        'crate_anon.nlp_manager': [
-            '*.java',
-            '*.sh',
-        ],
-        'crate_anon.testdocs_for_text_extraction': [
-            'doctest.*',
-            'nonascii.odt',
-        ],
     },
 
     include_package_data=True,  # use MANIFEST.in during install?
+    # https://stackoverflow.com/questions/7522250/how-to-include-package-data-with-setuptools-distribute  # noqa
 
     install_requires=INSTALL_REQUIRES,
 

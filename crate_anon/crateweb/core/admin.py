@@ -59,14 +59,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy
 
-from crate_anon.crateweb.extra.admin import (
-    AddOnlyModelAdmin,
-    AllStaffReadOnlyModelAdmin,
-    EditOnceOnlyModelAdmin,
-    EditOnlyModelAdmin,
-    ReadOnlyModelAdmin,
-)
-from crate_anon.crateweb.userprofile.models import UserProfile
+from crate_anon.crateweb.consent.forms import TeamRepAdminForm
 from crate_anon.crateweb.consent.models import (
     CharityPaymentRecord,
     ClinicianResponse,
@@ -87,9 +80,17 @@ from crate_anon.crateweb.consent.tasks import (
     process_patient_response,
     resend_email,
 )
+from crate_anon.crateweb.extra.admin import (
+    AddOnlyModelAdmin,
+    AllStaffReadOnlyModelAdmin,
+    EditOnceOnlyModelAdmin,
+    EditOnlyModelAdmin,
+    ReadOnlyModelAdmin,
+)
 from crate_anon.crateweb.research.models import (
     QueryAudit,
 )
+from crate_anon.crateweb.userprofile.models import UserProfile
 
 log = logging.getLogger(__name__)
 
@@ -728,6 +729,7 @@ class TeamRepMgrAdmin(admin.ModelAdmin):
     fields = ('team', 'user')
     list_display = ('team', 'user')
     search_fields = ('team', )
+    form = TeamRepAdminForm
 
 
 # -----------------------------------------------------------------------------

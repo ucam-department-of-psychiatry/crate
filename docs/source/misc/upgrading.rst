@@ -27,30 +27,17 @@ Under Windows:
 - Activate your CRATE virtual environment. We use a batch file to do this, but
   from the command prompt, the command will be something like
   ``C:\srv\crate\crate_virtualenv\Scripts\activate``. (If you use a batch file,
-  you must ``CALL`` this activation script.) If you want to check which Python
-  virtual environment is activated, you can do this:
-
-  .. code-block:: bat
-
-    python
-
-  .. code-block:: python
-
-    import sys
-    print(sys.executable)
-
-- You can show current version numbers with ``pip freeze``.
+  you must ``CALL`` this activation script.)
 
 - Make sure that nobody’s doing anything important! You could use tools like
   ``procexp64`` [#procexp64]_.
 
-- Run the Windows Service Manager (if you can’t find it on the menus, run
-  ``services.msc`` from the command line). Stop the service named “CRATE web
-  service”.
+- Stop any parts of CRATE that are running.
 
-- To see which versions of CRATE are available from PyPI, you can issue an
-  “install” command using a nonexistent version number: ``pip install
-  crate_anon==999``.
+  - Run the Windows Service Manager (if you can’t find it on the menus, run
+    ``services.msc`` from the command line).
+
+  - Stop the service named “CRATE web service”.
 
 - Install the version you want, e.g.: ``pip install crate_anon==0.18.50``.
 
@@ -72,9 +59,13 @@ Under Windows:
     Delete the offending file and reinstall CRATE. See :ref:`Deleting
     hard-to-delete files <deleting_hard_to_delete_files>` below.
 
-- If there have been database structure changes, or you're not sure, run
-  ``crate_django_manage migrate``. See :ref:`crate_django_manage
-  <crate_django_manage>`.
+- Run ``crate_django_manage migrate``. This ensures the CRATE administrative
+  database is up to date (in terms of its structure). See
+  :ref:`crate_django_manage <crate_django_manage>`.
+
+- Run ``crate_django_manage collectstatic``. This ensures that all static files
+  are in the right place. You'll have to answer "yes" when it asks you if you
+  want to overwrite existing files.
 
 - Use Service Manager to restart the CRATE service.
 
@@ -82,9 +73,35 @@ Under Windows:
   configuration file has errors in it), and restart the service.
 
 
+.. tip::
+
+  If you want to check which Python virtual environment is activated, you can
+  do this:
+
+  .. code-block:: bat
+
+    python
+
+  .. code-block:: python
+
+    import sys
+    print(sys.executable)
+
+.. tip::
+
+  You can show the current version numbers of all software installed in a
+  Python virtual environment with ``pip freeze``.
+
+.. tip::
+
+  To see which versions of CRATE are available from PyPI, you can issue an
+  “install” command using a nonexistent version number: ``pip install
+  crate_anon==999``.
+
+
 .. _deleting_hard_to_delete_files:
 
-.. note::
+.. tip::
 
     **Deleting hard-to-delete files under Windows**
 

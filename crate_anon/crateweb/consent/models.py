@@ -59,7 +59,6 @@ from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
-from django.utils.functional import cached_property
 from django.utils.html import escape
 
 from crate_anon.common.contenttypes import ContentType
@@ -1193,20 +1192,24 @@ class TeamInfo(object):
     Represents information about all clinical teams, fetched from a clinical
     source database.
 
-    Class only exists to be able to use ``@cached_property``.
+    Provides some simple views on
+    :func:`crate_anon.crateweb.consent.teamlookup.get_teams`.
     """
-    @cached_property
-    def teams(self) -> List[str]:
-        log.debug("Fetching/caching clinical teams")
-        return get_teams()
+    @staticmethod
+    def teams() -> List[str]:
+        """
+        Returns all clinical team names.
+        """
+        return get_teams()  # cached function
 
-    @cached_property
-    def team_choices(self) -> List[Tuple[str, str]]:
-        teams = self.teams
+    @classmethod
+    def team_choices(cls) -> List[Tuple[str, str]]:
+        """
+        Returns a Django choice list, i.e. a list of tuples like ``value,
+        description``.
+        """
+        teams = cls.teams()
         return [(team, team) for team in teams]
-
-
-all_teams_info = TeamInfo()
 
 
 class TeamRep(models.Model):
@@ -1214,7 +1217,6 @@ class TeamRep(models.Model):
     Represents a clinical team representative, which is recorded in CRATE.
     """
     team = models.CharField(max_length=LEN_NAME, unique=True,
-                            choices=all_teams_info.team_choices,
                             verbose_name="Team description")
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE)
@@ -2246,8 +2248,8 @@ class ContactRequest(models.Model):
 
     def get_letter_clinician_to_pt_re_study(self) -> str:
         """
-        **REC DOCUMENTS 10, 12, 14: draft letters from clinician to patient, with
-        decision form.**
+        **REC DOCUMENTS 10, 12, 14: draft letters from clinician to patient,
+        with decision form.**
 
         Returns the HTML for this letter.
         """
@@ -2894,6 +2896,9 @@ class Letter(models.Model):
 
         Args:
             contact_request: a :class:`ContactRequest`
+            rdbm_may_view: is this a request that the Research Database
+                Manager (RDBM) is allowed to see under our information
+                governance rules?
 
         Returns:
             a :class:`Letter`

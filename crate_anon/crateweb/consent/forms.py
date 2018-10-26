@@ -41,6 +41,8 @@ from django.conf import settings
 from crate_anon.crateweb.consent.models import (
     ClinicianResponse,
     Study,
+    TeamInfo,
+    TeamRep,
 )
 from crate_anon.crateweb.research.research_db_info import SingleResearchDatabase  # noqa
 
@@ -156,3 +158,28 @@ class ClinicianResponseForm(forms.ModelForm):
             'token': forms.HiddenInput(),
             'email_choice': forms.HiddenInput(),
         }
+
+
+class TeamRepAdminForm(forms.ModelForm):
+    """
+    Custom form for the RDBM to edit team reps.
+
+    The purposes is so that we only ask the database for team information at
+    the point of use (and not e.g. to run database migrations from the command
+    line!).
+    """
+    class Meta:
+        model = TeamRep
+        fields = [
+            'team',
+            'user',
+        ]
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Set the possible teams.
+        """
+        super().__init__(*args, **kwargs)
+        self.fields['team'] = forms.ChoiceField(
+            choices=TeamInfo.team_choices()
+        )

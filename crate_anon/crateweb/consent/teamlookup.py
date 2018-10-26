@@ -32,24 +32,30 @@ Django field choices).
 
 """
 
+import logging
 from typing import List
 
+from cardinal_pythonlib.django.function_cache import django_cache_function
 from django.conf import settings
 
 from crate_anon.crateweb.config.constants import ClinicalDatabaseType
 from crate_anon.crateweb.consent.teamlookup_dummy import get_dummy_teams
 from crate_anon.crateweb.consent.teamlookup_rio import get_rio_teams_rcep_crate
 
+log = logging.getLogger(__name__)
+
 
 # =============================================================================
 # Fetch clinical team names
 # =============================================================================
 
+@django_cache_function(timeout=None)
 def get_teams() -> List[str]:
     """
     Return all clinical team names from our clinical source database (as
     determined by ``settings.CLINICAL_LOOKUP_DB``).
     """
+    log.debug("Fetching/caching clinical teams")
     source_db = settings.CLINICAL_LOOKUP_DB
     if settings.CLINICAL_LOOKUP_DB in (
             ClinicalDatabaseType.CPFT_RIO_RCEP,
