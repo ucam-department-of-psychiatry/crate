@@ -33,6 +33,7 @@ import io
 import logging
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 import zipfile
+import json
 
 from cardinal_pythonlib.dbfunc import dictfetchall, get_fieldnames_from_cursor
 from cardinal_pythonlib.django.fields.jsonclassfield import JsonClassField
@@ -477,49 +478,6 @@ class QueryBase(models.Model):
     #             yield row
     #             row = cursor.fetchone()
 
-    def make_tsv(self) -> str:
-        """
-        Executes the query and returns a TSV result (as a multiline string).
-        """
-        with self.get_executed_cursor() as cursor:
-            fieldnames = get_fieldnames_from_cursor(cursor)
-            tsv = make_tsv_row(fieldnames)
-            row = cursor.fetchone()
-            while row is not None:
-                tsv += make_tsv_row(row)
-                row = cursor.fetchone()
-        return tsv
-
-    def make_excel(self) -> bytes:
-        """
-        Executes the query and returns an Excel workbook, in binary.
-        """
-        wb = Workbook()
-        wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
-        sheetname = "query_{}".format(self.id)
-        ws = wb.create_sheet(sheetname)
-        now = datetime.datetime.now()
-        with self.get_executed_cursor() as cursor:
-            fieldnames = get_fieldnames_from_cursor(cursor)
-            ws.append(fieldnames)
-            row = cursor.fetchone()
-            while row is not None:
-                ws.append(gen_excel_row_elements(ws, row))
-                row = cursor.fetchone()
-                # BUG in django-pyodbc-azure==1.10.4.0 (providing
-                # sql_server/*), 2017-02-17: this causes
-                # ProgrammingError "No results. Previous SQL was not a query."
-                # The problem relates to sql_server/pyodbc/base.py
-                # CursorWrapper.fetchone() calling self.cursor.nextset(); if
-                # you comment this out, it works fine.
-                # Related:
-                # - https://github.com/pymssql/pymssql/issues/98
-
-        sql_ws = wb.create_sheet(title="SQL")
-        sql_ws.append(["SQL", "Executed_at"])
-        sql_ws.append([self.get_original_sql(), now])
-        return excel_to_bytes(wb)
-
     def dictfetchall(self) -> List[Dict[str, Any]]:
         """
         Executes the query and returns all results as a list of OrderedDicts
@@ -533,12 +491,15 @@ class Query(QueryBase):
     """
     Class to query the research database.
     """
+    NO_NULL = "_no_null"
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE)
-
     active = models.BooleanField(default=True)  # see save() below
-
     audited = models.BooleanField(default=False)
+    display = models.TextField(
+        default="[]",
+        verbose_name="Subset of output columns to be displayed")
 
     def activate(self) -> None:
         """
@@ -682,6 +643,124 @@ class Query(QueryBase):
             # actually delete
             log.debug("actually deleting")
             self.delete()
+
+    def set_display_list(self, display_list: List[str]) -> None:
+        self.display = json.dumps(display_list)
+
+    def get_display_list(self) -> List[str]:
+        return json.loads(self.display)
+
+    def get_display_indexes(self) -> Optional[List[int]]:
+        fieldnames = self.get_display_list()
+        # If the display attribute is empty apart from possibly 'NO_NULL',
+        # assume the user wants all fields
+        select_all = not [x for x in fieldnames if x != self.NO_NULL]
+        try:
+            with self.get_executed_cursor() as cursor:
+                all_fieldnames = get_fieldnames_from_cursor(cursor)
+                # Only do this if we have to
+                if self.NO_NULL in fieldnames:
+                    rows = cursor.fetchall()
+        except DatabaseError as exception:
+            self.audit(failed=True, fail_msg=str(exception))
+            return None
+        # If the user wants all fields including completely null ones,
+        # return all field indexes without executing the rest of the code
+        if select_all and not self.NO_NULL:
+            return list(range(1, len(all_fieldnames)))
+        field_indexes = []
+        # Do this to make sure included fields are actually in the results
+        for i, name in enumerate(all_fieldnames):
+            if select_all or name in fieldnames:
+                # Exclude fields where all values are null, if NO_NULL
+                # is switched on
+                if self.NO_NULL in fieldnames:
+                    # noinspection PyUnboundLocalVariable
+                    for row in rows:
+                        if row[i] is not None:
+                            field_indexes.append(i)
+                            break
+                else:
+                    field_indexes.append(i)
+        return field_indexes
+
+    def get_display_columns_row(
+            self, row_orig: List[Any],
+            field_indexes: Optional[List[int]] = None) -> List[Any]:
+        # Make sure we only get this if it is not supplied
+        if field_indexes is None:
+            field_indexes = self.get_display_indexes()
+        # If field indexes is empty, assume the user wants all the columns
+        if not field_indexes:
+            return row_orig
+        row = []
+        for i in field_indexes:
+            row.append(row_orig[i])
+        return row
+
+    def get_display_columns_rows(
+            self,
+            rows_orig: List[List[Any]]) -> List[List[Any]]:
+        field_indexes = self.get_display_indexes()
+        # If field indexes is empty, assume the user wants all the columns
+        if not field_indexes:
+            return rows_orig
+        rows = []
+        for row in rows_orig:
+            r = self.get_display_columns_row(row, field_indexes)
+            rows.append(r)
+        return rows
+
+    def make_tsv(self) -> str:
+        """
+        Executes the query and returns a TSV result (as a multiline string).
+        """
+        with self.get_executed_cursor() as cursor:
+            all_fieldnames = get_fieldnames_from_cursor(cursor)
+            field_indexes = self.get_display_indexes()
+            fieldnames = [all_fieldnames[i] for i in field_indexes]
+            tsv = make_tsv_row(fieldnames)
+            row = cursor.fetchone()
+            while row is not None:
+                # Display only those columns the user has chosen
+                row = self.get_display_columns_row(row)
+                tsv += make_tsv_row(row)
+                row = cursor.fetchone()
+        return tsv
+
+    def make_excel(self) -> bytes:
+        """
+        Executes the query and returns an Excel workbook, in binary.
+        """
+        wb = Workbook()
+        wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
+        sheetname = "query_{}".format(self.id)
+        ws = wb.create_sheet(sheetname)
+        now = datetime.datetime.now()
+        with self.get_executed_cursor() as cursor:
+            all_fieldnames = get_fieldnames_from_cursor(cursor)
+            field_indexes = self.get_display_indexes()
+            fieldnames = [all_fieldnames[i] for i in field_indexes]
+            ws.append(fieldnames)
+            row = cursor.fetchone()
+            while row is not None:
+                # Display only those columns the user has chosen
+                row = self.get_display_columns_row(row)
+                ws.append(gen_excel_row_elements(ws, row))
+                row = cursor.fetchone()
+                # BUG in django-pyodbc-azure==1.10.4.0 (providing
+                # sql_server/*), 2017-02-17: this causes
+                # ProgrammingError "No results. Previous SQL was not a query."
+                # The problem relates to sql_server/pyodbc/base.py
+                # CursorWrapper.fetchone() calling self.cursor.nextset(); if
+                # you comment this out, it works fine.
+                # Related:
+                # - https://github.com/pymssql/pymssql/issues/98
+
+        sql_ws = wb.create_sheet(title="SQL")
+        sql_ws.append(["SQL", "Executed_at"])
+        sql_ws.append([self.get_original_sql(), now])
+        return excel_to_bytes(wb)
 
 
 class SitewideQuery(QueryBase):
