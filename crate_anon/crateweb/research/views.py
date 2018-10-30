@@ -258,8 +258,10 @@ def get_db_structure_json() -> str:
                 'schema': dbinfo.schema_name,
                 'tables': table_info,
             })
-    log.debug("... get_db_structure_json complete")
-    return json.dumps(info)
+    json_result = json.dumps(info)
+    log.debug("... get_db_structure_json returning string of size {}".format(
+        len(json_result)))
+    return json_result
 
 
 def query_build(request: HttpRequest) -> HttpResponse:
