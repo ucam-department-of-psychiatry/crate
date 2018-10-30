@@ -992,6 +992,44 @@ def query_excel(request: HttpRequest, query_id: str) -> HttpResponse:
         return render_bad_query(request, query, exception)
 
 
+def edit_display(request: HttpRequest, query_id: str) -> HttpResponse:
+    query = get_object_or_404(Query, user=request.user, id=query_id)
+    display_fields = query.get_display_list()
+    try:
+        with query.get_executed_cursor() as cursor:
+            fieldnames = get_fieldnames_from_cursor(cursor)
+    except DatabaseError as exception:
+        query.audit(failed=True, fail_msg=str(exception))
+        return render_bad_query(request, query, exception)
+    context = {
+        'query': query,
+        'display_fields': display_fields,
+        'fieldnames': fieldnames,
+    }
+    return render(request, 'edit_display.html', context)
+
+
+def save_display(request: HttpRequest, query_id: str) -> HttpResponse:
+    query = get_object_or_404(Query, user=request.user, id=query_id)
+    if request.method == 'POST':
+        try:
+            with query.get_executed_cursor() as cursor:
+                fieldnames = get_fieldnames_from_cursor(cursor)
+        except DatabaseError as exception:
+            query.audit(failed=True, fail_msg=str(exception))
+            return render_bad_query(request, query, exception)
+        display = []
+        display_fieldnames = request.POST.getlist('include_field')
+        for display_fieldname in display_fieldnames:
+            if display_fieldname in fieldnames:
+                display.append(display_fieldname)
+        if request.POST.get("no_null") == "true":
+            display.append(Query.NO_NULL)
+        query.set_display_list(display)
+        query.save()
+    return query_edit_select(request)
+
+
 # @user_passes_test(is_superuser)
 # def audit(request):
 #     """
@@ -1271,13 +1309,17 @@ def render_resultset(request: HttpRequest,
         return render_missing_query(request)
     try:
         with query.get_executed_cursor() as cursor:
-            fieldnames = get_fieldnames_from_cursor(cursor)
-            rows = cursor.fetchall()
+            all_fieldnames = get_fieldnames_from_cursor(cursor)
+            rows_all_cols = cursor.fetchall()
             rowcount = cursor.rowcount
             query.audit(n_records=rowcount)
     except DatabaseError as exception:
         query.audit(failed=True, fail_msg=str(exception))
         return render_bad_query(request, query, exception)
+    # Get subset of columns that the user wants to display
+    rows = query.get_display_columns_rows(rows_all_cols)
+    field_indexes = query.get_display_indexes()
+    fieldnames = [all_fieldnames[i] for i in field_indexes]
     row_indexes = list(range(len(rows)))
     # We don't need to process all rows before we paginate.
     page = paginate(request, row_indexes)
@@ -1349,13 +1391,17 @@ def render_resultset_recordwise(request: HttpRequest,
         return render_missing_query(request)
     try:
         with query.get_executed_cursor() as cursor:
-            fieldnames = get_fieldnames_from_cursor(cursor)
-            rows = cursor.fetchall()
+            all_fieldnames = get_fieldnames_from_cursor(cursor)
+            rows_all_cols = cursor.fetchall()
             rowcount = cursor.rowcount
             query.audit(n_records=rowcount)
     except DatabaseError as exception:
         query.audit(failed=True, fail_msg=str(exception))
         return render_bad_query(request, query, exception)
+    # Get subset of columns that the user wants to display
+    rows = query.get_display_columns_rows(rows_all_cols)
+    field_indexes = query.get_display_indexes()
+    fieldnames = [all_fieldnames[i] for i in field_indexes]
     row_indexes = list(range(len(rows)))
     # We don't need to process all rows before we paginate.
     page = paginate(request, row_indexes, per_page=1)

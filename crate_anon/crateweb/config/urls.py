@@ -134,6 +134,10 @@ urlpatterns = [
         name='standard_queries'),
     url(r'^process_standard_query/(?P<query_id>[0-9]+)/$',
         research_views.sitewide_query_process, name='process_standard_query'),
+    url(r'^edit_display/(?P<query_id>[0-9]+)/$',
+        research_views.edit_display, name='edit_display'),
+    url(r'^save_display/(?P<query_id>[0-9]+)/$',
+        research_views.save_display, name='save_display'),
 
     # -------------------------------------------------------------------------
     # Patient Explorer views

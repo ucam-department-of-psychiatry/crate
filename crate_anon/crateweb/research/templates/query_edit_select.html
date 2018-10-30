@@ -65,6 +65,7 @@
                 <th>Delete query</th>
                 <th>Active?</th>
                 <th>Choose this one</th>
+                <th>Edit display</th>
                 <th>SQL</th>
             </tr>
             {% for query in queries %}
@@ -90,6 +91,12 @@
                                 <input type="submit" value="Choose" />
                             </form>
                         {% endif %}
+                    </td>
+                    <td>
+                        <form action="{% url 'edit_display' query.id %}" method="post">
+                            {% csrf_token %}
+                            <input type="submit" value="Edit" />
+                        </form>
                     </td>
                     {% comment %}Widest, so last:{% endcomment %}
                     <td>{{ query.formatted_query_safe|safe }}</td>

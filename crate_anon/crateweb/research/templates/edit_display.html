@@ -1,0 +1,31 @@
+{# edit_display.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Fields to display for this query</h1>
+
+    <form action="{% url 'save_display' query.id %}" method="post">
+        {% csrf_token %}
+        {% for fieldname in fieldnames %}
+            {% if fieldname in display_fields %}
+                <input type="checkbox" name="include_field"
+                    value="{{ fieldname }}" checked="checked" />{{ fieldname }}<br />
+            {% else %}
+                <input type="checkbox" name="include_field"
+                    value="{{ fieldname }}" />{{ fieldname }}<br />
+            {% endif %}
+        {% endfor %}
+        <br />
+        {% if query.NO_NULL in display_fields %}
+            <input type="checkbox" name="no_null" value="true"
+                    checked="checked" /><strong>Exclude Null columns</strong><br />
+        {% else %}
+            <input type="checkbox" name="no_null"
+                    value="true" /><strong>Exclude Null columns</strong><br />
+        {% endif %}
+        <br />
+        <input type="submit" value="Submit" />
+    </form>
+{% endblock %}
