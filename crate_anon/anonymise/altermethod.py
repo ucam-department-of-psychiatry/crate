@@ -407,7 +407,7 @@ class AlterMethod(object):
             use_filename = True
             filename = value
             _, extension = os.path.splitext(filename)
-            log.info("extract_text: disk file, filename={}".format(filename))
+            log.info("extract_text: disk file, filename={!r}".format(filename))
 
         elif self.extract_from_file_format:
             # The database contains a filename. However, it may not be a full
@@ -433,7 +433,7 @@ class AlterMethod(object):
             use_filename = True
             filename = self.file_format_str.format(**ffdict)
             _, extension = os.path.splitext(filename)
-            log.info("extract_text: disk file, filename={}".format(filename))
+            log.info("extract_text: disk file, filename={!r}".format(filename))
 
         else:
             # The database contains the BLOB itself. However, we'd also like to
