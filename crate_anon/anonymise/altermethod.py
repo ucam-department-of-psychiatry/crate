@@ -396,12 +396,15 @@ class AlterMethod(object):
             tuple: ``value, extracted``
 
         """
+        use_filename = False
         filename = None
         blob = None
 
         # Work out either a full filename, or a BLOB.
+        # Set either use_filename + filename + extension, or blob + extension.
         if self.extract_from_filename:
             # The database contains a plain and full filename.
+            use_filename = True
             filename = value
             _, extension = os.path.splitext(filename)
             log.info("extract_text: disk file, filename={}".format(filename))
@@ -427,6 +430,7 @@ class AlterMethod(object):
             # Use that dictionary with the format string to make the filename
             log.debug("extract_text: file_format_str={}, ffdict={}".format(
                 repr(self.file_format_str), repr(ffdict)))
+            use_filename = True
             filename = self.file_format_str.format(**ffdict)
             _, extension = os.path.splitext(filename)
             log.info("extract_text: disk file, filename={}".format(filename))
@@ -450,11 +454,21 @@ class AlterMethod(object):
             log.info("extract_text: database BLOB, extension={}".format(
                 extension))
 
-        # Is it a permissible filename?
+        # Is it a permissible file type?
         if not self.config.extract_text_extension_permissible(extension):
             log.info("Extension {} not permissible; skipping".format(
                 repr(extension)))
             return None, False
+
+        if use_filename:
+            if not filename:
+                log.error("No filename; skipping")
+                return None, False
+
+            if not os.path.isfile(filename):
+                log.error("Filename {!r} is not a file; skipping".format(
+                    filename))
+                return None, False
 
         # Extract text from the file (given its filename), or from a BLOB.
         try:

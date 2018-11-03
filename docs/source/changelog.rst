@@ -492,12 +492,20 @@ Changes
 
 **v0.18.48, 2017-11-06**
 
-- Clinician view: find text across a database, for an identified patient.
+- Clinician view: find text across a database, for an identified patient. See
+  ``crate_anon.crateweb.research.views.all_text_from_pid``.
+
+  - Rationale: Should privileged clinical queries be in any way integrated
+    with CRATE? Advantages would include allowing the receiving user to run
+    the query themselves without RDBM intervention and RDBM-to-recipient data
+    transfer considerations, while ensuring the receiving user doesn’t have
+    unrestricted access (e.g. via SQL Server Management Studio). Plus there may
+    be a UI advantage.
 
 - Clinician view: look up (M)RIDs from (M)PIDs. Intended purpose for this and
   the preceding function: “My clinical front end won’t tell me if my patient’s
   ever had mirtazapine. I want to ask the research database.” (As per CO’L
-  request 2017-05-04.)
+  request 2017-05-04.) See ``crate_anon.crateweb.research.views.ridlookup``.
 
 - Code to generate and test demonstration databases improved.
 
@@ -683,7 +691,10 @@ Changes
 
 - :meth:`crate_anon.crateweb.consent.models.Study.html_summary`
 
-- Sitewide queries.
+- Sitewide queries, editable by RDBM.
+
+- Restrict anonymiser to specific patient IDs (for subset generation +/- custom
+  pseudonyms).
 
 
 **v0.18.54, 2018-10-26**
@@ -694,6 +705,30 @@ Changes
   is not experienced by the end user).
 
 - Fixed packaging bug in ``setup.py``.
+
+- 2018-10-21: Fixed bug in :menuselection:`RDBM admin --> Studies`:
+
+  .. code-block:: none
+
+    OperationalError at /mgr_admin/consent/study/
+
+    (1054, "Unknown column 'consent_study.p_summary' in 'field list'")
+
+  Changed ``p_summary`` to a property.
+
+
+**v0.18.55, 2018-11-02**
+
+- In :meth:`crate_anon.anonymise.altermethod.AlterMethod._extract_text_func`,
+  pre-check that a file exists (to save time if it doesn't).
+
+- Bugfix to ``cardinal_pythonlib`` (now v1.0.33) in the autotranslation of SQL
+  Server ``TIMESTAMP`` fields.
+
+- Changed caching for
+  :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`
+  to make command-line startup faster (at the expense of first-fetch speed).
+
 
 
 .. rubric:: Footnotes

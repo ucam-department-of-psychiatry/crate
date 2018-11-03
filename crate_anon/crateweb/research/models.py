@@ -491,7 +491,7 @@ class Query(QueryBase):
     """
     Class to query the research database.
     """
-    NO_NULL = "_no_null"
+    NO_NULL = "_no_null"  # special output
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE)
@@ -645,12 +645,41 @@ class Query(QueryBase):
             self.delete()
 
     def set_display_list(self, display_list: List[str]) -> None:
+        """
+        Sets the internal JSON field, stored in the database, from a list of
+        column headings to display.
+
+        Args:
+            display_list: list of columns to display
+        """
         self.display = json.dumps(display_list)
 
     def get_display_list(self) -> List[str]:
-        return json.loads(self.display)
+        """
+        Returns a list of columns to display, from our internal JSON
+        representation.
+        """
+        if not self.display:
+            return []
+        try:
+            result = json.loads(self.display)
+        except json.decoder.JSONDecodeError:  # e.g. junk
+            log.warning("Query.display field: bad JSON, returning []")
+            return []
+        # Now check it's a list of str:
+        if not isinstance(result, list):
+            log.warning("Query.display field: not a list, returning []")
+            return []
+        if not all(isinstance(x, str) for x in result):
+            log.warning("Query.display field: contains non-strings, "
+                        "returning []")
+            return []
+        return result
 
     def get_display_indexes(self) -> Optional[List[int]]:
+        """
+        Returns the indexes of the result columns that we wish to display.
+        """
         fieldnames = self.get_display_list()
         # If the display attribute is empty apart from possibly 'NO_NULL',
         # assume the user wants all fields
@@ -687,29 +716,31 @@ class Query(QueryBase):
     def get_display_columns_row(
             self, row_orig: List[Any],
             field_indexes: Optional[List[int]] = None) -> List[Any]:
+        """
+        Takes a single result row and returns an equivalent row but possibly
+        filtered by our column display criteria.
+        """
         # Make sure we only get this if it is not supplied
         if field_indexes is None:
             field_indexes = self.get_display_indexes()
         # If field indexes is empty, assume the user wants all the columns
         if not field_indexes:
             return row_orig
-        row = []
-        for i in field_indexes:
-            row.append(row_orig[i])
-        return row
+        return [row_orig[i] for i in field_indexes]
 
     def get_display_columns_rows(
             self,
             rows_orig: List[List[Any]]) -> List[List[Any]]:
+        """
+        Take a set of result rows, and return an equivalent set of rows but
+        possibly filtered by our column display criteria.
+        """
         field_indexes = self.get_display_indexes()
         # If field indexes is empty, assume the user wants all the columns
         if not field_indexes:
             return rows_orig
-        rows = []
-        for row in rows_orig:
-            r = self.get_display_columns_row(row, field_indexes)
-            rows.append(r)
-        return rows
+        return [self.get_display_columns_row(row, field_indexes)
+                for row in rows_orig]
 
     def make_tsv(self) -> str:
         """

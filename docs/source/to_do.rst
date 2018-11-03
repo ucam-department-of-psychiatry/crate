@@ -22,50 +22,24 @@ Things to do
 
 .. todolist::
 
-- **ongoing**
+- "Clinician asks for a study pack" -- create a contact request that's
+  pre-authorized by a clinician (who might want to pass on the pack themselves
+  or delegate the RDBM to do it). Needs some thought re e.g. green patients,
+  audit trail.
 
-  - 2018-10-21: Fixed bug in :menuselection:`RDBM admin --> Studies`:
+- query "display subset of columns" -- in progress
 
-    .. code-block:: none
-
-        OperationalError at /mgr_admin/consent/study/
-
-        (1054, "Unknown column 'consent_study.p_summary' in 'field list'")
-
-    Changed ``p_summary`` to a property.
-
-- **check** command-line param method for restricted anon
+- **check** command-line param method for restricted anon; should we have an
+  additional parameter to avoid using a string literal ``pid``?
 
 - BENCHMARK name blacklisting (with forenames + surnames – English words –
   eponyms): speed, precision, recall. Share results with MB.
 
-- CHECK clinician views are easy and work OK:
-  ``crate_anon.crateweb.research.views.all_text_from_pid``;
-  ``crate_anon.crateweb.research.views.ridlookup``.
-
-  - Rationale: Should privileged clinical queries be in any way integrated
-    with CRATE? Advantages would include allowing the receiving user to run
-    the query themselves without RDBM intervention and RDBM-to-recipient data
-    transfer considerations, while ensuring the receiving user doesn’t have
-    unrestricted access (e.g. via SQL Server Management Studio). Plus there may
-    be a UI advantage. Implementation would be by letting that query use the
-    privileged connection (see get_executed_researchdb_cursor; see also
-    DJANGO_DEFAULT_CONNECTION constant, currently unused).
-
-- restrict anonymiser to specific patient IDs (for subset generation +/- custom
-  pseudonym)
-
 - option to filter out all free text automatically (as part of full
   anonymisation)
 
-- Library of public SQL queries (name, description, SQL), editable by RDBM
-  (e.g. “date of most recent progress note”); database-specific, but widely
-  used on one system.
-
-- Personal library?
-
 - Personal configurable highlight colours (with default set if none
-  configured).
+  configured)? Or just more colours? Look at a standard highlighter pack.
 
 - More of JL’s ideas from 8 Jan 2018:
 

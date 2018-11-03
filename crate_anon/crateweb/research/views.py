@@ -171,6 +171,9 @@ def query_context(request: HttpRequest) -> Dict[str, Any]:
 
 
 def datetime_iso_for_filename() -> str:
+    """
+    Returns a date/time as a string formatted for filenames.
+    """
     dtnow = datetime.datetime.now()
     return dtnow.strftime("%Y%m%d_%H%M%S")
 

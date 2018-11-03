@@ -218,6 +218,9 @@ class SingleResearchDatabase(object):
         assert 0 <= index <= len(settings.RESEARCH_DB_INFO)
         infodict = settings.RESEARCH_DB_INFO[index]
 
+        self.connection = connection
+        self.vendor = vendor
+
         self.index = index
         self.is_first_db = index == 0
         self.grammar = grammar
@@ -339,9 +342,31 @@ class SingleResearchDatabase(object):
         assert self.schema_id
 
         # Now discover the schema
-        self.schema_infodictlist = self.get_schema_infodictlist(
-            connection, vendor)
-        self.colinfolist = [ColumnInfo(**d) for d in self.schema_infodictlist]
+        self._schema_infodictlist = None  # type: List[Dict[str, Any]]
+        self._colinfolist = None  # type: List[ColumnInfo]
+
+    @property
+    def schema_infodictlist(self) -> List[Dict[str, Any]]:
+        """
+        Discovers the schema. Returns the results of
+        :meth:`get_schema_infodictlist` for our connection and vendor.
+        Implements caching.
+        """
+        if self._schema_infodictlist is None:
+            self._schema_infodictlist = self.get_schema_infodictlist(
+                self.connection, self.vendor)
+        return self._schema_infodictlist
+
+    @property
+    def colinfolist(self) -> List[ColumnInfo]:
+        """
+        Returns a list of :class:`ColumnInfo` objects for our research
+        database.
+        """
+        if self._colinfolist is None:
+            self._colinfolist = [ColumnInfo(**d)
+                                 for d in self.schema_infodictlist]
+        return self._colinfolist
 
     @property
     def schema_identifier(self) -> str:
