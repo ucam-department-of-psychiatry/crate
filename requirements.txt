@@ -1,7 +1,7 @@
 amqp==2.3.2
 arrow==0.12.1
 beautifulsoup4==4.6.0
-cardinal_pythonlib==1.0.32
+cardinal_pythonlib==1.0.33
 celery==4.0.1
 chardet==3.0.4
 cherrypy==16.0.2

@@ -61,6 +61,7 @@ crate_anon/crateweb
     consent/migrations/0009_auto_20180629_1132.py.rst
     consent/migrations/0010_auto_20180629_1238.py.rst
     consent/migrations/0011_auto_20181022_0801.py.rst
+    consent/migrations/0012_auto_20181102_1335.py.rst
     consent/migrations/__init__.py.rst
     consent/models.py.rst
     consent/storage.py.rst
@@ -138,6 +139,7 @@ crate_anon/crateweb
     research/migrations/0005_query_sql_hash.py.rst
     research/migrations/0006_patientexplorer_pmq_hash.py.rst
     research/migrations/0007_sitewidequery.py.rst
+    research/migrations/0008_query_display.py.rst
     research/migrations/__init__.py.rst
     research/models.py.rst
     research/research_db_info.py.rst
@@ -147,6 +149,7 @@ crate_anon/crateweb
     research/templates/database_structure.html.rst
     research/templates/database_structure_table.html.rst
     research/templates/database_structure_tree.html.rst
+    research/templates/edit_display.html.rst
     research/templates/highlight_bad_id.html.rst
     research/templates/highlight_edit_select.html.rst
     research/templates/local_structure_help.html.rst
