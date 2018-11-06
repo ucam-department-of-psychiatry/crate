@@ -70,14 +70,12 @@
             <a href="{% url 'results_recordwise' current_query_id %}">recordwise</a>
         {% endif %}
 
-    {% comment %}
         |
         {% if not query_selected %}
             <b>TSV</b>
         {% else %}
             <a href="{% url 'tsv' current_query_id %}">TSV</a>
         {% endif %}
-    {% endcomment %}
 
         |
 

@@ -27,11 +27,11 @@ crate_anon/crateweb/research/models.py
 """
 
 from collections import OrderedDict
-import contextlib
 import datetime
 import io
 import logging
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
+import weakref
 import zipfile
 import json
 
@@ -94,6 +94,14 @@ log = logging.getLogger(__name__)
 # Hacking django-pyodbc-azure, to stop it calling cursor.nextset() every time
 # you ask it to do cursor.fetchone()
 # =============================================================================
+# BUG in django-pyodbc-azure==1.10.4.0 (providing
+# sql_server/*), 2017-02-17: this causes
+# ProgrammingError "No results. Previous SQL was not a query."
+# The problem relates to sql_server/pyodbc/base.py
+# CursorWrapper.fetchone() calling self.cursor.nextset(); if
+# you comment this out, it works fine.
+# Related:
+# - https://github.com/pymssql/pymssql/issues/98
 
 DJANGO_PYODBC_AZURE_ENGINE = 'sql_server.pyodbc'
 
@@ -104,8 +112,8 @@ def replacement_sqlserver_pyodbc_cursorwrapper_fetchone(self) -> List[Any]:
     ``sql_server/pyodbc/base.py`` from ``django-pyodbc-azure``.
     This replacement function does not call ``cursor.nextset()``.
     """
-    # log.critical("Using monkeypatched fetchone(); self: {}; self.cursor: "
-    #              "{}".format(repr(self), repr(self.cursor)))
+    # log.debug("Using monkeypatched fetchone(); self: {}; self.cursor: "
+    #           "{}".format(repr(self), repr(self.cursor)))
     row = self.cursor.fetchone()
     if row is not None:
         row = self.format_row(row)
@@ -172,7 +180,8 @@ def debug_query() -> None:
 def get_executed_researchdb_cursor(sql: str,
                                    args: List[Any] = None) -> CursorWrapper:
     """
-    Executes a query on the research database.
+    Executes a query on the research database. Returns a wrapped cursor that
+    can be used as a context manager that will close the cursor on completion.
 
     Args:
         sql: SQL text
@@ -182,17 +191,27 @@ def get_executed_researchdb_cursor(sql: str,
         a :class:`django.db.backends.utils.CursorWrapper`, which is a context
         manager that behaves as the executed cursor and also closes it on
         completion
+        
+    Test code:
+    
+    .. code-block:: python
 
-    """
+        import os
+        import django
+        os.environ['DJANGO_SETTINGS_MODULE'] = 'crate_anon.crateweb.config.settings'
+        django.setup()
+        from crate_anon.crateweb.research.models import *
+        c = get_executed_researchdb_cursor("SELECT 1")
+
+    """  # noqa
     args = args or []
-    cursor = connections[RESEARCH_DB_CONNECTION_NAME].cursor()
+    cursor = connections[RESEARCH_DB_CONNECTION_NAME].cursor()  # type: CursorWrapper  # noqa
     try:
         cursor.execute(sql, args or None)
     except DatabaseError as exception:
         add_info_to_exception(exception, {'sql': sql, 'args': args})
         raise
-    # noinspection PyTypeChecker
-    return contextlib.closing(cursor)
+    return cursor
 
 
 # =============================================================================
@@ -411,6 +430,68 @@ class QueryBase(models.Model):
         # noinspection PyTypeChecker
         return self.sql
 
+
+def _close_cursor(cursor: Optional[CursorWrapper]) -> None:
+    if cursor:
+        # log.debug("Closing cursor")
+        cursor.close()
+
+
+class Query(QueryBase):
+    """
+    Class to query the research database.
+    """
+    NO_NULL = "_no_null"  # special output
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE)
+    active = models.BooleanField(default=True)  # see save() below
+    audited = models.BooleanField(default=False)
+    display = models.TextField(
+        default="[]",
+        verbose_name="Subset of output columns to be displayed")
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Initialize our cache.
+        """
+        super().__init__(*args, **kwargs)
+        self._executed_cursor = None  # type: CursorWrapper
+        self._column_names = None  # type: List[str]
+        self._rowcount = None  # type: int
+        self._rows = None  # type: List[List[Any]]
+        self._display_list = None  # type: List[str]
+        self._display_indexes = None  # type: List[int]
+        self._n_times_executed = 0
+        self._finalizer = None
+
+    def activate(self) -> None:
+        """
+        Activate this query (and deactivates any others).
+        """
+        self.active = True
+        self.save()
+
+    def __repr__(self) -> str:
+        return simple_repr(self, ['id', 'user', 'sql', 'args', 'raw', 'qmark',
+                                  'active', 'created', 'deleted', 'audited'])
+
+    def save(self, *args, **kwargs) -> None:
+        """
+        Custom save method. Ensures that only one :class:`Query` has ``active
+        == True`` for a given user. Also sets the hash.
+        """
+        # http://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa
+        if self.active:
+            Query.objects.filter(user=self.user, active=True)\
+                         .update(active=False)
+        self.sql_hash = hash64(self.sql)
+        super().save(*args, **kwargs)
+
+    # -------------------------------------------------------------------------
+    # SQL queries
+    # -------------------------------------------------------------------------
+
     def get_sql_args_for_django(self) -> Tuple[str, Optional[List[Any]]]:
         """
         Get sql/args in a format suitable for Django, with ``%s`` placeholders,
@@ -439,90 +520,146 @@ class QueryBase(models.Model):
             args = self.args
         return sql, args
 
-    def get_executed_cursor(self, sql_append_raw: str = None) -> CursorWrapper:
+    def get_executed_cursor(self) -> CursorWrapper:
         """
         Get cursor with a query executed (based on our attributes :attr:`sql`,
         :attr:`args`, :attr:`raw`, :attr:`qmark`).
 
-        Args:
-            sql_append_raw:
-                raw SQL to be appended to the SQL we'd otherwise use
-
         Returns:
             a :class:`django.db.backends.utils.CursorWrapper`
 
-        """
-        sql, args = self.get_sql_args_for_django()
-        if sql_append_raw:
-            sql += sql_append_raw
-        return get_executed_researchdb_cursor(sql, args)
+        Do NOT use this with ``with``, as in:
 
-    # def gen_rows(self,
-    #              firstrow: int = 0,
-    #              lastrow: int = None) -> Generator[List[Any], None, None]:
-    #     """
-    #     Generate rows from the query.
-    #     """
-    #     if firstrow > 0 or lastrow is not None:
-    #         sql_append_raw = " LIMIT {f},{n}".format(
-    #             f=firstrow,
-    #             n=(lastrow - firstrow + 1),
-    #         )
-    #         # zero-indexed;
-    #         # http://dev.mysql.com/doc/refman/5.0/en/select.html
-    #     else:
-    #         sql_append_raw = None
-    #     with self.get_executed_cursor(sql_append_raw) as cursor:
-    #         row = cursor.fetchone()
-    #         while row is not None:
-    #             yield row
-    #             row = cursor.fetchone()
+        .. code-block:: python
+
+            with query.get_executed_cursor() as cursor:
+                # do stuff
+
+        You could do that (and in general it's what Django advises) but we are
+        trying to be fancy here and use the cursor more efficiently.
+
+        """
+        if self._executed_cursor is None:
+            sql, args = self.get_sql_args_for_django()
+            cursor = get_executed_researchdb_cursor(sql, args)
+            self._n_times_executed += 1
+            # log.debug("Query: n_times_executed: {}".format(
+            #     self._n_times_executed))
+            # log.debug("\n" + "".join(traceback.format_stack()))
+            if self._n_times_executed > 1:
+                log.warning("Inefficient: Query executed {} times".format(
+                    self._n_times_executed))
+            self._column_names = get_fieldnames_from_cursor(cursor)
+            self._rowcount = cursor.rowcount
+            self._executed_cursor = cursor
+            self._finalizer = weakref.finalize(
+                self, _close_cursor, self._executed_cursor)
+        return self._executed_cursor
+
+    def _invalidate_executed_cursor(self) -> None:
+        """
+        Mark the executed cursor as dead (e.g. iterated through).
+        """
+        if self._executed_cursor is not None:
+            self._finalizer()
+            self._finalizer = None
+        self._executed_cursor = None
+
+    def _cache_basics(self) -> None:
+        """
+        Cache rowcount and column names.
+
+        Raises:
+            :exc:`DatabaseError` if the query fails
+        """
+        if self._rowcount is None:
+            self.get_executed_cursor()  # will cache
+
+    def _cache_all(self) -> None:
+        """
+        Fetch everything from the query and cache it.
+
+        Raises:
+            :exc:`DatabaseError` if the query fails
+        """
+        if self._rows is None:
+            cursor = self.get_executed_cursor()
+            self._rows = cursor.fetchall()
+            self._invalidate_executed_cursor()
+
+    def get_column_names(self) -> List[str]:
+        """
+        Returns column names from the query's cursor.
+
+        Raises:
+            :exc:`DatabaseError` if the query fails
+        """
+        if self._column_names is None:
+            self._cache_basics()
+        return self._column_names
+
+    def get_rowcount(self) -> int:
+        """
+        Returns the rowcount from the cursor.
+
+        Raises:
+            :exc:`DatabaseError` if the query fails
+        """
+        if self._rowcount is None:
+            self._cache_basics()
+        return self._rowcount
+
+    def get_rows(self) -> List[List[Any]]:
+        """
+        Returns all rows from the query, as a list.
+
+        Raises:
+            :exc:`DatabaseError` if the query fails
+        """
+        self._cache_all()
+        return self._rows
+
+    def gen_rows(self) -> Generator[List[Any], None, None]:
+        """
+        Generate rows from the query.
+
+        Raises:
+            :exc:`DatabaseError` if the query fails
+        """
+        if self._rows is None:
+            # No cache
+            cursor = self.get_executed_cursor()
+            row = cursor.fetchone()
+            while row is not None:
+                yield row
+                row = cursor.fetchone()
+            self._invalidate_executed_cursor()
+        else:
+            # Cache
+            for row in self._rows:
+                yield row
 
     def dictfetchall(self) -> List[Dict[str, Any]]:
         """
         Executes the query and returns all results as a list of OrderedDicts
         (one for each row, mapping column names to values).
+
+        Raises:
+            :exc:`DatabaseError` if the query fails
         """
-        with self.get_executed_cursor() as cursor:
-            return dictfetchall(cursor)
-
-
-class Query(QueryBase):
-    """
-    Class to query the research database.
-    """
-    NO_NULL = "_no_null"  # special output
-
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,
-                             on_delete=models.CASCADE)
-    active = models.BooleanField(default=True)  # see save() below
-    audited = models.BooleanField(default=False)
-    display = models.TextField(
-        default="[]",
-        verbose_name="Subset of output columns to be displayed")
-
-    def activate(self) -> None:
-        """
-        Activate this query (and deactivates any others).
-        """
-        self.active = True
-        self.save()
-
-    def __repr__(self) -> str:
-        return simple_repr(self, ['id', 'user', 'sql', 'args', 'raw', 'qmark',
-                                  'active', 'created', 'deleted', 'audited'])
-
-    def save(self, *args, **kwargs) -> None:
-        """
-        Custom save method. Ensures that only one :class:`Query` has ``active
-        == True`` for a given user. Also sets the hash.
-        """
-        # http://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa
-        if self.active:
-            Query.objects.filter(user=self.user, active=True)\
-                         .update(active=False)
-        self.sql_hash = hash64(self.sql)
-        super().save(*args, **kwargs)
+        if self._rows is None:
+            # No cache
+            cursor = self.get_executed_cursor()
+            result = dictfetchall(cursor)
+            self._invalidate_executed_cursor()
+            return result
+        else:
+            # Cache
+            columns = self._column_names
+            return [
+                OrderedDict(zip(columns, row))
+                for row in self._rows
+            ]
 
     # -------------------------------------------------------------------------
     # Fetching
@@ -644,6 +781,10 @@ class Query(QueryBase):
             log.debug("actually deleting")
             self.delete()
 
+    # -------------------------------------------------------------------------
+    # Filtering columns for display output
+    # -------------------------------------------------------------------------
+
     def set_display_list(self, display_list: List[str]) -> None:
         """
         Sets the internal JSON field, stored in the database, from a list of
@@ -653,8 +794,9 @@ class Query(QueryBase):
             display_list: list of columns to display
         """
         self.display = json.dumps(display_list)
+        self._display_list = None  # clear cache
 
-    def get_display_list(self) -> List[str]:
+    def _get_display_list(self) -> List[str]:
         """
         Returns a list of columns to display, from our internal JSON
         representation.
@@ -676,36 +818,47 @@ class Query(QueryBase):
             return []
         return result
 
-    def get_display_indexes(self) -> Optional[List[int]]:
+    def get_display_list(self) -> List[str]:
+        """
+        Returns a list of columns to display, from our internal JSON
+        representation. Uses :func:`_get_display_list` and caches it.
+        """
+        if self._display_list is None:
+            self._display_list = self._get_display_list()
+        # log.debug("Query.get_display_list() -> {!r}".format(
+        #     self._display_list))
+        return self._display_list
+
+    def _get_display_indexes(self) -> Optional[List[int]]:
         """
         Returns the indexes of the result columns that we wish to display.
+
+        Raises:
+            :exc:`DatabaseError` on query failure
         """
-        fieldnames = self.get_display_list()
+        display_fieldnames = self.get_display_list()
         # If the display attribute is empty apart from possibly 'NO_NULL',
         # assume the user wants all fields
-        select_all = not [x for x in fieldnames if x != self.NO_NULL]
-        try:
-            with self.get_executed_cursor() as cursor:
-                all_fieldnames = get_fieldnames_from_cursor(cursor)
-                # Only do this if we have to
-                if self.NO_NULL in fieldnames:
-                    rows = cursor.fetchall()
-        except DatabaseError as exception:
-            self.audit(failed=True, fail_msg=str(exception))
-            return None
-        # If the user wants all fields including completely null ones,
-        # return all field indexes without executing the rest of the code
-        if select_all and not self.NO_NULL:
-            return list(range(1, len(all_fieldnames)))
-        field_indexes = []
+        no_null = self.NO_NULL in display_fieldnames
+        select_all = not [x for x in display_fieldnames if x != self.NO_NULL]
+
+        if no_null:
+            self._cache_all()  # writes to self._rows
+
+        all_column_names = self.get_column_names()
+
+        if select_all and not no_null:
+            # No filtering. Provide the original indexes quickly.
+            return list(range(len(all_column_names)))
+
+        field_indexes = []  # type: List[int]
         # Do this to make sure included fields are actually in the results
-        for i, name in enumerate(all_fieldnames):
-            if select_all or name in fieldnames:
-                # Exclude fields where all values are null, if NO_NULL
-                # is switched on
-                if self.NO_NULL in fieldnames:
-                    # noinspection PyUnboundLocalVariable
-                    for row in rows:
+        for i, name in enumerate(all_column_names):
+            if select_all or name in display_fieldnames:
+                if no_null:
+                    # Exclude fields where all values are null, if NO_NULL
+                    # is switched on.
+                    for row in self._rows:
                         if row[i] is not None:
                             field_indexes.append(i)
                             break
@@ -713,80 +866,77 @@ class Query(QueryBase):
                     field_indexes.append(i)
         return field_indexes
 
-    def get_display_columns_row(
-            self, row_orig: List[Any],
-            field_indexes: Optional[List[int]] = None) -> List[Any]:
+    def get_display_indexes(self) -> Optional[List[int]]:
         """
-        Takes a single result row and returns an equivalent row but possibly
-        filtered by our column display criteria.
-        """
-        # Make sure we only get this if it is not supplied
-        if field_indexes is None:
-            field_indexes = self.get_display_indexes()
-        # If field indexes is empty, assume the user wants all the columns
-        if not field_indexes:
-            return row_orig
-        return [row_orig[i] for i in field_indexes]
+        Returns the indexes of the result columns that we wish to display.
+        Uses :func:`_get_display_indexes` and caches it.
 
-    def get_display_columns_rows(
-            self,
-            rows_orig: List[List[Any]]) -> List[List[Any]]:
+        Raises:
+            :exc:`DatabaseError` on query failure
         """
-        Take a set of result rows, and return an equivalent set of rows but
-        possibly filtered by our column display criteria.
+        if self._display_indexes is None:
+            self._display_indexes = self._get_display_indexes()
+        return self._display_indexes
+
+    def get_display_column_names(self) -> List[str]:
+        """
+        Returns the filtered column names.
+        """
+        column_names = self.get_column_names()
+        display_indexes = self.get_display_indexes()
+        return [column_names[i] for i in display_indexes]
+
+    def gen_display_rows(self) -> Generator[List[Any], None, None]:
+        """
+        Generates all filtered rows.
         """
         field_indexes = self.get_display_indexes()
-        # If field indexes is empty, assume the user wants all the columns
         if not field_indexes:
-            return rows_orig
-        return [self.get_display_columns_row(row, field_indexes)
-                for row in rows_orig]
+            # No columns specifically selected; return all columns
+            for row in self.gen_rows():
+                yield row
+        else:
+            for row in self.gen_rows():
+                yield [row[i] for i in field_indexes]
+
+    def get_display_rows(self) -> List[List[Any]]:
+        """
+        Returns a list of all filtered rows.
+        """
+        if self._rows is not None:
+            # Pre-cached; there may be a shortcut
+            field_indexes = self.get_display_indexes()
+            if not field_indexes:
+                # No columns specifically selected; return all columns
+                return self._rows
+        # Otherwise, use the generator:
+        return list(self.gen_display_rows())
 
     def make_tsv(self) -> str:
         """
         Executes the query and returns a TSV result (as a multiline string).
         """
-        with self.get_executed_cursor() as cursor:
-            all_fieldnames = get_fieldnames_from_cursor(cursor)
-            field_indexes = self.get_display_indexes()
-            fieldnames = [all_fieldnames[i] for i in field_indexes]
-            tsv = make_tsv_row(fieldnames)
-            row = cursor.fetchone()
-            while row is not None:
-                # Display only those columns the user has chosen
-                row = self.get_display_columns_row(row)
-                tsv += make_tsv_row(row)
-                row = cursor.fetchone()
+        fieldnames = self.get_display_column_names()
+        tsv = make_tsv_row(fieldnames)
+        for row in self.gen_display_rows():
+            tsv += make_tsv_row(row)
         return tsv
 
     def make_excel(self) -> bytes:
         """
         Executes the query and returns an Excel workbook, in binary.
         """
+        self._cache_all()
         wb = Workbook()
         wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
         sheetname = "query_{}".format(self.id)
         ws = wb.create_sheet(sheetname)
         now = datetime.datetime.now()
-        with self.get_executed_cursor() as cursor:
-            all_fieldnames = get_fieldnames_from_cursor(cursor)
-            field_indexes = self.get_display_indexes()
-            fieldnames = [all_fieldnames[i] for i in field_indexes]
-            ws.append(fieldnames)
-            row = cursor.fetchone()
-            while row is not None:
-                # Display only those columns the user has chosen
-                row = self.get_display_columns_row(row)
-                ws.append(gen_excel_row_elements(ws, row))
-                row = cursor.fetchone()
-                # BUG in django-pyodbc-azure==1.10.4.0 (providing
-                # sql_server/*), 2017-02-17: this causes
-                # ProgrammingError "No results. Previous SQL was not a query."
-                # The problem relates to sql_server/pyodbc/base.py
-                # CursorWrapper.fetchone() calling self.cursor.nextset(); if
-                # you comment this out, it works fine.
-                # Related:
-                # - https://github.com/pymssql/pymssql/issues/98
+
+        fieldnames = self.get_display_column_names()
+        ws.append(fieldnames)
+        for row in self.gen_display_rows():
+            ws.append(gen_excel_row_elements(ws, row))
 
         sql_ws = wb.create_sheet(title="SQL")
         sql_ws.append(["SQL", "Executed_at"])
@@ -1955,7 +2105,8 @@ class PatientExplorer(models.Model):
             it on completion
         """
         sql = translate_sql_qmark_to_percent(sql)
-        return get_executed_researchdb_cursor(sql, args)
+        cursor = get_executed_researchdb_cursor(sql, args)
+        return cursor
 
     def get_patient_mrids(self) -> List[int]:
         """

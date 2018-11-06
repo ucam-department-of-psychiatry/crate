@@ -730,6 +730,22 @@ Changes
   to make command-line startup faster (at the expense of first-fetch speed).
 
 
+**v0.18.56, 2018-11-02**
+
+- ``cardinal_pythonlib==1.0.36``
+
+- Bugfix to ``setup.py``; Java files were not being distributed properly.
+
+- Performance optimization to query "column filtering" for "show only columns
+  containing no NULL values", and more generally optimized; should run queries
+  only once per web session.
+
+- Bugfix to
+  :func:`crate_anon.crateweb.research.models.get_executed_researchdb_cursor`,
+  which was double-wrapping a database cursor incorrectly.
+
+
+
 
 .. rubric:: Footnotes
 

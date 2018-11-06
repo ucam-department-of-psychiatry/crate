@@ -60,30 +60,44 @@ from crate_anon.version import CRATE_VERSION
 # Helper functions
 # =============================================================================
 
+def deltree(path: str, verbose: bool = False) -> None:
+    if verbose:
+        print("Deleting directory: {}".format(path))
+    shutil.rmtree(path, ignore_errors=True)
+
+
 # Files not to bundle
-SKIP_PATTERNS = ['*.pyc', '~*']
+SKIP_PATTERNS = [
+    "*.gitignore",  # .gitignore files
+    "*.class",  # compiled Java
+    "*.pyc",  # "compiled" Python
+    "~*",  # temporary files
+]
 
 
 def add_all_files(root_dir: str,
                   filelist: List[str],
                   absolute: bool = False,
+                  relative_to: str = "",
                   include_n_parents: int = 0,
-                  verbose: bool = True,
+                  verbose: bool = False,
                   skip_patterns: List[str] = None) -> None:
     skip_patterns = skip_patterns or SKIP_PATTERNS
-    if absolute:
+    if absolute or relative_to:
         base_dir = root_dir
     else:
         base_dir = os.path.abspath(
             os.path.join(root_dir, *(['..'] * include_n_parents)))
     for dir_, subdirs, files in os.walk(root_dir, topdown=True):
-        if absolute:
+        if absolute or relative_to:
             final_dir = dir_
         else:
             final_dir = os.path.relpath(dir_, base_dir)
         for filename in files:
             _, ext = os.path.splitext(filename)
             final_filename = os.path.join(final_dir, filename)
+            if relative_to:
+                final_filename = os.path.relpath(final_filename, relative_to)
             if any(fnmatch.fnmatch(final_filename, pattern)
                    for pattern in skip_patterns):
                 if verbose:
@@ -126,7 +140,7 @@ INSTALL_REQUIRES = [
     'amqp==2.3.2',  # amqp is used by Celery  # noqa
     'arrow==0.12.1',  # better datetime
     'beautifulsoup4==4.6.0',
-    'cardinal_pythonlib==1.0.33',
+    'cardinal_pythonlib==1.0.36',
     'celery==4.0.1',  # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
     'chardet==3.0.4',  # character encoding detection for cardinal_pythonlib  # noqa
     'cherrypy==16.0.2',  # Cross-platform web server
@@ -197,49 +211,6 @@ DEVELOPMENT_ONLY_REQUIRES = [
 
 
 # =============================================================================
-# Helper functions
-# =============================================================================
-
-def deltree(path: str, verbose: bool = False) -> None:
-    if verbose:
-        print("Deleting directory: {}".format(path))
-    shutil.rmtree(path, ignore_errors=True)
-
-
-def add_all_files(root_dir: str,
-                  filelist: List[str],
-                  absolute: bool = False,
-                  relative_to: str = "",
-                  include_n_parents: int = 0,
-                  verbose: bool = False,
-                  skip_patterns: List[str] = None) -> None:
-    skip_patterns = skip_patterns or SKIP_PATTERNS
-    if absolute or relative_to:
-        base_dir = root_dir
-    else:
-        base_dir = os.path.abspath(
-            os.path.join(root_dir, *(['..'] * include_n_parents)))
-    for dir_, subdirs, files in os.walk(root_dir, topdown=True):
-        if absolute or relative_to:
-            final_dir = dir_
-        else:
-            final_dir = os.path.relpath(dir_, base_dir)
-        for filename in files:
-            _, ext = os.path.splitext(filename)
-            final_filename = os.path.join(final_dir, filename)
-            if relative_to:
-                final_filename = os.path.relpath(final_filename, relative_to)
-            if any(fnmatch.fnmatch(final_filename, pattern)
-                   for pattern in skip_patterns):
-                if verbose:
-                    print("Skipping: {}".format(final_filename))
-                continue
-            if verbose:
-                print("Adding: {}".format(final_filename))
-            filelist.append(final_filename)
-
-
-# =============================================================================
 # There's a nasty caching effect. So remove the old ".egg_info" directory
 # =============================================================================
 # http://blog.codekills.net/2011/07/15/lies,-more-lies-and-python-packaging-documentation-on--package_data-/  # noqa
@@ -266,8 +237,6 @@ sys.argv[1:] = leftover_args
 
 extra_files = []  # type: List[str]
 
-SKIP_PATTERNS = ["*.pyc"]
-
 if getattr(our_args, EXTRAS_ARG):
     # Here's where we do the extra stuff.
 
@@ -287,10 +256,10 @@ if getattr(our_args, EXTRAS_ARG):
     add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/templates'),
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)
-    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/userprofile/templates'),
+    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/userprofile/templates'),  # noqa
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)
-    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crate_anon/nlp_manager'),
+    add_all_files(os.path.join(CRATE_ROOT_DIR, 'nlp_manager'),
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)
     add_all_files(os.path.join(CRATE_ROOT_DIR, 'testdocs_for_text_extraction'),
@@ -303,8 +272,6 @@ if getattr(our_args, EXTRAS_ARG):
     # -------------------------------------------------------------------------
     # Write the manifest (ensures files get into the source distribution).
     # -------------------------------------------------------------------------
-    extra_files.sort()
-    print("EXTRA_FILES: \n{}".format(pformat(extra_files)))
     manifest_lines = ['include ' + x for x in extra_files]
     with open(MANIFEST_FILE, 'wt') as manifest:
         manifest.writelines([
