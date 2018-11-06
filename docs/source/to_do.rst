@@ -29,8 +29,8 @@ Things to do
 
 - query "display subset of columns" -- in progress
 
-- **check** command-line param method for restricted anon; should we have an
-  additional parameter to avoid using a string literal ``pid``?
+- fix bug (reported by JL 6/11/2018) where the RiO preprocessor tries to put
+  the same column into the same index more than once (see RNC email 6/11/2018)
 
 - BENCHMARK name blacklisting (with forenames + surnames – English words –
   eponyms): speed, precision, recall. Share results with MB.
