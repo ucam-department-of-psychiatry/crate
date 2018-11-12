@@ -19,6 +19,7 @@
         </table>
         <input type="submit" name="submit_add" value="Add" />
         <input type="submit" name="submit_run" value="Run" />
+        <input type="submit" name="submit_filter" value="Filter" />
         <input type="submit" name="submit_builder"
                value="Send to query builder" />
     </form>
@@ -65,7 +66,7 @@
                 <th>Delete query</th>
                 <th>Active?</th>
                 <th>Choose this one</th>
-                <th>Edit display</th>
+                <th>Filter display</th>
                 <th>SQL</th>
             </tr>
             {% for query in queries %}
@@ -95,7 +96,7 @@
                     <td>
                         <form action="{% url 'edit_display' query.id %}" method="post">
                             {% csrf_token %}
-                            <input type="submit" value="Edit" />
+                            <input type="submit" value="Filter" />
                         </form>
                     </td>
                     {% comment %}Widest, so last:{% endcomment %}
