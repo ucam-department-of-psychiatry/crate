@@ -1,0 +1,26 @@
+{# sqlhelper_form_drugtype.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Create SQL fragment: Find drugs of a given type anywhere</h1>
+
+    <div>Database from which RID descriptions are taken:
+        <b>{{ db_description }}</b></div>
+
+    <div>Choose a category of drug. SQL will be generated to find any example
+    of it in any of the text fields present in the database.</div>
+
+    <form action="{% url 'sqlhelper_drug_type_with_db' db_name %}"
+        method="post">
+        {% csrf_token %}
+        <table class="formtable">
+            {{ form.as_table }}
+        </table>
+        <input type="submit" name="submit_save" value="Save SQL as query" />
+        <input type="submit" name="submit_run" value="Run" />
+        <input type="submit" name="submit_view" value="View SQL" />
+    </form>
+
+{% endblock %}
