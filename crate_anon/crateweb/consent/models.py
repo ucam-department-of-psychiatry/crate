@@ -1869,6 +1869,12 @@ class ContactRequest(models.Model):
                 ContactRequest.CLINICIAN_INVOLVEMENT_NONE)
             self.decide("GREEN: Researchers prefer direct approach and patient"
                         " has chosen green mode: send approval to researcher.")
+
+            # CLARIFICATION, CPFT Research Database Oversight Committee
+            # 2018-11-12: even for CTIMPs, if patient is GREEN, researchers can
+            # contact directly -- but will need consultant involvement at the
+            # later (consent) stage.
+
             # noinspection PyUnresolvedReferences
             researcher_emailaddr = self.study.lead_researcher.email
             try:

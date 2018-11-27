@@ -372,7 +372,7 @@ So the general rescue method:
     .. code-block:: none
 
         cd \srv\crate
-        "\Program Files\Python35\python.exe" -m virtualenv crate_virtualenv
+        "\Program Files\Python35\python.exe" -m venv crate_virtualenv
         crate_virtualenv\Scripts\activate.bat
         pip install crate_anon==0.18.51 pyodbc django-pyodbc-azure
 
