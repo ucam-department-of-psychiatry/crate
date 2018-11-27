@@ -32,4 +32,29 @@
     <h1>SQL</h1>
     {{ sql|safe }}
 
+    <h3>Display</h3>
+
+    <form action="{% url 'edit_display' query_id %}" method="post">
+        {% csrf_token %}
+        <input type="submit" name="submit_filter" value="Filter" />
+    </from>
+
+    <p>Columns included:</p>
+    <ul>
+        {% for column in display_columns %}
+            <li>{{ column }}</li>
+        {% endfor %}
+    </ul>
+
+    <p>Columns excluded:</p>
+    <ul>
+        {% for column in omit_columns %}
+            <li>{{ column }}</li>
+        {% endfor %}
+    </ul>
+
+    {% if no_null is True %}
+        <p><strong>Null columns excluded</strong></p>
+    {% endif %}
+
 {% endblock %}

@@ -197,6 +197,11 @@ urlpatterns = [
     url(r'^sqlhelper_text_anywhere_with_db/(?P<dbname>[a-zA-Z0-9_]+)/$',
         research_views.sqlhelper_text_anywhere_with_db,
         name='sqlhelper_text_anywhere_with_db'),
+    url(r'^sqlhelper_drug_type/$', research_views.sqlhelper_drug_type,
+        name='sqlhelper_drug_type'),
+    url(r'^sqlhelper_drug_type_with_db/(?P<dbname>[a-zA-Z0-9_]+)/$',
+        research_views.sqlhelper_drug_type_with_db,
+        name='sqlhelper_drug_type_with_db'),
 
     # -------------------------------------------------------------------------
     # Researcher consent functions

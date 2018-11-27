@@ -1484,7 +1484,8 @@ class ViewMaker(object):
         """
         if table not in self.index_requests:
             self.index_requests[table] = []  # type: List[str]
-        self.index_requests[table].append(column)
+        if column not in self.index_requests[table]:
+            self.index_requests[table].append(column)
 
     def get_index_request_dict(self) -> Dict[str, List[str]]:
         """

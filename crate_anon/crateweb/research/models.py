@@ -450,6 +450,9 @@ class Query(QueryBase):
     display = models.TextField(
         default="[]",
         verbose_name="Subset of output columns to be displayed")
+    no_null = models.BooleanField(
+        default=False,
+        verbose_name="Omit Null columns for this query when displayed")
 
     def __init__(self, *args, **kwargs) -> None:
         """
@@ -837,17 +840,15 @@ class Query(QueryBase):
             :exc:`DatabaseError` on query failure
         """
         display_fieldnames = self.get_display_list()
-        # If the display attribute is empty apart from possibly 'NO_NULL',
-        # assume the user wants all fields
-        no_null = self.NO_NULL in display_fieldnames
-        select_all = not [x for x in display_fieldnames if x != self.NO_NULL]
+        # If the display attribute is empty assume the user wants all fields
+        select_all = not display_fieldnames
 
-        if no_null:
+        if self.no_null:
             self._cache_all()  # writes to self._rows
 
         all_column_names = self.get_column_names()
 
-        if select_all and not no_null:
+        if select_all and not self.no_null:
             # No filtering. Provide the original indexes quickly.
             return list(range(len(all_column_names)))
 
@@ -855,8 +856,8 @@ class Query(QueryBase):
         # Do this to make sure included fields are actually in the results
         for i, name in enumerate(all_column_names):
             if select_all or name in display_fieldnames:
-                if no_null:
-                    # Exclude fields where all values are null, if NO_NULL
+                if self.no_null:
+                    # Exclude fields where all values are null, if no_null
                     # is switched on.
                     for row in self._rows:
                         if row[i] is not None:

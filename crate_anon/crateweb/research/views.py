@@ -42,6 +42,7 @@ from cardinal_pythonlib.exceptions import recover_info_from_exception
 from cardinal_pythonlib.hash import hash64
 from cardinal_pythonlib.logs import BraceStyleAdapter
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
+from cardinal_pythonlib.psychiatry.drugs import Drug, all_drugs_where
 from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
@@ -84,6 +85,8 @@ from crate_anon.crateweb.research.forms import (
     QueryBuilderForm,
     RidLookupForm,
     SQLHelperTextAnywhereForm,
+    SQLHelperFindAnywhereForm,
+    SQLHelperDrugTypeForm,
 )
 from crate_anon.crateweb.research.html_functions import (
     highlight_text,
@@ -568,7 +571,8 @@ def get_identical_queries(request: HttpRequest, sql: str,
 
 def query_submit(request: HttpRequest,
                  sql: str,
-                 run: bool = False) -> HttpResponse:
+                 run: bool = False,
+                 filter_display: bool = False) -> HttpResponse:
     """
     Ancillary function to add a query, and redirect to the editing or
     run page.
@@ -578,6 +582,7 @@ def query_submit(request: HttpRequest,
         sql: SQL text
         run: execute the query and show the results? Otherwise, save the
             query and return to the editing page
+        filter_display: after saving the query, redirect to the filter page?
 
     Returns:
         a :class:`django.http.response.HttpResponse`
@@ -594,6 +599,8 @@ def query_submit(request: HttpRequest,
     # redirect to a new URL:
     if run:
         return redirect('results', query_id)
+    elif filter_display:
+        return redirect('edit_display', query_id)
     else:
         return redirect('query')
 
@@ -618,6 +625,7 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
             cmd_run = 'submit_run' in request.POST
             cmd_add = 'submit_add' in request.POST
             cmd_builder = 'submit_builder' in request.POST
+            cmd_filter = 'submit_filter' in request.POST
             # process the data in form.cleaned_data as required
             sql = form.cleaned_data['sql']
             if cmd_add or cmd_run:
@@ -628,6 +636,9 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
                 profile.sql_scratchpad = sql
                 profile.save()
                 return redirect('build_query')
+            elif cmd_filter:
+                # If filtering, also add the query
+                return query_submit(request, sql, filter_display=True)
             else:
                 raise ValueError("Bad command!")
 
@@ -996,6 +1007,10 @@ def query_excel(request: HttpRequest, query_id: str) -> HttpResponse:
 
 
 def edit_display(request: HttpRequest, query_id: str) -> HttpResponse:
+    """
+    Edit the 'display' attribute of the selected query by choosing a list of
+    columns to show when the results are displayed.
+    """
     query = get_object_or_404(Query, user=request.user, id=query_id)
     display_fields = query.get_display_list()
     try:
@@ -1012,6 +1027,10 @@ def edit_display(request: HttpRequest, query_id: str) -> HttpResponse:
 
 
 def save_display(request: HttpRequest, query_id: str) -> HttpResponse:
+    """
+    Save changes to the 'display' attribute of the selected query, and to the
+    value of 'no_null'.
+    """
     query = get_object_or_404(Query, user=request.user, id=query_id)
     if request.method == 'POST':
         try:
@@ -1024,9 +1043,9 @@ def save_display(request: HttpRequest, query_id: str) -> HttpResponse:
         for display_fieldname in display_fieldnames:
             if display_fieldname in fieldnames:
                 display.append(display_fieldname)
-        if request.POST.get("no_null") == "true":
-            display.append(Query.NO_NULL)
         query.set_display_list(display)
+        # If the user has selected 'no_null' set this attribute to True
+        query.no_null = (request.POST.get("no_null") == "true")
         query.save()
     return query_edit_select(request)
 
@@ -1337,6 +1356,10 @@ def render_resultset(request: HttpRequest,
         ditto=ditto,
         ditto_html=ditto_html,
     )
+    # Wich columns are displayed
+    display_columns = query.get_display_column_names()
+    all_columns = query.get_column_names()
+    omit_columns = [x for x in all_columns if x not in display_columns]
     # Render
     context = {
         'table_html': table_html,
@@ -1345,6 +1368,10 @@ def render_resultset(request: HttpRequest,
         'sql': prettify_sql_html(query.get_original_sql()),
         'nav_on_results': True,
         'sql_highlight_css': prettify_sql_css(),
+        'display_columns': display_columns,
+        'omit_columns': omit_columns,
+        'no_null': query.no_null,
+        'query_id': query.id,
     }
     context.update(query_context(request))
     return render(request, 'query_result.html', context)
@@ -1414,6 +1441,10 @@ def render_resultset_recordwise(request: HttpRequest,
         )
     else:
         table_html = "<b>No rows returned.</b>"
+    # Wich columns are displayed
+    display_columns = query.get_display_column_names()
+    all_columns = query.get_column_names()
+    omit_columns = [x for x in all_columns if x not in display_columns]
     # Render
     context = {
         'table_html': table_html,
@@ -1422,6 +1453,10 @@ def render_resultset_recordwise(request: HttpRequest,
         'sql': prettify_sql_html(query.get_original_sql()),
         'nav_on_results_recordwise': True,
         'sql_highlight_css': prettify_sql_css(),
+        'display_columns': display_columns,
+        'omit_columns': omit_columns,
+        'no_null': query.no_null,
+        'query_id': query.id,
     }
     context.update(query_context(request))
     return render(request, 'query_result.html', context)
@@ -2069,12 +2104,29 @@ def textmatch(column_name: str,
             column=column_name, fragment=fragment)
 
 
+def drugmatch(drug_type: str, colname: str) -> str:
+    """
+    Returns SQL to check for the presence of any drug of type 'drug_type'
+    anywhere in a field.
+
+    Args:
+        drug_type: drug type to look for
+        colname: name of the column
+    """
+    criteria = {drug_type: True}
+    drugs = all_drugs_where(**criteria)  # type: List[Drug]
+    drugs_sql_parts = [drug.sql_column_like_drug(colname) for drug in drugs]
+    drugs_sql = " OR ".join(drugs_sql_parts)
+    return drugs_sql
+
+
 def textfinder_sql(patient_id_fieldname: str,
-                   fragment: str,
                    min_length: int,
                    use_fulltext_index: bool,
                    include_content: bool,
                    include_datetime: bool,
+                   fragment: str = "",
+                   drug_type: str = "",
                    patient_id_value: Union[int, str] = None,
                    extra_fieldname: str = None,
                    extra_value: Union[int, str] = None) -> str:
@@ -2089,6 +2141,8 @@ def textfinder_sql(patient_id_fieldname: str,
             any tables that don't contain this column will be ignored
         fragment:
             fragment of text to find (e.g. "paracetamol")
+        drug_type:
+            type of drug to find any example of
         min_length:
             text fields must be at least this large to bother searching; use
             this option to exclude e.g. ``VARCHAR(1)`` columns from the search
@@ -2111,6 +2165,9 @@ def textfinder_sql(patient_id_fieldname: str,
     Raises:
         :exc:`ValueError` if no tables match the request
     """  # noqa
+    if not fragment and not drug_type:
+        raise ValueError(
+            "Must supply either 'fragment' or 'drug_type' to 'textfinder_sql'")
     grammar = research_database_info.grammar
     tables = research_database_info.tables_containing_field(
         patient_id_fieldname)
@@ -2183,6 +2240,20 @@ def textfinder_sql(patient_id_fieldname: str,
             )
             for columninfo in columns:
                 column_identifier = columninfo.column_id.identifier(grammar)
+                # 'extra_conditions' will be the sql fragment finding either
+                # the fragment of text supplied or all drugs of the given type
+                if fragment:
+                    extra = textmatch(
+                        column_name=column_identifier,
+                        fragment=fragment,
+                        as_fulltext=(columninfo.indexed_fulltext and
+                                     use_fulltext_index)
+                    )
+                else:
+                    extra = drugmatch(
+                        colname=column_identifier,
+                        drug_type=drug_type
+                    )
                 contentcol_name_select = "'{}' AS {}".format(
                     column_identifier, contents_colname_heading)
                 content_select = "{} AS _content".format(column_identifier)
@@ -2191,25 +2262,25 @@ def textfinder_sql(patient_id_fieldname: str,
                                       contentcol_name_select,
                                       content_select],
                           date_value_select=date_identifier,
-                          extra_conditions=[
-                              textmatch(
-                                  column_name=column_identifier,
-                                  fragment=fragment,
-                                  as_fulltext=(columninfo.indexed_fulltext and
-                                               use_fulltext_index)
-                              )
-                          ])
+                          extra_conditions=[extra])
 
         else:
             # Content not required; therefore, one query per table.
             elements = []  # type: List[str]
             for columninfo in columns:
-                elements.append(textmatch(
-                    column_name=columninfo.column_id.identifier(grammar),
-                    fragment=fragment,
-                    as_fulltext=(columninfo.indexed_fulltext and
-                                 use_fulltext_index)
-                ))
+                if fragment:
+                    elmnt = textmatch(
+                        column_name=columninfo.column_id.identifier(grammar),
+                        fragment=fragment,
+                        as_fulltext=(columninfo.indexed_fulltext and
+                                     use_fulltext_index)
+                    )
+                else:
+                    elmnt = drugmatch(
+                        colname=columninfo.column_id.identifier(grammar),
+                        drug_type=drug_type
+                    )
+                elements.append(elmnt)
             add_query(table_ident=table_identifier,
                       extra_cols=[],
                       date_value_select=date_identifier,
@@ -2233,7 +2304,7 @@ def textfinder_sql(patient_id_fieldname: str,
 
 def common_find_text(request: HttpRequest,
                      dbinfo: SingleResearchDatabase,
-                     form_class: Type[SQLHelperTextAnywhereForm],
+                     form_class: Type[SQLHelperFindAnywhereForm],
                      default_values: Dict[str, Any],
                      permit_pid_search: bool,
                      html_filename: str) -> HttpResponse:
@@ -2377,11 +2448,19 @@ def common_find_text(request: HttpRequest,
         # ---------------------------------------------------------------------
         # Generate the query
         # ---------------------------------------------------------------------
+        if form_class == SQLHelperDrugTypeForm:
+            fragment = ""
+            drug_type = escape_sql_string_literal(
+                form.cleaned_data['drug_type'])
+        else:
+            fragment = escape_sql_string_literal(
+                form.cleaned_data['fragment'])
+            drug_type = ""
         try:
             sql = textfinder_sql(
                 patient_id_fieldname=patient_id_fieldname,
-                fragment=escape_sql_string_literal(
-                    form.cleaned_data['fragment']),
+                fragment=fragment,
+                drug_type=drug_type,
                 min_length=min_length,
                 use_fulltext_index=form.cleaned_data['use_fulltext_index'],
                 include_content=form.cleaned_data['include_content'],
@@ -2479,6 +2558,68 @@ def sqlhelper_text_anywhere_with_db(request: HttpRequest,
         default_values=default_values,
         permit_pid_search=False,
         html_filename='sqlhelper_form_text_anywhere.html')
+
+
+def sqlhelper_drug_type(request: HttpRequest) -> HttpResponse:
+    """
+    Picks a database, then redirects to
+    :func:`sqlhelper_drug_type_with_db`.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
+    if research_database_info.single_research_db:
+        dbname = research_database_info.first_dbinfo.name
+        return HttpResponseRedirect(
+            reverse('sqlhelper_drug_type_with_db', args=[dbname])
+        )
+    else:
+        form = DatabasePickerForm(request.POST or None,
+                                  dbinfolist=research_database_info.dbinfolist)
+        if form.is_valid():
+            dbname = form.cleaned_data['database']
+            return HttpResponseRedirect(
+                reverse('sqlhelper_drug_type_with_db', args=[dbname])
+            )
+        return render(request, 'sqlhelper_form_drug_type_choose_db.html',
+                      {'form': form})
+
+
+def sqlhelper_drug_type_with_db(request: HttpRequest,
+                                dbname: str) -> HttpResponse:
+    """
+    Finds drugs of a given type anywhere in the database(s) via a ``UNION``
+    query.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        dbname: name of the research database to use
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+    """
+    try:
+        dbinfo = research_database_info.get_dbinfo_by_name(dbname)
+    except ValueError:
+        return generic_error(request,
+                             "No research database named {!r}".format(dbname))
+    default_values = {
+        'fkname': dbinfo.rid_field,
+        'min_length': DEFAULT_MIN_TEXT_FIELD_LENGTH,
+        'use_fulltext_index': True,
+        'include_content': False,
+        'include_datetime': False,
+    }
+    return common_find_text(
+        request=request,
+        dbinfo=dbinfo,
+        form_class=SQLHelperDrugTypeForm,
+        default_values=default_values,
+        permit_pid_search=False,
+        html_filename='sqlhelper_form_drugtype.html')
 
 
 @user_passes_test(is_clinician)

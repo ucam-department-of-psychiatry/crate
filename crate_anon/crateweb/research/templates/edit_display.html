@@ -18,7 +18,7 @@
             {% endif %}
         {% endfor %}
         <br />
-        {% if query.NO_NULL in display_fields %}
+        {% if query.no_null is True %}
             <input type="checkbox" name="no_null" value="true"
                     checked="checked" /><strong>Exclude Null columns</strong><br />
         {% else %}

@@ -198,27 +198,24 @@ class FieldPickerInfo(object):
         self.permits_empty_id = permits_empty_id
 
 
-class SQLHelperTextAnywhereForm(forms.Form):
+class SQLHelperFindAnywhereForm(forms.Form):
     """
-    Form for "find text anywhere in a patient's record".
+    Base class for finding something anywhere in a patient's record.
 
     The user gets to pick
 
     - a field name (consistent across tables) representing a patient research
       ID (see :class:`FieldPickerInfo`);
     - a RID value
-    - details of the text to search for
     - options to restrict which text fields are searched
     - an option to use full-text indexing where available
     - display options
 
-    This research-oriented form is then subclassed for clinicians; see
-    :class:`ClinicianAllTextFromPidForm`.
+    The subclasses then choose what the user should search for.
     """
     fkname = ChoiceField(required=True)
     patient_id = CharField(label="ID value (to restrict to a single patient)",
                            required=False)
-    fragment = CharField(label="String fragment to find", required=True)
     use_fulltext_index = BooleanField(
         label="Use full-text indexing where available "
         "(faster, but requires whole words)",
@@ -274,6 +271,108 @@ class SQLHelperTextAnywhereForm(forms.Form):
                 "value".format(opt.value))
 
 
+# class SQLHelperTextAnywhereForm(forms.Form):
+#     """
+#     Form for "find text anywhere in a patient's record".
+#
+#     The user gets to pick
+#
+#     - a field name (consistent across tables) representing a patient research
+#       ID (see :class:`FieldPickerInfo`);
+#     - a RID value
+#     - details of the text to search for
+#     - options to restrict which text fields are searched
+#     - an option to use full-text indexing where available
+#     - display options
+#
+#     This research-oriented form is then subclassed for clinicians; see
+#     :class:`ClinicianAllTextFromPidForm`.
+#     """
+#     fkname = ChoiceField(required=True)
+#     patient_id = CharField(label="ID value (to restrict to a single patient)",
+#                            required=False)
+#     fragment = CharField(label="String fragment to find", required=True)
+#     use_fulltext_index = BooleanField(
+#         label="Use full-text indexing where available "
+#         "(faster, but requires whole words)",
+#         required=False)
+#     min_length = IntegerField(
+#         label="Minimum 'width' of textual field to include (e.g. {})".format(
+#             DEFAULT_MIN_TEXT_FIELD_LENGTH
+#         ),
+#         min_value=1, required=True)
+#     include_content = BooleanField(
+#         label="Include content from fields where found (slower)",
+#         required=False)
+#     include_datetime = BooleanField(
+#         label="Include date/time from where known",
+#         required=False)
+#
+#     def __init__(
+#             self,
+#             *args,
+#             fk_options: List[FieldPickerInfo],
+#             fk_label: str = "Field name containing patient research ID",
+#             **kwargs) -> None:
+#         super().__init__(*args, **kwargs)
+#         self.fk_options = fk_options
+#         # Set the choices available for fkname
+#         f = self.fields['fkname']  # type: ChoiceField
+#         f.choices = [(opt.value, opt.description) for opt in fk_options]
+#         f.label = fk_label
+#
+#     def clean(self) -> Dict[str, Any]:
+#         cleaned_data = super().clean()
+#         fieldname = cleaned_data.get("fkname")
+#         pidvalue = cleaned_data.get("patient_id")
+#         if fieldname:
+#             opt = next(o for o in self.fk_options if o.value == fieldname)
+#             if pidvalue:
+#                 try:
+#                     _ = opt.type_(pidvalue)
+#                 except (TypeError, ValueError):
+#                     raise forms.ValidationError(
+#                         "For field {!r}, the ID value must be of "
+#                         "type {}".format(opt.description, opt.type_))
+#             else:
+#                 self._check_permits_empty_id_for_blank_id(opt)
+#         return cleaned_data
+#
+#     def _check_permits_empty_id_for_blank_id(self,
+#                                              opt: FieldPickerInfo) -> None:
+#         # Exists as a function so ClinicianAllTextFromPidForm can override it.
+#         if not opt.permits_empty_id:
+#             raise forms.ValidationError(
+#                 "For this ID type ({}), you must specify an ID "
+#                 "value".format(opt.value))
+
+
+class SQLHelperTextAnywhereForm(SQLHelperFindAnywhereForm):
+    """
+    Form for "find text anywhere in a patient's record".
+
+    The user gets to pick
+
+    - a field name (consistent across tables) representing a patient research
+      ID (see :class:`FieldPickerInfo`);
+    - a RID value
+    - details of the text to search for
+    - options to restrict which text fields are searched
+    - an option to use full-text indexing where available
+    - display options
+
+    This research-oriented form is then subclassed for clinicians; see
+    :class:`ClinicianAllTextFromPidForm`.
+    """
+    fragment = CharField(label="String fragment to find", required=True)
+
+    def __init__(
+            self,
+            *args,
+            **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+
 class ClinicianAllTextFromPidForm(SQLHelperTextAnywhereForm):
     """
     A slightly restricted form of :class:`SQLHelperTextAnywhereForm` for
@@ -300,6 +399,69 @@ class ClinicianAllTextFromPidForm(SQLHelperTextAnywhereForm):
     def _check_permits_empty_id_for_blank_id(self,
                                              opt: FieldPickerInfo) -> None:
         return
+
+
+class SQLHelperDrugTypeForm(SQLHelperFindAnywhereForm):
+    """
+    Form for "find drug of a given type anywhere in a patient's record".
+
+    Same as 'SQLHelperTextAnywhereForm' except the user picks a drug type to
+    search for instead of a string fragment.
+    """
+    # Left these all in because I didn't know which ones would be useful
+    DRUG_TYPES = (
+        ('antidepressant', 'antidepressant'),
+        ('conventional_antidepressant', 'conventional_antidepressant'),
+        ('ssri', 'ssri'),
+        ('non_ssri_modern_antidepressant', 'non_ssri_modern_antidepressant'),
+        ('tricyclic_antidepressant', 'tricyclic_antidepressant'),
+        ('tetracyclic_and_related_antidepressant',
+         'tetracyclic_and_related_antidepressant'),
+        ('monoamine_oxidase_inhibitor', 'monoamine_oxidase_inhibitor'),
+        ('antipsychotic', 'antipsychotic'),
+        ('first_generation_antipsychotic', 'first_generation_antipsychotic'),
+        ('second_generation_antipsychotic', 'second_generation_antipsychotic'),
+        ('stimulant', 'stimulant'),
+        ('anticholinergic', 'anticholinergic'),
+        ('benzodiazepine', 'benzodiazepine'),
+        ('z_drug', 'z_drug'),
+        ('non_benzodiazepine_anxiolytic', 'non_benzodiazepine_anxiolytic'),
+        ('gaba_a_functional_agonist', 'gaba_a_functional_agonist'),
+        ('gaba_b_functional_agonist', 'gaba_b_functional_agonist'),
+        ('mood_stabilizer', 'mood_stabilizer'),
+        # Endocrinology
+        ('antidiabetic', 'antidiabetic'),
+        ('sulfonylurea', 'sulfonylurea'),
+        ('biguanide', 'biguanide'),
+        ('glifozin', 'glifozin'),
+        ('glp1_agonist', 'glp1_agonist'),
+        ('dpp4_inhibitor', 'dpp4_inhibitor'),
+        ('meglitinide', 'meglitinide'),
+        ('thiazolidinedione', 'thiazolidinedione'),
+        # Cardiovascular
+        ('cardiovascular', 'cardiovascular'),
+        ('beta_blocker', 'beta_blocker'),
+        ('ace_inhibitor', 'ace_inhibitor'),
+        ('statin', 'statin'),
+        # Respiratory
+        ('respiratory', 'respiratory'),
+        ('beta_agonist', 'beta_agonist'),
+        # Gastrointestinal
+        ('gastrointestinal', 'gastrointestinal'),
+        ('proton_pump_inhibitor', 'proton_pump_inhibitor'),
+        ('nonsteroidal_anti_inflammatory', 'nonsteroidal_anti_inflammatory'),
+        # Nutritional
+        ('vitamin', 'vitamin')
+    )
+    drug_type = ChoiceField(label="Drug type to find", required=True)
+
+    def __init__(
+            self,
+            *args,
+            drug_options: List[str] = DRUG_TYPES,
+            **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields['drug_type'].choices = drug_options
 
 
 def html_form_date_to_python(text: str) -> datetime.datetime:

@@ -99,15 +99,16 @@ class DDHint(object):
             columns = [columns]
         assert table, "Bad table: {}".format(repr(table))
         assert columns, "Bad columns: {}".format(repr(columns))
+        assert len(columns) == len(set(columns)),\
+            "Duplicate columns in: {}".format(repr(columns))
         index_name = 'crate_idx_' + '_'.join(columns)
-        if table not in self._index_requests:
-            self._index_requests[table] = {}
-            if index_name not in self._index_requests[table]:
-                self._index_requests[table][index_name] = {
-                    'index_name': index_name,
-                    'column': ', '.join(columns),
-                    'unique': False,
-                }
+        index_requests_for_table = self._index_requests.setdefault(table, {})
+        if index_name not in index_requests_for_table:
+            index_requests_for_table[index_name] = {
+                'index_name': index_name,
+                'column': ', '.join(columns),
+                'unique': False,
+            }
 
     def add_bulk_source_index_request(
             self,
