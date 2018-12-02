@@ -379,7 +379,7 @@ Driver              PyODBC
 Home page           | http://mkleehammer.github.io/pyodbc/
                     | https://github.com/mkleehammer/pyodbc/wiki
 Database            Any with an :ref:`ODBC <odbc>` connection
-Installation        ``pip install pyodbcl``
+Installation        ``pip install pyodbc``
 Import              ``import pyodbc``
 Django ``ENGINE``   –
 SQLAlchemy URL      | mssql+pyodbc://username:password@MY_DATABASE
@@ -403,8 +403,8 @@ http://docs.sqlalchemy.org/en/rel_1_0/dialects/mysql.html.
 - In creating the ODBC data source, you choose whether you want
   username/password authentication or Integrated Windows authentication, and
   you give the data source a name (DSN), e.g. MY_DATABASE. The SQLAlchemy URL
-  is then “mssql+pyodbc://@MY_DATABASE” (for Windows authentication) or,
-  presumably, “mssql+pyodbc://username:password@MY_DATABASE” for
+  is then ``mssql+pyodbc://@MY_DATABASE`` (for Windows authentication), or
+  ``mssql+pyodbc://username:password@MY_DATABASE`` for
   username/password authentication.
 
 - Addendum 2017-01-16: Microsoft have deprecated the SQL Server Native Client;
