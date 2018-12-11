@@ -656,7 +656,7 @@ class BmiValidator(ValidatorBase):
 
 class Bp(BaseNlpParser):
     """
-    Blood pressure, in mmHg.
+    Blood pressure, in mmHg. (Systolic and diastolic.)
     
     (Since we produce two variables, SBP and DBP, and we use something a little
     more complex than

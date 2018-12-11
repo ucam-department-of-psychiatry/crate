@@ -25,7 +25,9 @@ CRATE's Python regex NLP
 CRATE provides several simple numerical results processors. Each comes with a
 corresponding *validator*.
 
-The *processor* looks for full results in text, like “his **CRP is 10 mg/L
+**Processor**
+
+The processor looks for full results in text, like “his **CRP is 10 mg/L
 today**” or “**CRP | (H) | 17**”, and will extract the number, units, and so
 forth. It does so by matching a keyword (such as “CRP”, “C-reactive protein”,
 “C reactive protein”, etc.) plus other attributes such as an optional tense
@@ -35,8 +37,8 @@ specifically disallowed. For example, “MMSE 25/30” or “MMSE 25 out of 30�
 be allowed, where variants on “out of 30” are the units, and “MMSE 25” can be
 treated as if it were implicitly out of 30, but “MMSE 25/29” disallowed.
 
-In addition to the :ref:`standard NLP output columns
-<standard_nlp_output_columns>`, the *processor* produces these output columns:
+The processor produces the :ref:`standard NLP output columns
+<standard_nlp_output_columns>`, and also these output columns:
 
 =============== =============== ===============================================
 Column          SQL type        Description
@@ -76,17 +78,18 @@ tense           VARCHAR(7)      Calculated tense, if known (e.g. ‘past’,
 … plus any fields you elected to copy.
 
 The name of the column marked (*) will vary from processor to processor (e.g.
-value_mg_l for the CRP processor; value_kg for the Weight processor; value_m
-for the Height processor). The columns may vary from processor to processor;
-for example, the blood pressure (BP) processor produces two numbers per entry
-(a systolic and a diastolic BP).
+``value_mg_l`` for the CRP processor; ``value_kg`` for the Weight processor;
+``value_m`` for the Height processor). The columns may vary from processor to
+processor; for example, the blood pressure (BP) processor produces two numbers
+per entry (a systolic and a diastolic BP).
 
-The *validator* simply looks for the corresponding keyword. It doesn’t record
+**Validator**
+
+The validator simply looks for the corresponding keyword. It doesn’t record
 much information except for a reference to the source row.
 
-In addition to the :ref:`standard NLP output columns
-<standard_nlp_output_columns>`, a typical validator produces these output
-columns:
+The validator produces the :ref:`standard NLP output columns
+<standard_nlp_output_columns>`, and typically these output columns:
 
 =============== =============== ===============================================
 Column          SQL type        Description
@@ -141,3 +144,73 @@ more complex systems, but regular expressions are pretty quick.) Fast
 computers with local networks and SSD storage should perform considerably
 better, and tables with integer PKs are also processed faster because their
 work can be more efficiently and evenly assigned to parallel processes.
+
+**Current processors**
+
+Use the ``crate_nlp --listprocessors`` or ``crate_nlp --describeprocessors``
+commands to show these.
+
+*Not all have been formally validated.*
+
+A summary as of 2018-12-11 is:
+
+.. list-table::
+  :header-rows: 1
+
+  * - Processor
+    - Description
+
+  * - Ace
+    - Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III) total score.
+
+  * - Basophils
+    - Basophil count (absolute).
+
+  * - Bmi
+    - Body mass index (BMI) (in kg / m^2).
+
+  * - Bp
+    - Blood pressure, in mmHg. (Systolic and diastolic.)
+
+  * - Crp
+    - C-reactive protein (CRP).
+
+  * - Eosinophils
+    - Eosinophil count (absolute).
+
+  * - Esr
+    - Erythrocyte sedimentation rate (ESR).
+
+  * - Height
+    - Height. Handles metric (e.g. "1.8m") and imperial (e.g. "5 ft 2 in").
+
+  * - Lithium
+    - Lithium (Li) levels (for blood tests, not doses).
+
+  * - Lymphocytes
+    - Lymphocyte count (absolute).
+
+  * - MiniAce
+    - Mini-Addenbrooke's Cognitive Examination (M-ACE).
+
+  * - Mmse
+    - Mini-mental state examination (MMSE).
+
+  * - Moca
+    - Montreal Cognitive Assessment (MOCA).
+
+  * - Neutrophils
+    - Neutrophil count (absolute).
+
+  * - Sodium
+    - Sodium (Na).
+
+  * - Tsh
+    - Thyroid-stimulating hormone (TSH).
+
+  * - Wbc
+    - White cell count (WBC, WCC).
+
+  * - Weight
+    - Weight. Handles metric (e.g. "57kg") and imperial (e.g. "10 st 2 lb").
+

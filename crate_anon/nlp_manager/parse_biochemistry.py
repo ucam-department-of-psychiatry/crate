@@ -302,7 +302,7 @@ class SodiumValidator(ValidatorBase):
 
 class Lithium(SimpleNumericalResultParser):
     """
-    Lithium (Li).
+    Lithium (Li) levels (for blood tests, not doses).
     """
     LITHIUM = r"""
         (?: {WORD_BOUNDARY} (?: Li | Lithium ) {WORD_BOUNDARY} )
