@@ -192,8 +192,8 @@ STONES = r"(?: stones? | st\.? )"  # stone(s), st, st.
 L = r"(?: lit(?:re|er)s? | L )"  # L, litre(s), liter(s)
 DL = r"(?: d(?:eci)?{L} )".format(L=L)
 ML = r"(?: m(?:illi)?{L} )".format(L=L)
-# CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} | (?: \b cmm \b ) )""".format(  # noqa
-CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} )""".format(  # noqa
+# CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} )""".format(  # noqa
+CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} | (?: \b cmm \b ) )""".format(  # noqa
     mm=MM,
     mm_cubed=power(MM, 3, allow_no_operator=True)
 )
@@ -462,6 +462,14 @@ def test_unit_regexes(verbose: bool = False) -> None:
     test_text_regex("CELLS", CELLS, [
         ("5 cells", ["cells"]),
         ("5 cell", ["cell"]),
+    ], verbose=verbose)
+    test_text_regex("CELLS_PER_CUBIC_MM", CELLS_PER_CUBIC_MM, [
+        ("9800 / mm3", [" / mm3"]),
+        ("9800 cell/mm3", ["cell/mm3"]),
+        ("9800 cells/mm3", ["cells/mm3"]),
+        ("9800 cells per cubic mm", ["cells per cubic mm"]),
+        ("9800 per cubic mm", [" per cubic mm"]),
+        ("9800 per cmm", [" per cmm"]),
     ], verbose=verbose)
 
     test_text_regex("MILLIMOLES", MILLIMOLES, [
