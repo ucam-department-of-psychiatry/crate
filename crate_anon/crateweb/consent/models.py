@@ -1705,6 +1705,7 @@ class ContactRequest(models.Model):
             lookup_nhs_number: NHS number to look up patient from
             lookup_rid: research ID (RID) to look up patient from
             lookup_mrid: master research ID (MRID) to look up patient from
+            clinician_initiated: was contact request initiated by the clinician?
 
         Returns:
             a :class:`ContactRequest`

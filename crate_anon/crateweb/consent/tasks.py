@@ -309,6 +309,7 @@ def resubmit_unprocessed_tasks_task() -> None:
     for contact_request in ContactRequest.get_unprocessed():
         process_contact_request.delay(contact_request.id)
 
+
 @shared_task(ignore_result=True)
 def generate_automatic_yes(contact_request_id: int,
                            timeout: int = 0) -> None:
@@ -328,6 +329,7 @@ def generate_automatic_yes(contact_request_id: int,
     except ContactRequest.DoesNotExist:
         log.error("ContactRequest with id {} does not exist".format(
             contact_request_id))
+        return
     clinician_response = ClinicianResponse.objects.filter(
         contact_request=contact_request)
     loops = 0

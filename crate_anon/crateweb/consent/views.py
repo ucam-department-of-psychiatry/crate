@@ -588,8 +588,8 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
                         clinician_initiated=True))
             else:
                 msgs.append("You are not listed as the clinician for the "
-                    "patient with rid {} - skipping this request".format(
-                        rid))
+                            "patient with rid {} - skipping this request".format(  # noqa
+                                rid))
 
     # MRIDs
     for mrid in form.cleaned_data['mrids']:
@@ -612,8 +612,8 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
                         clinician_initiated=True))
             else:
                 msgs.append("You are not listed as the clinician for the "
-                    "patient with mrid {} - skipping this request".format(
-                        mrid))
+                            "patient with mrid {} - skipping this request".format(  # noqa
+                                mrid))
 
     for contact_request in contact_requests:
         generate_automatic_yes.delay(contact_request.id)
@@ -820,8 +820,7 @@ def clinician_pack(request: HttpRequest,
                         as_inline=True)
 
 
-def clinician_pack_automatic(request: HttpRequest,
-                             contact_request_id: str) -> HttpResponse:
+def clinician_pack_automatic(contact_request_id: str) -> HttpResponse:
     contact_request = get_object_or_404(
         ContactRequest, pk=contact_request_id)
     pdf = contact_request.get_clinician_pack_pdf()
