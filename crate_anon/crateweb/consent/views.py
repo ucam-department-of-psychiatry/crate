@@ -53,6 +53,7 @@ from crate_anon.crateweb.consent.forms import (
     SingleNhsNumberForm,
     SuperuserSubmitContactRequestForm,
     ResearcherSubmitContactRequestForm,
+    ClinicianSubmitContactRequestForm,
 )
 from crate_anon.crateweb.consent.lookup import lookup_consent, lookup_patient
 from crate_anon.crateweb.consent.models import (
@@ -66,6 +67,7 @@ from crate_anon.crateweb.consent.models import (
     Letter,
     make_dummy_objects,
     PatientLookup,
+    DummyPatientSourceInfo,
     Study,
     TEST_ID_STR,
 )
@@ -73,6 +75,7 @@ from crate_anon.crateweb.consent.storage import privatestorage
 from crate_anon.crateweb.consent.tasks import (
     finalize_clinician_response,
     test_email_rdbm_task,
+    generate_automatic_yes,
 )
 from crate_anon.crateweb.consent.utils import days_to_years
 from crate_anon.crateweb.core.utils import (
@@ -81,6 +84,7 @@ from crate_anon.crateweb.core.utils import (
 )
 from crate_anon.crateweb.extra.pdf import serve_html_or_pdf
 from crate_anon.crateweb.research.research_db_info import research_database_info  # noqa
+from crate_anon.crateweb.research.models import PidLookup, get_mpid
 
 log = logging.getLogger(__name__)
 
@@ -516,6 +520,109 @@ def submit_contact_request(request: HttpRequest) -> HttpResponse:
     })
 
 
+def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
+    """
+    For clinicians to request that their patient is contacted about a study.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+    """
+    dbinfo = research_database_info.dbinfo_for_contact_lookup
+    form = ClinicianSubmitContactRequestForm(
+            data=request.POST if request.method == 'POST' else None,
+            dbinfo=dbinfo)
+    if not form.is_valid():
+        return render(request, 'clinician_contact_request_submit.html', {
+            'db_description': dbinfo.description,
+            'form': form,
+        })
+    study = form.cleaned_data['study']
+    contact_requests = []
+    msgs = []
+
+    # NHS numbers
+    for nhs_number in form.cleaned_data['nhs_numbers']:
+        # patient = PatientLookup.objects.filter(nhs_number=nhs_number).first()
+        patient = DummyPatientSourceInfo.objects.filter(
+            nhs_number=nhs_number).first()
+        # Very insecure!
+        if (patient.clinician_first_name == request.user.first_name
+                and patient.clinician_last_name == request.user.last_name):
+            contact_requests.append(
+                ContactRequest.create(
+                    request=request,
+                    study=study,
+                    request_direct_approach=False,
+                    lookup_nhs_number=nhs_number,
+                    clinician_initiated=True))
+        else:
+            msgs.append("You are not listed as the clinician for the patient "
+                        "with nhs number {} - skipping this request".format(
+                            nhs_number))
+
+    # RIDs
+    for rid in form.cleaned_data['rids']:
+        # contact_request = ContactRequest.create(
+        #     request=request,
+        #     study=study,
+        #     request_direct_approach=False,
+        #     lookup_rid=rid)
+        # Not yet defined:
+        # patient = contact_request.patient_lookup
+        patient_does_not_exist = False
+        try:
+            nhs_num = get_mpid(dbinfo=dbinfo, rid=rid)
+        except PidLookup.DoesNotExist:
+            msgs.append("Patient with rid {} does not exist".format(rid))
+            patient_does_not_exist = True
+        if not patient_does_not_exist:
+            patient = lookup_patient(nhs_num)
+            if (patient.clinician_first_name == request.user.first_name
+                    and patient.clinician_last_name == request.user.last_name):
+                contact_requests.append(
+                    ContactRequest.create(
+                        request=request,
+                        study=study,
+                        request_direct_approach=False,
+                        lookup_rid=rid,
+                        clinician_initiated=True))
+            else:
+                msgs.append("You are not listed as the clinician for the "
+                    "patient with rid {} - skipping this request".format(
+                        rid))
+
+    # MRIDs
+    for mrid in form.cleaned_data['mrids']:
+        patient_does_not_exist = False
+        try:
+            nhs_num = get_mpid(dbinfo=dbinfo, mrid=mrid)
+        except PidLookup.DoesNotExist:
+            msgs.append("Patient with mrid {} does not exist".format(mrid))
+            patient_does_not_exist = True
+        if not patient_does_not_exist:
+            patient = lookup_patient(nhs_num)
+            if (patient.clinician_first_name == request.user.first_name
+                    and patient.clinician_last_name == request.user.last_name):
+                contact_requests.append(
+                    ContactRequest.create(
+                        request=request,
+                        study=study,
+                        request_direct_approach=False,
+                        lookup_mrid=mrid,
+                        clinician_initiated=True))
+            else:
+                msgs.append("You are not listed as the clinician for the "
+                    "patient with mrid {} - skipping this request".format(
+                        mrid))
+
+    for contact_request in contact_requests:
+        generate_automatic_yes.delay(contact_request.id)
+    return render(request, 'clinician_contact_request_result.html', {
+        'contact_requests': contact_requests,
+        'msgs': msgs,
+    })
+
+
 def finalize_clinician_response_in_background(
         request: HttpRequest,
         clinician_response: ClinicianResponse) -> HttpResponse:
@@ -706,6 +813,20 @@ def clinician_pack(request: HttpRequest,
     # Build and serve
     pdf = contact_request.get_clinician_pack_pdf()
     offered_filename = "clinician_pack_{}.pdf".format(clinician_response_id)
+    return serve_buffer(pdf,
+                        offered_filename=offered_filename,
+                        content_type=ContentType.PDF,
+                        as_attachment=False,
+                        as_inline=True)
+
+
+def clinician_pack_automatic(request: HttpRequest,
+                             contact_request_id: str) -> HttpResponse:
+    contact_request = get_object_or_404(
+        ContactRequest, pk=contact_request_id)
+    pdf = contact_request.get_clinician_pack_pdf()
+    offered_filename = "clinician_pack_request_number {}.pdf".format(
+                           contact_request.id)
     return serve_buffer(pdf,
                         offered_filename=offered_filename,
                         content_type=ContentType.PDF,

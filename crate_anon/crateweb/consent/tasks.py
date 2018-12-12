@@ -308,3 +308,53 @@ def resubmit_unprocessed_tasks_task() -> None:
 
     for contact_request in ContactRequest.get_unprocessed():
         process_contact_request.delay(contact_request.id)
+
+@shared_task(ignore_result=True)
+def generate_automatic_yes(contact_request_id: int,
+                           timeout: int = 0) -> None:
+    """
+    Celery task to generate an automtic 'yes' in response to a contact
+    request, e.g. if the request was initiated by the clinician.
+
+    This is in a celery task as it has to wait for the clinician response
+    to be created in another celery task, so it should be in the background.
+    """
+    from django.db import transaction  # delayed import
+    from crate_anon.crateweb.consent.models import ClinicianResponse  # delayed import  # noqa
+    from crate_anon.crateweb.consent.models import ContactRequest  # delayed import  # noqa
+    import time  # delayed import
+    try:
+        contact_request = ContactRequest.objects.get(id=contact_request_id)
+    except ContactRequest.DoesNotExist:
+        log.error("ContactRequest with id {} does not exist".format(
+            contact_request_id))
+    clinician_response = ClinicianResponse.objects.filter(
+        contact_request=contact_request)
+    loops = 0
+    while not clinician_response:
+        clinician_response = ClinicianResponse.objects.filter(
+            contact_request=contact_request)
+        if timeout:
+            if loops > timeout:
+                log.warning("Timeout occured in 'generate_automatic_yes'")
+                return
+            time.sleep(1)
+        loops += 1
+            
+    clinician_response = clinician_response[0]
+    clinician_response.email_choice = ClinicianResponse.EMAIL_CHOICE_Y
+    # Automate a 'yes' response from the clinicain
+    clinician_response.get_abs_url_yes()
+    clinician_response.finalize_a()  # first part of processing
+    transaction.on_commit(
+        lambda: finalize_clinician_response.delay(clinician_response.id)
+    )
+
+
+
+
+
+
+
+
+

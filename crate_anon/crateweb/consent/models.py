@@ -1673,6 +1673,7 @@ class ContactRequest(models.Model):
     consent_withdrawn = models.BooleanField(default=False)
     consent_withdrawn_at = models.DateTimeField(
         verbose_name="When consent withdrawn", null=True)
+    clinician_initiated = models.BooleanField(default=False)
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -1691,7 +1692,8 @@ class ContactRequest(models.Model):
                request_direct_approach: bool,
                lookup_nhs_number: int = None,
                lookup_rid: str = None,
-               lookup_mrid: str = None) -> CONTACT_REQUEST_FWD_REF:
+               lookup_mrid: str = None,
+               clinician_initiated: bool = False) -> CONTACT_REQUEST_FWD_REF:
         """
         Create a contact request and act on it.
 
@@ -1714,7 +1716,8 @@ class ContactRequest(models.Model):
                  request_direct_approach=request_direct_approach,
                  lookup_nhs_number=lookup_nhs_number,
                  lookup_rid=lookup_rid,
-                 lookup_mrid=lookup_mrid)
+                 lookup_mrid=lookup_mrid,
+                 clinician_initiated=clinician_initiated)
         cr.save()
         transaction.on_commit(
             lambda: process_contact_request.delay(cr.id)

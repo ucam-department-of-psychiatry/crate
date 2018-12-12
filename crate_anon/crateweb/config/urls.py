@@ -217,6 +217,12 @@ urlpatterns = [
     url(r'^all_text_from_pid_with_db/(?P<dbname>[a-zA-Z0-9_]+)/$',
         research_views.all_text_from_pid_with_db,
         name='all_text_from_pid_with_db'),
+    url(r'^clinician_contact_request/$',
+        consent_views.clinician_initiated_contact_request,
+        name='clinician_contact_request'),
+    url(r'^clinician_pack_auto/(?P<contact_request_id>-?[0-9]+)/$',
+        consent_views.clinician_pack_automatic,
+        name='clinician_pack_auto'),
 
     # -------------------------------------------------------------------------
     # Look up PID/RID

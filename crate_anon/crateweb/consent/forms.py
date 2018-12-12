@@ -139,6 +139,32 @@ class ResearcherSubmitContactRequestForm(AbstractContactRequestForm):
                                               dbinfo.mrid_description)
 
 
+class ClinicianSubmitContactRequestForm(AbstractContactRequestForm):
+    """
+    Form for clinician to request that a patient of their's gets contacted
+    about a study.
+    """
+    study = forms.ModelChoiceField(
+        queryset=Study.get_queryset_possible_contact_studies())
+    nhs_numbers = MultipleNhsNumberAreaField(label='NHS numbers',
+                                             required=False)
+    rids = MultipleWordAreaField(required=False)
+    mrids = MultipleWordAreaField(required=False)
+
+    def __init__(self,
+                 *args,
+                 dbinfo: SingleResearchDatabase,
+                 **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        rids = self.fields['rids']  # type: MultipleWordAreaField
+        mrids = self.fields['mrids']  # type: MultipleWordAreaField
+
+        rids.label = "{} ({}) (RID)".format(dbinfo.rid_field,
+                                            dbinfo.rid_description)
+        mrids.label = "{} ({}) (MRID)".format(dbinfo.mrid_field,
+                                              dbinfo.mrid_description)
+
+
 class ClinicianResponseForm(forms.ModelForm):
     """
     Form for clinicians to respond to a contact request.

@@ -1,0 +1,46 @@
+{# clinician_contact_request_result.html #}
+{% extends "base.html" %}
+
+{% comment %}
+    template parameters:
+        request: HttpRequest
+        contact_requests: List[ContactRequest]
+        msgs: List[str]
+{% endcomment %}
+
+{% block content %}
+
+    <h1>Contact requests created for background processing</h1>
+
+    <p>Please print out the customized information packs.</p>
+    
+    <table>
+        <tr>
+            <th>Contact request ID</th>
+            <th>NHS number used for lookup</th>
+            <th>RID used for lookup</th>
+            <th>MRID used for lookup</th>
+            <th>Customized Information Pack</th>
+            {% if request.user.is_superuser %}
+                <th>View in RDBM admin site</th>
+            {% endif %}
+        </tr>
+        {% for cr in contact_requests %}
+            <tr>
+                <td>{{ cr.id }}</td>
+                <td>{{ cr.lookup_nhs_number }}</td>
+                <td>{{ cr.lookup_rid }}</td>
+                <td>{{ cr.lookup_mrid }}</td>
+                <td><a href="{% url 'clinician_pack_auto' cr.id %}">View</a></td>
+                {% if request.user.is_superuser %}
+                    <td><a href="{{ cr.get_mgr_admin_url }}">view contact request {{ cr.id }}</a></td>
+                {% endif %}
+            </tr>
+        {% endfor %}
+    </table>
+
+    {% for msg in msgs %}
+        <p>{{ msg }}</p>
+    {% endfor %}
+
+{% endblock %}
