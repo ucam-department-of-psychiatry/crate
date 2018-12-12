@@ -55,6 +55,7 @@ from crate_anon.nlp_manager.regex_parser import (
 )
 from crate_anon.nlp_manager.regex_numbers import SIGNED_FLOAT
 from crate_anon.nlp_manager.regex_units import (
+    G,
     MG,
     MG_PER_DL,
     MG_PER_L,
@@ -296,6 +297,113 @@ class SodiumValidator(ValidatorBase):
 
 
 # =============================================================================
+#  Lithium (Li)
+# =============================================================================
+
+class Lithium(SimpleNumericalResultParser):
+    """
+    Lithium (Li) levels (for blood tests, not doses).
+    """
+    LITHIUM = r"""
+        (?: {WORD_BOUNDARY} (?: Li | Lithium ) {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    REGEX = r"""
+        ( {LITHIUM} )                      # group for "Li" or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                    # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )                 # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                  # optional group for units
+            {MILLIMOLAR}                        # good
+            | {MILLIMOLES_PER_L}                # good
+            | {MILLIEQ_PER_L}                   # good
+            | {MG}                              # bad
+            | {G}                               # bad
+        )?
+    """.format(
+        LITHIUM=LITHIUM,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        MILLIMOLAR=MILLIMOLAR,
+        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
+        MILLIEQ_PER_L=MILLIEQ_PER_L,
+        MG=MG,
+        G=G,
+    )
+    NAME = "Lithium"
+    PREFERRED_UNIT_COLUMN = "value_mmol_L"
+    UNIT_MAPPING = {
+        MILLIMOLAR: 1,       # preferred unit
+        MILLIMOLES_PER_L: 1,
+        MILLIEQ_PER_L: 1,
+        # but not MG
+        # and not G
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in parent class
+        self.test_numerical_parser([
+            ("Li", []),  # should fail; no values
+            ("Li 0.4", [0.4]),
+            ("li 1200 mg", []),  # that's a dose
+            ("li 1.2 g", []),  # that's a dose
+            ("lithium 1200 mg", []),  # that's a dose
+            ("lithium 153", [153]),  # an unhappy patient...
+            ("Li 135 mEq/L", [135]),
+            ("Li 139 mM", [139]),
+            ("lithium carbonate 800mg", []),
+            ("Present: Linda Ingles (LI). 1.0 Minutes of last meeting", []),
+            ("Present: Linda Ingles (LI) 1.0 Minutes of last meeting", []),
+            ("Li (H) 1.3 mM", [1.3]),
+            ("Li (*) 1.3 mM", [1.3]),
+            ("Li (X) 1.3 mM", []),
+            ("blah (Li) 1.2 mM", []),
+            ("Li (1.3) something", [1.3]),
+            ("Li (0.4 mM), others", [0.4]),
+            ("Li-0.4", [0.4])
+        ], verbose=verbose)
+
+
+class LithiumValidator(ValidatorBase):
+    """
+    Validator for Lithium
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[Lithium.LITHIUM],
+                         validated_variable=Lithium.NAME,
+                         commit=commit)
+
+
+# =============================================================================
 #  Thyroid-stimulating hormone (TSH)
 # =============================================================================
 
@@ -396,6 +504,8 @@ def test_all(verbose: bool = False) -> None:
     crp.test(verbose=verbose)
     na = Sodium(None, None)
     na.test(verbose=verbose)
+    li = Lithium(None, None)
+    li.test(verbose=verbose)
     tsh = Tsh(None, None)
     tsh.test(verbose=verbose)
 

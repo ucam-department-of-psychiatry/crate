@@ -744,6 +744,15 @@ Changes
   :func:`crate_anon.crateweb.research.models.get_executed_researchdb_cursor`,
   which was double-wrapping a database cursor incorrectly.
 
+**v0.18.57, 2018-12-11**
+
+- New lithium NLP processor (still needs external validation).
+
+- Bugfix: "cmm" was meant to be accepted as an abbreviation for "cubic mm" as
+  per v0.18.53 above, but wasn't. Rechecked all with ``test_all_regex.py`` and
+  added additional specific tests for this unit in
+  :func:`crate_anon.nlp_manager.regex_units.test_unit_regexes`. All passing.
+
 
 
 
