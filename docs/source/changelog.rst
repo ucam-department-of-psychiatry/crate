@@ -753,6 +753,16 @@ Changes
   added additional specific tests for this unit in
   :func:`crate_anon.nlp_manager.regex_units.test_unit_regexes`. All passing.
 
+**v0.18.58, 2018-12-23**
+
+- Clinician requests added so that a clinician can request that their patient
+  is included in a study.
+
+- Bugfix to
+  :func:`crate_anon.preprocess.preprocess_rio.main`. Changed 'progargs.rio'
+  to 'rio'.
+  
+
 
 
 
