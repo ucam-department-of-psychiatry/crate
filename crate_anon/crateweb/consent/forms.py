@@ -150,10 +150,17 @@ class ClinicianSubmitContactRequestForm(AbstractContactRequestForm):
                                              required=False)
     rids = MultipleWordAreaField(required=False)
     mrids = MultipleWordAreaField(required=False)
+    email = forms.EmailField(
+        required=True,
+        label="Please ensure we have the correct email address for you")
+    let_rdbm_contact_pt = forms.BooleanField(
+        label="Get the database manager to contact the patient directly",
+        required=False)
 
     def __init__(self,
                  *args,
                  dbinfo: SingleResearchDatabase,
+                 email_addr: str,
                  **kwargs) -> None:
         super().__init__(*args, **kwargs)
         rids = self.fields['rids']  # type: MultipleWordAreaField
@@ -163,6 +170,8 @@ class ClinicianSubmitContactRequestForm(AbstractContactRequestForm):
                                             dbinfo.rid_description)
         mrids.label = "{} ({}) (MRID)".format(dbinfo.mrid_field,
                                               dbinfo.mrid_description)
+        email = self.fields['email']
+        email.initial = email_addr
 
 
 class ClinicianResponseForm(forms.ModelForm):

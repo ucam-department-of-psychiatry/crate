@@ -12,7 +12,14 @@
 
     <h1>Contact requests created for background processing</h1>
 
-    <p>Please print out the customized information packs.</p>
+    {% if let_rdbm_contact_pt %}
+        <p>Customized information packs are provided for your information, but
+           there is no need to pass them on to the patients as you have requested that
+           this is done for you.</p>
+    {% else %}
+        <p>Please print out the customized information packs and pass them on to
+           the patients.</p>
+    {% endif %}
     
     <table>
         <tr>

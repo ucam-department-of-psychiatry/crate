@@ -1674,6 +1674,7 @@ class ContactRequest(models.Model):
     consent_withdrawn_at = models.DateTimeField(
         verbose_name="When consent withdrawn", null=True)
     clinician_initiated = models.BooleanField(default=False)
+    clinician_email = models.TextField(null=True, default=None)
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -1693,7 +1694,8 @@ class ContactRequest(models.Model):
                lookup_nhs_number: int = None,
                lookup_rid: str = None,
                lookup_mrid: str = None,
-               clinician_initiated: bool = False) -> CONTACT_REQUEST_FWD_REF:
+               clinician_initiated: bool = False,
+               clinician_email: str = None) -> CONTACT_REQUEST_FWD_REF:
         """
         Create a contact request and act on it.
 
@@ -1706,6 +1708,7 @@ class ContactRequest(models.Model):
             lookup_rid: research ID (RID) to look up patient from
             lookup_mrid: master research ID (MRID) to look up patient from
             clinician_initiated: was contact request initiated by the clinician?
+            clinician_email: override the clinician email in patient_lookup
 
         Returns:
             a :class:`ContactRequest`
@@ -1718,7 +1721,8 @@ class ContactRequest(models.Model):
                  lookup_nhs_number=lookup_nhs_number,
                  lookup_rid=lookup_rid,
                  lookup_mrid=lookup_mrid,
-                 clinician_initiated=clinician_initiated)
+                 clinician_initiated=clinician_initiated,
+                 clinician_email=clinician_email)
         cr.save()
         transaction.on_commit(
             lambda: process_contact_request.delay(cr.id)
@@ -1775,6 +1779,9 @@ class ContactRequest(models.Model):
             raise ValueError("No NHS number, RID, or MRID supplied.")
         # Look up patient details (afresh)
         self.patient_lookup = lookup_patient(self.nhs_number, save=True)
+        # We may need to input clinician email manually, otherwise use default
+        if not self.clinician_email:
+            self.clinician_email = self.patient_lookup.clinician_email
         # Establish consent mode (always do this to avoid NULL problem)
         ConsentMode.refresh_from_primary_clinical_record(
             nhs_number=self.nhs_number,
@@ -1913,7 +1920,7 @@ class ContactRequest(models.Model):
         if not self.patient_lookup.clinician_found:
             self.stop("don't know clinician; can't proceed")
             return
-        clinician_emailaddr = self.patient_lookup.clinician_email
+        clinician_emailaddr = self.clinician_email
         try:
             validate_email(clinician_emailaddr)
         except ValidationError:
@@ -3048,7 +3055,7 @@ class Email(models.Model):
             an :class:`Email`
 
         """
-        recipient = contact_request.patient_lookup.clinician_email
+        recipient = contact_request.clinician_email
         # noinspection PyUnresolvedReferences
         subject = (
             "RESEARCH REQUEST on behalf of {researcher}, contact request "

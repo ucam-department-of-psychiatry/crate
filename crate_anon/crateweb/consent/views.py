@@ -30,7 +30,7 @@ crate_anon/crateweb/consent/views.py
 
 import logging
 import mimetypes
-from typing import List, Optional
+from typing import List
 
 from cardinal_pythonlib.django.serve import (
     serve_buffer,
@@ -67,7 +67,6 @@ from crate_anon.crateweb.consent.models import (
     Letter,
     make_dummy_objects,
     PatientLookup,
-    DummyPatientSourceInfo,
     Study,
     TEST_ID_STR,
 )
@@ -528,98 +527,91 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
         request: the :class:`django.http.request.HttpRequest`
     """
     dbinfo = research_database_info.dbinfo_for_contact_lookup
+    email = request.user.email
     form = ClinicianSubmitContactRequestForm(
             data=request.POST if request.method == 'POST' else None,
-            dbinfo=dbinfo)
+            dbinfo=dbinfo,
+            email_addr=email)
     if not form.is_valid():
         return render(request, 'clinician_contact_request_submit.html', {
             'db_description': dbinfo.description,
             'form': form,
         })
     study = form.cleaned_data['study']
+    let_rdbm_contact_pt = form.cleaned_data['let_rdbm_contact_pt']
     contact_requests = []
     msgs = []
 
     # NHS numbers
     for nhs_number in form.cleaned_data['nhs_numbers']:
-        # patient = PatientLookup.objects.filter(nhs_number=nhs_number).first()
-        patient = DummyPatientSourceInfo.objects.filter(
-            nhs_number=nhs_number).first()
-        # Very insecure!
-        if (patient.clinician_first_name == request.user.first_name
-                and patient.clinician_last_name == request.user.last_name):
+        patient = PatientLookup.objects.filter(nhs_number=nhs_number).first()
+        if patient:
             contact_requests.append(
                 ContactRequest.create(
                     request=request,
                     study=study,
                     request_direct_approach=False,
                     lookup_nhs_number=nhs_number,
-                    clinician_initiated=True))
+                    clinician_initiated=True,
+                    clinician_email=form.cleaned_data['email']
+                )
+            )
         else:
-            msgs.append("You are not listed as the clinician for the patient "
-                        "with nhs number {} - skipping this request".format(
-                            nhs_number))
+            msgs.append("Patient with nhs number {} does not exist".format(
+                nhs_number))
 
     # RIDs
     for rid in form.cleaned_data['rids']:
-        # contact_request = ContactRequest.create(
-        #     request=request,
-        #     study=study,
-        #     request_direct_approach=False,
-        #     lookup_rid=rid)
-        # Not yet defined:
-        # patient = contact_request.patient_lookup
         patient_does_not_exist = False
         try:
-            nhs_num = get_mpid(dbinfo=dbinfo, rid=rid)
+            get_mpid(dbinfo=dbinfo, rid=rid)
         except PidLookup.DoesNotExist:
             msgs.append("Patient with rid {} does not exist".format(rid))
             patient_does_not_exist = True
         if not patient_does_not_exist:
-            patient = lookup_patient(nhs_num)
-            if (patient.clinician_first_name == request.user.first_name
-                    and patient.clinician_last_name == request.user.last_name):
-                contact_requests.append(
-                    ContactRequest.create(
-                        request=request,
-                        study=study,
-                        request_direct_approach=False,
-                        lookup_rid=rid,
-                        clinician_initiated=True))
-            else:
-                msgs.append("You are not listed as the clinician for the "
-                            "patient with rid {} - skipping this request".format(  # noqa
-                                rid))
+            contact_requests.append(
+                ContactRequest.create(
+                    request=request,
+                    study=study,
+                    request_direct_approach=False,
+                    lookup_rid=rid,
+                    clinician_initiated=True,
+                    clinician_email=form.cleaned_data['email']
+                )
+            )
 
     # MRIDs
     for mrid in form.cleaned_data['mrids']:
         patient_does_not_exist = False
         try:
-            nhs_num = get_mpid(dbinfo=dbinfo, mrid=mrid)
+            get_mpid(dbinfo=dbinfo, mrid=mrid)
         except PidLookup.DoesNotExist:
             msgs.append("Patient with mrid {} does not exist".format(mrid))
             patient_does_not_exist = True
         if not patient_does_not_exist:
-            patient = lookup_patient(nhs_num)
-            if (patient.clinician_first_name == request.user.first_name
-                    and patient.clinician_last_name == request.user.last_name):
-                contact_requests.append(
-                    ContactRequest.create(
-                        request=request,
-                        study=study,
-                        request_direct_approach=False,
-                        lookup_mrid=mrid,
-                        clinician_initiated=True))
-            else:
-                msgs.append("You are not listed as the clinician for the "
-                            "patient with mrid {} - skipping this request".format(  # noqa
-                                mrid))
+            contact_requests.append(
+                ContactRequest.create(
+                    request=request,
+                    study=study,
+                    request_direct_approach=False,
+                    lookup_mrid=mrid,
+                    clinician_initiated=True,
+                    clinician_email=form.cleaned_data['email']
+                )
+            )
 
     for contact_request in contact_requests:
-        generate_automatic_yes.delay(contact_request.id)
+        # consent_mode = contact_request.consent_mode.consent_mode
+        # if (consent_mode == ConsentMode.GREEN or
+        #         consent_mode == ConsentMode.YELLOW):
+        generate_automatic_yes.delay(
+            contact_request.id,
+            rdbm_to_contact_pt=let_rdbm_contact_pt)
+            
     return render(request, 'clinician_contact_request_result.html', {
         'contact_requests': contact_requests,
         'msgs': msgs,
+        'let_rdbm_contact_pt': let_rdbm_contact_pt,
     })
 
 
@@ -820,7 +812,8 @@ def clinician_pack(request: HttpRequest,
                         as_inline=True)
 
 
-def clinician_pack_automatic(contact_request_id: str) -> HttpResponse:
+def clinician_pack_automatic(request: HttpRequest,
+                             contact_request_id: str) -> HttpResponse:
     contact_request = get_object_or_404(
         ContactRequest, pk=contact_request_id)
     pdf = contact_request.get_clinician_pack_pdf()

@@ -312,6 +312,7 @@ def resubmit_unprocessed_tasks_task() -> None:
 
 @shared_task(ignore_result=True)
 def generate_automatic_yes(contact_request_id: int,
+                           rdbm_to_contact_pt: bool,
                            timeout: int = 0) -> None:
     """
     Celery task to generate an automtic 'yes' in response to a contact
@@ -345,8 +346,11 @@ def generate_automatic_yes(contact_request_id: int,
             
     clinician_response = clinician_response[0]
     clinician_response.email_choice = ClinicianResponse.EMAIL_CHOICE_Y
+    if rdbm_to_contact_pt:
+        clinician_response.response = ClinicianResponse.RESPONSE_R
+    else:
+        clinician_response.response = ClinicianResponse.RESPONSE_A
     # Automate a 'yes' response from the clinicain
-    clinician_response.get_abs_url_yes()
     clinician_response.finalize_a()  # first part of processing
     transaction.on_commit(
         lambda: finalize_clinician_response.delay(clinician_response.id)
