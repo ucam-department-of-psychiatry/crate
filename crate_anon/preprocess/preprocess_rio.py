@@ -1392,7 +1392,7 @@ def main() -> None:
              "(RCEP) databases")
     safeargs = {k: v for k, v in vars(progargs).items() if k != 'url'}
     log.debug("args (except url): {}".format(repr(safeargs)))
-    log.info("RiO mode" if progargs.rio else "RCEP mode")
+    log.info("RiO mode" if rio else "RCEP mode")
 
     if progargs.postcodedb and not progargs.geogcols:
         raise ValueError(
@@ -1432,7 +1432,7 @@ def main() -> None:
 
     if progargs.drop_danger_drop:
         # Drop views (and view-induced table indexes) first
-        if progargs.rio:
+        if rio:
             drop_rio_views(engine, metadata, configoptions, ddhint)
         drop_view(engine, VIEW_ADDRESS_WITH_GEOGRAPHY)
         if not progargs.debug_skiptables:
@@ -1443,7 +1443,7 @@ def main() -> None:
             process_all_tables(engine, metadata, configoptions)
         if progargs.postcodedb:
             add_postcode_geography_view(engine, configoptions, ddhint)
-        if progargs.rio:
+        if rio:
             create_rio_views(engine, metadata, configoptions, ddhint)
 
     if progargs.settings_filename:
