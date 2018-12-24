@@ -762,7 +762,11 @@ Changes
   :func:`crate_anon.preprocess.preprocess_rio.main`. Changed 'progargs.rio'
   to 'rio'.
   
+**v0.18.59, 2018-12-24**
 
+- Bugfix to
+  :func:`clinician_initiated_contact_request`. Now checks that patient's
+  consent mode is green or yellow before confirming request.
 
 
 
