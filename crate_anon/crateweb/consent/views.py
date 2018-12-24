@@ -601,12 +601,12 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
             )
 
     for contact_request in contact_requests:
-        # consent_mode = contact_request.consent_mode.consent_mode
-        # if (consent_mode == ConsentMode.GREEN or
-        #         consent_mode == ConsentMode.YELLOW):
-        generate_automatic_yes.delay(
-            contact_request.id,
-            rdbm_to_contact_pt=let_rdbm_contact_pt)
+        consent_mode = contact_request.consent_mode.consent_mode
+        if (consent_mode == ConsentMode.GREEN or
+                consent_mode == ConsentMode.YELLOW):
+            generate_automatic_yes.delay(
+                contact_request.id,
+                rdbm_to_contact_pt=let_rdbm_contact_pt)
             
     return render(request, 'clinician_contact_request_result.html', {
         'contact_requests': contact_requests,
