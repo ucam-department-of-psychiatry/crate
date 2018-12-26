@@ -1,0 +1,77 @@
+{# email_clinician_initiated_cr.html #}
+{% extends 'base_email.html' %}
+
+{% comment %}
+    template parameters:
+        consent_mode: ConsentMode
+        contact_request: ContactRequest
+        clinician_response: ClinicianResponse
+        patient_lookup: PatientLookup
+        settings: Django settings object
+        study: Study
+        url_pack: str
+{% endcomment %}
+
+{% block content %}
+
+    <p>Dear {{ patient_lookup.clinician_salutation }},</p>
+
+    <p>According to our records you have requested that one of your patients be
+       included in a study.</p>
+
+    {% include "patient_table.html" with patient_lookup=patient_lookup consent_mode=consent_mode verbose=True %}
+
+       {% comment %}
+           Should we not include patient table for security reasons? - Clinician
+           could mistype email address
+       {% endcomment %}
+    
+    <p>The study is:</p>
+    {% include "study_table.html" with study=study contact_request=contact_request to_clinician=True include_details=False include_clinician_form=False include_sex=True %}
+
+    {% if contact_request.rdbm_to_contact_pt %}
+        <p>
+            The Research Database Manager will contact the patient on your behalf.
+        </p>
+    {% else %}
+        <p>
+            Please print out the customized information pack, available
+            <a href="{{ url_pack }}">here</a>.
+        </p>
+    {% endif %}
+
+    <p>
+        Donations will be made to local mental health charities as a result
+        of your participation.
+    </p>
+    <p>
+        <b>Don’t reply to this e-mail.</b>
+        If you’d like help, please telephone the Research Database Manager,
+        {{ settings.RDBM_NAME }}, on {{ settings.RDBM_TELEPHONE }}, or e-mail
+        <a href="mailto:{{ settings.RDBM_EMAIL }}">{{ settings.RDBM_EMAIL }}</a>
+        <!--
+            Terminal full stop removed from sentence above, as people were
+            copying/pasting it. Adding a space won't help; the problem is
+            "copy, paste, it fails, complain", so it just has to work.
+        -->
+    </p>
+    {% comment %}
+        In case clinician mistypes email address
+    {% endcomment %}
+    <p>
+        <b>The information in this email is confidential. If you did not make this
+           request please inform the Research Database Manager using the contact
+           details above.</b>
+    </p>
+
+    <p>Many thanks for your help!</p>
+
+    <p>Yours sincerely,</p>
+
+    <p><i>The CPFT Research Database Computer</i></p>
+
+    <p>P.S. Sorry this is an automated e-mail. A computer has generated
+    this e-mail as part of a process that restricts access to confidential
+    patient-identifiable information.</p>
+
+{% endblock %}

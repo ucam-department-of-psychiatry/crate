@@ -94,6 +94,7 @@ from crate_anon.crateweb.consent.tasks import (
     email_rdbm_task,
     process_consent_change,
     process_contact_request,
+    finalize_clinician_response,
 )
 from crate_anon.crateweb.consent.teamlookup import get_teams
 from crate_anon.crateweb.consent.utils import (
@@ -1675,6 +1676,8 @@ class ContactRequest(models.Model):
         verbose_name="When consent withdrawn", null=True)
     clinician_initiated = models.BooleanField(default=False)
     clinician_email = models.TextField(null=True, default=None)
+    # Specifically for clinician-initiated case:
+    rdbm_to_contact_pt = models.BooleanField(default=False)
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -1695,7 +1698,8 @@ class ContactRequest(models.Model):
                lookup_rid: str = None,
                lookup_mrid: str = None,
                clinician_initiated: bool = False,
-               clinician_email: str = None) -> CONTACT_REQUEST_FWD_REF:
+               clinician_email: str = None,
+               rdbm_to_contact_pt: bool = False) -> CONTACT_REQUEST_FWD_REF:
         """
         Create a contact request and act on it.
 
@@ -1707,7 +1711,7 @@ class ContactRequest(models.Model):
             lookup_nhs_number: NHS number to look up patient from
             lookup_rid: research ID (RID) to look up patient from
             lookup_mrid: master research ID (MRID) to look up patient from
-            clinician_initiated: was contact request initiated by the clinician?
+            clinician_initiated: contact request initiated by the clinician?
             clinician_email: override the clinician email in patient_lookup
 
         Returns:
@@ -1722,7 +1726,8 @@ class ContactRequest(models.Model):
                  lookup_rid=lookup_rid,
                  lookup_mrid=lookup_mrid,
                  clinician_initiated=clinician_initiated,
-                 clinician_email=clinician_email)
+                 clinician_email=clinician_email,
+                 rdbm_to_contact_pt=rdbm_to_contact_pt)
         cr.save()
         transaction.on_commit(
             lambda: process_contact_request.delay(cr.id)
@@ -1959,6 +1964,24 @@ class ContactRequest(models.Model):
             self.decide("WARNING: clinician has already rejected a request "
                         "about this patient/study.")
 
+        # If the request is clinician initiated, we need to send a different
+        # email. This will also create a clinician response and set the
+        # clinician's response to either 'yes I will contact the patient' or
+        # 'yes but let the RDBM contact them for me'
+        if self.clinician_initiated:
+            email = Email.create_clinician_initiated_cr_email(self)
+            emailtransmission = email.send()
+            if not emailtransmission.sent:
+                # noinspection PyTypeChecker
+                self.decide(emailtransmission.failure_reason)
+                self.stop("Failed to send e-mail to clinician at {}".format(
+                    clinician_emailaddr))
+            self.decided_send_to_clinician = True
+            self.decide(
+                "Sent request to clinician at {}".format(clinician_emailaddr))
+            return
+            
+
         # Send e-mail to clinician
         # noinspection PyTypeChecker
         email = Email.create_clinician_email(self)
@@ -2175,6 +2198,45 @@ class ContactRequest(models.Model):
                     settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS),  # noqa
         }
         return render_email_html_to_string('email_clinician.html', context)
+
+    def get_clinician_initiated_email_html(self, save: bool = True) -> str:
+        """
+        Email to clinician confirming a clinician-initiated contact request.
+        Will inlcude a link to the clinician pack if they do not want the RDBM
+        to contact the patient for them. Also sets the clinician's response.
+
+        Args:
+            save: save the e-mail to the database? (Only false for testing.)
+
+        Returns:
+            HTML for this e-mail
+
+        """
+        clinician_response = ClinicianResponse.create(self, save=save)
+        if not save:
+            clinician_response.id = -1  # dummy PK, guaranteed to fail
+        if self.rdbm_to_contact_pt:
+            clinician_response.response = ClinicianResponse.RESPONSE_R
+        else:
+            clinician_response.response = ClinicianResponse.RESPONSE_A
+        clinician_response.finalize_a()  # first part of processing
+        transaction.on_commit(
+            lambda: finalize_clinician_response.delay(clinician_response.id)
+        )
+        rev = reverse("clinician_pack", args=[clinician_response.id,
+                                              clinician_response.token])
+        url_pack = site_absolute_url(rev)
+        context = {
+            'contact_request': self,
+            'study': self.study,
+            'patient_lookup': self.patient_lookup,
+            'consent_mode': self.consent_mode,
+            'clinician_response': clinician_response,
+            'settings': settings,
+            'url_pack': url_pack,
+        }
+        return render_email_html_to_string('email_clinician_initiated_cr.html',
+                                           context)
 
     def get_approval_letter_html(self) -> str:
         """
@@ -3066,6 +3128,40 @@ class Email(models.Model):
             )
         )
         html = contact_request.get_clinician_email_html()
+        email = cls(recipient=recipient,
+                    subject=subject,
+                    msg_html=html,
+                    study=contact_request.study,
+                    contact_request=contact_request,
+                    to_clinician=True)
+        email.save()
+        return email
+
+    @classmethod
+    def create_clinician_initiated_cr_email(
+            cls,
+            contact_request: ContactRequest)-> EMAIL_FWD_REF:
+        """
+        Creates an e-mail to a clinician when they have initiated a contact
+        request. This email will give them a link to the clinician pack if
+        they said they'd contact the patient.
+
+        Args:
+            contact_request: a :class:`ContactRequest`
+
+        Returns:
+            an :class:`Email`
+
+        """
+        recipient = contact_request.clinician_email
+        # noinspection PyUnresolvedReferences
+        subject = (
+            "Confirmation of request for patient to be included in study. "
+            "Contact request code {contact_req_code}".format(
+                contact_req_code=contact_request.id
+            )
+        )
+        html = contact_request.get_clinician_initiated_email_html()
         email = cls(recipient=recipient,
                     subject=subject,
                     msg_html=html,

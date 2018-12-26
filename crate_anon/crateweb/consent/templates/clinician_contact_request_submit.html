@@ -4,6 +4,9 @@
 {% comment %}
     template parameters:
         form: Form
+        db_description: str
+        permitted_to_contact_discharged_patients_for_n_days: int
+        permitted_to_contact_discharged_patients_for_n_years: str
 {% endcomment %}
 
 {% block content %}
@@ -16,6 +19,21 @@
        You will receive an email about this (for each patient you submit)
        but you do not need to act on it as we already have your affirmative
        response.</p>
+
+    <div class="warning">
+        <ul>
+            <li>Please make sure you only enter details of patients under
+                your care.
+            </li>
+            <li>CPFT has ethics approval to contact patients for up
+                to {{ permitted_to_contact_discharged_patients_for_n_days }} days
+                ({{ permitted_to_contact_discharged_patients_for_n_years }} years)
+                after discharge, without specific consent. Please do not enter
+                details for patients who have been discharged longer ago than this
+                unless they specifically consented to being contacted after discharge.
+            </li>
+        </ul>
+    </div>
 
     <form action="{% url 'clinician_contact_request' %}" method="post">
         {% csrf_token %}

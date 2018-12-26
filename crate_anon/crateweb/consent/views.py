@@ -74,7 +74,6 @@ from crate_anon.crateweb.consent.storage import privatestorage
 from crate_anon.crateweb.consent.tasks import (
     finalize_clinician_response,
     test_email_rdbm_task,
-    generate_automatic_yes,
 )
 from crate_anon.crateweb.consent.utils import days_to_years
 from crate_anon.crateweb.core.utils import (
@@ -536,6 +535,11 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
         return render(request, 'clinician_contact_request_submit.html', {
             'db_description': dbinfo.description,
             'form': form,
+            'permitted_to_contact_discharged_patients_for_n_days':
+                settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS,
+            'permitted_to_contact_discharged_patients_for_n_years':
+                days_to_years(
+                    settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS),  # noqa
         })
     study = form.cleaned_data['study']
     let_rdbm_contact_pt = form.cleaned_data['let_rdbm_contact_pt']
@@ -553,7 +557,8 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
                     request_direct_approach=False,
                     lookup_nhs_number=nhs_number,
                     clinician_initiated=True,
-                    clinician_email=form.cleaned_data['email']
+                    clinician_email=form.cleaned_data['email'],
+                    rdbm_to_contact_pt=let_rdbm_contact_pt
                 )
             )
         else:
@@ -576,7 +581,8 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
                     request_direct_approach=False,
                     lookup_rid=rid,
                     clinician_initiated=True,
-                    clinician_email=form.cleaned_data['email']
+                    clinician_email=form.cleaned_data['email'],
+                    rdbm_to_contact_pt=let_rdbm_contact_pt
                 )
             )
 
@@ -596,17 +602,18 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
                     request_direct_approach=False,
                     lookup_mrid=mrid,
                     clinician_initiated=True,
-                    clinician_email=form.cleaned_data['email']
+                    clinician_email=form.cleaned_data['email'],
+                    rdbm_to_contact_pt=let_rdbm_contact_pt
                 )
             )
 
-    for contact_request in contact_requests:
-        consent_mode = contact_request.consent_mode.consent_mode
-        if (consent_mode == ConsentMode.GREEN or
-                consent_mode == ConsentMode.YELLOW):
-            generate_automatic_yes.delay(
-                contact_request.id,
-                rdbm_to_contact_pt=let_rdbm_contact_pt)
+    # for contact_request in contact_requests:
+    #     # consent_mode = contact_request.consent_mode.consent_mode
+    #     # if (consent_mode == ConsentMode.GREEN or
+    #     #         consent_mode == ConsentMode.YELLOW):
+    #     generate_automatic_yes.delay(
+    #         contact_request.id,
+    #         rdbm_to_contact_pt=let_rdbm_contact_pt)
             
     return render(request, 'clinician_contact_request_result.html', {
         'contact_requests': contact_requests,
