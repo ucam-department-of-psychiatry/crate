@@ -819,20 +819,6 @@ def clinician_pack(request: HttpRequest,
                         as_inline=True)
 
 
-def clinician_pack_automatic(request: HttpRequest,
-                             contact_request_id: str) -> HttpResponse:
-    contact_request = get_object_or_404(
-        ContactRequest, pk=contact_request_id)
-    pdf = contact_request.get_clinician_pack_pdf()
-    offered_filename = "clinician_pack_request_number {}.pdf".format(
-                           contact_request.id)
-    return serve_buffer(pdf,
-                        offered_filename=offered_filename,
-                        content_type=ContentType.PDF,
-                        as_attachment=False,
-                        as_inline=True)
-
-
 clinician_pack.login_required = False
 
 
