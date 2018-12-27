@@ -4,7 +4,9 @@
 
 {% block content %}
 
-    {% include "query_nav.html" %}
+    {% comment %}
+        {% include "query_nav.html" %}
+    {% endcomment %}
 
     <h1>Invalid query ID</h1>
     <p>Query {{ query_id }} is invalid (or invalid for your user).

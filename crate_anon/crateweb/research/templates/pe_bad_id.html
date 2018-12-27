@@ -4,7 +4,9 @@
 
 {% block content %}
 
-    {% include "query_nav.html" %}
+    {% comment %}
+        {% include "query_nav.html" %}
+    {% endcomment %}
 
     <h1>Invalid Patient Explorer ID</h1>
     <p>Patient Explorer {{ pe_id }} is invalid (or invalid for your user).

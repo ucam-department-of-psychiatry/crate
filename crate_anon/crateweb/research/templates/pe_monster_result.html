@@ -8,7 +8,9 @@
 
 {% block content %}
 
-    {% include "query_nav.html" %}
+    {% comment %}
+        {% include "query_nav.html" %}
+    {% endcomment %}
 
     <h1>Patient Explorer: Monster results (up to {{ patients_per_page }}
         patient{{ patients_per_page|pluralize }} per page)</h1>

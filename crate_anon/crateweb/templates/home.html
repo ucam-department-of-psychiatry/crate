@@ -3,80 +3,187 @@
 
 {% block content %}
 
-    <div>
-        <h1>Main menu</h1>
-
         {% if safety_catch_on and user.is_superuser %}
             <div class="warning">Safety catch on: routing e-mails to
                 {{ developer_email }}</div>
         {%  endif %}
 
         {%  if is_clinician %}
-        <h2>Privileged operations for clinicians</h2>
-        <ul>
-            <li><a href="{% url 'all_text_from_pid' %}">Search all text for an identified patient</a></li>
-            <li><a href="{% url 'ridlookup' %}">Look up research IDs for identified patients</a></li>
-            <li><a href="{% url 'clinician_contact_request' %}">Request that your patient is
-                                                                included in a study</a></li>
-        </ul>
+            <div class="{% cycle 'info-box-beige' 'info-box-blue' as box_colours %}">
+                <h1>Privileged operations for clinicians</h1>
+                <ul>
+                    <li><a href="{% url 'all_text_from_pid' %}">Search all text for an
+                           identified patient</a></li>
+                    <li><a href="{% url 'ridlookup' %}">Look up research IDs for identified
+                           patients</a></li>
+                    <li><a href="{% url 'clinician_contact_request' %}">Request that your patient is
+                           included in a study</a></li>
+                </ul>
+            </div>
         {% endif %}
 
-        <h2>Research database</h2>
-        <ul>
-            <li><b>Main query functions:</b>
-                {% include "query_nav.html" %}</li>
+        <div class="{% cycle box_colours %}"><h1>Research database</h1></div>
+        <div class="{{ box_colours }}">
+            <h3>Main query functions:</h3>
+            <div class="item-table">
+                <div class="item-row">
+                    <p class="item"><a href="{% url 'build_query' %}">Query builder</a></p>
+                    <div class="separator"> --- </div>
+                    <p class="explanation">Build a database query from components.</p>
+                </div>
+                <div class="item-row">
+                    <p class="item"><a href="{% url 'query' %}">SQL</a></p>
+                    <div class="separator"> --- </div>
+                    <p class="explanation">Write a query in raw SQL.</p>
+                </div>
+                <div class="item-row">
+                    <p class="item"><a href="{% url 'highlight' %}">Highlighting</a></p>
+                    <div class="separator"> --- </div>
+                    <p class="explanation">Set highlight colours for particular words.</p> 
+                </div>
+            </div>
+            <div class="item-row">
+                <div class="space-at-bottom">
+                    <p>
+                        <strong>Get results of active query:</strong>
+                        {% if query_selected %}
+                            <a href="{% url 'results' current_query_id %}">table</a> |
+                            <a href="{% url 'results_recordwise' current_query_id %}">recordwise</a> |
+                            <a href="{% url 'query_excel' current_query_id %}">Excel</a>
+                        {% else %}
+                            table | recordwise | Excel &nbsp; [no query selected]
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="item-table">
+                <div class="item-row">
+                    <p class="item"><a href="{% url 'pe_build' %}">Build Patient Explorer (PE)</a></p>
+                    <div class="separator"> --- </div>
+                    <p class="explanation">Choose output columns and patient selection
+                                           citeria to generate results for those patients.</p>
+                </div>
+                <div class="item-row">
+                    <p class="item"><a href="{% url 'pe_choose' %}">Choose PE</a></p>
+                    <div class="separator"> --- </div>
+                    <p class="explanation">Choose a Patient Explorer from the ones
+                                           you've built.</p>
+                </div>
+                <div class="item-row">
+                    <p class="item"><a href="{% url 'highlight' %}">Highlighting</a></p>
+                    <div class="separator"> --- </div>
+                    <p class="explanation">Set highlight colours for particular words.</p> 
+                </div>
+            </div>
+            <p>
+            <strong>Get results from active Patient Explorer:</strong>
+            {% if pe_selected %}
+                <a href="{% url 'pe_results' current_pe_id %}">view</a> |
+                <a href="{% url 'pe_excel' current_pe_id %}">Excel</a>
+            {% else %}
+                view | Excel &nbsp; [no PE selected]
+            {% endif %}
+            </p>
+            <div class="item-table">
+                <div class="item-row">
+                    <p class="item">
+                    <strong>PE data finder:</strong>
+                    {% if pe_selected %}
+                        <a href="{% url 'pe_df_results' current_pe_id %}">view</a> |
+                        <a href="{% url 'pe_df_excel' current_pe_id %}">Excel</a>
+                    {% else %}
+                        view | Excel
+                    {% endif %}
+                    </p>
+                    <div class="separator"> --- </div>
+                    <p class="explanation">
+                        See a count of all records in every patient table
+                        for the patients selected int he acitve PE.
+                    </p>
+                </div>
+                <div class="item-row">
+                    <p class="item">
+                        {% if pe_selected %}
+                            <a href="{% url 'pe_table_browser' current_pe_id %}">PE table browser</a>
+                        {% else %}
+                            PE table browser
+                        {% endif %}
+                    </p>
+                    <div class="separator"> --- </div>
+                    <p class="explanation">Find PE results for particular tables, for the active PE.</p>
+                </div>
+                <div class="item-row">
+                    <p class="item">
+                        {% if pe_selected %}
+                            <a href="{% url 'pe_monster_results' current_pe_id %}">PE Monster Data</a>
+                        {% else %}
+                            PE Monster Data
+                        {% endif %}
+                    </p>
+                    <div class="separator"> --- </div>
+                    <p class="explanation">See <i>all data</i> for the patients selected in the active PE.</p>
+                </div>
+            </div>
+        </div>
+        <div class="{{ box_colours }}">
+            <h3>More query functions:</h3>
+            <p><strong>SQL helpers:</strong></p>
+            <!-- <div class="item-table">
+                <div class="item-row">
+                    <p class="item">
+                        <a href="">Find string in any text field</a>
+                    </p>
+                    <div class="separator"> --- </div>
+                    <p class="explanation">Search the entire database for text
+                       with the option of restricting to a single patient ID.</p>
+                </div>
+            </div> -->
+            <ul>
+                <li><a href="{% url 'sqlhelper_text_anywhere' %}">Find
+                       string in any text field</a></li>
+                <li><a href="{% url 'sqlhelper_drug_type' %}">Find
+                       drugs of a given type in any text field</a></li>
+            </ul>
+            <p><a href="{% url 'standard_queries' %}">Standard queries</a></p>
+        </div>
+        <div class="{{ box_colours }}">
+            <h3>Database structure</h3>
+            <P>View research database structure:</p>
+            <ul>
+                <li>
+                    <a href="{% url 'structure_table_paginated' %}">Online in paginated tabular format</a>
+                </li>
+                <li>
+                    <a href="{% url 'structure_table_long' %}">Online in single-page tabular format</a>
+                    (WARNING: slow)
+                </li>
+                <li>
+                    <a href="{% url 'structure_tree' %}">Online in collapsible tree form</a>
+                    (WARNING: slow)
+                </li>
+                <li>
+                    <a href="{% url 'structure_tsv' %}">download in
+                       tab-separated values (TSV) format</a>
+                </li>
+                <li>
+                    <a href="{% url 'structure_excel' %}">download in
+                       Excel (.XLSX) format</a>
+                </li>
+            </ul>
+            <p><a href="{%  url 'structure_help' %}">Help on local database structure</a></p>
+        </div>
 
-            <li>
-                <b>SQL helpers:</b>
-                <ul>
-                    <li><a href="{% url 'sqlhelper_text_anywhere' %}">Find
-                    string in any text field</a></li>
-                    <li><a href="{% url 'sqlhelper_drug_type' %}">Find
-                    drugs of a given type in any text field</a></li>
-                </ul>
-            </li>
-
-            <li><a href="{% url 'standard_queries' %}">Standard queries</a></li>
-
-            <li>
-                View research database structure:
-                <ul>
-                    <li><a href="{% url 'structure_table_paginated' %}">online
-                    in paginated tabular format</a></li>
-
-                    <li><a href="{% url 'structure_table_long' %}">online
-                    in single-page tabular format</a>
-                    (WARNING: slow)</li>
-
-                    <li><a href="{% url 'structure_tree' %}">online
-                    in collapsible tree form</a> (WARNING: slow)</li>
-
-                    <li><a href="{% url 'structure_tsv' %}">download in
-                    tab-separated values (TSV) format</a></li>
-
-                    <li><a href="{% url 'structure_excel' %}">download in
-                    Excel (.XLSX) format</a></li>
-                </ul>
-            </li>
-
-            <li><a href="{%  url 'structure_help' %}">Help on
-            local database structure</a></li>
-
-        </ul>
-
-        <h2>Contacting patients</h2>
-        <ul>
-            <li>
-                <a href="{% url 'resadmin:index' %}">Researcher administration</a>:
-                <ul>
-                    <li>View your studies</li>
-                    <li>View contact requests for your studies</li>
-                    <li>View letters/e-mails to researchers for your studies</li>
-                    <li>View master leaflets</li>
-                </ul>
-            </li>
-            <li><a href="{% url 'submit_contact_request' %}">Submit a contact request</a></li>
-        </ul>
+        <div class="{% cycle box_colours %}">
+            <h1>Contacting Patients</h1>
+                <p><a href="{% url 'resadmin:index' %}">Researcher administration</a>:</p>
+                    <ul>
+                        <li>View your studies</li>
+                        <li>View contact requests for your studies</li>
+                        <li>View letters/e-mails to researchers for your studies</li>
+                        <li>View master leaflets</li>
+                    </ul>
+            <p><a href="{% url 'submit_contact_request' %}">Submit a contact request</a></p>
+        </div>
 
         {% comment %}
             <h2>Leaflets</h2>
@@ -88,124 +195,131 @@
         {% endcomment %}
 
         {% if user.is_superuser %}
-            <h2>Administrative functions for Research Database manager</h2>
-            <ul>
-                <li><a href="{% url 'mgradmin:index' %}"><b>RDBM
-                administration</b></a>: user management, query audits,
-                and consent-to-contact admin functions</li>
+            <div class="{% cycle box_colours %}">
+                <h1>Administrative functions for Research Database manager</h1>
+                <ul>
+                     <li><a href="{% url 'mgradmin:index' %}"><b>RDBM
+                     administration</b></a>: user management, query audits,
+                     and consent-to-contact admin functions</li>
 
-                <li><a href="{% url 'sitewide_queries' %}">Edit sitewide query
-                library</a></li>
+                    <li><a href="{% url 'sitewide_queries' %}">Edit sitewide query
+                    library</a></li>
 
-                <li><a href="{% url 'pidlookup' %}">Look up patient ID (PID)
-                from research ID (RID)</a></li>
+                    <li><a href="{% url 'pidlookup' %}">Look up patient ID (PID)
+                    from research ID (RID)</a></li>
 
-                <li><a href="{% url 'charity_report' %}">Charity payment
-                report</a></li>
+                    <li><a href="{% url 'charity_report' %}">Charity payment
+                    report</a></li>
 
-                <li><a href="{% url 'exclusion_report' %}">Report patients to
-                be excluded entirely from anonymised database</a></li>
+                    <li><a href="{% url 'exclusion_report' %}">Report patients to
+                    be excluded entirely from anonymised database</a></li>
 
-                <li><a href="{% url 'test_email_rdbm' %}">Test message queue
-                by sending an e-mail to the RDBM</a></li>
-            </ul>
+                    <li><a href="{% url 'test_email_rdbm' %}">Test message queue
+                    by sending an e-mail to the RDBM</a></li>
+                </ul>
+            </div>
         {% endif %}
 
         {% if is_developer %}
-            <h2>Extra functions for developers</h2>
-            <ul>
-                <li><a href="{% url 'devadmin:index' %}"><b>Developer
-                admin</b></a>: more detailed inspection of database
-                objects</li>
+            <div class="{% cycle box_colours %}">
+                <h1>Extra functions for developers</h1>
+                <p>
+                    <a href="{% url 'devadmin:index' %}"><b>Developer
+                    admin</b></a>: more detailed inspection of database
+                    objects
+                </p>
 
-                <li><a href="{% url 'generate_random_nhs' %}">Generate random
-                NHS numbers for testing</a></li>
+                <p>
+                    <a href="{% url 'generate_random_nhs' %}">Generate random
+                    NHS numbers for testing</a>
+                </p>
 
-                <li><a href="{% url 'test_patient_lookup' %}">Test patient
-                lookup without saving data</a></li>
+                <p>
+                    <a href="{% url 'test_patient_lookup' %}">Test patient
+                    lookup without saving data</a>
+                </p>
 
-                <li><a href="{% url 'test_consent_lookup' %}">Test consent mode
-                lookup without saving data</a></li>
+                <p>
+                    <a href="{% url 'test_consent_lookup' %}">Test consent mode
+                    lookup without saving data</a>
+                </p>
 
-                <li>Test templates.
+                <p>Test templates.</p>
 
-                    <ul>
-                        <li>You can use URL query parameters like
-                            <b>?age=40;age_months=2;consent_mode=yellow;request_direct_approach=1;consent_after_discharge=0</b>.
-                            For consent_mode, use 'red', 'yellow', 'green', or
-                            anything else for None.
-                            The flag consent_after_discharge is now irrelevant.</li>
+                <ul>
+                    <li>You can use URL query parameters like
+                        <b>?age=40;age_months=2;consent_mode=yellow;request_direct_approach=1;consent_after_discharge=0</b>.
+                        For consent_mode, use 'red', 'yellow', 'green', or
+                        anything else for None.
+                        The flag consent_after_discharge is now irrelevant.</li>
 
-                        <li><a href="{% url 'draft_first_traffic_light_letter' -1 'pdf' %}">
-                            Covering letter for first traffic-light decision form (PDF)</a></li>
+                    <li><a href="{% url 'draft_first_traffic_light_letter' -1 'pdf' %}">
+                        Covering letter for first traffic-light decision form (PDF)</a></li>
 
-                        <li><a href="{% url 'draft_first_traffic_light_letter' -1 'html' %}">
-                            Covering letter for first traffic-light decision form (HTML)</a></li>
+                    <li><a href="{% url 'draft_first_traffic_light_letter' -1 'html' %}">
+                        Covering letter for first traffic-light decision form (HTML)</a></li>
 
-                        <li><a href="{% url 'draft_traffic_light_decision_form' -1 'pdf' %}">
-                            Traffic-light decision form (PDF)</a></li>
+                    <li><a href="{% url 'draft_traffic_light_decision_form' -1 'pdf' %}">
+                        Traffic-light decision form (PDF)</a></li>
 
-                        <li><a href="{% url 'draft_traffic_light_decision_form' -1 'html' %}">
-                            Traffic-light decision form (HTML)</a></li>
+                    <li><a href="{% url 'draft_traffic_light_decision_form' -1 'html' %}">
+                        Traffic-light decision form (HTML)</a></li>
 
-                        <li><a href="{% url 'draft_confirm_traffic_light_letter' -1 'pdf' %}">
-                            Letter confirming traffic-light decision (PDF)</a> (use e.g. "?consent_mode=yellow")</li>
+                    <li><a href="{% url 'draft_confirm_traffic_light_letter' -1 'pdf' %}">
+                        Letter confirming traffic-light decision (PDF)</a> (use e.g. "?consent_mode=yellow")</li>
 
-                        <li><a href="{% url 'draft_confirm_traffic_light_letter' -1 'html' %}">
-                            Letter confirming traffic-light decision (HTML)</a></li>
+                    <li><a href="{% url 'draft_confirm_traffic_light_letter' -1 'html' %}">
+                        Letter confirming traffic-light decision (HTML)</a></li>
 
-                        <li><a href="{% url 'draft_clinician_email' -1 %}">
-                            E-mail to clinician</a></li>
+                    <li><a href="{% url 'draft_clinician_email' -1 %}">
+                        E-mail to clinician</a></li>
 
-                        <li><a href="{% url 'clinician_response' -1 %}?token=dummytoken&email_choice=more">
-                            Clinician "tell me more" response view</a>
+                    <li><a href="{% url 'clinician_response' -1 %}?token=dummytoken&email_choice=more">
+                        Clinician "tell me more" response view</a>
                         </li>
 
-                        <li><a href="{% url 'draft_letter_clinician_to_pt_re_study' -1 'html' %}">
-                            Letter from clinician to patient re study (HTML)</a></li>
+                    <li><a href="{% url 'draft_letter_clinician_to_pt_re_study' -1 'html' %}">
+                        Letter from clinician to patient re study (HTML)</a></li>
 
-                        <li><a href="{% url 'draft_letter_clinician_to_pt_re_study' -1 'pdf' %}">
-                            Letter from clinician to patient re study (PDF)</a></li>
+                    <li><a href="{% url 'draft_letter_clinician_to_pt_re_study' -1 'pdf' %}">
+                        Letter from clinician to patient re study (PDF)</a></li>
 
-                        <li><a href="{% url 'decision_form_to_pt_re_study' -1 'html' %}">
-                            Decision form to patient re study (HTML)</a></li>
+                    <li><a href="{% url 'decision_form_to_pt_re_study' -1 'html' %}">
+                        Decision form to patient re study (HTML)</a></li>
 
-                        <li><a href="{% url 'decision_form_to_pt_re_study' -1 'pdf' %}">
-                            Decision form to patient re study (PDF)</a></li>
+                    <li><a href="{% url 'decision_form_to_pt_re_study' -1 'pdf' %}">
+                        Decision form to patient re study (PDF)</a></li>
 
-                        <li><a href="{% url 'draft_approval_letter' -1 'html' %}">
-                            Approval letter to researcher (HTML)</a></li>
+                    <li><a href="{% url 'draft_approval_letter' -1 'html' %}">
+                        Approval letter to researcher (HTML)</a></li>
 
-                        <li><a href="{% url 'draft_approval_letter' -1 'pdf' %}">
-                            Approval letter to researcher (PDF)</a></li>
+                    <li><a href="{% url 'draft_approval_letter' -1 'pdf' %}">
+                        Approval letter to researcher (PDF)</a></li>
 
-                        <li><a href="{% url 'draft_approval_email' -1 %}">
-                            Approval covering e-mail to researcher</a></li>
+                    <li><a href="{% url 'draft_approval_email' -1 %}">
+                        Approval covering e-mail to researcher</a></li>
 
-                        <li><a href="{% url 'draft_withdrawal_letter' -1 'html' %}">
-                            Withdrawal letter to researcher (HTML)</a></li>
+                    <li><a href="{% url 'draft_withdrawal_letter' -1 'html' %}">
+                        Withdrawal letter to researcher (HTML)</a></li>
 
-                        <li><a href="{% url 'draft_withdrawal_letter' -1 'pdf' %}">
-                            Withdrawal letter to researcher (PDF)</a></li>
+                    <li><a href="{% url 'draft_withdrawal_letter' -1 'pdf' %}">
+                        Withdrawal letter to researcher (PDF)</a></li>
 
-                        <li><a href="{% url 'draft_withdrawal_email' -1 %}">
-                            Withdrawal covering e-mail to researcher</a></li>
+                    <li><a href="{% url 'draft_withdrawal_email' -1 %}">
+                        Withdrawal covering e-mail to researcher</a></li>
 
-                    </ul>
-                </li>
-            </ul>
+                </ul>
+            </div>
         {% endif %}
 
-        <h2>Your settings</h2>
-        <ul>
-            <li><a href="{% url 'edit_profile' %}">Change your settings</a></li>
+        <div class="{% cycle box_colours %}">
+            <h1>Your settings</h1>
+            <p><a href="{% url 'edit_profile' %}">Change your settings</a></p>
+            <p><a href="{% url 'password_change' %}">Change password</a></p>
+        </div>
 
-            <li><a href="{% url 'password_change' %}">Change password</a></li>
-        </ul>
-
-        <h2>About</h2>
-        <ul>
-            <li><a href="{% url 'about' %}">About CRATE</a></li>
-        </ul>
-    </div>
+        <div class="{% cycle box_colours %}">
+            <h1>About</h1>
+            <p><a href="{% url 'about' %}">About CRATE</a></p>
+        </div>
 {% endblock %}

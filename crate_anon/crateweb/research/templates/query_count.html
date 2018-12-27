@@ -5,7 +5,9 @@
 
 {% block content %}
 
-    {% include "query_nav.html" %}
+    {% comment %}
+        {% include "query_nav.html" %}
+    {% endcomment %}
 
     <h1>Count</h1>
     <div>There are <b>{{ rowcount|intcomma }}</b> records.</div>

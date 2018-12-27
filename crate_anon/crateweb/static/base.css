@@ -3,10 +3,7 @@
 body {
     font-family: Arial, Helvetica, sans-serif;
     text-align: left;
-    line-height: 1.2em;
-}
-div {
-    margin: 0.5em 0;
+    /*line-height: 1.2em;*/
 }
 em {
     color: rgb(0, 94, 184); /* NHS Blue; rgb(0, 94, 184) = #005EB8; https://www.england.nhs.uk/nhsidentity/identity-guidelines/colours/ */
@@ -41,9 +38,6 @@ p {
 td p {
     /* p within td */
     margin: 0 0 0.4em 0;
-}
-ul {
-    margin: 0.25em 0;
 }
 
 .addresses {

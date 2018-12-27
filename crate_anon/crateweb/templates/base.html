@@ -2,6 +2,14 @@
 
 {% load staticfiles %}
 
+{% comment %}
+    template parameters:
+        current_pe_id: Optional[int]
+        current_query_id: Optional[int]
+        pe_selected: Optional[bool]
+        query_selected: Optional[bool]
+{% endcomment %}
+
 <!DOCTYPE html> <!-- HTML 5 -->
 <html>
     <head>
@@ -13,6 +21,7 @@
         <meta charset="utf-8">
         <link rel="stylesheet" href="{% static 'base.css' %}" type="text/css">
         <link rel="stylesheet" href="{% static 'web.css' %}" type="text/css">
+        <link rel="stylesheet" href="{% static 'extra_styles.css' %}" type="text/css">
         <link rel="icon" href="{% static 'favicon.ico' %}">
         {% block collapsejs %}
             <script>
@@ -26,28 +35,87 @@
     </head>
 
     <body {% block onload %}{% endblock %}>
-        {% block mainsiteheader %}
-            <div>
-                <i>CRATE: Clinical Records Anonymisation and Text Extraction</i>
-            </div>
-            <div>
-                Database: <b>{{ RESEARCH_DB_TITLE }}</b>.
-        
-                {% block user_header %}
-                    User: <b>{{ user }}</b>.
-                    [
-                    {% if nav_on_main_menu %}
-                        Main menu
-                    {% else %}
-                        <a href="{% url 'home' %}">Main menu</a>
-                    {% endif %}
-                    | <a href="{% url 'logout' %}">Logout</a>
-                    | <a href="{{ CRATE_DOCS_URL }}">Help</a>
-                    ]
-                {% endblock %}
-            </div>
-        {% endblock %}
+        <div id="top">
+            <a href="{% url 'home' %}">
+                <img id="icon" src="{% static 'favicon.ico' %}">
+                <p>CRATE: Clinical Records Anonymisation and Text Extraction</p>
+            </a>
+        </div>
 
-        {% block content %}{% endblock %}
+        {% if user.is_authenticated %}
+            <div id="qn-outer-container">
+                <div id="query-nav-label">
+                    <p>Query<br>Navigator:</p>
+                </div>
+                <div id="query-nav1">
+                    <div id="qn-menu1">
+                        <ul>
+                            <li><a href="{% url 'build_query' %}">Query Builder</a></li>
+                            <li><a href="{% url 'query' %}">SQL</a></li>
+                            <li><a href="{% url 'highlight' %}">Highlighting</a></li>
+                        </ul>
+                    </div>
+                    {% if query_selected %}
+                        <div id="results1">
+                            <p>Results:</p>
+                            <a href="{% url 'results' current_query_id %}">table</a>
+                            <a href="{% url 'results_recordwise' current_query_id %}">recordwise</a>
+                            <a href="{% url 'tsv' current_query_id %}">TSV</a>
+                            <a href="{% url 'query_excel' current_query_id %}">Excel</a>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div id="query-nav2">
+                    <div id="qn-menu2">
+                        <ul>
+                            <li><a href="{% url 'pe_build' %}">Build Patient Explorer (PE)</a></li>
+                            <li><a href="{% url 'pe_choose' %}">Choose PE</a></li>
+                            <li><a href="{% url 'highlight' %}">Highlighting</a></li>
+                        </ul>
+                    </div>
+                    {% if pe_selected %}
+                        <div id="results2">
+                            <div class="dropdown">
+                                <p>PE results</p>
+                                <div class="dropdown-content">
+                                    <ul>
+                                        <li><a href="{% url 'pe_results' current_pe_id %}">View</a></li>
+                                        <li><a href="{% url 'pe_excel' current_pe_id %}">Excel</a></li>
+                                        <li><a href="{% url 'pe_df_results' current_pe_id %}">PE data finder:
+                                               View</a></li>
+                                        <li><a href="{% url 'pe_df_excel' current_pe_id %}">PE data finder:
+                                               Excel</a></li>
+                                        <li><a href="{% url 'pe_table_browser' current_pe_id %}">PE table
+                                               browser</a></li>
+                                        <li><a href="{% url 'pe_monster_results' current_pe_id %}">PE Monster
+                                               Data</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if user.is_authenticated %}
+            <div id="above-main">
+                <div id="db-info">
+                    <p><a href="{% url 'home' %}">Home</a> | Database: <strong>My NHS Research
+                          Database</strong></p>
+                </div>
+
+                <div id="login-info">
+                    <p>User: <strong>{{ user }}</strong> | <a href="{% url 'logout' %}">logout</a></p>
+                </div>
+            </div>
+
+            <div style="clear: both;"></div>
+        {% endif %}
+
+        <div id="main">
+            {% block content %}{% endblock %}
+        </div>
     </body>
 </html>

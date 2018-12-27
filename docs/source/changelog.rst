@@ -768,6 +768,13 @@ Changes
   :func:`clinician_initiated_contact_request`. Now checks that patient's
   consent mode is green or yellow before confirming request.
 
+**v0.18.60, 2018-12-27**
+
+- New look of website.
+
+- Bugfix to clinician requests. Also now sends a more appropriate email
+  in these cases.
+
 
 
 .. rubric:: Footnotes
