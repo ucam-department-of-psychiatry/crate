@@ -36,6 +36,7 @@ using a data dictionary.**
 import logging
 import random
 import sys
+from datetime import datetime
 from typing import Any, Dict, Iterable, Generator, List, Tuple, Union
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
@@ -132,7 +133,8 @@ def wipe_and_recreate_destination_db(incremental: bool = False) -> None:
         incremental))
     engine = config.destdb.engine
     for tablename in config.dd.get_dest_tables():
-        sqla_table = config.dd.get_dest_sqla_table(tablename)
+        sqla_table = config.dd.get_dest_sqla_table(tablename,
+                                                   config.timefield)
         # Drop
         if not incremental:
             log.info("dropping table {}".format(tablename))
@@ -192,7 +194,7 @@ def delete_dest_rows_with_no_src_row(
     metadata = MetaData()  # operate in isolation!
     destengine = config.destdb.engine
     destsession = config.destdb.session
-    dest_table = config.dd.get_dest_sqla_table(dest_table_name)
+    dest_table = config.dd.get_dest_sqla_table(dest_table_name, config.timefield)
     pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
 
     # If there's no source PK, we just delete everything
@@ -1161,7 +1163,8 @@ def process_table(sourcedbname: str,
             dest_pk_name = ddr.dest_field
         sourcefields.append(ddr.src_field)
     srchash = None
-    sqla_table = config.dd.get_dest_sqla_table(dest_table)
+    timefield = config.timefield
+    sqla_table = config.dd.get_dest_sqla_table(dest_table, timefield)
     session = config.destdb.session
 
     # Count what we'll do, so we can give a better indication of progress
@@ -1246,6 +1249,9 @@ def process_table(sourcedbname: str,
 
             destvalues[ddr.dest_field] = value
 
+            if timefield:
+                destvalues[timefield] = datetime.utcnow()
+
         if skip_row or not destvalues:
             continue  # next row
 
@@ -1280,7 +1286,7 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
     mssql_fulltext_columns_by_table = []  # type: List[List[Column]]
     for (tablename, tablerows) in gen_index_row_sets_by_table(tasknum=tasknum,
                                                               ntasks=ntasks):
-        sqla_table = config.dd.get_dest_sqla_table(tablename)
+        sqla_table = config.dd.get_dest_sqla_table(tablename, config.timefield)
         mssql_fulltext_columns = []  # type: List[Column]
         for tr in tablerows:
             sqla_column = sqla_table.columns[tr.dest_field]
@@ -1452,7 +1458,8 @@ def wipe_destination_data_for_opt_out_patients(report_every: int = 1000,
     log.debug(start + ": 5. deleting from destination table by opt-out RID")
     for dest_table_name in config.dd.get_dest_tables_with_patient_info():
         log.debug(start + ": ... {}".format(dest_table_name))
-        dest_table = config.dd.get_dest_sqla_table(dest_table_name)
+        dest_table = config.dd.get_dest_sqla_table(dest_table_name,
+                                                   config.timefield)
         query = dest_table.delete().where(
             column(ridfield).in_(
                 select([temptable.columns[pkfield]])

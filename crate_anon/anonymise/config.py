@@ -609,6 +609,7 @@ class Config(object):
             'phrase_alternative_word_filenames')
         self.scrub_all_numbers_of_n_digits = opt_multiline_int(
             'scrub_all_numbers_of_n_digits', minimum=1)
+        self.timefield = opt_str('timefield_name')
 
         if not self.extract_text_extensions_case_sensitive:
             self.extract_text_extensions_permitted = [

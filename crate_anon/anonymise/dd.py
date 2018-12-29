@@ -51,7 +51,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 )
 from sortedcontainers import SortedSet
 import sqlalchemy.exc
-from sqlalchemy import Column, Table
+from sqlalchemy import Column, Table, DateTime
 from sqlalchemy.sql.sqltypes import String, TypeEngine
 
 # don't import config: circular dependency would have to be sorted out
@@ -879,7 +879,8 @@ class DataDictionary(object):
     # =========================================================================
 
     @lru_cache(maxsize=None)
-    def get_dest_sqla_table(self, tablename: str) -> Table:
+    def get_dest_sqla_table(self, tablename: str,
+                            timefield: str = None) -> Table:
         """
         For a given destination table name, return an
         :class:`sqlalchemy.sql.schema.Table` object for the destination table
@@ -893,6 +894,9 @@ class DataDictionary(object):
                 columns.append(self._get_srchash_sqla_column())
             if ddr.primary_pid:
                 columns.append(self._get_trid_sqla_column())
+        if timefield:
+            timecol = Column(timefield, DateTime)
+            columns.append(timecol)
         return Table(tablename, metadata, *columns, **TABLE_KWARGS)
 
     def _get_srchash_sqla_column(self) -> Column:

@@ -418,6 +418,8 @@ anonymise_numbers_at_numeric_boundaries_only = True
 anonymise_strings_at_word_boundaries_only = True
     # ... applies to {SCRUBMETHOD.WORDS} and {SCRUBMETHOD.PHRASE}
 
+timefield_name = _when_processed_utc
+
 # -----------------------------------------------------------------------------
 # Output fields and formatting
 # -----------------------------------------------------------------------------
