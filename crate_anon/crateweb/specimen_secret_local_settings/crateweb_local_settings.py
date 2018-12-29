@@ -245,6 +245,7 @@ RESEARCH_DB_INFO = [
         # tables?
         RDIKeys.DATE_FIELDS_BY_TABLE: {},
         RDIKeys.DEFAULT_DATE_FIELDS: ['default_date_field'],
+        RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
     },
     {
         RDIKeys.NAME: 'similar_database',
@@ -268,6 +269,7 @@ RESEARCH_DB_INFO = [
 
         RDIKeys.DATE_FIELDS_BY_TABLE: {},
         RDIKeys.DEFAULT_DATE_FIELDS: [],
+        RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
     },
     {
         RDIKeys.NAME: 'different_database',
@@ -291,6 +293,7 @@ RESEARCH_DB_INFO = [
 
         RDIKeys.DATE_FIELDS_BY_TABLE: {},
         RDIKeys.DEFAULT_DATE_FIELDS: [],
+        RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
     },
 ]
 

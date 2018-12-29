@@ -1713,6 +1713,8 @@ class ContactRequest(models.Model):
             lookup_mrid: master research ID (MRID) to look up patient from
             clinician_initiated: contact request initiated by the clinician?
             clinician_email: override the clinician email in patient_lookup
+            rdbm_to_contact_pt: should the rbdm contact the patient - for cases
+                where the request was initiated by clinician
 
         Returns:
             a :class:`ContactRequest`
@@ -1980,7 +1982,6 @@ class ContactRequest(models.Model):
             self.decide(
                 "Sent request to clinician at {}".format(clinician_emailaddr))
             return
-            
 
         # Send e-mail to clinician
         # noinspection PyTypeChecker

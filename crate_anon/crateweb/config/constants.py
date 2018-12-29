@@ -62,6 +62,7 @@ class ResearchDbInfoKeys(object):
 
     DATE_FIELDS_BY_TABLE = 'date_fields_by_table'
     DEFAULT_DATE_FIELDS = 'default_date_fields'
+    UPDATE_DATE_FIELD = 'update_date_field'
 
 
 SOURCE_DB_NAME_MAX_LENGTH = 20

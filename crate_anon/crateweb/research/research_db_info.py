@@ -338,6 +338,12 @@ class SingleResearchDatabase(object):
                     v, ResearchDbInfoKeys.DEFAULT_DATE_FIELDS,
                     self.name))
 
+        # Field for when the record was last updated in db
+        self.update_date_field = infodict.get(
+            ResearchDbInfoKeys.UPDATE_DATE_FIELD, ""
+        )
+        assert isinstance(self.update_date_field, str)
+
         self.schema_id = SchemaId(self.database, self.schema_name)
         assert self.schema_id
 

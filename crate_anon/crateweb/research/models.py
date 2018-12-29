@@ -34,6 +34,7 @@ from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 import weakref
 import zipfile
 import json
+import pytz
 
 from cardinal_pythonlib.dbfunc import dictfetchall, get_fieldnames_from_cursor
 from cardinal_pythonlib.django.fields.jsonclassfield import JsonClassField
@@ -51,6 +52,7 @@ from cardinal_pythonlib.json.serialize import (
 from cardinal_pythonlib.reprfunc import simple_repr
 from cardinal_pythonlib.sql.sql_grammar import format_sql, SqlGrammar
 from cardinal_pythonlib.tsv import make_tsv_row
+from cardinal_pythonlib.django.function_cache import django_cache_function
 from django.db import connections, DatabaseError, models
 from django.db.models import QuerySet
 from django.conf import settings
@@ -86,6 +88,7 @@ from crate_anon.crateweb.research.sql_writer import (
     add_to_select,
     SelectElement,
 )
+from crate_anon.crateweb.config.constants import ResearchDbInfoKeys
 
 log = logging.getLogger(__name__)
 
@@ -162,6 +165,66 @@ if getattr(settings, 'DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET',
            True):
     # http://stackoverflow.com/questions/5601590/how-to-define-a-default-value-for-a-custom-django-setting  # noqa
     hack_django_pyodbc_azure_cursorwrapper()
+
+
+@django_cache_function(timeout=None)
+def database_last_updated(dbname: str) -> Optional[datetime.datetime]:
+    """
+    Returns a datetime object specifying when the database was last run.
+
+    If there are any tables with a column specifying last updated time
+    (based on the column name provided in the config file) but all dates
+    are null, the function will return the minimum date possible. If there
+    are no such tables, the function will return None.
+    """
+    try:
+        dbinfo = research_database_info.get_dbinfo_by_name(dbname)
+    except ValueError:
+        raise ValueError(
+            "Database {} is not specified in config file".format(dbname))
+    tables_with_timecol = []
+    for col in dbinfo.colinfolist:
+        if col.column_name == dbinfo.update_date_field:
+            tables_with_timecol.append(col.table_name)
+    if not tables_with_timecol:
+        return None
+    latest_time = mindate = datetime.datetime.min
+    for table in tables_with_timecol:
+        # Not quite sure about the different dialects ...
+        if dbinfo.rdb_info.dialect == 'mysql':
+            sql = "SELECT {} FROM {}.{}".format(
+                dbinfo.update_date_field, dbinfo.schema_name, table)
+        else:
+            # Dialect must be mssql because ResearchDatabaseInfo checks if
+            # supported dialect
+            sql = "SELECT {} FROM {}.{}.{}".format(
+                dbinfo.update_date_field, dbinfo.database,
+                dbinfo.schema_name, table)
+        with get_executed_researchdb_cursor(sql) as cursor:
+            times = cursor.fetchall()
+            times = [t[0] if t[0] else mindate for t in times]
+            times.append(latest_time)
+            latest_time = max(times)
+    return latest_time
+
+
+@django_cache_function(timeout=None)
+def last_updated_all_dbs() -> datetime.datetime:
+    """
+    Returns a datetime object specifying the most recent databse update, or
+    None if there is no information on this.
+    """
+    last_updated_all = datetime.datetime.min
+    for db in settings.RESEARCH_DB_INFO:
+        db_last_updated = database_last_updated(db[ResearchDbInfoKeys.NAME])
+        if db_last_updated is None:
+            continue
+        last_updated_all = max(last_updated_all, db_last_updated)
+    if last_updated_all == datetime.datetime.min:
+        # This will only happen if none of the databases have update time
+        # fields
+        last_updated_all = None
+    return last_updated_all
 
 
 # =============================================================================
@@ -453,6 +516,7 @@ class Query(QueryBase):
     no_null = models.BooleanField(
         default=False,
         verbose_name="Omit Null columns for this query when displayed")
+    last_run = models.DateTimeField(null=True, default=None)
 
     def __init__(self, *args, **kwargs) -> None:
         """
@@ -663,6 +727,24 @@ class Query(QueryBase):
                 OrderedDict(zip(columns, row))
                 for row in self._rows
             ]
+
+    def update_last_run(self) -> None:
+        self.last_run = datetime.datetime.now()
+        self.save()
+
+    @property
+    def run_since_update(self) -> Optional[bool]:
+        # Currently doesn't check which databases are involved in the
+        # query - just checks all databases
+        last_updated_all = last_updated_all_dbs()
+        if last_updated_all is None:  # no info from dbs
+            return None
+        elif self.last_run is None:  # query never run
+            return False
+        else:
+            # Make last_updated_all timezone aware so they can be compared
+            last_updated_all = pytz.utc.localize(last_updated_all)
+            return self.last_run > last_updated_all
 
     # -------------------------------------------------------------------------
     # Fetching
@@ -921,6 +1003,7 @@ class Query(QueryBase):
         tsv = make_tsv_row(fieldnames)
         for row in self.gen_display_rows():
             tsv += make_tsv_row(row)
+        self.update_last_run()
         return tsv
 
     def make_excel(self) -> bytes:
@@ -942,6 +1025,7 @@ class Query(QueryBase):
         sql_ws = wb.create_sheet(title="SQL")
         sql_ws.append(["SQL", "Executed_at"])
         sql_ws.append([self.get_original_sql(), now])
+        self.update_last_run()
         return excel_to_bytes(wb)
 
 

@@ -1360,6 +1360,8 @@ def render_resultset(request: HttpRequest,
     display_columns = query.get_display_column_names()
     all_columns = query.get_column_names()
     omit_columns = [x for x in all_columns if x not in display_columns]
+    # Set last_run of the query to now
+    query.update_last_run()
     # Render
     context = {
         'table_html': table_html,
@@ -1445,6 +1447,8 @@ def render_resultset_recordwise(request: HttpRequest,
     display_columns = query.get_display_column_names()
     all_columns = query.get_column_names()
     omit_columns = [x for x in all_columns if x not in display_columns]
+    # Set last_run of the query to now
+    query.update_last_run()
     # Render
     context = {
         'table_html': table_html,

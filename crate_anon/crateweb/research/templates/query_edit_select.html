@@ -67,6 +67,7 @@
                 <th>Created at</th>
                 <th>Delete query</th>
                 <th>Active?</th>
+                <th>Run since last<br />database update?</th>
                 <th>Choose this one</th>
                 <th>Filter display</th>
                 <th>SQL</th>
@@ -84,6 +85,15 @@
                         {% if query.active %}<b>{% endif %}
                         {{ query.active|yesno }}
                         {% if query.active %}</b>{% endif %}
+                    </td>
+                    <td>
+                        {% if query.run_since_update is None %}
+                            <span>No information</span>
+                        {% elif query.run_since_update is True %}
+                            <span style="color: green">Yes</span>
+                        {% else %}
+                            <span style="color: red">No</span>
+                        {% endif %}
                     </td>
                     <td>
                         {% if query.active %}
