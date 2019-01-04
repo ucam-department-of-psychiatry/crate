@@ -37,6 +37,7 @@ from cardinal_pythonlib.django.forms import (
 )
 from django import forms
 from django.conf import settings
+from django.utils.safestring import mark_safe
 
 from crate_anon.crateweb.consent.models import (
     ClinicianResponse,
@@ -152,7 +153,14 @@ class ClinicianSubmitContactRequestForm(AbstractContactRequestForm):
     mrids = MultipleWordAreaField(required=False)
     email = forms.EmailField(
         required=True,
-        label="Please ensure we have the correct email address for you")
+        label=mark_safe("Please ensure we have the correct details for you."
+                        "<br />Email"))
+    signatory_title = forms.CharField(
+        required=False,
+        label="Title for signature (e.g. 'Consultant psychiatrist')")
+    title = forms.CharField(required=True, label="Title")
+    firstname = forms.CharField(required=True, label="First name")
+    lastname = forms.CharField(required=True, label="Last name")
     let_rdbm_contact_pt = forms.BooleanField(
         label="Get the database manager to contact the patient directly",
         required=False)
@@ -161,6 +169,9 @@ class ClinicianSubmitContactRequestForm(AbstractContactRequestForm):
                  *args,
                  dbinfo: SingleResearchDatabase,
                  email_addr: str,
+                 title: str,
+                 firstname: str,
+                 lastname: str,
                  **kwargs) -> None:
         super().__init__(*args, **kwargs)
         rids = self.fields['rids']  # type: MultipleWordAreaField
@@ -171,7 +182,13 @@ class ClinicianSubmitContactRequestForm(AbstractContactRequestForm):
         mrids.label = "{} ({}) (MRID)".format(dbinfo.mrid_field,
                                               dbinfo.mrid_description)
         email = self.fields['email']
+        clinician_title = self.fields['title']
+        first = self.fields['firstname']
+        last = self.fields['lastname']
         email.initial = email_addr
+        clinician_title.initial = title
+        first.initial = firstname
+        last.initial = lastname
 
 
 class ClinicianResponseForm(forms.ModelForm):

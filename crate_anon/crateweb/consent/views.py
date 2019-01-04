@@ -83,6 +83,7 @@ from crate_anon.crateweb.core.utils import (
 from crate_anon.crateweb.extra.pdf import serve_html_or_pdf
 from crate_anon.crateweb.research.research_db_info import research_database_info  # noqa
 from crate_anon.crateweb.research.models import PidLookup, get_mpid
+from crate_anon.crateweb.userprofile.models import UserProfile
 
 log = logging.getLogger(__name__)
 
@@ -527,10 +528,17 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
     """
     dbinfo = research_database_info.dbinfo_for_contact_lookup
     email = request.user.email
+    userprofile = UserProfile.objects.get(user=request.user)
+    title = userprofile.title
+    firstname = request.user.first_name
+    lastname = request.user.last_name
     form = ClinicianSubmitContactRequestForm(
             data=request.POST if request.method == 'POST' else None,
             dbinfo=dbinfo,
-            email_addr=email)
+            email_addr=email,
+            title=title,
+            firstname=firstname,
+            lastname=lastname)
     if not form.is_valid():
         return render(request, 'clinician_contact_request_submit.html', {
             'db_description': dbinfo.description,
@@ -543,6 +551,10 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
         })
     study = form.cleaned_data['study']
     let_rdbm_contact_pt = form.cleaned_data['let_rdbm_contact_pt']
+    signatory_name = "{} {} {}".format(form.cleaned_data['title'],
+                                       form.cleaned_data['firstname'],
+                                       form.cleaned_data['lastname'])
+    signatory_title = form.cleaned_data['signatory_title']
     contact_requests = []
     msgs = []
 
@@ -558,7 +570,9 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
                     lookup_nhs_number=nhs_number,
                     clinician_initiated=True,
                     clinician_email=form.cleaned_data['email'],
-                    rdbm_to_contact_pt=let_rdbm_contact_pt
+                    rdbm_to_contact_pt=let_rdbm_contact_pt,
+                    clinician_signatory_name=signatory_name,
+                    clinician_signatory_title=signatory_title
                 )
             )
         else:
@@ -582,7 +596,9 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
                     lookup_rid=rid,
                     clinician_initiated=True,
                     clinician_email=form.cleaned_data['email'],
-                    rdbm_to_contact_pt=let_rdbm_contact_pt
+                    rdbm_to_contact_pt=let_rdbm_contact_pt,
+                    clinician_signatory_name=signatory_name,
+                    clinician_signatory_title=signatory_title
                 )
             )
 
@@ -603,7 +619,9 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
                     lookup_mrid=mrid,
                     clinician_initiated=True,
                     clinician_email=form.cleaned_data['email'],
-                    rdbm_to_contact_pt=let_rdbm_contact_pt
+                    rdbm_to_contact_pt=let_rdbm_contact_pt,
+                    clinician_signatory_name=signatory_name,
+                    clinician_signatory_title=signatory_title
                 )
             )
 

@@ -107,6 +107,7 @@ from crate_anon.crateweb.consent.utils import (
 )
 from crate_anon.crateweb.research.models import get_mpid
 from crate_anon.crateweb.research.research_db_info import research_database_info  # noqa
+from crate_anon.crateweb.userprofile.models import UserProfile
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
 
@@ -1678,6 +1679,9 @@ class ContactRequest(models.Model):
     clinician_email = models.TextField(null=True, default=None)
     # Specifically for clinician-initiated case:
     rdbm_to_contact_pt = models.BooleanField(default=False)
+    # Should be in form 'title firstname lastname'
+    clinician_signatory_name = models.TextField(null=True, default=None)
+    clinician_signatory_title = models.TextField(null=True, default=None)
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -1690,16 +1694,19 @@ class ContactRequest(models.Model):
         )
 
     @classmethod
-    def create(cls,
-               request: HttpRequest,
-               study: Study,
-               request_direct_approach: bool,
-               lookup_nhs_number: int = None,
-               lookup_rid: str = None,
-               lookup_mrid: str = None,
-               clinician_initiated: bool = False,
-               clinician_email: str = None,
-               rdbm_to_contact_pt: bool = False) -> CONTACT_REQUEST_FWD_REF:
+    def create(
+        cls,
+        request: HttpRequest,
+        study: Study,
+        request_direct_approach: bool,
+        lookup_nhs_number: int = None,
+        lookup_rid: str = None,
+        lookup_mrid: str = None,
+        clinician_initiated: bool = False,
+        clinician_email: str = None,
+        rdbm_to_contact_pt: bool = False,
+        clinician_signatory_name: Optional[str] = None,
+        clinician_signatory_title: Optional[str] = None,) -> CONTACT_REQUEST_FWD_REF:
         """
         Create a contact request and act on it.
 
@@ -1729,7 +1736,9 @@ class ContactRequest(models.Model):
                  lookup_mrid=lookup_mrid,
                  clinician_initiated=clinician_initiated,
                  clinician_email=clinician_email,
-                 rdbm_to_contact_pt=rdbm_to_contact_pt)
+                 rdbm_to_contact_pt=rdbm_to_contact_pt,
+                 clinician_signatory_name=clinician_signatory_name,
+                 clinician_signatory_title=clinician_signatory_title)
         cr.save()
         transaction.on_commit(
             lambda: process_contact_request.delay(cr.id)
@@ -1789,6 +1798,12 @@ class ContactRequest(models.Model):
         # We may need to input clinician email manually, otherwise use default
         if not self.clinician_email:
             self.clinician_email = self.patient_lookup.clinician_email
+        if not self.clinician_signatory_name:
+            self.clinician_signatory_name = (
+                self.patient_lookup.clinician_title_forename_surname())
+        if not self.clinician_signatory_title:
+            self.clinician_signatory_title = (
+                self.patient_lookup.clinician_signatory_title)
         # Establish consent mode (always do this to avoid NULL problem)
         ConsentMode.refresh_from_primary_clinical_record(
             nhs_number=self.nhs_number,
@@ -2339,14 +2354,18 @@ class ContactRequest(models.Model):
                           "(e.g. Celery + RabbitMQ) running?")
         yellow = (self.clinician_involvement ==
                   ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW)
+        if self.clinician_initiated:
+            clinician_address_components = self.request_by_address_components()
+        else:
+            clinician_address_components = (
+                patient_lookup.clinician_address_components())
         context = {
             # Letter bits
-            'address_from': patient_lookup.clinician_address_components(),
+            'address_from': clinician_address_components,
             'address_to': patient_lookup.pt_name_address_components(),
             'salutation': patient_lookup.pt_salutation(),
-            'signatory_name':
-            patient_lookup.clinician_title_forename_surname(),
-            'signatory_title': patient_lookup.clinician_signatory_title,
+            'signatory_name': self.clinician_signatory_name,
+            'signatory_title': self.clinician_signatory_title,
             # Specific bits
             'contact_request': self,
             'study': self.study,
@@ -2488,6 +2507,37 @@ class ContactRequest(models.Model):
         """
         from crate_anon.crateweb.core.admin import mgr_admin_site  # delayed import  # noqa
         return admin_view_url(mgr_admin_site, self)
+
+    def request_by_address_components(self) -> List[str]:
+        """
+        Returns the address of the person who made the contact request -- or
+        the Research Database Manager's (with "c/o") if we don't know the
+        requester's.
+
+        This will be used in cases of a clinician-iniated request, for use in
+        letters to the patient.
+        """
+        try:
+            userprofile = UserProfile.objects.get(user=self.request_by)
+        except UserProfile.DoesNotExist:
+            log.warning("ContactRequest object needs 'request_by' to be "
+                        "a valid user for 'request_by_address_components'.")
+            address_components = []
+        else:
+            address_components = [
+                userprofile.address_1,
+                userprofile.address_2,
+                userprofile.address_3,
+                userprofile.address_4,
+                userprofile.address_5,
+                userprofile.address_6,
+                userprofile.address_7,
+            ]
+        if not any(x for x in address_components):
+            address_components = settings.RDBM_ADDRESS.copy()
+            if address_components:
+                address_components[0] = "c/o " + address_components[0]
+        return list(filter(None, address_components))
 
 
 # =============================================================================
