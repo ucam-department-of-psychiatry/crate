@@ -19,6 +19,7 @@
 
 .. _AMQP: https://en.wikipedia.org/wiki/Advanced_Message_Queuing_Protocol
 .. _Flower: http://flower.readthedocs.io/
+.. _Microsoft SQL Server: https://www.microsoft.com/en-us/sql-server
 .. _MySQL: https://www.mysql.com/
 .. _PostgreSQL: https://www.postgresql.org/
 .. _RabbitMQ: https://www.rabbitmq.com/
@@ -28,13 +29,19 @@
 Common relevant TCP/IP ports
 ============================
 
+... plus some that are less relevant here.
+
 ======= =======================================================================
 Port    Default function
 ======= =======================================================================
 22      SSH
+25      SMTP
 80      HTTP
 443     HTTPS
-1433    `Microsoft SQL Server <https://www.microsoft.com/en-us/sql-server>`_
+465     SMTPS: secure SMTP (e.g. implicit TLS for SMTP via ``STARTTLS``)
+587     MSA; e.g. explicit TLS (SSL) for SMTP
+1433    `Microsoft SQL Server`_
+2575    MLLP/HL7
 3306    MySQL_
 5432    PostgreSQL_
 5555    Default internal port for Flower_
