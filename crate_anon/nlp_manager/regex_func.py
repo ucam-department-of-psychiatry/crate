@@ -26,6 +26,10 @@ crate_anon/nlp_manager/regex_func.py
 
 **Functions to assist in building regular expressions.**
 
+2019-01-01: RM notes Ragel (https://en.wikipedia.org/wiki/Ragel) for embedding
+actions within a regex parser. Not immediately applicable here, I don't think,
+but bear in mind.
+
 """
 
 from typing import Any, Dict, Optional, Pattern, Tuple

@@ -30,7 +30,6 @@ import argparse
 import logging
 import os
 import sys
-from typing import List
 
 from cardinal_pythonlib.fileops import rmtree
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
