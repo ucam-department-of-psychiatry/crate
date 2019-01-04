@@ -352,6 +352,8 @@ Here's the specimen anonymiser config as of 2018-06-09:
     anonymise_strings_at_word_boundaries_only = True
         # ... applies to words and phrase
 
+    timefield_name = _when_processed_utc
+
     # -----------------------------------------------------------------------------
     # Output fields and formatting
     # -----------------------------------------------------------------------------
