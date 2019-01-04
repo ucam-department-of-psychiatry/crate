@@ -1694,19 +1694,19 @@ class ContactRequest(models.Model):
         )
 
     @classmethod
-    def create(
-        cls,
-        request: HttpRequest,
-        study: Study,
-        request_direct_approach: bool,
-        lookup_nhs_number: int = None,
-        lookup_rid: str = None,
-        lookup_mrid: str = None,
-        clinician_initiated: bool = False,
-        clinician_email: str = None,
-        rdbm_to_contact_pt: bool = False,
-        clinician_signatory_name: Optional[str] = None,
-        clinician_signatory_title: Optional[str] = None,) -> CONTACT_REQUEST_FWD_REF:
+    def create(cls,
+               request: HttpRequest,
+               study: Study,
+               request_direct_approach: bool,
+               lookup_nhs_number: int = None,
+               lookup_rid: str = None,
+               lookup_mrid: str = None,
+               clinician_initiated: bool = False,
+               clinician_email: str = None,
+               rdbm_to_contact_pt: bool = False,
+               clinician_signatory_name: Optional[str] = None,
+               clinician_signatory_title: Optional[str] = None)\
+            -> CONTACT_REQUEST_FWD_REF:
         """
         Create a contact request and act on it.
 
@@ -1722,6 +1722,10 @@ class ContactRequest(models.Model):
             clinician_email: override the clinician email in patient_lookup
             rdbm_to_contact_pt: should the rbdm contact the patient - for cases
                 where the request was initiated by clinician
+            clinician_signatory_name: name of clinician for letter - if None
+                will use PatientLookup
+            clinician_signatory_title: signatory title of clinician - if None
+                will use PatientLookup
 
         Returns:
             a :class:`ContactRequest`
