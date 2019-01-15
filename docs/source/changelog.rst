@@ -775,6 +775,14 @@ Changes
 - Bugfix to clinician requests. Also now sends a more appropriate email
   in these cases.
 
+**v0.18.61, 2019-01-15**
+
+- Updated version of Django in ``setup.py``.
+
+- Flag on website to check if query has been run since last database update.
+
+- Option of column in anonymiser output specifying when processed.
+
 
 
 .. rubric:: Footnotes
