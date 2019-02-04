@@ -8,7 +8,7 @@ from pyramid.paster import (
     # setup_logging,
 )
 
-from nlp_web.models import (
+from crate_anon.nlp_web.models import (
     DBSession,
     SessionForCelery,
     Base,

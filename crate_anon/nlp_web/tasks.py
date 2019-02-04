@@ -12,9 +12,9 @@ from typing import Optional, Tuple, Any, List
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 # from crate_anon.nlp_manager.all_processors import make_processor
-from nlp_web.models import DBSession, DocProcRequest
-from nlp_web.procs import Processor
-from nlp_web.constants import SETTINGS, CONFIG
+from crate_anon.nlp_web.models import DBSession, DocProcRequest
+from crate_anon.nlp_web.procs import Processor
+from crate_anon.nlp_web.constants import SETTINGS, CONFIG
 
 log = logging.getLogger(__name__)
 

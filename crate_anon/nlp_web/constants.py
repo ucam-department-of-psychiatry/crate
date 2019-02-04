@@ -326,6 +326,6 @@ URL = "http://localhost:5000"
 NLPRP_VERSION = '0.1.0'
 SERVER_NAME = 'test_server'
 SERVER_VERSION = '0.1'
-SETTINGS_PATH = '/home/fs462/nlp_server_side/nlp_web_config.ini'
+SETTINGS_PATH = '/home/fs462/crate/crate_anon/nlp_web/nlp_web_config.ini'
 SETTINGS = get_appsettings(SETTINGS_PATH)
 CONFIG = Configurator(settings=SETTINGS)

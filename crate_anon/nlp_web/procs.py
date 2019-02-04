@@ -3,7 +3,7 @@ from typing import Optional
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.all_processors import make_processor
 
-from nlp_web.constants import PROCESSORS
+from crate_anon.nlp_web.constants import PROCESSORS
 
 # For ease of finding processor info based on name and version
 # (alternative would be a dictionary in which the keys were name_version

@@ -19,16 +19,16 @@ from celery import group
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.all_processors import make_processor
-from nlp_web.security import USERS, check_password, get_auth_credentials
-from nlp_web.models import DBSession, Document, DocProcRequest
-from nlp_web.procs import Processor
-from nlp_web.constants import (
+from crate_anon.nlp_web.security import USERS, check_password, get_auth_credentials
+from crate_anon.nlp_web.models import DBSession, Document, DocProcRequest
+from crate_anon.nlp_web.procs import Processor
+from crate_anon.nlp_web.constants import (
     URL,
     NLPRP_VERSION,
     SERVER_NAME,
     SERVER_VERSION,
 )
-from nlp_web.tasks import app, process_nlp_text, process_nlp_text_immediate
+from crate_anon.nlp_web.tasks import app, process_nlp_text, process_nlp_text_immediate
 
 BAD_REQUEST = {
     'status': 400,

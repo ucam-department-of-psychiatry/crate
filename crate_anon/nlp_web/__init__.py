@@ -6,7 +6,7 @@ from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from sqlalchemy import engine_from_config
 
-from nlp_web.models import DBSession, Base
+from crate_anon.nlp_web.models import DBSession, Base
 
 
 def main(global_config: Dict[Any, Any], **settings) -> Router:
