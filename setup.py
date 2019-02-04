@@ -180,6 +180,16 @@ INSTALL_REQUIRES = [
     'Werkzeug==0.14.1',
     'xlrd==1.1.0',  # for ONSPD
 
+    # Packages for cloud nlp
+    'bcrypt==3.1.6',
+    'pyramid==1.10.2',
+    'waitress==1.2.1',
+    'pyramid_tm==2.2.1',
+    'zope.sqlalchemy==1.1',
+    'paste==3.0.6',
+    # 'mysqlclient',
+    'requests==2.21.0',
+
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------
@@ -405,7 +415,13 @@ setup(
             'crate_estimate_mysql_memory_usage=cardinal_pythonlib.tools.estimate_mysql_memory_usage:main',  # noqa
             'crate_list_all_extensions=cardinal_pythonlib.tools.list_all_extensions:main',  # noqa
             'crate_merge_csv=cardinal_pythonlib.tools.merge_csv:main',
+            'nlp_web_initialize_db = crate_anon.nlp_web.initialize_db:main',
 
         ],
+        # Originally had the following when nlp_web was outside CRATE - don't
+        # know if it will still work
+        # 'paste.app_factory': [
+        #     'main = nlp_web:main'
+        # ],
     },
 )

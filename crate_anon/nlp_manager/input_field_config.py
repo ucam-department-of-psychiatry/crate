@@ -135,6 +135,10 @@ class InputFieldConfig(object):
         self._debug_row_limit = opt_int('debug_row_limit', default=0)
         # self._fetch_sorted = opt_bool('fetch_sorted', default=True)
 
+        # In case we want to store this value after running
+        # 'nlpdef.get_ifconfigs()' so that we can later re-create the ifconfig
+        self.section = section
+
         ensure_valid_table_name(self._srctable)
         ensure_valid_field_name(self._srcpkfield)
         ensure_valid_field_name(self._srcfield)

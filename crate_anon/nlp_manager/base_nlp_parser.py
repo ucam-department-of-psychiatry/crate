@@ -178,6 +178,12 @@ class BaseNlpParser(object):
         """
         return self._destdb_name
 
+    def get_cfgsection(self) -> str:
+        """
+        Returns the cfgsection the class was created with.
+        """
+        return self._cfgsection
+
     @staticmethod
     def _assert_no_overlap(description1: str, cols1: List[Column],
                            description2: str, cols2: List[Column]) -> None:

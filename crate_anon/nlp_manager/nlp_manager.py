@@ -97,6 +97,11 @@ from crate_anon.nlp_manager.constants import (
     DEMO_CONFIG,
     MAX_STRING_PK_LENGTH,
     NLP_CONFIG_ENV_VAR,
+    CLOUD_URL,
+    # GATE_CLOUD_URL,
+    USERNAME,
+    PASSWORD,
+    MAX_PACKET_SIZE,
 )
 from crate_anon.nlp_manager.input_field_config import (
     InputFieldConfig,
@@ -110,6 +115,7 @@ from crate_anon.nlp_manager.input_field_config import (
 from crate_anon.nlp_manager.models import NlpRecord
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
+from crate_anon.nlp_manager.cloud_parser import CloudRequest
 
 log = logging.getLogger(__name__)
 
@@ -458,6 +464,262 @@ def process_nlp(nlpdef: NlpDefinition,
 
     nlpdef.commit_all()
 
+########### ADDED ###########################################
+def send_cloud_requests(
+        nlpdef: NlpDefinition,
+        ifconfig: InputFieldConfig,
+        report_every: int = DEFAULT_REPORT_EVERY_NLP,
+        incremental: bool = False,
+        queue: bool = True) -> List[CloudRequest]:
+    """
+    Sends off a series of cloud requests and returns them as a list.
+    'queue' determines whether these are queued requests or not.
+    """
+    requests = []
+    recnum = 0
+    totalcount = ifconfig.get_count()  # total number of records in table
+    at_least_one_record = False  # so we don't send off an empty request
+    # Check processors are available
+    available_procs = CloudRequest.list_processors()
+    cloud_request = CloudRequest(nlpdef=nlpdef,
+                                 max_length=MAX_PACKET_SIZE,
+                                 allowable_procs=available_procs)
+    # packet_size = 0
+    for text, other_values in ifconfig.gen_text():
+        pkval = other_values[FN_SRCPKVAL]
+        pkstr = other_values[FN_SRCPKSTR]
+        recnum += 1
+        complete = False
+        if report_every and recnum % report_every == 0:
+            log.info(
+                "Processing {db}.{t}.{c}, PK: {pkf}={pkv} "
+                "(record {recnum}/{totalcount})".format(
+                    db=other_values[FN_SRCDB],
+                    t=other_values[FN_SRCTABLE],
+                    c=other_values[FN_SRCFIELD],
+                    pkf=other_values[FN_SRCPKFIELD],
+                    pkv=pkstr if pkstr else pkval,
+                    recnum=recnum + 1,
+                    totalcount=totalcount
+                )
+            )
+        # log.critical("other_values={}".format(repr(other_values)))
+        srchash = nlpdef.hash(text)
+        progrec = None
+        if incremental:
+            progrec = ifconfig.get_progress_record(pkval, pkstr)
+            if progrec is not None:
+                if progrec.srchash == srchash:
+                    log.debug("Record previously processed; skipping")
+                    continue
+                else:
+                    log.debug("Record has changed")
+            else:
+                log.debug("Record is new")
+
+        success = cloud_request.add_text(text, other_values)
+        if not success:
+            cloud_request.send_process_request(queue)
+            requests.append(cloud_request)    
+            if recnum < totalcount:
+                # If we're not at the end of the records, start new request
+                cloud_request = CloudRequest(
+                    nlpdef=nlpdef,
+                    max_length=MAX_PACKET_SIZE,
+                    allowable_procs=available_procs)
+                cloud_request.add_text(text, other_values)
+            else:
+                # We've sent off the final request
+                complete = True
+
+        at_least_one_record = True
+
+        # Add 'scrhash' to 'other_values' so the metadata will contain it
+        # and we can use it later on for updating the progress database
+        other_values['srchash'] = srchash
+        # Add the text to the cloud request with the appropriate metadata
+        cloud_request.add_text(text, other_values)
+    if not complete and at_least_one_record:
+        # Send last request
+        cloud_request.send_process_request(queue)
+        requests.append(cloud_request)
+    return requests
+
+
+def process_cloud_nlp(nlpdef: NlpDefinition,
+                      incremental: bool = False,
+                      report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
+    """
+    Process text by sending it off to the cloud processors in queued mode.
+    """
+    log.info(SEP + "NLP")
+    nlpname = nlpdef.get_name()
+    with open('request_data_{}.txt'.format(nlpname), 'w') as request_data:
+        for ifconfig in nlpdef.get_ifconfigs():
+            srcfield = ifconfig.get_srcfield()
+            cloud_requests = send_cloud_requests(nlpdef, ifconfig,
+                                                 incremental, report_every)
+            for cloud_request in cloud_requests:
+                if cloud_request.queue_id:
+                    request_data.write("{},{}\n".format(
+                        ifconfig.section, cloud_request.queue_id))
+                else:
+                    log.warning("Sent request does not contain queue_id.")
+
+
+def retrieve_nlp_data(nlpdef: NlpDefinition,
+                      incremental: bool = False,
+                      report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
+    """
+    Try to retrieve the data from the cloud processors.
+    """
+    session = nlpdef.get_progdb_session()
+    nlpname = nlpdef.get_name()
+    available_procs = CloudRequest.list_processors()
+    mirror_procs = nlpdef.get_processors()
+    with open('request_data_{}.txt'.format(nlpname), 'r+') as request_data:
+        reqdata = request_data.readlines()
+        ifconfig_cache = {}  # type: Dict[str, InputFieldConfig]
+        for line in reqdata:
+            if_section, queue_id = line.split(',')
+            if if_section in ifconfig_cache:
+                ifconfig = ifconfig_cache[if_section]
+            else:
+                ifconfig = InputFieldConfig(nlpdef=nlpdef, section=if_section)
+                ifconfig_cache[if_section] = ifconfig
+            seen_srchashs = []
+            cloud_request = CloudRequest(nlpdef=nlpdef,
+                                         allowable_procs=available_procs)
+            cloud_request.set_mirror_processors(mirror_procs)
+            cloud_request.set_queue_id(queue_id)
+            ready = cloud_request.check_if_ready()
+            all_ready = True  # not necessarily true, but need for later
+
+            if not ready:
+                # If results are not ready for this particular queue_id, put
+                # back in file
+                request_data.write("{},{}\n".format(
+                    if_section, queue_id))
+                all_ready = False
+            else:
+                cloud_request.process_all()
+                nlp_data = cloud_request.nlp_data
+                for result in nlp_data['results']:
+                    # 'metadata' is just 'other_values' from before
+                    pkval = result['metadata'][FN_SRCPKVAL]
+                    pkstr = result['metadata'][FN_SRCPKSTR]
+                    srchash = result['metadata']['srchash']
+                    progrec = None
+                    if incremental:
+                        sessions = cloud_request.get_sessions_for_all_processors()
+                        for db in sessions.values():
+                            cloud_request.delete_dest_record(
+                                ifconfig, pkval, pkstr,
+                                commit=incremental,
+                                session=db[1],
+                                destdb_name=db[0]
+                           )
+                        # Record progress in progress database
+                        progrec = ifconfig.get_progress_record(pkval, pkstr)
+                    if srchash in seen_srchashs:
+                        progrec = ifconfig.get_progress_record(pkval, pkstr)
+                    seen_srchashs.append(srchash)
+                    # Make a note in the progress database that we've processed a
+                    # source record
+                    if progrec:  # modifying an existing record
+                        progrec.whenprocessedutc = nlpdef.get_now()
+                        progrec.srchash = srchash
+                    else:  # creating a new record
+                        progrec = NlpRecord(
+                            # Quasi-key fields:
+                            srcdb=ifconfig.get_srcdb(),
+                            srctable=ifconfig.get_srctable(),
+                            srcpkval=pkval,
+                            srcpkstr=pkstr,
+                            srcfield=ifconfig.get_srcfield(),
+                            nlpdef=nlpdef.get_name(),
+                            # Other fields:
+                            srcpkfield=ifconfig.get_srcpkfield(),
+                            whenprocessedutc=nlpdef.get_now(),
+                            srchash=srchash,
+                        )
+                        with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+                            session.add(progrec)
+    nlpdef.commit_all()
+    if all_ready:
+        os.remove('request_data_{}.txt'.format(nlpname))
+
+def process_cloud_now(
+        nlpdef: NlpDefinition,
+        incremental: bool = False,
+        report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
+    """
+    Process text by sending it off to the cloud processors in non queued mode.
+    """
+    session = nlpdef.get_progdb_session()
+    mirror_procs = nlpdef.get_processors()
+    for ifconfig in nlpdef.get_ifconfigs():
+        seen_srchashs = []
+        cloud_requests = send_cloud_requests(nlpdef,
+                                             ifconfig,
+                                             incremental,
+                                             report_every,
+                                             queue=False)
+        for cloud_request in cloud_requests:
+            cloud_request.set_mirror_processors(mirror_procs)
+            cloud_request.process_all()
+            nlp_data = cloud_request.nlp_data
+            for result in nlp_data['results']:
+                # 'metadata' is just 'other_values' from before
+                pkval = result['metadata'][FN_SRCPKVAL]
+                pkstr = result['metadata'][FN_SRCPKSTR]
+                srchash = result['metadata']['srchash']
+                progrec = None
+                if incremental:
+                    sessions = cloud_request.get_sessions_for_all_processors()
+                    for db in sessions.values():
+                        cloud_request.delete_dest_record(
+                            ifconfig, pkval, pkstr,
+                            commit=incremental,
+                            session=db[1],
+                            destdb_name=db[0]
+                        )
+                    # Record progress in progress database
+                    progrec = ifconfig.get_progress_record(pkval, pkstr)
+                # Check that we haven't already done the progrec for this
+                # record to avoid clashes - it's possible as each processor
+                # may contain results for each record and a set of results
+                # is a list of processors and their results
+                if srchash in seen_srchashs:
+                    progrec = ifconfig.get_progress_record(pkval, pkstr)
+                seen_srchashs.append(srchash)
+                # Make a note in the progress database that we've processed a
+                # source record
+                if progrec:  # modifying an existing record
+                    progrec.whenprocessedutc = nlpdef.get_now()
+                    progrec.srchash = srchash
+                else:  # creating a new record
+                    progrec = NlpRecord(
+                        # Quasi-key fields:
+                        srcdb=ifconfig.get_srcdb(),
+                        srctable=ifconfig.get_srctable(),
+                        srcpkval=pkval,
+                        srcpkstr=pkstr,
+                        srcfield=ifconfig.get_srcfield(),
+                        nlpdef=nlpdef.get_name(),
+                        # Other fields:
+                        srcpkfield=ifconfig.get_srcpkfield(),
+                        whenprocessedutc=nlpdef.get_now(),
+                        srchash=srchash,
+                    )
+                    with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+                        session.add(progrec)
+            
+    nlpdef.commit_all()
+
+
+
+##############################################################################
 
 def drop_remake(nlpdef: NlpDefinition,
                 incremental: bool = False,
@@ -640,6 +902,12 @@ def main() -> None:
                         help="Echo SQL")
     parser.add_argument("--timing", action="store_true",
                         help="Show detailed timing breakdown")
+    parser.add_argument("--cloud", action="store_true",
+                        help="Use GATE cloud processing tools")
+    parser.add_argument("--immediate", action="store_true",
+                        help="To be used with 'cloud'. Process immediately.")
+    parser.add_argument("--retrieve", action="store_true",
+                        help="Retrieve GATE NLP data from cloud")
     args = parser.parse_args()
 
     # Validate args
@@ -725,16 +993,53 @@ def main() -> None:
     # we can report the process number clearly.
 
     # 2. NLP
+    # if args.nlp or everything:
+    #     try:
+    #         process_nlp(config,
+    #                     incremental=args.incremental,
+    #                     report_every=args.report_every_nlp,
+    #                     tasknum=args.process,
+    #                     ntasks=args.nprocesses)
+    #     except Exception as exc:
+    #         log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+    #         die(exc)
     if args.nlp or everything:
-        try:
-            process_nlp(config,
+        if args.cloud:
+            if args.immediate:
+                try:
+                    process_cloud_now(
+                        config,
                         incremental=args.incremental,
-                        report_every=args.report_every_nlp,
-                        tasknum=args.process,
-                        ntasks=args.nprocesses)
-        except Exception as exc:
-            log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
-            die(exc)
+                        report_every=args.report_every_nlp)
+                except Exception as exc:
+                    log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+                    die(exc)
+            else:
+                try:
+                    process_cloud_nlp(config,
+                                      incremental=args.incremental,
+                                      report_every=args.report_every_nlp)
+                except Exception as exc:
+                    log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+                    die(exc)
+        elif args.retrieve:
+            try:
+                retrieve_nlp_data(config,
+                                  incremental=args.incremental,
+                                  report_every=args.report_every_nlp)
+            except Exception as exc:
+                log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+                die(exc)
+        else:
+            try:
+                process_nlp(config,
+                            incremental=args.incremental,
+                            report_every=args.report_every_nlp,
+                            tasknum=args.process,
+                            ntasks=args.nprocesses)
+            except Exception as exc:
+                log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+                die(exc)
 
     log.info("Finished")
     end = get_now_utc_pendulum()
