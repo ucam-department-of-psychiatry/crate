@@ -517,17 +517,33 @@ def send_cloud_requests(
             else:
                 log.debug("Record is new")
 
+        # Add the text to the cloud request with the appropriate metadata
         success = cloud_request.add_text(text, other_values)
+        if success:
+            log.info(pkstr if pkstr else pkval)
         if not success:
             cloud_request.send_process_request(queue)
-            requests.append(cloud_request)    
+            requests.append(cloud_request)
+            text_too_big = not cloud_request.add_text(text, other_values)
+            if text_too_big:
+                log.warning("Record {db}.{t}.{c}, PK: {pkf}={pkv} "
+                "is too big to send".format(
+                    db=other_values[FN_SRCDB],
+                    t=other_values[FN_SRCTABLE],
+                    c=other_values[FN_SRCFIELD],
+                    pkf=other_values[FN_SRCPKFIELD],
+                    pkv=pkstr if pkstr else pkval,
+                    recnum=recnum + 1,
+                    totalcount=totalcount
+                ))
+            else:
+                log.info(pkstr if pkstr else pkval)
             if recnum < totalcount:
                 # If we're not at the end of the records, start new request
                 cloud_request = CloudRequest(
                     nlpdef=nlpdef,
                     max_length=MAX_PACKET_SIZE,
                     allowable_procs=available_procs)
-                cloud_request.add_text(text, other_values)
             else:
                 # We've sent off the final request
                 complete = True
@@ -537,8 +553,6 @@ def send_cloud_requests(
         # Add 'scrhash' to 'other_values' so the metadata will contain it
         # and we can use it later on for updating the progress database
         other_values['srchash'] = srchash
-        # Add the text to the cloud request with the appropriate metadata
-        cloud_request.add_text(text, other_values)
     if not complete and at_least_one_record:
         # Send last request
         cloud_request.send_process_request(queue)

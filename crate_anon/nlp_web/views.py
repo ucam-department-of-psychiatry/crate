@@ -298,6 +298,7 @@ in the version specified".format(processor['name'])
         # docs = []
         # docproc_tasks = []
         for document in content:
+            # print(document['metadata']['brcid'])
             doc_id = str(uuid.uuid4())
             metadata = json.dumps(document.get('metadata', ""))
             try:
@@ -406,8 +407,6 @@ in the version specified".format(processor['name'])
             queue_id = args['queue_id'].strip()
         except KeyError:
             return self.key_missing_error(key='queue_id')
-        print(queue_id)
-        print()
         include_text = self.body.get('include_text', False)
         query = DBSession.query(Document).filter(
             and_(Document.queue_id==queue_id,
@@ -469,7 +468,6 @@ exist".format(procname, procversion)
                     return self.create_error_response(error, description)
 
                 success, processed_text, errcode, errmsg = result.get()
-                print(success, processed_text, errcode, errmsg)
                 result.forget()
                 proc_dict = {
                     'name': procname,
