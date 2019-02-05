@@ -577,9 +577,16 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     nlpname = nlpdef.get_name()
     available_procs = CloudRequest.list_processors()
     mirror_procs = nlpdef.get_processors()
-    with open('request_data_{}.txt'.format(nlpname), 'r+') as request_data:
+    if not os.path.exists('request_data_{}.txt'.format(nlpname)):
+        log.error("File 'request_data_{}.txt' does not exist in the "
+                  "current directory. Request may not have been "
+                  "sent.".format(nlpname))
+        raise FileNotFoundError
+    with open('request_data_{}.txt'.format(nlpname), 'r') as request_data:
         reqdata = request_data.readlines()
+    with open('request_data_{}.txt'.format(nlpname), 'w') as request_data:
         ifconfig_cache = {}  # type: Dict[str, InputFieldConfig]
+        all_ready = True  # not necessarily true, but need for later
         for line in reqdata:
             if_section, queue_id = line.split(',')
             if if_section in ifconfig_cache:
@@ -593,12 +600,13 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
             cloud_request.set_mirror_processors(mirror_procs)
             cloud_request.set_queue_id(queue_id)
             ready = cloud_request.check_if_ready()
-            all_ready = True  # not necessarily true, but need for later
 
             if not ready:
                 # If results are not ready for this particular queue_id, put
                 # back in file
-                request_data.write("{},{}\n".format(
+                # For some reason an extra newline is beign appended here
+                # but not in 'process_cloud_nlp'
+                request_data.write("{},{}".format(
                     if_section, queue_id))
                 all_ready = False
             else:

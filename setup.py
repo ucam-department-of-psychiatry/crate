@@ -418,10 +418,9 @@ setup(
             'nlp_web_initialize_db = crate_anon.nlp_web.initialize_db:main',
 
         ],
-        # Originally had the following when nlp_web was outside CRATE - don't
-        # know if it will still work
-        # 'paste.app_factory': [
-        #     'main = nlp_web:main'
-        # ],
+        # Entry point for nlp web
+        'paste.app_factory': [
+            'main = crate_anon.nlp_web:main'
+        ],
     },
 )
