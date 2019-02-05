@@ -416,6 +416,7 @@ setup(
             'crate_list_all_extensions=cardinal_pythonlib.tools.list_all_extensions:main',  # noqa
             'crate_merge_csv=cardinal_pythonlib.tools.merge_csv:main',
             'nlp_web_initialize_db = crate_anon.nlp_web.initialize_db:main',
+            'nlp_web_print_demo_config = crate_anon.nlp_web.print_demo_config:main'
 
         ],
         # Entry point for nlp web

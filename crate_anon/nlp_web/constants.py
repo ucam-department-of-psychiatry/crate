@@ -329,3 +329,21 @@ SERVER_VERSION = '0.1'
 SETTINGS_PATH = '/home/fs462/crate/crate_anon/nlp_web/nlp_web_config.ini'
 SETTINGS = get_appsettings(SETTINGS_PATH)
 CONFIG = Configurator(settings=SETTINGS)
+
+DEMO_CONFIG = """
+[app:main]
+use = egg:crate_anon
+pyramid.reload_templates = true
+# pyramid.includes =
+#     pyramid_debugtoolbar
+nlp_web.secret = 98zd
+sqlalchemy.url = mysql://username:password@localhost/testalchemy?charset=utf8
+
+# urls for queueing
+broker_url = amqp://@localhost:3306/testbroker
+backend_url = db+mysql://username:password@localhost/testback?charset=utf8
+
+[server:main]
+use = egg:waitress#main
+listen = localhost:6543
+"""
