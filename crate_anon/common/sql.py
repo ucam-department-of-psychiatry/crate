@@ -112,8 +112,9 @@ QB_DATATYPE_STRING_FULLTEXT = "string_fulltext"
 QB_DATATYPE_UNKNOWN = "unknown"
 QB_STRING_TYPES = [QB_DATATYPE_STRING, QB_DATATYPE_STRING_FULLTEXT]
 
-COLTYPE_WITH_ONE_INTEGER_REGEX = re.compile(r"^([A-z]+)\((\d+)\)$")
-# ... start, group(alphabetical), literal (, group(digit), literal ), end
+COLTYPE_WITH_ONE_INTEGER_REGEX = re.compile(r"^([A-z]+)\((-?\d+)\)$")
+# ... start, group(alphabetical), literal (, group(optional_minus_sign digits),
+# literal ), end
 
 
 # def combine_db_schema_table(db: Optional[str],
@@ -2033,6 +2034,11 @@ def is_sql_column_type_textual(column_type: str,
     Returns:
         is it a textual column (of the minimum length or more)?
 
+    Note:
+
+    - For SQL Server's NVARCHAR(MAX), 
+      :meth:`crate_anon.crateweb.research.research_db_info._schema_query_microsoft`
+      returns "NVARCHAR(-1)"
     """
     column_type = column_type.upper()
     if column_type in SQLTYPES_TEXT:
@@ -2044,7 +2050,7 @@ def is_sql_column_type_textual(column_type: str,
         length = int(m.group(2))
     except (AttributeError, ValueError):
         return False
-    return length >= min_length and basetype in SQLTYPES_TEXT
+    return (length >= min_length or length < 0) and basetype in SQLTYPES_TEXT
 
 
 def escape_quote_in_literal(s: str) -> str:

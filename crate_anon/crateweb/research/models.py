@@ -616,7 +616,10 @@ class Query(QueryBase):
             if self._n_times_executed > 1:
                 log.warning("Inefficient: Query executed {} times".format(
                     self._n_times_executed))
-            self._column_names = get_fieldnames_from_cursor(cursor)
+            try:
+                self._column_names = get_fieldnames_from_cursor(cursor)
+            except TypeError:
+                self._column_names = []
             self._rowcount = cursor.rowcount
             self._executed_cursor = cursor
             self._finalizer = weakref.finalize(
@@ -2218,7 +2221,10 @@ class PatientExplorer(models.Model):
             sql = tsa.sql
             args = tsa.args
             with self.get_executed_cursor(sql, args) as cursor:
-                fieldnames = get_fieldnames_from_cursor(cursor)
+                try:
+                    fieldnames = get_fieldnames_from_cursor(cursor)
+                except TypeError:
+                    fieldnames = []
                 tsv = make_tsv_row(fieldnames)
                 row = cursor.fetchone()
                 while row is not None:
@@ -2253,7 +2259,10 @@ class PatientExplorer(models.Model):
                                   datetime.datetime.now()])
             ws = wb.create_sheet(title=str(table_id))
             with self.get_executed_cursor(sql, args) as cursor:
-                fieldnames = get_fieldnames_from_cursor(cursor)
+                try:
+                    fieldnames = get_fieldnames_from_cursor(cursor)
+                except:
+                    fieldnames = []
                 ws.append(fieldnames)
                 row = cursor.fetchone()
                 while row is not None:
@@ -2345,7 +2354,10 @@ class PatientExplorer(models.Model):
                            datetime.datetime.now()])
             with self.get_executed_cursor(sql, args) as cursor:
                 if not fieldnames:
-                    fieldnames = get_fieldnames_from_cursor(cursor)
+                    try:
+                        fieldnames = get_fieldnames_from_cursor(cursor)
+                    except TypeError:
+                        fieldnames = []
                     all_ws.append(fieldnames)
                 row = cursor.fetchone()
                 while row is not None:
