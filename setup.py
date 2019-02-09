@@ -140,7 +140,7 @@ INSTALL_REQUIRES = [
     'amqp==2.3.2',  # amqp is used by Celery  # noqa
     'arrow==0.12.1',  # better datetime
     'beautifulsoup4==4.6.0',
-    'cardinal_pythonlib==1.0.36',
+    'cardinal_pythonlib==1.0.47',
     'celery==4.0.1',  # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
     'chardet==3.0.4',  # character encoding detection for cardinal_pythonlib  # noqa
     'cherrypy==16.0.2',  # Cross-platform web server

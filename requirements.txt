@@ -1,7 +1,7 @@
 amqp==2.3.2
 arrow==0.12.1
 beautifulsoup4==4.6.0
-cardinal_pythonlib==1.0.36
+cardinal_pythonlib==1.0.47
 celery==4.0.1
 chardet==3.0.4
 cherrypy==16.0.2
@@ -34,3 +34,10 @@ typing==3.6.4
 unidecode==1.0.22
 Werkzeug==0.14.1
 xlrd==1.1.0
+bcrypt==3.1.6
+pyramid==1.10.2
+waitress==1.2.1
+pyramid_tm==2.2.1
+zope.sqlalchemy==1.1
+paste==3.0.6
+requests==2.21.0

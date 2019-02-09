@@ -783,6 +783,15 @@ Changes
 
 - Option of column in anonymiser output specifying when processed.
 
+**v0.18.62, 2019-02-09**
+
+- Improved the ``crate_test_extract_text`` command (``test_extract_test.py``),
+  including errorlevel/return codes to detect text presence.
+
+- Bump to ``cardinal_pythonlib==1.0.47``. Note that this now raises an
+  exception from :func:`cardinal_pythonlib.extract_text.document_to_text` if
+  a filename is passed and the file doesn't exist.
+
 
 
 .. rubric:: Footnotes

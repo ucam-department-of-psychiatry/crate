@@ -72,6 +72,35 @@ Options as of 2016-07-21:
                             de/crate/crate_anon/anonymise/../../testdocs_for_text_
                             extraction/doctest.pdf)
 
+
+crate_test_extract_text
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Options as of 2019-02-09:
+
+.. code-block:: none
+
+    usage: crate_test_extract_text [-h] [--plain] [--width WIDTH] [--silent]
+                                   filename
+
+    Test CRATE text extraction and/or detect text in files.
+
+    Exit codes:
+    - 0 for "text found"
+    - 1 for "no text found"
+    - 2 for "error" (e.g. file not found)
+
+
+    positional arguments:
+      filename       File from which to extract text
+
+    optional arguments:
+      -h, --help     show this help message and exit
+      --plain        Use plainest format (not e.g. table layouts) (default: False)
+      --width WIDTH  Width to word-wrap to (default: 80)
+      --silent       Don't print the text, just exit with a code (default: False)
+
+
 crate_test_anonymisation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

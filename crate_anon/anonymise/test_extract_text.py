@@ -30,7 +30,12 @@ crate_anon/anonymise/test_extract_text.py
 
 import argparse
 import os
+import sys
+import traceback
 
+from cardinal_pythonlib.argparse_func import (
+    RawDescriptionArgumentDefaultsHelpFormatter,
+)
 from cardinal_pythonlib.extract_text import (
     document_to_text,
     TextProcessingConfig,
@@ -38,20 +43,33 @@ from cardinal_pythonlib.extract_text import (
 
 from crate_anon.common.stringfunc import uprint
 
+EXIT_TEXT = 0
+EXIT_NO_TEXT = 1
+EXIT_ERROR = 2
 
-def main():
+
+def main() -> int:
     """
     Command-line entry point. See command-line help.
     """
     parser = argparse.ArgumentParser(
-        description="Test CRATE text extraction",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        description="""
+Test CRATE text extraction and/or detect text in files.
+
+Exit codes:
+- {} for "text found"
+- {} for "no text found"
+- {} for "error" (e.g. file not found)
+        """.format(EXIT_TEXT, EXIT_NO_TEXT, EXIT_ERROR),
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter)
     parser.add_argument('filename', type=str,
                         help="File from which to extract text")
     parser.add_argument('--plain', action='store_true',
                         help="Use plainest format (not e.g. table layouts)")
     parser.add_argument('--width', type=int, default=80,
                         help="Width to word-wrap to")
+    parser.add_argument('--silent', action="store_true",
+                        help="Don't print the text, just exit with a code")
 
     args = parser.parse_args()
 
@@ -60,12 +78,21 @@ def main():
         plain=args.plain,
         width=args.width
     )
-    result = document_to_text(filename=args.filename,
-                              blob=None,
-                              extension=extension,
-                              config=config)
-    uprint(result)
+    # noinspection PyBroadException
+    try:
+        result = document_to_text(filename=args.filename,
+                                  blob=None,
+                                  extension=extension,
+                                  config=config)
+    except Exception:
+        traceback.print_exc(file=sys.stderr)  # full details, please
+        return EXIT_ERROR
+
+    contains_text = bool(result.strip())
+    if not args.silent:
+        uprint(result)
+    return EXIT_TEXT if contains_text else EXIT_NO_TEXT
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
