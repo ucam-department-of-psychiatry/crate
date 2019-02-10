@@ -11,11 +11,6 @@ def check_password(pw, hashed_pw):
     expected_hash = hashed_pw.encode('utf8')
     return bcrypt.checkpw(pw.encode('utf8'), expected_hash)
 
-
-USERS = {'test': hash_password('testpass'),
-         'testuser2': hash_password('testpw2'),
-         'gcwe6eeync9a': hash_password('v1xbzlr2dp8b10hwm7jl')}
-
 def get_auth_credentials(request):
     """
     Gets username and password as a dictionary. Returns None if there is a

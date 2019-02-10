@@ -99,8 +99,6 @@ from crate_anon.nlp_manager.constants import (
     NLP_CONFIG_ENV_VAR,
     CLOUD_URL,
     # GATE_CLOUD_URL,
-    USERNAME,
-    PASSWORD,
     MAX_PACKET_SIZE,
 )
 from crate_anon.nlp_manager.input_field_config import (
@@ -480,7 +478,7 @@ def send_cloud_requests(
     totalcount = ifconfig.get_count()  # total number of records in table
     at_least_one_record = False  # so we don't send off an empty request
     # Check processors are available
-    available_procs = CloudRequest.list_processors()
+    available_procs = CloudRequest.list_processors(nlpdef)
     cloud_request = CloudRequest(nlpdef=nlpdef,
                                  max_length=MAX_PACKET_SIZE,
                                  allowable_procs=available_procs)
@@ -519,8 +517,6 @@ def send_cloud_requests(
 
         # Add the text to the cloud request with the appropriate metadata
         success = cloud_request.add_text(text, other_values)
-        if success:
-            log.info(pkstr if pkstr else pkval)
         if not success:
             cloud_request.send_process_request(queue)
             requests.append(cloud_request)
@@ -589,7 +585,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     """
     session = nlpdef.get_progdb_session()
     nlpname = nlpdef.get_name()
-    available_procs = CloudRequest.list_processors()
+    available_procs = CloudRequest.list_processors(nlpdef)
     mirror_procs = nlpdef.get_processors()
     if not os.path.exists('request_data_{}.txt'.format(nlpname)):
         log.error("File 'request_data_{}.txt' does not exist in the "

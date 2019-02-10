@@ -19,11 +19,14 @@ from celery import group
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.all_processors import make_processor
-from crate_anon.nlp_web.security import USERS, check_password, get_auth_credentials
+from crate_anon.nlp_web.security import check_password, get_auth_credentials
+# Should this be a delayed import (in '__init__') so that we can add users
+# while this is running and a new request will pick it up?
+from crate_anon.nlp_web.manage_users import USERS
 from crate_anon.nlp_web.models import DBSession, Document, DocProcRequest
 from crate_anon.nlp_web.procs import Processor
 from crate_anon.nlp_web.constants import (
-    URL,
+    GATE_BASE_URL,
     NLPRP_VERSION,
     SERVER_NAME,
     SERVER_VERSION,
@@ -227,7 +230,7 @@ in the version specified".format(processor['name'])
                 # processor_id = proc_obj.processor_id
                 result = process_nlp_text_immediate(
                     text=text,
-                    url=URL,
+                    url=GATE_BASE_URL,
                     processor=proc_obj,
                     username=self.username,
                     password=self.password
@@ -344,7 +347,7 @@ in the version specified".format(processor['name'])
                     DBSession.add(docprocreq)
                 result = process_nlp_text.delay(
                     docprocrequest_id=docprocreq_id,
-                    url=URL,
+                    url=GATE_BASE_URL,
                     username=self.username,
                     password=self.password
                 )

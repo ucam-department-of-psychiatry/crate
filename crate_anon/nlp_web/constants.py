@@ -322,7 +322,7 @@ PROCESSORS = [
 ##                           "value."
 ##        })
 
-URL = "http://localhost:5000"
+GATE_BASE_URL = "http://localhost:5000"
 NLPRP_VERSION = '0.1.0'
 SERVER_NAME = 'test_server'
 SERVER_VERSION = '0.1'
@@ -337,11 +337,14 @@ pyramid.reload_templates = true
 # pyramid.includes =
 #     pyramid_debugtoolbar
 nlp_web.secret = 98zd
-sqlalchemy.url = mysql://username:password@localhost/testalchemy?charset=utf8
+sqlalchemy.url = mysql://username:password@localhost/dbname?charset=utf8
+
+# Absolute path of users file
+users_file = /home/.../nlp_web_users/users.txt
 
 # urls for queueing
 broker_url = amqp://@localhost:3306/testbroker
-backend_url = db+mysql://username:password@localhost/testback?charset=utf8
+backend_url = db+mysql://username:password@localhost/backenddbname?charset=utf8
 
 [server:main]
 use = egg:waitress#main

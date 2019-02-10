@@ -76,8 +76,6 @@ HashClass = HmacMD5Hasher
 
 CLOUD_URL = "http://localhost:6543"
 # GATE_CLOUD_URL = "https://nhsta-api.slam-services.gate.ac.uk/nlprp"
-USERNAME = "gcwe6eeync9a"
-PASSWORD = "v1xbzlr2dp8b10hwm7jl"
 MAX_PACKET_SIZE = 20000
 NLPRPVERSION = "0.0.2"
 

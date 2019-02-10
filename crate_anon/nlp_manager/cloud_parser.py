@@ -50,8 +50,6 @@ from cardinal_pythonlib.dicts import (
 )
 from crate_anon.nlp_manager.constants import (
     CLOUD_URL,
-    USERNAME,
-    PASSWORD,
     NLPRPVERSION,
     SqlTypeDbIdentifier,
     MAX_SQL_FIELD_LEN,
@@ -77,10 +75,7 @@ class CloudRequest(object):
             "version": NLPRPVERSION
         }
     }
-
     URL = CLOUD_URL
-    AUTH = (USERNAME, PASSWORD)  # basic auth
-
     HEADERS = {
         'charset': 'utf-8',
         'Content-Type': 'application/json'
@@ -113,6 +108,12 @@ class CloudRequest(object):
         self._nlpdef = nlpdef
         self._commit = commit
         # self._destdbs = {}  # type: Dict[str, DatabaseHolder]
+        config = self._nlpdef.get_parser()
+        self.username = config.get_str(section="Authentication", option="username",
+                                       default="")
+        self.password = config.get_str(section="Authentication", option="password",
+                                       default="")
+        self.auth = (self.username, self.password)
         self.fetched = False
         if client_job_id:
             self.client_job_id = client_job_id
@@ -160,14 +161,19 @@ class CloudRequest(object):
         return len(text.encode('utf-8'))
 
     @classmethod
-    def list_processors(cls) -> List[str]:
+    def list_processors(cls, nlpdef) -> List[str]:
+        config = nlpdef.get_parser()
+        username = config.get_str(section="Authentication", option="username",
+                                       default="")
+        password = config.get_str(section="Authentication", option="password",
+                                       default="")
+        auth = (username, password)
         list_procs_request = deepcopy(cls.STANDARD_INFO)
         list_procs_request['command'] = "list_processors"
-
         request_json = json.dumps(list_procs_request)
         # print(request_json)
         response = requests.post(cls.URL, data=request_json,
-                                 auth=cls.AUTH, headers=cls.HEADERS)
+                                 auth=auth, headers=cls.HEADERS)
         try:
             json_response = response.json()
         except json.decoder.JSONDecodeError:
@@ -244,7 +250,7 @@ class CloudRequest(object):
         # print(request_json)
         # print()
         response = requests.post(self.URL, data=request_json, 
-                                 auth=self.AUTH, headers=self.HEADERS)
+                                 auth=self.auth, headers=self.HEADERS)
         try:
             json_response = response.json()
         except json.decoder.JSONDecodeError:
@@ -283,7 +289,7 @@ class CloudRequest(object):
         self.fetch_request['args'] = {'queue_id': self.queue_id}
         request_json = json.dumps(self.fetch_request)
         response = requests.post(self.URL, data=request_json, 
-                                 auth=self.AUTH, headers=self.HEADERS)
+                                 auth=self.auth, headers=self.HEADERS)
         try:
             json_response = response.json()
         except json.decoder.JSONDecodeError:
