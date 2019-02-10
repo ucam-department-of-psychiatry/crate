@@ -274,9 +274,9 @@ class NumericalResultParser(BaseNlpParser):
             self.assume_preferred_unit = True
         else:
             self.tablename = nlpdef.opt_str(
-                cfgsection, 'desttable', required=True)
+                self._sectionname, 'desttable', required=True)
             self.assume_preferred_unit = nlpdef.opt_bool(
-                cfgsection, 'assume_preferred_unit', default=True)
+                self._sectionname, 'assume_preferred_unit', default=True)
 
         # Sanity checks
         assert len(self.variable) <= MAX_SQL_FIELD_LEN, (
@@ -659,7 +659,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
             self.tablename = ''
         else:
             self.tablename = nlpdef.opt_str(
-                cfgsection, 'desttable', required=True)
+                self._sectionname, 'desttable', required=True)
 
         regex_str = r"""
             ( {variable} )                     # 1. group for variable (thing being measured)
@@ -988,7 +988,7 @@ class ValidatorBase(BaseNlpParser):
             self.tablename = ''
         else:
             self.tablename = nlpdef.opt_str(
-                cfgsection, 'desttable', required=True)
+                self._sectionname, 'desttable', required=True)
 
     def print_info(self, file: TextIO = sys.stdout) -> None:
         # docstring in superclass

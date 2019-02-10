@@ -103,7 +103,7 @@ DEMO_CONFIG = ("""# Configuration file for CRATE NLP manager (crate_nlp).
 # GATE people-and-places demo
 # -----------------------------------------------------------------------------
 
-[MY_NLPDEF_NAME_LOCATION_NLP]
+[nlpdef:MY_NLPDEF_NAME_LOCATION_NLP]
 
     # Input is from one or more source databases/tables/fields.
     # This list refers to config sections that define those fields in more
@@ -139,7 +139,7 @@ hashphrase = doesnotmatter
 # KConnect (Bio-YODIE) GATE app
 # -----------------------------------------------------------------------------
 
-[MY_NLPDEF_KCONNECT]
+[nlpdef:MY_NLPDEF_KCONNECT]
 
 inputfielddefs =
     INPUT_FIELD_CLINICAL_DOCUMENTS
@@ -153,7 +153,7 @@ hashphrase = doesnotmatter
 # Medex-UIMA drug-finding app
 # -----------------------------------------------------------------------------
 
-[MY_NLPDEF_MEDEX_DRUGS]
+[nlpdef:MY_NLPDEF_MEDEX_DRUGS]
 
 inputfielddefs =
     INPUT_FIELD_CLINICAL_DOCUMENTS
@@ -167,7 +167,7 @@ hashphrase = doesnotmatter
 # CRATE number-finding Python regexes
 # -----------------------------------------------------------------------------
 
-[MY_NLPDEF_BIOMARKERS]
+[nlpdef:MY_NLPDEF_BIOMARKERS]
 
 inputfielddefs =
     INPUT_FIELD_CLINICAL_DOCUMENTS
@@ -264,135 +264,135 @@ max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 
     # Biochemistry
 
-[procdef_crp]
+[processor:procdef_crp]
 destdb = DESTINATION_DATABASE
 desttable = crp
-[procdef_validate_crp]
+[processor:procdef_validate_crp]
 destdb = DESTINATION_DATABASE
 desttable = validate_crp
 
-[procdef_sodium]
+[processor:procdef_sodium]
 destdb = DESTINATION_DATABASE
 desttable = sodium
-[procdef_validate_sodium]
+[processor:procdef_validate_sodium]
 destdb = DESTINATION_DATABASE
 desttable = validate_sodium
 
-[procdef_tsh]
+[processor:procdef_tsh]
 destdb = DESTINATION_DATABASE
 desttable = tsh
-[procdef_validate_tsh]
+[processor:procdef_validate_tsh]
 destdb = DESTINATION_DATABASE
 desttable = validate_tsh
 
     # Clinical
 
-[procdef_height]
+[processor:procdef_height]
 destdb = DESTINATION_DATABASE
 desttable = height
-[procdef_validate_height]
+[processor:procdef_validate_height]
 destdb = DESTINATION_DATABASE
 desttable = validate_height
 
-[procdef_weight]
+[processor:procdef_weight]
 destdb = DESTINATION_DATABASE
 desttable = weight
-[procdef_validate_weight]
+[processor:procdef_validate_weight]
 destdb = DESTINATION_DATABASE
 desttable = validate_weight
 
-[procdef_bmi]
+[processor:procdef_bmi]
 destdb = DESTINATION_DATABASE
 desttable = bmi
-[procdef_validate_bmi]
+[processor:procdef_validate_bmi]
 destdb = DESTINATION_DATABASE
 desttable = validate_bmi
 
-[procdef_bp]
+[processor:procdef_bp]
 destdb = DESTINATION_DATABASE
 desttable = bp
-[procdef_validate_bp]
+[processor:procdef_validate_bp]
 destdb = DESTINATION_DATABASE
 desttable = validate_bp
 
     # Cognitive
 
-[procdef_mmse]
+[processor:procdef_mmse]
 destdb = DESTINATION_DATABASE
 desttable = mmse
-[procdef_validate_mmse]
+[processor:procdef_validate_mmse]
 destdb = DESTINATION_DATABASE
 desttable = validate_mmse
 
-[procdef_ace]
+[processor:procdef_ace]
 destdb = DESTINATION_DATABASE
 desttable = ace
-[procdef_validate_ace]
+[processor:procdef_validate_ace]
 destdb = DESTINATION_DATABASE
 desttable = validate_ace
 
-[procdef_mini_ace]
+[processor:procdef_mini_ace]
 destdb = DESTINATION_DATABASE
 desttable = mini_ace
-[procdef_validate_mini_ace]
+[processor:procdef_validate_mini_ace]
 destdb = DESTINATION_DATABASE
 desttable = validate_mini_ace
 
-[procdef_moca]
+[processor:procdef_moca]
 destdb = DESTINATION_DATABASE
 desttable = moca
-[procdef_validate_moca]
+[processor:procdef_validate_moca]
 destdb = DESTINATION_DATABASE
 desttable = validate_moca
 
     # Haematology
 
-[procdef_esr]
+[processor:procdef_esr]
 destdb = DESTINATION_DATABASE
 desttable = esr
-[procdef_validate_esr]
+[processor:procdef_validate_esr]
 destdb = DESTINATION_DATABASE
 desttable = validate_esr
 
-[procdef_wbc]
+[processor:procdef_wbc]
 destdb = DESTINATION_DATABASE
 desttable = wbc
-[procdef_validate_wbc]
+[processor:procdef_validate_wbc]
 destdb = DESTINATION_DATABASE
 desttable = validate_wbc
 
-[procdef_basophils]
+[processor:procdef_basophils]
 destdb = DESTINATION_DATABASE
 desttable = basophils
-[procdef_validate_basophils]
+[processor:procdef_validate_basophils]
 destdb = DESTINATION_DATABASE
 desttable = validate_basophils
 
-[procdef_eosinophils]
+[processor:procdef_eosinophils]
 destdb = DESTINATION_DATABASE
 desttable = eosinophils
-[procdef_validate_eosinophils]
+[processor:procdef_validate_eosinophils]
 destdb = DESTINATION_DATABASE
 desttable = validate_eosinophils
 
-[procdef_lymphocytes]
+[processor:procdef_lymphocytes]
 destdb = DESTINATION_DATABASE
 desttable = lymphocytes
-[procdef_validate_lymphocytes]
+[processor:procdef_validate_lymphocytes]
 destdb = DESTINATION_DATABASE
 desttable = validate_lymphocytes
 
-[procdef_monocytes]
+[processor:procdef_monocytes]
 destdb = DESTINATION_DATABASE
 desttable = monocytes
-[procdef_validate_monocytes]
+[processor:procdef_validate_monocytes]
 destdb = DESTINATION_DATABASE
 desttable = validate_monocytes
 
-[procdef_neutrophils]
+[processor:procdef_neutrophils]
 destdb = DESTINATION_DATABASE
 desttable = neutrophils
-[procdef_validate_neutrophils]
+[processor:procdef_validate_neutrophils]
 destdb = DESTINATION_DATABASE
 desttable = validate_neutrophils
 
@@ -404,7 +404,7 @@ desttable = validate_neutrophils
     # Define the processor
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-[procdef_gate_name_location]
+[processor:procdef_gate_name_location]
 
     # Which database will this processor write to?
 
@@ -497,7 +497,7 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
     # (This is an additional thing we need for GATE applications, since CRATE
     # doesn't automatically know what sort of output they will produce.)
 
-[output_person]
+[output:output_person]
 
     # The tables and SPECIFIC output fields for a given GATE processor are
     # defined here.
@@ -522,7 +522,7 @@ indexdefs =
 
     # ... a set of (indexed field, index length) pairs; length can be "None"
 
-[output_location]
+[output:output_location]
 
 desttable = location
 renames =
@@ -544,7 +544,7 @@ indexdefs =
     # Define the processor
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-[procdef_gate_kconnect]
+[processor:procdef_gate_kconnect]
 
 destdb = DESTINATION_DATABASE
 outputtypemap =
@@ -569,7 +569,7 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
     # Define the output tables used by this GATE processor
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-[output_disease_or_syndrome]
+[output:output_disease_or_syndrome]
 
 desttable = kconnect_diseases
 renames =
@@ -608,7 +608,7 @@ indexdefs =
     # Define the processor
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-[procdef_gate_pharmacotherapy]
+[processor:procdef_gate_pharmacotherapy]
 
 destdb = DESTINATION_DATABASE
 outputtypemap =
@@ -639,7 +639,7 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
 # Note new "renames" option, because the names of the annotations are not
 # always valid SQL column names.
 
-[output_prescription]
+[output:output_prescription]
 
 desttable = medications_gate
 renames =  # one pair per line; can quote, using shlex rules; case-sensitive
@@ -702,7 +702,7 @@ indexdefs =
     # Define the processor
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-[procdef_gate_kcl_lbda]
+[processor:procdef_gate_kcl_lbda]
 
     # "cDiagnosis" is the "confirmed diagnosis" field, as d/w Jyoti Jyoti
     # 2018-03-20; see also README.md. This appears in the "Automatic" and the
@@ -739,7 +739,7 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
     # Define the output tables used by this GATE processor
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-[output_lbd_diagnosis]
+[output:output_lbd_diagnosis]
 
 desttable = lewy_body_dementia_gate
 null_literals =
@@ -771,7 +771,7 @@ indexdefs =
 # -----------------------------------------------------------------------------
 # https://sbmi.uth.edu/ccb/resources/medex.htm
 
-[procdef_medex_drugs]
+[processor:procdef_medex_drugs]
 
 destdb = DESTINATION_DATABASE
 desttable = drugs
@@ -800,7 +800,7 @@ progenvsection = MY_ENV_SECTION
 # - Keys are case-sensitive.
 # - You'll need to modify this according to your local configuration.
 
-[MY_ENV_SECTION]
+[env:MY_ENV_SECTION]
 
 GATEDIR = /home/myuser/somewhere/GATE_Developer_8.0
 NLPPROGDIR = /home/myuser/somewhere/crate_anon/nlp_manager/compiled_nlp_classes
@@ -824,7 +824,7 @@ OS_PATHSEP = :
 # - The 'indexed_copyfields' are an optional subset of 'copyfields'; they'll be
 #   indexed.
 
-[INPUT_FIELD_CLINICAL_DOCUMENTS]
+[input:INPUT_FIELD_CLINICAL_DOCUMENTS]
 
 srcdb = SOURCE_DATABASE
 srctable = EXTRACTED_CLINICAL_DOCUMENTS
@@ -840,7 +840,7 @@ indexed_copyfields = RID_FIELD
     # 1000) to limit fetching, for debugging purposes.
 # debug_row_limit = 0
 
-[INPUT_FIELD_PROGRESS_NOTES]
+[input:INPUT_FIELD_PROGRESS_NOTES]
 
 srcdb = SOURCE_DATABASE
 srctable = PROGRESS_NOTES
@@ -860,11 +860,11 @@ indexed_copyfields = RID_FIELD
 # =============================================================================
 # Use SQLAlchemy URLs: http://docs.sqlalchemy.org/en/latest/core/engines.html
 
-[SOURCE_DATABASE]
+[database:SOURCE_DATABASE]
 
 url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
 
-[DESTINATION_DATABASE]
+[database:DESTINATION_DATABASE]
 
 url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
 

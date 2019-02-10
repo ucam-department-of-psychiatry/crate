@@ -55,7 +55,7 @@ from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 
 # if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
 #     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition, full_sectionname
 
 log = logging.getLogger(__name__)
 
@@ -97,7 +97,8 @@ class BaseNlpParser(object):
         self._destdb_name = None
         self._destdb = None
         if nlpdef is not None:
-            self._destdb_name = nlpdef.opt_str(cfgsection, 'destdb',
+            self._sectionname = full_sectionname("processor", cfgsection)
+            self._destdb_name = nlpdef.opt_str(self._sectionname, 'destdb',
                                                required=True)
             self._destdb = nlpdef.get_database(self._destdb_name)
 

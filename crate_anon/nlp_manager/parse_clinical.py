@@ -738,7 +738,7 @@ class Bp(BaseNlpParser):
             self.tablename = ''
         else:
             self.tablename = nlpdef.opt_str(
-                cfgsection, 'desttable', required=True)
+                self._sectionname, 'desttable', required=True)
 
     @classmethod
     def print_info(cls, file: TextIO = sys.stdout) -> None:

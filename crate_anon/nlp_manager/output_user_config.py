@@ -46,6 +46,7 @@ from sqlalchemy.schema import Column, Index
 
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
+from crate_anon.nlp_manager.nlp_definition import full_sectionname
 
 
 # =============================================================================
@@ -75,18 +76,20 @@ class OutputUserConfig(object):
                 - :class:`crate_anon.nlp_manager.parse_gate.Gate`
         """  # noqa
 
+        sectionname = full_sectionname("output", section)
+
         def opt_str(option: str, required: bool = False) -> str:
-            return parser.get_str(section, option, required=required)
+            return parser.get_str(sectionname, option, required=required)
 
         def opt_strlist(option: str,
                         required: bool = False,
                         as_words: bool = True) -> List[str]:
-            return parser.get_str_list(section, option, required=required,
+            return parser.get_str_list(sectionname, option, required=required,
                                        lower=False, as_words=as_words)
             # We do NOT change the case.
 
-        if not parser.has_section(section):
-            raise ValueError("config missing section: " + section)
+        if not parser.has_section(sectionname):
+            raise ValueError("config missing section: " + sectionname)
 
         # ---------------------------------------------------------------------
         # desttable
@@ -109,7 +112,7 @@ class OutputUserConfig(object):
                 raise ValueError(
                     "Bad 'renames' option in config section {}; line was {} "
                     "but should have contained two things".format(
-                        repr(section), repr(line)))
+                        repr(sectionname), repr(line)))
             annotation_name = words[0]
             field_name = words[1]
             ensure_valid_field_name(field_name)
@@ -149,7 +152,7 @@ class OutputUserConfig(object):
             if sf in self._destfields:
                 raise Exception(
                     "For section {}, destination field {} is auto-supplied; "
-                    "do not add it manually".format(section, sf))
+                    "do not add it manually".format(sectionname, sf))
 
         if len(set(self._destfields)) != len(self._destfields):
             raise ValueError("Duplicate fields exist in destination fields: "

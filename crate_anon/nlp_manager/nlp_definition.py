@@ -83,6 +83,29 @@ from crate_anon.nlp_manager.constants import (
 
 log = logging.getLogger(__name__)
 
+CONFIG_NLPDEF_PREFIX = "nlpdef:"
+CONFIG_PROCESSOR_PREFIX = "processor:"
+CONFIG_ENV_PREFIX = "env:"
+CONFIG_OUTPUT_PREFIX = "output:"
+CONFIG_INPUT_PREFIX = "input:"
+CONFIG_DATABASE_PREFIX = "database:"
+
+def full_sectionname(section_type: str, section: str) -> str:
+    if section_type == "nlpdef":
+        return CONFIG_NLPDEF_PREFIX + section
+    elif section_type == "processor":
+        return CONFIG_PROCESSOR_PREFIX + section
+    elif section_type == "env":
+        return CONFIG_ENV_PREFIX + section
+    elif section_type == "output":
+        return CONFIG_OUTPUT_PREFIX + section
+    elif section_type == "input":
+        return CONFIG_INPUT_PREFIX + section
+    elif section_type == "database":
+        return CONFIG_DATABASE_PREFIX + section
+    else:
+        raise ValueError("Unrecognised section type: {}".format(section_type))
+
 
 # =============================================================================
 # Config class
@@ -122,6 +145,7 @@ class NlpDefinition(object):
 
         self._nlpname = nlpname
         self._logtag = logtag
+        nlpsection = full_sectionname("nlpdef", nlpname)
 
         log.info("Loading config for section: {}".format(nlpname))
         # Get filename
@@ -141,32 +165,32 @@ class NlpDefinition(object):
         log.info("Reading config file: {}".format(self._config_filename))
         self._parser.read_file(codecs.open(self._config_filename, "r", "utf8"))
 
-        if not self._parser.has_section(nlpname):
-            raise ValueError("No section named {} present".format(nlpname))
+        if not self._parser.has_section(nlpsection):
+            raise ValueError("No section named {} present".format(nlpsection))
 
         # ---------------------------------------------------------------------
         # Our own stuff
         # ---------------------------------------------------------------------
         self._databases = {}  # type: Dict[str, DatabaseHolder]
-        self._progressdb_name = self.opt_str(nlpname, 'progressdb',
+        self._progressdb_name = self.opt_str(nlpsection, 'progressdb',
                                              required=True)
         self._progdb = self.get_database(self._progressdb_name)
         self._temporary_tablename = self.opt_str(
-            nlpname, 'temporary_tablename',
+            nlpsection, 'temporary_tablename',
             default=DEFAULT_TEMPORARY_TABLENAME)
-        self._hashphrase = self.opt_str(nlpname, 'hashphrase', required=True)
+        self._hashphrase = self.opt_str(nlpsection, 'hashphrase', required=True)
         self._hasher = HashClass(self._hashphrase)
         self._max_rows_before_commit = self.opt_int(
-            nlpname, 'max_rows_before_commit', DEFAULT_MAX_ROWS_BEFORE_COMMIT)
+            nlpsection, 'max_rows_before_commit', DEFAULT_MAX_ROWS_BEFORE_COMMIT)
         self._max_bytes_before_commit = self.opt_int(
-            nlpname, 'max_bytes_before_commit',
+            nlpsection, 'max_bytes_before_commit',
             DEFAULT_MAX_BYTES_BEFORE_COMMIT)
         self._now = get_now_utc_notz_datetime()
 
         # ---------------------------------------------------------------------
         # Input field definitions
         # ---------------------------------------------------------------------
-        self._inputfielddefs = self.opt_strlist(nlpname, 'inputfielddefs',
+        self._inputfielddefs = self.opt_strlist(nlpsection, 'inputfielddefs',
                                                 required=True, lower=False)
         self._inputfieldmap = {}  # type: Dict[str, InputFieldConfig]
         for x in self._inputfielddefs:
@@ -178,11 +202,11 @@ class NlpDefinition(object):
         # NLP processors
         # ---------------------------------------------------------------------
         self._processors = []  # type: List[BaseNlpParser]
-        processorpairs = self.opt_strlist(nlpname, 'processors', required=True,
+        processorpairs = self.opt_strlist(nlpsection, 'processors', required=True,
                                           lower=False)
         try:
             for proctype, procname in chunks(processorpairs, 2):
-                self.require_section(procname)
+                self.require_section(full_sectionname("processor", procname))
                 processor = make_processor(proctype, self, procname)
                 self._processors.append(processor)
         except ValueError:
@@ -333,8 +357,9 @@ class NlpDefinition(object):
         """
         if name_and_cfg_section in self._databases:
             return self._databases[name_and_cfg_section]
+        dbsection = full_sectionname("database", name_and_cfg_section)
         assert len(name_and_cfg_section) <= MAX_SQL_FIELD_LEN
-        db = self._parser.get_database(name_and_cfg_section,
+        db = self._parser.get_database(dbsection,
                                        with_session=with_session,
                                        with_conn=with_conn,
                                        reflect=reflect)

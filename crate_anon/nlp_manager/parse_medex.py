@@ -407,7 +407,7 @@ from crate_anon.nlp_manager.constants import (
     MEDEX_DATA_READY_SIGNAL,
     MEDEX_RESULTS_READY_SIGNAL,
 )
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition, full_sectionname
 
 log = logging.getLogger(__name__)
 
@@ -506,14 +506,15 @@ class Medex(BaseNlpParser):
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
 
         self._tablename = nlpdef.opt_str(
-            cfgsection, 'desttable', required=True)
+            self._sectionname, 'desttable', required=True)
 
         self._max_external_prog_uses = nlpdef.opt_int(
-            cfgsection, 'max_external_prog_uses', default=0)
+            self._sectionname, 'max_external_prog_uses', default=0)
 
-        self._progenvsection = nlpdef.opt_str(cfgsection, 'progenvsection')
+        self._progenvsection = nlpdef.opt_str(self._sectionname, 'progenvsection')
         if self._progenvsection:
-            self._env = nlpdef.get_env_dict(self._progenvsection, os.environ)
+            self._env = nlpdef.get_env_dict(
+                full_sectionname("env", self._progenvsection), os.environ)
         else:
             self._env = os.environ.copy()
         self._env["NLPLOGTAG"] = nlpdef.get_logtag() or '.'
@@ -539,7 +540,7 @@ class Medex(BaseNlpParser):
                 os.path.join(homedir, "medextemp", "working"))
             mkdir_p(self._workingdir.name)
 
-        progargs = nlpdef.opt_str(cfgsection, 'progargs', required=True)
+        progargs = nlpdef.opt_str(self._sectionname, 'progargs', required=True)
         formatted_progargs = progargs.format(**self._env)
         self._progargs = shlex.split(formatted_progargs)
         self._progargs.extend([

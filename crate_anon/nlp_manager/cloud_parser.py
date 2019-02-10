@@ -41,7 +41,7 @@ from cardinal_pythonlib.timing import MultiTimerContext, timer
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition, full_sectionname
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.dicts import (
@@ -106,6 +106,7 @@ class CloudRequest(object):
                 class and specify this parameter.
         """
         self._nlpdef = nlpdef
+        self._sectionname = full_sectionname("nlpdef", self._nlpdef.get_name())
         self._commit = commit
         # self._destdbs = {}  # type: Dict[str, DatabaseHolder]
         config = self._nlpdef.get_parser()
@@ -195,7 +196,7 @@ class CloudRequest(object):
                 "name": processor})
 
     def add_all_processors(self) -> None:
-        processorpairs = self._nlpdef.opt_strlist(self._nlpdef.get_name(),
+        processorpairs = self._nlpdef.opt_strlist(self._sectionname,
                                                   'processors', required=True,
                                                   lower=False)
         self.procs = {}
@@ -334,7 +335,7 @@ class CloudRequest(object):
             metadata: Dict[str, Any]) -> Generator[Tuple[
                                              str, Dict[str, Any], str], None, None]:
         tablename = self._nlpdef.opt_str(
-            procname, 'desttable', required=True)
+            full_sectionname("processor", procname), 'desttable', required=True)
         for result in processor_data['results']:
             result.update(metadata)
             yield tablename, result, proctype
@@ -399,8 +400,8 @@ class CloudRequest(object):
         procs_to_sessions = {}
         for procname in self.procnames:
             if procname not in procs_to_sessions:
-                destdb_name = self._nlpdef.opt_str(procname, 'destdb',
-                                                   required=True)
+                destdb_name = self._nlpdef.opt_str(full_sectionname("processor", procname),
+                                                   'destdb', required=True)
                 procs_to_sessions[procname] = [destdb_name,
                                                self._nlpdef.get_database(
                                                    destdb_name).session]

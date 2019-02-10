@@ -69,7 +69,7 @@ from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
 from crate_anon.nlp_manager.models import NlpRecord
 # if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
 #     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition, full_sectionname
 from crate_anon.version import CRATE_VERSION
 
 log = logging.getLogger(__name__)
@@ -104,17 +104,19 @@ class InputFieldConfig(object):
             section:
                 config section name for the input field definition
         """
+        sectionname = full_sectionname("input", section)
+
         def opt_str(option: str, required: bool = True) -> str:
-            return nlpdef.opt_str(section, option, required=required)
+            return nlpdef.opt_str(sectionname, option, required=required)
 
         def opt_strlist(option: str,
                         required: bool = False,
                         lower: bool = True) -> List[str]:
-            return nlpdef.opt_strlist(section, option, as_words=False,
+            return nlpdef.opt_strlist(sectionname, option, as_words=False,
                                       lower=lower, required=required)
 
         def opt_int(option: str, default: Optional[int]) -> Optional[int]:
-            return nlpdef.opt_int(section, option, default=default)
+            return nlpdef.opt_int(sectionname, option, default=default)
 
         # def opt_bool(option: str, default: bool) -> bool:
         #     return nlpdef.opt_bool(section, option, default=default)

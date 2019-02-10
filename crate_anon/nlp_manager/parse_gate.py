@@ -51,7 +51,7 @@ from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
     SqlTypeDbIdentifier,
 )
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition, full_sectionname
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 
 log = logging.getLogger(__name__)
@@ -139,15 +139,15 @@ class Gate(BaseNlpParser):
             logtag = ''
         else:
             self._max_external_prog_uses = nlpdef.opt_int(
-                cfgsection, 'max_external_prog_uses', default=0)
+                self._sectionname, 'max_external_prog_uses', default=0)
             self._input_terminator = nlpdef.opt_str(
-                cfgsection, 'input_terminator', required=True)
+                self._sectionname, 'input_terminator', required=True)
             self._output_terminator = nlpdef.opt_str(
-                cfgsection, 'output_terminator', required=True)
-            typepairs = nlpdef.opt_strlist(cfgsection, 'outputtypemap',
+                self._sectionname, 'output_terminator', required=True)
+            typepairs = nlpdef.opt_strlist(self._sectionname, 'outputtypemap',
                                            required=True, lower=False)
-            self._progenvsection = nlpdef.opt_str(cfgsection, 'progenvsection')
-            progargs = nlpdef.opt_str(cfgsection, 'progargs', required=True)
+            self._progenvsection = nlpdef.opt_str(self._sectionname, 'progenvsection')
+            progargs = nlpdef.opt_str(self._sectionname, 'progargs', required=True)
             logtag = nlpdef.get_logtag() or '.'
 
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
@@ -171,7 +171,8 @@ class Gate(BaseNlpParser):
             self._type_to_tablename[annottype] = c.get_tablename()
 
         if self._progenvsection:
-            self._env = nlpdef.get_env_dict(self._progenvsection, os.environ)
+            self._env = nlpdef.get_env_dict(
+                full_sectionname("env", self._progenvsection), os.environ)
         else:
             self._env = os.environ.copy()
         self._env["NLPLOGTAG"] = logtag
