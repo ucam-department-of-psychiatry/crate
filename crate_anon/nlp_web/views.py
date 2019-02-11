@@ -273,6 +273,8 @@ in the version specified".format(processor['name'])
                     #         del features['indices']
                     #         proc_dict['results'].append(features)
                     # ABOVE IS INCORRECT FORMAT
+                    # CORRECTION: Above actually was correct format, but dealt
+                    # with in 'tasks'
                 # proc_dict['success'] = success
 
                 processor_data.append(proc_dict)

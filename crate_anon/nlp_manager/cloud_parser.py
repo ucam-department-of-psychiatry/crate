@@ -327,13 +327,32 @@ class CloudRequest(object):
                       "{}.".format(status, self.queue_id))
             return False
 
+    def get_tablename_map(self, processor: str) -> Tuple[Dict[str, str],
+                                                         Dict[str,
+                                                         OutputUserConfig]]:
+        proc_section = full_sectionname("processor", processor)
+        typepairs = self._nlpdef.opt_strlist(proc_section, 'outputtypemap',
+                                             required=True, lower=False)
+
+        outputtypemap = {}  # type: Dict[str, OutputUserConfig]
+        type_to_tablename = {}  # type: Dict[str, str]
+        for c in chunks(typepairs, 2):
+            annottype = c[0]
+            outputsection = c[1]
+            annottype = annottype.lower()
+            otconfig = OutputUserConfig(self._nlpdef.get_parser(), outputsection)
+            outputtypemap[annottype] = otconfig
+            type_to_tablename[annottype] = otconfig.get_tablename()
+
+        return type_to_tablename, outputtypemap
+
     def get_nlp_values_internal(
             self,
             processor_data: Dict[str, str],
             proctype: str,
             procname: str,
             metadata: Dict[str, Any]) -> Generator[Tuple[
-                                             str, Dict[str, Any], str], None, None]:
+                str, Dict[str, Any], str], None, None]:
         tablename = self._nlpdef.opt_str(
             full_sectionname("processor", procname), 'desttable', required=True)
         for result in processor_data['results']:
@@ -343,7 +362,9 @@ class CloudRequest(object):
     def get_nlp_values_gate(
             self,
             processor_data: Dict[str, str],
-            procname: str) -> Generator[Tuple[str, Dict[str, Any], str], None, None]:
+            procname: str,
+            metadata: Dict[str, Any]) -> Generator[Tuple[
+                str, Dict[str, Any], str], None, None]:
         type_to_tablename, outputtypemap = self.get_tablename_map(
             procname)
         for result in processor_data['results']:
@@ -374,7 +395,7 @@ class CloudRequest(object):
             for processor_data in result['processors']:
                 procidentifier = processor_data['name']
                 mirror_proc = self.mirror_processors[procidentifier]
-                if mirror_proc.get_parser_name() == 'Gate':
+                if mirror_proc.get_parser_name().upper() == 'GATE':
                     for t, r, p in self.get_nlp_values_gate(processor_data,
                                                             procidentifier,
                                                              metadata):
@@ -422,14 +443,14 @@ class CloudRequest(object):
                     "Each element of 'procs' must be from a subclass "
                     "of BaseNlpParser")
                 proctype = proc.get_parser_name()
-                if proctype == 'Gate':
+                if proctype.upper() == 'GATE':
                     self.mirror_processors[proc.get_cfgsection()] = proc
                 else:
                     self.mirror_processors[proctype] = proc
         else:
             for proc in self._nlpdef.get_processors():
                 proctype = proc.get_parser_name()
-                if proctype == 'Gate':
+                if proctype.upper() == 'GATE':
                     self.mirror_processors[proc.get_cfgsection()] = proc
                 else:
                     self.mirror_processors[proctype] = proc

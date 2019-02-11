@@ -8,7 +8,7 @@ from pyramid.paster import (
     get_appsettings,
 #    setup_logging,
 )
-from typing import Optional, Tuple, Any, List
+from typing import Optional, Tuple, Any, List, Dict
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 # from crate_anon.nlp_manager.all_processors import make_processor
@@ -26,6 +26,30 @@ try:
     backend_url = SETTINGS['backend_url']
 except KeyError:
     log.error("backend_url value missing from config file.")
+
+def get_gate_results(results_dict: Dict[str, Any]) -> List[Any]:
+    results = []
+    # See https://cloud.gate.ac.uk/info/help/online-api.html
+    # for format of response from processor
+    text = results_dict['text']
+    entities = results_dict['entities']
+    for annottype, values in entities.items():
+        # One annotation type will have a list of dictionaries
+        # with each dictionary being the set of features for one
+        # result, or 'hit'
+        for featureset in values:
+            # There must be a more efficient way to do this:
+            features = {x: featureset[x] for x in featureset if x != "indices"}#
+            features['_type'] = annottype
+            start, end = featureset['indices']
+            content = text[start: end]
+            features['_start'] = start
+            features['_end'] = end
+            features['_content'] = content
+            results.append(features)
+    print(results)
+    print()
+    return results
 
 # app = Celery('tasks', backend=backend_url, broker=broker_url)
 app = Celery('tasks', backend=backend_url, broker='pyamqp://')
@@ -59,7 +83,7 @@ def process_nlp_text(
     # Delete docprocrequest from database
     DBSession.delete(query)
     transaction.commit()
-    if processor.proctype == "Gate":
+    if processor.proctype.upper() == "GATE":
         return process_nlp_gate(text, processor, url, username, password)
     else:
         if not processor.parser:
@@ -76,7 +100,7 @@ def process_nlp_text_immediate(
     """
     Function to send text immediately to the relevant processor.
     """
-    if processor.proctype == "Gate":
+    if processor.proctype.upper() == "GATE":
         return process_nlp_gate(text, processor, url, username, password)
     else:
         if not processor.parser:
@@ -105,15 +129,16 @@ def process_nlp_gate(text: str, processor: Processor, url: str,
                                  data=text,
                                  headers=headers,
                                  auth=(username, password))  # basic auth
+        print(response)
     except requests.exceptions.RequestException as e:
-        # log.error(e)
+        log.error(e)
         return (
             False,
             [],
             e.response.status_code,
             "The GATE processor returned the error: " + e.response.reason
         )
-    if processed_text.status_code != 200:
+    if response.status_code != 200:
         return (
             False,
             [],
@@ -129,7 +154,9 @@ def process_nlp_gate(text: str, processor: Processor, url: str,
             502,  # 'Bad Gateway' - not sure if correct error code
             "The GATE processor did not return json"
         )
-    return (True, json_response, None, None)
+    results = get_gate_results(json_response)
+    print(results)
+    return (True, results, None, None)
 
 def process_nlp_internal(text: str, parser: BaseNlpParser) -> Tuple[
             bool, List[Any], str, str]:

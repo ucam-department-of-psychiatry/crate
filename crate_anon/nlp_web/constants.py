@@ -11,15 +11,7 @@ VALIDATOR_DESCR = ("The validator will find fields that refer to the variable, "
 # ones which should not be used directly
 PROCESSORS = [
     {
-        'name': "gate_medication",
-        'title': "SLAM BRC GATE-based medication finder",
-        'version': "1.1.0",
-        'is_default_version': False,
-        'description': "Finds drug names",
-        'proctype': "GATE"
-    },
-    {
-        'name': "gate_medication",
+        'name': "medication",
         'title': "SLAM BRC GATE-based medication finder",
         'version': "1.2.0",
         'is_default_version': True,
@@ -27,9 +19,9 @@ PROCESSORS = [
         'proctype': "GATE"
     },
     {
-        'name': "procdef_gate_name_location",
+        'name': "diagnosis",
         'title': "Test title",
-        'version': "1.0",
+        'version': "0.1",
         'is_default_version': True,
         'description': "Test description",
         'proctype': "GATE"
@@ -322,7 +314,7 @@ PROCESSORS = [
 ##                           "value."
 ##        })
 
-GATE_BASE_URL = "http://localhost:5000"
+GATE_BASE_URL = "https://nhsta-api.slam-services.gate.ac.uk/process-document"
 NLPRP_VERSION = '0.1.0'
 SERVER_NAME = 'test_server'
 SERVER_VERSION = '0.1'
@@ -336,7 +328,7 @@ use = egg:crate_anon
 pyramid.reload_templates = true
 # pyramid.includes =
 #     pyramid_debugtoolbar
-nlp_web.secret = 98zd
+nlp_web.secret = changethis
 sqlalchemy.url = mysql://username:password@localhost/dbname?charset=utf8
 
 # Absolute path of users file
