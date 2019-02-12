@@ -792,6 +792,12 @@ Changes
   exception from :func:`cardinal_pythonlib.extract_text.document_to_text` if
   a filename is passed and the file doesn't exist.
 
+**v0.18.63, 2019-02-12**
+
+- NLP web server based on the NLPRP API.
+
+- Bugfix to the website string finder - 'text fields' now includes
+  'NVARCHAR(-1)'.
 
 
 .. rubric:: Footnotes
