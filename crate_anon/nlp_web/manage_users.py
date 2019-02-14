@@ -1,6 +1,7 @@
 import argparse
 import logging
 from shutil import copyfile
+from typing import Dict
 
 from crate_anon.nlp_web.constants import SETTINGS
 from crate_anon.nlp_web.security import hash_password
@@ -8,17 +9,18 @@ from crate_anon.nlp_web.security import hash_password
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
-# Is file locking needed?
+USERS_FILENAME = SETTINGS['users_file']
 
-users_filename = SETTINGS['users_file']
-
-with open(users_filename, 'r') as user_file:
-    user_lines = user_file.readlines()
-user_elements = [x.split(',') for x in user_lines]
-USERS = {x[0]: x[1].strip() for x in user_elements}
+def get_users() -> Dict[str, str]:
+    with open(USERS_FILENAME, 'r') as user_file:
+        user_lines = user_file.readlines()
+    user_elements = [x.split(',') for x in user_lines]
+    users = {x[0]: x[1].strip() for x in user_elements}
+    return users
 
 def add_user(username: str, password: str) -> None:
-    if username in USERS:
+    users = get_users()
+    if username in users:
         proceed = input("User {} already exists. Overwrite "
                        "(change password)? [yes/no] ".format(username))
         if proceed.lower() == "yes":
@@ -26,7 +28,7 @@ def add_user(username: str, password: str) -> None:
             return
         else:
             return
-    with open(users_filename, 'a') as user_file:
+    with open(USERS_FILENAME, 'a') as user_file:
         user_file.write("{},{}\n".format(username,
                                   hash_password(password)))
     log.info("User {} added.".format(username))
@@ -34,19 +36,20 @@ def add_user(username: str, password: str) -> None:
 def rm_user(username: str) -> None:
     user_found = False
     # Create a backup in case something goes wrong during writing
-    backup_filename = users_filename + "~"
-    copyfile(users_filename, backup_filename)
+    backup_filename = USERS_FILENAME + "~"
+    copyfile(USERS_FILENAME, backup_filename)
+    users = get_users()
     try:
-        with open(users_filename, 'w') as user_file:
-            for user in USERS:
+        with open(USERS_FILENAME, 'w') as user_file:
+            for user in users:
                 if user != username:
-                    user_file.write("{},{}\n".format(user, USERS[user]))
+                    user_file.write("{},{}\n".format(user, users[user]))
                 else:
                     user_found = True
     except IOError:
         log.error("An error occured in opening the file {}. If the "
                   "integrity of this file is compromised, the backup is "
-                  "{}.".format(users_filename, backup_filename))
+                  "{}.".format(USERS_FILENAME, backup_filename))
         raise
     if user_found:
         log.info("User {} removed.".format(username))
@@ -56,13 +59,14 @@ def rm_user(username: str) -> None:
 def change_password(username: str, password: str) -> None:
     user_found = False
     # Create a backup in case something goes wrong during writing
-    backup_filename = users_filename + "~"
-    copyfile(users_filename, backup_filename)
+    backup_filename = USERS_FILENAME + "~"
+    copyfile(USERS_FILENAME, backup_filename)
+    users = get_users()
     try:
-        with open(users_filename, 'w') as user_file:
-            for user in USERS:
+        with open(USERS_FILENAME, 'w') as user_file:
+            for user in users:
                 if user != username:
-                    user_file.write("{},{}\n".format(user, USERS[user]))
+                    user_file.write("{},{}\n".format(user, users[user]))
                 else:
                     user_found = True
                     user_file.write("{},{}\n".format(username,
@@ -70,7 +74,7 @@ def change_password(username: str, password: str) -> None:
     except IOError:
         log.error("An error occured in opening the file {}. If the "
                   "integrity of this file is compromised, the backup is "
-                  "{}.".format(users_filename, backup_filename))
+                  "{}.".format(USERS_FILENAME, backup_filename))
         raise
     if user_found:
         log.info("Password changed for user {}.".format(username))

@@ -102,8 +102,10 @@
         {% if user.is_authenticated %}
             <div id="above-main">
                 <div id="db-info">
-                    <p><a href="{% url 'home' %}">Home</a> | Database: <strong>My NHS Research
-                          Database</strong></p>
+                    <p>
+                        <a href="{% url 'home' %}">Home</a> | Database:
+                        <strong>{{ RESEARCH_DB_TITLE|default:"CRATE: Research Database" }}</strong>
+                    </p>
                 </div>
 
                 <div id="login-info">

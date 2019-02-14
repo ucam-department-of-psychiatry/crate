@@ -20,9 +20,7 @@ from celery import group
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.all_processors import make_processor
 from crate_anon.nlp_web.security import check_password, get_auth_credentials
-# Should this be a delayed import (in '__init__') so that we can add users
-# while this is running and a new request will pick it up?
-from crate_anon.nlp_web.manage_users import USERS
+from crate_anon.nlp_web.manage_users import get_users
 from crate_anon.nlp_web.models import DBSession, Document, DocProcRequest
 from crate_anon.nlp_web.procs import Processor
 from crate_anon.nlp_web.constants import (
@@ -110,14 +108,16 @@ class NlpWebViews(object):
         self.credentials = get_auth_credentials(self.request)
         if self.credentials is None:
             error = BAD_REQUEST
-            self.request.response.status = error['status']  # put status in headers
+            # Put status in headers
+            self.request.response.status = error['status']
             description = "Credentials were absent or not in the correct \
 format"
             return self.create_error_response(error, description)
         # See if the user exists
+        users = get_users()
         username = self.credentials['username']
         try:
-            hashed_pw = USERS[username]
+            hashed_pw = users[username]
         except KeyError:
             error = UNAUTHORIZED
             self.request.response.status = error['status']

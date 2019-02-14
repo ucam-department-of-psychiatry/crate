@@ -60,10 +60,9 @@ log = logging.getLogger(__name__)
 def process_nlp_text(
         self,
         docprocrequest_id: str,
-        url: Optional[str] = None,
-        username: Optional[str] = "",
-        password: Optional[str] = "") -> Optional[Tuple[
-            bool, List[Any], str, str]]:
+        url: str = None,
+        username: str = "",
+        password: str = "") -> Optional[Tuple[bool, List[Any], str, str]]:
     """
     Task to send text to the relevant processor.
     """
@@ -93,10 +92,9 @@ def process_nlp_text(
 def process_nlp_text_immediate(
         text: str,
         processor: Processor,
-        url: Optional[str] = None,
-        username: Optional[str] = "",
-        password: Optional[str] = "") -> Optional[Tuple[
-            bool, List[Any], str, str]]:
+        url: str = None,
+        username: str = "",
+        password: str = "") -> Optional[Tuple[bool, List[Any], str, str]]:
     """
     Function to send text immediately to the relevant processor.
     """
