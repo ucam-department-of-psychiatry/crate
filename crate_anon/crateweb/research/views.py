@@ -2251,7 +2251,8 @@ def textfinder_sql(patient_id_fieldname: str,
                         column_name=column_identifier,
                         fragment=fragment,
                         as_fulltext=(columninfo.indexed_fulltext and
-                                     use_fulltext_index)
+                                     use_fulltext_index),
+                        dialect=settings.RESEARCH_DB_DIALECT
                     )
                 else:
                     extra = drugmatch(
@@ -2277,7 +2278,8 @@ def textfinder_sql(patient_id_fieldname: str,
                         column_name=columninfo.column_id.identifier(grammar),
                         fragment=fragment,
                         as_fulltext=(columninfo.indexed_fulltext and
-                                     use_fulltext_index)
+                                     use_fulltext_index),
+                        dialect=settings.RESEARCH_DB_DIALECT
                     )
                 else:
                     elmnt = drugmatch(
