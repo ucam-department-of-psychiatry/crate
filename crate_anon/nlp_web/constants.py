@@ -2,8 +2,9 @@ from pyramid.paster import get_appsettings
 from pyramid.config import Configurator
 
 PYTHONPROCSVERSION = "1.0"
-VALIDATOR_DESCR = ("The validator will find fields that refer to the variable, "
-                  "whether or not they contain a valid value.")
+VALIDATOR_DESCR = (
+    "The validator will find fields that refer to the variable, "
+    "whether or not they contain a valid value.")
 
 
 # We could have gotten the internal Python processors from the subclasses of
@@ -174,8 +175,8 @@ PROCESSORS = [
         'title': "Mini-Addenbrooke's Cognitive Examination (M-ACE).",
         'version': PYTHONPROCSVERSION,
         'is_default_version': True,
-        'description': "Finds Mini-Addenbrooke's Cognitive Examination "
-                        "(M-ACE) score."
+        'description': ("Finds Mini-Addenbrooke's Cognitive Examination "
+                        "(M-ACE) score.")
     },
     {
         'name': "MiniAceValidator",
@@ -288,7 +289,7 @@ PROCESSORS = [
         'version': PYTHONPROCSVERSION,
         'is_default_version': True,
         'description': ("Weight. Handles metric (e.g. '57kg') and "
-                       "imperial (e.g. '10 st 2 lb').")
+                        "imperial (e.g. '10 st 2 lb').")
     },
     {
         'name': "WeightValidator",
@@ -301,18 +302,18 @@ PROCESSORS = [
 
 # Not doing the following because then the procs won't be in correct order:
 
-##for proc in PROCESSORS:
-##    proctype = proc.get('proctype')
-##    if not procypte:
-##        PROCESSORS.append({
-##            'name': "{}Validator".format(proc[name])
-##            'title': "Validator for {}".format(proc[name])
-##            'version': PYTHONPROCSVERSION,
-##            'is_default_version': True,
-##            'desrciption': "The validator will find fields that refer to "
-##                           "the variable, whether or not they contain a valid "
-##                           "value."
-##        })
+#for proc in PROCESSORS:
+#    proctype = proc.get('proctype')
+#    if not procypte:
+#        PROCESSORS.append({
+#            'name': "{}Validator".format(proc[name])
+#            'title': "Validator for {}".format(proc[name])
+#            'version': PYTHONPROCSVERSION,
+#            'is_default_version': True,
+#            'desrciption': "The validator will find fields that refer to "
+#                           "the variable, whether or not they contain a valid "  # noqa
+#                           "value."
+#        })
 
 GATE_BASE_URL = "https://nhsta-api.slam-services.gate.ac.uk/process-document"
 NLPRP_VERSION = '0.1.0'

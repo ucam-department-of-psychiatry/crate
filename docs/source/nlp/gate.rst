@@ -29,9 +29,9 @@
 GATE NLP applications
 ---------------------
 
-GATE NLP is done via an external program [#gate]_. GATE runs in Java. CRATE
-supplies an external front-end Java program (`CrateGatePipeline.java`) that
-loads a GATE app, sends text to it, and returns answers.
+GATE NLP is done via an external program, GATE [#gate]_. GATE runs in Java.
+CRATE supplies an external front-end Java program (`CrateGatePipeline.java`)
+that loads a GATE app, sends text to it, and returns answers.
 
 In general, CRATE sends text to the external program (via stdin), and will
 expect a result (via stdout) as a set of tab-separated value (TSV) lines

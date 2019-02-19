@@ -2,23 +2,14 @@ import transaction
 import uuid
 import json
 import datetime
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 
-from sqlalchemy import text
-
-# from pyramid.httpexceptions import HTTPFound
-from pyramid.authentication import AuthTktAuthenticationPolicy
-from pyramid.authorization import ACLAuthorizationPolicy
+from celery.result import AsyncResult
 from pyramid.view import view_config, view_defaults
 from pyramid.request import Request
 from pyramid.response import Response
-from sqlalchemy import create_engine, and_
-from sqlalchemy.orm import sessionmaker
-from celery.result import AsyncResult
-from celery import group
+from sqlalchemy import and_
 
-from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-from crate_anon.nlp_manager.all_processors import make_processor
 from crate_anon.nlp_web.security import check_password, get_auth_credentials
 from crate_anon.nlp_web.manage_users import get_users
 from crate_anon.nlp_web.models import DBSession, Document, DocProcRequest
@@ -29,7 +20,11 @@ from crate_anon.nlp_web.constants import (
     SERVER_NAME,
     SERVER_VERSION,
 )
-from crate_anon.nlp_web.tasks import app, process_nlp_text, process_nlp_text_immediate
+from crate_anon.nlp_web.tasks import (
+    app,
+    process_nlp_text,
+    process_nlp_text_immediate,
+)
 
 BAD_REQUEST = {
     'status': 400,
@@ -43,6 +38,7 @@ UNAUTHORIZED = {
     'message': 'Unauthorized',
     'default_descr': 'The username/password combination given is incorrect'
 }
+
 
 @view_defaults(renderer='json')
 class NlpWebViews(object):
@@ -254,7 +250,7 @@ in the version specified".format(processor['name'])
                 #     json_response = response.json()
                 # except json.decoder.JSONDecodeError:
                 #     success = False
-                # if processed_text.status_code != 200:  # will success always be 200?
+                # if processed_text.status_code != 200:  # will success always be 200?  # noqa
                 #     success = False
                 # else:
                 #     success = True
@@ -263,8 +259,8 @@ in the version specified".format(processor['name'])
                     # entities = processed_text['entities']
                     # for annottype, values in entities.items():
                     #     for features in values:
-                    #         # Add annotation type, start position and end position
-                    #         # and remove 'indices' - the rest of 'features' should
+                    #         # Add annotation type, start position and end position  # noqa
+                    #         # and remove 'indices' - the rest of 'features' should  # noqa
                     #         # just be actual features
                     #         features['_type'] = annottype
                     #         start, end = features['indices']
@@ -376,7 +372,7 @@ in the version specified".format(processor['name'])
                 username=self.username,
                 processor_ids=json.dumps(proc_ids),
                 client_metadata=metadata,
-                result_ids = json.dumps(result_ids),
+                result_ids=json.dumps(result_ids),
                 include_text=include_text
             )
             with transaction.manager:
@@ -414,8 +410,8 @@ in the version specified".format(processor['name'])
             return self.key_missing_error(key='queue_id')
         include_text = self.body.get('include_text', False)
         query = DBSession.query(Document).filter(
-            and_(Document.queue_id==queue_id,
-                 Document.username==self.username)
+            and_(Document.queue_id == queue_id,
+                 Document.username == self.username)
         )
         document_rows = query.all()
         response_info = {
@@ -433,7 +429,7 @@ in the version specified".format(processor['name'])
                     'text': doc.doctext
                 }
             else:
-               response_info['results'][j] = {
+                response_info['results'][j] = {
                     'metadata': metadata,
                     'processors': processor_data
                 }
@@ -491,8 +487,8 @@ exist".format(procname, procversion)
                     # entities = json_response['entities']
                     # for annottype, values in entities.items():
                     #     for features in values:
-                    #         # Add annotation type, start position and end position
-                    #         # and remove 'indices' - the rest of 'features' should
+                    #         # Add annotation type, start position and end position  # noqa
+                    #         # and remove 'indices' - the rest of 'features' should  # noqa
                     #         # just be actual features
                     #         features['_type'] = annottype
                     #         start, end = features['indices']
@@ -504,9 +500,10 @@ exist".format(procname, procversion)
                 processor_data.append(proc_dict)
             # TEST PROPERLY!
             subquery = DBSession.query(DocProcRequest).filter(
-                DocProcRequest.document_id==doc.document_id)
+                DocProcRequest.document_id == doc.document_id)
             DBSession.query(Document).filter(
-                and_(Document.document_id==doc.document_id, ~subquery.exists())
+                and_(Document.document_id == doc.document_id,
+                     ~subquery.exists())
             ).delete(synchronize_session='fetch')
         transaction.commit()
         self.request.response.status = 200
@@ -520,12 +517,12 @@ exist".format(procname, procversion)
         client_job_id = self.body['args'].get('client_job_id')
         if client_job_id is None:
             query = DBSession.query(Document).filter(
-                Document.username==self.username
+                Document.username == self.username
             )
         else:
             query = DBSession.query(Document).filter(
-                and_(Document.username==self.username,
-                     Document.client_job_id==client_job_id)
+                and_(Document.username == self.username,
+                     Document.client_job_id == client_job_id)
             )
         records = query.all()
         queue = []
@@ -549,8 +546,9 @@ exist".format(procname, procversion)
                 'client_job_id': record.client_job_id,
                 'status': "busy" if busy else "ready",
                 'datetime_submitted': qid_recs[0].datetime_submitted,
-                'datetime_completed': None if busy
-                    else datetime.datetime.utcnow()
+                'datetime_completed': (
+                    None if busy else datetime.datetime.utcnow()
+                )
             })
         return self.create_response(status=200, extra_info={'queue', queue})
 
@@ -563,25 +561,25 @@ exist".format(procname, procversion)
             delete_all = args.get('delete_all')
             if delete_all == True:
                 docs = DBSession.query(Documents).filter(
-                    Document.username==self.username
+                    Document.username == self.username
                 ).all()
             else:
                 docs = []
                 client_job_ids = args.get('client_job_ids')
                 for cj_id in client_job_ids:
                     docs.append(DBSession.query(Documents).filter(
-                        and_(Document.username==self.username,
-                             Document.client_job_id==cj_id
-                        )
+                        and_(Document.username == self.username,
+                             Document.client_job_id == cj_id)
                     ).all())
                 queue_ids = args.get('queue_ids')
                 for q_id in queue_ids:
                     # Clumsy way of making sure we don't have same doc twice
                     docs.append(DBSession.query(Documents).filter(
-                        and_(Document.username==self.username,
-                             Document.queue_id==q_id,
-                             Document.client_job_id not in [
-                                 x.client_job_id for x in docs
+                        and_(
+                            Document.username == self.username,
+                            Document.queue_id == q_id,
+                            Document.client_job_id not in [
+                                x.client_job_id for x in docs
                             ]
                         )
                     ).all())
@@ -593,9 +591,8 @@ exist".format(procname, procversion)
                     result.revoke()
                 # Remove from docprocrequests
                 dpr_query = DBSession.query(DocProcRequest).filter(
-                    and_(DocProcRequest.document_id==doc.document_id,
-                         DocProcRequest.username==self.username
-                    )
+                    and_(DocProcRequest.document_id == doc.document_id,
+                         DocProcRequest.username == self.username)
                 )
                 DBSession.delete(dpr_query)
             # Remove from documents

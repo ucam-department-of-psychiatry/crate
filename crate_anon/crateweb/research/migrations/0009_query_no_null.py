@@ -9,6 +9,7 @@ class Migration(migrations.Migration):
         ('research', '0008_query_display'),
     ]
 
+    # noinspection PyPep8
     operations = [
         migrations.AddField(
             model_name='query',

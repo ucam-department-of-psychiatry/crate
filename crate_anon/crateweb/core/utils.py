@@ -31,7 +31,7 @@ crate_anon/crateweb/core/utils.py
 import datetime
 import logging
 import urllib.parse
-from typing import Any, Dict, List, Union
+from typing import Any, List, Union
 
 from django.conf import settings
 from django.core.paginator import Paginator, EmptyPage, Page, PageNotAnInteger

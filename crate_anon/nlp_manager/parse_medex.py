@@ -407,7 +407,10 @@ from crate_anon.nlp_manager.constants import (
     MEDEX_DATA_READY_SIGNAL,
     MEDEX_RESULTS_READY_SIGNAL,
 )
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition, full_sectionname
+from crate_anon.nlp_manager.nlp_definition import (
+    full_sectionname,
+    NlpDefinition,
+)
 
 log = logging.getLogger(__name__)
 
@@ -894,7 +897,7 @@ class Medex(BaseNlpParser):
     # Test
     # -------------------------------------------------------------------------
 
-    def test(self, verbose: bool=False) -> None:
+    def test(self, verbose: bool = False) -> None:
         """
         Test the send function.
         """

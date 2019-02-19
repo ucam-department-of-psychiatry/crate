@@ -69,7 +69,10 @@ from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
 from crate_anon.nlp_manager.models import NlpRecord
 # if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
 #     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition, full_sectionname
+from crate_anon.nlp_manager.nlp_definition import (
+    full_sectionname,
+    NlpDefinition,
+)
 from crate_anon.version import CRATE_VERSION
 
 log = logging.getLogger(__name__)

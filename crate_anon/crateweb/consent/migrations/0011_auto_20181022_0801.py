@@ -34,6 +34,7 @@ import crate_anon.crateweb.consent.models
 from django.db import migrations, models
 
 
+# noinspection PyProtectedMember
 class Migration(migrations.Migration):
 
     dependencies = [

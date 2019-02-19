@@ -11,6 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 USERS_FILENAME = SETTINGS['users_file']
 
+
 def get_users() -> Dict[str, str]:
     with open(USERS_FILENAME, 'r') as user_file:
         user_lines = user_file.readlines()
@@ -18,20 +19,21 @@ def get_users() -> Dict[str, str]:
     users = {x[0]: x[1].strip() for x in user_elements}
     return users
 
+
 def add_user(username: str, password: str) -> None:
     users = get_users()
     if username in users:
         proceed = input("User {} already exists. Overwrite "
-                       "(change password)? [yes/no] ".format(username))
+                        "(change password)? [yes/no] ".format(username))
         if proceed.lower() == "yes":
             change_password(username, password)
             return
         else:
             return
     with open(USERS_FILENAME, 'a') as user_file:
-        user_file.write("{},{}\n".format(username,
-                                  hash_password(password)))
+        user_file.write("{},{}\n".format(username, hash_password(password)))
     log.info("User {} added.".format(username))
+
 
 def rm_user(username: str) -> None:
     user_found = False
@@ -55,6 +57,7 @@ def rm_user(username: str) -> None:
         log.info("User {} removed.".format(username))
     else:
         log.info("User {} not found.".format(username))
+
 
 def change_password(username: str, password: str) -> None:
     user_found = False
@@ -81,6 +84,7 @@ def change_password(username: str, password: str) -> None:
     else:
         log.info("User {} not found.".format(username))
 
+
 def main() -> None:
     """
     Command-line entry point.
@@ -91,16 +95,20 @@ def main() -> None:
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     arg_group = parser.add_mutually_exclusive_group()
-    arg_group.add_argument("--adduser", nargs=2, metavar=("USERNAME", "PASSWORD"),
-                        help="Add a user and associated password.")
-    arg_group.add_argument("--rmuser", nargs=1, metavar="USERNAME",
-                        help="Remove a user by specifying their username.")
-    arg_group.add_argument("--changepw", nargs=2, metavar=("USERNAME", "PASSWORD"),
-                        help="Change a user's password.")
+    arg_group.add_argument(
+        "--adduser", nargs=2, metavar=("USERNAME", "PASSWORD"),
+        help="Add a user and associated password.")
+    arg_group.add_argument(
+        "--rmuser", nargs=1, metavar="USERNAME",
+        help="Remove a user by specifying their username.")
+    arg_group.add_argument(
+        "--changepw", nargs=2, metavar=("USERNAME", "PASSWORD"),
+        help="Change a user's password.")
     args = parser.parse_args()
 
     if not args.adduser and not args.rmuser and not args.changepw:
-        log.error("One option required: '--aduser', '--rmuser' or '--changepw'.")
+        log.error(
+            "One option required: '--aduser', '--rmuser' or '--changepw'.")
         return
 
     if args.rmuser:

@@ -97,7 +97,7 @@ from crate_anon.nlp_manager.constants import (
     DEMO_CONFIG,
     MAX_STRING_PK_LENGTH,
     NLP_CONFIG_ENV_VAR,
-    CLOUD_URL,
+    # CLOUD_URL,
     # GATE_CLOUD_URL,
     MAX_PACKET_SIZE,
 )
@@ -462,7 +462,7 @@ def process_nlp(nlpdef: NlpDefinition,
 
     nlpdef.commit_all()
 
-########### ADDED ###########################################
+
 def send_cloud_requests(
         nlpdef: NlpDefinition,
         ifconfig: InputFieldConfig,
@@ -522,16 +522,18 @@ def send_cloud_requests(
             requests.append(cloud_request)
             text_too_big = not cloud_request.add_text(text, other_values)
             if text_too_big:
-                log.warning("Record {db}.{t}.{c}, PK: {pkf}={pkv} "
-                "is too big to send".format(
-                    db=other_values[FN_SRCDB],
-                    t=other_values[FN_SRCTABLE],
-                    c=other_values[FN_SRCFIELD],
-                    pkf=other_values[FN_SRCPKFIELD],
-                    pkv=pkstr if pkstr else pkval,
-                    recnum=recnum + 1,
-                    totalcount=totalcount
-                ))
+                log.warning(
+                    "Record {db}.{t}.{c}, PK: {pkf}={pkv} "
+                    "is too big to send".format(
+                        db=other_values[FN_SRCDB],
+                        t=other_values[FN_SRCTABLE],
+                        c=other_values[FN_SRCFIELD],
+                        pkf=other_values[FN_SRCPKFIELD],
+                        pkv=pkstr if pkstr else pkval,
+                        recnum=recnum + 1,
+                        totalcount=totalcount
+                    )
+                )
             else:
                 log.info(pkstr if pkstr else pkval)
             if recnum < totalcount:
@@ -636,14 +638,14 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                                 commit=incremental,
                                 session=db[1],
                                 destdb_name=db[0]
-                           )
+                            )
                         # Record progress in progress database
                         progrec = ifconfig.get_progress_record(pkval, pkstr)
                     if srchash in seen_srchashs:
                         progrec = ifconfig.get_progress_record(pkval, pkstr)
                     seen_srchashs.append(srchash)
-                    # Make a note in the progress database that we've processed a
-                    # source record
+                    # Make a note in the progress database that we've processed
+                    # a source record
                     if progrec:  # modifying an existing record
                         progrec.whenprocessedutc = nlpdef.get_now()
                         progrec.srchash = srchash
@@ -666,6 +668,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     nlpdef.commit_all()
     if all_ready:
         os.remove('request_data_{}.txt'.format(nlpname))
+
 
 def process_cloud_now(
         nlpdef: NlpDefinition,
@@ -736,8 +739,6 @@ def process_cloud_now(
     nlpdef.commit_all()
 
 
-
-##############################################################################
 
 def drop_remake(nlpdef: NlpDefinition,
                 incremental: bool = False,
@@ -1019,7 +1020,7 @@ def main() -> None:
     #                     tasknum=args.process,
     #                     ntasks=args.nprocesses)
     #     except Exception as exc:
-    #         log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+    #         log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
     #         die(exc)
     if args.nlp or everything:
         if args.cloud:
@@ -1030,7 +1031,7 @@ def main() -> None:
                         incremental=args.incremental,
                         report_every=args.report_every_nlp)
                 except Exception as exc:
-                    log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+                    log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
                     die(exc)
             else:
                 try:
@@ -1038,7 +1039,7 @@ def main() -> None:
                                       incremental=args.incremental,
                                       report_every=args.report_every_nlp)
                 except Exception as exc:
-                    log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+                    log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
                     die(exc)
         elif args.retrieve:
             try:
@@ -1046,7 +1047,7 @@ def main() -> None:
                                   incremental=args.incremental,
                                   report_every=args.report_every_nlp)
             except Exception as exc:
-                log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+                log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
                 die(exc)
         else:
             try:
@@ -1056,7 +1057,7 @@ def main() -> None:
                             tasknum=args.process,
                             ntasks=args.nprocesses)
             except Exception as exc:
-                log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+                log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
                 die(exc)
 
     log.info("Finished")

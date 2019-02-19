@@ -90,6 +90,7 @@ CONFIG_OUTPUT_PREFIX = "output:"
 CONFIG_INPUT_PREFIX = "input:"
 CONFIG_DATABASE_PREFIX = "database:"
 
+
 def full_sectionname(section_type: str, section: str) -> str:
     if section_type == "nlpdef":
         return CONFIG_NLPDEF_PREFIX + section
@@ -181,7 +182,8 @@ class NlpDefinition(object):
         self._hashphrase = self.opt_str(nlpsection, 'hashphrase', required=True)
         self._hasher = HashClass(self._hashphrase)
         self._max_rows_before_commit = self.opt_int(
-            nlpsection, 'max_rows_before_commit', DEFAULT_MAX_ROWS_BEFORE_COMMIT)
+            nlpsection, 'max_rows_before_commit',
+            DEFAULT_MAX_ROWS_BEFORE_COMMIT)
         self._max_bytes_before_commit = self.opt_int(
             nlpsection, 'max_bytes_before_commit',
             DEFAULT_MAX_BYTES_BEFORE_COMMIT)
@@ -433,7 +435,7 @@ class NlpDefinition(object):
 
     def notify_transaction(self, session: Session,
                            n_rows: int, n_bytes: int,
-                           force_commit: bool=False) -> None:
+                           force_commit: bool = False) -> None:
         """
         Tell our transaction limiter about a transaction that's occurred on
         one of our databases. This may trigger a COMMIT.

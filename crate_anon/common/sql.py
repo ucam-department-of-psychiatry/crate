@@ -1571,7 +1571,7 @@ class TransactionSizeLimiter(object):
         self._rows_in_transaction = 0
 
     def notify(self, n_rows: int, n_bytes: int,
-               force_commit: bool=False) -> None:
+               force_commit: bool = False) -> None:
         """
         Use this function to notify the limiter of data that you've inserted
         into the database. If the total number of rows or bytes exceeds a limit

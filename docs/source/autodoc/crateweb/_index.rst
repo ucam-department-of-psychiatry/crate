@@ -62,6 +62,10 @@ crate_anon/crateweb
     consent/migrations/0010_auto_20180629_1238.py.rst
     consent/migrations/0011_auto_20181022_0801.py.rst
     consent/migrations/0012_auto_20181102_1335.py.rst
+    consent/migrations/0013_auto_20181223_1124.py.rst
+    consent/migrations/0014_contactrequest_rdbm_to_contact_pt.py.rst
+    consent/migrations/0015_auto_20190104_1255.py.rst
+    consent/migrations/0016_auto_20190212_1118.py.rst
     consent/migrations/__init__.py.rst
     consent/models.py.rst
     consent/storage.py.rst
@@ -72,6 +76,8 @@ crate_anon/crateweb
     consent/templates/charity_report.html.rst
     consent/templates/clinician_already_responded.html.rst
     consent/templates/clinician_confirm_response.html.rst
+    consent/templates/clinician_contact_request_result.html.rst
+    consent/templates/clinician_contact_request_submit.html.rst
     consent/templates/clinician_notes.html.rst
     consent/templates/clinician_response.html.rst
     consent/templates/clinician_response.js.rst
@@ -84,6 +90,7 @@ crate_anon/crateweb
     consent/templates/decision_form_to_patient_re_study.html.rst
     consent/templates/discharged_phrase.html.rst
     consent/templates/email_clinician.html.rst
+    consent/templates/email_clinician_initiated_cr.html.rst
     consent/templates/email_rdbm_bad_progress.html.rst
     consent/templates/email_rdbm_good_progress.html.rst
     consent/templates/email_rdbm_new_work_pt_from_clinician.html.rst
@@ -140,6 +147,8 @@ crate_anon/crateweb
     research/migrations/0006_patientexplorer_pmq_hash.py.rst
     research/migrations/0007_sitewidequery.py.rst
     research/migrations/0008_query_display.py.rst
+    research/migrations/0009_query_no_null.py.rst
+    research/migrations/0010_query_last_run.py.rst
     research/migrations/__init__.py.rst
     research/models.py.rst
     research/research_db_info.py.rst
@@ -184,6 +193,8 @@ crate_anon/crateweb
     research/templates/rid_lookup_result.html.rst
     research/templates/show_sitewide_queries.html.rst
     research/templates/sql_fragment.html.rst
+    research/templates/sqlhelper_form_drug_type_choose_db.html.rst
+    research/templates/sqlhelper_form_drugtype.html.rst
     research/templates/sqlhelper_form_text_anywhere.html.rst
     research/templates/sqlhelper_form_text_anywhere_choose_db.html.rst
     research/tests.py.rst
@@ -192,6 +203,7 @@ crate_anon/crateweb
     specimen_secret_local_settings/crateweb_local_settings.py.rst
     static/base.css.rst
     static/collapse.js.rst
+    static/extra_styles.css.rst
     static/querybuilder.js.rst
     static/web.css.rst
     templates/404.html.rst

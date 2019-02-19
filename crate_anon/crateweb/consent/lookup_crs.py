@@ -34,7 +34,7 @@ from typing import List
 from cardinal_pythonlib.dbfunc import dictfetchall, dictfetchone
 from django.db import connections
 
-from crate_anon.crateweb.consent.models import ConsentMode, PatientLookup
+from crate_anon.crateweb.consent.models import PatientLookup
 from crate_anon.crateweb.consent.utils import make_cpft_email_address
 
 

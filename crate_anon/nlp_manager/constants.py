@@ -91,11 +91,8 @@ DEMO_CONFIG = ("""# Configuration file for CRATE NLP manager (crate_nlp).
 
 # =============================================================================
 # A. Individual NLP definitions
-#
-#    These map from INPUTS FROM YOUR DATABASE to PROCESSORS and a PROGRESS-
-#    TRACKING DATABASE, and give names to those mappings.
 # =============================================================================
-# - referred to by the nlp_manager.py's command-line arguments
+# - referred to by the NLP manager's command-line arguments
 # - You are likely to need to alter these (particularly the bits in capital
 #   letters) to refer to your own database(s).
 
@@ -105,34 +102,16 @@ DEMO_CONFIG = ("""# Configuration file for CRATE NLP manager (crate_nlp).
 
 [nlpdef:MY_NLPDEF_NAME_LOCATION_NLP]
 
-    # Input is from one or more source databases/tables/fields.
-    # This list refers to config sections that define those fields in more
-    # detail.
-
 inputfielddefs =
     INPUT_FIELD_CLINICAL_DOCUMENTS
     INPUT_FIELD_PROGRESS_NOTES
 
-    # Which NLP processors shall we use?
-    # Specify these as a list of (processor_type, config_section) pairs.
-    # For possible processor types, see "crate_nlp --listprocessors".
-
 processors =
     GATE procdef_gate_name_location
 
-    # To allow incremental updates, information is stored in a progress table.
-    # The database name is a cross-reference to another section in this config
-    # file. The table name is hard-coded to 'crate_nlp_progress'.
-
 progressdb = DESTINATION_DATABASE
 hashphrase = doesnotmatter
-    # ... you should replace this with a hash phrase of your own, but it's not
-    # especially secret (it's only used for change detection and users are
-    # likely to have access to the source material anyway), and its specific
-    # value is unimportant.
 
-    # Temporary tablename to use (in progress and destination databases).
-    # Default is {DEFAULT_TEMPORARY_TABLENAME}
 # temporary_tablename = {DEFAULT_TEMPORARY_TABLENAME}
 
 # -----------------------------------------------------------------------------
@@ -226,30 +205,13 @@ processors =
 progressdb = DESTINATION_DATABASE
 hashphrase = doesnotmatter
 
-    # Specify the maximum number of rows to be processed before a COMMIT is
-    # issued on the database transaction(s). This prevents the transaction(s)
-    # growing too large.
-    # Default is {DEFAULT_MAX_ROWS_BEFORE_COMMIT}.
 max_rows_before_commit = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
 
-    # Specify the maximum number of source-record bytes (approximately!) that
-    # are processed before a COMMIT is issued on the database transaction(s).
-    # This prevents the transaction(s) growing too large. The COMMIT will be
-    # issued *after* this limit has been met/exceeded, so it may be exceeded if
-    # the transaction just before the limit takes the cumulative total over the
-    # limit.
-    # Default is {DEFAULT_MAX_BYTES_BEFORE_COMMIT}.
 max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 
 
 # =============================================================================
 # B. NLP processor definitions
-#
-#    These control the behaviour of individual NLP processors.
-#    In the case of CRATE's built-in processors, the only configuration needed
-#    is the destination database/table, but for some, like GATE applications,
-#    you need to define more -- such as how to run the external program, and
-#    what sort of table structure should be created to receive the results.
 # =============================================================================
 # - You're likely to have to modify the destination databases these point to,
 #   but otherwise you can probably leave them as they are.
@@ -406,51 +368,11 @@ desttable = validate_neutrophils
 
 [processor:procdef_gate_name_location]
 
-    # Which database will this processor write to?
-
 destdb = DESTINATION_DATABASE
-
-    # Map GATE '_type' parameters to possible destination tables (in
-    # case-insensitive fashion). What follows is a list of pairs: the first
-    # item is the annotation type coming out of the GATE system, and the second
-    # is the output type section defined in this file (as a separate section).
-    # Those sections (q.v.) define tables and columns (fields).
 
 outputtypemap =
     Person output_person
     Location output_location
-
-    # GATE NLP is done by an external program.
-    # SEE THE MANUAL FOR DETAIL.
-    #
-    # Here we specify a program and associated arguments, and an optional
-    # environment variable section.
-    # The example shows how to use Java to launch a specific Java program
-    # ({CLASSNAME}), having set a path to find other Java classes, and then to
-    # pass arguments to the program itself.
-    #
-    # NOTE IN PARTICULAR:
-    # - Use double quotes to encapsulate any filename that may have spaces
-    #   within it (e.g. C:/Program Files/...).
-    #   Use a forward slash director separator, even under Windows.
-    #   ... ? If that doesn't work, use a double backslash, \\.
-    # - Under Windows, use a semicolon to separate parts of the Java classpath.
-    #   Under Linux, use a colon.
-    # - So a Linux Java classpath looks like
-    #       /some/path:/some/other/path:/third/path
-    #   and a Windows one looks like
-    #       C:/some/path;C:/some/other/path;C:/third/path
-    # - To make this simpler, we can define the environment variable OS_PATHSEP
-    #   (by analogy to Python's os.pathsep), as below.
-    #
-    # You can use substitutable parameters:
-    #
-    #   {{X}}
-    #       Substitutes variable X from the environment you specify (see
-    #       below).
-    #   {{NLPLOGTAG}}
-    #       Additional environment variable that indicates the process being
-    #       run; used to label the output from {CLASSNAME}.
 
 progargs = java
     -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
@@ -466,45 +388,20 @@ progargs = java
 
 progenvsection = MY_ENV_SECTION
 
-    # The external program is slow, because NLP is slow. Therefore, we set up
-    # the external program and use it repeatedly for a whole bunch of text.
-    # Individual pieces of text are sent to it (via its stdin). We finish our
-    # piece of text with a delimiter, which should (a) be specified in the -it
-    # parameter above, and (b) be set below, TO THE SAME VALUE. The external
-    # program should return a TSV-delimited set of field/value pairs, like
-    # this:
-    #
-    #       field1\\tvalue1\\tfield2\\tvalue2...
-    #       field1\\tvalue3\\tfield2\\tvalue4...
-    #       ...
-    #       TERMINATOR
-    #
-    # ... where TERMINATOR is something that you (a) specify with the -ot
-    # parameter above, and (b) set below, TO THE SAME VALUE.
-
 input_terminator = END_OF_TEXT_FOR_NLP
 output_terminator = END_OF_NLP_OUTPUT_RECORD
-
-    # If the external program leaks memory, you may wish to cap the number of
-    # uses before it's restarted. Specify the max_external_prog_uses option if
-    # so. Specify 0 or omit the option entirely to ignore this.
 
 # max_external_prog_uses = 1000
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Define the output tables used by this GATE processor
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # (This is an additional thing we need for GATE applications, since CRATE
-    # doesn't automatically know what sort of output they will produce.)
 
 [output:output_person]
 
-    # The tables and SPECIFIC output fields for a given GATE processor are
-    # defined here.
-
 desttable = person
 
-renames =  # one pair per line; can quote, using shlex rules; case-sensitive
+renames =
     firstName   firstname
 
 destfields =
@@ -519,8 +416,6 @@ destfields =
 indexdefs =
     firstname   64
     surname     64
-
-    # ... a set of (indexed field, index length) pairs; length can be "None"
 
 [output:output_location]
 
@@ -636,13 +531,10 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
     # Define the output tables used by this GATE processor
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Note new "renames" option, because the names of the annotations are not
-# always valid SQL column names.
-
 [output:output_prescription]
 
 desttable = medications_gate
-renames =  # one pair per line; can quote, using shlex rules; case-sensitive
+renames =
     drug-type           drug_type
     dose-value          dose_value
     dose-unit           dose_unit
@@ -653,8 +545,6 @@ renames =  # one pair per line; can quote, using shlex rules; case-sensitive
     Temporality         temporality
     "Unit of Time"      unit_of_time
 null_literals =
-    # Sometimes GATE provides "null" for a NULL value; we can convert to SQL NULL.
-    # Sequence of words; shlex rules.
     null
     ""
 destfields =
@@ -787,18 +677,8 @@ progenvsection = MY_ENV_SECTION
 
 # =============================================================================
 # C. Environment variable definitions
-#
-#    We define environment variable groups here, with one group per section.
-#    When a section is selected (e.g. by a "progenvsection" command in an NLP
-#    processor definition), these variables can be substituted into the
-#    "progargs" part of the NLP definition (for when external programs are
-#    called) and are available in the operating system environment for those
-#    programs themselves.
 # =============================================================================
-# - The environment will start by inheriting the parent environment, then add
-#   variables here.
-# - Keys are case-sensitive.
-# - You'll need to modify this according to your local configuration.
+- You'll need to modify this according to your local configuration.
 
 [env:MY_ENV_SECTION]
 
@@ -808,21 +688,9 @@ MEDEXDIR = /home/myuser/somewhere/Medex_UIMA_1.3.6
 KCONNECTDIR = /home/myuser/somewhere/yodie-pipeline-1-2-umls-only
 OS_PATHSEP = :
 
-
 # =============================================================================
 # D. Input field definitions
-#
-#    These define database "inputs" in more detail, including the database,
-#    table, and field (column) containing the input, the associated primary key
-#    field, and fields that should be copied to the destination to make
-#    subsequent work easier (e.g. patient research IDs).
 # =============================================================================
-# - Referred to within the NLP definition, and cross-referencing database
-#   definitions.
-# - The 'srcdatetimefield' is optional (but advisable).
-# - The 'copyfields' are optional.
-# - The 'indexed_copyfields' are an optional subset of 'copyfields'; they'll be
-#   indexed.
 
 [input:INPUT_FIELD_CLINICAL_DOCUMENTS]
 
@@ -836,8 +704,6 @@ copyfields = RID_FIELD
 indexed_copyfields = RID_FIELD
     TRID_FIELD
 
-    # Optional: specify 0 (the default) for no limit, or a number of rows (e.g.
-    # 1000) to limit fetching, for debugging purposes.
 # debug_row_limit = 0
 
 [input:INPUT_FIELD_PROGRESS_NOTES]
@@ -855,10 +721,7 @@ indexed_copyfields = RID_FIELD
 
 # =============================================================================
 # E. Database definitions, each in its own section
-#
-#    These are simply URLs that define how to connect to different databases.
 # =============================================================================
-# Use SQLAlchemy URLs: http://docs.sqlalchemy.org/en/latest/core/engines.html
 
 [database:SOURCE_DATABASE]
 

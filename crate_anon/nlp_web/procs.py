@@ -5,12 +5,14 @@ from crate_anon.nlp_manager.all_processors import make_processor
 
 from crate_anon.nlp_web.constants import PROCESSORS
 
-# For ease of finding processor info based on name and version
-# (alternative would be a dictionary in which the keys were name_version
-# and the values were another dictionary with the rest of the info)
+
 class Processor(object):
     """
     Class for containing information about processors.
+
+    For ease of finding processor info based on name and version
+    (alternative would be a dictionary in which the keys were name_version
+    and the values were another dictionary with the rest of the info)
     """
     # Master list of all instances (processors)
     processors = {}
@@ -54,6 +56,7 @@ class Processor(object):
             self.parser = make_processor(processor_type=self.proctype,
                                          nlpdef=None, section=None)
         # else: do nothing
+
 
 for proc in PROCESSORS:
     Processor(

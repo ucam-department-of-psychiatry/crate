@@ -103,7 +103,7 @@ def out_of_anything() -> str:
     return _out_of_str(PLAIN_INTEGER)
 
 
-def power(x: str, n: int, allow_no_operator: bool=False) -> str:
+def power(x: str, n: int, allow_no_operator: bool = False) -> str:
     """
     Returns regex text representing "x to the power n".
 
@@ -133,7 +133,7 @@ def units_times(*args: str) -> str:
 
 
 def units_by_dimension(*args: Tuple[str, int],  # specify type of *one* arg!
-                       allow_no_operator: bool=False) -> str:
+                       allow_no_operator: bool = False) -> str:
     """
     Returns regex text for a unit where we specify them by their dimensions.
 

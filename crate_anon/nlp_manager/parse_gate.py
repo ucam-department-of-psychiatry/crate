@@ -51,7 +51,10 @@ from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
     SqlTypeDbIdentifier,
 )
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition, full_sectionname
+from crate_anon.nlp_manager.nlp_definition import (
+    full_sectionname,
+    NlpDefinition,
+)
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 
 log = logging.getLogger(__name__)
@@ -146,7 +149,8 @@ class Gate(BaseNlpParser):
                 self._sectionname, 'output_terminator', required=True)
             typepairs = nlpdef.opt_strlist(self._sectionname, 'outputtypemap',
                                            required=True, lower=False)
-            self._progenvsection = nlpdef.opt_str(self._sectionname, 'progenvsection')
+            self._progenvsection = nlpdef.opt_str(
+                self._sectionname, 'progenvsection')
             progargs = nlpdef.opt_str(self._sectionname, 'progargs', required=True)
             logtag = nlpdef.get_logtag() or '.'
 
@@ -317,7 +321,7 @@ class Gate(BaseNlpParser):
     # Test
     # -------------------------------------------------------------------------
 
-    def test(self, verbose: bool=False) -> None:
+    def test(self, verbose: bool = False) -> None:
         """
         Test the :func:`send` function.
         """

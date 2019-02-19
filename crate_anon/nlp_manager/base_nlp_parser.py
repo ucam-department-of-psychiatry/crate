@@ -55,7 +55,10 @@ from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 
 # if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
 #     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition, full_sectionname
+from crate_anon.nlp_manager.nlp_definition import (
+    full_sectionname,
+    NlpDefinition,
+)
 
 log = logging.getLogger(__name__)
 
@@ -450,7 +453,7 @@ class BaseNlpParser(object):
         log.debug("NLP processor {}/{}: found {} values".format(
             self.get_nlpdef_name(), self.get_parser_name(), n_values))
 
-    def test(self, verbose: bool=False) -> None:
+    def test(self, verbose: bool = False) -> None:
         """
         Performs a self-test on the NLP processor.
 

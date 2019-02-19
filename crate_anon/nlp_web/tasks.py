@@ -4,10 +4,6 @@ import transaction
 import logging
 
 from sqlalchemy import engine_from_config
-from pyramid.paster import (
-    get_appsettings,
-#    setup_logging,
-)
 from typing import Optional, Tuple, Any, List, Dict
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
@@ -27,6 +23,7 @@ try:
 except KeyError:
     log.error("backend_url value missing from config file.")
 
+
 def get_gate_results(results_dict: Dict[str, Any]) -> List[Any]:
     results = []
     # See https://cloud.gate.ac.uk/info/help/online-api.html
@@ -39,7 +36,7 @@ def get_gate_results(results_dict: Dict[str, Any]) -> List[Any]:
         # result, or 'hit'
         for featureset in values:
             # There must be a more efficient way to do this:
-            features = {x: featureset[x] for x in featureset if x != "indices"}#
+            features = {x: featureset[x] for x in featureset if x != "indices"}
             features['_type'] = annottype
             start, end = featureset['indices']
             content = text[start: end]
@@ -51,10 +48,12 @@ def get_gate_results(results_dict: Dict[str, Any]) -> List[Any]:
     print()
     return results
 
+
 # app = Celery('tasks', backend=backend_url, broker=broker_url)
 app = Celery('tasks', backend=backend_url, broker='pyamqp://')
 
 log = logging.getLogger(__name__)
+
 
 @app.task(bind=True, name='tasks.process_nlp_text')
 def process_nlp_text(
@@ -89,6 +88,7 @@ def process_nlp_text(
             processor.set_parser()
         return process_nlp_internal(text=text, parser=processor.parser)
 
+
 def process_nlp_text_immediate(
         text: str,
         processor: Processor,
@@ -105,6 +105,7 @@ def process_nlp_text_immediate(
             processor.set_parser()
         return process_nlp_internal(text=text, parser=processor.parser)
 
+
 def process_nlp_gate(text: str, processor: Processor, url: str,
                      username: str, password: str) -> Tuple[
             bool, List[Any], str, str]:
@@ -118,7 +119,7 @@ def process_nlp_gate(text: str, processor: Processor, url: str,
         'Content-Type': 'text/plain',
         'Accept': 'application/gate+json',
         # Content-Encoding: gzip?,
-        'Expect': '100-continue',  # - see https://cloud.gate.ac.uk/info/help/online-api.html
+        'Expect': '100-continue',   # see https://cloud.gate.ac.uk/info/help/online-api.html  # noqa
         'charset': 'utf8'
     }
     text = text.encode('utf-8')
@@ -154,7 +155,8 @@ def process_nlp_gate(text: str, processor: Processor, url: str,
         )
     results = get_gate_results(json_response)
     print(results)
-    return (True, results, None, None)
+    return True, results, None, None
+
 
 def process_nlp_internal(text: str, parser: BaseNlpParser) -> Tuple[
             bool, List[Any], str, str]:
@@ -178,15 +180,4 @@ def process_nlp_internal(text: str, parser: BaseNlpParser) -> Tuple[
         )
     # Get second element of each element in parsed text as first is tablename
     # which will have no meaning here
-    return (True, [x[1] for x in parsed_text], None, None)
-
-
-
-
-
-
-
-
-
-
-
+    return True, [x[1] for x in parsed_text], None, None

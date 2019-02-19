@@ -35,13 +35,14 @@ import sys
 import uuid
 from copy import deepcopy
 from typing import Any, Dict, List, Tuple, Generator, Optional
-from functools import lru_cache
 
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 
-from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition, full_sectionname
+from crate_anon.nlp_manager.nlp_definition import (
+    full_sectionname,
+    NlpDefinition,
+)
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.dicts import (
@@ -51,13 +52,8 @@ from cardinal_pythonlib.dicts import (
 from crate_anon.nlp_manager.constants import (
     CLOUD_URL,
     NLPRPVERSION,
-    SqlTypeDbIdentifier,
-    MAX_SQL_FIELD_LEN,
     FN_NLPDEF,
 )
-from crate_anon.nlp_manager.input_field_config import InputFieldConfig
-
-from sqlalchemy import Table, Column, Integer, Text, MetaData, Index
 
 log = logging.getLogger(__name__)
 
@@ -69,8 +65,8 @@ class CloudRequest(object):
     Class to send requests to the cloud processors and process the results.
     """
     # Set up standard information for all requests
-    STANDARD_INFO = {'protocol':
-        {
+    STANDARD_INFO = {
+        'protocol': {
             "name": "nlprp",
             "version": NLPRPVERSION
         }
@@ -110,9 +106,11 @@ class CloudRequest(object):
         self._commit = commit
         # self._destdbs = {}  # type: Dict[str, DatabaseHolder]
         config = self._nlpdef.get_parser()
-        self.username = config.get_str(section="Authentication", option="username",
+        self.username = config.get_str(section="Authentication",
+                                       option="username",
                                        default="")
-        self.password = config.get_str(section="Authentication", option="password",
+        self.password = config.get_str(section="Authentication",
+                                       option="password",
                                        default="")
         self.auth = (self.username, self.password)
         self.fetched = False
@@ -148,11 +146,11 @@ class CloudRequest(object):
         self.procnames = []
         self.add_all_processors()
 
-##        if nlpdef is not None:
-##            for procname in self.procnames:
-##                destdb_name = nlpdef.opt_str(procname, 'destdb',
-##                                             required=True)
-##                self._destdbs[destdb_name] = nlpdef.get_database(destdb_name)
+#        if nlpdef is not None:
+#            for procname in self.procnames:
+#                destdb_name = nlpdef.opt_str(procname, 'destdb',
+#                                             required=True)
+#                self._destdbs[destdb_name] = nlpdef.get_database(destdb_name)
 
         self.mirror_processors = {}
         self.max_length = max_length
@@ -165,9 +163,9 @@ class CloudRequest(object):
     def list_processors(cls, nlpdef) -> List[str]:
         config = nlpdef.get_parser()
         username = config.get_str(section="Authentication", option="username",
-                                       default="")
+                                  default="")
         password = config.get_str(section="Authentication", option="password",
-                                       default="")
+                                  default="")
         auth = (username, password)
         list_procs_request = deepcopy(cls.STANDARD_INFO)
         list_procs_request['command'] = "list_processors"
@@ -226,10 +224,9 @@ class CloudRequest(object):
         #              }
         # self.request_process['args']['content'].append(new_values)
 
-        new_content = {}
+        new_content = {'metadata': other_values,
+                       'text': text}
         # Add all the identifying information
-        new_content['metadata'] = other_values
-        new_content['text'] = text
         # Slow - is there a way to get length without having to serialize?
         if (self.max_length and
             self.utf8len(json.dumps(new_content, default=str))
@@ -340,7 +337,8 @@ class CloudRequest(object):
             annottype = c[0]
             outputsection = c[1]
             annottype = annottype.lower()
-            otconfig = OutputUserConfig(self._nlpdef.get_parser(), outputsection)
+            otconfig = OutputUserConfig(self._nlpdef.get_parser(),
+                                        outputsection)
             outputtypemap[annottype] = otconfig
             type_to_tablename[annottype] = otconfig.get_tablename()
 
@@ -398,15 +396,13 @@ class CloudRequest(object):
                 if mirror_proc.get_parser_name().upper() == 'GATE':
                     for t, r, p in self.get_nlp_values_gate(processor_data,
                                                             procidentifier,
-                                                             metadata):
+                                                            metadata):
                         yield t, r, p
                 else:
                     procname = mirror_proc.get_cfgsection()
                     for t, r, p in self.get_nlp_values_internal(
-                                                   processor_data,
-                                                   procidentifier,
-                                                   procname,
-                                                   metadata):
+                            processor_data, procidentifier,
+                            procname, metadata):
                          yield t, r, p
 
     def get_sessions_for_all_processors(self) -> Dict[str, List[any]]:
@@ -415,22 +411,23 @@ class CloudRequest(object):
         # destination database ...
         # if self.cfgsection:
         #     session = self.get_session()
-        #     procs_to_sessions = {self.cfgsection: [self.get_dbname(), session]}
+        #     procs_to_sessions = {self.cfgsection: [self.get_dbname(), session]}  # noqa
         # ... Otherwise we may need more than one database
         # else:
         procs_to_sessions = {}
         for procname in self.procnames:
             if procname not in procs_to_sessions:
-                destdb_name = self._nlpdef.opt_str(full_sectionname("processor", procname),
-                                                   'destdb', required=True)
+                destdb_name = self._nlpdef.opt_str(
+                    full_sectionname("processor", procname),
+                    'destdb', required=True)
                 procs_to_sessions[procname] = [destdb_name,
                                                self._nlpdef.get_database(
                                                    destdb_name).session]
         return procs_to_sessions
 
-    def set_mirror_processors(self,
-                              procs: Optional[Dict[str,
-                                  BaseNlpParser]] = None) -> None:
+    def set_mirror_processors(
+            self,
+            procs: Optional[Dict[str, BaseNlpParser]] = None) -> None:
         """
         Sets 'mirror_processors'. The purpose of mirror_processors is so that
         we can easily access the sessions that come with the processors.
@@ -482,23 +479,23 @@ class CloudRequest(object):
                 force_commit=self._commit)
 
 
-##            # REMEMBER TO FIX THIS!
-##            session = procs_to_sessions[procname][1]
-##            destdb_name = procs_to_sessions[procname][0]
-##            destdb = self._destdbs[destdb_name]
-##            engine = destdb.engine
-##            if not engine.dialect.has_table(engine, tablename):
-##                sqla_table = self.get_table(tablename)
-##            else:
-##                metadata = MetaData(engine, reflect=True)
-##                sqla_table = metadata.tables[tablename]
-##            column_names = [c.name for c in sqla_table.columns]
-##            final_values = {k: v for k, v in nlp_values.items()
-##                            if k in column_names}
-##            insertquery = sqla_table.insert().values(final_values)
-##            with MultiTimerContext(timer, TIMING_INSERT):
-##                session.execute(insertquery)
-##
-##            self._nlpdef.notify_transaction(
-##                session, n_rows=1, n_bytes=sys.getsizeof(final_values),
-##                force_commit=self._commit)
+#            # REMEMBER TO FIX THIS!
+#            session = procs_to_sessions[procname][1]
+#            destdb_name = procs_to_sessions[procname][0]
+#            destdb = self._destdbs[destdb_name]
+#            engine = destdb.engine
+#            if not engine.dialect.has_table(engine, tablename):
+#                sqla_table = self.get_table(tablename)
+#            else:
+#                metadata = MetaData(engine, reflect=True)
+#                sqla_table = metadata.tables[tablename]
+#            column_names = [c.name for c in sqla_table.columns]
+#            final_values = {k: v for k, v in nlp_values.items()
+#                            if k in column_names}
+#            insertquery = sqla_table.insert().values(final_values)
+#            with MultiTimerContext(timer, TIMING_INSERT):
+#                session.execute(insertquery)
+#
+#            self._nlpdef.notify_transaction(
+#                session, n_rows=1, n_bytes=sys.getsizeof(final_values),
+#                force_commit=self._commit)

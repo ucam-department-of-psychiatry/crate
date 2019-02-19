@@ -33,6 +33,7 @@ crate_anon/crateweb/research/migrations/0007_sitewidequery.py
 from django.db import migrations, models
 
 
+# noinspection PyPep8
 class Migration(migrations.Migration):
 
     dependencies = [

@@ -6,6 +6,7 @@ import crate_anon.crateweb.consent.storage
 from django.db import migrations, models
 
 
+# noinspection PyPep8
 class Migration(migrations.Migration):
 
     dependencies = [

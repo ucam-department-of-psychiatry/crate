@@ -194,7 +194,8 @@ def delete_dest_rows_with_no_src_row(
     metadata = MetaData()  # operate in isolation!
     destengine = config.destdb.engine
     destsession = config.destdb.session
-    dest_table = config.dd.get_dest_sqla_table(dest_table_name, config.timefield)
+    dest_table = config.dd.get_dest_sqla_table(dest_table_name,
+                                               config.timefield)
     pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
 
     # If there's no source PK, we just delete everything
