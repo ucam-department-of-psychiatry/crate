@@ -24,8 +24,14 @@
 NLP config file
 ---------------
 
-This file controls the behaviour of the NLP manager. It defines source and
-destination databases, and one or more **NLP definitions**.
+.. contents::
+   :local:
+
+Overview
+~~~~~~~~
+
+The CRATE NLP config file controls the behaviour of the NLP manager. It defines
+source and destination databases, and one or more **NLP definitions**.
 
 You can generate a specimen config file with
 
@@ -129,7 +135,7 @@ collisions* [#hashcollisions]_, but it allows some efficiency to be added.)
 
 
 Format of the configuration file
---------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The config file is in standard `INI file format
   <https://en.wikipedia.org/wiki/INI_file>`_.
@@ -304,7 +310,9 @@ srcdatetimefield
 *String.* Optional (but advisable).
 
 The name of the ``DATETIME`` field (column) in the source table that represents
-the date/time of the source data.
+the date/time of the source data. If present, this information will be copied
+to the output; see :ref:`Standard NLP output columns
+<standard_nlp_output_columns>`.
 
 .. _nlp_config_input_copyfields:
 

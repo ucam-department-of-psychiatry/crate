@@ -60,6 +60,9 @@ src_datatype
 This column gives the source column's SQL data type (e.g. `INT`,
 `VARCHAR(50)`).
 
+
+.. _dd_src_flags:
+
 src_flags
 ~~~~~~~~~
 
@@ -162,6 +165,8 @@ Character   Meaning
 =========== ===================================================================
 
 
+.. _dd_scrub_src:
+
 scrub_src
 ~~~~~~~~~
 
@@ -183,6 +188,8 @@ Value                   Meaning
                         third-party information for THIS patient.
 ======================= =======================================================
 
+
+.. _dd_scrub_method:
 
 scrub_method
 ~~~~~~~~~~~~
@@ -213,6 +220,9 @@ Value       Meaning
 ``date``    Treat as a date. This is the default for all `DATE`/`DATETIME`
             fields.
 =========== ===================================================================
+
+
+.. _dd_decision:
 
 decision
 ~~~~~~~~
@@ -260,6 +270,9 @@ exclusion_values
 
 As for ``inclusion_values``, but the row is excluded if the field's value is in
 the exclusion_values list.
+
+
+.. _dd_alter_method:
 
 alter_method
 ~~~~~~~~~~~~
@@ -338,6 +351,8 @@ Component                       Meaning
 ``html_untag``                  HTML tags are removed, e.g. from
                                 ``<a href="http://somewhere">see link</a>``
                                 to ``see link``
+
+``hash=HASH_CONFIG_SECTION``    Hash this field,
 
 =============================== ===============================================
 
@@ -437,7 +452,7 @@ wouldn't be permitted in the real TSV file.
     mydb    patients   forename     VARCHAR(255)             patient    words         OMIT
     mydb    patients   surname      VARCHAR(255)             patient    words         OMIT
     mydb    patients   telephone    VARCHAR(255)             patient    number        OMIT                                                                               A phone number.
-    mydb    patients   opt_out_anon BIT           O
+    mydb    patients   opt_out_anon BIT           !
 
     # The "addresses" table gives (potentially several) addresses per patient.
 

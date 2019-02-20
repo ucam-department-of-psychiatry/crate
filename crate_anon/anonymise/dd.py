@@ -183,7 +183,7 @@ class DataDictionary(object):
                             tablename, columnname))
                         continue
                     comment = ''  # currently unsupported by SQLAlchemy
-                    if self.config.append_source_info_to_comment:
+                    if self.config.ddgen_append_source_info_to_comment:
                         comment = "[from {t}.{f}]".format(
                             t=tablename,
                             f=columnname,

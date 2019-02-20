@@ -653,10 +653,8 @@ class Config(object):
         self.master_research_id_fieldname = opt_str(
             'master_research_id_fieldname')
         self.source_hash_fieldname = opt_str('source_hash_fieldname')
-        self.date_to_text_format = opt_str('date_to_text_format')
-        self.datetime_to_text_format = opt_str('datetime_to_text_format')
-        self.append_source_info_to_comment = opt_bool(
-            'append_source_info_to_comment', True)
+        self.ddgen_append_source_info_to_comment = opt_bool(
+            'ddgen_append_source_info_to_comment', True)
 
         # ---------------------------------------------------------------------
         # Destination database configuration
