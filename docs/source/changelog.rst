@@ -799,6 +799,11 @@ Changes
 - Bugfix to the website string finder - 'text fields' now includes
   'NVARCHAR(-1)'.
 
+**v0.18.64, 2019-02-21**
+
+- NLP for glucose cholesterol (LDL, HDL, total), triglycerides, HbA1c
+  (still need external validation).
+
 
 .. rubric:: Footnotes
 

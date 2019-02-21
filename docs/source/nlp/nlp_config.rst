@@ -359,8 +359,8 @@ table structure should be created to receive the results.
 The format depends on the specific processor *type* (see :ref:`processors
 <nlp_config_nlpdef_processors>`).
 
-Parameters for CRATE Python regular expression NLP parsers
-##########################################################
+Parameters for all NLP parsers
+##############################
 
 destdb
 ++++++
@@ -369,6 +369,9 @@ destdb
 
 Destination database; the name of a :ref:`database definition
 <nlp_config_section_database>` in the config file.
+
+Parameters for CRATE Python regular expression NLP parsers
+##########################################################
 
 desttable
 +++++++++
@@ -382,16 +385,6 @@ Parameters for GATE processors
 ##############################
 
 What's GATE? See the section on :ref:`GATE NLP <gate_nlp>`.
-
-destdb
-++++++
-
-*String.*
-
-Which database will this processor write to?
-
-Destination database; the name of a :ref:`database definition
-<nlp_config_section_database>` in the config file.
 
 outputtypemap
 +++++++++++++

@@ -39,7 +39,7 @@ import regex
 from regex import _regex_core
 
 # =============================================================================
-#  Core regex functions
+# Core regex functions
 # =============================================================================
 # - All will use VERBOSE mode for legibility. (No impact on speed: compiled.)
 # - Don't forget to use raw strings for all regex definitions!

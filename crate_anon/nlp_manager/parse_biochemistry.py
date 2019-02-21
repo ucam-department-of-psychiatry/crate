@@ -42,9 +42,10 @@ commit:
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Union
 
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.nlp_manager.number import to_float
 from crate_anon.nlp_manager.regex_parser import (
     OPTIONAL_RESULTS_IGNORABLES,
     RELATION,
@@ -55,22 +56,26 @@ from crate_anon.nlp_manager.regex_parser import (
 )
 from crate_anon.nlp_manager.regex_numbers import SIGNED_FLOAT
 from crate_anon.nlp_manager.regex_units import (
+    factor_millimolar_from_mg_per_dl,
     G,
     MG,
     MG_PER_DL,
     MG_PER_L,
     MICROUNITS_PER_ML,
     MILLIMOLAR,
+    millimolar_from_mg_per_dl,
     MILLIMOLES_PER_L,
+    MILLIMOLES_PER_MOL,
     MILLIEQ_PER_L,
     MILLIUNITS_PER_L,
+    PERCENT,
 )
 
 log = logging.getLogger(__name__)
 
 
 # =============================================================================
-#  C-reactive protein (CRP)
+# C-reactive protein (CRP)
 # =============================================================================
 
 class Crp(SimpleNumericalResultParser):
@@ -195,7 +200,7 @@ class CrpValidator(ValidatorBase):
 
 
 # =============================================================================
-#  Sodium (Na)
+# Sodium (Na)
 # =============================================================================
 # ... handy to check approximately expected distribution of results!
 
@@ -297,7 +302,7 @@ class SodiumValidator(ValidatorBase):
 
 
 # =============================================================================
-#  Lithium (Li)
+# Lithium (Li)
 # =============================================================================
 
 class Lithium(SimpleNumericalResultParser):
@@ -404,7 +409,7 @@ class LithiumValidator(ValidatorBase):
 
 
 # =============================================================================
-#  Thyroid-stimulating hormone (TSH)
+# Thyroid-stimulating hormone (TSH)
 # =============================================================================
 
 class Tsh(SimpleNumericalResultParser):
@@ -496,7 +501,650 @@ class TshValidator(ValidatorBase):
 
 
 # =============================================================================
-#  Command-line entry point
+# Glucose
+# =============================================================================
+
+class Glucose(SimpleNumericalResultParser):
+    """
+    Glucose.
+
+    - By Emanuele Osimo, Feb 2019.
+    - Some modifications by Rudolf Cardinal, Feb 2019.
+    """
+    GLUCOSE = r"""
+        (?: {WORD_BOUNDARY} (?: glu(?:c(?:ose)?)? ) {WORD_BOUNDARY} )
+        # glu, gluc, glucose
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    REGEX = r"""
+        ( {GLUCOSE} )                      # group for glucose or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                    # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )                 # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                  # optional group for units
+            {MILLIMOLAR}                        # good
+            | {MILLIMOLES_PER_L}                # good
+            | {MG_PER_DL}                       # good but needs conversion
+        )?
+    """.format(
+        GLUCOSE=GLUCOSE,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        MILLIMOLAR=MILLIMOLAR,
+        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
+        MG_PER_DL=MG_PER_DL,
+    )
+    GLUCOSE_MOLECULAR_MASS_G_PER_MOL = 180.156
+    # ... https://pubchem.ncbi.nlm.nih.gov/compound/D-glucose
+    NAME = "Glucose"
+    PREFERRED_UNIT_COLUMN = "value_mmol_L"
+    UNIT_MAPPING = {
+        MILLIMOLAR: 1,       # preferred unit
+        MILLIMOLES_PER_L: 1,
+        MG_PER_DL: factor_millimolar_from_mg_per_dl(GLUCOSE_MOLECULAR_MASS_G_PER_MOL)  # noqa
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in parent class
+
+        def convert(mg_dl: float) -> float:
+            # Convert mg/dl to mM
+            return millimolar_from_mg_per_dl(
+                mg_dl, self.GLUCOSE_MOLECULAR_MASS_G_PER_MOL)
+
+        self.test_numerical_parser([
+            ("glu", []),  # should fail; no values
+            ("glucose 6 mM", [6]),
+            ("glucose 6 mmol", [6]),
+            ("glucose 6", [6]),
+            ("glu 6", [6]),
+            ("glucose 90 mg/dl", [convert(90)]),  # unit conversion
+            ("gluc = 6", [6]),
+            ("glucose: 6", [6]),
+            ("glu equals 6", [6]),
+            ("glucose is equal to 6", [6]),
+            ("glu <4", [4]),
+            ("glucose less than 1", [1]),  # would be bad news...
+            ("glu more than 20", [20]),
+            ("glucose was 15", [15]),
+            ("glucose was 90 mg/dl", [convert(90)]),
+            ("glu is 90 mg dl-1", [convert(90)]),
+            ("glucose is 90 mg dl -1", [convert(90)]),
+            ("glu-5", [5]),
+            ("glucose        |       20.3 (H)      | mmol/L", [20.3]),
+        ], verbose=verbose)
+
+
+# =============================================================================
+# LDL cholesterol
+# =============================================================================
+
+class LDLCholesterol(SimpleNumericalResultParser):
+    """
+    Low density lipoprotein (LDL) cholesterol.
+
+    - By Emanuele Osimo, Feb 2019.
+    - Some modifications by Rudolf Cardinal, Feb 2019.
+    """
+    LDL = r"""
+        (?: {WORD_BOUNDARY}
+            (?: LDL [-\s]* (?:chol(?:esterol)? )? )
+        {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    REGEX = r"""
+        ( {LDL} )                       # group for LDL or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                    # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )                 # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                  # optional group for units
+            {MILLIMOLAR}                        # good
+            | {MILLIMOLES_PER_L}                # good
+            | {MG_PER_DL}                       # OK but needs conversion
+        )?
+    """.format(
+        LDL=LDL,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        MILLIMOLAR=MILLIMOLAR,
+        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
+        MG_PER_DL=MG_PER_DL,
+    )
+    NAME = "LDL cholesterol"
+    PREFERRED_UNIT_COLUMN = "value_mmol_L"
+    FACTOR_MG_DL_TO_MMOL_L = 0.02586
+    # ... https://www.ncbi.nlm.nih.gov/books/NBK33478/
+    UNIT_MAPPING = {
+        MILLIMOLAR: 1,       # preferred unit
+        MILLIMOLES_PER_L: 1,
+        MG_PER_DL: FACTOR_MG_DL_TO_MMOL_L,
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in parent class
+
+        def convert(mg_dl: float) -> float:
+            # Convert mg/dl to mM
+            return self.FACTOR_MG_DL_TO_MMOL_L * mg_dl
+
+        self.test_numerical_parser([
+            ("LDL", []),  # should fail; no values
+            ("LDL 4 mM", [4]),
+            ("LDL chol 4 mmol", [4]),
+            ("LDL chol. 4 mmol", []),
+            # ... NOT picked up at present; see word boundary condition; problem?  # noqa
+            ("LDL 4", [4]),
+            ("chol 4", []),  # that's total cholesterol
+            ("HDL chol 4", []),  # that's HDL cholesterol
+            ("LDL cholesterol 140 mg/dl", [convert(140)]),  # unit conversion
+            ("LDL = 4", [4]),
+            ("LDL: 4", [4]),
+            ("LDL equals 4", [4]),
+            ("LDL is equal to 4", [4]),
+            ("LDL <4", [4]),
+            ("LDLchol less than 4", [4]),
+            ("LDL cholesterol more than 20", [20]),
+            ("LDL was 4", [4]),
+            ("LDL chol was 140 mg/dl", [convert(140)]),
+            ("chol was 140 mg/dl", []),
+            ("LDL is 140 mg dl-1", [convert(140)]),
+            ("ldl chol is 140 mg dl -1", [convert(140)]),
+            ("ldl-4", [4]),
+            ("LDL chol     |       6.2 (H)      | mmol/L", [6.2]),
+        ], verbose=verbose)
+
+
+# =============================================================================
+# HDL cholesterol
+# =============================================================================
+
+class HDLCholesterol(SimpleNumericalResultParser):
+    """
+    High-density lipoprotein (HDL) cholesterol.
+
+    - By Emanuele Osimo, Feb 2019.
+    - Some modifications by Rudolf Cardinal, Feb 2019.
+    """
+    HDL = r"""
+        (?: {WORD_BOUNDARY}
+            (?: HDL [-\s]* (?:chol(?:esterol)? )? )
+        {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    REGEX = r"""
+        ( {HDL} )                       # group for HDL or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                    # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )                 # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                  # optional group for units
+            {MILLIMOLAR}                        # good
+            | {MILLIMOLES_PER_L}                # good
+            | {MG_PER_DL}                       # OK but needs conversion
+        )?
+    """.format(
+        HDL=HDL,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        MILLIMOLAR=MILLIMOLAR,
+        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
+        MG_PER_DL=MG_PER_DL,
+    )
+    NAME = "HDL cholesterol"
+    PREFERRED_UNIT_COLUMN = "value_mmol_L"
+    FACTOR_MG_DL_TO_MMOL_L = 0.02586
+    # ... https://www.ncbi.nlm.nih.gov/books/NBK33478/
+    UNIT_MAPPING = {
+        MILLIMOLAR: 1,       # preferred unit
+        MILLIMOLES_PER_L: 1,
+        MG_PER_DL: FACTOR_MG_DL_TO_MMOL_L,
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in parent class
+
+        def convert(mg_dl: float) -> float:
+            # Convert mg/dl to mM
+            return self.FACTOR_MG_DL_TO_MMOL_L * mg_dl
+
+        self.test_numerical_parser([
+            ("HDL", []),  # should fail; no values
+            ("HDL 4 mM", [4]),
+            ("HDL chol 4 mmol", [4]),
+            ("HDL chol. 4 mmol", []),
+            # ... NOT picked up at present; see word boundary condition; problem?  # noqa
+            ("HDL 4", [4]),
+            ("chol 4", []),  # that's total cholesterol
+            ("LDL chol 4", []),  # that's LDL cholesterol
+            ("HDL cholesterol 140 mg/dl", [convert(140)]),  # unit conversion
+            ("HDL = 4", [4]),
+            ("HDL: 4", [4]),
+            ("HDL equals 4", [4]),
+            ("HDL is equal to 4", [4]),
+            ("HDL <4", [4]),
+            ("HDLchol less than 4", [4]),
+            ("HDL cholesterol more than 20", [20]),
+            ("HDL was 4", [4]),
+            ("HDL chol was 140 mg/dl", [convert(140)]),
+            ("chol was 140 mg/dl", []),
+            ("HDL is 140 mg dl-1", [convert(140)]),
+            ("Hdl chol is 140 mg dl -1", [convert(140)]),
+            ("hdl-4", [4]),
+            ("HDL chol     |       6.2 (H)      | mmol/L", [6.2]),
+        ], verbose=verbose)
+
+
+# =============================================================================
+# Total cholesterol
+# =============================================================================
+
+class TotalCholesterol(SimpleNumericalResultParser):
+    """
+    Total cholesterol.
+    """
+    CHOLESTEROL = r"""
+        (?: 
+            {WORD_BOUNDARY}
+            (?<!HDL[-\s]+) (?<!LDL[-\s]+)  # not preceded by HDL or LDL 
+            (?: tot(?:al) [-\s] )?         # optional "total" prefix
+            (?: chol(?:esterol)? )         # cholesterol
+        {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    # ... (?<! something ) is a negative lookbehind assertion
+    REGEX = r"""
+        ( {CHOLESTEROL} )                  # group for cholesterol or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                    # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )                 # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                  # optional group for units
+            {MILLIMOLAR}                        # good
+            | {MILLIMOLES_PER_L}                # good
+            | {MG_PER_DL}                       # OK but needs conversion
+        )?
+    """.format(  # noqa
+        CHOLESTEROL=CHOLESTEROL,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        MILLIMOLAR=MILLIMOLAR,
+        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
+        MG_PER_DL=MG_PER_DL,
+    )
+    NAME = "HDL cholesterol"
+    PREFERRED_UNIT_COLUMN = "value_mmol_L"
+    FACTOR_MG_DL_TO_MMOL_L = 0.02586
+    # ... https://www.ncbi.nlm.nih.gov/books/NBK33478/
+    UNIT_MAPPING = {
+        MILLIMOLAR: 1,       # preferred unit
+        MILLIMOLES_PER_L: 1,
+        MG_PER_DL: FACTOR_MG_DL_TO_MMOL_L,
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in parent class
+
+        def convert(mg_dl: float) -> float:
+            # Convert mg/dl to mM
+            return self.FACTOR_MG_DL_TO_MMOL_L * mg_dl
+
+        self.test_numerical_parser([
+            ("chol", []),  # should fail; no values
+            ("chol 4 mM", [4]),
+            ("total chol 4 mmol", [4]),
+            ("chol. 4 mmol", []),
+            # ... NOT picked up at present; see word boundary condition; problem?  # noqa
+            ("chol 4", [4]),
+            ("HDL chol 4", []),  # that's HDL cholesterol
+            ("LDL chol 4", []),  # that's LDL cholesterol
+            ("total cholesterol 140 mg/dl", [convert(140)]),  # unit conversion
+            ("chol = 4", [4]),
+            ("chol: 4", [4]),
+            ("chol equals 4", [4]),
+            ("chol is equal to 4", [4]),
+            ("chol <4", [4]),
+            ("chol less than 4", [4]),
+            ("cholesterol more than 20", [20]),
+            ("chol was 4", [4]),
+            ("chol was 140 mg/dl", [convert(140)]),
+            ("chol was 140", [140]),  # but probably wrong interpretation!
+            ("chol is 140 mg dl-1", [convert(140)]),
+            ("chol is 140 mg dl -1", [convert(140)]),
+            ("chol-4", [4]),
+            ("chol     |       6.2 (H)      | mmol/L", [6.2]),
+        ], verbose=verbose)
+
+
+# =============================================================================
+# Triglycerides
+# =============================================================================
+
+class Triglycerides(SimpleNumericalResultParser):
+    """
+    Triglycerides.
+
+    - By Emanuele Osimo, Feb 2019.
+    - Some modifications by Rudolf Cardinal, Feb 2019.
+    """
+    TG = r"""
+        (?: {WORD_BOUNDARY}
+            (?: (?: Triglyceride[s]? | TG ) )
+        {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    REGEX = r"""
+        ( {TG} )                           # group for triglycerides or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                    # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )                 # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                  # optional group for units
+            {MILLIMOLAR}                        # good
+            | {MILLIMOLES_PER_L}                # good
+            | {MG_PER_DL}                       # OK but needs conversion
+        )?
+    """.format(  # noqa
+        TG=TG,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        MILLIMOLAR=MILLIMOLAR,
+        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
+        MG_PER_DL=MG_PER_DL,
+    )
+    NAME = "Triglycerides"
+    PREFERRED_UNIT_COLUMN = "value_mmol_L"
+    FACTOR_MG_DL_TO_MMOL_L = 0.01129  # reciprocal of 88.57
+    # ... https://www.ncbi.nlm.nih.gov/books/NBK33478/
+    # ... https://www.ncbi.nlm.nih.gov/books/NBK83505/
+    UNIT_MAPPING = {
+        MILLIMOLAR: 1,       # preferred unit
+        MILLIMOLES_PER_L: 1,
+        MG_PER_DL: FACTOR_MG_DL_TO_MMOL_L,
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in parent class
+
+        def convert(mg_dl: float) -> float:
+            # Convert mg/dl to mM
+            return self.FACTOR_MG_DL_TO_MMOL_L * mg_dl
+
+        self.test_numerical_parser([
+            ("TG", []),  # should fail; no values
+            ("triglycerides", []),  # should fail; no values
+            ("TG 4 mM", [4]),
+            ("triglycerides 4 mmol", [4]),
+            ("triglyceride 4 mmol", [4]),
+            ("TG 4", [4]),
+            ("TG 140 mg/dl", [convert(140)]),  # unit conversion
+            ("TG = 4", [4]),
+            ("TG: 4", [4]),
+            ("TG equals 4", [4]),
+            ("TG is equal to 4", [4]),
+            ("TG <4", [4]),
+            ("TG less than 4", [4]),
+            ("TG more than 20", [20]),
+            ("TG was 4", [4]),
+            ("TG was 140 mg/dl", [convert(140)]),
+            ("TG was 140", [140]),  # but probably wrong interpretation!
+            ("TG is 140 mg dl-1", [convert(140)]),
+            ("TG is 140 mg dl -1", [convert(140)]),
+            ("TG-4", [4]),
+            ("triglycerides    |       6.2 (H)      | mmol/L", [6.2]),
+        ], verbose=verbose)
+
+
+# =============================================================================
+# HbA1c
+# =============================================================================
+
+def hba1c_mmol_per_mol_from_percent(percent: Union[float, str]) \
+        -> Optional[float]:
+    """
+    Convert an HbA1c value from old percentage units -- DCCT (Diabetes Control
+    and Complications Trial), UKPDS (United Kingdom Prospective Diabetes Study)
+    or NGSP (National Glycohemoglobin Standardization Program) -- to newer IFCC
+    (International Federation of Clinical Chemistry) mmol/mol units (mmol HbA1c
+    / mol Hb).
+
+    Args:
+        percent: DCCT value as a percentage
+
+    Returns:
+        IFCC value in mmol/mol
+
+    Example: 5% becomes 31.1 mmol/mol.
+
+    By Emanuele Osimo, Feb 2019.
+    Some modifications by Rudolf Cardinal, Feb 2019.
+
+    References:
+
+    - Emanuele had mmol_per_mol = (percent - 2.14) * 10.929 -- primary source
+      awaited.
+    - Jeppsson 2002, https://www.ncbi.nlm.nih.gov/pubmed/11916276 -- no, that's
+      the chemistry
+    - https://www.ifcchba1c.org/
+    - http://www.ngsp.org/ifccngsp.asp -- gives master equation of
+      NGSP = [0.09148 × IFCC] + 2.152), therefore implying
+      IFCC = (NGSP – 2.152) × 10.93135.
+    - Little & Rohlfing 2013: https://www.ncbi.nlm.nih.gov/pubmed/23318564;
+      also gives NGSP = [0.09148 * IFCC] + 2.152.
+
+    Note also that you may see eAG values (estimated average glucose), in
+    mmol/L or mg/dl; see http://www.ngsp.org/A1ceAG.asp; these are not direct
+    measurements of HbA1c.
+
+    """
+    if isinstance(percent, str):
+        percent = to_float(percent)
+    if not percent:
+        return None
+    percent = abs(percent)  # deals with e.g. "HbA1c-8%" -> -8
+    return (percent - 2.152) * 10.93135
+
+
+class HbA1c(SimpleNumericalResultParser):
+    """
+    Glycosylated (glycated) haemoglobin (HbA1c).
+
+    - By Emanuele Osimo, Feb 2019.
+    - Some modifications by Rudolf Cardinal, Feb 2019.
+    """
+    HBA1C = r"""
+        (?: {WORD_BOUNDARY}
+            (?: (?: Glyc(?:osyl)?ated [-\s]+ (?:ha?emoglobin|Hb) ) |
+                (?: HbA1c )
+            )
+        {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    REGEX = r"""
+        ( {HBA1C} )                       # group for HbA1c or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                    # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )                 # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                  # optional group for units
+            {MILLIMOLES_PER_MOL}                # standard
+            | {PERCENT}                         # good but needs conversion
+            | {MILLIMOLES_PER_L}                # bad; may be an eAG value
+            | {MG_PER_DL}                       # bad; may be an eAG value
+        )?
+    """.format(
+        HBA1C=HBA1C,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        MILLIMOLES_PER_MOL=MILLIMOLES_PER_MOL,
+        PERCENT=PERCENT,
+        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
+        MG_PER_DL=MG_PER_DL,
+    )
+    NAME = "HBA1C"
+    PREFERRED_UNIT_COLUMN = "value_mmol_L"
+    UNIT_MAPPING = {
+        MILLIMOLES_PER_MOL: 1,       # preferred unit
+        PERCENT: hba1c_mmol_per_mol_from_percent,
+        # but not MILLIMOLES_PER_L
+        # and not MG_PER_DL
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in parent class
+
+        def convert(percent: float) -> float:
+            # Convert % to mmol/mol
+            return hba1c_mmol_per_mol_from_percent(percent)
+
+        self.test_numerical_parser([
+            ("HbA1c", []),  # should fail; no values
+            ("glycosylated haemoglobin", []),  # should fail; no values
+            ("HbA1c 31", [31]),
+            ("HbA1c 31 mmol/mol", [31]),
+            ("HbA1c 31 mg/dl", []),  # wrong units
+            ("HbA1c 31 mmol/L", []),  # wrong units
+            ("glycosylated haemoglobin 31 mmol/mol", [31]),
+            ("glycated hemoglobin 31 mmol/mol", [31]),
+            ("HbA1c 8%", [convert(8)]),
+            ("HbA1c = 8%", [convert(8)]),
+            ("HbA1c: 31", [31]),
+            ("HbA1c equals 31", [31]),
+            ("HbA1c is equal to 31", [31]),
+            ("HbA1c <31.2", [31.2]),
+            ("HbA1c less than 4", [4]),
+            ("HbA1c more than 20", [20]),
+            ("HbA1c was 31", [31]),
+            ("HbA1c was 15%", [convert(15)]),
+            ("HbA1c-31", [31]),
+            ("HbA1c-8%", [convert(8)]),
+            ("HbA1c    |       40 (H)      | mmol/mol", [40]),
+        ], verbose=verbose)
+
+
+# =============================================================================
+# Command-line entry point
 # =============================================================================
 
 def test_all(verbose: bool = False) -> None:
@@ -508,6 +1156,18 @@ def test_all(verbose: bool = False) -> None:
     li.test(verbose=verbose)
     tsh = Tsh(None, None)
     tsh.test(verbose=verbose)
+    glucose = Glucose(None, None)
+    glucose.test(verbose=verbose)
+    ldl = LDLCholesterol(None, None)
+    ldl.test(verbose=verbose)
+    hdl = HDLCholesterol(None, None)
+    hdl.test(verbose=verbose)
+    chol = TotalCholesterol(None, None)
+    chol.test(verbose=verbose)
+    tg = Triglycerides(None, None)
+    tg.test(verbose=verbose)
+    hba1c = HbA1c(None, None)
+    hba1c.test(verbose=verbose)
 
 
 if __name__ == '__main__':

@@ -67,7 +67,7 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
-#  Erythrocyte sedimentation rate (ESR)
+# Erythrocyte sedimentation rate (ESR)
 # =============================================================================
 
 class Esr(SimpleNumericalResultParser):
@@ -172,7 +172,7 @@ class EsrValidator(ValidatorBase):
 
 
 # =============================================================================
-#  White blood cell count and differential
+# White blood cell count and differential
 # =============================================================================
 # Do NOT accept my handwritten abbreviations with slashed zeros, e.g.
 #       L0 lymphocytes
@@ -341,7 +341,7 @@ class WbcValidator(ValidatorBase):
 
 
 # -----------------------------------------------------------------------------
-#  Neutrophils
+# Neutrophils
 # -----------------------------------------------------------------------------
 
 class Neutrophils(WbcBase):
@@ -408,7 +408,7 @@ class NeutrophilsValidator(ValidatorBase):
 
 
 # -----------------------------------------------------------------------------
-#  Lymphocytes
+# Lymphocytes
 # -----------------------------------------------------------------------------
 
 class Lymphocytes(WbcBase):
@@ -477,7 +477,7 @@ class LymphocytesValidator(ValidatorBase):
 
 
 # -----------------------------------------------------------------------------
-#  Monocytes
+# Monocytes
 # -----------------------------------------------------------------------------
 
 class Monocytes(WbcBase):
@@ -544,7 +544,7 @@ class MonocytesValidator(ValidatorBase):
 
 
 # -----------------------------------------------------------------------------
-#  Basophils
+# Basophils
 # -----------------------------------------------------------------------------
 
 class Basophils(WbcBase):
@@ -611,7 +611,7 @@ class BasophilsValidator(ValidatorBase):
 
 
 # -----------------------------------------------------------------------------
-#  Eosinophils
+# Eosinophils
 # -----------------------------------------------------------------------------
 
 class Eosinophils(WbcBase):
@@ -678,7 +678,7 @@ class EosinophilsValidator(ValidatorBase):
 
 
 # =============================================================================
-#  Command-line entry point
+# Command-line entry point
 # =============================================================================
 
 def test_all(verbose: bool = False) -> None:

@@ -77,7 +77,7 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
-#  Generic entities
+# Generic entities
 # =============================================================================
 
 WORD_BOUNDARY = r"\b"
@@ -165,7 +165,7 @@ RELATION_LOOKUP = compile_regex_dict({
 APOSTROPHE = "[\'’]"  # ASCII apostrophe; right single quote (U+2019)
 
 # =============================================================================
-#  Generic processors
+# Generic processors
 # =============================================================================
 
 FN_VARIABLE_NAME = 'variable_name'
@@ -1064,7 +1064,7 @@ class ValidatorBase(BaseNlpParser):
 
 
 # =============================================================================
-#  More general testing
+# More general testing
 # =============================================================================
 
 def learning_alternative_regex_groups():
@@ -1320,7 +1320,7 @@ def test_base_regexes(verbose: bool = False) -> None:
 
 
 # =============================================================================
-#  Command-line entry point
+# Command-line entry point
 # =============================================================================
 
 def test_all(verbose: bool = False) -> None:

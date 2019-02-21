@@ -217,7 +217,8 @@ HOUR = r"(?:h(?:rs?|ours?)?)"   # h, hr, hrs, hour, hours
 # -----------------------------------------------------------------------------
 
 PERCENT = r"""(?:%|pe?r?\s?ce?n?t)"""
-# must have pct, other characters optional
+# "%" or some subset of "percent" -- for the latter, must have "pct", other
+# characters optional
 
 # -----------------------------------------------------------------------------
 # Arbitrary count things
@@ -225,7 +226,8 @@ PERCENT = r"""(?:%|pe?r?\s?ce?n?t)"""
 
 CELLS = r"(?:\b cells? \b)"
 OPTIONAL_CELLS = CELLS + "?"
-MILLIMOLES = r"(?: m(?:illi)?mol(?:es?)? )"
+MOLES = r"(?:\b mole?s? \b)"  # mol, mole, mols, moles
+MILLIMOLES = r"(?: m(?:illi)?mole?s? )"
 MILLIEQ = r"(?:m(?:illi)?Eq)"
 
 UNITS = r"(?:[I]?U)"  # U units, IU international units
@@ -248,6 +250,7 @@ CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
 
 MILLIUNITS_PER_L = per(MILLIUNITS, L)
 MICROUNITS_PER_ML = per(MICROUNITS, ML)
+MILLIMOLES_PER_MOL = per(MILLIMOLES, MOLES)
 
 # -----------------------------------------------------------------------------
 # Speed
@@ -340,6 +343,54 @@ def assemble_units(components: List[Optional[str]]) -> str:
     """
     active_components = [c for c in components if c]
     return " ".join(active_components)
+
+
+def factor_millimolar_from_mg_per_dl(molecular_mass_g_per_mol: float) -> float:
+    """
+    Returns the conversion factor that you should multiple a "mg/dL" number by
+    to get a "mM" (mmol/L) number.
+
+    Principle:
+
+    .. code-block:: none
+
+        mmol_per_L
+            = 0.001 * mol_per_L
+            = 0.001 * (g_per_L / g_per_mol)
+            = 0.001 * ((10 * g_per_dL) / g_per_mol)
+            = 0.001 * ((10 * 1000 * mg_per_dL) / g_per_mol)
+            = (0.001 * 10 * 1000 / g_per_mol) * mg_per_dL
+            = (10 / g_per_mol) * mg_per_dl
+
+        Example:
+            glucose, molecular mass 180.156 g/mol
+            => conversion factor is (10 / 180.156)
+            90 mg/dL -> (10 / 180.156) * 90 mM = 5.0 mM
+
+    Args:
+        molecular_mass_g_per_mol: molecular mass in g/mol
+
+    Returns:
+        conversion factor
+
+    """
+    return 10 / molecular_mass_g_per_mol
+
+
+def millimolar_from_mg_per_dl(mg_per_dl: float,
+                              molecular_mass_g_per_mol: float) -> float:
+    """
+    Converts a concentration from mg/dL to mM (mmol/L).
+
+    Args:
+        mg_per_dl: value in mg/dL
+        molecular_mass_g_per_mol: molecular mass in g/mol
+
+    Returns:
+        value in mM = mmol/L
+
+    """
+    return mg_per_dl * factor_millimolar_from_mg_per_dl(molecular_mass_g_per_mol)  # noqa
 
 
 # =============================================================================

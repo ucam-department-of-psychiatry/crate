@@ -60,8 +60,9 @@ PLUS_SIGN = r"\+"  # don't forget to escape it
 MINUS_SIGN = r"[-−–]"  # any of: ASCII hyphen-minus, Unicode minus, en dash
 SIGN = r"(?: {plus} | {minus} )".format(plus=PLUS_SIGN, minus=MINUS_SIGN)
 
-NO_MINUS_SIGN = r"(?!{minus})".format(minus=MINUS_SIGN)
+NO_MINUS_SIGN_LOOKAHEAD = r"(?!{minus})".format(minus=MINUS_SIGN)
 # ... (?! something ) is a negative lookahead assertion
+# ... (?<! something ) is a negative lookbehind assertion
 
 PLAIN_INTEGER = r"(?:\d+)"
 # Numbers with commas: http://stackoverflow.com/questions/5917082
@@ -98,7 +99,7 @@ SIGNED_INTEGER = r"(?: {sign}? {integer} )".format(
     integer=PLAIN_INTEGER_W_THOUSAND_COMMAS,
 )
 UNSIGNED_FLOAT = r"(?: {nominus} {plus}? {integer} {fp}? )".format(
-    nominus=NO_MINUS_SIGN,
+    nominus=NO_MINUS_SIGN_LOOKAHEAD,
     plus=PLUS_SIGN,  # optional
     integer=PLAIN_INTEGER_W_THOUSAND_COMMAS,
     fp=FLOATING_POINT_GROUP,  # optional
