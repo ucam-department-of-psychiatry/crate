@@ -5,7 +5,7 @@ docs/source/conf.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -56,7 +56,7 @@ from crate_anon.version import CRATE_VERSION
 
 project = 'CRATE'
 # noinspection PyShadowingBuiltins
-copyright = '2018, Rudolf Cardinal'
+copyright = '2015-2019, Rudolf Cardinal'
 author = 'Rudolf Cardinal'
 
 # The short X.Y version

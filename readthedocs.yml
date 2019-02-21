@@ -1,0 +1,11 @@
+# readthedocs.yml
+
+# See
+# - https://docs.readthedocs.io/en/latest/yaml-config.html
+# - https://github.com/rtfd/readthedocs.org/issues/2139
+
+build:
+  image: latest
+
+python:
+  version: 3.6

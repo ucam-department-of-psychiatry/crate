@@ -1,6 +1,6 @@
 .. crate_anon/docs/source/nlp/overview.rst
 
-..  Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
+..  Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
     .
     This file is part of CRATE.
     .
