@@ -152,7 +152,7 @@ commands to show these.
 
 *Not all have been formally validated.*
 
-A summary as of 2018-12-11 is:
+A summary as of 2019-02-21 is:
 
 .. list-table::
   :header-rows: 1
@@ -181,14 +181,32 @@ A summary as of 2018-12-11 is:
   * - Esr
     - Erythrocyte sedimentation rate (ESR).
 
+  * - Gate
+    - Processor handling all :ref:`GATE NLP <gate_nlp>`.
+
+  * - Glucose
+    - Glucose.
+
+  * - HbA1c
+    - Glycosylated haemoglobin (HbA1c).
+
+  * - HDLCholesterol
+    - High-density lipoprotein (HDL) cholesterol.
+
   * - Height
     - Height. Handles metric (e.g. "1.8m") and imperial (e.g. "5 ft 2 in").
+
+  * - LDLCholesterol
+    - Low-density lipoprotein (LDL) cholesterol.
 
   * - Lithium
     - Lithium (Li) levels (for blood tests, not doses).
 
   * - Lymphocytes
     - Lymphocyte count (absolute).
+
+  * - MedEx
+    - Processor handling :ref:`MedEx-UIMA NLP <medex_nlp>`.
 
   * - MiniAce
     - Mini-Addenbrooke's Cognitive Examination (M-ACE).
@@ -199,11 +217,17 @@ A summary as of 2018-12-11 is:
   * - Moca
     - Montreal Cognitive Assessment (MOCA).
 
+  * - Monocytes
+    - Monocyte count (absolute).
+
   * - Neutrophils
     - Neutrophil count (absolute).
 
   * - Sodium
     - Sodium (Na).
+
+  * - TotalCholesterol
+    - Total cholesterol.
 
   * - Tsh
     - Thyroid-stimulating hormone (TSH).
@@ -213,4 +237,3 @@ A summary as of 2018-12-11 is:
 
   * - Weight
     - Weight. Handles metric (e.g. "57kg") and imperial (e.g. "10 st 2 lb").
-
