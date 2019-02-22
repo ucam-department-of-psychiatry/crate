@@ -118,6 +118,7 @@ def make_autodoc(make: bool, destroy_first: bool) -> None:
         make_subindex("common"),
         make_subindex("crateweb"),
         make_subindex("nlp_manager"),
+        make_subindex("nlp_web"),
         make_subindex("preprocess"),
         make_subindex("tools"),
     ])

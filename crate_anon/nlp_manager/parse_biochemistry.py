@@ -596,6 +596,24 @@ class Glucose(SimpleNumericalResultParser):
         ], verbose=verbose)
 
 
+class GlucoseValidator(ValidatorBase):
+    """
+    Validator for glucose
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[Glucose.GLUCOSE],
+                         validated_variable=Glucose.NAME,
+                         commit=commit)
+
+
 # =============================================================================
 # LDL cholesterol
 # =============================================================================
@@ -696,6 +714,24 @@ class LDLCholesterol(SimpleNumericalResultParser):
         ], verbose=verbose)
 
 
+class LDLCholesterolValidator(ValidatorBase):
+    """
+    Validator for LDL cholesterol
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[LDLCholesterol.LDL],
+                         validated_variable=LDLCholesterol.NAME,
+                         commit=commit)
+
+
 # =============================================================================
 # HDL cholesterol
 # =============================================================================
@@ -794,6 +830,24 @@ class HDLCholesterol(SimpleNumericalResultParser):
             ("hdl-4", [4]),
             ("HDL chol     |       6.2 (H)      | mmol/L", [6.2]),
         ], verbose=verbose)
+
+
+class HDLCholesterolValidator(ValidatorBase):
+    """
+    Validator for HDL cholesterol
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[HDLCholesterol.HDL],
+                         validated_variable=HDLCholesterol.NAME,
+                         commit=commit)
 
 
 # =============================================================================
@@ -897,6 +951,24 @@ class TotalCholesterol(SimpleNumericalResultParser):
         ], verbose=verbose)
 
 
+class TotalCholesterolValidator(ValidatorBase):
+    """
+    Validator for total cholesterol
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[TotalCholesterol.CHOLESTEROL],
+                         validated_variable=TotalCholesterol.NAME,
+                         commit=commit)
+
+
 # =============================================================================
 # Triglycerides
 # =============================================================================
@@ -994,6 +1066,24 @@ class Triglycerides(SimpleNumericalResultParser):
             ("TG-4", [4]),
             ("triglycerides    |       6.2 (H)      | mmol/L", [6.2]),
         ], verbose=verbose)
+
+
+class TriglyceridesValidator(ValidatorBase):
+    """
+    Validator for triglycerides
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[Triglycerides.TG],
+                         validated_variable=Triglycerides.NAME,
+                         commit=commit)
 
 
 # =============================================================================
@@ -1143,31 +1233,39 @@ class HbA1c(SimpleNumericalResultParser):
         ], verbose=verbose)
 
 
+class HbA1cValidator(ValidatorBase):
+    """
+    Validator for HbA1c
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[HbA1c.HBA1C],
+                         validated_variable=HbA1c.NAME,
+                         commit=commit)
+
+
 # =============================================================================
 # Command-line entry point
 # =============================================================================
 
 def test_all(verbose: bool = False) -> None:
-    crp = Crp(None, None)
-    crp.test(verbose=verbose)
-    na = Sodium(None, None)
-    na.test(verbose=verbose)
-    li = Lithium(None, None)
-    li.test(verbose=verbose)
-    tsh = Tsh(None, None)
-    tsh.test(verbose=verbose)
-    glucose = Glucose(None, None)
-    glucose.test(verbose=verbose)
-    ldl = LDLCholesterol(None, None)
-    ldl.test(verbose=verbose)
-    hdl = HDLCholesterol(None, None)
-    hdl.test(verbose=verbose)
-    chol = TotalCholesterol(None, None)
-    chol.test(verbose=verbose)
-    tg = Triglycerides(None, None)
-    tg.test(verbose=verbose)
-    hba1c = HbA1c(None, None)
-    hba1c.test(verbose=verbose)
+    Crp(None, None).test(verbose=verbose)
+    Sodium(None, None).test(verbose=verbose)
+    Lithium(None, None).test(verbose=verbose)
+    Tsh(None, None).test(verbose=verbose)
+    Glucose(None, None).test(verbose=verbose)
+    LDLCholesterol(None, None).test(verbose=verbose)
+    HDLCholesterol(None, None).test(verbose=verbose)
+    TotalCholesterol(None, None).test(verbose=verbose)
+    Triglycerides(None, None).test(verbose=verbose)
+    HbA1c(None, None).test(verbose=verbose)
 
 
 if __name__ == '__main__':
