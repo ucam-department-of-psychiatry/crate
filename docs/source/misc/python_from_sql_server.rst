@@ -373,7 +373,7 @@ Example to find two antidepressants "episodes"
   called ``py_generate_two_antidepressant_episodes``, which will allow us to
   view the result directly or stash it back into a table:
 
-  .. code-block:: none
+  .. code-block:: sql
 
     USE rnctestdb;  -- or whatever it's called
 
