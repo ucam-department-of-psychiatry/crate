@@ -42,12 +42,10 @@ By Rudolf Cardinal <rudolf@pobox.com>.
     website_config/index.rst
     website_using/index.rst
 
-    misc/ancillary_tools.rst
-    misc/faq_troubleshooting.rst
-    misc/technical_notes.rst
-    misc/upgrading.rst
-    misc/tcpip_ports.rst
-    misc/external_dependencies.rst
+    ancillary_tools.rst
+    faq_troubleshooting.rst
+
+    misc/index.rst
 
     autodoc/_index.rst
 

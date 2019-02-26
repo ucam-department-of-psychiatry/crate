@@ -1,3 +1,5 @@
+import os
+
 from pyramid.paster import get_appsettings
 from pyramid.config import Configurator
 
@@ -319,7 +321,10 @@ GATE_BASE_URL = "https://nhsta-api.slam-services.gate.ac.uk/process-document"
 NLPRP_VERSION = '0.1.0'
 SERVER_NAME = 'test_server'
 SERVER_VERSION = '0.1'
-SETTINGS_PATH = '/home/fs462/crate/crate_anon/nlp_web/nlp_web_config.ini'
+NLP_WEB_CONFIG_ENVVAR = "CRATE_NLP_WEB_CONFIG"
+SETTINGS_PATH = os.getenv(NLP_WEB_CONFIG_ENVVAR)
+assert NLP_WEB_CONFIG_ENVVAR, (
+    "Missing environment variable {}".format(NLP_WEB_CONFIG_ENVVAR))
 SETTINGS = get_appsettings(SETTINGS_PATH)
 CONFIG = Configurator(settings=SETTINGS)
 

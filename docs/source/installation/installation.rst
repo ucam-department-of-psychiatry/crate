@@ -18,8 +18,8 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 
-Installation
-============
+Installing CRATE
+================
 
 .. contents::
    :local:

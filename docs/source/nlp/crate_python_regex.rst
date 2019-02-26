@@ -118,8 +118,10 @@ a slightly convoluted way of specifying table names).
     FROM crissql_v3.dbo.Progress_Notes  -- source table
     WHERE document_id IN (  -- primary key
         SELECT _srcpkstr FROM crissql_workspace.[CRIS-CPFT\RCardinal].validate_crp
+        WHERE _srctable = 'Progress_Notes'  -- source table
     ) AND document_id NOT IN (
         SELECT _srcpkstr FROM crissql_workspace.[CRIS-CPFT\RCardinal].crp
+        WHERE _srctable = 'Progress_Notes'  -- source table
     )
 
 This should produce text where CRP is mentioned but no value given, such as
@@ -128,7 +130,19 @@ sample taken (CRP/U&Es and FBC)”; “monitoring CK and CRP”; “CRP was back
 yesterday”.
 
 For a table with integer PKs you would use ``_srcpkval`` instead of
-``_srcpkstr``.
+``_srcpkstr``. Here's an example, again using SQL Server:
+
+.. code-block:: none
+
+    SELECT [text]  -- field with the free text in
+    FROM RiO.dbo.Progress_Notes  -- source table
+    WHERE crate_pk IN (  -- primary key
+        SELECT _srcpkval FROM RiONLP.dbo.validate_crp
+        WHERE _srctable = 'Progress_Notes'  -- source table
+    ) AND crate_pk NOT IN (
+        SELECT _srcpkval FROM RiONLP.dbo.crp
+        WHERE _srctable = 'Progress_Notes'  -- source table
+    )
 
 **Specimen timing on a slow system (2016-11-15):** 5,954 seconds (1h40) for a
 full run of 2,717,779 text notes (one per database row, from a table with a

@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/introduction/index.rst
+.. crate_anon/docs/source/misc/index.rst
 
 ..  Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -17,12 +17,14 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
-Installing CRATE
+
+Additional notes
 ================
 
 ..  toctree::
     :maxdepth: 2
 
-    installation.rst
-    database_drivers.rst
-    upgrading.rst
+    technical_notes.rst
+    tcpip_ports.rst
+    external_dependencies.rst
+    python_from_sql_server.rst
