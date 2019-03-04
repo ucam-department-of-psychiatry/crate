@@ -61,12 +61,15 @@ from crate_anon.nlp_manager.regex_units import (
     MG,
     MG_PER_DL,
     MG_PER_L,
+    MICROEQ_PER_L,
+    MICROMOLAR,
+    MICROMOLES_PER_L,
     MICROUNITS_PER_ML,
+    MILLIEQ_PER_L,
     MILLIMOLAR,
     millimolar_from_mg_per_dl,
     MILLIMOLES_PER_L,
     MILLIMOLES_PER_MOL,
-    MILLIEQ_PER_L,
     MILLIUNITS_PER_L,
     PERCENT,
 )
@@ -298,6 +301,308 @@ class SodiumValidator(ValidatorBase):
                          cfgsection=cfgsection,
                          regex_str_list=[Sodium.SODIUM],
                          validated_variable=Sodium.NAME,
+                         commit=commit)
+
+
+# =============================================================================
+# Potassium (K)
+# =============================================================================
+
+class Potassium(SimpleNumericalResultParser):
+    """
+    Potassium (K).
+    """
+    POTASSIUM = r"""
+        (?: {WORD_BOUNDARY} (?: K | Potassium ) {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    REGEX = r"""
+        ( {POTASSIUM} )                    # group for "K" or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                    # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )                 # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                  # optional group for units
+            {MILLIMOLAR}                        # good
+            | {MILLIMOLES_PER_L}                # good
+            | {MILLIEQ_PER_L}                   # good
+            | {MG}                              # bad
+        )?
+    """.format(
+        POTASSIUM=POTASSIUM,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        MILLIMOLAR=MILLIMOLAR,
+        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
+        MILLIEQ_PER_L=MILLIEQ_PER_L,
+        MG=MG,
+    )
+    NAME = "Potassium"
+    PREFERRED_UNIT_COLUMN = "value_mmol_L"
+    UNIT_MAPPING = {
+        MILLIMOLAR: 1,       # preferred unit
+        MILLIMOLES_PER_L: 1,
+        MILLIEQ_PER_L: 1,
+        # but not MG
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in parent class
+        self.test_numerical_parser([
+            ("K", []),  # should fail; no values
+            ("K 4", [4]),
+            ("Potassium 4.3", [4.3]),
+            ("K 4.5 mEq/L", [4.5]),
+            ("K 4.5 mM", [4.5]),
+            ("losartan potassium 50mg", []),
+            ("Present: Kerry Smith (K). 1.0 Minutes of last meeting", []),
+            ("Present: Kerry Smith (K) 1.0 Minutes of last meeting", []),
+            ("K (H) 5.6 mM", [5.6]),
+            ("K (*) 5.6 mM", [5.6]),
+            ("K (X) 5.6 mM", []),
+            ("blah (K) 5.6 mM", []),
+            ("K (5.6) something", [5.6]),
+            ("K (5.6 mM), others", [5.6]),
+            ("K-3.2", [3.2])
+        ], verbose=verbose)
+
+
+class PotassiumValidator(ValidatorBase):
+    """
+    Validator for Potassium
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[Potassium.POTASSIUM],
+                         validated_variable=Potassium.NAME,
+                         commit=commit)
+
+
+# =============================================================================
+# Urea
+# =============================================================================
+
+class Urea(SimpleNumericalResultParser):
+    """
+    Urea.
+    """
+    UREA = r"""
+        (?: {WORD_BOUNDARY} (?: U(?:r(?:ea)?)? ) {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    REGEX = r"""
+        ( {UREA} )                         # group for "urea" or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                    # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )                 # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                  # optional group for units
+            {MILLIMOLAR}                        # good
+            | {MILLIMOLES_PER_L}                # good
+            | {MILLIEQ_PER_L}                   # good
+            | {MG}                              # bad
+        )?
+    """.format(
+        UREA=UREA,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        MILLIMOLAR=MILLIMOLAR,
+        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
+        MILLIEQ_PER_L=MILLIEQ_PER_L,
+        MG=MG,
+    )
+    NAME = "Urea"
+    PREFERRED_UNIT_COLUMN = "value_mmol_L"
+    UNIT_MAPPING = {
+        MILLIMOLAR: 1,       # preferred unit
+        MILLIMOLES_PER_L: 1,
+        MILLIEQ_PER_L: 1,
+        # but not MG
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in parent class
+        self.test_numerical_parser([
+            ("Urea", []),  # should fail; no values
+            ("U 4", [4]),
+            ("Urea 4.3", [4.3]),
+            ("U 4.5 mEq/L", [4.5]),
+            ("Ur 4.5 mM", [4.5]),
+            ("Present: Ursula Rogers (U). 1.0 Minutes of last meeting", []),
+            ("Present: Ursula Rogers (UR) 1.0 Minutes of last meeting", []),
+            ("U (H) 5.6 mM", [5.6]),
+            ("Ur (*) 5.6 mM", [5.6]),
+            ("Urea (X) 5.6 mM", []),
+            ("blah (U) 5.6 mM", []),
+            ("Urea (5.6) something", [5.6]),
+            ("Urea (5.6 mM), others", [5.6]),
+            ("U-3.2", [3.2])
+        ], verbose=verbose)
+
+
+class UreaValidator(ValidatorBase):
+    """
+    Validator for Urea
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[Urea.UREA],
+                         validated_variable=Urea.NAME,
+                         commit=commit)
+
+
+# =============================================================================
+# Creatinine
+# =============================================================================
+
+class Creatinine(SimpleNumericalResultParser):
+    """
+    Creatinine.
+    """
+    CREATININE = r"""
+        (?: {WORD_BOUNDARY} (?: Cr(?:eat(?:inine)?)? ) {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    # ... Cr, Creat, Creatinine
+    # Possible that "creatine" is present as a typo... but it's wrong...
+    REGEX = r"""
+        ( {CREATININE} )                 # group for "creatinine" or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?           # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                  # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )               # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                # optional group for units
+            {MICROMOLAR}                        # good
+            | {MICROMOLES_PER_L}                # good
+            | {MICROEQ_PER_L}                   # good
+            | {MG}                              # bad
+        )?
+    """.format(  # noqa
+        CREATININE=CREATININE,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        MICROMOLAR=MICROMOLAR,
+        MICROMOLES_PER_L=MICROMOLES_PER_L,
+        MICROEQ_PER_L=MICROEQ_PER_L,
+        MG=MG,
+    )
+    NAME = "Creatinine"
+    PREFERRED_UNIT_COLUMN = "value_mmol_L"
+    UNIT_MAPPING = {
+        MICROMOLAR: 1,       # preferred unit
+        MICROMOLES_PER_L: 1,
+        MICROEQ_PER_L: 1,
+        # but not MG
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in parent class
+        self.test_numerical_parser([
+            ("Creatinine", []),  # should fail; no values
+            ("Cr 50", [50]),
+            ("Creat 125.5", [125.5]),
+            ("Creat 75 uEq/L", [75]),
+            ("Cr 75 μM", [75]),
+            ("Present: Chloe Rogers (CR). 1.0 Minutes of last meeting", []),
+            ("Creatinine (H) 200 uM", [200]),
+            ("Creatinine (*) 200 micromol/L", [200]),
+            ("Creatinine (X) 200 uM", []),
+            ("blah (creat) 5.6 uM", []),
+            ("Creatinine (200) something", [200]),
+            ("Creatinine (200 micromolar), others", [200]),
+            ("Cr-75", [75])
+        ], verbose=verbose)
+
+
+class CreatinineValidator(ValidatorBase):
+    """
+    Validator for Creatinine
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[Creatinine.CREATININE],
+                         validated_variable=Creatinine.NAME,
                          commit=commit)
 
 
@@ -1258,6 +1563,9 @@ class HbA1cValidator(ValidatorBase):
 def test_all(verbose: bool = False) -> None:
     Crp(None, None).test(verbose=verbose)
     Sodium(None, None).test(verbose=verbose)
+    Potassium(None, None).test(verbose=verbose)
+    Urea(None, None).test(verbose=verbose)
+    Creatinine(None, None).test(verbose=verbose)
     Lithium(None, None).test(verbose=verbose)
     Tsh(None, None).test(verbose=verbose)
     Glucose(None, None).test(verbose=verbose)

@@ -57,6 +57,9 @@ from crate_anon.nlp_manager.regex_numbers import SIGNED_FLOAT
 from crate_anon.nlp_manager.regex_units import (
     BILLION_PER_L,
     CELLS_PER_CUBIC_MM,
+    G_PER_DL,
+    G_PER_L,
+    L_PER_L,
     MG_PER_DL,
     MG_PER_L,
     MM_PER_H,
@@ -64,6 +67,194 @@ from crate_anon.nlp_manager.regex_units import (
 )
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Haemoglobin (Hb)
+# =============================================================================
+
+class Haemoglobin(SimpleNumericalResultParser):
+    """
+    Haemoglobin (Hb).
+    
+    UK reporting for haemoglobin switched in 2013 from g/dL to g/L; see
+    e.g.
+    
+    - http://www.pathology.leedsth.nhs.uk/pathology/Portals/0/PDFs/BP-2013-02%20Hb%20units.pdf
+    - http://www.acb.org.uk/docs/default-source/committees/scientific/guidelines/acb/pathology-harmony-haematology.pdf
+    
+    The *DANGER* remains that "Hb 9" may have been from someone assuming
+    old-style units, 9 g/dL = 90 g/L, but this will be interpreted as 9 g/L.
+    This problem is hard to avoid. 
+
+    """  # noqa
+    HAEMOGLOBIN = r"""
+        (?: {WORD_BOUNDARY} (?: Ha?emoglobin | Hb ) {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    REGEX = r"""
+        ( {HAEMOGLOBIN} )                 # group for "Hb" or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?            # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                   # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )                # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                 # optional group for units
+            {G_PER_L}                          # good
+            | {G_PER_DL}                       # good
+        )?
+    """.format(
+        HAEMOGLOBIN=HAEMOGLOBIN,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        G_PER_L=G_PER_L,
+        G_PER_DL=G_PER_DL,
+    )
+    NAME = "Haemoglobin"
+    PREFERRED_UNIT_COLUMN = "value_g_l"
+    UNIT_MAPPING = {
+        G_PER_L: 1,  # preferred unit
+        G_PER_DL: 10,  # older unit (e.g. 2000)
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
+        self.test_numerical_parser([
+            ("Haemoglobin (should fail)", []),  # should fail; no values
+            ("Haemoglobin 90 (should succeed)", [90]),
+            ("Hemoglobin = 60", [60]),
+            ("Hb 6 g/dL", [60]),
+            ("Hb 60 g/L", [60]),
+            ("Hb <80", [80]),
+            ("Hb <80 g/L", [80]),
+            ("Hb was 62", [62]),
+            ("Hb was 62 g/L", [62]),
+            ("Hb was 62 (L) g/L", [62]),
+            ("Haemoglobin      |       7.6 (H)      | g/dL", [76]),
+            ("Hb-96", [96]),
+        ], verbose=verbose)
+
+
+class HaemoglobinValidator(ValidatorBase):
+    """
+    Validator for Haemoglobin
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[Haemoglobin.HAEMOGLOBIN],
+                         validated_variable=Haemoglobin.NAME,
+                         commit=commit)
+
+
+# =============================================================================
+# Haematocrit (Hct)
+# =============================================================================
+
+class Haematocrit(SimpleNumericalResultParser):
+    """
+    Haematocrit (Hct).
+    """
+    HAEMATOCRIT = r"""
+        (?: {WORD_BOUNDARY} (?: Ha?ematocrit | Hct ) {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    REGEX = r"""
+        ( {HAEMATOCRIT} )               # group for "haematocrit" or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?          # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                 # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )              # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                               # optional group for units
+            {L_PER_L}                          # good
+        )?
+    """.format(
+        HAEMATOCRIT=HAEMATOCRIT,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        L_PER_L=L_PER_L,
+    )
+    NAME = "Haematocrit"
+    PREFERRED_UNIT_COLUMN = "value_l_l"
+    UNIT_MAPPING = {
+        L_PER_L: 1,  # preferred unit
+        # not MG_PER_DL, MG_PER_L
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
+        self.test_numerical_parser([
+            ("Haematocrit (should fail)", []),  # should fail; no values
+            ("Haematocrit 0.4 (should succeed)", [0.4]),
+            ("Hematocrit = 0.4", [0.4]),
+            ("Hct 0.3 L/L", [0.3]),
+            ("Haematocrit         |       0.33 (H)      | L/L", [0.33]),
+            ("my haematocrit was 0.3; his haematocrit was 0.4!", [0.3, 0.4]),
+            ("Hct-0.48", [0.48]),
+        ], verbose=verbose)
+
+
+class HaematocritValidator(ValidatorBase):
+    """
+    Validator for Haematocrit
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[Haematocrit.HAEMATOCRIT],
+                         validated_variable=Haematocrit.NAME,
+                         commit=commit)
 
 
 # =============================================================================
@@ -77,7 +268,7 @@ class Esr(SimpleNumericalResultParser):
     ESR = r"""
         (?: {WORD_BOUNDARY}
             (?: (?: Erythrocyte [\s]+ sed(?:\.|imentation)? [\s]+ rate)
-                | (?:ESR) )
+                | ESR )
         {WORD_BOUNDARY} )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
     REGEX = r"""
@@ -685,24 +876,20 @@ def test_all(verbose: bool = False) -> None:
     """
     Test all parsers in this module.
     """
+    # Haemoglobin, haematocrit
+    Haemoglobin(None, None).test(verbose=verbose)
+    Haematocrit(None, None).test(verbose=verbose)
 
     # ESR
-    esr = Esr(None, None)
-    esr.test(verbose=verbose)
+    Esr(None, None).test(verbose=verbose)
 
     # WBC and differential
-    wbc = Wbc(None, None)
-    wbc.test(verbose=verbose)
-    n0 = Neutrophils(None, None)
-    n0.test(verbose=verbose)
-    l0 = Lymphocytes(None, None)
-    l0.test(verbose=verbose)
-    m0 = Monocytes(None, None)
-    m0.test(verbose=verbose)
-    b0 = Basophils(None, None)
-    b0.test(verbose=verbose)
-    e0 = Eosinophils(None, None)
-    e0.test(verbose=verbose)
+    Wbc(None, None).test(verbose=verbose)
+    Neutrophils(None, None).test(verbose=verbose)
+    Lymphocytes(None, None).test(verbose=verbose)
+    Monocytes(None, None).test(verbose=verbose)
+    Basophils(None, None).test(verbose=verbose)
+    Eosinophils(None, None).test(verbose=verbose)
 
 
 if __name__ == '__main__':

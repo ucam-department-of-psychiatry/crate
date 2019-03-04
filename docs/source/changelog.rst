@@ -804,6 +804,11 @@ Changes
 - NLP for glucose cholesterol (LDL, HDL, total), triglycerides, HbA1c
   (still need external validation).
 
+**v0.18.65, 2019-03-04** IN PROGRESS
+
+- NLP for potassium, urea, creatinine, haemoglobin, haematocrit (still need
+  external validation).
+
 
 .. rubric:: Footnotes
 

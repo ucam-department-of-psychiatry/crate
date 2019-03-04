@@ -227,12 +227,14 @@ PERCENT = r"""(?:%|pe?r?\s?ce?n?t)"""
 CELLS = r"(?:\b cells? \b)"
 OPTIONAL_CELLS = CELLS + "?"
 MOLES = r"(?:\b mole?s? \b)"  # mol, mole, mols, moles
+MICROMOLES = r"(?: (?:micro|μ|u)mole?s? )"
 MILLIMOLES = r"(?: m(?:illi)?mole?s? )"
+MICROEQ = r"(?: (?:micro|μ|u)Eq )"
 MILLIEQ = r"(?:m(?:illi)?Eq)"
 
 UNITS = r"(?:[I]?U)"  # U units, IU international units
+MICROUNITS = r"(?:(?:micro|μ|u)[I]?U)"
 MILLIUNITS = r"(?:m[I]?U)"
-MICROUNITS = r"(?:[μu][I]?U)"
 
 SCORE = r"(?:scored?)"  # score(d)
 
@@ -240,17 +242,23 @@ SCORE = r"(?:scored?)"  # score(d)
 # Concentration
 # -----------------------------------------------------------------------------
 
+MICROMOLAR = r"(?:[μu]M)"
 MILLIMOLAR = r"(?:mM)"  # NB case-insensitive... confusable with millimetres
-MG_PER_DL = per(MG, DL)
-MG_PER_L = per(MG, L)
-MILLIMOLES_PER_L = per(MILLIMOLES, L)
-MILLIEQ_PER_L = per(MILLIEQ, L)
+
 BILLION_PER_L = per(BILLION, L)
 CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
-
-MILLIUNITS_PER_L = per(MILLIUNITS, L)
+G_PER_DL = per(G, DL)
+G_PER_L = per(G, L)
+L_PER_L = per(L, L)
+MG_PER_DL = per(MG, DL)
+MG_PER_L = per(MG, L)
+MICROEQ_PER_L = per(MICROEQ, L)
+MICROMOLES_PER_L = per(MICROMOLES, L)
 MICROUNITS_PER_ML = per(MICROUNITS, ML)
+MILLIEQ_PER_L = per(MILLIEQ, L)
+MILLIMOLES_PER_L = per(MILLIMOLES, L)
 MILLIMOLES_PER_MOL = per(MILLIMOLES, MOLES)
+MILLIUNITS_PER_L = per(MILLIUNITS, L)
 
 # -----------------------------------------------------------------------------
 # Speed
