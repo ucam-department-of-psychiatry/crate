@@ -105,7 +105,7 @@ def get_all_subclasses(cls: ClassType) -> List[ClassType]:
     for subclass in cls.__subclasses__():
         all_subclasses.append(subclass)
         all_subclasses.extend(get_all_subclasses(subclass))  # recursive
-    all_subclasses.sort(key=attrgetter('__name__'))
+    all_subclasses.sort(key=lambda c: c.__name__.lower())
     lower_case_names = set()
     for cls in all_subclasses:
         lc_name = cls.__name__.lower()

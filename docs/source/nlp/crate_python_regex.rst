@@ -166,7 +166,7 @@ commands to show these.
 
 *Not all have been formally validated.*
 
-A summary as of 2019-02-21 is:
+A summary as of 2019-03-04 (ignoring validators) is:
 
 .. list-table::
   :header-rows: 1
@@ -189,6 +189,9 @@ A summary as of 2019-02-21 is:
   * - Crp
     - C-reactive protein (CRP).
 
+  * - Creatinine
+    - Creatinine.
+
   * - Eosinophils
     - Eosinophil count (absolute).
 
@@ -200,6 +203,12 @@ A summary as of 2019-02-21 is:
 
   * - Glucose
     - Glucose.
+
+  * - Haematocrit.
+    - Haematocrit.
+
+  * - Haemoglobin.
+    - Haemoglobin.
 
   * - HbA1c
     - Glycosylated haemoglobin (HbA1c).
@@ -237,6 +246,9 @@ A summary as of 2019-02-21 is:
   * - Neutrophils
     - Neutrophil count (absolute).
 
+  * - Potassium
+    - Potassium (K).
+
   * - Sodium
     - Sodium (Na).
 
@@ -245,6 +257,9 @@ A summary as of 2019-02-21 is:
 
   * - Tsh
     - Thyroid-stimulating hormone (TSH).
+
+  * - Urea
+    - Urea.
 
   * - Wbc
     - White cell count (WBC, WCC).
