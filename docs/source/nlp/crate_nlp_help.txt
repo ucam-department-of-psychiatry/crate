@@ -1,0 +1,50 @@
+usage: crate_nlp [-h] [--version] [--config CONFIG] [--verbose]
+                 [--nlpdef [NLPDEF]] [--report_every_fast [REPORT_EVERY_FAST]]
+                 [--report_every_nlp [REPORT_EVERY_NLP]]
+                 [--chunksize [CHUNKSIZE]] [--process [PROCESS]]
+                 [--nprocesses [NPROCESSES]] [--processcluster PROCESSCLUSTER]
+                 [--democonfig] [--listprocessors] [--describeprocessors]
+                 [--showinfo [NLP_CLASS_NAME]] [--count] [-i | -f]
+                 [--dropremake] [--skipdelete] [--nlp] [--echo] [--timing]
+
+NLP manager. Version 0.18.12 (2017-02-26). By Rudolf Cardinal.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --config CONFIG       Config file (overriding environment variable
+                        CRATE_NLP_CONFIG)
+  --verbose, -v         Be verbose (use twice for extra verbosity)
+  --nlpdef [NLPDEF]     NLP definition name (from config file)
+  --report_every_fast [REPORT_EVERY_FAST]
+                        Report insert progress (for fast operations) every n
+                        rows in verbose mode (default 100000)
+  --report_every_nlp [REPORT_EVERY_NLP]
+                        Report progress for NLP every n rows in verbose mode
+                        (default 500)
+  --chunksize [CHUNKSIZE]
+                        Number of records copied in a chunk when copying PKs
+                        from one database to another (default 100000)
+  --process [PROCESS]   For multiprocess mode: specify process number
+  --nprocesses [NPROCESSES]
+                        For multiprocess mode: specify total number of
+                        processes (launched somehow, of which this is to be
+                        one)
+  --processcluster PROCESSCLUSTER
+                        Process cluster name
+  --democonfig          Print a demo config file
+  --listprocessors      Show possible built-in NLP processor names
+  --describeprocessors  Show details of built-in NLP processors
+  --showinfo [NLP_CLASS_NAME]
+                        Show detailed information for a parser
+  --count               Count records in source/destination databases, then
+                        stop
+  -i, --incremental     Process only new/changed information, where possible
+                        (* default)
+  -f, --full            Drop and remake everything
+  --dropremake          Drop/remake destination tables only
+  --skipdelete          For incremental updates, skip deletion of rows present
+                        in the destination but not the source
+  --nlp                 Perform NLP processing only
+  --echo                Echo SQL
+  --timing              Show detailed timing breakdown

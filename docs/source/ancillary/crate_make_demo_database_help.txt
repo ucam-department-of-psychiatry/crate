@@ -1,0 +1,36 @@
+usage: crate_make_demo_database [-h] [--size {0,1,2,3}] [--verbose] [--echo]
+                                [--doctest-doc DOCTEST_DOC]
+                                [--doctest-docx DOCTEST_DOCX]
+                                [--doctest-odt DOCTEST_ODT]
+                                [--doctest-pdf DOCTEST_PDF]
+                                url
+
+positional arguments:
+  url                   SQLAlchemy database URL. Append ?charset=utf8, e.g. my
+                        sql+mysqldb://root:password@127.0.0.1:3306/test?charse
+                        t=utf8 . WARNING: If you get the error 'MySQL has gone
+                        away', increase the max_allowed_packet parameter in
+                        my.cnf (e.g. to 32M).
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --size {0,1,2,3}      Make tiny (0), small (1), medium (2), or large (3)
+                        database (default=0)
+  --verbose, -v         Be verbose (use twice for extra verbosity)
+  --echo                Echo SQL
+  --doctest-doc DOCTEST_DOC
+                        Test file for .DOC (default: /home/rudolf/Documents/co
+                        de/crate/crate_anon/anonymise/../../testdocs_for_text_
+                        extraction/doctest.doc)
+  --doctest-docx DOCTEST_DOCX
+                        Test file for .DOCX (default: /home/rudolf/Documents/c
+                        ode/crate/crate_anon/anonymise/../../testdocs_for_text
+                        _extraction/doctest.docx)
+  --doctest-odt DOCTEST_ODT
+                        Test file for .ODT (default: /home/rudolf/Documents/co
+                        de/crate/crate_anon/anonymise/../../testdocs_for_text_
+                        extraction/doctest.odt)
+  --doctest-pdf DOCTEST_PDF
+                        Test file for .PDF (default: /home/rudolf/Documents/co
+                        de/crate/crate_anon/anonymise/../../testdocs_for_text_
+                        extraction/doctest.pdf)

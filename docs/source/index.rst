@@ -42,7 +42,7 @@ By Rudolf Cardinal <rudolf@pobox.com>.
     website_config/index.rst
     website_using/index.rst
 
-    ancillary_tools.rst
+    ancillary/ancillary_tools.rst
     faq_troubleshooting.rst
 
     misc/index.rst

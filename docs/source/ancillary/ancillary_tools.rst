@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/website_config/launch_server.rst
+.. crate_anon/docs/source/misc/ancillary_tools.rst
 
 ..  Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -17,34 +17,48 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
-.. _CherryPy: https://cherrypy.org/
-.. _Django: https://www.djangoproject.com/
+Ancillary tools
+===============
 
+.. contents::
+   :local:
 
-Launch the CRATE web server
-===========================
+crate_docs
+~~~~~~~~~~
 
+Launches this documentation via your web browser.
 
-.. _crate_launch_cherrypy_server:
-
-crate_launch_cherrypy_server
-----------------------------
-
-This is the standard cross-platform production server for CRATE, using
-CherryPy_.
+crate_make_demo_database
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Options as of 2016-07-21:
 
-..  literalinclude:: crate_launch_cherrypy_server_help.txt
+..  literalinclude:: crate_make_demo_database_help.txt
     :language: none
 
 
-crate_launch_django_server
---------------------------
+crate_test_extract_text
+~~~~~~~~~~~~~~~~~~~~~~~
 
-This is a lightweight test server, using Django_ itself.
+Options as of 2019-02-09:
+
+..  literalinclude:: crate_test_extract_text_help.txt
+    :language: none
+
+
+crate_test_anonymisation
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Options as of 2016-07-21:
 
-..  literalinclude:: crate_launch_django_server_help.txt
+..  literalinclude:: crate_test_anonymisation_help.txt
+    :language: none
+
+
+crate_estimate_mysql_memory_usage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Options as of 2016-07-21:
+
+..  literalinclude:: crate_estimate_mysql_memory_usage_help.txt
     :language: none

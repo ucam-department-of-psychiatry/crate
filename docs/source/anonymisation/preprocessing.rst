@@ -46,73 +46,8 @@ _Resp_Clinician_	… Responsible Clinician
 
 Options as of 2017-02-28:
 
-.. code-block:: none
-
-    usage: crate_preprocess_rio [-h] --url URL [-v] [--print] [--echo] [--rcep]
-                                [--drop-danger-drop] [--cpft] [--debug-skiptables]
-                                [--prognotes-current-only | --prognotes-all]
-                                [--clindocs-current-only | --clindocs-all]
-                                [--allergies-current-only | --allergies-all]
-                                [--audit-info | --no-audit-info]
-                                [--postcodedb POSTCODEDB]
-                                [--geogcols [GEOGCOLS [GEOGCOLS ...]]]
-                                [--settings-filename SETTINGS_FILENAME]
-
-    *   Alters a RiO database to be suitable for CRATE.
-
-    *   By default, this treats the source database as being a copy of a RiO
-        database (slightly later than version 6.2; exact version unclear).
-        Use the "--rcep" (+/- "--cpft") switch(es) to treat it as a
-        Servelec RiO CRIS Extract Program (RCEP) v2 output database.
-
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      --url URL             SQLAlchemy database URL
-      -v, --verbose         Verbose
-      --print               Print SQL but do not execute it. (You can redirect the
-                            printed output to create an SQL script.
-      --echo                Echo SQL
-      --rcep                Treat the source database as the product of Servelec's
-                            RiO CRIS Extract Program v2 (instead of raw RiO)
-      --drop-danger-drop    REMOVES new columns and indexes, rather than creating
-                            them. (There's not very much danger; no real
-                            information is lost, but it might take a while to
-                            recalculate it.)
-      --cpft                Apply hacks for Cambridgeshire & Peterborough NHS
-                            Foundation Trust (CPFT) RCEP database. Only appicable
-                            with --rcep
-      --debug-skiptables    DEBUG-ONLY OPTION. Skip tables (view creation only)
-      --prognotes-current-only
-                            Progress_Notes view restricted to current versions
-                            only (* default)
-      --prognotes-all       Progress_Notes view shows old versions too
-      --clindocs-current-only
-                            Clinical_Documents view restricted to current versions
-                            only (*)
-      --clindocs-all        Clinical_Documents view shows old versions too
-      --allergies-current-only
-                            Client_Allergies view restricted to current info only
-      --allergies-all       Client_Allergies view shows deleted allergies too (*)
-      --audit-info          Audit information (creation/update times) added to
-                            views
-      --no-audit-info       No audit information added (*)
-      --postcodedb POSTCODEDB
-                            Specify database (schema) name for ONS Postcode
-                            Database (as imported by CRATE) to link to addresses
-                            as a view. With SQL Server, you will have to specify
-                            the schema as well as the database; e.g. "--postcodedb
-                            ONS_PD.dbo"
-      --geogcols [GEOGCOLS [GEOGCOLS ...]]
-                            List of geographical information columns to link in
-                            from ONS Postcode Database. BEWARE that you do not
-                            specify anything too identifying. Default: pcon pct
-                            nuts lea statsward casward lsoa01 msoa01 ur01ind oac01
-                            lsoa11 msoa11 parish bua11 buasd11 ru11ind oac11 imd
-      --settings-filename SETTINGS_FILENAME
-                            Specify filename to write draft ddgen_* settings to,
-                            for use in a CRATE anonymiser configuration file.
-
+..  literalinclude:: crate_preprocess_rio_help.txt
+    :language: none
 
 
 crate_preprocess_pcmis
@@ -120,40 +55,6 @@ crate_preprocess_pcmis
 
 Options as of 2018-06-10:
 
-.. code-block:: none
+..  literalinclude:: crate_preprocess_pcmis_help.txt
+    :language: none
 
-    usage: crate_preprocess_pcmis [-h] --url URL [-v] [--print] [--echo]
-                                  [--drop-danger-drop] [--debug-skiptables]
-                                  [--postcodedb POSTCODEDB]
-                                  [--geogcols [GEOGCOLS [GEOGCOLS ...]]]
-                                  [--settings-filename SETTINGS_FILENAME]
-
-    Alters a PCMIS database to be suitable for CRATE.
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      --url URL             SQLAlchemy database URL
-      -v, --verbose         Verbose
-      --print               Print SQL but do not execute it. (You can redirect the
-                            printed output to create an SQL script.
-      --echo                Echo SQL
-      --drop-danger-drop    REMOVES new columns and indexes, rather than creating
-                            them. (There's not very much danger; no real
-                            information is lost, but it might take a while to
-                            recalculate it.)
-      --debug-skiptables    DEBUG-ONLY OPTION. Skip tables (view creation only)
-      --postcodedb POSTCODEDB
-                            Specify database (schema) name for ONS Postcode
-                            Database (as imported by CRATE) to link to addresses
-                            as a view. With SQL Server, you will have to specify
-                            the schema as well as the database; e.g. "--postcodedb
-                            ONS_PD.dbo"
-      --geogcols [GEOGCOLS [GEOGCOLS ...]]
-                            List of geographical information columns to link in
-                            from ONS Postcode Database. BEWARE that you do not
-                            specify anything too identifying. Default: pcon pct
-                            nuts lea statsward casward lsoa01 msoa01 ur01ind oac01
-                            lsoa11 msoa11 parish bua11 buasd11 ru11ind oac11 imd
-      --settings-filename SETTINGS_FILENAME
-                            Specify filename to write draft ddgen_* settings to,
-                            for use in a CRATE anonymiser configuration file.

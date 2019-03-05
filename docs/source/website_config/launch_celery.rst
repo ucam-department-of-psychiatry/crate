@@ -58,17 +58,8 @@ to work properly. (See also :ref:`Windows service <windows_service>`.)
 
 Options as of 2016-07-21:
 
-.. code-block:: none
-
-    usage: crate_launch_celery [-h] [--command COMMAND] [--debug]
-
-    Launch CRATE Celery processes. (Any leftover arguments will be passed to
-    Celery.)
-
-    optional arguments:
-      -h, --help         show this help message and exit
-      --command COMMAND  Celery command (default: worker)
-      --debug            Ask Celery to be verbose
+..  literalinclude:: crate_launch_celery_help.txt
+    :language: none
 
 
 .. _crate_celery_status:

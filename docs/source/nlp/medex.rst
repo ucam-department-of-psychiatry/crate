@@ -111,27 +111,8 @@ crate_nlp_build_medex_java_interface
 
 Options as of 2017-02-28:
 
-.. code-block:: none
-
-    usage: crate_nlp_build_medex_java_interface [-h] [--builddir BUILDDIR]
-                                                [--medexdir MEDEXDIR]
-                                                [--java JAVA] [--javac JAVAC]
-                                                [--verbose] [--launch]
-
-    Compile Java classes for CRATE's interface to MedEx-UIMA
-
-    optional arguments:
-      -h, --help           show this help message and exit
-      --builddir BUILDDIR  Output directory for compiled .class files (default: /h
-                           ome/rudolf/Documents/code/crate/crate_anon/nlp_manager/
-                           compiled_nlp_classes)
-      --medexdir MEDEXDIR  Root directory of MedEx installation (default:
-                           /home/rudolf/dev/Medex_UIMA_1.3.6)
-      --java JAVA          Java executable (default: java)
-      --javac JAVAC        Java compiler (default: javac)
-      --verbose, -v        Be verbose (use twice for extra verbosity)
-      --launch             Launch script in demonstration mode (having previously
-                           compiled it)
+..  literalinclude:: crate_nlp_build_medex_java_interface_help.txt
+    :language: none
 
 
 crate_nlp_build_medex_itself
@@ -142,20 +123,8 @@ the UK.
 
 Options as of 2017-02-28:
 
-.. code-block:: none
-
-    usage: crate_nlp_build_medex_itself [-h] [--medexdir MEDEXDIR] [--javac JAVAC]
-                                        [--deletefirst] [--verbose]
-
-    Compile MedEx-UIMA itself (in Java)
-
-    optional arguments:
-      -h, --help           show this help message and exit
-      --medexdir MEDEXDIR  Root directory of MedEx installation (default:
-                           /home/rudolf/dev/Medex_UIMA_1.3.6)
-      --javac JAVAC        Java compiler (default: javac)
-      --deletefirst        Delete existing .class files first (optional)
-      --verbose, -v        Be verbose
+..  literalinclude:: crate_nlp_build_medex_itself_help.txt
+    :language: none
 
 
 .. rubric:: Footnotes
