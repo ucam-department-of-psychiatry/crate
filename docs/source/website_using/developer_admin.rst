@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/website_using/index.rst
+.. crate_anon/docs/source/website_using/developer_admin.rst
 
 ..  Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -17,19 +17,7 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
-Using the CRATE web interface
-=============================
+Developer functions
+-------------------
 
-..  toctree::
-    :maxdepth: 2
-
-    clinician_researcher_overview.rst
-    database_structure.rst
-    research_queries.rst
-    site_queries.rst
-    sql_helpers.rst
-    patient_explorer.rst
-    clinician_privileged.rst
-    contact_patients.rst
-    rdbm_admin.rst
-    developer_admin.rst
+.. todo:: Write "Developer functions"

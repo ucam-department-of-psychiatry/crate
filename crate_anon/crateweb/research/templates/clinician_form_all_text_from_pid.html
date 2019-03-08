@@ -6,16 +6,8 @@
 
     <h1>Clinical view: Find text anywhere</h1>
 
-    <div class="warning">
-        1. <b>BEWARE:</b> you are searching the research database, which lags
-        behind the original clinical records. The absence of information here
-        does not imply its absence in recent clinical records.
-    </div>
-
-    <div class="warning">
-        2. You should only use this function for patients you are personally
-        caring for.
-    </div>
+    {% include "include_clinician_warning_lag.html" %}
+    {% include "include_clinician_warning_yours_only.html" %}
 
     <div>Enter a fragment of text to find, across all text fields.</div>
 

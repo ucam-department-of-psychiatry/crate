@@ -105,7 +105,14 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = [
+    # Stuff from Sphinx
+    '_build',
+    'Thumbs.db',
+    '.DS_Store',
+    # CRATE:
+    "**/include*.rst",
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -125,7 +132,7 @@ pygments_style = 'sphinx'
 # html_theme = 'agogo'  # nice, but a bit big-print; TOC on right; justified
 # html_theme = 'traditional'  # moderately ugly
 # html_theme = 'nature'  # very nice. Used for CamCOPS.
-# html_theme = 'haiku'  # dosen't do sidebar
+# html_theme = 'haiku'  # doesn't do sidebar
 # html_theme = 'pyramid'  # Once inline code customized, GOOD.
 # html_theme = 'bizstyle'  # OK
 html_theme = "sphinx_rtd_theme"

@@ -18,12 +18,15 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 
-Abbreviations and glossary
-==========================
+.. _abbreviations:
+
+Abbreviations
+=============
 
 =============== ===============================================================
 Abbreviation    Meaning
 =============== ===============================================================
+C4C             consent for contact
 CPFT            Cambridgeshire & Peterborough NHS Foundation Trust
 CRATE           Clinical Records Anonymisation and Text Extraction (software)
                 [#crate]_
@@ -41,6 +44,7 @@ NHS             UK National Health Service
 NLP             natural language processing
 PID             patient identifier
 RCEP            RiO CRIS Extraction Program (by Servelec)
+RDBM            Research database manager
 RID             research identifier
 RiO             An EMR product from Servelec
 SLAM            South London & Maudsley NHS Foundation Trust
@@ -49,6 +53,56 @@ TRID            transient research identifier
 TSV             tab-separated value (file)
 UK              United Kingdom
 =============== ===============================================================
+
+
+.. _glossary:
+
+Glossary
+========
+
+.. _mpid:
+
+- **Master patient ID (MPID).** A number that uniquely identifies a patient
+  across many databases. In the UK, the NHS number is the usual MPID.
+
+
+.. _mrid:
+
+- **Master research ID (MRID).** A research identifier that is unique to a
+  de-identified patient's record across many linked research databases. A
+  securely hashed version of the :ref:`MPID <mpid>`.
+
+
+.. _pid:
+
+- **Patient ID (PID).** A number that uniquely identifies a patient within a
+  given database. For example, in a Servelec RiO database, the RiO number is
+  the PID.
+
+
+.. _rdbm:
+
+- **Research database administrator (RDBM).** A person authorized to run a
+  research database. They may also function as a member of the clinical
+  administrative team, to whom clinicians may delegate work.
+
+
+.. _rid:
+
+- **Research ID (RID).** A research identifier that is unique to a
+  de-identified patient's record in a research database. A securely hashed
+  version of the :ref:`PID <pid>`.
+
+
+.. _trid:
+
+- **Transient research ID (TRID).** An integer that is unique to a
+  de-identified patient within a given database, but which is susceptible to
+  being destroyed and replaced by a different number if the database is
+  de-identified again. It's faster than the :ref:`RID <rid>`, because it's an
+  integer, and it can be used reliably to link tables within a :ref:`query
+  <research_queries>`, but it can't be stored and relied on again later,
+  unlike the :ref:`RID <rid>` or :ref:`MRID <mrid>`.
 
 
 .. rubric:: Footnotes

@@ -36,27 +36,33 @@
 
     <h3>Display</h3>
 
-    <form action="{% url 'edit_display' query_id %}" method="post">
-        {% csrf_token %}
-        <input type="submit" name="submit_filter" value="Filter" />
-    </from>
+    {% if query_id is not None %}
+        {# query_id might be None from pe_one_table() #}
+        {# This might be suboptimal; q.v. #}
 
-    <p>Columns included:</p>
-    <ul>
-        {% for column in display_columns %}
-            <li>{{ column }}</li>
-        {% endfor %}
-    </ul>
+        <form action="{% url 'edit_display' query_id %}" method="post">
+            {% csrf_token %}
+            <input type="submit" name="submit_filter" value="Filter" />
+        </form>
 
-    <p>Columns excluded:</p>
-    <ul>
-        {% for column in omit_columns %}
-            <li>{{ column }}</li>
-        {% endfor %}
-    </ul>
+        <p>Columns included:</p>
+        <ul>
+            {% for column in display_columns %}
+                <li>{{ column }}</li>
+            {% endfor %}
+        </ul>
 
-    {% if no_null is True %}
-        <p><strong>Null columns excluded</strong></p>
+        <p>Columns excluded:</p>
+        <ul>
+            {% for column in omit_columns %}
+                <li>{{ column }}</li>
+            {% endfor %}
+        </ul>
+
+        {% if no_null is True %}
+            <p><strong>Null columns excluded</strong></p>
+        {% endif %}
+
     {% endif %}
 
 {% endblock %}

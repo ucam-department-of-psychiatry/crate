@@ -3425,6 +3425,14 @@ def pe_one_table(request: HttpRequest, pe_id: str,
     Returns:
         a :class:`django.http.response.HttpResponse`
 
+    .. todo::
+
+        Might it be better to feed the resulting query back into the main
+        Query system, allowing users to turn columns on/off, etc.?
+
+        At present it forces ``query_id`` to ``None`` and this is detected by
+        ``query_result.html``.
+
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     table_id = TableId(db=db, schema=schema, table=table)
@@ -3481,6 +3489,7 @@ def pe_one_table(request: HttpRequest, pe_id: str,
         context = {
             'table_html': table_html,
             'page': page,
+            'query_id': None,
             'rowcount': rowcount,
             'sql': prettify_sql_and_args(sql=sql, args=args),
             'sql_highlight_css': prettify_sql_css(),

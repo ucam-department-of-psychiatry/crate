@@ -809,6 +809,28 @@ Changes
 - NLP for potassium, urea, creatinine, haemoglobin, haematocrit (still need
   external validation).
 
+- At some point before this: SQL helpers to find :ref:`drug classes/types
+  <sql_find_drug_type>` (e.g. "atypical antipsychotics", "SSRIs"), as per
+  JL's idea of 2018-01-08.
+
+- At some point before this: research query options to show a subset of
+  columns.
+
+- At some point before this: "Clinician asks for a study pack" -- create a
+  contact request that's pre-authorized by a clinician (who might want to pass
+  on the pack themselves or delegate the RDBM to do it).
+
+- :ref:`Standard site queries <site_queries>` now handle the following problem:
+
+  - With regular data updates there might be problems with queries returning
+    different results if rerun a week later, so might be worth returning a
+    timestamp of some type, like: ``MAX(DATE_CREATED) FROM
+    RIO.DBO.Clinical_Documents + MAX(whenprocessedutc)) FROM
+    [RiONLP].[dbo].[crate_nlp_progress] + …``
+
+
+
+
 
 .. rubric:: Footnotes
 

@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/website_using/index.rst
+.. crate_anon/docs/source/website_using/include_clinician_warning_lag.rst
 
 ..  Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -17,19 +17,11 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
-Using the CRATE web interface
-=============================
+.. warning::
 
-..  toctree::
-    :maxdepth: 2
+    Be aware that the research database may (and often will) lag behind the
+    clinical database. **Absence of information in the research database does
+    not imply absence of information from the clinical source database.**
 
-    clinician_researcher_overview.rst
-    database_structure.rst
-    research_queries.rst
-    site_queries.rst
-    sql_helpers.rst
-    patient_explorer.rst
-    clinician_privileged.rst
-    contact_patients.rst
-    rdbm_admin.rst
-    developer_admin.rst
+    Your :ref:`research database administrator <rdbm>` may provide a :ref:`site
+    query <site_queries>` to show you how "fresh" the research database is.

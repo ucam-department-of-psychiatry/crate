@@ -229,7 +229,7 @@ class SQLHelperFindAnywhereForm(forms.Form):
         label="Include content from fields where found (slower)",
         required=False)
     include_datetime = BooleanField(
-        label="Include date/time from where known",
+        label="Include date/time where known",
         required=False)
 
     def __init__(

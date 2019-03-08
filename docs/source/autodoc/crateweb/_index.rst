@@ -161,6 +161,8 @@ crate_anon/crateweb
     research/templates/edit_display.html.rst
     research/templates/highlight_bad_id.html.rst
     research/templates/highlight_edit_select.html.rst
+    research/templates/include_clinician_warning_lag.html.rst
+    research/templates/include_clinician_warning_yours_only.html.rst
     research/templates/local_structure_help.html.rst
     research/templates/page_nav_results.html.rst
     research/templates/pe_bad.html.rst

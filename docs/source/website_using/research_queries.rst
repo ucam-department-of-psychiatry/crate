@@ -17,6 +17,13 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
+.. _Office Open XML: https://en.wikipedia.org/wiki/Office_Open_XML
+.. _SQL: https://en.wikipedia.org/wiki/SQL
+.. _TSV: https://en.wikipedia.org/wiki/Tab-separated_values
+
+
+.. _research_queries:
+
 Research queries
 ----------------
 
@@ -29,14 +36,10 @@ Research queries
 
 Users can use raw SQL, or some automatic methods of building queries.
 
-Raw SQL mode
-~~~~~~~~~~~~
+.. todo:: add screenshots
 
-Here, users can edit and save/load SQL queries, run them, and view/save the
-tabular output.
 
-They can apply coloured highlighters to specific text occurring anywhere (e.g.
-to make it easy to spot the word ‘depression’ in long paragraphs of text).
+.. _research_query_builder:
 
 Query builder
 ~~~~~~~~~~~~~
@@ -44,95 +47,99 @@ Query builder
 The administrator tells the web site about one or several databases that are
 accessible via the database connection, including how tables should be linked
 on patient (via research IDs), within and across databases. The query builder
-assists the user to build simple SELECT / FROM / JOIN / WHERE queries in SQL,
+then assists you to build simple SELECT / FROM / JOIN / WHERE queries in SQL,
 which can be run directly or edited further.
 
-Patient finder
-~~~~~~~~~~~~~~
 
-Following the CRIS web front end, it can sometimes be helpful to view specific
-records *for patients* meeting specific criteria. The CRIS system uses XML data
-for its web front end, and that XML is organized on a per-patient basis, so its
-logical organization is: (a) specify criteria that each *patient* must meet;
-(b) specify fields shown for *those patients*; and (c) present them in a
-non-standard tabular form, essentially laying out multiple tables side by side
-[#crisquerylayout]_.
+.. _research_query_sql:
 
-From CRATE’s perspective, operating with relational databases directly, there
-are two ways of approaching  this problem – particularly part (c). The first is
-a UNION query [#unionexample]_; this allows plain SQL, but doesn’t sit well
-with attempts to preserve multi-column table information (because all SELECT
-statements contributing to a UNION must have the same number of columns). The
-second is to fetch results from multiple tables separately and combine/present
-them in Python, using ‘patient’ as the explicit basis.
+SQL
+~~~
 
-The first option is always available for manual use, because CRATE supports
-arbitrary SQL queries.
+SQL_ is the standard language for asking questions of databases. CRATE provides
+an interactive way to build SQL queries, but you can also take those queries
+and extend them yourself, or just write your own.
 
-The second option is supported in a more friendly fashion. The logical steps
-are:
+Here, you can edit and save/load SQL queries, run them, and view/save the
+tabular output.
 
-- A *patient ID query* is built. Patient IDs are found, using the RID/TRID,
-  according to selection criteria specified by the user. For example, one can
-  specify ``diagnosis LIKE 'F20%'`` to find records of patients with an ICD-10
-  code starting with F20 (schizophrenia). The patient-finding is done by
-  checking for at least one such record. If multiple criteria are specified,
-  they are joined as desired (e.g. with AND or OR) [#patientidquery]_.
+If you don't know SQL but would like to learn, there are lots of `online SQL
+tutorials <https://www.google.com/search?q=sql+tutorial>`. There are slight
+variations in syntax depending on the exact database type you are using, but
+the core language is standardized.
 
-- Output fields are specified (e.g. diagnosis from the diagnosis table;
-  progress notes from the progress notes table).
+.. tip::
 
-- CRATE runs one query *per table*; essentially, ``SELECT specified_fields FROM
-  one_of_the_tables WHERE rid IN (patient_id_query)``.
-
-- CRATE displays several tables jointly: from left to right, `patient_id |
-  table1 | table2`, split into meta-rows by patient ID. For saving, it creates
-  a XLSX spreadsheet.
+    If you enter bad SQL, don't worry. An error message will be generated, but
+    you will do no harm (assuming your administrator has configured things
+    correctly! See above).
 
 
-.. rubric:: Footnotes
+.. _research_query_highlighting:
 
-.. [#crisquerylayout]
-    For example, if you ask it to present patient research IDs, diagnoses, and
-    notes, then if patient 1 has three diagnoses and 10 notes, you might get
-    the patient number in column 1; the first 10 rows are for that patient; the
-    ‘diagnosis’ column has three entries; the ‘notes’ column has 10 entries.
-    This is quite different from a simple SQL JOIN, which would attempt to
-    create rows for every combination (here, 3 diagnoses × 10 notes = 30 rows
-    for that patient).
+Highlighting text in results
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. [#unionexample]
-    For example:
+Here, you can specify text to highlight in different colours in the output.
+This makes it easy to spot words in long paragraphs.
 
-    .. code-block:: sql
+For example, you can choose to highlight "insulin" in one colour and "glucose"
+in another. The settings you save here affect the display of results for any
+research queries that you run.
 
-        SELECT
-            rid,
-            'diagnosis' AS column_name,
-            diagnosis AS value
-        FROM diagnosis_table
-        WHERE rid IN (SELECT rid FROM some_table WHERE some_criterion)
-        UNION
-        SELECT
-            rid,
-            'note' AS column_name,
-            note AS value
-        FROM progress_note_table
-        WHERE rid IN (SELECT rid FROM some_table WHERE some_criterion)
-        ;
 
-.. [#patientidquery]
-    For example:
+.. _research_query_results_table:
 
-    .. code-block:: sql
+Results: table view
+~~~~~~~~~~~~~~~~~~~
 
-        SELECT DISTINCT mrid
-        FROM master_id_table
-        INNER JOIN diagnosis_table
-            ON diagnosis_table.trid  = master_id_table.trid
-        INNER JOIN progress_note_table
-            ON progress_note_table.trid = master_id_table.trid
-        WHERE
-            diagnosis_table.diagnosis LIKE 'F20%'
-            AND progress_note_table.note LIKE '%depression%'
-        ;
+The "standard" way to view the results of a query is as a table in an HTML
+page. Each table row is a database row (record). Each table column is a
+database column (field). The table is paginated.
+
+:ref:`Highlighting <research_query_highlighting>` will be applied. Long
+cells can be collapsed. Cells that are identical to the one above show ditto
+marks.
+
+There is a ``Filter`` button through which you can turn the display of
+individual columns on or off.
+
+
+.. _research_query_results_record:
+
+Results: record view
+~~~~~~~~~~~~~~~~~~~~
+
+This view may be better than the table view (see above) for detailed inspection
+of large records. One page (table) represents a single database record. The
+left-hand column contains database column (field) names, and the right-hand
+column contains values from the database.
+
+
+.. _research_query_results_tsv:
+
+Results: tab-separated values (TSV) file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This option offers the results of the currently selected query to download in
+tab-separated value (TSV) format.
+
+TSV_ is like comma-separated value (CSV) format, but (as the name suggests)
+uses tabs rather than commas to separate columns (which is often helpful
+because humans use a lot of commas and not as many tabs when writing text).
+Both CSV and TSV files are readily accepted by standard spreadsheet problems
+such as LibreOffice Calc and Microsoft Excel.
+
+Only the data is downloaded (compare Excel format, below).
+
+
+.. _research_query_results_excel:
+
+Results: Excel (.XLSX) file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This option offers the results of the currently selected query to download in
+`Office Open XML`_ format, as used by Microsoft Excel.
+
+The first spreadsheet contains the data; the second contains the SQL and the
+time of execution.

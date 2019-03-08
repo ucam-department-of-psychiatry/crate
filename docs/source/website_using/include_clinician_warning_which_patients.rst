@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/website_using/index.rst
+.. crate_anon/docs/source/website_using/include_clinician_warning_which_patients.rst
 
 ..  Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -17,19 +17,10 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
-Using the CRATE web interface
-=============================
+.. warning::
 
-..  toctree::
-    :maxdepth: 2
-
-    clinician_researcher_overview.rst
-    database_structure.rst
-    research_queries.rst
-    site_queries.rst
-    sql_helpers.rst
-    patient_explorer.rst
-    clinician_privileged.rst
-    contact_patients.rst
-    rdbm_admin.rst
-    developer_admin.rst
+    This function relates to identifiable information. In the UK, you should
+    only use this function in relation to patients to whom you are personally
+    delivering clinical care, and whose identifiable information you have the
+    right to see. You may **not** look up information about other patients. All
+    requests are audited, as for the original clinical records themselves.

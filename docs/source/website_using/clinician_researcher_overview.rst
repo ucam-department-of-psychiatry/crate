@@ -28,54 +28,60 @@ clinical records. Here are some of the things you can do.
 For clinicians
 ~~~~~~~~~~~~~~
 
-There are two special functions for clinicians:
+There are some special (privileged) functions for clinicians:
 
-- Search all text for an identified patient.
+- :ref:`Search all text <clinician_privileged_find_text_anywhere>` for an
+  identified patient.
 
-- Look up research IDs for identified patients.
+- :ref:`Look up research IDs <clinician_privileged_rid_from_pid>` for
+  identified patients.
+
+- :ref:`Request that your patient is contacted about a study
+  <clinician_privileged_submit_contact_request>`.
 
 For researchers
 ~~~~~~~~~~~~~~~
 
-**Standard queries:**
+**Database structure**
 
-- Build a query
+- Ask CRATE to show you the :ref:`structure of your database
+  <database_structure>` in different ways.
 
-- Write your own SQL
+**Standard query functions**
 
-- Highlight text in results
+- :ref:`Build a database query interactively <research_query_builder>`
 
-- View query results in a standard table
+- :ref:`Write your own SQL queries <research_query_sql>`
 
-- View query results in a "record-wise" table
+- :ref:`Highlight text in results <research_query_highlighting>`
 
-- Download query results in Excel format
+- :ref:`View query results in a standard table <research_query_results_table>`
 
-**Site-wide queries**
+- :ref:`View query results in a "record-wise" table
+  <research_query_results_record>`
 
+- Download query results in :ref:`TSV <research_query_results_tsv>` or
+  :ref:`Excel <research_query_results_excel>` format
 
+**Patient Explorer**
 
-**Patient Explorer queries:**
+- Use a :ref:`Patient Explorer <patient_explorer>` query to find patients in
+  the de-identified database.
 
-- Build a Patient Explorer
+**More query functions**
 
-- Choose a Patient Explorer
+- Use :ref:`SQL helpers <sql_helpers>` to aid you in constructing lengthy
+  queries.
 
-- Highlight text in results
+- Use standard :ref:`site queries <site_queries>`, defined by your local
+  database administrator, to answer commonly asked questions about your
+  local data.
 
-- View Patient Explorer results in a standard table
+For researchers wishing to re-identify and contact patients
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Download Patient Explorer results in Excel format
+- :ref:`View and manage studies <c4c_view_manage_studies>` that you are part
+  of.
 
-- View summary information for a Patient Explorer in a Data Finder view
-
-- Download the Data Finder view of a Patient Explorer in Excel format
-
-- Browse tables for a Patient Explorer
-
-- View the Monster results of a Patient Explorer, one patient per page
-
-
-
-
-.. todo:: link all sections above to other pages
+- :ref:`Submit contact requests <c4c_submit_contact_request>`, seeking to
+  re-identify and communicate with patients subject to their explicit consent.

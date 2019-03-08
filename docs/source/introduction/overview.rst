@@ -18,6 +18,8 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 
+.. _overview:
+
 Overview
 ========
 
