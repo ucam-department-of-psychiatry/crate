@@ -2,15 +2,19 @@ from celery import Celery
 import requests
 import transaction
 import logging
+import datetime
+import json
 
 from sqlalchemy import engine_from_config
 from typing import Optional, Tuple, Any, List, Dict
+from cryptography.fernet import Fernet
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 # from crate_anon.nlp_manager.all_processors import make_processor
 from crate_anon.nlp_web.models import DBSession, DocProcRequest
 from crate_anon.nlp_web.procs import Processor
-from crate_anon.nlp_web.constants import SETTINGS, CONFIG
+from crate_anon.nlp_web.constants import SETTINGS
+from crate_anon.nlp_web.security import decrypt_password
 
 log = logging.getLogger(__name__)
 
@@ -18,10 +22,17 @@ try:
     broker_url = SETTINGS['broker_url']
 except KeyError:
     log.error("broker_url value missing from config file.")
+    raise
 try:
     backend_url = SETTINGS['backend_url']
 except KeyError:
     log.error("backend_url value missing from config file.")
+    raise
+
+key = SETTINGS['encryption_key']
+# Turn key into bytes object
+key = key.encode()
+CIPHER_SUITE = Fernet(key)
 
 
 def get_gate_results(results_dict: Dict[str, Any]) -> List[Any]:
@@ -44,24 +55,23 @@ def get_gate_results(results_dict: Dict[str, Any]) -> List[Any]:
             features['_end'] = end
             features['_content'] = content
             results.append(features)
-    print(results)
-    print()
     return results
 
 
-# app = Celery('tasks', backend=backend_url, broker=broker_url)
-app = Celery('tasks', backend=backend_url, broker='pyamqp://')
+app = Celery('tasks', backend=backend_url, broker=broker_url)
 
 log = logging.getLogger(__name__)
 
 
+# noinspection PyUnusedLocal
 @app.task(bind=True, name='tasks.process_nlp_text')
 def process_nlp_text(
         self,
         docprocrequest_id: str,
         url: str = None,
         username: str = "",
-        password: str = "") -> Optional[Tuple[bool, List[Any], str, str]]:
+        crypt_pass: str = "") -> Optional[Tuple[bool, List[Any], Optional[int],
+                                                str, datetime.datetime]]:
     """
     Task to send text to the relevant processor.
     """
@@ -73,8 +83,10 @@ def process_nlp_text(
     # data doesn't always reach the database in time
     if not query:
         log.error("Docprocrequest: {} does not exist: ".format(
-                  query.docprocrequest_id))
+                      docprocrequest_id))
         return None
+    # Turn the password back into bytes and decrypt
+    password = decrypt_password(crypt_pass.encode(), CIPHER_SUITE)
     text = query.doctext
     processor_id = query.processor_id
     processor = Processor.processors[processor_id]
@@ -94,7 +106,8 @@ def process_nlp_text_immediate(
         processor: Processor,
         url: str = None,
         username: str = "",
-        password: str = "") -> Optional[Tuple[bool, List[Any], str, str]]:
+        password: str = "") -> Optional[Tuple[bool, List[Any], Optional[int],
+                                              str, datetime.datetime]]:
     """
     Function to send text immediately to the relevant processor.
     """
@@ -108,7 +121,7 @@ def process_nlp_text_immediate(
 
 def process_nlp_gate(text: str, processor: Processor, url: str,
                      username: str, password: str) -> Tuple[
-            bool, List[Any], str, str]:
+            bool, List[Any], Optional[int], Optional[str], datetime.datetime]:
     """
     Send text to a chosen GATE processor and returns a Tuple in the format
     (sucess, results, error code, error message) where success is True or
@@ -135,14 +148,16 @@ def process_nlp_gate(text: str, processor: Processor, url: str,
             False,
             [],
             e.response.status_code,
-            "The GATE processor returned the error: " + e.response.reason
+            "The GATE processor returned the error: " + e.response.reason,
+            datetime.datetime.utcnow()
         )
     if response.status_code != 200:
         return (
             False,
             [],
             response.status_code,
-            "The GATE processor returned the error: " + response.reason
+            "The GATE processor returned the error: " + response.reason,
+            datetime.datetime.utcnow()
         )
     try:
         json_response = response.json()
@@ -151,15 +166,16 @@ def process_nlp_gate(text: str, processor: Processor, url: str,
             False,
             [],
             502,  # 'Bad Gateway' - not sure if correct error code
-            "The GATE processor did not return json"
+            "The GATE processor did not return json",
+            datetime.datetime.utcnow()
         )
     results = get_gate_results(json_response)
     print(results)
-    return True, results, None, None
+    return True, results, None, None, datetime.datetime.utcnow()
 
 
 def process_nlp_internal(text: str, parser: BaseNlpParser) -> Tuple[
-            bool, List[Any], str, str]:
+            bool, List[Any], Optional[int], Optional[str], datetime.datetime]:
     """
     Send text to a chosen Python processor and returns a Tuple in the format
     (sucess, results, error code, error message) where success is True or
@@ -176,8 +192,15 @@ def process_nlp_internal(text: str, parser: BaseNlpParser) -> Tuple[
             False,
             [],
             500,  # 'Internal Server Error'
-            "Internal Server Error"
+            "Internal Server Error",
+            datetime.datetime.utcnow()
         )
     # Get second element of each element in parsed text as first is tablename
     # which will have no meaning here
-    return True, [x[1] for x in parsed_text], None, None
+    return (
+        True,
+        [x[1] for x in parsed_text],
+        None,
+        None,
+        datetime.datetime.utcnow()
+    )

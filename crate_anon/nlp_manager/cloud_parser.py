@@ -106,10 +106,10 @@ class CloudRequest(object):
         self._commit = commit
         # self._destdbs = {}  # type: Dict[str, DatabaseHolder]
         config = self._nlpdef.get_parser()
-        self.username = config.get_str(section="Authentication",
+        self.username = config.get_str(section="Cloud_NLP",
                                        option="username",
                                        default="")
-        self.password = config.get_str(section="Authentication",
+        self.password = config.get_str(section="Cloud_NLP",
                                        option="password",
                                        default="")
         self.auth = (self.username, self.password)
@@ -162,9 +162,9 @@ class CloudRequest(object):
     @classmethod
     def list_processors(cls, nlpdef) -> List[str]:
         config = nlpdef.get_parser()
-        username = config.get_str(section="Authentication", option="username",
+        username = config.get_str(section="Cloud_NLP", option="username",
                                   default="")
-        password = config.get_str(section="Authentication", option="password",
+        password = config.get_str(section="Cloud_NLP", option="password",
                                   default="")
         auth = (username, password)
         list_procs_request = deepcopy(cls.STANDARD_INFO)

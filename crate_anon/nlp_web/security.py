@@ -30,6 +30,38 @@ import binascii
 import base64
 from paste.httpheaders import AUTHORIZATION
 
+from cryptography.fernet import Fernet
+
+from crate_anon.nlp_web.constants import SETTINGS
+
+
+def generate_encryption_key() -> None:
+    """
+    Generates a key to be used for reversible encryption of passwords and
+    prints it to screen. The key should then be put in the config file.
+
+    To be called via the command line.
+    """
+    key = Fernet.generate_key()
+    print(key)
+
+
+def encrypt_password(password: str) -> bytes:
+    key = SETTINGS['encryption_key']
+    # Turn key into bytes object
+    key = key.encode()
+    cipher_suite = Fernet(key)
+    # Turn password into bytes object
+    password_bytes = password.encode()
+    return cipher_suite.encrypt(password_bytes)
+
+
+def decrypt_password(encrypted_pw: bytes, cipher_suite: Fernet) -> str:
+    # Get the password as bytes
+    password_bytes = cipher_suite.decrypt(encrypted_pw)
+    # Return the password as a string
+    return password_bytes.decode()
+
 
 def hash_password(pw):
     pwhash = bcrypt.hashpw(pw.encode('utf8'), bcrypt.gensalt())

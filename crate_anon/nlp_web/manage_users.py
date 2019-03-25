@@ -124,8 +124,8 @@ def main() -> None:
         password = args.adduser[1]
         add_user(username, password)
     elif args.changepw:
-        username = changepw[0]
-        new_password = changepw[1]
+        username = args.changepw[0]
+        new_password = args.changepw[1]
         proceed = input("Confirm change password for user: {} ? "
                         "[yes/no] ".format(username))
         if proceed.lower() == "yes":

@@ -10,7 +10,6 @@ from pyramid.paster import (
 
 from crate_anon.nlp_web.models import (
     DBSession,
-    SessionForCelery,
     Base,
 )
 
