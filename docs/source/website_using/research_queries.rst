@@ -64,7 +64,7 @@ Here, you can edit and save/load SQL queries, run them, and view/save the
 tabular output.
 
 If you don't know SQL but would like to learn, there are lots of `online SQL
-tutorials <https://www.google.com/search?q=sql+tutorial>`. There are slight
+tutorials <https://www.google.com/search?q=sql+tutorial>`_. There are slight
 variations in syntax depending on the exact database type you are using, but
 the core language is standardized.
 
