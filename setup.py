@@ -189,6 +189,8 @@ INSTALL_REQUIRES = [
     'paste==3.0.6',
     # 'mysqlclient',
     'requests==2.21.0',
+    'transaction==2.4.0',
+    'cryptography==2.5',
 
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually

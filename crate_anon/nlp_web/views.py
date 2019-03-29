@@ -10,7 +10,11 @@ from pyramid.request import Request
 from pyramid.response import Response
 from sqlalchemy import and_
 
-from crate_anon.nlp_web.security import check_password, get_auth_credentials
+from crate_anon.nlp_web.security import (
+    check_password,
+    get_auth_credentials,
+    encrypt_password,
+)
 from crate_anon.nlp_web.manage_users import get_users
 from crate_anon.nlp_web.models import DBSession, Document, DocProcRequest
 from crate_anon.nlp_web.procs import Processor
@@ -44,6 +48,13 @@ UNAUTHORIZED = {
 class NlpWebViews(object):
     def __init__(self, request: Request) -> None:
         self.request = request
+        # Assign this later so we can return error to client if problem
+        self.body = None
+        # Get username and password
+        self.credentials = get_auth_credentials(self.request)
+        # Assign these later after authentication
+        self.username = None
+        self.password = None
 
     @staticmethod
     def create_response(status: int,
@@ -52,16 +63,13 @@ class NlpWebViews(object):
         Returns a JSON HTTP response with some standard information for a given
         HTTP status and extra information to add to the response.
         """
-        response_dict = {}
-        response_dict['status'] = status
-        response_dict['protocol'] = {
+        response_dict = {'status': status, 'protocol': {
             'name': 'nlprp',
             'version': NLPRP_VERSION
-        }
-        response_dict['server_info'] = {
+        }, 'server_info': {
             'name': SERVER_NAME,
             'version': SERVER_VERSION
-        }
+        }}
         response_dict.update(extra_info)
         return response_dict
 
@@ -71,12 +79,11 @@ class NlpWebViews(object):
         """
         Returns an HTTP response for a given error and description of the error
         """
-        error_info = {}
-        error_info['errors'] = {
+        error_info = {'errors': {
             'code': error['code'],
             'message': error['message'],
             'description': description
-        }
+        }}
         return self.create_response(error['status'], error_info)
 
     def key_missing_error(self, key: str = "",
@@ -100,14 +107,14 @@ class NlpWebViews(object):
         malformed, then calls the function relating to the command specified
         by the user.
         """
-        # Get username and password
-        self.credentials = get_auth_credentials(self.request)
+        # Authenticate user
         if self.credentials is None:
             error = BAD_REQUEST
             # Put status in headers
             self.request.response.status = error['status']
             description = "Credentials were absent or not in the correct \
 format"
+            # noinspection PyTypeChecker
             return self.create_error_response(error, description)
         # See if the user exists
         users = get_users()
@@ -117,6 +124,7 @@ format"
         except KeyError:
             error = UNAUTHORIZED
             self.request.response.status = error['status']
+            # noinspection PyTypeChecker
             return self.create_error_response(error, error['default_descr'])
         # Check if password is correct
         pw = self.credentials['password']
@@ -127,33 +135,38 @@ format"
         else:
             error = UNAUTHORIZED
             self.request.response.status = error['status']
-            description = "The username/password combination specified is \
-incorrect"
+            # noinspection PyTypeChecker
             return self.create_error_response(error, error['default_descr'])
         # Get JSON from request if it is in this from, otherwise return
         # error message
         try:
             body = self.request.json
-        except:  # fill in what exception later
+        except json.decoder.JSONDecodeError:
             error = BAD_REQUEST
             self.request.response.status = error['status']
             description = "Request body was absent or not in JSON format"
+            # noinspection PyTypeChecker
             return self.create_error_response(error, description)
-        # self.body = json.loads(body)
         self.body = body
         command = self.body['command']
         if command == 'list_processors':
+            # noinspection PyTypeChecker
             return self.list_processors()
         elif command == 'process':
             if not self.body['args']['queue']:
+                # noinspection PyTypeChecker
                 return self.process_now()
             else:
+                # noinspection PyTypeChecker
                 return self.put_in_queue()
         elif command == 'show_queue':
+            # noinspection PyTypeChecker
             return self.show_queue()
         elif command == 'fetch_from_queue':
+            # noinspection PyTypeChecker
             return self.fetch_from_queue()
         elif command == 'delete_from_queue':
+            # noinspection PyTypeChecker
             return self.delete_from_queue()
 
     def list_processors(self) -> Dict[str, Any]:
@@ -213,7 +226,7 @@ incorrect"
                             break
                     else:
                         if (proc.name == processor['name']
-                                and proc.is_default_version == True):
+                                and proc.is_default_version):
                             proc_obj = proc
                             break
                 if not proc_obj:
@@ -232,7 +245,7 @@ in the version specified".format(processor['name'])
                     password=self.password
                 )
                 proctitle = proc_obj.title
-                success, processed_text, errcode, errmsg = result
+                success, processed_text, errcode, errmsg, time = result
                 proc_dict = {
                     'name': proc_obj.name,
                     'title': proctitle,
@@ -294,10 +307,15 @@ in the version specified".format(processor['name'])
             processors = args['processors']
         except KeyError:
             return self.key_missing_error(key='processors')
+        include_text = self.body.get('include_text', False)
         # Generate unique queue_id for whole client request
         queue_id = str(uuid.uuid4())
-        # docs = []
-        # docproc_tasks = []
+        # Encrypt password using reversible encryption for passing to the
+        # processors
+        crypt_pass = encrypt_password(self.password)
+        # We must pass the password as a string to the task because it won;t
+        # let us pass a bytes object
+        crypt_pass = crypt_pass.decode()
         for document in content:
             # print(document['metadata']['brcid'])
             doc_id = str(uuid.uuid4())
@@ -321,7 +339,7 @@ in the version specified".format(processor['name'])
                             break
                     else:
                         if (proc.name == processor['name']
-                                and proc.is_default_version == True):
+                                and proc.is_default_version):
                             proc_obj = proc
                             break
                 if not proc_obj:
@@ -347,7 +365,7 @@ in the version specified".format(processor['name'])
                     docprocrequest_id=docprocreq_id,
                     url=GATE_BASE_URL,
                     username=self.username,
-                    password=self.password
+                    crypt_pass=crypt_pass
                 )
                 result_ids.append(result.id)
                 # Get the signature of the task. Have to be *really* careful
@@ -358,12 +376,11 @@ in the version specified".format(processor['name'])
                 #     username=self.username,
                 #     password=self.password
                 # ))
-            include_text = self.body.get('include_text', False)
-            if include_text not in (True, False):
-                error = BAD_REQUEST
-                self.request.response.status = error['status']
-                description = "'include_text' must be  boolean'"
-                return self.create_error_response(error, description)
+            # if include_text not in (True, False):
+            #     error = BAD_REQUEST
+            #     self.request.response.status = error['status']
+            #     description = "'include_text' must be boolean"
+            #     return self.create_error_response(error, description)
             doc = Document(
                 document_id=doc_id,
                 doctext=doctext,
@@ -408,16 +425,24 @@ in the version specified".format(processor['name'])
             queue_id = args['queue_id'].strip()
         except KeyError:
             return self.key_missing_error(key='queue_id')
-        include_text = self.body.get('include_text', False)
         query = DBSession.query(Document).filter(
             and_(Document.queue_id == queue_id,
                  Document.username == self.username)
         )
         document_rows = query.all()
-        response_info = {
-            'client_job_id': document_rows[0].client_job_id,
-            'results': [None]*len(document_rows)
-        }
+        if document_rows:
+            response_info = {
+                'client_job_id': document_rows[0].client_job_id,
+                'results': [None]*len(document_rows)
+            }
+            include_text = document_rows[0].include_text
+        else:
+            response_info = {
+                'client_job_id': "",
+                'results': []
+            }
+            self.request.response.status = 200
+            return self.create_response(status=200, extra_info=response_info)
         for j, doc in enumerate(document_rows):
             metadata = json.loads(doc.client_metadata)
             processor_data = []  # data for *all* the processors for this doc
@@ -452,7 +477,7 @@ in the version specified".format(processor['name'])
                 procname, sep, procversion = proc_ids[i].rpartition("_")
                 if not procversion:
                     for proc in Processor.processors.values():
-                        if proc.name == procname and proc.is_default_version == True:
+                        if proc.name == procname and proc.is_default_version:
                             procversion = proc.version
                             break
                 proctitle = None
@@ -468,7 +493,7 @@ in the version specified".format(processor['name'])
 exist".format(procname, procversion)
                     return self.create_error_response(error, description)
 
-                success, processed_text, errcode, errmsg = result.get()
+                success, processed_text, errcode, errmsg, time = result.get()
                 result.forget()
                 proc_dict = {
                     'name': procname,
@@ -514,8 +539,8 @@ exist".format(procname, procversion)
         Finds the queue entries associated with the client, optionally
         restricted to one client job id.
         """
-        client_job_id = self.body['args'].get('client_job_id')
-        if client_job_id is None:
+        client_job_id = self.body['args'].get('client_job_id', "")
+        if not client_job_id:
             query = DBSession.query(Document).filter(
                 Document.username == self.username
             )
@@ -528,27 +553,26 @@ exist".format(procname, procversion)
         queue = []
         queue_ids = set([x.queue_id for x in records])
         for queue_id in queue_ids:
+            busy = False
             qid_recs = [x for x in records if x.queue_id == queue_id]
+            max_time = datetime.datetime.min
             for record in qid_recs:
-                queue_id = record.queue_id
-                if queue_id not in queue_ids:
-                    queue_ids.append(queue_id)
-            
-                busy = False
-                result_ids = json.loads(doc.result_ids)
+                result_ids = json.loads(record.result_ids)
                 for result_id in result_ids:
                     result = AsyncResult(id=result_id, app=app)
                     if not result.ready():
                         busy = True
                         break
+                    else:
+                        # First 3 are throwaways
+                        x, y, z, time = result.get()
+                        max_time = max(max_time, time)
             queue.append({
-                'queue_id': record.queue_id,
-                'client_job_id': record.client_job_id,
+                'queue_id': queue_id,
+                'client_job_id': client_job_id,
                 'status': "busy" if busy else "ready",
                 'datetime_submitted': qid_recs[0].datetime_submitted,
-                'datetime_completed': (
-                    None if busy else datetime.datetime.utcnow()
-                )
+                'datetime_completed': None if busy else max_time
             })
         return self.create_response(status=200, extra_info={'queue', queue})
 
@@ -559,22 +583,22 @@ exist".format(procname, procversion)
         args = self.body.get('args')
         if args:
             delete_all = args.get('delete_all')
-            if delete_all == True:
-                docs = DBSession.query(Documents).filter(
+            if delete_all:
+                docs = DBSession.query(Document).filter(
                     Document.username == self.username
                 ).all()
             else:
                 docs = []
                 client_job_ids = args.get('client_job_ids')
                 for cj_id in client_job_ids:
-                    docs.append(DBSession.query(Documents).filter(
+                    docs.append(DBSession.query(Document).filter(
                         and_(Document.username == self.username,
                              Document.client_job_id == cj_id)
                     ).all())
                 queue_ids = args.get('queue_ids')
                 for q_id in queue_ids:
                     # Clumsy way of making sure we don't have same doc twice
-                    docs.append(DBSession.query(Documents).filter(
+                    docs.append(DBSession.query(Document).filter(
                         and_(
                             Document.username == self.username,
                             Document.queue_id == q_id,
@@ -591,9 +615,7 @@ exist".format(procname, procversion)
                     result.revoke()
                 # Remove from docprocrequests
                 dpr_query = DBSession.query(DocProcRequest).filter(
-                    and_(DocProcRequest.document_id == doc.document_id,
-                         DocProcRequest.username == self.username)
-                )
+                    DocProcRequest.document_id == doc.document_id)
                 DBSession.delete(dpr_query)
             # Remove from documents
             DBSession.delete(docs)

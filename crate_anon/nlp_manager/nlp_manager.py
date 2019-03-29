@@ -566,7 +566,12 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
     """
     log.info(SEP + "NLP")
     nlpname = nlpdef.get_name()
-    with open('request_data_{}.txt'.format(nlpname), 'w') as request_data:
+    config = nlpdef.get_parser()
+    req_data_dir = config.get_str(section="Cloud_NLP",
+                                   option="request_data_dir",
+                                   required=True)
+    with open('{}/request_data_{}.txt'.format(
+            req_data_dir, nlpname), 'w') as request_data:
         for ifconfig in nlpdef.get_ifconfigs():
             srcfield = ifconfig.get_srcfield()
             cloud_requests = send_cloud_requests(nlpdef, ifconfig,
@@ -587,16 +592,21 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     """
     session = nlpdef.get_progdb_session()
     nlpname = nlpdef.get_name()
+    config = nlpdef.get_parser()
+    req_data_dir = config.get_str(section="Cloud_NLP",
+                                   option="request_data_dir",
+                                   required=True)
+    filename = '{}/request_data_{}.txt'.format(req_data_dir, nlpname)
     available_procs = CloudRequest.list_processors(nlpdef)
     mirror_procs = nlpdef.get_processors()
-    if not os.path.exists('request_data_{}.txt'.format(nlpname)):
+    if not os.path.exists(filename):
         log.error("File 'request_data_{}.txt' does not exist in the "
-                  "current directory. Request may not have been "
+                  "relevant directory. Request may not have been "
                   "sent.".format(nlpname))
         raise FileNotFoundError
-    with open('request_data_{}.txt'.format(nlpname), 'r') as request_data:
+    with open(filename, 'r') as request_data:
         reqdata = request_data.readlines()
-    with open('request_data_{}.txt'.format(nlpname), 'w') as request_data:
+    with open(filename, 'w') as request_data:
         ifconfig_cache = {}  # type: Dict[str, InputFieldConfig]
         all_ready = True  # not necessarily true, but need for later
         for line in reqdata:
@@ -667,7 +677,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                             session.add(progrec)
     nlpdef.commit_all()
     if all_ready:
-        os.remove('request_data_{}.txt'.format(nlpname))
+        os.remove(filename)
 
 
 def process_cloud_now(

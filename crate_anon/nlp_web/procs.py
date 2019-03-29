@@ -47,12 +47,15 @@ class Processor(object):
         # Add instance to list of processors
         Processor.processors[self.processor_id] = self
 
-    def set_parser(self) -> BaseNlpParser:
+    def set_parser(self) -> None:
         """
         Sets 'self.parser' to an instance of a subclass of 'BaseNlpParser'
         not bound to any nlpdef or cfgsection, unless self.proctype is GATE.'
         """
         if self.proctype != "GATE":
+            # Suppressed warning because, although make_processor asks for
+            # NlpDefinition, str, the processor it makes doesn't require this
+            # noinspection PyTypeChecker
             self.parser = make_processor(processor_type=self.proctype,
                                          nlpdef=None, section=None)
         # else: do nothing
