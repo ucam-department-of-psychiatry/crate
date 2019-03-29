@@ -133,6 +133,7 @@ public class CrateGatePipeline {
     private String m_tsv_filename_stem = null;
     private boolean m_suppress_gate_stdout = false;
     private boolean m_show_contents_on_crash = false;
+    private boolean m_continue_on_crash = false;
     private ArrayList<String> m_set_inclusion_list = new ArrayList<String>();
     private ArrayList<String> m_set_exclusion_list = new ArrayList<String>();
     private Map<String, ArrayList<String>> m_set_annotation_combos =
@@ -146,6 +147,7 @@ public class CrateGatePipeline {
     private String m_pipe_encoding = "UTF-8";
     private PrintStream m_out = null;
     private String m_current_contents_for_crash_debugging = null;
+    private boolean m_output_terminator_pending = false;
     // Logger:
     private static final Logger m_log = Logger.getLogger(CrateGatePipeline.class);
 
@@ -167,8 +169,7 @@ public class CrateGatePipeline {
 
     /** Process command-line arguments and execute the pipeline. */
 
-    public CrateGatePipeline(String args[])
-            throws GateException, IOException, ResourceInstantiationException {
+    public CrateGatePipeline(String args[]) throws GateException, IOException {
         // --------------------------------------------------------------------
         // Arguments
         // --------------------------------------------------------------------
@@ -269,20 +270,56 @@ public class CrateGatePipeline {
         // --------------------------------------------------------------------
         // Do interesting things
         // --------------------------------------------------------------------
-        try {
-            runPipeline();
-        } catch (Exception e) {
-            m_log.error("Uncaught exception; aborting; stack trace follows");
-            e.printStackTrace();  // always goes to System.err (stderr)
-            if (m_show_contents_on_crash) {
-                if (m_current_contents_for_crash_debugging == null) {
-                    m_log.error("No current contents");
+        // - We need to be able to handle GATE crashes.
+        // - That requires us to restart GATE, so we need the exception-catcher
+        //   to be above the code that calls setupGate() as well as the code
+        //   that processes input.
+        // - That means here, above runPipeline().
+        // - If we're going to crash out, it's easy -- but if we're going to
+        //   continue, we are likely to need to write the output terminator
+        //   for the failed record first.
+
+        boolean finished = false;
+        while (!finished) {
+            try {
+                runPipeline();
+                finished = true;
+            } catch (GateException e) {
+                m_log.error("GATE exception; aborting; stack trace follows");
+                reportException(e);
+                if (m_continue_on_crash) {
+                    m_log.warn("Proceeding despite GATE crash as requested");
+                    if (m_output_terminator_pending) {
+                        writeOutputTerminator();
+                    }
                 } else {
-                    m_log.error("Current contents being processed:");
-                    writeStderr(m_current_contents_for_crash_debugging);
+                    // Die explicitly with a defined exit code -- otherwise, Java
+                    // exits with an UNDEFINED (e.g. 0 = "happy") return code.
+                    abort();
                 }
+            } catch (Exception e) {
+                m_log.error("Generic exception; aborting; stack trace follows");
+                reportException(e);
+                abort();  // as above
             }
-            abort();  // otherwise, Java exits with an UNDEFINED (e.g. 0 = "happy") return code
+        }
+        m_log.info("Finished.");
+        exit();
+    }
+
+    /**
+     * Report an exception to stderr, +/- the text that caused the crash.
+     */
+
+    private void reportException(Exception e) {
+        e.printStackTrace();  // always goes to System.err (stderr)
+        if (m_show_contents_on_crash) {
+            if (m_current_contents_for_crash_debugging == null) {
+                m_log.error("No current contents");
+            } else {
+                m_log.error("Current contents being processed:");
+                writeStderr(m_current_contents_for_crash_debugging);
+            }
         }
     }
 
@@ -291,8 +328,7 @@ public class CrateGatePipeline {
      * results to stdout.
      */
 
-    private void runPipeline()
-            throws GateException, IOException, ResourceInstantiationException {
+    private void runPipeline() throws GateException, IOException {
         setupGate();
         m_log.info("Ready for input");
 
@@ -309,6 +345,7 @@ public class CrateGatePipeline {
             m_log.debug(m_sep1 + "CONTENTS OF STDIN:");
             m_log.debug(result.contents);
             m_log.debug(m_sep2);
+            m_output_terminator_pending = true;  // in case of GATE crash
 
             // Process text
             processInput(result.contents);
@@ -435,8 +472,13 @@ public class CrateGatePipeline {
 "\n" +
 "  --show_contents_on_crash\n" +
 "  -show_contents_on_crash\n" +
-"                   If GATE crashes, report the current text to stderr.\n" +
+"                   If GATE crashes, report the current text to stderr (as well\n" +
+"                   as reporting the error).\n" +
 "                   (WARNING: likely to contain identifiable material.)\n" +
+"\n" +
+"  --continue_on_crash\n" +
+"  -c\n" +
+"                   If GATE crashes, carry on after reporting the error.\n" +
 "\n" +
 "  --help\n" +
 "  -h\n" +
@@ -566,6 +608,11 @@ public class CrateGatePipeline {
                     m_show_contents_on_crash = true;
                     break;
 
+                case "-c":
+                case "--continue_on_crash":
+                    m_continue_on_crash = true;
+                    break;
+
                 default:
                     usage();
                     abort();
@@ -678,8 +725,9 @@ public class CrateGatePipeline {
     // ========================================================================
 
     /**
-      * Represents text read from stdin, and whether we have seen the "please
-      * end" special string and therefore are completely finished.
+      * Represents a single input text read from stdin, and whether we have
+      * seen the "please end" special string and therefore are completely
+      * finished. Returned by readStdin().
       */
 
     private final class StdinResult {
@@ -709,10 +757,10 @@ public class CrateGatePipeline {
         boolean finished_everything = false;
         while (!finished_this) {
             line = br.readLine();
-            if (line == null) {
+            if (line == null) {  // end of stdin
                 finished_this = true;
                 finished_everything = true;
-            } else if (line.equals(m_input_terminator)) {
+            } else if (line.equals(m_input_terminator)) {  // end of this input
                 finished_this = true;
             } else {
                 sb.append(line);
@@ -781,8 +829,7 @@ public class CrateGatePipeline {
 
     /** Initialize GATE. */
 
-    private void setupGate()
-            throws GateException, IOException, ResourceInstantiationException {
+    private void setupGate() throws GateException, IOException {
         m_log.info("Initializing GATE...");
         Gate.init();
         m_log.info("... GATE initialized");
@@ -795,15 +842,20 @@ public class CrateGatePipeline {
 
         m_log.info("Initializing corpus...");
         // Create a GATE corpus (name is arbitrary)
-        m_corpus = Factory.newCorpus("CrateGatePipeline corpus");
+        m_corpus = Factory.newCorpus("CrateGatePipeline corpus");  // throws ResourceInstantiationException
         // Tell the controller about the corpus
-        m_controller.setCorpus(m_corpus);
+        m_controller.setCorpus(m_corpus);  // doesn't throw
         m_log.info("... corpus initialized");
     }
 
     /**
      * Send some text to the GATE app, then call reportOutput() to process
      * the results.
+     *
+     * Note that the following are subclasses of GateException:
+     * - ExecutionException
+     * - InvalidOffsetException
+     * - ResourceInstantiationException
      */
 
     private void processInput(String text)
@@ -813,12 +865,16 @@ public class CrateGatePipeline {
             m_current_contents_for_crash_debugging = text;
         }
         // Make a document from plain text
-        Document doc = Factory.newDocument(text);
+        Document doc = Factory.newDocument(text);  // throws ResourceInstantiationException
         // Add the single document to the corpus
         m_corpus.add(doc);
+
         // Run the application.
         m_log.info("Running application...");
-        m_controller.execute();
+        m_controller.execute();  // throws ExecutionException
+        // Simulate GATE crash?
+        // throw new ExecutionException("hello");
+
         m_log.info("Application complete, processing output...");
         reportOutput(doc);
         // remove the document from the corpus again
@@ -1035,9 +1091,19 @@ public class CrateGatePipeline {
         }
 
         // Having written to stdout via processAnnotation()...
+        writeOutputTerminator();
+    }
+
+    /**
+     * Write the output terminate to stdout (and clear the "output terminator
+     * pending" flag, used by the code that handles GATE crashes).
+     */
+
+    private void writeOutputTerminator() {
         println(m_output_terminator);
         // Flushing is not required:
         // http://stackoverflow.com/questions/7166328
+        m_output_terminator_pending = false;
     }
 
     /**

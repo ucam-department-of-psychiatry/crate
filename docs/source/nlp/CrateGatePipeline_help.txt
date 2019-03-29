@@ -87,8 +87,13 @@ Optional arguments:
 
   --show_contents_on_crash
   -show_contents_on_crash
-                   If GATE crashes, report the current text to stderr.
+                   If GATE crashes, report the current text to stderr (as well
+                   as reporting the error).
                    (WARNING: likely to contain identifiable material.)
+
+  --continue_on_crash
+  -c
+                   If GATE crashes, carry on after reporting the error.
 
   --help
   -h
@@ -97,3 +102,4 @@ Optional arguments:
   --verbose
   -v
                    Verbose (use up to 3 times to be more verbose).
+

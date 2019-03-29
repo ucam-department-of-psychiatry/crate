@@ -804,7 +804,7 @@ Changes
 - NLP for glucose cholesterol (LDL, HDL, total), triglycerides, HbA1c
   (still need external validation).
 
-**v0.18.65, 2019-03-04** IN PROGRESS
+**v0.18.65, 2019-03-04 to 2019-03-29**
 
 - NLP for potassium, urea, creatinine, haemoglobin, haematocrit (still need
   external validation).
@@ -828,7 +828,8 @@ Changes
     RIO.DBO.Clinical_Documents + MAX(whenprocessedutc)) FROM
     [RiONLP].[dbo].[crate_nlp_progress] + …``
 
-
+- Update to ``CrateGatePipeline.java`` to support an option to continue after
+  GATE crashes.
 
 
 

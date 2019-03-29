@@ -26,15 +26,20 @@ signals and returns "processed data ready for collection" signals via
 stdin/stdout. See medex_parser.py.
 
 Note in particular:
+
 - the MedTagger class opens "sents/X" (where X is the input file) from the
   directory System.getProperty("user.dir"), curse it.
+
   - That is the directory from which you run the Java program.
+
   - It's hard to set the "user.dir" property reliably, apparently:
     http://stackoverflow.com/questions/840190/changing-the-current-working-directory-in-java
     ... I comment in passing that this is not something that makes one think
-        "Java - wow"...
+    "Java - wow"...
+
   - So we must simply CALL THIS PROGRAM FROM AN APPROPRIATE (e.g. temporary)
     DIRECTORY, AND MAKE DIRECTORIES IT WANTS:
+
         sents
         log
 

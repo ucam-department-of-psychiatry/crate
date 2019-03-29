@@ -214,7 +214,7 @@ The resulting output (2018-04-17):
     :language: none
 
 
-Asking CrateGatePipeline to run the GATE “ANNIE” demonstration:
+Asking `CrateGatePipeline` to run the GATE “ANNIE” demonstration:
 
 .. code-block:: bash
 
