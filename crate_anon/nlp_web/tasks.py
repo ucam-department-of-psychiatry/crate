@@ -1,3 +1,30 @@
+#!/usr/bin/env python
+
+r"""
+crate_anon/nlp_web/tasks.py
+
+===============================================================================
+
+    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
+===============================================================================
+"""
+
 from celery import Celery
 import requests
 import transaction
@@ -5,9 +32,9 @@ import logging
 import datetime
 import json
 
+from cryptography.fernet import Fernet
 from sqlalchemy import engine_from_config
 from typing import Optional, Tuple, Any, List, Dict
-from cryptography.fernet import Fernet
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 # from crate_anon.nlp_manager.all_processors import make_processor

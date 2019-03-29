@@ -1,4 +1,32 @@
+#!/usr/bin/env python
+
+r"""
+crate_anon/nlp_web/models.py
+
+===============================================================================
+
+    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
+===============================================================================
+"""
+
 import datetime
+
 from sqlalchemy import (
     Column,
     Text,
@@ -20,6 +48,9 @@ Base = declarative_base()
 
 
 class Document(Base):
+    """
+    .. todo:: INSERT DOCSTRING FOR Document
+    """
     # Check about indexes etc.
     __tablename__ = 'documents'
     # document_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -40,6 +71,9 @@ class Document(Base):
 
 
 class DocProcRequest(Base):
+    """
+    .. todo:: INSERT DOCSTRING FOR DocProcRequest
+    """
     __tablename__ = 'docprocrequests'
     # docprocrequest_id = Column(Integer, primary_key=True, autoincrement=True)
     docprocrequest_id = Column(VARCHAR(50), primary_key=True)

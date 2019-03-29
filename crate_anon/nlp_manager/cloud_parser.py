@@ -143,7 +143,8 @@ class CloudRequest(object):
         #     self.procnames = []
         #     self.cfgsection = None
 
-        self.procnames = []
+        self.procnames = []  # type: List[str]  # *** check: unused? ***************
+        self.procs = {}  # type: Dict[str, str]
         self.add_all_processors()
 
 #        if nlpdef is not None:
@@ -182,7 +183,7 @@ class CloudRequest(object):
         procs = [proc['name'] for proc in json_response['processors']]
         return procs
 
-    def add_processor(self, processor: str, check: bool = True) -> None:
+    def add_processor(self, processor: str) -> None:
         # Make sure we don't send request to list processors twice for
         # same request
         if self.allowable_procs is None:

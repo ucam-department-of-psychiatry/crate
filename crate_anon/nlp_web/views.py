@@ -1,14 +1,41 @@
-import transaction
-import uuid
-import json
+#!/usr/bin/env python
+
+r"""
+crate_anon/nlp_web/views.py
+
+===============================================================================
+
+    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
+===============================================================================
+"""
+
 import datetime
+import json
 from typing import Dict, Any
+import uuid
 
 from celery.result import AsyncResult
 from pyramid.view import view_config, view_defaults
 from pyramid.request import Request
 from pyramid.response import Response
 from sqlalchemy import and_
+import transaction
 
 from crate_anon.nlp_web.security import (
     check_password,
@@ -112,8 +139,8 @@ class NlpWebViews(object):
             error = BAD_REQUEST
             # Put status in headers
             self.request.response.status = error['status']
-            description = "Credentials were absent or not in the correct \
-format"
+            description = (
+                "Credentials were absent or not in the correct format")
             # noinspection PyTypeChecker
             return self.create_error_response(error, description)
         # See if the user exists
@@ -345,8 +372,10 @@ in the version specified".format(processor['name'])
                 if not proc_obj:
                     error = BAD_REQUEST
                     self.request.response.status = error['status']
-                    description = "Processor {} does not exist \
-in the version specified".format(processor['name'])
+                    description = (
+                        "Processor {} does not exist in the version "
+                        "specified".format(processor['name'])
+                    )
                     return self.create_error_response(error, description)
                 docprocreq_id = str(uuid.uuid4())
                 processor_id = proc_obj.processor_id
@@ -489,8 +518,9 @@ in the version specified".format(processor['name'])
                 if not proctitle:
                     error = BAD_REQUEST
                     self.request.response.status = error['status']
-                    description = "Processor '{}', version {} does not \
-exist".format(procname, procversion)
+                    description = (
+                        "Processor '{}', version {} does not exist".format(
+                            procname, procversion))
                     return self.create_error_response(error, description)
 
                 success, processed_text, errcode, errmsg, time = result.get()
@@ -625,10 +655,3 @@ exist".format(procname, procversion)
             return self.create_response(status=200, extra_info={})
         else:
             return self.key_missing_error(is_args=True)
-
-
-
-
-
-
-

@@ -41,3 +41,5 @@ pyramid_tm==2.2.1
 zope.sqlalchemy==1.1
 paste==3.0.6
 requests==2.21.0
+transaction==2.4.0
+cryptography==2.5

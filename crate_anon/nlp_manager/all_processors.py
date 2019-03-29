@@ -30,7 +30,6 @@ crate_anon/nlp_manager/all_processors.py
 
 # noinspection PyUnresolvedReferences
 import logging
-from operator import attrgetter
 # noinspection PyUnresolvedReferences
 from typing import List, Type
 

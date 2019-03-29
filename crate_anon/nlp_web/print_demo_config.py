@@ -28,7 +28,7 @@ crate_anon/nlp_web/print_demo_config.py
 from crate_anon.nlp_web.constants import DEMO_CONFIG
 
 
-def main():
+def main() -> None:
     """
     Prints a config file for the server side nlp.
     """

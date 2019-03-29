@@ -28,9 +28,12 @@ crate_anon/nlp_web/security.py
 import bcrypt
 import binascii
 import base64
-from paste.httpheaders import AUTHORIZATION
+from typing import Dict, Optional
 
 from cryptography.fernet import Fernet
+# noinspection PyUnresolvedReferences
+from paste.httpheaders import AUTHORIZATION
+from pyramid.request import Request
 
 from crate_anon.nlp_web.constants import SETTINGS
 
@@ -63,17 +66,17 @@ def decrypt_password(encrypted_pw: bytes, cipher_suite: Fernet) -> str:
     return password_bytes.decode()
 
 
-def hash_password(pw):
+def hash_password(pw: str) -> str:
     pwhash = bcrypt.hashpw(pw.encode('utf8'), bcrypt.gensalt())
     return pwhash.decode('utf8')
 
 
-def check_password(pw, hashed_pw):
+def check_password(pw: str, hashed_pw: str) -> bool:
     expected_hash = hashed_pw.encode('utf8')
     return bcrypt.checkpw(pw.encode('utf8'), expected_hash)
 
 
-def get_auth_credentials(request):
+def get_auth_credentials(request: Request) -> Optional[Dict[str, str]]:
     """
     Gets username and password as a dictionary. Returns None if there is a
     problem.
