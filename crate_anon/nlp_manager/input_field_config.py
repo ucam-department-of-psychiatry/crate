@@ -71,6 +71,7 @@ from crate_anon.nlp_manager.models import NlpRecord
 #     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
 from crate_anon.nlp_manager.nlp_definition import (
     full_sectionname,
+    NlpConfigPrefixes,
     NlpDefinition,
 )
 from crate_anon.version import CRATE_VERSION
@@ -107,7 +108,7 @@ class InputFieldConfig(object):
             section:
                 config section name for the input field definition
         """
-        sectionname = full_sectionname("input", section)
+        sectionname = full_sectionname(NlpConfigPrefixes.INPUT, section)
 
         def opt_str(option: str, required: bool = True) -> str:
             return nlpdef.opt_str(sectionname, option, required=required)

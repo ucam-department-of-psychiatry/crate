@@ -36,28 +36,42 @@ import uuid
 from copy import deepcopy
 from typing import Any, Dict, List, Tuple, Generator, Optional
 
-from cardinal_pythonlib.timing import MultiTimerContext, timer
-
-from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-from crate_anon.nlp_manager.nlp_definition import (
-    full_sectionname,
-    NlpDefinition,
-)
-from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.dicts import (
     rename_keys_in_dict,
     set_null_values_in_dict,
 )
-from crate_anon.nlp_manager.constants import (
-    CLOUD_URL,
-    NLPRPVERSION,
-    FN_NLPDEF,
+from cardinal_pythonlib.timing import MultiTimerContext, timer
+
+from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
+from crate_anon.nlp_manager.constants import CLOUD_URL, FN_NLPDEF
+from crate_anon.nlp_manager.nlp_definition import (
+    full_sectionname,
+    NlpConfigPrefixes,
+    NlpDefinition,
+)
+from crate_anon.nlp_manager.parse_gate import (
+    FN_TYPE,
+    GateConfigKeys,
+)
+from crate_anon.nlp_manager.output_user_config import OutputUserConfig
+from crate_anon.nlprp.api import make_nlprp_dict
+from crate_anon.nlprp.constants import (
+    HttpStatus,
+    NlprpCommands,
+    NlprpKeys as NKeys,
 )
 
 log = logging.getLogger(__name__)
 
+CLOUD_NLP_SECTION = "Cloud_NLP"
 TIMING_INSERT = "CloudRequest_sql_insert"
+
+
+class CloudNlpConfigKeys(object):
+    USERNAME = "username"
+    PASSWORD = "password"
+    PROCESSORS = "processors"
 
 
 class CloudRequest(object):
@@ -65,12 +79,7 @@ class CloudRequest(object):
     Class to send requests to the cloud processors and process the results.
     """
     # Set up standard information for all requests
-    STANDARD_INFO = {
-        'protocol': {
-            "name": "nlprp",
-            "version": NLPRPVERSION
-        }
-    }
+    STANDARD_INFO = make_nlprp_dict()
     URL = CLOUD_URL
     HEADERS = {
         'charset': 'utf-8',
@@ -102,15 +111,16 @@ class CloudRequest(object):
                 class and specify this parameter.
         """
         self._nlpdef = nlpdef
-        self._sectionname = full_sectionname("nlpdef", self._nlpdef.get_name())
+        self._sectionname = full_sectionname(NlpConfigPrefixes.NLPDEF,
+                                             self._nlpdef.get_name())
         self._commit = commit
         # self._destdbs = {}  # type: Dict[str, DatabaseHolder]
         config = self._nlpdef.get_parser()
-        self.username = config.get_str(section="Cloud_NLP",
-                                       option="username",
+        self.username = config.get_str(section=CLOUD_NLP_SECTION,
+                                       option=CloudNlpConfigKeys.USERNAME,
                                        default="")
-        self.password = config.get_str(section="Cloud_NLP",
-                                       option="password",
+        self.password = config.get_str(section=CLOUD_NLP_SECTION,
+                                       option=CloudNlpConfigKeys.PASSWORD,
                                        default="")
         self.auth = (self.username, self.password)
         self.fetched = False
@@ -121,15 +131,17 @@ class CloudRequest(object):
 
         # Set up processing request
         self.request_process = deepcopy(self.STANDARD_INFO)
-        self.request_process['command'] = "process"
-        self.request_process['args'] = {"processors": [],
-                                        "queue": True,
-                                        "client_job_id": self.client_job_id,
-                                        "include_text": False,
-                                        "content": []}
+        self.request_process[NKeys.COMMAND] = NlprpCommands.PROCESS
+        self.request_process[NKeys.ARGS] = {
+            NKeys.PROCESSORS: [],
+            NKeys.QUEUE: True,
+            NKeys.CLIENT_JOB_ID: self.client_job_id,
+            NKeys.INCLUDE_TEXT: False,
+            NKeys.CONTENT: []
+        }
         # Set up fetch_from_queue request
         self.fetch_request = deepcopy(self.STANDARD_INFO)
-        self.fetch_request['command'] = "fetch_from_queue"
+        self.fetch_request[NKeys.COMMAND] = NlprpCommands.FETCH_FROM_QUEUE
 
         self.allowable_procs = allowable_procs
         self.nlp_data = None
@@ -143,7 +155,7 @@ class CloudRequest(object):
         #     self.procnames = []
         #     self.cfgsection = None
 
-        self.procnames = []  # type: List[str]  # *** check: unused? ***************
+        self.procnames = []  # type: List[str]  # *** check: not written to? ***************
         self.procs = {}  # type: Dict[str, str]
         self.add_all_processors()
 
@@ -163,13 +175,15 @@ class CloudRequest(object):
     @classmethod
     def list_processors(cls, nlpdef: NlpDefinition) -> List[str]:
         config = nlpdef.get_parser()
-        username = config.get_str(section="Cloud_NLP", option="username",
+        username = config.get_str(section=CLOUD_NLP_SECTION,
+                                  option=CloudNlpConfigKeys.USERNAME,
                                   default="")
-        password = config.get_str(section="Cloud_NLP", option="password",
+        password = config.get_str(section=CLOUD_NLP_SECTION,
+                                  option=CloudNlpConfigKeys.PASSWORD,
                                   default="")
         auth = (username, password)
         list_procs_request = deepcopy(cls.STANDARD_INFO)
-        list_procs_request['command'] = "list_processors"
+        list_procs_request[NKeys.COMMAND] = NlprpCommands.LIST_PROCESSORS
         request_json = json.dumps(list_procs_request)
         # print(request_json)
         response = requests.post(cls.URL, data=request_json,
@@ -180,7 +194,7 @@ class CloudRequest(object):
             log.warning("Reply was not JSON")
             raise
         # print(json_response)
-        procs = [proc['name'] for proc in json_response['processors']]
+        procs = [proc[NKeys.NAME] for proc in json_response[NKeys.PROCESSORS]]
         return procs
 
     def add_processor(self, processor: str) -> None:
@@ -191,13 +205,14 @@ class CloudRequest(object):
         if processor not in self.allowable_procs:
             log.warning(f"Unknown processor, skipping {processor}")
         else:
-            self.request_process['args']['processors'].append({
-                "name": processor})
+            self.request_process[NKeys.ARGS][NKeys.PROCESSORS].append({
+                NKeys.NAME: processor
+            })
 
     def add_all_processors(self) -> None:
-        processorpairs = self._nlpdef.opt_strlist(self._sectionname,
-                                                  'processors', required=True,
-                                                  lower=False)
+        processorpairs = self._nlpdef.opt_strlist(
+            self._sectionname, CloudNlpConfigKeys.PROCESSORS,
+            required=True, lower=False)
         self.procs = {}
         for proctype, procname in chunks(processorpairs, 2):
             if proctype.upper() == "GATE":
@@ -225,15 +240,17 @@ class CloudRequest(object):
         #              }
         # self.request_process['args']['content'].append(new_values)
 
-        new_content = {'metadata': other_values,
-                       'text': text}
+        new_content = {
+            NKeys.METADATA: other_values,
+            NKeys.TEXT: text
+        }
         # Add all the identifying information
         # Slow - is there a way to get length without having to serialize?
         if (self.max_length and
             self.utf8len(json.dumps(new_content, default=str))
                 + self.utf8len(json.dumps(
                     self.request_process, default=str))) < self.max_length:
-            self.request_process['args']['content'].append(new_content)
+            self.request_process[NKeys.ARGS][NKeys.CONTENT].append(new_content)
             return True
         else:
             return False
@@ -242,7 +259,7 @@ class CloudRequest(object):
         """
         Sends a request to the server to process the text.
         """
-        self.request_process['args']['queue'] = queue
+        self.request_process[NKeys.ARGS][NKeys.QUEUE] = queue
         # This needs 'default=str' to deal with non-json-serializable
         # objects such as datetimes in the metadata
         request_json = json.dumps(self.request_process, default=str)
@@ -256,15 +273,15 @@ class CloudRequest(object):
             log.warning("Reply was not JSON")
             raise
         # print(json_response)
+        status = json_response[NKeys.STATUS]
         if queue:
-            if json_response['status'] == 202:
-                self.queue_id = json_response['queue_id']
+            if status == HttpStatus.ACCEPTED:
+                self.queue_id = json_response[NKeys.QUEUE_ID]
                 self.fetched = False
             else:
-                log.warning(f"Got HTTP status code {json_response['status']}.")
+                log.warning(f"Got HTTP status code {status}.")
         else:
-            status = json_response['status']
-            if status == 200:
+            if status == HttpStatus.OK:
                 self.nlp_data = json_response
                 # print(self.nlp_data)
                 # print()
@@ -284,7 +301,7 @@ class CloudRequest(object):
         Tries to fetch the response from the server. Assumes queued mode.
         Returns the json response.
         """
-        self.fetch_request['args'] = {'queue_id': self.queue_id}
+        self.fetch_request[NKeys.ARGS] = {NKeys.QUEUE_ID: self.queue_id}
         request_json = json.dumps(self.fetch_request)
         response = requests.post(self.URL, data=request_json, 
                                  auth=self.auth, headers=self.HEADERS)
@@ -308,16 +325,16 @@ class CloudRequest(object):
         json_response = self.try_fetch()
         # print(json_response)
         # print()
-        status = json_response['status']
-        if status == 200:
+        status = json_response[NKeys.STATUS]
+        if status == HttpStatus.OK:
             self.nlp_data = json_response
             self.fetched = True
             return True
-        elif status == 102:
+        elif status == HttpStatus.PROCESSING:
             return False
-        elif status == 404:
-            log.error(f"Got HTTP status code 404 - queue_id "
-                      f"{self.queue_id} does not exist")
+        elif status == HttpStatus.NOT_FOUND:
+            log.error(f"Got HTTP status code {HttpStatus.NOT_FOUND} - "
+                      f"queue_id {self.queue_id} does not exist")
             return False
         else:
             log.error(
@@ -327,9 +344,10 @@ class CloudRequest(object):
     def get_tablename_map(self, processor: str) -> Tuple[Dict[str, str],
                                                          Dict[str,
                                                          OutputUserConfig]]:
-        proc_section = full_sectionname("processor", processor)
-        typepairs = self._nlpdef.opt_strlist(proc_section, 'outputtypemap',
-                                             required=True, lower=False)
+        proc_section = full_sectionname(NlpConfigPrefixes.PROCESSOR, processor)
+        typepairs = self._nlpdef.opt_strlist(
+            proc_section, GateConfigKeys.OUTPUTTYPEMAP,
+            required=True, lower=False)
 
         outputtypemap = {}  # type: Dict[str, OutputUserConfig]
         type_to_tablename = {}  # type: Dict[str, str]
@@ -346,29 +364,30 @@ class CloudRequest(object):
 
     def get_nlp_values_internal(
             self,
-            processor_data: Dict[str, str],
+            processor_data: Dict[str, Any],
             proctype: str,
             procname: str,
             metadata: Dict[str, Any]) -> Generator[Tuple[
                 str, Dict[str, Any], str], None, None]:
         tablename = self._nlpdef.opt_str(
-            full_sectionname("processor", procname), 'desttable', required=True)
-        for result in processor_data['results']:
+            full_sectionname(NlpConfigPrefixes.PROCESSOR, procname),
+            'desttable', required=True)
+        for result in processor_data[NKeys.RESULTS]:
             result.update(metadata)
             yield tablename, result, proctype
 
     def get_nlp_values_gate(
             self,
-            processor_data: Dict[str, str],
+            processor_data: Dict[str, Any],
             procname: str,
             metadata: Dict[str, Any]) -> Generator[Tuple[
                 str, Dict[str, Any], str], None, None]:
         type_to_tablename, outputtypemap = self.get_tablename_map(
             procname)
-        for result in processor_data['results']:
+        for result in processor_data[NKeys.RESULTS]:
             # Assuming each set of results says what annotation type
             # it is
-            annottype = result['_type'].lower()
+            annottype = result[FN_TYPE].lower()
             c = outputtypemap[annottype]
             rename_keys_in_dict(result, c.renames())
             set_null_values_in_dict(result, c.null_literals())
@@ -388,10 +407,10 @@ class CloudRequest(object):
         # Method should only be called if we already have the nlp data
         assert self.nlp_data, ("Method 'get_nlp_values' must only be called "
                                "after nlp_data is obtained")
-        for result in self.nlp_data['results']:
-            metadata = result['metadata']
-            for processor_data in result['processors']:
-                procidentifier = processor_data['name']
+        for result in self.nlp_data[NKeys.RESULTS]:
+            metadata = result[NKeys.METADATA]
+            for processor_data in result[NKeys.PROCESSORS]:
+                procidentifier = processor_data[NKeys.NAME]
                 mirror_proc = self.mirror_processors[procidentifier]
                 if mirror_proc.get_parser_name().upper() == 'GATE':
                     for t, r, p in self.get_nlp_values_gate(processor_data,
@@ -418,7 +437,7 @@ class CloudRequest(object):
         for procname in self.procnames:
             if procname not in procs_to_sessions:
                 destdb_name = self._nlpdef.opt_str(
-                    full_sectionname("processor", procname),
+                    full_sectionname(NlpConfigPrefixes.PROCESSOR, procname),
                     'destdb', required=True)
                 procs_to_sessions[procname] = [destdb_name,
                                                self._nlpdef.get_database(
@@ -427,7 +446,7 @@ class CloudRequest(object):
 
     def set_mirror_processors(
             self,
-            procs: Optional[Dict[str, BaseNlpParser]] = None) -> None:
+            procs: List[BaseNlpParser] = None) -> None:
         """
         Sets 'mirror_processors'. The purpose of mirror_processors is so that
         we can easily access the sessions that come with the processors.

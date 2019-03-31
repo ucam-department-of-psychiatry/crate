@@ -1188,7 +1188,7 @@ class Triglycerides(SimpleNumericalResultParser):
         {WORD_BOUNDARY} )
     """
     REGEX = fr"""
-        ( {TG} )                           # group for triglycerides or equivalent
+        ( {TG} )                        # group for triglycerides or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}

@@ -91,21 +91,25 @@ CONFIG_INPUT_PREFIX = "input:"
 CONFIG_DATABASE_PREFIX = "database:"
 
 
+class NlpConfigPrefixes(object):
+    NLPDEF = "nlpdef"
+    PROCESSOR = "processor"
+    ENV = "env"
+    OUTPUT = "output"
+    INPUT = "input"
+    DATABASE = "database"
+
+
+_ALL_NLPRP_SECTION_PREFIXES = [
+    v for k, v in NlpConfigPrefixes.__dict__.items()
+    if not k.startswith("_")
+]
+
+
 def full_sectionname(section_type: str, section: str) -> str:
-    if section_type == "nlpdef":
-        return CONFIG_NLPDEF_PREFIX + section
-    elif section_type == "processor":
-        return CONFIG_PROCESSOR_PREFIX + section
-    elif section_type == "env":
-        return CONFIG_ENV_PREFIX + section
-    elif section_type == "output":
-        return CONFIG_OUTPUT_PREFIX + section
-    elif section_type == "input":
-        return CONFIG_INPUT_PREFIX + section
-    elif section_type == "database":
-        return CONFIG_DATABASE_PREFIX + section
-    else:
-        raise ValueError(f"Unrecognised section type: {section_type}")
+    if section_type in _ALL_NLPRP_SECTION_PREFIXES:
+        return section_type + ":" + section
+    raise ValueError(f"Unrecognised section type: {section_type}")
 
 
 # =============================================================================
@@ -146,7 +150,7 @@ class NlpDefinition(object):
 
         self._nlpname = nlpname
         self._logtag = logtag
-        nlpsection = full_sectionname("nlpdef", nlpname)
+        nlpsection = full_sectionname(NlpConfigPrefixes.NLPDEF, nlpname)
 
         log.info(f"Loading config for section: {nlpname}")
         # Get filename
@@ -208,7 +212,8 @@ class NlpDefinition(object):
             nlpsection, 'processors', required=True, lower=False)
         try:
             for proctype, procname in chunks(processorpairs, 2):
-                self.require_section(full_sectionname("processor", procname))
+                self.require_section(
+                    full_sectionname(NlpConfigPrefixes.PROCESSOR, procname))
                 processor = make_processor(proctype, self, procname)
                 self._processors.append(processor)
         except ValueError:
@@ -359,7 +364,8 @@ class NlpDefinition(object):
         """
         if name_and_cfg_section in self._databases:
             return self._databases[name_and_cfg_section]
-        dbsection = full_sectionname("database", name_and_cfg_section)
+        dbsection = full_sectionname(NlpConfigPrefixes.DATABASE,
+                                     name_and_cfg_section)
         assert len(name_and_cfg_section) <= MAX_SQL_FIELD_LEN
         db = self._parser.get_database(dbsection,
                                        with_session=with_session,

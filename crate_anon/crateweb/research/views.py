@@ -1037,12 +1037,14 @@ def save_display(request: HttpRequest, query_id: str) -> HttpResponse:
             query.audit(failed=True, fail_msg=str(exception))
             return render_bad_query(request, query, exception)
         display = []
+        # noinspection PyArgumentList,PyCallByClass
         display_fieldnames = request.POST.getlist('include_field')
         for display_fieldname in display_fieldnames:
             if display_fieldname in fieldnames:
                 display.append(display_fieldname)
         query.set_display_list(display)
         # If the user has selected 'no_null' set this attribute to True
+        # noinspection PyArgumentList,PyCallByClass
         query.no_null = (request.POST.get("no_null") == "true")
         query.save()
     return query_edit_select(request)

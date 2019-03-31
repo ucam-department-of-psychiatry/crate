@@ -47,11 +47,13 @@ from crate_anon.nlprp.version import NLPRP_VERSION_STRING
 # =============================================================================
 
 DEFAULT_SERVER_NAME = "CRATE NLPRP server"
+DEFAULT_PROTOCOL_INFO = {
+    NlprpKeys.NAME: NlprpValues.NLPRP_PROTOCOL_NAME,
+    NlprpKeys.VERSION: NLPRP_VERSION_STRING,
+}
 DEFAULT_SERVER_INFO = {
-    NlprpKeys.SERVER_INFO: {
-        NlprpKeys.NAME: DEFAULT_SERVER_NAME,
-        NlprpKeys.VERSION: NLPRP_VERSION_STRING,
-    }
+    NlprpKeys.NAME: DEFAULT_SERVER_NAME,
+    NlprpKeys.VERSION: NLPRP_VERSION_STRING,
 }
 
 
@@ -136,10 +138,7 @@ def make_nlprp_dict() -> Dict[str, Any]:
     Creates the basic dictionary used by the NLPRP protocol.
     """
     return {
-        NlprpKeys.PROTOCOL: {
-            NlprpKeys.NAME: NlprpValues.NLPRP_PROTOCOL_NAME,
-            NlprpKeys.VERSION: NLPRP_VERSION_STRING,
-        }
+        NlprpKeys.PROTOCOL: DEFAULT_PROTOCOL_INFO
     }
 
 
@@ -162,7 +161,7 @@ def make_nlprp_request(command: str,
 
 def make_nlprp_response(http_status: int,
                         reply_args: Dict[str, Any] = None,
-                        server_info: Dict[str, Any] = None) -> Dict[str, Any]:
+                        server_info: Dict[str, str] = None) -> Dict[str, Any]:
     """
     Creates a NLPRP response (server to client) dictionary.
 
@@ -176,7 +175,7 @@ def make_nlprp_response(http_status: int,
     reply_args = reply_args or {}  # type: Dict[str, Any]
     d = make_nlprp_dict()
     d[NlprpKeys.STATUS] = http_status
-    d.update(**server_info)
+    d[NlprpKeys.SERVER_INFO] = server_info
     d.update(**reply_args)
     return d
 

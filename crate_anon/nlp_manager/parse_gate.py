@@ -53,6 +53,7 @@ from crate_anon.nlp_manager.constants import (
 )
 from crate_anon.nlp_manager.nlp_definition import (
     full_sectionname,
+    NlpConfigPrefixes,
     NlpDefinition,
 )
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
@@ -66,6 +67,15 @@ FN_ID = '_id'
 FN_STARTPOS = '_start'
 FN_ENDPOS = '_end'
 FN_CONTENT = '_content'
+
+
+class GateConfigKeys(object):
+    MAX_EXTERNAL_PROG_USES = "max_external_prog_uses"
+    INPUT_TERMINATOR = "input_terminator"
+    OUTPUT_TERMINATOR = "output_terminator"
+    OUTPUTTYPEMAP = "outputtypemap"
+    PROGENVSECTION = "progenvsection"
+    PROGARGS = "progargs"
 
 
 # =============================================================================
@@ -142,16 +152,22 @@ class Gate(BaseNlpParser):
             logtag = ''
         else:
             self._max_external_prog_uses = nlpdef.opt_int(
-                self._sectionname, 'max_external_prog_uses', default=0)
+                self._sectionname, GateConfigKeys.MAX_EXTERNAL_PROG_USES,
+                default=0)
             self._input_terminator = nlpdef.opt_str(
-                self._sectionname, 'input_terminator', required=True)
+                self._sectionname, GateConfigKeys.INPUT_TERMINATOR,
+                required=True)
             self._output_terminator = nlpdef.opt_str(
-                self._sectionname, 'output_terminator', required=True)
-            typepairs = nlpdef.opt_strlist(self._sectionname, 'outputtypemap',
-                                           required=True, lower=False)
+                self._sectionname, GateConfigKeys.OUTPUT_TERMINATOR,
+                required=True)
+            typepairs = nlpdef.opt_strlist(
+                self._sectionname, GateConfigKeys.OUTPUTTYPEMAP,
+                required=True, lower=False)
             self._progenvsection = nlpdef.opt_str(
-                self._sectionname, 'progenvsection')
-            progargs = nlpdef.opt_str(self._sectionname, 'progargs', required=True)
+                self._sectionname, GateConfigKeys.PROGENVSECTION)
+            progargs = nlpdef.opt_str(
+                self._sectionname, GateConfigKeys.PROGARGS,
+                required=True)
             logtag = nlpdef.get_logtag() or '.'
 
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
@@ -176,7 +192,9 @@ class Gate(BaseNlpParser):
 
         if self._progenvsection:
             self._env = nlpdef.get_env_dict(
-                full_sectionname("env", self._progenvsection), os.environ)
+                full_sectionname(NlpConfigPrefixes.ENV,
+                                 self._progenvsection),
+                os.environ)
         else:
             self._env = os.environ.copy()
         self._env["NLPLOGTAG"] = logtag

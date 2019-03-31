@@ -29,6 +29,13 @@ Natural Language Processing Request Protocol (NLPRP) constants.
 """
 
 
+class HttpStatus(object):
+    ACCEPTED = 202
+    NOT_FOUND = 404
+    OK = 200
+    PROCESSING = 102
+
+
 class NlprpKeys(object):
     ARGS = "args"  # request
     CLIENT_JOB_ID = "client_job_id"  # bidirectional

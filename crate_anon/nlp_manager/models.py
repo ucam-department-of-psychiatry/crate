@@ -42,6 +42,8 @@ from crate_anon.nlp_manager.constants import (
 progress_meta = MetaData()
 ProgressBase = declarative_base(metadata=progress_meta)
 
+FN_SRCHASH = "srchash"
+
 
 # =============================================================================
 # Global constants
@@ -133,5 +135,5 @@ class NlpRecord(ProgressBase):
         doc="Time that NLP record was processed (batch time that the run was "
             "commenced for that NLP definition; UTC)")
     srchash = Column(
-        'srchash', SqlTypeHash,
+        FN_SRCHASH, SqlTypeHash,
         doc='Secure hash of source field contents at the time of processing')

@@ -863,7 +863,7 @@ def main() -> None:
     Command-line parser. See command-line help.
     """
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
         description="Alters a PCMIS database to be suitable for CRATE.")
     parser.add_argument("--url", required=True, help="SQLAlchemy database URL")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose")

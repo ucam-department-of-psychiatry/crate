@@ -27,7 +27,7 @@ crate_anon/nlp_web/views.py
 
 import datetime
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, List
 import uuid
 
 from celery.result import AsyncResult
@@ -43,6 +43,7 @@ from crate_anon.nlp_web.security import (
     encrypt_password,
 )
 from crate_anon.nlprp.constants import (
+    HttpStatus,
     NlprpCommands,
     NlprpKeys as NKeys, 
     NlprpValues,
@@ -219,9 +220,9 @@ class NlpWebViews(object):
         """
         Returns an HTTP response listing the available NLP processors.
         """
-        self.request.response.status = 200
+        self.request.response.status = HttpStatus.OK
         return self.create_response(
-            status=200,
+            status=HttpStatus.OK,
             extra_info={
                 NKeys.PROCESSORS: [
                     proc.dict for proc in Processor.processors.values()
@@ -247,25 +248,11 @@ class NlpWebViews(object):
         except KeyError:
             return self.key_missing_error(key=NKeys.PROCESSORS)
         include_text = self.body.get(NKeys.INCLUDE_TEXT, False)
-        response_info = {
-            NKeys.CLIENT_JOB_ID: self.body.get(NKeys.CLIENT_JOB_ID, ""),
-            NKeys.RESULTS: [None] * len(content)  # type: List[Dict[str, Any]]
-        }
+        results = []  # type: List[Dict[str, Any]]
         for i, document in enumerate(content):
             metadata = document[NKeys.METADATA]
             text = document[NKeys.TEXT]
-            processor_data = []  # so we can modify this easily later on
-            if include_text:
-                response_info[NKeys.RESULTS][i] = {
-                    NKeys.METADATA: metadata,
-                    NKeys.PROCESSORS: processor_data,
-                    NKeys.TEXT: text
-                }
-            else:
-                response_info[NKeys.RESULTS][i] = {
-                    NKeys.METADATA: metadata,
-                    NKeys.PROCESSORS: processor_data
-                }
+            processor_data = []  # type: List[Dict[str, Any]]
             for processor in processors:
                 proc_obj = None
                 for proc in Processor.processors.values():
@@ -339,8 +326,22 @@ class NlpWebViews(object):
                 # proc_dict[NKeys.SUCCESS] = success
 
                 processor_data.append(proc_dict)
-        self.request.response.status = 200
-        return self.create_response(status=200, extra_info=response_info)
+
+            doc_result = {
+                NKeys.METADATA: metadata,
+                NKeys.PROCESSORS: processor_data
+            }
+            if include_text:
+                doc_result[NKeys.TEXT] = text
+            results.append(doc_result)
+
+        response_info = {
+            NKeys.CLIENT_JOB_ID: self.body.get(NKeys.CLIENT_JOB_ID, ""),
+            NKeys.RESULTS: results,
+        }
+        self.request.response.status = HttpStatus.OK
+        return self.create_response(status=HttpStatus.OK,
+                                    extra_info=response_info)
 
     def put_in_queue(self) -> Dict[str, Any]:
         """
@@ -483,49 +484,29 @@ class NlpWebViews(object):
             and_(Document.queue_id == queue_id,
                  Document.username == self.username)
         )
-        document_rows = query.all()
-        if document_rows:
-            response_info = {
-                NKeys.CLIENT_JOB_ID: document_rows[0].client_job_id,
-                NKeys.RESULTS: [None] * len(document_rows)  # type: List[Dict[str, Any]]  # noqa
-            }
-            include_text = document_rows[0].include_text
-        else:
-            response_info = {
-                NKeys.CLIENT_JOB_ID: "",
-                NKeys.RESULTS: []
-            }
-            self.request.response.status = 200
-            return self.create_response(status=200, extra_info=response_info)
+        client_job_id = None  # type: str
+        document_rows = query.all()  # type: Iterable[Document]
+        doc_results = []  # type: List[Dict[str, Any]]
         for j, doc in enumerate(document_rows):
+            if client_job_id is None:
+                client_job_id = doc.client_job_id
             metadata = json.loads(doc.client_metadata)
             processor_data = []  # data for *all* the processors for this doc
             proc_ids = json.loads(doc.processor_ids)
-            if include_text:
-                response_info[NKeys.RESULTS][j] = {
-                    NKeys.METADATA: metadata,
-                    NKeys.PROCESSORS: processor_data,
-                    NKeys.TEXT: doc.doctext
-                }
-            else:
-                response_info[NKeys.RESULTS][j] = {
-                    NKeys.METADATA: metadata,
-                    NKeys.PROCESSORS: processor_data
-                }
             result_ids = json.loads(doc.result_ids)
             # More efficient than append? Should we do this wherever possible?
-            results = [None] * len(result_ids)  # type: List[AsyncResult]
+            asyncresults = [None] * len(result_ids)  # type: List[AsyncResult]
             for i, result_id in enumerate(result_ids):
                 # get result for this doc-proc pair
                 result = AsyncResult(id=result_id, app=app)
                 if not result.ready():
                     # Can't return JSON with 102
-                    self.request.response.status = 200
-                    return self.create_response(102, {})
-                results[i] = result
+                    self.request.response.status = HttpStatus.OK
+                    return self.create_response(HttpStatus.PROCESSING, {})
+                asyncresults[i] = result
             # Unfortunately we have to loop twice to avoid doing a lot for
             # nothing if it turns out a later result is not ready
-            for i, result in enumerate(results):
+            for i, result in enumerate(asyncresults):
                 # Split on the last occurance of '_' - procs will be in correct
                 # order
                 procname, sep, procversion = proc_ids[i].rpartition("_")
@@ -578,6 +559,14 @@ class NlpWebViews(object):
                     #         proc_dict['results'].append(features)
                     # ABOVE IS INCORRECT FORMAT
                 processor_data.append(proc_dict)
+            doc_result = {
+                NKeys.METADATA: metadata,
+                NKeys.PROCESSORS: processor_data
+            }
+            if doc.include_text:
+                doc_result[NKeys.TEXT] = doc.doctext
+            doc_results.append(doc_result)
+            # Delete leftovers
             # TEST PROPERLY!
             subquery = DBSession.query(DocProcRequest).filter(
                 DocProcRequest.document_id == doc.document_id)
@@ -586,8 +575,15 @@ class NlpWebViews(object):
                      ~subquery.exists())
             ).delete(synchronize_session='fetch')
         transaction.commit()
-        self.request.response.status = 200
-        return self.create_response(status=200, extra_info=response_info)
+        response_info = {
+            NKeys.CLIENT_JOB_ID: (
+                client_job_id if client_job_id is not None else ""
+            ),
+            NKeys.RESULTS: doc_results
+        }
+        self.request.response.status = HttpStatus.OK
+        return self.create_response(status=HttpStatus.OK,
+                                    extra_info=response_info)
 
     def show_queue(self) -> Dict[str, Any]:
         """
@@ -629,7 +625,7 @@ class NlpWebViews(object):
                 NKeys.DATETIME_SUBMITTED: qid_recs[0].datetime_submitted,
                 NKeys.DATETIME_COMPLETED: None if busy else max_time
             })
-        return self.create_response(status=200,
+        return self.create_response(status=HttpStatus.OK,
                                     extra_info={NKeys.QUEUE: queue})
 
     def delete_from_queue(self) -> Dict[str, Any]:
@@ -677,7 +673,7 @@ class NlpWebViews(object):
             DBSession.delete(docs)
             transaction.commit()
             # Return response
-            self.request.response.status = 200
-            return self.create_response(status=200, extra_info={})
+            self.request.response.status = HttpStatus.OK
+            return self.create_response(status=HttpStatus.OK, extra_info={})
         else:
             return self.key_missing_error(is_args=True)

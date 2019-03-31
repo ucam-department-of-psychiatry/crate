@@ -414,6 +414,7 @@ class Highlight(models.Model):
             if n not in d:
                 d[n] = []  # type: List[HIGHLIGHT_FWD_REF]
             d[n].append(highlight)
+        # noinspection PyTypeChecker
         return OrderedDict(sorted(d.items()))
 
     @staticmethod
@@ -620,6 +621,7 @@ class Query(QueryBase):
                 log.warning(f"Inefficient: Query executed "
                             f"{self._n_times_executed} times")
             try:
+                # noinspection PyTypeChecker
                 self._column_names = get_fieldnames_from_cursor(cursor)
             except TypeError:
                 self._column_names = []
@@ -723,6 +725,7 @@ class Query(QueryBase):
         if self._rows is None:
             # No cache
             cursor = self.get_executed_cursor()
+            # noinspection PyTypeChecker
             result = dictfetchall(cursor)
             self._invalidate_executed_cursor()
             return result
@@ -1846,7 +1849,7 @@ class PatientMultiQuery(object):
         return f"""
             Output columns:<br>
             {collapser(outcols)}
-            Patient selection:<br>
+            Patient selection{manual_or_auto}:<br>
             {collapser(ptselect)}
         """
 

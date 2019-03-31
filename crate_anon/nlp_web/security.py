@@ -31,7 +31,7 @@ Security functions for CRATE implementation of an NLPRP server.
 import bcrypt
 import binascii
 import base64
-from typing import Dict, Optional
+from typing import Optional
 
 from cryptography.fernet import Fernet
 # noinspection PyUnresolvedReferences

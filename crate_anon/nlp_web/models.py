@@ -68,7 +68,7 @@ class Document(Base):
     )
     client_job_id = Column(
         Text,
-        comment="???" # ***
+        comment="Client job ID"
     )
     queue_id = Column(
         VARCHAR(50),
@@ -90,7 +90,7 @@ class Document(Base):
     )
     result_ids = Column(
         Text,
-        comment="???" # ***
+        comment="JSON-encoded list of result IDs"
     )
     include_text = Column(
         Boolean,

@@ -46,7 +46,10 @@ from sqlalchemy.schema import Column, Index
 
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
-from crate_anon.nlp_manager.nlp_definition import full_sectionname
+from crate_anon.nlp_manager.nlp_definition import (
+    full_sectionname,
+    NlpConfigPrefixes,
+)
 
 
 # =============================================================================
@@ -76,7 +79,7 @@ class OutputUserConfig(object):
                 - :class:`crate_anon.nlp_manager.parse_gate.Gate`
         """  # noqa
 
-        sectionname = full_sectionname("output", section)
+        sectionname = full_sectionname(NlpConfigPrefixes.OUTPUT, section)
 
         def opt_str(option: str, required: bool = False) -> str:
             return parser.get_str(sectionname, option, required=required)

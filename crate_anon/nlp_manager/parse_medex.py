@@ -409,6 +409,7 @@ from crate_anon.nlp_manager.constants import (
 )
 from crate_anon.nlp_manager.nlp_definition import (
     full_sectionname,
+    NlpConfigPrefixes,
     NlpDefinition,
 )
 
@@ -514,10 +515,13 @@ class Medex(BaseNlpParser):
         self._max_external_prog_uses = nlpdef.opt_int(
             self._sectionname, 'max_external_prog_uses', default=0)
 
-        self._progenvsection = nlpdef.opt_str(self._sectionname, 'progenvsection')
+        self._progenvsection = nlpdef.opt_str(self._sectionname,
+                                              'progenvsection')
         if self._progenvsection:
             self._env = nlpdef.get_env_dict(
-                full_sectionname("env", self._progenvsection), os.environ)
+                full_sectionname(NlpConfigPrefixes.ENV,
+                                 self._progenvsection),
+                os.environ)
         else:
             self._env = os.environ.copy()
         self._env["NLPLOGTAG"] = nlpdef.get_logtag() or '.'

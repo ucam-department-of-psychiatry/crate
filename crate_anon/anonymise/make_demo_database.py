@@ -409,6 +409,7 @@ def main() -> None:
 
     # Special extra patient
 
+    # noinspection PyTypeChecker
     p1 = Patient(
         patient_id=1,
         forename="Ronald Gibbet",
@@ -463,6 +464,7 @@ basophils 0.6.
                          file_datetime=incdatetime())
         session.add(fd)
 
+    # noinspection PyTypeChecker
     p2 = Patient(
         patient_id=2,
         forename="Bob D'Souza",
@@ -503,6 +505,7 @@ Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
         dob = BASE_DOB + datetime.timedelta(days=p)
         ok_date = dob + datetime.timedelta(days=1)
         nhsnum = random.randint(1, 9999999999)
+        # noinspection PyTypeChecker
         patient = Patient(
             patient_id=p + 3,
             forename=forename,

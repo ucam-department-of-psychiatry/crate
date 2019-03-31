@@ -110,10 +110,11 @@ from crate_anon.nlp_manager.input_field_config import (
     FN_SRCPKSTR,
     FN_SRCFIELD,
 )
-from crate_anon.nlp_manager.models import NlpRecord
+from crate_anon.nlp_manager.models import FN_SRCHASH, NlpRecord
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
-from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 from crate_anon.nlp_manager.cloud_parser import CloudRequest
+from crate_anon.nlprp.constants import NlprpKeys as NKeys
+from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 log = logging.getLogger(__name__)
 
@@ -476,6 +477,7 @@ def send_cloud_requests(
     recnum = 0
     totalcount = ifconfig.get_count()  # total number of records in table
     at_least_one_record = False  # so we don't send off an empty request
+    complete = False
     # Check processors are available
     available_procs = CloudRequest.list_processors(nlpdef)
     cloud_request = CloudRequest(nlpdef=nlpdef,
@@ -502,7 +504,6 @@ def send_cloud_requests(
             )
         # log.critical("other_values={}".format(repr(other_values)))
         srchash = nlpdef.hash(text)
-        progrec = None
         if incremental:
             progrec = ifconfig.get_progress_record(pkval, pkstr)
             if progrec is not None:
@@ -547,9 +548,9 @@ def send_cloud_requests(
 
         at_least_one_record = True
 
-        # Add 'scrhash' to 'other_values' so the metadata will contain it
+        # Add 'srchash' to 'other_values' so the metadata will contain it
         # and we can use it later on for updating the progress database
-        other_values['srchash'] = srchash
+        other_values[FN_SRCHASH] = srchash
     if not complete and at_least_one_record:
         # Send last request
         cloud_request.send_process_request(queue)
@@ -571,9 +572,11 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
                                   required=True)
     with open(f'{req_data_dir}/request_data_{nlpname}.txt', 'w') as request_data:  # noqa
         for ifconfig in nlpdef.get_ifconfigs():
-            srcfield = ifconfig.get_srcfield()
-            cloud_requests = send_cloud_requests(nlpdef, ifconfig,
-                                                 incremental, report_every)
+            cloud_requests = send_cloud_requests(
+                nlpdef=nlpdef,
+                ifconfig=ifconfig,
+                incremental=incremental,
+                report_every=report_every)
             for cloud_request in cloud_requests:
                 if cloud_request.queue_id:
                     request_data.write(
@@ -630,16 +633,17 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
             else:
                 cloud_request.process_all()
                 nlp_data = cloud_request.nlp_data
-                for result in nlp_data['results']:
+                for result in nlp_data[NKeys.RESULTS]:
                     # 'metadata' is just 'other_values' from before
-                    pkval = result['metadata'][FN_SRCPKVAL]
-                    pkstr = result['metadata'][FN_SRCPKSTR]
-                    srchash = result['metadata']['srchash']
+                    metadata = result[NKeys.METADATA]
+                    pkval = metadata[FN_SRCPKVAL]
+                    pkstr = metadata[FN_SRCPKSTR]
+                    srchash = metadata[FN_SRCHASH]
                     progrec = None
                     if incremental:
-                        sessions = cloud_request.get_sessions_for_all_processors()
+                        sessions = cloud_request.get_sessions_for_all_processors()  # noqa
                         for db in sessions.values():
-                            cloud_request.delete_dest_record(
+                            cloud_request.delete_dest_record( # *** No such function -- should CloudRequest inherit from BaseNlpParser?
                                 ifconfig, pkval, pkstr,
                                 commit=incremental,
                                 session=db[1],
@@ -687,25 +691,27 @@ def process_cloud_now(
     mirror_procs = nlpdef.get_processors()
     for ifconfig in nlpdef.get_ifconfigs():
         seen_srchashs = []
-        cloud_requests = send_cloud_requests(nlpdef,
-                                             ifconfig,
-                                             incremental,
-                                             report_every,
-                                             queue=False)
+        cloud_requests = send_cloud_requests(
+            nlpdef=nlpdef,
+            ifconfig=ifconfig,
+            incremental=incremental,
+            report_every=report_every,
+            queue=False)
         for cloud_request in cloud_requests:
             cloud_request.set_mirror_processors(mirror_procs)
             cloud_request.process_all()
             nlp_data = cloud_request.nlp_data
-            for result in nlp_data['results']:
+            for result in nlp_data[NKeys.RESULTS]:
                 # 'metadata' is just 'other_values' from before
-                pkval = result['metadata'][FN_SRCPKVAL]
-                pkstr = result['metadata'][FN_SRCPKSTR]
-                srchash = result['metadata']['srchash']
+                metadata = result[NKeys.METADATA]
+                pkval = metadata[FN_SRCPKVAL]
+                pkstr = metadata[FN_SRCPKSTR]
+                srchash = metadata[FN_SRCHASH]
                 progrec = None
                 if incremental:
                     sessions = cloud_request.get_sessions_for_all_processors()
                     for db in sessions.values():
-                        cloud_request.delete_dest_record(
+                        cloud_request.delete_dest_record( # *** No such function -- should CloudRequest inherit from BaseNlpParser?
                             ifconfig, pkval, pkstr,
                             commit=incremental,
                             session=db[1],
@@ -743,7 +749,6 @@ def process_cloud_now(
                         session.add(progrec)
             
     nlpdef.commit_all()
-
 
 
 def drop_remake(nlpdef: NlpDefinition,
