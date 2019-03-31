@@ -124,7 +124,7 @@ class Height(NumericalResultParser):
     """
     Height. Handles metric (e.g. "1.8m") and imperial (e.g. "5 ft 2 in").
     """
-    METRIC_HEIGHT = r"""
+    METRIC_HEIGHT = fr"""
         (                           # capture group 4
             (?:
                 ( {SIGNED_FLOAT} )          # capture group 5
@@ -146,13 +146,8 @@ class Height(NumericalResultParser):
                 ( {CM} )                    # capture group 12
             )
         )
-    """.format(
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        M=M,
-        CM=CM
-    )
-    IMPERIAL_HEIGHT = r"""
+    """
+    IMPERIAL_HEIGHT = fr"""
         (                           # capture group 13
             (?:
                 ( {SIGNED_FLOAT} )      # capture group 14
@@ -174,14 +169,9 @@ class Height(NumericalResultParser):
                 ( {INCHES} )            # capture group 21
             )
         )
-    """.format(
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        FEET=FEET,
-        INCHES=INCHES
-    )
+    """
     HEIGHT = r"(?: \b height \b)"
-    REGEX = r"""
+    REGEX = fr"""
         ( {HEIGHT} )                       # group 1 for "height" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group 2 for tense
@@ -192,16 +182,7 @@ class Height(NumericalResultParser):
             {METRIC_HEIGHT}
             | {IMPERIAL_HEIGHT}
         )
-    """.format(
-        HEIGHT=HEIGHT,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        METRIC_HEIGHT=METRIC_HEIGHT,
-        IMPERIAL_HEIGHT=IMPERIAL_HEIGHT,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        KG_PER_SQ_M=KG_PER_SQ_M,
-    )
+    """
 
     COMPILED_REGEX = compile_regex(REGEX)
     NAME = "Height"
@@ -222,7 +203,7 @@ class Height(NumericalResultParser):
             commit=commit
         )
         if debug:
-            print("Regex for {}: {}".format(type(self).__name__, self.REGEX))
+            print(f"Regex for {type(self).__name__}: {self.REGEX}")
 
     def parse(self, text: str,
               debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
@@ -232,7 +213,7 @@ class Height(NumericalResultParser):
         """
         for m in self.COMPILED_REGEX.finditer(text):  # watch out: 'm'/metres
             if debug:
-                print("Match {} for {}".format(m, repr(text)))
+                print(f"Match {m} for {repr(text)}")
             startpos = m.start()
             endpos = m.end()
             matching_text = m.group(0)  # the whole thing
@@ -359,18 +340,14 @@ class Weight(NumericalResultParser):
     """
     Weight. Handles metric (e.g. "57kg") and imperial (e.g. "10 st 2 lb").
     """
-    METRIC_WEIGHT = r"""
+    METRIC_WEIGHT = fr"""
         (                           # capture group 4
             ( {SIGNED_FLOAT} )          # capture group 5
             {OPTIONAL_RESULTS_IGNORABLES}
             ( {KG} )                    # capture group 6
         )
-    """.format(
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        KG=KG
-    )
-    IMPERIAL_WEIGHT = r"""
+    """
+    IMPERIAL_WEIGHT = fr"""
         (                           # capture group 7
             (?:
                 ( {SIGNED_FLOAT} )      # capture group 8
@@ -392,14 +369,9 @@ class Weight(NumericalResultParser):
                 ( {LB} )                # capture group 15
             )
         )
-    """.format(
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        STONES=STONES,
-        LB=LB
-    )
+    """
     WEIGHT = r"(?: \b weigh[ts] \b )"  # weight, weighs
-    REGEX = r"""
+    REGEX = fr"""
         ( {WEIGHT} )                       # group 1 for "weight" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group 2 for tense
@@ -410,16 +382,7 @@ class Weight(NumericalResultParser):
             {METRIC_WEIGHT}
             | {IMPERIAL_WEIGHT}
         )
-    """.format(
-        WEIGHT=WEIGHT,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        METRIC_WEIGHT=METRIC_WEIGHT,
-        IMPERIAL_WEIGHT=IMPERIAL_WEIGHT,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        KG_PER_SQ_M=KG_PER_SQ_M,
-    )
+    """
 
     COMPILED_REGEX = compile_regex(REGEX)
     NAME = "Weight"
@@ -440,7 +403,7 @@ class Weight(NumericalResultParser):
             commit=commit
         )
         if debug:
-            print("Regex for {}: {}".format(type(self).__name__, self.REGEX))
+            print(f"Regex for {type(self).__name__}: {self.REGEX}")
 
     def parse(self, text: str,
               debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
@@ -450,7 +413,7 @@ class Weight(NumericalResultParser):
         """
         for m in self.COMPILED_REGEX.finditer(text):
             if debug:
-                print("Match {} for {}".format(m, repr(text)))
+                print(f"Match {m} for {repr(text)}")
             startpos = m.start()
             endpos = m.end()
             matching_text = m.group(0)  # the whole thing
@@ -572,12 +535,12 @@ class Bmi(SimpleNumericalResultParser):
     """
     Body mass index (BMI) (in kg / m^2).
     """
-    BMI = r"""
+    BMI = fr"""
         (?: {WORD_BOUNDARY}
             (?: BMI | body \s+ mass \s+ index )
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {BMI} )                          # group for "BMI" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -589,14 +552,7 @@ class Bmi(SimpleNumericalResultParser):
         (                                  # group for units
             {KG_PER_SQ_M}
         )?
-    """.format(
-        BMI=BMI,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        KG_PER_SQ_M=KG_PER_SQ_M,
-    )
+    """
     NAME = "BMI"
     PREFERRED_UNIT_COLUMN = "value_kg_per_sq_m"
     UNIT_MAPPING = {
@@ -665,16 +621,14 @@ class Bp(BaseNlpParser):
     directly.)
     """  # noqa
     BP = r"(?: \b blood \s+ pressure \b | \b B\.?P\.? \b )"
-    SYSTOLIC_BP = r"(?: \b systolic \s+ {BP} | \b S\.?B\.?P\.? \b )".format(
-        BP=BP)
-    DIASTOLIC_BP = r"(?: \b diastolic \s+ {BP} | \b D\.?B\.?P\.? \b )".format(
-        BP=BP)
+    SYSTOLIC_BP = fr"(?: \b systolic \s+ {BP} | \b S\.?B\.?P\.? \b )"
+    DIASTOLIC_BP = fr"(?: \b diastolic \s+ {BP} | \b D\.?B\.?P\.? \b )"
 
-    TWO_NUMBER_BP = r"""
+    TWO_NUMBER_BP = fr"""
         ( {SIGNED_FLOAT} )
         \s* (?: \b over \b | \/ ) \s*
         ( {SIGNED_FLOAT} )
-    """.format(SIGNED_FLOAT=SIGNED_FLOAT)
+    """
     ONE_NUMBER_BP = SIGNED_FLOAT
 
     COMPILED_BP = compile_regex(BP)
@@ -682,7 +636,7 @@ class Bp(BaseNlpParser):
     COMPILED_DBP = compile_regex(DIASTOLIC_BP)
     COMPILED_ONE_NUMBER_BP = compile_regex(ONE_NUMBER_BP)
     COMPILED_TWO_NUMBER_BP = compile_regex(TWO_NUMBER_BP)
-    REGEX = r"""
+    REGEX = fr"""
         (                               # group for "BP" or equivalent
             {SYSTOLIC_BP}               # ... from more to less specific
             | {DIASTOLIC_BP}
@@ -704,16 +658,7 @@ class Bp(BaseNlpParser):
         (                              # group for units
             {MM_HG}
         )?
-    """.format(
-        BP=BP,
-        SYSTOLIC_BP=SYSTOLIC_BP,
-        DIASTOLIC_BP=DIASTOLIC_BP,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MM_HG=MM_HG,
-    )
+    """
     COMPILED_REGEX = compile_regex(REGEX)
 
     FN_SYSTOLIC_BP_MMHG = 'systolic_bp_mmhg'
@@ -743,8 +688,8 @@ class Bp(BaseNlpParser):
     @classmethod
     def print_info(cls, file: TextIO = sys.stdout) -> None:
         # docstring in superclass
-        print("Blood pressure finder. Regular expression: \n{}".format(
-            cls.REGEX), file=file)
+        print(f"Blood pressure finder. Regular expression: \n{cls.REGEX}",
+              file=file)
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass
@@ -775,7 +720,7 @@ class Bp(BaseNlpParser):
         """
         for m in self.COMPILED_REGEX.finditer(text):
             if debug:
-                print("Match {} for {}".format(m, repr(text)))
+                print(f"Match {m} for {repr(text)}")
             startpos = m.start()
             endpos = m.end()
             matching_text = m.group(0)  # the whole thing
@@ -849,9 +794,9 @@ class Bp(BaseNlpParser):
             verbose:
                 be verbose?
         """
-        print("Testing parser: {}".format(type(self).__name__))
+        print(f"Testing parser: {type(self).__name__}")
         if verbose:
-            print("... regex:\n{}".format(self.REGEX))
+            print(f"... regex:\n{self.REGEX}")
         for test_string, expected_values in test_expected_list:
             actual_values = list(
                 (x[self.FN_SYSTOLIC_BP_MMHG], x[self.FN_DIASTOLIC_BP_MMHG])

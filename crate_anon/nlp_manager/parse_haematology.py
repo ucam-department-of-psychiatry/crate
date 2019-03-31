@@ -88,10 +88,10 @@ class Haemoglobin(SimpleNumericalResultParser):
     This problem is hard to avoid. 
 
     """  # noqa
-    HAEMOGLOBIN = r"""
+    HAEMOGLOBIN = fr"""
         (?: {WORD_BOUNDARY} (?: Ha?emoglobin | Hb ) {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {HAEMOGLOBIN} )                 # group for "Hb" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?            # optional group for tense indicator
@@ -104,15 +104,7 @@ class Haemoglobin(SimpleNumericalResultParser):
             {G_PER_L}                          # good
             | {G_PER_DL}                       # good
         )?
-    """.format(
-        HAEMOGLOBIN=HAEMOGLOBIN,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        G_PER_L=G_PER_L,
-        G_PER_DL=G_PER_DL,
-    )
+    """
     NAME = "Haemoglobin"
     PREFERRED_UNIT_COLUMN = "value_g_l"
     UNIT_MAPPING = {
@@ -180,10 +172,10 @@ class Haematocrit(SimpleNumericalResultParser):
     """
     Haematocrit (Hct).
     """
-    HAEMATOCRIT = r"""
+    HAEMATOCRIT = fr"""
         (?: {WORD_BOUNDARY} (?: Ha?ematocrit | Hct ) {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {HAEMATOCRIT} )               # group for "haematocrit" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?          # optional group for tense indicator
@@ -195,14 +187,7 @@ class Haematocrit(SimpleNumericalResultParser):
         (                               # optional group for units
             {L_PER_L}                          # good
         )?
-    """.format(
-        HAEMATOCRIT=HAEMATOCRIT,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        L_PER_L=L_PER_L,
-    )
+    """
     NAME = "Haematocrit"
     PREFERRED_UNIT_COLUMN = "value_l_l"
     UNIT_MAPPING = {
@@ -265,13 +250,13 @@ class Esr(SimpleNumericalResultParser):
     """
     Erythrocyte sedimentation rate (ESR).
     """
-    ESR = r"""
+    ESR = fr"""
         (?: {WORD_BOUNDARY}
             (?: (?: Erythrocyte [\s]+ sed(?:\.|imentation)? [\s]+ rate)
                 | ESR )
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {ESR} )                           # group for "ESR" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?              # optional group for tense indicator
@@ -285,16 +270,7 @@ class Esr(SimpleNumericalResultParser):
             | {MG_PER_DL}                       # bad
             | {MG_PER_L}                        # bad
         )?
-    """.format(
-        ESR=ESR,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MM_PER_H=MM_PER_H,
-        MG_PER_DL=MG_PER_DL,
-        MG_PER_L=MG_PER_L,
-    )
+    """
     NAME = "ESR"
     PREFERRED_UNIT_COLUMN = "value_mm_h"
     UNIT_MAPPING = {
@@ -427,8 +403,8 @@ class WbcBase(SimpleNumericalResultParser):
         Makes a regular expression (as text) from text representing a cell
         type.
         """
-        return r"""
-            ({CELL_TYPE})                   # group for cell type name
+        return fr"""
+            ({cell_type_regex_text})        # group for cell type name
             {OPTIONAL_RESULTS_IGNORABLES}
             ({TENSE_INDICATOR})?            # optional group for tense indicator
             {OPTIONAL_RESULTS_IGNORABLES}
@@ -441,16 +417,7 @@ class WbcBase(SimpleNumericalResultParser):
                 | {CELLS_PER_CUBIC_MM}          # good
                 | {PERCENT}                     # bad, so we can ignore it
             )?
-        """.format(
-            CELL_TYPE=cell_type_regex_text,
-            OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-            TENSE_INDICATOR=TENSE_INDICATOR,
-            RELATION=RELATION,
-            SIGNED_FLOAT=SIGNED_FLOAT,
-            BILLION_PER_L=BILLION_PER_L,
-            CELLS_PER_CUBIC_MM=CELLS_PER_CUBIC_MM,
-            PERCENT=PERCENT,
-        )
+        """
 
 
 # -----------------------------------------------------------------------------

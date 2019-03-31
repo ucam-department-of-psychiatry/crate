@@ -44,8 +44,7 @@ def times_ten_to_power(n: int) -> str:
     """
     For a power *n*, returns a regex to capture "10^n" and similar notations.
     """
-    return r"(?: {MULTIPLY}? \s* 10 \s* {POWER_INC_E} \s* {n})".format(
-        MULTIPLY=MULTIPLY, POWER_INC_E=POWER_INC_E, n=n)
+    return fr"(?: {MULTIPLY}? \s* 10 \s* {POWER_INC_E} \s* {n})"
 
 
 BILLION = times_ten_to_power(9)
@@ -58,9 +57,9 @@ BILLION = times_ten_to_power(9)
 
 PLUS_SIGN = r"\+"  # don't forget to escape it
 MINUS_SIGN = r"[-−–]"  # any of: ASCII hyphen-minus, Unicode minus, en dash
-SIGN = r"(?: {plus} | {minus} )".format(plus=PLUS_SIGN, minus=MINUS_SIGN)
+SIGN = fr"(?: {PLUS_SIGN} | {MINUS_SIGN} )"
 
-NO_MINUS_SIGN_LOOKAHEAD = r"(?!{minus})".format(minus=MINUS_SIGN)
+NO_MINUS_SIGN_LOOKAHEAD = fr"(?!{MINUS_SIGN})"
 # ... (?! something ) is a negative lookahead assertion
 # ... (?<! something ) is a negative lookbehind assertion
 
@@ -80,9 +79,7 @@ PLAIN_INTEGER_W_THOUSAND_COMMAS = r"(?: (?: \d{1,3} (?:,\d{3})+ ) | \d+ )"
 # thousands separators
 
 FLOATING_POINT_GROUP = r"(?: \. \d+ )"  # decimal point and further digits
-SCIENTIFIC_NOTATION_EXPONENT = r"(?: E {sign}? \d+ )".format(
-    sign=SIGN,  # optional
-)
+SCIENTIFIC_NOTATION_EXPONENT = fr"(?: E {SIGN}? \d+ )"
 # ... Scientific notation does NOT offer non-integer exponents.
 # Specifically, float("-3.4e-27") is fine, but float("-3.4e-27.1") isn't.
 

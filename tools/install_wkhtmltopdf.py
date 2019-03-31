@@ -51,8 +51,7 @@ import urllib.request
 
 import distro
 
-if sys.version_info[0] < 3:
-    raise AssertionError("Need Python 3")
+assert sys.version_info >= (3, 6), "Need Python 3.6+"
 if not platform.system() == 'Linux':
     raise AssertionError("Need Linux")
 
@@ -63,18 +62,18 @@ if not platform.system() == 'Linux':
 MAJOR_VERSION = "0.12"
 MINOR_VERSION = "0.12.2.1"
 
-INTENDED_VERSION = "wkhtmltopdf {} (with patched qt)".format(MINOR_VERSION)
+INTENDED_VERSION = f"wkhtmltopdf {MINOR_VERSION} (with patched qt)"
 
 existing_cmd = shutil.which('wkhtmltopdf')
 if existing_cmd:
-    print("existing wkhtmltopdf is {}".format(existing_cmd))
+    print(f"existing wkhtmltopdf is {existing_cmd}")
     proc = subprocess.Popen([existing_cmd, '--version'],
                             stdout=subprocess.PIPE)
     out, err = proc.communicate()
     existing_version = out.decode('ascii').strip()
-    print("existing version: {}".format(existing_version))
+    print(f"existing version: {existing_version}")
     if existing_version == INTENDED_VERSION:
-        print("wkhtmltopdf {} already installed".format(MINOR_VERSION))
+        print(f"wkhtmltopdf {MINOR_VERSION} already installed")
         sys.exit(0)
 
 # =============================================================================
@@ -127,20 +126,9 @@ else:
     distro = 'UNKNOWN'
 
 url_stem = (
-    'http://download.gna.org/wkhtmltopdf/{MAJOR_VERSION}/'
-    '{MINOR_VERSION}/'.format(
-        MAJOR_VERSION=MAJOR_VERSION,
-        MINOR_VERSION=MINOR_VERSION,
-    )
+    f'http://download.gna.org/wkhtmltopdf/{MAJOR_VERSION}/{MINOR_VERSION}/'
 )
-filename = (
-    'wkhtmltox-{MINOR_VERSION}_linux-{distro}-{arch}.{extension}'.format(
-        MINOR_VERSION=MINOR_VERSION,
-        distro=distro,
-        arch=arch,
-        extension=extension,
-    )
-)
+filename = f'wkhtmltox-{MINOR_VERSION}_linux-{distro}-{arch}.{extension}'
 url = url_stem + filename
 
 # =============================================================================
@@ -150,10 +138,10 @@ url = url_stem + filename
 with tempfile.TemporaryDirectory() as tmpdirname:
     localfilename = os.path.join(tmpdirname, filename)
 
-    print("Downloading {} -> {}".format(url, localfilename))
+    print(f"Downloading {url} -> {localfilename}")
     req = urllib.request.urlopen(url)
     with open(localfilename, 'wb') as f:
         f.write(req.read())
 
-    print("Installing {}".format(localfilename))
+    print(f"Installing {localfilename}")
     subprocess.check_call(installer + [localfilename])

@@ -65,12 +65,12 @@ class Mmse(NumeratorOutOfDenominatorParser):
     """
     Mini-mental state examination (MMSE).
     """
-    MMSE = r"""
+    MMSE = fr"""
         (?: {WORD_BOUNDARY}
             (?: MMSE | mini[-\s]*mental (?: \s+ state)?
                        (?: \s+ exam(?:ination)? )? )
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    """
     NAME = "MMSE"
 
     def __init__(self,
@@ -132,23 +132,18 @@ class Ace(NumeratorOutOfDenominatorParser):
     Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III) total score.
     """
     NAME = "ACE"
-    ACE = r"""
+    ACE = fr"""
         (?: {WORD_BOUNDARY}
             (?: ACE | (?: Addenbrooke{APOSTROPHE}?s \s+ cognitive \s+
                           (?: (?:evaluation) | exam(?:ination)? ) ) )
             (?: \s* -? \s*
                 (?: R | III | 111
                     # or: 3 when not followed by an "out of X" expression
-                    | (?: 3 (?! \s* {out_of} \s* {uint}))
+                    | (?: 3 (?! \s* {OUT_OF_SEPARATOR} \s* {UNSIGNED_INTEGER}))
                 ) \b
             )?+
         {WORD_BOUNDARY} )
-    """.format(
-        WORD_BOUNDARY=WORD_BOUNDARY,
-        APOSTROPHE=APOSTROPHE,
-        out_of=OUT_OF_SEPARATOR,
-        uint=UNSIGNED_INTEGER
-    )
+    """
     # ... note the possessive "?+" above; see tests below.
 
     def __init__(self,
@@ -260,13 +255,13 @@ class MiniAce(NumeratorOutOfDenominatorParser):
     """
     Mini-Addenbrooke's Cognitive Examination (M-ACE).
     """
-    MACE = r"""
+    MACE = fr"""
         (?: {WORD_BOUNDARY}
             (?: mini | M ) \s* -? \s*
             (?: ACE | (?: Addenbrooke{APOSTROPHE}?s \s+ cognitive \s+
                           (?: (?:evaluation) | exam(?:ination)? ) ) )
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY, APOSTROPHE=APOSTROPHE)
+    """
     NAME = "MiniACE"
 
     def __init__(self,
@@ -331,11 +326,11 @@ class Moca(NumeratorOutOfDenominatorParser):
     """
     Montreal Cognitive Assessment (MOCA).
     """
-    MOCA = r"""
+    MOCA = fr"""
         (?: {WORD_BOUNDARY}
             (?: MOCA | (?: Montreal \s+ cognitive \s+ assessment ) )
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    """
     NAME = "MOCA"
 
     def __init__(self,

@@ -181,7 +181,7 @@ def database_last_updated(dbname: str) -> Optional[datetime.datetime]:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
         raise ValueError(
-            "Database {} is not specified in config file".format(dbname))
+            f"Database {dbname} is not specified in config file")
     tables_with_timecol = []
     for col in dbinfo.colinfolist:
         if col.column_name == dbinfo.update_date_field:
@@ -192,14 +192,17 @@ def database_last_updated(dbname: str) -> Optional[datetime.datetime]:
     for table in tables_with_timecol:
         # Not quite sure about the different dialects ...
         if dbinfo.rdb_info.dialect == 'mysql':
-            sql = "SELECT {} FROM {}.{}".format(
-                dbinfo.update_date_field, dbinfo.schema_name, table)
+            sql = (
+                f"SELECT {dbinfo.update_date_field} "
+                f"FROM {dbinfo.schema_name}.{table}"
+            )
         else:
             # Dialect must be mssql because ResearchDatabaseInfo checks if
             # supported dialect
-            sql = "SELECT {} FROM {}.{}.{}".format(
-                dbinfo.update_date_field, dbinfo.database,
-                dbinfo.schema_name, table)
+            sql = (
+                f"SELECT {dbinfo.update_date_field} "
+                f"FROM {dbinfo.database}.{dbinfo.schema_name}.{table}"
+            )
         with get_executed_researchdb_cursor(sql) as cursor:
             times = cursor.fetchall()
             times = [t[0] if t[0] else mindate for t in times]
@@ -378,7 +381,7 @@ class Highlight(models.Model):
     active = models.BooleanField(default=True)
 
     def __str__(self) -> str:
-        return "colour={}, text={}".format(self.colour, self.text)
+        return f"colour={self.colour}, text={self.text}"
 
     def get_safe_colour(self) -> int:
         """
@@ -614,8 +617,8 @@ class Query(QueryBase):
             #     self._n_times_executed))
             # log.debug("\n" + "".join(traceback.format_stack()))
             if self._n_times_executed > 1:
-                log.warning("Inefficient: Query executed {} times".format(
-                    self._n_times_executed))
+                log.warning(f"Inefficient: Query executed "
+                            f"{self._n_times_executed} times")
             try:
                 self._column_names = get_fieldnames_from_cursor(cursor)
             except TypeError:
@@ -1016,7 +1019,7 @@ class Query(QueryBase):
         self._cache_all()
         wb = Workbook()
         wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
-        sheetname = "query_{}".format(self.id)
+        sheetname = f"query_{self.id}"
         ws = wb.create_sheet(sheetname)
         now = datetime.datetime.now()
 
@@ -1125,7 +1128,7 @@ class QueryAudit(models.Model):
     fail_msg = models.TextField()
 
     def __str__(self):
-        return "<QueryAudit id={}>".format(self.id)
+        return f"<QueryAudit id={self.id}>"
 
 
 # =============================================================================
@@ -1621,8 +1624,8 @@ class PatientMultiQuery(object):
         select_mrid_column = self._get_select_mrid_column()
         if not select_mrid_column.is_valid:
             log.warning(
-                "PatientMultiQuery.patient_id_query(): invalid "
-                "select_mrid_column: {}".format(repr(select_mrid_column)))
+                f"PatientMultiQuery.patient_id_query(): invalid"
+                f" select_mrid_column: {select_mrid_column!r}")
             # One way this can happen: (1) a user saves a PMQ; (2) the
             # administrator removes one of the databases!
             return ''
@@ -1741,9 +1744,7 @@ class PatientMultiQuery(object):
             # derived tables, subqueries, ... unless TOP, OFFSET or FOR XML
             # is specified."
             args = []
-        sql = "{mrid} IN ({in_clause})".format(
-            mrid=mrid_column.identifier(grammar),
-            in_clause=in_clause)
+        sql = f"{mrid_column.identifier(grammar)} IN ({in_clause})"
         return sql, args
 
     def make_query(self,
@@ -1842,16 +1843,12 @@ class PatientMultiQuery(object):
         else:
             manual_or_auto = ""
             ptselect = self.pt_conditions_html
-        return """
+        return f"""
             Output columns:<br>
-            {outcols}
+            {collapser(outcols)}
             Patient selection:<br>
-            {ptselect}
-        """.format(
-            outcols=collapser(outcols),
-            manual_or_auto=manual_or_auto,
-            ptselect=collapser(ptselect),
-        )
+            {collapser(ptselect)}
+        """
 
     # -------------------------------------------------------------------------
     # Data finder: COUNT(*) for all patient tables
@@ -1896,8 +1893,8 @@ class PatientMultiQuery(object):
             date_col = research_database_info.get_default_date_column(
                 table=table_id)
             if date_col:
-                min_date = "MIN({})".format(date_col.identifier(grammar))
-                max_date = "MAX({})".format(date_col.identifier(grammar))
+                min_date = f"MIN({date_col.identifier(grammar)})"
+                max_date = f"MAX({date_col.identifier(grammar)})"
             else:
                 min_date = "NULL"
                 max_date = "NULL"
@@ -2019,7 +2016,7 @@ class PatientExplorer(models.Model):
             self.patient_multiquery = PatientMultiQuery()
 
     def __str__(self) -> str:
-        return "<PatientExplorer id={}>".format(self.id)
+        return f"<PatientExplorer id={self.id}>"
 
     def save(self, *args, **kwargs) -> None:
         """
@@ -2261,7 +2258,7 @@ class PatientExplorer(models.Model):
             with self.get_executed_cursor(sql, args) as cursor:
                 try:
                     fieldnames = get_fieldnames_from_cursor(cursor)
-                except:
+                except (AttributeError, IndexError):
                     fieldnames = []
                 ws.append(fieldnames)
                 row = cursor.fetchone()
@@ -2303,7 +2300,7 @@ class PatientExplorer(models.Model):
         # However, it's not easy to pass parameters (such as an
         # HtmlElementCounter) back to Python from Django templates.
         # So we can hack it a bit:
-        element_counter = HtmlElementCounter(prefix="pe_{}_".format(self.id))
+        element_counter = HtmlElementCounter(prefix=f"pe_{self.id}_")
         return self.patient_multiquery.summary_html(
             element_counter=element_counter)
 
@@ -2393,4 +2390,4 @@ class PatientExplorerAudit(models.Model):
     fail_msg = models.TextField()
 
     def __str__(self):
-        return "<PatientExplorerAudit id={}>".format(self.id)
+        return f"<PatientExplorerAudit id={self.id}>"

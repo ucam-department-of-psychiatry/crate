@@ -53,14 +53,14 @@ def main() -> int:
     Command-line entry point. See command-line help.
     """
     parser = argparse.ArgumentParser(
-        description="""
+        description=f"""
 Test CRATE text extraction and/or detect text in files.
 
 Exit codes:
-- {} for "text found"
-- {} for "no text found"
-- {} for "error" (e.g. file not found)
-        """.format(EXIT_TEXT, EXIT_NO_TEXT, EXIT_ERROR),
+- {EXIT_TEXT} for "text found"
+- {EXIT_NO_TEXT} for "no text found"
+- {EXIT_ERROR} for "error" (e.g. file not found)
+        """,
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter)
     parser.add_argument('filename', type=str,
                         help="File from which to extract text")

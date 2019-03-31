@@ -143,7 +143,7 @@ class NlpWebViews(object):
         if is_args:
             description = "Request did not contain top-level key 'args'"
         else:
-            description = "Args did not contain key '{}'".format(key)
+            description = f"Args did not contain key '{key}'"
         return self.create_error_response(error, description)
 
     @view_config(route_name='index')
@@ -283,8 +283,8 @@ class NlpWebViews(object):
                     error = BAD_REQUEST
                     self.request.response.status = error.http_status
                     description = (
-                        "Processor {} does not exist in the version "
-                        "specified".format(processor[NKeys.NAME])
+                        f"Processor {processor[NKeys.NAME]} "
+                        f"does not exist in the version specified"
                     )
                     return self.create_error_response(error, description)
                 # Send the text off for processing
@@ -377,8 +377,7 @@ class NlpWebViews(object):
             except KeyError:
                 error = BAD_REQUEST
                 self.request.response.status = error.http_status
-                description = "Missing key {!r} in {!r}".format(
-                    NKeys.TEXT, NKeys.CONTENT)
+                description = f"Missing key {NKeys.TEXT!r} in {NKeys.CONTENT!r}"  # noqa
                 return self.create_error_response(error, description)
             result_ids = []  # result ids for all procs for this doc
             proc_ids = []
@@ -399,8 +398,8 @@ class NlpWebViews(object):
                     error = BAD_REQUEST
                     self.request.response.status = error.http_status
                     description = (
-                        "Processor {} does not exist in the version "
-                        "specified".format(processor[NKeys.NAME])
+                        f"Processor {processor[NKeys.NAME]} "
+                        f"does not exist in the version specified"
                     )
                     return self.create_error_response(error, description)
                 docprocreq_id = str(uuid.uuid4())
@@ -545,8 +544,8 @@ class NlpWebViews(object):
                     error = BAD_REQUEST
                     self.request.response.status = error.http_status
                     description = (
-                        "Processor '{}', version {} does not exist".format(
-                            procname, procversion))
+                        f"Processor '{procname}', "
+                        f"version {procversion} does not exist")
                     return self.create_error_response(error, description)
 
                 success, processed_text, errcode, errmsg, time = result.get()

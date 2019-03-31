@@ -153,14 +153,14 @@ def lex_freq(x: str) -> str:
     """
     For MedEx's ``lexicon.cfg``: creates a frequency line.
     """
-    return "{}\tFREQ".format(x)
+    return f"{x}\tFREQ"
 
 
 def lex_route(x: str) -> str:
     """
     For MedEx's ``lexicon.cfg``: creates a route line.
     """
-    return "{}\tRUT".format(x)
+    return f"{x}\tRUT"
 
 
 def semantic_rule_engine_line(frequency: str,
@@ -191,8 +191,7 @@ def semantic_rule_engine_line(frequency: str,
                 regex_str += r'\\.\\s*'
         else:
             regex_str += c
-    return r'        regexlist.put("^({})( |$)", "FREQ");  // RNC'.format(
-        regex_str)
+    return fr'        regexlist.put("^({regex_str})( |$)", "FREQ");  // RNC'
 
 
 def frequency_rules_line(frequency: str, timex: str,
@@ -225,10 +224,10 @@ def frequency_rules_line(frequency: str, timex: str,
                 regex_str += r'\.\s?'
         elif c.isalpha():
             # Case-insensitive here.
-            regex_str += r'[{}{}]'.format(c.upper(), c.lower())
+            regex_str += fr'[{c.upper()}{c.lower()}]'
         else:
             regex_str += c
-    return r'expression="{}",val="{}"'.format(regex_str, timex)
+    return fr'expression="{regex_str}",val="{timex}"'
 
 
 def add_lines_if_not_in(filename: str, lines: List[str]) -> None:
@@ -243,12 +242,12 @@ def add_lines_if_not_in(filename: str, lines: List[str]) -> None:
     """
     with open(filename, 'r') as f:
         existing = f.readlines()  # will have trailing newlines
-    log.info("Read {} lines from {}".format(len(existing), filename))
+    log.info(f"Read {len(existing)} lines from {filename}")
     # print(existing[-5:])
     with open(filename, 'a') as f:
         for line in lines:
             if terminate(line) not in existing:
-                log.info("Adding {} line: {}".format(filename, repr(line)))
+                log.info(f"Adding {filename} line: {line!r}")
                 f.write(terminate(line))
 
 
@@ -281,7 +280,7 @@ def add_lines_after_trigger(filename: str, trigger: str,
     """
     with open(filename, 'r') as f:
         existing = f.readlines()
-    log.info("Read {} lines from {}".format(len(existing), filename))
+    log.info(f"Read {len(existing)} lines from {filename}")
     with open(filename, 'w') as f:
         index = 0
         for line in existing:
@@ -300,7 +299,7 @@ def add_lines_after_trigger(filename: str, trigger: str,
         # Add stuff
         f.write(terminate(start_marker))
         for line in lines:
-            log.info("Adding {} line: {}".format(filename, repr(line)))
+            log.info(f"Adding {filename} line: {repr(line)}")
             f.write(terminate(line))
         f.write(terminate(end_marker))
         # Write the rest
@@ -329,7 +328,7 @@ def replace_in_file(filename: str, changes: List[Tuple[str, str]],
             we'll create a backup file; what should we append to the filename
             to give the name of the backup file?
     """
-    log.info("Replacing code in file: {}".format(filename))
+    log.info(f"Replacing code in file: {filename}")
     # Read contents
     with open(filename, encoding=encoding) as input_file:
         original_content = input_file.read()
@@ -344,7 +343,7 @@ def replace_in_file(filename: str, changes: List[Tuple[str, str]],
     # Make backup, if different
     backup_name = filename + backup_suffix
     os.rename(filename, backup_name)
-    log.info("... backup is: {}".format(repr(backup_name)))
+    log.info(f"... backup is: {repr(backup_name)}")
     # Write out new
     with open(filename, 'w', encoding=encoding) as output_file:
         output_file.write(new_content)
@@ -358,14 +357,14 @@ def main() -> None:
     # Arguments
     # -------------------------------------------------------------------------
     parser = argparse.ArgumentParser(
-        description="Compile MedEx-UIMA itself (in Java)")
+        description="Compile MedEx-UIMA itself (in Java)",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--medexdir', default=DEFAULT_MEDEX_DIR,
-        help="Root directory of MedEx installation (default: {})".format(
-            DEFAULT_MEDEX_DIR))
+        help="Root directory of MedEx installation")
     parser.add_argument(
         '--javac', default=DEFAULT_JAVAC,
-        help="Java compiler (default: {})".format(DEFAULT_JAVAC))
+        help="Java compiler")
     parser.add_argument(
         '--deletefirst', action='store_true',
         help="Delete existing .class files first (optional)")
@@ -545,7 +544,7 @@ on.
         # ... compiling this compiles everything else necessary
         ['-d', bindir]  # put the binaries here
     )
-    log.info("Executing command: {}".format(cmdargs))
+    log.info(f"Executing command: {cmdargs}")
     subprocess.check_call(cmdargs)
 
 

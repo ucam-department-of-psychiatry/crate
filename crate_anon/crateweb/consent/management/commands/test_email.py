@@ -53,5 +53,5 @@ class Command(BaseCommand):
             [recipient],
             fail_silently=False,
         )
-        self.stdout.write("Successfully sent e-mail from {} to {}".format(
-            sender, recipient))
+        self.stdout.write(
+            f"Successfully sent e-mail from {sender} to {recipient}")

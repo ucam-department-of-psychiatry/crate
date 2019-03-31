@@ -63,7 +63,7 @@ class CratewebService(WindowsService):
     _svc_description_ = "Runs Django/Celery processes for CRATE web site"
     # how to launch?
     _exe_name_ = sys.executable  # python.exe in the virtualenv
-    _exe_args_ = '"{}"'.format(os.path.realpath(__file__))  # this script
+    _exe_args_ = f'"{os.path.realpath(__file__)}"'  # this script
 
     # -------------------------------------------------------------------------
     # The service
@@ -84,7 +84,7 @@ class CratewebService(WindowsService):
             logdir = os.environ[ENVVAR]
         except KeyError:
             raise ValueError(
-                "Must specify {} system environment variable".format(ENVVAR))
+                f"Must specify {ENVVAR} system environment variable")
 
         # Define processes
         djangolog = os.path.join(logdir, 'crate_log_django.txt')

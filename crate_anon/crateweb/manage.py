@@ -47,18 +47,18 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE",
                       "crate_anon.crateweb.config.settings")
 
 # from crate_anon.crateweb.config.settings import MIDDLEWARE_CLASSES
-# print("1. MIDDLEWARE_CLASSES: {}".format(id(MIDDLEWARE_CLASSES)))
-# print("1. MIDDLEWARE_CLASSES: {}".format(MIDDLEWARE_CLASSES))
+# print(f"1. MIDDLEWARE_CLASSES: {id(MIDDLEWARE_CLASSES)}")
+# print(f"1. MIDDLEWARE_CLASSES: {MIDDLEWARE_CLASSES}")
 django.setup()
 # from crate_anon.crateweb.config.settings import MIDDLEWARE_CLASSES
-# print("2. MIDDLEWARE_CLASSES: {}".format(id(MIDDLEWARE_CLASSES)))
-# print("2. MIDDLEWARE_CLASSES: {}".format(MIDDLEWARE_CLASSES))
+# print(f"2. MIDDLEWARE_CLASSES: {id(MIDDLEWARE_CLASSES)}")
+# print(f"2. MIDDLEWARE_CLASSES: {MIDDLEWARE_CLASSES}")
 
-# print("sys.path: {}".format(sys.path))
-# print("os.environ['DJANGO_SETTINGS_MODULE']: {}".format(
-#     os.environ['DJANGO_SETTINGS_MODULE']))
-# print("os.environ['{}']: {}".format(
-#     CRATEWEB_CONFIG_ENV_VAR, os.environ[CRATEWEB_CONFIG_ENV_VAR]))
+# print(f"sys.path: {sys.path}")
+# print(f"os.environ['DJANGO_SETTINGS_MODULE']: "
+#       f"{os.environ['DJANGO_SETTINGS_MODULE']}")
+# print(f"os.environ['{CRATEWEB_CONFIG_ENV_VAR}']: "
+#       f"{os.environ[CRATEWEB_CONFIG_ENV_VAR]}")
 
 
 def main(argv: List[str] = None) -> None:

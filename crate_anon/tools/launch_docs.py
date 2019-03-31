@@ -37,7 +37,7 @@ def main():
     """
     Command-line entry point.
     """
-    print("Launching help: {}".format(CRATE_DOCS_URL))
+    print(f"Launching help: {CRATE_DOCS_URL}")
     launch_external_file(CRATE_DOCS_URL)
 
 

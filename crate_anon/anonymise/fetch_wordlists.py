@@ -85,11 +85,11 @@ def write_words_to_file(filename: str, words: Iterable[str]) -> None:
         filename: filename to open (or ``'-'`` for stdout)
         words: iterable of words
     """
-    log.info("Writing to: {}".format(filename))
+    log.info(f"Writing to: {filename}")
     with smart_open(filename, "w") as f:
         for word in words:
             f.write(word + "\n")
-    log.info("... finished writing to: {}".format(filename))
+    log.info(f"... finished writing to: {filename}")
 
 
 # =============================================================================
@@ -123,7 +123,7 @@ def gen_valid_words_from_words(words: Iterable[str],
         if len(word) >= min_word_length and valid_word.match(word):
             yield word
         elif show_rejects:
-            log.debug("Rejecting word: {!r}".format(word))
+            log.debug(f"Rejecting word: {word!r}")
             print(word)
 
 
@@ -180,8 +180,10 @@ class NameInfo(object):
         self.cumfreq_pct = cumfreq_pct
 
     def __str__(self) -> str:
-        return "{!r} (freq. {}%, cumulative freq. {}%)".format(
-            self.name, self.freq_pct, self.cumfreq_pct)
+        return (
+            f"{self.name!r} (freq. {self.freq_pct}%, "
+            f"cumulative freq. {self.cumfreq_pct}%)"
+        )
 
     def assert_freq_info(self) -> None:
         """
@@ -190,7 +192,7 @@ class NameInfo(object):
         assert (
             isinstance(self.freq_pct, float) and
             isinstance(self.cumfreq_pct, float)
-        ), "Bad frequencies in {}".format(self)
+        ), f"Bad frequencies in {self}"
 
 
 def gen_sufficiently_frequent_names(infolist: Iterable[NameInfo],
@@ -219,14 +221,15 @@ def gen_sufficiently_frequent_names(infolist: Iterable[NameInfo],
     """
     assert min_cumfreq_pct <= max_cumfreq_pct
     if min_cumfreq_pct > 0 or max_cumfreq_pct < 100:
-        log.info("Restricting to surnames with {} <= cumfreq_pct <= {}".format(
-            min_cumfreq_pct, max_cumfreq_pct))
+        log.info(
+            f"Restricting to surnames with "
+            f"{min_cumfreq_pct} <= cumfreq_pct <= {max_cumfreq_pct}")
         for info in infolist:
             info.assert_freq_info()
             if min_cumfreq_pct <= info.cumfreq_pct <= max_cumfreq_pct:
                 yield info
             elif show_rejects:
-                log.debug("Rejecting name {}".format(info))
+                log.debug(f"Rejecting name {info}")
                 print(info.name)
     else:
         for info in infolist:
@@ -308,7 +311,7 @@ def gen_us_forename_info(lines: Iterable[str]) -> \
         else:
             seen[info.name] = info
     # Now sort in descending order of frequency
-    log.info("Seen names for {} people".format(total))
+    log.info(f"Seen names for {total} people")
     infolist = list(seen.values())
     infolist.sort(key=attrgetter('frequency'), reverse=True)
     cumfreq_pct = 0.0
@@ -412,7 +415,7 @@ def float_or_na_for_us_surnames(x: Union[float, str]) -> Optional[float]:
         if x == "(S)":  # suppressed for small numbers
             return None
         raise ValueError(
-            "Unknown value to float_or_na_for_us_surnames: {!r}".format(x))
+            f"Unknown value to float_or_na_for_us_surnames: {x!r}")
 
 
 class UsSurname2010Info(NameInfo):
@@ -631,8 +634,8 @@ def filter_files(input_filenames: List[str],  # "A"
     input_output_overlap = set(input_filenames).intersection(
         set(exclusion_filenames))
     if len(input_output_overlap) > 0:
-        raise ValueError("Input and exclusion files cannot overlap; overlap "
-                         "is {}".format(input_output_overlap))
+        raise ValueError(f"Input and exclusion files cannot overlap; "
+                         f"overlap is {input_output_overlap}")
         # ... because it's pointless, and/or it's unsafe to use stdin for
         # both A and B
     if output_filename != "-":
@@ -647,9 +650,9 @@ def filter_files(input_filenames: List[str],  # "A"
             # as above.)
     # Announce intention
     log.info(
-        "Finding lines in A={a} that are not in B={b} (in case-insensitive "
-        "fashion); writing to OUT={o}".format(
-            a=input_filenames, b=exclusion_filenames, o=output_filename))
+        f"Finding lines in A={input_filenames} that are not in "
+        f"B={exclusion_filenames} (in case-insensitive fashion); "
+        f"writing to OUT={output_filename}")
     # Do it
     a_count = 0
     output_count = 0
@@ -675,9 +678,8 @@ def filter_files(input_filenames: List[str],  # "A"
                         continue
                     outfile.write(a_line)
                     output_count += 1
-    log.info(
-        "... done (line counts: A {a}, B {b}, OUT {o})".format(
-            a=a_count, b=b_count, o=output_count))
+    log.info(f"... done (line counts: A {a_count}, B {b_count}, "
+             f"OUT {output_count})")
 
 
 # =============================================================================
@@ -907,8 +909,7 @@ def main() -> None:
         sys.exit(0)
 
     if args.min_word_length > 1:
-        log.info("Restricting to words of length >= {}".format(
-            args.min_word_length))
+        log.info(f"Restricting to words of length >= {args.min_word_length}")
 
     if args.english_words:
         fetch_english_words(url=args.english_words_url,

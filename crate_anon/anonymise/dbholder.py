@@ -91,7 +91,7 @@ class DatabaseHolder(object):
         """
         if not self._reflect_on_request:
             return
-        log.info("Reflecting database: {}".format(self.name))
+        log.info(f"Reflecting database: {self.name}")
         # self.table_names = get_table_names(self.engine)
         self._metadata.reflect(views=True)  # include views
         self._table_names = [t.name for t in self._metadata.sorted_tables]

@@ -72,6 +72,7 @@ import sys
 # import textwrap
 from typing import Any, Dict, Generator, Iterable, List, TextIO
 
+from cardinal_pythonlib.argparse_func import RawDescriptionArgumentDefaultsHelpFormatter  # noqa
 from cardinal_pythonlib.dicts import rename_key
 from cardinal_pythonlib.extract_text import docx_process_simple_text
 from cardinal_pythonlib.fileops import find_first
@@ -678,7 +679,7 @@ class County1991(Base):
             if value == '':
                 kwargs[field] = None
             else:
-                kwargs[field] = "{:0>2}".format(int(value))
+                kwargs[field] = f"{int(value):0>2}"
 
         process_00('county_code_census')
         process_00('county_code_ogss')
@@ -1573,12 +1574,12 @@ def populate_postcode_table(filename: str,
     if not replace:
         engine = session.bind
         if engine.has_table(tablename):
-            log.info("Table {} exists; skipping".format(tablename))
+            log.info(f"Table {tablename} exists; skipping")
             return
-    log.info("Dropping/recreating table: {}".format(tablename))
+    log.info(f"Dropping/recreating table: {tablename}")
     table.drop(checkfirst=True)
     table.create(checkfirst=True)
-    log.info("Using ONSPD data file: {}".format(filename))
+    log.info(f"Using ONSPD data file: {filename}")
     n = 0
     n_inserted = 0
     extra_fields = []
@@ -1588,19 +1589,19 @@ def populate_postcode_table(filename: str,
         for row in reader:
             n += 1
             if n % reportevery == 0:
-                log.info("Processing row {}: {} ({} inserted)".format(
-                    n, row['pcds'], n_inserted))
+                log.info(f"Processing row {n}: {row['pcds']} "
+                         f"({n_inserted} inserted)")
                 # log.debug(row)
             if n == 1:
                 file_fields = sorted(row.keys())
                 missing_fields = sorted(set(db_fields) - set(file_fields))
                 extra_fields = sorted(set(file_fields) - set(db_fields))
                 if missing_fields:
-                    log.warning("Fields in database but not file: {}".format
-                                (missing_fields))
+                    log.warning(
+                        f"Fields in database but not file: {missing_fields}")
                 if extra_fields:
-                    log.warning("Fields in file but not database : {}".format(
-                        extra_fields))
+                    log.warning(
+                        f"Fields in file but not database : {extra_fields}")
             for k in extra_fields:
                 del row[k]
             if startswith:
@@ -1664,14 +1665,14 @@ def populate_generic_lookup_table(
     if not replace:
         engine = session.bind
         if engine.has_table(tablename):
-            log.info("Table {} exists; skipping".format(tablename))
+            log.info(f"Table {tablename} exists; skipping")
             return
 
-    log.info("Dropping/recreating table: {}".format(tablename))
+    log.info(f"Dropping/recreating table: {tablename}")
     sa_class.__table__.drop(checkfirst=True)
     sa_class.__table__.create(checkfirst=True)
 
-    log.info('Processing file "{}" -> table "{}"'.format(filename, tablename))
+    log.info(f'Processing file "{filename}" -> table "{tablename}"')
     ext = os.path.splitext(filename)[1].lower()
     type_xlsx = ext in ['.xlsx']
     type_csv = ext in ['.csv']
@@ -1708,7 +1709,7 @@ def populate_generic_lookup_table(
     for datadict in dict_iterator:
         n += 1
         if debug:
-            log.critical("{}: {}".format(n, datadict))
+            log.critical(f"{n}: {datadict}")
         # filter out blanks:
         datadict = {k: v for k, v in datadict.items() if k}
         obj = sa_class(**datadict)
@@ -1717,7 +1718,7 @@ def populate_generic_lookup_table(
             commit_and_announce(session)
     if commit:
         commit_and_announce(session)
-    log.info("... inserted {} rows".format(n))
+    log.info(f"... inserted {n} rows")
 
     if file:
         file.close()
@@ -1762,7 +1763,7 @@ def main() -> None:
     Command-line entry point. See command-line help.
     """
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
         description=
         r"""
 -   This program reads data from the UK Office of National Statistics Postcode
@@ -1794,22 +1795,20 @@ def main() -> None:
     """)  # noqa
     parser.add_argument(
         "--dir", default=DEFAULT_ONSPD_DIR,
-        help="Root directory of unzipped ONSPD download (default: {})".format(
-            DEFAULT_ONSPD_DIR))
+        help="Root directory of unzipped ONSPD download")
     parser.add_argument(
         "--url", help="SQLAlchemy database URL")
     parser.add_argument(
         "--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
         "--reportevery", type=int, default=DEFAULT_REPORT_EVERY,
-        help="Report every n rows (default: {})".format(DEFAULT_REPORT_EVERY))
+        help="Report every n rows")
     parser.add_argument(
         "--commitevery", type=int, default=DEFAULT_COMMIT_EVERY,
         help=(
-            "Commit every n rows (default: {}). If you make this too large "
+            "Commit every n rows. If you make this too large "
             "(relative e.g. to your MySQL max_allowed_packet setting, you may"
-            " get crashes with errors like 'MySQL has gone away'.".format(
-                DEFAULT_COMMIT_EVERY)))
+            " get crashes with errors like 'MySQL has gone away'."))
     parser.add_argument(
         "--startswith", nargs="+",
         help="Restrict to postcodes that start with one of these strings")
@@ -1838,7 +1837,7 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(
         rootlogger, level=logging.DEBUG if args.verbose else logging.INFO)
-    log.debug("args = {}".format(repr(args)))
+    log.debug(f"args = {args!r}")
 
     if args.docsonly:
         show_docs()
@@ -1912,7 +1911,7 @@ def main() -> None:
                                  sa_class.__filename__))
         tables_files.sort(key=lambda x: x[0])
         for table, file in tables_files:
-            print("Table {} from file {}".format(table, repr(file)))
+            print(f"Table {table} from file {file!r}")
         return
 
     if not args.url:
@@ -1923,7 +1922,7 @@ def main() -> None:
     metadata.bind = engine
     session = sessionmaker(bind=engine)()
 
-    log.info("Using directory: {}".format(args.dir))
+    log.info(f"Using directory: {args.dir}")
     # lookupdir = os.path.join(args.dir, "Documents")
     lookupdir = args.dir
     # datadir = os.path.join(args.dir, "Data")

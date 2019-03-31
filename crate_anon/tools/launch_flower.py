@@ -42,7 +42,7 @@ def main():
         "-A", CELERY_APP_NAME,
         "flower"
     ]
-    print("Launching Flower: {}".format(cmdargs))
+    print(f"Launching Flower: {cmdargs}")
     subprocess.call(cmdargs)
 
 

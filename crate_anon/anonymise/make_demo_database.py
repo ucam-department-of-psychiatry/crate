@@ -316,8 +316,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--size", type=int, default=default_size, choices=[0, 1, 2, 3],
-        help="Make tiny (0), small (1), medium (2), or large (3) database "
-             "(default={})".format(default_size))
+        help="Make tiny (0), small (1), medium (2), or large (3) database")
     parser.add_argument(
         '--verbose', '-v', action='store_true',
         help="Be verbose")
@@ -363,8 +362,9 @@ def main() -> None:
 
     # 0. Announce intentions
 
-    log.info("n_patients={}, notes_per_patient={}, words_per_note={}".format(
-        n_patients, notes_per_patient, words_per_note))
+    log.info(f"n_patients={n_patients}, "
+             f"notes_per_patient={notes_per_patient}, "
+             f"words_per_note={words_per_note}")
 
     # 1. Get words
 
@@ -379,7 +379,7 @@ def main() -> None:
     # 2. Open database
 
     log.info("Opening database.")
-    log.debug("URL: {}".format(args.url))
+    log.debug(f"URL: {args.url}")
     engine = create_engine(args.url, echo=args.echo, encoding=CHARSET)
     session = sessionmaker(bind=engine)()
 
@@ -391,8 +391,9 @@ def main() -> None:
 
     # 4. Insert
 
-    log.info("Aiming for a total of {} words in notes.".format(
-        n_patients * notes_per_patient * words_per_note))
+    log.info(f"Aiming for a total of "
+             f"{n_patients * notes_per_patient * words_per_note} "
+             f"words in notes.")
 
     log.info("Inserting data.")
 
@@ -496,7 +497,7 @@ Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
     prev_surname = ''
     for p in range(n_patients):
         if p % REPORT_EVERY == 0:
-            log.info("patient {}".format(p))
+            log.info(f"patient {p}")
         forename = words[(p + 1) % nwords] + " " + words[(p + 10) % nwords]
         surname = words[(p + 2) % nwords]
         dob = BASE_DOB + datetime.timedelta(days=p)
@@ -522,8 +523,7 @@ Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
         fname = "FORENAME: " + forename + ". "
         sname = "SURNAME: " + surname + ". "
         rname = "RELATIVE: " + prev_forename + " " + prev_surname + ". "
-        numbers = "NUMBERS: {}, {}, {}. ".format(patient_id, patient_id + 1,
-                                                 nhsnum)
+        numbers = f"NUMBERS: {patient_id}, {patient_id + 1}, {nhsnum}. "
         for n in range(notes_per_patient):
             wstr = " ".join(words[p % nwords:(p + words_per_note) % nwords])
             note = Note(

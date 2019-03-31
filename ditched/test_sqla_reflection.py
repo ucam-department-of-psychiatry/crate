@@ -82,20 +82,16 @@ def test_reflection(url, echo=True):
             coltype = col['type']  # e.g. salalchemy.dialects.mysql.base.INTEGER  # noqa
             sqltype = str(coltype)  # e.g. "INTEGER(11)"
             sqlatype = repr(coltype)
-            descriptions.append("{name}: {sqltype} / {sqlatype}".format(
-                name=name, sqltype=sqltype, sqlatype=sqlatype))
+            descriptions.append(f"{name}: {sqltype} / {sqlatype}")
             # print(
-            #     "Column: name={name}, raw SQL type={sqltype}, object={obj}, "
-            #     "column object type={objtype}, "
-            #     "column type type={typetype}".format(
-            #         name=name, sqltype=sqltype, obj=col, objtype=type(col),
-            #         typetype=type(coltype)))
+            #     f"Column: name={name}, raw SQL type={sqltype}, object={col}, "
+            #     f"column object type={type(col)}, "
+            #     f"column type type={type(coltype)}")
         print("=" * 79)
         print(t)
         print("=" * 79)
-        print("COUNT(*): {}".format(count_star(conn, t)))
-        # print("EXISTS test: {}".format(
-        #     plain_exists(conn, t, column('brcid')==3)))
+        print(f"COUNT(*): {count_star(conn, t)}")
+        # print(f"EXISTS test: {plain_exists(conn, t, column('brcid') == 3)}")
         print("\n".join(descriptions))
         print()
 
@@ -147,9 +143,7 @@ def test_sqlserver(echo=True):
     user = 'researcher'
     password = 'blibble'
     freetdsname = 'crate_sqlserver_test'  # /etc/freetds/freetds.conf
-    url = (
-        'mssql+pymssql://{user}:{password}@{freetdsname}/?charset=utf8'.format(
-            user=user, password=password, freetdsname=freetdsname))
+    url = f'mssql+pymssql://{user}:{password}@{freetdsname}/?charset=utf8'
     print(url)
     test_reflection(url, echo=echo)
 
@@ -176,7 +170,7 @@ def count_star(conn, tablename):
 
 if __name__ == '__main__':
     crate_url = os.environ['TMP_CRATE_SQLA_URL_RESEARCH']
-    print("Using URL: {}".format(crate_url))
+    print(f"Using URL: {crate_url}")
     # test_create()
     # test_sqlserver()
     test_reflection(crate_url)

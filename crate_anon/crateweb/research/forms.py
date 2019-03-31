@@ -148,12 +148,9 @@ class PidLookupForm(forms.Form):
         rids = self.fields['rids']  # type: MultipleIntAreaField
         mrids = self.fields['mrids']  # type: MultipleIntAreaField
         trids = self.fields['trids']  # type: MultipleIntAreaField
-        rids.label = "{}: {} (RID)".format(dbinfo.rid_field,
-                                           dbinfo.rid_description)
-        mrids.label = "{}: {} (MRID)".format(dbinfo.mrid_field,
-                                             dbinfo.mrid_description)
-        trids.label = "{}: {} (TRID)".format(dbinfo.trid_field,
-                                             dbinfo.trid_description)
+        rids.label = f"{dbinfo.rid_field}: {dbinfo.rid_description} (RID)"
+        mrids.label = f"{dbinfo.mrid_field}: {dbinfo.mrid_description} (MRID)"
+        trids.label = f"{dbinfo.trid_field}: {dbinfo.trid_description} (TRID)"
 
 
 class RidLookupForm(forms.Form):
@@ -178,8 +175,8 @@ class RidLookupForm(forms.Form):
         super().__init__(*args, **kwargs)
         pids = self.fields['pids']  # type: MultipleIntAreaField
         mpids = self.fields['mpids']  # type: MultipleIntAreaField
-        pids.label = "{} (PID)".format(dbinfo.pid_description)
-        mpids.label = "{} (MPID)".format(dbinfo.mpid_description)
+        pids.label = f"{dbinfo.pid_description} (PID)"
+        mpids.label = f"{dbinfo.mpid_description} (MPID)"
 
 
 DEFAULT_MIN_TEXT_FIELD_LENGTH = 100
@@ -221,9 +218,8 @@ class SQLHelperFindAnywhereForm(forms.Form):
         "(faster, but requires whole words)",
         required=False)
     min_length = IntegerField(
-        label="Minimum 'width' of textual field to include (e.g. {})".format(
-            DEFAULT_MIN_TEXT_FIELD_LENGTH
-        ),
+        label=f"Minimum 'width' of textual field to include "
+              f"(e.g. {DEFAULT_MIN_TEXT_FIELD_LENGTH})",
         min_value=1, required=True)
     include_content = BooleanField(
         label="Include content from fields where found (slower)",
@@ -256,8 +252,8 @@ class SQLHelperFindAnywhereForm(forms.Form):
                     _ = opt.type_(pidvalue)
                 except (TypeError, ValueError):
                     raise forms.ValidationError(
-                        "For field {!r}, the ID value must be of "
-                        "type {}".format(opt.description, opt.type_))
+                        f"For field {opt.description!r}, the ID value must be "
+                        f"of type {opt.type_}")
             else:
                 self._check_permits_empty_id_for_blank_id(opt)
         return cleaned_data
@@ -267,8 +263,8 @@ class SQLHelperFindAnywhereForm(forms.Form):
         # Exists as a function so ClinicianAllTextFromPidForm can override it.
         if not opt.permits_empty_id:
             raise forms.ValidationError(
-                "For this ID type ({}), you must specify an ID "
-                "value".format(opt.value))
+                f"For this ID type ({opt.value}), "
+                f"you must specify an ID value")
 
 
 # class SQLHelperTextAnywhereForm(forms.Form):
@@ -626,7 +622,7 @@ class QueryBuilderForm(forms.Form):
                 value = form_to_python_fn(raw_item)
             except (TypeError, ValueError):
                 self.add_error('file', forms.ValidationError(
-                    "File contains bad value: {}".format(repr(raw_item))))
+                    f"File contains bad value: {raw_item!r}"))
                 return
             self.file_values_list.append(value)
         if not self.file_values_list:

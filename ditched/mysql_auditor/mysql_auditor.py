@@ -137,8 +137,8 @@ except ImportError:
 
 DATE = time.strftime("%Y_%m_%d")
 
-DEFAULT_AUDIT_LOG = 'mysql_audit_{}.log'.format(DATE)
-DEFAULT_ERROR_LOG = 'mysqlproxy_{}.log'.format(DATE)
+DEFAULT_AUDIT_LOG = f'mysql_audit_{DATE}.log'
+DEFAULT_ERROR_LOG = f'mysqlproxy_{DATE}.log'
 DEFAULT_LOGDIR = '/var/log/mysql_auditor'
 # DEFAULT_MYSQLPROXY = 'mysql-proxy'
 DEFAULT_MYSQLPROXY = os.path.expanduser(
@@ -179,12 +179,8 @@ def fail(msg):
 
 
 def wait(time_sec):
-    print("Waiting {} seconds...".format(time_sec))
+    print(f"Waiting {time_sec} seconds...")
     time.sleep(time_sec)
-
-
-
-
 
 
 # =============================================================================
@@ -282,8 +278,8 @@ class DaemonRunner:
         # RNC modification
         self.action = action  # RNC
         if action not in self.action_funcs:  # RNC
-            raise ValueError("Bad action: {} (permitted: {})".format(
-                action, '|'.join(self.action_funcs.keys())))
+            raise ValueError(f"Bad action: {action} (permitted: "
+                             f"{'|'.join(self.action_funcs.keys())})")
 
         self.app = app
         self.daemon_context = DaemonContext()
@@ -322,8 +318,7 @@ class DaemonRunner:
             self.daemon_context.open()
         except lockfile.AlreadyLocked:
             error = DaemonRunnerStartFailureError(
-                    "PID file {pidfile.path!r} already locked".format(
-                        pidfile=self.pidfile))
+                f"PID file {self.pidfile.path!r} already locked")
             raise error
 
         pid = os.getpid()
@@ -344,8 +339,7 @@ class DaemonRunner:
             os.kill(pid, signal.SIGTERM)
         except OSError as exc:
             error = DaemonRunnerStopFailureError(
-                    "Failed to terminate {pid:d}: {exc}".format(
-                        pid=pid, exc=exc))
+                f"Failed to terminate {pid:d}: {exc}")
             raise error
 
     def _stop(self):
@@ -358,8 +352,7 @@ class DaemonRunner:
             """
         if not self.pidfile.is_locked():
             error = DaemonRunnerStopFailureError(
-                    "PID file {pidfile.path!r} not locked".format(
-                        pidfile=self.pidfile))
+                f"PID file {self.pidfile.path!r} not locked")
             raise error
         if is_pidfile_stale(self.pidfile):
             self.pidfile.break_lock()
@@ -379,13 +372,11 @@ class DaemonRunner:
             if pid is not None:
                 success = True
         if success:
-            print(
-                "Daemon running as process {} "
-                "(according to PID file: {})".format(
-                    pid, self.app.pidfile_path))
+            print(f"Daemon running as process {pid} (according to PID file: "
+                  f"{self.app.pidfile_path})")
         else:
-            print("Daemon not running (based on PID file: {})".format(
-                self.app.pidfile_path))
+            print(f"Daemon not running (based on PID file: "
+                  f"{self.app.pidfile_path})")
 
     action_funcs = {
         'start': _start,
@@ -410,8 +401,7 @@ class DaemonRunner:
             func = self.action_funcs[self.action]
         except KeyError:
             error = DaemonRunnerInvalidActionError(
-                    "Unknown action: {action!r}".format(
-                        action=self.action))
+                f"Unknown action: {self.action!r}")
             raise error
         return func
 
@@ -432,19 +422,17 @@ def emit_message(message, stream=None):
     """ Emit a message to the specified stream (default `sys.stderr`). """
     if stream is None:
         stream = sys.stderr
-    stream.write("{message}\n".format(message=message))
+    stream.write(f"{message}\n")
     stream.flush()
 
 
 def make_pidlockfile(path, acquire_timeout):
     """ Make a PIDLockFile instance with the given filesystem path. """
     if not isinstance(path, str):
-        error = ValueError("Not a filesystem path: {path!r}".format(
-                path=path))
+        error = ValueError(f"Not a filesystem path: {path!r}")
         raise error
     if not os.path.isabs(path):
-        error = ValueError("Not an absolute path: {path!r}".format(
-                path=path))
+        error = ValueError(f"Not an absolute path: {path!r}")
         raise error
     lockfile_ = pidfile.TimeoutPIDLockFile(path, acquire_timeout)
     return lockfile_
@@ -494,22 +482,22 @@ class App:
     def ensure_minimum_mysqlproxy_version(self):
         cmdargs = [self.args.mysqlproxy, '--version']
         ret = subprocess.check_output(cmdargs).decode('utf8')
-        # print("ret: {}".format(ret))
+        # print(f"ret: {ret}")
         m = re.search(r"^mysql-proxy ([\d\.]+)", ret)
         ok = False
         version = None
         if m:
             version = m.group(1)  # e.g.
-            # print("version: {}".format(version))
+            # print(f"version: {version}")
             ok = semver.match(version, MYSQLPROXY_VERSION_REQ)
         if ok:
-            print("Found mysql-proxy {}".format(version))
+            print(f"Found mysql-proxy {version}")
         else:
             fail(
-                "mysql-proxy version must be {}; is {}\n"
-                "See https://dev.mysql.com/doc/mysql-proxy/en/\n"
-                "    http://downloads.mysql.com/archives/proxy/".format(
-                    MYSQLPROXY_VERSION_REQ, version))
+                f"mysql-proxy version must be {MYSQLPROXY_VERSION_REQ}; "
+                f"is {version}\n"
+                f"See https://dev.mysql.com/doc/mysql-proxy/en/\n"
+                f"    http://downloads.mysql.com/archives/proxy/")
 
     def make_log_dir(self):
         os.makedirs(self.args.logdir, exist_ok=True)
@@ -518,24 +506,21 @@ class App:
         # (['sudo'] if args.sudo else [])
         return [
             self.args.mysqlproxy,
-            '--log-level={}'.format(self.args.loglevel),
+            f'--log-level={self.args.loglevel}',
             '--plugins=proxy',
-            '--proxy-address={}:{}'.format(self.args.proxyhost,
-                                           self.args.proxyport),
-            '--proxy-backend-addresses={}:{}'.format(self.args.mysqlhost,
-                                                     self.args.mysqlport),
-            '--proxy-lua-script={}'.format(LUA_SCRIPT),
+            f'--proxy-address={self.args.proxyhost}:{self.args.proxyport}',
+            f'--proxy-backend-addresses={self.args.mysqlhost}:{self.args.mysqlport}',  # noqa
+            f'--proxy-lua-script={LUA_SCRIPT}',
             '--verbose-shutdown',
-            # '--log-file={}'.format(os.path.join(args.logdir, args.logfile)),
+            # f'--log-file={os.path.join(args.logdir, args.logfile)}',
         ]
 
     def run(self):
         self.ensure_minimum_mysqlproxy_version()
         self.make_log_dir()
         cmdargs = self.get_mysqlproxy_args()
-        print("Executing: {}".format(cmdargs))
-        print("Executing: {}".format(
-            ' '.join([shlex.quote(s) for s in cmdargs])))
+        print(f"Executing: {cmdargs}")
+        print(f"Executing: {' '.join([shlex.quote(s) for s in cmdargs])}")
         p = subprocess.Popen(cmdargs, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         # http://stackoverflow.com/questions/12270645/can-you-make-a-python-subprocess-output-stdout-and-stderr-as-usual-but-also-cap  # noqa
@@ -572,14 +557,14 @@ def start(args):
     cmdargs = get_common_mysqlproxy_args(args) + [
         '--daemon',
         '--keepalive',
-        '--pid-file={}'.format(args.pidfile),
+        f'--pid-file={args.pidfile}',
     ]
-    print("Starting auditor as daemon: {}".format(cmdargs))
+    print(f"Starting auditor as daemon: {cmdargs}")
     subprocess.check_call(cmdargs)
     # mysql-proxy writes the PID file itself
     wait(args.startwait)
     pid = get_pid(args)
-    print("Running in daemon mode as process {}".format(pid))
+    print(f"Running in daemon mode as process {pid}")
 
 
 def stop(args):
@@ -588,9 +573,8 @@ def stop(args):
     if not pid:
         fail("Can't get process ID to kill daemon")
     print(
-        "Stopping auditor on process {pid}... If this fails, kill it "
-        "manually (using ps and kill) and remove {pidfile}".format(
-            pid=pid, pidfile=args.pidfile))
+        f"Stopping auditor on process {pid}... If this fails, kill it "
+        f"manually (using ps and kill) and remove {args.pidfile}")
     # http://stackoverflow.com/questions/17856928/how-to-terminate-process-from-python-using-pid  # noqa
     p = psutil.Process(pid)
     p.terminate()  # or p.kill()
@@ -605,9 +589,10 @@ def stop(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Create a TCP/IP interface to MySQL with an audit "
-                    "intermediary, via mysql-proxy. Requires mysql-proxy "
-                    "{}.".format(MYSQLPROXY_VERSION_REQ))
+        description=f"Create a TCP/IP interface to MySQL with an audit "
+                    f"intermediary, via mysql-proxy. Requires mysql-proxy "
+                    f"{MYSQLPROXY_VERSION_REQ}.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'command', choices=('run', 'start', 'stop', 'restart', 'status'),
         help="Action to take (run directly, start as daemon, "
@@ -617,46 +602,39 @@ def main():
     # -------------------------------------------------------------------------
     parser.add_argument(
         '--mysqlhost', default=DEFAULT_MYSQL_HOST,
-        help="MySQL host to connect to (default: {})".format(
-            DEFAULT_MYSQL_HOST))
+        help="MySQL host to connect to")
     parser.add_argument(
         '--mysqlport', type=int, default=DEFAULT_MYSQL_PORT,
-        help="MySQL port to connect to (default: {})".format(
-            DEFAULT_MYSQL_PORT))
+        help="MySQL port to connect to")
     parser.add_argument(
         '--proxyhost', default='',
         help='IP address of the proxy to create (default is blank, meaning '
              '"this computer regardless of its IP address(es)"')
     parser.add_argument(
         '--proxyport', type=int, default=DEFAULT_PROXY_PORT,
-        help="Port number of proxy to create (default: {})".format(
-            DEFAULT_PROXY_PORT))
+        help="Port number of proxy to create")
     parser.add_argument(
         '--mysqlproxy', default=DEFAULT_MYSQLPROXY,
-        help="Path to mysql-proxy executable (default: {})".format(
-            DEFAULT_MYSQLPROXY))
+        help="Path to mysql-proxy executable")
     parser.add_argument(
         '--logdir', default=DEFAULT_LOGDIR,
-        help="Log directory (default: {})".format(DEFAULT_LOGDIR))
+        help="Log directory")
     parser.add_argument(
         '--logfile', default=DEFAULT_AUDIT_LOG,
-        help="Audit log file (default: {})".format(DEFAULT_AUDIT_LOG))
+        help="Audit log file")
     parser.add_argument(
         '--errorlog', default=DEFAULT_ERROR_LOG,
-        help="mysql-proxy error log file, from stderr "
-             "(default: {})".format(DEFAULT_ERROR_LOG))
+        help="mysql-proxy error log file, from stderr")
     parser.add_argument(
         '--loglevel', default=DEFAULT_MYSQLPROXY_LOGLEVEL,
         choices=('error', 'warning', 'info', 'message', 'debug'),
-        help="Log level for mysql-proxy itself (default: {})".format(
-            DEFAULT_MYSQLPROXY_LOGLEVEL))
+        help="Log level for mysql-proxy itself")
     # -------------------------------------------------------------------------
     # Extra arguments for a UNIX daemon; see DaemonRunner
     # -------------------------------------------------------------------------
     parser.add_argument(
         '--pidfile', default=DEFAULT_PID_FILE,
-        help="(UNIX) Process ID (PID) file to be used for daemon mode "
-             "(default: {})".format(DEFAULT_PID_FILE))
+        help="(UNIX) Process ID (PID) file to be used for daemon mode")
     parser.add_argument(
         '--sudo', action='store_true',
         help="(UNIX) Use sudo to run as root")

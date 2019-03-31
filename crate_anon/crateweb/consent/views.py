@@ -285,7 +285,7 @@ def study_pack(request: HttpRequest, study_id: str) -> HttpResponseBase:
         raise Http404("No leaflets")
     return serve_concatenated_pdf_from_disk(
         filenames,
-        offered_filename="study_{}_pack.pdf".format(study_id)
+        offered_filename=f"study_{study_id}_pack.pdf"
     )
 
 

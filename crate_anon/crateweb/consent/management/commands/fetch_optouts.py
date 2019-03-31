@@ -90,8 +90,8 @@ def fetch_optouts(pid_filename: str, mpid_filename: str) -> None:
         mpid_filename: name of the filename to receive MPIDs
     """
     log.info(
-        "Fetching opt-outs from database to files. Storing PIDs to {!r}, "
-        "MPIDs to {!r}.".format(pid_filename, mpid_filename))
+        f"Fetching opt-outs from database to files. Storing PIDs to "
+        f"{pid_filename!r}, MPIDs to {mpid_filename!r}.")
     source_db = settings.CLINICAL_LOOKUP_CONSENT_DB
     with open(pid_filename, "w") as pf:
         with open(mpid_filename, "w") as mf:

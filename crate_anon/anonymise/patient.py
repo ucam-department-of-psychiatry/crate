@@ -70,9 +70,8 @@ def gen_all_values_for_patient(
         return
         # return in a generator: http://stackoverflow.com/questions/13243766
     log.debug(
-        "gen_all_values_for_patient: PID {p}, table {d}.{t}, "
-        "fields: {f}".format(
-            d=dbname, t=tablename, f=",".join(fields), p=pid))
+        f"gen_all_values_for_patient: PID {pid}, "
+        f"table {dbname}.{tablename}, fields: {','.join(fields)}")
     session = config.sources[dbname].session
     query = (
         select([column(f) for f in fields]).
@@ -81,7 +80,7 @@ def gen_all_values_for_patient(
     )
     result = session.execute(query)
     for row in result:
-        log.debug("... yielding row: {}".format(row))
+        log.debug(f"... yielding row: {row}")
         yield row
 
 
@@ -179,8 +178,7 @@ class Patient(object):
             max_depth: maximum recursion depth for third-party information
         """
         if depth > 0:
-            log.debug("Building scrubber recursively: depth = {}".format(
-                depth))
+            log.debug(f"Building scrubber recursively: depth = {depth}")
         # ---------------------------------------------------------------------
         # For all source tables...
         # ---------------------------------------------------------------------

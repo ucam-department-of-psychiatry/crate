@@ -76,8 +76,7 @@ def cli_lookup_consent(nhs_numbers: List[int]) -> None:
         nhs_numbers: list of NHS numbers (as integers)
     """
     source_db = settings.CLINICAL_LOOKUP_CONSENT_DB
-    log.info("Testing consent lookup from clinical database: {}.".format(
-        source_db))
+    log.info(f"Testing consent lookup from clinical database: {source_db}.")
     for nhs_num in nhs_numbers:
         decisions = []  # type: List[str]
         consent_mode = lookup_consent(
@@ -85,9 +84,8 @@ def cli_lookup_consent(nhs_numbers: List[int]) -> None:
             source_db=source_db,
             decisions=decisions
         )
-        log.info("NHS number: {}. Consent mode: {}".format(
-            nhs_num, consent_mode))
-        log.debug("Decisions: {}".format(" // ".join(decisions)))
+        log.info(f"NHS number: {nhs_num}. Consent mode: {consent_mode}")
+        log.debug(f"Decisions: {' // '.join(decisions)}")
     log.info("Done.")
 
 

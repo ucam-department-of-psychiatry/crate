@@ -71,17 +71,17 @@ def main() -> None:
     """
     Command-line processor. See command-line help.
     """
-    version = "Version {} ({})".format(CRATE_VERSION, CRATE_VERSION_DATE)
+    version = f"Version {CRATE_VERSION} ({CRATE_VERSION_DATE})"
     description = (
-        "Runs the CRATE anonymiser in parallel. {}. Note that all arguments "
-        "not specified here are passed to the underlying script "
-        "(see crate_anonymise --help).".format(version))
+        f"Runs the CRATE anonymiser in parallel. {version}. "
+        f"Note that all arguments not specified here are passed to the "
+        f"underlying script (see crate_anonymise --help)."
+    )
     parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument(
         "--nproc", "-n", nargs="?", type=int, default=CPUCOUNT,
-        help="Number of processes (default on this "
-             "machine: {})".format(CPUCOUNT))
+        help=f"Number of processes (default on this machine: {CPUCOUNT})")
     parser.add_argument(
         '--verbose', '-v', action='store_true',
         help="Be verbose")
@@ -93,7 +93,7 @@ def main() -> None:
 
     common_options = ["-v"] * (1 if args.verbose else 0) + unknownargs
 
-    log.debug("common_options: {}".format(common_options))
+    log.debug(f"common_options: {common_options}")
 
     nprocesses_patient = args.nproc
     nprocesses_nonpatient = args.nproc
@@ -147,8 +147,8 @@ def main() -> None:
             sys.executable, '-m', ANONYMISER,
             '--patienttables',
             '--processcluster=PATIENT',
-            '--nprocesses={}'.format(nprocesses_patient),
-            '--process={}'.format(procnum),
+            f'--nprocesses={nprocesses_patient}',
+            f'--process={procnum}',
             '--skip_dd_check'
         ] + common_options
         args_list.append(procargs)
@@ -157,8 +157,8 @@ def main() -> None:
             sys.executable, '-m', ANONYMISER,
             '--nonpatienttables',
             '--processcluster=NONPATIENT',
-            '--nprocesses={}'.format(nprocesses_nonpatient),
-            '--process={}'.format(procnum),
+            f'--nprocesses={nprocesses_nonpatient}',
+            f'--process={procnum}',
             '--skip_dd_check'
         ] + common_options
         args_list.append(procargs)
@@ -175,8 +175,8 @@ def main() -> None:
             sys.executable, '-m', ANONYMISER,
             '--index',
             '--processcluster=INDEX',
-            '--nprocesses={}'.format(nprocesses_index),
-            '--process={}'.format(procnum),
+            f'--nprocesses={nprocesses_index}',
+            f'--process={procnum}',
             '--skip_dd_check'
         ] + common_options for procnum in range(nprocesses_index)
     ]
@@ -189,8 +189,8 @@ def main() -> None:
     main_dur = time_middle - time_start
     index_dur = time_end - time_middle
     total_dur = time_end - time_start
-    print("Time taken: main {} s, indexing {} s, total {} s".format(
-        main_dur, index_dur, total_dur))
+    print(f"Time taken: main {main_dur} s, indexing {index_dur} s, "
+          f"total {total_dur} s")
 
 
 if __name__ == '__main__':

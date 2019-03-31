@@ -59,7 +59,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.python.org/2/reference/datamodel.html
 # Verify this with:
 
-# log.warning("BASE_DIR: {}".format(BASE_DIR))
+# log.warning(f"BASE_DIR: {BASE_DIR}")
 
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
@@ -445,20 +445,20 @@ if RUNNING_WITHOUT_CONFIG:
     SECRET_KEY = 'dummy'  # A Django setting.
 else:
     if CRATEWEB_CONFIG_ENV_VAR not in os.environ:
-        raise ValueError("""
-    You must set the {e} environment variable first.
+        raise ValueError(f"""
+    You must set the {CRATEWEB_CONFIG_ENV_VAR} environment variable first.
     Aim it at your settings file, like this:
 
     (For Linux:)
 
-    export {e}=/etc/crate/my_secret_crate_settings.py
+    export {CRATEWEB_CONFIG_ENV_VAR}=/etc/crate/my_secret_crate_settings.py
 
     (For Windows:)
 
-    set {e}=C:/some/path/my_secret_crate_settings.py
-        """.format(e=CRATEWEB_CONFIG_ENV_VAR))
+    set {CRATEWEB_CONFIG_ENV_VAR}=C:/some/path/my_secret_crate_settings.py
+        """)
     filename = os.environ[CRATEWEB_CONFIG_ENV_VAR]
-    print("Loading local settings from: {}".format(filename))
+    print(f"Loading local settings from: {filename}")
     # ... NB logger not yet set to a reasonable priority; use warning level
     # ... no, logger not even configured, and this is loaded via Django;
     #     use print()!

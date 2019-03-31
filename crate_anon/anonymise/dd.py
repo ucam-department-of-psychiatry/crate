@@ -98,7 +98,7 @@ class DataDictionary(object):
             filename: filename to read
         """
         self.rows = []  # type: List[DataDictionaryRow]
-        log.debug("Opening data dictionary: {}".format(filename))
+        log.debug(f"Opening data dictionary: {filename}")
         with open(filename, 'r') as tsvfile:
             tsv = csv.reader(tsvfile, delimiter='\t')
             headers = next(tsv)
@@ -121,7 +121,7 @@ class DataDictionary(object):
                     ddr.set_from_dict(valuedict)
                     ddr.check_valid()
                 except ValueError:
-                    log.critical("Offending input: {}".format(valuedict))
+                    log.critical(f"Offending input: {valuedict}")
                     raise
                 self.rows.append(ddr)
             log.debug("... content loaded.")
@@ -137,41 +137,38 @@ class DataDictionary(object):
         log.info("Reading information for draft data dictionary")
         existing_signatures = set(ddr.get_signature() for ddr in self.rows)
         for pretty_dbname, db in self.config.sources.items():
-            log.info("... database nice name = {}".format(pretty_dbname))
+            log.info(f"... database nice name = {pretty_dbname}")
             cfg = db.srccfg
             meta = db.metadata
             i = 0
             for t in meta.sorted_tables:
                 tablename = t.name
-                log.info("... ... table: {}".format(tablename))
+                log.info(f"... ... table: {tablename}")
                 new_rows = []  # type: List[DataDictionaryRow]
                 is_patient_table = False
 
                 # Skip table?
                 if cfg.is_table_blacklisted(tablename):
-                    log.debug("Skipping blacklisted table: {}".format(
-                        tablename))
+                    log.debug(f"Skipping blacklisted table: {tablename}")
                     continue
                 all_col_names = [c.name for c in t.columns]
                 if cfg.does_table_fail_minimum_fields(all_col_names):
-                    log.debug("Skipping table {} because it fails minimum "
-                              "field requirements".format(t))
+                    log.debug(f"Skipping table {t} because it fails "
+                              f"minimum field requirements")
                     continue
 
                 for c in t.columns:
                     i += 1
                     if report_every and i % report_every == 0:
-                        log.debug("... reading source field number "
-                                  "{}".format(i))
+                        log.debug(f"... reading source field number {i}")
                     columnname = c.name
                     # import pdb; pdb.set_trace()
-                    # log.critical("str(coltype) == {}".format(str(c.type)))
-                    # log.critical("repr(coltype) == {}".format(repr(c.type)))
+                    # log.critical(f"str(coltype) == {str(c.type)}")
+                    # log.critical(f"repr(coltype) == {repr(c.type)}")
                     try:
                         datatype_sqltext = str(c.type)
                     except sqlalchemy.exc.CompileError:
-                        log.critical("Column that failed was: {}".format(
-                            repr(c)))
+                        log.critical(f"Column that failed was: {c!r}")
                         raise
                     sqla_coltype = c.type
                     # Do not manipulate the case of SOURCE tables/columns.
@@ -179,15 +176,12 @@ class DataDictionary(object):
                     # introspection and cause a crash.
                     # Changed to be a destination manipulation (2016-06-04).
                     if cfg.is_field_blacklisted(columnname):
-                        log.debug("Skipping blacklisted column: {}.{}".format(
-                            tablename, columnname))
+                        log.debug(f"Skipping blacklisted column: "
+                                  f"{tablename}.{columnname}")
                         continue
                     comment = ''  # currently unsupported by SQLAlchemy
                     if self.config.ddgen_append_source_info_to_comment:
-                        comment = "[from {t}.{f}]".format(
-                            t=tablename,
-                            f=columnname,
-                        )
+                        comment = f"[from {tablename}.{columnname}]"
                     ddr = DataDictionaryRow(self.config)
                     ddr.set_from_src_db_info(
                         pretty_dbname, tablename, columnname,
@@ -199,8 +193,8 @@ class DataDictionary(object):
                     # If we have this one already, skip ASAP
                     sig = ddr.get_signature()
                     if sig in existing_signatures:
-                        log.debug("Skipping duplicated column: {}.{}".format(
-                            tablename, columnname))
+                        log.debug(f"Skipping duplicated column: "
+                                  f"{tablename}.{columnname}")
                         continue
                     existing_signatures.add(sig)
 
@@ -267,12 +261,10 @@ class DataDictionary(object):
                 if rowtype.length <= config_sqlatype.length:
                     return
             raise ValueError(
-                "Source column {} is marked as a {} field but its type is {}, "
-                "while the config thinks it should be {}".format(
-                    r.get_signature(),
-                    human_type,
-                    r.get_src_sqla_coltype(),
-                    config_sqlatype))
+                f"Source column {r.get_signature()} is marked as a "
+                f"{human_type} field but its type is "
+                f"{r.get_src_sqla_coltype()}, while the config thinks it "
+                f"should be {config_sqlatype}")
 
         log.debug("Checking DD: source tables...")
         for d in self.get_source_databases():
@@ -283,29 +275,25 @@ class DataDictionary(object):
                 dt = self.get_dest_tables_for_src_db_table(d, t)
                 if len(dt) > 1:
                     raise ValueError(
-                        "Source table {d}.{t} maps to >1 destination "
-                        "table: {dt}".format(d=d, t=t, dt=", ".join(dt)))
+                        f"Source table {d}.{t} maps to >1 destination "
+                        f"table: {', '.join(dt)}")
 
                 rows = self.get_rows_for_src_table(d, t)
                 fieldnames = self.get_fieldnames_for_src_table(d, t)
 
                 if t not in db.table_names:
                     log.debug(
-                        "Source database {d} has tables: {tables}".format(
-                            d=repr(d), tables=db.table_names))
+                        f"Source database {d!r} has tables: {db.table_names}")
                     raise ValueError(
-                        "Table {t} missing from source database "
-                        "{d}".format(t=repr(t), d=repr(d)))
+                        f"Table {t!r} missing from source database {d!r}")
 
                 # We may need to cross-reference rows, so all rows need to know
                 # their type.
                 for r in rows:
                     if r.src_field not in db.metadata.tables[t].columns:
                         raise ValueError(
-                            "Column {c} missing from table {t} in source "
-                            "database {d}".format(c=repr(r.src_field),
-                                                  t=repr(t),
-                                                  d=repr(d)))
+                            f"Column {r.src_field!r} missing from table {t!r} "
+                            f"in source database {d!r}")
                     sqla_coltype = (
                         db.metadata.tables[t].columns[r.src_field].type)
                     r.set_src_sqla_coltype(sqla_coltype)  # CACHES TYPE HERE
@@ -331,8 +319,7 @@ class DataDictionary(object):
                         n_pks += 1
                         if n_pks > 1:
                             raise ValueError(
-                                "Table {d}.{t} has >1 source PK set".format(
-                                    d=d, t=t))
+                                f"Table {d}.{t} has >1 source PK set")
 
                     # Duff alter method?
                     for am in r.get_alter_methods():
@@ -343,18 +330,16 @@ class DataDictionary(object):
                                 None)
                             if extrow is None:
                                 raise ValueError(
-                                    "alter_method = {am}, but field {f} not "
-                                    "found in the same table".format(
-                                        am=r.alter_method,
-                                        f=am.extract_ext_field))
+                                    f"alter_method = {r.alter_method}, but "
+                                    f"field {am.extract_ext_field} not found "
+                                    f"in the same table")
                             if not is_sqlatype_text_over_one_char(
                                     extrow.get_src_sqla_coltype()):
                                 raise ValueError(
-                                    "alter_method = {am}, but field {f}, which"
-                                    " should contain an extension or filename,"
-                                    " is not text of >1 character".format(
-                                        am=r.alter_method,
-                                        f=am.extract_ext_field))
+                                    f"alter_method = {r.alter_method}, but "
+                                    f"field {am.extract_ext_field}, which "
+                                    f"should contain an extension or "
+                                    f"filename, is not text of >1 character")
 
                 if needs_pidfield:
                     # Test changed from an error to a warning 2016-11-11.
@@ -364,11 +349,10 @@ class DataDictionary(object):
                     expected_pidfield = db.srccfg.ddgen_per_table_pid_field
                     if expected_pidfield not in fieldnames:
                         log.warning(
-                            "Source table {d}.{t} has a scrub_in or "
-                            "src_flags={f} field but no master patient ID "
-                            "field (expected to be: {p})".format(
-                                d=d, t=t, f=SRCFLAG.MASTER_PID,
-                                p=expected_pidfield))
+                            f"Source table {d}.{t} has a scrub_in or "
+                            f"src_flags={SRCFLAG.MASTER_PID} field but no "
+                            f"master patient ID field (expected to be: "
+                            f"{expected_pidfield})")
 
         log.debug("... source tables checked.")
 
@@ -407,11 +391,13 @@ class DataDictionary(object):
                 # cannot combine certain flags.
                 for r in self.get_rows_for_src_table(d, t):
                     if r.add_src_hash and r.omit:
-                        raise ValueError("Do not set omit on src_flags={} "
-                                         "fields".format(SRCFLAG.ADD_SRC_HASH))
+                        raise ValueError(
+                            f"Do not set omit on "
+                            f"src_flags={SRCFLAG.ADD_SRC_HASH} fields")
                     if r.constant and r.omit:
-                        raise ValueError("Do not set omit on src_flags={} "
-                                         "fields".format(SRCFLAG.CONSTANT))
+                        raise ValueError(
+                            f"Do not set omit on "
+                            f"src_flags={SRCFLAG.CONSTANT} fields")
                 # We used to prohibit these combinations at all times, in the
                 # DataDictionaryRow class, but it's inconvenient to have to
                 # alter these flags if you want to omit the whole table.
@@ -426,10 +412,10 @@ class DataDictionary(object):
             (src_db, src_table, optout_colname, pid_colname, mpid_colname) = t
             if not pid_colname and not mpid_colname:
                 raise ValueError(
-                    "Field {}.{}.{} has src_flags={} set, but that table does "
-                    "not have a primary patient ID field or a master patient "
-                    "ID field".format(src_db, src_table, optout_colname,
-                                      SRCFLAG.OPT_OUT))
+                    f"Field {src_db}.{src_table}.{optout_colname} has "
+                    f"src_flags={SRCFLAG.OPT_OUT} set, but that table does "
+                    f"not have a primary patient ID field or a master patient "
+                    f"ID field")
 
         log.debug("Checking DD: destination tables...")
         for t in self.get_dest_tables():
@@ -458,11 +444,9 @@ class DataDictionary(object):
             item for item, count in collections.Counter(dst_sigs).items()
             if count > 1]
         if src_duplicates:
-            raise ValueError("Duplicate source rows: {}".format(
-                src_duplicates))
+            raise ValueError(f"Duplicate source rows: {src_duplicates}")
         if dst_duplicates:
-            raise ValueError("Duplicate source rows: {}".format(
-                dst_duplicates))
+            raise ValueError(f"Duplicate source rows: {dst_duplicates}")
 
         if check_against_source_db:
             self.check_against_source_db()
@@ -477,12 +461,12 @@ class DataDictionary(object):
                             "BE COPIED, NOT ANONYMISED.")
             else:
                 raise ValueError(
-                    "Must have at least one field with "
-                    "src_flags={} set.".format(SRCFLAG.DEFINES_PRIMARY_PIDS))
+                    f"Must have at least one field with "
+                    f"src_flags={SRCFLAG.DEFINES_PRIMARY_PIDS} set.")
         elif self.n_definers > 1:
             log.warning(
-                "Unusual: >1 field with src_flags={} set.".format(
-                    SRCFLAG.DEFINES_PRIMARY_PIDS))
+                f"Unusual: >1 field with "
+                f"src_flags={SRCFLAG.DEFINES_PRIMARY_PIDS} set.")
 
         log.debug("... DD checked.")
 
@@ -982,4 +966,4 @@ class DataDictionary(object):
         Report cache hit information for our caches, to the Python log.
         """
         for func in self.cached_funcs():
-            log.debug("{}: {}".format(func.__name__, func.cache_info()))
+            log.debug(f"{func.__name__}: {func.cache_info()}")

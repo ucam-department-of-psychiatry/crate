@@ -97,10 +97,10 @@ class DDHint(object):
         """
         if isinstance(columns, str):
             columns = [columns]
-        assert table, "Bad table: {}".format(repr(table))
-        assert columns, "Bad columns: {}".format(repr(columns))
-        assert len(columns) == len(set(columns)),\
-            "Duplicate columns in: {}".format(repr(columns))
+        assert table, f"Bad table: {repr(table)}"
+        assert columns, f"Bad columns: {repr(columns)}"
+        assert len(columns) == len(set(columns)), (
+            f"Duplicate columns in: {columns!r}")
         index_name = 'crate_idx_' + '_'.join(columns)
         index_requests_for_table = self._index_requests.setdefault(table, {})
         if index_name not in index_requests_for_table:
@@ -124,11 +124,10 @@ class DDHint(object):
                 as a string or an iterable of multiple column names
         """
         for table, columns in table_columns_dict.items():
-            assert table, ("Bad table; table={}, table_columns_dict={}".format(
-                repr(table), repr(table_columns_dict)))
-            assert columns, (
-                "Bad table; columns={}, table_columns_dict={}".format(
-                    repr(columns), repr(table_columns_dict)))
+            assert table, (f"Bad table; table={table!r}, "
+                           f"table_columns_dict={table_columns_dict!r}")
+            assert columns, (f"Bad table; columns={columns!r}, "
+                             f"table_columns_dict={table_columns_dict!r}")
             self.add_source_index_request(table, columns)
 
     def create_indexes(self, engine: Engine, metadata: MetaData) -> None:
@@ -148,8 +147,8 @@ class DDHint(object):
             tablename_casematch = get_case_insensitive_dict_key(
                 metadata.tables, tablename)
             if not tablename_casematch:
-                log.warning("add_indexes: Skipping index as table {} "
-                            "absent".format(tablename))
+                log.warning(
+                    f"add_indexes: Skipping index as table {tablename} absent")
                 continue
             table = metadata.tables[tablename_casematch]
             add_indexes(engine, table, indexdictlist)
@@ -168,8 +167,8 @@ class DDHint(object):
             tablename_casematch = get_case_insensitive_dict_key(
                 metadata.tables, tablename)
             if not tablename_casematch:
-                log.warning("add_indexes: Skipping index as table {} "
-                            "absent".format(tablename))
+                log.warning(
+                    f"add_indexes: Skipping index as table {tablename} absent")
                 continue
             table = metadata.tables[tablename_casematch]
             drop_indexes(engine, table, index_names)

@@ -98,10 +98,8 @@ class SuperuserSubmitContactRequestForm(AbstractContactRequestForm):
         rids = self.fields['rids']  # type: MultipleWordAreaField
         mrids = self.fields['mrids']  # type: MultipleWordAreaField
 
-        rids.label = "{} ({}) (RID)".format(dbinfo.rid_field,
-                                            dbinfo.rid_description)
-        mrids.label = "{} ({}) (MRID)".format(dbinfo.mrid_field,
-                                              dbinfo.mrid_description)
+        rids.label = f"{dbinfo.rid_field} ({dbinfo.rid_description}) (RID)"
+        mrids.label = f"{dbinfo.mrid_field} ({dbinfo.mrid_description}) (MRID)"
 
 
 class ResearcherSubmitContactRequestForm(AbstractContactRequestForm):
@@ -134,10 +132,8 @@ class ResearcherSubmitContactRequestForm(AbstractContactRequestForm):
         )
         # https://docs.djangoproject.com/en/1.8/ref/models/querysets/#field-lookups  # noqa
         # http://stackoverflow.com/questions/5329586/django-modelchoicefield-filtering-query-set-and-setting-default-value-as-an-obj  # noqa
-        rids.label = "{} ({}) (RID)".format(dbinfo.rid_field,
-                                            dbinfo.rid_description)
-        mrids.label = "{} ({}) (MRID)".format(dbinfo.mrid_field,
-                                              dbinfo.mrid_description)
+        rids.label = f"{dbinfo.rid_field} ({dbinfo.rid_description}) (RID)"
+        mrids.label = f"{dbinfo.mrid_field} ({dbinfo.mrid_description}) (MRID)"
 
 
 class ClinicianSubmitContactRequestForm(AbstractContactRequestForm):
@@ -177,10 +173,8 @@ class ClinicianSubmitContactRequestForm(AbstractContactRequestForm):
         rids = self.fields['rids']  # type: MultipleWordAreaField
         mrids = self.fields['mrids']  # type: MultipleWordAreaField
 
-        rids.label = "{} ({}) (RID)".format(dbinfo.rid_field,
-                                            dbinfo.rid_description)
-        mrids.label = "{} ({}) (MRID)".format(dbinfo.mrid_field,
-                                              dbinfo.mrid_description)
+        rids.label = f"{dbinfo.rid_field} ({dbinfo.rid_description}) (RID)"
+        mrids.label = f"{dbinfo.mrid_field} ({dbinfo.mrid_description}) (MRID)"
         email = self.fields['email']
         clinician_title = self.fields['title']
         first = self.fields['firstname']

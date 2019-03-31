@@ -39,7 +39,7 @@ DEST_DIRS = []
 if __name__ == '__main__':
     # Remove anything old
     for destdir in [BUILD_HTML_DIR] + DEST_DIRS:
-        print("Deleting directory {!r}".format(destdir))
+        print(f"Deleting directory {destdir!r}")
         shutil.rmtree(destdir, ignore_errors=True)
 
     # Build docs
@@ -49,5 +49,5 @@ if __name__ == '__main__':
 
     # Copy
     for destdir in DEST_DIRS:
-        print("Copying {!r} -> {!r}".format(BUILD_HTML_DIR, destdir))
+        print(f"Copying {BUILD_HTML_DIR!r} -> {destdir!r}")
         shutil.copytree(BUILD_HTML_DIR, destdir)

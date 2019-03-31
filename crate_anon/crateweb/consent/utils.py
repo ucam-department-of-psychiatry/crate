@@ -250,7 +250,7 @@ def make_forename_surname_email_address(forename: str,
     # it.
     # Formal definition is at http://stackoverflow.com/questions/2049502/what-characters-are-allowed-in-email-address  # noqa
     # See also: http://emailregex.com/
-    attempt = "{}.{}@{}".format(forename, surname, domain)
+    attempt = f"{forename}.{surname}@{domain}"
     if APPROX_EMAIL_REGEX.match(attempt):
         return attempt
     else:
@@ -296,7 +296,7 @@ def days_to_years(days: int, dp: int = 1) -> str:
     try:
         years = days / 365
         if years % 1:  # needs decimals
-            return "{:.{precision}f}".format(years, precision=dp)
+            return f"{years:.{dp}f}"
         else:
             return str(int(years))
     except (TypeError, ValueError):

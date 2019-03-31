@@ -192,7 +192,7 @@ class WordList(ScrubberBase):
         # noinspection PyTypeChecker
         for w in words:
             self.add_word(w, clear_cache=False)
-        # log.debug("Created wordlist with {} words".format(len(self.words)))
+        # log.debug(f"Created wordlist with {len(self.words)} words")
 
     def clear_cache(self) -> None:
         """
@@ -276,7 +276,7 @@ class WordList(ScrubberBase):
                     at_word_boundaries_only=self.at_word_boundaries_only,
                     max_errors=self.max_errors
                 ))
-            log.debug("Building regex with {} elements".format(len(elements)))
+            log.debug(f"Building regex with {len(elements)} elements")
             self._regex = get_regex_from_elements(elements)
         else:
             if self.words:
@@ -284,8 +284,8 @@ class WordList(ScrubberBase):
                 self._processor.set_non_word_boundaries(
                     FLASHTEXT_WORD_CHARACTERS)
                 replacement = self.replacement_text
-                log.debug("Building FlashText processor with {} "
-                          "keywords".format(len(self.words)))
+                log.debug(f"Building FlashText processor with "
+                          f"{len(self.words)} keywords")
                 for w in self.words:
                     self._processor.add_keyword(w, replacement)
             else:
@@ -575,8 +575,8 @@ class PersonalizedScrubber(ScrubberBase):
         elif scrub_method is SCRUBMETHOD.CODE:
             elements = self.get_elements_code(value)
         else:
-            raise ValueError("Bug: unknown scrub_method to add_value: "
-                             "{}".format(scrub_method))
+            raise ValueError(f"Bug: unknown scrub_method to add_value: "
+                             f"{scrub_method}")
         r.extend(elements)
         if clear_cache:
             self.clear_cache()
@@ -591,9 +591,8 @@ class PersonalizedScrubber(ScrubberBase):
             value = coerce_to_datetime(value)
         except Exception as e:
             log.warning(
-                "Invalid date received to PersonalizedScrubber."
-                "get_elements_date(): value={}, exception={}".format(
-                    value, e))
+                f"Invalid date received to PersonalizedScrubber. "
+                f"get_elements_date(): value={value}, exception={e}")
             return
         return get_date_regex_elements(
             value,
@@ -719,10 +718,8 @@ class PersonalizedScrubber(ScrubberBase):
         # Note that the regexes themselves may be None even if they have
         # been built.
         if self.debug:
-            log.debug("Patient scrubber: {}".format(
-                self.get_patient_regex_string()))
-            log.debug("Third party scrubber: {}".format(
-                self.get_tp_regex_string()))
+            log.debug(f"Patient scrubber: {self.get_patient_regex_string()}")
+            log.debug(f"Third party scrubber: {self.get_tp_regex_string()}")
 
     def scrub(self, text: str) -> Optional[str]:
         # docstring in parent class

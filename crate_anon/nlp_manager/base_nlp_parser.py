@@ -207,8 +207,8 @@ class BaseNlpParser(object):
         set1 = set(c.name for c in cols1)
         set2 = set(c.name for c in cols2)
         assert not (set1 & set2), (
-            "Overlap between {} column names ({}) and {} column names "
-            "({})".format(description1, set1, description2, set2)
+            f"Overlap between {description1} column names ({set1}) and "
+            f"{description2} column names ({set2})"
         )
 
     @staticmethod
@@ -369,11 +369,11 @@ class BaseNlpParser(object):
         tables = self.tables()
         pretty_names = []  # type: List[str]
         for t in tables.values():
-            pretty_name = "{}.{}".format(self._destdb.name, t.name)
+            pretty_name = f"{self._destdb.name}.{t.name}"
             if drop_first:
-                log.info("Dropping table {}".format(pretty_name))
+                log.info(f"Dropping table {pretty_name}")
                 t.drop(engine, checkfirst=True)
-            log.info("Creating table {} (with indexes)".format(pretty_name))
+            log.info(f"Creating table {pretty_name} (with indexes)")
             t.create(engine, checkfirst=True)
             pretty_names.append(pretty_name)
         return pretty_names
@@ -450,8 +450,9 @@ class BaseNlpParser(object):
                         force_commit=self._commit
                     )
                     n_values += 1
-        log.debug("NLP processor {}/{}: found {} values".format(
-            self.get_nlpdef_name(), self.get_parser_name(), n_values))
+        log.debug(
+            f"NLP processor {self.get_nlpdef_name()}/{self.get_parser_name()}:"
+            f" found {n_values} values")
 
     def test(self, verbose: bool = False) -> None:
         """
@@ -466,9 +467,9 @@ class BaseNlpParser(object):
         """
         Tests the NLP processor's parser with a set of test strings.
         """
-        print("Testing parser: {}".format(type(self).__name__))
+        print(f"Testing parser: {type(self).__name__}")
         for text in test_strings:
-            print("    {} -> {}".format(text, list(self.parse(text))))
+            print(f"    {text} -> {list(self.parse(text))}")
 
     def delete_dest_record(self,
                            ifconfig: InputFieldConfig,
@@ -503,9 +504,8 @@ class BaseNlpParser(object):
         destdb_name = self._destdb.name
         nlpdef_name = self._nlpdef.get_name()
         for tablename, desttable in self.tables().items():
-            log.debug(
-                "delete_from_dest_dbs... {}.{} -> {}.{}".format(
-                    srcdb, srctable, destdb_name, tablename))
+            log.debug(f"delete_from_dest_dbs... {srcdb}.{srctable} -> "
+                      f"{destdb_name}.{tablename}")
             # noinspection PyProtectedMember,PyPropertyAccess
             delquery = (
                 desttable.delete().
@@ -547,9 +547,8 @@ class BaseNlpParser(object):
         srctable = ifconfig.get_srctable()
         srcfield = ifconfig.get_srcfield()
         for desttable_name, desttable in self.tables().items():
-            log.debug(
-                "delete_where_srcpk_not... {}.{} -> {}.{}".format(
-                    srcdb, srctable, self._destdb_name, desttable_name))
+            log.debug(f"delete_where_srcpk_not... {srcdb}.{srctable} -> "
+                      f"{self._destdb_name}.{desttable_name}")
             # noinspection PyProtectedMember,PyPropertyAccess
             dest_deletion_query = (
                 # see get_core_indexes_for_dest

@@ -138,14 +138,8 @@ def lookup_from_fragment(lookup_table: str,
         ``LEFT JOIN lookuptable lkalias ON lkalias.pk = basetable.somecol``
     """
     return (
-        "LEFT JOIN {lookup_table} {aliased_lookup_table}\n"
-        "            ON {aliased_lookup_table}.{lookup_pk} = "
-        "{basetable}.{basecolumn}".format(
-            lookup_table=lookup_table,
-            aliased_lookup_table=aliased_lookup_table,
-            lookup_pk=lookup_pk,
-            basetable=basetable,
-            basecolumn=basecolumn)
+        f"LEFT JOIN {lookup_table} {aliased_lookup_table}\n"
+        f"  ON {aliased_lookup_table}.{lookup_pk} = {basetable}.{basecolumn}"
     )
 
 
@@ -212,18 +206,11 @@ def lookup_from_fragment_first_row(lookup_table: str,
 
     """  # noqa
     return (
-        "LEFT JOIN {lookup_table} {aliased_lookup_table} "
-        "ON {aliased_lookup_table}.{lookup_unique_field} = ("
-        " SELECT TOP 1 {lookup_unique_field} FROM {lookup_table}"
-        " WHERE {lookup_table}.{lookup_key} = {basetable}.{basecolumn}"
-        " ORDER BY {lookup_table}.{lookup_unique_field}"
-        ")".format(
-            lookup_table=lookup_table,
-            aliased_lookup_table=aliased_lookup_table,
-            lookup_unique_field=lookup_unique_field,
-            lookup_key=lookup_key,
-            basetable=basetable,
-            basecolumn=basecolumn)
+        f"LEFT JOIN {lookup_table} {aliased_lookup_table} "
+        f"ON {aliased_lookup_table}.{lookup_unique_field} = ("
+        f"SELECT TOP 1 {lookup_unique_field} FROM {lookup_table} "
+        f"WHERE {lookup_table}.{lookup_key} = {basetable}.{basecolumn} "
+        f"ORDER BY {lookup_table}.{lookup_unique_field})"
     )
 
 
@@ -255,17 +242,10 @@ def lookup_from_fragment_first_row_outer_apply(lookup_fields: Iterable[str],
     - http://stackoverflow.com/questions/9275132/real-life-example-when-to-use-outer-cross-apply-in-sql
     """  # noqa
     return (
-        "OUTER APPLY ("
-        " SELECT TOP 1 {lookup_fields}"
-        " FROM {lookup_table}"
-        " WHERE {lookup_table}.{lookup_key} = {basetable}.{basecolumn}"
-        ") {aliased_lookup_table}".format(
-            lookup_fields=", ".join(lookup_fields),
-            lookup_table=lookup_table,
-            aliased_lookup_table=aliased_lookup_table,
-            lookup_key=lookup_key,
-            basetable=basetable,
-            basecolumn=basecolumn)
+        f"OUTER APPLY (SELECT TOP 1 {', '.join(lookup_fields)} "
+        f"FROM {lookup_table} "
+        f"WHERE {lookup_table}.{lookup_key} = {basetable}.{basecolumn}) "
+        f"{aliased_lookup_table}"
     )
 
 
@@ -297,10 +277,7 @@ def simple_lookup_join(viewmaker: ViewMaker,
     aliased_lookup_table = internal_alias_prefix + "_" + lookup_table
     for column, alias in lookup_fields_aliases.items():
         viewmaker.add_select(
-            "{aliased_lookup_table}.{column} AS {alias}".format(
-                aliased_lookup_table=aliased_lookup_table,
-                column=column,
-                alias=alias))
+            f"{aliased_lookup_table}.{column} AS {alias}")
     viewmaker.add_from(lookup_from_fragment_first_row_outer_apply(
         lookup_fields=lookup_fields_aliases.keys(),
         lookup_table=lookup_table,
@@ -336,15 +313,10 @@ def standard_rio_code_lookup(viewmaker: ViewMaker,
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
     aliased_lookup_table = internal_alias_prefix + "_" + lookup_table
-    viewmaker.add_select("""
-        {basetable}.{basecolumn} AS {cp}_Code,
-        {aliased_lookup_table}.CodeDescription AS {cp}_Description
-    """.format(  # noqa
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        cp=column_prefix,
-        aliased_lookup_table=aliased_lookup_table,
-    ))
+    viewmaker.add_select(f"""
+        {viewmaker.basetable}.{basecolumn} AS {column_prefix}_Code,
+        {aliased_lookup_table}.CodeDescription AS {column_prefix}_Description
+    """)
     lookup_pk = 'Code'
     viewmaker.add_from(lookup_from_fragment_first_row_outer_apply(
         lookup_fields=['CodeDescription'],
@@ -382,16 +354,11 @@ def standard_rio_code_lookup_with_national_code(
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
     aliased_lookup_table = internal_alias_prefix + "_" + lookup_table
-    viewmaker.add_select("""
-        {basetable}.{basecolumn} AS {cp}_Code,
-        {aliased_lookup_table}.CodeDescription AS {cp}_Description,
-        {aliased_lookup_table}.NationalCode AS {cp}_National_Code
-    """.format(  # noqa
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        cp=column_prefix,
-        aliased_lookup_table=aliased_lookup_table,
-    ))
+    viewmaker.add_select(f"""
+        {viewmaker.basetable}.{basecolumn} AS {column_prefix}_Code,
+        {aliased_lookup_table}.CodeDescription AS {column_prefix}_Description,
+        {aliased_lookup_table}.NationalCode AS {column_prefix}_National_Code
+    """)
     lookup_pk = 'Code'
     viewmaker.add_from(lookup_from_fragment_first_row_outer_apply(
         lookup_fields=['CodeDescription', 'NationalCode'],
@@ -442,7 +409,7 @@ def simple_view_expr(viewmaker: ViewMaker,
     assert alias, "Missing alias"
     vd = view_formatting_dict(viewmaker)
     formatted_expr = expr.format(**vd)
-    viewmaker.add_select(formatted_expr + " AS {}".format(alias))
+    viewmaker.add_select(formatted_expr + f" AS {alias}")
 
 
 def simple_view_where(viewmaker: ViewMaker,

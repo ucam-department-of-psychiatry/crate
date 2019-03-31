@@ -331,8 +331,8 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
         if email_ids:
             self.message_user(
                 request,
-                "{} e-mails were queued for resending: IDs {}.".format(
-                    len(email_ids), str(email_ids)))
+                f"{len(email_ids)} e-mails were queued for resending: "
+                f"IDs {str(email_ids)}.")
     resend.short_description = "Resend selected e-mails"
 
     def get_transmissions(self, obj: Email) -> str:
@@ -1033,7 +1033,7 @@ class PatientResponseMgrAdmin(EditOnceOnlyModelAdmin):
                    change: bool) -> None:
         obj.recorded_by = request.user
         obj.save()
-        # log.debug("PatientResponse: {}".format(modelrepr(obj)))
+        # log.debug(f"PatientResponse: {modelrepr(obj)}")
         transaction.on_commit(
             lambda: process_patient_response.delay(obj.id)
         )  # Asynchronous
@@ -1149,8 +1149,7 @@ class LetterDevAdmin(ReadOnlyModelAdmin):
             ids.append(letter.id)
         self.message_user(
             request,
-            "{} letter(s) were marked as sent: IDs {}.".format(len(ids),
-                                                               str(ids)))
+            f"{len(ids)} letter(s) were marked as sent: IDs {str(ids)}.")
     mark_sent.short_description = "Mark selected letters as printed/sent"
 
     def get_study(self, obj: Letter) -> str:
@@ -1396,7 +1395,7 @@ res_admin_site.register(ContactRequest, ContactRequestResAdmin)
 Problem with non-superusers not seeing any apps:
 - http://stackoverflow.com/questions/1929707/django-admin-not-seeing-any-app-permission-problem  # noqa
   ... but django.contrib.auth.backends.ModelBackend won't load in INSTALLED_APPS  # noqa
-- log.debug("registered: {}".format(res_admin_site.is_registered(Leaflet)))
+- log.debug(f"registered: {res_admin_site.is_registered(Leaflet)!r}")
   ... OK
   ... and anyway, it works for superusers
 - app_list is blank in the template; this is set in AdminSite.index()

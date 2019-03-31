@@ -59,23 +59,23 @@ def main() -> None:
     Command-line processor. See command-line help.
     """
     parser = argparse.ArgumentParser(
-        description="Compile Java classes for CRATE's interface to MedEx-UIMA")
+        description="Compile Java classes for CRATE's interface to MedEx-UIMA",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--builddir', default=DEFAULT_BUILD_DIR,
-        help="Output directory for compiled .class files (default: {})".format(
-            DEFAULT_BUILD_DIR))
+        help="Output directory for compiled .class files")
     parser.add_argument(
         '--medexdir', default=DEFAULT_MEDEX_DIR,
-        help="Root directory of MedEx installation (default: {})".format(
-            DEFAULT_MEDEX_DIR))
+        help="Root directory of MedEx installation")
     parser.add_argument(
         '--java', default=DEFAULT_JAVA,
-        help="Java executable (default: {})".format(DEFAULT_JAVA))
+        help="Java executable")
     parser.add_argument(
         '--javac', default=DEFAULT_JAVAC,
-        help="Java compiler (default: {})".format(DEFAULT_JAVAC))
-    parser.add_argument('--verbose', '-v', action='count', default=0,
-                        help="Be verbose (use twice for extra verbosity)")
+        help="Java compiler")
+    parser.add_argument(
+        '--verbose', '-v', action='count', default=0,
+        help="Be verbose (use twice for extra verbosity)")
     parser.add_argument(
         '--launch', action='store_true',
         help="Launch script in demonstration mode (having previously "
@@ -108,7 +108,7 @@ def main() -> None:
             [MEDEX_PIPELINE_CLASSNAME] +
             prog_args
         )
-        log.info("Executing command: {}".format(cmdargs))
+        log.info(f"Executing command: {cmdargs}")
         subprocess.check_call(cmdargs)
     else:
         os.makedirs(args.builddir, exist_ok=True)
@@ -119,9 +119,9 @@ def main() -> None:
             ['-d', args.builddir] +
             [SOURCE_FILE]
         )
-        log.info("Executing command: {}".format(cmdargs))
+        log.info(f"Executing command: {cmdargs}")
         subprocess.check_call(cmdargs)
-        log.info("Output *.class files are in {}".format(args.builddir))
+        log.info(f"Output *.class files are in {args.builddir}")
 
 
 if __name__ == '__main__':

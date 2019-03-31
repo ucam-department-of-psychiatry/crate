@@ -39,7 +39,7 @@ from sqlalchemy.engine import create_engine
 
 def show_query(engine_or_conn, sql):
     with contextlib.closing(engine_or_conn.execute(sql)) as result:
-        print("{} -> {}\n".format(sql, result.fetchall()))
+        print(f"{sql} -> {result.fetchall()}\n")
 
 
 def execute(engine_or_conn, sql):
@@ -50,9 +50,8 @@ def execute(engine_or_conn, sql):
 dsn = "XXX"
 username = "XXX"
 password = "XXX"
-url = "mssql+pyodbc://{u}:{p}@{d}".format(u=username, p=password, d=dsn)
-pyodbc_connect_str = "DSN={d};UID={u};PWD={p}".format(u=username, p=password,
-                                                      d=dsn)
+url = f"mssql+pyodbc://{username}:{password}@{dsn}"
+pyodbc_connect_str = f"DSN={dsn};UID={username};PWD={password}"
 
 query_trancount = "SELECT @@TRANCOUNT"
 # From SQL Server Management Studio: @@TRANCOUNT starts at 0.

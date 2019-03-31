@@ -87,8 +87,7 @@ def cli_lookup_patient(nhs_numbers: List[int]) -> None:
         nhs_numbers: list of NHS numbers (as integers)
     """
     source_db = settings.CLINICAL_LOOKUP_DB
-    log.info("Testing patient lookup from clinical database: {}.".format(
-        source_db))
+    log.info(f"Testing patient lookup from clinical database: {source_db}.")
     for nhs_num in nhs_numbers:
         patient_info = lookup_patient(
             nhs_number=nhs_num,
@@ -96,8 +95,7 @@ def cli_lookup_patient(nhs_numbers: List[int]) -> None:
             save=False,
             existing_ok=False
         )
-        log.info("NHS number: {}. Patient info: {}".format(
-            nhs_num, patient_info))
+        log.info(f"NHS number: {nhs_num}. Patient info: {patient_info}")
     log.info("Done.")
 
 

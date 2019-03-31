@@ -172,8 +172,8 @@ def get_join_info(grammar: SqlGrammar,
     existing_mrid_table = existing_mrid_column.table_id
     if not existing_mrid_table:
         raise ValueError(
-            "No MRID table available (in the same database as table {}; "
-            "cannot link)".format(first_from_table))
+            f"No MRID table available (in the same database as table "
+            f"{first_from_table}; cannot link)")
     new_mrid_column = research_database_info.get_mrid_column_from_table(
         jointable)
     new_mrid_table = new_mrid_column.table_id
@@ -434,12 +434,12 @@ def add_to_select(sql: str,
     select_elements = select_elements or []  # type: List[SelectElement]
     where_conditions = where_conditions or []  # type: List[WhereCondition]
     if debug:
-        log.info("START: {}".format(sql))
-        log.debug("select_elements: {}".format(select_elements))
-        log.debug("where_conditions: {}".format(where_conditions))
-        log.debug("where_type: {}".format(where_type))
-        log.debug("join_type: {}".format(join_type))
-        log.debug("join_condition: {}".format(join_condition))
+        log.info(f"START: {sql}")
+        log.debug(f"select_elements: {select_elements}")
+        log.debug(f"where_conditions: {where_conditions}")
+        log.debug(f"where_type: {where_type}")
+        log.debug(f"join_type: {join_type}")
+        log.debug(f"join_condition: {join_condition}")
 
     # -------------------------------------------------------------------------
     # Get going. We have to handle a fresh SQL statement in a slightly
@@ -540,7 +540,7 @@ def add_to_select(sql: str,
     if formatted:
         result = format_sql(result)
     if debug:
-        log.info("END: {}".format(result))
+        log.info(f"END: {result}")
     return result
 
 

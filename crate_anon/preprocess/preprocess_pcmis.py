@@ -174,6 +174,7 @@ import argparse
 import logging
 from typing import List
 
+from cardinal_pythonlib.argparse_func import RawDescriptionArgumentDefaultsHelpFormatter  # noqa
 from cardinal_pythonlib.debugging import pdb_run
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.sql.sql_grammar_factory import make_grammar
@@ -604,44 +605,27 @@ def add_geography_to_view(columns: List[str],
 
     for gc in sorted(configoptions.geogcols, key=lambda x: x.lower()):
         if gc in columns_lower:
-            raise ValueError("Geography column {} clashes with an existing "
-                             "column".format(repr(gc)))
+            raise ValueError(f"Geography column {gc!r} "
+                             f"clashes with an existing column")
         viewmaker.add_select(
-            "{postcode_alias_1}.{gc} AS {gc}".format(
-                postcode_alias_1=postcode_alias_1,
-                gc=gc
-            )
+            f"{postcode_alias_1}.{gc} AS {gc}"
         )
         viewmaker.add_select(
-            "{postcode_alias_2}.{gc} AS {prev_prefix}{gc}".format(
-                postcode_alias_2=postcode_alias_2,
-                gc=gc,
-                prev_prefix=prev_prefix
-            )
+            f"{postcode_alias_2}.{gc} AS {prev_prefix}{gc}"
         )
 
     # PCMIS can have either 'XX99 9XX' or 'XX999XX' format:
     viewmaker.add_from(
-        "LEFT JOIN {pdb}.{pcdtab} AS {postcode_alias_1} "
-        "ON REPLACE({basetable}.{PCMIS_COL_POSTCODE}, ' ', '') = "
-        "{postcode_alias_1}.pcd_nospace".format(
-            pdb=configoptions.postcodedb,
-            pcdtab=ONSPD_TABLE_POSTCODE,
-            postcode_alias_1=postcode_alias_1,
-            basetable=basetable,
-            PCMIS_COL_POSTCODE=PCMIS_COL_POSTCODE,
-        )
+        f"LEFT JOIN {configoptions.postcodedb}.{ONSPD_TABLE_POSTCODE} "
+        f"AS {postcode_alias_1} "
+        f"ON REPLACE({basetable}.{PCMIS_COL_POSTCODE}, ' ', '') = "
+        f"{postcode_alias_1}.pcd_nospace"
     )
     viewmaker.add_from(
-        "LEFT JOIN {pdb}.{pcdtab} AS {postcode_alias_2} "
-        "ON REPLACE({basetable}.{PCMIS_COL_POSTCODE}, ' ', '') = "
-        "{postcode_alias_2}.pcd_nospace".format(
-            pdb=configoptions.postcodedb,
-            pcdtab=ONSPD_TABLE_POSTCODE,
-            postcode_alias_2=postcode_alias_2,
-            basetable=basetable,
-            PCMIS_COL_POSTCODE=PCMIS_COL_POSTCODE,
-        )
+        f"LEFT JOIN {configoptions.postcodedb}.{ONSPD_TABLE_POSTCODE} "
+        f"AS {postcode_alias_2} "
+        f"ON REPLACE({basetable}.{PCMIS_COL_POSTCODE}, ' ', '') = "
+        f"{postcode_alias_2}.pcd_nospace"
     )
 
 
@@ -820,13 +804,13 @@ def process_table(table: Table, engine: Engine,
     """
     tablename = table.name
     column_names = table.columns.keys()
-    log.debug("TABLE: {}; COLUMNS: {}".format(tablename, column_names))
+    log.debug(f"TABLE: {tablename}; COLUMNS: {column_names}")
 
     existing_pk_cols = get_pk_colnames(table)
     assert len(existing_pk_cols) < 2, (
-        "Table {} has >1 PK column; don't know what to do".format(tablename))
+        f"Table {tablename} has >1 PK column; don't know what to do")
     if existing_pk_cols and not get_effective_int_pk_col(table):
-        raise ValueError("Table {} has a non-integer PK".format(repr(table)))
+        raise ValueError(f"Table {table!r} has a non-integer PK")
     adding_crate_pk = not existing_pk_cols
 
     required_cols = [CRATE_COL_PK] if not configoptions.print_sql_only else []
@@ -879,8 +863,7 @@ def main() -> None:
     Command-line parser. See command-line help.
     """
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=argparse.RawDescriptionArgumentDefaultsHelpFormatter,
         description="Alters a PCMIS database to be suitable for CRATE.")
     parser.add_argument("--url", required=True, help="SQLAlchemy database URL")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
@@ -910,7 +893,7 @@ def main() -> None:
         "--geogcols", nargs="*", default=DEFAULT_GEOG_COLS,
         help="List of geographical information columns to link in from ONS "
              "Postcode Database. BEWARE that you do not specify anything too "
-             "identifying. Default: {}".format(' '.join(DEFAULT_GEOG_COLS)))
+             "identifying.")
 
     parser.add_argument(
         "--settings-filename",
@@ -925,7 +908,7 @@ def main() -> None:
 
     log.info("CRATE in-place preprocessor for PCMIS databases")
     safeargs = {k: v for k, v in vars(progargs).items() if k != 'url'}
-    log.debug("args (except url): {}".format(repr(safeargs)))
+    log.debug(f"args (except url): {repr(safeargs)}")
 
     if progargs.postcodedb and not progargs.geogcols:
         raise ValueError(
@@ -939,8 +922,8 @@ def main() -> None:
                            encoding=CHARSET)
     metadata = MetaData()
     metadata.bind = engine
-    log.info("Database: {}".format(repr(engine.url)))  # ... repr hides p/w
-    log.debug("Dialect: {}".format(engine.dialect.name))
+    log.info(f"Database: {repr(engine.url)}")  # ... repr hides p/w
+    log.debug(f"Dialect: {engine.dialect.name}")
 
     log.info("Reflecting (inspecting) database...")
     metadata.reflect(engine)

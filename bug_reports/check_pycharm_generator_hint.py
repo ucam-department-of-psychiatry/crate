@@ -44,7 +44,7 @@ def generate_int() -> Generator[int, None, None]:
 
 
 def use_int(x: int) -> None:
-    print("x is {}".format(x))
+    print(f"x is {x}")
 
 
 for value in generate_int():

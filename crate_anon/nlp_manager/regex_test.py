@@ -83,8 +83,7 @@ def print_compiled_regex_results(compiled_regex: Pattern, text: str,
         prefix_spaces: number of spaces to begin each answer with
     """
     results = get_compiled_regex_results(compiled_regex, text)
-    print("{}{} -> {}".format(' ' * prefix_spaces,
-                              repr(text), repr(results)))
+    print(f"{' ' * prefix_spaces}{text!r} -> {results!r}")
 
 
 def test_text_regex(name: str,
@@ -106,10 +105,10 @@ def test_text_regex(name: str,
     Returns:
 
     """
-    print("Testing regex named {}".format(name))
+    print(f"Testing regex named {name}")
     compiled_regex = compile_regex(regex_text)
     if verbose:
-        print("... regex text:\n{}".format(regex_text))
+        print(f"... regex text:\n{regex_text}")
     for test_string, expected_values in test_expected_list:
         actual_values = get_compiled_regex_results(compiled_regex, test_string)
         assert actual_values == expected_values, (

@@ -73,11 +73,11 @@ def main() -> None:
     """
     Command-line processor. See command-line help.
     """
-    version = "Version {} ({})".format(CRATE_VERSION, CRATE_VERSION_DATE)
+    version = f"Version {CRATE_VERSION} ({CRATE_VERSION_DATE})"
     description = (
-        "Runs the CRATE NLP manager in parallel. {}. Note that all arguments "
-        "not specified here are passed to the underlying script "
-        "(see crate_nlp --help).".format(version))
+        f"Runs the CRATE NLP manager in parallel. {version}. Note that all "
+        f"arguments not specified here are passed to the underlying script "
+        f"(see crate_nlp --help).")
     parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument(
@@ -85,8 +85,7 @@ def main() -> None:
         help="NLP processing name, from the config file")
     parser.add_argument(
         "--nproc", "-n", nargs="?", type=int, default=CPUCOUNT,
-        help="Number of processes (default on this "
-             "machine: {})".format(CPUCOUNT))
+        help=f"Number of processes (default on this machine: {CPUCOUNT})")
     parser.add_argument(
         '--verbose', '-v', action='store_true',
         help="Be verbose")
@@ -102,7 +101,7 @@ def main() -> None:
         unknownargs
     )
 
-    log.debug("common_options: {}".format(common_options))
+    log.debug(f"common_options: {common_options}")
 
     nprocesses_main = args.nproc
     # nprocesses_index = args.nproc
@@ -140,8 +139,8 @@ def main() -> None:
             sys.executable, '-m', NLP_MANAGER,
             '--nlp',
             '--processcluster', 'NLP',
-            '--nprocesses={}'.format(nprocesses_main),
-            '--process={}'.format(procnum)
+            f'--nprocesses={nprocesses_main}',
+            f'--process={procnum}'
         ] + common_options
         args_list.append(procargs)
     run_multiple_processes(args_list)  # Wait for them all to finish
@@ -158,8 +157,8 @@ def main() -> None:
     #         sys.executable, '-m', NLP_MANAGER,
     #         '--index',
     #         '--processcluster=INDEX',
-    #         '--nprocesses={}'.format(nprocesses_index),
-    #         '--process={}'.format(procnum)
+    #         f'--nprocesses={nprocesses_index}',
+    #         f'--process={procnum}'
     #     ] + common_options for procnum in range(nprocesses_index)
     # ]
     # run_multiple_processes(args_list)  # Wait for them all to finish
@@ -172,11 +171,11 @@ def main() -> None:
     # main_dur = time_middle - time_start
     # index_dur = time_end - time_middle
     # total_dur = time_end - time_start
-    # print("Time taken: main {} s, indexing {} s, total {} s".format(
-    #     main_dur, index_dur, total_dur))
+    # print(f"Time taken: main {main_dur} s, indexing {index_dur} s, "
+    #       f"total {total_dur} s")
 
     total_dur = time_end - time_start
-    print("Time taken: {} s".format(total_dur))
+    print(f"Time taken: {total_dur} s")
 
 
 if __name__ == '__main__':

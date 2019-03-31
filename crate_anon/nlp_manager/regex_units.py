@@ -61,13 +61,11 @@ def per(numerator: str, denominator: str,
     """
     # Copes with blank/optional numerators, too.
     options = [
-        r"(?: {numerator} \s* (?: \/ | \b per \b) \s* {denominator} )".format(
-            numerator=numerator, denominator=denominator),
+        fr"(?: {numerator} \s* (?: \/ | \b per \b) \s* {denominator} )",
     ]
     if include_power_minus1:
         options.append(
-            r"(?: {numerator} \s* \b {denominator} \s* -1 )".format(
-                numerator=numerator, denominator=denominator))
+            fr"(?: {numerator} \s* \b {denominator} \s* -1 )")
     return r"(?: {} )".format(r" | ".join(options))
     # Use of "\s* \b" rather than "\s+" is so we can have a BLANK numerator.
 
@@ -81,8 +79,7 @@ def _out_of_str(n_as_regex: str) -> str:
     """
     # / n
     # out of n
-    return r"(?: {out_of} \s* {n} \b)".format(out_of=OUT_OF_SEPARATOR,
-                                              n=n_as_regex)
+    return fr"(?: {OUT_OF_SEPARATOR} \s* {n_as_regex} \b)"
 
 
 def out_of(n: int) -> str:
@@ -129,7 +126,7 @@ def units_times(*args: str) -> str:
     """
     multiply = MULTIPLY_OR_SPACE + "?"
     joined = multiply.join(args)
-    return r"(?: {} )".format(joined)
+    return fr"(?: {joined} )"
 
 
 def units_by_dimension(*args: Tuple[str, int],  # specify type of *one* arg!
@@ -149,7 +146,7 @@ def units_by_dimension(*args: Tuple[str, int],  # specify type of *one* arg!
         power_elements.append(
             power(unit, exponent, allow_no_operator=allow_no_operator))
     joined_power_elements = multiply.join(power_elements)
-    power_style = r"(?: {} )".format(joined_power_elements)
+    power_style = fr"(?: {joined_power_elements} )"
     options = [power_style]
     # noinspection PyChainedComparisons
     if len(args) == 2 and args[0][1] > 0 and args[1][1] < 0:
@@ -190,8 +187,8 @@ STONES = r"(?: stones? | st\.? )"  # stone(s), st, st.
 # -----------------------------------------------------------------------------
 
 L = r"(?: lit(?:re|er)s? | L )"  # L, litre(s), liter(s)
-DL = r"(?: d(?:eci)?{L} )".format(L=L)
-ML = r"(?: m(?:illi)?{L} )".format(L=L)
+DL = fr"(?: d(?:eci)?{L} )"
+ML = fr"(?: m(?:illi)?{L} )"
 # CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} )""".format(  # noqa
 CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} | (?: \b cmm \b ) )""".format(  # noqa
     mm=MM,

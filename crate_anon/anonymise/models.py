@@ -250,7 +250,7 @@ class TridRecord(AdminBase):
         while True:
             session.begin_nested()
             candidate = random.randint(1, MAX_TRID)
-            log.debug("Trying candidate TRID: {}".format(candidate))
+            log.debug(f"Trying candidate TRID: {candidate}")
             # noinspection PyArgumentList
             obj = cls(pid=pid, trid=candidate)
             try:
@@ -297,7 +297,7 @@ class OptOutPid(AdminBase):
             session: SQLAlchemy database session for the secret admin database
             pid: PID of the patient who is opting out
         """
-        log.debug("Adding opt-out for PID {}".format(pid))
+        log.debug(f"Adding opt-out for PID {pid}")
         # noinspection PyArgumentList
         newthing = cls(pid=pid)
         session.merge(newthing)
@@ -340,7 +340,7 @@ class OptOutMpid(AdminBase):
             session: SQLAlchemy database session for the secret admin database
             mpid: MPID of the patient who is opting out
         """
-        log.debug("Adding opt-out for MPID {}".format(mpid))
+        log.debug(f"Adding opt-out for MPID {mpid}")
         # noinspection PyArgumentList
         newthing = cls(mpid=mpid)
         session.merge(newthing)

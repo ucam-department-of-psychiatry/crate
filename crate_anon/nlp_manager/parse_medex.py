@@ -580,17 +580,17 @@ class Medex(BaseNlpParser):
 
         # Nasty MedEx hacks
         cwd = os.getcwd()
-        log.info("for MedEx's benefit, changing to directory: {}".format(
-            self._workingdir.name))
+        log.info(f"for MedEx's benefit, changing to directory: "
+                 f"{self._workingdir.name}")
         os.chdir(self._workingdir.name)
         sentsdir = os.path.join(self._workingdir.name, "sents")
-        log.info("making temporary sentences directory: {}".format(sentsdir))
+        log.info(f"making temporary sentences directory: {sentsdir}")
         mkdir_p(sentsdir)
         logdir = os.path.join(self._workingdir.name, "log")
-        log.info("making temporary log directory: {}".format(logdir))
+        log.info(f"making temporary log directory: {logdir}")
         mkdir_p(logdir)
 
-        log.info("launching command: {}".format(args))
+        log.info(f"launching command: {args}")
         self._p = subprocess.Popen(args,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
@@ -602,7 +602,7 @@ class Medex(BaseNlpParser):
         # secondly if you don't consume it, you see it on the console, which is
         # helpful.
         self._started = True
-        log.info("returning to working directory {}".format(cwd))
+        log.info(f"returning to working directory {cwd}")
         os.chdir(cwd)
 
     def _encode_to_subproc_stdin(self, text: str) -> None:
@@ -706,7 +706,7 @@ class Medex(BaseNlpParser):
 
         with open(inputfilename, mode='w',
                   encoding=self._file_encoding) as infile:
-            # log.critical("text: {}".format(repr(text)))
+            # log.critical(f"text: {repr(text)}")
             infile.write(text)
 
         if (not self._signal_data_ready() or  # send
@@ -723,7 +723,7 @@ class Medex(BaseNlpParser):
                   encoding=self._file_encoding) as infile:
             resultlines = infile.readlines()
         for line in resultlines:
-            # log.critical("received: {}".format(line))
+            # log.critical(f"received: {line}")
             # Output code, from MedTagger.print_result():
             # out.write(
             #     index + 1 + "\t" + sent_text + "|" + drug + "|" + brand + "|"
@@ -735,7 +735,7 @@ class Medex(BaseNlpParser):
             line = line.rstrip()  # remove any trailing newline
             fields = line.split('|')
             if len(fields) < 14:
-                log.warning("Bad result received: {}".format(repr(line)))
+                log.warning(f"Bad result received: {line!r}")
                 continue
             generic_name = self.str_or_none(fields[-1])
             if not generic_name and SKIP_IF_NO_GENERIC:
@@ -820,8 +820,8 @@ class Medex(BaseNlpParser):
         # Restart subprocess?
         if (self._max_external_prog_uses > 0 and
                 self._n_uses % self._max_external_prog_uses == 0):
-            log.info("relaunching app after {} uses".format(
-                self._max_external_prog_uses))
+            log.info(f"relaunching app after "
+                     f"{self._max_external_prog_uses} uses")
             self._finish()
             self._start()
 
@@ -855,8 +855,7 @@ class Medex(BaseNlpParser):
             rpos = int(medex_str[comma + 1:rbracket])
             return text, lpos, rpos
         except (TypeError, ValueError):
-            log.warning("Bad string[left, right] format: {}".format(
-                repr(medex_str)))
+            log.warning(f"Bad string[left, right] format: {medex_str!r}")
             return None, None, None
 
     @staticmethod

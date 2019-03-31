@@ -55,6 +55,8 @@ from typing import List
 
 from crate_anon.version import CRATE_VERSION
 
+assert sys.version_info >= (3, 6), "Need Python 3.6+"
+
 
 # =============================================================================
 # Helper functions
@@ -62,7 +64,7 @@ from crate_anon.version import CRATE_VERSION
 
 def deltree(path: str, verbose: bool = False) -> None:
     if verbose:
-        print("Deleting directory: {}".format(path))
+        print(f"Deleting directory: {path}")
     shutil.rmtree(path, ignore_errors=True)
 
 
@@ -101,10 +103,10 @@ def add_all_files(root_dir: str,
             if any(fnmatch.fnmatch(final_filename, pattern)
                    for pattern in skip_patterns):
                 if verbose:
-                    print("Skipping: {}".format(final_filename))
+                    print(f"Skipping: {final_filename}")
                 continue
             if verbose:
-                print("Adding: {}".format(final_filename))
+                print(f"Adding: {final_filename}")
             filelist.append(final_filename)
 
 
@@ -240,8 +242,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     '--' + EXTRAS_ARG, action='store_true',
     help=(
-        "USE THIS TO CREATE PACKAGES (e.g. 'python setup.py sdist --{}. "
-        "Copies extra info in.".format(EXTRAS_ARG)
+        f"USE THIS TO CREATE PACKAGES (e.g. "
+        f"'python setup.py sdist --{EXTRAS_ARG}. Copies extra info in."
     )
 )
 our_args, leftover_args = parser.parse_known_args()
@@ -279,7 +281,7 @@ if getattr(our_args, EXTRAS_ARG):
                   skip_patterns=SKIP_PATTERNS)
 
     extra_files.sort()
-    print("EXTRA_FILES: \n{}".format(pformat(extra_files)))
+    print(f"EXTRA_FILES: \n{pformat(extra_files)}")
 
     # -------------------------------------------------------------------------
     # Write the manifest (ensures files get into the source distribution).
@@ -341,10 +343,7 @@ setup(
         'Operating System :: OS Independent',
 
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.2',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3 :: Only',
 
         'Topic :: System :: Hardware',

@@ -161,7 +161,7 @@ class CloudRequest(object):
         return len(text.encode('utf-8'))
 
     @classmethod
-    def list_processors(cls, nlpdef) -> List[str]:
+    def list_processors(cls, nlpdef: NlpDefinition) -> List[str]:
         config = nlpdef.get_parser()
         username = config.get_str(section="Cloud_NLP", option="username",
                                   default="")
@@ -187,9 +187,9 @@ class CloudRequest(object):
         # Make sure we don't send request to list processors twice for
         # same request
         if self.allowable_procs is None:
-            self.allowable_procs = self.list_processors()
+            self.allowable_procs = self.list_processors(self._nlpdef)
         if processor not in self.allowable_procs:
-            log.warning("Unknown processor, skipping {}".format(processor))
+            log.warning(f"Unknown processor, skipping {processor}")
         else:
             self.request_process['args']['processors'].append({
                 "name": processor})
@@ -261,8 +261,7 @@ class CloudRequest(object):
                 self.queue_id = json_response['queue_id']
                 self.fetched = False
             else:
-                log.warning("Got HTTP status code "
-                            "{}.".format(json_response['status']))
+                log.warning(f"Got HTTP status code {json_response['status']}.")
         else:
             status = json_response['status']
             if status == 200:
@@ -271,7 +270,7 @@ class CloudRequest(object):
                 # print()
                 self.fetched = True
             else:
-                log.error("Response status was: {}".format(status))  # CHANGE
+                log.error(f"Response status was: {status}")  # CHANGE
 
     def set_queue_id(self, queue_id: str) -> None:
         """
@@ -317,12 +316,12 @@ class CloudRequest(object):
         elif status == 102:
             return False
         elif status == 404:
-            log.error("Got HTTP status code 404 - queue_id {} deos not "
-                      "exist".format(self.queue_id))
+            log.error(f"Got HTTP status code 404 - queue_id "
+                      f"{self.queue_id} does not exist")
             return False
         else:
-            log.error("Got HTTP status code {} for queue_id "
-                      "{}.".format(status, self.queue_id))
+            log.error(
+                f"Got HTTP status code {status} for queue_id {self.queue_id}.")
             return False
 
     def get_tablename_map(self, processor: str) -> Tuple[Dict[str, str],
@@ -404,7 +403,7 @@ class CloudRequest(object):
                     for t, r, p in self.get_nlp_values_internal(
                             processor_data, procidentifier,
                             procname, metadata):
-                         yield t, r, p
+                        yield t, r, p
 
     def get_sessions_for_all_processors(self) -> Dict[str, List[any]]:
         # If cfgsection is set then this class was instantiated for one

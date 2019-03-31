@@ -132,8 +132,7 @@ class Command(BaseCommand):
             help="show debug info for static file requests")
         parser.add_argument(
             "--root_path", type=str, default=DEFAULT_ROOT,
-            help="Root path to serve CRATE at. Default: {}".format(
-                DEFAULT_ROOT))
+            help=f"Root path to serve CRATE at. Default: {DEFAULT_ROOT}")
         parser.set_defaults(log_screen=True)
         # parser.add_argument(
         #     "--stop", action="store_true",
@@ -223,7 +222,7 @@ class Command(BaseCommand):
 #             # process didn't exit cleanly, make one last effort to kill it
 #             os.kill(pid, signal.SIGKILL)
 #             if still_alive(pid):
-#                 raise OSError("Process {} did not stop.".format(pid))
+#                 raise OSError(f"Process {pid} did not stop.")
 #         os.remove(pidfile)
 
 
@@ -290,14 +289,14 @@ def start_server(host: str,
             'server.ssl_private_key': ssl_private_key,
         })
 
-    log.info("Starting on host: {}".format(host))
-    log.info("Starting on port: {}".format(port))
-    log.info("Static files will be served from filesystem path: {}".format(
-        settings.STATIC_ROOT))
-    log.info("Static files will be served at URL path: {}".format(
-        CRATE_STATIC_URL_PATH))
-    log.info("CRATE will be at: {}".format(root_path))
-    log.info("Thread pool size: {}".format(threads))
+    log.info(f"Starting on host: {host}")
+    log.info(f"Starting on port: {port}")
+    log.info(f"Static files will be served from filesystem path: "
+             f"{settings.STATIC_ROOT}")
+    log.info(f"Static files will be served at URL path: "
+             f"{CRATE_STATIC_URL_PATH}")
+    log.info(f"CRATE will be at: {root_path}")
+    log.info(f"Thread pool size: {threads}")
 
     static_config = {
         '/': {
@@ -338,7 +337,7 @@ def runcpserver(opts: Namespace) -> None:
 
     # if opts.daemonize:
     #     if not opts.pidfile:
-    #         opts.pidfile = '/var/run/cpserver_{}.pid'.format(opts.port)
+    #         opts.pidfile = f'/var/run/cpserver_{opts.port}.pid'
     #     stop_server(opts.pidfile)
     #
     #     if opts.workdir:
@@ -347,11 +346,11 @@ def runcpserver(opts: Namespace) -> None:
     #         become_daemon()
     #
     #     fp = open(opts.pidfile, 'w')
-    #     fp.write("{}\n".format(os.getpid()))
+    #     fp.write(f"{os.getpid()}\n")
     #     fp.close()
 
     # Start the webserver
-    log.info('starting server with options {}'.format(opts))
+    log.info(f'starting server with options {opts}')
     start_server(
         host=opts.host,
         port=opts.port,

@@ -179,12 +179,11 @@ class AlterMethod(object):
         def get_second_part(missing_description: str) -> str:
             if "=" not in value:
                 raise ValueError(
-                    "Bad format for alter method: {}".format(value))
+                    f"Bad format for alter method: {value}")
             secondhalf = value[value.index("=") + 1:]
             if not secondhalf:
                 raise ValueError(
-                    "Missing {} in alter method: {}".format(
-                        missing_description, value))
+                    f"Missing {missing_description} in alter method: {value}")
             return secondhalf
 
         if value == ALTERMETHOD.TRUNCATEDATE.value:
@@ -218,7 +217,7 @@ class AlterMethod(object):
         elif value == ALTERMETHOD.HTML_UNTAG.value:
             self.html_untag = True
         else:
-            raise ValueError("Bad alter_method part: {}".format(value))
+            raise ValueError(f"Bad alter_method part: {value}")
 
     def get_text(self) -> str:
         """
@@ -356,9 +355,8 @@ class AlterMethod(object):
             return truncate_date_to_first_of_month(value)
         except (ValueError, OverflowError):
             log.warning(
-                "Invalid date received to "
-                "{ALTERMETHOD.TRUNCATEDATE} method: {v}".format(
-                    ALTERMETHOD=ALTERMETHOD, v=value))
+                f"Invalid date received to "
+                f"{ALTERMETHOD.TRUNCATEDATE} method: {value}")
             return None
 
     @staticmethod
@@ -407,7 +405,7 @@ class AlterMethod(object):
             use_filename = True
             filename = value
             _, extension = os.path.splitext(filename)
-            log.info("extract_text: disk file, filename={!r}".format(filename))
+            log.info(f"extract_text: disk file, filename={filename!r}")
 
         elif self.extract_from_file_format:
             # The database contains a filename. However, it may not be a full
@@ -428,12 +426,13 @@ class AlterMethod(object):
             for i, ddr in enumerate(ddrows):
                 ffdict[ddr.src_field] = row[i]
             # Use that dictionary with the format string to make the filename
-            log.debug("extract_text: file_format_str={}, ffdict={}".format(
-                repr(self.file_format_str), repr(ffdict)))
+            log.debug(
+                f"extract_text: file_format_str={repr(self.file_format_str)}, "
+                f"ffdict={repr(ffdict)}")
             use_filename = True
             filename = self.file_format_str.format(**ffdict)
             _, extension = os.path.splitext(filename)
-            log.info("extract_text: disk file, filename={!r}".format(filename))
+            log.info(f"extract_text: disk file, filename={filename!r}")
 
         else:
             # The database contains the BLOB itself. However, we'd also like to
@@ -448,16 +447,14 @@ class AlterMethod(object):
             if extindex is None:
                 # Configuration error
                 raise ValueError(
-                    "Bug: missing extension field for "
-                    "alter_method={}".format(self.get_text()))
+                    f"Bug: missing extension field for "
+                    f"alter_method={self.get_text()}")
             extension = row[extindex]
-            log.info("extract_text: database BLOB, extension={}".format(
-                extension))
+            log.info(f"extract_text: database BLOB, extension={extension}")
 
         # Is it a permissible file type?
         if not self.config.extract_text_extension_permissible(extension):
-            log.info("Extension {} not permissible; skipping".format(
-                repr(extension)))
+            log.info(f"Extension {extension!r} not permissible; skipping")
             return None, False
 
         if use_filename:
@@ -466,8 +463,7 @@ class AlterMethod(object):
                 return None, False
 
             if not os.path.isfile(filename):
-                log.error("Filename {!r} is not a file; skipping".format(
-                    filename))
+                log.error(f"Filename {filename!r} is not a file; skipping")
                 return None, False
 
         # Extract text from the file (given its filename), or from a BLOB.
@@ -483,6 +479,6 @@ class AlterMethod(object):
         except Exception as e:
             # Runtime error
             traceback.print_exc()  # full details, please
-            log.error("Caught exception from document_to_text: {}".format(e))
+            log.error(f"Caught exception from document_to_text: {e}")
             return None, False
         return value, True

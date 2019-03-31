@@ -172,8 +172,8 @@ class DatabaseSafeConfig(object):
             for line in lines:
                 pair = [item.strip() for item in line.split(",")]
                 if len(pair) != 2:
-                    raise ValueError("For option {}: specify items as a list "
-                                     "of comma-separated pairs".format(option))
+                    raise ValueError(f"For option {option}: specify items as "
+                                     f"a list of comma-separated pairs")
                 d[pair[0]] = pair[1]
             return d
 
@@ -311,14 +311,14 @@ class DatabaseSafeConfig(object):
         """
         for abs_req in self.ddgen_table_require_field_absolute:
             if abs_req not in colnames:
-                log.debug("Table fails minimum field requirements: no column "
-                          "named {}".format(repr(abs_req)))
+                log.debug(f"Table fails minimum field requirements: no column "
+                          f"named {abs_req!r}")
                 return True
         for if_field, then_field in self.ddgen_table_require_field_conditional.items():  # noqa
             if if_field in colnames and then_field not in colnames:
-                log.debug("Table fails minimum field requirements: field {} "
-                          "present but field {} "
-                          "absent".format(repr(if_field), repr(then_field)))
+                log.debug(f"Table fails minimum field requirements: "
+                          f"field {if_field!r} present but "
+                          f"field {then_field!r} absent")
                 return True
         return False
 
@@ -402,9 +402,8 @@ def get_word_alternatives(filenames: List[str]) -> List[List[str]]:
                     continue
                 for w in equivalent_words:
                     if w in all_words_seen:
-                        raise ValueError(
-                            "Word {!r} appears twice in alternatives"
-                            "list! Invalid".format(w))
+                        raise ValueError(f"Word {w!r} appears twice in "
+                                         f"alternatives list! Invalid")
                     all_words_seen.add(w)
                 alternatives.append(equivalent_words)
     return alternatives
@@ -435,7 +434,7 @@ class Config(object):
             self.config_filename = os.environ[CONFIG_ENV_VAR]
             assert self.config_filename
             # Read config from file.
-            log.info("Reading config file: {}".format(self.config_filename))
+            log.info(f"Reading config file: {self.config_filename}")
             fileobj = codecs.open(self.config_filename, "r", "utf8")
         except (KeyError, AssertionError):
             if RUNNING_WITHOUT_CONFIG:
@@ -443,10 +442,10 @@ class Config(object):
                 fileobj = StringIO(DEMO_CONFIG)
             else:
                 print(
-                    "You must set the {} environment variable to point to a "
-                    "CRATE anonymisation config file, or specify it on the "
-                    "command line. Run crate_print_demo_anon_config "
-                    "to see a specimen config.".format(CONFIG_ENV_VAR))
+                    f"You must set the {CONFIG_ENV_VAR} environment variable "
+                    f"to point to a CRATE anonymisation config file, or "
+                    f"specify it on the command line. Run "
+                    f"crate_print_demo_anon_config to see a specimen config.")
                 sys.exit(1)
 
         parser.read_file(fileobj)
@@ -501,8 +500,8 @@ class Config(object):
                 length = int(m.group(1))
                 return String(length)
             except (AttributeError, ValueError):
-                raise ValueError("Bad SQLAlchemy type specification for "
-                                 "PID/MPID columns: {}".format(repr(sqlatype)))
+                raise ValueError(f"Bad SQLAlchemy type specification for "
+                                 f"PID/MPID columns: {sqlatype!r}")
 
         # ---------------------------------------------------------------------
         # Data dictionary
@@ -723,7 +722,7 @@ class Config(object):
         for sourcedb_name in source_database_cfg_sections:
             if RUNNING_WITHOUT_CONFIG:
                 continue
-            log.info("Adding source database: {}".format(sourcedb_name))
+            log.info(f"Adding source database: {sourcedb_name}")
             srccfg = DatabaseSafeConfig(parser, sourcedb_name)
             srcdb = get_database(sourcedb_name,
                                  srccfg_=srccfg,
@@ -732,8 +731,8 @@ class Config(object):
                                  with_conn=False,
                                  reflect=open_databases)
             if not srcdb:
-                raise ValueError("Source database {} misconfigured".format(
-                    sourcedb_name))
+                raise ValueError(
+                    f"Source database {sourcedb_name} misconfigured")
             self.sources[sourcedb_name] = srcdb
             if open_databases:
                 self.src_dialects[sourcedb_name] = srcdb.engine.dialect
@@ -808,9 +807,10 @@ class Config(object):
         (The Config is used to keep track of progress, via
         :func:`notify_src_bytes_read` and :func:`notify_dest_db_transaction`.)
         """
-        return "{} read, {} written".format(
-            sizeof_fmt(self._src_bytes_read),
-            sizeof_fmt(self._dest_bytes_written))
+        return (
+            f"{sizeof_fmt(self._src_bytes_read)} read, "
+            f"{sizeof_fmt(self._dest_bytes_written)} written"
+        )
 
     def load_dd(self, check_against_source_db: bool = True) -> None:
         """
@@ -820,8 +820,8 @@ class Config(object):
             check_against_source_db:
                 check DD validity against the source database?
         """
-        log.info(SEP + "Loading data dictionary: {}".format(
-            self.data_dictionary_filename))
+        log.info(SEP +
+                 f"Loading data dictionary: {self.data_dictionary_filename}")
         self.dd.read_from_file(self.data_dictionary_filename)
         self.dd.check_valid(
             prohibited_fieldnames=[self.source_hash_fieldname,
@@ -909,8 +909,8 @@ class Config(object):
             if not cfg.ddgen_allow_no_patient_info:
                 if not cfg.ddgen_per_table_pid_field:
                     raise ValueError(
-                        "Missing ddgen_per_table_pid_field in config for "
-                        "database {}".format(dbname))
+                        f"Missing ddgen_per_table_pid_field in config for"
+                        f" database {dbname}")
                 ensure_valid_field_name(cfg.ddgen_per_table_pid_field)
                 if cfg.ddgen_per_table_pid_field == self.source_hash_fieldname:
                     raise ValueError("Config: ddgen_per_table_pid_field can't "
@@ -968,9 +968,9 @@ class Config(object):
         """
         if hasher_name not in self.extra_hashers.keys():
             raise ValueError(
-                "Extra hasher {} requested but doesn't exist; check you have "
-                "listed it in 'extra_hash_config_sections' in the config "
-                "file".format(hasher_name))
+                f"Extra hasher {hasher_name} requested but doesn't exist; "
+                f"check you have listed it in 'extra_hash_config_sections' in "
+                f"the config file")
         return self.extra_hashers[hasher_name]
 
     def get_source_db_names(self) -> List[str]:

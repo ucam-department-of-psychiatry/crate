@@ -101,12 +101,12 @@ class Crp(SimpleNumericalResultParser):
 
     """
 
-    CRP = r"""
+    CRP = fr"""
         (?: {WORD_BOUNDARY}
             (?: (?: C [-\s]+ reactive [\s]+ protein ) | (?: CRP ) )
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {CRP} )                          # group for "CRP" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -119,15 +119,7 @@ class Crp(SimpleNumericalResultParser):
             {MG_PER_DL}
             | {MG_PER_L}
         )?
-    """.format(
-        CRP=CRP,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MG_PER_DL=MG_PER_DL,
-        MG_PER_L=MG_PER_L,
-    )
+    """
     NAME = "CRP"
     PREFERRED_UNIT_COLUMN = "value_mg_l"
     UNIT_MAPPING = {
@@ -211,10 +203,10 @@ class Sodium(SimpleNumericalResultParser):
     """
     Sodium (Na).
     """
-    SODIUM = r"""
+    SODIUM = fr"""
         (?: {WORD_BOUNDARY} (?: Na | Sodium ) {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {SODIUM} )                       # group for "Na" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -229,17 +221,7 @@ class Sodium(SimpleNumericalResultParser):
             | {MILLIEQ_PER_L}                   # good
             | {MG}                              # bad
         )?
-    """.format(
-        SODIUM=SODIUM,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MILLIMOLAR=MILLIMOLAR,
-        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
-        MILLIEQ_PER_L=MILLIEQ_PER_L,
-        MG=MG,
-    )
+    """
     NAME = "Sodium"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     UNIT_MAPPING = {
@@ -312,10 +294,10 @@ class Potassium(SimpleNumericalResultParser):
     """
     Potassium (K).
     """
-    POTASSIUM = r"""
+    POTASSIUM = fr"""
         (?: {WORD_BOUNDARY} (?: K | Potassium ) {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {POTASSIUM} )                    # group for "K" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -330,17 +312,7 @@ class Potassium(SimpleNumericalResultParser):
             | {MILLIEQ_PER_L}                   # good
             | {MG}                              # bad
         )?
-    """.format(
-        POTASSIUM=POTASSIUM,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MILLIMOLAR=MILLIMOLAR,
-        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
-        MILLIEQ_PER_L=MILLIEQ_PER_L,
-        MG=MG,
-    )
+    """
     NAME = "Potassium"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     UNIT_MAPPING = {
@@ -413,10 +385,10 @@ class Urea(SimpleNumericalResultParser):
     """
     Urea.
     """
-    UREA = r"""
+    UREA = fr"""
         (?: {WORD_BOUNDARY} (?: U(?:r(?:ea)?)? ) {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {UREA} )                         # group for "urea" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -431,17 +403,7 @@ class Urea(SimpleNumericalResultParser):
             | {MILLIEQ_PER_L}                   # good
             | {MG}                              # bad
         )?
-    """.format(
-        UREA=UREA,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MILLIMOLAR=MILLIMOLAR,
-        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
-        MILLIEQ_PER_L=MILLIEQ_PER_L,
-        MG=MG,
-    )
+    """
     NAME = "Urea"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     UNIT_MAPPING = {
@@ -513,12 +475,12 @@ class Creatinine(SimpleNumericalResultParser):
     """
     Creatinine.
     """
-    CREATININE = r"""
+    CREATININE = fr"""
         (?: {WORD_BOUNDARY} (?: Cr(?:eat(?:inine)?)? ) {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    """
     # ... Cr, Creat, Creatinine
     # Possible that "creatine" is present as a typo... but it's wrong...
-    REGEX = r"""
+    REGEX = fr"""
         ( {CREATININE} )                 # group for "creatinine" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?           # optional group for tense indicator
@@ -533,17 +495,7 @@ class Creatinine(SimpleNumericalResultParser):
             | {MICROEQ_PER_L}                   # good
             | {MG}                              # bad
         )?
-    """.format(  # noqa
-        CREATININE=CREATININE,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MICROMOLAR=MICROMOLAR,
-        MICROMOLES_PER_L=MICROMOLES_PER_L,
-        MICROEQ_PER_L=MICROEQ_PER_L,
-        MG=MG,
-    )
+    """
     NAME = "Creatinine"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     UNIT_MAPPING = {
@@ -614,10 +566,10 @@ class Lithium(SimpleNumericalResultParser):
     """
     Lithium (Li) levels (for blood tests, not doses).
     """
-    LITHIUM = r"""
+    LITHIUM = fr"""
         (?: {WORD_BOUNDARY} (?: Li | Lithium ) {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {LITHIUM} )                      # group for "Li" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -633,18 +585,7 @@ class Lithium(SimpleNumericalResultParser):
             | {MG}                              # bad
             | {G}                               # bad
         )?
-    """.format(
-        LITHIUM=LITHIUM,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MILLIMOLAR=MILLIMOLAR,
-        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
-        MILLIEQ_PER_L=MILLIEQ_PER_L,
-        MG=MG,
-        G=G,
-    )
+    """
     NAME = "Lithium"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     UNIT_MAPPING = {
@@ -721,12 +662,12 @@ class Tsh(SimpleNumericalResultParser):
     """
     Thyroid-stimulating hormone (TSH).
     """
-    TSH = r"""
+    TSH = fr"""
         (?: {WORD_BOUNDARY}
             (?: TSH | thyroid [-\s]+ stimulating [-\s]+ hormone )
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {TSH} )                          # group for "TSH" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -739,15 +680,7 @@ class Tsh(SimpleNumericalResultParser):
             {MILLIUNITS_PER_L}                 # good
             | {MICROUNITS_PER_ML}              # good
         )?
-    """.format(
-        TSH=TSH,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MILLIUNITS_PER_L=MILLIUNITS_PER_L,
-        MICROUNITS_PER_ML=MICROUNITS_PER_ML,
-    )
+    """
     NAME = "TSH"
     PREFERRED_UNIT_COLUMN = "value_mU_L"
     UNIT_MAPPING = {
@@ -816,11 +749,11 @@ class Glucose(SimpleNumericalResultParser):
     - By Emanuele Osimo, Feb 2019.
     - Some modifications by Rudolf Cardinal, Feb 2019.
     """
-    GLUCOSE = r"""
+    GLUCOSE = fr"""
         (?: {WORD_BOUNDARY} (?: glu(?:c(?:ose)?)? ) {WORD_BOUNDARY} )
         # glu, gluc, glucose
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {GLUCOSE} )                      # group for glucose or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -834,16 +767,7 @@ class Glucose(SimpleNumericalResultParser):
             | {MILLIMOLES_PER_L}                # good
             | {MG_PER_DL}                       # good but needs conversion
         )?
-    """.format(
-        GLUCOSE=GLUCOSE,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MILLIMOLAR=MILLIMOLAR,
-        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
-        MG_PER_DL=MG_PER_DL,
-    )
+    """
     GLUCOSE_MOLECULAR_MASS_G_PER_MOL = 180.156
     # ... https://pubchem.ncbi.nlm.nih.gov/compound/D-glucose
     NAME = "Glucose"
@@ -930,12 +854,12 @@ class LDLCholesterol(SimpleNumericalResultParser):
     - By Emanuele Osimo, Feb 2019.
     - Some modifications by Rudolf Cardinal, Feb 2019.
     """
-    LDL = r"""
+    LDL = fr"""
         (?: {WORD_BOUNDARY}
             (?: LDL [-\s]* (?:chol(?:esterol)? )? )
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {LDL} )                       # group for LDL or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -949,16 +873,7 @@ class LDLCholesterol(SimpleNumericalResultParser):
             | {MILLIMOLES_PER_L}                # good
             | {MG_PER_DL}                       # OK but needs conversion
         )?
-    """.format(
-        LDL=LDL,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MILLIMOLAR=MILLIMOLAR,
-        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
-        MG_PER_DL=MG_PER_DL,
-    )
+    """
     NAME = "LDL cholesterol"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     FACTOR_MG_DL_TO_MMOL_L = 0.02586
@@ -1048,12 +963,12 @@ class HDLCholesterol(SimpleNumericalResultParser):
     - By Emanuele Osimo, Feb 2019.
     - Some modifications by Rudolf Cardinal, Feb 2019.
     """
-    HDL = r"""
+    HDL = fr"""
         (?: {WORD_BOUNDARY}
             (?: HDL [-\s]* (?:chol(?:esterol)? )? )
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {HDL} )                       # group for HDL or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -1067,16 +982,7 @@ class HDLCholesterol(SimpleNumericalResultParser):
             | {MILLIMOLES_PER_L}                # good
             | {MG_PER_DL}                       # OK but needs conversion
         )?
-    """.format(
-        HDL=HDL,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MILLIMOLAR=MILLIMOLAR,
-        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
-        MG_PER_DL=MG_PER_DL,
-    )
+    """
     NAME = "HDL cholesterol"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     FACTOR_MG_DL_TO_MMOL_L = 0.02586
@@ -1163,16 +1069,16 @@ class TotalCholesterol(SimpleNumericalResultParser):
     """
     Total cholesterol.
     """
-    CHOLESTEROL = r"""
+    CHOLESTEROL = fr"""
         (?: 
             {WORD_BOUNDARY}
             (?<!HDL[-\s]+) (?<!LDL[-\s]+)  # not preceded by HDL or LDL 
             (?: tot(?:al) [-\s] )?         # optional "total" prefix
             (?: chol(?:esterol)? )         # cholesterol
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    """
     # ... (?<! something ) is a negative lookbehind assertion
-    REGEX = r"""
+    REGEX = fr"""
         ( {CHOLESTEROL} )                  # group for cholesterol or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -1186,16 +1092,7 @@ class TotalCholesterol(SimpleNumericalResultParser):
             | {MILLIMOLES_PER_L}                # good
             | {MG_PER_DL}                       # OK but needs conversion
         )?
-    """.format(  # noqa
-        CHOLESTEROL=CHOLESTEROL,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MILLIMOLAR=MILLIMOLAR,
-        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
-        MG_PER_DL=MG_PER_DL,
-    )
+    """
     NAME = "HDL cholesterol"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     FACTOR_MG_DL_TO_MMOL_L = 0.02586
@@ -1285,12 +1182,12 @@ class Triglycerides(SimpleNumericalResultParser):
     - By Emanuele Osimo, Feb 2019.
     - Some modifications by Rudolf Cardinal, Feb 2019.
     """
-    TG = r"""
+    TG = fr"""
         (?: {WORD_BOUNDARY}
             (?: (?: Triglyceride[s]? | TG ) )
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {TG} )                           # group for triglycerides or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -1304,16 +1201,7 @@ class Triglycerides(SimpleNumericalResultParser):
             | {MILLIMOLES_PER_L}                # good
             | {MG_PER_DL}                       # OK but needs conversion
         )?
-    """.format(  # noqa
-        TG=TG,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MILLIMOLAR=MILLIMOLAR,
-        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
-        MG_PER_DL=MG_PER_DL,
-    )
+    """
     NAME = "Triglycerides"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     FACTOR_MG_DL_TO_MMOL_L = 0.01129  # reciprocal of 88.57
@@ -1448,14 +1336,14 @@ class HbA1c(SimpleNumericalResultParser):
     - By Emanuele Osimo, Feb 2019.
     - Some modifications by Rudolf Cardinal, Feb 2019.
     """
-    HBA1C = r"""
+    HBA1C = fr"""
         (?: {WORD_BOUNDARY}
             (?: (?: Glyc(?:osyl)?ated [-\s]+ (?:ha?emoglobin|Hb) ) |
                 (?: HbA1c )
             )
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    REGEX = r"""
+    """
+    REGEX = fr"""
         ( {HBA1C} )                       # group for HbA1c or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
@@ -1470,17 +1358,7 @@ class HbA1c(SimpleNumericalResultParser):
             | {MILLIMOLES_PER_L}                # bad; may be an eAG value
             | {MG_PER_DL}                       # bad; may be an eAG value
         )?
-    """.format(
-        HBA1C=HBA1C,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        MILLIMOLES_PER_MOL=MILLIMOLES_PER_MOL,
-        PERCENT=PERCENT,
-        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
-        MG_PER_DL=MG_PER_DL,
-    )
+    """
     NAME = "HBA1C"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     UNIT_MAPPING = {

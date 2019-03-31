@@ -105,7 +105,7 @@ def full_sectionname(section_type: str, section: str) -> str:
     elif section_type == "database":
         return CONFIG_DATABASE_PREFIX + section
     else:
-        raise ValueError("Unrecognised section type: {}".format(section_type))
+        raise ValueError(f"Unrecognised section type: {section_type}")
 
 
 # =============================================================================
@@ -148,26 +148,26 @@ class NlpDefinition(object):
         self._logtag = logtag
         nlpsection = full_sectionname("nlpdef", nlpname)
 
-        log.info("Loading config for section: {}".format(nlpname))
+        log.info(f"Loading config for section: {nlpname}")
         # Get filename
         try:
             self._config_filename = os.environ[NLP_CONFIG_ENV_VAR]
             assert self._config_filename
         except (KeyError, AssertionError):
             print(
-                "You must set the {} environment variable to point to a CRATE "
-                "anonymisation config file. Run crate_print_demo_anon_config "
-                "to see a specimen config.".format(NLP_CONFIG_ENV_VAR))
+                f"You must set the {NLP_CONFIG_ENV_VAR} environment variable "
+                f"to point to a CRATE anonymisation config file. Run "
+                f"crate_print_demo_anon_config to see a specimen config.")
             sys.exit(1)
 
         # Read config from file.
         self._parser = ExtendedConfigParser()
         self._parser.optionxform = str  # make it case-sensitive
-        log.info("Reading config file: {}".format(self._config_filename))
+        log.info(f"Reading config file: {self._config_filename}")
         self._parser.read_file(codecs.open(self._config_filename, "r", "utf8"))
 
         if not self._parser.has_section(nlpsection):
-            raise ValueError("No section named {} present".format(nlpsection))
+            raise ValueError(f"No section named {nlpsection} present")
 
         # ---------------------------------------------------------------------
         # Our own stuff
@@ -204,8 +204,8 @@ class NlpDefinition(object):
         # NLP processors
         # ---------------------------------------------------------------------
         self._processors = []  # type: List[BaseNlpParser]
-        processorpairs = self.opt_strlist(nlpsection, 'processors', required=True,
-                                          lower=False)
+        processorpairs = self.opt_strlist(
+            nlpsection, 'processors', required=True, lower=False)
         try:
             for proctype, procname in chunks(processorpairs, 2):
                 self.require_section(full_sectionname("processor", procname))
@@ -285,7 +285,7 @@ class NlpDefinition(object):
         raise :exc:`ValueError`.
         """
         if not self._parser.has_section(section):
-            msg = "Missing config section: {}".format(section)
+            msg = f"Missing config section: {section}"
             log.critical(msg)
             raise ValueError(msg)
 

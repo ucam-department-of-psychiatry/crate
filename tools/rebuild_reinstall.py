@@ -38,11 +38,10 @@ THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 SOURCE_ROOT = os.path.abspath(os.path.join(THIS_DIR, os.pardir))
 PACKAGE_DIR = os.path.join(SOURCE_ROOT, "built_packages")
 PACKAGE = 'crate'
-DEBVERSION = '{}-1'.format(CRATE_VERSION)
+DEBVERSION = f'{CRATE_VERSION}-1'
 PACKAGEFILE = os.path.join(
     PACKAGE_DIR,
-    '{PACKAGE}_{DEBVERSION}_all.deb'.format(PACKAGE=PACKAGE,
-                                            DEBVERSION=DEBVERSION))
+    f'{PACKAGE}_{DEBVERSION}_all.deb')
 
 subprocess.check_call([os.path.join(THIS_DIR, 'make_package.py')])
 subprocess.check_call(['sudo', 'apt-get', '--yes', 'remove', PACKAGE])

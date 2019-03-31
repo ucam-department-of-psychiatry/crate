@@ -59,7 +59,7 @@ def at_wb_start_end(regex_str: str) -> str:
     Caution using this. Digits do not end a word, so "mm3" will not match if
     your "mm" group ends in a word boundary.
     """
-    return "\b(?: {} )\b".format(regex_str)
+    return f"\b(?: {regex_str} )\b"
 
 
 def at_start_wb(regex_str: str) -> str:
@@ -69,7 +69,7 @@ def at_start_wb(regex_str: str) -> str:
     With word boundary at start. Beware, though; e.g. "3kg" is reasonable, and
     this does NOT have a word boundary in.
     """
-    return "(?: \b (?: {} ) )".format(regex_str)
+    return f"(?: \b (?: {regex_str} ) )"
 
 
 def compile_regex(regex_str: str) -> Pattern:
@@ -79,7 +79,7 @@ def compile_regex(regex_str: str) -> Pattern:
     try:
         return regex.compile(regex_str, REGEX_COMPILE_FLAGS)
     except _regex_core.error:
-        print("FAILING REGEX:\n{}".format(regex_str))
+        print(f"FAILING REGEX:\n{regex_str}")
         raise
 
 

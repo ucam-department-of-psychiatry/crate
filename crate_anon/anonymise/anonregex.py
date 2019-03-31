@@ -529,7 +529,7 @@ def get_regex_from_elements(elementlist: List[str]) -> Optional[Pattern]:
         s = get_regex_string_from_elements(elementlist)
         return regex.compile(s, regex.IGNORECASE | regex.UNICODE)
     except _regex_core.error:
-        log.exception("Failed regex: elementlist={}".format(elementlist))
+        log.exception(f"Failed regex: elementlist={elementlist}")
         raise
 
 
@@ -651,7 +651,7 @@ class TestAnonRegexes(unittest.TestCase):
 
         self.report("Removing date: " + testdate_str,
                     regex_date.sub("DATE_GONE", s))
-        self.report("Removing number: {}".format(testnumber),
+        self.report(f"Removing number: {testnumber}",
                     regex_number.sub("NUMBER_GONE", s))
         self.report("Removing numbers as text: " + testnumber_as_text,
                     regex_number_as_text.sub("NUMBER_AS_TEXT_GONE", s))
@@ -701,7 +701,7 @@ def examples_for_paper() -> None:
             at_word_boundaries_only=at_word_boundaries_only,
             max_errors=max_errors
         ))
-    print("--- For words {}:".format(testwords))
+    print(f"--- For words {testwords}:")
     for r in words_regexes:
         print(r)
 
@@ -711,7 +711,7 @@ def examples_for_paper() -> None:
         max_errors=max_errors,
         at_word_boundaries_only=at_word_boundaries_only
     )
-    print("--- For phrase {}:".format(testphrase))
+    print(f"--- For phrase {testphrase}:")
     for r in phrase_regexes:
         print(r)
 
@@ -723,7 +723,7 @@ def examples_for_paper() -> None:
         at_word_boundaries_only=anonymise_numbers_at_word_boundaries_only,
         at_numeric_boundaries_only=anonymise_numbers_at_numeric_boundaries_only
     )
-    print("--- For number {}:".format(testnumber))
+    print(f"--- For number {testnumber}:")
     for r in number_regexes:
         print(r)
 
@@ -733,7 +733,7 @@ def examples_for_paper() -> None:
         reduce_to_alphanumeric(str(testcode)),
         at_word_boundaries_only=anonymise_codes_at_word_boundaries_only
     )
-    print("--- For code {}:".format(testcode))
+    print(f"--- For code {testcode}:")
     for r in code_regexes:
         print(r)
 
@@ -742,7 +742,7 @@ def examples_for_paper() -> None:
         n_digits,
         at_word_boundaries_only=anonymise_numbers_at_word_boundaries_only
     )
-    print("--- NONSPECIFIC: numbers of length {}:".format(n_digits))
+    print(f"--- NONSPECIFIC: numbers of length {n_digits}:")
     for r in nonspec_10_digit_number_regexes:
         print(r)
 
@@ -755,7 +755,7 @@ def examples_for_paper() -> None:
 
     testdate = datetime.date(year=2016, month=12, day=31)
     date_regexes = get_date_regex_elements(testdate)
-    print("--- For date {}:".format(testdate))
+    print(f"--- For date {testdate}:")
     for r in date_regexes:
         print(r)
 

@@ -368,7 +368,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # RiO/RCEP: 1. Get RiO PK
     # -------------------------------------------------------------------------
     cursor.execute(
-        """
+        f"""
             SELECT
                 {rio_number_field}, -- RiO number (PK)
                 -- NHS_Number,
@@ -382,7 +382,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             WHERE
                 NHS_Number = %s -- CHAR comparison
                 AND (Deleted_Flag IS NULL OR Deleted_Flag = 0)
-        """.format(rio_number_field=rio_number_field),
+        """,
         [str(lookup.nhs_number)]
     )
     # Can't use "NOT Deleted_Flag" with SQL Server; you get
@@ -402,7 +402,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     rio_client_id = row[rio_number_field]
     lookup.pt_local_id_description = "CPFT RiO number"
     lookup.pt_local_id_number = rio_client_id
-    secret_decisions.append("RiO number: {}.".format(rio_client_id))
+    secret_decisions.append(f"RiO number: {rio_client_id}.")
     lookup.pt_dob = to_date(row['Date_of_Birth'])
     lookup.pt_dod = to_date(row['Date_of_Death'])
     lookup.pt_dead = bool(lookup.pt_dod or row['Death_Flag'])
@@ -412,7 +412,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # RiO/RCEP: 2. Name
     # -------------------------------------------------------------------------
     cursor.execute(
-        """
+        f"""
             SELECT
                 title,
                 Given_Name_1,
@@ -421,13 +421,11 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             WHERE
                 {rio_number_field} = %s
                 AND Effective_Date <= GETDATE()
-                AND ({end_date_field} IS NULL OR {end_date_field} > GETDATE())
+                AND ({'End_Date' if as_crate_not_rcep else 'End_Date_'} IS NULL
+                     OR {'End_Date' if as_crate_not_rcep else 'End_Date_'} > GETDATE())
                 AND (Deleted_Flag IS NULL OR Deleted_Flag = 0)
             ORDER BY Name_Type_Code
-        """.format(
-            rio_number_field=rio_number_field,
-            end_date_field='End_Date' if as_crate_not_rcep else 'End_Date_',
-        ),
+        """,  # noqa
         [rio_client_id]
     )
     row = dictfetchone(cursor)
@@ -448,7 +446,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # RiO/RCEP: 3. Address
     # -------------------------------------------------------------------------
     cursor.execute(
-        """
+        f"""
             SELECT
                 Address_Line_1,
                 Address_Line_2,
@@ -464,7 +462,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                      OR Address_To_Date > GETDATE())
             ORDER BY CASE WHEN Address_Type_Code = 'PRIMARY' THEN '1'
                           ELSE Address_Type_Code END ASC
-        """.format(rio_number_field=rio_number_field),
+        """,
         [rio_client_id]
     )
     row = dictfetchone(cursor)
@@ -482,7 +480,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # RiO/RCEP: 3b. Patient's e-mail address
     # -------------------------------------------------------------------------
     cursor.execute(
-        """
+        f"""
             SELECT
                 Contact_Details  -- an e-mail address if Method_Code = 3
             FROM Client_Communications_History
@@ -499,7 +497,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 -- 4 = Office address
                 -- 6 = Emergency contact
                 -- 8 = Mobile device
-        """.format(rio_number_field=rio_number_field),
+        """,
         [rio_client_id]
     )
     rows = dictfetchall(cursor)
@@ -512,7 +510,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # -------------------------------------------------------------------------
     if as_crate_not_rcep:
         cursor.execute(
-            """
+            f"""
                 SELECT
                     GP_Title,
                     GP_Forename,
@@ -528,7 +526,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                     {rio_number_field} = %s
                     AND GP_From_Date <= GETDATE()
                     AND (GP_To_Date IS NULL OR GP_To_Date > GETDATE())
-            """.format(rio_number_field=rio_number_field),
+            """,
             [rio_client_id]
         )
         row = dictfetchone(cursor)
@@ -547,7 +545,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             lookup.gp_address_6 = row['GP_Practice_Post_Code']
     else:
         cursor.execute(
-            """
+            f"""
                 SELECT
                     GP_Name,
                     GP_Practice_Address_Line1,
@@ -561,7 +559,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                     {rio_number_field} = %s
                     AND GP_From_Date <= GETDATE()
                     AND (GP_To_Date IS NULL OR GP_To_Date > GETDATE())
-            """.format(rio_number_field=rio_number_field),
+            """,
             [rio_client_id]
         )
         row = dictfetchone(cursor)
@@ -601,7 +599,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
         care_co_consultant_flag_field = 'Care_Coordinator_User_Consultant_Flag'
         care_co_table = 'CPA_CareCoordinator'
     cursor.execute(
-        """
+        f"""
             SELECT
                 {care_co_title_field},
                 {care_co_forename_field},
@@ -614,15 +612,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             WHERE
                 {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
-        """.format(
-            care_co_title_field=care_co_title_field,
-            care_co_forename_field=care_co_forename_field,
-            care_co_surname_field=care_co_surname_field,
-            care_co_email_field=care_co_email_field,
-            care_co_consultant_flag_field=care_co_consultant_flag_field,
-            care_co_table=care_co_table,
-            rio_number_field=rio_number_field,
-        ),
+        """,
         [rio_client_id]
     )
     for row in dictfetchall(cursor):
@@ -655,7 +645,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
         cons_consultant_flag_field = 'Referred_Consultant_User_Consultant_Flag'
         referral_table = 'Main_Referral_Data'
     cursor.execute(
-        """
+        f"""
             SELECT
                 {cons_title_field},
                 {cons_forename_field},
@@ -668,15 +658,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             WHERE
                 {rio_number_field} = %s
                 AND Referral_Received_Date <= GETDATE()
-        """.format(
-            cons_title_field=cons_title_field,
-            cons_forename_field=cons_forename_field,
-            cons_surname_field=cons_surname_field,
-            cons_email_field=cons_email_field,
-            cons_consultant_flag_field=cons_consultant_flag_field,
-            referral_table=referral_table,
-            rio_number_field=rio_number_field,
-        ),
+        """,
         [rio_client_id]
     )
     for row in dictfetchall(cursor):
@@ -708,7 +690,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
         hcp_email_field = 'HCP_User_email'
         hcp_consultant_flag_field = 'HCP_User_Consultant_Flag'
     cursor.execute(
-        """
+        f"""
             SELECT
                 {hcp_title_field},
                 {hcp_forename_field},
@@ -721,14 +703,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             WHERE
                 {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
-        """.format(
-            hcp_title_field=hcp_title_field,
-            hcp_forename_field=hcp_forename_field,
-            hcp_surname_field=hcp_surname_field,
-            hcp_email_field=hcp_email_field,
-            hcp_consultant_flag_field=hcp_consultant_flag_field,
-            rio_number_field=rio_number_field,
-        ),
+        """,
         [rio_client_id]
     )
     for row in dictfetchall(cursor):
@@ -747,7 +722,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # (d) Active team referral?
     #
     cursor.execute(
-        """
+        f"""
             SELECT
                 Team_Description,
                 Start_Date,
@@ -756,7 +731,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             WHERE
                 {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
-        """.format(rio_number_field=rio_number_field),
+        """,
         [rio_client_id]
     )
     for row in dictfetchall(cursor):
@@ -788,11 +763,11 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             team_info.signatory_title = profile.signatory_title
             team_info.is_consultant = profile.is_consultant
         except ObjectDoesNotExist:
-            decisions.append("No team representative found for "
-                             "{}.".format(team_summary))
+            decisions.append(
+                f"No team representative found for {team_summary}.")
         except MultipleObjectsReturned:
-            decisions.append("Confused: >1 team representative found for "
-                             "{}.".format(team_summary))
+            decisions.append(
+                f"Confused: >1 team representative found for {team_summary}.")
         clinicians.append(team_info)
         # We append it even if we can't find a representative, because it still
         # carries information about whether the patient is discharged or not.
@@ -822,9 +797,8 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # from which the patient has been discharged, and ones that are active.
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    decisions.append(
-        "{} total past/present clinician(s)/team(s) found: {}.".format(
-            len(clinicians), repr(clinicians)))
+    decisions.append(f"{len(clinicians)} total past/present "
+                     f"clinician(s)/team(s) found: {clinicians!r}.")
     current_clinicians = [c for c in clinicians if c.current()]
     if current_clinicians:
         lookup.pt_discharged = False
@@ -838,13 +812,13 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
         # Sort order is: most preferred first.
         contactable_curr_clin.sort(key=attrgetter('start_date'), reverse=True)
         contactable_curr_clin.sort(key=attrgetter('clinician_preference_order'))  # noqa
-        decisions.append("{} contactable active clinician(s) found.".format(
-            len(contactable_curr_clin)))
+        decisions.append(f"{len(contactable_curr_clin)} contactable active "
+                         f"clinician(s) found.")
         if contactable_curr_clin:
             chosen_clinician = contactable_curr_clin[0]
             lookup.set_from_clinician_info_holder(chosen_clinician)
-            decisions.append("Found active clinician of type: {}".format(
-                chosen_clinician.clinician_type))
+            decisions.append(f"Found active clinician of type: "
+                             f"{chosen_clinician.clinician_type}")
             return  # All done!
         # If we get here, the patient is not discharged, but we haven't found
         # a contactable active clinician.
@@ -863,13 +837,13 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # Sort order is: most preferred first.
     contactable_old_clin.sort(key=attrgetter('clinician_preference_order'))
     contactable_old_clin.sort(key=attrgetter('end_date'), reverse=True)
-    decisions.append("{} contactable previous clinician(s) found.".format(
-        len(contactable_old_clin)))
+    decisions.append(f"{len(contactable_old_clin)} contactable previous "
+                     f"clinician(s) found.")
     if contactable_old_clin:
         chosen_clinician = contactable_old_clin[0]
         lookup.set_from_clinician_info_holder(chosen_clinician)
-        decisions.append("Found previous clinician of type: {}".format(
-            chosen_clinician.clinician_type))
+        decisions.append(f"Found previous clinician of type: "
+                         f"{chosen_clinician.clinician_type}")
 
     if not lookup.clinician_found:
         decisions.append("Failed to establish contactable clinician.")
@@ -1108,8 +1082,8 @@ def get_latest_consent_mode_from_rio_generic(
     if traffic_light:
         traffic_light = traffic_light.lower()
         if traffic_light not in ConsentMode.VALID_CONSENT_MODES:
-            decisions.append("Invalid traffic light {!r}; ignoring".format(
-                traffic_light))
+            decisions.append(
+                f"Invalid traffic light {traffic_light!r}; ignoring")
             return None
 
     if raw_rio:
@@ -1117,7 +1091,7 @@ def get_latest_consent_mode_from_rio_generic(
         dmc = row["decision_method_code"]
         if dmc not in DECISION_METHOD_CODE_TO_TEXT.keys():
             decisions.append(
-                "Decision method code {!r} unknown; ignoring".format(dmc))
+                f"Decision method code {dmc!r} unknown; ignoring")
             return None
         dm = DECISION_METHOD_CODE_TO_TEXT[dmc]
     else:
@@ -1125,7 +1099,7 @@ def get_latest_consent_mode_from_rio_generic(
         dm = row["decision_method"]
         if dm not in DECISION_METHOD_CODE_TO_TEXT.values():
             decisions.append(
-                "Decision method {!r} unknown; ignoring".format(dm))
+                f"Decision method {dm!r} unknown; ignoring")
             return None
 
     decision_by_other = (

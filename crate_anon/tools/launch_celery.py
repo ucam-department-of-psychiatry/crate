@@ -82,7 +82,7 @@ def main():
                         help="Ask Celery to be verbose")
     args, leftovers = parser.parse_known_args()
 
-    # print("Changing to directory: {}".format(DJANGO_ROOT))
+    # print(f"Changing to directory: {DJANGO_ROOT}")
     # os.chdir(DJANGO_ROOT)
     cmdargs = [
         "celery",
@@ -113,11 +113,11 @@ def main():
         # We don't need to specify modules manually, now we have a package.
         # modules = get_python_modules(DJANGO_ROOT,
         #                              prefix="crate_anon.crateweb.")
-        # cmdargs += ["--include", "{}".format(','.join(modules))]
+        # cmdargs += ["--include", f"{','.join(modules)}"]
 
         # "--autoreload",
     cmdargs += leftovers
-    print("Launching Celery: {}".format(cmdargs))
+    print(f"Launching Celery: {cmdargs}")
     subprocess.call(cmdargs)
 
 

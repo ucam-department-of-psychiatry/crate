@@ -37,8 +37,8 @@ import sys
 from typing import List
 
 
-if sys.version_info[0] < 3:
-    raise AssertionError("Need Python 3")
+assert sys.version_info >= (3, 6), "Need Python 3.6+"
+
 LINUX = platform.system() == 'Linux'
 # LINUX_DIST = platform.linux_distribution()[0].lower()
 # DEB = LINUX_DIST in ['ubuntu', 'debian']
@@ -80,7 +80,7 @@ def cmd_returns_zero_success(cmdargs: List[str]) -> bool:
     """
     Runs a command; returns True if it succeeded and False if it failed.
     """
-    print("Checking result of command: {}".format(cmdargs))
+    print(f"Checking result of command: {cmdargs}")
     try:
         subprocess.check_call(cmdargs)
         return True
@@ -92,7 +92,7 @@ def check_call(cmdargs: List[str]) -> None:
     """
     Displays its intent, executes a command, and checks that it succeeded.
     """
-    print("Command: {}".format(cmdargs))
+    print(f"Command: {cmdargs}")
     subprocess.check_call(cmdargs)
 
 
@@ -120,8 +120,7 @@ def main() -> None:
     venv_pip = os.path.join(args.virtualenv, 'bin', 'pip')
     activate = "source " + os.path.join(args.virtualenv, 'bin', 'activate')
 
-    print("XDG_CACHE_HOME: {}".format(os.environ.get('XDG_CACHE_HOME',
-                                                     None)))
+    print(f"XDG_CACHE_HOME: {os.environ.get('XDG_CACHE_HOME', None)}")
     # if not args.skippackagechecks:
     #     if DEB:
     #         title("Prerequisites, from " + DEB_REQ_FILE)
@@ -137,14 +136,13 @@ def main() -> None:
     #         raise AssertionError("Not DEB; don't know what to do")
     #     print('OK')
 
-    title("Ensuring virtualenv is installed for system"
-          " Python ({})".format(PYTHON))
+    title(f"Ensuring virtualenv is installed for system Python ({PYTHON})")
     check_call([PYTHON, '-m', 'pip', 'install',
-                'virtualenv>={}'.format(args.virtualenv_minimum_version)])
+                f'virtualenv>={args.virtualenv_minimum_version}'])
     print('OK')
 
-    title("Using system Python ({}) and virtualenv ({}) to make {}".format(
-          PYTHON, venv_tool, args.virtualenv))
+    title(f"Using system Python ({PYTHON}) and virtualenv ({venv_tool}) "
+          f"to make {args.virtualenv}")
     check_call([PYTHON, '-m', venv_tool, args.virtualenv])
     print('OK')
 
@@ -162,8 +160,8 @@ def main() -> None:
     print('OK')
     print('--- Virtual environment installed successfully')
 
-    print("To activate the virtual environment, use\n"
-          "    {activate}\n\n".format(activate=activate))
+    print(f"To activate the virtual environment, use\n"
+          f"    {activate}\n\n")
 
 
 if __name__ == '__main__':

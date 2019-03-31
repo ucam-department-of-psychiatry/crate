@@ -196,7 +196,7 @@ def site_absolute_url(path: str) -> str:
     Django URLs.
     """
     url = settings.DJANGO_SITE_ROOT_ABSOLUTE_URL + path
-    log.debug("site_absolute_url: {} -> {}".format(path, url))
+    log.debug(f"site_absolute_url: {path} -> {url}")
     return url
 
 
@@ -213,7 +213,7 @@ def get_friendly_date(date: datetime.datetime) -> str:
     try:
         return date.strftime("%d %B %Y")  # e.g. 03 December 2013
     except Exception as e:
-        raise type(e)(str(e) + ' [value was {}]'.format(repr(date)))
+        raise type(e)(str(e) + f' [value was {date!r}]')
 
 
 # =============================================================================

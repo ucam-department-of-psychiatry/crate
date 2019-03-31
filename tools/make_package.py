@@ -185,7 +185,7 @@ print("Checking prerequisites")
 PREREQUISITES = ["dpkg-deb"]
 for cmd in PREREQUISITES:
     if shutil.which(cmd) is None:
-        error("{} command not found; stopping".format(cmd))
+        error(f"{cmd} command not found; stopping")
         sys.exit(1)
 
 
@@ -237,14 +237,13 @@ WORK_ROOT = workpath(DEST_ROOT)
 # Version number etc.
 # -----------------------------------------------------------------------------
 
-DEBVERSION = '{}-1'.format(CRATE_VERSION)
+DEBVERSION = f'{CRATE_VERSION}-1'
 PACKAGENAME = join(
     PACKAGE_DIR,
-    '{PACKAGE}_{DEBVERSION}_all.deb'.format(PACKAGE=PACKAGE_FOR_DEB,
-                                            DEBVERSION=DEBVERSION))
-print("Building .deb package for {} version {} ({})".format(
-    PACKAGE_FOR_DEB, CRATE_VERSION, CRATE_VERSION_DATE))
-CRATE_PIPFILE = '{}-{}.tar.gz'.format(PACKAGE_FOR_PYPI, CRATE_VERSION)
+    f'{PACKAGE_FOR_DEB}_{DEBVERSION}_all.deb')
+print(f"Building .deb package for {PACKAGE_FOR_DEB} version "
+      f"{CRATE_VERSION} ({CRATE_VERSION_DATE})")
+CRATE_PIPFILE = f'{PACKAGE_FOR_PYPI}-{CRATE_VERSION}.tar.gz'
 
 # -----------------------------------------------------------------------------
 # Files
@@ -254,9 +253,9 @@ DEB_REQUIREMENTS_FILE = join(SOURCE_ROOT, 'requirements-ubuntu.txt')
 SPECIMEN_SUPERVISOR_CONF_FILE = join(
     DEST_ROOT, 'specimen_etc_supervisor_conf.d_crate.conf')
 DEST_SUPERVISOR_CONF_FILE = join(DEST_SUPERVISOR_CONF_DIR,
-                                 '{}.conf'.format(PACKAGE_FOR_DEB))
+                                 f'{PACKAGE_FOR_DEB}.conf')
 DEB_PACKAGE_FILE = join(PACKAGE_DIR,
-                        '{}_{}_all.deb'.format(PACKAGE_FOR_DEB, DEBVERSION))
+                        f'{PACKAGE_FOR_DEB}_{DEBVERSION}_all.deb')
 LOCAL_CONFIG_BASENAME = "crateweb_local_settings.py"
 DEST_CRATEWEB_CONF_FILE = join(DEST_PACKAGE_CONF_DIR, LOCAL_CONFIG_BASENAME)
 INSTRUCTIONS = join(DEST_ROOT, 'instructions.txt')
@@ -286,21 +285,18 @@ print("Creating preinst file. Will be installed as " +
       join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.preinst'))
 # -----------------------------------------------------------------------------
 with open(join(DEB_DIR, 'preinst'), 'w') as outfile:
-    print("""#!/bin/bash
+    print(f"""#!/bin/bash
 set -e  # Exit on any errors. (Lintian strongly advises this.)
 
 {BASHFUNC}
 
-echo '{PACKAGE}: preinst file executing'
+echo '{PACKAGE_FOR_DEB}: preinst file executing'
 
 stop_supervisord
 
-echo '{PACKAGE}: preinst file finished'
+echo '{PACKAGE_FOR_DEB}: preinst file finished'
 
-    """.format(
-        BASHFUNC=BASHFUNC,
-        PACKAGE=PACKAGE_FOR_DEB,
-    ), file=outfile)
+    """, file=outfile)
 
 # -----------------------------------------------------------------------------
 print("Creating postinst file. Will be installed as " +
@@ -308,23 +304,20 @@ print("Creating postinst file. Will be installed as " +
 # -----------------------------------------------------------------------------
 
 if MAKE_GROUP:
-    MAKE_GROUP_COMMAND_1 = "echo '=== Adding group {g}'".format(g=CRATE_GROUP)
-    # MAKE_GROUP_COMMAND_2 = "addgroup --system {g}".format(g=CRATE_GROUP)
-    MAKE_GROUP_COMMAND_2 = "addgroup {g}".format(g=CRATE_GROUP)
+    MAKE_GROUP_COMMAND_1 = f"echo '=== Adding group {CRATE_GROUP}'"
+    # MAKE_GROUP_COMMAND_2 = f"addgroup --system {CRATE_GROUP}"
+    MAKE_GROUP_COMMAND_2 = f"addgroup {CRATE_GROUP}"
 else:
     MAKE_GROUP_COMMAND_1 = "# No need to add user"
     MAKE_GROUP_COMMAND_2 = ""
 if MAKE_USER:
     MAKE_USER_COMMAND_1 = (
-        "echo '=== Adding system user {u} in group {g}'".format(
-            u=CRATE_USER, g=CRATE_GROUP))
+        f"echo '=== Adding system user {CRATE_USER} in group {CRATE_GROUP}'")
     # MAKE_USER_COMMAND_2 = (
-    #     "adduser --system --ingroup {g} --home /home/{u} {u}".format(
-    #         u=CRATE_USER, g=CRATE_GROUP))
-    MAKE_USER_COMMAND_2 = "adduser --system --ingroup {g} {u}".format(
-        u=CRATE_USER, g=CRATE_GROUP)
-    # MAKE_USER_COMMAND_2 = "adduser --ingroup {g} {u}".format(
-    #     u=CRATE_USER, g=CRATE_GROUP)
+    #     f"adduser --system --ingroup {CRATE_GROUP} "
+    #     f"--home /home/{CRATE_USER} {CRATE_USER}")
+    MAKE_USER_COMMAND_2 = f"adduser --system --ingroup {CRATE_GROUP} {CRATE_USER}"  # noqa
+    # MAKE_USER_COMMAND_2 = f"adduser --ingroup {CRATE_GROUP} {CRATE_USER}"
     # https://lintian.debian.org/tags/maintainer-script-should-not-use-adduser-system-without-home.html  # noqa
     # http://unix.stackexchange.com/questions/47880/how-debian-package-should-create-user-accounts  # noqa
 else:
@@ -332,11 +325,11 @@ else:
     MAKE_USER_COMMAND_2 = ""
 
 with open(join(DEB_DIR, 'postinst'), 'w') as outfile:
-    print(r"""#!/bin/bash
+    print(fr"""#!/bin/bash
 # Exit on any errors? (Lintian strongly advises this.)
 set -e
 {BASHFUNC}
-echo '{PACKAGE}: postinst file executing'
+echo '{PACKAGE_FOR_DEB}: postinst file executing'
 
 # -----------------------------------------------------------------------------
 # Make users/groups
@@ -351,7 +344,7 @@ echo "Setting ownership"
 # -----------------------------------------------------------------------------
 chown -R {CRATE_USER}:{CRATE_GROUP} {DEST_ROOT}
 chown {CRATE_USER}:{CRATE_GROUP} {DEST_SUPERVISOR_CONF_FILE}
-chown {CRATE_USER}:{CRATE_GROUP} {DEST_CRATE_CONF_FILE}
+chown {CRATE_USER}:{CRATE_GROUP} {DEST_CRATEWEB_CONF_FILE}
 
 # -----------------------------------------------------------------------------
 echo "Installing virtual environment and package..."
@@ -387,70 +380,43 @@ echo "    Later, run this once:"
 echo "    sudo {PYTHON_WITH_VER} {DEST_WKHTMLTOPDF_INSTALLER}"
 echo "========================================================================"
 
-echo '{PACKAGE}: postinst file finished'
+echo '{PACKAGE_FOR_DEB}: postinst file finished'
 
 echo
 echo "Please read this file: {INSTRUCTIONS}"
 echo
-    """.format(  # noqa
-        BASHFUNC=BASHFUNC,
-        PACKAGE=PACKAGE_FOR_DEB,
-        MAKE_GROUP_COMMAND_1=MAKE_GROUP_COMMAND_1,
-        MAKE_GROUP_COMMAND_2=MAKE_GROUP_COMMAND_2,
-        MAKE_USER_COMMAND_1=MAKE_USER_COMMAND_1,
-        MAKE_USER_COMMAND_2=MAKE_USER_COMMAND_2,
-        CRATE_USER=CRATE_USER,
-        CRATE_GROUP=CRATE_GROUP,
-        DEST_ROOT=DEST_ROOT,
-        DEST_SUPERVISOR_CONF_FILE=DEST_SUPERVISOR_CONF_FILE,
-        DEST_CRATE_CONF_FILE=DEST_CRATEWEB_CONF_FILE,
-        DEST_PYTHON_CACHE=DEST_PYTHON_CACHE,
-        ENVVAR_RUN_WITHOUT_CONFIG=ENVVAR_RUN_WITHOUT_CONFIG,
-        PYTHON_WITH_VER=PYTHON_WITH_VER,
-        DEST_VENV_INSTALLER=DEST_VENV_INSTALLER,
-        DEST_VIRTUALENV=DEST_VIRTUALENV,
-        DEST_CRATE_PIPFILE=DEST_CRATE_PIPFILE,
-        DEST_WKHTMLTOPDF_INSTALLER=DEST_WKHTMLTOPDF_INSTALLER,
-        INSTRUCTIONS=INSTRUCTIONS,
-    ), file=outfile)
+    """, file=outfile)
 
 # -----------------------------------------------------------------------------
 print("Creating prerm file. Will be installed as " +
       join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.prerm'))
 # -----------------------------------------------------------------------------
 with open(join(DEB_DIR, 'prerm'), 'w') as outfile:
-    print("""#!/bin/bash
+    print(f"""#!/bin/bash
 set -e
 {BASHFUNC}
-echo '{PACKAGE}: prerm file executing'
+echo '{PACKAGE_FOR_DEB}: prerm file executing'
 
 stop_supervisord
 rm -rf {DEST_VIRTUALENV}
 
-echo '{PACKAGE}: prerm file finished'
-    """.format(
-        BASHFUNC=BASHFUNC,
-        PACKAGE=PACKAGE_FOR_DEB,
-        DEST_VIRTUALENV=DEST_VIRTUALENV,
-    ), file=outfile)
+echo '{PACKAGE_FOR_DEB}: prerm file finished'
+    """, file=outfile)
 
 # -----------------------------------------------------------------------------
 print("Creating postrm file. Will be installed as " +
       join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.postrm'))
 # -----------------------------------------------------------------------------
 with open(join(DEB_DIR, 'postrm'), 'w') as outfile:
-    print("""#!/bin/bash
+    print(f"""#!/bin/bash
 set -e
 {BASHFUNC}
-echo '{PACKAGE}: postrm file executing'
+echo '{PACKAGE_FOR_DEB}: postrm file executing'
 
 restart_supervisord
 
-echo '{PACKAGE}: postrm file finished'
-    """.format(
-        BASHFUNC=BASHFUNC,
-        PACKAGE=PACKAGE_FOR_DEB,
-    ), file=outfile)
+echo '{PACKAGE_FOR_DEB}: postrm file finished'
+    """, file=outfile)
 
 # -----------------------------------------------------------------------------
 print("Creating control file")
@@ -459,13 +425,13 @@ DEPENDS_DEB = get_lines_without_comments(DEB_REQUIREMENTS_FILE)
 if MAKE_GROUP or MAKE_USER:
     DEPENDS_DEB.append('adduser')
 with open(join(DEB_DIR, 'control'), 'w') as outfile:
-    print("""Package: {PACKAGE}
+    print(f"""Package: {PACKAGE_FOR_DEB}
 Version: {DEBVERSION}
 Section: science
 Priority: optional
 Architecture: all
 Maintainer: Rudolf Cardinal <rudolf@pobox.com>
-Depends: {DEPENDENCIES}
+Depends: {", ".join(DEPENDS_DEB)}
 Recommends: mysql-workbench
 Description: Clinical Records Anonymisation and Text Extraction (CRATE).
  CRATE allows you to do the following:
@@ -473,11 +439,7 @@ Description: Clinical Records Anonymisation and Text Extraction (CRATE).
  (2) Run external natural language processing (NLP) tools over a database.
  (3) Provide a research web front end.
  (4) Manage a consent-to-contact framework that's anonymous to researchers.
-""".format(
-        PACKAGE=PACKAGE_FOR_DEB,
-        DEBVERSION=DEBVERSION,
-        DEPENDENCIES=", ".join(DEPENDS_DEB),
-    ), file=outfile)
+""", file=outfile)
 
 # -----------------------------------------------------------------------------
 print("Creating conffiles file. Will be installed as " +
@@ -495,24 +457,22 @@ with open(join(DEB_DIR, 'conffiles'), 'w') as outfile:
 print("Creating Lintian override file")
 # -----------------------------------------------------------------------------
 with open(join(DEB_OVERRIDE_DIR, PACKAGE_FOR_DEB), 'w') as outfile:
-    print("""
+    print(f"""
 # Not an official new Debian package, so ignore this one.
 # If we did want to close a new-package ITP bug:
 # http://www.debian.org/doc/manuals/developers-reference/pkgs.html#upload-bugfix  # noqa
-{PACKAGE} binary: new-package-should-close-itp-bug
-{PACKAGE} binary: extra-license-file
-{PACKAGE} binary: embedded-javascript-library
-{PACKAGE} binary: non-standard-file-perm
-    """.format(
-        PACKAGE=PACKAGE_FOR_DEB,
-    ), file=outfile)
+{PACKAGE_FOR_DEB} binary: new-package-should-close-itp-bug
+{PACKAGE_FOR_DEB} binary: extra-license-file
+{PACKAGE_FOR_DEB} binary: embedded-javascript-library
+{PACKAGE_FOR_DEB} binary: non-standard-file-perm
+    """, file=outfile)
 
 # -----------------------------------------------------------------------------
 print("Creating copyright file. Will be installed as " +
       join(DEST_DOC_DIR, 'copyright'))
 # -----------------------------------------------------------------------------
 with open(workpath(DEST_DOC_DIR, 'copyright'), 'w') as outfile:
-    print("""{PACKAGE}
+    print(f"""{PACKAGE_FOR_DEB}
 
 CRATE
 
@@ -545,9 +505,7 @@ ADDITIONAL LIBRARY COMPONENTS
     see attribution in the source code and other license terms packaged with
     the source).
 
-    """.format(
-        PACKAGE=PACKAGE_FOR_DEB,
-    ), file=outfile)
+    """, file=outfile)
 # ... reference to /usr/share/common-licenses is required by Lintian;
 # https://lintian.debian.org/tags/copyright-should-refer-to-common-license-file-for-gpl.html  # noqa
 
@@ -558,11 +516,8 @@ ADDITIONAL LIBRARY COMPONENTS
 print("Creating destination files")
 
 # -----------------------------------------------------------------------------
-print(
-    "Creating {DEST_SUPERVISOR_CONF_FILE} and "
-    "{SPECIMEN_SUPERVISOR_CONF_FILE}".format(
-        DEST_SUPERVISOR_CONF_FILE=DEST_SUPERVISOR_CONF_FILE,
-        SPECIMEN_SUPERVISOR_CONF_FILE=SPECIMEN_SUPERVISOR_CONF_FILE))
+print(f"Creating {DEST_SUPERVISOR_CONF_FILE} and "
+      f"{SPECIMEN_SUPERVISOR_CONF_FILE}")
 # -----------------------------------------------------------------------------
 # Don't use a gunicorn_start script like this one:
 #   http://michal.karzynski.pl/blog/2013/06/09/django-nginx-gunicorn-virtualenv-supervisor/
@@ -570,7 +525,7 @@ print(
 # Just use the supervisor conf file.
 with open(workpath(SPECIMEN_SUPERVISOR_CONF_FILE), 'w') as outfile:
     # noinspection PyPep8
-    print("""
+    print(f"""
 
 ; IF YOU EDIT THIS FILE, run:
 ;       sudo service supervisor restart
@@ -586,11 +541,11 @@ with open(workpath(SPECIMEN_SUPERVISOR_CONF_FILE), 'w') as outfile:
 
 command = {DEST_VIRTUALENV}/bin/celery worker --app=crate_anon.crateweb.consent --loglevel=info
 directory = {DEST_DJANGO_ROOT}
-environment = {CRATEWEB_CONFIG_ENV_VAR}="{DEST_CRATE_CONF_FILE}"
+environment = {CRATEWEB_CONFIG_ENV_VAR}="{DEST_CRATEWEB_CONF_FILE}"
 # ... no longer used: PYTHONPATH="{DEST_ROOT}"
 user = {CRATE_USER}
-stdout_logfile = /var/log/supervisor/{PACKAGE}_celery.log
-stderr_logfile = /var/log/supervisor/{PACKAGE}_celery_err.log
+stdout_logfile = /var/log/supervisor/{PACKAGE_FOR_DEB}_celery.log
+stderr_logfile = /var/log/supervisor/{PACKAGE_FOR_DEB}_celery_err.log
 autostart = true
 autorestart = true
 startsecs = 10
@@ -604,27 +559,17 @@ command = {DEST_VIRTUALENV}/bin/gunicorn crate_anon.crateweb.config.wsgi:applica
 ;   --bind=unix:{DEFAULT_GUNICORN_SOCKET}
 directory = {DEST_DJANGO_ROOT}
 # ... Gunicorn/Django is VERY FUSSY ABOUT ITS DIRECTORY, even with absolute package names; "config" must work as a bare import
-environment = {CRATEWEB_CONFIG_ENV_VAR}="{DEST_CRATE_CONF_FILE}"
+environment = {CRATEWEB_CONFIG_ENV_VAR}="{DEST_CRATEWEB_CONF_FILE}"
 # ... no longer used: PYTHONPATH="{DEST_ROOT}"
 user = {CRATE_USER}
-stdout_logfile = /var/log/supervisor/{PACKAGE}_gunicorn.log
-stderr_logfile = /var/log/supervisor/{PACKAGE}_gunicorn_err.log
+stdout_logfile = /var/log/supervisor/{PACKAGE_FOR_DEB}_gunicorn.log
+stderr_logfile = /var/log/supervisor/{PACKAGE_FOR_DEB}_gunicorn_err.log
 autostart = true
 autorestart = true
 startsecs = 10
 stopwaitsecs = 60
 
-    """.format(  # noqa
-        CRATEWEB_CONFIG_ENV_VAR=CRATEWEB_CONFIG_ENV_VAR,
-        DEST_VIRTUALENV=DEST_VIRTUALENV,
-        DEST_DJANGO_ROOT=DEST_DJANGO_ROOT,
-        DEST_ROOT=DEST_ROOT,
-        DEST_CRATE_CONF_FILE=DEST_CRATEWEB_CONF_FILE,
-        CRATE_USER=CRATE_USER,
-        PACKAGE=PACKAGE_FOR_DEB,
-        DEFAULT_GUNICORN_PORT=DEFAULT_GUNICORN_PORT,
-        DEFAULT_GUNICORN_SOCKET=DEFAULT_GUNICORN_SOCKET,
-    ), file=outfile)
+    """, file=outfile)
 
 
 # -----------------------------------------------------------------------------
@@ -632,14 +577,15 @@ print("Creating " + INSTRUCTIONS)
 # -----------------------------------------------------------------------------
 with open(workpath(INSTRUCTIONS), 'w') as outfile:
     # noinspection PyPep8
-    print("""
+    print(
+        f"""
 ..
 
 ===============================================================================
 Your system's CRATE configuration
 ===============================================================================
 - Default CRATE config is:
-    {DEST_CRATE_CONF_FILE}
+    {DEST_CRATEWEB_CONF_FILE}
   This must be edited before it will run properly.
 
 - Gunicorn/Celery are being supervised as per:
@@ -860,15 +806,8 @@ OPTIMAL: proxy Apache through to Gunicorn
 
 </VirtualHost>
 
-    """.format(
-        DEST_CRATE_CONF_FILE=DEST_CRATEWEB_CONF_FILE,
-        DEST_SUPERVISOR_CONF_FILE=DEST_SUPERVISOR_CONF_FILE,
-        DEFAULT_GUNICORN_PORT=DEFAULT_GUNICORN_PORT,
-        DEFAULT_GUNICORN_SOCKET=DEFAULT_GUNICORN_SOCKET,
-        DEST_COLLECTED_STATIC_DIR=DEST_COLLECTED_STATIC_DIR,
-        DEST_VIRTUALENV=DEST_VIRTUALENV,
-        DEST_DJANGO_ROOT=DEST_DJANGO_ROOT,
-    ), file=outfile)
+        """,  # noqa
+        file=outfile)
 
 # http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass
 # http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypassreverse

@@ -48,8 +48,8 @@ def print_record_counts(counts: List[Tuple[str, int]]) -> None:
     numerical = sorted(counts, key=itemgetter(1))
     print("\n-- ALPHABETICALLY\n")
     for t, n in alphabetical:
-        print("{}: {} records".format(t, n))
+        print(f"{t}: {n} records")
     print("\n-- NUMERICALLY\n")
     for t, n in numerical:
-        print("{} records in {}".format(n, t))
+        print(f"{n} records in {t}")
     print()

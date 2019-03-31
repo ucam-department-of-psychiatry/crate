@@ -162,10 +162,10 @@ class SchemaId(object):
             schema: schema name
         """
         assert "." not in db, (
-            "Bad database name ({!r}); can't include '.'".format(db)
+            f"Bad database name ({db!r}); can't include '.'"
         )
         assert "." not in schema, (
-            "Bad schema name ({!r}); can't include '.'".format(schema)
+            f"Bad schema name ({schema!r}); can't include '.'"
         )
         self._db = db
         self._schema = schema
@@ -179,7 +179,7 @@ class SchemaId(object):
         The :func:`__init__` function has already checked the assumption of no
         ``'.'`` characters in either part.
         """
-        return "{}.{}".format(self._db, self._schema)
+        return f"{self._db}.{self._schema}"
 
     @classmethod
     def from_schema_tag(cls, tag: str) -> 'SchemaId':
@@ -187,7 +187,7 @@ class SchemaId(object):
         Returns a :class:`SchemaId` from a tag of the form ``db.schema``.
         """
         parts = tag.split(".")
-        assert len(parts) == 2, "Bad schema tag {!r}".format(tag)
+        assert len(parts) == 2, f"Bad schema tag {tag!r}"
         db, schema = parts
         return SchemaId(db, schema)
 
@@ -503,7 +503,7 @@ class ColumnId(object):
     #     if not components:
     #         return ''
     #     if bold_column:
-    #         components[-1] = "<b>{}</b>".format(components[-1])
+    #         components[-1] = f"<b>{components[-1]}</b>"
     #     return ".".join(components)
 
 
@@ -530,7 +530,7 @@ def split_db_schema_table(db_schema_table: str) -> TableId:
     elif len(components) == 1:  # table
         d, s, t = '', '', components[0]
     else:
-        raise ValueError("Bad db_schema_table: {}".format(db_schema_table))
+        raise ValueError(f"Bad db_schema_table: {db_schema_table}")
     return TableId(db=d, schema=s, table=t)
 
 
@@ -560,8 +560,7 @@ def split_db_schema_table_column(db_schema_table_col: str) -> ColumnId:
     elif len(components) == 1:  # column
         d, s, t, c = '', '', '', components[0]
     else:
-        raise ValueError("Bad db_schema_table_col: {}".format(
-            db_schema_table_col))
+        raise ValueError(f"Bad db_schema_table_col: {db_schema_table_col}")
     return ColumnId(db=d, schema=s, table=t, column=c)
 
 
@@ -681,8 +680,8 @@ def parser_add_result_column(parsed: ParseResults,
     # log.critical("Adding: " + repr(column))
     existing_columns = parsed.select_expression.select_columns.asList()
     # log.critical(parsed.dump())
-    # log.critical("existing columns: {}".format(repr(existing_columns)))
-    # log.critical("adding column: {}".format(column))
+    # log.critical(f"existing columns: {repr(existing_columns)}")
+    # log.critical(f"adding column: {column}")
     if column not in existing_columns:
         # log.critical("... doesn't exist; adding")
         newcol = grammar.get_result_column().parseString(column,
@@ -749,8 +748,8 @@ def parser_add_from_tables(parsed: ParseResults,
     """
     # log.critical(parsed.dump())
     existing_tables = parsed.join_source.from_tables.asList()
-    # log.critical("existing tables: {}".format(existing_tables))
-    # log.critical("adding table: {}".format(table))
+    # log.critical(f"existing tables: {existing_tables}")
+    # log.critical(f"adding table: {table}")
     for ji in join_info_list:
         if ji.table in existing_tables:  # already there
             # log.critical("field already present")
@@ -850,13 +849,13 @@ def set_distinct(sql: str,
     """
     p = grammar.get_select_statement().parseString(sql, parseAll=True)
     if debug:
-        log.info("START: {}".format(sql))
+        log.info(f"START: {sql}")
         if debug_verbose:
             log.debug("start dump:\n" + p.dump())
     set_distinct_within_parsed(p, action=action)
     result = text_from_parsed(p, formatted=formatted)
     if debug:
-        log.info("END: {}".format(result))
+        log.info(f"END: {result}")
         if debug_verbose:
             log.debug("end dump:\n" + p.dump())
     return result
@@ -970,14 +969,13 @@ def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
         if column.name.lower() not in existing_column_names:
             column_defs.append(column_creation_ddl(column, engine.dialect))
         else:
-            log.debug("Table {}: column {} already exists; not adding".format(
-                repr(table.name), repr(column.name)))
+            log.debug(f"Table {table.name!r}: column {column.name!r} "
+                      f"already exists; not adding")
     for column_def in column_defs:
-        log.info("Table {}: adding column {}".format(
-            repr(table.name), repr(column_def)))
-        execute(engine, """
-            ALTER TABLE {tablename} ADD {column_def}
-        """.format(tablename=table.name, column_def=column_def))
+        log.info(f"Table {repr(table.name)}: adding column {repr(column_def)}")
+        execute(engine, f"""
+            ALTER TABLE {table.name} ADD {column_def}
+        """)
 
 
 def drop_columns(engine: Engine, table: Table,
@@ -1000,13 +998,11 @@ def drop_columns(engine: Engine, table: Table,
                                              to_lower=True)
     for name in column_names:
         if name.lower() not in existing_column_names:
-            log.debug("Table {}: column {} does not exist; not "
-                      "dropping".format(repr(table.name), repr(name)))
+            log.debug(f"Table {table.name!r}: column {name!r} "
+                      f"does not exist; not dropping")
         else:
-            log.info("Table {}: dropping column {}".format(
-                repr(table.name), repr(name)))
-            sql = "ALTER TABLE {t} DROP COLUMN {c}".format(t=table.name,
-                                                           c=name)
+            log.info(f"Table {table.name!r}: dropping column {name!r}")
+            sql = f"ALTER TABLE {table.name} DROP COLUMN {name}"
             # SQL Server:
             #   http://www.techonthenet.com/sql_server/tables/alter_table.php
             # MySQL:
@@ -1048,19 +1044,15 @@ def add_indexes(engine: Engine, table: Table,
             column = ", ".join(column)  # must be a list
         unique = idxdefdict.get('unique', False)
         if index_name.lower() not in existing_index_names:
-            log.info("Table {}: adding index {} on column {}".format(
-                repr(table.name), repr(index_name), repr(column)))
-            execute(engine, """
-                CREATE{unique} INDEX {idxname} ON {tablename} ({column})
-            """.format(
-                unique=" UNIQUE" if unique else "",
-                idxname=index_name,
-                tablename=table.name,
-                column=column,
-            ))
+            log.info(f"Table {table.name!r}: adding index {index_name!r} on "
+                     f"column {column!r}")
+            execute(engine, f"""
+                CREATE{" UNIQUE" if unique else ""} INDEX {index_name} 
+                    ON {table.name} ({column})
+            """)
         else:
-            log.debug("Table {}: index {} already exists; not adding".format(
-                repr(table.name), repr(index_name)))
+            log.debug(f"Table {table.name!r}: index {index_name!r} "
+                      f"already exists; not adding")
 
 
 def drop_indexes(engine: Engine, table: Table,
@@ -1080,18 +1072,16 @@ def drop_indexes(engine: Engine, table: Table,
                                            to_lower=True)
     for index_name in index_names:
         if index_name.lower() not in existing_index_names:
-            log.debug("Table {}: index {} does not exist; not dropping".format(
-                repr(table.name), repr(index_name)))
+            log.debug(f"Table {table.name!r}: index {index_name!r} "
+                      f"does not exist; not dropping")
         else:
-            log.info("Table {}: dropping index {}".format(
-                repr(table.name), repr(index_name)))
+            log.info(f"Table {table.name!r}: dropping index {index_name!r}")
             if engine.dialect.name == 'mysql':
-                sql = "ALTER TABLE {t} DROP INDEX {i}".format(t=table.name,
-                                                              i=index_name)
+                sql = f"ALTER TABLE {table.name} DROP INDEX {index_name}"
             elif engine.dialect.name == 'mssql':
-                sql = "DROP INDEX {t}.{i}".format(t=table.name, i=index_name)
+                sql = f"DROP INDEX {table.name}.{index_name}"
             else:
-                assert False, "Unknown dialect: {}".format(engine.dialect.name)
+                assert False, f"Unknown dialect: {engine.dialect.name}"
             execute(engine, sql)
 
 
@@ -1225,8 +1215,8 @@ def ensure_columns_present(engine: Engine,
     for col in column_names:
         if col.lower() not in existing_column_names:
             raise ValueError(
-                "Column {} missing from table {}, whose columns are {}".format(
-                    repr(col), repr(tablename), repr(existing_column_names)))
+                f"Column {col!r} missing from table {tablename!r}, "
+                f"whose columns are {existing_column_names!r}")
 
 
 def create_view(engine: Engine,
@@ -1245,18 +1235,12 @@ def create_view(engine: Engine,
     """
     if engine.dialect.name == 'mysql':
         # MySQL has CREATE OR REPLACE VIEW.
-        sql = "CREATE OR REPLACE VIEW {viewname} AS {select_sql}".format(
-            viewname=viewname,
-            select_sql=select_sql,
-        )
+        sql = f"CREATE OR REPLACE VIEW {viewname} AS {select_sql}"
     else:
         # SQL Server doesn't: http://stackoverflow.com/questions/18534919
         drop_view(engine, viewname, quiet=True)
-        sql = "CREATE VIEW {viewname} AS {select_sql}".format(
-            viewname=viewname,
-            select_sql=select_sql,
-        )
-    log.info("Creating view: {}".format(repr(viewname)))
+        sql = f"CREATE VIEW {viewname} AS {select_sql}"
+    log.info(f"Creating view: {repr(viewname)}")
     execute(engine, sql)
 
 
@@ -1282,10 +1266,8 @@ def assert_view_has_same_num_rows(engine: Engine,
     n_base = count_star(engine, basetable)
     n_view = count_star(engine, viewname)
     assert n_view == n_base, (
-        "View bug: view {} has {} records but its base table {} "
-        "has {}; they should be equal".format(
-            viewname, n_view,
-            basetable, n_base))
+        f"View bug: view {viewname} has {n_view} records but its base table "
+        f"{basetable} has {n_base}; they should be equal")
 
 
 def drop_view(engine: Engine,
@@ -1309,11 +1291,11 @@ def drop_view(engine: Engine,
     # - http://dev.mysql.com/doc/refman/5.7/en/drop-view.html
     view_names = get_view_names(engine, to_lower=True)
     if viewname.lower() not in view_names:
-        log.debug("View {} does not exist; not dropping".format(viewname))
+        log.debug(f"View {viewname} does not exist; not dropping")
     else:
         if not quiet:
-            log.info("Dropping view: {}".format(repr(viewname)))
-        sql = "DROP VIEW {viewname}".format(viewname=viewname)
+            log.info(f"Dropping view: {repr(viewname)}")
+        sql = f"DROP VIEW {viewname}"
         execute(engine, sql)
 
 
@@ -1376,13 +1358,11 @@ class ViewMaker(object):
                     rename_to = rename[colname]
                     if not rename_to:
                         continue
-                    as_clause = " AS {}".format(q(rename_to))
+                    as_clause = f" AS {q(rename_to)}"
                 else:
                     as_clause = ""
-                self.select_elements.append("{t}.{c}{as_clause}".format(
-                    t=q(basetable),
-                    c=q(colname),
-                    as_clause=as_clause))
+                self.select_elements.append(
+                    f"{q(basetable)}.{q(colname)}{as_clause}")
             assert self.select_elements, "Must have some active SELECT " \
                                          "elements from base table"
 
@@ -1588,24 +1568,22 @@ class TransactionSizeLimiter(object):
         self._bytes_in_transaction += n_bytes
         self._rows_in_transaction += n_rows
         # log.critical(
-        #     "adding {} rows, {} bytes, "
-        #     "to make {} rows, {} bytes so far".format(
-        #         n_rows, n_bytes,
-        #         self._rows_in_transaction, self._bytes_in_transaction))
+        #     f"adding {n_rows} rows, {n_bytes} bytes, to make "
+        #     f"{self._rows_in_transaction} rows, "
+        #     f"{self._bytes_in_transaction} bytes so far")
         if (self._max_bytes_before_commit is not None and
                 self._bytes_in_transaction >= self._max_bytes_before_commit):
             log.info(
-                "Triggering early commit based on byte count (reached {}, "
-                "limit is {})".format(
-                    sizeof_fmt(self._bytes_in_transaction),
-                    sizeof_fmt(self._max_bytes_before_commit)))
+                f"Triggering early commit based on byte count "
+                f"(reached {sizeof_fmt(self._bytes_in_transaction)}, "
+                f"limit is {sizeof_fmt(self._max_bytes_before_commit)})")
             self.commit()
         elif (self._max_rows_before_commit is not None and
                 self._rows_in_transaction >= self._max_rows_before_commit):
             log.info(
-                "Triggering early commit based on row count (reached {} rows, "
-                "limit is {})".format(self._rows_in_transaction,
-                                      self._max_rows_before_commit))
+                f"Triggering early commit based on row count "
+                f"(reached {self._rows_in_transaction} rows, "
+                f"limit is {self._max_rows_before_commit})")
             self.commit()
 
 
@@ -1795,19 +1773,17 @@ def sql_fragment_cast_to_int(expr: str,
         supports_try_cast = (sql_server and
                              dialect.server_version_info >= MS_2012_VERSION)
     if supports_try_cast:
-        return "TRY_CAST({expr} AS {inttype})".format(expr=expr,
-                                                      inttype=inttype)
+        return f"TRY_CAST({expr} AS {inttype})"
     elif sql_server:
         return (
-            "CASE WHEN LTRIM(RTRIM({expr})) LIKE '%[^0-9]%' "
-            "THEN NULL ELSE CAST({expr} AS {inttype}) END".format(
-                expr=expr, inttype=inttype)
+            f"CASE WHEN LTRIM(RTRIM({expr})) LIKE '%[^0-9]%' "
+            f"THEN NULL ELSE CAST({expr} AS {inttype}) END"
         )
         # Doesn't support negative integers.
     else:
         # noinspection PyUnresolvedReferences
-        raise ValueError("Code not yet written for convert-to-int for "
-                         "dialect {}".format(dialect.name))
+        raise ValueError(f"Code not yet written for convert-to-int for "
+                         f"dialect {dialect.name}")
 
 
 # =============================================================================
@@ -1967,7 +1943,7 @@ class WhereCondition(object):
         op = self._op
 
         if self._no_value:
-            return "{col} {op}".format(col=col, op=op)
+            return f"{col} {op}"
 
         if self._datatype in QB_STRING_TYPES:
             element_converter = sql_string_literal
@@ -1988,11 +1964,11 @@ class WhereCondition(object):
             literal = element_converter(self._value)
 
         if self._op == 'MATCH':  # MySQL
-            return "MATCH ({col}) AGAINST ({val})".format(col=col, val=literal)
+            return f"MATCH ({col}) AGAINST ({literal})"
         elif self._op == 'CONTAINS':  # SQL Server
-            return "CONTAINS({col}, {val})".format(col=col, val=literal)
+            return f"CONTAINS({col}, {literal})"
         else:
-            return "{col} {op} {val}".format(col=col, op=op, val=literal)
+            return f"{col} {op} {literal}"
 
 
 # =============================================================================
@@ -2093,7 +2069,7 @@ def make_string_literal(s: str) -> str:
     Converts a Python string into an SQL single-quoted (and escaped) string
     literal.
     """
-    return "'{}'".format(escape_sql_string_literal(s))
+    return f"'{escape_sql_string_literal(s)}'"
 
 
 def escape_sql_string_or_int_literal(s: Union[str, int]) -> str:

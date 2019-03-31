@@ -219,11 +219,10 @@ def get_db_structure_json() -> str:
         log.warning("get_db_structure_json(): colinfolist is empty")
     info = []  # type: List[Dict[str, Any]]
     for dbinfo in research_database_info.dbinfolist:
-        log.info("get_db_structure_json: schema {}".format(
-            dbinfo.schema_identifier))
+        log.info(f"get_db_structure_json: schema {dbinfo.schema_identifier}")
         if not dbinfo.eligible_for_query_builder:
-            log.debug("Skipping schema={}: not eligible for query "
-                      "builder".format(dbinfo.schema_identifier))
+            log.debug(f"Skipping schema={dbinfo.schema_identifier}: "
+                      f"not eligible for query builder")
             continue
         schema_cil = [x for x in colinfolist
                       if x.table_catalog == dbinfo.database and
@@ -234,14 +233,14 @@ def get_db_structure_json() -> str:
             if not any(x for x in table_cil
                        if x.column_name == dbinfo.trid_field):
                 # This table doesn't contain a TRID, so we will skip it.
-                log.debug("... skipping table {}: no TRID [{}]".format(
-                    table, dbinfo.trid_field))
+                log.debug(f"... skipping table {table}: "
+                          f"no TRID [{dbinfo.trid_field}]")
                 continue
             if not any(x for x in table_cil
                        if x.column_name == dbinfo.rid_field):
                 # This table doesn't contain a RID, so we will skip it.
-                log.debug("... skipping table {}: no RID [{}]".format(
-                    table, dbinfo.rid_field))
+                log.debug(f"... skipping table {table}: "
+                          f"no RID [{dbinfo.rid_field}]")
                 continue
             column_info = []  # type: List[Dict[str, str]]
             for ci in sorted(table_cil, key=lambda x: x.column_name):
@@ -256,8 +255,7 @@ def get_db_structure_json() -> str:
                     'table': table,
                     'columns': column_info,
                 })
-            log.debug("... using table {}: {} columns".format(
-                table, len(column_info)))
+            log.debug(f"... using table {table}: {len(column_info)} columns")
         if table_info:
             info.append({
                 'database': dbinfo.database,
@@ -265,8 +263,8 @@ def get_db_structure_json() -> str:
                 'tables': table_info,
             })
     json_result = json.dumps(info)
-    log.debug("... get_db_structure_json returning string of size {}".format(
-        len(json_result)))
+    log.debug(f"... get_db_structure_json returning string of size "
+              f"{len(json_result)}")
     return json_result
 
 
@@ -418,7 +416,7 @@ def query_build(request: HttpRequest) -> HttpResponse:
         'int_value': form.data.get('int_value', ''),
         'string_value': form.data.get('string_value', ''),
         'offer_where': bool(profile.sql_scratchpad),  # existing SELECT?
-        'form_errors': "<br>".join("{}: {}".format(k, v)
+        'form_errors': "<br>".join(f"{k}: {v}"
                                    for k, v in form.errors.items()),
         'default_database': default_database,
         'default_schema': default_schema,
@@ -832,7 +830,7 @@ def sitewide_query_process(request: HttpRequest, query_id: str) -> HttpResponse:
                 sql += chunk
             else:
                 # add SQL to replace the placeholders
-                chunknum = "chunk{}".format(i + 1)
+                chunknum = f"chunk{i + 1}"
                 if chunknum in request.POST:
                     replacement = request.POST[chunknum]
                 else:
@@ -1182,13 +1180,12 @@ def resultset_html_table(fieldnames: List[str],
     # ... see esp "tr > *:nth-child(n)" at
     # http://stackoverflow.com/questions/5440657/how-to-hide-columns-in-html-table  # noqa
     no_ditto_cols = no_ditto_cols or []
-    ditto_cell = '    <td class="queryresult ditto">{}</td>\n'.format(
-        ditto_html)
+    ditto_cell = f'    <td class="queryresult ditto">{ditto_html}</td>\n'
     html = '<table>\n'
     html += '  <tr>\n'
     html += '    <th><i>#</i></th>\n'
     for field in fieldnames:
-        html += '    <th>{}</th>\n'.format(escape(field))
+        html += f'    <th>{escape(field)}</th>\n'
     html += '  </tr>\n'
     for row_index, row in enumerate(rows):
         # row_index is zero-based within this table
@@ -1266,7 +1263,7 @@ def single_record_html_table(fieldnames: List[str],
         table_html += '  <tr class="{}">\n'.format(
             "stripy_even" if col_index % 2 == 0 else "stripy_odd"
         )
-        table_html += '    <th>{}</th>'.format(escape(fieldname))
+        table_html += f'    <th>{escape(fieldname)}</th>'
         table_html += (
             '    <td class="queryresult">{}</td>\n'.format(
                 make_result_element(
@@ -1431,7 +1428,7 @@ def render_resultset_recordwise(request: HttpRequest,
         record = rows[record_index]
         # Table
         element_counter = HtmlElementCounter()
-        table_html = '<p><i>Record {}</i></p>\n'.format(page.start_index())
+        table_html = f'<p><i>Record {page.start_index()}</i></p>\n'
         table_html += single_record_html_table(
             fieldnames=fieldnames,
             record=record,
@@ -1746,7 +1743,7 @@ def pid_rid_lookup_with_db(
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
         return generic_error(request,
-                             "No research database named {!r}".format(dbname))
+                             f"No research database named {dbname!r}")
     form = formclass(request.POST or None, dbinfo=dbinfo)  # type: Union[PidLookupForm, RidLookupForm]  # noqa
     if form.is_valid():
         pids = form.cleaned_data.get('pids') or []  # type: List[int]
@@ -2098,14 +2095,11 @@ def textmatch(column_name: str,
 
     """
     if as_fulltext and dialect == 'mysql':
-        return "MATCH({column}) AGAINST ('{fragment}')".format(
-            column=column_name, fragment=fragment)
+        return f"MATCH({column_name}) AGAINST ('{fragment}')"
     elif as_fulltext and dialect == 'mssql':
-        return "CONTAINS({column}, '{fragment}')".format(
-            column=column_name, fragment=fragment)
+        return f"CONTAINS({column_name}, '{fragment}')"
     else:
-        return "{column} LIKE '%{fragment}%'".format(
-            column=column_name, fragment=fragment)
+        return f"{column_name} LIKE '%{fragment}%'"
 
 
 def drugmatch(drug_type: str, colname: str) -> str:
@@ -2177,7 +2171,7 @@ def textfinder_sql(patient_id_fieldname: str,
         patient_id_fieldname)
     if not tables:
         raise ValueError(
-            "No tables containing fieldname: {}".format(patient_id_fieldname))
+            f"No tables containing fieldname: {patient_id_fieldname}")
     have_pid_value = patient_id_value is not None and patient_id_value != ''
     if have_pid_value:
         pidclause = "{patient_id_fieldname} = {value}".format(
@@ -2206,15 +2200,13 @@ def textfinder_sql(patient_id_fieldname: str,
             ))
         selectcols.append(patient_id_fieldname)
         if include_datetime:
-            selectcols.append("{} AS {}".format(date_value_select,
-                                                datetime_heading))
+            selectcols.append(f"{date_value_select} AS {datetime_heading}")
         # +/- table/column/content
         selectcols += extra_cols
         # Build query
         query = (
-            "SELECT {cols}"
-            "\nFROM {table}".format(cols=", ".join(selectcols),
-                                    table=table_ident)
+            f"SELECT {', '.join(selectcols)}\n"
+            f"FROM {table_ident}"
         )
         conditions = []  # type: List[str]
         if have_pid_value:
@@ -2259,9 +2251,9 @@ def textfinder_sql(patient_id_fieldname: str,
                         colname=column_identifier,
                         drug_type=drug_type
                     )
-                contentcol_name_select = "'{}' AS {}".format(
-                    column_identifier, contents_colname_heading)
-                content_select = "{} AS _content".format(column_identifier)
+                contentcol_name_select = (
+                    f"'{column_identifier}' AS {contents_colname_heading}")
+                content_select = f"{column_identifier} AS _content"
                 add_query(table_ident=table_identifier,
                           extra_cols=[table_select,
                                       contentcol_name_select,
@@ -2348,34 +2340,32 @@ def common_find_text(request: HttpRequest,
     if permit_pid_search:
         fk_options.append(FieldPickerInfo(
             value=dbinfo.pid_pseudo_field,
-            description="{}: {}".format(dbinfo.pid_pseudo_field,
-                                        dbinfo.pid_description),
+            description=f"{dbinfo.pid_pseudo_field}: {dbinfo.pid_description}",
             type_=PatientFieldPythonTypes.PID,
             permits_empty_id=False
         ))
         fk_options.append(FieldPickerInfo(
             value=dbinfo.mpid_pseudo_field,
-            description="{}: {}".format(
-                dbinfo.mpid_pseudo_field, dbinfo.mpid_description),
+            description=f"{dbinfo.mpid_pseudo_field}: {dbinfo.mpid_description}",  # noqa
             type_=PatientFieldPythonTypes.MPID,
             permits_empty_id=False
         ))
         assert dbinfo.secret_lookup_db
         default_values['fkname'] = dbinfo.pid_pseudo_field
     fk_options.append(
-        FieldPickerInfo(value=dbinfo.rid_field,
-                        description="{}: {}".format(dbinfo.rid_field,
-                                                    dbinfo.rid_description),
-                        type_=PatientFieldPythonTypes.RID,
-                        permits_empty_id=True),
+        FieldPickerInfo(
+            value=dbinfo.rid_field,
+            description=f"{dbinfo.rid_field}: {dbinfo.rid_description}",
+            type_=PatientFieldPythonTypes.RID,
+            permits_empty_id=True),
     )
     if dbinfo.secret_lookup_db:
         fk_options.append(
-            FieldPickerInfo(value=dbinfo.mrid_field,
-                            description="{}: {}".format(
-                                dbinfo.mrid_field, dbinfo.mrid_description),
-                            type_=PatientFieldPythonTypes.MRID,
-                            permits_empty_id=False)
+            FieldPickerInfo(
+                value=dbinfo.mrid_field,
+                description=f"{dbinfo.mrid_field}: {dbinfo.mrid_description}",
+                type_=PatientFieldPythonTypes.MRID,
+                permits_empty_id=False)
         )
 
     # We don't want to make too much of the TRID. Let's not offer it as
@@ -2406,7 +2396,7 @@ def common_find_text(request: HttpRequest,
             )  # type: PidLookup
             if lookup is None:
                 return generic_error(
-                    request, "No patient with PID {!r}".format(pidvalue))
+                    request, f"No patient with PID {pidvalue!r}")
             # Replace:
             extra_fieldname = patient_id_fieldname
             extra_value = pidvalue
@@ -2419,7 +2409,7 @@ def common_find_text(request: HttpRequest,
             )  # type: PidLookup
             if lookup is None:
                 return generic_error(
-                    request, "No patient with MPID {!r}".format(pidvalue))
+                    request, f"No patient with MPID {pidvalue!r}")
             # Replace:
             extra_fieldname = patient_id_fieldname
             extra_value = pidvalue
@@ -2439,7 +2429,7 @@ def common_find_text(request: HttpRequest,
             )
             if lookup is None:
                 return generic_error(
-                    request, "No patient with RID {!r}".format(pidvalue))
+                    request, f"No patient with RID {pidvalue!r}")
             # Replace:
             extra_fieldname = patient_id_fieldname
             extra_value = pidvalue
@@ -2479,9 +2469,9 @@ def common_find_text(request: HttpRequest,
             # where the fieldname conditions are met.
             if not sql:
                 raise ValueError(
-                    "No fields matched your criteria (text columns of minimum "
-                    "length {} in tables containing field {!r})".format(
-                        min_length, patient_id_fieldname))
+                    f"No fields matched your criteria (text columns of "
+                    f"minimum length {min_length} in tables containing "
+                    f"field {patient_id_fieldname!r})")
         except ValueError as e:
             return generic_error(request, str(e))
 
@@ -2549,7 +2539,7 @@ def sqlhelper_text_anywhere_with_db(request: HttpRequest,
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
         return generic_error(request,
-                             "No research database named {!r}".format(dbname))
+                             f"No research database named {dbname!r}")
     default_values = {
         'fkname': dbinfo.rid_field,
         'min_length': DEFAULT_MIN_TEXT_FIELD_LENGTH,
@@ -2611,7 +2601,7 @@ def sqlhelper_drug_type_with_db(request: HttpRequest,
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
         return generic_error(request,
-                             "No research database named {!r}".format(dbname))
+                             f"No research database named {dbname!r}")
     default_values = {
         'fkname': dbinfo.rid_field,
         'min_length': DEFAULT_MIN_TEXT_FIELD_LENGTH,
@@ -2678,7 +2668,7 @@ def all_text_from_pid_with_db(request: HttpRequest,
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
         return generic_error(request,
-                             "No research database named {!r}".format(dbname))
+                             f"No research database named {dbname!r}")
     default_values = {
         'min_length': DEFAULT_MIN_TEXT_FIELD_LENGTH,
         'use_fulltext_index': True,
@@ -2821,7 +2811,7 @@ def pe_build(request: HttpRequest) -> HttpResponse:
         'int_value': form.data.get('int_value', ''),
         'string_value': form.data.get('string_value', ''),
         'offer_where': bool(True),
-        'form_errors': "<br>".join("{}: {}".format(k, v)
+        'form_errors': "<br>".join(f"{k}: {v}"
                                    for k, v in form.errors.items()),
         'default_database': default_database,
         'default_schema': default_schema,

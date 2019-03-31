@@ -100,11 +100,12 @@ def make_subindex(directory: str) -> AutodocIndex:
 def make_autodoc(make: bool, destroy_first: bool) -> None:
     if destroy_first:
         if make and os.path.exists(AUTODOC_DIR):
-            log.info("Deleting directory {!r}".format(AUTODOC_DIR))
+            log.info(f"Deleting directory {AUTODOC_DIR!r}")
             rmtree(AUTODOC_DIR)
         else:
-            log.warning("Would delete directory {!r} (not doing so as in mock "
-                        "mode)".format(AUTODOC_DIR))
+            log.warning(
+                f"Would delete directory {AUTODOC_DIR!r} "
+                f"(not doing so as in mock mode)")
     top_idx = AutodocIndex(
         index_filename=TOP_AUTODOC_INDEX,
         project_root_dir=PACKAGE_ROOT_DIR,

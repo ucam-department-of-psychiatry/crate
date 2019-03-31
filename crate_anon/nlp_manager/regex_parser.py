@@ -115,7 +115,7 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
 
 IS = "is"
 WAS = "was"
-TENSE_INDICATOR = r"(?: \b {IS} \b | \b {WAS} \b )".format(IS=IS, WAS=WAS)
+TENSE_INDICATOR = fr"(?: \b {IS} \b | \b {WAS} \b )"
 
 # Standardized result values
 PAST = "past"
@@ -137,13 +137,7 @@ GE = ">="
 GT = r"(?: > | (?:more|greater) \s+ than )"
 # OF = "\b of \b"  # as in: "a BMI of 30"... but too likely to be mistaken for a target?  # noqa
 
-RELATION = r"(?: {LE} | {LT} | {EQ} | {GE} | {GT} )".format(
-    LE=LE,
-    LT=LT,
-    EQ=EQ,
-    GE=GE,
-    GT=GT,
-)
+RELATION = fr"(?: {LE} | {LT} | {EQ} | {GE} | {GT} )"
 # ... ORDER MATTERS: greedier things first, i.e.
 # - LE before LT
 # - GE before GT
@@ -196,9 +190,8 @@ HELP_RELATION = (
 HELP_VALUE_TEXT = "Matched numerical value, as text"
 HELP_UNITS = HELP_VALUE_TEXT
 HELP_TARGET_UNIT = "Numerical value in preferred units, if known"
-HELP_TENSE_TEXT = "Tense text, if known (e.g. '{}', '{}')".format(IS, WAS)
-HELP_TENSE = "Calculated tense, if known (e.g. '{}', '{}')".format(PAST,
-                                                                   PRESENT)
+HELP_TENSE_TEXT = f"Tense text, if known (e.g. '{IS}', '{WAS}')"
+HELP_TENSE = f"Calculated tense, if known (e.g. '{PAST}', '{PRESENT}')"
 
 MAX_RELATION_TEXT_LENGTH = 50
 MAX_RELATION_LENGTH = max(len(x) for x in RELATION_LOOKUP.values())
@@ -280,14 +273,13 @@ class NumericalResultParser(BaseNlpParser):
 
         # Sanity checks
         assert len(self.variable) <= MAX_SQL_FIELD_LEN, (
-            "Variable name too long (max {} characters)".format(
-                MAX_SQL_FIELD_LEN))
+            f"Variable name too long (max {MAX_SQL_FIELD_LEN} characters)")
 
     def print_info(self, file: TextIO = sys.stdout) -> None:
         # docstring in superclass
         print(
-            "NLP class to find numerical results. Regular expression: "
-            "\n\n{}".format(self.regex_str_for_debugging), file=file)
+            f"NLP class to find numerical results. Regular expression: "
+            f"\n\n{self.regex_str_for_debugging}", file=file)
 
     def get_regex_str_for_debugging(self) -> str:
         """
@@ -344,9 +336,9 @@ class NumericalResultParser(BaseNlpParser):
         Raises:
             :exc:`AssertionError` if a comparison fails
         """
-        print("Testing parser: {}".format(type(self).__name__))
+        print(f"Testing parser: {type(self).__name__}")
         if verbose:
-            print("... regex string:\n{}".format(self.regex_str_for_debugging))
+            print(f"... regex string:\n{self.regex_str_for_debugging}")
         for test_string, expected_values in test_expected_list:
             actual_values = list(
                 x[self.target_unit] for t, x in self.parse(test_string)
@@ -390,23 +382,18 @@ class NumericalResultParser(BaseNlpParser):
         i = 0
         for _, values in self.parse(text):
             if i >= len(expected):
-                raise ValueError("Too few expected values. Extra result is: "
-                                 "{}".format(repr(values)))
+                raise ValueError(
+                    f"Too few expected values. Extra result is: {values!r}")
             expected_values = expected[i]
             for key, exp_val in expected_values.items():
                 if key not in values:
-                    raise ValueError(
-                        "Test built wrong: expected key {} missing; result "
-                        "was {}".format(repr(key), repr(values)))
+                    raise ValueError(f"Test built wrong: expected key {key!r} "
+                                     f"missing; result was {values!r}")
                 if values[key] != exp_val:
                     raise ValueError(
-                        "For key {key}, expected {exp_val}, got {actual_val}; "
-                        "full result is {values}; test text is {text}".format(
-                            key=repr(key),
-                            exp_val=repr(exp_val),
-                            actual_val=repr(values[key]),
-                            values=repr(values),
-                            text=repr(text)))
+                        f"For key {key!r}, expected {exp_val!r}, "
+                        f"got {values[key]!r}; full result is {values!r}; "
+                        f"test text is {text!r}")
             i += 1
         print("... detailed_test: pass")
 
@@ -504,7 +491,7 @@ class SimpleNumericalResultParser(NumericalResultParser):
                          regex_str_for_debugging=regex_str,
                          commit=commit)
         if debug:
-            print("Regex for {}: {}".format(type(self).__name__, regex_str))
+            print(f"Regex for {type(self).__name__}: {regex_str}")
         self.compiled_regex = compile_regex(regex_str)
         self.units_to_factor = compile_regex_dict(units_to_factor)
         self.take_absolute = take_absolute
@@ -569,7 +556,7 @@ class SimpleNumericalResultParser(NumericalResultParser):
             }
             # log.critical(result)
             if debug:
-                print("Match {} for {} -> {}".format(m, repr(text), result))
+                print(f"Match {m} for {repr(text)} -> {result}")
             yield self.tablename, result
 
 
@@ -649,7 +636,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
         self.denominator_fieldname = denominator_fieldname
         self.correct_numerator_fieldname = (
             correct_numerator_fieldname or
-            "out_of_{}".format(expected_denominator))
+            f"out_of_{expected_denominator}")
         self.take_absolute = take_absolute
 
         super().__init__(nlpdef=nlpdef,
@@ -661,8 +648,8 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
             self.tablename = nlpdef.opt_str(
                 self._sectionname, 'desttable', required=True)
 
-        regex_str = r"""
-            ( {variable} )                     # 1. group for variable (thing being measured)
+        regex_str = fr"""
+            ( {variable_regex_str} )           # 1. group for variable (thing being measured)
             {OPTIONAL_RESULTS_IGNORABLES}
             {SCORE}?                           # optional "score" or similar
             {OPTIONAL_RESULTS_IGNORABLES}
@@ -675,26 +662,17 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
                 \s* {OUT_OF_SEPARATOR} \s*
                 ( {UNSIGNED_INTEGER} )         # 5. group for denominator
             )?
-        """.format(  # noqa
-            variable=variable_regex_str,
-            OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-            SCORE=SCORE,
-            TENSE_INDICATOR=TENSE_INDICATOR,
-            RELATION=RELATION,
-            SIGNED_FLOAT=SIGNED_FLOAT,
-            OUT_OF_SEPARATOR=OUT_OF_SEPARATOR,
-            UNSIGNED_INTEGER=UNSIGNED_INTEGER,
-        )
+        """  # noqa
         if debug:
-            print("Regex for {}: {}".format(type(self).__name__, regex_str))
+            print(f"Regex for {type(self).__name__}: {regex_str}")
         self.regex_str = regex_str
         self.compiled_regex = compile_regex(regex_str)
 
     def print_info(self, file: TextIO = sys.stdout) -> None:
         # docstring in superclass
         print(
-            "NLP class to find X-out-of-Y results. Regular expression: "
-            "\n\n{}".format(self.regex_str), file=file)
+            f"NLP class to find X-out-of-Y results. Regular expression: "
+            f"\n\n{self.regex_str}", file=file)
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass
@@ -780,7 +758,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
             }
             # log.critical(result)
             if debug:
-                print("Match {} for {} -> {}".format(m, repr(text), result))
+                print(f"Match {m} for {repr(text)} -> {result}")
             yield self.tablename, result
 
     def test_numerator_denominator_parser(
@@ -804,9 +782,9 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
         Raises:
             :exc:`AssertionError` if a comparison fails
         """
-        print("Testing parser: {}".format(type(self).__name__))
+        print(f"Testing parser: {type(self).__name__}")
         if verbose:
-            print("... regex:\n{}".format(self.regex_str))
+            print(f"... regex:\n{self.regex_str}")
         for test_string, expected_values in test_expected_list:
             actual_values = list(
                 (x[self.numerator_fieldname], x[self.denominator_fieldname])
@@ -981,7 +959,7 @@ class ValidatorBase(BaseNlpParser):
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
         self.regex_str_list = regex_str_list  # for debugging only
         self.compiled_regex_list = [compile_regex(r) for r in regex_str_list]
-        self.variable = "{}_validator".format(validated_variable)
+        self.variable = f"{validated_variable}_validator"
         self.NAME = self.variable
 
         if nlpdef is None:  # only None for debugging!
@@ -1037,11 +1015,11 @@ class ValidatorBase(BaseNlpParser):
 
             https://docs.python.org/3/library/re.html#re.regex.match
         """
-        print("Testing validator: {}".format(type(self).__name__))
+        print(f"Testing validator: {type(self).__name__}")
         if verbose:
             n = len(self.regex_str_list)
             for i, r in enumerate(self.regex_str_list):
-                print("... regex #{i}/{n}: {r}\n".format(i=i + 1, n=n, r=r))
+                print(f"... regex #{i + 1}/{n}: {r}\n")
         for test_string, expected_match in test_expected_list:
             actual_match = any(r.search(test_string)
                                for r in self.compiled_regex_list)
@@ -1059,8 +1037,7 @@ class ValidatorBase(BaseNlpParser):
         print("... OK")
 
     def test(self, verbose: bool = False) -> None:
-        print("... no tests implemented for validator {}".format(
-            type(self).__name__))
+        print(f"... no tests implemented for validator {type(self).__name__}")
 
 
 # =============================================================================
@@ -1084,7 +1061,7 @@ def learning_alternative_regex_groups():
     compiled_regex = compile_regex(regex_str)
     for test_str in ("a", "b", "a c", "d", "e", "a fish", "c c c"):
         m = compiled_regex.match(test_str)
-        print("Match: {}; groups: {}".format(m, m.groups()))
+        print(f"Match: {m}; groups: {m.groups()}")
     """
     So:
         - groups can overlap

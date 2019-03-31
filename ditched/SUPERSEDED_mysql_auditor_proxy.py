@@ -231,7 +231,7 @@ def map_bitflags(value, flagdict, bits=32, indent=0):
     s = ""
     for flag, name in invdictlist:
         s += ' ' * indent
-        s += "{}: {} (0x{:x})".format(1 if value & flag else 0, name, flag)
+        s += f"{1 if value & flag else 0}: {name} (0x{flag:x})"
         s += '\n'
     return s
 
@@ -323,16 +323,12 @@ class UserFacing(protocol.Protocol):
         index, username = get_null_terminated_string(index, data)
         flagmap = map_bitflags(capability_flags, MYSQL_CAPABILITY_FLAGS,
                                indent=4)
-        log.info("Capability flags 0b{:b}\n{}".format(capability_flags,
-                                                      flagmap))
+        log.info(f"Capability flags 0b{capability_flags:b}\n{flagmap}")
         if not capability_flags & MYSQL_CAPABILITY_FLAGS.CLIENT_PROTOCOL_41:
             log.error("Unknown MySQL protocol packet")
         log.info(
-            "Max packet size {}; character_set {}; username {}".format(
-                max_packet_size,
-                character_set,
-                username
-            )
+            f"Max packet size {max_packet_size}; "
+            f"character_set {character_set}; username {username}"
         )
         self.username = username
 
@@ -346,15 +342,14 @@ class UserFacing(protocol.Protocol):
         elif command == MYSQL_COMMANDS.COM_INIT_DB:
             index, schema = get_rest_of_packet_string(index, data)
             self.schema = schema
-            log.info("Schema changed to: {}".format(schema))
+            log.info(f"Schema changed to: {schema}")
         elif command == MYSQL_COMMANDS.COM_CHANGE_USER:
             index, username = get_null_terminated_string(index, data)
             self.username = username
-            log.info("User changed to: {}".format(username))
+            log.info(f"User changed to: {username}")
 
     def audit_query(self, query):
-        log.info("USER {}, SCHEMA {}, QUERY: {}".format(
-            self.username, self.schema, query))
+        log.info(f"USER {self.username}, SCHEMA {self.schema}, QUERY: {query}")
 
 
 class UserFacingFactory(protocol.ServerFactory):
@@ -412,8 +407,8 @@ def main():
     args = parser.parse_args()
 
     # Go
-    log.info("Will forward incoming requests on port {} to {}:{}".format(
-        args.listenport, args.mysqlserver, args.mysqlport))
+    log.info(f"Will forward incoming requests on port {args.listenport} to "
+             f"{args.mysqlserver}:{args.mysqlport}")
     log.info("Starting Twisted.")
     factory = UserFacingFactory(args.mysqlserver, args.mysqlport)
     reactor.listenTCP(args.listenport, factory)

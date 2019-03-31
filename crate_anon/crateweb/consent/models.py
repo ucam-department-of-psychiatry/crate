@@ -142,10 +142,9 @@ def study_details_upload_to(instance: STUDY_FWD_REF, filename: str) -> str:
         filesystem
     """
     extension = os.path.splitext(filename)[1]  # includes the '.' if present
-    return os.path.join("study", "{}_details_{}{}".format(
-        instance.institutional_id,
-        string_time_now(),
-        extension))
+    return os.path.join(
+        "study",
+        f"{instance.institutional_id}_details_{string_time_now()}{extension}")
     # ... as id may not exist yet
 
 
@@ -163,10 +162,9 @@ def study_form_upload_to(instance: STUDY_FWD_REF, filename: str) -> str:
         filesystem
     """
     extension = os.path.splitext(filename)[1]
-    return os.path.join("study", "{}_form_{}{}".format(
-        instance.institutional_id,
-        string_time_now(),
-        extension))
+    return os.path.join(
+        "study",
+        f"{instance.institutional_id}_form_{string_time_now()}{extension}")
 
 
 class Study(models.Model):
@@ -238,11 +236,9 @@ class Study(models.Model):
 
     def __str__(self) -> str:
         # noinspection PyUnresolvedReferences
-        return "[Study {}] {}: {} / {}".format(
-            self.id,
-            self.institutional_id,
-            self.lead_researcher.get_full_name(),
-            self.title
+        return (
+            f"[Study {self.id}] {self.institutional_id}: "
+            f"{self.lead_researcher.get_full_name()} / {self.title}"
         )
 
     def get_lead_researcher_name_address(self) -> List[str]:
@@ -337,7 +333,7 @@ class Study(models.Model):
 
         # Method 1: with <p>
         # Visually better once CSS fixed.
-        return "".join("<p>{}</p>".format(x) for x in paragraphs)
+        return "".join(f"<p>{x}</p>" for x in paragraphs)
 
         # Method 2: with <br>
         # Wider gaps.
@@ -391,10 +387,9 @@ def leaflet_upload_to(instance: LEAFLET_FWD_REF, filename: str) -> str:
         filesystem
     """
     extension = os.path.splitext(filename)[1]  # includes the '.' if present
-    return os.path.join("leaflet", "{}_{}{}".format(
-        instance.name,
-        string_time_now(),
-        extension))
+    return os.path.join(
+        "leaflet",
+        f"{instance.name}_{string_time_now()}{extension}")
     # ... as id may not exist yet
 
 
@@ -435,7 +430,7 @@ class Leaflet(models.Model):
                 if not self.pdf:
                     name += " (MISSING)"
                 return name
-        return "? (bad name: {})".format(self.name)
+        return f"? (bad name: {self.name})"
 
     @staticmethod
     def populate() -> None:
@@ -867,10 +862,10 @@ class PatientLookupBase(models.Model):
         """
         # Note that self.nhs_number must be implemented by derived classes:
         # noinspection PyUnresolvedReferences
-        idnums = ["NHS#: {}".format(self.nhs_number)]
+        idnums = [f"NHS#: {self.nhs_number}"]
         if self.pt_local_id_description:
-            idnums.append("{}: {}".format(self.pt_local_id_description,
-                                          self.pt_local_id_number))
+            idnums.append(
+                f"{self.pt_local_id_description}: {self.pt_local_id_number}")
         return ". ".join(idnums)
 
     def get_pt_age_years(self) -> Optional[int]:
@@ -979,7 +974,7 @@ class PatientLookupBase(models.Model):
                 secret (identifiable) information; will be modified
         """
         secret_decisions.append(
-            "Setting GP name components from: {}.".format(name))
+            f"Setting GP name components from: {name}.")
         self.gp_title = ''
         self.gp_first_name = ''
         self.gp_last_name = ''
@@ -1087,10 +1082,8 @@ class DummyPatientSourceInfo(PatientLookupBase):
 
     def __str__(self) -> str:
         return (
-            "[DummyPatientSourceInfo {}] "
-            "Dummy patient lookup for NHS# {}".format(
-                self.id,
-                self.nhs_number))
+            f"[DummyPatientSourceInfo {self.id}] "
+            f"Dummy patient lookup for NHS# {self.nhs_number}")
 
 
 class PatientLookup(PatientLookupBase):
@@ -1135,10 +1128,7 @@ class PatientLookup(PatientLookupBase):
         return modelrepr(self)
 
     def __str__(self) -> str:
-        return "[PatientLookup {}] NHS# {}".format(
-            self.id,
-            self.nhs_number,
-        )
+        return f"[PatientLookup {self.id}] NHS# {self.nhs_number}"
 
     def get_first_traffic_light_letter_html(self) -> str:
         """
@@ -1333,10 +1323,9 @@ class ConsentMode(Decision):
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
-        return "[ConsentMode {}] NHS# {}, {}".format(
-            self.id,
-            self.nhs_number,
-            self.consent_mode,
+        return (
+            f"[ConsentMode {self.id}] "
+            f"NHS# {self.nhs_number}, {self.consent_mode}"
         )
 
     @classmethod
@@ -1416,7 +1405,7 @@ class ConsentMode(Decision):
 
         decisions = []  # type: List[str]
         source_db = source_db or settings.CLINICAL_LOOKUP_CONSENT_DB
-        decisions.append("source_db = {}".format(source_db))
+        decisions.append(f"source_db = {source_db}")
 
         latest = lookup_consent(
             nhs_number=nhs_number,
@@ -1432,11 +1421,9 @@ class ConsentMode(Decision):
 
         if crate_version and crate_version.created_at >= latest.created_at:
             decisions.append(
-                "CRATE stored version is at least as recent ({}) as the "
-                "version from the clinical record ({}); ignoring".format(
-                    crate_version.created_at,
-                    latest.created_at
-                ))
+                f"CRATE stored version is at least as recent "
+                f"({crate_version.created_at}) as the version from the "
+                f"clinical record ({latest.created_at}); ignoring")
             return decisions
 
         # If we get here, we've found a newer version in the clinical record.
@@ -1544,8 +1531,8 @@ class ConsentMode(Decision):
             to_researcher: is it a letter that needs to go to a researcher,
                 rather than to a patient?
         """
-        subject = ("WORK FROM RESEARCH DATABASE COMPUTER"
-                   " - consent mode {}".format(self.id))
+        subject = (
+            f"WORK FROM RESEARCH DATABASE COMPUTER - consent mode {self.id}")
         if to_researcher:
             template = 'email_rdbm_new_work_researcher.html'
         else:
@@ -1581,8 +1568,8 @@ class ConsentMode(Decision):
         where the researchers have not yet made contact.
         """
         if self.processed:
-            log.warning("ConsentMode #{}: already processed; "
-                        "not processing again".format(self.id))
+            log.warning(f"ConsentMode #{self.id}: already processed; "
+                        f"not processing again")
             return
         if not self.needs_processing:
             return
@@ -1688,10 +1675,7 @@ class ContactRequest(models.Model):
         self.decisionlist = []  # type: List[str]
 
     def __str__(self) -> str:
-        return "[ContactRequest {}] Study {}".format(
-            self.id,
-            self.study_id,
-        )
+        return f"[ContactRequest {self.id}] Study {self.study_id}"
 
     @classmethod
     def create(cls,
@@ -1765,8 +1749,8 @@ class ContactRequest(models.Model):
         main work is done by :func:`process_request_main`.
         """
         if self.processed:
-            log.warning("ContactRequest #{}: already processed; "
-                        "not processing again".format(self.id))
+            log.warning(f"ContactRequest #{self.id}: already processed; "
+                        f"not processing again")
             return
         self.decisionlist = []  # type: List[str]
         self.process_request_main()
@@ -1869,13 +1853,10 @@ class ContactRequest(models.Model):
                     return
                 if days_since_discharge > permitted_n_days:
                     self.stop(
-                        "patient was discharged {} days ago; "
-                        "permission exists only for up to {} days; "
-                        "patient did not consent to contact after "
-                        "discharge".format(
-                            days_since_discharge,
-                            permitted_n_days,
-                        ))
+                        f"patient was discharged {days_since_discharge} days "
+                        f"ago; permission exists only for up to "
+                        f"{permitted_n_days} days; patient did not consent to "
+                        f"contact after discharge")
                     return
 
         # Maximum number of approaches exceeded?
@@ -1883,11 +1864,9 @@ class ContactRequest(models.Model):
             if (self.approaches_in_past_year >=
                     self.consent_mode.max_approaches_per_year):
                 self.stop(
-                    "patient has had {} approaches in the past year and has "
-                    "set a cap of {} per year".format(
-                        self.approaches_in_past_year,
-                        self.consent_mode.max_approaches_per_year,
-                    )
+                    f"patient has had {self.approaches_in_past_year} "
+                    f"approaches in the past year and has set a cap of "
+                    f"{self.consent_mode.max_approaches_per_year} per year"
                 )
                 return
 
@@ -1920,12 +1899,11 @@ class ContactRequest(models.Model):
                 email = Email.create_researcher_approval_email(self, letter)
                 emailtransmission = email.send()
                 if emailtransmission.sent:
-                    self.decide("Sent approval to researcher at {}".format(
-                        researcher_emailaddr))
+                    self.decide(f"Sent approval to researcher at "
+                                f"{researcher_emailaddr}")
                     return
-                self.decide(
-                    "Failed to e-mail approval to researcher at {}.".format(
-                        researcher_emailaddr))
+                self.decide(f"Failed to e-mail approval to researcher at "
+                            f"{researcher_emailaddr}.")
                 # noinspection PyTypeChecker
                 self.decide(emailtransmission.failure_reason)
             except ValidationError:
@@ -1950,16 +1928,14 @@ class ContactRequest(models.Model):
         try:
             validate_email(clinician_emailaddr)
         except ValidationError:
-            self.stop("clinician e-mail ({}) is invalid".format(
-                clinician_emailaddr))
+            self.stop(f"clinician e-mail ({clinician_emailaddr}) is invalid")
             return
         try:
             # noinspection PyTypeChecker
             validate_researcher_email_domain(clinician_emailaddr)
         except ValidationError:
-            self.stop(
-                "clinician e-mail ({}) is not in a permitted domain".format(
-                    clinician_emailaddr))
+            self.stop(f"clinician e-mail ({clinician_emailaddr}) "
+                      f"is not in a permitted domain")
             return
 
         # Warnings
@@ -1995,11 +1971,10 @@ class ContactRequest(models.Model):
             if not emailtransmission.sent:
                 # noinspection PyTypeChecker
                 self.decide(emailtransmission.failure_reason)
-                self.stop("Failed to send e-mail to clinician at {}".format(
-                    clinician_emailaddr))
+                self.stop(f"Failed to send e-mail to clinician at "
+                          f"{clinician_emailaddr}")
             self.decided_send_to_clinician = True
-            self.decide(
-                "Sent request to clinician at {}".format(clinician_emailaddr))
+            self.decide(f"Sent request to clinician at {clinician_emailaddr}")
             return
 
         # Send e-mail to clinician
@@ -2010,14 +1985,13 @@ class ContactRequest(models.Model):
         if not emailtransmission.sent:
             # noinspection PyTypeChecker
             self.decide(emailtransmission.failure_reason)
-            self.stop("Failed to send e-mail to clinician at {}".format(
-                clinician_emailaddr))
+            self.stop(f"Failed to send e-mail to clinician at "
+                      f"{clinician_emailaddr}")
             # We don't set decided_send_to_clinician because this attempt has
             # failed, and we don't want to put anyone off trying again
             # immediately.
         self.decided_send_to_clinician = True
-        self.decide(
-            "Sent request to clinician at {}".format(clinician_emailaddr))
+        self.decide(f"Sent request to clinician at {clinician_emailaddr}")
 
     @staticmethod
     def get_clinician_involvement(consent_mode_str: str,
@@ -2139,8 +2113,8 @@ class ContactRequest(models.Model):
                 manually, rather than a letter that a clinician wants the
                 RDBM to send on their behalf?
         """
-        subject = ("CHEERFUL WORK FROM RESEARCH DATABASE COMPUTER"
-                   " - contact request {}".format(self.id))
+        subject = (f"CHEERFUL WORK FROM RESEARCH DATABASE COMPUTER - "
+                   f"contact request {self.id}")
         if to_researcher:
             template = 'email_rdbm_new_work_researcher.html'
         else:
@@ -2153,8 +2127,8 @@ class ContactRequest(models.Model):
         """
         Lets the RDBM know that a clinician refused (vetoed) a request.
         """
-        subject = ("INFO ONLY - clinician refused Research Database request"
-                   " - contact request {}".format(self.id))
+        subject = (f"INFO ONLY - clinician refused Research Database request "
+                   f"- contact request {self.id}")
         html = render_email_html_to_string('email_rdbm_bad_progress.html', {
             'id': self.id,
             'response': self.clinician_response.response,
@@ -2168,8 +2142,8 @@ class ContactRequest(models.Model):
         Lets the RDBM know that a clinician said yes to a request and wishes to
         do the work themselves.
         """
-        subject = ("INFO ONLY - clinician agreed to Research Database request"
-                   " - contact request {}".format(self.id))
+        subject = (f"INFO ONLY - clinician agreed to Research Database request"
+                   f" - contact request {self.id}")
         html = render_email_html_to_string('email_rdbm_good_progress.html', {
             'id': self.id,
             'response': self.clinician_response.response,
@@ -2393,8 +2367,8 @@ class ContactRequest(models.Model):
         clinician_requested = not self.request_direct_approach
         extra_form = (clinician_requested and
                       study.subject_form_template_pdf.name)
-        # log.debug("clinician_requested: {}".format(clinician_requested))
-        # log.debug("extra_form: {}".format(extra_form))
+        # log.debug(f"clinician_requested: {clinician_requested}")
+        # log.debug(f"extra_form: {extra_form}")
         return extra_form
 
     def is_consent_mode_unknown(self) -> bool:
@@ -2497,9 +2471,8 @@ class ContactRequest(models.Model):
             email_rdbm_task.delay(
                 subject="ERROR FROM RESEARCH DATABASE COMPUTER",
                 text=(
-                    "Missing taking-part-in-research leaflet! Incomplete "
-                    "clinician pack accessed for contact request {}.".format(
-                        self.id)
+                    f"Missing taking-part-in-research leaflet! Incomplete "
+                    f"clinician pack accessed for contact request {self.id}."
                 )
             )
         return get_concatenated_pdf_in_memory(pdf_plans, start_recto=True)
@@ -2620,7 +2593,7 @@ class ClinicianResponse(models.Model):
         """
         Returns the human-readable description of the clinician's response.
         """
-        # log.debug("get_response_explanation: {}".format(self.response))
+        # log.debug(f"get_response_explanation: {self.response}")
         # noinspection PyTypeChecker
         return choice_explanation(self.response, ClinicianResponse.RESPONSES)
 
@@ -2713,9 +2686,9 @@ class ClinicianResponse(models.Model):
         return self.get_abs_url(ClinicianResponse.EMAIL_CHOICE_TELL_ME_MORE)
 
     def __str__(self) -> str:
-        return "[ClinicianResponse {}] ContactRequest {}".format(
-            self.id,
-            self.contact_request_id,
+        return (
+            f"[ClinicianResponse {self.id}] "
+            f"ContactRequest {self.contact_request_id}"
         )
 
     def finalize_a(self) -> None:
@@ -2741,8 +2714,8 @@ class ClinicianResponse(models.Model):
         aspects.
         """
         if self.processed:
-            log.warning("ClinicianResponse #{}: already processed; "
-                        "not processing again".format(self.id))
+            log.warning(f"ClinicianResponse #{self.id}: already processed; "
+                        f"not processing again")
             return
         if self.response == ClinicianResponse.RESPONSE_R:
             # noinspection PyTypeChecker
@@ -2810,11 +2783,10 @@ class PatientResponse(Decision):
                 self.response, PatientResponse.RESPONSES))
         else:
             suffix = "AWAITING RESPONSE"
-        return "Patient response {} (contact request {}, study {}): {}".format(
-            self.id,
-            self.contact_request.id,
-            self.contact_request.study.id,
-            suffix,
+        return (
+            f"Patient response {self.id} "
+            f"(contact request {self.contact_request.id}, "
+            f"study {self.contact_request.study.id}): {suffix}"
         )
 
     @classmethod
@@ -2850,11 +2822,10 @@ class PatientResponse(Decision):
 
         If the patient said yes, this triggers a letter to the researcher.
         """
-        # log.debug("process_response: PatientResponse: {}".format(
-        #     modelrepr(self)))
+        # log.debug(f"process_response: PatientResponse: {modelrepr(self)}")
         if self.processed:
-            log.warning("PatientResponse #{}: already processed; "
-                        "not processing again".format(self.id))
+            log.warning(f"PatientResponse #{self.id}: already processed; "
+                        f"not processing again")
             return
         if self.response == PatientResponse.YES:
             contact_request = self.contact_request
@@ -2895,7 +2866,7 @@ class Letter(models.Model):
     sent_manually_at = models.DateTimeField(null=True)
 
     def __str__(self) -> str:
-        return "Letter {}".format(self.id)
+        return f"Letter {self.id}"
 
     @classmethod
     def create(cls,
@@ -2980,9 +2951,8 @@ class Letter(models.Model):
             a :class:`Letter`
 
         """
-        basefilename = "cr{}_res_approve_{}.pdf".format(
-            contact_request.id,
-            string_time_now(),
+        basefilename = (
+            f"cr{contact_request.id}_res_approve_{string_time_now()}.pdf"
         )
         html = contact_request.get_approval_letter_html()
         # noinspection PyTypeChecker
@@ -3007,9 +2977,8 @@ class Letter(models.Model):
             a :class:`Letter`
 
         """
-        basefilename = "cr{}_res_withdraw_{}.pdf".format(
-            contact_request.id,
-            string_time_now(),
+        basefilename = (
+            f"cr{contact_request.id}_res_withdraw_{string_time_now()}.pdf"
         )
         html = contact_request.get_withdrawal_letter_html()
         # noinspection PyTypeChecker
@@ -3038,10 +3007,7 @@ class Letter(models.Model):
             a :class:`Letter`
 
         """
-        basefilename = "cr{}_to_pt_{}.pdf".format(
-            contact_request.id,
-            string_time_now(),
-        )
+        basefilename = f"cr{contact_request.id}_to_pt_{string_time_now()}.pdf"
         pdf = contact_request.get_clinician_pack_pdf()
         # noinspection PyTypeChecker
         letter = cls.create(basefilename,
@@ -3069,10 +3035,7 @@ class Letter(models.Model):
             a :class:`Letter`
 
         """
-        basefilename = "cm{}_to_pt_{}.pdf".format(
-            consent_mode.id,
-            string_time_now(),
-        )
+        basefilename = f"cm{consent_mode.id}_to_pt_{string_time_now()}.pdf"
         html = consent_mode.get_confirm_traffic_to_patient_letter_html()
         return cls.create(basefilename,
                           html=html,
@@ -3156,7 +3119,7 @@ class Email(models.Model):
     # Except that filtering in the admin
 
     def __str__(self) -> str:
-        return "Email {} to {}".format(self.id, self.recipient)
+        return f"Email {self.id} to {self.recipient}"
 
     @classmethod
     def create_clinician_email(cls, contact_request: ContactRequest) \
@@ -3211,10 +3174,8 @@ class Email(models.Model):
         recipient = contact_request.clinician_email
         # noinspection PyUnresolvedReferences
         subject = (
-            "Confirmation of request for patient to be included in study. "
-            "Contact request code {contact_req_code}".format(
-                contact_req_code=contact_request.id
-            )
+            f"Confirmation of request for patient to be included in study. "
+            f"Contact request code {contact_request.id}"
         )
         html = contact_request.get_clinician_initiated_email_html()
         email = cls(recipient=recipient,
@@ -3246,10 +3207,8 @@ class Email(models.Model):
         # noinspection PyUnresolvedReferences
         recipient = contact_request.study.lead_researcher.email
         subject = (
-            "APPROVAL TO CONTACT PATIENT: contact request "
-            "code {contact_req_code}".format(
-                contact_req_code=contact_request.id
-            )
+            f"APPROVAL TO CONTACT PATIENT: contact request code "
+            f"{contact_request.id}"
         )
         html = contact_request.get_approval_email_html()
         email = cls(recipient=recipient,
@@ -3286,10 +3245,8 @@ class Email(models.Model):
         # noinspection PyUnresolvedReferences
         recipient = contact_request.study.lead_researcher.email
         subject = (
-            "WITHDRAWAL OF APPROVAL TO CONTACT PATIENT: contact request "
-            "code {contact_req_code}".format(
-                contact_req_code=contact_request.id
-            )
+            f"WITHDRAWAL OF APPROVAL TO CONTACT PATIENT: contact request code "
+            f"{contact_request.id}"
         )
         html = contact_request.get_withdrawal_email_html()
         email = cls(recipient=recipient,
@@ -3367,7 +3324,7 @@ class Email(models.Model):
             an :class:`EmailTransmission` object.
         """
         if self.has_been_sent() and not resend:
-            log.error("Trying to send e-mail twice: ID={}".format(self.id))
+            log.error(f"Trying to send e-mail twice: ID={self.id}")
             return None
         if settings.SAFETY_CATCH_ON:
             self.recipient = settings.DEVELOPER_EMAIL
@@ -3544,7 +3501,7 @@ class EmailTransmission(models.Model):
             self.at,
             self.by or "(system)",
             "success" if self.sent
-            else "failure: {}".format(self.failure_reason)
+            else f"failure: {self.failure_reason}"
         )
 
 
@@ -3629,7 +3586,7 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     dob = today - relativedelta(years=age, months=age_months)
 
     consent_mode_str = get_str('consent_mode', None)
-    # log.critical("consent_mode_str: {!r}".format(consent_mode_str))
+    # log.critical(f"consent_mode_str: {consent_mode_str!r}")
     if consent_mode_str not in (None, ConsentMode.RED, ConsentMode.YELLOW,
                                 ConsentMode.GREEN):
         consent_mode_str = None

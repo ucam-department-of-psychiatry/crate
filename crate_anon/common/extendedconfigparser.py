@@ -84,12 +84,12 @@ def gen_ints(words: Iterable[str],
             value = int(word)
             if minimum is not None:
                 if value < minimum:
-                    raise ValueError("Value {} less than minimum of {}".format(
-                        value, minimum))
+                    raise ValueError(
+                        f"Value {value} less than minimum of {minimum}")
             if maximum is not None:
                 if value > maximum:
-                    raise ValueError("Value {} more than maximum of {}".format(
-                        value, maximum))
+                    raise ValueError(
+                        f"Value {value} more than maximum of {maximum}")
             yield value
         except ValueError:
             if not suppress_errors:
@@ -141,8 +141,8 @@ class ExtendedConfigParser(configparser.ConfigParser):
             section: section name
             option: parameter name
         """
-        raise ValueError("Config section {}: missing parameter: {}".format(
-            section, option))
+        raise ValueError(
+            f"Config section {section}: missing parameter: {option}")
 
     def get_str(self,
                 section: str,
@@ -276,8 +276,8 @@ class ExtendedConfigParser(configparser.ConfigParser):
         # Now, make sure it's a list:
         # http://stackoverflow.com/questions/1835018
         if not isinstance(pyvalue, list):
-            raise ValueError("Option {} must evaluate to a Python list "
-                             "using ast.literal_eval()".format(option))
+            raise ValueError(f"Option {option} must evaluate to a Python list "
+                             f"using ast.literal_eval()")
         return pyvalue
 
     def get_database(self,

@@ -110,9 +110,8 @@ class OutputUserConfig(object):
             words = shlex.split(line)
             if len(words) != 2:
                 raise ValueError(
-                    "Bad 'renames' option in config section {}; line was {} "
-                    "but should have contained two things".format(
-                        repr(sectionname), repr(line)))
+                    f"Bad 'renames' option in config section {sectionname!r}; "
+                    f"line was {line!r} but should have contained two things")
             annotation_name = words[0]
             field_name = words[1]
             ensure_valid_field_name(field_name)
@@ -142,7 +141,7 @@ class OutputUserConfig(object):
             ensure_valid_field_name(field)
             if not is_sqltype_valid(datatype):
                 raise Exception(
-                    "Invalid datatype for {}: {}".format(field, datatype))
+                    f"Invalid datatype for {field}: {datatype}")
             self._destfields.append(field)
             self._dest_datatypes.append(datatype)
 
@@ -151,12 +150,12 @@ class OutputUserConfig(object):
         for sf in src_fields:
             if sf in self._destfields:
                 raise Exception(
-                    "For section {}, destination field {} is auto-supplied; "
-                    "do not add it manually".format(sectionname, sf))
+                    f"For section {sectionname}, destination field {sf} is "
+                    f"auto-supplied; do not add it manually")
 
         if len(set(self._destfields)) != len(self._destfields):
-            raise ValueError("Duplicate fields exist in destination fields: "
-                             "{}".format(self._destfields))
+            raise ValueError(f"Duplicate fields exist in destination fields: "
+                             f"{self._destfields}")
 
         # ---------------------------------------------------------------------
         # indexdefs
@@ -171,15 +170,15 @@ class OutputUserConfig(object):
                 lengthstr = c[1]
                 if indexfieldname not in self._destfields:
                     raise ValueError(
-                        "Index field {} not in destination fields {}".format(
-                            indexfieldname, self._destfields))
+                        f"Index field {indexfieldname} not in "
+                        f"destination fields {self._destfields}")
                 try:
                     length = ast.literal_eval(lengthstr)
                     if length is not None:
                         length = int(length)
                 except ValueError:
                     raise ValueError(
-                        "Bad index length: {}".format(lengthstr))
+                        f"Bad index length: {lengthstr}")
                 self._indexfields.append(indexfieldname)
                 self._indexlengths.append(length)
 
@@ -221,7 +220,7 @@ class OutputUserConfig(object):
         """
         indexes = []  # type: List[Index]
         for i, field in enumerate(self._indexfields):
-            index_name = '_idx_{}'.format(field)
+            index_name = f'_idx_{field}'
             length = self._indexlengths[i]
             kwargs = {'mysql_length': length} if length is not None else {}
             indexes.append(Index(index_name, field, **kwargs))

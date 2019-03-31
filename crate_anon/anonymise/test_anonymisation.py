@@ -115,12 +115,12 @@ class FieldInfo(object):
         """
         ddrows = config.dd.get_rows_for_dest_table(table)
         if not ddrows:
-            raise ValueError("No data dictionary rows for destination table "
-                             "{}".format(table))
+            raise ValueError(
+                f"No data dictionary rows for destination table {table}")
         try:
             textrow = next(x for x in ddrows if x.dest_field == field)
         except StopIteration:
-            raise ValueError("No destination field: {}".format(field))
+            raise ValueError(f"No destination field: {field}")
         try:
             pkrow = next(x for x in ddrows if x.pk)
         except StopIteration:
@@ -176,17 +176,12 @@ def get_patientnum_rawtext(docid: int,
         raise ValueError("Unknown idx_pidfield")
     if idx_textfield is None:
         raise ValueError("Unknown idx_textfield")
-    query = """
-        SELECT {fields}
+    query = f"""
+        SELECT {",".join(sourcefields)}
         FROM {table}
         WHERE {pkfield} = ?
-    """.format(
-        fields=",".join(sourcefields),
-        textfield=textfield,
-        table=table,
-        pkfield=pkfield,
-    )
-    # log.debug("RAW: {}, {}".format(query, docid))
+    """
+    # log.debug(f"RAW: {query}, {docid}")
     row = db.fetchone(query, docid)
     if not row:
         return None, None
@@ -217,17 +212,12 @@ def get_patientnum_anontext(docid: int,
     textfield = fieldinfo.text_ddrow.dest_field
     ridfield = fieldinfo.pid_ddrow.dest_field
     pkfield = fieldinfo.pk_ddrow.dest_field
-    query = """
+    query = f"""
         SELECT {ridfield}, {textfield}
         FROM {table}
         WHERE {pkfield} = ?
-    """.format(
-        ridfield=ridfield,
-        textfield=textfield,
-        table=table,
-        pkfield=pkfield,
-    )
-    # log.debug("ANON: {}, {}".format(query, docid))
+    """
+    # log.debug(f"ANON: {query}, {docid}")
     result = db.fetchone(query, docid)
     if not result:
         return None, None
@@ -275,7 +265,7 @@ def process_doc(docid: int,
         scrubdict[pid] = scrubber.get_raw_info()
 
     # Write text
-    common_filename_stem = "{}_{}.txt".format(pid, docid)
+    common_filename_stem = f"{pid}_{docid}.txt"
     rawfilename = os.path.join(rawdir, common_filename_stem)
     anonfilename = os.path.join(anondir, common_filename_stem)
     with open(rawfilename, 'w') as f:
@@ -361,30 +351,21 @@ def get_docids(fieldinfo: FieldInfo,
         pkfield = fieldinfo.pk_ddrow.dest_field
         pidfield = fieldinfo.pid_ddrow.dest_field
     if uniquepatients:
-        query = """
+        query = f"""
             SELECT MIN({pkfield}), {pidfield}
             FROM {table}
             GROUP BY {pidfield}
             ORDER BY {pidfield}
             LIMIT {limit}
-        """.format(
-            pkfield=pkfield,
-            pidfield=pidfield,
-            table=table,
-            limit=limit,
-        )
+        """
         return db.fetchallfirstvalues(query)
     else:
-        query = """
+        query = f"""
             SELECT {pkfield}
             FROM {table}
             ORDER BY {pkfield}
             LIMIT {limit}
-        """.format(
-            pkfield=pkfield,
-            table=table,
-            limit=limit,
-        )
+        """
         return db.fetchallfirstvalues(query)
 
 
@@ -452,15 +433,12 @@ def test_anon(uniquepatients: bool,
             pidset.add(pid)
     with open(scrubfile, 'w') as f:
         f.write(json.dumps(scrubdict, indent=4))
-    log.info("Finished. See {} for a summary.".format(resultsfile))
+    log.info(f"Finished. See {resultsfile} for a summary.")
     log.info(
-        "Use meld to compare directories {} and {}".format(
-            rawdir,
-            anondir,
-        )
+        f"Use meld to compare directories {rawdir} and {anondir}"
     )
     log.info("To install meld on Debian/Ubuntu: sudo apt-get install meld")
-    log.info("{} documents, {} patients".format(len(docids), len(pidset)))
+    log.info(f"{len(docids)} documents, {len(pidset)} patients")
 
 
 # =============================================================================

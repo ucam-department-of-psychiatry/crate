@@ -838,8 +838,11 @@ Changes
 - ``semver`` to ``semantic_version``; consistent with CamCOPS and better (and
   not actually used hitherto by CRATE!)
 
+- NLPRP constants and core API.
 
+- Move to Python 3.6 (already the minimum in CPFT), allowing f-strings.
 
+- f-strings. (Note: use Alt-Enter in PyCharm.)
 
 
 .. rubric:: Footnotes

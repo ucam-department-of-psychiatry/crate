@@ -94,7 +94,7 @@ def lookup_cpft_crs(lookup: PatientLookup,
     crs_patient_id = row['patient_id']
     lookup.pt_local_id_description = "CPFT M number"
     lookup.pt_local_id_number = crs_patient_id
-    secret_decisions.append("CPFT M number: {}.".format(crs_patient_id))
+    secret_decisions.append(f"CPFT M number: {crs_patient_id}.")
     lookup.pt_found = True
     lookup.pt_title = row['title'] or ''
     lookup.pt_first_name = row['forename'] or ''

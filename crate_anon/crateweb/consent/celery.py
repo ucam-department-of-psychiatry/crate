@@ -242,5 +242,5 @@ def debug_task(self) -> None:
     """
     Debugging task for Celery that shows some request information only.
     """
-    print('Request: {0!r}'.format(self.request))
-    print('Backend: {}'.format(current_task.backend))
+    print(f'Request: {self.request!r}')
+    print(f'Backend: {current_task.backend}')

@@ -62,16 +62,16 @@ def add_user(username: str, password: str) -> None:
     """
     users = get_users()
     if username in users:
-        proceed = input("User {} already exists. Overwrite "
-                        "(change password)? [yes/no] ".format(username))
+        proceed = input(f"User {username} already exists. "
+                        f"Overwrite (change password)? [yes/no] ")
         if proceed.lower() == "yes":
             change_password(username, password)
             return
         else:
             return
     with open(USERS_FILENAME, 'a') as user_file:
-        user_file.write("{},{}\n".format(username, hash_password(password)))
-    log.info("User {} added.".format(username))
+        user_file.write(f"{username},{hash_password(password)}\n")
+    log.info(f"User {username} added.")
 
 
 def rm_user(username: str) -> None:
@@ -87,18 +87,19 @@ def rm_user(username: str) -> None:
         with open(USERS_FILENAME, 'w') as user_file:
             for user in users:
                 if user != username:
-                    user_file.write("{},{}\n".format(user, users[user]))
+                    user_file.write(f"{user},{users[user]}\n")
                 else:
                     user_found = True
     except IOError:
-        log.error("An error occured in opening the file {}. If the "
-                  "integrity of this file is compromised, the backup is "
-                  "{}.".format(USERS_FILENAME, backup_filename))
+        log.error(
+            f"An error occured in opening the file {USERS_FILENAME}. If the "
+            f"integrity of this file is compromised, the backup is "
+            f"{backup_filename}.")
         raise
     if user_found:
-        log.info("User {} removed.".format(username))
+        log.info(f"User {username} removed.")
     else:
-        log.info("User {} not found.".format(username))
+        log.info(f"User {username} not found.")
 
 
 def change_password(username: str, password: str) -> None:
@@ -114,20 +115,20 @@ def change_password(username: str, password: str) -> None:
         with open(USERS_FILENAME, 'w') as user_file:
             for user in users:
                 if user != username:
-                    user_file.write("{},{}\n".format(user, users[user]))
+                    user_file.write(f"{user},{users[user]}\n")
                 else:
                     user_found = True
-                    user_file.write("{},{}\n".format(username,
-                                    hash_password(password)))
+                    user_file.write(f"{username},{hash_password(password)}\n")
     except IOError:
-        log.error("An error occured in opening the file {}. If the "
-                  "integrity of this file is compromised, the backup is "
-                  "{}.".format(USERS_FILENAME, backup_filename))
+        log.error(
+            f"An error occured in opening the file {USERS_FILENAME}. If the "
+            f"integrity of this file is compromised, the backup is "
+            f"{backup_filename}.")
         raise
     if user_found:
-        log.info("Password changed for user {}.".format(username))
+        log.info(f"Password changed for user {username}.")
     else:
-        log.info("User {} not found.".format(username))
+        log.info(f"User {username} not found.")
 
 
 def main() -> None:
@@ -158,8 +159,7 @@ def main() -> None:
 
     if args.rmuser:
         username = args.rmuser[0]
-        proceed = input("Confirm remove user: {} ? [yes/no] ".format(
-            username))
+        proceed = input(f"Confirm remove user: {username} ? [yes/no] ")
         if proceed.lower() == "yes":
             rm_user(username)
         else:
@@ -171,8 +171,8 @@ def main() -> None:
     elif args.changepw:
         username = args.changepw[0]
         new_password = args.changepw[1]
-        proceed = input("Confirm change password for user: {} ? "
-                        "[yes/no] ".format(username))
+        proceed = input(
+            f"Confirm change password for user: {username} ? [yes/no] ")
         if proceed.lower() == "yes":
             change_password(username, new_password)
         else:

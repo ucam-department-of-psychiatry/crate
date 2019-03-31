@@ -111,7 +111,7 @@ def lookup_patient(nhs_number: int,
         raise AssertionError("Not enough information in RiO Data Warehouse "
                              "copy yet to look up patient ID")
     else:
-        raise ValueError("Bad source_db for ID lookup: {}".format(source_db))
+        raise ValueError(f"Bad source_db for ID lookup: {source_db}")
     lookup.decisions = " ".join(decisions)
     lookup.secret_decisions = " ".join(secret_decisions)
     if save:
@@ -156,8 +156,7 @@ def lookup_consent(nhs_number: int,
         )
     else:
         # Don't know how to look up consent modes from other sources
-        errmsg = ("Don't know how to look up consent modes "
-                  "from {}".format(source_db))
+        errmsg = f"Don't know how to look up consent modes from {source_db}"
         decisions.append(errmsg)
         log.warning(errmsg)
         return None
@@ -185,8 +184,7 @@ def gen_opt_out_pids_mpids(source_db: str) -> Generator[
         generator = gen_opt_out_pids_mpids_rio_raw(source_db)
     else:
         # Don't know how to look up consent modes from other sources
-        log.error("Don't know how to look up opt-outs "
-                  "from {}".format(source_db))
+        log.error(f"Don't know how to look up opt-outs from {source_db}")
         return
     for pid, mpid in generator:
         yield pid, mpid

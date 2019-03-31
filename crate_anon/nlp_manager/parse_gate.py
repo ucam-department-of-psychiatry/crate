@@ -196,8 +196,7 @@ class Gate(BaseNlpParser):
         # Sanity checks
         for ty, tn in self._type_to_tablename.items():
             assert len(tn) <= MAX_SQL_FIELD_LEN, (
-                "Table name too long (max {} characters)".format(
-                    MAX_SQL_FIELD_LEN))
+                f"Table name too long (max {MAX_SQL_FIELD_LEN} characters)")
 
     @classmethod
     def print_info(cls, file: TextIO = sys.stdout) -> None:
@@ -216,7 +215,7 @@ class Gate(BaseNlpParser):
         if self._started:
             return
         args = self._progargs
-        log.info("launching command: {}".format(args))
+        log.info(f"launching command: {args}")
         self._p = subprocess.Popen(args,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
@@ -295,14 +294,14 @@ class Gate(BaseNlpParser):
             line = line.rstrip()  # remove trailing newline
             log.debug("stdout received: " + line)
             d = tsv_pairs_to_dict(line)
-            log.debug("dictionary received: {}".format(d))
+            log.debug(f"dictionary received: {d}")
             try:
                 annottype = d['_type'].lower()
             except KeyError:
                 raise ValueError("_type information not in data received")
             if annottype not in self._type_to_tablename:
                 log.warning(
-                    "Unknown annotation type, skipping: {}".format(annottype))
+                    f"Unknown annotation type, skipping: {annottype}")
                 continue
             c = self._outputtypemap[annottype]
             rename_keys_in_dict(d, c.renames())
@@ -312,7 +311,7 @@ class Gate(BaseNlpParser):
         self._n_uses += 1
         # Restart subprocess?
         if 0 < self._max_external_prog_uses <= self._n_uses:
-            log.info("relaunching app after {} uses".format(self._n_uses))
+            log.info(f"relaunching app after {self._n_uses} uses")
             self._finish()
             self._start()
             self._n_uses = 0

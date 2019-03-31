@@ -85,18 +85,14 @@ def visibility_button(tag: str, small: bool = True,
     """
     eltype = "span" if as_span else "div"
     togglefunc = "toggleVisible" if as_visibility else "toggleCollapsed"
-    return """
+    tag = str(tag)
+    img = static('plus.gif') if small else static('minus.gif')
+    return f"""
 <{eltype} class="expandcollapse" onclick="{togglefunc}('collapsible_{tag}', 'collapse_img_{tag}');">
     <img class="plusminus_image" id="collapse_img_{tag}" alt="" src="{img}">
     {title_html}
 </{eltype}>
-    """.format(  # noqa
-        eltype=eltype,
-        togglefunc=togglefunc,
-        tag=str(tag),
-        img=static('plus.gif') if small else static('minus.gif'),
-        title_html=title_html,
-    )
+    """  # noqa
 
 
 def visibility_contentdiv(tag: str,
@@ -133,15 +129,12 @@ def visibility_contentdiv(tag: str,
             div_classes.append("collapse_small")
         else:
             div_classes.append("collapse_big")
-    return """
-<div class="{div_classes}" id="collapsible_{tag}">
+    tag = str(tag)
+    return f"""
+<div class="{" ".join(div_classes)}" id="collapsible_{str(tag)}">
     {contents}
 </div>
-    """.format(
-        div_classes=" ".join(div_classes),
-        tag=str(tag),
-        contents=contents,
-    )
+    """
 
 
 def visibility_div_with_divbutton(tag: str,
@@ -198,12 +191,12 @@ def overflow_div(tag: str,
     contentdiv = visibility_contentdiv(tag=tag, contents=contents,
                                        extra_div_classes=extra_div_classes,
                                        small=small, as_visibility=False)
-    return """
+    return f"""
 <div class="expandcollapsewrapper">
     {button}
     {contentdiv}
 </div>
-    """.format(button=button, contentdiv=contentdiv)
+    """
 
 
 # =============================================================================
@@ -408,7 +401,7 @@ def highlight_text(x: str, n: int = 0) -> str:
 
     """
     n %= N_CSS_HIGHLIGHT_CLASSES
-    return r'<span class="highlight{n}">{x}</span>'.format(n=n, x=x)
+    return fr'<span class="highlight{n}">{x}</span>'
 
 
 def make_highlight_replacement_regex(n: int = 0) -> str:
@@ -510,7 +503,7 @@ def pre(x: str = '') -> str:
         the input within a ``pre`` tag
 
     """
-    return "<pre>{}</pre>".format(x)
+    return f"<pre>{x}</pre>"
 
 
 # =============================================================================
@@ -569,7 +562,7 @@ def prettify_sql_and_args(sql: str, args: List[Any] = None,
     sql = prettify_sql_html(sql, reformat=reformat, indent_width=indent_width)
     if args:
         formatted_args = "\n".join(textwrap.wrap(repr(args)))
-        return sql + "<div>Args:</div><pre>{}</pre>".format(formatted_args)
+        return sql + f"<div>Args:</div><pre>{formatted_args}</pre>"
     else:
         return sql
 

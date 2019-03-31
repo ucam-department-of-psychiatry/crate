@@ -151,23 +151,22 @@ class InputFieldConfig(object):
             ensure_valid_field_name(self._srcdatetimefield)
 
         if len(set(self._indexed_copyfields)) != len(self._indexed_copyfields):
-            raise ValueError("Redundant indexed_copyfields: {}".format(
-                self._indexed_copyfields))
+            raise ValueError(
+                f"Redundant indexed_copyfields: {self._indexed_copyfields}")
 
         if len(set(self._copyfields)) != len(self._copyfields):
-            raise ValueError("Redundant copyfields: {}".format(
-                self._copyfields))
+            raise ValueError(f"Redundant copyfields: {self._copyfields}")
 
         indexed_not_copied = set(self._indexed_copyfields) - set(
             self._copyfields)
         if indexed_not_copied:
-            raise ValueError("Fields in index_copyfields but not in "
-                             "copyfields: {}".format(indexed_not_copied))
+            raise ValueError(f"Fields in index_copyfields but not in "
+                             f"copyfields: {indexed_not_copied}")
 
         # allfields = [self._srcpkfield, self._srcfield] + self._copyfields
         # if len(allfields) != len(set(allfields)):
         #     raise ValueError(
-        #         "Field overlap in InputFieldConfig: {}".format(section))
+        #         f"Field overlap in InputFieldConfig: {section}")
         # RE-THOUGHT: OK to copy source text fields etc. if desired.
         # It's fine in SQL to say SELECT a, a FROM mytable;
 
@@ -312,8 +311,7 @@ class InputFieldConfig(object):
         Ensure that the source table exists, or raise :exc:`RuntimeError`.
         """
         if not table_or_view_exists(self._get_source_engine(), self._srctable):
-            msg = "Missing source table: {}.{}".format(self._srcdb,
-                                                       self._srctable)
+            msg = f"Missing source table: {self._srcdb}.{self._srctable}"
             log.critical(msg)
             raise RuntimeError(msg)
 
@@ -349,9 +347,8 @@ class InputFieldConfig(object):
         missing = set(self._copyfields) - set(processed_copy_column_names)
         if missing:
             raise RuntimeError(
-                "The following fields were requested to be copied but are "
-                "absent from the source (NB case-sensitive): {}".format(
-                    missing))
+                f"The following fields were requested to be copied but are "
+                f"absent from the source (NB case-sensitive): {missing}")
         # log.critical(copy_columns)
         return copy_columns
 
@@ -374,16 +371,15 @@ class InputFieldConfig(object):
             if c.name in self._indexed_copyfields:
                 copied = c.copy()
                 # See above re case.
-                idx_name = "idx_{}".format(c.name)
+                idx_name = f"idx_{c.name}"
                 copy_indexes.append(Index(idx_name, copied))
                 processed_copy_index_col_names.append(c.name)
         missing = set(self._indexed_copyfields) - set(
             processed_copy_index_col_names)
         if missing:
             raise ValueError(
-                "The following fields were requested to be copied/indexed but "
-                "are absent from the source (NB case-sensitive): {}".format(
-                    missing))
+                f"The following fields were requested to be copied/indexed but"
+                f" are absent from the source (NB case-sensitive): {missing}")
         return copy_indexes
 
     def is_pk_integer(self):
@@ -393,11 +389,10 @@ class InputFieldConfig(object):
         pkcoltype = get_column_type(self._get_source_engine(), self._srctable,
                                     self._srcpkfield)
         if not pkcoltype:
-            raise ValueError("Unable to get column type for column "
-                             "{}.{}".format(self._srctable, self._srcpkfield))
+            raise ValueError(f"Unable to get column type for column "
+                             f"{self._srctable}.{self._srcpkfield}")
         pk_is_integer = is_sqlatype_integer(pkcoltype)
-        # log.debug("pk_is_integer: {} -> {}".format(repr(pkcoltype),
-        #                                            pk_is_integer))
+        # log.debug(f"pk_is_integer: {repr(pkcoltype)} -> {pk_is_integer}")
         return pk_is_integer
 
     def gen_text(self, tasknum: int = 0,
@@ -412,8 +407,7 @@ class InputFieldConfig(object):
             reference fields, copy fields).
         """
         if 1 < ntasks <= tasknum:
-            raise Exception("Invalid tasknum {}; must be <{}".format(
-                tasknum, ntasks))
+            raise Exception(f"Invalid tasknum {tasknum}; must be <{ntasks}")
 
         # ---------------------------------------------------------------------
         # Values that are constant to all items we will generate
@@ -493,10 +487,10 @@ class InputFieldConfig(object):
                     # Optional debug limit on the number of rows
                     if 0 < self._debug_row_limit <= nrows_returned:
                         log.warning(
-                            "Table {}.{}: not fetching more than {} rows (in "
-                            "total for this process) due to debugging "
-                            "limits".format(self._srcdb, self._srctable,
-                                            self._debug_row_limit))
+                            f"Table {self._srcdb}.{self._srctable}: not "
+                            f"fetching more than {self._debug_row_limit} rows "
+                            f"(in total for this process) due to debugging "
+                            f"limits")
                         result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
                         return
 
@@ -598,8 +592,8 @@ class InputFieldConfig(object):
 
         """
         progsession = self._get_progress_session()
-        log.debug("delete_progress_records_where_srcpk_not... {}.{} -> "
-                  "progressdb".format(self._srcdb, self._srctable))
+        log.debug(f"delete_progress_records_where_srcpk_not... "
+                  f"{self._srcdb}.{self._srctable} -> progressdb")
         prog_deletion_query = (
             progsession.query(NlpRecord).
             filter(NlpRecord.srcdb == self._srcdb).
@@ -642,8 +636,8 @@ class InputFieldConfig(object):
             progsession.query(NlpRecord).
             filter(NlpRecord.nlpdef == self._nlpdef.get_name())
         )
-        log.debug("delete_all_progress_records for NLP definition: {}".format(
-            self._nlpdef.get_name()))
+        log.debug(f"delete_all_progress_records for NLP definition: "
+                  f"{self._nlpdef.get_name()}")
         with MultiTimerContext(timer, TIMING_PROGRESS_DB_DELETE):
             prog_deletion_query.delete(synchronize_session=False)
         self._nlpdef.commit(progsession)

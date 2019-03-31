@@ -407,11 +407,11 @@ class DataDictionaryRow(object):
         have_truncate_date = False
         for am in self._alter_methods:
             if not am.truncate_date and have_truncate_date:
-                raise ValueError("Date truncation must stand alone in "
-                                 "alter_method: {}".format(value))
+                raise ValueError(f"Date truncation must stand alone in "
+                                 f"alter_method: {value}")
             if am.extract_text and have_text_extraction:
-                raise ValueError("Can only have one text extraction method in "
-                                 "{}".format(value))
+                raise ValueError(f"Can only have one text extraction method "
+                                 f"in {value}")
             if am.truncate_date:
                 have_truncate_date = True
             if am.extract_text:
@@ -490,7 +490,7 @@ class DataDictionaryRow(object):
         """
         Returns a string representation of the DDR.
         """
-        return ", ".join(["{}: {}".format(a, getattr(self, a))
+        return ", ".join([f"{a}: {getattr(self, a)}"
                           for a in DataDictionaryRow.ROWNAMES])
 
     def get_signature(self) -> str:
@@ -498,23 +498,24 @@ class DataDictionaryRow(object):
         Returns a signature based on the source database/table/field, in the
         format ``db.table.column``.
         """
-        return "{}.{}.{}".format(self.src_db, self.src_table, self.src_field)
+        return f"{self.src_db}.{self.src_table}.{self.src_field}"
 
     def get_dest_signature(self) -> str:
         """
         Returns a signature based on the destination table/field, in the format
         ``table.column``.
         """
-        return "{}.{}".format(self.dest_table, self.dest_field)
+        return f"{self.dest_table}.{self.dest_field}"
 
     def get_offender_description(self) -> str:
         """
         Get a string used to describe this DDR (in terms of its
         source/destination fields) if it does something wrong.
         """
-        offenderdest = "" if not self.omit else " -> {}".format(
-            self.get_dest_signature())
-        return "{}{}".format(self.get_signature(), offenderdest)
+        offenderdest = (
+            "" if not self.omit else f" -> {self.get_dest_signature()}"
+        )
+        return f"{self.get_signature()}{offenderdest}"
 
     def get_tsv(self) -> str:
         """
@@ -653,9 +654,8 @@ class DataDictionaryRow(object):
         from among its alteration methods.
         """
         log.debug(
-            "remove_scrub_from_alter_methods "
-            "[used for non-patient tables]: {}".format(
-                self.get_signature()))
+            f"remove_scrub_from_alter_methods [used for non-patient tables]: "
+            f"{self.get_signature()}")
         for sm in self._alter_methods:
             sm.scrub = False
 
@@ -743,8 +743,8 @@ class DataDictionaryRow(object):
             self._check_valid()
         except (AssertionError, ValueError):
             log.exception(
-                "Offending DD row [{}]: {}".format(
-                    self.get_offender_description(), str(self)))
+                f"Offending DD row [{self.get_offender_description()}]: "
+                f"{str(self)}")
             raise
 
     def check_prohibited_fieldnames(
@@ -761,8 +761,8 @@ class DataDictionaryRow(object):
         """
         if self.dest_field in prohibited_fieldnames:
             log.exception(
-                "Offending DD row [{}]: {}".format(
-                    self.get_offender_description(), str(self)))
+                f"Offending DD row [{self.get_offender_description()}]: "
+                f"{str(self)}")
             raise ValueError("Prohibited dest_field name")
 
     def _check_valid(self) -> None:
@@ -791,16 +791,14 @@ class DataDictionaryRow(object):
         ensure_valid_field_name(self.src_field)
         if len(self.src_table) > MAX_IDENTIFIER_LENGTH:
             log.warning(
-                "Table name in {}.{} is too long for MySQL ({} characters > "
-                "{} maximum".format(
-                    self.src_table, self.src_field,
-                    len(self.src_table), MAX_IDENTIFIER_LENGTH))
+                f"Table name in {self.src_table}.{self.src_field} is too long "
+                f"for MySQL ({len(self.src_table)} characters > "
+                f"{MAX_IDENTIFIER_LENGTH} maximum")
         if len(self.src_field) > MAX_IDENTIFIER_LENGTH:
             log.warning(
-                "Field name in {}.{} is too long for MySQL ({} characters > "
-                "{} maximum".format(
-                    self.src_table, self.src_field,
-                    len(self.src_field), MAX_IDENTIFIER_LENGTH))
+                f"Field name in {self.src_table}.{self.src_field} is too long "
+                f"for MySQL ({len(self.src_field)} characters > "
+                f"{MAX_IDENTIFIER_LENGTH} maximum")
 
         # REMOVED 2016-06-04; fails with complex SQL Server types, which can
         # look like 'NVARCHAR(10) COLLATE "Latin1_General_CI_AS"'.
@@ -825,63 +823,55 @@ class DataDictionaryRow(object):
 
         if self._defines_primary_pids and not self._primary_pid:
             raise ValueError(
-                "All fields with src_flags={} set must have src_flags={} "
-                "set".format(SRCFLAG.DEFINES_PRIMARY_PIDS, SRCFLAG.PRIMARY_PID))
+                f"All fields with src_flags={SRCFLAG.DEFINES_PRIMARY_PIDS} "
+                f"set must have src_flags={SRCFLAG.PRIMARY_PID} set")
 
         if self._opt_out_info and not self.config.optout_col_values:
             raise ValueError(
-                "Fields with src_flags={} exist, but config's "
-                "optout_col_values setting is empty".format(SRCFLAG.OPT_OUT))
+                f"Fields with src_flags={SRCFLAG.OPT_OUT} exist, but config's "
+                f"optout_col_values setting is empty")
 
         if count_bool([self._primary_pid,
                        self._master_pid,
                        bool(self.alter_method)]) > 1:
             raise ValueError(
-                "Field can be any ONE of: src_flags={}, src_flags={}, "
-                "alter_method".format(SRCFLAG.PRIMARY_PID, SRCFLAG.MASTER_PID))
+                f"Field can be any ONE of: src_flags={SRCFLAG.PRIMARY_PID}, "
+                f"src_flags={SRCFLAG.MASTER_PID}, alter_method")
 
         if self._required_scrubber and not self.scrub_src:
-            raise ValueError("If you specify src_flags={}, you must specify "
-                             "scrub_src".format(SRCFLAG.REQUIRED_SCRUBBER))
+            raise ValueError(
+                f"If you specify src_flags={SRCFLAG.REQUIRED_SCRUBBER}, "
+                f"you must specify scrub_src")
 
         if self._add_src_hash:
             if not self._pk:
                 raise ValueError(
-                    "src_flags={} can only be set on "
-                    "src_flags={} fields".format(
-                        SRCFLAG.ADD_SRC_HASH,
-                        SRCFLAG.PK))
+                    f"src_flags={SRCFLAG.ADD_SRC_HASH} can only be set on "
+                    f"src_flags={SRCFLAG.PK} fields")
             if self.index is not INDEX.UNIQUE:
                 raise ValueError(
-                    "src_flags={} fields require index=={}".format(
-                        SRCFLAG.ADD_SRC_HASH,
-                        INDEX.UNIQUE))
+                    f"src_flags={SRCFLAG.ADD_SRC_HASH} fields require "
+                    f"index=={INDEX.UNIQUE}")
             if self._constant:
                 raise ValueError(
-                    "cannot mix {} flag with {} flag".format(
-                        SRCFLAG.ADD_SRC_HASH,
-                        SRCFLAG.CONSTANT))
+                    f"cannot mix {SRCFLAG.ADD_SRC_HASH} flag with "
+                    f"{SRCFLAG.CONSTANT} flag")
 
         if self._constant:
             if not self._pk:
                 raise ValueError(
-                    "src_flags={} can only be set on "
-                    "src_flags={} fields".format(
-                        SRCFLAG.CONSTANT,
-                        SRCFLAG.PK))
+                    f"src_flags={SRCFLAG.CONSTANT} can only be set on "
+                    f"src_flags={SRCFLAG.PK} fields")
             if self.index is not INDEX.UNIQUE:
                 raise ValueError(
-                    "src_flags={} fields require index=={}".format(
-                        SRCFLAG.CONSTANT,
-                        INDEX.UNIQUE))
+                    f"src_flags={SRCFLAG.CONSTANT} fields require "
+                    f"index=={INDEX.UNIQUE}")
 
         if self._addition_only:
             if not self._pk:
                 raise ValueError(
-                    "src_flags={} can only be set on "
-                    "src_flags={} fields".format(
-                        SRCFLAG.ADDITION_ONLY,
-                        SRCFLAG.PK))
+                    f"src_flags={SRCFLAG.ADDITION_ONLY} can only be set on "
+                    f"src_flags={SRCFLAG.PK} fields")
 
         if self.omit:
             return
@@ -892,37 +882,34 @@ class DataDictionaryRow(object):
         ensure_valid_table_name(self.dest_table)
         if self.dest_table == self.config.temporary_tablename:
             raise ValueError(
-                "Destination tables can't be named {}, as that's the "
-                "name set in the config's temporary_tablename "
-                "variable".format(self.config.temporary_tablename))
+                f"Destination tables can't be named "
+                f"{self.config.temporary_tablename}, as that's the name set "
+                f"in the config's temporary_tablename variable")
         ensure_valid_field_name(self.dest_field)
         if self.dest_field == self.config.source_hash_fieldname:
             raise ValueError(
-                "Destination fields can't be named {}, as that's the "
-                "name set in the config's source_hash_fieldname "
-                "variable".format(self.config.source_hash_fieldname))
+                f"Destination fields can't be named "
+                f"{self.config.source_hash_fieldname}, as that's the name set "
+                f"in the config's source_hash_fieldname variable")
         if self.dest_datatype and not is_sqltype_valid(self.dest_datatype):
             raise ValueError(
-                "Field has invalid destination data type: "
-                "{}".format(self.dest_datatype))
+                f"Field has invalid destination data type: "
+                f"{self.dest_datatype}")
         if self.matches_fielddef(srccfg.ddgen_per_table_pid_field):
             if not self._primary_pid:
                 raise ValueError(
-                    "All fields with src_field={} used in output should "
-                    "have src_flag={} set".format(self.src_field,
-                                                  SRCFLAG.PRIMARY_PID))
+                    f"All fields with src_field={self.src_field} used in "
+                    f"output should have src_flag={SRCFLAG.PRIMARY_PID} set")
             if self.dest_field != self.config.research_id_fieldname:
                 raise ValueError(
-                    "Primary PID field should have "
-                    "dest_field = {}".format(
-                        self.config.research_id_fieldname))
+                    f"Primary PID field should have dest_field = "
+                    f"{self.config.research_id_fieldname}")
         if (self.matches_fielddef(srccfg.ddgen_master_pid_fieldname) and
                 not self._master_pid):
             raise ValueError(
-                "All fields with src_field = {} used in output should have"
-                " src_flags={} set".format(
-                    srccfg.ddgen_master_pid_fieldname,
-                    SRCFLAG.MASTER_PID))
+                f"All fields with src_field = "
+                f"{srccfg.ddgen_master_pid_fieldname} used in output should "
+                f"have src_flags={SRCFLAG.MASTER_PID} set")
 
         for am in self._alter_methods:
             if am.truncate_date:
@@ -933,17 +920,14 @@ class DataDictionaryRow(object):
             if am.extract_from_filename:
                 if not is_sqlatype_text_over_one_char(src_sqla_coltype):
                     raise ValueError(
-                        "For alter_method = "
-                        "{ALTERMETHOD.FILENAME_TO_TEXT}, source field "
-                        "must contain a filename and therefore "
-                        "must be text type of >1 character".format(
-                            ALTERMETHOD=ALTERMETHOD))
+                        f"For alter_method = {ALTERMETHOD.FILENAME_TO_TEXT}, "
+                        f"source field must contain a filename and therefore "
+                        f"must be text type of >1 character")
             if am.extract_from_blob:
                 if not is_sqlatype_binary(src_sqla_coltype):
                     raise ValueError(
-                        "For alter_method = {ALTERMETHOD.BINARY_TO_TEXT}, "
-                        "source field must be of binary type".format(
-                            ALTERMETHOD=ALTERMETHOD))
+                        f"For alter_method = {ALTERMETHOD.BINARY_TO_TEXT}, "
+                        f"source field must be of binary type")
 
         # This error/warning too hard to be sure of with SQL Server odd
         # string types:
@@ -956,11 +940,10 @@ class DataDictionaryRow(object):
                 self.dest_datatype !=
                 self.config.sqltype_encrypted_pid_as_sql):
             raise ValueError(
-                "All src_flags={}/src_flags={} fields used in output must "
-                "have destination_datatype = {}".format(
-                    SRCFLAG.PRIMARY_PID,
-                    SRCFLAG.MASTER_PID,
-                    self.config.sqltype_encrypted_pid_as_sql))
+                f"All src_flags={SRCFLAG.PRIMARY_PID}/"
+                f"src_flags={SRCFLAG.MASTER_PID} fields used in output must "
+                f"have destination_datatype = "
+                f"{self.config.sqltype_encrypted_pid_as_sql}")
 
         if (self.index in (INDEX.NORMAL, INDEX.UNIQUE) and
                 self.indexlen is None and
