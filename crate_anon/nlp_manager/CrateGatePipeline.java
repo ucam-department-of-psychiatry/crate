@@ -284,7 +284,13 @@ public class CrateGatePipeline {
             try {
                 runPipeline();
                 finished = true;
-            } catch (GateException e) {
+            } catch (GateException | RuntimeException e) {
+                // GateException: "sensible" exception
+                //
+                // RuntimeException: likely bug in GATE code
+                // ... e.g. IllegalArgumentException; see
+                // https://docs.oracle.com/javase/7/docs/api/java/lang/RuntimeException.html
+
                 m_log.error("GATE exception; aborting; stack trace follows");
                 reportException(e);
                 if (m_continue_on_crash) {
