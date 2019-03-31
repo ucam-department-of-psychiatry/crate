@@ -949,14 +949,27 @@ keys:
       - If true, all queue entries (for this client!) are deleted.
 
 
-Specimen Python 3.5+ client program
+Specimen Python 3.6+ client program
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Very briefly, run ``pip install requests``, and then you can do:
+Very briefly, run ``pip install requests crate_anon``, and then you can run
+this:
 
 .. rst-class:: nlprprequest
 
   .. literalinclude:: nlprp_test_client.py
+     :language: python
+
+
+Specimen Python 3.6+ client program
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similarly, for a dummy server program, run ``pip install pyramid crate_anon``
+and then you can run this:
+
+.. rst-class:: nlprprequest
+
+  .. literalinclude:: nlprp_test_server.py
      :language: python
 
 

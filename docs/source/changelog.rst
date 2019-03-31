@@ -833,7 +833,7 @@ Changes
 - Update to ``CrateGatePipeline.java`` to support an option to continue after
   GATE crashes.
 
-**v0.18.67, IN PROGRESS, from 2019-03-30**
+**v0.18.67, 2019-03-30 to 2019-03-31**
 
 - ``semver`` to ``semantic_version``; consistent with CamCOPS and better (and
   not actually used hitherto by CRATE!)
@@ -843,6 +843,9 @@ Changes
 - Move to Python 3.6 (already the minimum in CPFT), allowing f-strings.
 
 - f-strings. (Note: use Alt-Enter in PyCharm.)
+
+- ``CrateGatePipeline.java`` supports continuation after a Java
+  RuntimeException ("bug in GATE code").
 
 
 .. rubric:: Footnotes

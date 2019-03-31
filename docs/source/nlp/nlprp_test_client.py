@@ -32,12 +32,13 @@ import argparse
 import logging
 import requests
 import sys
+from typing import Any
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from requests.auth import HTTPBasicAuth
-from typing import Any
 
 from crate_anon.nlprp.api import NlprpRequest, NlprpResponse
+from crate_anon.nlprp.constants import NlprpCommands
 
 assert sys.version_info >= (3, 6), "Need Python 3.6+"
 
@@ -144,7 +145,7 @@ def main() -> None:
     cmdargs = parser.parse_args()
     response = get_response(
         url=cmdargs.url,
-        command="list_processors",
+        command=NlprpCommands.LIST_PROCESSORS,
         transmit_compressed=cmdargs.transmit_compressed,
         receive_compressed=cmdargs.receive_compressed,
         username=cmdargs.username,
