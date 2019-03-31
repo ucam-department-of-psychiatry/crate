@@ -27,7 +27,7 @@ crate_anon/nlp_web/views.py
 
 import datetime
 import json
-from typing import Dict, Any
+from typing import Any, Dict, List
 import uuid
 
 from celery.result import AsyncResult
@@ -42,12 +42,17 @@ from crate_anon.nlp_web.security import (
     get_auth_credentials,
     encrypt_password,
 )
+from crate_anon.nlprp.constants import (
+    NlprpCommands,
+    NlprpKeys as NKeys, 
+    NlprpValues,
+)
+from crate_anon.nlprp.version import NLPRP_VERSION_STRING
 from crate_anon.nlp_web.manage_users import get_users
 from crate_anon.nlp_web.models import DBSession, Document, DocProcRequest
 from crate_anon.nlp_web.procs import Processor
 from crate_anon.nlp_web.constants import (
     GATE_BASE_URL,
-    NLPRP_VERSION,
     SERVER_NAME,
     SERVER_VERSION,
 )
@@ -57,18 +62,27 @@ from crate_anon.nlp_web.tasks import (
     process_nlp_text_immediate,
 )
 
-BAD_REQUEST = {
-    'status': 400,
-    'code': 400,
-    'message': 'Bad request',
-    'default_descr': 'Request was malformed'
-}
-UNAUTHORIZED = {
-    'status': 401,
-    'code': 401,
-    'message': 'Unauthorized',
-    'default_descr': 'The username/password combination given is incorrect'
-}
+
+class Error(object):
+    """
+    Represents an HTTP (and NLPRP) error.
+    """
+    def __init__(self,
+                 http_status: int,
+                 code: int,
+                 message: str,
+                 description: str) -> None:
+        self.http_status = http_status
+        self.code = code
+        self.message = message
+        self.description = description
+
+
+BAD_REQUEST = Error(
+    400, 400, "Bad request", "Request was malformed")
+UNAUTHORIZED = Error(
+    401, 401, "Unauthorized",
+    "The username/password combination given is incorrect")
 
 
 @view_defaults(renderer='json')
@@ -90,28 +104,33 @@ class NlpWebViews(object):
         Returns a JSON HTTP response with some standard information for a given
         HTTP status and extra information to add to the response.
         """
-        response_dict = {'status': status, 'protocol': {
-            'name': 'nlprp',
-            'version': NLPRP_VERSION
-        }, 'server_info': {
-            'name': SERVER_NAME,
-            'version': SERVER_VERSION
-        }}
+        response_dict = {
+            NKeys.STATUS: status,
+            NKeys.PROTOCOL: {
+                NKeys.NAME: NlprpValues.NLPRP_PROTOCOL_NAME,
+                NKeys.VERSION: NLPRP_VERSION_STRING
+            }, 
+            NKeys.SERVER_INFO: {
+                NKeys.NAME: SERVER_NAME,
+                NKeys.VERSION: SERVER_VERSION
+            }
+        }
         response_dict.update(extra_info)
         return response_dict
 
-    def create_error_response(self,
-                              error: Dict[str, Any],
-                              description: str) -> Dict[str, Any]:
+    def create_error_response(self, error: Error,
+                              description: str = None) -> Dict[str, Any]:
         """
         Returns an HTTP response for a given error and description of the error
         """
-        error_info = {'errors': {
-            'code': error['code'],
-            'message': error['message'],
-            'description': description
-        }}
-        return self.create_response(error['status'], error_info)
+        error_info = {
+            NKeys.ERRORS: {
+                NKeys.CODE: error.code,
+                NKeys.MESSAGE: error.message,
+                NKeys.DESCRIPTION: description or error.description
+            }
+        }
+        return self.create_response(error.http_status, error_info)
 
     def key_missing_error(self, key: str = "",
                           is_args: bool = False) -> Dict[str, Any]:
@@ -120,7 +139,7 @@ class NlpWebViews(object):
         missing from 'args' in the request, or the key 'args' itself is missing
         """
         error = BAD_REQUEST
-        self.request.response.status = error['status']
+        self.request.response.status = error.http_status
         if is_args:
             description = "Request did not contain top-level key 'args'"
         else:
@@ -138,61 +157,61 @@ class NlpWebViews(object):
         if self.credentials is None:
             error = BAD_REQUEST
             # Put status in headers
-            self.request.response.status = error['status']
+            self.request.response.status = error.http_status
             description = (
                 "Credentials were absent or not in the correct format")
             # noinspection PyTypeChecker
             return self.create_error_response(error, description)
         # See if the user exists
         users = get_users()
-        username = self.credentials['username']
+        username = self.credentials.username
         try:
             hashed_pw = users[username]
         except KeyError:
             error = UNAUTHORIZED
-            self.request.response.status = error['status']
+            self.request.response.status = error.http_status
             # noinspection PyTypeChecker
-            return self.create_error_response(error, error['default_descr'])
+            return self.create_error_response(error)
         # Check if password is correct
-        pw = self.credentials['password']
+        pw = self.credentials.password
         # pw = 'testpass'
         if check_password(pw, hashed_pw):
             self.username = username
             self.password = pw
         else:
             error = UNAUTHORIZED
-            self.request.response.status = error['status']
+            self.request.response.status = error.http_status
             # noinspection PyTypeChecker
-            return self.create_error_response(error, error['default_descr'])
+            return self.create_error_response(error)
         # Get JSON from request if it is in this from, otherwise return
         # error message
         try:
             body = self.request.json
         except json.decoder.JSONDecodeError:
             error = BAD_REQUEST
-            self.request.response.status = error['status']
+            self.request.response.status = error.http_status
             description = "Request body was absent or not in JSON format"
             # noinspection PyTypeChecker
             return self.create_error_response(error, description)
         self.body = body
-        command = self.body['command']
-        if command == 'list_processors':
+        command = self.body[NKeys.COMMAND]
+        if command == NlprpCommands.LIST_PROCESSORS:
             # noinspection PyTypeChecker
             return self.list_processors()
-        elif command == 'process':
-            if not self.body['args']['queue']:
+        elif command == NlprpCommands.PROCESS:
+            if not self.body[NKeys.ARGS][NKeys.QUEUE]:
                 # noinspection PyTypeChecker
                 return self.process_now()
             else:
                 # noinspection PyTypeChecker
                 return self.put_in_queue()
-        elif command == 'show_queue':
+        elif command == NlprpCommands.SHOW_QUEUE:
             # noinspection PyTypeChecker
             return self.show_queue()
-        elif command == 'fetch_from_queue':
+        elif command == NlprpCommands.FETCH_FROM_QUEUE:
             # noinspection PyTypeChecker
             return self.fetch_from_queue()
-        elif command == 'delete_from_queue':
+        elif command == NlprpCommands.DELETE_FROM_QUEUE:
             # noinspection PyTypeChecker
             return self.delete_from_queue()
 
@@ -203,8 +222,12 @@ class NlpWebViews(object):
         self.request.response.status = 200
         return self.create_response(
             status=200,
-            extra_info={'processors': [
-                proc.dict for proc in Processor.processors.values()]})
+            extra_info={
+                NKeys.PROCESSORS: [
+                    proc.dict for proc in Processor.processors.values()
+                ]
+            }
+        )
 
     def process_now(self) -> Dict[str, Any]:
         """
@@ -212,55 +235,57 @@ class NlpWebViews(object):
         it in the queue.
         """
         try:
-            args = self.body['args']
+            args = self.body[NKeys.ARGS]
         except KeyError:
             return self.key_missing_error(is_args=True)
         try:
-            content = args['content']
+            content = args[NKeys.CONTENT]
         except KeyError:
-            return self.key_missing_error(key='content')
+            return self.key_missing_error(key=NKeys.CONTENT)
         try:
-            processors = args['processors']
+            processors = args[NKeys.PROCESSORS]
         except KeyError:
-            return self.key_missing_error(key='processors')
-        include_text = self.body.get('include_text', False)
+            return self.key_missing_error(key=NKeys.PROCESSORS)
+        include_text = self.body.get(NKeys.INCLUDE_TEXT, False)
         response_info = {
-            'client_job_id': self.body.get('client_job_id', ""),
-            'results': [None]*len(content)
+            NKeys.CLIENT_JOB_ID: self.body.get(NKeys.CLIENT_JOB_ID, ""),
+            NKeys.RESULTS: [None] * len(content)  # type: List[Dict[str, Any]]
         }
         for i, document in enumerate(content):
-            metadata = document['metadata']
-            text = document['text']
+            metadata = document[NKeys.METADATA]
+            text = document[NKeys.TEXT]
             processor_data = []  # so we can modify this easily later on
             if include_text:
-                response_info['results'][i] = {
-                    'metadata': metadata,
-                    'processors': processor_data,
-                    'text': text
+                response_info[NKeys.RESULTS][i] = {
+                    NKeys.METADATA: metadata,
+                    NKeys.PROCESSORS: processor_data,
+                    NKeys.TEXT: text
                 }
             else:
-                response_info['results'][i] = {
-                    'metadata': metadata,
-                    'processors': processor_data
+                response_info[NKeys.RESULTS][i] = {
+                    NKeys.METADATA: metadata,
+                    NKeys.PROCESSORS: processor_data
                 }
             for processor in processors:
                 proc_obj = None
                 for proc in Processor.processors.values():
-                    if 'version' in processor:
-                        if (proc.name == processor['name']
-                                and proc.version == processor['version']):
+                    if NKeys.VERSION in processor:
+                        if (proc.name == processor[NKeys.NAME]
+                                and proc.version == processor[NKeys.VERSION]):
                             proc_obj = proc
                             break
                     else:
-                        if (proc.name == processor['name']
+                        if (proc.name == processor[NKeys.NAME]
                                 and proc.is_default_version):
                             proc_obj = proc
                             break
                 if not proc_obj:
                     error = BAD_REQUEST
-                    self.request.response.status = error['status']
-                    description = "Processor {} does not exist \
-in the version specified".format(processor['name'])
+                    self.request.response.status = error.http_status
+                    description = (
+                        "Processor {} does not exist in the version "
+                        "specified".format(processor[NKeys.NAME])
+                    )
                     return self.create_error_response(error, description)
                 # Send the text off for processing
                 # processor_id = proc_obj.processor_id
@@ -274,16 +299,16 @@ in the version specified".format(processor['name'])
                 proctitle = proc_obj.title
                 success, processed_text, errcode, errmsg, time = result
                 proc_dict = {
-                    'name': proc_obj.name,
-                    'title': proctitle,
-                    'version': proc_obj.version,
-                    'results': processed_text,
-                    'success': success
+                    NKeys.NAME: proc_obj.name,
+                    NKeys.TITLE: proctitle,
+                    NKeys.VERSION: proc_obj.version,
+                    NKeys.RESULTS: processed_text,
+                    NKeys.SUCCESS: success
                 }
                 if not success:
-                    proc_dict['errors'] = [{
-                        'code': errcode,
-                        'message': errmsg
+                    proc_dict[NKeys.ERRORS] = [{
+                        NKeys.CODE: errcode,
+                        NKeys.MESSAGE: errmsg
                     }]
 
                 # try:
@@ -311,7 +336,7 @@ in the version specified".format(processor['name'])
                     # ABOVE IS INCORRECT FORMAT
                     # CORRECTION: Above actually was correct format, but dealt
                     # with in 'tasks'
-                # proc_dict['success'] = success
+                # proc_dict[NKeys.SUCCESS] = success
 
                 processor_data.append(proc_dict)
         self.request.response.status = 200
@@ -323,18 +348,18 @@ in the version specified".format(processor['name'])
         queue to be processed.
         """
         try:
-            args = self.body['args']
+            args = self.body[NKeys.ARGS]
         except KeyError:
             return self.key_missing_error(is_args=True)
         try:
-            content = args['content']
+            content = args[NKeys.CONTENT]
         except KeyError:
-            return self.key_missing_error(key='content')
+            return self.key_missing_error(key=NKeys.CONTENT)
         try:
-            processors = args['processors']
+            processors = args[NKeys.PROCESSORS]
         except KeyError:
-            return self.key_missing_error(key='processors')
-        include_text = self.body.get('include_text', False)
+            return self.key_missing_error(key=NKeys.PROCESSORS)
+        include_text = self.body.get(NKeys.INCLUDE_TEXT, False)
         # Generate unique queue_id for whole client request
         queue_id = str(uuid.uuid4())
         # Encrypt password using reversible encryption for passing to the
@@ -344,37 +369,38 @@ in the version specified".format(processor['name'])
         # let us pass a bytes object
         crypt_pass = crypt_pass.decode()
         for document in content:
-            # print(document['metadata']['brcid'])
+            # print(document[NKeys.METADATA]['brcid'])
             doc_id = str(uuid.uuid4())
-            metadata = json.dumps(document.get('metadata', ""))
+            metadata = json.dumps(document.get(NKeys.METADATA, ""))
             try:
-                doctext = document['text']
+                doctext = document[NKeys.TEXT]
             except KeyError:
                 error = BAD_REQUEST
-                self.request.response.status = error['status']
-                description = "Missing key 'text' in 'content'"
+                self.request.response.status = error.http_status
+                description = "Missing key {!r} in {!r}".format(
+                    NKeys.TEXT, NKeys.CONTENT)
                 return self.create_error_response(error, description)
             result_ids = []  # result ids for all procs for this doc
             proc_ids = []
             for processor in processors:
                 proc_obj = None
                 for proc in Processor.processors.values():
-                    if 'version' in processor:
-                        if (proc.name == processor['name']
-                                and proc.version == processor['version']):
+                    if NKeys.VERSION in processor:
+                        if (proc.name == processor[NKeys.NAME]
+                                and proc.version == processor[NKeys.VERSION]):
                             proc_obj = proc
                             break
                     else:
-                        if (proc.name == processor['name']
+                        if (proc.name == processor[NKeys.NAME]
                                 and proc.is_default_version):
                             proc_obj = proc
                             break
                 if not proc_obj:
                     error = BAD_REQUEST
-                    self.request.response.status = error['status']
+                    self.request.response.status = error.http_status
                     description = (
                         "Processor {} does not exist in the version "
-                        "specified".format(processor['name'])
+                        "specified".format(processor[NKeys.NAME])
                     )
                     return self.create_error_response(error, description)
                 docprocreq_id = str(uuid.uuid4())
@@ -407,13 +433,13 @@ in the version specified".format(processor['name'])
                 # ))
             # if include_text not in (True, False):
             #     error = BAD_REQUEST
-            #     self.request.response.status = error['status']
+            #     self.request.response.status = error.http_status
             #     description = "'include_text' must be boolean"
             #     return self.create_error_response(error, description)
             doc = Document(
                 document_id=doc_id,
                 doctext=doctext,
-                client_job_id=self.body.get('client_job_id', ""),
+                client_job_id=self.body.get(NKeys.CLIENT_JOB_ID, ""),
                 queue_id=queue_id,
                 username=self.username,
                 processor_ids=json.dumps(proc_ids),
@@ -436,7 +462,7 @@ in the version specified".format(processor['name'])
 
         status = 202  # accepted
         self.request.response.status = status
-        response_info = {'queue_id': queue_id}
+        response_info = {NKeys.QUEUE_ID: queue_id}
         return self.create_response(status=status, extra_info=response_info)
 
     def fetch_from_queue(self) -> Dict[str, Any]:
@@ -445,15 +471,15 @@ in the version specified".format(processor['name'])
         supplied by the user.
         """
         try:
-            args = self.body['args']
+            args = self.body[NKeys.ARGS]
         except KeyError:
             return self.key_missing_error(is_args=True)
         try:
             # Don't know how trailing whitespace got introduced at the client
             # end but it was there - hence '.strip()'
-            queue_id = args['queue_id'].strip()
+            queue_id = args[NKeys.QUEUE_ID].strip()
         except KeyError:
-            return self.key_missing_error(key='queue_id')
+            return self.key_missing_error(key=NKeys.QUEUE_ID)
         query = DBSession.query(Document).filter(
             and_(Document.queue_id == queue_id,
                  Document.username == self.username)
@@ -461,14 +487,14 @@ in the version specified".format(processor['name'])
         document_rows = query.all()
         if document_rows:
             response_info = {
-                'client_job_id': document_rows[0].client_job_id,
-                'results': [None]*len(document_rows)
+                NKeys.CLIENT_JOB_ID: document_rows[0].client_job_id,
+                NKeys.RESULTS: [None] * len(document_rows)  # type: List[Dict[str, Any]]  # noqa
             }
             include_text = document_rows[0].include_text
         else:
             response_info = {
-                'client_job_id': "",
-                'results': []
+                NKeys.CLIENT_JOB_ID: "",
+                NKeys.RESULTS: []
             }
             self.request.response.status = 200
             return self.create_response(status=200, extra_info=response_info)
@@ -477,19 +503,19 @@ in the version specified".format(processor['name'])
             processor_data = []  # data for *all* the processors for this doc
             proc_ids = json.loads(doc.processor_ids)
             if include_text:
-                response_info['results'][j] = {
-                    'metadata': metadata,
-                    'processors': processor_data,
-                    'text': doc.doctext
+                response_info[NKeys.RESULTS][j] = {
+                    NKeys.METADATA: metadata,
+                    NKeys.PROCESSORS: processor_data,
+                    NKeys.TEXT: doc.doctext
                 }
             else:
-                response_info['results'][j] = {
-                    'metadata': metadata,
-                    'processors': processor_data
+                response_info[NKeys.RESULTS][j] = {
+                    NKeys.METADATA: metadata,
+                    NKeys.PROCESSORS: processor_data
                 }
             result_ids = json.loads(doc.result_ids)
             # More efficient than append? Should we do this wherever possible?
-            results = [None]*len(result_ids)
+            results = [None] * len(result_ids)  # type: List[AsyncResult]
             for i, result_id in enumerate(result_ids):
                 # get result for this doc-proc pair
                 result = AsyncResult(id=result_id, app=app)
@@ -517,7 +543,7 @@ in the version specified".format(processor['name'])
                         break
                 if not proctitle:
                     error = BAD_REQUEST
-                    self.request.response.status = error['status']
+                    self.request.response.status = error.http_status
                     description = (
                         "Processor '{}', version {} does not exist".format(
                             procname, procversion))
@@ -526,16 +552,16 @@ in the version specified".format(processor['name'])
                 success, processed_text, errcode, errmsg, time = result.get()
                 result.forget()
                 proc_dict = {
-                    'name': procname,
-                    'title': proctitle,
-                    'version': procversion,
-                    'results': processed_text,
-                    'success': success
+                    NKeys.NAME: procname,
+                    NKeys.TITLE: proctitle,
+                    NKeys.VERSION: procversion,
+                    NKeys.RESULTS: processed_text,
+                    NKeys.SUCCESS: success
                 }
                 if not success:
-                    proc_dict['errors'] = [{
-                        'code': errcode,
-                        'message': errmsg
+                    proc_dict[NKeys.ERRORS] = [{
+                        NKeys.CODE: errcode,
+                        NKeys.MESSAGE: errmsg
                     }]
                     # See https://cloud.gate.ac.uk/info/help/online-api.html
                     # for format of response from processor
@@ -569,7 +595,7 @@ in the version specified".format(processor['name'])
         Finds the queue entries associated with the client, optionally
         restricted to one client job id.
         """
-        client_job_id = self.body['args'].get('client_job_id', "")
+        client_job_id = self.body[NKeys.ARGS].get(NKeys.CLIENT_JOB_ID, "")
         if not client_job_id:
             query = DBSession.query(Document).filter(
                 Document.username == self.username
@@ -598,34 +624,35 @@ in the version specified".format(processor['name'])
                         x, y, z, time = result.get()
                         max_time = max(max_time, time)
             queue.append({
-                'queue_id': queue_id,
-                'client_job_id': client_job_id,
-                'status': "busy" if busy else "ready",
-                'datetime_submitted': qid_recs[0].datetime_submitted,
-                'datetime_completed': None if busy else max_time
+                NKeys.QUEUE_ID: queue_id,
+                NKeys.CLIENT_JOB_ID: client_job_id,
+                NKeys.STATUS: NlprpValues.BUSY if busy else NlprpValues.READY,
+                NKeys.DATETIME_SUBMITTED: qid_recs[0].datetime_submitted,
+                NKeys.DATETIME_COMPLETED: None if busy else max_time
             })
-        return self.create_response(status=200, extra_info={'queue', queue})
+        return self.create_response(status=200,
+                                    extra_info={NKeys.QUEUE: queue})
 
     def delete_from_queue(self) -> Dict[str, Any]:
         """
         Deletes from the queue all entries specified by the client.
         """
-        args = self.body.get('args')
+        args = self.body.get(NKeys.ARGS)
         if args:
-            delete_all = args.get('delete_all')
+            delete_all = args.get(NKeys.DELETE_ALL)
             if delete_all:
                 docs = DBSession.query(Document).filter(
                     Document.username == self.username
                 ).all()
             else:
                 docs = []
-                client_job_ids = args.get('client_job_ids')
+                client_job_ids = args.get(NKeys.CLIENT_JOB_IDS)
                 for cj_id in client_job_ids:
                     docs.append(DBSession.query(Document).filter(
                         and_(Document.username == self.username,
                              Document.client_job_id == cj_id)
                     ).all())
-                queue_ids = args.get('queue_ids')
+                queue_ids = args.get(NKeys.QUEUE_IDS)
                 for q_id in queue_ids:
                     # Clumsy way of making sure we don't have same doc twice
                     docs.append(DBSession.query(Document).filter(

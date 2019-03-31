@@ -23,6 +23,10 @@ crate_anon/nlp_web/manage_users.py
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+Manages the user authentication file for CRATE's implementation of an NLPRP
+server.
+
 """
 
 import argparse
@@ -40,6 +44,10 @@ USERS_FILENAME = SETTINGS['users_file']
 
 
 def get_users() -> Dict[str, str]:
+    """
+    Reads the user file and returns a dictionary mapping usernames to hashed
+    passwords.
+    """
     with open(USERS_FILENAME, 'r') as user_file:
         user_lines = user_file.readlines()
     user_elements = [x.split(',') for x in user_lines]
@@ -48,6 +56,10 @@ def get_users() -> Dict[str, str]:
 
 
 def add_user(username: str, password: str) -> None:
+    """
+    Adds a username/password combination to the users file, hashing the
+    password en route.
+    """
     users = get_users()
     if username in users:
         proceed = input("User {} already exists. Overwrite "
@@ -63,6 +75,9 @@ def add_user(username: str, password: str) -> None:
 
 
 def rm_user(username: str) -> None:
+    """
+    Removes a user from the user file.
+    """
     user_found = False
     # Create a backup in case something goes wrong during writing
     backup_filename = USERS_FILENAME + "~"
@@ -87,6 +102,9 @@ def rm_user(username: str) -> None:
 
 
 def change_password(username: str, password: str) -> None:
+    """
+    Changes a user's password by rewriting the user file.
+    """
     user_found = False
     # Create a backup in case something goes wrong during writing
     backup_filename = USERS_FILENAME + "~"

@@ -29,8 +29,12 @@ from typing import Optional
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.all_processors import make_processor
-
-from crate_anon.nlp_web.constants import PROCESSORS
+from crate_anon.nlprp.constants import NlprpKeys as NKeys
+from crate_anon.nlp_web.constants import (
+    KEY_PROCTYPE,
+    PROCESSORS,
+    PROCTYPE_GATE,
+)
 
 
 class Processor(object):
@@ -64,11 +68,11 @@ class Processor(object):
         else:
             self.proctype = proctype
         self.dict = {
-            'name': name,
-            'title': title,
-            'version': version,
-            'is_default_version': is_default_version,
-            'description': description,
+            NKeys.NAME: name,
+            NKeys.TITLE: title,
+            NKeys.VERSION: version,
+            NKeys.IS_DEFAULT_VERSION: is_default_version,
+            NKeys.DESCRIPTION: description,
         }
 
         # Add instance to list of processors
@@ -79,7 +83,7 @@ class Processor(object):
         Sets 'self.parser' to an instance of a subclass of 'BaseNlpParser'
         not bound to any nlpdef or cfgsection, unless self.proctype is GATE.'
         """
-        if self.proctype != "GATE":
+        if self.proctype != PROCTYPE_GATE:
             # Suppressed warning because, although make_processor asks for
             # NlpDefinition, str, the processor it makes doesn't require this
             # noinspection PyTypeChecker
@@ -90,15 +94,10 @@ class Processor(object):
 
 for proc in PROCESSORS:
     Processor(
-        name=proc['name'],
-        title=proc['title'],
-        version=proc['version'],
-        is_default_version=proc['is_default_version'],
-        description=proc['description'],
-        proctype=proc.get('proctype')
+        name=proc[NKeys.NAME],
+        title=proc[NKeys.TITLE],
+        version=proc[NKeys.VERSION],
+        is_default_version=proc[NKeys.IS_DEFAULT_VERSION],
+        description=proc[NKeys.DESCRIPTION],
+        proctype=proc.get(KEY_PROCTYPE)
     )
-
-
-
-
-

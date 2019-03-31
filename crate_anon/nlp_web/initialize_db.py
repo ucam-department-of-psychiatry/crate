@@ -23,6 +23,10 @@ crate_anon/nlp_web/initialize_db.py
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+Tool to initialize the database used by CRATE's implementation of an NLPRP
+server.
+
 """
 
 import os
@@ -30,18 +34,15 @@ import sys
 from typing import List
 
 from sqlalchemy import engine_from_config
-from pyramid.paster import (
-    get_appsettings,
-    # setup_logging,
-)
+from pyramid.paster import get_appsettings
 
-from crate_anon.nlp_web.models import (
-    DBSession,
-    Base,
-)
+from crate_anon.nlp_web.models import DBSession, Base
 
 
 def usage(argv: List[str]) -> None:
+    """
+    Prints program usage to stdout and quits with an error code.
+    """
     cmd = os.path.basename(argv[0])
     print('usage: %s <config_uri>\n'
           '(example: "%s development.ini")' % (cmd, cmd))
@@ -49,6 +50,9 @@ def usage(argv: List[str]) -> None:
 
 
 def main(argv: List[str] = sys.argv) -> None:
+    """
+    Command-line entry point.
+    """
     if len(argv) != 2:
         usage(argv)
     config_uri = argv[1]

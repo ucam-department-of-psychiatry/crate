@@ -23,6 +23,9 @@ crate_anon/nlp_web/security.py
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+Security functions for CRATE implementation of an NLPRP server.
+
 """
 
 import bcrypt
@@ -50,6 +53,9 @@ def generate_encryption_key() -> None:
 
 
 def encrypt_password(password: str) -> bytes:
+    """
+    Encrypts a password using the configured key.
+    """
     key = SETTINGS['encryption_key']
     # Turn key into bytes object
     key = key.encode()
@@ -60,6 +66,16 @@ def encrypt_password(password: str) -> bytes:
 
 
 def decrypt_password(encrypted_pw: bytes, cipher_suite: Fernet) -> str:
+    """
+    Decrypts a password using the specified cipher suite.
+
+    Args:
+        encrypted_pw: the encrypted password, as bytes
+        cipher_suite: a Python object with the method ``decrypt(encrypted_pw)``
+
+    Returns:
+        the decrypted password as a string
+    """
     # Get the password as bytes
     password_bytes = cipher_suite.decrypt(encrypted_pw)
     # Return the password as a string
@@ -67,19 +83,42 @@ def decrypt_password(encrypted_pw: bytes, cipher_suite: Fernet) -> str:
 
 
 def hash_password(pw: str) -> str:
+    """
+    Encrypts a password using bcrypt.
+    """
     pwhash = bcrypt.hashpw(pw.encode('utf8'), bcrypt.gensalt())
     return pwhash.decode('utf8')
 
 
 def check_password(pw: str, hashed_pw: str) -> bool:
+    """
+    Checks a password against its hash.
+
+    Args:
+        pw: the clear-text password
+        hashed_pw: the stored hashed version
+
+    Returns:
+        do they match?
+
+    """
     expected_hash = hashed_pw.encode('utf8')
     return bcrypt.checkpw(pw.encode('utf8'), expected_hash)
 
 
-def get_auth_credentials(request: Request) -> Optional[Dict[str, str]]:
+class Credentials(object):
     """
-    Gets username and password as a dictionary. Returns None if there is a
-    problem.
+    Represents username/password credentials sent by the user to us.
+    """
+    def __init__(self, username: str, password: str) -> None:
+        self.username = username
+        self.password = password
+
+
+def get_auth_credentials(request: Request) -> Optional[Credentials]:
+    """
+    Gets username and password as a :class:`Credentials` obejct, from an HTTP
+    request. Returns ``None`` if there is a problem.
     """
     authorization = AUTHORIZATION(request.environ)
     try:
@@ -98,6 +137,6 @@ def get_auth_credentials(request: Request) -> Optional[Dict[str, str]]:
             username, password = auth.split(':', 1)
         except ValueError:  # not enough values to unpack
             return None
-        return {'username': username, 'password': password}
+        return Credentials(username, password)
 
     return None

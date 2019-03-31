@@ -147,14 +147,14 @@ Asking `CrateMedexPipeline` to show its command-line options:
 
 .. code-block:: bash
 
-#!/bin/bash
-THISDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-CRATE_NLP_JAVA_CLASS_DIR=${THISDIR}/../crate_anon/nlp_manager/compiled_nlp_classes
-MEDEX_DIR=~/dev/Medex_UIMA_1.3.6
-java -classpath "${CRATE_NLP_JAVA_CLASS_DIR}":"${MEDEX_DIR}/bin":"${MEDEX_DIR}/lib/*" \
-    CrateMedexPipeline \
-    --help \
-    -v -v
+    #!/bin/bash
+    THISDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+    CRATE_NLP_JAVA_CLASS_DIR=${THISDIR}/../crate_anon/nlp_manager/compiled_nlp_classes
+    MEDEX_DIR=~/dev/Medex_UIMA_1.3.6
+    java -classpath "${CRATE_NLP_JAVA_CLASS_DIR}":"${MEDEX_DIR}/bin":"${MEDEX_DIR}/lib/*" \
+        CrateMedexPipeline \
+        --help \
+        -v -v
 
 The resulting output (2019-03-28):
 

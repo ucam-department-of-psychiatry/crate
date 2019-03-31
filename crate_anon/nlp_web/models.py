@@ -23,6 +23,9 @@ crate_anon/nlp_web/models.py
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+SQLAlchemy models for CRATE's implementation of an NLPRP server.
+
 """
 
 import datetime
@@ -49,34 +52,80 @@ Base = declarative_base()
 
 class Document(Base):
     """
-    .. todo:: INSERT DOCSTRING FOR Document
+    Represents a user-submitted document for processing. (A single document
+    may be processed by multiple processors)
     """
     # Check about indexes etc.
     __tablename__ = 'documents'
     # document_id = Column(Integer, primary_key=True, autoincrement=True)
-    document_id = Column(VARCHAR(50), primary_key=True)
-    doctext = Column(Text)
-    client_job_id = Column(Text)
-    # 'queue_id' refers to the id of the client request if in queued mode
-    queue_id = Column(VARCHAR(50))
-    username = Column(Text)
+    document_id = Column(
+        VARCHAR(50), primary_key=True,
+        comment="Primary key for the document"
+    )
+    doctext = Column(
+        Text,
+        comment="Text contents of the document"
+    )
+    client_job_id = Column(
+        Text,
+        comment="???" # ***
+    )
+    queue_id = Column(
+        VARCHAR(50),
+        comment="Refers to the id of the client request if in queued mode"
+    )
+    username = Column(
+        Text,
+        comment="Username that submitted this document"
+    )
     # should be a JSON string representing:
     # [processor_id1, processor_id2]
-    processor_ids = Column(Text)
-    client_metadata = Column(Text)
-    result_ids = Column(Text)
-    include_text = Column(Boolean)
-    # Is the following OK, given that it's not exactly when it was submitted?
-    datetime_submitted = Column(DateTime, default=datetime.datetime.utcnow)
+    processor_ids = Column(
+        Text,
+        comment="JSON string representing: [processor_id1, processor_id2]"
+    )
+    client_metadata = Column(
+        Text,
+        comment="Metadata submitted by the client"
+    )
+    result_ids = Column(
+        Text,
+        comment="???" # ***
+    )
+    include_text = Column(
+        Boolean,
+        comment="Include the source text in the reply?"
+    )
+    datetime_submitted = Column(
+        DateTime,
+        # Is the following OK, given that it's not exactly when it was submitted?  # noqa
+        default=datetime.datetime.utcnow,
+        comment="Date/time when the request was submitted"
+    )
 
 
 class DocProcRequest(Base):
     """
-    .. todo:: INSERT DOCSTRING FOR DocProcRequest
+    SQLAlchemy table containing processor requests for a given document?
+
+    .. todo:: *** CLARIFY
+
     """
     __tablename__ = 'docprocrequests'
     # docprocrequest_id = Column(Integer, primary_key=True, autoincrement=True)
-    docprocrequest_id = Column(VARCHAR(50), primary_key=True)
-    document_id = Column(VARCHAR(50))
-    doctext = Column(Text)
-    processor_id = Column(VARCHAR(50))
+    docprocrequest_id = Column(
+        VARCHAR(50), primary_key=True,
+        comment="???"  # ***
+    )
+    document_id = Column(
+        VARCHAR(50),
+        comment="???"  # ***
+    )
+    doctext = Column(
+        Text,
+        comment="???"  # ***
+    )
+    processor_id = Column(
+        VARCHAR(50),
+        comment = "???"  # ***
+    )

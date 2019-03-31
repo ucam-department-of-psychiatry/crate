@@ -40,7 +40,7 @@ from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 # from crate_anon.nlp_manager.all_processors import make_processor
 from crate_anon.nlp_web.models import DBSession, DocProcRequest
 from crate_anon.nlp_web.procs import Processor
-from crate_anon.nlp_web.constants import SETTINGS
+from crate_anon.nlp_web.constants import PROCTYPE_GATE, SETTINGS
 from crate_anon.nlp_web.security import decrypt_password
 
 log = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ def process_nlp_text(
     # Delete docprocrequest from database
     DBSession.delete(query)
     transaction.commit()
-    if processor.proctype.upper() == "GATE":
+    if processor.proctype == PROCTYPE_GATE:
         return process_nlp_gate(text, processor, url, username, password)
     else:
         if not processor.parser:
@@ -138,7 +138,7 @@ def process_nlp_text_immediate(
     """
     Function to send text immediately to the relevant processor.
     """
-    if processor.proctype.upper() == "GATE":
+    if processor.proctype == PROCTYPE_GATE:
         return process_nlp_gate(text, processor, url, username, password)
     else:
         if not processor.parser:

@@ -171,7 +171,7 @@ INSTALL_REQUIRES = [
     # 'python-docx==0.8.5',  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
     'regex==2018.6.21',
-    'semver==2.8.0',  # comparing semantic versions
+    'semantic_version==2.6.0',  # semantic versioning; better than semver
     'sortedcontainers==2.0.4',
     'SQLAlchemy==1.2.8',  # database access
     'sqlparse==0.2.4',

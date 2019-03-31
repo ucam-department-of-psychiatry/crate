@@ -23,6 +23,8 @@ crate_anon/nlp_web/print_demo_config.py
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+Prints a demo config for CRATE's implementation of an NLPRP server.
 """
 
 from crate_anon.nlp_web.constants import DEMO_CONFIG
@@ -30,6 +32,6 @@ from crate_anon.nlp_web.constants import DEMO_CONFIG
 
 def main() -> None:
     """
-    Prints a config file for the server side nlp.
+    Prints a config file for the NLPRP server.
     """
     print(DEMO_CONFIG)

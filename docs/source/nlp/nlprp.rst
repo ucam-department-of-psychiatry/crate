@@ -956,66 +956,8 @@ Very briefly, run ``pip install requests``, and then you can do:
 
 .. rst-class:: nlprprequest
 
-  .. code-block:: python
-
-    #!/usr/bin/env python
-
-    import json
-    import logging
-    import requests
-    from requests.auth import HTTPBasicAuth
-    from typing import Dict, Any
-
-    log = logging.getLogger(__name__)
-
-    def get_response(url: str, command: str, username: str = "", password: str = "",
-                     command_args: Any = None) -> Dict[str, Any]:
-        """
-        Illustrate sending to/receiving from an NLPRP server, using HTTP basic
-        authentication.
-        """
-        # -------------------------------------------------------------------------
-        # How we fail
-        # -------------------------------------------------------------------------
-        def fail(msg: str) -> None:
-            log.warning(msg)
-            raise ValueError(msg)
-        # -------------------------------------------------------------------------
-        # Build request and send it
-        # -------------------------------------------------------------------------
-        request_dict = {
-            "protocol": {
-                "name": "nlprp",
-                "version": "0.1.0"
-            },
-            "command": command,
-            "args": json.dumps(command_args),
-        }
-        request_json = json.dumps(request_dict)
-        log.debug("Sending to {!r}: {}".format(url, request_json))
-        r = requests.post(url, json=request_json,
-                          auth=HTTPBasicAuth(username, password))
-        # -------------------------------------------------------------------------
-        # Process response
-        # -------------------------------------------------------------------------
-        log.debug("Reply had status code {} and was: {!r}".format(
-            r.status_code, r.text))
-        try:
-            response_dict = r.json()
-        except ValueError:  # includes simplejson.errors.JSONDecodeError, json.decoder.JSONDecodeError  # noqa
-            fail("Reply was not JSON")
-        log.debug("Response JSON decoded to: {!r}".format(response_dict))
-        try:
-            assert response_dict["protocol"]["name"].lower() == "nlprp"
-        except (AssertionError, AttributeError, KeyError):
-            fail("Reply was not in the NLPRP protocol")
-        return response_dict
-
-
-    if __name__ == "__main__":
-        logging.basicConfig(level=logging.DEBUG)
-        get_response(url=SOME_URL, username=SOME_USER, password=SOME_PW,
-                     command="list_processors")
+  .. literalinclude:: nlprp_test_client.py
+     :language: python
 
 
 More on error responses

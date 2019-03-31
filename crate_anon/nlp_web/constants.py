@@ -23,6 +23,9 @@ crate_anon/nlp_web/constants.py
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+Constants for CRATE's implementation of an NLPRP server.
+
 """
 
 import os
@@ -30,6 +33,10 @@ import os
 from pyramid.paster import get_appsettings
 from pyramid.config import Configurator
 
+from crate_anon.nlprp.constants import NlprpKeys as NKeys
+
+KEY_PROCTYPE = "proctype"
+PROCTYPE_GATE = "GATE"
 PYTHONPROCSVERSION = "1.0"
 VALIDATOR_DESCR = (
     "The validator will find fields that refer to the variable, "
@@ -41,311 +48,310 @@ VALIDATOR_DESCR = (
 # ones which should not be used directly
 PROCESSORS = [
     {
-        'name': "medication",
-        'title': "SLAM BRC GATE-based medication finder",
-        'version': "1.2.0",
-        'is_default_version': True,
-        'description': "Finds drug names",
-        'proctype': "GATE"
+        NKeys.NAME: "medication",
+        NKeys.TITLE: "SLAM BRC GATE-based medication finder",
+        NKeys.VERSION: "1.2.0",
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Finds drug names",
+        KEY_PROCTYPE: PROCTYPE_GATE
     },
     {
-        'name': "diagnosis",
-        'title': "Test title",
-        'version': "0.1",
-        'is_default_version': True,
-        'description': "Test description",
-        'proctype': "GATE"
+        NKeys.NAME: "diagnosis",
+        NKeys.TITLE: "Test title",
+        NKeys.VERSION: "0.1",
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Test description",
+        KEY_PROCTYPE: PROCTYPE_GATE
     },
     {
-        'name': "Ace",
-        'title': "Addenbrooke's Cognitive Examination",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': ("Finds Addenbrooke's Cognitive Examination (ACE, "
-                        "ACE-R, ACE-III) total score.")
+        NKeys.NAME: "Ace",
+        NKeys.TITLE: "Addenbrooke's Cognitive Examination",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Finds Addenbrooke's Cognitive Examination (ACE, "
+                           "ACE-R, ACE-III) total score."
     },
     {
-        'name': "AceValidator",
-        'title': "Validator for Ace",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "AceValidator",
+        NKeys.TITLE: "Validator for Ace",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Basophils",
-        'title': "Basophil count",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Finds Basophil count (absolute)."
+        NKeys.NAME: "Basophils",
+        NKeys.TITLE: "Basophil count",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Finds Basophil count (absolute)."
     },
     {
-        'name': "BasophilsValidator",
-        'title': "Validator for Basophils",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "BasophilsValidator",
+        NKeys.TITLE: "Validator for Basophils",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Bmi",
-        'title': "Body Mass Index",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Finds body mass index (BMI) (in kg / m^2)."
+        NKeys.NAME: "Bmi",
+        NKeys.TITLE: "Body Mass Index",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Finds body mass index (BMI) (in kg / m^2)."
     },
     {
-        'name': "BmiValidator",
-        'title': "Validator for Bmi",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "BmiValidator",
+        NKeys.TITLE: "Validator for Bmi",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Bp",
-        'title': "Blood Pressure",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Finds blood pressure, in mmHg. (Systolic and "
-                        "diastolic.)"
+        NKeys.NAME: "Bp",
+        NKeys.TITLE: "Blood Pressure",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Finds blood pressure, in mmHg. (Systolic and "
+                           "diastolic.)"
     },
     {
-        'name': "BpValidator",
-        'title': "Validator for Bp",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "BpValidator",
+        NKeys.TITLE: "Validator for Bp",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Crp",
-        'title': "C-reactive protein (CRP)",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': ""
+        NKeys.NAME: "Crp",
+        NKeys.TITLE: "C-reactive protein (CRP)",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: ""
     },
     {
-        'name': "CrpValidator",
-        'title': "Validator for Crp",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "CrpValidator",
+        NKeys.TITLE: "Validator for Crp",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Eosinophils",
-        'title': "Eosinophil count",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Finds Eosinophil count (absolute)."
+        NKeys.NAME: "Eosinophils",
+        NKeys.TITLE: "Eosinophil count",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Finds Eosinophil count (absolute)."
     },
     {
-        'name': "EosinophilsValidator",
-        'title': "Validator for Eosinophils",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "EosinophilsValidator",
+        NKeys.TITLE: "Validator for Eosinophils",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Esr",
-        'title': "Erythrocyte sedimentation rate (ESR)",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': ""
+        NKeys.NAME: "Esr",
+        NKeys.TITLE: "Erythrocyte sedimentation rate (ESR)",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: ""
     },
     {
-        'name': "EsrValidator",
-        'title': "Validator for Esr",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "EsrValidator",
+        NKeys.TITLE: "Validator for Esr",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Height",
-        'title': "Height Finder",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': ("Height. Handles metric (e.g. '1.8m') and "
-                        "imperial (e.g. '5 ft 2 in').")
+        NKeys.NAME: "Height",
+        NKeys.TITLE: "Height Finder",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Height. Handles metric (e.g. '1.8m') and "
+                           "imperial (e.g. '5 ft 2 in')."
     },
     {
-        'name': "HeightValidator",
-        'title': "Validator for Height",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "HeightValidator",
+        NKeys.TITLE: "Validator for Height",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Lithium",
-        'title': "Lithium Finder",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Lithium (Li) levels (for blood tests, not doses)."
+        NKeys.NAME: "Lithium",
+        NKeys.TITLE: "Lithium Finder",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Lithium (Li) levels (for blood tests, not doses)."
     },
     {
-        'name': "LithiumValidator",
-        'title': "Validator for Lithium",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "LithiumValidator",
+        NKeys.TITLE: "Validator for Lithium",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Lymphocytes",
-        'title': "Lymphocyte Count",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Finds Lymphocyte count (absolute)."
+        NKeys.NAME: "Lymphocytes",
+        NKeys.TITLE: "Lymphocyte Count",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Finds Lymphocyte count (absolute)."
     },
     {
-        'name': "LymphocytesValidator",
-        'title': "Validator for Lymphocytes",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "LymphocytesValidator",
+        NKeys.TITLE: "Validator for Lymphocytes",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "MiniAce",
-        'title': "Mini-Addenbrooke's Cognitive Examination (M-ACE).",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': ("Finds Mini-Addenbrooke's Cognitive Examination "
-                        "(M-ACE) score.")
+        NKeys.NAME: "MiniAce",
+        NKeys.TITLE: "Mini-Addenbrooke's Cognitive Examination (M-ACE).",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Finds Mini-Addenbrooke's Cognitive Examination "
+                           "(M-ACE) score."
     },
     {
-        'name': "MiniAceValidator",
-        'title': "Validator for MiniAce",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "MiniAceValidator",
+        NKeys.TITLE: "Validator for MiniAce",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Mmse",
-        'title': "Mini-mental state examination (MMSE)",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Mini-mental state examination (MMSE)."
+        NKeys.NAME: "Mmse",
+        NKeys.TITLE: "Mini-mental state examination (MMSE)",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Mini-mental state examination (MMSE)."
     },
     {
-        'name': "MmseValidator",
-        'title': "Validator for Mmse",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "MmseValidator",
+        NKeys.TITLE: "Validator for Mmse",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Moca",
-        'title': "Montreal Cognitive Assessment (MOCA)",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Montreal Cognitive Assessment (MOCA)."
+        NKeys.NAME: "Moca",
+        NKeys.TITLE: "Montreal Cognitive Assessment (MOCA)",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Montreal Cognitive Assessment (MOCA)."
     },
     {
-        'name': "MocaValidator",
-        'title': "Validator for Moca",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "MocaValidator",
+        NKeys.TITLE: "Validator for Moca",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Monocytes",
-        'title': "Monocyte count",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Finds Monocyte count (absolute)."
+        NKeys.NAME: "Monocytes",
+        NKeys.TITLE: "Monocyte count",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Finds Monocyte count (absolute)."
     },
     {
-        'name': "MonocytesValidator",
-        'title': "Validator for Monocytes",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "MonocytesValidator",
+        NKeys.TITLE: "Validator for Monocytes",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Neutrophils",
-        'title': "Neutrophil count",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Finds Neutrophil count (absolute)."
+        NKeys.NAME: "Neutrophils",
+        NKeys.TITLE: "Neutrophil count",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Finds Neutrophil count (absolute)."
     },
     {
-        'name': "NeutrophilsValidator",
-        'title': "Validator for Neutrophils",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "NeutrophilsValidator",
+        NKeys.TITLE: "Validator for Neutrophils",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Sodium",
-        'title': "Sodium Finder",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Sodium (Na) levels (for blood tests, not doses)."
+        NKeys.NAME: "Sodium",
+        NKeys.TITLE: "Sodium Finder",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Sodium (Na) levels (for blood tests, not doses)."
     },
     {
-        'name': "SodiumValidator",
-        'title': "Validator for Sodium",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "SodiumValidator",
+        NKeys.TITLE: "Validator for Sodium",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Tsh",
-        'title': "Thyroid-stimulating hormone (TSH)",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Finds levels of Thyroid-stimulating hormone (TSH)."
+        NKeys.NAME: "Tsh",
+        NKeys.TITLE: "Thyroid-stimulating hormone (TSH)",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Finds levels of Thyroid-stimulating hormone (TSH)."
     },
     {
-        'name': "TshValidator",
-        'title': "Validator for Tsh",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "TshValidator",
+        NKeys.TITLE: "Validator for Tsh",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Wbc",
-        'title': "White cell count (WBC, WCC)",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': "Finds white cell count (WBC, WCC)."
+        NKeys.NAME: "Wbc",
+        NKeys.TITLE: "White cell count (WBC, WCC)",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Finds white cell count (WBC, WCC)."
     },
     {
-        'name': "WbcValidator",
-        'title': "Validator for Wbc",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "WbcValidator",
+        NKeys.TITLE: "Validator for Wbc",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
     {
-        'name': "Weight",
-        'title': "Weight Finder",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': ("Weight. Handles metric (e.g. '57kg') and "
-                        "imperial (e.g. '10 st 2 lb').")
+        NKeys.NAME: "Weight",
+        NKeys.TITLE: "Weight Finder",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: "Weight. Handles metric (e.g. '57kg') and "
+                           "imperial (e.g. '10 st 2 lb')."
     },
     {
-        'name': "WeightValidator",
-        'title': "Validator for Weight",
-        'version': PYTHONPROCSVERSION,
-        'is_default_version': True,
-        'description': VALIDATOR_DESCR
+        NKeys.NAME: "WeightValidator",
+        NKeys.TITLE: "Validator for Weight",
+        NKeys.VERSION: PYTHONPROCSVERSION,
+        NKeys.IS_DEFAULT_VERSION: True,
+        NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
 ]
 
 # Not doing the following because then the procs won't be in correct order:
 
-#for proc in PROCESSORS:
-#    proctype = proc.get('proctype')
-#    if not procypte:
-#        PROCESSORS.append({
-#            'name': "{}Validator".format(proc[name])
-#            'title': "Validator for {}".format(proc[name])
-#            'version': PYTHONPROCSVERSION,
-#            'is_default_version': True,
-#            'desrciption': "The validator will find fields that refer to "
-#                           "the variable, whether or not they contain a valid "  # noqa
-#                           "value."
-#        })
+# for proc in PROCESSORS:
+#     proctype = proc.get('proctype')
+#     if not procypte:
+#         PROCESSORS.append({
+#             NK.NAME: "{}Validator".format(proc[name])
+#             NK.TITLE: "Validator for {}".format(proc[name])
+#             NK.VERSION: PYTHONPROCSVERSION,
+#             NK.IS_DEFAULT_VERSION: True,
+#             NK.DESCRIPTION: "The validator will find fields that refer to "
+#                             "the variable, whether or not they contain a valid "  # noqa
+#                             "value."
+#         })
 
 GATE_BASE_URL = "https://nhsta-api.slam-services.gate.ac.uk/process-document"
-NLPRP_VERSION = '0.1.0'
 SERVER_NAME = 'test_server'
 SERVER_VERSION = '0.1'
 NLP_WEB_CONFIG_ENVVAR = "CRATE_NLP_WEB_CONFIG"

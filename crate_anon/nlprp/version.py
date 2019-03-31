@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-"""
-crate_anon/version.py
+r"""
+crate_anon/nlprp/version.py
 
 ===============================================================================
 
@@ -24,9 +24,8 @@ crate_anon/version.py
 
 ===============================================================================
 
-**Version constants for CRATE.**
+Natural Language Processing Request Protocol (NLPRP) constants.
 
 """
 
-CRATE_VERSION = "0.18.66"
-CRATE_VERSION_DATE = "2019-03-29"
+NLPRP_VERSION_STRING = "0.1.0"
