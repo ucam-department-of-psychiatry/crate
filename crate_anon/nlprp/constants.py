@@ -30,13 +30,27 @@ Natural Language Processing Request Protocol (NLPRP) constants.
 
 
 class HttpStatus(object):
-    ACCEPTED = 202
-    NOT_FOUND = 404
-    OK = 200
+    """
+    HTTP status codes used by the NLPRP.
+    """
+    # 1xx: informational
     PROCESSING = 102
+    # 2xx: success
+    OK = 200
+    ACCEPTED = 202
+    # 3xx: redirection
+    # ... not used
+    # 4xx: client error
+    UNAUTHORIZED = 401
+    NOT_FOUND = 404
+    # 5xx: server error
+    SERVICE_UNAVAILABLE = 503
 
 
 class NlprpKeys(object):
+    """
+    JSON dictionary keys used by the NLPRP.
+    """
     ARGS = "args"  # request
     CLIENT_JOB_ID = "client_job_id"  # bidirectional
     CLIENT_JOB_IDS = "client_job_ids"  # request
@@ -68,12 +82,18 @@ class NlprpKeys(object):
 
 
 class NlprpValues(object):
+    """
+    JSON dictionary values used by the NLPRP.
+    """
     BUSY = "busy"
     NLPRP_PROTOCOL_NAME = "nlprp"
     READY = "ready"
 
 
 class NlprpCommands(object):
+    """
+    NLPRP commands.
+    """
     LIST_PROCESSORS = "list_processors"
     PROCESS = "process"
     SHOW_QUEUE = "show_queue"

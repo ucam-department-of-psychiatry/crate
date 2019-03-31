@@ -40,7 +40,7 @@ from pyramid.request import Request
 from pyramid.response import Response
 from semantic_version import Version
 
-from crate_anon.nlprp.constants import NlprpKeys
+from crate_anon.nlprp.constants import HttpStatus, NlprpKeys
 from crate_anon.nlprp.api import NlprpRequest, NlprpResponse
 
 assert sys.version_info >= (3, 6), "Need Python 3.6+"
@@ -52,6 +52,9 @@ SERVER_NLPRP_VERSION = Version("0.1.0")
 
 # noinspection PyUnusedLocal
 def cmd_list_processors(hreq: Request, nreq: NlprpRequest) -> Dict[str, Any]:
+    """
+    Specimen (dummy) implementation of the "list_processors" command.
+    """
     return {
         NlprpKeys.PROCESSORS: [
             {
@@ -105,7 +108,7 @@ def nlprp_server(request: Request) -> Response:
         raise
 
     # Process NLPRP command
-    http_status = 200  # OK
+    http_status = HttpStatus.OK
     if nreq.command == "list_processors":
         replydict = cmd_list_processors(request, nreq)
     else:
