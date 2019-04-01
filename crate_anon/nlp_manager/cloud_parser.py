@@ -28,12 +28,11 @@ receiving responses.
 
 """
 
+from copy import deepcopy
 import json
 import logging
-import requests
 import sys
 import uuid
-from copy import deepcopy
 from typing import Any, Dict, List, Tuple, Generator, Optional
 
 from cardinal_pythonlib.lists import chunks
@@ -42,6 +41,7 @@ from cardinal_pythonlib.dicts import (
     set_null_values_in_dict,
 )
 from cardinal_pythonlib.timing import MultiTimerContext, timer
+import requests
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import CLOUD_URL, FN_NLPDEF
