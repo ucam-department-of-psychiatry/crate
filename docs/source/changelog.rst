@@ -847,6 +847,10 @@ Changes
 - ``CrateGatePipeline.java`` supports continuation after a Java
   RuntimeException ("bug in GATE code").
 
+**v0.18.68, IN PROGRESS**
+
+- Creatinine regex supports mg/dl units as well as micromolar.
+
 
 .. rubric:: Footnotes
 

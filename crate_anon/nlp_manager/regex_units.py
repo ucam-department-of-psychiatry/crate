@@ -382,6 +382,21 @@ def factor_millimolar_from_mg_per_dl(molecular_mass_g_per_mol: float) -> float:
     return 10 / molecular_mass_g_per_mol
 
 
+def factor_micromolar_from_mg_per_dl(molecular_mass_g_per_mol: float) -> float:
+    """
+    Returns the conversion factor that you should multiple a "mg/dL" number by
+    to get a "μM" (μmol/L) number.
+
+    Args:
+        molecular_mass_g_per_mol: molecular mass in g/mol
+
+    Returns:
+        conversion factor
+
+    """
+    return 1000 * factor_millimolar_from_mg_per_dl(molecular_mass_g_per_mol)
+
+
 def millimolar_from_mg_per_dl(mg_per_dl: float,
                               molecular_mass_g_per_mol: float) -> float:
     """
@@ -396,6 +411,22 @@ def millimolar_from_mg_per_dl(mg_per_dl: float,
 
     """
     return mg_per_dl * factor_millimolar_from_mg_per_dl(molecular_mass_g_per_mol)  # noqa
+
+
+def micromolar_from_mg_per_dl(mg_per_dl: float,
+                              molecular_mass_g_per_mol: float) -> float:
+    """
+    Converts a concentration from mg/dL to μM (μmol/L).
+
+    Args:
+        mg_per_dl: value in mg/dL
+        molecular_mass_g_per_mol: molecular mass in g/mol
+
+    Returns:
+        value in μM = μmol/L
+
+    """
+    return mg_per_dl * factor_micromolar_from_mg_per_dl(molecular_mass_g_per_mol)  # noqa
 
 
 # =============================================================================

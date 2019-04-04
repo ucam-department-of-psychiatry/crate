@@ -56,6 +56,7 @@ from crate_anon.nlp_manager.regex_parser import (
 )
 from crate_anon.nlp_manager.regex_numbers import SIGNED_FLOAT
 from crate_anon.nlp_manager.regex_units import (
+    factor_micromolar_from_mg_per_dl,
     factor_millimolar_from_mg_per_dl,
     G,
     MG,
@@ -63,6 +64,7 @@ from crate_anon.nlp_manager.regex_units import (
     MG_PER_L,
     MICROEQ_PER_L,
     MICROMOLAR,
+    micromolar_from_mg_per_dl,
     MICROMOLES_PER_L,
     MICROUNITS_PER_ML,
     MILLIEQ_PER_L,
@@ -473,7 +475,7 @@ class UreaValidator(ValidatorBase):
 
 class Creatinine(SimpleNumericalResultParser):
     """
-    Creatinine.
+    Creatinine. Default units are micromolar (SI).
     """
     CREATININE = fr"""
         (?: {WORD_BOUNDARY} (?: Cr(?:eat(?:inine)?)? ) {WORD_BOUNDARY} )
@@ -493,15 +495,20 @@ class Creatinine(SimpleNumericalResultParser):
             {MICROMOLAR}                        # good
             | {MICROMOLES_PER_L}                # good
             | {MICROEQ_PER_L}                   # good
+            | {MG_PER_DL}                       # good but needs conversion
             | {MG}                              # bad
         )?
     """
+    # ... note that MG_PER_DL must precede MG
+    CREATININE_MOLECULAR_MASS_G_PER_MOL = 113.12
+    # ... https://pubchem.ncbi.nlm.nih.gov/compound/creatinine
     NAME = "Creatinine"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     UNIT_MAPPING = {
         MICROMOLAR: 1,       # preferred unit
         MICROMOLES_PER_L: 1,
         MICROEQ_PER_L: 1,
+        MG_PER_DL: factor_micromolar_from_mg_per_dl(CREATININE_MOLECULAR_MASS_G_PER_MOL)  # noqa
         # but not MG
     }
 
@@ -523,6 +530,11 @@ class Creatinine(SimpleNumericalResultParser):
 
     def test(self, verbose: bool = False) -> None:
         # docstring in parent class
+        def convert(mg_dl: float) -> float:
+            # Convert mg/dl to μM
+            return micromolar_from_mg_per_dl(
+                mg_dl, self.CREATININE_MOLECULAR_MASS_G_PER_MOL)
+
         self.test_numerical_parser([
             ("Creatinine", []),  # should fail; no values
             ("Cr 50", [50]),
@@ -536,7 +548,9 @@ class Creatinine(SimpleNumericalResultParser):
             ("blah (creat) 5.6 uM", []),
             ("Creatinine (200) something", [200]),
             ("Creatinine (200 micromolar), others", [200]),
-            ("Cr-75", [75])
+            ("Cr-75", [75]),
+            ("creatinine 3 mg/dl", [convert(3)]),
+            ("creatinine 3 mg", []),
         ], verbose=verbose)
 
 
