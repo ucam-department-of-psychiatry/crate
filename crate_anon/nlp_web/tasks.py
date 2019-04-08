@@ -31,6 +31,7 @@ import transaction
 import logging
 import datetime
 import json
+# import time
 
 from cryptography.fernet import Fernet
 from sqlalchemy import engine_from_config
@@ -102,6 +103,7 @@ def process_nlp_text(
     """
     Task to send text to the relevant processor.
     """
+    # time.sleep(5)
     # Can't figure out how not to have to do this everytime
     engine = engine_from_config(SETTINGS, 'sqlalchemy.')
     DBSession.configure(bind=engine)

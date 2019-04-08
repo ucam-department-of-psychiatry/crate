@@ -256,13 +256,15 @@ class NlpWebViews(object):
             for processor in processors:
                 proc_obj = None
                 for proc in Processor.processors.values():
+                    # Made this case insensitive as someone might put e.g. 'CRP'
+                    # instead of 'Crp'
                     if NKeys.VERSION in processor:
-                        if (proc.name == processor[NKeys.NAME]
+                        if (proc.name.lower() == processor[NKeys.NAME].lower()
                                 and proc.version == processor[NKeys.VERSION]):
                             proc_obj = proc
                             break
                     else:
-                        if (proc.name == processor[NKeys.NAME]
+                        if (proc.name.lower() == processor[NKeys.NAME].lower()
                                 and proc.is_default_version):
                             proc_obj = proc
                             break
@@ -386,12 +388,12 @@ class NlpWebViews(object):
                 proc_obj = None
                 for proc in Processor.processors.values():
                     if NKeys.VERSION in processor:
-                        if (proc.name == processor[NKeys.NAME]
+                        if (proc.name.lower() == processor[NKeys.NAME].lower()
                                 and proc.version == processor[NKeys.VERSION]):
                             proc_obj = proc
                             break
                     else:
-                        if (proc.name == processor[NKeys.NAME]
+                        if (proc.name.lower() == processor[NKeys.NAME].lower()
                                 and proc.is_default_version):
                             proc_obj = proc
                             break
@@ -476,8 +478,8 @@ class NlpWebViews(object):
             return self.key_missing_error(is_args=True)
         try:
             # Don't know how trailing whitespace got introduced at the client
-            # end but it was there - hence '.strip()'
-            queue_id = args[NKeys.QUEUE_ID].strip()
+            # end but it was there - hence '.strip()' - removing to test
+            queue_id = args[NKeys.QUEUE_ID]
         except KeyError:
             return self.key_missing_error(key=NKeys.QUEUE_ID)
         query = DBSession.query(Document).filter(
@@ -487,12 +489,9 @@ class NlpWebViews(object):
         client_job_id = None  # type: str
         document_rows = query.all()  # type: Iterable[Document]
         doc_results = []  # type: List[Dict[str, Any]]
-        for j, doc in enumerate(document_rows):
-            if client_job_id is None:
-                client_job_id = doc.client_job_id
-            metadata = json.loads(doc.client_metadata)
-            processor_data = []  # data for *all* the processors for this doc
-            proc_ids = json.loads(doc.processor_ids)
+        # Check if all results are ready
+        asyncresults_all = []  # type: List[List[AsyncResult]] # noqa
+        for doc in document_rows:
             result_ids = json.loads(doc.result_ids)
             # More efficient than append? Should we do this wherever possible?
             asyncresults = [None] * len(result_ids)  # type: List[AsyncResult]
@@ -504,8 +503,19 @@ class NlpWebViews(object):
                     self.request.response.status = HttpStatus.OK
                     return self.create_response(HttpStatus.PROCESSING, {})
                 asyncresults[i] = result
-            # Unfortunately we have to loop twice to avoid doing a lot for
-            # nothing if it turns out a later result is not ready
+            asyncresults_all.append(asyncresults)
+        # Unfortunately we have to loop twice to avoid doing a lot for
+        # nothing if it turns out a later result is not ready
+        #
+        # Fixed a crucial bug in which, if all results for one doc are ready
+        # but not subsequent ones, it wouldn't return a 'processing' status.
+        for j, doc in enumerate(document_rows):
+            if client_job_id is None:
+                client_job_id = doc.client_job_id
+            metadata = json.loads(doc.client_metadata)
+            processor_data = []  # data for *all* the processors for this doc
+            proc_ids = json.loads(doc.processor_ids)
+            asyncresults = asyncresults_all[j]
             for i, result in enumerate(asyncresults):
                 # Split on the last occurance of '_' - procs will be in correct
                 # order

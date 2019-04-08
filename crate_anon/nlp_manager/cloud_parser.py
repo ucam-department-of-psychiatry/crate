@@ -44,7 +44,7 @@ from cardinal_pythonlib.timing import MultiTimerContext, timer
 import requests
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-from crate_anon.nlp_manager.constants import CLOUD_URL, FN_NLPDEF
+from crate_anon.nlp_manager.constants import FN_NLPDEF
 from crate_anon.nlp_manager.nlp_definition import (
     full_sectionname,
     NlpConfigPrefixes,
@@ -72,6 +72,9 @@ class CloudNlpConfigKeys(object):
     USERNAME = "username"
     PASSWORD = "password"
     PROCESSORS = "processors"
+    URL = "cloud_url"
+    REQUEST_DATA_DIR = "request_data_dir"
+    MAX_LENGTH = "max_content_length"
 
 
 class CloudRequest(object):
@@ -80,7 +83,6 @@ class CloudRequest(object):
     """
     # Set up standard information for all requests
     STANDARD_INFO = make_nlprp_dict()
-    URL = CLOUD_URL
     HEADERS = {
         'charset': 'utf-8',
         'Content-Type': 'application/json'
@@ -88,6 +90,9 @@ class CloudRequest(object):
 
     def __init__(self,
                  nlpdef: NlpDefinition,
+                 url: str,
+                 username: str = "",
+                 password: str = "",
                  max_length: int = 0,
                  commit: bool = False,
                  client_job_id: str = None,
@@ -96,6 +101,12 @@ class CloudRequest(object):
         Args:
             nlpdef:
                 :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+            url:
+                the url to send requests to
+            username:
+                the username for accessing cloud nlp services
+            password:
+                the password for accessing cloud nlp services
             max_length:
                 maximum content-length of a request
             commit:
@@ -115,13 +126,9 @@ class CloudRequest(object):
                                              self._nlpdef.get_name())
         self._commit = commit
         # self._destdbs = {}  # type: Dict[str, DatabaseHolder]
-        config = self._nlpdef.get_parser()
-        self.username = config.get_str(section=CLOUD_NLP_SECTION,
-                                       option=CloudNlpConfigKeys.USERNAME,
-                                       default="")
-        self.password = config.get_str(section=CLOUD_NLP_SECTION,
-                                       option=CloudNlpConfigKeys.PASSWORD,
-                                       default="")
+        self.url = url
+        self.username = username
+        self.password = password
         self.auth = (self.username, self.password)
         self.fetched = False
         if client_job_id:
@@ -147,23 +154,8 @@ class CloudRequest(object):
         self.nlp_data = None
         self.queue_id = None
 
-        # if cfgsection:
-        #     self.add_processor(cfgsection)
-        #     self.procnames = [cfgsection]
-        #     self.cfgsection = cfgsection
-        # else:
-        #     self.procnames = []
-        #     self.cfgsection = None
-
-        self.procnames = []  # type: List[str]  # *** check: not written to? ***************
         self.procs = {}  # type: Dict[str, str]
         self.add_all_processors()
-
-#        if nlpdef is not None:
-#            for procname in self.procnames:
-#                destdb_name = nlpdef.opt_str(procname, 'destdb',
-#                                             required=True)
-#                self._destdbs[destdb_name] = nlpdef.get_database(destdb_name)
 
         self.mirror_processors = {}
         self.max_length = max_length
@@ -173,20 +165,17 @@ class CloudRequest(object):
         return len(text.encode('utf-8'))
 
     @classmethod
-    def list_processors(cls, nlpdef: NlpDefinition) -> List[str]:
-        config = nlpdef.get_parser()
-        username = config.get_str(section=CLOUD_NLP_SECTION,
-                                  option=CloudNlpConfigKeys.USERNAME,
-                                  default="")
-        password = config.get_str(section=CLOUD_NLP_SECTION,
-                                  option=CloudNlpConfigKeys.PASSWORD,
-                                  default="")
+    def list_processors(cls,
+                        nlpdef: NlpDefinition,
+                        url: str,
+                        username: str = "",
+                        password: str = "") -> List[str]:
         auth = (username, password)
         list_procs_request = deepcopy(cls.STANDARD_INFO)
         list_procs_request[NKeys.COMMAND] = NlprpCommands.LIST_PROCESSORS
         request_json = json.dumps(list_procs_request)
         # print(request_json)
-        response = requests.post(cls.URL, data=request_json,
+        response = requests.post(url, data=request_json,
                                  auth=auth, headers=cls.HEADERS)
         try:
             json_response = response.json()
@@ -246,10 +235,10 @@ class CloudRequest(object):
         }
         # Add all the identifying information
         # Slow - is there a way to get length without having to serialize?
-        if (self.max_length and
+        if ((not self.max_length) or
             self.utf8len(json.dumps(new_content, default=str))
                 + self.utf8len(json.dumps(
-                    self.request_process, default=str))) < self.max_length:
+                    self.request_process, default=str)) < self.max_length):
             self.request_process[NKeys.ARGS][NKeys.CONTENT].append(new_content)
             return True
         else:
@@ -265,7 +254,7 @@ class CloudRequest(object):
         request_json = json.dumps(self.request_process, default=str)
         # print(request_json)
         # print()
-        response = requests.post(self.URL, data=request_json, 
+        response = requests.post(self.url, data=request_json, 
                                  auth=self.auth, headers=self.HEADERS)
         try:
             json_response = response.json()
@@ -303,7 +292,7 @@ class CloudRequest(object):
         """
         self.fetch_request[NKeys.ARGS] = {NKeys.QUEUE_ID: self.queue_id}
         request_json = json.dumps(self.fetch_request)
-        response = requests.post(self.URL, data=request_json, 
+        response = requests.post(self.url, data=request_json, 
                                  auth=self.auth, headers=self.HEADERS)
         try:
             json_response = response.json()
@@ -423,26 +412,6 @@ class CloudRequest(object):
                             processor_data, procidentifier,
                             procname, metadata):
                         yield t, r, p
-
-    def get_sessions_for_all_processors(self) -> Dict[str, List[any]]:
-        # If cfgsection is set then this class was instantiated for one
-        # specific processor name, so there's no chance we need more than one
-        # destination database ...
-        # if self.cfgsection:
-        #     session = self.get_session()
-        #     procs_to_sessions = {self.cfgsection: [self.get_dbname(), session]}  # noqa
-        # ... Otherwise we may need more than one database
-        # else:
-        procs_to_sessions = {}
-        for procname in self.procnames:
-            if procname not in procs_to_sessions:
-                destdb_name = self._nlpdef.opt_str(
-                    full_sectionname(NlpConfigPrefixes.PROCESSOR, procname),
-                    'destdb', required=True)
-                procs_to_sessions[procname] = [destdb_name,
-                                               self._nlpdef.get_database(
-                                                   destdb_name).session]
-        return procs_to_sessions
 
     def set_mirror_processors(
             self,

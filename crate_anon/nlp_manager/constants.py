@@ -74,11 +74,6 @@ SqlTypeDbIdentifier = String(MAX_SQL_FIELD_LEN)  # text field used for database
 # names, table names, and field names
 HashClass = HmacMD5Hasher
 
-CLOUD_URL = "http://localhost:6543"
-# GATE_CLOUD_URL = "https://nhsta-api.slam-services.gate.ac.uk/nlprp"
-MAX_PACKET_SIZE = 20000
-NLPRPVERSION = "0.0.2"
-
 
 # =============================================================================
 # Demo config
@@ -730,6 +725,29 @@ url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
 [database:DESTINATION_DATABASE]
 
 url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
+
+# =============================================================================
+# Information for using cloud-based NLP
+#
+# Includes authentication (username and password for accessing the services)
+# and root directory for the request data file
+# =============================================================================
+
+[Cloud_NLP]
+
+# The url of the cloud NLP services
+cloud_url =
+# Your username and password for accessing the services at the url specified
+username = your_username
+password = your_password
+# The maximum size of the packets to be sent. This should be less than or equal
+# to the limit the service allows. Put 0 for no maximum length.
+# NOTE: if a single record is larger than the maximum packet size, that record
+# will not be sent
+max_content_length = 0
+# Directory to hold files containing information for the retrieval od data
+# which has been sent in queued mode
+request_data_dir = /home/.../nlp_req_data
 
 """.format(  # noqa
     IdentType=SqlTypeDbIdentifier,

@@ -97,9 +97,6 @@ from crate_anon.nlp_manager.constants import (
     DEMO_CONFIG,
     MAX_STRING_PK_LENGTH,
     NLP_CONFIG_ENV_VAR,
-    # CLOUD_URL,
-    # GATE_CLOUD_URL,
-    MAX_PACKET_SIZE,
 )
 from crate_anon.nlp_manager.input_field_config import (
     InputFieldConfig,
@@ -112,7 +109,7 @@ from crate_anon.nlp_manager.input_field_config import (
 )
 from crate_anon.nlp_manager.models import FN_SRCHASH, NlpRecord
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
-from crate_anon.nlp_manager.cloud_parser import CloudRequest
+from crate_anon.nlp_manager.cloud_parser import CloudRequest, CloudNlpConfigKeys
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
@@ -121,6 +118,8 @@ log = logging.getLogger(__name__)
 TIMING_DROP_REMAKE = "drop_remake"
 TIMING_DELETE_WHERE_NO_SOURCE = "delete_where_no_source"
 TIMING_PROGRESS_DB_ADD = "progress_db_add"
+
+CLOUD_NLP_SECTION = "Cloud_NLP"
 
 
 # =============================================================================
@@ -466,6 +465,10 @@ def process_nlp(nlpdef: NlpDefinition,
 def send_cloud_requests(
         nlpdef: NlpDefinition,
         ifconfig: InputFieldConfig,
+        url: str,
+        username: str,
+        password: str,
+        max_length: int = 0,
         report_every: int = DEFAULT_REPORT_EVERY_NLP,
         incremental: bool = False,
         queue: bool = True) -> List[CloudRequest]:
@@ -479,9 +482,13 @@ def send_cloud_requests(
     at_least_one_record = False  # so we don't send off an empty request
     complete = False
     # Check processors are available
-    available_procs = CloudRequest.list_processors(nlpdef)
+    available_procs = CloudRequest.list_processors(nlpdef, url,
+                                                   username, password)
     cloud_request = CloudRequest(nlpdef=nlpdef,
-                                 max_length=MAX_PACKET_SIZE,
+                                 url=url,
+                                 username=username,
+                                 password=password,
+                                 max_length=max_length,
                                  allowable_procs=available_procs)
     # packet_size = 0
     for text, other_values in ifconfig.gen_text():
@@ -540,7 +547,10 @@ def send_cloud_requests(
                 # If we're not at the end of the records, start new request
                 cloud_request = CloudRequest(
                     nlpdef=nlpdef,
-                    max_length=MAX_PACKET_SIZE,
+                    url=url,
+                    username=username,
+                    password=password,
+                    max_length=max_length,
                     allowable_procs=available_procs)
             else:
                 # We've sent off the final request
@@ -567,14 +577,31 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
     log.info(SEP + "NLP")
     nlpname = nlpdef.get_name()
     config = nlpdef.get_parser()
-    req_data_dir = config.get_str(section="Cloud_NLP",
-                                  option="request_data_dir",
+    req_data_dir = config.get_str(section=CLOUD_NLP_SECTION,
+                                  option=CloudNlpConfigKeys.REQUEST_DATA_DIR,
                                   required=True)
+    url = config.get_str(section=CLOUD_NLP_SECTION,
+                         option=CloudNlpConfigKeys.URL,
+                         required=True)
+    username = config.get_str(section=CLOUD_NLP_SECTION,
+                              option=CloudNlpConfigKeys.USERNAME,
+                              default="")
+    password = config.get_str(section=CLOUD_NLP_SECTION,
+                              option=CloudNlpConfigKeys.PASSWORD,
+                              default="")
+    max_length = config.get_int_default_if_failure(
+                     section=CLOUD_NLP_SECTION,
+                     option=CloudNlpConfigKeys.MAX_LENGTH,
+                     default=0)
     with open(f'{req_data_dir}/request_data_{nlpname}.txt', 'w') as request_data:  # noqa
         for ifconfig in nlpdef.get_ifconfigs():
             cloud_requests = send_cloud_requests(
                 nlpdef=nlpdef,
                 ifconfig=ifconfig,
+                url=url,
+                username=username,
+                password=password,
+                max_length=max_length,
                 incremental=incremental,
                 report_every=report_every)
             for cloud_request in cloud_requests:
@@ -594,11 +621,21 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     session = nlpdef.get_progdb_session()
     nlpname = nlpdef.get_name()
     config = nlpdef.get_parser()
-    req_data_dir = config.get_str(section="Cloud_NLP",
-                                  option="request_data_dir",
+    req_data_dir = config.get_str(section=CLOUD_NLP_SECTION,
+                                  option=CloudNlpConfigKeys.REQUEST_DATA_DIR,
                                   required=True)
+    url = config.get_str(section=CLOUD_NLP_SECTION,
+                         option=CloudNlpConfigKeys.URL,
+                         required=True)
+    username = config.get_str(section=CLOUD_NLP_SECTION,
+                              option=CloudNlpConfigKeys.USERNAME,
+                              default="")
+    password = config.get_str(section=CLOUD_NLP_SECTION,
+                              option=CloudNlpConfigKeys.PASSWORD,
+                              default="")
     filename = f'{req_data_dir}/request_data_{nlpname}.txt'
-    available_procs = CloudRequest.list_processors(nlpdef)
+    available_procs = CloudRequest.list_processors(nlpdef, url,
+                                                   username, password)
     mirror_procs = nlpdef.get_processors()
     if not os.path.exists(filename):
         log.error(f"File 'request_data_{nlpname}.txt' does not exist in the "
@@ -610,7 +647,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
         ifconfig_cache = {}  # type: Dict[str, InputFieldConfig]
         all_ready = True  # not necessarily true, but need for later
         for line in reqdata:
-            if_section, queue_id = line.split(',')
+            if_section, queue_id = line.strip().split(',')
             if if_section in ifconfig_cache:
                 ifconfig = ifconfig_cache[if_section]
             else:
@@ -618,6 +655,9 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                 ifconfig_cache[if_section] = ifconfig
             seen_srchashs = []
             cloud_request = CloudRequest(nlpdef=nlpdef,
+                                         url=url,
+                                         username=username,
+                                         password=password,
                                          allowable_procs=available_procs)
             cloud_request.set_mirror_processors(mirror_procs)
             cloud_request.set_queue_id(queue_id)
@@ -628,7 +668,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                 # back in file
                 # For some reason an extra newline is beign appended here
                 # but not in 'process_cloud_nlp'
-                request_data.write(f"{if_section},{queue_id}")
+                request_data.write(f"{if_section},{queue_id}\n")
                 all_ready = False
             else:
                 cloud_request.process_all()
@@ -641,14 +681,10 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                     srchash = metadata[FN_SRCHASH]
                     progrec = None
                     if incremental:
-                        sessions = cloud_request.get_sessions_for_all_processors()  # noqa
-                        for db in sessions.values():
-                            cloud_request.delete_dest_record( # *** No such function -- should CloudRequest inherit from BaseNlpParser?
-                                ifconfig, pkval, pkstr,
-                                commit=incremental,
-                                session=db[1],
-                                destdb_name=db[0]
-                            )
+                        for processor in (
+                             cloud_request.mirror_processors.values()):
+                            processor.delete_dest_record(ifconfig, pkval, pkstr,
+                                commit=incremental)
                         # Record progress in progress database
                         progrec = ifconfig.get_progress_record(pkval, pkstr)
                     if srchash in seen_srchashs:
@@ -678,6 +714,9 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     nlpdef.commit_all()
     if all_ready:
         os.remove(filename)
+    else:
+        log.info("There are still results to be processed. Re-run this "
+            "command later to retrieve them.")
 
 
 def process_cloud_now(
@@ -689,10 +728,28 @@ def process_cloud_now(
     """
     session = nlpdef.get_progdb_session()
     mirror_procs = nlpdef.get_processors()
+    config = nlpdef.get_parser()
+    url = config.get_str(section=CLOUD_NLP_SECTION,
+                         option=CloudNlpConfigKeys.URL,
+                         required=True)
+    username = config.get_str(section=CLOUD_NLP_SECTION,
+                              option=CloudNlpConfigKeys.USERNAME,
+                              default="")
+    password = config.get_str(section=CLOUD_NLP_SECTION,
+                              option=CloudNlpConfigKeys.PASSWORD,
+                              default="")
+    max_length = config.get_int_default_if_failure(
+                     section=CLOUD_NLP_SECTION,
+                     option=CloudNlpConfigKeys.MAX_LENGTH,
+                     default=0)
     for ifconfig in nlpdef.get_ifconfigs():
         seen_srchashs = []
         cloud_requests = send_cloud_requests(
             nlpdef=nlpdef,
+            url=url,
+            username=username,
+            password=password,
+            max_length=max_length,
             ifconfig=ifconfig,
             incremental=incremental,
             report_every=report_every,
@@ -709,14 +766,9 @@ def process_cloud_now(
                 srchash = metadata[FN_SRCHASH]
                 progrec = None
                 if incremental:
-                    sessions = cloud_request.get_sessions_for_all_processors()
-                    for db in sessions.values():
-                        cloud_request.delete_dest_record( # *** No such function -- should CloudRequest inherit from BaseNlpParser?
-                            ifconfig, pkval, pkstr,
-                            commit=incremental,
-                            session=db[1],
-                            destdb_name=db[0]
-                        )
+                    for processor in cloud_request.mirror_processors.values():
+                        processor.delete_dest_record(ifconfig, pkval, pkstr,
+                            commit=incremental)
                     # Record progress in progress database
                     progrec = ifconfig.get_progress_record(pkval, pkstr)
                 # Check that we haven't already done the progrec for this
@@ -965,6 +1017,9 @@ def main() -> None:
             "--process argument must be from 0 to (nprocesses - 1) inclusive")
     if args.config:
         os.environ[NLP_CONFIG_ENV_VAR] = args.config
+    if args.cloud and args.retrieve:
+        raise ValueError(
+            "--cloud and --retrieve cannot be used together")
 
     # Verbosity and logging
     mynames = []  # type: List[str]
