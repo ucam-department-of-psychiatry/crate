@@ -55,7 +55,7 @@ from crate_anon.nlp_manager.parse_gate import (
     GateConfigKeys,
 )
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
-from crate_anon.nlprp.api import make_nlprp_dict
+from crate_anon.nlprp.api import make_nlprp_dict, make_nlprp_request
 from crate_anon.nlprp.constants import (
     HttpStatus,
     NlprpCommands,
@@ -134,7 +134,8 @@ class CloudRequest(object):
         if client_job_id:
             self.client_job_id = client_job_id
         else:
-            self.client_job_id = "test_" + str(uuid.uuid4())
+            # self.client_job_id = "test_" + str(uuid.uuid4())
+            self.client_job_id = ""
 
         # Set up processing request
         self.request_process = deepcopy(self.STANDARD_INFO)
@@ -180,7 +181,7 @@ class CloudRequest(object):
         try:
             json_response = response.json()
         except json.decoder.JSONDecodeError:
-            log.warning("Reply was not JSON")
+            log.error("Reply was not JSON")
             raise
         # print(json_response)
         procs = [proc[NKeys.NAME] for proc in json_response[NKeys.PROCESSORS]]
@@ -190,7 +191,11 @@ class CloudRequest(object):
         # Make sure we don't send request to list processors twice for
         # same request
         if self.allowable_procs is None:
-            self.allowable_procs = self.list_processors(self._nlpdef)
+            self.allowable_procs = self.list_processors(
+                                       self._nlpdef,
+                                       self.url,
+                                       self.username,
+                                       self.password)
         if processor not in self.allowable_procs:
             log.warning(f"Unknown processor, skipping {processor}")
         else:
@@ -248,6 +253,10 @@ class CloudRequest(object):
         """
         Sends a request to the server to process the text.
         """
+        # Don't send off an empty request
+        if not self.request_process[NKeys.ARGS][NKeys.CONTENT]:
+            log.warning("Request empty - not sending.")
+            return
         self.request_process[NKeys.ARGS][NKeys.QUEUE] = queue
         # This needs 'default=str' to deal with non-json-serializable
         # objects such as datetimes in the metadata
@@ -259,7 +268,7 @@ class CloudRequest(object):
         try:
             json_response = response.json()
         except json.decoder.JSONDecodeError:
-            log.warning("Reply was not JSON")
+            log.error("Reply was not JSON")
             raise
         # print(json_response)
         status = json_response[NKeys.STATUS]
@@ -292,12 +301,12 @@ class CloudRequest(object):
         """
         self.fetch_request[NKeys.ARGS] = {NKeys.QUEUE_ID: self.queue_id}
         request_json = json.dumps(self.fetch_request)
-        response = requests.post(self.url, data=request_json, 
+        response = requests.post(self.url, data=request_json,
                                  auth=self.auth, headers=self.HEADERS)
         try:
             json_response = response.json()
         except json.decoder.JSONDecodeError:
-            log.warning("Reply was not JSON")
+            log.error("Reply was not JSON")
             raise
         return json_response
 
@@ -329,6 +338,76 @@ class CloudRequest(object):
             log.error(
                 f"Got HTTP status code {status} for queue_id {self.queue_id}.")
             return False
+
+    def show_queue(self) -> Optional[List[Dict[str, Any]]]:
+        """
+        Returns a list of the user's queued requests. Each list element is a
+        dictionary as returned according to the nlprp.
+        """
+        show_request = make_nlprp_request(
+            command=NlprpCommands.SHOW_QUEUE
+        )
+        request_json = json.dumps(show_request)
+        response = requests.post(self.url, data=request_json,
+                                 auth=self.auth, headers=self.HEADERS)
+        try:
+            json_response = response.json()
+        except json.decoder.JSONDecodeError:
+            log.error("Reply was not JSON")
+            raise
+        status = json_response[NKeys.STATUS]
+        if status == HttpStatus.OK:
+            try:
+                queue = json_response[NKeys.QUEUE]
+            except KeyError:
+                log.error("Response did not contain key 'queue'.")
+                raise
+            return queue
+        else:
+            # Is this the right error to raise?
+            raise ValueError(f"Response status was: {status}")
+
+
+    def delete_all_from_queue(self) -> None:
+        """
+        Delete ALL pending requests from the server's queue. Use with caution.
+        """
+        delete_request = make_nlprp_request(
+            command=NlprpCommands.DELETE_FROM_QUEUE,
+            command_args={NKeys.DELETE_ALL: True}
+        )
+        request_json = json.dumps(delete_request)
+        response = requests.post(self.url, data=request_json,
+                                 auth=self.auth, headers=self.HEADERS)
+        try:
+            json_response = response.json()
+        except json.decoder.JSONDecodeError:
+            log.error("Reply was not JSON")
+            raise
+        status = json_response[NKeys.STATUS]
+        if status != HttpStatus.OK:
+            log.error(f"Response status was: {status}")
+
+    def delete_from_queue(self, queue_ids: List[str]) -> None:
+        """
+        Delete pending requests from the server's queue for queue_ids
+        specified.
+        """
+        delete_request = make_nlprp_request(
+            command=NlprpCommands.DELETE_FROM_QUEUE,
+            command_args={NKeys.QUEUE_IDS: queue_ids}
+        )
+        request_json = json.dumps(delete_request)
+        response = requests.post(self.url, data=request_json,
+                                 auth=self.auth, headers=self.HEADERS)
+        try:
+            json_response = response.json()
+        except json.decoder.JSONDecodeError:
+            log.error("Reply was not JSON")
+            raise
+        status = json_response[NKeys.STATUS]
+        if status != HttpStatus.OK:
+            log.error(f"Response status was: {status}")
 
     def get_tablename_map(self, processor: str) -> Tuple[Dict[str, str],
                                                          Dict[str,

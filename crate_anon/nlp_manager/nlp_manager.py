@@ -479,8 +479,6 @@ def send_cloud_requests(
     requests = []
     recnum = 0
     totalcount = ifconfig.get_count()  # total number of records in table
-    at_least_one_record = False  # so we don't send off an empty request
-    complete = False
     # Check processors are available
     available_procs = CloudRequest.list_processors(nlpdef, url,
                                                    username, password)
@@ -490,7 +488,7 @@ def send_cloud_requests(
                                  password=password,
                                  max_length=max_length,
                                  allowable_procs=available_procs)
-    # packet_size = 0
+    empty_request = True
     for text, other_values in ifconfig.gen_text():
         pkval = other_values[FN_SRCPKVAL]
         pkstr = other_values[FN_SRCPKSTR]
@@ -524,9 +522,22 @@ def send_cloud_requests(
 
         # Add the text to the cloud request with the appropriate metadata
         success = cloud_request.add_text(text, other_values)
-        if not success:
-            cloud_request.send_process_request(queue)
-            requests.append(cloud_request)
+        if success:
+            empty_request = False
+        else:
+            if not empty_request:
+                cloud_request.send_process_request(queue)
+                requests.append(cloud_request)
+            cloud_request = CloudRequest(
+                nlpdef=nlpdef,
+                url=url,
+                username=username,
+                password=password,
+                max_length=max_length,
+                allowable_procs=available_procs)
+            empty_request = True
+            # Is the text too big on its own? If so, don't send it. Otherwise
+            # add it to the new request
             text_too_big = not cloud_request.add_text(text, other_values)
             if text_too_big:
                 log.warning(
@@ -542,26 +553,12 @@ def send_cloud_requests(
                     )
                 )
             else:
-                log.info(pkstr if pkstr else pkval)
-            if recnum < totalcount:
-                # If we're not at the end of the records, start new request
-                cloud_request = CloudRequest(
-                    nlpdef=nlpdef,
-                    url=url,
-                    username=username,
-                    password=password,
-                    max_length=max_length,
-                    allowable_procs=available_procs)
-            else:
-                # We've sent off the final request
-                complete = True
-
-        at_least_one_record = True
+                empty_request = False
 
         # Add 'srchash' to 'other_values' so the metadata will contain it
         # and we can use it later on for updating the progress database
         other_values[FN_SRCHASH] = srchash
-    if not complete and at_least_one_record:
+    if not empty_request:
         # Send last request
         cloud_request.send_process_request(queue)
         requests.append(cloud_request)
@@ -803,6 +800,84 @@ def process_cloud_now(
     nlpdef.commit_all()
 
 
+def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
+    """
+    Delete pending requests from the server's queue.
+    """
+    nlpname = nlpdef.get_name()
+    config = nlpdef.get_parser()
+    req_data_dir = config.get_str(section=CLOUD_NLP_SECTION,
+                                  option=CloudNlpConfigKeys.REQUEST_DATA_DIR,
+                                  required=True)
+    url = config.get_str(section=CLOUD_NLP_SECTION,
+                         option=CloudNlpConfigKeys.URL,
+                         required=True)
+    username = config.get_str(section=CLOUD_NLP_SECTION,
+                              option=CloudNlpConfigKeys.USERNAME,
+                              default="")
+    password = config.get_str(section=CLOUD_NLP_SECTION,
+                              option=CloudNlpConfigKeys.PASSWORD,
+                              default="")
+    cloud_request = CloudRequest(nlpdef=nlpdef,
+                                 url=url,
+                                 username=username,
+                                 password=password)
+    if cancel_all:
+        # Deleting all from queue!
+        cloud_request.delete_all_from_queue()
+        # Shoud the files be deleted in the program or is that dangerous?
+        log.info(f"All cloud requests cancelled. Delete files in "
+                  "{req_data_dir}")
+        return
+    filename = f'{req_data_dir}/request_data_{nlpname}.txt'
+    if not os.path.exists(filename):
+        log.error(f"File 'request_data_{nlpname}.txt' does not exist in the "
+                  f"relevant directory. Request may not have been sent.")
+        raise FileNotFoundError
+    queue_ids = []
+    with open(filename, 'r') as request_data:
+        reqdata = request_data.readlines()
+        for line in reqdata:
+            if_section, queue_id = line.strip().split(',')
+            queue_ids.append(queue_id)
+    cloud_request.delete_from_queue(queue_ids)
+    # Remove the file with the request info
+    os.remove(filename)
+    log.info(f"Cloud request for nlp definition {nlpname} cancelled.")
+
+
+def show_cloud_queue(nlpdef: NlpDefinition) -> None:
+    """
+    Get list of the user's queued requests and print to screen.
+    """
+    nlpname = nlpdef.get_name()
+    config = nlpdef.get_parser()
+    req_data_dir = config.get_str(section=CLOUD_NLP_SECTION,
+                                  option=CloudNlpConfigKeys.REQUEST_DATA_DIR,
+                                  required=True)
+    url = config.get_str(section=CLOUD_NLP_SECTION,
+                         option=CloudNlpConfigKeys.URL,
+                         required=True)
+    username = config.get_str(section=CLOUD_NLP_SECTION,
+                              option=CloudNlpConfigKeys.USERNAME,
+                              default="")
+    password = config.get_str(section=CLOUD_NLP_SECTION,
+                              option=CloudNlpConfigKeys.PASSWORD,
+                              default="")
+    cloud_request = CloudRequest(nlpdef=nlpdef,
+                                 url=url,
+                                 username=username,
+                                 password=password)
+    queue = cloud_request.show_queue()
+    if not queue:
+        print("\nNo requests in queue.")
+    for entry in queue:
+        print("\nQUEUE ITEM:\n")
+        for key in entry:
+            print(f"{key}: {entry[key]}")
+
+
+
 def drop_remake(nlpdef: NlpDefinition,
                 incremental: bool = False,
                 skipdelete: bool = False,
@@ -1007,6 +1082,17 @@ def main() -> None:
     parser.add_argument(
         "--retrieve", action="store_true",
         help="Retrieve GATE NLP data from cloud")
+    parser.add_argument(
+        "--cancelrequest", action="store_true",
+        help="Cancel pending requests for the nlpdef specified")
+    parser.add_argument(
+        "--cancelall", action="store_true",
+        help="Cancel all pending cloud requests. WARNING: this option "
+             "cancels all pending requests - not just those for the nlp "
+             "definition specified")
+    parser.add_argument(
+        "--showqueue", action="store_true",
+        help="Shows all pending cloud requests.")
     args = parser.parse_args()
 
     # Validate args
@@ -1077,6 +1163,19 @@ def main() -> None:
         return
 
     # -------------------------------------------------------------------------
+
+    # Delete from queue - do this before Drop/Remake and return so we don't
+    # drop all the tables just to cancel the request
+    # Same for 'showqueue'. All of these need config as they require url etc.
+    if args.cancelrequest:
+        cancel_request(config)
+        return
+    if args.cancelall:
+        cancel_request(config, cancel_all=args.cancelall)
+        return
+    if args.showqueue:
+        show_cloud_queue(config)
+        return
 
     log.info(f"Starting: incremental={args.incremental}")
     start = get_now_utc_pendulum()

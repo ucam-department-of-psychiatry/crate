@@ -600,7 +600,11 @@ class NlpWebViews(object):
         Finds the queue entries associated with the client, optionally
         restricted to one client job id.
         """
-        client_job_id = self.body[NKeys.ARGS].get(NKeys.CLIENT_JOB_ID, "")
+        args = self.body.get(NKeys.ARGS)
+        if args:
+            client_job_id = args.get(NKeys.CLIENT_JOB_ID, "")
+        else:
+            client_job_id = ""
         if not client_job_id:
             query = DBSession.query(Document).filter(
                 Document.username == self.username
@@ -611,6 +615,8 @@ class NlpWebViews(object):
                      Document.client_job_id == client_job_id)
             )
         records = query.all()
+        for doc in records:
+            print(doc.queue_id)
         queue = []
         queue_ids = set([x.queue_id for x in records])
         for queue_id in queue_ids:
@@ -625,15 +631,17 @@ class NlpWebViews(object):
                         busy = True
                         break
                     else:
-                        # First 3 are throwaways
-                        x, y, z, time = result.get()
+                        # First 4 are throwaways
+                        w, x, y, z, time = result.get()
                         max_time = max(max_time, time)
+            dt_submitted = str(qid_recs[0].datetime_submitted.isoformat())
             queue.append({
                 NKeys.QUEUE_ID: queue_id,
                 NKeys.CLIENT_JOB_ID: client_job_id,
                 NKeys.STATUS: NlprpValues.BUSY if busy else NlprpValues.READY,
-                NKeys.DATETIME_SUBMITTED: qid_recs[0].datetime_submitted,
-                NKeys.DATETIME_COMPLETED: None if busy else max_time
+                NKeys.DATETIME_SUBMITTED: dt_submitted,
+                NKeys.DATETIME_COMPLETED: None if busy else \
+str(max_time.isoformat())
             })
         return self.create_response(status=HttpStatus.OK,
                                     extra_info={NKeys.QUEUE: queue})
@@ -651,16 +659,16 @@ class NlpWebViews(object):
                 ).all()
             else:
                 docs = []
-                client_job_ids = args.get(NKeys.CLIENT_JOB_IDS)
+                client_job_ids = args.get(NKeys.CLIENT_JOB_IDS, "")
                 for cj_id in client_job_ids:
-                    docs.append(DBSession.query(Document).filter(
+                    docs.extend(DBSession.query(Document).filter(
                         and_(Document.username == self.username,
                              Document.client_job_id == cj_id)
                     ).all())
                 queue_ids = args.get(NKeys.QUEUE_IDS)
                 for q_id in queue_ids:
                     # Clumsy way of making sure we don't have same doc twice
-                    docs.append(DBSession.query(Document).filter(
+                    docs.extend(DBSession.query(Document).filter(
                         and_(
                             Document.username == self.username,
                             Document.queue_id == q_id,
@@ -674,13 +682,17 @@ class NlpWebViews(object):
                 # Remove from celery queue
                 for res_id in result_ids:
                     result = AsyncResult(id=res_id, app=app)
+                    # Necessary to do both because revoke doesn't remove
+                    # completed task
                     result.revoke()
+                    result.forget()
                 # Remove from docprocrequests
                 dpr_query = DBSession.query(DocProcRequest).filter(
-                    DocProcRequest.document_id == doc.document_id)
-                DBSession.delete(dpr_query)
+                    DocProcRequest.document_id == doc.document_id).delete()
+                # DBSession.delete(dpr_query)
             # Remove from documents
-            DBSession.delete(docs)
+            for doc in docs:
+                DBSession.delete(doc)
             transaction.commit()
             # Return response
             self.request.response.status = HttpStatus.OK
