@@ -640,8 +640,8 @@ class NlpWebViews(object):
                 NKeys.CLIENT_JOB_ID: client_job_id,
                 NKeys.STATUS: NlprpValues.BUSY if busy else NlprpValues.READY,
                 NKeys.DATETIME_SUBMITTED: dt_submitted,
-                NKeys.DATETIME_COMPLETED: None if busy else \
-str(max_time.isoformat())
+                NKeys.DATETIME_COMPLETED: None if busy else
+                str(max_time.isoformat())
             })
         return self.create_response(status=HttpStatus.OK,
                                     extra_info={NKeys.QUEUE: queue})
@@ -687,7 +687,7 @@ str(max_time.isoformat())
                     result.revoke()
                     result.forget()
                 # Remove from docprocrequests
-                dpr_query = DBSession.query(DocProcRequest).filter(
+                DBSession.query(DocProcRequest).filter(
                     DocProcRequest.document_id == doc.document_id).delete()
                 # DBSession.delete(dpr_query)
             # Remove from documents

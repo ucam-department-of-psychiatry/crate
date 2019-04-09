@@ -847,9 +847,14 @@ Changes
 - ``CrateGatePipeline.java`` supports continuation after a Java
   RuntimeException ("bug in GATE code").
 
-**v0.18.68, IN PROGRESS**
+**v0.18.68, 29-04-09**
 
 - Creatinine regex supports mg/dl units as well as micromolar.
+
+- ``url`` and ``max_content_length`` configurable.
+
+- Bugfixes to :func:`crate_anon.nlp_manager.nlp_manager.send_cloud_requests`
+  and :meth:`crate_anon.nlp_web.views.NlpWebViews.show_queue`.
 
 
 .. rubric:: Footnotes

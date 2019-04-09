@@ -28,11 +28,14 @@ receiving responses.
 
 """
 
+# todo: rationalise so that there isn't repeated code to check if reply is
+#       json etc.
+
 from copy import deepcopy
 import json
 import logging
 import sys
-import uuid
+# import uuid
 from typing import Any, Dict, List, Tuple, Generator, Optional
 
 from cardinal_pythonlib.lists import chunks
@@ -167,7 +170,6 @@ class CloudRequest(object):
 
     @classmethod
     def list_processors(cls,
-                        nlpdef: NlpDefinition,
                         url: str,
                         username: str = "",
                         password: str = "") -> List[str]:
@@ -192,7 +194,6 @@ class CloudRequest(object):
         # same request
         if self.allowable_procs is None:
             self.allowable_procs = self.list_processors(
-                                       self._nlpdef,
                                        self.url,
                                        self.username,
                                        self.password)
@@ -366,7 +367,6 @@ class CloudRequest(object):
         else:
             # Is this the right error to raise?
             raise ValueError(f"Response status was: {status}")
-
 
     def delete_all_from_queue(self) -> None:
         """

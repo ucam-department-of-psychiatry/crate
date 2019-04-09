@@ -480,8 +480,9 @@ def send_cloud_requests(
     recnum = 0
     totalcount = ifconfig.get_count()  # total number of records in table
     # Check processors are available
-    available_procs = CloudRequest.list_processors(nlpdef, url,
-                                                   username, password)
+    available_procs = CloudRequest.list_processors(url,
+                                                   username,
+                                                   password)
     cloud_request = CloudRequest(nlpdef=nlpdef,
                                  url=url,
                                  username=username,
@@ -493,7 +494,6 @@ def send_cloud_requests(
         pkval = other_values[FN_SRCPKVAL]
         pkstr = other_values[FN_SRCPKSTR]
         recnum += 1
-        complete = False
         if report_every and recnum % report_every == 0:
             log.info(
                 "Processing {db}.{t}.{c}, PK: {pkf}={pkv} "
@@ -610,8 +610,7 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
 
 
 def retrieve_nlp_data(nlpdef: NlpDefinition,
-                      incremental: bool = False,
-                      report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
+                      incremental: bool = False) -> None:
     """
     Try to retrieve the data from the cloud processors.
     """
@@ -631,8 +630,9 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                               option=CloudNlpConfigKeys.PASSWORD,
                               default="")
     filename = f'{req_data_dir}/request_data_{nlpname}.txt'
-    available_procs = CloudRequest.list_processors(nlpdef, url,
-                                                   username, password)
+    available_procs = CloudRequest.list_processors(url,
+                                                   username,
+                                                   password)
     mirror_procs = nlpdef.get_processors()
     if not os.path.exists(filename):
         log.error(f"File 'request_data_{nlpname}.txt' does not exist in the "
@@ -681,7 +681,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                         for processor in (
                              cloud_request.mirror_processors.values()):
                             processor.delete_dest_record(ifconfig, pkval, pkstr,
-                                commit=incremental)
+                                                         commit=incremental)
                         # Record progress in progress database
                         progrec = ifconfig.get_progress_record(pkval, pkstr)
                     if srchash in seen_srchashs:
@@ -713,7 +713,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
         os.remove(filename)
     else:
         log.info("There are still results to be processed. Re-run this "
-            "command later to retrieve them.")
+                 "command later to retrieve them.")
 
 
 def process_cloud_now(
@@ -765,7 +765,7 @@ def process_cloud_now(
                 if incremental:
                     for processor in cloud_request.mirror_processors.values():
                         processor.delete_dest_record(ifconfig, pkval, pkstr,
-                            commit=incremental)
+                                                     commit=incremental)
                     # Record progress in progress database
                     progrec = ifconfig.get_progress_record(pkval, pkstr)
                 # Check that we haven't already done the progrec for this
@@ -827,7 +827,7 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
         cloud_request.delete_all_from_queue()
         # Shoud the files be deleted in the program or is that dangerous?
         log.info(f"All cloud requests cancelled. Delete files in "
-                  "{req_data_dir}")
+                 "{req_data_dir}")
         return
     filename = f'{req_data_dir}/request_data_{nlpname}.txt'
     if not os.path.exists(filename):
@@ -850,11 +850,7 @@ def show_cloud_queue(nlpdef: NlpDefinition) -> None:
     """
     Get list of the user's queued requests and print to screen.
     """
-    nlpname = nlpdef.get_name()
     config = nlpdef.get_parser()
-    req_data_dir = config.get_str(section=CLOUD_NLP_SECTION,
-                                  option=CloudNlpConfigKeys.REQUEST_DATA_DIR,
-                                  required=True)
     url = config.get_str(section=CLOUD_NLP_SECTION,
                          option=CloudNlpConfigKeys.URL,
                          required=True)
@@ -875,7 +871,6 @@ def show_cloud_queue(nlpdef: NlpDefinition) -> None:
         print("\nQUEUE ITEM:\n")
         for key in entry:
             print(f"{key}: {entry[key]}")
-
 
 
 def drop_remake(nlpdef: NlpDefinition,
@@ -1226,8 +1221,7 @@ def main() -> None:
         elif args.retrieve:
             try:
                 retrieve_nlp_data(config,
-                                  incremental=args.incremental,
-                                  report_every=args.report_every_nlp)
+                                  incremental=args.incremental)
             except Exception as exc:
                 log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
                 die(exc)
