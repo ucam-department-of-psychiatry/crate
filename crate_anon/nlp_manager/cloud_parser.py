@@ -45,6 +45,7 @@ from cardinal_pythonlib.dicts import (
 )
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 import requests
+from requests.exceptions import HTTPError
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import FN_NLPDEF
@@ -54,7 +55,7 @@ from crate_anon.nlp_manager.nlp_definition import (
     NlpDefinition,
 )
 from crate_anon.nlp_manager.parse_gate import (
-    FN_TYPE,
+    # FN_TYPE,
     GateConfigKeys,
 )
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
@@ -69,6 +70,12 @@ log = logging.getLogger(__name__)
 
 CLOUD_NLP_SECTION = "Cloud_NLP"
 TIMING_INSERT = "CloudRequest_sql_insert"
+
+START_GATE = 'start'
+END_GATE = 'end'
+FEATURES_GATE = 'features'
+TYPE_GATE = 'type'
+SET_GATE = 'set'
 
 
 class CloudNlpConfigKeys(object):
@@ -273,12 +280,13 @@ class CloudRequest(object):
             raise
         # print(json_response)
         status = json_response[NKeys.STATUS]
+        # print(status)
         if queue:
             if status == HttpStatus.ACCEPTED:
                 self.queue_id = json_response[NKeys.QUEUE_ID]
                 self.fetched = False
             else:
-                log.warning(f"Got HTTP status code {status}.")
+                raise HTTPError(f"Got HTTP status code {status}.")
         else:
             if status == HttpStatus.OK:
                 self.nlp_data = json_response
@@ -286,7 +294,7 @@ class CloudRequest(object):
                 # print()
                 self.fetched = True
             else:
-                log.error(f"Response status was: {status}")  # CHANGE
+                raise HTTPError(f"Response status was: {status}")
 
     def set_queue_id(self, queue_id: str) -> None:
         """
@@ -379,14 +387,20 @@ class CloudRequest(object):
         request_json = json.dumps(delete_request)
         response = requests.post(self.url, data=request_json,
                                  auth=self.auth, headers=self.HEADERS)
-        try:
-            json_response = response.json()
-        except json.decoder.JSONDecodeError:
-            log.error("Reply was not JSON")
-            raise
-        status = json_response[NKeys.STATUS]
-        if status != HttpStatus.OK:
-            log.error(f"Response status was: {status}")
+        # The GATE server-side doesn't send back JSON for this
+        # try:
+        #     json_response = response.json()
+        # except json.decoder.JSONDecodeError:
+        #     log.error("Reply was not JSON")
+        #     raise
+        # print(json_response)
+        # status = json_response[NKeys.STATUS]
+        status = response.status_code
+        if status == HttpStatus.NOT_FOUND:
+            log.warning("Queued request(s) not found. May have been cancelled "
+                        "already.")
+        elif status != HttpStatus.OK and status != HttpStatus.NO_CONTENT:
+            raise HTTPError(f"Response status was: {status}")
 
     def delete_from_queue(self, queue_ids: List[str]) -> None:
         """
@@ -400,14 +414,18 @@ class CloudRequest(object):
         request_json = json.dumps(delete_request)
         response = requests.post(self.url, data=request_json,
                                  auth=self.auth, headers=self.HEADERS)
-        try:
-            json_response = response.json()
-        except json.decoder.JSONDecodeError:
-            log.error("Reply was not JSON")
-            raise
-        status = json_response[NKeys.STATUS]
-        if status != HttpStatus.OK:
-            log.error(f"Response status was: {status}")
+        # try:
+        #     json_response = response.json()
+        # except json.decoder.JSONDecodeError:
+        #     log.error("Reply was not JSON")
+        #     raise
+        # status = json_response[NKeys.STATUS]
+        status = response.status_code
+        if status == HttpStatus.NOT_FOUND:
+            log.warning("Queued request(s) not found. May have been cancelled "
+                        "already.")
+        elif status != HttpStatus.OK and status != HttpStatus.NO_CONTENT:
+            raise HTTPError(f"Response status was: {status}")
 
     def get_tablename_map(self, processor: str) -> Tuple[Dict[str, str],
                                                          Dict[str,
@@ -422,7 +440,7 @@ class CloudRequest(object):
         for c in chunks(typepairs, 2):
             annottype = c[0]
             outputsection = c[1]
-            annottype = annottype.lower()
+            # annottype = annottype.lower()
             otconfig = OutputUserConfig(self._nlpdef.get_parser(),
                                         outputsection)
             outputtypemap[annottype] = otconfig
@@ -450,19 +468,40 @@ class CloudRequest(object):
             procname: str,
             metadata: Dict[str, Any]) -> Generator[Tuple[
                 str, Dict[str, Any], str], None, None]:
+        """
+        Get's result values from processed GATE data which will originally
+        be in the following format:
+        {
+            'set': set the results belong to (e.g. 'Medication'),
+            'type': annotation type,
+            'start': start index,
+            'end': end index,
+            'features': {a dictionary of features e.g. 'drug', 'frequency', etc}
+        }
+        Yields output tablename, formatted result and processor name.
+        """
         type_to_tablename, outputtypemap = self.get_tablename_map(
             procname)
         for result in processor_data[NKeys.RESULTS]:
             # Assuming each set of results says what annotation type
             # it is
-            annottype = result[FN_TYPE].lower()
+            # annottype = result[FN_TYPE].lower()
+            annottype = result[TYPE_GATE]
+            features = result[FEATURES_GATE]
+            formatted_result = {
+                '_type': annottype,
+                '_set': result[SET_GATE],
+                '_start': result[START_GATE],
+                '_end': result[END_GATE]
+            }
+            formatted_result.update(features)
             c = outputtypemap[annottype]
-            rename_keys_in_dict(result, c.renames())
-            set_null_values_in_dict(result, c.null_literals())
+            rename_keys_in_dict(formatted_result, c.renames())
+            set_null_values_in_dict(formatted_result, c.null_literals())
             tablename = type_to_tablename[annottype]
-            result.update(metadata)
+            formatted_result.update(metadata)
             # Return procname as well, so we find the right database
-            yield tablename, result, procname
+            yield tablename, formatted_result, procname
 
     def get_nlp_values(self) -> Generator[Tuple[str, Dict[str, Any], str],
                                           None, None]:

@@ -679,8 +679,10 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                     progrec = None
                     if incremental:
                         for processor in (
-                             cloud_request.mirror_processors.values()):
-                            processor.delete_dest_record(ifconfig, pkval, pkstr,
+                                cloud_request.mirror_processors.values()):
+                            processor.delete_dest_record(ifconfig,
+                                                         pkval,
+                                                         pkstr,
                                                          commit=incremental)
                         # Record progress in progress database
                         progrec = ifconfig.get_progress_record(pkval, pkstr)

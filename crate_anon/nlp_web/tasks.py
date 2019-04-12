@@ -67,22 +67,19 @@ def get_gate_results(results_dict: Dict[str, Any]) -> List[Any]:
     results = []
     # See https://cloud.gate.ac.uk/info/help/online-api.html
     # for format of response from processor
-    text = results_dict['text']
     entities = results_dict['entities']
     for annottype, values in entities.items():
-        # One annotation type will have a list of dictionaries
-        # with each dictionary being the set of features for one
-        # result, or 'hit'
-        for featureset in values:
-            # There must be a more efficient way to do this:
-            features = {x: featureset[x] for x in featureset if x != "indices"}
-            features['_type'] = annottype
-            start, end = featureset['indices']
-            content = text[start: end]
-            features['_start'] = start
-            features['_end'] = end
-            features['_content'] = content
-            results.append(features)
+        for features in values:
+            start, end = features['indices']
+            del features['indices']
+            results.append({
+                'type': annottype,
+                'start': start,
+                'end': end,
+                # 'features': {x: features[x] for x in
+                #              features if x != "indices"}
+                'feaures': features
+            })
     return results
 
 

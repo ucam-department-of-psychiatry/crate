@@ -33,8 +33,13 @@ from crate_anon.nlprp.constants import NlprpKeys as NKeys
 from crate_anon.nlp_web.constants import (
     KEY_PROCTYPE,
     PROCESSORS,
+    # KEY_PROCPATH,
+    # SETTINGS,
     PROCTYPE_GATE,
 )
+
+# processor_file = SETTINGS[KEY_PROCPATH]
+# from processor_file import PROCESSORS  # doesn't work, need importlib
 
 
 class Processor(object):

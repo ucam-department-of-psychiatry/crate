@@ -38,6 +38,7 @@ class HttpStatus(object):
     # 2xx: success
     OK = 200
     ACCEPTED = 202
+    NO_CONTENT = 204
     # 3xx: redirection
     # ... not used
     # 4xx: client error

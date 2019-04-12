@@ -257,14 +257,16 @@ class NlpWebViews(object):
                 proc_obj = None
                 for proc in Processor.processors.values():
                     # Made this case insensitive as someone might put e.g. 'CRP'
-                    # instead of 'Crp'
+                    # instead of 'Crp', but changing it back because some of
+                    # the GATE processors have the same name as the Python ones
+                    # only different case
                     if NKeys.VERSION in processor:
-                        if (proc.name.lower() == processor[NKeys.NAME].lower()
+                        if (proc.name == processor[NKeys.NAME]
                                 and proc.version == processor[NKeys.VERSION]):
                             proc_obj = proc
                             break
                     else:
-                        if (proc.name.lower() == processor[NKeys.NAME].lower()
+                        if (proc.name == processor[NKeys.NAME]
                                 and proc.is_default_version):
                             proc_obj = proc
                             break
@@ -388,12 +390,12 @@ class NlpWebViews(object):
                 proc_obj = None
                 for proc in Processor.processors.values():
                     if NKeys.VERSION in processor:
-                        if (proc.name.lower() == processor[NKeys.NAME].lower()
+                        if (proc.name == processor[NKeys.NAME]
                                 and proc.version == processor[NKeys.VERSION]):
                             proc_obj = proc
                             break
                     else:
-                        if (proc.name.lower() == processor[NKeys.NAME].lower()
+                        if (proc.name == processor[NKeys.NAME]
                                 and proc.is_default_version):
                             proc_obj = proc
                             break
