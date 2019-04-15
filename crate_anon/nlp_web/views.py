@@ -64,6 +64,7 @@ from crate_anon.nlp_web.tasks import (
     process_nlp_text_immediate,
 )
 
+
 def do_cprofile(func):
     def profiled_func(*args, **kwargs):
         profile = cProfile.Profile()
@@ -75,6 +76,7 @@ def do_cprofile(func):
         finally:
             profile.print_stats()
     return profiled_func
+
 
 class Error(object):
     """
@@ -159,7 +161,7 @@ class NlpWebViews(object):
             description = f"Args did not contain key '{key}'"
         return self.create_error_response(error, description)
 
-    @do_cprofile
+    # @do_cprofile
     @view_config(route_name='index')
     def index(self) -> Response:
         """
@@ -407,8 +409,8 @@ class NlpWebViews(object):
                     proc_obj = None
                     for proc in Processor.processors.values():
                         if NKeys.VERSION in processor:
-                             if (proc.name == processor[NKeys.NAME]
-                                    and proc.version == processor[NKeys.VERSION]):
+                            if (proc.name == processor[NKeys.NAME] and
+                                    proc.version == processor[NKeys.VERSION]):
                                 proc_obj = proc
                                 break
                         else:
@@ -474,7 +476,6 @@ class NlpWebViews(object):
                 doc.result_ids = json.dumps(result_ids)
                 DBSession.add(doc)
                 
-
         # Put all tasks in queue and get the job's id
         # job = group(docproc_tasks)
         # result = job.apply_async()
