@@ -29,6 +29,7 @@ import datetime
 import json
 from typing import Any, Dict, Iterable, List
 import uuid
+import cProfile
 
 from celery.result import AsyncResult
 from pyramid.view import view_config, view_defaults
@@ -63,6 +64,17 @@ from crate_anon.nlp_web.tasks import (
     process_nlp_text_immediate,
 )
 
+def do_cprofile(func):
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        try:
+            profile.enable()
+            result = func(*args, **kwargs)
+            profile.disable()
+            return result
+        finally:
+            profile.print_stats()
+    return profiled_func
 
 class Error(object):
     """
@@ -147,6 +159,7 @@ class NlpWebViews(object):
             description = f"Args did not contain key '{key}'"
         return self.create_error_response(error, description)
 
+    @do_cprofile
     @view_config(route_name='index')
     def index(self) -> Response:
         """
@@ -373,86 +386,95 @@ class NlpWebViews(object):
         # We must pass the password as a string to the task because it won;t
         # let us pass a bytes object
         crypt_pass = crypt_pass.decode()
-        for document in content:
-            # print(document[NKeys.METADATA]['brcid'])
-            doc_id = str(uuid.uuid4())
-            metadata = json.dumps(document.get(NKeys.METADATA, ""))
-            try:
-                doctext = document[NKeys.TEXT]
-            except KeyError:
-                error = BAD_REQUEST
-                self.request.response.status = error.http_status
-                description = f"Missing key {NKeys.TEXT!r} in {NKeys.CONTENT!r}"  # noqa
-                return self.create_error_response(error, description)
-            result_ids = []  # result ids for all procs for this doc
-            proc_ids = []
-            for processor in processors:
-                proc_obj = None
-                for proc in Processor.processors.values():
-                    if NKeys.VERSION in processor:
-                        if (proc.name == processor[NKeys.NAME]
-                                and proc.version == processor[NKeys.VERSION]):
-                            proc_obj = proc
-                            break
-                    else:
-                        if (proc.name == processor[NKeys.NAME]
-                                and proc.is_default_version):
-                            proc_obj = proc
-                            break
-                if not proc_obj:
+        docprocrequest_ids = []
+        docs = []
+        with transaction.manager:
+            for document in content:
+                # print(document[NKeys.METADATA]['brcid'])
+                doc_id = str(uuid.uuid4())
+                metadata = json.dumps(document.get(NKeys.METADATA, ""))
+                try:
+                    doctext = document[NKeys.TEXT]
+                except KeyError:
                     error = BAD_REQUEST
                     self.request.response.status = error.http_status
-                    description = (
-                        f"Processor {processor[NKeys.NAME]} "
-                        f"does not exist in the version specified"
-                    )
+                    description = f"Missing key {NKeys.TEXT!r} in {NKeys.CONTENT!r}"  # noqa
                     return self.create_error_response(error, description)
-                docprocreq_id = str(uuid.uuid4())
-                processor_id = proc_obj.processor_id
-                docprocreq = DocProcRequest(
-                    docprocrequest_id=docprocreq_id,
+                # result_ids = []  # result ids for all procs for this doc
+                proc_ids = []  # redo!
+                dpr_ids = []
+                for processor in processors:
+                    proc_obj = None
+                    for proc in Processor.processors.values():
+                        if NKeys.VERSION in processor:
+                             if (proc.name == processor[NKeys.NAME]
+                                    and proc.version == processor[NKeys.VERSION]):
+                                proc_obj = proc
+                                break
+                        else:
+                            if (proc.name == processor[NKeys.NAME]
+                                    and proc.is_default_version):
+                                proc_obj = proc
+                                break
+                    if not proc_obj:
+                        error = BAD_REQUEST
+                        self.request.response.status = error.http_status
+                        description = (
+                            f"Processor {processor[NKeys.NAME]} "
+                            f"does not exist in the version specified"
+                        )
+                        return self.create_error_response(error, description)
+                    docprocreq_id = str(uuid.uuid4())
+                    processor_id = proc_obj.processor_id
+                    docprocreq = DocProcRequest(
+                        docprocrequest_id=docprocreq_id,
+                        document_id=doc_id,
+                        doctext=doctext,
+                        processor_id=processor_id
+                    )
+                    proc_ids.append(processor_id)
+                    # Could put 'with transaction.manager' outside loop so
+                    # only commit once - Done
+                    # with transaction.manager:
+                    DBSession.add(docprocreq)
+                    dpr_ids.append(docprocreq_id)
+                    # result = process_nlp_text.delay(
+                    #     docprocrequest_id=docprocreq_id,
+                    #     url=GATE_BASE_URL,
+                    #     username=self.username,
+                    #     crypt_pass=crypt_pass
+                    # )
+                    # result_ids.append(result.id)
+                docprocrequest_ids.append(dpr_ids)
+                doc = Document(
                     document_id=doc_id,
                     doctext=doctext,
-                    processor_id=processor_id
-                )
-                proc_ids.append(processor_id)
-                # Could put 'with transaction.manager' outside loop so
-                # only commit once
-                with transaction.manager:
-                    DBSession.add(docprocreq)
-                result = process_nlp_text.delay(
-                    docprocrequest_id=docprocreq_id,
-                    url=GATE_BASE_URL,
+                    client_job_id=self.body.get(NKeys.CLIENT_JOB_ID, ""),
+                    queue_id=queue_id,
                     username=self.username,
-                    crypt_pass=crypt_pass
+                    processor_ids=json.dumps(proc_ids),
+                    client_metadata=metadata,
+                    # result_ids=json.dumps(result_ids),
+                    include_text=include_text
                 )
-                result_ids.append(result.id)
-                # Get the signature of the task. Have to be *really* careful
-                # about remembering the order here
-                # docproc_tasks.append(process_nlp_text.s(
-                #     docprocrequest_id=docprocreq_id,
-                #     url=URL,
-                #     username=self.username,
-                #     password=self.password
-                # ))
-            # if include_text not in (True, False):
-            #     error = BAD_REQUEST
-            #     self.request.response.status = error.http_status
-            #     description = "'include_text' must be boolean"
-            #     return self.create_error_response(error, description)
-            doc = Document(
-                document_id=doc_id,
-                doctext=doctext,
-                client_job_id=self.body.get(NKeys.CLIENT_JOB_ID, ""),
-                queue_id=queue_id,
-                username=self.username,
-                processor_ids=json.dumps(proc_ids),
-                client_metadata=metadata,
-                result_ids=json.dumps(result_ids),
-                include_text=include_text
-            )
-            with transaction.manager:
+                docs.append(doc)
+                # with transaction.manager:
+                #     DBSession.add(doc)
+        with transaction.manager:
+            for i, doc in enumerate(docs):
+                result_ids = []  # result ids for all procs for this doc
+                for dpr_id in docprocrequest_ids[i]:
+                    result = process_nlp_text.delay(
+                        docprocrequest_id=dpr_id,
+                        url=GATE_BASE_URL,
+                        username=self.username,
+                        crypt_pass=crypt_pass
+                    )
+                    result_ids.append(result.id)
+                doc.result_ids = json.dumps(result_ids)
                 DBSession.add(doc)
+                
+
         # Put all tasks in queue and get the job's id
         # job = group(docproc_tasks)
         # result = job.apply_async()
@@ -617,8 +639,6 @@ class NlpWebViews(object):
                      Document.client_job_id == client_job_id)
             )
         records = query.all()
-        for doc in records:
-            print(doc.queue_id)
         queue = []
         queue_ids = set([x.queue_id for x in records])
         for queue_id in queue_ids:

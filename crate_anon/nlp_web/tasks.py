@@ -36,15 +36,21 @@ import json
 from cryptography.fernet import Fernet
 from sqlalchemy import engine_from_config
 from typing import Optional, Tuple, Any, List, Dict
+from sqlalchemy.orm import scoped_session
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 # from crate_anon.nlp_manager.all_processors import make_processor
-from crate_anon.nlp_web.models import DBSession, DocProcRequest
+from crate_anon.nlp_web.models import Session, DocProcRequest
 from crate_anon.nlp_web.procs import Processor
 from crate_anon.nlp_web.constants import PROCTYPE_GATE, SETTINGS
 from crate_anon.nlp_web.security import decrypt_password
 
 log = logging.getLogger(__name__)
+
+TaskSession = scoped_session(Session)
+engine = engine_from_config(SETTINGS, 'sqlalchemy.')
+TaskSession.configure(bind=engine)
+
 
 try:
     broker_url = SETTINGS['broker_url']
@@ -76,9 +82,10 @@ def get_gate_results(results_dict: Dict[str, Any]) -> List[Any]:
                 'type': annottype,
                 'start': start,
                 'end': end,
+                'set': None,  # CHECK WHAT THIS SHOULD BE!!
                 # 'features': {x: features[x] for x in
                 #              features if x != "indices"}
-                'feaures': features
+                'features': features
             })
     return results
 
@@ -102,9 +109,9 @@ def process_nlp_text(
     """
     # time.sleep(10)
     # Can't figure out how not to have to do this everytime
-    engine = engine_from_config(SETTINGS, 'sqlalchemy.')
-    DBSession.configure(bind=engine)
-    query = DBSession.query(DocProcRequest).get(docprocrequest_id)
+    # engine = engine_from_config(SETTINGS, 'sqlalchemy.')
+    # DBSession.configure(bind=engine)
+    query = TaskSession.query(DocProcRequest).get(docprocrequest_id)
     # The above is probably wrong, but if we use a different session, the
     # data doesn't always reach the database in time
     if not query:
@@ -117,7 +124,7 @@ def process_nlp_text(
     processor_id = query.processor_id
     processor = Processor.processors[processor_id]
     # Delete docprocrequest from database
-    DBSession.delete(query)
+    TaskSession.delete(query)
     transaction.commit()
     if processor.proctype == PROCTYPE_GATE:
         return process_nlp_gate(text, processor, url, username, password)
@@ -167,7 +174,6 @@ def process_nlp_gate(text: str, processor: Processor, url: str,
                                  data=text,
                                  headers=headers,
                                  auth=(username, password))  # basic auth
-        print(response)
     except requests.exceptions.RequestException as e:
         log.error(e)
         return (
@@ -196,7 +202,6 @@ def process_nlp_gate(text: str, processor: Processor, url: str,
             datetime.datetime.utcnow()
         )
     results = get_gate_results(json_response)
-    print(results)
     return True, results, None, None, datetime.datetime.utcnow()
 
 
