@@ -124,7 +124,7 @@ processes.
 Therefore, in favour of NetLimiter_:
 
 - it's cheap (~$30/licence in 2019);
-- it provides a per-host unlimited-duration license;
+- it provides a per-host unlimited-duration licence;
 - if you're using Windows you're already in the domain of commercial software;
 - the cloud NLP facility of CRATE is the sort of thing you're likely to run on
   one big computer rather than lots of computers (so one licence should
