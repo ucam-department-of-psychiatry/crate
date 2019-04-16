@@ -478,6 +478,7 @@ def send_cloud_requests(
     """
     requests = []
     recnum = 0
+    i = 1  # number of requests sent
     totalcount = ifconfig.get_count()  # total number of records in table
     # Check processors are available
     available_procs = CloudRequest.list_processors(url,
@@ -527,6 +528,8 @@ def send_cloud_requests(
         else:
             if not empty_request:
                 cloud_request.send_process_request(queue)
+                log.info(f"Sent request to be processed: #{i}")
+                i += 1
                 requests.append(cloud_request)
             cloud_request = CloudRequest(
                 nlpdef=nlpdef,
@@ -561,6 +564,7 @@ def send_cloud_requests(
     if not empty_request:
         # Send last request
         cloud_request.send_process_request(queue)
+        log.info(f"Sent request to be processed: #{i}")
         requests.append(cloud_request)
     return requests
 
@@ -640,6 +644,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
         raise FileNotFoundError
     with open(filename, 'r') as request_data:
         reqdata = request_data.readlines()
+    i = 1  # number of requests
     with open(filename, 'w') as request_data:
         ifconfig_cache = {}  # type: Dict[str, InputFieldConfig]
         all_ready = True  # not necessarily true, but need for later
@@ -658,6 +663,8 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                                          allowable_procs=available_procs)
             cloud_request.set_mirror_processors(mirror_procs)
             cloud_request.set_queue_id(queue_id)
+            log.info(f"Atempting to retrieve data from request #{i} ...")
+            i += 1
             ready = cloud_request.check_if_ready()
 
             if not ready:
@@ -668,6 +675,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                 request_data.write(f"{if_section},{queue_id}\n")
                 all_ready = False
             else:
+                log.info("Request ready.")
                 cloud_request.process_all()
                 nlp_data = cloud_request.nlp_data
                 for result in nlp_data[NKeys.RESULTS]:

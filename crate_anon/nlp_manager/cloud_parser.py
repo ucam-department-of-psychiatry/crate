@@ -278,7 +278,6 @@ class CloudRequest(object):
         except json.decoder.JSONDecodeError:
             log.error("Reply was not JSON")
             raise
-        # print(json_response)
         status = json_response[NKeys.STATUS]
         # print(status)
         if queue:
@@ -286,6 +285,7 @@ class CloudRequest(object):
                 self.queue_id = json_response[NKeys.QUEUE_ID]
                 self.fetched = False
             else:
+                log.error(f"Response from server: {json_response}")
                 raise HTTPError(f"Got HTTP status code {status}.")
         else:
             if status == HttpStatus.OK:
