@@ -17,6 +17,15 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
+.. _NetLimiter: https://www.netlimiter.com/
+.. _requests: http://docs.python-requests.org
+.. _ThrottlingFactory: https://twistedmatrix.com/documents/current/api/twisted.protocols.policies.ThrottlingFactory.html
+.. _treq: https://treq.readthedocs.io/
+.. _trickle: https://www.usenix.org/legacy/event/usenix05/tech/freenix/full_papers/eriksen/eriksen.pdf
+.. _Twisted: https://twistedmatrix.com/
+.. _txrequests: https://pypi.org/project/txrequests/
+
+
 Run the NLP
 -----------
 
@@ -75,3 +84,54 @@ Options as of 2017-02-28:
 
 ..  literalinclude:: crate_nlp_multiprocess_help.txt
     :language: none
+
+
+Limiting the network bandwidth used by cloud NLP
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Cloud-based NLP may involve sending large quantities of text (de-identified and
+encrypted en route) to a distant server. If you have limited network bandwidth,
+you may want to cap the bandwidth used by CRATE (at the price of speed).
+
+**Under Linux,** use trickle_. Here's how:
+
+.. code-block:: bash
+
+    # Install with e.g. "sudo apt install trickle", then see "man trickle".
+    # Source code is at https://github.com/mariusae/trickle.
+    # Example with limits of 500 KB/s download, 200 KB/s upload:
+    trickle -s -d 500 -u 200 crate_nlp <OPTIONS>
+
+**Under Windows,** use NetLimiter_. The rationale is as follows.
+
+Under Windows, the choice is less obvious. A commercial opton is NetLimiter_,
+but there is no direct equivalent of trickle_. Python options require quite a
+bit of network code redesign; e.g.
+
+- https://stackoverflow.com/questions/3488616/bandwidth-throttling-in-python
+- https://stackoverflow.com/questions/17691231/how-to-limit-download-rate-of-http-requests-in-requests-python-library
+- https://stackoverflow.com/questions/20247354/limiting-throttling-the-rate-of-http-requests-in-grequests
+- https://stackoverflow.com/questions/13047458/bandwidth-throttling-using-twisted
+
+but with the exception of rewriting network code to use Twisted_ rather than
+requests_, none of these open-source methods address the general-purposes
+bandwidth limitation challenge addressed by trickle_. The best option might be
+txrequests_ or treq_ plus bandwidth limitation via Twisted_ through its
+ThrottlingFactory_, but this doesn't look entirely simple (see links above).
+Even with that, it'd be hard to coordinate bandwidth limits across multiple
+processes.
+
+Therefore, in favour of NetLimiter_:
+
+- it's cheap (~$30/licence in 2019);
+- it provides a per-host unlimited-duration license;
+- if you're using Windows you're already in the domain of commercial software;
+- the cloud NLP facility of CRATE is the sort of thing you're likely to run on
+  one big computer rather than lots of computers (so one licence should
+  suffice);
+- its filters are very flexible (including time-of-day restrictions and the
+  ability to group applications);
+- the alternatives would involve substantial development effort for lesser
+  benefit;
+
+... so NetLimiter_ seems like the most cost-effective option.
