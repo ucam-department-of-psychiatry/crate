@@ -856,6 +856,11 @@ Changes
 - Bugfixes to :func:`crate_anon.nlp_manager.nlp_manager.send_cloud_requests`
   and :meth:`crate_anon.nlp_web.views.NlpWebViews.show_queue`.
 
+**v0.18.70, 2019-04-17**
+
+- PyPI distribution properly contains ``nlprp`` directory.
+
+
 
 .. rubric:: Footnotes
 

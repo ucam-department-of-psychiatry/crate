@@ -119,6 +119,7 @@ EXTRAS_ARG = 'extras'
 
 # Directories
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))  # .../crate
+CRATE_ANON_ROOT_DIR_NAME = "crate_anon"
 CRATE_ROOT_DIR = os.path.join(THIS_DIR, "crate_anon")  # .../crate/crate_anon/
 # DOC_ROOT_DIR = os.path.join(CRATE_ROOT_DIR, "docs")
 DOC_ROOT_DIR = os.path.join(THIS_DIR, "docs")
@@ -276,6 +277,7 @@ if getattr(our_args, EXTRAS_ARG):
     add_all_files(os.path.join(CRATE_ROOT_DIR, 'nlp_manager'),
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)
+    # ... for the Java
     add_all_files(os.path.join(CRATE_ROOT_DIR, 'testdocs_for_text_extraction'),
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)
@@ -352,7 +354,9 @@ setup(
 
     keywords='anonymisation',
 
-    packages=find_packages(),  # finds all the .py files in subdirectories
+    packages=find_packages(),
+    # finds all the .py files in subdirectories, as long as there are
+    # __init__.py files
 
     package_data={
         'crate_anon': extra_files,
