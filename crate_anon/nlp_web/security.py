@@ -49,7 +49,7 @@ def generate_encryption_key() -> None:
     To be called via the command line.
     """
     key = Fernet.generate_key()
-    print(key)
+    print(key.decode())
 
 
 def encrypt_password(password: str) -> bytes:

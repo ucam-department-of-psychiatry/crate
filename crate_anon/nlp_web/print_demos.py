@@ -26,12 +26,36 @@ crate_anon/nlp_web/print_demo_config.py
 
 Prints a demo config for CRATE's implementation of an NLPRP server.
 """
+import argparse
+import logging
 
-from crate_anon.nlp_web.constants import DEMO_CONFIG
+from crate_anon.nlp_web.constants import DEMO_CONFIG, DEMO_PROCESSORS
 
+log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 def main() -> None:
     """
-    Prints a config file for the NLPRP server.
+    Command line entry point.
     """
-    print(DEMO_CONFIG)
+    description = ("Print demo config file or demo processor constants file "
+                   "for server side cloud nlp.")
+    parser = argparse.ArgumentParser(
+        description=description,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    arg_group = parser.add_mutually_exclusive_group()
+    arg_group.add_argument(
+        "--config", action="store_true",
+        help="Print a demo config file for server side cloud nlp.")
+    arg_group.add_argument(
+        "--processors", action="store_true",
+        help="Print a demo processor constants file for server side cloud "
+             "nlp.")
+    args = parser.parse_args()
+
+    if args.config:
+        print(DEMO_CONFIG)
+    elif args.processors:
+        print(DEMO_PROCESSORS)
+    else:
+        log.error("One option required: '--config' or '--processors'.")

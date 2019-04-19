@@ -26,21 +26,26 @@ crate_anon/nlp_web/procs.py
 """
 
 from typing import Optional
+import importlib.util
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.all_processors import make_processor
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 from crate_anon.nlp_web.constants import (
     KEY_PROCTYPE,
-    PROCESSORS,
-    # KEY_PROCPATH,
-    # SETTINGS,
+    # PROCESSORS,
+    KEY_PROCPATH,
+    SETTINGS,
     PROCTYPE_GATE,
 )
 
-# processor_file = SETTINGS[KEY_PROCPATH]
+proc_file = SETTINGS[KEY_PROCPATH]
 # from processor_file import PROCESSORS  # doesn't work, need importlib
 
+# Import the processors module using the full path as it is configurable
+spec = importlib.util.spec_from_file_location("processors", proc_file)
+processors = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(processors)
 
 class Processor(object):
     """
@@ -97,7 +102,7 @@ class Processor(object):
         # else: do nothing
 
 
-for proc in PROCESSORS:
+for proc in processors.PROCESSORS:
     Processor(
         name=proc[NKeys.NAME],
         title=proc[NKeys.TITLE],
