@@ -496,3 +496,9 @@ class NlpDefinition(object):
         time-stamp NLP runs.
         """
         return self._now
+
+    def get_progdb(self) -> DatabaseHolder:
+        """
+        Returns the progress database.
+        """
+        return self._progdb

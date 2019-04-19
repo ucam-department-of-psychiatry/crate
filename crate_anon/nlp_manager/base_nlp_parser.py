@@ -52,6 +52,7 @@ from crate_anon.nlp_manager.constants import (
     FN_SRCPKSTR,
 )
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
+from crate_anon.anonymise.dbholder import DatabaseHolder
 
 # if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
 #     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
@@ -591,3 +592,9 @@ class BaseNlpParser(object):
                 log.debug("... deleting all")
             destsession.execute(dest_deletion_query)
             self._nlpdef.commit(destsession)
+
+    def get_destdb(self) -> DatabaseHolder:
+        """
+        Returns the destination database.
+        """
+        return self._destdb
