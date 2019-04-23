@@ -421,8 +421,9 @@ setup(
             'crate_list_all_extensions=cardinal_pythonlib.tools.list_all_extensions:main',  # noqa
             'crate_merge_csv=cardinal_pythonlib.tools.merge_csv:main',
             'nlp_web_initialize_db = crate_anon.nlp_web.initialize_db:main',
-            'nlp_web_print_demo_config = crate_anon.nlp_web.print_demo_config:main',  # noqa
-            'nlp_web_manage_users = crate_anon.nlp_web.manage_users:main'
+            'nlp_web_print_demo = crate_anon.nlp_web.print_demos:main',  # noqa
+            'nlp_web_manage_users = crate_anon.nlp_web.manage_users:main',
+            'nlp_web_generate_encryption_key=crate_anon.nlp_web.security:generate_encryption_key'  #noqa
 
         ],
         # Entry point for nlp web

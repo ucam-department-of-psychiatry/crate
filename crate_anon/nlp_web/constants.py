@@ -33,12 +33,22 @@ import os
 from pyramid.paster import get_appsettings
 from pyramid.config import Configurator
 
-from crate_anon.nlprp.constants import NlprpKeys as NKeys
-
-# KEY_PROCPATH = "processors_path"
+KEY_PROCPATH = "processors_path"
 
 KEY_PROCTYPE = "proctype"
 PROCTYPE_GATE = "GATE"
+
+
+# Demo of processors file, which will then be configurable
+DEMO_PROCESSORS = """
+from crate_anon.nlprp.constants import NlprpKeys as NKeys
+from crate_anon.nlp_web.constants import (
+    KEY_PROCTYPE,
+    PROCTYPE_GATE,
+)
+
+# Processors correct as of 19/04/2019
+
 PYTHONPROCSVERSION = "1.0"
 VALIDATOR_DESCR = (
     "The validator will find fields that refer to the variable, "
@@ -428,6 +438,7 @@ PROCESSORS = [
         NKeys.DESCRIPTION: VALIDATOR_DESCR
     },
 ]
+"""
 
 # Not doing the following because then the procs won't be in correct order:
 
@@ -466,9 +477,16 @@ sqlalchemy.url = mysql://username:password@localhost/dbname?charset=utf8
 # Absolute path of users file
 users_file = /home/.../nlp_web_files/users.txt
 
+# Absolute path of processors file - this must be a .py file in the correct
+# format
+processors_path = /home/.../nlp_web_files/processor_constants.py
+
 # urls for queueing
 broker_url = amqp://@localhost:3306/testbroker
 backend_url = db+mysql://username:password@localhost/backenddbname?charset=utf8
+
+# Key for reversible encryption. Use 'nlp_web_generate_encryption_key'.
+encryption_key =
 
 [server:main]
 use = egg:waitress#main

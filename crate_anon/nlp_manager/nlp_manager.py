@@ -249,6 +249,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
         'session': nlpdef.get_progdb_session(),
         'engine': nlpdef.get_progdb_engine(),
         'metadata': nlpdef.get_progdb_metadata(),
+        'db': nlpdef.get_progdb(),
         'temptable': None,  # type: Table
     }]
 
@@ -261,6 +262,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
             'session': session,
             'engine': processor.get_engine(),
             'metadata': processor.get_metadata(),
+            'db': processor.get_destdb(),
         })
 
     # Make a temporary table in each database (note: the Table objects become
@@ -330,6 +332,11 @@ def delete_where_no_source(nlpdef: NlpDefinition,
 
     # Commit
     commit()
+
+    # Update metadata to reflect the fact that the temporary tables have been
+    # dropped
+    for database in databases:
+        database['db'].update_metadata()
 
 
 # =============================================================================

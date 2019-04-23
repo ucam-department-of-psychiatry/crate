@@ -97,6 +97,12 @@ class DatabaseHolder(object):
         self._table_names = [t.name for t in self._metadata.sorted_tables]
         self._reflected = True
 
+    def update_metadata(self) -> None:
+        """
+        Updates the metadata, for example if a table has been dropped.
+        """
+        self._metadata = MetaData(bind=self.engine)
+
     @property
     def metadata(self) -> MetaData:
         """
