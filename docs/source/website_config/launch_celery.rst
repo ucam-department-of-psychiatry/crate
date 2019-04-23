@@ -22,6 +22,7 @@
 .. _Flower: http://flower.readthedocs.io/
 .. _RabbitMQ: https://www.rabbitmq.com/
 
+
 Launch Celery
 =============
 
@@ -79,6 +80,7 @@ This command has no options. It launches the Celery Flower_ tool, which is for
 monitoring Celery. It starts a local web server (by default on port 5555; see
 :ref:`TCP/IP ports <tcpip_ports>`); if you browse to http://localhost:5555/ or
 http://127.0.0.1:5555/, you can see what's happening on your Celery system.
+
 
 See also
 --------

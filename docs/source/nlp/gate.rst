@@ -24,6 +24,7 @@
 .. |specimen| replace::
     See the :ref:`specimen CRATE NLP config file <specimen_nlp_config>`.
 
+
 .. _gate_nlp:
 
 GATE NLP applications
@@ -39,6 +40,7 @@ corresponding to the expected destination fields.
 
 The `CrateGatePipeline.java` program takes arguments that describe how a
 specific GATE application should be handled.
+
 
 Output columns
 ~~~~~~~~~~~~~~
@@ -80,6 +82,7 @@ column names. For example, the demonstration GATE Person app generates these:
 You tell CRATE about the specific fields produced by a GATE application using
 the ``destfields`` option; see the :ref:`NLP config file <nlp_config>`.
 
+
 KConnect (Bio-YODIE)
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -93,6 +96,7 @@ This GATE application finds diseases.
 
 |specimen|
 
+
 KCL pharmacotherapy application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -105,6 +109,7 @@ This GATE application finds drugs (medications).
 |testapp|
 
 |specimen|
+
 
 KCL Lewy Body Diagnosis Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -234,6 +239,7 @@ Asking `CrateGatePipeline` to run the GATE “ANNIE” demonstration:
         -v -v
 
 
+===============================================================================
 
 .. rubric:: Footnotes
 

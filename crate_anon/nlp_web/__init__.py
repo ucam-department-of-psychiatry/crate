@@ -23,6 +23,10 @@ crate_anon/nlp_web/__init__.py
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+Init file for ``crate_anon.nlp_web`` module, with :func:`main` that returns a
+WSGI application implementing CRATE's built-in :ref:`NLPRP <nlprp>` server.
+
 """
 
 from typing import Dict, Any

@@ -105,6 +105,8 @@ Glossary
   unlike the :ref:`RID <rid>` or :ref:`MRID <mrid>`.
 
 
+===============================================================================
+
 .. rubric:: Footnotes
 
 .. [#sql]

@@ -20,6 +20,7 @@
 .. _Celery: http://www.celeryproject.org/
 .. _CherryPy: https://cherrypy.org/
 
+
 .. _windows_service:
 
 CRATE Windows service
@@ -39,26 +40,11 @@ Logs from the CRATE processes (Celery, CherryPy/Django) go to the normal disk
 logs. However, output from the service itself goes to the Windows logs: see
 :menuselection:`Event Viewer --> Windows Logs --> Application`.
 
+
 crate_windows_service
 ---------------------
 
 Options as of 2016-07-21:
 
-.. code-block:: none
-
-    usage: 'crate_windows_service-script.py [options] install|update|remove|start [...]|stop|restart [...]|debug [...]'
-    Options for 'install' and 'update' commands only:
-     --username domain\username : The Username the service is to run under
-     --password password : The password for the username
-     --startup [manual|auto|disabled|delayed] : How the service starts, default = manual
-     --interactive : Allow the service to interact with the desktop.
-     --perfmonini file: .ini file to use for registering performance monitor data
-     --perfmondll file: .dll file to use when querying the service for
-       performance data, default = perfmondata.dll
-    Options for 'start' and 'stop' commands only:
-     --wait seconds: Wait for the service to actually start or stop.
-                     If you specify --wait with the 'stop' option, the service
-                     and all dependent services will be stopped, each waiting
-                     the specified period.
-
-    # The ‘debug’ option runs a service in debugging mode so you can see what it’s doing.
+..  literalinclude:: crate_windows_service_help.txt
+    :language: none

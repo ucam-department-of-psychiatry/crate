@@ -183,6 +183,8 @@ are:
   a XLSX spreadsheet.
 
 
+===============================================================================
+
 .. rubric:: Footnotes
 
 .. [#crisquerylayout]

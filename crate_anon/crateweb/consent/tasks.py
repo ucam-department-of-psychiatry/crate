@@ -208,7 +208,7 @@ def process_consent_change(consent_mode_id: int) -> None:
     :class:`crate_anon.crateweb.consent.models.ConsentMode`,
     if ``current == True`` and ``needs_processing == True``.
 
-    .. todo: don't process twice
+    .. todo:: don't process twice
 
     Args:
         consent_mode_id: PK of the consent mode

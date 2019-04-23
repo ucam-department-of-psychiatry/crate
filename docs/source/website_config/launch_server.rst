@@ -24,7 +24,6 @@
 Launch the CRATE web server
 ===========================
 
-
 .. _crate_launch_cherrypy_server:
 
 crate_launch_cherrypy_server

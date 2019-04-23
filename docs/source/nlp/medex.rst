@@ -29,6 +29,7 @@ Java program (`CrateMedexPipeline.java`) that loads the MedEx app, sends text to
 it (via a temporary disk file, for reasons relating to MedEx-UIMA’s internal
 workings), and returns answers.
 
+
 Installation
 ~~~~~~~~~~~~
 
@@ -127,16 +128,6 @@ Options as of 2017-02-28:
     :language: none
 
 
-.. rubric:: Footnotes
-
-.. [#medexpub]
-    MedEx UIMA reference publication:
-    https://www.ncbi.nlm.nih.gov/pubmed/25954575
-
-.. [#medexdl]
-    MedEx-UIMA downloads: https://sbmi.uth.edu/ccb/resources/medex.htm
-
-
 CrateMedexPipeline
 ~~~~~~~~~~~~~~~~~~
 
@@ -160,3 +151,15 @@ The resulting output (2019-03-28):
 
 ..  literalinclude:: CrateMedexPipeline_help.txt
     :language: none
+
+
+===============================================================================
+
+.. rubric:: Footnotes
+
+.. [#medexpub]
+    MedEx UIMA reference publication:
+    https://www.ncbi.nlm.nih.gov/pubmed/25954575
+
+.. [#medexdl]
+    MedEx-UIMA downloads: https://sbmi.uth.edu/ccb/resources/medex.htm

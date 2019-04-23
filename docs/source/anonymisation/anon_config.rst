@@ -50,6 +50,7 @@ You should save this, then edit it to your own needs.
 For convenience, you may want the `CRATE_ANON_CONFIG` environment variable to
 point to this file. (Otherwise you must specify it each time.)
 
+
 Format of the configuration file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -103,6 +104,7 @@ sqlatype_pid
 
 See :ref:`sqlatype_mpid <anon_config_sqlatype_mpid>` below.
 
+
 .. _anon_config_sqlatype_mpid:
 
 sqlatype_mpid
@@ -133,12 +135,14 @@ PID-to-RID hashing method. Options are:
 - ``HMAC_SHA256`` -- use SHA256_ and produce a 64-character digest
 - ``HMAC_SHA512`` -- use SHA512_ and produce a 128-character digest
 
+
 per_table_patient_id_encryption_phrase
 ######################################
 
 *String.*
 
 Secret phrase with which to hash the PID (creating the RID).
+
 
 master_patient_id_encryption_phrase
 ###################################
@@ -147,6 +151,7 @@ master_patient_id_encryption_phrase
 
 Secret phrase with which to hash the MPID (creating the MRID).
 
+
 change_detection_encryption_phrase
 ##################################
 
@@ -154,6 +159,7 @@ change_detection_encryption_phrase
 
 Secret phrase with which to hash content (storing the result in the output
 database), so that changes in content can be detected.
+
 
 .. _anon_config_extra_hash_config_sections:
 
@@ -199,6 +205,7 @@ you might leak identifiable information, such as a photo).
 - Case sensitivity is controlled by the extra flag,
   ``extract_text_extensions_case_sensitive``.
 
+
 extract_text_extensions_prohibited
 ##################################
 
@@ -207,6 +214,7 @@ extract_text_extensions_prohibited
 See :ref:`extract_text_extensions_permitted
 <anon_config_extract_text_extensions_permitted>`.
 
+
 extract_text_extensions_case_sensitive
 ######################################
 
@@ -214,6 +222,7 @@ extract_text_extensions_case_sensitive
 
 See :ref:`extract_text_extensions_permitted
 <anon_config_extract_text_extensions_permitted>`.
+
 
 extract_text_plain
 ##################
@@ -246,6 +255,7 @@ Use the plainest possible layout for text extraction?
 ... note the absence of vertical interruptions, and that text from one cell
 remains contiguous.
 
+
 extract_text_width
 ##################
 
@@ -266,6 +276,7 @@ Patient information will be replaced with this. For example, ``XXXXXX`` or
 ``[___]`` or ``[__PPP__]`` or ``[__ZZZ__]``; the bracketed forms can be a bit
 easier to spot, and work better if they directly abut other text.
 
+
 replace_third_party_info_with
 #############################
 
@@ -274,6 +285,7 @@ replace_third_party_info_with
 Third-party information (e.g. information about family members) will be
 replaced by this. For example, ``YYYYYY`` or ``[...]`` or ``[__TTT__]`` or
 ``[__QQQ__]``.
+
 
 thirdparty_xref_max_depth
 #########################
@@ -285,6 +297,7 @@ For fields marked as ``scrub_src = thirdparty_xref_pid`` (see :ref:`scrub_src
 recursion trawls a lot of information (and also uses an extra simultaneous
 database cursor for each recursion).
 
+
 replace_nonspecific_info_with
 #############################
 
@@ -293,6 +306,7 @@ replace_nonspecific_info_with
 Things to be removed irrespective of patient-specific information will be
 replaced by this (for example, if you opt to remove all things looking like
 telephone numbers). For example, ``ZZZZZZ`` or ``[~~~]``.
+
 
 scrub_string_suffixes
 #####################
@@ -307,6 +321,7 @@ For example, include "s" if you want to scrub "Roberts" whenever you scrub
 Applies to scrub methods ``words``, but not to ``phrase`` (see
 :ref:`scrub_method <dd_scrub_method>`).
 
+
 .. _anon_config_string_max_regex_errors:
 
 string_max_regex_errors
@@ -316,6 +331,7 @@ string_max_regex_errors
 
 Specify maximum number of errors (insertions, deletions, substitutions) in
 string regex matching. Beware using a high number! Suggest 1-2.
+
 
 min_string_length_for_errors
 ############################
@@ -327,6 +343,7 @@ Is there a minimum length to apply :ref:`string_max_regex_errors
 someone is called Ian, all instances of 'in' or 'an' will be wiped. Note that
 this applies to scrub-source data.
 
+
 min_string_length_to_scrub_with
 ###############################
 
@@ -336,6 +353,7 @@ Is there a minimum length of string to scrub WITH? For example, if you specify
 2, you allow two-letter names such as Al to be scrubbed, but you allow initials
 through, and therefore prevent e.g. 'A' from being scrubbed from the
 destination. Note that this applies to scrub-source data.
+
 
 whitelist_filenames
 ###################
@@ -388,6 +406,7 @@ Here's a suggestion for some of the sorts of words you might include:
     road
     street
 
+
 blacklist_filenames
 ###################
 
@@ -406,6 +425,7 @@ Specify these as a list of filenames, e.g
         /some/path/girl_names.txt
         /some/path/common_surnames.txt
 
+
 phrase_alternative_word_filenames
 #################################
 
@@ -417,6 +437,7 @@ variable (CSV) form.
 
 Examples of alternative words include street types:
 https://en.wikipedia.org/wiki/Street_suffix.
+
 
 scrub_all_numbers_of_n_digits
 #############################
@@ -431,6 +452,7 @@ numbers in conventional format. To do this, specify
 numbers by specifying both numbers (in multiline format, as above); 10-digit
 numbers would include all NHS numbers. Avoid using this for short numbers; you
 may lose valuable numeric data!
+
 
 scrub_all_uk_postcodes
 ######################
@@ -451,6 +473,7 @@ See https://www.mrs.org.uk/pdf/postcodeformat.pdf; these can look like
     ANA NAA   W1A 1HQ
     AANA NAA  EC1A 1BB
 
+
 .. _anon_config_anonymise_codes_at_word_boundaries_only:
 
 anonymise_codes_at_word_boundaries_only
@@ -469,6 +492,7 @@ with accidental word concatenation. With ID numbers, beware if you use a
 prefix, e.g. if people write ``M123456`` or ``R123456``; in that case you will
 need ``anonymise_numbers_at_word_boundaries_only = False``.
 
+
 anonymise_dates_at_word_boundaries_only
 #######################################
 
@@ -477,6 +501,7 @@ anonymise_dates_at_word_boundaries_only
 As for :ref:`anonymise_codes_at_word_boundaries_only
 <anon_config_anonymise_codes_at_word_boundaries_only>`, but applies to the
 ``date`` scrub method (see :ref:`scrub_method <dd_scrub_method>`).
+
 
 .. _anon_config_anonymise_numbers_at_word_boundaries_only:
 
@@ -488,6 +513,7 @@ anonymise_numbers_at_word_boundaries_only
 As for :ref:`anonymise_codes_at_word_boundaries_only
 <anon_config_anonymise_codes_at_word_boundaries_only>`, but applies to the
 ``number`` scrub method (see :ref:`scrub_method <dd_scrub_method>`).
+
 
 anonymise_numbers_at_numeric_boundaries_only
 ############################################
@@ -504,6 +530,7 @@ If ``True``, CRATE will not scrub "234" from "123456". Setting this to
 ``False`` is extremely conservative (all sorts of numbers may be scrubbed). You
 probably want this set to ``True``.
 
+
 anonymise_strings_at_word_boundaries_only
 #########################################
 
@@ -513,6 +540,7 @@ As for :ref:`anonymise_codes_at_word_boundaries_only
 <anon_config_anonymise_codes_at_word_boundaries_only>`, but applies to the
 ``words`` and the ``phrase`` scrub methods (see :ref:`scrub_method
 <dd_scrub_method>`).
+
 
 timefield_name
 ##############
@@ -538,6 +566,7 @@ Research ID (RID) field name for destination tables. This will be a ``VARCHAR``
 of length determined by :ref:`hash_method <anon_config_hash_method>`. Used to
 replace patient ID fields from source tables.
 
+
 trid_fieldname
 ##############
 
@@ -546,6 +575,7 @@ trid_fieldname
 Transient integer research ID (TRID) fieldname. An unsigned integer field with
 this name will be added to every table containing a primary patient ID (in the
 source) or research ID (in the destination).
+
 
 master_research_id_fieldname
 ############################
@@ -557,6 +587,7 @@ Master research ID (MRID) field name for destination tables. This will be a
 <anon_config_hash_method>`. Used to replace master patient ID fields from
 source tables.
 
+
 source_hash_fieldname
 #####################
 
@@ -566,6 +597,7 @@ Change-detection hash fieldname for destination tables. This will be a
 ``VARCHAR`` of length determined by :ref:`hash_method
 <anon_config_hash_method>`. Used to hash entire rows to see if they've changed
 later.
+
 
 ddgen_append_source_info_to_comment
 ###################################
@@ -588,6 +620,7 @@ Specify the maximum number of rows to be processed before a ``COMMIT`` is
 issued on the database transaction(s). This prevents the transaction(s) growing
 too large.
 
+
 max_bytes_before_commit
 #######################
 
@@ -598,6 +631,7 @@ processed before a ``COMMIT`` is issued on the database transaction(s). This
 prevents the transaction(s) growing too large. The ``COMMIT`` will be issued
 *after* this limit has been met/exceeded, so it may be exceeded if the
 transaction just before the limit takes the cumulative total over the limit.
+
 
 temporary_tablename
 ###################
@@ -615,6 +649,7 @@ Parameter values in this section are themselves config file section names.
 For example, if you refer to a database called ``mydb``, CRATE will look for a
 :ref:`database config section <anon_config_db_section>` named ``[mydb]``.
 
+
 source_databases
 ################
 
@@ -622,12 +657,14 @@ source_databases
 
 Source database list. Can be lots.
 
+
 destination_database
 ####################
 
 *String (a database config section name).*
 
 Destination database. Just one.
+
 
 admin_database
 ##############
@@ -649,6 +686,7 @@ debug_max_n_patients
 
 Limit the number of patients to be processed? Specify 0 (the default) for no
 limit.
+
 
 debug_pid_list
 ##############
@@ -677,6 +715,7 @@ CRATE. It can be populated in several ways:
 4. By flagging a source database field as indicating an opt-out, using the
    ``!`` marker in :ref:`src_flags <dd_src_flags>`). See below.
 
+
 optout_pid_filenames
 ####################
 
@@ -685,6 +724,7 @@ optout_pid_filenames
 If you set this, each line of each named file is scanned for an integer, taken
 to be the PID of a patient who wishes to opt out.
 
+
 optout_mpid_filenames
 #####################
 
@@ -692,6 +732,7 @@ optout_mpid_filenames
 
 If you set this, each line of each named file is scanned for an integer, taken
 to be the MPID of a patient who wishes to opt out.
+
 
 optout_col_values
 #################
@@ -766,6 +807,7 @@ Wildcards (``*`` and ``?``) may also be used (as per Python's fnmatch_). Thus,
 one can write specifications like ``addr*.address_line_*`` to match all of
 ``address_current.address_line_1``, ``address_previous.address_line_4``, etc.
 
+
 ddgen_omit_by_default
 #####################
 
@@ -776,6 +818,7 @@ By default, most fields (except PKs and patient ID codes) are marked as
 to live dangerously, set this to False, and they will be marked as ``include``
 from the outset.
 
+
 ddgen_omit_fields
 #################
 
@@ -784,6 +827,7 @@ ddgen_omit_fields
 You can specify additional fields to omit (see :ref:`decision <dd_decision>`)
 here. Settings here override :ref:`ddgen_include_fields
 <anon_config_ddgen_include_fields>` -- that is, "omit" overrides "include".
+
 
 .. _anon_config_ddgen_include_fields:
 
@@ -799,12 +843,14 @@ If a field contains scrubbing source information (see :ref:`scrub_src
 <dd_scrub_src>`), it will also be omitted pending human review, regardless of
 other settings.
 
+
 ddgen_allow_no_patient_info
 ############################
 
 *Boolean.* Default: false.
 
 Allow the absence of patient info? Used to copy databases; WILL NOT ANONYMISE.
+
 
 ddgen_per_table_pid_field
 #########################
@@ -814,6 +860,7 @@ ddgen_per_table_pid_field
 Specify the name of a (typically integer) patient identifier (PID) field
 present in EVERY table. It will be replaced by the research ID (RID) in the
 destination database.
+
 
 ddgen_add_per_table_pids_to_scrubber
 ####################################
@@ -830,6 +877,7 @@ master "PID-defining" column (see :ref:`ddgen_pid_defining_fieldnames
 whether the scrubber used to scrub free-text fields also works through every
 single per-table PID.)
 
+
 ddgen_master_pid_fieldname
 ##########################
 
@@ -837,6 +885,7 @@ ddgen_master_pid_fieldname
 
 Master patient ID fieldname. Used for e.g. NHS numbers. This information will
 be replaced by the MRID in the destination database.
+
 
 ddgen_table_blacklist
 #####################
@@ -848,12 +897,14 @@ Blacklist any tables when creating new data dictionaries?
 This is case-insensitive, and you can use ``*`` and ``?`` wildcards (as per
 Python's fnmatch_ module).
 
+
 ddgen_table_whitelist
 #####################
 
 *Multiline string.*
 
 Whitelist any tables? (Whitelists override blacklists.)
+
 
 ddgen_table_require_field_absolute
 ##################################
@@ -862,6 +913,7 @@ ddgen_table_require_field_absolute
 
 List any fields that all tables MUST contain. If a table doesn't contain all of
 the field(s) listed here, it will be skipped.
+
 
 ddgen_table_require_field_conditional
 #####################################
@@ -872,6 +924,7 @@ List any fields that are required conditional on other fields. List them as one
 or more pairs: ``A, B`` where B is required if A is present (or the table will
 be skipped).
 
+
 ddgen_field_blacklist
 #####################
 
@@ -880,6 +933,7 @@ ddgen_field_blacklist
 Blacklist any fields (regardless of their table) when creating new data
 dictionaries? Wildcards of ``*`` and ``?`` operate as above.
 
+
 ddgen_field_whitelist
 #####################
 
@@ -887,12 +941,14 @@ ddgen_field_whitelist
 
 Whitelist any fields? (Whitelists override blacklists.)
 
+
 ddgen_pk_fields
 ###############
 
 *Multiline string.*
 
 Fieldnames assumed to be their table's PK.
+
 
 .. _anon_config_ddgen_constant_content:
 
@@ -912,6 +968,7 @@ then becomes the default, after which :ref:`ddgen_constant_content_tables
 <anon_config_ddgen_nonconstant_content_tables>` takes priority if a table
 matches both).
 
+
 .. _anon_config_ddgen_constant_content_tables:
 
 ddgen_constant_content_tables
@@ -922,6 +979,7 @@ ddgen_constant_content_tables
 Table-specific overrides for :ref:`ddgen_constant_content
 <anon_config_ddgen_constant_content>`, as above.
 
+
 .. _anon_config_ddgen_nonconstant_content_tables:
 
 ddgen_nonconstant_content_tables
@@ -929,6 +987,7 @@ ddgen_nonconstant_content_tables
 
 Table-specific overrides for :ref:`ddgen_constant_content
 <anon_config_ddgen_constant_content>`, as above.
+
 
 .. _anon_config_ddgen_addition_only:
 
@@ -939,6 +998,7 @@ ddgen_addition_only
 
 Assume that records can only be added, not deleted?
 
+
 ddgen_addition_only_tables
 ##########################
 
@@ -947,6 +1007,7 @@ ddgen_addition_only_tables
 Table-specific overrides for :ref:`ddgen_addition_only
 <anon_config_ddgen_addition_only>`, similarly.
 
+
 ddgen_deletion_possible_tables
 ##############################
 
@@ -954,6 +1015,7 @@ ddgen_deletion_possible_tables
 
 Table-specific overrides for :ref:`ddgen_addition_only
 <anon_config_ddgen_addition_only>`, similarly.
+
 
 .. _anon_config_ddgen_pid_defining_fieldnames:
 
@@ -965,6 +1027,7 @@ ddgen_pid_defining_fieldnames
 Predefine field(s) that define the existence of patient IDs? UNUSUAL to want to
 do this.
 
+
 ddgen_scrubsrc_patient_fields
 #############################
 
@@ -972,12 +1035,14 @@ ddgen_scrubsrc_patient_fields
 
 Field names assumed to provide patient information for scrubbing.
 
+
 ddgen_scrubsrc_thirdparty_fields
 ################################
 
 *Multiline string.*
 
 Field names assumed to provide third-party information for scrubbing.
+
 
 ddgen_scrubsrc_thirdparty_xref_pid_fields
 #########################################
@@ -988,6 +1053,7 @@ Field names assumed to contain PIDs of third parties (e.g. relatives also in
 the patient database), to be used to look up the third party in a recursive
 way, for scrubbing.
 
+
 ddgen_required_scrubsrc_fields
 ##############################
 
@@ -995,6 +1061,7 @@ ddgen_required_scrubsrc_fields
 
 Are any :ref:`scrub_src <dd_scrub_src>` fields required (mandatory), i.e. must
 have non-NULL data in at least one row (or the patient will be skipped)?
+
 
 ddgen_scrubmethod_code_fields
 #############################
@@ -1004,6 +1071,7 @@ ddgen_scrubmethod_code_fields
 Fields to enforce the ``code`` :ref:`scrub_method <dd_scrub_method>` upon,
 overriding the default method.
 
+
 ddgen_scrubmethod_date_fields
 #############################
 
@@ -1011,6 +1079,7 @@ ddgen_scrubmethod_date_fields
 
 Fields to enforce the ``date`` :ref:`scrub_method <dd_scrub_method>` upon,
 overriding the default method.
+
 
 ddgen_scrubmethod_number_fields
 ###############################
@@ -1020,6 +1089,7 @@ ddgen_scrubmethod_number_fields
 Fields to enforce the ``number`` :ref:`scrub_method <dd_scrub_method>` upon,
 overriding the default method.
 
+
 ddgen_scrubmethod_phrase_fields
 ###############################
 
@@ -1028,12 +1098,14 @@ ddgen_scrubmethod_phrase_fields
 Fields to enforce the ``phrase`` :ref:`scrub_method <dd_scrub_method>` upon,
 overriding the default method.
 
+
 ddgen_safe_fields_exempt_from_scrubbing
 #######################################
 
 *Multiline string.*
 
 Known safe fields, exempt from scrubbing.
+
 
 ddgen_min_length_for_scrubbing
 ##############################
@@ -1044,6 +1116,7 @@ Define minimum text column length for scrubbing (fields shorter than this value
 are assumed safe). For example, specifying 10 will mean that ``VARCHAR(9)``
 columns are assumed not to need scrubbing.
 
+
 ddgen_truncate_date_fields
 ##########################
 
@@ -1051,12 +1124,14 @@ ddgen_truncate_date_fields
 
 Fields whose date should be truncated to the first of the month.
 
+
 ddgen_filename_to_text_fields
 #############################
 
 *Multiline string.*
 
 Fields containing filenames, which files should be converted to text.
+
 
 ddgen_binary_to_text_field_pairs
 ################################
@@ -1080,6 +1155,7 @@ Specify it as a list of comma-joined pairs, e.g.
 The first (``binaryfield``) can be specified as ``column`` or ``table.column``,
 but the second must be ``column`` only.
 
+
 ddgen_skip_row_if_extract_text_fails_fields
 ###########################################
 
@@ -1087,6 +1163,7 @@ ddgen_skip_row_if_extract_text_fails_fields
 
 Specify any text-extraction rows for which you also want to set the flag
 ``skip_if_extract_fails`` (see :ref:`alter_method <dd_alter_method>`).
+
 
 ddgen_rename_tables_remove_suffixes
 ###################################
@@ -1097,6 +1174,7 @@ Automatic renaming of tables. This option specifies a list of suffixes to
 remove from table names. (Typical use: you make a view with a suffix ``_x`` as
 a working step, then you want the suffix removed for users.)
 
+
 ddgen_patient_opt_out_fields
 ############################
 
@@ -1104,6 +1182,7 @@ ddgen_patient_opt_out_fields
 
 Fields that are used as patient opt-out fields (see above and :ref:`src_flags
 <dd_src_flags>`).
+
 
 ddgen_extra_hash_fields
 #######################
@@ -1135,6 +1214,7 @@ ddgen_index_fields
 
 Fields to apply an index to.
 
+
 ddgen_allow_fulltext_indexing
 #############################
 
@@ -1156,6 +1236,7 @@ ddgen_force_lower_case
 *Boolean.* Default: true.
 
 Force all destination table/field names to lower case?
+
 
 ddgen_convert_odd_chars_to_underscore
 #####################################
@@ -1189,6 +1270,7 @@ Note that these limits DO NOT APPLY to the fetching of patient- identifiable
 information for anonymisation -- when a patient is processed, all identifiable
 information for that patient is trawled.
 
+
 .. _anon_config_debug_limited_tables:
 
 debug_limited_tables
@@ -1214,6 +1296,7 @@ file.
 Such config sections, named e.g. ``[my_extra_hasher]``, must have the following
 parameters:
 
+
 hash_method
 +++++++++++
 
@@ -1221,6 +1304,7 @@ hash_method
 
 Options are as for the :ref:`hash_method <anon_config_hash_method>` parameter
 of the :ref:`[main] <anon_config_main_section>` section.
+
 
 secret_key
 ++++++++++
@@ -1230,821 +1314,14 @@ secret_key
 Secret key for the hasher.
 
 
-
 Minimal anonymiser config
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here's an extremely minimal version for a hypothetical test database.
 Many options are not shown and most comments have been removed.
-See the :ref:`specimen config <specimen_anonymiser_config>` below.
 
-.. code-block:: ini
-
-    # Configuration file for CRATE anonymiser (crate_anonymise).
-
-    # =============================================================================
-    # Main settings
-    # =============================================================================
-
-    [main]
-
-    data_dictionary_filename = testdd.tsv
-
-    hash_method = HMAC_MD5
-    per_table_patient_id_encryption_phrase = SOME_PASSPHRASE_REPLACE_ME
-    master_patient_id_encryption_phrase = SOME_OTHER_PASSPHRASE_REPLACE_ME
-    change_detection_encryption_phrase = YETANOTHER
-
-    replace_patient_info_with = [XXXXXX]
-    replace_third_party_info_with = [QQQQQQ]
-    replace_nonspecific_info_with = [~~~~~~]
-
-    research_id_fieldname = rid
-    trid_fieldname = trid
-    master_research_id_fieldname = mrid
-
-    source_hash_fieldname = _src_hash
-
-    temporary_tablename = _temp_table
-
-    source_databases =
-        mysourcedb1
-
-    destination_database = my_destination_database
-
-    admin_database = my_admin_database
-
-    # =============================================================================
-    # Destination database details. User should have WRITE access.
-    # =============================================================================
-
-    [my_destination_database]
-
-    url = mysql+mysqldb://username:password@127.0.0.1:3306/output_databasename?charset=utf8
-
-    # =============================================================================
-    # Administrative database. User should have WRITE access.
-    # =============================================================================
-
-    [my_admin_database]
-
-    url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charset=utf8
-
-    # =============================================================================
-    # Source database. (Just one in this example.)
-    # User should have READ access only for safety.
-    # =============================================================================
-
-    [mysourcedb1]
-
-    url = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?charset=utf8
+..  literalinclude:: minimal_anonymiser_config.ini
+    :language: ini
 
 
 .. todo:: Check minimal anonymiser config example works.
-
-
-.. _specimen_anonymiser_config:
-
-Specimen anonymiser config
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Here's the specimen anonymiser config as of 2018-06-09:
-
-.. code-block:: ini
-
-    # Configuration file for CRATE anonymiser (crate_anonymise).
-    # Version 0.18.51 (2018-06-29).
-    #
-    # Boolean values can be 0/1, Y/N, T/F, True/False.
-
-    # =============================================================================
-    # Main settings
-    # =============================================================================
-
-    [main]
-
-    # -----------------------------------------------------------------------------
-    # Data dictionary
-    # -----------------------------------------------------------------------------
-    # Specify a data dictionary in TSV (tab-separated value) format, with a header
-    # row. SEE HELP FOR DETAILS.
-
-    data_dictionary_filename = testdd.tsv
-
-    # -----------------------------------------------------------------------------
-    # Critical field types
-    # -----------------------------------------------------------------------------
-    # We need to know PID and MPID types from the config so that we can set up our
-    # secret mapping tables. You can leave these blank, in which case they will be
-    # assumed to be large integers, using SQLAlchemy's BigInteger (e.g.
-    # SQL Server's BIGINT). If you do specify them, you may specify EITHER
-    # "BigInteger" or a string type such as "String(50)".
-
-    sqlatype_pid =
-    sqlatype_mpid =
-
-    # -----------------------------------------------------------------------------
-    # Encryption phrases/passwords
-    # -----------------------------------------------------------------------------
-
-        # PID-to-RID hashing method. Options are:
-        # - HMAC_MD5 - produces a 32-character digest
-        # - HMAC_SHA256 - produces a 64-character digest
-        # - HMAC_SHA512 - produces a 128-character digest
-    hash_method = HMAC_MD5
-
-    per_table_patient_id_encryption_phrase = SOME_PASSPHRASE_REPLACE_ME
-
-    master_patient_id_encryption_phrase = SOME_OTHER_PASSPHRASE_REPLACE_ME
-
-    change_detection_encryption_phrase = YETANOTHER
-
-        # If you are using the "hash" field alteration method
-        # (see above), you need to list the hash methods here, for internal
-        # initialization order/performance reasons.
-    extra_hash_config_sections =
-
-    # -----------------------------------------------------------------------------
-    # Text extraction
-    # -----------------------------------------------------------------------------
-
-        # extract_text_extensions_permitted and extract_text_extensions_prohibited
-        # govern what kinds of files are accepted for text extraction. It is very
-        # likely that you'll want to apply such restrictions; for example, if your
-        # database contains .jpg files, it's a waste of trying to extract text from
-        # them (and in theory, if your text extraction tool provided sufficient
-        # detail, such as binary-encoding the JPEG, you might leak identifiable
-        # information, such as a photo).
-        #
-        # - The "permitted" and "prohibited" settings are both lists of strings.
-        # - If the "permitted" list is not empty then a file will be processed
-        #   only if its extension is in the permitted list. Otherwise, it will be
-        #   processed only if it is not in the prohibited list.
-        # - The extensions must include the "." prefix.
-        # - Case sensitivity is controlled by the extra flag.
-
-    extract_text_extensions_case_sensitive = False
-    extract_text_extensions_permitted =
-    extract_text_extensions_prohibited =
-
-        # Use the plainest possible layout for text extraction?
-        # False = better for human layout. Table example from DOCX:
-        #     +---------+---------+
-        #     | AAA AAA | BBB BBB |
-        #     | AAA AAA | BBB BBB |
-        #     +---------+---------+
-        # True = good for natural language processing. Table example from DOCX:
-        #     ---------------------
-        #       AAA AAA
-        #       AAA AAA
-        #     ---------------------
-        #                 BBB BBB
-        #                 BBB BBB
-        #     ---------------------
-        # ... note the absence of vertical interruptions, and that text from one
-        # cell remains contiguous.
-    extract_text_plain = False
-
-        # Default width to word-wrap extracted text to
-    extract_text_width = 80
-
-    # -----------------------------------------------------------------------------
-    # Anonymisation
-    # -----------------------------------------------------------------------------
-
-        # Patient information will be replaced with this. For example, XXXXXX or
-        # [___] or [__PPP__] or [__ZZZ__]; the bracketed forms can be a bit easier
-        # to spot, and work better if they directly abut other text.
-    replace_patient_info_with = [__PPP__]
-
-        # Third-party information will be replaced by this.
-        # For example, YYYYYY or [...] or [__TTT__] or [__QQQ__].
-    replace_third_party_info_with = [__TTT__]
-
-        # For fields marked as scrub_src = thirdparty_xref_pid,
-        # how deep should we recurse? The default is 1. Beware making this too
-        # large; the recursion trawls a lot of information (and also uses an
-        # extra simultaneous database cursor for each recursion).
-    thirdparty_xref_max_depth = 1
-
-        # Things to be removed irrespective of patient-specific information will be
-        # replaced by this (for example, if you opt to remove all things looking
-        # like telephone numbers). For example, ZZZZZZ or [~~~].
-    replace_nonspecific_info_with = [~~~]
-
-        # Strings to append to every "scrub from" string.
-        # For example, include "s" if you want to scrub "Roberts" whenever you
-        # scrub "Robert".
-        # Applies to words, but not to phrase.
-        # Multiline field: https://docs.python.org/2/library/configparser.html
-    scrub_string_suffixes =
-        s
-
-        # Specify maximum number of errors (insertions, deletions, substitutions)
-        # in string regex matching. Beware using a high number! Suggest 1-2.
-    string_max_regex_errors = 1
-
-        # Is there a minimum length to apply string_max_regex_errors? For example,
-        # if you allow one typo and someone is called Ian, all instances of 'in' or
-        # 'an' will be wiped. Note that this apply to scrub-source data.
-    min_string_length_for_errors = 4
-
-        # Is there a minimum length of string to scrub WITH? For example, if you
-        # specify 2, you allow two-letter names such as Al to be scrubbed, but you
-        # allow initials through, and therefore prevent e.g. 'A' from being
-        # scrubbed from the destination. Note that this applies to scrub-source
-        # data.
-    min_string_length_to_scrub_with = 2
-
-        # WHITELIST.
-        # Are there any words not to scrub? For example, "the", "road", "street"
-        # often appear in addresses, but you might not want them removed. Be
-        # careful in case these could be names (e.g. "Lane").
-        # Specify these as a list of FILENAMES, where the files contain words; e.g.
-        #
-        # whitelist_filenames = /some/path/short_english_words.txt
-        #
-        # Here's a suggestion for some of the sorts of words you might include:
-        #     am
-        #     an
-        #     as
-        #     at
-        #     bd
-        #     by
-        #     he
-        #     if
-        #     is
-        #     it
-        #     me
-        #     mg
-        #     od
-        #     of
-        #     on
-        #     or
-        #     re
-        #     so
-        #     to
-        #     us
-        #     we
-        #     her
-        #     him
-        #     tds
-        #     she
-        #     the
-        #     you
-        #     road
-        #     street
-    whitelist_filenames =
-
-        # BLACKLIST
-        # Are there any words you always want to remove?
-        # Specify these as a list of filenames, e.g
-        #
-        # blacklist_filenames = /some/path/boy_names.txt
-        #     /some/path/girl_names.txt
-        #     /some/path/common_surnames.txt
-    blacklist_filenames =
-
-        # Nonspecific scrubbing of numbers of a certain length?
-        # For example, scrubbing all 11-digit numbers will remove modern UK
-        # telephone numbers in conventional format. To do this, specify
-        # scrub_all_numbers_of_n_digits = 11. You could scrub both 10- and 11-digit
-        # numbers by specifying both numbers (in multiline format, as above);
-        # 10-digit numbers would include all NHS numbers. Avoid using this for
-        # short numbers; you may lose valuable numeric data!
-    scrub_all_numbers_of_n_digits =
-
-        # Nonspecific scrubbing of UK postcodes?
-        # See https://www.mrs.org.uk/pdf/postcodeformat.pdf ; these can look like
-        # FORMAT    EXAMPLE
-        # AN NAA    M1 1AA
-        # ANN NAA   M60 1NW
-        # AAN NAA   CR2 6XH
-        # AANN NAA  DN55 1PT
-        # ANA NAA   W1A 1HQ
-        # AANA NAA  EC1A 1BB
-    scrub_all_uk_postcodes = False
-
-        # Anonymise at word boundaries? True is more conservative; False is more
-        # liberal and will deal with accidental word concatenation. With ID
-        # numbers, beware if you use a prefix, e.g. if people write 'M123456' or
-        # 'R123456'; in that case you will need
-        #       anonymise_numbers_at_word_boundaries_only = False.
-    anonymise_codes_at_word_boundaries_only = True
-        # ... applies to code
-    anonymise_dates_at_word_boundaries_only = True
-        # ... applies to date
-    anonymise_numbers_at_word_boundaries_only = False
-        # ... applies to number
-    anonymise_numbers_at_numeric_boundaries_only = True
-        # ... applies to number
-        # ... if True, will not scrub "234" from "123456"
-        # ... setting this to False is extremely conservative
-    anonymise_strings_at_word_boundaries_only = True
-        # ... applies to words and phrase
-
-    timefield_name = _when_processed_utc
-
-    # -----------------------------------------------------------------------------
-    # Output fields and formatting
-    # -----------------------------------------------------------------------------
-
-        # Research ID field name. This will be a VARCHAR of length determined by
-        # hash_method. Used to replace patient ID fields from source tables.
-    research_id_fieldname = brcid
-
-        # Transient integer research ID (TRID) fieldname.
-        # An unsigned integer field with this name will be added to every table
-        # containing a primary patient ID (in the source) or research ID (in the
-        # destination).
-    trid_fieldname = trid
-
-        # Similarly, used to replace master patient ID fields in source tables:
-    master_research_id_fieldname = nhshash
-
-        # Change-detection hash fieldname. This will be a VARCHAR of length
-        # determined by hash_method.
-    source_hash_fieldname = _src_hash
-
-        # Date-to-text conversion formats
-    date_to_text_format = %Y-%m-%d
-        # ... ISO-8601, e.g. 2013-07-24
-    datetime_to_text_format = %Y-%m-%dT%H:%M:%S
-        # ... ISO-8601, e.g. 2013-07-24T20:04:07
-
-        # Append source table/field to the comment? Boolean.
-    append_source_info_to_comment = True
-
-    # -----------------------------------------------------------------------------
-    # Destination database configuration
-    # See the [destination_database] section for connection details.
-    # -----------------------------------------------------------------------------
-
-        # Specify the maximum number of rows to be processed before a COMMIT is
-        # issued on the database transaction. This prevents the transaction growing
-        # too large.
-        # Default is 1000.
-    max_rows_before_commit = 1000
-
-        # Specify the maximum number of source-record bytes (approximately!) that
-        # are processed before a COMMIT is issued on the database transaction. This
-        # prevents the transaction growing too large. The COMMIT will be issued
-        # *after* this limit has been met/exceeded, so it may be exceeded if the
-        # transaction just before the limit takes the cumulative total over the
-        # limit.
-        # Default is 83886080.
-    max_bytes_before_commit = 83886080
-
-        # We need a temporary table name for incremental updates. This can't be the
-        # name of a real destination table. It lives in the destination database.
-    temporary_tablename = _temp_table
-
-    # -----------------------------------------------------------------------------
-    # Choose databases (defined in their own sections).
-    # -----------------------------------------------------------------------------
-
-        # Source database list. Can be lots.
-    source_databases =
-        mysourcedb1
-        mysourcedb2
-
-        # Destination database. Just one.
-    destination_database = my_destination_database
-
-        # Admin database. Just one.
-    admin_database = my_admin_database
-
-    # -----------------------------------------------------------------------------
-    # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
-    # -----------------------------------------------------------------------------
-
-        # Limit the number of patients to be processed? Specify 0 (the default) for
-        # no limit.
-    debug_max_n_patients =
-
-        # Specify a list of patient IDs, for debugging? If specified, this
-        # list will be used directly (overriding the patient ID source specified in
-        # the data dictionary, and overriding debug_max_n_patients).
-    debug_pid_list =
-
-    # -----------------------------------------------------------------------------
-    # Opting out entirely
-    # -----------------------------------------------------------------------------
-
-    # Patients who elect to opt out entirely have their PIDs stored in the OptOut
-    # table of the admin database. ENTRIES ARE NEVER REMOVED FROM THIS LIST BY
-    # CRATE. It can be populated in three ways:
-    #   1. Manually, by adding a PID to the column opt_out.pid).
-    #   2. By maintaining a text file list of integer PIDs. Any PIDs in this file
-    #      are added to the opt-out list.
-    #   3. By flagging a source database field as indicating an opt-out, using the
-    #      src_flags = "!" marker.
-
-        # If you set this, each line of the file(s) is scanned for an integer,
-        # taken to the PID of a patient who wishes to opt out.
-    optout_pid_filenames =
-
-        # If you set this, each line of the file(s) is scanned for an integer,
-        # taken to the MPID of a patient who wishes to opt out.
-    optout_mpid_filenames =
-
-        # If you mark a field in the data dictionary as an opt-out field (see
-        # above), that says "the field tells you whether the patient opts out or
-        # not". But is it "opt out" or "not"? If the actual value matches one
-        # below, then it's "opt out". Specify a LIST OF PYTHON VALUES; for example:
-        #       optout_col_values = [True, 1, '1', 'Yes', 'yes', 'Y', 'y']
-    optout_col_values =
-
-    # =============================================================================
-    # Destination database details. User should have WRITE access.
-    # =============================================================================
-    # Use SQLAlchemy URLs: see
-    #       http://docs.sqlalchemy.org/en/latest/core/engines.html
-    # You may need to install additional drivers, e.g.
-    #       pip install SOME_DRIVER
-    # ... see the documentation.
-
-    [my_destination_database]
-
-    url = mysql+mysqldb://username:password@127.0.0.1:3306/output_databasename?charset=utf8
-
-    # =============================================================================
-    # Administrative database. User should have WRITE access.
-    # =============================================================================
-
-    [my_admin_database]
-
-    url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charset=utf8
-
-    # =============================================================================
-    # SOURCE DATABASE DETAILS BELOW HERE.
-    # User should have READ access only for safety.
-    # =============================================================================
-
-    # -----------------------------------------------------------------------------
-    # Source database example 1
-    # -----------------------------------------------------------------------------
-
-    [mysourcedb1]
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # CONNECTION DETAILS
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    url = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?charset=utf8
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # - For field specifications, fields can either be specified as "column"
-        #   (to match any table) or "table.column", to match a specific table.
-        #   They are case-insensitive.
-        #   Wildcards (*, ?) may also be used (as per Python's fnmatch).
-
-        # By default, most fields (except PKs and patient ID codes) are marked
-        # as "OMIT", pending human review. If you want to live dangerously, set
-        # this to False, and they will be marked as "include" from the outset.
-    ddgen_omit_by_default = True
-
-        # You can specify additional fields to omit...
-    ddgen_omit_fields =
-
-        # ... or include. "Omit" overrides "include".
-        # If a field contains scrubbing source information, it will also be omitted
-        # pending human review, regardless of other settings.
-    ddgen_include_fields =
-
-        # Allow the absence of patient info? Used to copy databases; WILL NOT
-        # ANONYMISE. Boolean; default is False.
-    ddgen_allow_no_patient_info = False
-
-        # Specify the (typically integer) patient identifier present in EVERY
-        # table. It will be replaced by the research ID in the destination
-        # database.
-    ddgen_per_table_pid_field = patient_id
-
-        # Add every instance of a per-table PID field to the patient scrubber?
-        # This is a very conservative setting, and should be unnecessary as the
-        # single master "PID-defining" column (see ddgen_pid_defining_fieldnames)
-        # should be enough.
-        # (Note that per-table PIDs are always replaced by RIDs - this setting
-        # governs whether the scrubber used to scrub free-text fields also
-        # works through every single per-table PID).
-    ddgen_add_per_table_pids_to_scrubber = False
-
-        # Master patient ID fieldname. Used for e.g. NHS numbers.
-    ddgen_master_pid_fieldname = nhsnum
-
-        # Blacklist any tables when creating new data dictionaries?
-        # This is case-insensitive, and you can use */? wildcards (as per Python's
-        # fnmatch module).
-    ddgen_table_blacklist =
-
-        # Whitelist any tables? (Whitelists override blacklists.)
-    ddgen_table_whitelist =
-
-        # List any fields that all tables MUST contain. If a table doesn't contain
-        # all of the field(s) listed here, it will be skipped.
-    ddgen_table_require_field_absolute =
-
-        # List any fields that are required conditional on other fields.
-        # List them as one or more pairs: "A, B" where B is required if A is
-        # present (or the table will be skipped).
-    ddgen_table_require_field_conditional =
-
-        # Blacklist any fields (regardless of their table) when creating new data
-        # dictionaries? Wildcards of */? operate as above.
-    ddgen_field_blacklist =
-
-        # Whitelist any fields? (Whitelists override blacklists.)
-    ddgen_field_whitelist =
-
-        # Fieldnames assumed to be their table's PK:
-    ddgen_pk_fields =
-
-        # Assume that content stays constant?
-        # (Applies C to PK fields; q.v.)
-        # This is the default; then ddgen_constant_content_tables and
-        # ddgen_nonconstant_content_tables can override (of which,
-        # ddgen_nonconstant_content_tables takes priority if a table matches both).
-    ddgen_constant_content = False
-
-        # Table-specific overrides for ddgen_constant_content, as above.
-    ddgen_constant_content_tables =
-    ddgen_nonconstant_content_tables =
-
-        # Assume that records can only be added, not deleted?
-    ddgen_addition_only = False
-
-        # Table-specific overrides for ddgen_addition_only, similarly.
-    ddgen_addition_only_tables =
-    ddgen_deletion_possible_tables =
-
-        # Predefine field(s) that define the existence of patient IDs? UNUSUAL.
-    ddgen_pid_defining_fieldnames =
-
-        # Default fields to scrub from
-    ddgen_scrubsrc_patient_fields =
-    ddgen_scrubsrc_thirdparty_fields =
-    ddgen_scrubsrc_thirdparty_xref_pid_fields =
-
-        # Are any scrub_src fields required (mandatory), i.e. must have non-NULL
-        # data in at least one row (or the patient will be skipped)?
-    ddgen_required_scrubsrc_fields =
-
-        # Override default scrubbing methods
-    ddgen_scrubmethod_code_fields =
-    ddgen_scrubmethod_date_fields =
-    ddgen_scrubmethod_number_fields =
-    ddgen_scrubmethod_phrase_fields =
-
-        # Known safe fields, exempt from scrubbing
-    ddgen_safe_fields_exempt_from_scrubbing =
-
-        # Define minimum text field length for scrubbing (shorter is assumed safe)
-    ddgen_min_length_for_scrubbing = 4
-
-        # Other default manipulations
-    ddgen_truncate_date_fields =
-
-        # Fields containing filenames, which files should be converted to text
-    ddgen_filename_to_text_fields =
-
-        # Fields containing raw binary data from files (binary large objects;
-        # BLOBs), whose contents should be converted to text -- paired with fields
-        # in the same table containing their file extension (e.g. "pdf", ".PDF") or
-        # a filename having that extension.
-        # Specify it as a list of comma-joined pairs, e.g.
-        #     ddgen_binary_to_text_field_pairs = binary1field, ext1field
-        #         binary2field, ext2field
-        #         ...
-        # The first (binaryfield) can be specified as column or table.column,
-        # but the second must be column only.
-    ddgen_binary_to_text_field_pairs =
-
-        # Specify any text-extraction rows for which you also want to set the flag
-        # "skip_if_extract_fails":
-    ddgen_skip_row_if_extract_text_fails_fields =
-
-        # Automatic renaming of tables
-        # (Typical use: you make a view with a suffix "_x" as a working step, then
-        # you want the suffix removed for users.)
-    ddgen_rename_tables_remove_suffixes =
-
-        # Fields that are used as patient opt-out fields:
-    ddgen_patient_opt_out_fields =
-
-        # Are there any fields you want hashed, in addition to the normal PID/MPID
-        # fields? Specify these a list of FIELDSPEC, EXTRA_HASH_NAME pairs.
-        # For example:
-        #       ddgen_extra_hash_fields = CaseNumber*, case_number_hashdef
-        # where case_number_hashdef is an extra hash definition (see
-        # "extra_hash_config_sections", and "alter_method" in the data dictionary).
-        #
-    ddgen_extra_hash_fields =
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # DESTINATION INDEXING
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-        # Fields to apply an index to
-    ddgen_index_fields =
-
-        # Allow full-text index creation? Default true. Disable for databases that
-        # don't support them?
-    ddgen_allow_fulltext_indexing = True
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # DATA DICTIONARY MANIPULATION TO DESTINATION TABLE/FIELD NAMES
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-        # Force all destination tables/fields to lower case?
-        # Boolean; default is True.
-    ddgen_force_lower_case = True
-
-        # Convert spaces in table/fieldnames (yuk!) to underscores? Default: true.
-    ddgen_convert_odd_chars_to_underscore = True
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-        # Specify 0 (the default) for no limit, or a number of rows (e.g. 1000) to
-        # apply to any tables listed in debug_limited_tables. For those tables,
-        # only this many rows will be taken from the source database. Use this, for
-        # example, to reduce the number of large documents fetched.
-        # If you run a multiprocess/multithreaded anonymisation, this limit applies
-        # per *process* (or task), not overall.
-        # Note that these limits DO NOT APPLY to the fetching of patient-
-        # identifiable information for anonymisation -- when a patient is
-        # processed, all identifiable information for that patient is trawled.
-    debug_row_limit =
-
-        # List of tables to which to apply debug_row_limit (see above).
-    debug_limited_tables =
-
-    # -----------------------------------------------------------------------------
-    # Source database example 2
-    # -----------------------------------------------------------------------------
-
-    [mysourcedb2]
-
-    url = mysql+mysqldb://username:password@127.0.0.1:3306/source2_databasename?charset=utf8
-
-    ddgen_force_lower_case = True
-    ddgen_per_table_pid_field = patient_id
-    ddgen_master_pid_fieldname = nhsnum
-    ddgen_table_blacklist =
-    ddgen_field_blacklist =
-    ddgen_table_require_field_absolute =
-    ddgen_table_require_field_conditional =
-    ddgen_pk_fields =
-    ddgen_constant_content = False
-    ddgen_scrubsrc_patient_fields =
-    ddgen_scrubsrc_thirdparty_fields =
-    ddgen_scrubmethod_code_fields =
-    ddgen_scrubmethod_date_fields =
-    ddgen_scrubmethod_number_fields =
-    ddgen_scrubmethod_phrase_fields =
-    ddgen_safe_fields_exempt_from_scrubbing =
-    ddgen_min_length_for_scrubbing = 4
-    ddgen_truncate_date_fields =
-    ddgen_filename_to_text_fields =
-    ddgen_binary_to_text_field_pairs =
-
-    # -----------------------------------------------------------------------------
-    # Source database example 3
-    # -----------------------------------------------------------------------------
-
-    [camcops]
-    # Example for the CamCOPS anonymisation staging database
-
-    url = mysql+mysqldb://username:password@127.0.0.1:3306/camcops_databasename?charset=utf8
-
-    # FOR EXAMPLE:
-    ddgen_force_lower_case = True
-    ddgen_per_table_pid_field = _patient_idnum1
-    ddgen_pid_defining_fieldnames = _patient_idnum1
-    ddgen_master_pid_fieldname = _patient_idnum2
-
-    ddgen_table_blacklist =
-
-    ddgen_field_blacklist = _patient_iddesc1
-        _patient_idshortdesc1
-        _patient_iddesc2
-        _patient_idshortdesc2
-        _patient_iddesc3
-        _patient_idshortdesc3
-        _patient_iddesc4
-        _patient_idshortdesc4
-        _patient_iddesc5
-        _patient_idshortdesc5
-        _patient_iddesc6
-        _patient_idshortdesc6
-        _patient_iddesc7
-        _patient_idshortdesc7
-        _patient_iddesc8
-        _patient_idshortdesc8
-        id
-        patient_id
-        _device
-        _era
-        _current
-        _when_removed_exact
-        _when_removed_batch_utc
-        _removing_user
-        _preserving_user
-        _forcibly_preserved
-        _predecessor_pk
-        _successor_pk
-        _manually_erased
-        _manually_erased_at
-        _manually_erasing_user
-        _addition_pending
-        _removal_pending
-        _move_off_tablet
-
-    ddgen_table_require_field_absolute =
-    ddgen_table_require_field_conditional =
-    ddgen_pk_fields = _pk
-    ddgen_constant_content = False
-
-    ddgen_scrubsrc_patient_fields = _patient_forename
-        _patient_surname
-        _patient_dob
-        _patient_idnum1
-        _patient_idnum2
-        _patient_idnum3
-        _patient_idnum4
-        _patient_idnum5
-        _patient_idnum6
-        _patient_idnum7
-        _patient_idnum8
-
-    ddgen_scrubsrc_thirdparty_fields =
-
-    ddgen_scrubmethod_code_fields =
-    ddgen_scrubmethod_date_fields = _patient_dob
-    ddgen_scrubmethod_number_fields =
-    ddgen_scrubmethod_phrase_fields =
-
-    ddgen_safe_fields_exempt_from_scrubbing = _device
-        _era
-        _when_added_exact
-        _adding_user
-        _when_removed_exact
-        _removing_user
-        _preserving_user
-        _manually_erased_at
-        _manually_erasing_user
-        when_last_modified
-        when_created
-        when_firstexit
-        clinician_specialty
-        clinician_name
-        clinician_post
-        clinician_professional_registration
-        clinician_contact_details
-    # ... now some task-specific ones
-        bdi_scale
-        pause_start_time
-        pause_end_time
-        trial_start_time
-        cue_start_time
-        target_start_time
-        detection_start_time
-        iti_start_time
-        iti_end_time
-        trial_end_time
-        response_time
-        target_time
-        choice_time
-        discharge_date
-        discharge_reason_code
-        diagnosis_psych_1_icd10code
-        diagnosis_psych_1_description
-        diagnosis_psych_2_icd10code
-        diagnosis_psych_2_description
-        diagnosis_psych_3_icd10code
-        diagnosis_psych_3_description
-        diagnosis_psych_4_icd10code
-        diagnosis_psych_4_description
-        diagnosis_medical_1
-        diagnosis_medical_2
-        diagnosis_medical_3
-        diagnosis_medical_4
-        category_start_time
-        category_response_time
-        category_chosen
-        gamble_fixed_option
-        gamble_lottery_option_p
-        gamble_lottery_option_q
-        gamble_start_time
-        gamble_response_time
-        likelihood
-
-    ddgen_min_length_for_scrubbing = 4
-
-    ddgen_truncate_date_fields = _patient_dob
-    ddgen_filename_to_text_fields =
-    ddgen_binary_to_text_field_pairs =
