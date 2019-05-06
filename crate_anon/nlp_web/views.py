@@ -30,8 +30,9 @@ import json
 from typing import Any, Dict, Iterable, List
 import uuid
 import cProfile
+import redis
 
-from celery.result import AsyncResult
+from celery.result import AsyncResult, ResultSet
 from pyramid.view import view_config, view_defaults
 from pyramid.request import Request
 from pyramid.response import Response
@@ -63,6 +64,9 @@ from crate_anon.nlp_web.tasks import (
     process_nlp_text,
     process_nlp_text_immediate,
 )
+
+
+REDIS_SESSIONS = redis.StrictRedis(host="localhost", port=6379, db=0)
 
 
 def do_cprofile(func):
@@ -98,6 +102,8 @@ BAD_REQUEST = Error(
 UNAUTHORIZED = Error(
     401, 401, "Unauthorized",
     "The username/password combination given is incorrect")
+NOT_FOUND = Error(
+    404, 404, "Not Found", "The information requested was not found")
 
 
 @view_defaults(renderer='json')
@@ -133,6 +139,20 @@ class NlpWebViews(object):
         response_dict.update(extra_info)
         return response_dict
 
+    def check_token(self) -> bool:
+        """
+        Checks to see if the user has given the correct token for the current
+        session connected to their username.
+        """
+        redis_token = REDIS_SESSIONS.get(self.username)
+        if redis_token:
+            redis_token = redis_token.decode()
+        token = self.request.cookies.get('session_token')
+        if token and token == redis_token:
+            return True
+        else:
+            return False
+
     def create_error_response(self, error: Error,
                               description: str = None) -> Dict[str, Any]:
         """
@@ -161,7 +181,7 @@ class NlpWebViews(object):
             description = f"Args did not contain key '{key}'"
         return self.create_error_response(error, description)
 
-    # @do_cprofile
+    @do_cprofile
     @view_config(route_name='index')
     def index(self) -> Response:
         """
@@ -180,9 +200,9 @@ class NlpWebViews(object):
             return self.create_error_response(error, description)
         # See if the user exists
         users = get_users()
-        username = self.credentials.username
+        self.username = self.credentials.username
         try:
-            hashed_pw = users[username]
+            hashed_pw = users[self.username]
         except KeyError:
             error = UNAUTHORIZED
             self.request.response.status = error.http_status
@@ -191,9 +211,15 @@ class NlpWebViews(object):
         # Check if password is correct
         pw = self.credentials.password
         # pw = 'testpass'
-        if check_password(pw, hashed_pw):
-            self.username = username
+        if self.check_token():
             self.password = pw
+        elif check_password(pw, hashed_pw):
+            self.password = pw
+            token = str(uuid.uuid4())
+            self.request.response.set_cookie(name='session_token',
+                                             value=token)
+            REDIS_SESSIONS.set(self.username, token)
+            REDIS_SESSIONS.expire(self.username, 300)
         else:
             error = UNAUTHORIZED
             self.request.response.status = error.http_status
@@ -513,6 +539,11 @@ class NlpWebViews(object):
         )
         client_job_id = None  # type: str
         document_rows = query.all()  # type: Iterable[Document]
+        if not document_rows:
+            error = NOT_FOUND
+            self.request.reaponse.status = error.http_status
+            description = "The queue_id given was not found"
+            return self.create_error_response(error, description)
         doc_results = []  # type: List[Dict[str, Any]]
         # Check if all results are ready
         asyncresults_all = []  # type: List[List[AsyncResult]] # noqa
@@ -523,12 +554,18 @@ class NlpWebViews(object):
             for i, result_id in enumerate(result_ids):
                 # get result for this doc-proc pair
                 result = AsyncResult(id=result_id, app=app)
-                if not result.ready():
-                    # Can't return JSON with 102
-                    self.request.response.status = HttpStatus.OK
-                    return self.create_response(HttpStatus.PROCESSING, {})
+                # if not result.ready():
+                #     # Can't return JSON with 102
+                #     self.request.response.status = HttpStatus.OK
+                #     return self.create_response(HttpStatus.PROCESSING, {})
                 asyncresults[i] = result
             asyncresults_all.append(asyncresults)
+        # Flatten asyncresults_all to make a result set
+        res_set = ResultSet(results=[x for y in asyncresults_all for x in y],
+                            app=app)
+        if not res_set.ready():
+            self.request.response.status = HttpStatus.OK
+            return self.create_response(HttpStatus.PROCESSING, {})
         # Unfortunately we have to loop twice to avoid doing a lot for
         # nothing if it turns out a later result is not ready
         #
@@ -565,7 +602,7 @@ class NlpWebViews(object):
                     return self.create_error_response(error, description)
 
                 success, processed_text, errcode, errmsg, time = result.get()
-                result.forget()
+                # result.forget()
                 proc_dict = {
                     NKeys.NAME: procname,
                     NKeys.TITLE: proctitle,
@@ -641,22 +678,26 @@ class NlpWebViews(object):
             )
         records = query.all()
         queue = []
+        results = []
         queue_ids = set([x.queue_id for x in records])
         for queue_id in queue_ids:
             busy = False
-            qid_recs = [x for x in records if x.queue_id == queue_id]
             max_time = datetime.datetime.min
+            qid_recs = [x for x in records if x.queue_id == queue_id]
             for record in qid_recs:
                 result_ids = json.loads(record.result_ids)
                 for result_id in result_ids:
-                    result = AsyncResult(id=result_id, app=app)
-                    if not result.ready():
-                        busy = True
-                        break
-                    else:
-                        # First 4 are throwaways
-                        w, x, y, z, time = result.get()
-                        max_time = max(max_time, time)
+                    results.append(AsyncResult(id=result_id, app=app))
+                    # if not result.ready():
+                    #     busy = True
+                    #     break
+            res_set = ResultSet(results=results, app=app)
+            if res_set.ready():
+                result_values = res_set.get()
+                times = [x[4] for x in result_values]
+                max_time = max(times)
+            else:
+                busy = True
             dt_submitted = str(qid_recs[0].datetime_submitted.isoformat())
             queue.append({
                 NKeys.QUEUE_ID: queue_id,
@@ -700,19 +741,26 @@ class NlpWebViews(object):
                             ]
                         )
                     ).all())
+            # Quicker to use ResultSet than forget them all separately
+            results = []
             for doc in docs:
                 result_ids = json.loads(doc.result_ids)
                 # Remove from celery queue
                 for res_id in result_ids:
-                    result = AsyncResult(id=res_id, app=app)
+                    results.append(AsyncResult(id=res_id, app=app))
+                    # result = AsyncResult(id=res_id, app=app)
                     # Necessary to do both because revoke doesn't remove
                     # completed task
-                    result.revoke()
-                    result.forget()
-                # Remove from docprocrequests
-                DBSession.query(DocProcRequest).filter(
-                    DocProcRequest.document_id == doc.document_id).delete()
-                # DBSession.delete(dpr_query)
+                    # result.revoke()
+                    # result.forget()
+            res_set = ResultSet(results=results, app=app)
+            res_set.revoke()
+            # Remove from docprocrequests
+            doc_ids = list(set([d.document_id for d in docs]))
+            DBSession.query(DocProcRequest).filter(
+                DocProcRequest.document_id.in_(doc_ids)).delete(
+                    synchronize_session='fetch')
+            # res_set.forget()
             # Remove from documents
             for doc in docs:
                 DBSession.delete(doc)

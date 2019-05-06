@@ -673,7 +673,7 @@ progenvsection = MY_ENV_SECTION
 # =============================================================================
 # C. Environment variable definitions
 # =============================================================================
-- You'll need to modify this according to your local configuration.
+# - You'll need to modify this according to your local configuration.
 
 [env:MY_ENV_SECTION]
 

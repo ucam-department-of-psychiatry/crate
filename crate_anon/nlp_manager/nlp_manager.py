@@ -485,6 +485,7 @@ def send_cloud_requests(
     """
     requests = []
     recnum = 0
+    cookies = None
     i = 1  # number of requests sent
     totalcount = ifconfig.get_count()  # total number of records in table
     # Check processors are available
@@ -534,7 +535,9 @@ def send_cloud_requests(
             empty_request = False
         else:
             if not empty_request:
-                cloud_request.send_process_request(queue)
+                cloud_request.send_process_request(queue, cookies)
+                if cloud_request.cookies:
+                    cookies = cloud_request.cookies
                 log.info(f"Sent request to be processed: #{i}")
                 i += 1
                 requests.append(cloud_request)
@@ -570,7 +573,7 @@ def send_cloud_requests(
         other_values[FN_SRCHASH] = srchash
     if not empty_request:
         # Send last request
-        cloud_request.send_process_request(queue)
+        cloud_request.send_process_request(queue, cookies)
         log.info(f"Sent request to be processed: #{i}")
         requests.append(cloud_request)
     return requests
@@ -652,10 +655,14 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     with open(filename, 'r') as request_data:
         reqdata = request_data.readlines()
     i = 1  # number of requests
+    cookies = None
     with open(filename, 'w') as request_data:
         ifconfig_cache = {}  # type: Dict[str, InputFieldConfig]
         all_ready = True  # not necessarily true, but need for later
         for line in reqdata:
+            # Are there are records (whether ready or not) associated with
+            # the queue_id
+            records_exist = False
             if_section, queue_id = line.strip().split(',')
             if if_section in ifconfig_cache:
                 ifconfig = ifconfig_cache[if_section]
@@ -672,7 +679,9 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
             cloud_request.set_queue_id(queue_id)
             log.info(f"Atempting to retrieve data from request #{i} ...")
             i += 1
-            ready = cloud_request.check_if_ready()
+            ready = cloud_request.check_if_ready(cookies)
+            if cloud_request.cookies:
+                cookies = cloud_request.cookies
 
             if not ready:
                 # If results are not ready for this particular queue_id, put
@@ -682,10 +691,10 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                 request_data.write(f"{if_section},{queue_id}\n")
                 all_ready = False
             else:
-                log.info("Request ready.")
-                cloud_request.process_all()
                 nlp_data = cloud_request.nlp_data
                 for result in nlp_data[NKeys.RESULTS]:
+                    # There are records associated with the given queue_id
+                    records_exist = True
                     # 'metadata' is just 'other_values' from before
                     metadata = result[NKeys.METADATA]
                     pkval = metadata[FN_SRCPKVAL]
@@ -693,15 +702,23 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                     srchash = metadata[FN_SRCHASH]
                     progrec = None
                     if incremental:
+                        progrec = ifconfig.get_progress_record(pkval, pkstr)
+                        if progrec is not None:
+                            if progrec.srchash == srchash:
+                                log.debug("Record previously processed; "
+                                          "skipping")
+                                continue
+                            else:
+                                log.debug("Record has changed")
+                        else:
+                            log.debug("Record is new")
                         for processor in (
                                 cloud_request.mirror_processors.values()):
                             processor.delete_dest_record(ifconfig,
                                                          pkval,
                                                          pkstr,
                                                          commit=incremental)
-                        # Record progress in progress database
-                        progrec = ifconfig.get_progress_record(pkval, pkstr)
-                    if srchash in seen_srchashs:
+                    elif srchash in seen_srchashs:
                         progrec = ifconfig.get_progress_record(pkval, pkstr)
                     seen_srchashs.append(srchash)
                     # Make a note in the progress database that we've processed
@@ -725,6 +742,11 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                         )
                         with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
                             session.add(progrec)
+                if records_exist:
+                    log.info("Request ready.")
+                else:
+                    log.warning(f"No records found for queue_id {queue_id}.")
+                cloud_request.process_all()
     nlpdef.commit_all()
     if all_ready:
         os.remove(filename)
@@ -1087,13 +1109,13 @@ def main() -> None:
         help="Show detailed timing breakdown")
     parser.add_argument(
         "--cloud", action="store_true",
-        help="Use GATE cloud processing tools")
+        help="Use cloud-based NLP processing tools. Queued mode by default.")
     parser.add_argument(
         "--immediate", action="store_true",
         help="To be used with 'cloud'. Process immediately.")
     parser.add_argument(
         "--retrieve", action="store_true",
-        help="Retrieve GATE NLP data from cloud")
+        help="Retrieve NLP data from cloud")
     parser.add_argument(
         "--cancelrequest", action="store_true",
         help="Cancel pending requests for the nlpdef specified")

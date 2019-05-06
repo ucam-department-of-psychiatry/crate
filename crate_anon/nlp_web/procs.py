@@ -47,6 +47,7 @@ spec = importlib.util.spec_from_file_location("processors", proc_file)
 processors = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(processors)
 
+
 class Processor(object):
     """
     Class for containing information about processors.
@@ -103,7 +104,7 @@ class Processor(object):
 
 
 for proc in processors.PROCESSORS:
-    Processor(
+    x = Processor(
         name=proc[NKeys.NAME],
         title=proc[NKeys.TITLE],
         version=proc[NKeys.VERSION],
@@ -111,3 +112,5 @@ for proc in processors.PROCESSORS:
         description=proc[NKeys.DESCRIPTION],
         proctype=proc.get(KEY_PROCTYPE)
     )
+    # Doing this here saves time per request
+    x.set_parser()

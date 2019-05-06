@@ -194,6 +194,7 @@ INSTALL_REQUIRES = [
     'requests==2.21.0',
     'transaction==2.4.0',
     'cryptography==2.5',
+    'redis==3.2.1',
 
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually

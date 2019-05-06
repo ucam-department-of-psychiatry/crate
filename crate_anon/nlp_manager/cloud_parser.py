@@ -170,6 +170,7 @@ class CloudRequest(object):
 
         self.mirror_processors = {}
         self.max_length = max_length
+        self.cookies = None
 
     @staticmethod
     def utf8len(text):
@@ -192,6 +193,7 @@ class CloudRequest(object):
         except json.decoder.JSONDecodeError:
             log.error("Reply was not JSON")
             raise
+        # cls.cookies = response.cookies
         # print(json_response)
         procs = [proc[NKeys.NAME] for proc in json_response[NKeys.PROCESSORS]]
         return procs
@@ -257,7 +259,8 @@ class CloudRequest(object):
         else:
             return False
 
-    def send_process_request(self, queue: bool) -> None:
+    def send_process_request(self, queue: bool,
+                             cookies: List[Any] = None) -> None:
         """
         Sends a request to the server to process the text.
         """
@@ -271,8 +274,13 @@ class CloudRequest(object):
         request_json = json.dumps(self.request_process, default=str)
         # print(request_json)
         # print()
-        response = requests.post(self.url, data=request_json, 
-                                 auth=self.auth, headers=self.HEADERS)
+        if not cookies:
+            response = requests.post(self.url, data=request_json, 
+                                     auth=self.auth, headers=self.HEADERS)
+        else:
+            response = requests.post(self.url, data=request_json, 
+                                     auth=self.auth, headers=self.HEADERS,
+                                     cookies=cookies)
         try:
             json_response = response.json()
         except json.decoder.JSONDecodeError:
@@ -284,6 +292,7 @@ class CloudRequest(object):
             if status == HttpStatus.ACCEPTED:
                 self.queue_id = json_response[NKeys.QUEUE_ID]
                 self.fetched = False
+                self.cookies = response.cookies
             else:
                 log.error(f"Response from server: {json_response}")
                 raise HTTPError(f"Got HTTP status code {status}.")
@@ -293,6 +302,7 @@ class CloudRequest(object):
                 # print(self.nlp_data)
                 # print()
                 self.fetched = True
+                self.cookies = response.cookies
             else:
                 raise HTTPError(f"Response status was: {status}")
 
@@ -303,23 +313,29 @@ class CloudRequest(object):
         """
         self.queue_id = queue_id
 
-    def try_fetch(self) -> Dict[str, Any]:
+    def try_fetch(self, cookies: List[Any] = None) -> Dict[str, Any]:
         """
         Tries to fetch the response from the server. Assumes queued mode.
         Returns the json response.
         """
         self.fetch_request[NKeys.ARGS] = {NKeys.QUEUE_ID: self.queue_id}
         request_json = json.dumps(self.fetch_request)
-        response = requests.post(self.url, data=request_json,
-                                 auth=self.auth, headers=self.HEADERS)
+        if not cookies:
+            response = requests.post(self.url, data=request_json,
+                                     auth=self.auth, headers=self.HEADERS)
+        else:
+            response = requests.post(self.url, data=request_json,
+                                     auth=self.auth, headers=self.HEADERS,
+                                     cookies=cookies)
         try:
             json_response = response.json()
         except json.decoder.JSONDecodeError:
             log.error("Reply was not JSON")
             raise
+        self.cookies = response.cookies
         return json_response
 
-    def check_if_ready(self) -> bool:
+    def check_if_ready(self, cookies: List[Any] = None) -> bool:
         """
         Checks if the data is ready yet. Assumes queued mode. If the data is
         ready, collect it and return True, else return False.
@@ -329,7 +345,7 @@ class CloudRequest(object):
             return False
         if self.fetched:
             return False
-        json_response = self.try_fetch()
+        json_response = self.try_fetch(cookies)
         # print(json_response)
         # print()
         status = json_response[NKeys.STATUS]
@@ -340,6 +356,7 @@ class CloudRequest(object):
         elif status == HttpStatus.PROCESSING:
             return False
         elif status == HttpStatus.NOT_FOUND:
+            print(json_response)
             log.error(f"Got HTTP status code {HttpStatus.NOT_FOUND} - "
                       f"queue_id {self.queue_id} does not exist")
             return False
@@ -426,6 +443,7 @@ class CloudRequest(object):
                         "already.")
         elif status != HttpStatus.OK and status != HttpStatus.NO_CONTENT:
             raise HTTPError(f"Response status was: {status}")
+        self.cookies = response.cookies
 
     def get_tablename_map(self, processor: str) -> Tuple[Dict[str, str],
                                                          Dict[str,
@@ -458,6 +476,12 @@ class CloudRequest(object):
         tablename = self._nlpdef.opt_str(
             full_sectionname(NlpConfigPrefixes.PROCESSOR, procname),
             'desttable', required=True)
+        if not processor_data[NKeys.SUCCESS]:
+            log.warning(
+                f"Processor {proctype} failed for this document. Errors:")
+            errors = processor_data[NKeys.ERRORS]
+            for error in errors:
+                log.warning(f"{error[NKeys.CODE]} - {error[NKeys.MESSAGE]}")
         for result in processor_data[NKeys.RESULTS]:
             result.update(metadata)
             yield tablename, result, proctype
@@ -482,6 +506,10 @@ class CloudRequest(object):
         """
         type_to_tablename, outputtypemap = self.get_tablename_map(
             procname)
+        if not processor_data[NKeys.SUCCESS]:
+            log.warning(f"Processor {procname} failed for this document.\n"
+                        "Status: {processor_data[NKeys.STATUS]}\n"
+                        "Message: {processor_data[NKeys.MESSAGE]}")
         for result in processor_data[NKeys.RESULTS]:
             # Assuming each set of results says what annotation type
             # it is

@@ -39,7 +39,6 @@ from typing import Optional, Tuple, Any, List, Dict
 from sqlalchemy.orm import scoped_session
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-# from crate_anon.nlp_manager.all_processors import make_processor
 from crate_anon.nlp_web.models import Session, DocProcRequest
 from crate_anon.nlp_web.procs import Processor
 from crate_anon.nlp_web.constants import PROCTYPE_GATE, SETTINGS
@@ -90,7 +89,10 @@ def get_gate_results(results_dict: Dict[str, Any]) -> List[Any]:
     return results
 
 
-app = Celery('tasks', backend=backend_url, broker=broker_url)
+# Set expiry time to 90 days in seconds
+expiry_time = 60 * 60 * 24 * 90
+app = Celery('tasks', backend=backend_url, broker=broker_url,
+             result_expires=expiry_time)
 
 log = logging.getLogger(__name__)
 
@@ -102,22 +104,27 @@ def process_nlp_text(
         docprocrequest_id: str,
         url: str = None,
         username: str = "",
-        crypt_pass: str = "") -> Optional[Tuple[bool, List[Any], Optional[int],
-                                                str, datetime.datetime]]:
+        crypt_pass: str = "") -> Tuple[bool, List[Any], Optional[int],
+                                       str, datetime.datetime]:
     """
     Task to send text to the relevant processor.
     """
-    # time.sleep(10)
+    # time.sleep(0.2)
     # Can't figure out how not to have to do this everytime
     # engine = engine_from_config(SETTINGS, 'sqlalchemy.')
-    # DBSession.configure(bind=engine)
+    # TaskSession.configure(bind=engine)
     query = TaskSession.query(DocProcRequest).get(docprocrequest_id)
     # The above is probably wrong, but if we use a different session, the
     # data doesn't always reach the database in time
     if not query:
-        log.error("Docprocrequest: {} does not exist: ".format(
-                      docprocrequest_id))
-        return None
+        log.error(f"Docprocrequest: {docprocrequest_id} does not exist")
+        return (
+            False,
+            [],
+            500,
+            "Internal Server Error: Docprocrequest does not exist",
+            datetime.datetime.utcnow()
+        )
     # Turn the password back into bytes and decrypt
     password = decrypt_password(crypt_pass.encode(), CIPHER_SUITE)
     text = query.doctext
@@ -139,8 +146,8 @@ def process_nlp_text_immediate(
         processor: Processor,
         url: str = None,
         username: str = "",
-        password: str = "") -> Optional[Tuple[bool, List[Any], Optional[int],
-                                              str, datetime.datetime]]:
+        password: str = "") -> Tuple[bool, List[Any], Optional[int],
+                                     str, datetime.datetime]:
     """
     Function to send text immediately to the relevant processor.
     """
@@ -198,7 +205,7 @@ def process_nlp_gate(text: str, processor: Processor, url: str,
             False,
             [],
             502,  # 'Bad Gateway' - not sure if correct error code
-            "The GATE processor did not return json",
+            "Bad Gateway: The GATE processor did not return json",
             datetime.datetime.utcnow()
         )
     results = get_gate_results(json_response)
@@ -223,7 +230,7 @@ def process_nlp_internal(text: str, parser: BaseNlpParser) -> Tuple[
             False,
             [],
             500,  # 'Internal Server Error'
-            "Internal Server Error",
+            "Internal Server Error: parser is not type 'BaseNlpProcessor",
             datetime.datetime.utcnow()
         )
     # Get second element of each element in parsed text as first is tablename
