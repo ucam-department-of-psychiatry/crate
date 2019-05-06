@@ -35,6 +35,8 @@
 .. _UTC: https://en.wikipedia.org/wiki/Coordinated_Universal_Time
 
 
+.. _nlprp:
+
 Natural Language Processing Request Protocol (NLPRP): DRAFT
 -----------------------------------------------------------
 
@@ -1140,6 +1142,7 @@ NLPRP history
 - CURRENT WORKING VERSION.
 
 
+===============================================================================
 
 .. rubric:: Footnotes
 

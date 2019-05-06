@@ -23,10 +23,12 @@ Ancillary tools
 .. contents::
    :local:
 
+
 crate_docs
 ~~~~~~~~~~
 
 Launches this documentation via your web browser.
+
 
 crate_make_demo_database
 ~~~~~~~~~~~~~~~~~~~~~~~~

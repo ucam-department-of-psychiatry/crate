@@ -58,6 +58,7 @@ Prerequisites
 
   - Accept some license terms and put the coffee on.
 
+
 Basic communication with Python
 -------------------------------
 
@@ -111,6 +112,7 @@ https://docs.microsoft.com/en-us/sql/advanced-analytics/tutorials/quickstart-pyt
 
   so this is a custom version of Python 3.5.2.
 
+
 Install some external Python code
 ---------------------------------
 
@@ -157,6 +159,7 @@ Now try this:
     ';
     GO
 
+
 See what packages are installed locally
 ---------------------------------------
 
@@ -173,6 +176,7 @@ Specifically:
     GO
 
 You should see packages that you installed above.
+
 
 Structured data flow
 --------------------
@@ -228,6 +232,7 @@ The basic messages are as follows:
   https://docs.microsoft.com/en-us/sql/t-sql/language-elements/execute-transact-sql?view=sql-server-2017.
 
 - You can rename the input/output parameters if you wish.
+
 
 Example to find two antidepressants "episodes"
 ----------------------------------------------

@@ -24,6 +24,7 @@ Technical notes
 .. contents::
    :local:
 
+
 Resolved bugs elsewhere, previously affecting CRATE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -295,6 +296,7 @@ http://devmartin.com/blog/2016/04/creating-a-virtual-environment-with-python3.4-
 
     sudo python3.4 -m pip install --upgrade pip
     sudo python3.4 -m pip install virtualenv
+
 
 Transaction count always >0 for SQL Server, prohibiting CREATE FULLTEXT INDEX
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

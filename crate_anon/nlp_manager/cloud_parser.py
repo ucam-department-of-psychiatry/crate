@@ -493,17 +493,21 @@ class CloudRequest(object):
             metadata: Dict[str, Any]) -> Generator[Tuple[
                 str, Dict[str, Any], str], None, None]:
         """
-        Get's result values from processed GATE data which will originally
+        Gets result values from processed GATE data which will originally
         be in the following format:
-        {
-            'set': set the results belong to (e.g. 'Medication'),
-            'type': annotation type,
-            'start': start index,
-            'end': end index,
-            'features': {a dictionary of features e.g. 'drug', 'frequency', etc}
-        }
+        
+        .. code-block:: none
+        
+            {
+                'set': set the results belong to (e.g. 'Medication'),
+                'type': annotation type,
+                'start': start index,
+                'end': end index,
+                'features': {a dictionary of features e.g. 'drug', 'frequency', etc}
+            }
+
         Yields output tablename, formatted result and processor name.
-        """
+        """  # noqa
         type_to_tablename, outputtypemap = self.get_tablename_map(
             procname)
         if not processor_data[NKeys.SUCCESS]:

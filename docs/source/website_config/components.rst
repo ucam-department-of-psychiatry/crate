@@ -68,6 +68,9 @@ Web site components
   :ref:`windows_service`). Under Linux, supervisor_ is typically used.
 
 
+
+===============================================================================
+
 .. rubric:: Footnotes
 
 .. [#gunicornunixonly] Gunicorn_ runs under Windows only

@@ -20,6 +20,7 @@
 Privileged functions for clinicians
 -----------------------------------
 
+
 .. _clinician_privileged_find_text_anywhere:
 
 Find text anywhere

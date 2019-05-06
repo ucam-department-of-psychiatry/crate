@@ -30,6 +30,7 @@
 .. _SQLite: https://www.sqlite.org/
 .. _unixODBC: http://www.unixodbc.org/
 
+
 .. _database_drivers:
 
 Databases and database drivers
@@ -37,6 +38,7 @@ Databases and database drivers
 
 .. contents::
    :local:
+
 
 Database engines
 ----------------
@@ -107,7 +109,6 @@ hard to upgrade. Keep things modular.
 
 A catalogue of Python database drivers
 --------------------------------------
-
 
 .. _mysqldb:
 
@@ -709,6 +710,8 @@ installation of FreeTDS 0.91. Here’s a working version:
 
 This worked.
 
+
+===============================================================================
 
 .. rubric:: Footnotes
 

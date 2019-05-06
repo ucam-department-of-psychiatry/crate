@@ -25,6 +25,7 @@ Overview for clinicians and researchers using the CRATE web interface
 Welcome to CRATE. CRATE creates **de-identified research databases** from
 clinical records. Here are some of the things you can do.
 
+
 For clinicians
 ~~~~~~~~~~~~~~
 
@@ -38,6 +39,7 @@ There are some special (privileged) functions for clinicians:
 
 - :ref:`Request that your patient is contacted about a study
   <clinician_privileged_submit_contact_request>`.
+
 
 For researchers
 ~~~~~~~~~~~~~~~
@@ -76,6 +78,7 @@ For researchers
 - Use standard :ref:`site queries <site_queries>`, defined by your local
   database administrator, to answer commonly asked questions about your
   local data.
+
 
 For researchers wishing to re-identify and contact patients
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

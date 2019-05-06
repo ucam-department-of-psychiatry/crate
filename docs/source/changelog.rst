@@ -27,8 +27,22 @@ Contributors
 - Rudolf Cardinal <rudolf@pobox.com>, 2015–.
 - Francesca Spivack, 2018–.
 
+Quick links:
+
+- :ref:`2015 <changelog_2015>`
+- :ref:`2016 <changelog_2016>`
+- :ref:`2017 <changelog_2017>`
+- :ref:`2018 <changelog_2018>`
+- :ref:`2019 <changelog_2019>`
+
+
 Changes
 -------
+
+.. _changelog_2015:
+
+2015
+~~~~
 
 **2015-02-18**
 
@@ -169,6 +183,12 @@ Changes
 **v0.13, 2015-10-06**
 
 - Added TRID.
+
+
+.. _changelog_2016:
+
+2016
+~~~~
 
 **v0.14.0, 2016-03-10**
 
@@ -374,6 +394,12 @@ Changes
 
 - Local help HTML offered via web front end.
 
+
+.. _changelog_2017:
+
+2017
+~~~~
+
 **v0.18.12, 2017-02-26**
 
 - More fixes for SQL Server, including full-text indexing.
@@ -508,6 +534,12 @@ Changes
   request 2017-05-04.) See ``crate_anon.crateweb.research.views.ridlookup``.
 
 - Code to generate and test demonstration databases improved.
+
+
+.. _changelog_2018:
+
+2018
+~~~~
 
 **v0.18.49, 2018-01-07, 2018-03-21, 2018-03-27, published 2018-04-20**
 
@@ -775,6 +807,12 @@ Changes
 - Bugfix to clinician requests. Also now sends a more appropriate email
   in these cases.
 
+
+.. _changelog_2019:
+
+2019
+~~~~
+
 **v0.18.61, 2019-01-15**
 
 - Updated version of Django in ``setup.py``.
@@ -861,6 +899,7 @@ Changes
 - PyPI distribution properly contains ``nlprp`` directory.
 
 
+===============================================================================
 
 .. rubric:: Footnotes
 

@@ -30,12 +30,14 @@ research database. CRATE separates these stages.
 .. contents::
    :local:
 
+
 Terminology
 -----------
 
 I will refer to ‘anonymisation’ in this document, but sometimes as a shorthand
 for ‘pseudonymisation’, in which IDs are removed and replaced by a generated
 pseudonym.
+
 
 Database connections
 --------------------
@@ -44,6 +46,7 @@ Most of the CRATE tools talk to one or more databases. They do this via
 SQLAlchemy_, which uses a unified URL scheme to define a database connection.
 You will need to create a URL for every database you wish to use. In some cases
 you may need to install drivers. See “Internal database interfaces” below.
+
 
 Preprocessing
 -------------
@@ -65,6 +68,7 @@ CRATE provides the following optional pre-processing steps:
   some de-normalization of RiO Core and RiO Non-Core data to make it simpler
   for end users. This program also generates data dictionary options for the
   next step.
+
 
 Data dictionary generation and editing
 --------------------------------------
@@ -93,6 +97,7 @@ hope) be much closer to what you want.
 However, you should always review your data dictionary by hand prior to
 anonymisation.
 
+
 Anonymisation
 -------------
 
@@ -106,6 +111,7 @@ This tool uses a configuration file that you create and edit. Use
 ``crate_anonymise --democonfig`` to generate a demonstration file. (For some
 database, like RiO, you can mix in the suggested options from
 ``crate_preprocess_rio``.)
+
 
 Natural language processing (NLP)
 ---------------------------------
@@ -127,6 +133,7 @@ the first time.
 
 This tool uses a configuration file that you create and edit. Use ``crate_nlp
 --democonfig`` to generate a demonstration file.
+
 
 Web front end
 -------------
@@ -172,6 +179,7 @@ Other scripts include:
   ``crate_launch_cherrypy_server`` and ``crate_launch_celery``, in the
   background.)
 
+
 Testing and additional tools
 ----------------------------
 
@@ -185,6 +193,9 @@ Other tools include:
 
 - ``crate_estimate_mysql_memory_usage``: estimates the memory footprint of
   MySQL_.
+
+
+===============================================================================
 
 .. rubric:: Footnotes
 

@@ -24,6 +24,7 @@ Installing CRATE
 .. contents::
    :local:
 
+
 URLs for CRATE source code
 --------------------------
 
@@ -49,6 +50,7 @@ Manual installation
 
 Installing CRATE itself is very easy, but you probably want a lot of supporting
 tools. Here's a logical sequence.
+
 
 Python
 ~~~~~~
@@ -149,6 +151,7 @@ Install RabbitMQ, required by the CRATE web site.
 - For additional RabbitMQ help see
   https://cmatskas.com/getting-started-with-rabbitmq-on-windows/.
 
+
 Java
 ~~~~
 
@@ -232,45 +235,6 @@ Tricky as the official compiler for Python 3.4 is Visual Studio 2010 [#vs2010]_
 
 FUTURE PLANS: use Python 3.5, which supports Visual C++ 14.0 [#vs2015]_. At
 present the necessary dependencies do not work cleanly.
-
-
-.. rubric:: Footnotes
-
-.. [#pdftotext]
-    ``pdftotext``: Ubuntu: ``sudo apt-get install poppler-utils``.
-    Windows: see http://blog.alivate.com.au/poppler-windows/, then install it
-    and add it to the PATH.
-
-.. [#unrtf]
-    ``unrtf``: Ubuntu: ``sudo apt-get install unrtf``.
-    Windows: see http://gnuwin32.sourceforge.net/packages/unrtf.htm, then
-    install it and add it to the PATH.
-
-.. [#antiword]
-    ``antiword``: Ubuntu: ``sudo apt-get install antiword``.
-    Windows: see http://www.winfield.demon.nl/, then install it and add it to
-    the PATH.
-
-.. [#strings]
-     ``strings`` and ``strings2``: ``strings`` is part of Linux by default;
-     for Windows, see
-     https://technet.microsoft.com/en-us/sysinternals/strings.aspx or
-     http://split-code.com/strings2.html (then install it and add it to the
-     PATH.
-
-.. [#vs2010]
-    Visual Studio 2010; VC++ 10.0; MSC_VER=1600
-
-.. [#vs2015]
-    Visual Studio 2015; VC++ 14.0; MSC_VER=1900
-
-.. [#python34vstudio]
-    See http://stackoverflow.com/questions/29909330
-
-.. [#vstudiogeneral]
-    To map Visual C++/Studio versions to compiler numbers, see
-    http://stackoverflow.com/questions/2676763. For more detail see
-    http://stackoverflow.com/questions/2817869.
 
 
 Fast MurmurHash3
@@ -453,12 +417,15 @@ rather than as a service [#taskscheduler]_, e.g. with tasks like
 
 … but I’ve not bothered to test this, as the Service method works fine.
 
+
 Retest the web server and message queue
 ---------------------------------------
 
 Going to a “behind-the-scenes” (service) mode of operation has the potential to
 go wrong, so retest that the web server and the e-mail transmission task work.
 
+
+===============================================================================
 
 .. rubric:: Footnotes
 
@@ -468,3 +435,41 @@ go wrong, so retest that the web server and the e-mail transmission task work.
 .. [#taskscheduler]
     See
     https://www.calazan.com/windows-tip-run-applications-in-the-background-using-task-scheduler/
+
+.. [#pdftotext]
+    ``pdftotext``: Ubuntu: ``sudo apt-get install poppler-utils``.
+    Windows: see http://blog.alivate.com.au/poppler-windows/, then install it
+    and add it to the PATH.
+
+.. [#unrtf]
+    ``unrtf``: Ubuntu: ``sudo apt-get install unrtf``.
+    Windows: see http://gnuwin32.sourceforge.net/packages/unrtf.htm, then
+    install it and add it to the PATH.
+
+.. [#antiword]
+    ``antiword``: Ubuntu: ``sudo apt-get install antiword``.
+    Windows: see http://www.winfield.demon.nl/, then install it and add it to
+    the PATH.
+
+.. [#strings]
+     ``strings`` and ``strings2``: ``strings`` is part of Linux by default;
+     for Windows, see
+     https://technet.microsoft.com/en-us/sysinternals/strings.aspx or
+     http://split-code.com/strings2.html (then install it and add it to the
+     PATH.
+
+.. [#vs2010]
+    Visual Studio 2010; VC++ 10.0; MSC_VER=1600
+
+.. [#vs2015]
+    Visual Studio 2015; VC++ 14.0; MSC_VER=1900
+
+.. [#python34vstudio]
+    See http://stackoverflow.com/questions/29909330
+
+.. [#vstudiogeneral]
+    To map Visual C++/Studio versions to compiler numbers, see
+    http://stackoverflow.com/questions/2676763. For more detail see
+    http://stackoverflow.com/questions/2817869.
+
+

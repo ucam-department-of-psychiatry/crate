@@ -27,6 +27,7 @@ FAQs and troubleshooting
 .. contents::
    :local:
 
+
 Known bugs elsewhere affecting CRATE
 ------------------------------------
 
@@ -119,7 +120,6 @@ are marked with ``# MANUAL``; CRATE installs the others.
     xlrd==1.0.0
 
 
-
 Pretty colours all gone (anonymiser, NLP, etc.)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -145,6 +145,7 @@ in excess of this likely relate to the text extraction process, which uses
 third-party software over which CRATE has no control (I’ve seen >1 Gb)
 [#debugginghighmemusage]_.
 
+
 “File is not a zip file”
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -153,6 +154,7 @@ extracting text from DOCX documents
 
 This error usually appears with encrypted, password-protected DOCX files. The
 anonymiser will not be able to read these, and this error can be ignored.
+
 
 “UnRtf: … has stopped working”
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -178,6 +180,7 @@ entries [#disabledebugcloseapplication]_:
     HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting : “DontShowUI”=dword:00000001
     HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting : “DontSendAdditionalData”=dword:00000001
     HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\Consent : “DefaultConsent”=dword:00000002
+
 
 CRATE NLP
 ---------
@@ -209,6 +212,7 @@ Use forward slashes (``/``) rather than backslashes (``\``) for filename paths
 in the environment variable `CRATE_CHERRYPY_ARGS` (e.g.
 ``C:/somepath/somefile.ext``) or escape the backslashes by doubling them (e.g.
 ``C:\\somepath\\somefile.ext``).
+
 
 Port 443 not free on ‘127.0.0.1’
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -244,6 +248,7 @@ If you have sufficient control over your machine to wrest port 443 away from
 whatever’s using it, fine. Otherwise, you may need to use an alternative port.
 A common choice might be 8443 [#port8443]_.
 
+
 “Your connection is not private...” browser error
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -251,6 +256,7 @@ You will always get this error until you get a proper HTTPS certificate. This
 error occurs when you self-sign a certificate. Browers will offer you a way
 round, usually in small print [e.g. in Chrome: :menuselection:`Advanced -->
 Proceed... (unsafe)`].
+
 
 403 Forbidden: CSRF verification failed
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -267,6 +273,7 @@ There are at least two possible reasons:
   cookies are only permitted over HTTPS, so if you use plain HTTP, you will see
   this error. A quick hack is to set ``CRATE_HTTPS = False`` in your local
   settings, but this is a bad idea; set up HTTPS properly instead, as above.
+
 
 "Unknown, invalid, or unsupported option... in a getsockopt or setsockopt call"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -290,6 +297,7 @@ Solution: downgrade AMQP. From the activated CRATE virtual environment:
 This change has been hardcoded into CRATE’s setup scripts to prevent Celery
 from picking the buggy version of the Python `amqp` package. As a consequence,
 other requirements are also downgraded (`celery` to 4.0.1; `kombu` to 4.0.1).
+
 
 Static files not served via CherryPy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -369,25 +377,25 @@ So the general rescue method:
 - remove the old virtual environment
 - recreate the virtual environment and reinstall, e.g.
 
-    .. code-block:: none
+  .. code-block:: none
 
-        cd \srv\crate
-        "\Program Files\Python35\python.exe" -m venv crate_virtualenv
-        crate_virtualenv\Scripts\activate.bat
-        pip install crate_anon==0.18.51 pyodbc django-pyodbc-azure
+    cd \srv\crate
+    "\Program Files\Python35\python.exe" -m venv crate_virtualenv
+    crate_virtualenv\Scripts\activate.bat
+    pip install crate_anon==0.18.51 pyodbc django-pyodbc-azure
 
 - remove and reinstall the CRATE service, using an Administrator command
   prompt:
 
-    .. code-block:: none
+  .. code-block:: none
 
-        crate_windows_service remove
+    crate_windows_service remove
 
-    ... reboot...
+  ... reboot...
 
-    .. code-block:: none
+  .. code-block:: none
 
-        crate_windows_service install
+    crate_windows_service install
 
 
 “No connection could be made because the target machine actively refused it”
@@ -529,6 +537,7 @@ Can’t connect to MySQL, even manually
 
 See https://dev.mysql.com/doc/refman/5.5/en/problems-connecting.html.
 
+
 How do I reconfigure MySQL?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -622,6 +631,7 @@ you’ve reconfigured MySQL:
 Your target is a happy MySQL installation that restarts automatically when you
 reboot.
 
+
 Table names are always lower case using MySQL under Windows
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -637,6 +647,7 @@ However, when using NTFS, Windows filenames are case-sensitive
 case-sensitivity of table names using SQL (but not of column names). So you’re
 probably better off always using ``lower_case_table_names = 1``, as per the
 MySQL advice. This is the default behaviour under Windows.
+
 
 “Got a packet bigger than ‘max_allowed_packet’ bytes” or “MySQL has gone away”
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -667,6 +678,7 @@ System Variables`; search for ``max_allowed_packet``).
 If you can’t get this working, reduce the ``--chunksize`` parameter to the
 CRATE anonymiser.
 
+
 How do I hot-swap two MySQL databases?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -690,6 +702,7 @@ How?
 
 - http://stackoverflow.com/questions/67093/how-do-i-quickly-rename-a-mysql-database-change-schema-name
 - https://gist.github.com/michaelmior/1173781
+
 
 "MySQL server has gone away"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -718,39 +731,40 @@ What settings do I need in /etc/mysql/my.cnf?
 
 Probably these:
 
-    .. code-block:: ini
+.. code-block:: ini
 
-        [mysqld]
-        max_allowed_packet = 32M
+    [mysqld]
+    max_allowed_packet = 32M
 
-        innodb_strict_mode = 1
-        innodb_file_per_table = 1
-        innodb_file_format = Barracuda
+    innodb_strict_mode = 1
+    innodb_file_per_table = 1
+    innodb_file_format = Barracuda
 
-        # Only for MySQL prior to 5.7.5 (http://dev.mysql.com/doc/relnotes/mysql/5.6/en/news-5-6-20.html):
-        innodb_log_file_size = 320M
+    # Only for MySQL prior to 5.7.5 (http://dev.mysql.com/doc/relnotes/mysql/5.6/en/news-5-6-20.html):
+    innodb_log_file_size = 320M
 
-        # For more performance, less safety:
-        innodb_flush_log_at_trx_commit = 2
+    # For more performance, less safety:
+    innodb_flush_log_at_trx_commit = 2
 
-        # To save memory?
-        # Default is 8; suggestion is ncores * 2
-        # innodb_thread_concurrency = ...
+    # To save memory?
+    # Default is 8; suggestion is ncores * 2
+    # innodb_thread_concurrency = ...
 
-        [mysqldump]
-        max_allowed_packet = 32M
+    [mysqldump]
+    max_allowed_packet = 32M
+
 
 "_mysql_exceptions.OperationalError: (1118, 'Row size too large (> 8126)"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In full, the error is:
 
-    .. code-block:: none
+.. code-block:: none
 
-        _mysql_exceptions.OperationalError: (1118, 'Row size too large (> 8126).
-        Changing some columns to TEXT or BLOB or using ROW_FORMAT=DYNAMIC or
-        ROW_FORMAT=COMPRESSED may help. In current row format, BLOB prefix of 768
-        bytes is stored inline.')
+    _mysql_exceptions.OperationalError: (1118, 'Row size too large (> 8126).
+    Changing some columns to TEXT or BLOB or using ROW_FORMAT=DYNAMIC or
+    ROW_FORMAT=COMPRESSED may help. In current row format, BLOB prefix of 768
+    bytes is stored inline.')
 
 See above. If you need to change the log file size, FOLLOW THIS PROCEDURE:
 https://dev.mysql.com/doc/refman/5.0/en/innodb-data-log-reconfiguration.html
@@ -770,6 +784,7 @@ You may be out of memory, on a small computer. Try reducing MySQL's memory
 footprint. (Steps have already been taken to reduce memory usage by the
 anonymiser itself.)
 
+
 Can't create FULLTEXT index(es)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -778,10 +793,10 @@ to MyISAM tables, which don't support transactions).
 
 On Ubuntu 14.04, the default MySQL version is 5.5, so use:
 
-    .. code-block:: bash
+.. code-block:: bash
 
-        sudo apt-get install mysql-server-5.6 mysql-server-core-5.6 \
-            mysql-client-5.6 mysql-client-core-5.6
+    sudo apt-get install mysql-server-5.6 mysql-server-core-5.6 \
+        mysql-client-5.6 mysql-client-core-5.6
 
 
 How to search with FULLTEXT indexes?
@@ -924,6 +939,7 @@ Administrative Templates --> Control Panel`. Check the settings there.
 When that doesn’t work, I’m a bit stuck; try running ``.cpl`` items from the
 command line instead.
 
+
 MedEx-UIMA
 ----------
 
@@ -1000,6 +1016,7 @@ You have probably missed out the ``-Dfile.encoding=UTF-8`` setting for Java in
 your config file; see the example.
 
 
+===============================================================================
 
 .. rubric:: Footnotes
 
