@@ -29,10 +29,41 @@ Prints a demo config for CRATE's implementation of an NLPRP server.
 import argparse
 import logging
 
-from crate_anon.nlp_web.constants import DEMO_CONFIG, DEMO_PROCESSORS
+# from crate_anon.nlp_web.constants import DEMO_CONFIG, DEMO_PROCESSORS
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
+
+# We need to do this here rather than in constants because otherwise it tries
+# to get the settings file before it's been created
+DEMO_CONFIG = """
+[app:main]
+use = egg:crate_anon
+pyramid.reload_templates = true
+# pyramid.includes =
+#     pyramid_debugtoolbar
+nlp_web.secret = changethis
+sqlalchemy.url = mysql://username:password@localhost/dbname?charset=utf8
+
+# Absolute path of users file
+users_file = /home/.../nlp_web_files/users.txt
+
+# Absolute path of processors file - this must be a .py file in the correct
+# format
+processors_path = /home/.../nlp_web_files/processor_constants.py
+
+# urls for queueing
+broker_url = amqp://@localhost:3306/testbroker
+backend_url = db+mysql://username:password@localhost/backenddbname?charset=utf8
+
+# Key for reversible encryption. Use 'nlp_web_generate_encryption_key'.
+encryption_key =
+
+[server:main]
+use = egg:waitress#main
+listen = localhost:6543
+"""
+
 
 def main() -> None:
     """
@@ -56,6 +87,7 @@ def main() -> None:
     if args.config:
         print(DEMO_CONFIG)
     elif args.processors:
+        from crate_anon.nlp_web.constants import DEMO_PROCESSORS
         print(DEMO_PROCESSORS)
     else:
         log.error("One option required: '--config' or '--processors'.")
