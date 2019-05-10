@@ -478,7 +478,8 @@ def send_cloud_requests(
         max_length: int = 0,
         report_every: int = DEFAULT_REPORT_EVERY_NLP,
         incremental: bool = False,
-        queue: bool = True) -> List[CloudRequest]:
+        queue: bool = True,
+        verify_ssl: bool = True) -> List[CloudRequest]:
     """
     Sends off a series of cloud requests and returns them as a list.
     'queue' determines whether these are queued requests or not.
@@ -491,13 +492,15 @@ def send_cloud_requests(
     # Check processors are available
     available_procs = CloudRequest.list_processors(url,
                                                    username,
-                                                   password)
+                                                   password,
+                                                   verify_ssl)
     cloud_request = CloudRequest(nlpdef=nlpdef,
                                  url=url,
                                  username=username,
                                  password=password,
                                  max_length=max_length,
-                                 allowable_procs=available_procs)
+                                 allowable_procs=available_procs,
+                                 verify_ssl=verify_ssl)
     empty_request = True
     for text, other_values in ifconfig.gen_text():
         pkval = other_values[FN_SRCPKVAL]
@@ -547,7 +550,8 @@ def send_cloud_requests(
                 username=username,
                 password=password,
                 max_length=max_length,
-                allowable_procs=available_procs)
+                allowable_procs=available_procs,
+                verify_ssl=verify_ssl)
             empty_request = True
             # Is the text too big on its own? If so, don't send it. Otherwise
             # add it to the new request
@@ -581,7 +585,8 @@ def send_cloud_requests(
 
 def process_cloud_nlp(nlpdef: NlpDefinition,
                       incremental: bool = False,
-                      report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
+                      report_every: int = DEFAULT_REPORT_EVERY_NLP,
+                      verify_ssl: bool = True) -> None:
     """
     Process text by sending it off to the cloud processors in queued mode.
     """
@@ -614,7 +619,8 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
                 password=password,
                 max_length=max_length,
                 incremental=incremental,
-                report_every=report_every)
+                report_every=report_every,
+                verify_ssl=verify_ssl)
             for cloud_request in cloud_requests:
                 if cloud_request.queue_id:
                     request_data.write(
@@ -624,7 +630,8 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
 
 
 def retrieve_nlp_data(nlpdef: NlpDefinition,
-                      incremental: bool = False) -> None:
+                      incremental: bool = False,
+                      verify_ssl: bool = True) -> None:
     """
     Try to retrieve the data from the cloud processors.
     """
@@ -646,7 +653,8 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     filename = f'{req_data_dir}/request_data_{nlpname}.txt'
     available_procs = CloudRequest.list_processors(url,
                                                    username,
-                                                   password)
+                                                   password,
+                                                   verify_ssl)
     mirror_procs = nlpdef.get_processors()
     if not os.path.exists(filename):
         log.error(f"File 'request_data_{nlpname}.txt' does not exist in the "
@@ -674,7 +682,8 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                                          url=url,
                                          username=username,
                                          password=password,
-                                         allowable_procs=available_procs)
+                                         allowable_procs=available_procs,
+                                         verify_ssl=verify_ssl)
             cloud_request.set_mirror_processors(mirror_procs)
             cloud_request.set_queue_id(queue_id)
             log.info(f"Atempting to retrieve data from request #{i} ...")
@@ -758,7 +767,8 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
 def process_cloud_now(
         nlpdef: NlpDefinition,
         incremental: bool = False,
-        report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
+        report_every: int = DEFAULT_REPORT_EVERY_NLP,
+        verify_ssl: bool = True) -> None:
     """
     Process text by sending it off to the cloud processors in non queued mode.
     """
@@ -789,7 +799,8 @@ def process_cloud_now(
             ifconfig=ifconfig,
             incremental=incremental,
             report_every=report_every,
-            queue=False)
+            queue=False,
+            verify_ssl=verify_ssl)
         for cloud_request in cloud_requests:
             cloud_request.set_mirror_processors(mirror_procs)
             cloud_request.process_all()
@@ -839,7 +850,8 @@ def process_cloud_now(
     nlpdef.commit_all()
 
 
-def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
+def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False,
+                   verify_ssl: bool = True) -> None:
     """
     Delete pending requests from the server's queue.
     """
@@ -860,7 +872,8 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
     cloud_request = CloudRequest(nlpdef=nlpdef,
                                  url=url,
                                  username=username,
-                                 password=password)
+                                 password=password,
+                                 verify_ssl=verify_ssl)
     if cancel_all:
         # Deleting all from queue!
         cloud_request.delete_all_from_queue()
@@ -885,7 +898,7 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
     log.info(f"Cloud request for nlp definition {nlpname} cancelled.")
 
 
-def show_cloud_queue(nlpdef: NlpDefinition) -> None:
+def show_cloud_queue(nlpdef: NlpDefinition, verify_ssl: bool = True) -> None:
     """
     Get list of the user's queued requests and print to screen.
     """
@@ -902,7 +915,8 @@ def show_cloud_queue(nlpdef: NlpDefinition) -> None:
     cloud_request = CloudRequest(nlpdef=nlpdef,
                                  url=url,
                                  username=username,
-                                 password=password)
+                                 password=password,
+                                 verify_ssl=verify_ssl)
     queue = cloud_request.show_queue()
     if not queue:
         print("\nNo requests in queue.")
@@ -1127,6 +1141,9 @@ def main() -> None:
     parser.add_argument(
         "--showqueue", action="store_true",
         help="Shows all pending cloud requests.")
+    parser.add_argument(
+        "--noverify", action="store_true",
+        help="Don't verify server's SSL certificate")
     args = parser.parse_args()
 
     # Validate args
@@ -1198,17 +1215,19 @@ def main() -> None:
 
     # -------------------------------------------------------------------------
 
+    verify_ssl = not args.noverify
+
     # Delete from queue - do this before Drop/Remake and return so we don't
     # drop all the tables just to cancel the request
     # Same for 'showqueue'. All of these need config as they require url etc.
     if args.cancelrequest:
-        cancel_request(config)
+        cancel_request(config, verify_ssl=verify_ssl)
         return
     if args.cancelall:
-        cancel_request(config, cancel_all=args.cancelall)
+        cancel_request(config, cancel_all=args.cancelall, verify_ssl=verify_ssl)
         return
     if args.showqueue:
-        show_cloud_queue(config)
+        show_cloud_queue(config, verify_ssl=verify_ssl)
         return
 
     log.info(f"Starting: incremental={args.incremental}")
@@ -1245,7 +1264,8 @@ def main() -> None:
                     process_cloud_now(
                         config,
                         incremental=args.incremental,
-                        report_every=args.report_every_nlp)
+                        report_every=args.report_every_nlp,
+                        verify_ssl=verify_ssl)
                 except Exception as exc:
                     log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
                     die(exc)
@@ -1253,14 +1273,16 @@ def main() -> None:
                 try:
                     process_cloud_nlp(config,
                                       incremental=args.incremental,
-                                      report_every=args.report_every_nlp)
+                                      report_every=args.report_every_nlp,
+                                      verify_ssl=verify_ssl)
                 except Exception as exc:
                     log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
                     die(exc)
         elif args.retrieve:
             try:
                 retrieve_nlp_data(config,
-                                  incremental=args.incremental)
+                                  incremental=args.incremental,
+                                  verify_ssl=verify_ssl)
             except Exception as exc:
                 log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
                 die(exc)

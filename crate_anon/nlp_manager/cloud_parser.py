@@ -106,7 +106,8 @@ class CloudRequest(object):
                  max_length: int = 0,
                  commit: bool = False,
                  client_job_id: str = None,
-                 allowable_procs: Optional[List[str]] = None) -> None:
+                 allowable_procs: Optional[List[str]] = None,
+                 verify_ssl: bool = True) -> None:
         """
         Args:
             nlpdef:
@@ -130,6 +131,8 @@ class CloudRequest(object):
                 the 'list_processors' method. When doing many requests all with
                 the same set of processors it is best to test validity outside
                 class and specify this parameter.
+            verify_ssl:
+                whether to verify the ssl certificate of the server or not
         """
         self._nlpdef = nlpdef
         self._sectionname = full_sectionname(NlpConfigPrefixes.NLPDEF,
@@ -141,6 +144,7 @@ class CloudRequest(object):
         self.password = password
         self.auth = (self.username, self.password)
         self.fetched = False
+        self.verify_ssl = verify_ssl
         if client_job_id:
             self.client_job_id = client_job_id
         else:
@@ -180,14 +184,16 @@ class CloudRequest(object):
     def list_processors(cls,
                         url: str,
                         username: str = "",
-                        password: str = "") -> List[str]:
+                        password: str = "",
+                        verify_ssl: bool = True) -> List[str]:
         auth = (username, password)
         list_procs_request = deepcopy(cls.STANDARD_INFO)
         list_procs_request[NKeys.COMMAND] = NlprpCommands.LIST_PROCESSORS
         request_json = json.dumps(list_procs_request)
         # print(request_json)
         response = requests.post(url, data=request_json,
-                                 auth=auth, headers=cls.HEADERS)
+                                 auth=auth, headers=cls.HEADERS,
+                                 verify=verify_ssl)
         try:
             json_response = response.json()
         except json.decoder.JSONDecodeError:
@@ -276,11 +282,12 @@ class CloudRequest(object):
         # print()
         if not cookies:
             response = requests.post(self.url, data=request_json, 
-                                     auth=self.auth, headers=self.HEADERS)
+                                     auth=self.auth, headers=self.HEADERS,
+                                     verify=self.verify_ssl)
         else:
             response = requests.post(self.url, data=request_json, 
                                      auth=self.auth, headers=self.HEADERS,
-                                     cookies=cookies)
+                                     cookies=cookies, verify=self.verify_ssl)
         try:
             json_response = response.json()
         except json.decoder.JSONDecodeError:
@@ -322,11 +329,12 @@ class CloudRequest(object):
         request_json = json.dumps(self.fetch_request)
         if not cookies:
             response = requests.post(self.url, data=request_json,
-                                     auth=self.auth, headers=self.HEADERS)
+                                     auth=self.auth, headers=self.HEADERS,
+                                     verify=self.verify_ssl)
         else:
             response = requests.post(self.url, data=request_json,
                                      auth=self.auth, headers=self.HEADERS,
-                                     cookies=cookies)
+                                     cookies=cookies, verify=self.verify_ssl)
         try:
             json_response = response.json()
         except json.decoder.JSONDecodeError:
@@ -375,7 +383,8 @@ class CloudRequest(object):
         )
         request_json = json.dumps(show_request)
         response = requests.post(self.url, data=request_json,
-                                 auth=self.auth, headers=self.HEADERS)
+                                 auth=self.auth, headers=self.HEADERS,
+                                 verify=self.verify_ssl)
         try:
             json_response = response.json()
         except json.decoder.JSONDecodeError:
@@ -403,7 +412,8 @@ class CloudRequest(object):
         )
         request_json = json.dumps(delete_request)
         response = requests.post(self.url, data=request_json,
-                                 auth=self.auth, headers=self.HEADERS)
+                                 auth=self.auth, headers=self.HEADERS,
+                                 verify=self.verify_ssl)
         # The GATE server-side doesn't send back JSON for this
         # try:
         #     json_response = response.json()
@@ -430,7 +440,8 @@ class CloudRequest(object):
         )
         request_json = json.dumps(delete_request)
         response = requests.post(self.url, data=request_json,
-                                 auth=self.auth, headers=self.HEADERS)
+                                 auth=self.auth, headers=self.HEADERS,
+                                 verify=self.verify_ssl)
         # try:
         #     json_response = response.json()
         # except json.decoder.JSONDecodeError:

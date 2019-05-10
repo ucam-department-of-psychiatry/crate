@@ -181,7 +181,7 @@ class NlpWebViews(object):
             description = f"Args did not contain key '{key}'"
         return self.create_error_response(error, description)
 
-    @do_cprofile
+    # @do_cprofile
     @view_config(route_name='index')
     def index(self) -> Response:
         """
