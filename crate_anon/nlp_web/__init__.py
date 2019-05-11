@@ -30,6 +30,7 @@ WSGI application implementing CRATE's built-in :ref:`NLPRP <nlprp>` server.
 """
 
 from typing import Dict, Any
+import logging
 
 from pyramid.config import Router
 from pyramid.authentication import AuthTktAuthenticationPolicy
@@ -38,6 +39,9 @@ from pyramid.config import Configurator
 from sqlalchemy import engine_from_config
 
 from crate_anon.nlp_web.models import DBSession, Base
+
+logging.basicConfig()
+logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
 
 
 # noinspection PyUnusedLocal

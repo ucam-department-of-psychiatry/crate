@@ -873,7 +873,8 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False,
                                  url=url,
                                  username=username,
                                  password=password,
-                                 verify_ssl=verify_ssl)
+                                 verify_ssl=verify_ssl,
+                                 procs_auto_add=False)
     if cancel_all:
         # Deleting all from queue!
         cloud_request.delete_all_from_queue()
@@ -916,7 +917,8 @@ def show_cloud_queue(nlpdef: NlpDefinition, verify_ssl: bool = True) -> None:
                                  url=url,
                                  username=username,
                                  password=password,
-                                 verify_ssl=verify_ssl)
+                                 verify_ssl=verify_ssl,
+                                 procs_auto_add=False)
     queue = cloud_request.show_queue()
     if not queue:
         print("\nNo requests in queue.")

@@ -195,6 +195,7 @@ INSTALL_REQUIRES = [
     'transaction==2.4.0',
     'cryptography==2.5',
     'redis==3.2.1',
+    'tornado==4.2',
 
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually

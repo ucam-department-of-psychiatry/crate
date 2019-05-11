@@ -107,7 +107,8 @@ class CloudRequest(object):
                  commit: bool = False,
                  client_job_id: str = None,
                  allowable_procs: Optional[List[str]] = None,
-                 verify_ssl: bool = True) -> None:
+                 verify_ssl: bool = True,
+                 procs_auto_add: bool = True) -> None:
         """
         Args:
             nlpdef:
@@ -133,6 +134,8 @@ class CloudRequest(object):
                 class and specify this parameter.
             verify_ssl:
                 whether to verify the ssl certificate of the server or not
+            procs_auto_add:
+                add_procs_automatically if not provided
         """
         self._nlpdef = nlpdef
         self._sectionname = full_sectionname(NlpConfigPrefixes.NLPDEF,
@@ -170,7 +173,8 @@ class CloudRequest(object):
         self.queue_id = None
 
         self.procs = {}  # type: Dict[str, str]
-        self.add_all_processors()
+        if procs_auto_add:
+            self.add_all_processors()
 
         self.mirror_processors = {}
         self.max_length = max_length
@@ -211,7 +215,8 @@ class CloudRequest(object):
             self.allowable_procs = self.list_processors(
                                        self.url,
                                        self.username,
-                                       self.password)
+                                       self.password,
+                                       verify_ssl=self.verify_ssl)
         if processor not in self.allowable_procs:
             log.warning(f"Unknown processor, skipping {processor}")
         else:
