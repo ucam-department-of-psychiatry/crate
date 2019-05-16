@@ -37,6 +37,7 @@ import logging
 import sys
 # import uuid
 from typing import Any, Dict, List, Tuple, Generator, Optional
+from datetime import datetime
 
 from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.dicts import (
@@ -48,7 +49,7 @@ import requests
 from requests.exceptions import HTTPError
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-from crate_anon.nlp_manager.constants import FN_NLPDEF
+from crate_anon.nlp_manager.constants import FN_NLPDEF, FN_WHEN_FETCHED
 from crate_anon.nlp_manager.nlp_definition import (
     full_sectionname,
     NlpConfigPrefixes,
@@ -623,6 +624,13 @@ class CloudRequest(object):
             session = mirror_proc.get_session()
             sqla_table = mirror_proc.get_table(tablename)
             column_names = [c.name for c in sqla_table.columns]
+            # Convert string datetime back into datetime (disregard
+            # milliseconds)
+            for key in nlp_values:
+                if key == FN_WHEN_FETCHED:
+                    nlp_values[key] = datetime.strptime(
+                        nlp_values[key].split('.')[0],
+                        "%Y-%m-%d %H:%M:%S")
             final_values = {k: v for k, v in nlp_values.items()
                             if k in column_names}
             insertquery = sqla_table.insert().values(final_values)
