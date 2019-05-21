@@ -34,6 +34,7 @@ import sys
 from typing import (
     Any, Dict, Generator, Iterable, List, Optional, TextIO, Tuple
 )
+import regex
 
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 from cardinal_pythonlib.sqlalchemy.schema import (
@@ -418,7 +419,11 @@ class BaseNlpParser(object):
                 values that the user has told us to copy across from the source
                 database.
         """
-        if not text:
+        # Check if text contains any word characters - using '[\w\W]' instead
+        # of '.' because '.' doesn't include newline characters
+        regex_any_word_char = regex.compile('[\w\W]*[a-zA-Z0-9_][\w\W]*')
+        if not text or not regex_any_word_char.match(text):
+            log.warning(f"No word characters found in {text}")
             return
         starting_fields_values[FN_NLPDEF] = self._nlpdef.get_name()
         session = self.get_session()

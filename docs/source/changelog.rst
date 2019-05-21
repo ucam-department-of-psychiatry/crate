@@ -898,6 +898,18 @@ Changes
 
 - PyPI distribution properly contains ``nlprp`` directory.
 
+**v0.18.71, 2019-05-13**
+
+- Bugfix to nlp incremental mode.
+
+- Use of tokens in cloud NLP and option not to verify SSL.
+
+**v0.18.72, 2019-05-16**
+
+- Bugfix to :class:`crate_anon.nlp_manager.cloud_parser.CloudRequest` to
+  convert string datetime back to datetime object. (MySQL automatically
+  converts when writing to the database, but MSSQL doesn't.)
+
 
 ===============================================================================
 
