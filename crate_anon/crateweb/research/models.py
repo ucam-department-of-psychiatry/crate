@@ -481,6 +481,9 @@ class QueryBase(models.Model):
         default=False,
         verbose_name="Deleted from the user's perspective. "
                      "Audited queries are never properly deleted.")
+    formatted_sql = models.TextField(
+        default=None,
+        verbose_name='SQL with highlighting and formatting')
 
     def __repr__(self) -> str:
         return simple_repr(self, ['id', 'sql', 'args', 'raw', 'qmark',
@@ -496,6 +499,20 @@ class QueryBase(models.Model):
         """
         # noinspection PyTypeChecker
         return self.sql
+
+    def set_formatted_sql(self, reformat: bool = False) -> None:
+        """
+        Sets 'formatted_sql' by highlighting the syntax and possibly
+        reformatting.
+        """
+        # noinspection PyTypeChecker
+        self.formatted_sql = prettify_sql_html(sql=self.sql, reformat=reformat)
+
+    def get_formatted_sql(self) -> str:
+        """
+        Getter for 'formatted_sql'.
+        """
+        return self.formatted_sql
 
 
 def _close_cursor(cursor: Optional[CursorWrapper]) -> None:
@@ -556,6 +573,7 @@ class Query(QueryBase):
         if self.active:
             Query.objects.filter(user=self.user, active=True)\
                          .update(active=False)
+        self.set_formatted_sql()
         self.sql_hash = hash64(self.sql)
         super().save(*args, **kwargs)
 
@@ -1101,14 +1119,28 @@ class SitewideQuery(QueryBase):
             index2 = sql_string.find(placeholder_end)
         # Deal with any remainder
         if sql_string:
+            # noinspection PyTypeChecker
             chunks.append(sql_string)
 
         return chunks
+
+    @property
+    def prettified_chunks(self) -> List[str]:
+        """
+        Returns chunks (see sql_chunks) but with formatting.
+        """
+        prettified_chunks = []  # type: List[str]
+        for i, chunk in enumerate(self.sql_chunks):
+            if (i+1) % 2 == 1:
+                chunk = prettify_sql_html(chunk)
+            prettified_chunks.append(chunk)
+        return prettified_chunks
 
     def save(self, *args, **kwargs) -> None:
         """
         Custom save method. Sets the hash.
         """
+        self.set_formatted_sql()
         self.sql_hash = hash64(self.sql)
         super().save(*args, **kwargs)
 

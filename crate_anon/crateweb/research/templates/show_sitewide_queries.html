@@ -24,12 +24,12 @@
                         {% csrf_token %}
                         <td>{{ query.description }}</td>
                         <td>
-                        {% for chunk in query.sql_chunks %}
+                        {% for chunk in query.prettified_chunks %}
                             {% if forloop.counter|divisibleby:2 %}
                                 <input type="text" name="chunk{{ forloop.counter }}"
                                        placeholder="{{ chunk }}"></input>
                             {% else %}
-                                {{ chunk }}
+                                {{ chunk|safe }}
                             {% endif %}
                         {% endfor %}
                          </td>

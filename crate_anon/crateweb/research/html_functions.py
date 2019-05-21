@@ -543,7 +543,9 @@ def prettify_sql_css() -> str:
     return SQL_FORMATTER.get_style_defs()
 
 
-def prettify_sql_and_args(sql: str, args: List[Any] = None,
+def prettify_sql_and_args(sql: str,
+                          sql_not_formatted: bool = True,
+                          args: List[Any] = None,
                           reformat: bool = False,
                           indent_width: int = 4) -> str:
     """
@@ -551,6 +553,7 @@ def prettify_sql_and_args(sql: str, args: List[Any] = None,
 
     Args:
         sql: SQL text
+        sql_not_formatted: is the sql already highlighted and formatted?
         args: optional list of arguments
         reformat: reformat the layout?
         indent_width: if reformatting, what indent should we use?
@@ -559,7 +562,9 @@ def prettify_sql_and_args(sql: str, args: List[Any] = None,
         str: HTML
 
     """
-    sql = prettify_sql_html(sql, reformat=reformat, indent_width=indent_width)
+    if sql_not_formatted:
+        sql = prettify_sql_html(sql, reformat=reformat,
+                                indent_width=indent_width)
     if args:
         formatted_args = "\n".join(textwrap.wrap(repr(args)))
         return sql + f"<div>Args:</div><pre>{formatted_args}</pre>"
@@ -569,6 +574,7 @@ def prettify_sql_and_args(sql: str, args: List[Any] = None,
 
 def make_collapsible_sql_query(sql: Optional[str],
                                element_counter: HtmlElementCounter,
+                               sql_not_formatted: bool = False,
                                args: List[Any] = None,
                                collapse_at_len: int = 400,
                                collapse_at_n_lines: int = 5) -> str:
@@ -580,6 +586,7 @@ def make_collapsible_sql_query(sql: Optional[str],
         sql: SQL text
         element_counter:
         args: optional list of arguments
+        sql_not_formatted: is the sql already highlighted and formatted?
         collapse_at_len: if specified, the string length beyond which the cell
             will be collapsed
         collapse_at_n_lines: if specified, the number of lines beyond which the
@@ -593,7 +600,8 @@ def make_collapsible_sql_query(sql: Optional[str],
     sql = str(sql)
     xlen = len(sql)
     n_lines = len(sql.split('\n'))
-    formatted = prettify_sql_and_args(sql, args, reformat=False)
+    formatted = prettify_sql_and_args(sql, sql_not_formatted,
+                                      args, reformat=False)
     # x = linebreaksbr(escape(x))
     if ((collapse_at_len and xlen >= collapse_at_len) or
             (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):

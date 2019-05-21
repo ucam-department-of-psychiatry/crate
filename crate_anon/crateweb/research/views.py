@@ -116,6 +116,7 @@ from crate_anon.crateweb.research.sql_writer import (
     add_to_select,
     SelectElement,
 )
+# from crate_anon.common.profiling import do_cprofile
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
 
@@ -603,6 +604,7 @@ def query_submit(request: HttpRequest,
         return redirect('query')
 
 
+# @do_cprofile
 def query_edit_select(request: HttpRequest) -> HttpResponse:
     """
     View to edit SQL for the current ``SELECT`` query (and/or run it).
@@ -651,8 +653,11 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
     profile = request.user.profile
     element_counter = HtmlElementCounter()
     for q in queries:
+        # Format sql only if it hasn't been done already
+        if not q.get_formatted_sql():
+            q.save()  # calls 'set_formatted_sql'
         q.formatted_query_safe = make_collapsible_sql_query(
-            q.get_original_sql(),
+            q.get_formatted_sql(),
             element_counter=element_counter,
             collapse_at_n_lines=profile.collapse_at_n_lines,
         )
@@ -698,8 +703,11 @@ def query_add_sitewide(request: HttpRequest) -> HttpResponse:
     profile = request.user.profile
     element_counter = HtmlElementCounter()
     for q in queries:
+        # Format sql only if it hasn't been done already
+        if not q.get_formatted_sql():
+            q.save()
         q.formatted_query_safe = make_collapsible_sql_query(
-            q.get_original_sql(),
+            q.get_formatted_sql(),
             element_counter=element_counter,
             collapse_at_n_lines=profile.collapse_at_n_lines,
         )
@@ -715,6 +723,7 @@ def query_add_sitewide(request: HttpRequest) -> HttpResponse:
         'queries': queries,
         'selected_sql': selected_sql,
         'selected_description': selected_description,
+        'sql_highlight_css': prettify_sql_css(),
     }
     return render(request, 'query_add_sitewide.html', context)
 
@@ -733,6 +742,7 @@ def show_sitewide_queries(request: HttpRequest) -> HttpResponse:
     queries = get_all_sitewide_queries()
     context = {
         'queries': queries,
+        'sql_highlight_css': prettify_sql_css(),
     }
     return render(request, 'show_sitewide_queries.html', context)
 

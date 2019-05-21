@@ -29,7 +29,6 @@ import datetime
 import json
 from typing import Any, Dict, Iterable, List
 import uuid
-import cProfile
 import redis
 
 from celery.result import AsyncResult, ResultSet
@@ -64,22 +63,10 @@ from crate_anon.nlp_web.tasks import (
     process_nlp_text,
     process_nlp_text_immediate,
 )
+# from crate_anon.common.profiling import do_cprofile
 
 
 REDIS_SESSIONS = redis.StrictRedis(host="localhost", port=6379, db=0)
-
-
-def do_cprofile(func):
-    def profiled_func(*args, **kwargs):
-        profile = cProfile.Profile()
-        try:
-            profile.enable()
-            result = func(*args, **kwargs)
-            profile.disable()
-            return result
-        finally:
-            profile.print_stats()
-    return profiled_func
 
 
 class Error(object):
