@@ -910,6 +910,17 @@ Changes
   convert string datetime back to datetime object. (MySQL automatically
   converts when writing to the database, but MSSQL doesn't.)
 
+**v0.18.73, 2019-05-21**
+
+- Only do nlp processing on records with alphanumeric characters.
+
+- Do highlighting only once per query, then save the highlighted version in
+  an attribute of the :class:`crate_anon.crateweb.Query` class.
+
+**v0.18.74, 2019-05-21**
+
+- Changed migrations to make them compatible with SQL Server.
+
 
 ===============================================================================
 

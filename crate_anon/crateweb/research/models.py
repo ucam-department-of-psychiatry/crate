@@ -483,6 +483,7 @@ class QueryBase(models.Model):
                      "Audited queries are never properly deleted.")
     formatted_sql = models.TextField(
         default=None,
+        null=True,
         verbose_name='SQL with highlighting and formatting')
 
     def __repr__(self) -> str:
