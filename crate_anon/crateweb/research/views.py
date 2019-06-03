@@ -121,6 +121,10 @@ from crate_anon.crateweb.research.sql_writer import (
 log = BraceStyleAdapter(logging.getLogger(__name__))
 
 
+# Maximum number of characters to show of a query in html
+MAX_LEN_SHOW = 20000
+
+
 # =============================================================================
 # Helper functions
 # =============================================================================
@@ -604,6 +608,15 @@ def query_submit(request: HttpRequest,
         return redirect('query')
 
 
+def show_query(request: HttpRequest, query_id: str) -> HttpResponse:
+    query = get_object_or_404(Query, id=query_id)
+    context = {
+        'query': query,
+        'sql_highlight_css': prettify_sql_css(),
+    }
+    return render(request, 'query_show.html', context)
+
+
 # @do_cprofile
 def query_edit_select(request: HttpRequest) -> HttpResponse:
     """
@@ -661,6 +674,13 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
             element_counter=element_counter,
             collapse_at_n_lines=profile.collapse_at_n_lines,
         )
+        sql = q.get_original_sql()
+        if len(sql) < MAX_LEN_SHOW:
+            q.truncated_sql = None
+        else:
+            # Have to use plain sql for this (not coloured) in case it cuts it
+            # off after an html start tag but before the end tag
+            q.truncated_sql = sql[:50]
     context = {
         'form': form,
         'queries': queries,

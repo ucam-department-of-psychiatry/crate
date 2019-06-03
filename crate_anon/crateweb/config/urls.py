@@ -138,6 +138,8 @@ urlpatterns = [
         research_views.edit_display, name='edit_display'),
     url(r'^save_display/(?P<query_id>[0-9]+)/$',
         research_views.save_display, name='save_display'),
+    url(r'^show_query/(?P<query_id>[0-9]+)/$',
+        research_views.show_query, name='show_query'),
 
     # -------------------------------------------------------------------------
     # Patient Explorer views

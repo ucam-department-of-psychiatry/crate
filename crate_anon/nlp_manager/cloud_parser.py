@@ -272,7 +272,8 @@ class CloudRequest(object):
             return False
 
     def send_process_request(self, queue: bool,
-                             cookies: List[Any] = None) -> None:
+                             cookies: List[Any] = None,
+                             include_text: bool = True) -> None:
         """
         Sends a request to the server to process the text.
         """
@@ -281,6 +282,7 @@ class CloudRequest(object):
             log.warning("Request empty - not sending.")
             return
         self.request_process[NKeys.ARGS][NKeys.QUEUE] = queue
+        self.request_process[NKeys.ARGS][NKeys.INCLUDE_TEXT] = include_text
         # This needs 'default=str' to deal with non-json-serializable
         # objects such as datetimes in the metadata
         request_json = json.dumps(self.request_process, default=str)
@@ -507,7 +509,8 @@ class CloudRequest(object):
             self,
             processor_data: Dict[str, Any],
             procname: str,
-            metadata: Dict[str, Any]) -> Generator[Tuple[
+            metadata: Dict[str, Any],
+            text: str = "") -> Generator[Tuple[
                 str, Dict[str, Any], str], None, None]:
         """
         Gets result values from processed GATE data which will originally
@@ -528,20 +531,25 @@ class CloudRequest(object):
         type_to_tablename, outputtypemap = self.get_tablename_map(
             procname)
         if not processor_data[NKeys.SUCCESS]:
-            log.warning(f"Processor {procname} failed for this document.\n"
-                        "Status: {processor_data[NKeys.STATUS]}\n"
-                        "Message: {processor_data[NKeys.MESSAGE]}")
+            log.warning(
+                f"Processor {proctype} failed for this document. Errors:")
+            errors = processor_data[NKeys.ERRORS]
+            for error in errors:
+                log.warning(f"{error[NKeys.CODE]} - {error[NKeys.MESSAGE]}")
         for result in processor_data[NKeys.RESULTS]:
             # Assuming each set of results says what annotation type
             # it is
             # annottype = result[FN_TYPE].lower()
             annottype = result[TYPE_GATE]
             features = result[FEATURES_GATE]
+            start = result[START_GATE]
+            end = result[END_GATE]
             formatted_result = {
                 '_type': annottype,
                 '_set': result[SET_GATE],
-                '_start': result[START_GATE],
-                '_end': result[END_GATE]
+                '_start': start,
+                '_end': end,
+                '_content': "" if not text else text[start:end]
             }
             formatted_result.update(features)
             c = outputtypemap[annottype]
@@ -565,13 +573,15 @@ class CloudRequest(object):
                                "after nlp_data is obtained")
         for result in self.nlp_data[NKeys.RESULTS]:
             metadata = result[NKeys.METADATA]
+            text = result[NKeys.TEXT]
             for processor_data in result[NKeys.PROCESSORS]:
                 procidentifier = processor_data[NKeys.NAME]
                 mirror_proc = self.mirror_processors[procidentifier]
                 if mirror_proc.get_parser_name().upper() == 'GATE':
                     for t, r, p in self.get_nlp_values_gate(processor_data,
                                                             procidentifier,
-                                                            metadata):
+                                                            metadata,
+                                                            text):
                         yield t, r, p
                 else:
                     procname = mirror_proc.get_cfgsection()
@@ -594,14 +604,18 @@ class CloudRequest(object):
                 assert isinstance(proc, BaseNlpParser), (
                     "Each element of 'procs' must be from a subclass "
                     "of BaseNlpParser")
-                proctype = proc.get_parser_name()
+                # proctype = proc.get_parser_name()
+                # Use 'proc.__name__' instead, to handle case sensitivity
+                proctype = type(proc).__name__
                 if proctype.upper() == 'GATE':
                     self.mirror_processors[proc.get_cfgsection()] = proc
                 else:
                     self.mirror_processors[proctype] = proc
         else:
             for proc in self._nlpdef.get_processors():
-                proctype = proc.get_parser_name()
+                # proctype = proc.get_parser_name()
+                # Use 'proc.__name__' instead, to handle case sensitivity
+                proctype = type(proc).__name__
                 if proctype.upper() == 'GATE':
                     self.mirror_processors[proc.get_cfgsection()] = proc
                 else:

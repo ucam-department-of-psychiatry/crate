@@ -112,7 +112,12 @@
                         </form>
                     </td>
                     {% comment %}Widest, so last:{% endcomment %}
-                    <td>{{ query.formatted_query_safe|safe }}</td>
+                    {% if query.truncated_sql %}
+                        <td>{{ query.truncated_sql|safe }}... <strong>Long query. See
+                        <a href="{% url 'show_query' query.id %}">here</a></strong></td>
+                    {% else %}
+                        <td>{{ query.formatted_query_safe|safe }}</td>
+                    {% endif %}
                 </tr>
             {% endfor %}
         </table>

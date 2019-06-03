@@ -1,0 +1,12 @@
+{# long_query_show.html #}
+
+{% extends "base.html" %}
+
+{% block extrahead %}
+    <style type="text/css">{{ sql_highlight_css }}</style>
+{% endblock %}
+
+{% block content %}
+    <h1>Full query</h1>
+    <p>{{ query.formatted_sql|safe }}</p>
+{% endblock %}
