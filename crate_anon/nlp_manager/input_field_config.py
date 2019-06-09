@@ -61,6 +61,7 @@ from crate_anon.nlp_manager.constants import (
     FN_SRCPKVAL,
     FN_SRCPKSTR,
     FN_SRCFIELD,
+    FN_TRUNCATED,
     MAX_SEMANTIC_VERSION_STRING_LENGTH,
     MAX_STRING_PK_LENGTH,
 )
@@ -512,6 +513,12 @@ class InputFieldConfig(object):
                     other_values[FN_SRCDATETIMEVAL] = row[colindex_datetime]
                     other_values[FN_WHEN_FETCHED] = when_fetched
                     other_values.update(base_dict)
+                    if (self._nlpdef.truncate_text_at
+                            and len(text) > self._nlpdef.truncate_text_at):
+                        text = text[:self._nlpdef.truncate_text_at]
+                        other_values[FN_TRUNCATED] = True
+                    else:
+                        other_values[FN_TRUNCATED] = False
 
                     # Yield the result
                     yield text, other_values

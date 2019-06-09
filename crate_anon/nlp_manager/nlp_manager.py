@@ -106,6 +106,7 @@ from crate_anon.nlp_manager.input_field_config import (
     FN_SRCPKVAL,
     FN_SRCPKSTR,
     FN_SRCFIELD,
+    FN_TRUNCATED,
 )
 from crate_anon.nlp_manager.models import FN_SRCHASH, NlpRecord
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
@@ -369,6 +370,7 @@ def process_nlp(nlpdef: NlpDefinition,
         totalcount = ifconfig.get_count()  # total number of records in table
         for text, other_values in ifconfig.gen_text(tasknum=tasknum,
                                                     ntasks=ntasks):
+            log.debug(len(text))
             i += 1
             pkval = other_values[FN_SRCPKVAL]
             pkstr = other_values[FN_SRCPKSTR]
@@ -420,51 +422,55 @@ def process_nlp(nlpdef: NlpDefinition,
 
             # Make a note in the progress database that we've processed a
             # source record.
-            if progrec:  # modifying an existing record
-                progrec.whenprocessedutc = nlpdef.get_now()
-                progrec.srchash = srchash
-            else:  # creating a new record
-                progrec = NlpRecord(
-                    # Quasi-key fields:
-                    srcdb=ifconfig.get_srcdb(),
-                    srctable=ifconfig.get_srctable(),
-                    srcpkval=pkval,
-                    srcpkstr=pkstr,
-                    srcfield=ifconfig.get_srcfield(),
-                    nlpdef=nlpdef.get_name(),
-                    # Other fields:
-                    srcpkfield=ifconfig.get_srcpkfield(),
-                    whenprocessedutc=nlpdef.get_now(),
-                    srchash=srchash,
-                )
-                with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-                    session.add(progrec)
+            truncated = other_values[FN_TRUNCATED]
+            if not truncated or nlpdef.record_truncated_values:
+                if progrec:  # modifying an existing record
+                    progrec.whenprocessedutc = nlpdef.get_now()
+                    progrec.srchash = srchash
+                else:  # creating a new record
+                    progrec = NlpRecord(
+                        # Quasi-key fields:
+                        srcdb=ifconfig.get_srcdb(),
+                        srctable=ifconfig.get_srctable(),
+                        srcpkval=pkval,
+                        srcpkstr=pkstr,
+                        srcfield=ifconfig.get_srcfield(),
+                        nlpdef=nlpdef.get_name(),
+                        # Other fields:
+                        srcpkfield=ifconfig.get_srcpkfield(),
+                        whenprocessedutc=nlpdef.get_now(),
+                        srchash=srchash,
+                    )
+                    with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+                        session.add(progrec)
 
-            # In incremental mode, do we commit immediately, because other
-            # processes may need this table promptly... ?
+                # In incremental mode, do we commit immediately, because other
+                # processes may need this table promptly... ?
 
-            # force_commit = False  # definitely wrong; crashes as below
-            # force_commit = incremental
-            force_commit = ntasks > 1
+                # force_commit = False  # definitely wrong; crashes as below
+                # force_commit = incremental
+                force_commit = ntasks > 1
 
-            # - A single source record should not be processed by >1 CRATE
-            #   process. So in theory there should be no conflicts.
-            # - However, databases can lock in various ways. Can we guarantee
-            #   it'll do something sensible?
-            # - See also
-            #   https://en.wikipedia.org/wiki/Isolation_(database_systems)
-            #   http://skien.cc/blog/2014/02/06/sqlalchemy-and-race-conditions-follow-up/  # noqa
-            #   http://docs.sqlalchemy.org/en/latest/core/connections.html?highlight=execution_options#sqlalchemy.engine.Connection.execution_options  # noqa
-            # - However, empirically, setting this to False gives
-            #   "Transaction (Process ID xx) was deadlocked on lock resources
-            #   with another process and has been chosen as the deadlock
-            #   victim. Rerun the transaction." -- with a SELECT query.
-            # - SQL Server uses READ COMMITTED as the default isolation level.
-            # - https://technet.microsoft.com/en-us/library/jj856598(v=sql.110).aspx  # noqa
+                # - A single source record should not be processed by >1 CRATE
+                #   process. So in theory there should be no conflicts.
+                # - However, databases can lock in various ways. Can we
+                #   guarantee it'll do something sensible?
+                # - See also
+                #   https://en.wikipedia.org/wiki/Isolation_(database_systems)
+                #   http://skien.cc/blog/2014/02/06/sqlalchemy-and-race-conditions-follow-up/  # noqa
+                #   http://docs.sqlalchemy.org/en/latest/core/connections.html?highlight=execution_options#sqlalchemy.engine.Connection.execution_options  # noqa
+                # - However, empirically, setting this to False gives
+                #   "Transaction (Process ID xx) was deadlocked on lock
+                #   resources with another process and has been chosen as the
+                #   deadlock victim. Rerun the transaction." -- with a SELECT
+                #   query.
+                # - SQL Server uses READ COMMITTED as the default isolation
+                #   level.
+                # - https://technet.microsoft.com/en-us/library/jj856598(v=sql.110).aspx  # noqa
 
-            nlpdef.notify_transaction(session=session, n_rows=1,
-                                      n_bytes=sys.getsizeof(progrec),  # approx
-                                      force_commit=force_commit)
+                nlpdef.notify_transaction(session=session, n_rows=1,
+                                          n_bytes=sys.getsizeof(progrec),  # approx
+                                          force_commit=force_commit)
 
     nlpdef.commit_all()
 

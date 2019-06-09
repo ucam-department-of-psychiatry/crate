@@ -53,6 +53,7 @@ FN_SRCDATETIMEFIELD = '_srcdatetimefield'  # new in v0.18.52
 FN_SRCDATETIMEVAL = '_srcdatetimeval'  # new in v0.18.52
 FN_CRATE_VERSION_FIELD = '_crate_version'  # new in v0.18.53
 FN_WHEN_FETCHED = '_when_fetched_utc'  # new in v0.18.53
+FN_TRUNCATED = '_truncated'
 
 GATE_PIPELINE_CLASSNAME = 'CrateGatePipeline'
 MEDEX_PIPELINE_CLASSNAME = 'CrateMedexPipeline'
@@ -107,6 +108,9 @@ processors =
 progressdb = DESTINATION_DATABASE
 hashphrase = doesnotmatter
 
+# truncate_text_at = 32766
+# record_truncated_values = False
+
 # temporary_tablename = {DEFAULT_TEMPORARY_TABLENAME}
 
 # -----------------------------------------------------------------------------
@@ -122,6 +126,8 @@ processors =
     GATE procdef_gate_kconnect
 progressdb = DESTINATION_DATABASE
 hashphrase = doesnotmatter
+# truncate_text_at = 32766
+# record_truncated_values = False
 
 # -----------------------------------------------------------------------------
 # Medex-UIMA drug-finding app
@@ -136,6 +142,8 @@ processors =
     Medex procdef_medex_drugs
 progressdb = DESTINATION_DATABASE
 hashphrase = doesnotmatter
+# truncate_text_at = 32766
+# record_truncated_values = False
 
 # -----------------------------------------------------------------------------
 # CRATE number-finding Python regexes
@@ -199,6 +207,9 @@ processors =
 
 progressdb = DESTINATION_DATABASE
 hashphrase = doesnotmatter
+
+# truncate_text_at = 32766
+# record_truncated_values = False
 
 max_rows_before_commit = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
 

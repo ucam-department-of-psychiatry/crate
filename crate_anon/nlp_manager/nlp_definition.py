@@ -192,6 +192,14 @@ class NlpDefinition(object):
             nlpsection, 'max_bytes_before_commit',
             DEFAULT_MAX_BYTES_BEFORE_COMMIT)
         self._now = get_now_utc_notz_datetime()
+        self.truncate_text_at = self.opt_int(
+            nlpsection,
+            'truncate_text_at',
+            default=None)
+        self.record_truncated_values = self.opt_bool(
+            nlpsection,
+            'record_truncated_values',
+            default=False)
 
         # ---------------------------------------------------------------------
         # Input field definitions
