@@ -921,6 +921,13 @@ Changes
 
 - Changed migrations to make them compatible with SQL Server.
 
+**v0.18.75, 2019-06-06**
+
+- Long queries are now hidden on website in order to avoid long render time.
+
+- :class:`crate_anon.nlp_manager.cloud_parser.CloudRequest` now extracts
+  content from GATE processors based on the start and end indexes.
+
 
 ===============================================================================
 
