@@ -275,7 +275,7 @@ class NlpWebViews(object):
             processors = args[NKeys.PROCESSORS]
         except KeyError:
             return self.key_missing_error(key=NKeys.PROCESSORS)
-        include_text = content.get(NKeys.INCLUDE_TEXT, False)
+        include_text = args.get(NKeys.INCLUDE_TEXT, False)
         results = []  # type: List[Dict[str, Any]]
         for i, document in enumerate(content):
             metadata = document[NKeys.METADATA]
@@ -368,7 +368,7 @@ class NlpWebViews(object):
             results.append(doc_result)
 
         response_info = {
-            NKeys.CLIENT_JOB_ID: content.get(NKeys.CLIENT_JOB_ID, ""),
+            NKeys.CLIENT_JOB_ID: args.get(NKeys.CLIENT_JOB_ID, ""),
             NKeys.RESULTS: results,
         }
         self.request.response.status = HttpStatus.OK
@@ -392,7 +392,7 @@ class NlpWebViews(object):
             processors = args[NKeys.PROCESSORS]
         except KeyError:
             return self.key_missing_error(key=NKeys.PROCESSORS)
-        include_text = content.get(NKeys.INCLUDE_TEXT, False)
+        include_text = args.get(NKeys.INCLUDE_TEXT, False)
         # Generate unique queue_id for whole client request
         queue_id = str(uuid.uuid4())
         # Encrypt password using reversible encryption for passing to the
@@ -464,7 +464,7 @@ class NlpWebViews(object):
                 doc = Document(
                     document_id=doc_id,
                     doctext=doctext,
-                    client_job_id=content.get(NKeys.CLIENT_JOB_ID, ""),
+                    client_job_id=args.get(NKeys.CLIENT_JOB_ID, ""),
                     queue_id=queue_id,
                     username=self.username,
                     processor_ids=json.dumps(proc_ids),
