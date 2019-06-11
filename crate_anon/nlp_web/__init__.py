@@ -47,7 +47,9 @@ logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
 # noinspection PyUnusedLocal
 def main(global_config: Dict[Any, Any], **settings) -> Router:
     # Database
-    engine = engine_from_config(settings, 'sqlalchemy.')  # add to config
+    engine = engine_from_config(settings, 'sqlalchemy.',
+                                **{'pool_recyle':25200})
+    # ... add to config - pool_recycle is set to create new sessions every 7h
     DBSession.configure(bind=engine)
     Base.metadata.bind = engine
 
