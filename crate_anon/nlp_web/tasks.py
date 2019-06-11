@@ -132,7 +132,10 @@ def process_nlp_text(
     processor = Processor.processors[processor_id]
     # Delete docprocrequest from database
     TaskSession.delete(query)
-    transaction.commit()
+    try:
+        transaction.commit()
+    except:
+        TaskSession.rollback()
     if processor.proctype == PROCTYPE_GATE:
         return process_nlp_gate(text, processor, url, username, password)
     else:
