@@ -670,102 +670,106 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
         reqdata = request_data.readlines()
     i = 1  # number of requests
     cookies = None
-    with open(filename, 'w') as request_data:
-        ifconfig_cache = {}  # type: Dict[str, InputFieldConfig]
-        all_ready = True  # not necessarily true, but need for later
-        for line in reqdata:
-            # Are there are records (whether ready or not) associated with
-            # the queue_id
-            records_exist = False
-            if_section, queue_id = line.strip().split(',')
-            if if_section in ifconfig_cache:
-                ifconfig = ifconfig_cache[if_section]
-            else:
-                ifconfig = InputFieldConfig(nlpdef=nlpdef, section=if_section)
-                ifconfig_cache[if_section] = ifconfig
-            seen_srchashs = []
-            cloud_request = CloudRequest(nlpdef=nlpdef,
-                                         url=url,
-                                         username=username,
-                                         password=password,
-                                         allowable_procs=available_procs,
-                                         verify_ssl=verify_ssl)
-            cloud_request.set_mirror_processors(mirror_procs)
-            cloud_request.set_queue_id(queue_id)
-            log.info(f"Atempting to retrieve data from request #{i} ...")
-            i += 1
-            ready = cloud_request.check_if_ready(cookies)
-            if cloud_request.cookies:
-                cookies = cloud_request.cookies
+    # with open(filename, 'w') as request_data:
+    remaining_data = []
+    ifconfig_cache = {}  # type: Dict[str, InputFieldConfig]
+    all_ready = True  # not necessarily true, but need for later
+    for line in reqdata:
+        # Are there are records (whether ready or not) associated with
+        # the queue_id
+        records_exist = False
+        if_section, queue_id = line.strip().split(',')
+        if if_section in ifconfig_cache:
+            ifconfig = ifconfig_cache[if_section]
+        else:
+            ifconfig = InputFieldConfig(nlpdef=nlpdef, section=if_section)
+            ifconfig_cache[if_section] = ifconfig
+        seen_srchashs = []
+        cloud_request = CloudRequest(nlpdef=nlpdef,
+                                     url=url,
+                                     username=username,
+                                     password=password,
+                                     allowable_procs=available_procs,
+                                     verify_ssl=verify_ssl)
+        cloud_request.set_mirror_processors(mirror_procs)
+        cloud_request.set_queue_id(queue_id)
+        log.info(f"Atempting to retrieve data from request #{i} ...")
+        i += 1
+        ready = cloud_request.check_if_ready(cookies)
+        if cloud_request.cookies:
+            cookies = cloud_request.cookies
 
-            if not ready:
-                # If results are not ready for this particular queue_id, put
-                # back in file
-                # For some reason an extra newline is beign appended here
-                # but not in 'process_cloud_nlp'
-                request_data.write(f"{if_section},{queue_id}\n")
-                all_ready = False
-            else:
-                nlp_data = cloud_request.nlp_data
-                for result in nlp_data[NKeys.RESULTS]:
-                    # There are records associated with the given queue_id
-                    records_exist = True
-                    # 'metadata' is just 'other_values' from before
-                    metadata = result[NKeys.METADATA]
-                    pkval = metadata[FN_SRCPKVAL]
-                    pkstr = metadata[FN_SRCPKSTR]
-                    srchash = metadata[FN_SRCHASH]
-                    progrec = None
-                    if incremental:
-                        progrec = ifconfig.get_progress_record(pkval, pkstr)
-                        if progrec is not None:
-                            if progrec.srchash == srchash:
-                                log.debug("Record previously processed; "
-                                          "skipping")
-                                continue
-                            else:
-                                log.debug("Record has changed")
+        if not ready:
+            # If results are not ready for this particular queue_id, put
+            # back in file
+            # request_data.write(f"{if_section},{queue_id}\n")
+            remaining_data.append("{if_section},{queue_id}\n")
+            all_ready = False
+        else:
+            nlp_data = cloud_request.nlp_data
+            for result in nlp_data[NKeys.RESULTS]:
+                # There are records associated with the given queue_id
+                records_exist = True
+                # 'metadata' is just 'other_values' from before
+                metadata = result[NKeys.METADATA]
+                pkval = metadata[FN_SRCPKVAL]
+                pkstr = metadata[FN_SRCPKSTR]
+                srchash = metadata[FN_SRCHASH]
+                progrec = None
+                if incremental:
+                    progrec = ifconfig.get_progress_record(pkval, pkstr)
+                    if progrec is not None:
+                        if progrec.srchash == srchash:
+                            log.debug("Record previously processed; "
+                                      "skipping")
+                            continue
                         else:
-                            log.debug("Record is new")
-                        for processor in (
-                                cloud_request.mirror_processors.values()):
-                            processor.delete_dest_record(ifconfig,
-                                                         pkval,
-                                                         pkstr,
-                                                         commit=incremental)
-                    elif srchash in seen_srchashs:
-                        progrec = ifconfig.get_progress_record(pkval, pkstr)
-                    seen_srchashs.append(srchash)
-                    # Make a note in the progress database that we've processed
-                    # a source record
-                    if progrec:  # modifying an existing record
-                        progrec.whenprocessedutc = nlpdef.get_now()
-                        progrec.srchash = srchash
-                    else:  # creating a new record
-                        progrec = NlpRecord(
-                            # Quasi-key fields:
-                            srcdb=ifconfig.get_srcdb(),
-                            srctable=ifconfig.get_srctable(),
-                            srcpkval=pkval,
-                            srcpkstr=pkstr,
-                            srcfield=ifconfig.get_srcfield(),
-                            nlpdef=nlpdef.get_name(),
-                            # Other fields:
-                            srcpkfield=ifconfig.get_srcpkfield(),
-                            whenprocessedutc=nlpdef.get_now(),
-                            srchash=srchash,
-                        )
-                        with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-                            session.add(progrec)
-                if records_exist:
-                    log.info("Request ready.")
-                else:
-                    log.warning(f"No records found for queue_id {queue_id}.")
-                cloud_request.process_all()
+                            log.debug("Record has changed")
+                    else:
+                        log.debug("Record is new")
+                    for processor in (
+                            cloud_request.mirror_processors.values()):
+                        processor.delete_dest_record(ifconfig,
+                                                     pkval,
+                                                     pkstr,
+                                                     commit=incremental)
+                elif srchash in seen_srchashs:
+                    progrec = ifconfig.get_progress_record(pkval, pkstr)
+                seen_srchashs.append(srchash)
+                # Make a note in the progress database that we've processed
+                # a source record
+                if progrec:  # modifying an existing record
+                    progrec.whenprocessedutc = nlpdef.get_now()
+                    progrec.srchash = srchash
+                else:  # creating a new record
+                    progrec = NlpRecord(
+                        # Quasi-key fields:
+                        srcdb=ifconfig.get_srcdb(),
+                        srctable=ifconfig.get_srctable(),
+                        srcpkval=pkval,
+                        srcpkstr=pkstr,
+                        srcfield=ifconfig.get_srcfield(),
+                        nlpdef=nlpdef.get_name(),
+                        # Other fields:
+                        srcpkfield=ifconfig.get_srcpkfield(),
+                        whenprocessedutc=nlpdef.get_now(),
+                        srchash=srchash,
+                    )
+                    with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+                        session.add(progrec)
+            if records_exist:
+                log.info("Request ready.")
+            else:
+                log.warning(f"No records found for queue_id {queue_id}.")
+            cloud_request.process_all()
     nlpdef.commit_all()
     if all_ready:
         os.remove(filename)
     else:
+        # Put this here to avoid losing the queue_ids if something goes wrong
+        with open(filename, 'w') as request_data:
+            for data in remaining_data:
+                request_data.write(data)
         log.info("There are still results to be processed. Re-run this "
                  "command later to retrieve them.")
 
