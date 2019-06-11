@@ -38,6 +38,7 @@ import sys
 # import uuid
 from typing import Any, Dict, List, Tuple, Generator, Optional
 from datetime import datetime
+import regex
 
 from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.dicts import (
@@ -243,8 +244,9 @@ class CloudRequest(object):
     def add_text(self, text: str, other_values: Dict[str, Any]) -> bool:
         """
         Tests the size of the request if the text and metadata was added,
-        then adds it if it doesn't go over the size limit. Returns True
-        if successfully added, False if not.
+        then adds it if it doesn't go over the size limit and there are word
+        characters in the text. Returns True if successfully added, False if
+        not.
         """
         # srcfield = other_values[FN_SRCFIELD]
         # pkval = other_values[FN_SRCPKVAL]
@@ -255,6 +257,12 @@ class CloudRequest(object):
         #                  "text": text
         #              }
         # self.request_process['args']['content'].append(new_values)
+
+        # Check if text contains any word characters
+        regex_any_word_char = regex.compile('[\w\W]*[a-zA-Z0-9_][\w\W]*')
+        if not text or not regex_any_word_char.match(text):
+            log.warning(f"No word characters found in {text}")
+            return False
 
         new_content = {
             NKeys.METADATA: other_values,

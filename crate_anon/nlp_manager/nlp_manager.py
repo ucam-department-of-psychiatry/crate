@@ -565,7 +565,7 @@ def send_cloud_requests(
             if text_too_big:
                 log.warning(
                     "Record {db}.{t}.{c}, PK: {pkf}={pkv} "
-                    "is too big to send".format(
+                    "is too big to send or contains no word characters".format(
                         db=other_values[FN_SRCDB],
                         t=other_values[FN_SRCTABLE],
                         c=other_values[FN_SRCFIELD],

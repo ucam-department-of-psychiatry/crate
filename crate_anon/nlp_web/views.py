@@ -91,6 +91,8 @@ UNAUTHORIZED = Error(
     "The username/password combination given is incorrect")
 NOT_FOUND = Error(
     404, 404, "Not Found", "The information requested was not found")
+INTERNAL_SERVER_ERROR = Error(
+    500, 500, "Internal Server Error", "An internal server error has occured")
 
 
 @view_defaults(renderer='json')
@@ -633,7 +635,13 @@ class NlpWebViews(object):
                 and_(Document.document_id == doc.document_id,
                      ~subquery.exists())
             ).delete(synchronize_session='fetch')
-        transaction.commit()
+        try:
+            transaction.commit()
+        except:
+            DBsession.rollback()
+            error = INTERNAL_SERVER_ERROR
+            self.request.response.status = error.http_status
+            return self.create_error_response(error)
         response_info = {
             NKeys.CLIENT_JOB_ID: (
                 client_job_id if client_job_id is not None else ""
@@ -751,7 +759,13 @@ class NlpWebViews(object):
             # Remove from documents
             for doc in docs:
                 DBSession.delete(doc)
-            transaction.commit()
+            try:
+                transaction.commit()
+            except:
+                DBsession.rollback()
+                error = INTERNAL_SERVER_ERROR
+                self.request.response.status = error.http_status
+                return self.create_error_response(error)
             # Return response
             self.request.response.status = HttpStatus.OK
             return self.create_response(status=HttpStatus.OK, extra_info={})
