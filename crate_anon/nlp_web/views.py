@@ -638,7 +638,7 @@ class NlpWebViews(object):
         try:
             transaction.commit()
         except:
-            DBsession.rollback()
+            DBSession.rollback()
             error = INTERNAL_SERVER_ERROR
             self.request.response.status = error.http_status
             return self.create_error_response(error)
@@ -762,7 +762,7 @@ class NlpWebViews(object):
             try:
                 transaction.commit()
             except:
-                DBsession.rollback()
+                DBSession.rollback()
                 error = INTERNAL_SERVER_ERROR
                 self.request.response.status = error.http_status
                 return self.create_error_response(error)
