@@ -928,6 +928,26 @@ Changes
 - :class:`crate_anon.nlp_manager.cloud_parser.CloudRequest` now extracts
   content from GATE processors based on the start and end indexes.
 
+**v0.18.76, 2019-06-12**
+
+- Option to truncate source data in nlp and to mark truncated records as
+  processed or not.
+
+- Upgrade to ``SQLAlchemy==1.3.0`` and ``django==2.2.2``.
+
+- Bugfix to ``crate_anon/nlp_web/views.py`` - ``include_text`` and
+  ``client_job_id`` are obtained from args rather than top-level of the
+  request.
+
+- In ``crate_anon/nlp_manager/nlp_manager.py``, open file to write after
+  completing retrieval of requests so if there is a problem you don't lose all
+  your queue_ids.
+
+- Records will not be sent with no word character.
+
+- :meth:`session.remove()` has been added to to
+  ``crate_anon/nlp_web/views.py``.
+
 
 ===============================================================================
 
