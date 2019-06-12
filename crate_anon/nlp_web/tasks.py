@@ -37,6 +37,7 @@ from cryptography.fernet import Fernet
 from sqlalchemy import engine_from_config
 from typing import Optional, Tuple, Any, List, Dict
 from sqlalchemy.orm import scoped_session
+from sqlalchemy.exc import SQLAlchemyError
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_web.models import Session, DocProcRequest
@@ -134,7 +135,7 @@ def process_nlp_text(
     TaskSession.delete(query)
     try:
         transaction.commit()
-    except:
+    except SQLAlchemyError:
         TaskSession.rollback()
     if processor.proctype == PROCTYPE_GATE:
         return process_nlp_gate(text, processor, url, username, password)

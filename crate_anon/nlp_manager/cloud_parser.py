@@ -181,6 +181,7 @@ class CloudRequest(object):
         self.mirror_processors = {}
         self.max_length = max_length
         self.cookies = None
+        self.request_failed = False
 
     @staticmethod
     def utf8len(text):
@@ -308,7 +309,9 @@ class CloudRequest(object):
             json_response = response.json()
         except json.decoder.JSONDecodeError:
             log.error("Reply was not JSON")
-            raise
+            # raise
+            self.request_failed = True
+            return
         status = json_response[NKeys.STATUS]
         # print(status)
         if queue:
@@ -317,8 +320,11 @@ class CloudRequest(object):
                 self.fetched = False
                 self.cookies = response.cookies
             else:
+                log.error(f"Got HTTP status code {status}.")
                 log.error(f"Response from server: {json_response}")
-                raise HTTPError(f"Got HTTP status code {status}.")
+                # raise HTTPError(f"Got HTTP status code {status}.")
+                self.request_failed = True
+                return
         else:
             if status == HttpStatus.OK:
                 self.nlp_data = json_response
@@ -327,7 +333,11 @@ class CloudRequest(object):
                 self.fetched = True
                 self.cookies = response.cookies
             else:
-                raise HTTPError(f"Response status was: {status}")
+                log.error(f"Response was status: {status}.")
+                log.error(f"Response from server: {json_response}")
+                # raise HTTPError(f"Response status was: {status}")
+                self.request_failed = True
+                return
 
     def set_queue_id(self, queue_id: str) -> None:
         """
@@ -336,7 +346,7 @@ class CloudRequest(object):
         """
         self.queue_id = queue_id
 
-    def try_fetch(self, cookies: List[Any] = None) -> Dict[str, Any]:
+    def try_fetch(self, cookies: List[Any] = None) -> Optional[Dict[str, Any]]:
         """
         Tries to fetch the response from the server. Assumes queued mode.
         Returns the json response.
@@ -355,7 +365,9 @@ class CloudRequest(object):
             json_response = response.json()
         except json.decoder.JSONDecodeError:
             log.error("Reply was not JSON")
-            raise
+            # raise
+            self.request_failed = True
+            return None
         self.cookies = response.cookies
         return json_response
 
@@ -540,7 +552,7 @@ class CloudRequest(object):
             procname)
         if not processor_data[NKeys.SUCCESS]:
             log.warning(
-                f"Processor {proctype} failed for this document. Errors:")
+                f"Processor {procname} failed for this document. Errors:")
             errors = processor_data[NKeys.ERRORS]
             for error in errors:
                 log.warning(f"{error[NKeys.CODE]} - {error[NKeys.MESSAGE]}")

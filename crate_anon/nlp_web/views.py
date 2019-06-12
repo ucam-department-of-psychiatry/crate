@@ -36,6 +36,7 @@ from pyramid.view import view_config, view_defaults
 from pyramid.request import Request
 from pyramid.response import Response
 from sqlalchemy import and_
+from sqlalchemy.exc import SQLAlchemyError
 import transaction
 
 from crate_anon.nlp_web.security import (
@@ -640,7 +641,7 @@ class NlpWebViews(object):
             ).delete(synchronize_session='fetch')
         try:
             transaction.commit()
-        except:
+        except SQLAlchemyError:
             DBSession.rollback()
             error = INTERNAL_SERVER_ERROR
             self.request.response.status = error.http_status
@@ -764,7 +765,7 @@ class NlpWebViews(object):
                 DBSession.delete(doc)
             try:
                 transaction.commit()
-            except:
+            except SQLAlchemyError:
                 DBSession.rollback()
                 error = INTERNAL_SERVER_ERROR
                 self.request.response.status = error.http_status

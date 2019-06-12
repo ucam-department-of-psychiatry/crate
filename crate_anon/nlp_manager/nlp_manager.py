@@ -812,6 +812,8 @@ def process_cloud_now(
             queue=False,
             verify_ssl=verify_ssl)
         for cloud_request in cloud_requests:
+            if cloud_request.request_failed:
+                continue
             cloud_request.set_mirror_processors(mirror_procs)
             cloud_request.process_all()
             nlp_data = cloud_request.nlp_data
