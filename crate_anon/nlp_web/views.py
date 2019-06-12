@@ -62,6 +62,7 @@ from crate_anon.nlp_web.tasks import (
     app,
     process_nlp_text,
     process_nlp_text_immediate,
+    TaskSession,
 )
 # from crate_anon.common.profiling import do_cprofile
 
@@ -126,6 +127,8 @@ class NlpWebViews(object):
             }
         }
         response_dict.update(extra_info)
+        DBSession.remove()
+        TaskSession.remove()
         return response_dict
 
     def check_token(self) -> bool:
