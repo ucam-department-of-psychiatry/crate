@@ -615,7 +615,11 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
                      section=CLOUD_NLP_SECTION,
                      option=CloudNlpConfigKeys.MAX_LENGTH,
                      default=0)
-    with open(f'{req_data_dir}/request_data_{nlpname}.txt', 'w') as request_data:  # noqa
+    # Start with blank file
+    open(f'{req_data_dir}/request_data_{nlpname}.txt', 'w').close()
+    # Use append so that, if there's a problem part-way through, we don't lose
+    # all data
+    with open(f'{req_data_dir}/request_data_{nlpname}.txt', 'a') as request_data:  # noqa
         for ifconfig in nlpdef.get_ifconfigs():
             cloud_requests = send_cloud_requests(
                 nlpdef=nlpdef,

@@ -948,6 +948,17 @@ Changes
 - :meth:`session.remove()` has been added to to
   ``crate_anon/nlp_web/views.py``.
 
+**v0.18.77, 2019-06-12**
+
+- ``crate_anon/nlp_manager/cloud_parser.py`` won't crash if one request gives
+  an error. This is so we don't lose all data if just one request doesn't work.
+
+**v0.18.78, 2019-06-12**
+
+- In :func:`crate_anon.nlp_manager.nlp_manager.process_cloud_nlp`, use append
+  file instead of write, so that, is there's a problem part-way through, we
+  don't lose all data.
+
 
 ===============================================================================
 
