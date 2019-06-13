@@ -207,7 +207,14 @@ class CloudRequest(object):
             log.error("Reply was not JSON")
             raise
         # cls.cookies = response.cookies
-        # print(json_response)
+        status = json_response[NKeys.STATUS]
+        if status != HttpStatus.OK:
+            errors = json_response.get(NKeys.ERRORS)
+            if errors:
+                for err in errors:
+                    for key in err:
+                        log.error(f"{key}: {err[key]}")
+            raise HTTPError(f"Response status was: {status}")
         procs = [proc[NKeys.NAME] for proc in json_response[NKeys.PROCESSORS]]
         return procs
 
