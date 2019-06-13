@@ -959,6 +959,15 @@ Changes
   file instead of write, so that, is there's a problem part-way through, we
   don't lose all data.
 
+**v0.18.79, 2019-06-13**
+
+- Downgraded to ``SQLAlchemy==1.2.8``, which it was before and
+  ``django==2.1.9``, which is higher than it was before, because the updates
+  where causing clashes with ``django-pyodbc-azure``.
+
+- Log error messages from server in
+  :meth:`crate_anon.nlp_manager.cloud_parser.CloudRequest.list_processors`.
+
 
 ===============================================================================
 

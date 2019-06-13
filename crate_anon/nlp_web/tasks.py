@@ -69,6 +69,13 @@ key = key.encode()
 CIPHER_SUITE = Fernet(key)
 
 
+def start_task_session() -> None:
+    """
+    Starts a session for the tasks. To be called at the start of a web request.
+    """
+    TaskSession()
+
+
 def get_gate_results(results_dict: Dict[str, Any]) -> List[Any]:
     results = []
     # See https://cloud.gate.ac.uk/info/help/online-api.html

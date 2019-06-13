@@ -87,6 +87,7 @@ class CloudNlpConfigKeys(object):
     URL = "cloud_url"
     REQUEST_DATA_DIR = "request_data_dir"
     MAX_LENGTH = "max_content_length"
+    LIMIT_BEFORE_WRITE = "limit_before_write"
 
 
 class CloudRequest(object):

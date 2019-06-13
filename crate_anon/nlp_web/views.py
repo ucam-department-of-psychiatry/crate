@@ -64,6 +64,7 @@ from crate_anon.nlp_web.tasks import (
     process_nlp_text,
     process_nlp_text_immediate,
     TaskSession,
+    start_task_session,
 )
 # from crate_anon.common.profiling import do_cprofile
 
@@ -108,6 +109,9 @@ class NlpWebViews(object):
         # Assign these later after authentication
         self.username = None
         self.password = None
+        # Start database sessions
+        DBSession()
+        start_task_session()
 
     @staticmethod
     def create_response(status: int,
