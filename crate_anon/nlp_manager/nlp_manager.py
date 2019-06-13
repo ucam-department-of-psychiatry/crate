@@ -902,7 +902,7 @@ def process_cloud_now(
                         with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
                             session.add(progrec)
             
-    nlpdef.commit_all()
+            nlpdef.commit_all()
 
 
 def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False,
