@@ -968,6 +968,12 @@ Changes
 - Log error messages from server in
   :meth:`crate_anon.nlp_manager.cloud_parser.CloudRequest.list_processors`.
 
+**v0.18.80, 2019-06-13**
+
+- Sending requests to the cloud servers is broken up into blocks so that the
+  database can be written to periodically.
+
+- New sessions for each request on the server-side.
 
 ===============================================================================
 
