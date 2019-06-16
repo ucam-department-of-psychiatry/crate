@@ -479,7 +479,7 @@ def send_cloud_requests(
         nlpdef: NlpDefinition,
         ifconfig: InputFieldConfig,
         start_record: int,
-        end_record: int,
+        number_of_records: int,
         url: str,
         username: str,
         password: str,
@@ -516,7 +516,7 @@ def send_cloud_requests(
                                  verify_ssl=verify_ssl)
     empty_request = True
     for text, other_values in ifconfig.gen_text(start=start_record,
-    	                                        end=end_record):
+    	                                        how_many=number_of_records):
         pkval = other_values[FN_SRCPKVAL]
         pkstr = other_values[FN_SRCPKSTR]
         global_recnum += 1
@@ -829,9 +829,8 @@ def process_cloud_now(
     for ifconfig in nlpdef.get_ifconfigs():
         # Global record number within this ifconfig
         glob_recnum = 0
-        # Start and end for first block
+        # Start for first block
         start = 0
-        end = limit_before_write
         seen_srchashs = []
         total = ifconfig.get_count()
         while start <= total:
@@ -839,7 +838,7 @@ def process_cloud_now(
                 nlpdef=nlpdef,
                 url=url,
                 start_record=start,
-                end_record=end,
+                number_of_records=limit_before_write,
                 username=username,
                 password=password,
                 global_recnum=glob_recnum,
@@ -900,7 +899,6 @@ def process_cloud_now(
             
             nlpdef.commit_all()
             start += limit_before_write
-            end += limit_before_write
 
 
 def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False,
