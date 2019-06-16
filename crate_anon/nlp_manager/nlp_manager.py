@@ -478,7 +478,8 @@ def process_nlp(nlpdef: NlpDefinition,
 def send_cloud_requests(
         nlpdef: NlpDefinition,
         ifconfig: InputFieldConfig,
-        text_generator: Generator[Tuple[str, Dict[str, Any]], None, None],
+        start_record: int,
+        end_record: int,
         url: str,
         username: str,
         password: str,
@@ -489,7 +490,6 @@ def send_cloud_requests(
         queue: bool = True,
         verify_ssl: bool = True,
         limit_before_write: int = 1000) -> Tuple[List[CloudRequest],
-                                                 bool,
                                                  int]:
     """
     Sends off a series of cloud requests and returns them as a list.
@@ -515,13 +515,12 @@ def send_cloud_requests(
                                  allowable_procs=available_procs,
                                  verify_ssl=verify_ssl)
     empty_request = True
-    at_end = True  # different from 'empty_request'
-    for text, other_values in text_generator:
-        at_end = False  # we're not at the end of the generator
+    for text, other_values in ifconfig.gen_text(start=start_record,
+    	                                        end=end_record):
         pkval = other_values[FN_SRCPKVAL]
         pkstr = other_values[FN_SRCPKSTR]
         global_recnum += 1
-        if report_every and recnum % report_every == 0:
+        if report_every and global_recnum % report_every == 0:
             log.info(
                 "Processing {db}.{t}.{c}, PK: {pkf}={pkv} "
                 "(record {g_recnum}/{totalcount})".format(
@@ -588,15 +587,12 @@ def send_cloud_requests(
         # Add 'srchash' to 'other_values' so the metadata will contain it
         # and we can use it later on for updating the progress database
         other_values[FN_SRCHASH] = srchash
-        recnum += 1
-        if recnum >= limit_before_write:
-            break
     if not empty_request:
         # Send last request
         cloud_request.send_process_request(queue, cookies)
         log.info(f"Sent request to be processed: #{i} of this block")
         requests.append(cloud_request)
-    return requests, at_end, global_recnum
+    return requests, global_recnum
 
 
 def process_cloud_nlp(nlpdef: NlpDefinition,
@@ -833,16 +829,17 @@ def process_cloud_now(
     for ifconfig in nlpdef.get_ifconfigs():
         # Global record number within this ifconfig
         glob_recnum = 0
-        # Get generator for text - we use the nature of generators to
-        # split up the process into bits
-        text_generator = ifconfig.gen_text()
-        at_end = False
+        # Start and end for first block
+        start = 0
+        end = limit_before_write
         seen_srchashs = []
-        while not at_end:
-            cloud_requests, at_end, glob_recnum = send_cloud_requests(
+        total = ifconfig.get_count()
+        while start <= total:
+            cloud_requests, glob_recnum = send_cloud_requests(
                 nlpdef=nlpdef,
                 url=url,
-                text_generator=text_generator,
+                start_record=start,
+                end_record=end,
                 username=username,
                 password=password,
                 global_recnum=glob_recnum,
@@ -851,8 +848,7 @@ def process_cloud_now(
                 incremental=incremental,
                 report_every=report_every,
                 queue=False,
-                verify_ssl=verify_ssl,
-                limit_before_write=limit_before_write)
+                verify_ssl=verify_ssl)
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
                     continue
@@ -903,6 +899,8 @@ def process_cloud_now(
                             session.add(progrec)
             
             nlpdef.commit_all()
+            start += limit_before_write
+            end += limit_before_write
 
 
 def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False,
