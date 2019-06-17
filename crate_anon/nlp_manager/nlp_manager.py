@@ -61,7 +61,6 @@ Speed testing:
 
 """  # noqa
 
-
 # =============================================================================
 # Imports
 # =============================================================================
@@ -70,7 +69,7 @@ import argparse
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Tuple, Generator
+from typing import Any, Dict, List, Tuple
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.exceptions import die
@@ -489,8 +488,8 @@ def send_cloud_requests(
         incremental: bool = False,
         queue: bool = True,
         verify_ssl: bool = True,
-        limit_before_write: int = 1000) -> Tuple[List[CloudRequest],
-                                                 int]:
+        stop_at_failure: bool = True) -> Tuple[List[CloudRequest],
+                                               int]:
     """
     Sends off a series of cloud requests and returns them as a list.
     'queue' determines whether these are queued requests or not. Also returns
@@ -498,7 +497,6 @@ def send_cloud_requests(
     for keeping track.
     """
     requests = []
-    recnum = 0
     cookies = None
     i = 1  # number of requests sent
     totalcount = ifconfig.get_count()  # total number of records in table
@@ -516,7 +514,7 @@ def send_cloud_requests(
                                  verify_ssl=verify_ssl)
     empty_request = True
     for text, other_values in ifconfig.gen_text(start=start_record,
-    	                                        how_many=number_of_records):
+                                                how_many=number_of_records):
         pkval = other_values[FN_SRCPKVAL]
         pkstr = other_values[FN_SRCPKSTR]
         global_recnum += 1
@@ -553,6 +551,10 @@ def send_cloud_requests(
         else:
             if not empty_request:
                 cloud_request.send_process_request(queue, cookies)
+                if cloud_request.request_failed and stop_at_failure:
+                    log.warning("Stopping at failed request.")
+                    empty_request = True  # stop from sending an extra request
+                    break
                 if cloud_request.cookies:
                     cookies = cloud_request.cookies
                 log.info(f"Sent request to be processed: #{i} of this block")
@@ -618,13 +620,21 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
                               option=CloudNlpConfigKeys.PASSWORD,
                               default="")
     max_length = config.get_int_default_if_failure(
-                     section=CLOUD_NLP_SECTION,
-                     option=CloudNlpConfigKeys.MAX_LENGTH,
-                     default=0)
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.MAX_LENGTH,
+        default=0)
     limit_before_write = config.get_int_default_if_failure(
-                             section=CLOUD_NLP_SECTION,
-                             option=CloudNlpConfigKeys.LIMIT_BEFORE_WRITE,
-                             default=1000)
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.LIMIT_BEFORE_WRITE,
+        default=1000)
+    stop_at_failure = config.get_str(
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.STOP_AT_FAILURE,
+        default="True")
+    if stop_at_failure == "False" or stop_at_failure == "false":
+        stop_at_failure = False
+    else:
+        stop_at_failure = True
     # Start with blank file
     open(f'{req_data_dir}/request_data_{nlpname}.txt', 'w').close()
     # Use append so that, if there's a problem part-way through, we don't lose
@@ -633,15 +643,15 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
         for ifconfig in nlpdef.get_ifconfigs():
             # Global record number within this ifconfig
             glob_recnum = 0
-            # Get generator for text - we use the nature of generators to
-            # split up the process into bits
-            text_generator = ifconfig.gen_text()
-            at_end = False
-            while not at_end:
-                cloud_requests, at_end, glob_recnum = send_cloud_requests(
+            # Start for first block
+            start = 0
+            total = ifconfig.get_count()
+            while start <= total:
+                cloud_requests, glob_recnum = send_cloud_requests(
                     nlpdef=nlpdef,
                     ifconfig=ifconfig,
-                    text_generator=text_generator,
+                    start_record=start,
+                    number_of_records=limit_before_write,
                     url=url,
                     username=username,
                     password=password,
@@ -650,13 +660,14 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
                     incremental=incremental,
                     report_every=report_every,
                     verify_ssl=verify_ssl,
-                    limit_before_write=limit_before_write)
+                    stop_at_failure=stop_at_failure)
                 for cloud_request in cloud_requests:
                     if cloud_request.queue_id:
                         request_data.write(
                             f"{ifconfig.section},{cloud_request.queue_id}\n")
                     else:
                         log.warning("Sent request does not contain queue_id.")
+                start += limit_before_write
 
 
 def retrieve_nlp_data(nlpdef: NlpDefinition,
@@ -680,6 +691,10 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     password = config.get_str(section=CLOUD_NLP_SECTION,
                               option=CloudNlpConfigKeys.PASSWORD,
                               default="")
+    limit_before_write = config.get_int_default_if_failure(
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.LIMIT_BEFORE_WRITE,
+        default=1000)
     filename = f'{req_data_dir}/request_data_{nlpname}.txt'
     available_procs = CloudRequest.list_processors(url,
                                                    username,
@@ -698,6 +713,8 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     remaining_data = []
     ifconfig_cache = {}  # type: Dict[str, InputFieldConfig]
     all_ready = True  # not necessarily true, but need for later
+    count = 0  # count of records before a write to the database
+    uncommited_data = False
     for line in reqdata:
         # Are there are records (whether ready or not) associated with
         # the queue_id
@@ -734,6 +751,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
             for result in nlp_data[NKeys.RESULTS]:
                 # There are records associated with the given queue_id
                 records_exist = True
+                uncommited_data = True
                 # 'metadata' is just 'other_values' from before
                 metadata = result[NKeys.METADATA]
                 pkval = metadata[FN_SRCPKVAL]
@@ -781,12 +799,17 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                     )
                     with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
                         session.add(progrec)
+                count += 1
             if records_exist:
                 log.info("Request ready.")
+                cloud_request.process_all()
+                if count >= limit_before_write:
+                    nlpdef.commit_all()
+                    uncommited_data = False
             else:
                 log.warning(f"No records found for queue_id {queue_id}.")
-            cloud_request.process_all()
-    nlpdef.commit_all()
+    if uncommited_data:
+        nlpdef.commit_all()
     if all_ready:
         os.remove(filename)
     else:
@@ -819,13 +842,21 @@ def process_cloud_now(
                               option=CloudNlpConfigKeys.PASSWORD,
                               default="")
     max_length = config.get_int_default_if_failure(
-                     section=CLOUD_NLP_SECTION,
-                     option=CloudNlpConfigKeys.MAX_LENGTH,
-                     default=0)
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.MAX_LENGTH,
+        default=0)
     limit_before_write = config.get_int_default_if_failure(
-                             section=CLOUD_NLP_SECTION,
-                             option=CloudNlpConfigKeys.LIMIT_BEFORE_WRITE,
-                             default=1000)
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.LIMIT_BEFORE_WRITE,
+        default=1000)
+    stop_at_failure = config.get_str(
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.STOP_AT_FAILURE,
+        default="True")
+    if stop_at_failure == "False" or stop_at_failure == "false":
+        stop_at_failure = False
+    else:
+        stop_at_failure = True
     for ifconfig in nlpdef.get_ifconfigs():
         # Global record number within this ifconfig
         glob_recnum = 0
@@ -847,7 +878,8 @@ def process_cloud_now(
                 incremental=incremental,
                 report_every=report_every,
                 queue=False,
-                verify_ssl=verify_ssl)
+                verify_ssl=verify_ssl,
+                stop_at_failure=stop_at_failure)
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
                     continue
@@ -896,7 +928,7 @@ def process_cloud_now(
                         )
                         with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
                             session.add(progrec)
-            
+
             nlpdef.commit_all()
             start += limit_before_write
 
