@@ -73,7 +73,7 @@ class Processor(object):
         self.description = description
         self.processor_id = "{}_{}".format(self.name, self.version)
 
-        self.parser = None  # type: BaseNlpParser
+        self.parser = None  # type: Optional[BaseNlpParser]
         if not proctype:
             self.proctype = name
         else:

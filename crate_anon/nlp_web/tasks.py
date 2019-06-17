@@ -49,7 +49,7 @@ log = logging.getLogger(__name__)
 
 TaskSession = scoped_session(Session)
 engine = engine_from_config(SETTINGS, 'sqlalchemy.',
-                            **{'pool_recycle':25200,
+                            **{'pool_recycle': 25200,
                                'pool_pre_ping': True})
 TaskSession.configure(bind=engine)
 
@@ -123,6 +123,8 @@ def process_nlp_text(
     # Can't figure out how not to have to do this everytime
     # engine = engine_from_config(SETTINGS, 'sqlalchemy.')
     # TaskSession.configure(bind=engine)
+
+    # noinspection PyUnresolvedReferences
     query = TaskSession.query(DocProcRequest).get(docprocrequest_id)
     # The above is probably wrong, but if we use a different session, the
     # data doesn't always reach the database in time
@@ -141,10 +143,13 @@ def process_nlp_text(
     processor_id = query.processor_id
     processor = Processor.processors[processor_id]
     # Delete docprocrequest from database
+
+    # noinspection PyUnresolvedReferences
     TaskSession.delete(query)
     try:
         transaction.commit()
     except SQLAlchemyError:
+        # noinspection PyUnresolvedReferences
         TaskSession.rollback()
     if processor.proctype == PROCTYPE_GATE:
         return process_nlp_gate(text, processor, url, username, password)

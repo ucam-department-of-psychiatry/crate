@@ -238,7 +238,9 @@ def get_per_page(request: HttpRequest) -> Optional[int]:
     """
     if not request.user.is_authenticated:
         return None
-    return request.user.profile.per_page
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
+    return profile.per_page
 
 
 def get_patients_per_page(request: HttpRequest) -> Optional[int]:
@@ -256,4 +258,6 @@ def get_patients_per_page(request: HttpRequest) -> Optional[int]:
     """
     if not request.user.is_authenticated:
         return None
-    return request.user.profile.patients_per_page
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
+    return profile.patients_per_page

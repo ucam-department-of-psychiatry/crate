@@ -856,7 +856,7 @@ class Config(object):
         ensure_valid_table_name(self.temporary_tablename)
 
         # Test field names
-        def validate_fieldattr(name):
+        def validate_fieldattr(name: str) -> None:
             if not getattr(self, name):
                 raise ValueError("Blank fieldname: " + name)
             ensure_valid_field_name(getattr(self, name))

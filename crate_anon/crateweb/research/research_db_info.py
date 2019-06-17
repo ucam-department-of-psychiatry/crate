@@ -343,8 +343,8 @@ class SingleResearchDatabase(object):
         assert self.schema_id
 
         # Now discover the schema
-        self._schema_infodictlist = None  # type: List[Dict[str, Any]]
-        self._colinfolist = None  # type: List[ColumnInfo]
+        self._schema_infodictlist = None  # type: Optional[List[Dict[str, Any]]]  # noqa
+        self._colinfolist = None  # type: Optional[List[ColumnInfo]]  # noqa
 
     @property
     def schema_infodictlist(self) -> List[Dict[str, Any]]:

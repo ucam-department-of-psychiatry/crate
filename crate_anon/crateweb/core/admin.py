@@ -1416,9 +1416,9 @@ Problem with non-superusers not seeing any apps:
 
   Solution: add these to relevant ModelAdmin classes:
 
-    def has_module_permission(self, request):
+    def has_module_permission(self, request: HttpRequest) -> bool:
         return request.user.is_staff
 
-    def has_change_permission(self, request, obj=None):
+    def has_change_permission(self, request: HttpRequest, obj=None) -> bool:
         return request.user.is_staff
 """

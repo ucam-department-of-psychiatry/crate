@@ -364,7 +364,7 @@ def runcpserver(opts: Namespace) -> None:
     )
 
 
-def main():
+def main() -> None:
     """
     Command-line entry point (not typically used directly).
     """

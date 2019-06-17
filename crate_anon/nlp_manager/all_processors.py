@@ -31,7 +31,7 @@ crate_anon/nlp_manager/all_processors.py
 # noinspection PyUnresolvedReferences
 import logging
 # noinspection PyUnresolvedReferences
-from typing import List, Type
+from typing import Any, List, Type
 
 import prettytable
 
@@ -51,7 +51,7 @@ ClassType = Type[object]
 
 
 # noinspection PyUnusedLocal
-def ignore(something):
+def ignore(something: Any) -> None:
     pass
 
 

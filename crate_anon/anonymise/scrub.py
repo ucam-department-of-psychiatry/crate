@@ -178,9 +178,9 @@ class WordList(ScrubberBase):
         self.at_word_boundaries_only = at_word_boundaries_only
         self.max_errors = max_errors
         self.regex_method = regex_method
-        self._regex = None  # type: Pattern
-        self._processor = None  # type: KeywordProcessor
-        self._cached_hash = None  # type: str
+        self._regex = None  # type: Optional[Pattern]
+        self._processor = None  # type: Optional[KeywordProcessor]
+        self._cached_hash = None  # type: Optional[str]
         self._built = False
 
         self.words = set()

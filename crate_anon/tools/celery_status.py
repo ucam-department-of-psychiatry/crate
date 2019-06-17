@@ -34,7 +34,7 @@ import subprocess
 from crate_anon.crateweb.config.constants import CELERY_APP_NAME
 
 
-def main():
+def main() -> None:
     """
     Command-line parser. See command-line help.
     """

@@ -3042,7 +3042,7 @@ class Letter(models.Model):
                           to_patient=True,
                           rdbm_may_view=True)
 
-    def mark_sent(self):
+    def mark_sent(self) -> None:
         """
         Mark the letter as having been sent now.
         """
@@ -3158,7 +3158,7 @@ class Email(models.Model):
     @classmethod
     def create_clinician_initiated_cr_email(
             cls,
-            contact_request: ContactRequest)-> EMAIL_FWD_REF:
+            contact_request: ContactRequest) -> EMAIL_FWD_REF:
         """
         Creates an e-mail to a clinician when they have initiated a contact
         request. This email will give them a link to the clinician pack if

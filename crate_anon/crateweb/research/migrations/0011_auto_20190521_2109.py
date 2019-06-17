@@ -13,11 +13,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='query',
             name='formatted_sql',
-            field=models.TextField(default=None, null=True, verbose_name='SQL with highlighting and formatting'),
+            field=models.TextField(default=None, null=True, verbose_name='SQL with highlighting and formatting'),  # noqa
         ),
         migrations.AddField(
             model_name='sitewidequery',
             name='formatted_sql',
-            field=models.TextField(default=None, null=True, verbose_name='SQL with highlighting and formatting'),
+            field=models.TextField(default=None, null=True, verbose_name='SQL with highlighting and formatting'),  # noqa
         ),
     ]

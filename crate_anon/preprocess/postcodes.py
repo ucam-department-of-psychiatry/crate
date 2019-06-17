@@ -70,7 +70,7 @@ import logging
 import os
 import sys
 # import textwrap
-from typing import Any, Dict, Generator, Iterable, List, TextIO
+from typing import Any, Dict, Generator, Iterable, List, Optional, TextIO
 
 from cardinal_pythonlib.argparse_func import RawDescriptionArgumentDefaultsHelpFormatter  # noqa
 from cardinal_pythonlib.dicts import rename_key
@@ -674,7 +674,7 @@ class County1991(Base):
     def __init__(self, **kwargs: Any) -> None:
         # The "00" codes are stored in the spreadsheet as a numeric 0 with
         # leading zero formatting.
-        def process_00(field):
+        def process_00(field: str) -> None:
             value = kwargs[field]
             if value == '':
                 kwargs[field] = None
@@ -1676,7 +1676,7 @@ def populate_generic_lookup_table(
     ext = os.path.splitext(filename)[1].lower()
     type_xlsx = ext in ['.xlsx']
     type_csv = ext in ['.csv']
-    file = None  # type: TextIO
+    file = None  # type: Optional[TextIO]
 
     def dict_from_rows(row_iterator: Iterable[List]) \
             -> Generator[Dict, None, None]:

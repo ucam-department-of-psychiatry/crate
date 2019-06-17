@@ -545,12 +545,12 @@ class Query(QueryBase):
         Initialize our cache.
         """
         super().__init__(*args, **kwargs)
-        self._executed_cursor = None  # type: CursorWrapper
-        self._column_names = None  # type: List[str]
-        self._rowcount = None  # type: int
-        self._rows = None  # type: List[List[Any]]
-        self._display_list = None  # type: List[str]
-        self._display_indexes = None  # type: List[int]
+        self._executed_cursor = None  # type: Optional[CursorWrapper]
+        self._column_names = None  # type: Optional[List[str]]
+        self._rowcount = None  # type: Optional[int]
+        self._rows = None  # type: Optional[List[List[Any]]]
+        self._display_list = None  # type: Optional[List[str]]
+        self._display_indexes = None  # type: Optional[List[int]]
         self._n_times_executed = 0
         self._finalizer = None
 
@@ -1163,7 +1163,7 @@ class QueryAudit(models.Model):
     failed = models.BooleanField(default=False)
     fail_msg = models.TextField()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<QueryAudit id={self.id}>"
 
 
@@ -2425,5 +2425,5 @@ class PatientExplorerAudit(models.Model):
     failed = models.BooleanField(default=False)
     fail_msg = models.TextField()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<PatientExplorerAudit id={self.id}>"

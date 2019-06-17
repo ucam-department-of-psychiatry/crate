@@ -110,7 +110,7 @@ def uprint(*objects: Any,
     if enc == 'UTF-8':
         print(*objects, sep=sep, end=end, file=file)
     else:
-        def f(obj):
+        def f(obj: Any) -> str:
             return str(obj).encode(enc, errors='backslashreplace').decode(enc)
         # https://docs.python.org/3.5/library/codecs.html#codec-base-classes
         print(*map(f, objects), sep=sep, end=end, file=file)

@@ -421,7 +421,7 @@ class BaseNlpParser(object):
         """
         # Check if text contains any word characters - using '[\w\W]' instead
         # of '.' because '.' doesn't include newline characters
-        regex_any_word_char = regex.compile('[\w\W]*[a-zA-Z0-9_][\w\W]*')
+        regex_any_word_char = regex.compile(r'[\w\W]*[a-zA-Z0-9_][\w\W]*')
         if not text or not regex_any_word_char.match(text):
             log.warning(f"No word characters found in {text}")
             return

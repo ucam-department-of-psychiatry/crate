@@ -46,7 +46,10 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 )
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 from sqlalchemy import BigInteger, Column, DateTime, Index, String, Table
+from sqlalchemy.engine.base import Engine
+from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import and_, column, exists, null, or_, select, table
+from sqlalchemy.sql.schema import MetaData
 
 from crate_anon.nlp_manager.constants import (
     FN_CRATE_VERSION_FIELD,
@@ -206,26 +209,26 @@ class InputFieldConfig(object):
         """
         return self._srcdatetimefield
 
-    def get_source_session(self):
+    def get_source_session(self) -> Session:
         """
         Returns the SQLAlchemy ORM :class:`Session` for the source database.
         """
         return self._db.session
 
-    def _get_source_metadata(self):
+    def _get_source_metadata(self) -> MetaData:
         """
-        Returns the SQLAlchemy :class:`Metadata` for the source database,
+        Returns the SQLAlchemy :class:`MetaData` for the source database,
         used for reflection (inspection) of the source database structure.
         """
         return self._db.metadata
 
-    def _get_source_engine(self):
+    def _get_source_engine(self) -> Engine:
         """
         Returns the SQLAlchemy Core :class:`Engine` for the source database.
         """
         return self._db.engine
 
-    def _get_progress_session(self):
+    def _get_progress_session(self) -> Session:
         """
         Returns the SQLAlchemy ORM :class:`Session` for the progress database.
         """
@@ -384,7 +387,7 @@ class InputFieldConfig(object):
                 f" are absent from the source (NB case-sensitive): {missing}")
         return copy_indexes
 
-    def is_pk_integer(self):
+    def is_pk_integer(self) -> bool:
         """
         Is the primary key (PK) of the source table an integer?
         """
@@ -471,8 +474,8 @@ class InputFieldConfig(object):
         # ---------------------------------------------------------------------
 
         if start is not None and how_many is not None:
-        	query = query.order_by(pkcol)  # mssql needs this for below to work
-        	query = query.offset(start).limit(how_many)
+            query = query.order_by(pkcol)  # mssql needs this for below to work
+            query = query.offset(start).limit(how_many)
 
         # ---------------------------------------------------------------------
         # Execute the query

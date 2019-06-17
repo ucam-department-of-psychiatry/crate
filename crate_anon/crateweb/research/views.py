@@ -111,7 +111,10 @@ from crate_anon.crateweb.research.research_db_info import (
     PatientFieldPythonTypes,
     SingleResearchDatabase,
 )
-from crate_anon.crateweb.userprofile.models import get_patients_per_page
+from crate_anon.crateweb.userprofile.models import (
+    get_patients_per_page,
+    UserProfile,
+)
 from crate_anon.crateweb.research.sql_writer import (
     add_to_select,
     SelectElement,
@@ -315,7 +318,8 @@ def query_build(request: HttpRequest) -> HttpResponse:
     #   template rendering), because the csrf_token ends up like:
     #   <input type='hidden' name='csrfmiddlewaretoken' value='RGN5UZnTVkLFAVNtXRpJwn5CclBRAdLr' />  # noqa
 
-    profile = request.user.profile
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
     parse_error = ''
     default_database = research_database_info.get_default_database_name()
     default_schema = research_database_info.get_default_schema_name()
@@ -645,7 +649,8 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
                 run = 'submit_run' in request.POST
                 return query_submit(request, sql, run)
             elif cmd_builder:
-                profile = request.user.profile
+                # noinspection PyUnresolvedReferences
+                profile = request.user.profile  # type: UserProfile
                 profile.sql_scratchpad = sql
                 profile.save()
                 return redirect('build_query')
@@ -663,7 +668,8 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
         values['sql'] = active_queries[0].get_original_sql()
     form = AddQueryForm(values)
     queries = paginate(request, all_queries)
-    profile = request.user.profile
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
     element_counter = HtmlElementCounter()
     for q in queries:
         # Format sql only if it hasn't been done already
@@ -720,7 +726,8 @@ def query_add_sitewide(request: HttpRequest) -> HttpResponse:
             identical_queries[0].save()
     all_queries = get_all_sitewide_queries()
     queries = paginate(request, all_queries)
-    profile = request.user.profile
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
     element_counter = HtmlElementCounter()
     for q in queries:
         # Format sql only if it hasn't been done already
@@ -947,7 +954,8 @@ def query_results(request: HttpRequest, query_id: str) -> HttpResponse:
         query = Query.objects.get(id=query_id, user=request.user)
     except ObjectDoesNotExist:
         return render_bad_query_id(request, query_id)
-    profile = request.user.profile
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
     highlights = Highlight.get_active_highlights(request)
     return render_resultset(request, query, highlights,
                             collapse_at_len=profile.collapse_at_len,
@@ -975,7 +983,8 @@ def query_results_recordwise(request: HttpRequest,
         query = Query.objects.get(id=query_id, user=request.user)
     except ObjectDoesNotExist:
         return render_bad_query_id(request, query_id)
-    profile = request.user.profile
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
     highlights = Highlight.get_active_highlights(request)
     return render_resultset_recordwise(
         request, query, highlights,
@@ -2732,7 +2741,8 @@ def pe_build(request: HttpRequest) -> HttpResponse:
         a :class:`django.http.response.HttpResponse`
 
     """
-    profile = request.user.profile
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
     default_database = research_database_info.get_default_database_name()
     default_schema = research_database_info.get_default_schema_name()
     with_database = research_database_info.uses_database_level()
@@ -2957,7 +2967,8 @@ def pe_edit(request: HttpRequest, pe_id: str) -> HttpResponse:
     """
     validate_blank_form(request)
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
-    profile = request.user.profile
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
     profile.patient_multiquery_scratchpad = pe.patient_multiquery
     profile.save()
     return redirect('pe_build')
@@ -2977,7 +2988,8 @@ def pe_results(request: HttpRequest, pe_id: str) -> HttpResponse:
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     grammar = research_database_info.grammar
-    profile = request.user.profile
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
     highlights = Highlight.get_active_highlights(request)
     highlight_dict = Highlight.as_ordered_dict(highlights)
     element_counter = HtmlElementCounter()
@@ -3238,7 +3250,8 @@ def pe_data_finder_results(request: HttpRequest, pe_id: str) -> HttpResponse:
         a :class:`django.http.response.HttpResponse`
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
-    profile = request.user.profile
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
     patients_per_page = get_patients_per_page(request)
     element_counter = HtmlElementCounter()
     patient_id_query_html = prettify_sql_html(pe.get_patient_id_query())
@@ -3340,7 +3353,8 @@ def pe_monster_results(request: HttpRequest, pe_id: str) -> HttpResponse:
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     grammar = research_database_info.grammar
-    profile = request.user.profile
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
     highlights = Highlight.get_active_highlights(request)
     highlight_dict = Highlight.as_ordered_dict(highlights)
     element_counter = HtmlElementCounter()
@@ -3462,7 +3476,8 @@ def pe_one_table(request: HttpRequest, pe_id: str,
     highlights = Highlight.get_active_highlights(request)
     highlight_dict = Highlight.as_ordered_dict(highlights)
     element_counter = HtmlElementCounter()
-    profile = request.user.profile
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
     patients_per_page = get_patients_per_page(request)
     try:
         mrids = pe.get_patient_mrids()

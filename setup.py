@@ -124,6 +124,7 @@ CRATE_ROOT_DIR = os.path.join(THIS_DIR, "crate_anon")  # .../crate/crate_anon/
 # DOC_ROOT_DIR = os.path.join(CRATE_ROOT_DIR, "docs")
 DOC_ROOT_DIR = os.path.join(THIS_DIR, "docs")
 DOC_HTML_DIR = os.path.join(DOC_ROOT_DIR, "build", "html")
+# noinspection PyUnresolvedReferences
 EGG_DIR = os.path.join(THIS_DIR, "crate_anon.egg-info")
 
 # Files
@@ -149,7 +150,7 @@ INSTALL_REQUIRES = [
     'cherrypy==16.0.2',  # Cross-platform web server
     'colorlog==3.1.4',  # colour in logs
     'distro==1.3.0',  # replaces platform.linux_distribution
-    'django==2.1.9',  # downgraded from 2.2.2 because it doesn't work with django-pyodbc-azure  #noqa
+    'django==2.1.9',  # downgraded from 2.2.2 because it doesn't work with django-pyodbc-azure  # noqa
     'django-debug-toolbar==1.10.1',
     # 'django-debug-toolbar-template-profiler==1.0.1',  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
     'django-extensions==2.0.7',
@@ -176,7 +177,7 @@ INSTALL_REQUIRES = [
     'regex==2018.6.21',
     'semantic_version==2.6.0',  # semantic versioning; better than semver
     'sortedcontainers==2.0.4',
-    'SQLAlchemy==1.2.8',  # database access - downgraded from 1.3.0 because trouble on windows
+    'SQLAlchemy==1.2.8',  # database access - downgraded from 1.3.0 because trouble on windows  # noqa
     'sqlparse==0.2.4',
     'typing==3.6.4',  # part of stdlib in Python 3.5, but not 3.4
     'unidecode==1.0.22',  # for removing accents
@@ -425,7 +426,7 @@ setup(
             'nlp_web_initialize_db = crate_anon.nlp_web.initialize_db:main',
             'nlp_web_print_demo = crate_anon.nlp_web.print_demos:main',  # noqa
             'nlp_web_manage_users = crate_anon.nlp_web.manage_users:main',
-            'nlp_web_generate_encryption_key=crate_anon.nlp_web.security:generate_encryption_key'  #noqa
+            'nlp_web_generate_encryption_key=crate_anon.nlp_web.security:generate_encryption_key'  # noqa
 
         ],
         # Entry point for nlp web

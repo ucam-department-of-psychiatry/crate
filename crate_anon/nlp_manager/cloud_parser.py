@@ -187,7 +187,7 @@ class CloudRequest(object):
         self.request_failed = False
 
     @staticmethod
-    def utf8len(text):
+    def utf8len(text: str) -> int:
         return len(text.encode('utf-8'))
 
     @classmethod
@@ -270,7 +270,7 @@ class CloudRequest(object):
         # self.request_process['args']['content'].append(new_values)
 
         # Check if text contains any word characters
-        regex_any_word_char = regex.compile('[\w\W]*[a-zA-Z0-9_][\w\W]*')
+        regex_any_word_char = regex.compile(r'[\w\W]*[a-zA-Z0-9_][\w\W]*')
         if not text or not regex_any_word_char.match(text):
             log.warning(f"No word characters found in {text}")
             return False

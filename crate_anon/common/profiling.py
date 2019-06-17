@@ -29,14 +29,17 @@ crate_anon/common/sql.py
 """
 
 import cProfile
+from typing import Any, Callable
+
+FuncType = Callable[[Any], Any]
 
 
-def do_cprofile(func):
+def do_cprofile(func: FuncType) -> FuncType:
     """
     Print profile stats to screen. To be used as a decorator for the function
     or method you want to profile.
     """
-    def profiled_func(*args, **kwargs):
+    def profiled_func(*args, **kwargs) -> Any:
         profile = cProfile.Profile()
         try:
             profile.enable()

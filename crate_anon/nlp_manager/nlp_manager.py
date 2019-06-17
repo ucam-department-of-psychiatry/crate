@@ -221,7 +221,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     # Sub-functions
     # -------------------------------------------------------------------------
 
-    def insert(records_):
+    def insert(records_: List[Dict[str, Any]]) -> None:
         n_rows = len(records_)
         log.debug(f"... inserting {n_rows} records")
         for db in databases:
@@ -231,7 +231,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
             nlpdef.notify_transaction(session_, n_rows=n_rows,
                                       n_bytes=sys.getsizeof(records_))
 
-    def commit():
+    def commit() -> None:
         for db in databases:
             nlpdef.commit(db['session'])
 
@@ -467,9 +467,10 @@ def process_nlp(nlpdef: NlpDefinition,
                 #   level.
                 # - https://technet.microsoft.com/en-us/library/jj856598(v=sql.110).aspx  # noqa
 
-                nlpdef.notify_transaction(session=session, n_rows=1,
-                                          n_bytes=sys.getsizeof(progrec),  # approx
-                                          force_commit=force_commit)
+                nlpdef.notify_transaction(
+                    session=session, n_rows=1,
+                    n_bytes=sys.getsizeof(progrec),  # approx
+                    force_commit=force_commit)
 
     nlpdef.commit_all()
 

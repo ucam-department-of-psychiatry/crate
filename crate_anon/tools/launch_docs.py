@@ -33,7 +33,7 @@ from cardinal_pythonlib.process import launch_external_file
 from crate_anon.common.constants import CRATE_DOCS_URL
 
 
-def main():
+def main() -> None:
     """
     Command-line entry point.
     """

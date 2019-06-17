@@ -209,6 +209,7 @@ class NlprpMessage(object):
         if isinstance(data, bytes):
             if data_is_gzipped:
                 data = gzip.decompress(data)
+            # noinspection PyTypeChecker
             data = data.decode("utf-8")  # now it's a str
         if isinstance(data, str):
             data = json.loads(data)  # type: Dict[str, Any]

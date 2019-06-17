@@ -2030,7 +2030,7 @@ def is_sql_column_type_textual(column_type: str,
 
 
 def escape_quote_in_literal(s: str) -> str:
-    """
+    r"""
     Escape ``'``. We could use ``''`` or ``\'``.
     Let's use ``\.`` for consistency with percent escaping.
     """
@@ -2038,7 +2038,7 @@ def escape_quote_in_literal(s: str) -> str:
 
 
 def escape_percent_in_literal(sql: str) -> str:
-    """
+    r"""
     Escapes ``%`` by converting it to ``\%``.
     Use this for LIKE clauses.
 
@@ -2150,7 +2150,7 @@ _ = """
 # Tests
 # =============================================================================
 
-def unit_tests():
+def unit_tests() -> None:
     """
     Unit tests.
     """

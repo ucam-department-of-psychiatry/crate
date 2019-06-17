@@ -807,7 +807,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
 # =============================================================================
 
 class ValidatorBase(BaseNlpParser):
-    """
+    r"""
     DO NOT USE DIRECTLY. Base class for **validating** regex parser
     sensitivity.
 
@@ -1044,7 +1044,7 @@ class ValidatorBase(BaseNlpParser):
 # More general testing
 # =============================================================================
 
-def learning_alternative_regex_groups():
+def learning_alternative_regex_groups() -> None:
     """
     Function to learn about regex syntax.
     """

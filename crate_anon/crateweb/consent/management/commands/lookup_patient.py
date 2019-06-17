@@ -99,7 +99,7 @@ def cli_lookup_patient(nhs_numbers: List[int]) -> None:
     log.info("Done.")
 
 
-def main():
+def main() -> None:
     """
     Command-line entry point (not typically used directly).
     """

@@ -32,17 +32,21 @@ The test environment uses pyodbc.
 """
 
 import contextlib
+from typing import Union
+
 # noinspection PyPackageRequirements
 import pyodbc
+from sqlalchemy.engine.base import Connection, Engine
 from sqlalchemy.engine import create_engine
 
 
-def show_query(engine_or_conn, sql):
+def show_query(engine_or_conn: Union[Connection, Engine],
+               sql: str) -> None:
     with contextlib.closing(engine_or_conn.execute(sql)) as result:
         print(f"{sql} -> {result.fetchall()}\n")
 
 
-def execute(engine_or_conn, sql):
+def execute(engine_or_conn: Union[Connection, Engine], sql: str) -> None:
     print("Executing: " + sql)
     engine_or_conn.execute(sql)
 

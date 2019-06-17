@@ -31,7 +31,7 @@ crate_anon/tools/print_crateweb_demo_config.py
 import os
 
 
-def main():
+def main() -> None:
     """
     Command-line entry point.
     """

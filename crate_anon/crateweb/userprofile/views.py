@@ -28,10 +28,15 @@ crate_anon/crateweb/userprofile/views.py
 
 """
 
+from typing import TYPE_CHECKING
+
 from django.http.response import HttpResponse
 from django.http.request import HttpRequest
 from django.shortcuts import redirect, render
 from crate_anon.crateweb.userprofile.forms import UserProfileForm
+
+if TYPE_CHECKING:
+    from crate_anon.crateweb.userprofile.models import UserProfile
 
 
 # =============================================================================
@@ -51,7 +56,8 @@ def edit_profile(request: HttpRequest) -> HttpResponse:
         a :class:`django.http.response.HttpResponse`
 
     """
-    profile = request.user.profile
+    # noinspection PyUnresolvedReferences
+    profile = request.user.profile  # type: UserProfile
     form = UserProfileForm(request.POST if request.method == 'POST' else None,
                            instance=profile)
     if form.is_valid():

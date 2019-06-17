@@ -29,6 +29,9 @@ IT WILL NOT WORK until you've edited it.
 """
 
 import os
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from django.http.request import HttpRequest
 
 raise Exception(
     "Well done - CRATE has found your crate_local_settings.py file at {}. "
@@ -63,8 +66,9 @@ DEBUG = False
 
 
 # noinspection PyUnusedLocal
-def always_show_toolbar(request):
+def always_show_toolbar(request: "HttpRequest") -> bool:
     return True  # Always show toolbar, for debugging only.
+
 
 if DEBUG:
     ALLOWED_HOSTS = []

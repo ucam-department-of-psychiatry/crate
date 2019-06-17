@@ -142,7 +142,7 @@ class AlterMethod(object):
         self.extract_ext_field = extract_ext_field
         self.hash = hash_
         self.hash_config_section = hash_config_section
-        self.hasher = None  # type: GenericHasher
+        self.hasher = None  # type: Optional[GenericHasher]
         # self.html_escape = html_escape
         self.html_unescape = html_unescape
         self.html_untag = html_untag
@@ -224,7 +224,7 @@ class AlterMethod(object):
         Return the ``alter_method`` fragment from the working fields;
         effectively the reverse of :func:`set_from_text`.
         """
-        def two_part(altermethod: str, parameter: str):
+        def two_part(altermethod: str, parameter: str) -> str:
             return altermethod + "=" + parameter
 
         if self.truncate_date:

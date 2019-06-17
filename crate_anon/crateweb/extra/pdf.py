@@ -49,7 +49,7 @@ class CratePdfPlan(PdfPlan):
     Specializes :class:`cardinal_pythonlib.pdf.PdfPlan` for our default
     header/footer.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         if 'header_html' not in kwargs:
             kwargs['header_html'] = settings.PDF_LETTER_HEADER_HTML
         if 'footer_html' not in kwargs:

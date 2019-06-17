@@ -118,7 +118,7 @@ class CratewebService(WindowsService):
 # Main
 # =============================================================================
 
-def main():
+def main() -> None:
     """
     Command-line entry point.
     """

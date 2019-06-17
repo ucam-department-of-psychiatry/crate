@@ -69,7 +69,7 @@ WINDOWS = platform.system() == 'Windows'
 #     return modules
 
 
-def main():
+def main() -> None:
     """
     Command-line parser. See command-line help.
     """

@@ -227,12 +227,12 @@ def delete_dest_rows_with_no_src_row(
     n = count_star(config.sources[srcdbname].session, src_table)
     log.debug(f"... populating temporary table: {n} records to go")
 
-    def insert(records_):
+    def insert(records_: List[Dict[str, Any]]) -> None:
         log.debug(start + f"... inserting {len(records_)} records")
         destsession.execute(temptable.insert(), records_)
 
     i = 0
-    records = []  # type: List[Dict[str: Any]]
+    records = []  # type: List[Dict[str, Any]]
     for pk in gen_pks(srcdbname, src_table, pkddr.src_field):
         i += 1
         if report_every and i % report_every == 0:
@@ -1417,7 +1417,7 @@ def wipe_destination_data_for_opt_out_patients(report_every: int = 1000,
 
     log.debug(start + ": 3. populating temporary table with RIDs")
 
-    def insert(records_):
+    def insert(records_: List[Dict[str, Any]]) -> None:
         # records_: a list of dictionaries
         # http://docs.sqlalchemy.org/en/latest/core/tutorial.html
         log.debug(start + f"... inserting {len(records_)} records")

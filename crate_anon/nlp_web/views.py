@@ -27,7 +27,7 @@ crate_anon/nlp_web/views.py
 
 import datetime
 import json
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional
 import uuid
 import redis
 
@@ -534,7 +534,7 @@ class NlpWebViews(object):
             and_(Document.queue_id == queue_id,
                  Document.username == self.username)
         )
-        client_job_id = None  # type: str
+        client_job_id = None  # type: Optional[str]
         document_rows = query.all()  # type: Iterable[Document]
         if not document_rows:
             error = NOT_FOUND
@@ -543,11 +543,11 @@ class NlpWebViews(object):
             return self.create_error_response(error, description)
         doc_results = []  # type: List[Dict[str, Any]]
         # Check if all results are ready
-        asyncresults_all = []  # type: List[List[AsyncResult]] # noqa
+        asyncresults_all = []  # type: List[List[AsyncResult]]
         for doc in document_rows:
             result_ids = json.loads(doc.result_ids)
             # More efficient than append? Should we do this wherever possible?
-            asyncresults = [None] * len(result_ids)  # type: List[AsyncResult]
+            asyncresults = [None] * len(result_ids)  # type: List[Optional[AsyncResult]]  # noqa
             for i, result_id in enumerate(result_ids):
                 # get result for this doc-proc pair
                 result = AsyncResult(id=result_id, app=app)
