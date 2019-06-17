@@ -48,7 +48,9 @@ from crate_anon.nlp_web.security import decrypt_password
 log = logging.getLogger(__name__)
 
 TaskSession = scoped_session(Session)
-engine = engine_from_config(SETTINGS, 'sqlalchemy.')
+engine = engine_from_config(SETTINGS, 'sqlalchemy.',
+                            **{'pool_recycle':25200,
+                               'pool_pre_ping': True})
 TaskSession.configure(bind=engine)
 
 

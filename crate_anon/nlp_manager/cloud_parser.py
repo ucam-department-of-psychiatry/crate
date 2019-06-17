@@ -391,6 +391,8 @@ class CloudRequest(object):
         if self.fetched:
             return False
         json_response = self.try_fetch(cookies)
+        if not json_response:
+            return False
         # print(json_response)
         # print()
         status = json_response[NKeys.STATUS]
