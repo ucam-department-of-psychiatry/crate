@@ -40,6 +40,7 @@ from typing import Any, Dict, List, Tuple, Generator, Optional
 from datetime import datetime
 import regex
 
+from cardinal_pythonlib.rate_limiting import rate_limited
 from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.dicts import (
     rename_keys_in_dict,
@@ -289,6 +290,7 @@ class CloudRequest(object):
         else:
             return False
 
+    @rate_limited(2)
     def send_process_request(self, queue: bool,
                              cookies: List[Any] = None,
                              include_text: bool = True) -> None:

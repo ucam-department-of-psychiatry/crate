@@ -975,6 +975,18 @@ Changes
 
 - New sessions for each request on the server-side.
 
+**v0.18.81, 2019-06-17**
+
+- Microsoft specific bugfix in cloud nlp.
+
+- Commit every n records, where n is specified by the user, in retrieval of
+  cloud requests.
+
+**v0.18.82, 2019-06-17**
+
+- Used rate limiter.
+
+
 ===============================================================================
 
 .. rubric:: Footnotes
