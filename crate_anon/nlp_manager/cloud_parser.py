@@ -357,6 +357,7 @@ class CloudRequest(object):
         """
         self.queue_id = queue_id
 
+    @rate_limited(2)
     def try_fetch(self, cookies: List[Any] = None) -> Optional[Dict[str, Any]]:
         """
         Tries to fetch the response from the server. Assumes queued mode.

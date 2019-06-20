@@ -745,7 +745,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
             # If results are not ready for this particular queue_id, put
             # back in file
             # request_data.write(f"{if_section},{queue_id}\n")
-            remaining_data.append("{if_section},{queue_id}\n")
+            remaining_data.append(f"{if_section},{queue_id}\n")
             all_ready = False
         else:
             nlp_data = cloud_request.nlp_data
