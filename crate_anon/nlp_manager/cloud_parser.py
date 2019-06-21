@@ -571,6 +571,7 @@ class CloudRequest(object):
             errors = processor_data[NKeys.ERRORS]
             for error in errors:
                 log.warning(f"{error[NKeys.CODE]} - {error[NKeys.MESSAGE]}")
+            return
         for result in processor_data[NKeys.RESULTS]:
             # Assuming each set of results says what annotation type
             # it is
