@@ -70,6 +70,8 @@ MAX_SQL_FIELD_LEN = 64
 
 MAX_SEMANTIC_VERSION_STRING_LENGTH = 147  # https://github.com/mojombo/semver/issues/79  # noqa
 
+MAX_RETRIES = 5
+
 
 SqlTypeDbIdentifier = String(MAX_SQL_FIELD_LEN)  # text field used for database
 # names, table names, and field names

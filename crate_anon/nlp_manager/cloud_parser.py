@@ -39,6 +39,7 @@ import sys
 from typing import Any, Dict, List, Tuple, Generator, Optional
 from datetime import datetime
 import regex
+import time
 
 from cardinal_pythonlib.rate_limiting import rate_limited
 from cardinal_pythonlib.lists import chunks
@@ -49,9 +50,14 @@ from cardinal_pythonlib.dicts import (
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 import requests
 from requests.exceptions import HTTPError
+from urllib3.exceptions import NewConnectionError
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-from crate_anon.nlp_manager.constants import FN_NLPDEF, FN_WHEN_FETCHED
+from crate_anon.nlp_manager.constants import (
+    FN_NLPDEF,
+    FN_WHEN_FETCHED,
+    MAX_RETRIES,
+)
 from crate_anon.nlp_manager.nlp_definition import (
     full_sectionname,
     NlpConfigPrefixes,
@@ -90,6 +96,7 @@ class CloudNlpConfigKeys(object):
     MAX_LENGTH = "max_content_length"
     LIMIT_BEFORE_WRITE = "limit_before_write"
     STOP_AT_FAILURE = "stop_at_failure"
+    WAIT_ON_CONN_ERR = "wait_on_conn_err"
 
 
 class CloudRequest(object):
@@ -113,7 +120,9 @@ class CloudRequest(object):
                  client_job_id: str = None,
                  allowable_procs: Optional[List[str]] = None,
                  verify_ssl: bool = True,
-                 procs_auto_add: bool = True) -> None:
+                 procs_auto_add: bool = True,
+                 wait_on_conn_err: int = 180,
+                 raise_on_failure: bool = True) -> None:
         """
         Args:
             nlpdef:
@@ -185,6 +194,8 @@ class CloudRequest(object):
         self.max_length = max_length
         self.cookies = None
         self.request_failed = False
+        self.wait_on_conn_err = wait_on_conn_err
+        self.raise_on_failure = raise_on_failure
 
     @staticmethod
     def utf8len(text: str) -> int:
@@ -195,16 +206,30 @@ class CloudRequest(object):
                         url: str,
                         username: str = "",
                         password: str = "",
-                        verify_ssl: bool = True) -> List[str]:
+                        verify_ssl: bool = True,
+                        wait_on_conn_err: int = 180) -> Optional[List[str]]:
         auth = (username, password)
         list_procs_request = deepcopy(cls.STANDARD_INFO)
         list_procs_request[NKeys.COMMAND] = NlprpCommands.LIST_PROCESSORS
         request_json = json.dumps(list_procs_request)
         # print(request_json)
-        response = requests.post(url, data=request_json,
-                                 auth=auth, headers=cls.HEADERS,
-                                 verify=verify_ssl)
+        tries = 0
+        success = False
+        while (not success) and (tries <= MAX_RETRIES):
+            try:
+                tries += 1
+                response = requests.post(url, data=request_json,
+                                         auth=auth, headers=cls.HEADERS,
+                                         verify=verify_ssl)
+                success = True
+            except (ConnectionError, NewConnectionError) as e:
+                log.error(e)
+                log.warning(f"Retrying in {wait_on_conn_err} seconds.")
+                time.sleep(wait_on_conn_err)
+        if not success:
+            raise ConnectionError("Max retries have been exceeded")
         try:
+            # noinspection PyUnboundLocalVariable
             json_response = response.json()
         except json.decoder.JSONDecodeError:
             log.error("Reply was not JSON")
@@ -309,20 +334,55 @@ class CloudRequest(object):
         # print(request_json)
         # print()
         if not cookies:
-            response = requests.post(self.url, data=request_json, 
-                                     auth=self.auth, headers=self.HEADERS,
-                                     verify=self.verify_ssl)
+            tries = 0
+            success = False
+            while (not success) and (tries <= MAX_RETRIES):
+                try:
+                    tries += 1
+                    response = requests.post(
+                        self.url, data=request_json, 
+                        auth=self.auth, headers=self.HEADERS,
+                        verify=self.verify_ssl)
+                    success = True
+                except (ConnectionError, NewConnectionError) as e:
+                    log.error(e)
+                    log.warning(f"Retrying in {self.wait_on_conn_err} "
+                                "seconds.")
+                    time.sleep(self.wait_on_conn_err)
+                
         else:
-            response = requests.post(self.url, data=request_json, 
-                                     auth=self.auth, headers=self.HEADERS,
-                                     cookies=cookies, verify=self.verify_ssl)
+            tries = 0
+            success = False
+            while (not success) and (tries <= MAX_RETRIES):
+                try:
+                    tries += 1
+                    response = requests.post(
+                        self.url, data=request_json, 
+                        auth=self.auth, headers=self.HEADERS,
+                        cookies=cookies, verify=self.verify_ssl)
+                    success = True
+                except (ConnectionError, NewConnectionError) as e:
+                    log.error(e)
+                    log.warning(f"Retrying in {self.wait_on_conn_err} "
+                                "seconds.")
+                    time.sleep(self.wait_on_conn_err)
+        if not success:
+            log.error("Max retries exceeded. Request has failed.")
+            if self.raise_on_failure:
+                raise ConnectionError
+            else:
+                self.request_failed = True
+                return
         try:
+            # noinspection PyUnboundLocalVariable
             json_response = response.json()
         except json.decoder.JSONDecodeError:
             log.error("Reply was not JSON")
-            # raise
-            self.request_failed = True
-            return
+            if self.raise_on_failure:
+                raise
+            else:
+                self.request_failed = True
+                return
         status = json_response[NKeys.STATUS]
         # print(status)
         if queue:
@@ -334,8 +394,11 @@ class CloudRequest(object):
                 log.error(f"Got HTTP status code {status}.")
                 log.error(f"Response from server: {json_response}")
                 # raise HTTPError(f"Got HTTP status code {status}.")
-                self.request_failed = True
-                return
+                if self.raise_on_failure:
+                    raise HTTPError
+                else:
+                    self.request_failed = True
+                    return
         else:
             if status == HttpStatus.OK:
                 self.nlp_data = json_response
@@ -347,8 +410,11 @@ class CloudRequest(object):
                 log.error(f"Response was status: {status}.")
                 log.error(f"Response from server: {json_response}")
                 # raise HTTPError(f"Response status was: {status}")
-                self.request_failed = True
-                return
+                if self.raise_on_failure:
+                    raise HTTPError
+                else:
+                    self.request_failed = True
+                    return
 
     def set_queue_id(self, queue_id: str) -> None:
         """
@@ -366,20 +432,54 @@ class CloudRequest(object):
         self.fetch_request[NKeys.ARGS] = {NKeys.QUEUE_ID: self.queue_id}
         request_json = json.dumps(self.fetch_request)
         if not cookies:
-            response = requests.post(self.url, data=request_json,
-                                     auth=self.auth, headers=self.HEADERS,
-                                     verify=self.verify_ssl)
+            tries = 0
+            success = False
+            while (not success) and (tries <= MAX_RETRIES):
+                try:
+                    tries += 1
+                    response = requests.post(
+                        self.url, data=request_json,
+                        auth=self.auth, headers=self.HEADERS,
+                        verify=self.verify_ssl)
+                    success = True
+                except (ConnectionError, NewConnectionError) as e:
+                    log.error(e)
+                    log.warning(f"Retrying in {self.wait_on_conn_err} "
+                                "seconds.")
+                    time.sleep(self.wait_on_conn_err)
         else:
-            response = requests.post(self.url, data=request_json,
-                                     auth=self.auth, headers=self.HEADERS,
-                                     cookies=cookies, verify=self.verify_ssl)
+            tries = 0
+            success = False
+            while (not success) and (tries <= MAX_RETRIES):
+                try:
+                    tries += 1
+                    response = requests.post(
+                        self.url, data=request_json,
+                        auth=self.auth, headers=self.HEADERS,
+                        cookies=cookies, verify=self.verify_ssl)
+                    success = True
+                except (ConnectionError, NewConnectionError) as e:
+                    log.error(e)
+                    log.warning(f"Retrying in {self.wait_on_conn_err} "
+                                "seconds.")
+                    time.sleep(self.wait_on_conn_err)
+        if not success:
+            log.error("Max retries exceeded. Request has failed.")
+            if self.raise_on_failure:
+                raise ConnectionError
+            else:
+                self.request_failed = True
+                return
         try:
+            # noinspection PyUnboundLocalVariable
             json_response = response.json()
         except json.decoder.JSONDecodeError:
             log.error("Reply was not JSON")
-            # raise
-            self.request_failed = True
-            return None
+            if self.raise_on_failure:
+                raise
+            else:
+                self.request_failed = True
+                return None
         self.cookies = response.cookies
         return json_response
 
@@ -406,7 +506,7 @@ class CloudRequest(object):
         elif status == HttpStatus.PROCESSING:
             return False
         elif status == HttpStatus.NOT_FOUND:
-            print(json_response)
+            # print(json_response)
             log.error(f"Got HTTP status code {HttpStatus.NOT_FOUND} - "
                       f"queue_id {self.queue_id} does not exist")
             return False
