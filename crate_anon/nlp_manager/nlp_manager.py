@@ -501,18 +501,28 @@ def send_cloud_requests(
     cookies = None
     i = 1  # number of requests sent
     totalcount = ifconfig.get_count()  # total number of records in table
+    config = nlpdef.get_parser()
+    wait_on_conn_err = config.get_int_default_if_failure(
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.WAIT_ON_CONN_ERR,
+        default=180)
     # Check processors are available
     available_procs = CloudRequest.list_processors(url,
                                                    username,
                                                    password,
-                                                   verify_ssl)
+                                                   verify_ssl,
+                                                   wait_on_conn_err)
+    if available_procs is None:  # request failed
+        return [], global_recnum
     cloud_request = CloudRequest(nlpdef=nlpdef,
                                  url=url,
                                  username=username,
                                  password=password,
                                  max_length=max_length,
                                  allowable_procs=available_procs,
-                                 verify_ssl=verify_ssl)
+                                 verify_ssl=verify_ssl,
+                                 wait_on_conn_err=wait_on_conn_err,
+                                 raise_on_failure=stop_at_failure)
     empty_request = True
     for text, other_values in ifconfig.gen_text(start=start_record,
                                                 how_many=number_of_records):
@@ -552,15 +562,17 @@ def send_cloud_requests(
         else:
             if not empty_request:
                 cloud_request.send_process_request(queue, cookies)
-                if cloud_request.request_failed and stop_at_failure:
-                    log.warning("Stopping at failed request.")
-                    empty_request = True  # stop from sending an extra request
-                    break
-                if cloud_request.cookies:
-                    cookies = cloud_request.cookies
-                log.info(f"Sent request to be processed: #{i} of this block")
-                i += 1
-                requests.append(cloud_request)
+                # If there's a connection error, we only get this far if we
+                # didn't choose to stop at failure
+                if cloud_request.request_failed:
+                    log.warning("Continuing after failed request.")
+                else:
+                    if cloud_request.cookies:
+                        cookies = cloud_request.cookies
+                    log.info(f"Sent request to be processed: #{i} of this "
+                             "block")
+                    i += 1
+                    requests.append(cloud_request)
             cloud_request = CloudRequest(
                 nlpdef=nlpdef,
                 url=url,
@@ -568,7 +580,9 @@ def send_cloud_requests(
                 password=password,
                 max_length=max_length,
                 allowable_procs=available_procs,
-                verify_ssl=verify_ssl)
+                verify_ssl=verify_ssl,
+                wait_on_conn_err=wait_on_conn_err,
+                raise_on_failure=stop_at_failure)
             empty_request = True
             # Is the text too big on its own? If so, don't send it. Otherwise
             # add it to the new request
@@ -593,8 +607,11 @@ def send_cloud_requests(
     if not empty_request:
         # Send last request
         cloud_request.send_process_request(queue, cookies)
-        log.info(f"Sent request to be processed: #{i} of this block")
-        requests.append(cloud_request)
+        if cloud_request.request_failed:
+            log.warning("Continuing after failed request.")
+        else:
+            log.info(f"Sent request to be processed: #{i} of this block")
+            requests.append(cloud_request)
     return requests, global_recnum
 
 
@@ -692,15 +709,28 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     password = config.get_str(section=CLOUD_NLP_SECTION,
                               option=CloudNlpConfigKeys.PASSWORD,
                               default="")
+    wait_on_conn_err = config.get_int_default_if_failure(
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.WAIT_ON_CONN_ERR,
+        default=180)
     limit_before_write = config.get_int_default_if_failure(
         section=CLOUD_NLP_SECTION,
         option=CloudNlpConfigKeys.LIMIT_BEFORE_WRITE,
         default=1000)
+    stop_at_failure = config.get_str(
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.STOP_AT_FAILURE,
+        default="True")
+    if stop_at_failure == "False" or stop_at_failure == "false":
+        stop_at_failure = False
+    else:
+        stop_at_failure = True
     filename = f'{req_data_dir}/request_data_{nlpname}.txt'
     available_procs = CloudRequest.list_processors(url,
                                                    username,
                                                    password,
-                                                   verify_ssl)
+                                                   verify_ssl,
+                                                   wait_on_conn_err)
     mirror_procs = nlpdef.get_processors()
     if not os.path.exists(filename):
         log.error(f"File 'request_data_{nlpname}.txt' does not exist in the "
@@ -732,7 +762,9 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                                      username=username,
                                      password=password,
                                      allowable_procs=available_procs,
-                                     verify_ssl=verify_ssl)
+                                     verify_ssl=verify_ssl,
+                                     wait_on_conn_err=wait_on_conn_err,
+                                     raise_on_failure=stop_at_failure)
         cloud_request.set_mirror_processors(mirror_procs)
         cloud_request.set_queue_id(queue_id)
         log.info(f"Atempting to retrieve data from request #{i} ...")
@@ -745,7 +777,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
             # If results are not ready for this particular queue_id, put
             # back in file
             # request_data.write(f"{if_section},{queue_id}\n")
-            remaining_data.append("{if_section},{queue_id}\n")
+            remaining_data.append(f"{if_section},{queue_id}\n")
             all_ready = False
         else:
             nlp_data = cloud_request.nlp_data
@@ -761,15 +793,15 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                 progrec = None
                 if incremental:
                     progrec = ifconfig.get_progress_record(pkval, pkstr)
-                    if progrec is not None:
-                        if progrec.srchash == srchash:
-                            log.debug("Record previously processed; "
-                                      "skipping")
-                            continue
-                        else:
-                            log.debug("Record has changed")
-                    else:
-                        log.debug("Record is new")
+                    # if progrec is not None:
+                    #     if progrec.srchash == srchash:
+                    #         log.debug("Record previously processed; "
+                    #                   "skipping")
+                    #         continue
+                    #     else:
+                    #         log.debug("Record has changed")
+                    # else:
+                    #     log.debug("Record is new")
                     for processor in (
                             cloud_request.mirror_processors.values()):
                         processor.delete_dest_record(ifconfig,

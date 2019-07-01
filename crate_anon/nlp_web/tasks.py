@@ -103,6 +103,8 @@ def get_gate_results(results_dict: Dict[str, Any]) -> List[Any]:
 expiry_time = 60 * 60 * 24 * 90
 app = Celery('tasks', backend=backend_url, broker=broker_url,
              result_expires=expiry_time)
+app.conf.database_engine_options = {'pool_recycle': 25200,
+                                    'pool_pre_ping': True}
 
 log = logging.getLogger(__name__)
 

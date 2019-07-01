@@ -986,6 +986,17 @@ Changes
 
 - Used rate limiter.
 
+**v0.18.83, 2019-06-23**
+
+- Bugfix to
+  :meth:`crate_anon.nlp_manager.cloud_parser.CloudRequest.get_nlp_values_gate`
+  and
+  :meth:`crate_anon.nlp_manager.cloud_parser.CloudRequest.get_nlp_values_internal`
+  so that they don't try to fish out results for a processor when there are
+  errors.
+
+- Retry after connection failure in ``crate_anon/nlp_manager/cloud_parser.py``.
+
 
 ===============================================================================
 
