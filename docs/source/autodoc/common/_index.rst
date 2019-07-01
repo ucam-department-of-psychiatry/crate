@@ -25,6 +25,8 @@
 crate_anon/common
 -----------------
 
+
+
 ..  toctree::
     :maxdepth: 1
 
@@ -35,5 +37,6 @@ crate_anon/common
     file_io.py.rst
     formatting.py.rst
     parallel.py.rst
+    profiling.py.rst
     sql.py.rst
     stringfunc.py.rst

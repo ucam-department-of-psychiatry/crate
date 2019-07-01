@@ -33,6 +33,8 @@ Options as of 2017-02-28:
     :language: none
 
 
+.. _crate_fetch_wordlists:
+
 crate_fetch_wordlists
 ~~~~~~~~~~~~~~~~~~~~~
 

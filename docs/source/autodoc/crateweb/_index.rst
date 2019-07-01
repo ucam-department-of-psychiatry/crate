@@ -25,6 +25,8 @@
 crate_anon/crateweb
 -------------------
 
+
+
 ..  toctree::
     :maxdepth: 1
 
@@ -149,6 +151,7 @@ crate_anon/crateweb
     research/migrations/0008_query_display.py.rst
     research/migrations/0009_query_no_null.py.rst
     research/migrations/0010_query_last_run.py.rst
+    research/migrations/0011_auto_20190521_2109.py.rst
     research/migrations/__init__.py.rst
     research/models.py.rst
     research/research_db_info.py.rst
@@ -188,6 +191,7 @@ crate_anon/crateweb
     research/templates/query_nav.html.rst
     research/templates/query_none_selected.html.rst
     research/templates/query_result.html.rst
+    research/templates/query_show.html.rst
     research/templates/querybuilder_extrahead.html.rst
     research/templates/querybuilder_form.html.rst
     research/templates/rid_lookup_choose_db.html.rst

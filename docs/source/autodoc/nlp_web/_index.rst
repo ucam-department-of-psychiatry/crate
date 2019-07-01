@@ -25,6 +25,8 @@
 crate_anon/nlp_web
 ------------------
 
+
+
 ..  toctree::
     :maxdepth: 1
 
@@ -33,7 +35,7 @@ crate_anon/nlp_web
     initialize_db.py.rst
     manage_users.py.rst
     models.py.rst
-    print_demo_config.py.rst
+    print_demos.py.rst
     procs.py.rst
     security.py.rst
     tasks.py.rst

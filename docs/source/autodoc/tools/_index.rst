@@ -25,11 +25,14 @@
 crate_anon/tools
 ----------------
 
+
+
 ..  toctree::
     :maxdepth: 1
 
     __init__.py.rst
     celery_status.py.rst
+    fuzzy_id_match.py.rst
     launch_celery.py.rst
     launch_cherrypy_server.py.rst
     launch_docs.py.rst

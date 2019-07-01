@@ -1,7 +1,7 @@
 amqp==2.3.2
 arrow==0.12.1
 beautifulsoup4==4.6.0
-cardinal_pythonlib==1.0.55
+cardinal_pythonlib==1.0.58
 celery==4.0.1
 chardet==3.0.4
 cherrypy==16.0.2
@@ -14,6 +14,7 @@ django-picklefield==1.0.0
 django-sslserver==0.20
 flashtext==2.7
 flower==0.9.2
+fuzzy==1.2.2
 gunicorn==19.8.1
 kombu==4.1.0
 openpyxl==2.5.4

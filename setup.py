@@ -144,7 +144,7 @@ INSTALL_REQUIRES = [
     'amqp==2.3.2',  # amqp is used by Celery  # noqa
     'arrow==0.12.1',  # better datetime
     'beautifulsoup4==4.6.0',
-    'cardinal_pythonlib==1.0.55',
+    'cardinal_pythonlib==1.0.58',
     'celery==4.0.1',  # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
     'chardet==3.0.4',  # character encoding detection for cardinal_pythonlib  # noqa
     'cherrypy==16.0.2',  # Cross-platform web server
@@ -159,6 +159,7 @@ INSTALL_REQUIRES = [
     'django-sslserver==0.20',
     'flashtext==2.7',
     'flower==0.9.2',  # debug Celery; web server; only runs explicitly
+    'fuzzy==1.2.2',  # phonetic matching
     'gunicorn==19.8.1',  # UNIX only, though will install under Windows
     'kombu==4.1.0',  # requires VC++ under Windows # 'mmh3==2.2',  # MurmurHash, for fast non-cryptographic hashing  # noqa
     'openpyxl==2.5.4',  # for ONSPD

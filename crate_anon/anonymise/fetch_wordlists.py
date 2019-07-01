@@ -40,9 +40,13 @@ For the Moby project:
 
 and default URLs in command-line parameters
 
+For specimen usage: see ancillary.rst, as :ref:`crate_fetch_wordlists
+<crate_fetch_wordlists>`.
+
 """
 
 import argparse
+import csv
 import itertools
 import logging
 from operator import attrgetter
@@ -171,9 +175,15 @@ class NameInfo(object):
                  cumfreq_pct: float = None) -> None:
         """
         Args:
-            name: the name
-            freq_pct: frequency (%)
-            cumfreq_pct: cumulative frequency (%)
+            name:
+                the name
+            freq_pct:
+                frequency (%)
+            cumfreq_pct:
+                cumulative frequency (%) when names are ordered from most to
+                least common; therefore, close to 0 for common names, and close
+                to 100 for rare names
+
         """
         self.name = name
         self.freq_pct = freq_pct
@@ -193,6 +203,13 @@ class NameInfo(object):
             isinstance(self.freq_pct, float) and
             isinstance(self.cumfreq_pct, float)
         ), f"Bad frequencies in {self}"
+
+    @property
+    def freq_p(self) -> float:
+        """
+        Frequency as a probability or proportion, range [0, 1].
+        """
+        return self.freq_pct / 100
 
 
 def gen_sufficiently_frequent_names(infolist: Iterable[NameInfo],
@@ -236,25 +253,42 @@ def gen_sufficiently_frequent_names(infolist: Iterable[NameInfo],
             yield info
 
 
-def gen_name_from_name_info(infolist: Iterable[NameInfo],
-                            min_word_length: int = 1) -> \
-        Generator[str, None, None]:
+def gen_name_info_via_min_length(info_iter: Iterable[NameInfo],
+                                 min_name_length: int = 1) -> \
+        Generator[NameInfo, None, None]:
     """
-    Generates names from :class:`NameInfo` objects.
+    Generates :class:`NameInfo` objects matching a name length criterion.
 
     Args:
-        infolist:
+        info_iter:
             iterable of :class:`NameInfo` objects
-        min_word_length:
-            minimum word length; all words must be at least this long
+        min_name_length:
+            minimum name length; all names must be at least this long
 
     Yields:
         names as strings
 
     """
-    for info in infolist:
-        if len(info.name) >= min_word_length:
-            yield info.name
+    for info in info_iter:
+        if len(info.name) >= min_name_length:
+            yield info
+
+
+def gen_name_from_name_info(info_iter: Iterable[NameInfo]) -> \
+        Generator[str, None, None]:
+    """
+    Generates names from :class:`NameInfo` objects.
+
+    Args:
+        info_iter:
+            iterable of :class:`NameInfo` objects
+
+    Yields:
+        names as strings
+
+    """
+    for info in info_iter:
+        yield info.name
 
 
 # =============================================================================
@@ -322,10 +356,12 @@ def gen_us_forename_info(lines: Iterable[str]) -> \
         yield info
 
 
-def fetch_us_forenames(url: str, filename: str,
+def fetch_us_forenames(url: str,
+                       filename: str,
+                       freq_csv_filename: str = "",
                        min_cumfreq_pct: float = 0,
                        max_cumfreq_pct: float = 100,
-                       min_word_length: int = 1,
+                       min_name_length: int = 1,
                        show_rejects: bool = False) -> None:
     """
     Fetch US forenames and store them in a file, one per line.
@@ -335,26 +371,29 @@ def fetch_us_forenames(url: str, filename: str,
             URL to fetch file from
         filename:
             filename to write to
+        freq_csv_filename:
+            optional CSV to write "name, frequency" pairs to, one name per line
         min_cumfreq_pct:
             minimum cumulative frequency (%): 0 for no limit, or above 0 to
             exclude common names
         max_cumfreq_pct:
             maximum cumulative frequency (%): 100 for no limit, or below 100 to
             exclude rare names
-        min_word_length:
+        min_name_length:
             minimum word length; all words must be at least this long
         show_rejects:
             report rejected words to the Python debug log
     """
     pipeline = (
-        gen_name_from_name_info(
+        gen_name_info_via_min_length(
             gen_sufficiently_frequent_names(
                 gen_us_forename_info(
                     gen_lines_from_binary_files(
                         gen_files_from_zipfiles(
                             gen_binary_files_from_urls([url], on_disk=True),
-                            # The zip file contains a README and then a bunch
-                            # of files named yob<year>.txt (e.g. yob1997.txt).
+                            # The zip file contains a README and then a
+                            # bunch of files named yob<year>.txt (e.g.
+                            # yob1997.txt).
                             filespec="*.txt"
                         )
                     )
@@ -363,11 +402,25 @@ def fetch_us_forenames(url: str, filename: str,
                 max_cumfreq_pct=max_cumfreq_pct,
                 show_rejects=show_rejects
             ),
-            min_word_length=min_word_length,
+            min_name_length=min_name_length,
         )
     )
-    names = SortedSet(pipeline)
+    # names = SortedSet(pipeline)
+    names = SortedSet()
+    freq = {}  # type: Dict[str, float]
+    for nameinfo in pipeline:
+        name = nameinfo.name
+        if name not in names:
+            names.add(nameinfo.name)
+            freq[name] = nameinfo.freq_p
     write_words_to_file(filename, names)
+    if freq_csv_filename:
+        log.info(f"Writing to: {freq_csv_filename}")
+        with open(freq_csv_filename, "wt") as f:
+            csvwriter = csv.writer(f)
+            for name in names:
+                csvwriter.writerow([name, freq[name]])
+        log.info(f"... finished writing to: {freq_csv_filename}")
 
 
 # =============================================================================
@@ -521,7 +574,10 @@ def gen_us_surname_2010_info(rows: Iterable[Iterable[str]]) -> \
         yield UsSurname2010Info(*row)
 
 
-def fetch_us_surnames(url_1990: str, url_2010: str, filename: str,
+def fetch_us_surnames(url_1990: str,
+                      url_2010: str,
+                      filename: str,
+                      freq_csv_filename: str = "",
                       min_cumfreq_pct: float = 0,
                       max_cumfreq_pct: float = 100,
                       min_word_length: int = 1,
@@ -536,7 +592,9 @@ def fetch_us_surnames(url_1990: str, url_2010: str, filename: str,
         url_2010:
             URL for 2010 US census data 
         filename:
-            filename to write to
+            text filename to write names to (one name per line)
+        freq_csv_filename:
+            optional CSV to write "name, frequency" pairs to, one name per line
         min_cumfreq_pct:
             minimum cumulative frequency (%): 0 for no limit, or above 0 to
             exclude common names
@@ -548,8 +606,8 @@ def fetch_us_surnames(url_1990: str, url_2010: str, filename: str,
         show_rejects:
             report rejected words to the Python debug log
     """
-    p1 = (
-        gen_name_from_name_info(
+    nameinfo_p1 = (
+        gen_name_info_via_min_length(
             gen_sufficiently_frequent_names(
                 gen_us_surname_1990_info(
                     gen_lines_from_binary_files(
@@ -560,11 +618,11 @@ def fetch_us_surnames(url_1990: str, url_2010: str, filename: str,
                 max_cumfreq_pct=max_cumfreq_pct,
                 show_rejects=show_rejects
             ),
-            min_word_length=min_word_length
+            min_name_length=min_word_length
         )
     )
-    p2 = (
-        gen_name_from_name_info(
+    nameinfo_p2 = (
+        gen_name_info_via_min_length(
             gen_sufficiently_frequent_names(
                 gen_us_surname_2010_info(
                     gen_rows_from_csv_binfiles(
@@ -582,12 +640,25 @@ def fetch_us_surnames(url_1990: str, url_2010: str, filename: str,
                 max_cumfreq_pct=max_cumfreq_pct,
                 show_rejects=show_rejects
             ),
-            min_word_length=min_word_length
+            min_name_length=min_word_length
         )
     )
-    pipeline = itertools.chain(p1, p2)
-    names = SortedSet(pipeline)
+    pipeline = itertools.chain(nameinfo_p1, nameinfo_p2)
+    names = SortedSet()
+    freq = {}  # type: Dict[str, float]
+    for nameinfo in pipeline:
+        name = nameinfo.name
+        if name not in names:
+            names.add(nameinfo.name)
+            freq[name] = nameinfo.freq_p
     write_words_to_file(filename, names)
+    if freq_csv_filename:
+        log.info(f"Writing to: {freq_csv_filename}")
+        with open(freq_csv_filename, "wt") as f:
+            csvwriter = csv.writer(f)
+            for name in names:
+                csvwriter.writerow([name, freq[name]])
+        log.info(f"... finished writing to: {freq_csv_filename}")
 
 
 # =============================================================================
@@ -703,51 +774,6 @@ MAX_CUMFREQ_PCT_HELP = (
     "comprehensive and operating at a reasonable speed. Higher "
     "numbers are more comprehensive but slower.)"
 )
-SPECIMEN_USAGE = r"""
-# -----------------------------------------------------------------------------
-# Specimen usage under Linux
-# -----------------------------------------------------------------------------
-
-cd ~/Documents/code/crate/working
-
-# Downloading these and then using a file:// URL is unnecessary, but it makes
-# the processing steps faster if we need to retry with new settings.
-wget https://www.gutenberg.org/files/3201/files/CROSSWD.TXT -O dictionary.txt
-wget https://www.ssa.gov/OACT/babynames/names.zip -O forenames.zip
-wget http://www2.census.gov/topics/genealogy/1990surnames/dist.all.last -O surnames_1990.txt
-wget https://www2.census.gov/topics/genealogy/2010surnames/names.zip -O surnames_2010.zip
-
-crate_fetch_wordlists --help
-
-crate_fetch_wordlists \
-    --english_words \
-        --english_words_url file://$PWD/dictionary.txt \
-    --us_forenames \
-        --us_forenames_url file://$PWD/forenames.zip \
-        --us_forenames_max_cumfreq_pct 100 \
-    --us_surnames \
-        --us_surnames_1990_census_url file://$PWD/surnames_1990.txt \
-        --us_surnames_2010_census_url file://$PWD/surnames_2010.zip \
-        --us_surnames_max_cumfreq_pct 100 \
-    --eponyms
-
-#    --show_rejects \
-#    --verbose
-
-# Forenames encompassing the top 95% gives 5874 forenames (of 96174).
-# Surnames encompassing the top 85% gives 74525 surnames (of 175880).
-
-crate_fetch_wordlists \
-    --filter_input \
-        us_forenames.txt \
-        us_surnames.txt \
-    --filter_exclude \
-        english_words.txt \
-        medical_eponyms.txt \
-    --filter_output \
-        filtered_names.txt
-
-"""  # noqa
 
 
 def main() -> None:
@@ -758,15 +784,11 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
-        '--specimen', action='store_true',
-        help="Show some specimen usages and exit"
-    )
-    parser.add_argument(
         '--verbose', '-v', action='store_true',
         help="Be verbose")
     parser.add_argument(
         '--min_word_length', type=positive_int, default=2,
-        help="Minimum word length to allow"
+        help="Minimum word (or name) length to allow"
     )
     parser.add_argument(
         '--show_rejects', action='store_true',
@@ -808,6 +830,11 @@ def main() -> None:
         help="Fetch US forenames (for blacklist)"
     )
     us_forename_group.add_argument(
+        '--us_forenames_freq_output', type=str, default="us_forename_freq.csv",
+        help="Output CSV file for US forename with frequencies (columns are: "
+             "name, frequency)"
+    )
+    us_forename_group.add_argument(
         '--us_forenames_url', type=str,
         default="https://www.ssa.gov/OACT/babynames/names.zip",
         help="URL to Zip file of US Census-derived forenames lists (excludes "
@@ -835,7 +862,12 @@ def main() -> None:
     )
     us_surname_group.add_argument(
         '--us_surnames_output', type=str, default="us_surnames.txt",
-        help="Output file for UK surnames"
+        help="Output text file for US surnames"
+    )
+    us_surname_group.add_argument(
+        '--us_surnames_freq_output', type=str, default="us_surname_freq.csv",
+        help="Output CSV file for US surnames with frequencies (columns are: "
+             "name, frequency)"
     )
     us_surname_group.add_argument(
         '--us_surnames_1990_census_url', type=str,
@@ -904,10 +936,6 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel)
 
-    if args.specimen:
-        print(SPECIMEN_USAGE)
-        sys.exit(0)
-
     if args.min_word_length > 1:
         log.info(f"Restricting to words of length >= {args.min_word_length}")
 
@@ -921,15 +949,17 @@ def main() -> None:
     if args.us_forenames:
         fetch_us_forenames(url=args.us_forenames_url,
                            filename=args.us_forenames_output,
+                           freq_csv_filename=args.us_forenames_freq_output,
                            min_cumfreq_pct=args.us_forenames_min_cumfreq_pct,
                            max_cumfreq_pct=args.us_forenames_max_cumfreq_pct,
-                           min_word_length=args.min_word_length,
+                           min_name_length=args.min_word_length,
                            show_rejects=args.show_rejects)
 
     if args.us_surnames:
         fetch_us_surnames(url_1990=args.us_surnames_1990_census_url,
                           url_2010=args.us_surnames_2010_census_url,
                           filename=args.us_surnames_output,
+                          freq_csv_filename=args.us_surnames_freq_output,
                           min_cumfreq_pct=args.us_surnames_min_cumfreq_pct,
                           max_cumfreq_pct=args.us_surnames_max_cumfreq_pct,
                           min_word_length=args.min_word_length,
