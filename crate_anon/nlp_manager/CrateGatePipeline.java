@@ -77,9 +77,10 @@ FIELDS THAT ARE USED AS STANDARD: see processAnnotation()
 
 // no "package" command required
 
-import java.util.*;
 import java.io.*;
+import java.lang.Throwable;
 import java.text.SimpleDateFormat;
+import java.util.*;
 
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
@@ -292,7 +293,7 @@ public class CrateGatePipeline {
                 // https://docs.oracle.com/javase/7/docs/api/java/lang/RuntimeException.html
 
                 m_log.error("GATE exception; aborting; stack trace follows");
-                reportException(e);
+                reportThrowable(e);
                 if (m_continue_on_crash) {
                     m_log.warn("Proceeding despite GATE crash as requested");
                     if (m_output_terminator_pending) {
@@ -303,9 +304,36 @@ public class CrateGatePipeline {
                     // exits with an UNDEFINED (e.g. 0 = "happy") return code.
                     abort();
                 }
-            } catch (Exception e) {
-                m_log.error("Generic exception; aborting; stack trace follows");
-                reportException(e);
+            } catch (Throwable e) {
+                // There are errors that are a Throwable but are not an
+                // Exception. The full hierarchy [1, 2] is:
+                //
+                // - java.lang.Object
+                //   - java.lang.Throwable
+                //     - java.lang.Error
+                //       - AssertionError
+                //       ...
+                //       - java.lang.VirtualMachineError
+                //         - java.lang.OutOfMemoryError
+                //       ...
+                //     - java.lang.Exception
+                //       ...
+                //       - IOException
+                //         - FileNotFoundException
+                //       ...
+                //
+                // So in particular: "java.lang.OutOfMemoryError: Java heap space"
+                // is not an Exception.
+                //
+                // Should we catch these? Well, we shouldn't continue after
+                // an Error [3].
+                //
+                // [1] https://airbrake.io/blog/java-exception-handling/the-java-exception-class-hierarchy
+                // [2] https://airbrake.io/blog/java-exception-handling/outofmemoryerror
+                // [3] https://stackoverflow.com/questions/6083248/is-it-a-bad-practice-to-catch-throwable
+
+                m_log.error("Generic error/exception; aborting; details follow");
+                reportThrowable(e);
                 abort();  // as above
             }
         }
@@ -314,11 +342,14 @@ public class CrateGatePipeline {
     }
 
     /**
-     * Report an exception to stderr, +/- the text that caused the crash.
+     * Report an exception or other throwable to stderr, +/- the text that
+     * caused the crash.
      */
 
-    private void reportException(Exception e) {
-        e.printStackTrace();  // always goes to System.err (stderr)
+    private void reportThrowable(Throwable e) {
+        // Throwables have the same basic interface as Exceptions (Exception is
+        // a subclass).
+        e.printStackTrace(System.err);  // with no parameter, goes to System.err (stderr)
         if (m_show_contents_on_crash) {
             if (m_current_contents_for_crash_debugging == null) {
                 m_log.error("No current contents");
