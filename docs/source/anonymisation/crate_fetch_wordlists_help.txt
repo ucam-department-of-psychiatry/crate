@@ -1,16 +1,18 @@
-usage: crate_fetch_wordlists [-h] [--specimen] [--verbose]
+usage: crate_fetch_wordlists [-h] [--verbose]
                              [--min_word_length MIN_WORD_LENGTH]
                              [--show_rejects] [--english_words]
                              [--english_words_output ENGLISH_WORDS_OUTPUT]
                              [--english_words_url ENGLISH_WORDS_URL]
                              [--valid_word_regex VALID_WORD_REGEX]
                              [--us_forenames]
+                             [--us_forenames_freq_output US_FORENAMES_FREQ_OUTPUT]
                              [--us_forenames_url US_FORENAMES_URL]
                              [--us_forenames_min_cumfreq_pct US_FORENAMES_MIN_CUMFREQ_PCT]
                              [--us_forenames_max_cumfreq_pct US_FORENAMES_MAX_CUMFREQ_PCT]
                              [--us_forenames_output US_FORENAMES_OUTPUT]
                              [--us_surnames]
                              [--us_surnames_output US_SURNAMES_OUTPUT]
+                             [--us_surnames_freq_output US_SURNAMES_FREQ_OUTPUT]
                              [--us_surnames_1990_census_url US_SURNAMES_1990_CENSUS_URL]
                              [--us_surnames_2010_census_url US_SURNAMES_2010_CENSUS_URL]
                              [--us_surnames_min_cumfreq_pct US_SURNAMES_MIN_CUMFREQ_PCT]
@@ -23,10 +25,9 @@ usage: crate_fetch_wordlists [-h] [--specimen] [--verbose]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --specimen            Show some specimen usages and exit (default: False)
   --verbose, -v         Be verbose (default: False)
   --min_word_length MIN_WORD_LENGTH
-                        Minimum word length to allow (default: 2)
+                        Minimum word (or name) length to allow (default: 2)
   --show_rejects        Print to stdout (and, in verbose mode, log) the words
                         being rejected (default: False)
 
@@ -47,6 +48,10 @@ English words:
 
 US forenames:
   --us_forenames        Fetch US forenames (for blacklist) (default: False)
+  --us_forenames_freq_output US_FORENAMES_FREQ_OUTPUT
+                        Output CSV file for US forename with frequencies
+                        (columns are: name, frequency) (default:
+                        us_forename_freq.csv)
   --us_forenames_url US_FORENAMES_URL
                         URL to Zip file of US Census-derived forenames lists
                         (excludes names with national frequency <5; see
@@ -76,9 +81,14 @@ US forenames:
 US surnames:
   --us_surnames         Fetch US surnames (for blacklist) (default: False)
   --us_surnames_output US_SURNAMES_OUTPUT
-                        Output file for UK surnames (default: us_surnames.txt)
+                        Output text file for US surnames (default:
+                        us_surnames.txt)
+  --us_surnames_freq_output US_SURNAMES_FREQ_OUTPUT
+                        Output CSV file for US surnames with frequencies
+                        (columns are: name, frequency) (default:
+                        us_surname_freq.csv)
   --us_surnames_1990_census_url US_SURNAMES_1990_CENSUS_URL
-                        URL for textfile of US 1990 Census surnames (default:
+                        URL for textfile of US 1990 Census surnames (default: 
                         http://www2.census.gov/topics/genealogy/1990surnames/d
                         ist.all.last)
   --us_surnames_2010_census_url US_SURNAMES_2010_CENSUS_URL

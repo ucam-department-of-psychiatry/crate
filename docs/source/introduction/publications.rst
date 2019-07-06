@@ -23,6 +23,6 @@ Reference publications
 - Cardinal RN (2017). Clinical records anonymisation and text extraction
   (CRATE): an open-source software system. *BMC Medical Informatics and
   Decision Making* 17: 50. http://www.pubmed.com/28441940;
-  https://dx.doi.org/10.1186/s12911-017-0437-1.
+  https://doi.org/10.1186/s12911-017-0437-1.
 
   - :download:`View PDF <publications/Cardinal_2017_Clinical_records_anon.pdf>`

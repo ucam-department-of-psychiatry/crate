@@ -43,7 +43,7 @@ blacklisting, and words to exclude from such lists (such as English words or
 medical eponyms). It also provides an exclusion filter system, to find lines in
 some files that are absent from others.
 
-Options as of 2018-03-27:
+Options as of 2019-07-06:
 
 ..  literalinclude:: crate_fetch_wordlists_help.txt
     :language: none

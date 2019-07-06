@@ -134,4 +134,4 @@ Glossary
     (CRATE): an open-source software system."
     *BMC Medical Informatics and Decision Making* 17: 50.
     https://www.ncbi.nlm.nih.gov/pubmed/28441940;
-    https://dx.doi.org/10.1186/s12911-017-0437-1.
+    https://doi.org/10.1186/s12911-017-0437-1.

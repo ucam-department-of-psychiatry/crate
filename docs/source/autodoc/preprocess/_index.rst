@@ -32,6 +32,7 @@ crate_anon/preprocess
 
     __init__.py.rst
     ddhint.py.rst
+    fuzzy_id_match.py.rst
     postcodes.py.rst
     preprocess_pcmis.py.rst
     preprocess_rio.py.rst

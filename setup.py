@@ -142,6 +142,7 @@ with open(os.path.join(THIS_DIR, 'README.rst'), encoding='utf-8') as f:
 # Package dependencies
 INSTALL_REQUIRES = [
     'amqp==2.3.2',  # amqp is used by Celery  # noqa
+    'appdirs==1.4.3',  # where to store some temporary data
     'arrow==0.12.1',  # better datetime
     'beautifulsoup4==4.6.0',
     'cardinal_pythonlib==1.0.58',

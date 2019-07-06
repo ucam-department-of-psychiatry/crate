@@ -1,4 +1,5 @@
 amqp==2.3.2
+appdirs==1.4.3
 arrow==0.12.1
 beautifulsoup4==4.6.0
 cardinal_pythonlib==1.0.58
