@@ -30,9 +30,6 @@ FIGURE_FILENAME <- file.path(WORKING_DIR, "fuzzy_validation_figure.pdf")
 # =============================================================================
 
 fuzzy <- data.table(read.csv(INPUT_CSV))
-fuzzy[, correct := ifelse(in_sample,
-                          !is.na(best_match_id) & unique_id == best_match_id,
-                          is.na(best_match_id))]
 
 # =============================================================================
 # ROC
@@ -40,31 +37,57 @@ fuzzy[, correct := ifelse(in_sample,
 
 create_roc <- function(d,
                        title = "MISSING TITLE",
-                       very_large_negative = -1000,
-                       dp = 3)
+                       very_large_negative = -1000)
 {
     # Create a ROC curve in which group membership (in or out) is predicted
     # by the log odds of the best match in the sample.
 
-    response <- d$in_sample
-    predictor <- d$best_log_odds
-    predictor[predictor < very_large_negative] <- very_large_negative
+    response1 <- d$in_sample
+    predictor1 <- d$best_log_odds
+    predictor1[predictor1 < very_large_negative] <- very_large_negative
     # ... roc() doesn't like -Inf
-    r <- pROC::roc(response = response, predictor = predictor)
+    r1 <- pROC::roc(response = response1, predictor = predictor1)
     # https://stackoverflow.com/questions/3443687/formatting-decimal-places-in-r
-    auc_str <- format(round(r$auc, dp), nsmall = dp)
-    p <- (
-        pROC::ggroc(r) +
+    auc1_str <- format(round(r1$auc, 3), nsmall = 3)
+    p1 <- (
+        pROC::ggroc(r1) +
         ggplot2::geom_abline(intercept = 1, slope = 1, colour = "grey") +
         ggplot2::ggtitle(title) +
         ggplot2::theme_bw() +
         ggplot2::annotate("text", x = 0.25, y = 0.125,
-                          label = paste0("AUC: ", auc_str))
+                          label = paste0("AUC: ", auc1_str))
     )
+
+    d2 <- d[!is.na(winner_id)]
+    prop_correct <- sum(d2$correct_if_winner) / nrow(d2)
+    pct_correct_str <- format(round(prop_correct * 100, 1), nsmall = 1)
+    response2 <- d2$correct_if_winner
+    if (length(unique(response2)) < 2) {
+        r2 <- NULL
+        p2 <- NULL
+    } else {
+        predictor2 <- d2$winner_advantage
+        predictor2[predictor2 < very_large_negative] <- very_large_negative
+        r2 <- pROC::roc(response = response2, predictor = predictor2)
+        # https://stackoverflow.com/questions/3443687/formatting-decimal-places-in-r
+        auc2_str <- format(round(r2$auc, 3), nsmall = 3)
+        p2 <- (
+            pROC::ggroc(r2) +
+            ggplot2::geom_abline(intercept = 1, slope = 1, colour = "grey") +
+            ggplot2::ggtitle(title) +
+            ggplot2::theme_bw() +
+            ggplot2::annotate("text", x = 0.25, y = 0.125,
+                              label = paste0("AUC: ", auc2_str)) +
+            ggplot2::annotate("text", x = 0.25, y = 0.25,
+                              label = paste0("%correct: ", pct_correct_str))
+        )
+    }
+
     return(list(
-        roc = r,
-        rocplot= p,
-        auc = r$auc
+        roc1 = r1,
+        rocplot1 = p1,
+        roc2 = r2,
+        rocplot2 = p2
     ))
 }
 
@@ -88,9 +111,9 @@ hashed_typo_data <- fuzzy[collection_name %in% c("in_typos_hashed", "out_typos_h
 hashed_typo_results <- create_roc(hashed_typo_data, "Hashed typo data")
 
 fig <- gridExtra::arrangeGrob(
-    plaintext_results$rocplot, hashed_results$rocplot,
-    deletion_results$rocplot, hashed_deletion_results$rocplot,
-    typo_results$rocplot, hashed_typo_results$rocplot,
+    plaintext_results$rocplot1, hashed_results$rocplot1,
+    deletion_results$rocplot1, hashed_deletion_results$rocplot1,
+    typo_results$rocplot1, hashed_typo_results$rocplot1,
     widths = c(0.5, 0.5),
     ncol = 2
 )
