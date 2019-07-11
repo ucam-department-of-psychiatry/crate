@@ -49,7 +49,7 @@ from cardinal_pythonlib.dicts import (
 )
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 import requests
-from requests.exceptions import HTTPError
+from requests.exceptions import RequestException
 from urllib3.exceptions import NewConnectionError
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
@@ -222,12 +222,12 @@ class CloudRequest(object):
                                          auth=auth, headers=cls.HEADERS,
                                          verify=verify_ssl)
                 success = True
-            except (ConnectionError, NewConnectionError) as e:
+            except (RequestException, NewConnectionError) as e:
                 log.error(e)
                 log.warning(f"Retrying in {wait_on_conn_err} seconds.")
                 time.sleep(wait_on_conn_err)
         if not success:
-            raise ConnectionError("Max retries have been exceeded")
+            raise RequestException("Max retries have been exceeded")
         try:
             # noinspection PyUnboundLocalVariable
             json_response = response.json()
@@ -239,9 +239,15 @@ class CloudRequest(object):
         if status != HttpStatus.OK:
             errors = json_response.get(NKeys.ERRORS)
             if errors:
-                for err in errors:
-                    for key in err:
-                        log.error(f"{key}: {err[key]}")
+                if isinstance(errors, str):
+                    log.error(error)
+                else:
+                    for err in errors:
+                        if isinstance(err, str):
+                            log.error(err)
+                        else:
+                            for key in err:
+                                log.error(f"{key}: {err[key]}")
             raise HTTPError(f"Response status was: {status}")
         procs = [proc[NKeys.NAME] for proc in json_response[NKeys.PROCESSORS]]
         return procs
@@ -344,7 +350,7 @@ class CloudRequest(object):
                         auth=self.auth, headers=self.HEADERS,
                         verify=self.verify_ssl)
                     success = True
-                except (ConnectionError, NewConnectionError) as e:
+                except (RequestException, NewConnectionError) as e:
                     log.error(e)
                     log.warning(f"Retrying in {self.wait_on_conn_err} "
                                 "seconds.")
@@ -361,7 +367,7 @@ class CloudRequest(object):
                         auth=self.auth, headers=self.HEADERS,
                         cookies=cookies, verify=self.verify_ssl)
                     success = True
-                except (ConnectionError, NewConnectionError) as e:
+                except (RequestException, NewConnectionError) as e:
                     log.error(e)
                     log.warning(f"Retrying in {self.wait_on_conn_err} "
                                 "seconds.")
@@ -369,7 +375,7 @@ class CloudRequest(object):
         if not success:
             log.error("Max retries exceeded. Request has failed.")
             if self.raise_on_failure:
-                raise ConnectionError
+                raise RequestException
             else:
                 self.request_failed = True
                 return
@@ -442,7 +448,7 @@ class CloudRequest(object):
                         auth=self.auth, headers=self.HEADERS,
                         verify=self.verify_ssl)
                     success = True
-                except (ConnectionError, NewConnectionError) as e:
+                except (RequestException, NewConnectionError) as e:
                     log.error(e)
                     log.warning(f"Retrying in {self.wait_on_conn_err} "
                                 "seconds.")
@@ -458,7 +464,7 @@ class CloudRequest(object):
                         auth=self.auth, headers=self.HEADERS,
                         cookies=cookies, verify=self.verify_ssl)
                     success = True
-                except (ConnectionError, NewConnectionError) as e:
+                except (RequestException, NewConnectionError) as e:
                     log.error(e)
                     log.warning(f"Retrying in {self.wait_on_conn_err} "
                                 "seconds.")
@@ -466,7 +472,7 @@ class CloudRequest(object):
         if not success:
             log.error("Max retries exceeded. Request has failed.")
             if self.raise_on_failure:
-                raise ConnectionError
+                raise RequestException
             else:
                 self.request_failed = True
                 return

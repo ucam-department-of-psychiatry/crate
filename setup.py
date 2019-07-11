@@ -151,7 +151,7 @@ INSTALL_REQUIRES = [
     'cherrypy==16.0.2',  # Cross-platform web server
     'colorlog==3.1.4',  # colour in logs
     'distro==1.3.0',  # replaces platform.linux_distribution
-    'django==2.1.9',  # downgraded from 2.2.2 because it doesn't work with django-pyodbc-azure  # noqa
+    'django==2.1.10',  # downgraded from 2.2.2 because it doesn't work with django-pyodbc-azure  # noqa
     'django-debug-toolbar==1.10.1',
     # 'django-debug-toolbar-template-profiler==1.0.1',  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
     'django-extensions==2.0.7',
