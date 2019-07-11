@@ -49,7 +49,7 @@ from cardinal_pythonlib.dicts import (
 )
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 import requests
-from requests.exceptions import RequestException
+from requests.exceptions import HTTPError, RequestException
 from urllib3.exceptions import NewConnectionError
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
@@ -240,7 +240,7 @@ class CloudRequest(object):
             errors = json_response.get(NKeys.ERRORS)
             if errors:
                 if isinstance(errors, str):
-                    log.error(error)
+                    log.error(errors)
                 else:
                     for err in errors:
                         if isinstance(err, str):
