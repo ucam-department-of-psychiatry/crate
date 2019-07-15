@@ -175,8 +175,6 @@ different; see above.
     processing resources”; for example, for KConnect, you’ll see
     “MP:preprocess” through to “MP:finalize”.)
 
-- Click “Run this Application”.
-
 - To see the results, go back to the document, and toggle on both “Annotation
   Sets” and “Annotation Lists”. If you tick "sets" in the Annotation Sets
   window (at the right; it’s colourful) you should see specific annotations in
@@ -237,6 +235,31 @@ Asking `CrateGatePipeline` to run the GATE “ANNIE” demonstration:
         -ot END_OF_NLP_OUTPUT_RECORD \
         -lt . \
         -v -v
+
+
+Troubleshooting GATE
+~~~~~~~~~~~~~~~~~~~~
+
+**Out of Java heap space**
+
+You may see an error like "Out of memory error: java heap space".
+
+On a Windows machine, set the ``_JAVA_OPTIONS`` environment variable (not
+``JAVA_OPTS``; we're not sure when that one applies).
+
+- Edit environment variables via the control panel or e.g.
+  ``rundll32 sysdm.cpl,EditEnvironmentVariables``.
+
+- For the user or the system (as you prefer), set ``_JAVA_OPTIONS`` to e.g.
+  ``-Xms2048m -Xmx4096m -XX:MaxPermSize=1024m``.
+
+- Restart the relevant application (e.g. GATE Developer) and retry.
+
+See:
+
+- https://stackoverflow.com/questions/17369522/set-default-heap-size-in-windows
+
+- https://serverfault.com/questions/351129/can-the-environment-variables-tool-in-windows-be-launched-directly
 
 
 ===============================================================================
