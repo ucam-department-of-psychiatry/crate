@@ -485,12 +485,12 @@ renames =
     VOCABS          vocabs
 destfields =
     # Found by manual inspection of KConnect/Bio-YODIE output from the GATE console:
-    experiencer  VARCHAR(100)  # e.g. "Patient"
-    negation     VARCHAR(100)  # e.g. "Affirmed"
+    experiencer  VARCHAR(100)  # e.g. "Patient", "Other"
+    negation     VARCHAR(100)  # e.g. "Affirmed", "Negated"
     pref         VARCHAR(100)  # e.g. "Rheumatic gout"; PREFferred name
     sty          VARCHAR(100)  # e.g. "Disease or Syndrome"; Semantic Type (STY) [semantic type name]
     tui          VARCHAR(4)    # e.g. "T047"; Type Unique Identifier (TUI) [semantic type identifier]; 4 characters; https://www.ncbi.nlm.nih.gov/books/NBK9679/
-    temporality  VARCHAR(100)  # e.g. "Recent"
+    temporality  VARCHAR(100)  # e.g. "Recent", "historical", "hypothetical"
     vocabs       VARCHAR(255)  # e.g. "AIR,MSH,NDFRT,MEDLINEPLUS,NCI,LNC,NCI_FDA,NCI,MTH,AIR,ICD9CM,LNC,SNOMEDCT_US,LCH_NW,HPO,SNOMEDCT_US,ICD9CM,SNOMEDCT_US,COSTAR,CST,DXP,QMR,OMIM,OMIM,AOD,CSP,NCI_NCI-GLOSS,CHV"; list of UMLS vocabularies
     inst         VARCHAR(8)    # e.g. "C0003873"; looks like a Concept Unique Identifier (CUI); 1 letter then 7 digits
     inst_full    VARCHAR(255)  # e.g. "http://linkedlifedata.com/resource/umls/id/C0003873"
