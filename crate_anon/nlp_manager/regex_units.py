@@ -28,13 +28,18 @@ crate_anon/nlp_manager/regex_units.py
 
 """
 
+import logging
 from typing import List, Optional, Tuple
+
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+
 from crate_anon.nlp_manager.regex_test import test_text_regex
 from crate_anon.nlp_manager.regex_numbers import (
     BILLION,
     MULTIPLY_OR_SPACE,
     PLAIN_INTEGER,
     POWER,
+    TRILLION,
 )
 
 
@@ -187,8 +192,12 @@ STONES = r"(?: stones? | st\.? )"  # stone(s), st, st.
 # -----------------------------------------------------------------------------
 
 L = r"(?: lit(?:re|er)s? | L )"  # L, litre(s), liter(s)
-DL = fr"(?: d(?:eci)?{L} )"
-ML = fr"(?: m(?:illi)?{L} )"
+DL = fr"(?: d(?:eci)?{L} )"  # 10^-1
+ML = fr"(?: m(?:illi)?{L} )"  # 10^-3
+MICROLITRE = fr"(?: micro{L} | [μu]L )"  # 10^-6: microL, microliter(s), microlitre(s), μL, uL  # noqa
+NANOLITRE = fr"(?: nano{L} | nL )"  # 10^-9: nanoL, nanoliter(s), nanolitre(s), nL  # noqa
+PICOLITRE = fr"(?: pico{L} | pL )"  # 10^-12: picoL, picoliter(s), picolitre(s), pL  # noqa
+FEMTOLITRE = fr"(?: femto{L} | fL )"  # 10^-15: femtoL, femtoliter(s), femtolitre(s), fL  # noqa
 # CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} )""".format(  # noqa
 CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} | (?: \b cmm \b ) )""".format(  # noqa
     mm=MM,
@@ -196,6 +205,9 @@ CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} | (?: \b cmm \b ) )""".for
 )
 # cubic mm, etc. | mm^3, mm3, mm 3, etc. | cmm
 # "cmm" added 2018-09-07 having seen this in the wild (albeit urinary results).
+
+# A microlitre is of course the same as a cubic millimetre:
+CUBIC_MM_OR_MICROLITRE = fr"(?: {MICROLITRE} | {CUBIC_MM} )"
 
 # -----------------------------------------------------------------------------
 # Inverse volume
@@ -243,7 +255,9 @@ MICROMOLAR = r"(?:[μu]M)"
 MILLIMOLAR = r"(?:mM)"  # NB case-insensitive... confusable with millimetres
 
 BILLION_PER_L = per(BILLION, L)
+TRILLION_PER_L = per(TRILLION, L)
 CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
+CELLS_PER_CUBIC_MM_OR_MICROLITRE = per(OPTIONAL_CELLS, CUBIC_MM_OR_MICROLITRE)
 G_PER_DL = per(G, DL)
 G_PER_L = per(G, L)
 L_PER_L = per(L, L)
@@ -532,6 +546,23 @@ def test_unit_regexes(verbose: bool = False) -> None:
         ("5 cubic mm", ["cubic mm"]),
         ("5 cubic millimetres", ["cubic millimetres"]),
     ], verbose=verbose)
+    test_text_regex("MICROLITRE", MICROLITRE, [
+        ("5 microlitre", ["microlitre"]),
+        ("5 microL", ["microL"]),
+        ("5 microliters", ["microliters"]),
+        ("5 μL", ["μL"]),
+        ("5 ul", ["ul"]),
+    ], verbose=verbose)
+    test_text_regex("CUBIC_MM_OR_MICROLITRE", CUBIC_MM_OR_MICROLITRE, [
+        ("5 mm^3", ["mm^3"]),
+        ("5 cubic mm", ["cubic mm"]),
+        ("5 cubic millimetres", ["cubic millimetres"]),
+        ("5 microlitre", ["microlitre"]),
+        ("5 microL", ["microL"]),
+        ("5 microliters", ["microliters"]),
+        ("5 μL", ["μL"]),
+        ("5 ul", ["ul"]),
+    ], verbose=verbose)
 
     test_text_regex("HOUR", HOUR, [
         ("5 hours", ["hours"]),
@@ -558,6 +589,21 @@ def test_unit_regexes(verbose: bool = False) -> None:
         ("9800 per cubic mm", [" per cubic mm"]),
         ("9800 per cmm", [" per cmm"]),
     ], verbose=verbose)
+    test_text_regex(
+        "CELLS_PER_CUBIC_MM_OR_MICROLITRE",
+        CELLS_PER_CUBIC_MM_OR_MICROLITRE, [
+            ("9800 / mm3", [" / mm3"]),
+            ("9800 cell/mm3", ["cell/mm3"]),
+            ("9800 cells/mm3", ["cells/mm3"]),
+            ("9800 cells per cubic mm", ["cells per cubic mm"]),
+            ("9800 per cubic mm", [" per cubic mm"]),
+            ("9800 per cmm", [" per cmm"]),
+            ("9800 per μL", [" per μL"]),
+            ("9800 per microliter", [" per microliter"]),
+            ("9800 / microlitre", [" / microlitre"]),
+        ],
+        verbose=verbose
+    )
 
     test_text_regex("MILLIMOLES", MILLIMOLES, [
         ("5 millimoles", ["millimoles"]),
@@ -619,4 +665,5 @@ def test_all(verbose: bool = False) -> None:
 
 
 if __name__ == '__main__':
-    test_all()
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
+    test_all(verbose=False)

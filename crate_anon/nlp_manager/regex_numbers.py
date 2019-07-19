@@ -38,16 +38,19 @@ MULTIPLY = r"[x\*×⋅]"  # x, *, ×, ⋅
 MULTIPLY_OR_SPACE = r"[x\*×⋅\s]"  # x, *, ×, ⋅, space
 POWER = r"(?: \^ | \*\* )"  # ^, **
 POWER_INC_E = r"(?: e | \^ | \*\* )"  # e, ^, **
+POWER_INC_E_ASTERISK = r"(?: e | \^ | \*\* | \*)"  # e, ^, **, *
+# ... e.g. in CUH: "10*9/L" for "×10^9/L"
 
 
 def times_ten_to_power(n: int) -> str:
     """
     For a power *n*, returns a regex to capture "10^n" and similar notations.
     """
-    return fr"(?: {MULTIPLY}? \s* 10 \s* {POWER_INC_E} \s* {n})"
+    return fr"(?: {MULTIPLY}? \s* 10 \s* {POWER_INC_E_ASTERISK} \s* {n})"
 
 
 BILLION = times_ten_to_power(9)
+TRILLION = times_ten_to_power(12)
 
 
 # =============================================================================

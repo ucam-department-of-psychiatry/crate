@@ -471,15 +471,17 @@ class BaseNlpParser(object):
         Args:
             verbose: be verbose?
         """
-        pass
+        raise NotImplementedError(f"No test function for regex class: "
+                                  f"{type(self).__name__}")
 
     def test_parser(self, test_strings: List[str]) -> None:
         """
         Tests the NLP processor's parser with a set of test strings.
         """
-        print(f"Testing parser: {type(self).__name__}")
+        log.info(f"Testing parser: {type(self).__name__}")
         for text in test_strings:
-            print(f"    {text} -> {list(self.parse(text))}")
+            log.info(f"    {text} -> {list(self.parse(text))}")
+        log.info("... OK")
 
     def delete_dest_record(self,
                            ifconfig: InputFieldConfig,

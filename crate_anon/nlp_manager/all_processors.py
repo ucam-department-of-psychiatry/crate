@@ -33,6 +33,8 @@ import logging
 # noinspection PyUnresolvedReferences
 from typing import Any, List, Type
 
+# noinspection PyUnresolvedReferences
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 import prettytable
 
 # noinspection PyUnresolvedReferences
@@ -234,11 +236,12 @@ def test_all_processors(verbose: bool = False) -> None:
             continue
         # if cls.__name__.endswith('Validator'):
         #     continue
-        print("Testing parser class: {}".format(cls.__name__))
+        log.info("Testing parser class: {}".format(cls.__name__))
         instance = cls(None, None)
-        print("... instantiated OK")
+        log.info("... instantiated OK")
         instance.test(verbose=verbose)
 
 
 if __name__ == '__main__':
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all_processors()

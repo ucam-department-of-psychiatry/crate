@@ -997,6 +997,20 @@ Changes
 
 - Retry after connection failure in ``crate_anon/nlp_manager/cloud_parser.py``.
 
+**v0.18.84, 2019-07-18**
+
+- Regexes: ``MICROLITRE``, ``CUBIC_MM_OR_MICROLITRE``,
+  ``CELLS_PER_CUBIC_MM_OR_MICROLITRE``.
+- ``HGB`` as synonym for haemoglobin in
+  :class:`crate_anon.nlp_manager.parse_haematology.Haemoglobin`.
+- ``OPTIONAL_POC`` element in several biochemistry/haematology parsers
+- :class:`crate_anon.nlp_manager.parse_haematology.WbcBase` allows "per
+  microlitre" as well as "per cubic mm".
+- :class:`crate_anon.nlp_manager.parse_haematology.Platelets`
+- :class:`crate_anon.nlp_manager.parse_haematology.RBC`
+- logging, rather than :func:`print`, for regex testing
+- mention ``urllib3==1.23`` explicitly in ``setup.py`` (used by ``requests``)
+
 
 ===============================================================================
 

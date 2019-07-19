@@ -41,11 +41,15 @@ commit:
 
 """
 
+from abc import ABCMeta
 import logging
 from typing import Optional
 
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_parser import (
+    OPTIONAL_POC,
     OPTIONAL_RESULTS_IGNORABLES,
     RELATION,
     SimpleNumericalResultParser,
@@ -56,7 +60,7 @@ from crate_anon.nlp_manager.regex_parser import (
 from crate_anon.nlp_manager.regex_numbers import SIGNED_FLOAT
 from crate_anon.nlp_manager.regex_units import (
     BILLION_PER_L,
-    CELLS_PER_CUBIC_MM,
+    CELLS_PER_CUBIC_MM_OR_MICROLITRE,
     G_PER_DL,
     G_PER_L,
     L_PER_L,
@@ -64,6 +68,7 @@ from crate_anon.nlp_manager.regex_units import (
     MG_PER_L,
     MM_PER_H,
     PERCENT,
+    TRILLION_PER_L,
 )
 
 log = logging.getLogger(__name__)
@@ -89,10 +94,11 @@ class Haemoglobin(SimpleNumericalResultParser):
 
     """  # noqa
     HAEMOGLOBIN = fr"""
-        (?: {WORD_BOUNDARY} (?: Ha?emoglobin | Hb ) {WORD_BOUNDARY} )
+        (?: {WORD_BOUNDARY} (?: Ha?emoglobin | Hb | HGB ) {WORD_BOUNDARY} )
     """
     REGEX = fr"""
         ( {HAEMOGLOBIN} )                 # group for "Hb" or equivalent
+        {OPTIONAL_POC}
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?            # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -143,6 +149,7 @@ class Haemoglobin(SimpleNumericalResultParser):
             ("Hb was 62 (L) g/L", [62]),
             ("Haemoglobin      |       7.6 (H)      | g/dL", [76]),
             ("Hb-96", [96]),
+            ("HGB, POC 96", [96]),
         ], verbose=verbose)
 
 
@@ -177,6 +184,7 @@ class Haematocrit(SimpleNumericalResultParser):
     """
     REGEX = fr"""
         ( {HAEMATOCRIT} )               # group for "haematocrit" or equivalent
+        {OPTIONAL_POC}
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?          # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -243,6 +251,106 @@ class HaematocritValidator(ValidatorBase):
 
 
 # =============================================================================
+#  RBCs
+# =============================================================================
+
+class RBC(SimpleNumericalResultParser):
+    """
+    Red blood cell count.
+
+    Typical:
+
+    .. code-block:: none
+
+        RBC, POC    4.84            10*12/L
+        RBC, POC    9.99    (H)     10*12/L
+    """
+    RED_BLOOD_CELLS = fr"""
+        (?: 
+            {WORD_BOUNDARY}
+            (?: 
+                # Red [blood] cell[s] [(RBC)] [count]
+                Red \b \s* (?: blood \s*)? \b cells? \b
+                    (?:\s* \(RBC\) )? 
+                    (?:\s* count \b )?
+                # RBC(s)
+                | (?: RBCs? )       
+            )
+        )
+    """
+    # Beware: \( or \) next to \b becomes unhappy.
+    REGEX = fr"""
+        ( {RED_BLOOD_CELLS} )              # group for RBCs or equivalent
+        {OPTIONAL_POC}
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                    # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )                 # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                  # optional group for units
+            {TRILLION_PER_L}                        # good
+            | {CELLS_PER_CUBIC_MM_OR_MICROLITRE}    # good
+            | {BILLION_PER_L}                       # bad
+        )?
+    """
+    NAME = "RBC"
+    PREFERRED_UNIT_COLUMN = "value_trillion_per_l"
+    UNIT_MAPPING = {
+        TRILLION_PER_L: 1,  # preferred unit; 10^12/L or "per pL"
+        CELLS_PER_CUBIC_MM_OR_MICROLITRE: 1e-6,
+        # not BILLION_PER_L
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit,
+            take_absolute=True
+        )
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
+        self.test_numerical_parser([
+            ("RBC (should fail)", []),  # should fail; no values
+            ("RBC 6", [6]),
+            ("RBC = 6", [6]),
+            ("RBC 6 x 10^9/L", []),
+            ("RBC 6 x 10 ^ 9 / L", []),
+            ("RBC 6 x 10 ^ 12 / L", [6]),
+            ("RBC 6    10*12/L", [6]),
+            ("RBCs 6.2", [6.2]),
+            ("red cells 6.2", [6.2]),
+            ("red blood cells 6.2", [6.2]),
+            ("red blood cell count 6.2", [6.2]),
+            ("red blood cells 5000000/mm3", [5]),
+            ("red blood cells 5000000 cell/mm3", [5]),
+            ("red blood cells 5000000 cells/mm3", [5]),
+            ("red blood cells 5000000 per cubic mm", [5]),
+            ("red blood cells 5000000 per cmm", [5]),
+            ("RBC – 6", [6]),  # en dash
+            ("RBC—6", [6]),  # em dash
+            ("RBC -- 6", [6]),  # double hyphen used as dash
+            ("RBC - 6", [6]),
+            ("RBC-6.5", [6.5]),
+            ("RBC, POC    4.84            10*12/L", [4.84]),
+            ("RBC, POC    4.84   (H)      10*12/L", [4.84]),
+            ("red blood cells count 6.2", [6.2]),
+            ("red blood cells (RBC) 6.2", [6.2]),
+        ], verbose=verbose)
+
+
+# =============================================================================
 # Erythrocyte sedimentation rate (ESR)
 # =============================================================================
 
@@ -258,6 +366,7 @@ class Esr(SimpleNumericalResultParser):
     """
     REGEX = fr"""
         ( {ESR} )                           # group for "ESR" or equivalent
+        {OPTIONAL_POC}
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?              # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -351,14 +460,15 @@ class EsrValidator(ValidatorBase):
 # if we are not allowing units, like "M0 3": macrophages 3 x 10^9/L, or part
 # of "T2 N0 M0 ..." cancer staging?
 
-class WbcBase(SimpleNumericalResultParser):
+class WbcBase(SimpleNumericalResultParser, metaclass=ABCMeta):
     """
     DO NOT USE DIRECTLY. White cell count base class.
     """
     PREFERRED_UNIT_COLUMN = "value_billion_per_l"
     UNIT_MAPPING = {
         BILLION_PER_L: 1,     # preferred unit: 10^9 / L
-        CELLS_PER_CUBIC_MM: 0.001,  # 1000 cells/mm^3 -> 1 x 10^9 / L
+        CELLS_PER_CUBIC_MM_OR_MICROLITRE: 0.001,
+        # ... 1000 cells/mm^3 -> 1 x 10^9 / L
         # but NOT percent (too hard to interpret relative differentials
         # reliably)
     }
@@ -405,6 +515,7 @@ class WbcBase(SimpleNumericalResultParser):
         """
         return fr"""
             ({cell_type_regex_text})        # group for cell type name
+            {OPTIONAL_POC}
             {OPTIONAL_RESULTS_IGNORABLES}
             ({TENSE_INDICATOR})?            # optional group for tense indicator
             {OPTIONAL_RESULTS_IGNORABLES}
@@ -413,9 +524,9 @@ class WbcBase(SimpleNumericalResultParser):
             ({SIGNED_FLOAT})                # group for value
             {OPTIONAL_RESULTS_IGNORABLES}
             (                               # optional units, good and bad
-                {BILLION_PER_L}                 # good
-                | {CELLS_PER_CUBIC_MM}          # good
-                | {PERCENT}                     # bad, so we can ignore it
+                {BILLION_PER_L}                      # good
+                | {CELLS_PER_CUBIC_MM_OR_MICROLITRE} # good
+                | {PERCENT}                          # bad, so we can ignore it
             )?
         """
 
@@ -472,11 +583,14 @@ class Wbc(WbcBase):
             ("white cells 9800 per cubic mm", [9.8]),
             ("white cells 9800 per cmm", [9.8]),
             ("white cells 17,600/mm3", [17.6]),
+            ("white cells 17,600/μL", [17.6]),
+            ("white cells 17,600/microlitre", [17.6]),
             ("WBC – 6", [6]),  # en dash
             ("WBC—6", [6]),  # em dash
             ("WBC -- 6", [6]),  # double hyphen used as dash
             ("WBC - 6", [6]),
             ("WBC-6.5", [6.5]),
+            ("WBC, POC 6.5", [6.5]),
         ], verbose=verbose)
 
 
@@ -835,6 +949,71 @@ class EosinophilsValidator(ValidatorBase):
                          commit=commit)
 
 
+# -----------------------------------------------------------------------------
+# Platelet count
+# -----------------------------------------------------------------------------
+
+class Platelets(WbcBase):
+    """
+    Platelet count.
+
+    Not actually a white blood cell, of course, but can share the same base
+    class; platelets are expressed in the same units, of 10^9 / L.
+    Typical values 150–450 ×10^9 / L (or 150,000–450,000 per μL).
+    """
+    PLATELETS = r"""
+        (?:
+            \b (?: Platelets? | plts? ) \b  # platelet(s), plt(s)
+            (?: \s* count \b )?             # optional "count"
+        )
+    """
+    NAME = "platelets"
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         commit=commit,
+                         cell_type_regex_text=self.PLATELETS,
+                         variable=self.NAME)
+
+    def test(self, verbose: bool = False) -> None:
+        # docstring in superclass
+        self.test_numerical_parser([
+            ("platelets (should fail)", []),  # should fail; no values
+            ("platelet count 150", [150]),
+            ("plt = 150", [150]),
+            ("PLT 150 x 10^9/L", [150]),
+            ("platelet count 150 x 10 ^ 9 / L", [150]),
+            ("plt 400", [400]),
+            ("plts 400", [400]),
+            ("plt 400000/mm3", [400]),
+            ("plt count 400000/μL", [400]),
+            ("plts 400000 per microliter", [400]),
+        ], verbose=verbose)
+
+
+class PlateletsValidator(ValidatorBase):
+    """
+    Validator for Platelets
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[Platelets.PLATELETS],
+                         validated_variable=Platelets.NAME,
+                         commit=commit)
+
+
 # =============================================================================
 # Command-line entry point
 # =============================================================================
@@ -846,6 +1025,7 @@ def test_all(verbose: bool = False) -> None:
     # Haemoglobin, haematocrit
     Haemoglobin(None, None).test(verbose=verbose)
     Haematocrit(None, None).test(verbose=verbose)
+    RBC(None, None).test(verbose=verbose)
 
     # ESR
     Esr(None, None).test(verbose=verbose)
@@ -858,6 +1038,10 @@ def test_all(verbose: bool = False) -> None:
     Basophils(None, None).test(verbose=verbose)
     Eosinophils(None, None).test(verbose=verbose)
 
+    # Platelets
+    Platelets(None, None).test(verbose=verbose)
+
 
 if __name__ == '__main__':
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all(verbose=True)

@@ -153,7 +153,7 @@ then we have the following:
 +------------------------------+------------------+-----------------------+
 | no match                     | :math:`0`        | :math:`1 - p_p`       |
 +------------------------------+------------------+-----------------------+
-| (sum of probabilities)       | (1)              | (1)                   |
+| (sum of probabilities)       | 1                | 1                     |
 +------------------------------+------------------+-----------------------+
 
 
@@ -263,7 +263,7 @@ the Alices.
 | Sample member | Alice 1                   | Alice 2                       |
 +---------------+---------------------------+-------------------------------+
 | P(H)          | :math:`\frac{1}{100}`                                     |
-+---------------+---------------------------+-------------------------------+
++---------------+-----------------------------------------------------------+
 | odds(H)       | :math:`\frac{1}{99}`                                      |
 +---------------+---------------------------+-------------------------------+
 | P(D | H)      | 1                         | 1                             |
@@ -290,7 +290,7 @@ Alice, calling it **0.001** (rather than the correct value of approximately
 | Sample member | Alice 1                   | Alice 2                       |
 +---------------+---------------------------+-------------------------------+
 | P(H)          | :math:`\frac{1}{100}`                                     |
-+---------------+---------------------------+-------------------------------+
++---------------+-----------------------------------------------------------+
 | odds(H)       | :math:`\frac{1}{99}`                                      |
 +---------------+---------------------------+-------------------------------+
 | P(D | H)      | 1                         | 1                             |
@@ -353,7 +353,8 @@ proceed as follows.
 
     Compare [#gronau2017]_.
 
-    With equal priors, :math:`H_i = H_j \forall i, j`, so this reduces to: 
+    With equal priors, :math:`H_i = H_j \forall i, j` and the expression above
+    reduces to: 
 
     .. math::
 
@@ -424,7 +425,13 @@ Fairly easy: first name, surname, DOB (very unlikely to be absent).
   SURNAME Firstname, sometimes Anglicized as Firstname SURNAME, and often
   confused by English-speaking people).
   
-- Dates of birth are assumed to be error-free (which may be incorrect).
+- Dates of birth are assumed to be error-free (which may be incorrect) (*).
+
+  - (*) Known real-world categories of DOB error include:
+  
+    - day/month transposition
+    - plain numerical typographical errors
+    - entering today's date as a date of birth  
 
 Harder: middle names
 
@@ -2163,7 +2170,7 @@ class Person(object):
             )
             n += 1
         # Sample names beyond length of proband
-        n = n_sample_middle_names  + 1
+        n = n_sample_middle_names + 1
         for i in range(len(unused_sample_indexes)):
             yield DirectComparison(
                 name="middle_name_sample_beyond_proband",

@@ -44,6 +44,8 @@ commit:
 import logging
 from typing import Optional
 
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_numbers import UNSIGNED_INTEGER
 from crate_anon.nlp_manager.regex_parser import (
@@ -403,6 +405,7 @@ def test_all(verbose: bool = False) -> None:
 
 
 if __name__ == '__main__':
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all(verbose=True)
 
 

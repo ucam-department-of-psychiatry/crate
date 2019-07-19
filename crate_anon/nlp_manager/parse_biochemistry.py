@@ -44,9 +44,12 @@ commit:
 import logging
 from typing import Optional, Union
 
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.number import to_float
 from crate_anon.nlp_manager.regex_parser import (
+    OPTIONAL_POC,
     OPTIONAL_RESULTS_IGNORABLES,
     RELATION,
     SimpleNumericalResultParser,
@@ -110,6 +113,7 @@ class Crp(SimpleNumericalResultParser):
     """
     REGEX = fr"""
         ( {CRP} )                          # group for "CRP" or equivalent
+        {OPTIONAL_POC}
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -210,6 +214,7 @@ class Sodium(SimpleNumericalResultParser):
     """
     REGEX = fr"""
         ( {SODIUM} )                       # group for "Na" or equivalent
+        {OPTIONAL_POC}
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -301,6 +306,7 @@ class Potassium(SimpleNumericalResultParser):
     """
     REGEX = fr"""
         ( {POTASSIUM} )                    # group for "K" or equivalent
+        {OPTIONAL_POC}
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -392,6 +398,7 @@ class Urea(SimpleNumericalResultParser):
     """
     REGEX = fr"""
         ( {UREA} )                         # group for "urea" or equivalent
+        {OPTIONAL_POC}
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -484,6 +491,7 @@ class Creatinine(SimpleNumericalResultParser):
     # Possible that "creatine" is present as a typo... but it's wrong...
     REGEX = fr"""
         ( {CREATININE} )                 # group for "creatinine" or equivalent
+        {OPTIONAL_POC}
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?           # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -769,6 +777,7 @@ class Glucose(SimpleNumericalResultParser):
     """
     REGEX = fr"""
         ( {GLUCOSE} )                      # group for glucose or equivalent
+        {OPTIONAL_POC}
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -1469,4 +1478,5 @@ def test_all(verbose: bool = False) -> None:
 
 
 if __name__ == '__main__':
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all(verbose=True)

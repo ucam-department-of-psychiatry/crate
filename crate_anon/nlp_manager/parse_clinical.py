@@ -50,6 +50,7 @@ import logging
 import sys
 from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy import Column, Integer, Float, String, Text
 
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
@@ -794,9 +795,9 @@ class Bp(BaseNlpParser):
             verbose:
                 be verbose?
         """
-        print(f"Testing parser: {type(self).__name__}")
+        log.info(f"Testing parser: {type(self).__name__}")
         if verbose:
-            print(f"... regex:\n{self.REGEX}")
+            log.debug(f"... regex:\n{self.REGEX}")
         for test_string, expected_values in test_expected_list:
             actual_values = list(
                 (x[self.FN_SYSTOLIC_BP_MMHG], x[self.FN_DIASTOLIC_BP_MMHG])
@@ -812,7 +813,7 @@ class Bp(BaseNlpParser):
                     full=repr(list(self.parse(test_string))),
                 )
             )
-        print("... OK")
+        log.info("... OK")
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass
@@ -872,4 +873,5 @@ def test_all(verbose: bool = False) -> None:
 
 
 if __name__ == '__main__':
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all(verbose=True)

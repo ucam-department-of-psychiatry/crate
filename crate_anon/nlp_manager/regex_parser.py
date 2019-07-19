@@ -28,10 +28,12 @@ crate_anon/nlp_manager/regex_parser.py
 
 """
 
+from abc import ABCMeta
 import logging
 import sys
 from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy import Column, Integer, Float, String, Text
 
 from crate_anon.nlp_manager.constants import (
@@ -88,13 +90,16 @@ WORD_BOUNDARY = r"\b"
 
 OPTIONAL_RESULTS_IGNORABLES = r"""
     (?:  # OPTIONAL_RESULTS_IGNORABLES
-        \s | \| | \:          # whitespace, bar, colon
+        \s                    # whitespace
+        | \|                  # bar
+        | \:                  # colon
         | \bHH?\b | \(HH?\)   # H/HH at a word boundary; (H)/(HH)
         | \bLL?\b | \(LL?\)   # L/LL etc.
         | \* | \(\*\) | \(    # *, (*), isolated left parenthesis
         | — | --              # em dash, double hyphen-minus
         | –\s+ | -\s+ | ‐\s+  # en dash/hyphen-minus/Unicode hyphen; whitespace
-    )*
+    )*                        # ... any of those, repeated 0 or more times
+"""
 """
 # - you often get | characters when people copy/paste tables
 # - blood test abnormality markers can look like e.g.
@@ -108,6 +113,34 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
 #   http://stackoverflow.com/questions/7898310/using-regex-to-balance-match-parenthesis  # noqa
 # - ... simplest is perhaps: base ignorables, or those with brackets, as above
 # - ... even better than a nested thing is just a list of alternatives
+"""
+
+OPTIONAL_POC = r"""
+    (?: , \s POC )?           # OPTIONAL_POC: "point-of-care testing"
+"""
+"""
+... e.g. "Glucose, POC"; "Potassium, POC".
+Seen in CUH for
+
+    sodium, POC
+    potassium, POC
+    creatinine, POC
+    urea, POC
+    glucose, POC
+    lactate, POC
+    bilirubin, POC
+    HCT, POC
+    alkaline phosphatase, POC
+    alanine transferase, POC
+    
+    HGB, POC
+    WBC, POC
+    PLT, POC
+    MCV, POC
+    MCH, POC
+    neutrophil count, POC
+    lymphocyte count, POC
+"""
 
 # -----------------------------------------------------------------------------
 # Tense indicators
@@ -228,7 +261,7 @@ def common_tense(tense_text: Optional[str], relation_text: Optional[str]) \
     return tense, relation
 
 
-class NumericalResultParser(BaseNlpParser):
+class NumericalResultParser(BaseNlpParser, metaclass=ABCMeta):
     """
     DO NOT USE DIRECTLY. Base class for generic numerical results, where
     a SINGLE variable is produced.
@@ -336,9 +369,9 @@ class NumericalResultParser(BaseNlpParser):
         Raises:
             :exc:`AssertionError` if a comparison fails
         """
-        print(f"Testing parser: {type(self).__name__}")
+        log.info(f"Testing parser: {type(self).__name__}")
         if verbose:
-            print(f"... regex string:\n{self.regex_str_for_debugging}")
+            log.debug(f"... regex string:\n{self.regex_str_for_debugging}")
         for test_string, expected_values in test_expected_list:
             actual_values = list(
                 x[self.target_unit] for t, x in self.parse(test_string)
@@ -353,7 +386,7 @@ class NumericalResultParser(BaseNlpParser):
                     full=repr(list(self.parse(test_string))),
                 )
             )
-        print("... OK")
+        log.info("... OK")
 
     # noinspection PyUnusedLocal
     def detailed_test(self, text: str, expected: List[Dict[str, Any]],
@@ -395,10 +428,10 @@ class NumericalResultParser(BaseNlpParser):
                         f"got {values[key]!r}; full result is {values!r}; "
                         f"test text is {text!r}")
             i += 1
-        print("... detailed_test: pass")
+        log.info("... detailed_test: pass")
 
 
-class SimpleNumericalResultParser(NumericalResultParser):
+class SimpleNumericalResultParser(NumericalResultParser, metaclass=ABCMeta):
     """
     Base class for simple single-format numerical results. Use this when not
     only do you have a single variable to produce, but you have a single regex
@@ -491,7 +524,7 @@ class SimpleNumericalResultParser(NumericalResultParser):
                          regex_str_for_debugging=regex_str,
                          commit=commit)
         if debug:
-            print(f"Regex for {type(self).__name__}: {regex_str}")
+            log.debug(f"Regex for {type(self).__name__}: {regex_str}")
         self.compiled_regex = compile_regex(regex_str)
         self.units_to_factor = compile_regex_dict(units_to_factor)
         self.take_absolute = take_absolute
@@ -556,11 +589,11 @@ class SimpleNumericalResultParser(NumericalResultParser):
             }
             # log.critical(result)
             if debug:
-                print(f"Match {m} for {repr(text)} -> {result}")
+                log.debug(f"Match {m} for {repr(text)} -> {result}")
             yield self.tablename, result
 
 
-class NumeratorOutOfDenominatorParser(BaseNlpParser):
+class NumeratorOutOfDenominatorParser(BaseNlpParser, metaclass=ABCMeta):
     """
     Base class for X-out-of-Y numerical results, e.g. for MMSE/ACE.
 
@@ -664,7 +697,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
             )?
         """  # noqa
         if debug:
-            print(f"Regex for {type(self).__name__}: {regex_str}")
+            log.debug(f"Regex for {type(self).__name__}: {regex_str}")
         self.regex_str = regex_str
         self.compiled_regex = compile_regex(regex_str)
 
@@ -758,7 +791,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
             }
             # log.critical(result)
             if debug:
-                print(f"Match {m} for {repr(text)} -> {result}")
+                log.debug(f"Match {m} for {repr(text)} -> {result}")
             yield self.tablename, result
 
     def test_numerator_denominator_parser(
@@ -782,9 +815,9 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
         Raises:
             :exc:`AssertionError` if a comparison fails
         """
-        print(f"Testing parser: {type(self).__name__}")
+        log.info(f"Testing parser: {type(self).__name__}")
         if verbose:
-            print(f"... regex:\n{self.regex_str}")
+            log.debug(f"... regex:\n{self.regex_str}")
         for test_string, expected_values in test_expected_list:
             actual_values = list(
                 (x[self.numerator_fieldname], x[self.denominator_fieldname])
@@ -800,6 +833,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
                     full=repr(list(self.parse(test_string))),
                 )
             )
+        log.info("... OK")
 
 
 # =============================================================================
@@ -1015,11 +1049,11 @@ class ValidatorBase(BaseNlpParser):
 
             https://docs.python.org/3/library/re.html#re.regex.match
         """
-        print(f"Testing validator: {type(self).__name__}")
+        log.info(f"Testing validator: {type(self).__name__}")
         if verbose:
             n = len(self.regex_str_list)
             for i, r in enumerate(self.regex_str_list):
-                print(f"... regex #{i + 1}/{n}: {r}\n")
+                log.debug(f"... regex #{i + 1}/{n}: {r}\n")
         for test_string, expected_match in test_expected_list:
             actual_match = any(r.search(test_string)
                                for r in self.compiled_regex_list)
@@ -1034,10 +1068,11 @@ class ValidatorBase(BaseNlpParser):
                               for r in self.compiled_regex_list),
                 )
             )
-        print("... OK")
+        log.info("... OK")
 
     def test(self, verbose: bool = False) -> None:
-        print(f"... no tests implemented for validator {type(self).__name__}")
+        log.info(
+            f"... no tests implemented for validator {type(self).__name__}")
 
 
 # =============================================================================
@@ -1061,7 +1096,7 @@ def learning_alternative_regex_groups() -> None:
     compiled_regex = compile_regex(regex_str)
     for test_str in ("a", "b", "a c", "d", "e", "a fish", "c c c"):
         m = compiled_regex.match(test_str)
-        print(f"Match: {m}; groups: {m.groups()}")
+        log.info(f"Match: {m}; groups: {m.groups()}")
     """
     So:
         - groups can overlap
@@ -1266,6 +1301,12 @@ def test_base_regexes(verbose: bool = False) -> None:
         ],
         verbose=verbose
     )
+    test_text_regex(
+        "OPTIONAL_POC",
+        OPTIONAL_POC, [
+            (", POC", [", POC", ""]),
+        ]
+    )
 
     # -------------------------------------------------------------------------
     # Tense indicators
@@ -1309,4 +1350,5 @@ def test_all(verbose: bool = False) -> None:
 
 
 if __name__ == '__main__':
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all()

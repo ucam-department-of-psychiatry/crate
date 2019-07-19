@@ -28,8 +28,12 @@ crate_anon/nlp_manager/regex_test.py
 
 """
 
+import logging
+
 from typing import List, Pattern, Tuple
 from crate_anon.nlp_manager.regex_func import compile_regex
+
+log = logging.getLogger(__name__)
 
 
 def f_score(precision: float, recall: float, beta: float = 1) -> float:
@@ -105,10 +109,10 @@ def test_text_regex(name: str,
     Returns:
 
     """
-    print(f"Testing regex named {name}")
+    log.info(f"Testing regex named {name}")
     compiled_regex = compile_regex(regex_text)
     if verbose:
-        print(f"... regex text:\n{regex_text}")
+        log.debug(f"... regex text:\n{regex_text}")
     for test_string, expected_values in test_expected_list:
         actual_values = get_compiled_regex_results(compiled_regex, test_string)
         assert actual_values == expected_values, (
@@ -121,6 +125,6 @@ def test_text_regex(name: str,
                 regex_text=regex_text,
             )
         )
-    print("... OK")
+    log.info("... OK")
     # print_compiled_regex_results(compiled_regex, text,
     #                              prefix_spaces=prefix_spaces)

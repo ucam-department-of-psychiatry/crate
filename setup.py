@@ -188,17 +188,18 @@ INSTALL_REQUIRES = [
 
     # Packages for cloud nlp
     'bcrypt==3.1.6',
-    'pyramid==1.10.2',
-    'waitress==1.2.1',
-    'pyramid_tm==2.2.1',
-    'zope.sqlalchemy==1.1',
-    'paste==3.0.6',
-    # 'mysqlclient',
-    'requests==2.21.0',
-    'transaction==2.4.0',
     'cryptography==2.5',
+    # 'mysqlclient',
+    'paste==3.0.6',
+    'pyramid==1.10.2',
+    'pyramid_tm==2.2.1',
     'redis==3.2.1',
+    'requests==2.21.0',
     'tornado==4.2',
+    'transaction==2.4.0',
+    'urllib3==1.23',  # used by requests
+    'waitress==1.2.1',
+    'zope.sqlalchemy==1.1',
 
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually

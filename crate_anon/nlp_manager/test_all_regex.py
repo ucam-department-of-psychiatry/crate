@@ -29,6 +29,9 @@ crate_anon/nlp_manager/test_all_regex.py
 """
 
 import argparse
+import logging
+
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.nlp_manager import (
     all_processors,
@@ -48,6 +51,7 @@ def test_all_regex_nlp(verbose: bool = False) -> None:
 
 
 if __name__ == '__main__':
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
     parser = argparse.ArgumentParser()
     parser.add_argument('--verbose', '-v', action="store_true", help="Verbose")
     args = parser.parse_args()
