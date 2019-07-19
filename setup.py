@@ -197,7 +197,7 @@ INSTALL_REQUIRES = [
     'requests==2.21.0',
     'tornado==4.2',
     'transaction==2.4.0',
-    'urllib3==1.23',  # used by requests
+    'urllib3==1.24.2',  # used by requests
     'waitress==1.2.1',
     'zope.sqlalchemy==1.1',
 

@@ -1010,6 +1010,8 @@ Changes
 - :class:`crate_anon.nlp_manager.parse_haematology.RBC`
 - logging, rather than :func:`print`, for regex testing
 - mention ``urllib3==1.23`` explicitly in ``setup.py`` (used by ``requests``)
+- ... then ``urllib==1.24.2`` to avoid a high severity security vulnerability
+  (automatic Github warning; well done, it).
 
 
 ===============================================================================
