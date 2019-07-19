@@ -116,7 +116,7 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
 """
 
 OPTIONAL_POC = r"""
-    (?: , \s POC )?           # OPTIONAL_POC: "point-of-care testing"
+    (?: ,? \s* POC )?           # OPTIONAL_POC: "point-of-care testing"
 """
 """
 ... e.g. "Glucose, POC"; "Potassium, POC".

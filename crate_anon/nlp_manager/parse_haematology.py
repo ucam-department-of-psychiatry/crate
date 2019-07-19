@@ -343,6 +343,7 @@ class RBC(SimpleNumericalResultParser):
             ("RBC -- 6", [6]),  # double hyphen used as dash
             ("RBC - 6", [6]),
             ("RBC-6.5", [6.5]),
+            ("RBC POC    4.84            10*12/L", [4.84]),
             ("RBC, POC    4.84            10*12/L", [4.84]),
             ("RBC, POC    4.84   (H)      10*12/L", [4.84]),
             ("red blood cells count 6.2", [6.2]),
