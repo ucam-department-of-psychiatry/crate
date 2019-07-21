@@ -69,7 +69,7 @@ Options as of 2017-02-28:
 Current NLP processors
 ~~~~~~~~~~~~~~~~~~~~~~
 
-NLP processors as of 2017-02-28 (from ``crate_nlp --describeprocessors``):
+NLP processors as of 2019-07-21 (from ``crate_nlp --describeprocessors``):
 
 ..  literalinclude:: crate_nlp_describeprocessors.txt
     :language: none

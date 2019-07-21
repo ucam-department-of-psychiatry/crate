@@ -48,3 +48,7 @@ Things to do
 
 - When the Windows service stops, it is still failing to kill child processes.
   See ``crate_anon/tools/winservice.py``.
+
+- NLP protocol revision whereby processors describe their output fields,
+  saying which SQL dialect they're using; and (automatic) implementation for
+  our built-in NLP.
