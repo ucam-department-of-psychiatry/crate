@@ -997,7 +997,7 @@ Changes
 
 - Retry after connection failure in ``crate_anon/nlp_manager/cloud_parser.py``.
 
-**v0.18.84, 2019-07-18**
+**v0.18.85, 2019-07-21**
 
 - Regexes: ``MICROLITRE``, ``CUBIC_MM_OR_MICROLITRE``,
   ``CELLS_PER_CUBIC_MM_OR_MICROLITRE``.
