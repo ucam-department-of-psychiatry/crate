@@ -351,6 +351,24 @@ class RBC(SimpleNumericalResultParser):
         ], verbose=verbose)
 
 
+class RBCValidator(ValidatorBase):
+    """
+    Validator for RBC
+    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
+    explanation).
+    """
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        # see documentation above
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[RBC.RED_BLOOD_CELLS],
+                         validated_variable=RBC.NAME,
+                         commit=commit)
+
+
 # =============================================================================
 # Erythrocyte sedimentation rate (ESR)
 # =============================================================================
