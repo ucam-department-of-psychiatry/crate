@@ -28,6 +28,8 @@ Natural Language Processing Request Protocol (NLPRP) constants.
 
 """
 
+from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
+
 
 class HttpStatus(object):
     """
@@ -56,8 +58,13 @@ class NlprpKeys(object):
     CLIENT_JOB_ID = "client_job_id"  # bidirectional
     CLIENT_JOB_IDS = "client_job_ids"  # request
     CODE = "code"  # response
+    COLUMN_COMMENT = "column_comment"  # response
+    COLUMN_NAME = "column_name"  # response
+    COLUMN_TYPE = "column_type"  # response
+    COLUMNS = "columns"  # response
     COMMAND = "command"  # request
     CONTENT = "content"  # request
+    DATA_TYPE = "data_type"  # response
     DATETIME_COMPLETED = "datetime_completed"  # response
     DATETIME_SUBMITTED = "datetime_submitted"  # response
     DELETE_ALL = "delete_all"  # request
@@ -65,6 +72,7 @@ class NlprpKeys(object):
     ERRORS = "errors"  # response
     INCLUDE_TEXT = "include_text"  # request
     IS_DEFAULT_VERSION = "is_default_version"  # response
+    IS_NULLABLE = "is_nullable"  # response
     MESSAGE = "message"  # response
     METADATA = "metadata"  # bidirectional
     NAME = "name"  # bidirectional
@@ -74,6 +82,7 @@ class NlprpKeys(object):
     QUEUE_ID = "queue_id"  # response
     QUEUE_IDS = "queue_ids"  # request
     RESULTS = "results"  # response
+    SCHEMA_SQL_DIALECT = "schema_sql_dialect"  # response
     SERVER_INFO = "server_info"  # response
     STATUS = "status"  # response
     SUCCESS = "success"  # response
@@ -104,3 +113,18 @@ class NlprpCommands(object):
 
 ALL_NLPRP_COMMANDS = [v for k, v in NlprpCommands.__dict__.items()
                       if not k.startswith("_")]
+
+
+class SqlDialects(object):
+    """
+    SQL dialects supported by the NLPRP.
+    """
+    MSSQL = SqlaDialectName.MSSQL
+    MYSQL = SqlaDialectName.MYSQL
+    ORACLE = SqlaDialectName.ORACLE
+    POSTGRES = SqlaDialectName.POSTGRES
+    SQLITE = SqlaDialectName.SQLITE
+
+
+ALL_SQL_DIALECTS = [v for k, v in SqlDialects.__dict__.items()
+                    if not k.startswith("_")]

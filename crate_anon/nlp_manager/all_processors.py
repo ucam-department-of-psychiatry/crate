@@ -47,6 +47,7 @@ from crate_anon.nlp_manager.parse_cognitive import *
 from crate_anon.nlp_manager.parse_haematology import *
 # noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.regex_parser import NumericalResultParser
+from crate_anon.nlprp.constants import SqlDialects
 
 log = logging.getLogger(__name__)
 ClassType = Type[object]
@@ -218,12 +219,14 @@ def possible_processor_table() -> str:
     return pt.get_string()
 
 
-def test_all_processors(verbose: bool = False) -> None:
+def test_all_processors(verbose: bool = False,
+                        skip_validators: bool = False) -> None:
     """
     Self-tests all NLP processors.
 
     Args:
         verbose: be verbose?
+        skip_validators: skip validator classes?
     """
     for cls in all_parser_classes():
         if cls.__name__ in ('Gate',
@@ -234,12 +237,16 @@ def test_all_processors(verbose: bool = False) -> None:
                             'ValidatorBase',
                             'WbcBase'):
             continue
-        # if cls.__name__.endswith('Validator'):
-        #     continue
+        if skip_validators and cls.__name__.endswith('Validator'):
+            continue
         log.info("Testing parser class: {}".format(cls.__name__))
         instance = cls(None, None)
         log.info("... instantiated OK")
+        colinfo_json = instance.nlprp_column_info_json(
+            indent=4, sort_keys=True, sql_dialect=SqlDialects.MYSQL)
+        log.info(f"Column information:\n{colinfo_json}")
         instance.test(verbose=verbose)
+    log.info("Tests completed successfully.")
 
 
 if __name__ == '__main__':

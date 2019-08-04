@@ -358,17 +358,17 @@ class Gate(BaseNlpParser):
         """
         return [
             Column(FN_SET, SqlTypeDbIdentifier,
-                   doc="GATE output set name"),
+                   comment="GATE output set name"),
             Column(FN_TYPE, SqlTypeDbIdentifier,
-                   doc="GATE annotation type name"),
+                   comment="GATE annotation type name"),
             Column(FN_ID, Integer,
-                   doc="GATE annotation ID (not clear this is very useful)"),
+                   comment="GATE annotation ID (not clear this is very useful)"),  # noqa
             Column(FN_STARTPOS, Integer,
-                   doc="Start position in the content"),
+                   comment="Start position in the content"),
             Column(FN_ENDPOS, Integer,
-                   doc="End position in the content"),
+                   comment="End position in the content"),
             Column(FN_CONTENT, Text,
-                   doc="Full content marked as relevant."),
+                   comment="Full content marked as relevant."),
         ]
 
     @staticmethod

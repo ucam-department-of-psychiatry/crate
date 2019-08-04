@@ -247,34 +247,34 @@ class InputFieldConfig(object):
         return [
             Column(FN_PK, BigInteger, primary_key=True,
                    autoincrement=True,
-                   doc="Arbitrary primary key (PK) of output record"),
+                   comment="Arbitrary primary key (PK) of output record"),
             Column(FN_NLPDEF, SqlTypeDbIdentifier,
-                   doc="Name of the NLP definition producing this row"),
+                   comment="Name of the NLP definition producing this row"),
             Column(FN_SRCDB, SqlTypeDbIdentifier,
-                   doc="Source database name (from CRATE NLP config)"),
+                   comment="Source database name (from CRATE NLP config)"),
             Column(FN_SRCTABLE, SqlTypeDbIdentifier,
-                   doc="Source table name"),
+                   comment="Source table name"),
             Column(FN_SRCPKFIELD, SqlTypeDbIdentifier,
-                   doc="PK field (column) name in source table"),
+                   comment="PK field (column) name in source table"),
             Column(FN_SRCPKVAL, BigInteger,
-                   doc="PK of source record (or integer hash of PK if the PK "
-                       "is a string)"),
+                   comment="PK of source record (or integer hash of PK if the "
+                           "PK is a string)"),
             Column(FN_SRCPKSTR, String(MAX_STRING_PK_LENGTH),
-                   doc="NULL if the table has an integer PK, but the PK if "
-                       "the PK was a string, to deal with hash collisions. "
-                       "Max length: {}".format(MAX_STRING_PK_LENGTH)),
+                   comment=f"NULL if the table has an integer PK, but the PK "
+                           f"if the PK was a string, to deal with hash "
+                           f"collisions. Max length: {MAX_STRING_PK_LENGTH}"),
             Column(FN_SRCFIELD, SqlTypeDbIdentifier,
-                   doc="Field (column) name of source text"),
+                   comment="Field (column) name of source text"),
             Column(FN_SRCDATETIMEFIELD, SqlTypeDbIdentifier,
-                   doc="Date/time field (column) name in source table"),
+                   comment="Date/time field (column) name in source table"),
             Column(FN_SRCDATETIMEVAL, DateTime, nullable=True,
-                   doc="Date/time of source field"),
+                   comment="Date/time of source field"),
             Column(FN_CRATE_VERSION_FIELD,
                    String(MAX_SEMANTIC_VERSION_STRING_LENGTH), nullable=True,
-                   doc="Version of CRATE that generated this NLP record."),
+                   comment="Version of CRATE that generated this NLP record."),
             Column(FN_WHEN_FETCHED, DateTime, nullable=True,
-                   doc="Date/time that the NLP processor fetched the record "
-                       "from the source database."),
+                   comment="Date/time that the NLP processor fetched the "
+                           "record from the source database."),
         ]
 
     @staticmethod

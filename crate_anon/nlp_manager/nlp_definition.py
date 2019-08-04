@@ -290,7 +290,8 @@ class NlpDefinition(object):
         for logname in ('sqlalchemy.engine.base.Engine',
                         'sqlalchemy.engine.base.OptionEngine'):
             logger = logging.getLogger(logname)
-            logger.handlers = []  # type: List[logging.Handler]
+            logger.handlers = []
+            # ... of type: List[logging.Handler]
 
     def require_section(self, section: str) -> None:
         """

@@ -29,10 +29,12 @@ crate_anon/nlp_manager/base_nlp_parser.py
 """
 
 from functools import lru_cache
+import json
 import logging
 import sys
 from typing import (
-    Any, Dict, Generator, Iterable, List, Optional, TextIO, Tuple
+    Any, Dict, Generator, Iterable, List, Optional, TextIO, Tuple,
+    TYPE_CHECKING,
 )
 
 from cardinal_pythonlib.timing import MultiTimerContext, timer
@@ -40,6 +42,11 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     column_lists_equal,
     index_lists_equal
 )
+# OK to import "registry"; see
+# https://github.com/zzzeek/sqlalchemy/blob/master/README.dialects.rst
+# noinspection PyProtectedMember
+from sqlalchemy.dialects import registry
+# from sqlalchemy.dialects.mssql.base import MSDialect
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Index, Table
@@ -61,6 +68,10 @@ from crate_anon.nlp_manager.nlp_definition import (
     NlpConfigPrefixes,
     NlpDefinition,
 )
+from crate_anon.nlprp.constants import ALL_SQL_DIALECTS, NlprpKeys, SqlDialects
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine.interfaces import Dialect
 
 log = logging.getLogger(__name__)
 
@@ -607,3 +618,65 @@ class BaseNlpParser(object):
         Returns the destination database.
         """
         return self._destdb
+
+    # -------------------------------------------------------------------------
+    # NLPRP info
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    def describe_sqla_col(column: Column,
+                          sql_dialect: str = SqlDialects.MYSQL) \
+            -> Dict[str, Any]:
+        """
+        Describes a single SQLAlchemy :class:`Column` in the :ref:`NLPRP
+        <nlprp>` format, which follows ``INFORMATION_SCHEMA.COLUMNS`` closely.
+        """
+        assert sql_dialect in ALL_SQL_DIALECTS, (
+            f"Unknown SQL dialect {sql_dialect!r}; must be one of "
+            f"{ALL_SQL_DIALECTS}"
+        )
+        dialect = registry.load(sql_dialect)()  # type: Dialect
+        # log.critical(f"dialect: {dialect}")
+        # dialect = MSDialect()
+        column_type = column.type.compile(dialect)
+        data_type = column_type.partition("(")[0]
+        # ... https://stackoverflow.com/questions/27387415/how-would-i-get-everything-before-a-in-a-string-python  # noqa
+        return {
+            NlprpKeys.COLUMN_NAME: column.name,
+            NlprpKeys.COLUMN_TYPE: column_type,
+            NlprpKeys.DATA_TYPE: data_type,
+            NlprpKeys.IS_NULLABLE: column.nullable,
+            NlprpKeys.COLUMN_COMMENT: column.comment,
+        }
+
+    def nlprp_column_info(self, sql_dialect: str = SqlDialects.MYSQL) \
+            -> Dict[str, Any]:
+        """
+        Returns a dictionary for the ``schema`` parameter of the :ref:`NLPRP
+        <nlprp>` :ref:`list_processors <list_processors>` command.
+
+        Args:
+            sql_dialect: preferred SQL dialect for response
+        """
+        d = {}
+        for tablename, columns in self.dest_tables_columns().items():
+            colinfo = []  # type: List[Dict[str, Any]]
+            for column in columns:
+                colinfo.append(self.describe_sqla_col(column, sql_dialect))
+            d[tablename] = colinfo
+        return d
+
+    def nlprp_column_info_json(self,
+                               indent: int = 4,
+                               sort_keys: bool = True,
+                               sql_dialect: str = SqlDialects.MYSQL) -> str:
+        """
+        Returns a formatted JSON string from :func:`nlprp_column_info`.
+
+        Args:
+            indent: number of spaces for indentation
+            sort_keys: sort keys?
+            sql_dialect: preferred SQL dialect for response
+        """
+        json_structure = self.nlprp_column_info(sql_dialect=sql_dialect)
+        return json.dumps(json_structure, indent=indent, sort_keys=sort_keys)

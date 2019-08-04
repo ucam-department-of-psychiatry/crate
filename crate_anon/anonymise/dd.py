@@ -892,7 +892,7 @@ class DataDictionary(object):
         return Column(
             self.config.source_hash_fieldname,
             self.config.SqlTypeEncryptedPid,
-            doc='Hashed amalgamation of all source fields'
+            comment='Hashed amalgamation of all source fields'
         )
 
     def _get_trid_sqla_column(self) -> Column:
@@ -906,7 +906,7 @@ class DataDictionary(object):
             self.config.trid_fieldname,
             TridType,
             nullable=False,
-            doc='Transient integer research ID (TRID)'
+            comment='Transient integer research ID (TRID)'
         )
 
     # =========================================================================

@@ -285,228 +285,282 @@ class Postcode(Base):
     """
     __tablename__ = 'postcode'
 
-    pcd_nospace = Column(String(8), primary_key=True,
-                         doc="Postcode (no spaces)")
+    pcd_nospace = Column(
+        String(8), primary_key=True,
+        comment="Postcode (no spaces)")
     # ... not in original, but simplifies indexing
-    pcd = Column(String(7), index=True, unique=True,
-                 doc="Unit postcode (7 characters): 2-4 char outward code, "
-                     "left-aligned; 3-char inward code, right-aligned")
-    pcd2 = Column(String(8), index=True, unique=True,
-                  doc="Unit postcode (8 characters): 2-4 char outward code, "
-                      "left-aligned; space; 3-char inward code, right-aligned")
-    pcds = Column(String(8), index=True, unique=True,
-                  doc="Unit postcode (variable length): 2-4 char outward "
-                      "code; space; 3-char inward code")
-    dointr = Column(Date, doc="Date of introduction (original format YYYYMM)")
-    doterm = Column(Date,
-                    doc="Date of termination (original format YYYYMM) or NULL")
-    oscty = Column(String(CODE_LEN),
-                   doc="County code [FK to county_england_2010.county_code]")
-    oslaua = Column(String(CODE_LEN),
-                    doc="Local authority district (LUA), unitary  authority "
-                        "(UA), metropolitan district (MD), London borough (LB),"
-                        " council area (CA), or district council area (DCA) "
-                        "[FK to lad_local_authority_district_2016.lad_code]")
-    osward = Column(String(CODE_LEN),
-                    doc="Electoral ward/division "
-                        "[FK e.g. to electoral_ward_2016.ward_code]")
-    usertype = Column(Integer, doc="Small (0) or large (1) postcode user")
-    oseast1m = Column(Integer,
-                      doc="National grid reference Easting, 1m resolution")
-    osnrth1m = Column(Integer,
-                      doc="National grid reference Northing, 1m resolution")
-    osgrdind = Column(Integer,
-                      doc="Grid reference positional quality indicator")
+    pcd = Column(
+        String(7), index=True, unique=True,
+        comment="Unit postcode (7 characters): 2-4 char outward code, "
+                "left-aligned; 3-char inward code, right-aligned")
+    pcd2 = Column(
+        String(8), index=True, unique=True,
+        comment="Unit postcode (8 characters): 2-4 char outward code, "
+                "left-aligned; space; 3-char inward code, right-aligned")
+    pcds = Column(
+        String(8), index=True, unique=True,
+        comment="Unit postcode (variable length): 2-4 char outward "
+                "code; space; 3-char inward code")
+    dointr = Column(
+        Date,
+        comment="Date of introduction (original format YYYYMM)")
+    doterm = Column(
+        Date,
+        comment="Date of termination (original format YYYYMM) or NULL")
+    oscty = Column(
+        String(CODE_LEN),
+        comment="County code [FK to county_england_2010.county_code]")
+    oslaua = Column(
+        String(CODE_LEN),
+        comment="Local authority district (LUA), unitary  authority "
+                "(UA), metropolitan district (MD), London borough (LB),"
+                " council area (CA), or district council area (DCA) "
+                "[FK to lad_local_authority_district_2016.lad_code]")
+    osward = Column(
+        String(CODE_LEN),
+        comment="Electoral ward/division "
+                "[FK e.g. to electoral_ward_2016.ward_code]")
+    usertype = Column(
+        Integer,
+        comment="Small (0) or large (1) postcode user")
+    oseast1m = Column(
+        Integer,
+        comment="National grid reference Easting, 1m resolution")
+    osnrth1m = Column(
+        Integer,
+        comment="National grid reference Northing, 1m resolution")
+    osgrdind = Column(
+        Integer,
+        comment="Grid reference positional quality indicator")
     oshlthau = Column(
         String(CODE_LEN),
-        doc="Former (up to 2013) Strategic Health Authority (SHA), Local "
-            "Health Board (LHB), Health Board (HB), Health Authority (HA), or "
-            "Health & Social Care Board (HSCB) [FK to one of: "
-            "sha_strategic_health_authority_england_2010.sha_code or "
-            "sha_strategic_health_authority_england_2004.sha_code; "
-            "hb_health_board_n_ireland_2003.hb_code; "
-            "hb_health_board_scotland_2014.hb_code; "
-            "hscb_health_social_care_board_n_ireland_2010.hscb_code; "
-            "lhb_local_health_board_wales_2014.lhb_code or "
-            "lhb_local_health_board_wales_2006.lhb_code]")
-    hro = Column(String(CODE_LEN),
-                 doc="Pan SHA [FK to "
-                     "psha_pan_strategic_health_authority_aka_hro_england_2010"
-                     ".psha_code]")
-    ctry = Column(String(CODE_LEN),
-                  doc="Country of the UK [England, Scotland, Wales, "
-                      "Northern Ireland] [FK to country_2012.country_code]")
-    gor = Column(String(CODE_LEN),
-                 doc="Region (former GOR) [GOR = Government Office Regions] "
-                     "[FK to gor_govt_office_region_england_2010.gor_code]")
-    streg = Column(Integer, doc="Standard (Statistical) Region (SSR) [FK to "
-                                "ssr_standard_statistical_region_england_1995."
-                                "ssr_code]")
-    pcon = Column(String(CODE_LEN),
-                  doc="Westminster parliamentary constituency [FK to "
-                      "pcon_westminster_parliamentary_constituency_2014."
-                      "pcon_code]")
-    eer = Column(String(CODE_LEN),
-                 doc="European Electoral Region (EER) [FK to "
-                     "eer_european_electoral_region_2010.eer_code]")
+        comment="Former (up to 2013) Strategic Health Authority (SHA), Local "
+                "Health Board (LHB), Health Board (HB), Health Authority "
+                "(HA), or Health & Social Care Board (HSCB) [FK to one of: "
+                "sha_strategic_health_authority_england_2010.sha_code or "
+                "sha_strategic_health_authority_england_2004.sha_code; "
+                "hb_health_board_n_ireland_2003.hb_code; "
+                "hb_health_board_scotland_2014.hb_code; "
+                "hscb_health_social_care_board_n_ireland_2010.hscb_code; "
+                "lhb_local_health_board_wales_2014.lhb_code or "
+                "lhb_local_health_board_wales_2006.lhb_code]")
+    hro = Column(
+        String(CODE_LEN),
+        comment="Pan SHA [FK to "
+                "psha_pan_strategic_health_authority_aka_hro_england_2010"
+                ".psha_code]")
+    ctry = Column(
+        String(CODE_LEN),
+        comment="Country of the UK [England, Scotland, Wales, "
+                "Northern Ireland] [FK to country_2012.country_code]")
+    gor = Column(
+        String(CODE_LEN),
+        comment="Region (former GOR) [GOR = Government Office Regions] "
+                "[FK to gor_govt_office_region_england_2010.gor_code]")
+    streg = Column(
+        Integer,
+        comment="Standard (Statistical) Region (SSR) [FK to "
+                "ssr_standard_statistical_region_england_1995."
+                "ssr_code]")
+    pcon = Column(
+        String(CODE_LEN),
+        comment="Westminster parliamentary constituency [FK to "
+                "pcon_westminster_parliamentary_constituency_2014."
+                "pcon_code]")
+    eer = Column(
+        String(CODE_LEN),
+        comment="European Electoral Region (EER) [FK to "
+                "eer_european_electoral_region_2010.eer_code]")
     teclec = Column(
         String(CODE_LEN),
-        doc="Local Learning and Skills Council (LLSC) / Dept. of Children, "
-            "Education, Lifelong Learning and Skills (DCELLS) / Enterprise "
-            "Region (ER) [PROBABLY FK to one of: "
-            "dcells_dept_children_wales_2010.dcells_code; "
-            "er_enterprise_region_scotland_2010.er_code; "
-            "llsc_local_learning_skills_council_england_2010.llsc_code]")
-    ttwa = Column(String(CODE_LEN),
-                  doc="Travel to Work Area (TTWA) [FK to "
-                      "ttwa_travel_to_work_area_2011.ttwa_code]")
+        comment="Local Learning and Skills Council (LLSC) / Dept. of "
+                "Children, Education, Lifelong Learning and Skills (DCELLS) / "
+                "Enterprise Region (ER) [PROBABLY FK to one of: "
+                "dcells_dept_children_wales_2010.dcells_code; "
+                "er_enterprise_region_scotland_2010.er_code; "
+                "llsc_local_learning_skills_council_england_2010.llsc_code]")
+    ttwa = Column(
+        String(CODE_LEN),
+        comment="Travel to Work Area (TTWA) [FK to "
+                "ttwa_travel_to_work_area_2011.ttwa_code]")
     pct = Column(
         String(CODE_LEN),
-        doc="Primary Care Trust (PCT) / Care Trust / Care Trust Plus (CT) / "
-            "Local Health Board (LHB) / Community Health Partnership (CHP) / "
-            "Local Commissioning Group (LCG) / Primary Healthcare Directorate "
-            "(PHD) [FK to one of: "
-            "pct_primary_care_trust_organization_england_2011.pct_code; "
-            "chp_community_health_partnership_scotland_2012.chp_code; "
-            "lcg_local_commissioning_group_n_ireland_2010.lcg_code; "
-            "lhb_local_health_board_wales_2014.lhb_code]")
-    nuts = Column(String(10),
-                  doc="LAU2 areas [European Union spatial regions; Local "
-                      "Adminstrative Unit, level 2] / Nomenclature of Units "
-                      "for Territorial Statistics (NUTS) [FK to "
-                      "lau_eu_local_administrative_unit_2015.lau2_code]")
-    psed = Column(String(8),
-                  doc="1991 Census Enumeration District (ED) (as OGSS code) "
-                      "[POSSIBLY FK to district_england_wales_1991."
-                      "district_code_ogss]")
-    cened = Column(String(8),
-                   doc="1991 Census Enumeration District (ED) (as Census code)"
-                       " [POSSIBLY FK to district_england_wales_1991."
-                       "district_code_census]")
-    edind = Column(Integer, doc="ED positional quality indicator (PQI)")
+        comment="Primary Care Trust (PCT) / Care Trust / "
+                "Care Trust Plus (CT) / Local Health Board (LHB) / "
+                "Community Health Partnership (CHP) / "
+                "Local Commissioning Group (LCG) / "
+                "Primary Healthcare Directorate (PHD) [FK to one of: "
+                "pct_primary_care_trust_organization_england_2011.pct_code; "
+                "chp_community_health_partnership_scotland_2012.chp_code; "
+                "lcg_local_commissioning_group_n_ireland_2010.lcg_code; "
+                "lhb_local_health_board_wales_2014.lhb_code]")
+    nuts = Column(
+        String(10),
+        comment="LAU2 areas [European Union spatial regions; Local "
+                "Adminstrative Unit, level 2] / Nomenclature of Units "
+                "for Territorial Statistics (NUTS) [FK to "
+                "lau_eu_local_administrative_unit_2015.lau2_code]")
+    psed = Column(
+        String(8),
+        comment="1991 Census Enumeration District (ED) (as OGSS code) "
+                "[POSSIBLY FK to district_england_wales_1991."
+                "district_code_ogss]")
+    cened = Column(
+        String(8),
+        comment="1991 Census Enumeration District (ED) (as Census code)"
+                " [POSSIBLY FK to district_england_wales_1991."
+                "district_code_census]")
+    edind = Column(
+        Integer,
+        comment="ED positional quality indicator (PQI)")
     oshaprev = Column(
         String(3),
-        doc="Previous Strategic Health Authority (SHA) / Health Board (HB) / "
-            "Health Authority (HA) / Health and Social Services Board (HSSB) "
-            "[FK to one of: "
-            "sha_strategic_health_authority_england_2010.sha_code or "
-            "sha_strategic_health_authority_england_2004.sha_code]")
-    lea = Column(String(3),
-                 doc="Previous Local Education Authority (LEA) / Education "
-                     "and Library Board (ELB) [PROBABLY FK to "
-                     "lea_local_education_authority_2009.lea_code]")
-    oldha = Column(String(3),
-                   doc="Old-style health authority (prior to 2002 "
-                       "England, 2003 Wales [FK to "
-                       "ha_health_authority_2001.ha_code]")
-    wardc91 = Column(String(6),
-                     doc="1991 administrative and electoral area (as Census "
-                         "code) [FK to electoral_ward_1991.ward_code_census]")
-    wardo91 = Column(String(6),
-                     doc="1991 administrative and electoral area (as OGSS "
-                         "code) [FK to electoral_ward_1991.ward_code_ogss]")
-    ward98 = Column(String(6),
-                    doc="1998 administrative and electoral area [FK to "
-                        "electoral_ward_1998.ward_code]")
-    statsward = Column(String(6),
-                       doc="2005 'statistical' ward [?FK to "
-                           "electoral_ward_2005.ward_code]")
-    oa01 = Column(String(10), doc="2001 Census Output Area (OA). (There are "
-                                  "about 222,000, so ~300 population?)")
-    casward = Column(String(6),
-                     doc="Census Area Statistics (CAS) ward [PROBABLY FK to "
-                         "cas_ward_2003.cas_ward_code]")
-    park = Column(String(CODE_LEN), doc="National park [FK to "
-                                        "park_national_park_2010.park_code]")
+        comment="Previous Strategic Health Authority (SHA) / Health Board "
+                "(HB) / Health Authority (HA) / Health and Social Services "
+                "Board (HSSB) [FK to one of: "
+                "sha_strategic_health_authority_england_2010.sha_code or "
+                "sha_strategic_health_authority_england_2004.sha_code]")
+    lea = Column(
+        String(3),
+        comment="Previous Local Education Authority (LEA) / Education "
+                "and Library Board (ELB) [PROBABLY FK to "
+                "lea_local_education_authority_2009.lea_code]")
+    oldha = Column(
+        String(3),
+        comment="Old-style health authority (prior to 2002 "
+                "England, 2003 Wales [FK to "
+                "ha_health_authority_2001.ha_code]")
+    wardc91 = Column(
+        String(6),
+        comment="1991 administrative and electoral area (as Census "
+                "code) [FK to electoral_ward_1991.ward_code_census]")
+    wardo91 = Column(
+        String(6),
+        comment="1991 administrative and electoral area (as OGSS "
+                "code) [FK to electoral_ward_1991.ward_code_ogss]")
+    ward98 = Column(
+        String(6),
+        comment="1998 administrative and electoral area [FK to "
+                "electoral_ward_1998.ward_code]")
+    statsward = Column(
+        String(6),
+        comment="2005 'statistical' ward [?FK to "
+                "electoral_ward_2005.ward_code]")
+    oa01 = Column(
+        String(10),
+        comment="2001 Census Output Area (OA). (There are "
+                "about 222,000, so ~300 population?)")
+    casward = Column(
+        String(6),
+        comment="Census Area Statistics (CAS) ward [PROBABLY FK to "
+                "cas_ward_2003.cas_ward_code]")
+    park = Column(
+        String(CODE_LEN),
+        comment="National park [FK to "
+                "park_national_park_2010.park_code]")
     lsoa01 = Column(
         String(CODE_LEN),
-        doc="2001 Census Lower Layer Super Output Area (LSOA) [England & "
-            "Wales, ~1,500 population] / Data Zone (DZ) [Scotland] / Super "
-            "Output Area (SOA) [FK to one of: "
-            "lsoa_lower_layer_super_output_area_england_wales_2004.lsoa_code; "
-            "lsoa_lower_layer_super_output_area_n_ireland_2005.lsoa_code]")
+        comment="2001 Census Lower Layer Super Output Area (LSOA) [England & "
+                "Wales, ~1,500 population] / Data Zone (DZ) [Scotland] / "
+                "Super Output Area (SOA) [FK to one of: "
+                "lsoa_lower_layer_super_output_area_england_wales_2004.lsoa_code; "  # noqa
+                "lsoa_lower_layer_super_output_area_n_ireland_2005.lsoa_code]")
     msoa01 = Column(
         String(CODE_LEN),
-        doc="2001 Census Middle Layer Super Output Area (MSOA) [England & "
-            "Wales, ~7,200 population] / Intermediate Zone (IZ) [Scotland] "
-            "[FK to one of: "
-            "msoa_middle_layer_super_output_area_england_wales_2004.msoa_code;"
-            " iz_intermediate_zone_scotland_2005.iz_code]")
-    ur01ind = Column(String(1),
-                     doc="2001 Census urban/rural indicator [numeric in "
-                         "England/Wales/Scotland; letters in N. Ireland]")
-    oac01 = Column(String(3),
-                   doc="2001 Census Output Area classification (OAC)"
-                       "[POSSIBLY FK to output_area_classification_2011."
-                       "subgroup_code]")
+        comment="2001 Census Middle Layer Super Output Area (MSOA) [England & "
+                "Wales, ~7,200 population] / "
+                "Intermediate Zone (IZ) [Scotland] [FK to one of: "
+                "msoa_middle_layer_super_output_area_england_wales_2004.msoa_code; "  # noqa
+                "iz_intermediate_zone_scotland_2005.iz_code]")
+    ur01ind = Column(
+        String(1),
+        comment="2001 Census urban/rural indicator [numeric in "
+                "England/Wales/Scotland; letters in N. Ireland]")
+    oac01 = Column(
+        String(3),
+        comment="2001 Census Output Area classification (OAC)"
+                "[POSSIBLY FK to output_area_classification_2011."
+                "subgroup_code]")
     oldpct = Column(
         String(5),
-        doc="Old (pre-Oct 2006) Primary Care Trust (PCT) / Local Health Board "
-            "(LHB) / Care Trust (CT) [FK to one of: "
-            "pct_primary_care_trust_organization_england_2005.pct_code]")
-    oa11 = Column(String(CODE_LEN),
-                  doc="2011 Census Output Area (OA) [England, Wales, Scotland;"
-                      " ~100-625 population] / Small Area (SA) [N. Ireland]")
+        comment="Old (pre-Oct 2006) Primary Care Trust (PCT) / Local Health "
+                "Board (LHB) / Care Trust (CT) [FK to one of: "
+                "pct_primary_care_trust_organization_england_2005.pct_code]")
+    oa11 = Column(
+        String(CODE_LEN),
+        comment="2011 Census Output Area (OA) [England, Wales, Scotland;"
+                " ~100-625 population] / Small Area (SA) [N. Ireland]")
     lsoa11 = Column(
         String(CODE_LEN),
-        doc="2011 Census Lower Layer Super Output Area (LSOA) [England & "
-            "Wales, ~1,500 population] / Data Zone (DZ) [Scotland] / Super "
-            "Output Area (SOA) [FK to one of: "
-            "lsoa_lower_layer_super_output_area_england_wales_2011.lsoa_code;"
-            " dz_datazone_scotland_2011.dz_code]")
+        comment="2011 Census Lower Layer Super Output Area (LSOA) [England & "
+                "Wales, ~1,500 population] / Data Zone (DZ) [Scotland] / "
+                "Super Output Area (SOA) [FK to one of: "
+                "lsoa_lower_layer_super_output_area_england_wales_2011.lsoa_code; "  # noqa
+                "dz_datazone_scotland_2011.dz_code]")
     msoa11 = Column(
         String(CODE_LEN),
-        doc="2011 Census Middle Layer Super Output Area (MSOA) [England & "
-            "Wales, ~7,200 population] / Intermediate Zone (IZ) [Scotland] "
-            "[FK to one of: "
-            "msoa_middle_layer_super_output_area_england_wales_2011.msoa_code;"
-            " iz_intermediate_zone_scotland_2011.iz_code]")
-    parish = Column(String(CODE_LEN),
-                    doc="Parish/community [FK to "
-                        "parish_lad_england_wales_2014.parish_code; "
-                        "ncp_non_civil_parish_2014.ncp_code]")
-    wz11 = Column(String(CODE_LEN), doc="2011 Census Workplace Zone (WZ)")
+        comment="2011 Census Middle Layer Super Output Area (MSOA) [England & "
+                "Wales, ~7,200 population] / "
+                "Intermediate Zone (IZ) [Scotland] [FK to one of: "
+                "msoa_middle_layer_super_output_area_england_wales_2011.msoa_code; "  # noqa
+                "iz_intermediate_zone_scotland_2011.iz_code]")
+    parish = Column(
+        String(CODE_LEN),
+        comment="Parish/community [FK to "
+                "parish_lad_england_wales_2014.parish_code; "
+                "ncp_non_civil_parish_2014.ncp_code]")
+    wz11 = Column(
+        String(CODE_LEN),
+        comment="2011 Census Workplace Zone (WZ)")
     ccg = Column(
         String(CODE_LEN),
-        doc="Clinical Commissioning Group (CCG) / Local Health Board (LHB) / "
-            "Community Health Partnership (CHP) / Local Commissioning Group "
-            "(LCG) / Primary Healthcare Directorate (PHD) [FK to one of: "
-            "ccg_clinical_commissioning_group_england_2015."
-            "ccg_ons_code, lhb_local_health_board_wales_2014.lhb_code]")
-    bua11 = Column(String(CODE_LEN),
-                   doc="Built-up Area (BUA) [FK to "
-                       "bua_built_up_area_england_wales_2013.bua_code]")
+        comment="Clinical Commissioning Group (CCG) / Local Health Board "
+                "(LHB) / Community Health Partnership (CHP) / Local "
+                "Commissioning Group (LCG) / Primary Healthcare Directorate "
+                "(PHD) [FK to one of: "
+                "ccg_clinical_commissioning_group_england_2015."
+                "ccg_ons_code, lhb_local_health_board_wales_2014.lhb_code]")
+    bua11 = Column(
+        String(CODE_LEN),
+        comment="Built-up Area (BUA) [FK to "
+                "bua_built_up_area_england_wales_2013.bua_code]")
     buasd11 = Column(
         String(CODE_LEN),
-        doc="Built-up Area Sub-division (BUASD) [FK to "
-            "buasd_built_up_area_subdivision_england_wales_2013.buas_code]")
-    ru11ind = Column(String(2), doc="2011 Census rural-urban classification")
-    oac11 = Column(String(3),
-                   doc="2011 Census Output Area classification (OAC) [FK to "
-                       "output_area_classification_2011.subgroup_code]")
-    lat = Column(Numeric(precision=9, scale=6),
-                 doc="Latitude (degrees, 6dp)")
-    long = Column(Numeric(precision=9, scale=6),
-                  doc="Longitude (degrees, 6dp)")
+        comment="Built-up Area Sub-division (BUASD) [FK to "
+                "buasd_built_up_area_subdivision_england_wales_2013.buas_code]")
+    ru11ind = Column(
+        String(2),
+        comment="2011 Census rural-urban classification")
+    oac11 = Column(
+        String(3),
+        comment="2011 Census Output Area classification (OAC) [FK to "
+                "output_area_classification_2011.subgroup_code]")
+    lat = Column(
+        Numeric(precision=9, scale=6),
+        comment="Latitude (degrees, 6dp)")
+    long = Column(
+        Numeric(precision=9, scale=6),
+        comment="Longitude (degrees, 6dp)")
     lep1 = Column(
         String(CODE_LEN),
-        doc="Local Enterprise Partnership (LEP) - first instance [FK to "
-            "lep_local_enterprise_partnership_england_2013.lep1_code]")
+        comment="Local Enterprise Partnership (LEP) - first instance [FK to "
+                "lep_local_enterprise_partnership_england_2013.lep1_code]")
     lep2 = Column(
         String(CODE_LEN),
-        doc="Local Enterprise Partnership (LEP) - second instance [FK to "
-            "lep_local_enterprise_partnership_england_2013.lep1_code]")
-    pfa = Column(String(CODE_LEN),
-                 doc="Police Force Area (PFA) [FK to "
-                     "pfa_police_force_area_2015.pfa_code]")
+        comment="Local Enterprise Partnership (LEP) - second instance [FK to "
+                "lep_local_enterprise_partnership_england_2013.lep1_code]")
+    pfa = Column(
+        String(CODE_LEN),
+        comment="Police Force Area (PFA) [FK to "
+                "pfa_police_force_area_2015.pfa_code]")
     imd = Column(
         Integer,
-        doc="Index of Multiple Deprivation (IMD) [rank of LSOA/DZ, where 1 is "
-            "the most deprived, within each country] [FK to one of: "
-            "imd_index_multiple_deprivation_england_2015.imd_rank; "
-            "imd_index_multiple_deprivation_n_ireland_2010.imd_rank; "
-            "imd_index_multiple_deprivation_scotland_2012.imd_rank; "
-            "imd_index_multiple_deprivation_wales_2014.imd_rank]")
+        comment="Index of Multiple Deprivation (IMD) [rank of LSOA/DZ, where "
+                "1 is the most deprived, within each country] [FK to one of: "
+                "imd_index_multiple_deprivation_england_2015.imd_rank; "
+                "imd_index_multiple_deprivation_n_ireland_2010.imd_rank; "
+                "imd_index_multiple_deprivation_scotland_2012.imd_rank; "
+                "imd_index_multiple_deprivation_wales_2014.imd_rank]")
 
     def __init__(self, **kwargs: Any) -> None:
         convert_date(kwargs, 'dointr')
@@ -1512,13 +1566,13 @@ class PopWeightedCentroidsLsoa2011(Base):
 
     lsoa_code = Column(String(CODE_LEN), primary_key=True)
     lsoa_name = Column(String(NAME_LEN))
-    bng_north = Column(Integer, doc="British National Grid, North (m)")
-    bng_east = Column(Integer, doc="British National Grid, East (m)")
+    bng_north = Column(Integer, comment="British National Grid, North (m)")
+    bng_east = Column(Integer, comment="British National Grid, East (m)")
     # https://en.wikipedia.org/wiki/Ordnance_Survey_National_Grid#All-numeric_grid_references  # noqa
     latitude = Column(Numeric(precision=13, scale=10),
-                      doc="Latitude (degrees, 10dp)")
+                      comment="Latitude (degrees, 10dp)")
     longitude = Column(Numeric(precision=13, scale=10),
-                       doc="Longitude (degrees, 10dp)")
+                       comment="Longitude (degrees, 10dp)")
     # ... there are some with 10dp, e.g. 0.0000570995
     # ... (precision - scale) = number of digits before '.'
     # ... which can't be more than 3 for any latitude/longitude

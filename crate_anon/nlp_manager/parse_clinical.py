@@ -695,22 +695,22 @@ class Bp(BaseNlpParser):
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass
         return {self.tablename: [
-            Column(FN_CONTENT, Text, doc=HELP_CONTENT),
-            Column(FN_START, Integer, doc=HELP_START),
-            Column(FN_END, Integer, doc=HELP_END),
-            Column(FN_VARIABLE_TEXT, Text, doc=HELP_VARIABLE_TEXT),
+            Column(FN_CONTENT, Text, comment=HELP_CONTENT),
+            Column(FN_START, Integer, comment=HELP_START),
+            Column(FN_END, Integer, comment=HELP_END),
+            Column(FN_VARIABLE_TEXT, Text, comment=HELP_VARIABLE_TEXT),
             Column(FN_RELATION_TEXT, String(MAX_RELATION_TEXT_LENGTH),
-                   doc=HELP_RELATION_TEXT),
+                   comment=HELP_RELATION_TEXT),
             Column(FN_RELATION, String(MAX_RELATION_LENGTH),
-                   doc=HELP_RELATION),
+                   comment=HELP_RELATION),
             Column(FN_VALUE_TEXT, String(MAX_VALUE_TEXT_LENGTH),
-                   doc=HELP_VALUE_TEXT),
-            Column(FN_UNITS, String(MAX_UNITS_LENGTH), doc=HELP_UNITS),
+                   comment=HELP_VALUE_TEXT),
+            Column(FN_UNITS, String(MAX_UNITS_LENGTH), comment=HELP_UNITS),
             Column(self.FN_SYSTOLIC_BP_MMHG, Float,
-                   doc="Systolic blood pressure in mmHg"),
+                   comment="Systolic blood pressure in mmHg"),
             Column(self.FN_DIASTOLIC_BP_MMHG, Float,
-                   doc="Diastolic blood pressure in mmHg"),
-            Column(FN_TENSE, String(MAX_TENSE_LENGTH), doc=HELP_TENSE),
+                   comment="Diastolic blood pressure in mmHg"),
+            Column(FN_TENSE, String(MAX_TENSE_LENGTH), comment=HELP_TENSE),
         ]}
 
     def parse(self, text: str,
