@@ -45,10 +45,10 @@
 
 .. _nlprp:
 
-Natural Language Processing Request Protocol (NLPRP): DRAFT
------------------------------------------------------------
+Natural Language Processing Request Protocol (NLPRP)
+----------------------------------------------------
 
-**Version 0.1.0**
+**Version 0.2.0**
 
 .. contents::
    :local:
@@ -59,11 +59,11 @@ Authors
 
 In alphabetical order:
 
-- Rudolf N. Cardinal (RNC), University of Cambridge
-- Joe Kearney (JK), University of Cambridge
-- Angus Roberts (AR), King's College London
-- Ian Roberts (IR), University of Sheffield
-- Francesca Spivack (FS), University of Cambridge
+- Rudolf N. Cardinal (RNC), University of Cambridge, 2017-.
+- Joe Kearney (JK), University of Cambridge, 2018.
+- Angus Roberts (AR), King's College London, 2018-.
+- Ian Roberts (IR), University of Sheffield, 2018-.
+- Francesca Spivack (FS), University of Cambridge, 2018-.
 
 
 Rationale
@@ -155,7 +155,8 @@ Note the JSON terminology:
 
 - JSON does *not* in general permit trailing commas in objects and arrays.
 
-- Comments are not supported in JSON.
+- Comments are not supported in JSON (but we may illustrate some JSON examples
+  here using ``#`` to indicate comments).
 
 Where versions are passed, they are in `Semantic Versioning`_ 2.0.0
 format. Semantic versions are strings using a particular format
@@ -264,7 +265,7 @@ Response format
 ^^^^^^^^^^^^^^^
 
 The request is returned over HTTP as media type ``application/json``. The
-encoding *should** be specified (e.g. ``application/json; charset=utf-8``, and
+encoding *should* be specified (e.g. ``application/json; charset=utf-8``, and
 will be assumed to be UTF-8 if not specified.
 
 
@@ -344,8 +345,8 @@ No additional parameters are required, but there is an optional parameter.
       - Optional
       - The SQL dialect that the client would prefer to receive its column
         information in. (The server does not have to honour this.) See
-        :ref:`SQL dialects <nlprp_sql_dialect>` below. *[Version 0.2.0 and
-        higher.]*
+        :ref:`SQL dialects <nlprp_sql_dialect>` below.
+        *[Version 0.2.0 and higher.]*
 
 
 This command lists the NLP processors available to the requestor. (This might
@@ -377,63 +378,132 @@ The relevant part of the response is:
           the default version for the given name. May be ``true`` for zero or
           one versions for a given processor name.
         - ``description`` (string): a description of the processor.
-        - ``schema_sql_dialect`` (string): the SQL dialect (see below) used
-          within the ``schema`` object (see below). Must be present if
-          ``schema`` is given. *[Version 0.2.0 and higher.]*
-        - ``schema`` (object): an optional object describing the tables/columns
-          provided by this processor. Processors *should* enumerate their
-          output columns. The format of ``schema`` is described below. If the
-          ``schema`` parameter is missing, or the object is empty, then the
-          server is saying "I don't know" about that particular processor.
+        - ``sql_dialect`` (string): the SQL dialect (see below) used within the
+          ``tabular_schema`` object (see below). Must be present if
+          ``tabular_schema`` is given.
+          *[Version 0.2.0 and higher.]*
+        - ``tabular_schema`` (object): an optional object representing a
+          tabular schema and describing the tables/columns provided by this
+          processor. Processors *should* enumerate their output columns if they
+          provide output compatible with storage in database tables. The format
+          of ``tabular_schema`` is described below. If the ``tabular_schema``
+          parameter is missing, or the object is empty, then the server is
+          saying "I don't know" about that particular processor.
           *[Version 0.2.0 and higher.]*
 
-The ``schema`` object maps *table names* to *arrays of column objects*.
+.. _nlprp_schema_definition:
 
-Most NLP processors give output for a single table. The table name may be an
-empty string, ``""``, and that is fine (it is, after all, up to the client to
-decide how it names its tables). A few (e.g. GATE processors) may give output
-that requires more than one database table to store.
+**Schema definition**
 
-Each column object describes an output column and has the following keys.
+The ``tabular_schema`` object defines a tabular schema. It maps *table names*
+to *arrays of column definition objects*. Thus, in pseudocode:
 
-=================== =========== ===============================================
-Key                 JSON type   Description
-=================== =========== ===============================================
-``column_name``     string      Name of the column.
-``column_type``     string      Full column data type, e.g. ``VARCHAR(64)``.
-                                (*)
-``data_type``       string      Type name only, e.g. ``VARCHAR``
-``is_nullable``     Boolean     Whether this column can contain ``NULL``
-                                values.
-``column_comment``  string or   Comment describing this column. (*)
-                    ``null``
-``sql_dialect``     string      (Not part of ``INFORMATION_SCHEMA.COLUMNS``.)
-                                Names the SQL dialect in which ``column_type``
-                                and ``data_type`` are expressed. For example,
-                                "unlimited text" might be ``VARCHAR(MAX)`` in
-                                the ``mssql`` dialect but ``LONGTEXT`` in the
-                                ``mysql`` dialect.
-=================== =========== ===============================================
+.. rst-class:: nlprpresponse
 
-    (The system follows the `ANSI SQL`_ INFORMATION_SCHEMA_ standard loosely;
-    specifically, using some of the columns found in
-    ``INFORMATION_SCHEMA.COLUMNS``.)
+  .. code-block:: none
 
-    For examples of ``INFORMATION_SCHEMA.COLUMNS``, see e.g.
+    "tabular_schema": {
+        "tablename1" : [
+            <column_definition_1>,
+            <column_definition_2>,
+            ...
+        ],
+        "tablename2" : [
+            <column_definition_1>,
+            <column_definition_2>,
+            ...
+        ],
+        ...
+    }
 
-    - https://docs.microsoft.com/en-us/sql/relational-databases/system-information-schema-views/columns-transact-sql?view=sql-server-2017
-    - https://www.postgresql.org/docs/current/infoschema-columns.html
-    - https://dev.mysql.com/doc/refman/5.7/en/columns-table.html
+Most NLP processors produce output for a single database table. The table name
+may be an empty string, ``""``, and that is fine (it is, after all, up to the
+client to decide how it names its tables). Such a schema would look like this:
 
-    (*) Not part of the ANSI standard; a MySQL extension to
-    ``INFORMATION_SCHEMA.COLUMNS``.
+.. rst-class:: nlprpresponse
+
+  .. code-block:: none
+
+    "tabular_schema": {
+        "" : [
+            <column_definition_1>,
+            <column_definition_2>,
+            ...
+        ]
+    }
+
+A few (e.g. GATE) processors may give output that requires more than one
+database table to store. For example, a "people and places" processor may
+return one kind of result when it finds a person, and another kind when it
+finds a place; it would therefore need to define two tables.
+
+Each column definition object describes a column in the database being used to
+store results, and has the following keys.
+
+.. rst-class:: nlprpresponse
+
+  .. list-table::
+    :header-rows: 1
+
+    * - Key
+      - JSON type
+      - Required?
+      - Description
+
+    * - ``column_name``
+      - String
+      - Mandatory
+      - Name of the column.
+
+    * - ``column_type``
+      - String
+      - Mandatory
+      - Full column data type, e.g. ``VARCHAR(64)``. (*)
+
+    * - ``data_type``
+      - String
+      - Mandatory
+      - Type name only, e.g. ``VARCHAR``
+
+    * - ``is_nullable``
+      - Boolean
+      - Mandatory
+      - Whether this column can contain ``null`` values.
+
+    * - ``column_comment``
+      - String or ``null``
+      - Optional
+      - Comment describing this column. (*)
+
+    * - ``data_type``
+      - String
+      - Mandatory
+      - Type name only, e.g. ``VARCHAR``
+
+(The system follows the `ANSI SQL`_ INFORMATION_SCHEMA_ standard loosely;
+specifically, using some of the columns found in
+``INFORMATION_SCHEMA.COLUMNS``.)
+
+  For examples of ``INFORMATION_SCHEMA.COLUMNS``, see e.g.
+
+  - https://docs.microsoft.com/en-us/sql/relational-databases/system-information-schema-views/columns-transact-sql?view=sql-server-2017
+  - https://www.postgresql.org/docs/current/infoschema-columns.html
+  - https://dev.mysql.com/doc/refman/5.7/en/columns-table.html
+
+(*) Not part of the ANSI standard; a MySQL extension to
+``INFORMATION_SCHEMA.COLUMNS``.
 
 .. _nlprp_sql_dialect:
 
 **SQL dialects**
 
-SQL dialect values (for the ``sql_dialect`` parameter) are those major dialects
-used by SQLAlchemy_ (see https://docs.sqlalchemy.org/en/13/dialects/), i.e.
+The ``sql_dialect`` parameter, detailed above, names the SQL dialect in which
+``column_type`` and ``data_type`` are expressed. For example, "unlimited-length
+text" might be ``VARCHAR(MAX)`` in the ``mssql`` dialect but ``LONGTEXT`` in
+the ``mysql`` dialect.
+
+SQL dialect values are strings representing those major dialects used by
+SQLAlchemy_ (see https://docs.sqlalchemy.org/en/13/dialects/), i.e.
 
 =============== ===============================================================
 Dialect name    Dialect
@@ -463,7 +533,7 @@ A full request as sent over TCP/IP might be as follows, being sent to
     {
         "protocol": {
             "name": "nlprp",
-            "version": "0.1.0"
+            "version": "0.2.0"
         },
         "command":  "list_processors"
     }
@@ -488,11 +558,11 @@ this:
         "status": 200,
         "protocol": {
             "name": "nlprp",
-            "version": "0.1.0"
+            "version": "0.2.0"
         },
         "server_info": {
             "name": "My NLPRP server software",
-            "version": "0.1.0"
+            "version": "0.2.0"
         },
         "processors": [
             {
@@ -508,8 +578,8 @@ this:
                 "version": "0.1.3",
                 "is_default_version": true,
                 "description": "Finds C-reactive protein (CRP) values",
-                "schema_sql_dialect": "mysql",
-                "schema": {
+                "sql_dialect": "mysql",
+                "tabular_schema": {
                     "": [
                         {
                             "column_comment": "Variable name",
@@ -732,24 +802,117 @@ format (on top of the basic response structure):
             - ``message`` (string): brief textual description of the error
             - ``description`` (string): more detail
 
-          - ``results``: array of objects (typically one per NLP result) each
-            with a format defined by the processor itself. For a failed
-            request, this should be an empty array. (Note that it may also be
-            an empty array following success, meaning that the processor found
-            nothing of interest to it.)
+          - ``results``: see :ref:`Format of per-processor results
+            <nlprp_format_of_per_processor_results>` below.
 
         Note that it is strongly advisable for clients to specify ``metadata``
         as this will be necessary for them to recover order information
         whenever ``content`` has more than one item.
 
+.. _nlprp_format_of_per_processor_results:
+
+**Format of per-processor results**
+
 Remember that a single piece of source text can generate zero, one, or many NLP
 matches from each processor; and that a single NLP “match” can involve highly
 structured results, but typically involves one set of key/value pairs.
 
+We now consider the
+``response["results"][result_num]["processors"][processor_num]["results"]``
+value. This is processor-specific.
+
+- For a failed request, this should be an empty array, ``[]``, or an empty
+  object, ``{}``. (Note that it may also be empty following success, meaning
+  that the processor found nothing of interest to it.)
+
+- If the processor does not offer a ``tabular_schema`` definition (see
+  :ref:`Schema definition <nlprp_schema_definition>` above), then the format of
+  ``results`` is not constrained.
+  *[In NLPRP Version 0.1.0, there were no constraints, as a result.]*
+  A common format is an array of objects (each object providing a key-value
+  mapping of column/field names to values), like this:
+
+  .. rst-class:: nlprpresponse
+
+    .. code-block:: none
+
+        "results": [
+            {
+                # row 1
+                "column_name_1": <value_of_col_1>,
+                "column_name_2": <value_of_col_2>,
+                ...
+            },
+            {
+                # row 2
+                "column_name_1": <value_of_col_1>,
+                "column_name_2": <value_of_col_2>,
+                ...
+            },
+            ...
+        ]
+
+- If the processor does offer a ``tabular_schema`` definition, and that
+  definition is for only a single table, then ``results`` *may* be an array of
+  objects, each object representing a database row and containing a mapping
+  from column names to values (exactly as above).
+
+- If the processor offers a ``tabular_schema`` definition, the other
+  permissible format is that ``results`` is an object, not an array. In this
+  case, the ``results`` object maps table names (exactly as in the schema) to
+  arrays of rows, like this:
+
+  .. rst-class:: nlprpresponse
+
+    .. code-block:: none
+
+        "results": {
+            "table_name_1": [
+                {
+                    # row 1
+                    "column_name_1": <value_of_col_1>,
+                    "column_name_2": <value_of_col_2>,
+                    ...
+                },
+                {
+                    # row 2
+                    "column_name_1": <value_of_col_1>,
+                    "column_name_2": <value_of_col_2>,
+                    ...
+                },
+                ...
+            ],
+            "table_name_2": [
+                {
+                    # row 1
+                    "column_name_3": <value_of_col_3>,
+                    "column_name_4": <value_of_col_4>,
+                    ...
+                },
+                {
+                    # row 2
+                    "column_name_3": <value_of_col_3>,
+                    "column_name_4": <value_of_col_4>,
+                    ...
+                },
+                ...
+            ]
+        }
+
+  This format *must* be used by processors providing a ``tabular_schema`` and
+  using more than one table.
+
+- It is an error for the processor to offer a ``tabular_schema`` definition and
+  then not abide by it (e.g. by providing table or column names not as
+  described in the schema, or by returning data in non-tabular format).
+
+
+**Example**
+
 An example exchange using immediate processing follows. The request sends three
 pieces of text with metadata, and requests two processors to be run on each of
-them. (Neither processor takes any arguments.) Comments are marked with `#` and
-are not part of the actual exchange.
+them. (Neither processor takes any arguments. Since no version is specified for
+the ``python_c_reactive_protein`` processor, the default version will be used.)
 
 .. rst-class:: nlprprequest
 
@@ -763,7 +926,7 @@ are not part of the actual exchange.
     {
         "protocol": {
             "name": "nlprp",
-            "version": "0.1.0"
+            "version": "0.2.0"
         },
         "command":  "process",
         "args": {
@@ -774,7 +937,6 @@ are not part of the actual exchange.
                 },
                 {
                     "name": "python_c_reactive_protein",
-                    # no version specified; default will be used
                 },
             ],
             "queue": false,
@@ -815,11 +977,11 @@ generates a hit for ‘CRP’ and two drugs.
         "status": 200,
         "protocol": {
             "name": "nlprp",
-            "version": "0.1.0"
+            "version": "0.2.0"
         },
         "server_info": {
             "name": "My NLPRP server software",
-            "version": "0.1.0"
+            "version": "0.2.0"
         },
         "client_job_id": "My NLP job 57 for depression/CRP",
         "results": [
@@ -1161,13 +1323,13 @@ this:
      :language: python
 
 
-Specimen Python 3.6+ client program
+Specimen Python 3.6+ server program
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Similarly, for a dummy server program, run ``pip install pyramid crate_anon``
 and then you can run this:
 
-.. rst-class:: nlprprequest
+.. rst-class:: nlprpresponse
 
   .. literalinclude:: nlprp_test_server.py
      :language: python
@@ -1177,8 +1339,8 @@ More on error responses
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 The main design question here is whether HTTP status codes should be used for
-errors, or not. There are pros and cons here [#errorsviahttpstatus]_. We shall follow best practice
-and encode the status both in HTTP and in the JSON.
+errors, or not. There are pros and cons here [#errorsviahttpstatus]_. We shall
+follow best practice and encode the status both in HTTP and in the JSON.
 
 Specific HTTP status codes not detailed above include:
 
@@ -1287,10 +1449,6 @@ NLPRP things to do and potential future requirements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. todo::
-    NLPRP: should we specify in more detail how processors must format their
-    ``results`` section (to match ``schema``)?
-
-.. todo::
     NLPRP: consider supra-document processing requirements
 
 Corpus (supra-document) processing:
@@ -1345,9 +1503,9 @@ NLPRP history
 **v0.2.0**
 
 - 4 Aug 2019, RNC.
-- ``schema`` attribute in the response to the list_processors_ command.
-
-- CURRENT WORKING VERSION.
+- ``tabular_schema`` attribute in the response to the list_processors_ command,
+  with associated ``sql_dialect`` options and corresponding constraints on the
+  results format for processors that provide a tabular schema.
 
 
 ===============================================================================

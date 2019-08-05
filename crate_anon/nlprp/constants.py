@@ -82,10 +82,11 @@ class NlprpKeys(object):
     QUEUE_ID = "queue_id"  # response
     QUEUE_IDS = "queue_ids"  # request
     RESULTS = "results"  # response
-    SCHEMA_SQL_DIALECT = "schema_sql_dialect"  # response
+    SQL_DIALECT = "sql_dialect"  # response
     SERVER_INFO = "server_info"  # response
     STATUS = "status"  # response
     SUCCESS = "success"  # response
+    TABULAR_SCHEMA = "tabular_schema"  # response
     TEXT = "text"  # request
     TITLE = "title"  # response
     VERSION = "version"  # bidirectional

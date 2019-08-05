@@ -666,10 +666,10 @@ class BaseNlpParser(object):
             d[tablename] = colinfo
         return d
 
-    def nlprp_column_info_json(self,
-                               indent: int = 4,
-                               sort_keys: bool = True,
-                               sql_dialect: str = SqlDialects.MYSQL) -> str:
+    def nlprp_tabular_schema_json(self,
+                                  indent: int = 4,
+                                  sort_keys: bool = True,
+                                  sql_dialect: str = SqlDialects.MYSQL) -> str:
         """
         Returns a formatted JSON string from :func:`nlprp_column_info`.
 
