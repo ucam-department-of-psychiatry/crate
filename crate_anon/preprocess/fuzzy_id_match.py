@@ -689,6 +689,7 @@ log = logging.getLogger(__name__)
 dmeta = DMetaphone()
 
 DAYS_PER_YEAR = 365.25  # approximately!
+DEFAULT_HASH_KEY = "fuzzy_id_match_default_hash_key_DO_NOT_USE_FOR_LIVE_DATA"
 HIGHDEBUG = 15  # in between logging.DEBUG (10) and logging.INFO (20)
 MINUS_INFINITY = -math.inf
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -3497,7 +3498,7 @@ def main() -> None:
     hasher_group = parser.add_argument_group("hasher (secrecy) options")
     hasher_group.add_argument(
         "--key", type=str,
-        default="_?6~2+#)1VUr)(&v'19F$KXR*d0cV?ve'2UlO)r5V/L28n{9JdAU/1^]-Ss?'<",  # noqa
+        default=DEFAULT_HASH_KEY,
         help="Key (passphrase) for hasher"
     )
     hasher_group.add_argument(
@@ -3829,6 +3830,11 @@ def main() -> None:
         p_minor_postcode_error=args.p_minor_postcode_error,
     )
 
+    def warn_if_default_key() -> None:
+        if args.key == DEFAULT_HASH_KEY:
+            log.error("You have not specified a hash key, so are using the "
+                      "default! This is a very bad idea for real data.")
+
     # pdb.set_trace()
 
     # -------------------------------------------------------------------------
@@ -3854,6 +3860,7 @@ def main() -> None:
         log.warning("Validation test 1 complete.")
 
     elif args.command == "hash":
+        warn_if_default_key()
         log.info(f"Hashing identity file: {args.input}")
         hash_identity_file(cfg=cfg,
                            input_csv=args.input,
@@ -3891,6 +3898,7 @@ def main() -> None:
         log.info(f"... comparison finished; results are in {args.output}")
 
     elif args.command == "compare_hashed_to_plaintext":
+        warn_if_default_key()
         log.info(f"Comparing files:\n"
                  f"- hashed probands: {args.probands}\n"
                  f"- plaintext sample: {args.sample}")

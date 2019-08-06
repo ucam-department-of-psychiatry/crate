@@ -1024,6 +1024,8 @@ Changes
   1.3.6.
 - ``python-dateutil==2.6.1`` (required by ``pandas``), from 2.6.0 (was
   blocking readthedocs updates).
+- ``cardinal_pythonlib==1.0.60`` (from 1.0.58); bugfix in log probability
+  handling.
 
 
 ===============================================================================
