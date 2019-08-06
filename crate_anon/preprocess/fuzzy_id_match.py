@@ -671,6 +671,7 @@ from cardinal_pythonlib.probability import (
     log_odds_from_1_in_n,
     log_odds_from_probability,
     log_posterior_odds_from_pdh_pdnh,
+    log_probability_from_log_odds,
     probability_from_log_odds,
 )
 from cardinal_pythonlib.stringfunc import mangle_unicode_to_ascii
@@ -1075,8 +1076,8 @@ class FullOrPartialComparison(Comparison):
             return 1 - self.p_p
 
 
-def compare(prior_log_odds: float,
-            comparisons: Iterable[Optional[Comparison]]) -> float:
+def bayes_compare(prior_log_odds: float,
+                  comparisons: Iterable[Optional[Comparison]]) -> float:
     """
     Works through multiple comparisons and returns posterior log odds.
 
@@ -1426,6 +1427,8 @@ class MatchConfig(object):
         assert 0 <= p_sample_middle_name_missing <= 1
         assert 0 <= p_minor_postcode_error <= 1
 
+        log.info("Building MatchConfig...")
+
         self.hasher = Hasher(hasher_key)
         self.rounding_sf = rounding_sf
         self.forename_csv_filename = forename_csv_filename
@@ -1453,6 +1456,8 @@ class MatchConfig(object):
             csv_filename=postcode_csv_filename,
             cache_filename=postcode_cache_filename,
             mean_oa_population=mean_oa_population)
+
+        log.info("... MatchConfig built")
 
     @property
     def baseline_log_odds_same_person(self) -> float:
@@ -1601,8 +1606,9 @@ class Person(object):
     def __init__(self,
                  # State
                  is_hashed: bool = False,
-                 # Reference code
+                 # Reference codes
                  unique_id: int = None,
+                 research_id: str = "",
                  # Plaintext
                  first_name: str = "",
                  middle_names: List[str] = None,
@@ -1636,6 +1642,8 @@ class Person(object):
             unique_id:
                 Unique integer ID. Not used at all for comparison; simply used
                 to retrieve an identity after a match has been confirmed.
+            research_id:
+                Research pseudonym (not itself identifying).
 
             first_name:
                 The person's first name.
@@ -1685,6 +1693,7 @@ class Person(object):
         """
         self.is_hashed = is_hashed
         self.unique_id = unique_id
+        self.research_id = research_id
 
         self.first_name = standardize_name(first_name)
         self.middle_names = [
@@ -1781,7 +1790,7 @@ class Person(object):
         """
         Returns a string representation that can be used for reconstruction.
         """
-        attrs = ["unique_id"]
+        attrs = ["unique_id", "research_id"]
         if self.is_hashed:
             attrs += [
                 "hashed_first_name",
@@ -1815,10 +1824,11 @@ class Person(object):
 
     def __str__(self) -> str:
         if self.is_hashed:
-            return f"#{self.unique_id} (hashed)"
+            return f"ID#{self.unique_id}, RID {self.research_id} (hashed)"
         else:
             return ", ".join([
                 f"#{self.unique_id}",
+                f"RID {self.research_id}",
                 " ".join([self.first_name] +
                          self.middle_names +
                          [self.surname]),
@@ -1854,6 +1864,7 @@ class Person(object):
         return Person(
             is_hashed=True,
             unique_id=self.unique_id,
+            research_id=self.research_id,
             hashed_first_name=(
                 hasher.hash(self.first_name)
                 if self.first_name else ""
@@ -1936,7 +1947,7 @@ class Person(object):
             float: the log odds they're the same person
         """
         log.debug(f"Comparing self={self}; other={other}")
-        return compare(
+        return bayes_compare(
             prior_log_odds=cfg.baseline_log_odds_same_person,
             comparisons=self._gen_comparisons(other, cfg)
         )
@@ -2437,17 +2448,23 @@ class People(object):
 
         Returns:
             tuple:
-                winner (:exc:`Person`), best_log_odds (float), first_best_index
-                (int), next_best_log_odds (float)
+                winner (:class:`Person`), best_log_odds (float),
+                first_best_index (int), next_best_log_odds (float)
 
         Note that:
 
-        - winner will be None if there is no winner
-        - best_log_odds is the log odds of the best candidate (the winner, if
-          it passes a threshold test), or None if there are no candidates
-        - first_best_index is the index of the first person whose log odds are
-          best_log_odds, or minus infinity if there are no candidates
-        - next_best_log_odds will be None unless scan_everyone is True.
+        - ``winner`` will be ``None`` if there is no winner
+        - ``best_log_odds`` is the log odds of the best candidate (the winner,
+          if it passes a threshold test), or –∞ if there are no candidates
+        - ``first_best_index`` is the index of the first person whose log odds
+          are ``best_log_odds``, or –∞ if there are no candidates
+        - ``next_best_log_odds`` will be the log odds of the closest other
+          contender scanned (but, in the event of no match being declared, this
+          will only be the true second-place candidate if ``scan_everyone`` is
+          ``True``; if ``scan_everyone`` is ``False``, then it will be the
+          true second-place contender in the event of a match being declared,
+          but might be the third-place or worse also-ran if a match was not
+          declared).
         """
         verbose = self.verbose
         if verbose:
@@ -2473,6 +2490,7 @@ class People(object):
             return None, best_log_odds, None, None
         all_others_must_be_le = best_log_odds - cfg.exceeds_next_best_log_odds
         next_best_log_odds = MINUS_INFINITY
+        failed = False
         for i, lo in enumerate(log_odds):
             if i == first_best_idx_in_cand:  # ignore the candidate winner
                 continue
@@ -2480,17 +2498,19 @@ class People(object):
             if lo > all_others_must_be_le:
                 # Another person has log-odds that are high enough to exclude
                 # a unique match.
+                failed = True
                 if verbose:
                     log.info(f"Another is too similar, with log odds {lo}")
                 if not scan_everyone:
-                    return None, best_log_odds, first_best_idx_overall, None
-        if verbose:
+                    return (None, best_log_odds, first_best_idx_overall,
+                            next_best_log_odds)
+        if verbose and not failed:
             log.info("Found a winner")
         return (
-            candidates[first_best_idx_in_cand],
+            candidates[first_best_idx_in_cand] if not failed else None,
             best_log_odds,
             first_best_idx_overall,
-            next_best_log_odds if scan_everyone else None
+            next_best_log_odds
         )
 
     def get_unique_match(self,
@@ -2890,11 +2910,23 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
 
 
 # =============================================================================
-# Validation
+# Loading people data
 # =============================================================================
 
-def read_people(csv_filename: str,
-                alternate_groups: bool = False) -> Tuple[People, People]:
+PEOPLE_CSV_FORMAT_HELP = (
+    "(No header row. Columns: "
+    "unique ID, "
+    "research ID, "
+    "first name, "
+    "semicolon-separated middle names, "
+    "surname, "
+    "DOB in YYYY-MM-DD format, "
+    "semicolon-separated postcodes)."
+)
+
+
+def read_people_2(csv_filename: str,
+                  alternate_groups: bool = False) -> Tuple[People, People]:
     """
     Read a list of people from a CSV file.
 
@@ -2903,6 +2935,7 @@ def read_people(csv_filename: str,
     Columns:
 
     - unique ID
+    - research ID
     - first name
     - middle name(s), semicolon-separated
     - surname
@@ -2914,6 +2947,7 @@ def read_people(csv_filename: str,
             filename to read
         alternate_groups:
             split consecutive people into "first group", "second group"?
+            (A debugging/validation feature.)
 
     Returns:
         tuple: first_group, second_group (or None)
@@ -2926,11 +2960,12 @@ def read_people(csv_filename: str,
     with open(csv_filename, "rt") as f:
         reader = csv.reader(f)
         for i, row in enumerate(reader):
-            unique_id, first_name, mn_str, surname, dob, pu_str = row
+            unique_id, rid, first_name, mn_str, surname, dob, pu_str = row
             middle_names = mn_str.split(";")
             postcodes = pu_str.split(";")
             person = Person(
                 unique_id=unique_id,
+                research_id=rid,
                 is_hashed=False,
                 first_name=first_name,
                 middle_names=middle_names,
@@ -2945,6 +2980,22 @@ def read_people(csv_filename: str,
     log.info("... done")
     return a, b
 
+
+def read_people(csv_filename: str) -> People:
+    """
+    Read a list of people from a CSV file.
+
+    See :func:`read_people_2`, but this version doesn't offer the feature of
+    splitting into two groups, and returns only a single :class:`People`
+    object.
+    """
+    people, _ = read_people_2(csv_filename, alternate_groups=False)
+    return people
+
+
+# =============================================================================
+# Validation
+# =============================================================================
 
 def make_deletion_data(people: People) -> People:
     """
@@ -3030,7 +3081,7 @@ def validate(cfg: MatchConfig,
              cache_filename: str,
              output_csv: str,
              seed: int = 1234,
-             report_every: int = 1) -> None:
+             report_every: int = 100) -> None:
     """
     Read data and perform split-half validation.
 
@@ -3055,7 +3106,7 @@ def validate(cfg: MatchConfig,
             in_typos_hashed, out_typos_hashed,
         ) = cache_load(cache_filename)
     except FileNotFoundError:
-        in_plaintext, out_plaintext = read_people(
+        in_plaintext, out_plaintext = read_people_2(
             people_csv, alternate_groups=True)
         log.info(f"Seeding random number generator with: {seed}")
         random.seed(seed)
@@ -3175,6 +3226,73 @@ def validate(cfg: MatchConfig,
 
 
 # =============================================================================
+# Main comparison
+# =============================================================================
+
+def compare_probands_to_sample_plaintext(cfg: MatchConfig,
+                                         probands_csv: str,
+                                         sample_csv: str,
+                                         sample_cache_filename: str,
+                                         output_csv: str,
+                                         report_every: int = 100) -> None:
+    """
+    Compares each of the people in the probands file to the sample file.
+
+    Args:
+        cfg: the master :class:`MatchConfig` object.
+        probands_csv: CSV of people (probands); see :func:`read_people`.
+        sample_csv: CSV of people (sample); see :func:`read_people`.
+        sample_cache_filename: file in which to cache sample, for speed
+        output_csv: output CSV filename
+    """
+    # Load or cache sample data
+    log.info("Loading (or caching) sample data")
+    try:
+        (sample, ) = cache_load(sample_cache_filename)
+    except FileNotFoundError:
+        sample = read_people(sample_csv)
+        cache_save(sample_cache_filename, [sample])
+
+    # Load proband data
+    log.info("Loading proband data")
+    probands = read_people(probands_csv)
+
+    # Compare
+    log.info("Comparing each proband to sample")
+    with open(output_csv, "wt") as f:
+        writer = csv.DictWriter(f, fieldnames=[
+            "proband_unique_id",
+            "proband_research_id",
+            "matched",
+            "log_odds_match",
+            "p_match",
+            "log_p_match",
+            "sample_match_unique_id",
+            "sample_match_research_id",
+            "next_best_log_odds",
+        ])
+        writer.writeheader()
+        for rownum, proband in enumerate(probands.people, start=1):
+            if rownum % report_every == 0:
+                log.info(f"Processing proband row {rownum}")
+            match, log_odds, _, next_best_log_odds = \
+                sample.get_unique_match_detailed(proband, cfg)
+            rowdata = dict(
+                proband_unique_id=proband.unique_id,
+                proband_research_id=proband.research_id,
+                matched=int(bool(match)),
+                log_odds_match=log_odds,
+                p_match=probability_from_log_odds(log_odds),
+                log_p_match=log_probability_from_log_odds(log_odds),
+                sample_match_unique_id=match.unique_id if match else None,
+                sample_match_research_id=match.research_id if match else None,
+                next_best_log_odds=next_best_log_odds,
+            )
+            writer.writerow(rowdata)
+    log.info("... comparisons done.")
+
+
+# =============================================================================
 # Main
 # =============================================================================
 
@@ -3188,6 +3306,10 @@ def main() -> None:
         "~/dev/onspd/Data/ONSPD_MAY_2016_UK.csv"))
     appname = "crate"
     default_cache_dir = os.path.join(appdirs.user_data_dir(appname=appname))
+
+    # -------------------------------------------------------------------------
+    # Argument parser
+    # -------------------------------------------------------------------------
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -3221,31 +3343,32 @@ def main() -> None:
         help="Run speed tests and stop"
     )
     test_group.add_argument(
-        "--validate", action="store_true",
-        help="Run validation tests and stop"
+        "--validate1", action="store_true",
+        help="Run validation test 1 and stop. In this test, a list of people "
+             "is compared to a version of itself, at times with elements "
+             "deleted or with typos introduced."
     )
     test_group.add_argument(
-        "--validate_people_csv", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_validation_people.csv"),
-        help="CSV filename for validation data (columns: unique ID, first "
-             "name, semicolon-separated middle names, surname, DOB in "
-             "YYYY-MM-DD format, semicolon-separated postcodes)."
+        "--validate1_people_csv", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_validation1_people.csv"),
+        help="CSV filename for validation 1 data. " + PEOPLE_CSV_FORMAT_HELP
     )
     test_group.add_argument(
-        "--validate_people_cache_filename", type=str,
+        "--validate1_people_cache_filename", type=str,
         default=os.path.join(default_cache_dir,
-                             "fuzzy_validation_people_cache.pickle"),
+                             "fuzzy_validation1_people_cache.pickle"),
         help="File in which to store cached people info (to speed loading)"
     )
     test_group.add_argument(
-        "--validate_output_csv", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_validation_output.csv"),
+        "--validate1_output_csv", type=str,
+        default=os.path.join(default_names_dir,
+                             "fuzzy_validation1_output.csv"),
         help="Output CSV file for validation"
     )
     test_group.add_argument(
         "--seed", type=int, default=1234,
         help="Random number seed, for introducing deliberate errors in "
-             "validation"
+             "validation test 1"
     )
 
     priors_group = parser.add_argument_group(
@@ -3354,9 +3477,42 @@ def main() -> None:
              "match to be considered a unique match."
     )
 
+    compare_group = parser.add_argument_group("comparison")
+    test_group.add_argument(
+        "--compare_plaintext", action="store_true",
+        help="Compare a list of probands against a sample (both in plaintext)."
+    )
+    compare_group.add_argument(
+        "--probands", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_probands.csv"),
+        help="CSV filename for probands data. " + PEOPLE_CSV_FORMAT_HELP
+    )
+    compare_group.add_argument(
+        "--sample", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_sample.csv"),
+        help="CSV filename for sample data. " + PEOPLE_CSV_FORMAT_HELP
+    )
+    compare_group.add_argument(
+        "--sample_cache", type=str,
+        default=os.path.join(default_cache_dir, "fuzzy_sample_cache.pickle"),
+        help="File in which to store cached sample info (to speed loading)"
+    )
+    compare_group.add_argument(
+        "--output", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_output.csv"),
+        help="Output CSV file for proband/sample comparison"
+    )
+
     args = parser.parse_args()
+
+    # -------------------------------------------------------------------------
+    # Do things
+    # -------------------------------------------------------------------------
+
     main_only_quicksetup_rootlogger(
         level=logging.DEBUG if args.verbose else logging.INFO)
+    log.info(f"Ensuring default cache directory exists: {default_cache_dir}")
+    os.makedirs(default_cache_dir, exist_ok=True)
 
     p_middle_name_n_present = [
         float(x) for x in args.p_middle_name_n_present.split(",")]
@@ -3387,9 +3543,6 @@ def main() -> None:
         p_minor_postcode_error=args.p_minor_postcode_error,
     )
 
-    log.debug(f"Ensuring directory exists: {default_cache_dir}")
-    os.makedirs(default_cache_dir, exist_ok=True)
-
     # pdb.set_trace()
 
     if args.selftest:
@@ -3398,17 +3551,39 @@ def main() -> None:
     if args.speedtest:
         selftest(cfg, speedtest=True)
         return
-    if args.validate:
+    if args.validate1:
+        log.warning("Running validation test 1.")
         validate(
             cfg,
-            people_csv=args.validate_people_csv,
-            cache_filename=args.validate_people_cache_filename,
-            output_csv=args.validate_output_csv,
+            people_csv=args.validate1_people_csv,
+            cache_filename=args.validate1_people_cache_filename,
+            output_csv=args.validate1_output_csv,
             seed=args.seed,
         )
+        log.warning("Validation test 1 complete.")
+        return
 
-    sys.exit(0)
+    if args.compare_plaintext:
+        log.warning(f"Comparing plaintext files:\n"
+                    f"- probands: {args.probands}\n"
+                    f"- sample: {args.sample}")
+        compare_probands_to_sample_plaintext(
+            cfg=cfg,
+            probands_csv=args.probands,
+            sample_csv=args.sample,
+            sample_cache_filename=args.sample_cache,
+            output_csv=args.output,
+        )
+        log.warning(f"... comparison finished; results are in {args.output}")
+        return
+
+    # todo: function to process plaintext to hashed file
+
+    # todo: function to compare hashed probands to hashed sample
+
+    log.info("Nothing to do.")
 
 
 if __name__ == "__main__":
     main()
+    sys.exit(0)

@@ -242,7 +242,7 @@ def test_all_processors(verbose: bool = False,
         log.info("Testing parser class: {}".format(cls.__name__))
         instance = cls(None, None)
         log.info("... instantiated OK")
-        schema_json = instance.nlprp_tabular_schema_json(
+        schema_json = instance.nlprp_schema_json(
             indent=4, sort_keys=True, sql_dialect=SqlDialects.MYSQL)
         log.info(f"NLPRP tabular schema information:\n{schema_json}")
         instance.test(verbose=verbose)

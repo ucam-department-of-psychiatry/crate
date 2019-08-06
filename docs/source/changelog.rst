@@ -1013,6 +1013,18 @@ Changes
 - ... then ``urllib==1.24.2`` to avoid a high severity security vulnerability
   (automatic Github warning; well done, it).
 
+**v0.18.86, 2019-08-06**
+
+- :ref:`NLPRP <nlprp>` v0.2.0, with schema support.
+- ``django==2.1.11`` (from 2.1.10), Github-prompted security fix.
+- ``sqlalchemy==1.3.6`` (from 1.2.8); needed to go to 1.3.0 (Github-prompted
+  security fix) but we'd noted Windows problems with 1.3.0; looks like SQL
+  Server regression was fixed in 1.3.1 (see
+  https://docs.sqlalchemy.org/en/13/changelog/changelog_13.html) so going to
+  1.3.6.
+- ``python-dateutil==2.6.1`` (required by ``pandas``), from 2.6.0 (was
+  blocking readthedocs updates).
+
 
 ===============================================================================
 

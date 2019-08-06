@@ -68,7 +68,12 @@ from crate_anon.nlp_manager.nlp_definition import (
     NlpConfigPrefixes,
     NlpDefinition,
 )
-from crate_anon.nlprp.constants import ALL_SQL_DIALECTS, NlprpKeys, SqlDialects
+from crate_anon.nlprp.constants import (
+    ALL_SQL_DIALECTS,
+    NlprpKeys,
+    NlprpValues,
+    SqlDialects,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.interfaces import Dialect
@@ -649,34 +654,41 @@ class BaseNlpParser(object):
             NlprpKeys.COLUMN_COMMENT: column.comment,
         }
 
-    def nlprp_column_info(self, sql_dialect: str = SqlDialects.MYSQL) \
+    def nlprp_schema_info(self, sql_dialect: str = SqlDialects.MYSQL) \
             -> Dict[str, Any]:
         """
-        Returns a dictionary for the ``schema`` parameter of the :ref:`NLPRP
-        <nlprp>` :ref:`list_processors <list_processors>` command.
+        Returns a dictionary for the ``schema_type`` parameter, and associated
+        parameters describing the schema (e.g. ``tabular_schema``), of the
+        :ref:`NLPRP <nlprp>` :ref:`list_processors <list_processors>` command.
 
         Args:
             sql_dialect: preferred SQL dialect for response
         """
-        d = {}
+        tabular_schema = {}
         for tablename, columns in self.dest_tables_columns().items():
             colinfo = []  # type: List[Dict[str, Any]]
             for column in columns:
                 colinfo.append(self.describe_sqla_col(column, sql_dialect))
-            d[tablename] = colinfo
-        return d
+            tabular_schema[tablename] = colinfo
+        schema_info = {
+            NlprpKeys.SCHEMA_TYPE: NlprpValues.TABULAR,
+            NlprpKeys.SQL_DIALECT: sql_dialect,
+            NlprpKeys.TABULAR_SCHEMA: tabular_schema,
+        }
+        return schema_info
 
-    def nlprp_tabular_schema_json(self,
-                                  indent: int = 4,
-                                  sort_keys: bool = True,
-                                  sql_dialect: str = SqlDialects.MYSQL) -> str:
+    def nlprp_schema_json(self,
+                          indent: int = 4,
+                          sort_keys: bool = True,
+                          sql_dialect: str = SqlDialects.MYSQL) -> str:
         """
-        Returns a formatted JSON string from :func:`nlprp_column_info`.
+        Returns a formatted JSON string from :func:`nlprp_schema_info`.
+        This is primarily for debugging.
 
         Args:
             indent: number of spaces for indentation
             sort_keys: sort keys?
             sql_dialect: preferred SQL dialect for response
         """
-        json_structure = self.nlprp_column_info(sql_dialect=sql_dialect)
+        json_structure = self.nlprp_schema_info(sql_dialect=sql_dialect)
         return json.dumps(json_structure, indent=indent, sort_keys=sort_keys)

@@ -378,22 +378,30 @@ The relevant part of the response is:
           the default version for the given name. May be ``true`` for zero or
           one versions for a given processor name.
         - ``description`` (string): a description of the processor.
+        - ``schema_type`` (string): optional; must be one of ``unknown``,
+          ``tabular``; default is ``unknown``. (Future versions may add more
+          schema types.)
+          *[Version 0.2.0 and higher.]*
         - ``sql_dialect`` (string): the SQL dialect (see below) used within the
           ``tabular_schema`` object (see below). Must be present if
           ``tabular_schema`` is given.
           *[Version 0.2.0 and higher.]*
-        - ``tabular_schema`` (object): an optional object representing a
-          tabular schema and describing the tables/columns provided by this
-          processor. Processors *should* enumerate their output columns if they
-          provide output compatible with storage in database tables. The format
-          of ``tabular_schema`` is described below. If the ``tabular_schema``
-          parameter is missing, or the object is empty, then the server is
-          saying "I don't know" about that particular processor.
+        - ``tabular_schema`` (object): an object that is present if and only if
+          ``schema_type`` is ``tabular``. Represents a tabular schema and
+          describing the tables/columns provided by this processor. The format
+          of ``tabular_schema`` is described below.
           *[Version 0.2.0 and higher.]*
 
 .. _nlprp_schema_definition:
 
 **Schema definition**
+
+The NLP server may not know the output format of its NLP processors, in which
+case ``schema_type`` may be set to ``unknown``. However, this is undesirable.
+Processors *should* describe their schema by enumerating their output
+tables/columns if they provide output compatible with storage in database
+tables. To do so, the server sets ``schema_type`` to ``tabular`` and provides
+the ``tabular_schema`` object.
 
 The ``tabular_schema`` object defines a tabular schema. It maps *table names*
 to *arrays of column definition objects*. Thus, in pseudocode:
@@ -403,12 +411,12 @@ to *arrays of column definition objects*. Thus, in pseudocode:
   .. code-block:: none
 
     "tabular_schema": {
-        "tablename1" : [
+        "table_name_1" : [
             <column_definition_1>,
             <column_definition_2>,
             ...
         ],
-        "tablename2" : [
+        "table_name_2" : [
             <column_definition_1>,
             <column_definition_2>,
             ...
@@ -570,7 +578,8 @@ this:
                 "title": "SLAM BRC GATE-based medication finder",
                 "version": "1.2.0",
                 "is_default_version": true,
-                "description": "Finds drug names"
+                "description": "Finds drug names",
+                "schema_type": "unknown",
             },
             {
                 "name": "python_c_reactive_protein",
@@ -578,6 +587,7 @@ this:
                 "version": "0.1.3",
                 "is_default_version": true,
                 "description": "Finds C-reactive protein (CRP) values",
+                "schema_type": "tabular",
                 "sql_dialect": "mysql",
                 "tabular_schema": {
                     "": [
@@ -1502,10 +1512,12 @@ NLPRP history
 
 **v0.2.0**
 
-- 4 Aug 2019, RNC.
-- ``tabular_schema`` attribute in the response to the list_processors_ command,
-  with associated ``sql_dialect`` options and corresponding constraints on the
-  results format for processors that provide a tabular schema.
+- 4-6 Aug 2019, RNC.
+- Processors can describe their output format: ``schema_type`` and
+  ``tabular_schema`` attribute in the response to the list_processors_ command,
+  with associated ``sql_dialect`` options.
+- Corresponding constraints on the results format for processors that provide a
+  tabular schema.
 
 
 ===============================================================================

@@ -82,8 +82,9 @@ class NlprpKeys(object):
     QUEUE_ID = "queue_id"  # response
     QUEUE_IDS = "queue_ids"  # request
     RESULTS = "results"  # response
-    SQL_DIALECT = "sql_dialect"  # response
+    SCHEMA_TYPE = "schema_type"  # response
     SERVER_INFO = "server_info"  # response
+    SQL_DIALECT = "sql_dialect"  # response
     STATUS = "status"  # response
     SUCCESS = "success"  # response
     TABULAR_SCHEMA = "tabular_schema"  # response
@@ -99,6 +100,8 @@ class NlprpValues(object):
     BUSY = "busy"
     NLPRP_PROTOCOL_NAME = "nlprp"
     READY = "ready"
+    TABULAR = "tabular"  # for schema_type
+    UNKNOWN = "unknown"  # for schema_type
 
 
 class NlprpCommands(object):
