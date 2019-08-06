@@ -399,3 +399,7 @@ class Gate(BaseNlpParser):
                 otconfig.get_indexes()
             )
         return tables
+
+    # We do not need to override nlprp_schema_info(). Although CRATE's GATE
+    # processor doesn't automatically know its schema, it is told by the config
+    # (i.e. by the user) and can pass on that information.

@@ -37,6 +37,7 @@ By Rudolf Cardinal <rudolf@pobox.com>.
 
     introduction/index.rst
     installation/index.rst
+    preprocessing/index.rst
     anonymisation/index.rst
     nlp/index.rst
     website_config/index.rst

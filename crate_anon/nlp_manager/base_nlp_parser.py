@@ -629,13 +629,18 @@ class BaseNlpParser(object):
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def describe_sqla_col(column: Column,
-                          sql_dialect: str = SqlDialects.MYSQL) \
+    def describe_sqla_col(column: Column, sql_dialect: str = None) \
             -> Dict[str, Any]:
         """
         Describes a single SQLAlchemy :class:`Column` in the :ref:`NLPRP
         <nlprp>` format, which follows ``INFORMATION_SCHEMA.COLUMNS`` closely.
+
+        Args:
+            column: the :class:`Column`
+            sql_dialect: preferred SQL dialect for response, or ``None`` for
+                a default
         """
+        sql_dialect = sql_dialect or SqlDialects.MYSQL  # default
         assert sql_dialect in ALL_SQL_DIALECTS, (
             f"Unknown SQL dialect {sql_dialect!r}; must be one of "
             f"{ALL_SQL_DIALECTS}"
@@ -654,8 +659,7 @@ class BaseNlpParser(object):
             NlprpKeys.COLUMN_COMMENT: column.comment,
         }
 
-    def nlprp_schema_info(self, sql_dialect: str = SqlDialects.MYSQL) \
-            -> Dict[str, Any]:
+    def nlprp_schema_info(self, sql_dialect: str = None) -> Dict[str, Any]:
         """
         Returns a dictionary for the ``schema_type`` parameter, and associated
         parameters describing the schema (e.g. ``tabular_schema``), of the
@@ -680,7 +684,7 @@ class BaseNlpParser(object):
     def nlprp_schema_json(self,
                           indent: int = 4,
                           sort_keys: bool = True,
-                          sql_dialect: str = SqlDialects.MYSQL) -> str:
+                          sql_dialect: str = None) -> str:
         """
         Returns a formatted JSON string from :func:`nlprp_schema_info`.
         This is primarily for debugging.
@@ -688,7 +692,8 @@ class BaseNlpParser(object):
         Args:
             indent: number of spaces for indentation
             sort_keys: sort keys?
-            sql_dialect: preferred SQL dialect for response
+            sql_dialect: preferred SQL dialect for response, or ``None`` for
+                default
         """
         json_structure = self.nlprp_schema_info(sql_dialect=sql_dialect)
         return json.dumps(json_structure, indent=indent, sort_keys=sort_keys)
