@@ -42,7 +42,7 @@ commit:
 """
 
 import logging
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
@@ -113,16 +113,8 @@ class MmseValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Mmse.MMSE],
-                         validated_variable=Mmse.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Mmse.NAME, [Mmse.MMSE]
 
 
 # =============================================================================
@@ -221,16 +213,8 @@ class AceValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Ace.ACE],
-                         validated_variable=Ace.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Ace.NAME, [Ace.ACE]
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass
@@ -308,16 +292,8 @@ class MiniAceValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[MiniAce.MACE],
-                         validated_variable=MiniAce.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return MiniAce.NAME, [MiniAce.MACE]
 
 
 # =============================================================================
@@ -369,16 +345,8 @@ class MocaValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[MiniAce.MACE],
-                         validated_variable=MiniAce.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Moca.NAME, [Moca.MOCA]
 
 
 # =============================================================================

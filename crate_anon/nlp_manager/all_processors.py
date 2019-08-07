@@ -28,6 +28,7 @@ crate_anon/nlp_manager/all_processors.py
 
 """
 
+from inspect import isabstract
 # noinspection PyUnresolvedReferences
 import logging
 # noinspection PyUnresolvedReferences
@@ -89,8 +90,8 @@ ignore(Eosinophils)
 
 def get_all_subclasses(cls: ClassType) -> List[ClassType]:
     """
-    Returns all subclasses of ``cls``. Checks that they all have unique names
-    in lower case.
+    Returns all non-abstract subclasses of ``cls``. Checks that they all have
+    unique names in lower case.
 
     Args:
         cls: class into which to recurse
@@ -105,7 +106,10 @@ def get_all_subclasses(cls: ClassType) -> List[ClassType]:
     all_subclasses = []  # List[ClassType]
     # noinspection PyArgumentList
     for subclass in cls.__subclasses__():
-        all_subclasses.append(subclass)
+        if not isabstract(subclass):
+            all_subclasses.append(subclass)
+        # else:
+        #     log.critical(f"Skipping abstract class: {subclass.__name__}")
         all_subclasses.extend(get_all_subclasses(subclass))  # recursive
     all_subclasses.sort(key=lambda c: c.__name__.lower())
     lower_case_names = set()
@@ -229,22 +233,14 @@ def test_all_processors(verbose: bool = False,
         skip_validators: skip validator classes?
     """
     for cls in all_parser_classes():
-        if cls.__name__ in ('Gate',
-                            'Medex',
-                            'NumericalResultParser',
-                            'SimpleNumericalResultParser',
-                            'NumeratorOutOfDenominatorParser',
-                            'ValidatorBase',
-                            'WbcBase'):
-            continue
         if skip_validators and cls.__name__.endswith('Validator'):
             continue
         log.info("Testing parser class: {}".format(cls.__name__))
         instance = cls(None, None)
         log.info("... instantiated OK")
-        schema_json = instance.nlprp_schema_json(
+        schema_json = instance.nlprp_processor_info_json(
             indent=4, sort_keys=True, sql_dialect=SqlDialects.MYSQL)
-        log.info(f"NLPRP tabular schema information:\n{schema_json}")
+        log.info(f"NLPRP processor information:\n{schema_json}")
         instance.test(verbose=verbose)
     log.info("Tests completed successfully.")
 

@@ -321,16 +321,8 @@ class HeightValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Height.HEIGHT],
-                         validated_variable=Height.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Height.NAME, [Height.HEIGHT]
 
 
 # -----------------------------------------------------------------------------
@@ -517,15 +509,8 @@ class WeightValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Weight.WEIGHT],
-                         validated_variable=Weight.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Weight.NAME, [Weight.WEIGHT]
 
 
 # -----------------------------------------------------------------------------
@@ -596,15 +581,8 @@ class BmiValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Bmi.BMI],
-                         validated_variable=Bmi.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Bmi.NAME, [Bmi.BMI]
 
 
 # =============================================================================
@@ -681,7 +659,7 @@ class Bp(BaseNlpParser):
             commit=commit
         )
         if nlpdef is None:  # only None for debugging!
-            self.tablename = ''
+            self.tablename = self.__class__.__name__.lower()
         else:
             self.tablename = nlpdef.opt_str(
                 self._sectionname, 'desttable', required=True)
@@ -843,15 +821,8 @@ class BpValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Bp.REGEX],
-                         validated_variable=Bp.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Bp.NAME, [Bp.REGEX]
 
 
 # =============================================================================

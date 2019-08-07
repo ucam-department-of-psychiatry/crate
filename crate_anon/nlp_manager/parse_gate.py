@@ -56,6 +56,7 @@ from crate_anon.nlp_manager.nlp_definition import (
     NlpConfigPrefixes,
     NlpDefinition,
 )
+from crate_anon.nlprp.constants import NlprpKeys, NlprpValues
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 
 log = logging.getLogger(__name__)
@@ -143,6 +144,7 @@ class Gate(BaseNlpParser):
 
         if not nlpdef and not cfgsection:
             # Debugging only
+            self._debug_mode = True
             self._max_external_prog_uses = 0
             self._input_terminator = 'input_terminator'
             self._output_terminator = 'output_terminator'
@@ -151,6 +153,7 @@ class Gate(BaseNlpParser):
             progargs = ''
             logtag = ''
         else:
+            self._debug_mode = False
             self._max_external_prog_uses = nlpdef.opt_int(
                 self._sectionname, GateConfigKeys.MAX_EXTERNAL_PROG_USES,
                 default=0)
@@ -342,6 +345,8 @@ class Gate(BaseNlpParser):
         """
         Test the :func:`send` function.
         """
+        if self._debug_mode:
+            return
         self.test_parser([
             "Bob Hope visited Seattle.",
             "James Joyce wrote Ulysses."
@@ -400,6 +405,12 @@ class Gate(BaseNlpParser):
             )
         return tables
 
-    # We do not need to override nlprp_schema_info(). Although CRATE's GATE
-    # processor doesn't automatically know its schema, it is told by the config
-    # (i.e. by the user) and can pass on that information.
+    def nlprp_schema_info(self, sql_dialect: str = None) -> Dict[str, Any]:
+        # We do not need to override nlprp_schema_info(). Although CRATE's GATE
+        # processor doesn't automatically know its schema, it is told by the
+        # config (i.e. by the user) and can pass on that information.
+        # However, for debug mode, it's helpful to override.
+        if self._debug_mode:
+            return {NlprpKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN}
+        else:
+            return super().nlprp_schema_info(sql_dialect)

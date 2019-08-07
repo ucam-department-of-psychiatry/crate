@@ -690,6 +690,8 @@ dmeta = DMetaphone()
 
 DAYS_PER_YEAR = 365.25  # approximately!
 DEFAULT_HASH_KEY = "fuzzy_id_match_default_hash_key_DO_NOT_USE_FOR_LIVE_DATA"
+EXIT_FAILURE = 1
+EXIT_SUCCESS = 0
 HIGHDEBUG = 15  # in between logging.DEBUG (10) and logging.INFO (20)
 MINUS_INFINITY = -math.inf
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -3502,6 +3504,10 @@ def main() -> None:
         help="Key (passphrase) for hasher"
     )
     hasher_group.add_argument(
+        "--allow_default_hash_key", action="store_true",
+        help="Allow the default hash key to be used beyond tests. INADVISABLE!"
+    )
+    hasher_group.add_argument(
         "--rounding_sf", type=int, default=3,
         help="Number of significant figures to use when rounding frequencies "
              "in hashed version"
@@ -3832,8 +3838,16 @@ def main() -> None:
 
     def warn_if_default_key() -> None:
         if args.key == DEFAULT_HASH_KEY:
-            log.error("You have not specified a hash key, so are using the "
-                      "default! This is a very bad idea for real data.")
+            if args.allow_default_hash_key:
+                log.warning("Proceeding with default hash key at user's "
+                            "explicit request.")
+            else:
+                log.error(
+                    "You have not specified a hash key, so are using the "
+                    "default! Stopping, because this is a very bad idea for "
+                    "real data. Specify --allow_default_hash_key to use the "
+                    "default for testing purposes.")
+                sys.exit(EXIT_FAILURE)
 
     # pdb.set_trace()
 
@@ -3916,8 +3930,9 @@ def main() -> None:
     else:
         # Shouldn't get here.
         log.error(f"Unknown command: {args.command}")
+        sys.exit(EXIT_FAILURE)
 
 
 if __name__ == "__main__":
     main()
-    sys.exit(0)
+    sys.exit(EXIT_SUCCESS)

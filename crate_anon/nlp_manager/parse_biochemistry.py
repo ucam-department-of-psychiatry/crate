@@ -42,7 +42,7 @@ commit:
 """
 
 import logging
-from typing import Optional, Union
+from typing import List, Optional, Tuple, Union
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
@@ -188,16 +188,8 @@ class CrpValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Crp.CRP],
-                         validated_variable=Crp.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Crp.NAME, [Crp.CRP]
 
 
 # =============================================================================
@@ -281,16 +273,8 @@ class SodiumValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Sodium.SODIUM],
-                         validated_variable=Sodium.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Sodium.NAME, [Sodium.SODIUM]
 
 
 # =============================================================================
@@ -373,16 +357,8 @@ class PotassiumValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Potassium.POTASSIUM],
-                         validated_variable=Potassium.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Potassium.NAME, [Potassium.POTASSIUM]
 
 
 # =============================================================================
@@ -464,16 +440,8 @@ class UreaValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Urea.UREA],
-                         validated_variable=Urea.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Urea.NAME, [Urea.UREA]
 
 
 # =============================================================================
@@ -568,16 +536,8 @@ class CreatinineValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Creatinine.CREATININE],
-                         validated_variable=Creatinine.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Creatinine.NAME, [Creatinine.CREATININE]
 
 
 # =============================================================================
@@ -664,16 +624,8 @@ class LithiumValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Lithium.LITHIUM],
-                         validated_variable=Lithium.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Lithium.NAME, [Lithium.LITHIUM]
 
 
 # =============================================================================
@@ -748,16 +700,8 @@ class TshValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Tsh.TSH],
-                         validated_variable=Tsh.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Tsh.NAME, [Tsh.TSH]
 
 
 # =============================================================================
@@ -854,16 +798,8 @@ class GlucoseValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Glucose.GLUCOSE],
-                         validated_variable=Glucose.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Glucose.NAME, [Glucose.GLUCOSE]
 
 
 # =============================================================================
@@ -963,16 +899,8 @@ class LDLCholesterolValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[LDLCholesterol.LDL],
-                         validated_variable=LDLCholesterol.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return LDLCholesterol.NAME, [LDLCholesterol.LDL]
 
 
 # =============================================================================
@@ -1072,16 +1000,8 @@ class HDLCholesterolValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[HDLCholesterol.HDL],
-                         validated_variable=HDLCholesterol.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return HDLCholesterol.NAME, [HDLCholesterol.HDL]
 
 
 # =============================================================================
@@ -1182,16 +1102,8 @@ class TotalCholesterolValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[TotalCholesterol.CHOLESTEROL],
-                         validated_variable=TotalCholesterol.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return TotalCholesterol.NAME, [TotalCholesterol.CHOLESTEROL]
 
 
 # =============================================================================
@@ -1290,16 +1202,8 @@ class TriglyceridesValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Triglycerides.TG],
-                         validated_variable=Triglycerides.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Triglycerides.NAME, [Triglycerides.TG]
 
 
 # =============================================================================
@@ -1445,16 +1349,8 @@ class HbA1cValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[HbA1c.HBA1C],
-                         validated_variable=HbA1c.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return HbA1c.NAME, [HbA1c.HBA1C]
 
 
 # =============================================================================

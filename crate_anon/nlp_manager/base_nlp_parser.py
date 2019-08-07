@@ -28,6 +28,7 @@ crate_anon/nlp_manager/base_nlp_parser.py
 
 """
 
+from abc import ABC, abstractmethod
 from functools import lru_cache
 import json
 import logging
@@ -74,6 +75,7 @@ from crate_anon.nlprp.constants import (
     NlprpValues,
     SqlDialects,
 )
+from crate_anon.version import CRATE_VERSION
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.interfaces import Dialect
@@ -90,7 +92,7 @@ TIMING_HANDLE_PARSED = "handled_parsed"
 # Base class for all parser types
 # =============================================================================
 
-class BaseNlpParser(object):
+class BaseNlpParser(ABC):
     """
     Base class for all CRATE NLP processors, including those that talk to
     third-party software. Manages the interface to databases for results
@@ -123,6 +125,10 @@ class BaseNlpParser(object):
             self._destdb_name = nlpdef.opt_str(self._sectionname, 'destdb',
                                                required=True)
             self._destdb = nlpdef.get_database(self._destdb_name)
+        else:
+            self._sectionname = ""
+            self._destdb_name = ""
+            self._destdb = None
 
     @classmethod
     def print_info(cls, file: TextIO = sys.stdout) -> None:
@@ -134,6 +140,7 @@ class BaseNlpParser(object):
         """
         print("Base class for all CRATE NLP parsers", file=file)
 
+    @abstractmethod
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         """
         Describes the destination table(s) that this NLP processor wants to
@@ -397,6 +404,7 @@ class BaseNlpParser(object):
             pretty_names.append(pretty_name)
         return pretty_names
 
+    @abstractmethod
     def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
                                             None, None]:
         """
@@ -480,6 +488,7 @@ class BaseNlpParser(object):
             f"NLP processor {self.get_nlpdef_name()}/{self.get_parser_name()}:"
             f" found {n_values} values")
 
+    @abstractmethod
     def test(self, verbose: bool = False) -> None:
         """
         Performs a self-test on the NLP processor.
@@ -666,7 +675,7 @@ class BaseNlpParser(object):
         :ref:`NLPRP <nlprp>` :ref:`list_processors <list_processors>` command.
 
         Args:
-            sql_dialect: preferred SQL dialect for response
+            sql_dialect: preferred SQL dialect for ``tabular_schema``
         """
         tabular_schema = {}
         for tablename, columns in self.dest_tables_columns().items():
@@ -681,10 +690,83 @@ class BaseNlpParser(object):
         }
         return schema_info
 
-    def nlprp_schema_json(self,
-                          indent: int = 4,
-                          sort_keys: bool = True,
-                          sql_dialect: str = None) -> str:
+    def nlprp_name(self) -> str:
+        """
+        Returns the processor's name for use in response to the :ref:`NLPRP
+        <nlprp>` :ref:`list_processors <list_processors>` command.
+
+        The default is the fully qualified module/class name -- because this is
+        highly unlikely to clash with any other NLP processors on a given
+        server.
+        """
+        # This may be imperfect; see
+        # https://stackoverflow.com/questions/2020014/get-fully-qualified-class-name-of-an-object-in-python  # noqa
+        # https://www.python.org/dev/peps/pep-3155/
+        return ".".join([self.__class__.__module__,
+                         self.__class__.__qualname__])
+
+    def nlprp_title(self) -> str:
+        """
+        Returns the processor's title for use in response to the :ref:`NLPRP
+        <nlprp>` :ref:`list_processors <list_processors>` command.
+
+        The default is the short Python class name.
+        """
+        return self.__class__.__name__
+
+    # noinspection PyMethodMayBeStatic
+    def nlprp_version(self) -> str:
+        """
+        Returns the processor's version for use in response to the :ref:`NLPRP
+        <nlprp>` :ref:`list_processors <list_processors>` command.
+
+        The default is the current CRATE version.
+        """
+        return CRATE_VERSION
+
+    # noinspection PyMethodMayBeStatic
+    def nlprp_is_default_version(self) -> bool:
+        """
+        Returns whether this processor is the default version of its name, for
+        use in response to the :ref:`NLPRP <nlprp>` :ref:`list_processors
+        <list_processors>` command.
+
+        The default is ``True``.
+        """
+        return True
+
+    def nlprp_description(self) -> str:
+        """
+        Returns the processor's description for use in response to the
+        :ref:`NLPRP <nlprp>` :ref:`list_processors <list_processors>` command.
+        """
+        # PyCharm thinks that __doc__ is bytes, but it's str!
+        # noinspection PyTypeChecker
+        return self.__class__.__doc__
+
+    def nlprp_processor_info(self, sql_dialect: str = None) -> Dict[str, Any]:
+        """
+        Returns a dictionary suitable for use as this processor's response to
+        the :ref:`NLPRP <nlprp>` :ref:`list_processors <list_processors>`
+        command.
+
+        Args:
+            sql_dialect: preferred SQL dialect for ``tabular_schema``
+        """
+        proc_info = {
+            NlprpKeys.NAME: self.nlprp_name(),
+            NlprpKeys.TITLE: self.nlprp_title(),
+            NlprpKeys.VERSION: self.nlprp_version(),
+            NlprpKeys.IS_DEFAULT_VERSION: self.nlprp_is_default_version(),
+            NlprpKeys.DESCRIPTION: self.nlprp_description(),
+        }
+        proc_info.update(self.nlprp_schema_info(sql_dialect))
+        return proc_info
+
+    def nlprp_processor_info_json(self,
+                                  indent: int = 4,
+                                  sort_keys: bool = True,
+                                  sql_dialect: str = None) -> str:
         """
         Returns a formatted JSON string from :func:`nlprp_schema_info`.
         This is primarily for debugging.
@@ -692,8 +774,8 @@ class BaseNlpParser(object):
         Args:
             indent: number of spaces for indentation
             sort_keys: sort keys?
-            sql_dialect: preferred SQL dialect for response, or ``None`` for
-                default
+            sql_dialect: preferred SQL dialect for ``tabular_schema``, or
+                ``None`` for default
         """
-        json_structure = self.nlprp_schema_info(sql_dialect=sql_dialect)
+        json_structure = self.nlprp_processor_info(sql_dialect=sql_dialect)
         return json.dumps(json_structure, indent=indent, sort_keys=sort_keys)

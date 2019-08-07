@@ -648,7 +648,7 @@ this:
                             "is_nullable": true
                         },
                         {
-                            "column_comment": "Matched numerical value, as text",
+                            "column_comment": "Matched units, as text",
                             "column_name": "units",
                             "column_type": "VARCHAR(50)",
                             "data_type": "VARCHAR",

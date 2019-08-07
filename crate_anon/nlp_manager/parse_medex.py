@@ -509,24 +509,37 @@ class Medex(BaseNlpParser):
         """
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
 
-        self._tablename = nlpdef.opt_str(
-            self._sectionname, 'desttable', required=True)
-
-        self._max_external_prog_uses = nlpdef.opt_int(
-            self._sectionname, 'max_external_prog_uses', default=0)
-
-        self._progenvsection = nlpdef.opt_str(self._sectionname,
-                                              'progenvsection')
-        if self._progenvsection:
-            self._env = nlpdef.get_env_dict(
-                full_sectionname(NlpConfigPrefixes.ENV,
-                                 self._progenvsection),
-                os.environ)
+        if nlpdef is None:  # only None for debugging!
+            self._debug_mode = True
+            self._tablename = self.__class__.__name__.lower()
+            self._max_external_prog_uses = 1
+            self._progenvsection = ""
+            self._env = {}
+            progargs = ""
         else:
-            self._env = os.environ.copy()
-        self._env["NLPLOGTAG"] = nlpdef.get_logtag() or '.'
-        # ... because passing a "-lt" switch with no parameter will make
-        # CrateGatePipeline.java complain and stop
+            self._debug_mode = False
+            self._tablename = nlpdef.opt_str(
+                self._sectionname, 'desttable', required=True)
+
+            self._max_external_prog_uses = nlpdef.opt_int(
+                self._sectionname, 'max_external_prog_uses', default=0)
+
+            self._progenvsection = nlpdef.opt_str(self._sectionname,
+                                                  'progenvsection')
+
+            if self._progenvsection:
+                self._env = nlpdef.get_env_dict(
+                    full_sectionname(NlpConfigPrefixes.ENV,
+                                     self._progenvsection),
+                    os.environ)
+            else:
+                self._env = os.environ.copy()
+            self._env["NLPLOGTAG"] = nlpdef.get_logtag() or '.'
+            # ... because passing a "-lt" switch with no parameter will make
+            # CrateGatePipeline.java complain and stop
+
+            progargs = nlpdef.opt_str(self._sectionname, 'progargs',
+                                      required=True)
 
         if USE_TEMP_DIRS:
             self._inputdir = tempfile.TemporaryDirectory()
@@ -547,7 +560,6 @@ class Medex(BaseNlpParser):
                 os.path.join(homedir, "medextemp", "working"))
             mkdir_p(self._workingdir.name)
 
-        progargs = nlpdef.opt_str(self._sectionname, 'progargs', required=True)
         formatted_progargs = progargs.format(**self._env)
         self._progargs = shlex.split(formatted_progargs)
         self._progargs.extend([
@@ -578,7 +590,7 @@ class Medex(BaseNlpParser):
         Launch the external process. We will save and retrieve data via files,
         and send signals ("data ready", "results ready) via stdin/stout.
         """
-        if self._started:
+        if self._started or self._debug_mode:
             return
         args = self._progargs
 
@@ -904,6 +916,8 @@ class Medex(BaseNlpParser):
         """
         Test the send function.
         """
+        if self._debug_mode:
+            return
         self.test_parser([
             "Bob Hope visited Seattle and took venlafaxine M/R 375mg od.",
             "James Joyce wrote Ulysses whilst taking aspirin 75mg mane."

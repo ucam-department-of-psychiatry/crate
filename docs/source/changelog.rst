@@ -1026,6 +1026,9 @@ Changes
   blocking readthedocs updates).
 - ``cardinal_pythonlib==1.0.60`` (from 1.0.58); bugfix in log probability
   handling.
+- Bugfix to :class:`crate_anon.nlp_manager.parse_cognitive.MocaValidator`; was
+  looking at the mini-ACE instead!
+- Abstract base classes in NLP parsers to assist with NLPRP work.
 
 
 ===============================================================================
