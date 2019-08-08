@@ -419,7 +419,7 @@ public class CrateGatePipeline {
     /** Show a usage message. */
 
     private void usage() {
-        writeStderr(
+        System.out.print(
 "usage: CrateGatePipeline -g GATEAPP [-a ANN [-a ANN [...]]]\n" +
 "                         [--include_set SET [--include_set SET [...]]]\n" +
 "                         [--exclude_set SET [--exclude_set SET [...]]]\n" +
