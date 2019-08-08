@@ -6,56 +6,79 @@ usage: crate_anonymise [-h] [--version] [--democonfig] [--config CONFIG]
                        [--incrementaldd] [--debugscrubbers] [--savescrubbers]
                        [--count] [--dropremake] [--optout]
                        [--nonpatienttables] [--patienttables] [--index]
-                       [--skip_dd_check] [-i | -f] [--skipdelete]
-                       [--seed SEED] [--echo]
+                       [--skip_dd_check] [--restrict RESTRICT]
+                       [--limits LIMITS LIMITS] [--file FILE]
+                       [--list LIST [LIST ...]] [--filtertext FILTERTEXT]
+                       [-i | -f] [--skipdelete] [--seed SEED] [--echo]
                        [--checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]]
 
-Database anonymiser. Version 0.18.12 (2017-02-26). By Rudolf Cardinal.
+Database anonymiser. Version 0.18.87 (2019-08-06). By Rudolf Cardinal.
 
 optional arguments:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
-  --democonfig          Print a demo config file
+  --democonfig          Print a demo config file (default: False)
   --config CONFIG       Config file (overriding environment variable
-                        CRATE_ANON_CONFIG)
-  --verbose, -v         Be verbose
+                        CRATE_ANON_CONFIG) (default: None)
+  --verbose, -v         Be verbose (default: False)
   --reportevery [REPORTEVERY]
                         Report insert progress every n rows in verbose mode
-                        (default 100000)
+                        (default: 100000)
   --chunksize [CHUNKSIZE]
                         Number of records copied in a chunk when copying PKs
-                        from one database to another (default 100000)
+                        from one database to another (default: 100000)
   --process [PROCESS]   For multiprocess mode: specify process number
+                        (default: 0)
   --nprocesses [NPROCESSES]
                         For multiprocess mode: specify total number of
                         processes (launched somehow, of which this is to be
-                        one)
+                        one) (default: 1)
   --processcluster PROCESSCLUSTER
-                        Process cluster name
-  --draftdd             Print a draft data dictionary
-  --incrementaldd       Print an INCREMENTAL draft data dictionary
+                        Process cluster name (default: )
+  --draftdd             Print a draft data dictionary (default: False)
+  --incrementaldd       Print an INCREMENTAL draft data dictionary (default:
+                        False)
   --debugscrubbers      Report sensitive scrubbing information, for debugging
+                        (default: False)
   --savescrubbers       Saves sensitive scrubbing information in admin
-                        database, for debugging
+                        database, for debugging (default: False)
   --count               Count records in source/destination databases, then
-                        stop
-  --dropremake          Drop/remake destination tables, then stop
-  --optout              Build opt-out list, then stop
-  --nonpatienttables    Process non-patient tables only
-  --patienttables       Process patient tables only
-  --index               Create indexes only
-  --skip_dd_check       Skip data dictionary validity check
+                        stop (default: False)
+  --dropremake          Drop/remake destination tables, then stop (default:
+                        False)
+  --optout              Build opt-out list, then stop (default: False)
+  --nonpatienttables    Process non-patient tables only (default: False)
+  --patienttables       Process patient tables only (default: False)
+  --index               Create indexes only (default: False)
+  --skip_dd_check       Skip data dictionary validity check (default: False)
+  --restrict RESTRICT   Restrict which patients are processed. Specify which
+                        field to base the restriction on or 'pid' for patient
+                        ids. (default: None)
+  --limits LIMITS LIMITS
+                        Specify lower and upper limits of the field specified
+                        in '--restrict' (default: None)
+  --file FILE           Specify a file with a list of values for the field
+                        specified in '--restrict' (default: None)
+  --list LIST [LIST ...]
+                        Specify a list of values for the field specified in '
+                        --restrict' (default: None)
+  --filtertext FILTERTEXT
+                        Filter out all free text over the specified length
+                        (default: None)
   -i, --incremental     Process only new/changed information, where possible
-                        (* default)
-  -f, --full            Drop and remake everything
+                        (* default) (default: True)
+  -f, --full            Drop and remake everything (default: True)
   --skipdelete          For incremental updates, skip deletion of rows present
-                        in the destination but not the source
+                        in the destination but not the source (default: False)
   --seed SEED           String to use as the basis of the seed for the random
                         number generator used for the transient integer RID
                         (TRID). Leave blank to use the default seed (system
-                        time).
-  --echo                Echo SQL
+                        time). (default: None)
+  --echo                Echo SQL (default: False)
   --checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]
                         File extensions to check for availability of a text
                         extractor (use a '.' prefix, and use the special
                         extension 'None' to check the fallback processor
+                        (default: None)
+
+# Generated at 2019-08-08 17:38:54

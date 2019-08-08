@@ -8,3 +8,5 @@ java \
     CrateGatePipeline \
     --help \
     -v -v
+
+exit 0

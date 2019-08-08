@@ -675,7 +675,7 @@ separate the columns. Examples:
         rule        VARCHAR(100)    Rule used to find this person (e.g. TitleFirstName, PersonFull)
         firstname   VARCHAR(100)    First name
         surname     VARCHAR(100)    Surname
-        gender      VARCHAR(7)      Gender (e.g. male, female)
+        gender      VARCHAR(7)      Gender (e.g. male, female, unknown)
         kind        VARCHAR(100)    Kind of name (e.g. personName, fullName)
 
 
@@ -793,7 +793,7 @@ Specimen config
 A specimen NLP config is available by running ``crate_nlp --democonfig``. In
 the source, it is :data:`crate_anon.nlp_manager.constants.DEMO_CONFIG`.
 
-Here's the specimen NLP config as of 2019-04-23:
+Here's the specimen NLP config:
 
 ..  literalinclude:: specimen_nlp_config_file.ini
     :language: ini

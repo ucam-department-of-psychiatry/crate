@@ -60,7 +60,7 @@ crate_nlp
 
 This runs a single-process NLP controller.
 
-Options as of 2017-02-28:
+Options:
 
 ..  literalinclude:: crate_nlp_help.txt
     :language: none
@@ -69,7 +69,7 @@ Options as of 2017-02-28:
 Current NLP processors
 ~~~~~~~~~~~~~~~~~~~~~~
 
-NLP processors as of 2019-07-21 (from ``crate_nlp --describeprocessors``):
+NLP processors (from ``crate_nlp --describeprocessors``):
 
 ..  literalinclude:: crate_nlp_describeprocessors.txt
     :language: none
@@ -80,7 +80,7 @@ crate_nlp_multiprocess
 
 This program runs multiple copies of ``crate_nlp`` in parallel.
 
-Options as of 2017-02-28:
+Options:
 
 ..  literalinclude:: crate_nlp_multiprocess_help.txt
     :language: none

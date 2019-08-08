@@ -57,7 +57,7 @@ crate_launch_celery
 This launches the CRATE Celery system. You need this to be running for CRATE
 to work properly. (See also :ref:`Windows service <windows_service>`.)
 
-Options as of 2016-07-21:
+Options:
 
 ..  literalinclude:: crate_launch_celery_help.txt
     :language: none

@@ -1,5 +1,6 @@
 usage: crate_fuzzy_id_match [-h] [--version] [--allhelp] [--verbose]
-                            [--key KEY] [--rounding_sf ROUNDING_SF]
+                            [--key KEY] [--allow_default_hash_key]
+                            [--rounding_sf ROUNDING_SF]
                             [--forename_freq_csv FORENAME_FREQ_CSV]
                             [--forename_cache_filename FORENAME_CACHE_FILENAME]
                             [--surname_freq_csv SURNAME_FREQ_CSV]
@@ -31,8 +32,11 @@ display options:
   --verbose             Be verbose (default: False)
 
 hasher (secrecy) options:
-  --key KEY             Key (passphrase) for hasher (default: _?6~2+#)1VUr)(&v
-                        '19F$KXR*d0cV?ve'2UlO)r5V/L28n{9JdAU/1^]-Ss?'<)
+  --key KEY             Key (passphrase) for hasher (default: fuzzy_id_match_d
+                        efault_hash_key_DO_NOT_USE_FOR_LIVE_DATA)
+  --allow_default_hash_key
+                        Allow the default hash key to be used beyond tests.
+                        INADVISABLE! (default: False)
   --rounding_sf ROUNDING_SF
                         Number of significant figures to use when rounding
                         frequencies in hashed version (default: 3)
@@ -309,3 +313,5 @@ optional arguments:
                         loading)
   --output OUTPUT       Output CSV file for proband/sample comparison
 
+
+# Generated at 2019-08-08 17:39:02

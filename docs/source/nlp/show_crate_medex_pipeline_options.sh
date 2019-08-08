@@ -8,3 +8,5 @@ java \
     CrateMedexPipeline \
     --help \
     -v -v
+
+exit 0

@@ -23,8 +23,7 @@ optional arguments:
   --scrubfile SCRUBFILE
                         Scrubbing information text file name (default:
                         testanon_scrubber.txt)
-  --verbose, -v         Be verbose (use twice for extra verbosity) (default:
-                        0)
+  --verbose, -v         Be verbose (default: False)
   --pkfromsrc           Fetch PKs (document IDs) from source (default)
                         (default: True)
   --pkfromdest          Fetch PKs (document IDs) from destination (default:
@@ -33,3 +32,5 @@ optional arguments:
                         (default) (default: True)
   --nonuniquepatients   Documents in sequence, with potentially >1
                         document/patient (default: True)
+
+# Generated at 2019-08-08 17:38:53

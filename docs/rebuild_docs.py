@@ -24,6 +24,8 @@ docs/rebuild_docs.py
 
 ===============================================================================
 
+**Rebuild all documentation.**
+
 """
 
 import os
@@ -46,6 +48,8 @@ if __name__ == '__main__':
     print("Making HTML version of documentation")
     os.chdir(THIS_DIR)
     subprocess.call(["make", "html"])
+    subprocess.call(["python", os.path.join(THIS_DIR,
+                                            "recreate_inclusion_files.py")])
 
     # Copy
     for destdir in DEST_DIRS:

@@ -14,6 +14,8 @@ optional arguments:
                        /home/rudolf/dev/Medex_UIMA_1.3.6)
   --java JAVA          Java executable (default: java)
   --javac JAVAC        Java compiler (default: javac)
-  --verbose, -v        Be verbose (use twice for extra verbosity)
+  --verbose, -v        Be verbose (use twice for extra verbosity) (default: 0)
   --launch             Launch script in demonstration mode (having previously
-                       compiled it)
+                       compiled it) (default: False)
+
+# Generated at 2019-08-08 17:38:57

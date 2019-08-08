@@ -516,7 +516,7 @@ class NlpDefinition(object):
 
     def nlprp_list_processors(self, sql_dialect: str = None) -> Dict[str, Any]:
         """
-        Returns a draft list of processors as per the :ref:`NLPRP <nlprp`>
+        Returns a draft list of processors as per the :ref:`NLPRP <nlprp>`
         :ref:`list_processors <list_processors>` command.
         """
         processors = []  # type: List[Dict, str, Any]

@@ -31,7 +31,7 @@ To obtain a specimen file, use
 
     crate_print_demo_crateweb_config
 
-Specimen web config as of 2017-02-28:
+Specimen web config:
 
 ..  literalinclude:: specimen_web_config.py
     :language: python

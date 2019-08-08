@@ -14,7 +14,7 @@ usage: crate_preprocess_rio [-h] --url URL [-v] [--print] [--echo] [--rcep]
     database (slightly later than version 6.2; exact version unclear).
     Use the "--rcep" (+/- "--cpft") switch(es) to treat it as a
     Servelec RiO CRIS Extract Program (RCEP) v2 output database.
-
+    
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -30,7 +30,7 @@ optional arguments:
                         information is lost, but it might take a while to
                         recalculate it.)
   --cpft                Apply hacks for Cambridgeshire & Peterborough NHS
-                        Foundation Trust (CPFT) RCEP database. Only appicable
+                        Foundation Trust (CPFT) RCEP database. Only applicable
                         with --rcep
   --debug-skiptables    DEBUG-ONLY OPTION. Skip tables (view creation only)
   --prognotes-current-only
@@ -62,3 +62,5 @@ optional arguments:
   --settings-filename SETTINGS_FILENAME
                         Specify filename to write draft ddgen_* settings to,
                         for use in a CRATE anonymiser configuration file.
+
+# Generated at 2019-08-08 17:39:06

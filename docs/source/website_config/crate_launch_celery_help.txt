@@ -7,3 +7,5 @@ optional arguments:
   -h, --help         show this help message and exit
   --command COMMAND  Celery command (default: worker)
   --debug            Ask Celery to be verbose
+
+# Generated at 2019-08-08 17:39:09

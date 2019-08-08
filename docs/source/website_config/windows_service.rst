@@ -44,7 +44,7 @@ logs. However, output from the service itself goes to the Windows logs: see
 crate_windows_service
 ---------------------
 
-Options as of 2016-07-21:
+Options:
 
 ..  literalinclude:: crate_windows_service_help.txt
     :language: none

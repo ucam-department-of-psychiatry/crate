@@ -1,9 +1,11 @@
-#!/usr/bin/env python
-# crate_anon/crateweb/specimen_secret_local_settings/crateweb_local_settings.py
+# (Don't use a shebang; Lintian will complain "script-not-executable".)
 
 """
+crate_anon/crateweb/specimen_secret_local_settings/crateweb_local_settings.py
+
 ===============================================================================
-    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+
+    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -19,13 +21,16 @@
 
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
 ===============================================================================
 
-Site-specific Django settings for CRATE web front end.
+**Site-specific Django settings for CRATE web front end.**
+
 Put the secret stuff here.
 
 SPECIMEN FILE ONLY - edit to your own requirements.
 IT WILL NOT WORK until you've edited it.
+
 """
 
 import os
@@ -38,6 +43,8 @@ raise Exception(
     "However, you need to configure it for your institution's set-up, and "
     "remove this line.".format(os.path.abspath(__file__)))
 
+# noinspection PyPep8, PyUnreachableCode
+from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 
 # =============================================================================
 # Site URL configuration
@@ -142,9 +149,9 @@ DATABASES = {
     },
 
     # -------------------------------------------------------------------------
-    # Secret database for RID/PID mapping
+    # One or more secret databases for RID/PID mapping
     # -------------------------------------------------------------------------
-    'secret': {
+    'secret_1': {
         'ENGINE': 'django.db.backends.mysql',
         'HOST': '127.0.0.1',
         'PORT': 3306,
@@ -157,14 +164,26 @@ DATABASES = {
     # Others, for consent lookup
     # -------------------------------------------------------------------------
 
-    # Optional: 'cpft_iapt'
     # Optional: 'cpft_crs'
-    # Optional: 'cpft_rio_rcep'
+    # Optional: 'cpft_pcmis'
     # Optional: 'cpft_rio_crate'
-    # ... see attributes of PatientLookup in crate_anon/consent/models.py
+    # Optional: 'cpft_rio_datamart'
+    # Optional: 'cpft_rio_raw'
+    # Optional: 'cpft_rio_rcep'
+    # ... see ClinicalDatabaseType in crate_anon/crateweb/config/constants.py
 }
 
-# Database title
+# Which database should be used to look up demographic details?
+# Must (a) be a key of ClinicalDatabaseType.DATABASE_CHOICES in
+#          crate_anon/crateweb/config/constants.py;
+#      (b) be defined in DATABASES, above, UNLESS it is 'dummy_clinical'
+#          (which is just for testing purposes)
+CLINICAL_LOOKUP_DB = 'dummy_clinical'
+
+# Which database should be used to look up consent modes?
+CLINICAL_LOOKUP_CONSENT_DB = 'dummy_clinical'
+
+# Research database title (displayed in web site)
 RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 
 # Databases/schemas to provide database structure info for, and details on how
@@ -184,48 +203,108 @@ RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 # - PostgreSQL can only query a single database via a single connection.
 RESEARCH_DB_INFO = [
     {
-        # Database name:
+        # Unique name:
+        RDIKeys.NAME: 'myresearchdb',
+
+        # Human-friendly description:
+        RDIKeys.DESCRIPTION: 'My friendly research database',
+
+        # Database name as seen by the database engine:
         # - BLANK, i.e. '', for MySQL.
         # - BLANK, i.e. '', for PostgreSQL.
         # - The database name, for SQL Server.
-        'database': '',
+        RDIKeys.DATABASE: '',
+
         # Schema name:
         # - The database=schema name, for MySQL.
         # - The schema name, for PostgreSQL (usual default: 'public').
         # - The schema name, for SQL Server (usual default: 'dbo').
-        'schema': 'dbo',
+        RDIKeys.SCHEMA: 'dbo',
 
-        'trid_field': 'trid',
-        'rid_field': 'brcid',
-        'rid_family': 1,
-        'mrid_table': 'patients',
-        'mrid_field': 'nhshash',
+        # Fields not in the database, but used for SELECT AS statements for
+        # some clinician views:
+        RDIKeys.PID_PSEUDO_FIELD: 'my_pid_field',
+        RDIKeys.MPID_PSEUDO_FIELD: 'my_mpid_field',
+
+        # Fields and tables found within the database:
+        RDIKeys.TRID_FIELD: 'trid',
+        RDIKeys.RID_FIELD: 'brcid',
+        RDIKeys.RID_FAMILY: 1,
+        RDIKeys.MRID_TABLE: 'patients',
+        RDIKeys.MRID_FIELD: 'nhshash',
+
+        # Descriptions, used for PID lookup and the like
+        RDIKeys.PID_DESCRIPTION: 'Patient ID (My ID Num; PID) for database X',
+        RDIKeys.MPID_DESCRIPTION: 'Master patient ID (NHS number; MPID)',
+        RDIKeys.RID_DESCRIPTION: 'Research ID (RID) for database X',
+        RDIKeys.MRID_DESCRIPTION: 'Master research ID (MRID)',
+        RDIKeys.TRID_DESCRIPTION: 'Transient research ID (TRID) for database X',
+
+        # To look up PID/RID mappings, provide a key for 'secret_lookup_db'
+        # that is a database alias from DATABASES:
+        RDIKeys.SECRET_LOOKUP_DB: 'secret_1',
 
         # For the data finder: is there a standard date field for most patient
         # tables?
-        'default_date_field': '',
+        RDIKeys.DATE_FIELDS_BY_TABLE: {},
+        RDIKeys.DEFAULT_DATE_FIELDS: ['default_date_field'],
+        RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
     },
-    # {
-    #     'database': 'similar_database',
-    #     'schema': 'similar_schema',
-    #     'trid_field': 'trid',
-    #     'rid_field': 'same_rid',
-    #     'rid_family': 1,
-    #     'mrid_table': None,
-    #     'mrid_field': None,
-    #     'default_date_field': '',
-    # },
-    # {
-    #     'database': 'different_database',
-    #     'schema': 'different_schema',
-    #     'trid_field': 'trid',
-    #     'rid_field': 'different_rid',
-    #     'rid_family': 2,
-    #     'mrid_table': 'hashed_nhs_numbers',
-    #     'mrid_field': 'nhshash',
-    #     'default_date_field': '',
-    # },
+    {
+        RDIKeys.NAME: 'similar_database',
+        RDIKeys.DESCRIPTION: 'A database sharing the RID with the first',
+
+        RDIKeys.DATABASE: 'similar_database',
+        RDIKeys.SCHEMA: 'similar_schema',
+        RDIKeys.TRID_FIELD: 'trid',
+        RDIKeys.RID_FIELD: 'same_rid',
+        RDIKeys.RID_FAMILY: 1,
+        RDIKeys.MRID_TABLE: '',
+        RDIKeys.MRID_FIELD: '',
+
+        RDIKeys.PID_DESCRIPTION: '',
+        RDIKeys.MPID_DESCRIPTION: '',
+        RDIKeys.RID_DESCRIPTION: '',
+        RDIKeys.MRID_DESCRIPTION: '',
+        RDIKeys.TRID_DESCRIPTION: '',
+
+        RDIKeys.SECRET_LOOKUP_DB: '',
+
+        RDIKeys.DATE_FIELDS_BY_TABLE: {},
+        RDIKeys.DEFAULT_DATE_FIELDS: [],
+        RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
+    },
+    {
+        RDIKeys.NAME: 'different_database',
+        RDIKeys.DESCRIPTION: 'A database sharing only the MRID with the first',
+
+        RDIKeys.DATABASE: 'different_database',
+        RDIKeys.SCHEMA: 'different_schema',
+        RDIKeys.TRID_FIELD: 'trid',
+        RDIKeys.RID_FIELD: 'different_rid',
+        RDIKeys.RID_FAMILY: 2,
+        RDIKeys.MRID_TABLE: 'hashed_nhs_numbers',
+        RDIKeys.MRID_FIELD: 'nhshash',
+
+        RDIKeys.PID_DESCRIPTION: '',
+        RDIKeys.MPID_DESCRIPTION: '',
+        RDIKeys.RID_DESCRIPTION: '',
+        RDIKeys.MRID_DESCRIPTION: '',
+        RDIKeys.TRID_DESCRIPTION: '',
+
+        RDIKeys.SECRET_LOOKUP_DB: '',
+
+        RDIKeys.DATE_FIELDS_BY_TABLE: {},
+        RDIKeys.DEFAULT_DATE_FIELDS: [],
+        RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
+    },
 ]
+
+# Which database (from those defined in RESEARCH_DB_INFO above) should be used
+# to look up patients when contact requests are made?
+# Give the 'name' attribute of one of the databases in RESEARCH_DB_INFO.
+# Its secret_lookup_db will be used for the actual lookup process.
+RESEARCH_DB_FOR_CONTACT_LOOKUP = 'myresearchdb'
 
 # For the automatic query generator, we need to know the underlying SQL dialect
 # Options are
@@ -234,26 +313,6 @@ RESEARCH_DB_INFO = [
 RESEARCH_DB_DIALECT = 'mysql'
 
 DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = True
-
-# Configuration of the secret mapping database (as set during initial
-# anonymisation)
-SECRET_MAP = {
-    # Table within 'secret' mapping database containing PID/RID mapping
-    'TABLENAME': "secret_map",
-    # PID/RID fieldnames within that table
-    'PID_FIELD': "patient_id",
-    'RID_FIELD': "brcid",
-    'MASTER_PID_FIELD': "nhsnum",
-    'MASTER_RID_FIELD': "nhshash",
-    'TRID_FIELD': 'trid',
-    # Maximum length of the RID fields (containing a hash in a VARCHAR field)
-    'MAX_RID_LENGTH': 255,
-}
-
-# Which of the databases defined above should be used for lookups?
-# Must (a) be a key of PatientLookup.DATABASES_CHOICES in consent/models.py;
-#      (b) be defined in DATABASES, above, UNLESS it is 'dummy_clinical'
-CLINICAL_LOOKUP_DB = 'dummy_clinical'
 
 # =============================================================================
 # Database extra help file
@@ -289,7 +348,7 @@ MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 Mb
 #   default backend:
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 #   bugfix for servers that only support TLSv1:
-# EMAIL_BACKEND = 'crate_anon.crateweb.core.mail.SmtpEmailBackendTls1'
+# EMAIL_BACKEND = 'cardinal_pythonlib.django.mail.SmtpEmailBackendTls1'
 
 EMAIL_HOST = 'smtp.somewhere.nhs.uk'
 EMAIL_PORT = 587  # usually 25 (plain SMTP) or 587 (STARTTLS)
@@ -354,8 +413,19 @@ MANAGERS = (
 
 # For a recent version, fetch one from http://wkhtmltopdf.org/, e.g.
 # v0.12.4 for your OS.
-WKHTMLTOPDF_FILENAME = ''
+# WKHTMLTOPDF_FILENAME = ''
+WKHTMLTOPDF_FILENAME = '/home/rudolf/dev/wkhtmltopdf/wkhtmltox/bin/wkhtmltopdf'
 # WKHTMLTOPDF_FILENAME = '/usr/bin/wkhtmltopdf'
+
+WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
+    "page-size": "A4",
+    "margin-left": "20mm",
+    "margin-right": "20mm",
+    "margin-top": "21mm",  # from paper edge down to top of content?
+    "margin-bottom": "24mm",  # from paper edge up to bottom of content?
+    "header-spacing": "3",  # mm, from content up to bottom of header
+    "footer-spacing": "3",  # mm, from content down to top of footer
+}
 
 PDF_LOGO_ABS_URL = 'http://localhost/crate_logo'
 # ... path on local machine, read by wkhtmltopdf
@@ -367,6 +437,12 @@ PDF_LOGO_ABS_URL = 'http://localhost/crate_logo'
 PDF_LOGO_WIDTH = "75%"
 # ... must be suitable for an <img> tag, but "150mm" isn't working; "75%" is.
 # ... tune this to your logo file (see PDF_LOGO_ABS_URL)
+
+# The PDF generator also needs to be able to find the traffic-light pictures,
+# on disk (not via your web site):
+TRAFFIC_LIGHT_RED_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/red.png'  # noqa
+TRAFFIC_LIGHT_YELLOW_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/yellow.png'  # noqa
+TRAFFIC_LIGHT_GREEN_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/green.png'  # noqa
 
 # =============================================================================
 # Consent-for-contact settings
@@ -451,3 +527,5 @@ CHARITY_URL = "http://www.cpft.nhs.uk/research.htm"
 CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
 PUBLIC_RESEARCH_URL_SHORT = "www.cpft.nhs.uk/research.htm"
+
+# Generated at 2019-08-08 17:39:15

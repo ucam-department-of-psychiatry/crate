@@ -8,5 +8,8 @@ optional arguments:
   --medexdir MEDEXDIR  Root directory of MedEx installation (default:
                        /home/rudolf/dev/Medex_UIMA_1.3.6)
   --javac JAVAC        Java compiler (default: javac)
-  --deletefirst        Delete existing .class files first (optional)
-  --verbose, -v        Be verbose
+  --deletefirst        Delete existing .class files first (optional) (default:
+                       False)
+  --verbose, -v        Be verbose (default: False)
+
+# Generated at 2019-08-08 17:38:56

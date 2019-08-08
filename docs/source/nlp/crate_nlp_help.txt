@@ -4,10 +4,13 @@ usage: crate_nlp [-h] [--version] [--config CONFIG] [--verbose]
                  [--chunksize [CHUNKSIZE]] [--process [PROCESS]]
                  [--nprocesses [NPROCESSES]] [--processcluster PROCESSCLUSTER]
                  [--democonfig] [--listprocessors] [--describeprocessors]
+                 [--print_nlprp_list_processors_json]
                  [--showinfo [NLP_CLASS_NAME]] [--count] [-i | -f]
                  [--dropremake] [--skipdelete] [--nlp] [--echo] [--timing]
+                 [--cloud] [--immediate] [--retrieve] [--cancelrequest]
+                 [--cancelall] [--showqueue] [--noverify]
 
-NLP manager. Version 0.18.12 (2017-02-26). By Rudolf Cardinal.
+NLP manager. Version 0.18.87 (2019-08-06). By Rudolf Cardinal.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -35,6 +38,9 @@ optional arguments:
   --democonfig          Print a demo config file
   --listprocessors      Show possible built-in NLP processor names
   --describeprocessors  Show details of built-in NLP processors
+  --print_nlprp_list_processors_json
+                        Show NLPRP JSON for processors that are part of the
+                        chosen NLP definition, then stop
   --showinfo [NLP_CLASS_NAME]
                         Show detailed information for a parser
   --count               Count records in source/destination databases, then
@@ -48,3 +54,15 @@ optional arguments:
   --nlp                 Perform NLP processing only
   --echo                Echo SQL
   --timing              Show detailed timing breakdown
+  --cloud               Use cloud-based NLP processing tools. Queued mode by
+                        default.
+  --immediate           To be used with 'cloud'. Process immediately.
+  --retrieve            Retrieve NLP data from cloud
+  --cancelrequest       Cancel pending requests for the nlpdef specified
+  --cancelall           Cancel all pending cloud requests. WARNING: this
+                        option cancels all pending requests - not just those
+                        for the nlp definition specified
+  --showqueue           Shows all pending cloud requests.
+  --noverify            Don't verify server's SSL certificate
+
+# Generated at 2019-08-08 17:38:59

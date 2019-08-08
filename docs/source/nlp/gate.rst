@@ -184,7 +184,7 @@ different; see above.
 crate_nlp_build_gate_java_interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Options as of 2017-02-28:
+Options:
 
 ..  literalinclude:: crate_nlp_build_gate_java_interface_help.txt
     :language: none
@@ -202,7 +202,7 @@ Asking `CrateGatePipeline` to show its command-line options:
 .. literalinclude:: show_crate_gate_pipeline_options.sh
     :language: bash
 
-The resulting output (2018-04-17):
+The resulting output:
 
 ..  literalinclude:: CrateGatePipeline_help.txt
     :language: none

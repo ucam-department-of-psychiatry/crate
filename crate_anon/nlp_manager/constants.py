@@ -161,12 +161,32 @@ processors =
     # -------------------------------------------------------------------------
     # Biochemistry
     # -------------------------------------------------------------------------
+    Creatinine procdef_creatinine ***
+    CreatinineValidator procdef_validate_creatinine ***
     CRP procdef_crp
     CRPValidator procdef_validate_crp
+    Glucose procdef_glucose ***
+    GlucoseValidator procdef_validate_glucose ***
+    HbA1c procdef_hba1c ***
+    HbA1cValidator procdef_validate_hba1c ***
+    HDLCholesterol procdef_hdlcholesterol ***
+    HDLCholesterolValidator procdef_validate_hdlcholesterol ***
+    LDLCholesterol procdef_ldlcholesterol ***
+    LDLCholesterolValidator procdef_validate_ldlcholesterol ***
+    Lithium procdef_lithium ***
+    LithiumValidator procdef_validate_lithium ***
+    Potassium procdef_potassium ***
+    PotassiumValidator procdef_validate_potassium ***
     Sodium procdef_sodium
     SodiumValidator procdef_validate_sodium
+    TotalCholesterol procdef_totalcholesterol ***
+    TotalCholesterolValidator procdef_validate_totalcholesterol ***
+    Triglycerides procdef_triglycerides ***
+    TriglyceridesValidator procdef_validate_triglycerides ***
     TSH procdef_tsh
     TSHValidator procdef_validate_tsh
+    Urea procdef_urea ***
+    UreaValidator procdef_validate_urea ***
     # -------------------------------------------------------------------------
     # Clinical
     # -------------------------------------------------------------------------
@@ -181,31 +201,39 @@ processors =
     # -------------------------------------------------------------------------
     # Cognitive
     # -------------------------------------------------------------------------
-    MMSE procdef_mmse
-    MMSEValidator procdef_validate_mmse
     ACE procdef_ace
     ACEValidator procdef_validate_ace
     MiniACE procdef_mini_ace
     MiniACEValidator procdef_validate_mini_ace
+    MMSE procdef_mmse
+    MMSEValidator procdef_validate_mmse
     MOCA procdef_moca
     MOCAValidator procdef_validate_moca
     # -------------------------------------------------------------------------
     # Haematology
     # -------------------------------------------------------------------------
-    ESR procdef_esr
-    ESRValidator procdef_validate_esr
-    WBC procdef_wbc
-    WBCValidator procdef_validate_wbc
     Basophils procdef_basophils
     BasophilsValidator procdef_validate_basophils
     Eosinophils procdef_eosinophils
     EosinophilsValidator procdef_validate_eosinophils
+    ESR procdef_esr
+    ESRValidator procdef_validate_esr
+    Haematocrit procdef_haematocrit ***
+    HaematocritValidator procdef_validate_haematocrit ***
+    Haemoglobin procdef_haemoglobin ***
+    HaemoglobinValidator procdef_validate_haemoglobin ***
     Lymphocytes procdef_lymphocytes
     LymphocytesValidator procdef_validate_lymphocytes
     Monocytes procdef_monocytes
     MonocytesValidator procdef_validate_monocytes
     Neutrophils procdef_neutrophils
     NeutrophilsValidator procdef_validate_neutrophils
+    Platelets procdef_platelets
+    PlateletsValidator procdef_validate_platelets
+    RBC procdef_rbc
+    RBCValidator procdef_validate_rbc
+    WBC procdef_wbc
+    WBCValidator procdef_validate_wbc
 
 progressdb = DESTINATION_DATABASE
 hashphrase = doesnotmatter
@@ -413,11 +441,11 @@ renames =
     firstName   firstname
 
 destfields =
-    rule        VARCHAR(100)
-    firstname   VARCHAR(100)
-    surname     VARCHAR(100)
-    gender      VARCHAR(7)
-    kind        VARCHAR(100)
+    rule        VARCHAR(100)    Rule used to find this person (e.g. TitleFirstName, PersonFull)
+    firstname   VARCHAR(100)    First name
+    surname     VARCHAR(100)    Surname
+    gender      VARCHAR(7)      Gender (e.g. male, female, unknown)
+    kind        VARCHAR(100)    Kind of name (e.g. personName, fullName)
 
     # ... longest gender: "unknown" (7)
 
@@ -431,8 +459,8 @@ desttable = location
 renames =
     locType     loctype
 destfields =
-    rule        VARCHAR(100)
-    loctype     VARCHAR(100)
+    rule        VARCHAR(100)    Rule used (e.g. Location1)
+    loctype     VARCHAR(100)    Location type (e.g. city)
 indexdefs =
     rule    100
     loctype 100
@@ -485,17 +513,17 @@ renames =
     VOCABS          vocabs
 destfields =
     # Found by manual inspection of KConnect/Bio-YODIE output from the GATE console:
-    experiencer  VARCHAR(100)  # e.g. "Patient", "Other"
-    negation     VARCHAR(100)  # e.g. "Affirmed", "Negated"
-    pref         VARCHAR(100)  # e.g. "Rheumatic gout"; PREFferred name
-    sty          VARCHAR(100)  # e.g. "Disease or Syndrome"; Semantic Type (STY) [semantic type name]
-    tui          VARCHAR(4)    # e.g. "T047"; Type Unique Identifier (TUI) [semantic type identifier]; 4 characters; https://www.ncbi.nlm.nih.gov/books/NBK9679/
-    temporality  VARCHAR(100)  # e.g. "Recent", "historical", "hypothetical"
-    vocabs       VARCHAR(255)  # e.g. "AIR,MSH,NDFRT,MEDLINEPLUS,NCI,LNC,NCI_FDA,NCI,MTH,AIR,ICD9CM,LNC,SNOMEDCT_US,LCH_NW,HPO,SNOMEDCT_US,ICD9CM,SNOMEDCT_US,COSTAR,CST,DXP,QMR,OMIM,OMIM,AOD,CSP,NCI_NCI-GLOSS,CHV"; list of UMLS vocabularies
-    inst         VARCHAR(8)    # e.g. "C0003873"; looks like a Concept Unique Identifier (CUI); 1 letter then 7 digits
-    inst_full    VARCHAR(255)  # e.g. "http://linkedlifedata.com/resource/umls/id/C0003873"
-    language     VARCHAR(100)  # e.g. ""; ?will look like "ENG" for English? See https://www.nlm.nih.gov/research/umls/implementation_resources/query_diagrams/er1.html
-    tui_full     VARCHAR(255)  # e.g. "http://linkedlifedata.com/resource/semanticnetwork/id/T047"
+    experiencer  VARCHAR(100)  Who experienced it; e.g. "Patient", "Other"
+    negation     VARCHAR(100)  Was it negated or not; e.g. "Affirmed", "Negated"
+    pref         VARCHAR(100)  PREFferred name; e.g. "Rheumatic gout" 
+    sty          VARCHAR(100)  Semantic Type (STY) [semantic type name]; e.g. "Disease or Syndrome" 
+    tui          VARCHAR(4)    Type Unique Identifier (TUI) [semantic type identifier]; 4 characters; https://www.ncbi.nlm.nih.gov/books/NBK9679/; e.g. "T047" 
+    temporality  VARCHAR(100)  Occurrence in time; e.g. "Recent", "historical", "hypothetical"
+    vocabs       VARCHAR(255)  List of UMLS vocabularies; e.g. "AIR,MSH,NDFRT,MEDLINEPLUS,NCI,LNC,NCI_FDA,NCI,MTH,AIR,ICD9CM,LNC,SNOMEDCT_US,LCH_NW,HPO,SNOMEDCT_US,ICD9CM,SNOMEDCT_US,COSTAR,CST,DXP,QMR,OMIM,OMIM,AOD,CSP,NCI_NCI-GLOSS,CHV"
+    inst         VARCHAR(8)    Looks like a Concept Unique Identifier (CUI); 1 letter then 7 digits; e.g. "C0003873"
+    inst_full    VARCHAR(255)  Looks like a URL to a CUI; e.g. "http://linkedlifedata.com/resource/umls/id/C0003873"
+    language     VARCHAR(100)  Language; e.g. ""; ?will look like "ENG" for English? See https://www.nlm.nih.gov/research/umls/implementation_resources/query_diagrams/er1.html
+    tui_full     VARCHAR(255)  TUI (?); e.g. "http://linkedlifedata.com/resource/semanticnetwork/id/T047"
 indexdefs =
     pref    100
     sty     100
@@ -749,17 +777,24 @@ url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
 [Cloud_NLP]
 
 # The url of the cloud NLP services
+
 cloud_url =
+
 # Your username and password for accessing the services at the url specified
+
 username = your_username
 password = your_password
+
 # The maximum size of the packets to be sent. This should be less than or equal
 # to the limit the service allows. Put 0 for no maximum length.
 # NOTE: if a single record is larger than the maximum packet size, that record
 # will not be sent
+
 max_content_length = 0
+
 # Directory to hold files containing information for the retrieval od data
 # which has been sent in queued mode
+
 request_data_dir = /home/.../nlp_req_data
 
 """.format(  # noqa

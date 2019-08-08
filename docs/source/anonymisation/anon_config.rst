@@ -45,7 +45,8 @@ You can generate a specimen config file with
 
     crate_anonymise --democonfig > test_anon_config.ini
 
-You should save this, then edit it to your own needs.
+You should save this, then edit it to your own needs. A copy is shown
+:ref:`below <specimen_anonymiser_config>`.
 
 For convenience, you may want the `CRATE_ANON_CONFIG` environment variable to
 point to this file. (Otherwise you must specify it each time.)
@@ -1325,3 +1326,17 @@ Many options are not shown and most comments have been removed.
 
 
 .. todo:: Check minimal anonymiser config example works.
+
+
+.. _specimen_anonymiser_config:
+
+Specimen config
+~~~~~~~~~~~~~~~
+
+A specimen NLP config is available by running ``crate_nlp --democonfig``. In
+the source, it is :data:`crate_anon.nlp_manager.constants.DEMO_CONFIG`.
+
+Here's the specimen NLP config:
+
+..  literalinclude:: specimen_anonymiser_config.ini
+    :language: ini

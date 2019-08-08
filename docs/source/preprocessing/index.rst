@@ -69,7 +69,7 @@ following abbreviations are used:
 ``_Resp_Clinician_`` … Responsible Clinician
 ==================== =======================
 
-Options as of 2017-02-28:
+Options:
 
 ..  literalinclude:: crate_preprocess_rio_help.txt
     :language: none
@@ -80,7 +80,7 @@ Options as of 2017-02-28:
 crate_preprocess_pcmis
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Options as of 2018-06-10:
+Options:
 
 ..  literalinclude:: crate_preprocess_pcmis_help.txt
     :language: none
@@ -91,7 +91,7 @@ Options as of 2018-06-10:
 crate_postcodes
 ~~~~~~~~~~~~~~~
 
-Options as of 2017-02-28:
+Options:
 
 ..  literalinclude:: crate_postcodes_help.txt
     :language: none
@@ -107,7 +107,7 @@ blacklisting, and words to exclude from such lists (such as English words or
 medical eponyms). It also provides an exclusion filter system, to find lines in
 some files that are absent from others.
 
-Options as of 2019-07-06:
+Options:
 
 ..  literalinclude:: crate_fetch_wordlists_help.txt
     :language: none
@@ -127,7 +127,7 @@ crate_fuzzy_id_match
 
 See :mod:`crate_anon.preprocess.fuzzy_id_match`.
 
-Options as of 2019-08-06 (from ``crate_fuzzy_id_match --allhelp``):
+Options (from ``crate_fuzzy_id_match --allhelp``):
 
 ..  literalinclude:: crate_fuzzy_id_match_help.txt
     :language: none

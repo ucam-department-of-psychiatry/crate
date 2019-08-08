@@ -110,7 +110,7 @@ positions are the zero-based index of one beyond the last relevant character.
 crate_nlp_build_medex_java_interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Options as of 2017-02-28:
+Options:
 
 ..  literalinclude:: crate_nlp_build_medex_java_interface_help.txt
     :language: none
@@ -122,7 +122,7 @@ crate_nlp_build_medex_itself
 This program builds MedEx and implements some bug fixes and improvements for
 the UK.
 
-Options as of 2017-02-28:
+Options:
 
 ..  literalinclude:: crate_nlp_build_medex_itself_help.txt
     :language: none
@@ -139,7 +139,7 @@ Asking `CrateMedexPipeline` to show its command-line options:
 .. literalinclude:: show_crate_medex_pipeline_options.sh
     :language: bash
 
-The resulting output (2019-03-28):
+The resulting output:
 
 ..  literalinclude:: CrateMedexPipeline_help.txt
     :language: none
