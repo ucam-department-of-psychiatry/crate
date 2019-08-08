@@ -123,7 +123,7 @@ def is_valid_nlprp_response(x: Dict[str, Any],
     try:
         assert is_nlprp_protocol_valid(
             x, min_version=min_version, max_version=max_version)
-        # *** more here?
+        # todo: is_valid_nlprp_response: add more here?
     except (AssertionError, AttributeError, KeyError, TypeError, ValueError):
         return False
     return True

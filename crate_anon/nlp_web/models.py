@@ -112,24 +112,24 @@ class DocProcRequest(Base):
     """
     SQLAlchemy table containing processor requests for a given document?
 
-    .. todo:: *** CLARIFY
+    .. todo:: DocProcRequest: CLARIFY
 
     """
     __tablename__ = 'docprocrequests'
     # docprocrequest_id = Column(Integer, primary_key=True, autoincrement=True)
     docprocrequest_id = Column(
         VARCHAR(50), primary_key=True,
-        comment="???"  # ***
+        comment="???"  # todo: DocProcRequest: add comment
     )
     document_id = Column(
         VARCHAR(50),
-        comment="???"  # ***
+        comment="???"  # todo: DocProcRequest: add comment
     )
     doctext = Column(
         Text,
-        comment="???"  # ***
+        comment="???"  # todo: DocProcRequest: add comment
     )
     processor_id = Column(
         VARCHAR(50),
-        comment="???"  # ***
+        comment="???"  # todo: DocProcRequest: add comment
     )

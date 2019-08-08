@@ -1458,8 +1458,7 @@ XML     Extensible Markup Language
 NLPRP things to do and potential future requirements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. todo::
-    NLPRP: consider supra-document processing requirements
+.. todo:: NLPRP: consider supra-document processing requirements
 
 Corpus (supra-document) processing:
 
