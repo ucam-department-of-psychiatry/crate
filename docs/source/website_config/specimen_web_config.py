@@ -348,7 +348,7 @@ MANAGERS = (
 # but if that fails, use
 #   WKHTMLTOPDF_FILENAME = '/path/to/wkhtmltopdf.sh'
 # where wkhtmltopdf.sh is an executable script (chmod a+x ...) containing:
-#   #!/bin/bash
+#   #!/usr/bin/env bash
 #   xvfb-run --auto-servernum --server-args="-screen 0 640x480x16" \
 #       /usr/bin/wkhtmltopdf "$@"
 

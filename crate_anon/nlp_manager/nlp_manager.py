@@ -57,8 +57,6 @@ Speed testing:
         mysqld about 18% [from top]
         nlp_manager.py about 4-5% * 8 [from top]
 
-.. todo:: comments for NLP output fields (in table definition, destfields)
-
 """  # noqa
 
 # =============================================================================
@@ -1206,6 +1204,11 @@ def main() -> None:
         "--describeprocessors", action="store_true",
         help="Show details of built-in NLP processors")
     parser.add_argument(
+        "--print_nlprp_list_processors_json", action="store_true",
+        help="Show NLPRP JSON for processors that are part of the chosen NLP "
+             "definition, then stop"
+    )
+    parser.add_argument(
         "--showinfo", required=False, nargs='?',
         metavar="NLP_CLASS_NAME",
         help="Show detailed information for a parser")
@@ -1329,6 +1332,11 @@ def main() -> None:
     if args.count:
         show_source_counts(config)
         show_dest_counts(config)
+        return
+
+    # Show configured processor definitions only?
+    if args.print_nlprp_list_processors_json:
+        print(config.nlprp_list_processors_json())
         return
 
     # -------------------------------------------------------------------------

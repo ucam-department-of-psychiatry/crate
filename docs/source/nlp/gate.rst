@@ -199,42 +199,18 @@ files like `CrateGatePipeline.class`); edit them as required.
 
 Asking `CrateGatePipeline` to show its command-line options:
 
-.. code-block:: bash
-
-    #!/bin/bash
-    THISDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-    CRATE_NLP_JAVA_CLASS_DIR=$THISDIR/../crate_anon/nlp_manager/compiled_nlp_classes
-    java \
-        -classpath "${CRATE_NLP_JAVA_CLASS_DIR}":"${GATE_DIR}/bin/gate.jar":"${GATE_DIR}/lib/*" \
-        -Dgate.home="${GATE_DIR}" \
-        CrateGatePipeline \
-        --help \
-        -v -v
+.. literalinclude:: show_crate_gate_pipeline_options.sh
+    :language: bash
 
 The resulting output (2018-04-17):
 
 ..  literalinclude:: CrateGatePipeline_help.txt
     :language: none
 
-
 Asking `CrateGatePipeline` to run the GATE “ANNIE” demonstration:
 
-.. code-block:: bash
-
-    #!/bin/bash
-    THISDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-    CRATE_NLP_JAVA_CLASS_DIR=$THISDIR/../crate_anon/nlp_manager/compiled_nlp_classes
-    java \
-        -classpath "${CRATE_NLP_JAVA_CLASS_DIR}":"${GATE_DIR}/bin/gate.jar":"${GATE_DIR}/lib/*" \
-        -Dgate.home="${GATE_DIR}" \
-        CrateGatePipeline \
-        -g "${GATE_DIR}/plugins/ANNIE/ANNIE_with_defaults.gapp" \
-        -a Person \
-        -a Location \
-        -it STOP \
-        -ot END_OF_NLP_OUTPUT_RECORD \
-        -lt . \
-        -v -v
+.. literalinclude:: run_gate_annie_demo_via_crate.sh
+    :language: bash
 
 
 Troubleshooting GATE

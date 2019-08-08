@@ -34,10 +34,11 @@ crate_anon/nlp_manager/nlp_definition.py
 
 import codecs
 import datetime
+import json
 import logging
 import os
 import sys
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_notz_datetime
 from cardinal_pythonlib.lists import chunks
@@ -56,6 +57,7 @@ from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
     NLP_CONFIG_ENV_VAR,
 )
+from crate_anon.nlprp.constants import NlprpKeys
 
 # if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
 #     from crate_anon.nlp_manager import input_field_config
@@ -511,3 +513,32 @@ class NlpDefinition(object):
         Returns the progress database.
         """
         return self._progdb
+
+    def nlprp_list_processors(self, sql_dialect: str = None) -> Dict[str, Any]:
+        """
+        Returns a draft list of processors as per the :ref:`NLPRP <nlprp`>
+        :ref:`list_processors <list_processors>` command.
+        """
+        processors = []  # type: List[Dict, str, Any]
+        for proc in self.get_processors():
+            processors.append(proc.nlprp_processor_info(sql_dialect))
+        return {
+            NlprpKeys.PROCESSORS: processors,
+        }
+
+    def nlprp_list_processors_json(self,
+                                   indent: int = 4,
+                                   sort_keys: bool = True,
+                                   sql_dialect: str = None) -> Dict[str, Any]:
+        """
+        Returns a formatted JSON string from :func:`nlprp_list_processors`.
+        This is primarily for debugging.
+
+        Args:
+            indent: number of spaces for indentation
+            sort_keys: sort keys?
+            sql_dialect: preferred SQL dialect for ``tabular_schema``, or
+                ``None`` for default
+        """
+        json_structure = self.nlprp_list_processors(sql_dialect=sql_dialect)
+        return json.dumps(json_structure, indent=indent, sort_keys=sort_keys)

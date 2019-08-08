@@ -647,6 +647,8 @@ Example:
         ""
 
 
+.. _nlp_config_destfields:
+
 destfields
 ##########
 
@@ -654,7 +656,9 @@ destfields
 
 Defines the database field (column) types used in the output database. This is
 how you tell the database how much space to allocate for information that will
-come out of GATE. Each line is a ``column_name, sql_type`` pair. Example:
+come out of GATE. Each line is a ``column_name, sql_type`` pair (or,
+optionally, a ``column_name, sql_type, comment`` triple. Whitespace is used to
+separate the columns. Examples:
 
 .. code-block:: none
 
@@ -664,6 +668,15 @@ come out of GATE. Each line is a ``column_name, sql_type`` pair. Example:
         surname     VARCHAR(100)
         gender      VARCHAR(7)
         kind        VARCHAR(100)
+
+.. code-block:: none
+
+    destfields =
+        rule        VARCHAR(100)    Rule used to find this person (e.g. TitleFirstName, PersonFull)
+        firstname   VARCHAR(100)    First name
+        surname     VARCHAR(100)    Surname
+        gender      VARCHAR(7)      Gender (e.g. male, female)
+        kind        VARCHAR(100)    Kind of name (e.g. personName, fullName)
 
 
 indexdefs

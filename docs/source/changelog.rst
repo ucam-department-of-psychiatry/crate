@@ -1029,6 +1029,8 @@ Changes
 - Bugfix to :class:`crate_anon.nlp_manager.parse_cognitive.MocaValidator`; was
   looking at the mini-ACE instead!
 - Abstract base classes in NLP parsers to assist with NLPRP work.
+- Comments for NLP output columns (for build-in fields and those specified by
+  :ref:`destfields <nlp_config_destfields>`).
 
 
 ===============================================================================

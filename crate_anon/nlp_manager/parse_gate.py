@@ -405,11 +405,18 @@ class Gate(BaseNlpParser):
             )
         return tables
 
+    def nlprp_name(self) -> str:
+        # docstring in superclass
+        if self._debug_mode:
+            return super().nlprp_name()
+        else:
+            return self._nlpdef.get_name()
+
     def nlprp_schema_info(self, sql_dialect: str = None) -> Dict[str, Any]:
-        # We do not need to override nlprp_schema_info(). Although CRATE's GATE
-        # processor doesn't automatically know its schema, it is told by the
-        # config (i.e. by the user) and can pass on that information.
-        # However, for debug mode, it's helpful to override.
+        # We do not absolutely need to override nlprp_schema_info(). Although
+        # CRATE's GATE processor doesn't automatically know its schema, it is
+        # told by the config (i.e. by the user) and can pass on that
+        # information. However, for debug mode, it's helpful to override.
         if self._debug_mode:
             return {NlprpKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN}
         else:

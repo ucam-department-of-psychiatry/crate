@@ -29,6 +29,7 @@ crate_anon/nlp_manager/output_user_config.py
 """
 
 import ast
+import logging
 import shlex
 from typing import Dict, List
 
@@ -50,6 +51,8 @@ from crate_anon.nlp_manager.nlp_definition import (
     full_sectionname,
     NlpConfigPrefixes,
 )
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -136,17 +139,24 @@ class OutputUserConfig(object):
 
         self._destfields = []  # type: List[str]
         self._dest_datatypes = []  # type: List[str]
-        dest_fields_datatypes = opt_strlist('destfields', required=True)
-        # log.critical(dest_fields_datatypes)
-        for c in chunks(dest_fields_datatypes, 2):
-            field = c[0]
-            datatype = c[1].upper()
+        self._dest_comments = []  # type: List[str]
+        dest_field_lines = opt_strlist('destfields', required=True,
+                                            as_words=False)
+        # ... comments will be removed during that process.
+        log.critical(dest_field_lines)
+        for dfl in dest_field_lines:
+            parts = dfl.split(maxsplit=2)
+            assert len(parts) >= 2, f"Bad field definition line: {dfl!r}"
+            field = parts[0]
+            datatype = parts[1].upper()
+            comment = parts[2] if len(parts) > 2 else None
             ensure_valid_field_name(field)
             if not is_sqltype_valid(datatype):
                 raise Exception(
                     f"Invalid datatype for {field}: {datatype}")
             self._destfields.append(field)
             self._dest_datatypes.append(datatype)
+            self._dest_comments.append(comment)
 
         src_fields = [c.name for c in
                       InputFieldConfig.get_core_columns_for_dest()]
@@ -206,9 +216,11 @@ class OutputUserConfig(object):
         columns = []  # type: List[Column]
         for i, field in enumerate(self._destfields):
             datatype = self._dest_datatypes[i]
+            comment = self._dest_comments[i]
             columns.append(Column(
                 field,
-                get_sqla_coltype_from_dialect_str(datatype, engine.dialect)
+                get_sqla_coltype_from_dialect_str(datatype, engine.dialect),
+                comment=comment
             ))
         return columns
 

@@ -82,6 +82,7 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+DEFAULT_NLPRP_SQL_DIALECT = SqlDialects.MYSQL
 TIMING_DELETE_DEST_RECORD = "BaseNlpParser_delete_dest_record"
 TIMING_INSERT = "BaseNlpParser_sql_insert"
 TIMING_PARSE = "parse"
@@ -649,7 +650,7 @@ class BaseNlpParser(ABC):
             sql_dialect: preferred SQL dialect for response, or ``None`` for
                 a default
         """
-        sql_dialect = sql_dialect or SqlDialects.MYSQL  # default
+        sql_dialect = sql_dialect or DEFAULT_NLPRP_SQL_DIALECT
         assert sql_dialect in ALL_SQL_DIALECTS, (
             f"Unknown SQL dialect {sql_dialect!r}; must be one of "
             f"{ALL_SQL_DIALECTS}"
@@ -677,6 +678,7 @@ class BaseNlpParser(ABC):
         Args:
             sql_dialect: preferred SQL dialect for ``tabular_schema``
         """
+        sql_dialect = sql_dialect or DEFAULT_NLPRP_SQL_DIALECT
         tabular_schema = {}
         for tablename, columns in self.dest_tables_columns().items():
             colinfo = []  # type: List[Dict[str, Any]]
