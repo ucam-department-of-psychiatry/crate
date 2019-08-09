@@ -2499,7 +2499,7 @@ class ContactRequest(models.Model):
         except UserProfile.DoesNotExist:
             log.warning("ContactRequest object needs 'request_by' to be "
                         "a valid user for 'request_by_address_components'.")
-            address_components = []
+            address_components = []  # type: List[str]
         else:
             address_components = [
                 userprofile.address_1,

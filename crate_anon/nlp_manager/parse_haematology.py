@@ -946,6 +946,26 @@ class PlateletsValidator(ValidatorBase):
 
 
 # =============================================================================
+# All classes in this module
+# =============================================================================
+
+ALL_HAEMATOLOGY_NLP_AND_VALIDATORS = [
+    (Basophils, BasophilsValidator),
+    (Eosinophils, EosinophilsValidator),
+    (Esr, EsrValidator),
+    (Haematocrit, HaematocritValidator),
+    (Haemoglobin, HaemoglobinValidator),
+    (Lymphocytes, LymphocytesValidator),
+    (Monocytes, MonocytesValidator),
+    (Neutrophils, NeutrophilsValidator),
+    (Platelets, PlateletsValidator),
+    (RBC, RBCValidator),
+    (Wbc, WbcValidator),
+]
+ALL_HAEMATOLOGY_NLP, ALL_HAEMATOLOGY_VALIDATORS = zip(*ALL_HAEMATOLOGY_NLP_AND_VALIDATORS)  # noqa
+
+
+# =============================================================================
 # Command-line entry point
 # =============================================================================
 
@@ -953,24 +973,8 @@ def test_all(verbose: bool = False) -> None:
     """
     Test all parsers in this module.
     """
-    # Haemoglobin, haematocrit
-    Haemoglobin(None, None).test(verbose=verbose)
-    Haematocrit(None, None).test(verbose=verbose)
-    RBC(None, None).test(verbose=verbose)
-
-    # ESR
-    Esr(None, None).test(verbose=verbose)
-
-    # WBC and differential
-    Wbc(None, None).test(verbose=verbose)
-    Neutrophils(None, None).test(verbose=verbose)
-    Lymphocytes(None, None).test(verbose=verbose)
-    Monocytes(None, None).test(verbose=verbose)
-    Basophils(None, None).test(verbose=verbose)
-    Eosinophils(None, None).test(verbose=verbose)
-
-    # Platelets
-    Platelets(None, None).test(verbose=verbose)
+    for cls in ALL_HAEMATOLOGY_NLP:
+        cls(None, None).test(verbose=verbose)
 
 
 if __name__ == '__main__':

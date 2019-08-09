@@ -1354,17 +1354,19 @@ follow best practice and encode the status both in HTTP and in the JSON.
 
 Specific HTTP status codes not detailed above include:
 
-================== ========================================= ========================
+================== ========================================= ==========================
 Command            Situation                                 HTTP status code
-================== ========================================= ========================
+================== ========================================= ==========================
 Any                Success                                   200 OK
+Any                Request malformed                         400 Bad Request
 Any                Authorization failed                      401 Unauthorized
+Any                Server bug                                500 Internal Server Error
 process_           Results returned                          200 OK
 process_           Request queued                            202 Accepted
 process_           Server is too busy right now              503 Service Unavailable
 fetch_from_queue_  No such queue entry                       404 Not Found
 fetch_from_queue_  Entry still in queue and being processed  102 Processing [#http102]_
-================== ========================================= ========================
+================== ========================================= ==========================
 
 
 Python internal NLP interface

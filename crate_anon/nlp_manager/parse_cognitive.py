@@ -350,26 +350,30 @@ class MocaValidator(ValidatorBase):
 
 
 # =============================================================================
-#  Command-line entry point
+# All classes in this module
+# =============================================================================
+
+ALL_COGNITIVE_NLP_AND_VALIDATORS = [
+    (Ace, AceValidator),
+    (MiniAce, MiniAceValidator),
+    (Mmse, MmseValidator),
+    (Moca, MocaValidator),
+]
+ALL_COGNITIVE_NLP, ALL_COGNITIVE_VALIDATORS = zip(*ALL_COGNITIVE_NLP_AND_VALIDATORS)  # noqa
+
+
+# =============================================================================
+# Command-line entry point
 # =============================================================================
 
 def test_all(verbose: bool = False) -> None:
     """
     Test all parsers in this module.
     """
-    mmse = Mmse(None, None)
-    mmse.test(verbose=verbose)
-
-    ace = Ace(None, None)
-    ace.test(verbose=verbose)
-    ace_validator = AceValidator(None, None)
-    ace_validator.test(verbose=verbose)
-
-    mace = MiniAce(None, None)
-    mace.test(verbose=verbose)
-
-    moca = Moca(None, None)
-    moca.test(verbose=verbose)
+    for cls in ALL_COGNITIVE_NLP:
+        cls(None, None).test(verbose=verbose)
+    for cls in ALL_COGNITIVE_VALIDATORS:  # we want the ACE validator in particular  # noqa
+        cls(None, None).test(verbose=verbose)
 
 
 if __name__ == '__main__':

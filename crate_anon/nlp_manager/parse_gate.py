@@ -49,11 +49,12 @@ from sqlalchemy import Column, Index, Integer, Text
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
+    NlpConfigPrefixes,
+    ProcessorConfigKeys,
     SqlTypeDbIdentifier,
 )
 from crate_anon.nlp_manager.nlp_definition import (
     full_sectionname,
-    NlpConfigPrefixes,
     NlpDefinition,
 )
 from crate_anon.nlprp.constants import NlprpKeys, NlprpValues
@@ -61,6 +62,7 @@ from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 
 log = logging.getLogger(__name__)
 
+# Field (column) names for results from GATE.
 # These match KEY_* strings in CrateGatePipeline.java:
 FN_SET = '_set'
 FN_TYPE = '_type'
@@ -68,15 +70,6 @@ FN_ID = '_id'
 FN_STARTPOS = '_start'
 FN_ENDPOS = '_end'
 FN_CONTENT = '_content'
-
-
-class GateConfigKeys(object):
-    MAX_EXTERNAL_PROG_USES = "max_external_prog_uses"
-    INPUT_TERMINATOR = "input_terminator"
-    OUTPUT_TERMINATOR = "output_terminator"
-    OUTPUTTYPEMAP = "outputtypemap"
-    PROGENVSECTION = "progenvsection"
-    PROGARGS = "progargs"
 
 
 # =============================================================================
@@ -155,21 +148,21 @@ class Gate(BaseNlpParser):
         else:
             self._debug_mode = False
             self._max_external_prog_uses = nlpdef.opt_int(
-                self._sectionname, GateConfigKeys.MAX_EXTERNAL_PROG_USES,
+                self._sectionname, ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
                 default=0)
             self._input_terminator = nlpdef.opt_str(
-                self._sectionname, GateConfigKeys.INPUT_TERMINATOR,
+                self._sectionname, ProcessorConfigKeys.INPUT_TERMINATOR,
                 required=True)
             self._output_terminator = nlpdef.opt_str(
-                self._sectionname, GateConfigKeys.OUTPUT_TERMINATOR,
+                self._sectionname, ProcessorConfigKeys.OUTPUT_TERMINATOR,
                 required=True)
             typepairs = nlpdef.opt_strlist(
-                self._sectionname, GateConfigKeys.OUTPUTTYPEMAP,
+                self._sectionname, ProcessorConfigKeys.OUTPUTTYPEMAP,
                 required=True, lower=False)
             self._progenvsection = nlpdef.opt_str(
-                self._sectionname, GateConfigKeys.PROGENVSECTION)
+                self._sectionname, ProcessorConfigKeys.PROGENVSECTION)
             progargs = nlpdef.opt_str(
-                self._sectionname, GateConfigKeys.PROGARGS,
+                self._sectionname, ProcessorConfigKeys.PROGARGS,
                 required=True)
             logtag = nlpdef.get_logtag() or '.'
 
@@ -317,7 +310,7 @@ class Gate(BaseNlpParser):
             d = tsv_pairs_to_dict(line)
             log.debug(f"dictionary received: {d}")
             try:
-                annottype = d['_type'].lower()
+                annottype = d[FN_TYPE].lower()
             except KeyError:
                 raise ValueError("_type information not in data received")
             if annottype not in self._type_to_tablename:

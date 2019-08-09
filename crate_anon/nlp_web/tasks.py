@@ -31,28 +31,32 @@ import transaction
 import logging
 import datetime
 import json
-# import time
 
 from cryptography.fernet import Fernet
 from sqlalchemy import engine_from_config
-from typing import Optional, Tuple, Any, List, Dict
+from typing import Any, List, Dict
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.exc import SQLAlchemyError
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
+from crate_anon.nlp_manager.constants import GateApiKeys, GateResultKeys
 from crate_anon.nlp_web.models import Session, DocProcRequest
 from crate_anon.nlp_web.procs import Processor
 from crate_anon.nlp_web.constants import PROCTYPE_GATE, SETTINGS
 from crate_anon.nlp_web.security import decrypt_password
+from crate_anon.nlprp.api import NlprpKeys
 
 log = logging.getLogger(__name__)
+
+# =============================================================================
+# SQLAlchemy and Celery setup
+# =============================================================================
 
 TaskSession = scoped_session(Session)
 engine = engine_from_config(SETTINGS, 'sqlalchemy.',
                             **{'pool_recycle': 25200,
                                'pool_pre_ping': True})
 TaskSession.configure(bind=engine)
-
 
 try:
     broker_url = SETTINGS['broker_url']
@@ -70,6 +74,96 @@ key = SETTINGS['encryption_key']
 key = key.encode()
 CIPHER_SUITE = Fernet(key)
 
+# Set expiry time to 90 days in seconds
+expiry_time = 60 * 60 * 24 * 90
+app = Celery('tasks', backend=backend_url, broker=broker_url,
+             result_expires=expiry_time)
+app.conf.database_engine_options = {'pool_recycle': 25200,
+                                    'pool_pre_ping': True}
+
+
+# =============================================================================
+# NlpServerResult
+# =============================================================================
+
+class NlpServerResult(object):
+    """
+    Object to represent the server-side results of processing some text.
+    """
+    def __init__(self,
+                 success: bool,
+                 time: datetime.datetime = None,
+                 results: List[Dict[str, Any]] = None,
+                 errcode: int = None,
+                 errmsg: str = None) -> None:
+        self.success = success
+        self.time = time or datetime.datetime.utcnow()
+        self.results = results or []  # type: List[Dict[str, Any]]
+        self.errcode = errcode
+        self.errmsg = errmsg
+
+    def nlprp_processor_dict(self, processor: Processor) -> Dict[str, Any]:
+        """
+        Returns a dictionary suitable for use as one of the elements of the
+        ``response["results"]["processors"] array; see :ref:`NLPRP <nlprp>`.
+
+        Args:
+            processor: a :class:`crate_anon.nlp_web.procs.Processor`
+
+        Returns:
+            dict: as above
+        """
+        proc_dict = {
+            NlprpKeys.NAME: processor.name,
+            NlprpKeys.TITLE: processor.title,
+            NlprpKeys.VERSION: processor.version,
+            NlprpKeys.RESULTS: self.results,
+            NlprpKeys.SUCCESS: self.success
+        }
+        if not self.success:
+            proc_dict[NlprpKeys.ERRORS] = [{
+                NlprpKeys.CODE: self.errcode,
+                NlprpKeys.MESSAGE: self.errmsg,
+                NlprpKeys.DESCRIPTION: self.errmsg,
+            }]
+        return proc_dict
+
+
+# =============================================================================
+# Convert GATE JSON results (from GATE's own API) to our internal format
+# =============================================================================
+
+def get_gate_results(results_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Convert results in GATE JSON format to results in our internal format.
+
+    Args:
+        results_dict: see :class:`crate_anon.nlp_manager.constants.GateApiKeys`
+            or https://cloud.gate.ac.uk/info/help/online-api.html
+
+    Returns:
+        list of dictionaries; see
+        :class:`crate_anon.nlp_manager.constants.GateApiKeys`
+    """
+    results = []  # type: List[Dict[str, Any]]
+    entities = results_dict[GateApiKeys.ENTITIES]
+    for annottype, values in entities.items():
+        for features in values:
+            start, end = features[GateApiKeys.INDICES]
+            del features[GateApiKeys.INDICES]
+            results.append({
+                GateResultKeys.TYPE: annottype,
+                GateResultKeys.START: start,
+                GateResultKeys.END: end,
+                GateResultKeys.SET: None,  # CHECK WHAT THIS SHOULD BE!!
+                GateResultKeys.FEATURES: features
+            })
+    return results
+
+
+# =============================================================================
+# Task session management
+# =============================================================================
 
 def start_task_session() -> None:
     """
@@ -78,36 +172,9 @@ def start_task_session() -> None:
     TaskSession()
 
 
-def get_gate_results(results_dict: Dict[str, Any]) -> List[Any]:
-    results = []
-    # See https://cloud.gate.ac.uk/info/help/online-api.html
-    # for format of response from processor
-    entities = results_dict['entities']
-    for annottype, values in entities.items():
-        for features in values:
-            start, end = features['indices']
-            del features['indices']
-            results.append({
-                'type': annottype,
-                'start': start,
-                'end': end,
-                'set': None,  # CHECK WHAT THIS SHOULD BE!!
-                # 'features': {x: features[x] for x in
-                #              features if x != "indices"}
-                'features': features
-            })
-    return results
-
-
-# Set expiry time to 90 days in seconds
-expiry_time = 60 * 60 * 24 * 90
-app = Celery('tasks', backend=backend_url, broker=broker_url,
-             result_expires=expiry_time)
-app.conf.database_engine_options = {'pool_recycle': 25200,
-                                    'pool_pre_ping': True}
-
-log = logging.getLogger(__name__)
-
+# =============================================================================
+# NLP server processing functions
+# =============================================================================
 
 # noinspection PyUnusedLocal
 @app.task(bind=True, name='tasks.process_nlp_text')
@@ -116,8 +183,7 @@ def process_nlp_text(
         docprocrequest_id: str,
         url: str = None,
         username: str = "",
-        crypt_pass: str = "") -> Tuple[bool, List[Any], Optional[int],
-                                       str, datetime.datetime]:
+        crypt_pass: str = "") -> NlpServerResult:
     """
     Task to send text to the relevant processor.
     """
@@ -132,12 +198,10 @@ def process_nlp_text(
     # data doesn't always reach the database in time
     if not query:
         log.error(f"Docprocrequest: {docprocrequest_id} does not exist")
-        return (
+        return NlpServerResult(
             False,
-            [],
-            500,
-            "Internal Server Error: Docprocrequest does not exist",
-            datetime.datetime.utcnow()
+            errcode=500,
+            errmsg="Internal Server Error: Docprocrequest does not exist"
         )
     # Turn the password back into bytes and decrypt
     password = decrypt_password(crypt_pass.encode(), CIPHER_SUITE)
@@ -166,8 +230,7 @@ def process_nlp_text_immediate(
         processor: Processor,
         url: str = None,
         username: str = "",
-        password: str = "") -> Tuple[bool, List[Any], Optional[int],
-                                     str, datetime.datetime]:
+        password: str = "") -> NlpServerResult:
     """
     Function to send text immediately to the relevant processor.
     """
@@ -180,19 +243,17 @@ def process_nlp_text_immediate(
 
 
 def process_nlp_gate(text: str, processor: Processor, url: str,
-                     username: str, password: str) -> Tuple[
-            bool, List[Any], Optional[int], Optional[str], datetime.datetime]:
+                     username: str, password: str) -> NlpServerResult:
     """
-    Send text to a chosen GATE processor and returns a Tuple in the format
-    (sucess, results, error code, error message) where success is True or
-    False, results is None if sucess is False and error code and error message
-    are None if success is True.
+    Send text to a chosen GATE processor (via an HTTP connection) and returns a
+    :class:`NlpServerResult`.
     """
     headers = {
         'Content-Type': 'text/plain',
         'Accept': 'application/gate+json',
         # Content-Encoding: gzip?,
-        'Expect': '100-continue',   # see https://cloud.gate.ac.uk/info/help/online-api.html  # noqa
+        'Expect': '100-continue',
+        # ... see https://cloud.gate.ac.uk/info/help/online-api.html
         'charset': 'utf8'
     }
     text = text.encode('utf-8')
@@ -203,62 +264,47 @@ def process_nlp_gate(text: str, processor: Processor, url: str,
                                  auth=(username, password))  # basic auth
     except requests.exceptions.RequestException as e:
         log.error(e)
-        return (
+        return NlpServerResult(
             False,
-            [],
-            e.response.status_code,
-            "The GATE processor returned the error: " + e.response.reason,
-            datetime.datetime.utcnow()
+            errcode=e.response.status_code,
+            errmsg=(
+                "The GATE processor returned the error: " + e.response.reason
+            ),
         )
     if response.status_code != 200:
-        return (
+        return NlpServerResult(
             False,
-            [],
-            response.status_code,
-            "The GATE processor returned the error: " + response.reason,
-            datetime.datetime.utcnow()
+            errcode=response.status_code,
+            errmsg="The GATE processor returned the error: " + response.reason
         )
     try:
         json_response = response.json()
     except json.decoder.JSONDecodeError:
-        return (
+        return NlpServerResult(
             False,
-            [],
-            502,  # 'Bad Gateway' - not sure if correct error code
-            "Bad Gateway: The GATE processor did not return json",
-            datetime.datetime.utcnow()
+            errcode=502,  # 'Bad Gateway' - not sure if correct error code
+            errmsg="Bad Gateway: The GATE processor did not return json"
         )
     results = get_gate_results(json_response)
-    return True, results, None, None, datetime.datetime.utcnow()
+    return NlpServerResult(True, results=results)
 
 
-def process_nlp_internal(text: str, parser: BaseNlpParser) -> Tuple[
-            bool, List[Any], Optional[int], Optional[str], datetime.datetime]:
+def process_nlp_internal(text: str, parser: BaseNlpParser) -> NlpServerResult:
     """
-    Send text to a chosen Python processor and returns a Tuple in the format
-    (sucess, results, error code, error message) where success is True or
-    False, results is None if sucess is False and error code and error message
-    are None if success is True.
+    Send text to a chosen Python NLP processor and return a
+    :class:`NlpServerResult`.
     """
-    # processor = make_processor(processor_type=processor,
-    #                            nlpdef=None, cfgsection=None)
     try:
         parsed_text = parser.parse(text)
     except AttributeError:
         # 'parser' is not actual parser - must have happened internally
-        return (
+        return NlpServerResult(
             False,
-            [],
-            500,  # 'Internal Server Error'
-            "Internal Server Error: parser is not type 'BaseNlpProcessor",
-            datetime.datetime.utcnow()
+            errcode=500,  # 'Internal Server Error'
+            errmsg=(
+                "Internal Server Error: parser is not type 'BaseNlpProcessor"
+            )
         )
     # Get second element of each element in parsed text as first is tablename
     # which will have no meaning here
-    return (
-        True,
-        [x[1] for x in parsed_text],
-        None,
-        None,
-        datetime.datetime.utcnow()
-    )
+    return NlpServerResult(True, results=[x[1] for x in parsed_text])

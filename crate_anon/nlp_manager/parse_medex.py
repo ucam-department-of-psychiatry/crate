@@ -406,10 +406,11 @@ from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
     MEDEX_DATA_READY_SIGNAL,
     MEDEX_RESULTS_READY_SIGNAL,
+    NlpConfigPrefixes,
+    ProcessorConfigKeys,
 )
 from crate_anon.nlp_manager.nlp_definition import (
     full_sectionname,
-    NlpConfigPrefixes,
     NlpDefinition,
 )
 
@@ -519,13 +520,15 @@ class Medex(BaseNlpParser):
         else:
             self._debug_mode = False
             self._tablename = nlpdef.opt_str(
-                self._sectionname, 'desttable', required=True)
+                self._sectionname, ProcessorConfigKeys.DESTTABLE,
+                required=True)
 
             self._max_external_prog_uses = nlpdef.opt_int(
-                self._sectionname, 'max_external_prog_uses', default=0)
+                self._sectionname, ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
+                default=0)
 
-            self._progenvsection = nlpdef.opt_str(self._sectionname,
-                                                  'progenvsection')
+            self._progenvsection = nlpdef.opt_str(
+                self._sectionname, ProcessorConfigKeys.PROGENVSECTION)
 
             if self._progenvsection:
                 self._env = nlpdef.get_env_dict(
@@ -538,8 +541,9 @@ class Medex(BaseNlpParser):
             # ... because passing a "-lt" switch with no parameter will make
             # CrateGatePipeline.java complain and stop
 
-            progargs = nlpdef.opt_str(self._sectionname, 'progargs',
-                                      required=True)
+            progargs = nlpdef.opt_str(
+                self._sectionname, ProcessorConfigKeys.PROGARGS,
+                required=True)
 
         if USE_TEMP_DIRS:
             self._inputdir = tempfile.TemporaryDirectory()

@@ -28,10 +28,18 @@ Validate Natural Language Processing Request Protocol (NLPRP) objects.
 
 """
 
+import datetime
 import json
 import gzip
 from typing import Any, Dict, Union
 
+from cardinal_pythonlib.datetimefunc import (
+    coerce_to_pendulum,
+    pendulum_to_datetime,
+    pendulum_to_utc_datetime_without_tz,
+)
+import pendulum
+from pendulum import DateTime as Pendulum  # NB name clash with SQLAlchemy
 from semantic_version import Version
 
 from crate_anon.nlprp.constants import (
@@ -55,6 +63,82 @@ DEFAULT_SERVER_INFO = {
     NlprpKeys.NAME: DEFAULT_SERVER_NAME,
     NlprpKeys.VERSION: NLPRP_VERSION_STRING,
 }
+
+
+# =============================================================================
+# Date/time conversion to/from NLPRP format
+# =============================================================================
+
+def nlprp_datetime_to_pendulum(ndt: str) -> Pendulum:
+    """
+    The NLPRP date/time format is ISO-8601 with all three of: date, time,
+    timezone.
+
+    Example:
+
+    .. code-block:: none
+
+        "2019-08-09T17:26:20.123456+01:00"
+
+    Args:
+        ndt: date/time in ISO-8601 format with timezone
+
+    Returns:
+        :class:`pendulum.DateTime` (with timezone information)
+    """
+    return pendulum.parse(ndt)
+
+
+def nlprp_datetime_to_datetime_with_tz(ndt: str) -> datetime.datetime:
+    """
+    Converts a NLPRP date/time (see :func:`nlprp_iso_datetime_to_pendulum`) to
+    a :class:`datetime.datetime` with timezone information.
+
+    Args:
+        ndt: date/time in ISO-8601 format with timezone
+
+    Returns:
+        datetime.datetime: with timezone information
+    """
+    p = nlprp_datetime_to_pendulum(ndt)
+    return pendulum_to_datetime(p)
+
+
+def nlprp_datetime_to_datetime_utc_no_tzinfo(ndt: str) -> \
+        datetime.datetime:
+    """
+    Converts a NLPRP date/time (see :func:`nlprp_iso_datetime_to_pendulum`) to
+    a :class:`datetime.datetime` in UTC with no timezone information.
+
+    Args:
+        ndt: date/time in ISO-8601 format with timezone
+
+    Returns:
+        datetime.datetime: in UTC with no timezone information
+    """
+    p = nlprp_datetime_to_pendulum(ndt)
+    return pendulum_to_utc_datetime_without_tz(p)
+
+
+def pendulum_to_nlprp_datetime(p: Pendulum) -> str:
+    """
+    Converts a :class:`pendulum.Pendulum` to the ISO string format (with
+    timezone) used by the NLPRP.
+    """
+    return p.isoformat()
+
+
+def datetime_to_nlprp_datetime(dt: datetime.datetime,
+                               assume_local: bool = True) -> str:
+    """
+    Converts a :class:`datetime.datetime` to the ISO string format (with
+    timezone) used by the NLPRP.
+
+    If the datetime.datetime object has no timezone info, then assume the local
+    timezone if ``assume_local`` is true; otherwise, assume UTC.
+    """
+    p = coerce_to_pendulum(dt, assume_local=assume_local)
+    return pendulum_to_nlprp_datetime(p)
 
 
 # =============================================================================

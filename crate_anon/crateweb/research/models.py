@@ -182,7 +182,7 @@ def database_last_updated(dbname: str) -> Optional[datetime.datetime]:
     except ValueError:
         raise ValueError(
             f"Database {dbname} is not specified in config file")
-    tables_with_timecol = []
+    tables_with_timecol = []  # type: List[str]
     for col in dbinfo.colinfolist:
         if col.column_name == dbinfo.update_date_field:
             tables_with_timecol.append(col.table_name)

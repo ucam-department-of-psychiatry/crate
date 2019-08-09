@@ -64,7 +64,8 @@ from crate_anon.nlp_manager.constants import (
     FN_SRCPKVAL,
     FN_SRCPKSTR,
     FN_SRCFIELD,
-    FN_TRUNCATED,
+    TRUNCATED_FLAG,
+    InputFieldConfigKeys,
     MAX_SEMANTIC_VERSION_STRING_LENGTH,
     MAX_STRING_PK_LENGTH,
 )
@@ -131,18 +132,20 @@ class InputFieldConfig(object):
 
         self._nlpdef = nlpdef
 
-        self._srcdb = opt_str('srcdb')
-        self._srctable = opt_str('srctable')
-        self._srcpkfield = opt_str('srcpkfield')
-        self._srcfield = opt_str('srcfield')
-        self._srcdatetimefield = opt_str('srcdatetimefield',
+        self._srcdb = opt_str(InputFieldConfigKeys.SRCDB)
+        self._srctable = opt_str(InputFieldConfigKeys.SRCTABLE)
+        self._srcpkfield = opt_str(InputFieldConfigKeys.SRCPKFIELD)
+        self._srcfield = opt_str(InputFieldConfigKeys.SRCFIELD)
+        self._srcdatetimefield = opt_str(InputFieldConfigKeys.SRCDATETIMEFIELD,
                                          required=False)  # new in v0.18.52
         # Make these case-sensitive to avoid our failure in renaming SQLA
         # Column objects to be lower-case:
-        self._copyfields = opt_strlist('copyfields', lower=False)  # fieldnames
-        self._indexed_copyfields = opt_strlist('indexed_copyfields',
-                                               lower=False)
-        self._debug_row_limit = opt_int('debug_row_limit', default=0)
+        self._copyfields = opt_strlist(
+            InputFieldConfigKeys.COPYFIELDS, lower=False)  # fieldnames
+        self._indexed_copyfields = opt_strlist(
+            InputFieldConfigKeys.INDEXED_COPYFIELDS, lower=False)
+        self._debug_row_limit = opt_int(
+            InputFieldConfigKeys.DEBUG_ROW_LIMIT, default=0)
         # self._fetch_sorted = opt_bool('fetch_sorted', default=True)
 
         # In case we want to store this value after running
@@ -529,9 +532,9 @@ class InputFieldConfig(object):
                     if (self._nlpdef.truncate_text_at
                             and len(text) > self._nlpdef.truncate_text_at):
                         text = text[:self._nlpdef.truncate_text_at]
-                        other_values[FN_TRUNCATED] = True
+                        other_values[TRUNCATED_FLAG] = True
                     else:
-                        other_values[FN_TRUNCATED] = False
+                        other_values[TRUNCATED_FLAG] = False
 
                     # Yield the result
                     yield text, other_values

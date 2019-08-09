@@ -270,6 +270,29 @@ prevents the transaction(s) growing too large. The ``COMMIT`` will be issued
 transaction just before the limit takes the cumulative total over the limit.
 
 
+.. _nlp_config_truncate_text_at:
+
+truncate_text_at
+################
+
+*Integer.* Default: 0. Must be zero or positive.
+
+Use this to truncate very long incoming text fields. If non-zero, this is the
+length at which to truncate.
+
+
+record_truncated_values
+#######################
+
+*Boolean.* Default: false.
+
+Record in the progress database that we have processed records for which the
+source text was truncated (see :ref:`truncate_text_at
+<nlp_config_truncate_text_at>`).
+
+.. todo:: RNC to ask FS for explanation of ``record_truncated_values``, i.e. when should it be used?
+
+
 .. _nlp_config_section_input:
 
 Config file section: input field definition
@@ -759,6 +782,145 @@ Example:
     url = mysql+mysqldb://myuser:password@127.0.0.1:3306/anonymous_output_db?charset=utf8
 
 
+.. _nlp_config_section_cloud_nlp:
+
+Config file section: cloud NLP
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is a single config file section names ``[Cloud_NLP]``.
+
+
+request_data_dir
+################
+
+*String.* Required to use cloud NLP.
+
+Directory (on your local filesystem) to hold files containing information for
+the retrieval of data which has been sent in queued mode.
+
+
+.. _nlp_config_cloud_url:
+
+cloud_url
+#########
+
+*String.* Required to use cloud NLP.
+
+The URL of the cloud NLP service.
+
+
+.. _nlp_config_verify_ssl:
+
+verify_ssl
+##########
+
+*Boolean.* Default: true.
+
+Should CRATE verify the SSL certificate of the remote NLP server?
+
+
+username
+########
+
+*String.* Default: "".
+
+Your username for accessing the services at the URL specified in
+:ref:`cloud_url <nlp_config_cloud_url>`.
+
+
+password
+########
+
+*String.* Default: "".
+
+Your password for accessing the services at the URL specified in
+:ref:`cloud_url <nlp_config_cloud_url>`.
+
+
+wait_on_conn_err
+################
+
+*Integer.* Default: 180.
+
+After a connection error occurs, wait this many seconds before retrying.
+
+
+.. _nlp_config_max_content_length:
+
+max_content_length
+##################
+
+*Integer.* Default: 0.
+
+The maximum size of the packets to be sent. This should be less than or equal
+to the limit the service allows. Put 0 for no maximum length.
+
+NOTE: if a single record is larger than the maximum packet size, that record
+will not be sent.
+
+
+.. _nlp_config_max_records_per_request:
+
+max_records_per_request
+#######################
+
+*Integer.* Default: 1000.
+
+When sending data: the maximum number of pieces of text that will be sent as
+part of a single NLPRP request (subject also to :ref:`max_content_length
+<nlp_config_max_content_length>`).
+
+
+.. _nlp_config_limit_before_commit:
+
+limit_before_commit
+###################
+
+*Integer.* Default: 1000.
+
+When receiving results: the number of results that will be processed (and
+written to the database) before a ``COMMIT`` command is executed.
+
+
+stop_at_failure
+###############
+
+*Boolean.* Default: true.
+
+Are cloud NLP requests for processing allowed to fail, and CRATE continue? If
+not, an error is raised and CRATE will abort on failure. (Some requests are not
+allowed to fail, regardless of this setting.)
+
+
+.. _nlp_config_max_tries:
+
+max_tries
+#########
+
+*Integer.* Default: 5.
+
+Maximum number of times to try each HTTP connection to the cloud NLP server,
+before giving it up as a bad job.
+
+
+.. _nlp_config_rate_limit_hz:
+
+rate_limit_hz
+#############
+
+*Integer.* Default: 2.
+
+The maximum rate, in Hz (times per second), that the CRATE NLP processor will
+send requests. Use this to avoid overloading the cloud NLP server. Specify 0
+for no limit.
+
+
+processors
+##########
+
+.. todo:: write help for processors
+
+
 Parallel processing
 ~~~~~~~~~~~~~~~~~~~
 
@@ -790,8 +952,7 @@ You can use both strategies simultaneously.
 Specimen config
 ~~~~~~~~~~~~~~~
 
-A specimen NLP config is available by running ``crate_nlp --democonfig``. In
-the source, it is :data:`crate_anon.nlp_manager.constants.DEMO_CONFIG`.
+A specimen NLP config is available by running ``crate_nlp --democonfig``.
 
 Here's the specimen NLP config:
 

@@ -54,19 +54,18 @@ from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
 from sqlalchemy.sql.schema import MetaData
 
+from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.common.stringfunc import does_text_contain_word_chars
 from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
     FN_SRCPKVAL,
     FN_SRCPKSTR,
+    NlpConfigPrefixes,
+    ProcessorConfigKeys,
 )
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
-from crate_anon.anonymise.dbholder import DatabaseHolder
-
-# if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
-#     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
 from crate_anon.nlp_manager.nlp_definition import (
     full_sectionname,
-    NlpConfigPrefixes,
     NlpDefinition,
 )
 from crate_anon.nlprp.constants import (
@@ -123,8 +122,8 @@ class BaseNlpParser(ABC):
         if nlpdef is not None:
             self._sectionname = full_sectionname(
                 NlpConfigPrefixes.PROCESSOR, cfgsection)
-            self._destdb_name = nlpdef.opt_str(self._sectionname, 'destdb',
-                                               required=True)
+            self._destdb_name = nlpdef.opt_str(
+                self._sectionname, ProcessorConfigKeys.DESTDB, required=True)
             self._destdb = nlpdef.get_database(self._destdb_name)
         else:
             self._sectionname = ""
@@ -443,13 +442,7 @@ class BaseNlpParser(ABC):
                 values that the user has told us to copy across from the source
                 database.
         """
-        # Check if text contains any word characters - using '[\w\W]' instead
-        # of '.' because '.' doesn't include newline characters
-        # regex_any_word_char = regex.compile(r'[\w\W]*[a-zA-Z0-9_][\w\W]*')
-        # if not text or not regex_any_word_char.match(text):
-        #     log.warning(f"No word characters found in {text}")
-        #     return
-        if not text or not any(32 <= ord(c) <= 126 for c in text):
+        if not does_text_contain_word_chars(text):
             log.warning(f"No word characters found in {text}")
             return
         starting_fields_values[FN_NLPDEF] = self._nlpdef.get_name()

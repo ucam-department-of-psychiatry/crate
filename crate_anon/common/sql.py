@@ -581,7 +581,7 @@ def columns_to_table_column_hierarchy(
     tables = unique_list(c.table_id for c in columns)
     if sort:
         tables.sort()
-    table_column_map = []
+    table_column_map = []  # type: List[Tuple[TableId, List[ColumnId]]]
     for t in tables:
         t_columns = [c for c in columns if c.table_id == t]
         if sort:

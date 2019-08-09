@@ -114,3 +114,19 @@ def uprint(*objects: Any,
             return str(obj).encode(enc, errors='backslashreplace').decode(enc)
         # https://docs.python.org/3.5/library/codecs.html#codec-base-classes
         print(*map(f, objects), sep=sep, end=end, file=file)
+
+
+# =============================================================================
+# String tests
+# =============================================================================
+
+def does_text_contain_word_chars(text: str) -> bool:
+    """
+    Is a string worth treating as interesting text -- does it contain "word"
+    characters?
+    """
+    # Slower (as per FS's tests):
+    #   regex_any_word_char = regex.compile(r'[\w\W]*[a-zA-Z0-9_][\w\W]*')
+    #   return bool(text and regex_any_word_char.match(text))
+    # Faster:
+    return bool(text and any(33 <= ord(c) <= 126 for c in text))

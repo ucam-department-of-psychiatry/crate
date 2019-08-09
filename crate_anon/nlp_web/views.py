@@ -34,7 +34,6 @@ import redis
 from celery.result import AsyncResult, ResultSet
 from pyramid.view import view_config, view_defaults
 from pyramid.request import Request
-from pyramid.response import Response
 from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 import transaction
@@ -47,10 +46,19 @@ from crate_anon.nlp_web.security import (
 from crate_anon.nlprp.constants import (
     HttpStatus,
     NlprpCommands,
-    NlprpKeys as NKeys, 
+    NlprpKeys as NKeys,
     NlprpValues,
 )
 from crate_anon.nlprp.version import NLPRP_VERSION_STRING
+from crate_anon.nlp_web.errors import (
+    BAD_REQUEST,
+    INTERNAL_SERVER_ERROR,
+    key_missing_error,
+    mkerror,
+    NlprpError,
+    NOT_FOUND,
+    UNAUTHORIZED,
+)
 from crate_anon.nlp_web.manage_users import get_users
 from crate_anon.nlp_web.models import DBSession, Document, DocProcRequest
 from crate_anon.nlp_web.procs import Processor
@@ -61,6 +69,7 @@ from crate_anon.nlp_web.constants import (
 )
 from crate_anon.nlp_web.tasks import (
     app,
+    NlpServerResult,
     process_nlp_text,
     process_nlp_text_immediate,
     TaskSession,
@@ -69,38 +78,32 @@ from crate_anon.nlp_web.tasks import (
 # from crate_anon.common.profiling import do_cprofile
 
 
+# =============================================================================
+# Constants
+# =============================================================================
+
 REDIS_SESSIONS = redis.StrictRedis(host="localhost", port=6379, db=0)
 
 
-class Error(object):
-    """
-    Represents an HTTP (and NLPRP) error.
-    """
-    def __init__(self,
-                 http_status: int,
-                 code: int,
-                 message: str,
-                 description: str) -> None:
-        self.http_status = http_status
-        self.code = code
-        self.message = message
-        self.description = description
+# =============================================================================
+# NlpWebViews
+# =============================================================================
 
-
-BAD_REQUEST = Error(
-    400, 400, "Bad request", "Request was malformed")
-UNAUTHORIZED = Error(
-    401, 401, "Unauthorized",
-    "The username/password combination given is incorrect")
-NOT_FOUND = Error(
-    404, 404, "Not Found", "The information requested was not found")
-INTERNAL_SERVER_ERROR = Error(
-    500, 500, "Internal Server Error", "An internal server error has occured")
-
-
-@view_defaults(renderer='json')
+@view_defaults(renderer='json')  # all views can now return Dict[str, Any]
 class NlpWebViews(object):
+    """
+    Class to provide HTTP views (via Pyramid) for our NLPRP server.
+    """
+
+    # -------------------------------------------------------------------------
+    # Constructor
+    # -------------------------------------------------------------------------
+
     def __init__(self, request: Request) -> None:
+        """
+        Args:
+            request: a :class:`pyramid.request.Request`
+        """
         self.request = request
         # Assign this later so we can return error to client if problem
         self.body = None
@@ -113,13 +116,19 @@ class NlpWebViews(object):
         DBSession()
         start_task_session()
 
-    @staticmethod
-    def create_response(status: int,
-                        extra_info: Dict[str, Any]) -> Dict[str, Any]:
+    # -------------------------------------------------------------------------
+    # Responses and errors
+    # -------------------------------------------------------------------------
+
+    def create_response(self,
+                        status: int,
+                        extra_info: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Returns a JSON HTTP response with some standard information for a given
         HTTP status and extra information to add to the response.
         """
+        # Put status in HTTP header
+        self.request.response.status = status
         response_dict = {
             NKeys.STATUS: status,
             NKeys.PROTOCOL: {
@@ -131,10 +140,28 @@ class NlpWebViews(object):
                 NKeys.VERSION: SERVER_VERSION
             }
         }
-        response_dict.update(extra_info)
+        if extra_info is not None:
+            response_dict.update(extra_info)
         DBSession.remove()
         TaskSession.remove()
         return response_dict
+
+    def create_error_response(self, error: NlprpError) -> Dict[str, Any]:
+        """
+        Returns an HTTP response for a given error and description of the error
+        """
+        error_info = {
+            NKeys.ERRORS: {
+                NKeys.CODE: error.code,
+                NKeys.MESSAGE: error.message,
+                NKeys.DESCRIPTION: error.description
+            }
+        }
+        return self.create_response(error.http_status, error_info)
+
+    # -------------------------------------------------------------------------
+    # Security
+    # -------------------------------------------------------------------------
 
     def check_token(self) -> bool:
         """
@@ -150,37 +177,23 @@ class NlpWebViews(object):
         else:
             return False
 
-    def create_error_response(self, error: Error,
-                              description: str = None) -> Dict[str, Any]:
-        """
-        Returns an HTTP response for a given error and description of the error
-        """
-        error_info = {
-            NKeys.ERRORS: {
-                NKeys.CODE: error.code,
-                NKeys.MESSAGE: error.message,
-                NKeys.DESCRIPTION: description or error.description
-            }
-        }
-        return self.create_response(error.http_status, error_info)
-
-    def key_missing_error(self, key: str = "",
-                          is_args: bool = False) -> Dict[str, Any]:
-        """
-        Returns a '400: Bad Request' error response stating that a key is
-        missing from 'args' in the request, or the key 'args' itself is missing
-        """
-        error = BAD_REQUEST
-        self.request.response.status = error.http_status
-        if is_args:
-            description = "Request did not contain top-level key 'args'"
-        else:
-            description = f"Args did not contain key '{key}'"
-        return self.create_error_response(error, description)
+    # -------------------------------------------------------------------------
+    # Main view
+    # -------------------------------------------------------------------------
 
     # @do_cprofile
     @view_config(route_name='index')
-    def index(self) -> Response:
+    def index(self) -> Dict[str, Any]:
+        """
+        The top-level "index" view. Passes all the work to
+        :meth:`handle_nlprp_request`, except for error handling.
+        """
+        try:
+            return self.handle_nlprp_request()
+        except NlprpError as error:
+            return self.create_error_response(error)
+
+    def handle_nlprp_request(self) -> Dict[str, Any]:
         """
         The main function. Authenticates user and checks the request is not
         malformed, then calls the function relating to the command specified
@@ -188,23 +201,16 @@ class NlpWebViews(object):
         """
         # Authenticate user
         if self.credentials is None:
-            error = BAD_REQUEST
-            # Put status in headers
-            self.request.response.status = error.http_status
-            description = (
+            raise mkerror(
+                BAD_REQUEST,
                 "Credentials were absent or not in the correct format")
-            # noinspection PyTypeChecker
-            return self.create_error_response(error, description)
         # See if the user exists
         users = get_users()
         self.username = self.credentials.username
         try:
             hashed_pw = users[self.username]
         except KeyError:
-            error = UNAUTHORIZED
-            self.request.response.status = error.http_status
-            # noinspection PyTypeChecker
-            return self.create_error_response(error)
+            raise UNAUTHORIZED
         # Check if password is correct
         pw = self.credentials.password
         # pw = 'testpass'
@@ -218,47 +224,38 @@ class NlpWebViews(object):
             REDIS_SESSIONS.set(self.username, token)
             REDIS_SESSIONS.expire(self.username, 300)
         else:
-            error = UNAUTHORIZED
-            self.request.response.status = error.http_status
-            # noinspection PyTypeChecker
-            return self.create_error_response(error)
-        # Get JSON from request if it is in this from, otherwise return
-        # error message
+            raise UNAUTHORIZED
+        # Get JSON from request if it is in this form, otherwise return error
+        # message
         try:
             body = self.request.json
         except json.decoder.JSONDecodeError:
-            error = BAD_REQUEST
-            self.request.response.status = error.http_status
-            description = "Request body was absent or not in JSON format"
-            # noinspection PyTypeChecker
-            return self.create_error_response(error, description)
+            raise mkerror(
+                BAD_REQUEST, "Request body was absent or not in JSON format")
         self.body = body
         command = self.body[NKeys.COMMAND]
         if command == NlprpCommands.LIST_PROCESSORS:
-            # noinspection PyTypeChecker
             return self.list_processors()
         elif command == NlprpCommands.PROCESS:
             if not self.body[NKeys.ARGS][NKeys.QUEUE]:
-                # noinspection PyTypeChecker
                 return self.process_now()
             else:
-                # noinspection PyTypeChecker
                 return self.put_in_queue()
         elif command == NlprpCommands.SHOW_QUEUE:
-            # noinspection PyTypeChecker
             return self.show_queue()
         elif command == NlprpCommands.FETCH_FROM_QUEUE:
-            # noinspection PyTypeChecker
             return self.fetch_from_queue()
         elif command == NlprpCommands.DELETE_FROM_QUEUE:
-            # noinspection PyTypeChecker
             return self.delete_from_queue()
+
+    # -------------------------------------------------------------------------
+    # NLPRP command handlers
+    # -------------------------------------------------------------------------
 
     def list_processors(self) -> Dict[str, Any]:
         """
         Returns an HTTP response listing the available NLP processors.
         """
-        self.request.response.status = HttpStatus.OK
         return self.create_response(
             status=HttpStatus.OK,
             extra_info={
@@ -276,97 +273,36 @@ class NlpWebViews(object):
         try:
             args = self.body[NKeys.ARGS]
         except KeyError:
-            return self.key_missing_error(is_args=True)
+            raise key_missing_error(is_args=True)
+
         try:
             content = args[NKeys.CONTENT]
         except KeyError:
-            return self.key_missing_error(key=NKeys.CONTENT)
+            raise key_missing_error(key=NKeys.CONTENT)
+
         try:
-            processors = args[NKeys.PROCESSORS]
+            requested_processors = args[NKeys.PROCESSORS]
         except KeyError:
-            return self.key_missing_error(key=NKeys.PROCESSORS)
+            raise key_missing_error(key=NKeys.PROCESSORS)
+
         include_text = args.get(NKeys.INCLUDE_TEXT, False)
         results = []  # type: List[Dict[str, Any]]
         for i, document in enumerate(content):
             metadata = document[NKeys.METADATA]
             text = document[NKeys.TEXT]
             processor_data = []  # type: List[Dict[str, Any]]
-            for processor in processors:
-                proc_obj = None
-                for proc in Processor.processors.values():
-                    # Made this case insensitive as someone might put e.g. 'CRP'
-                    # instead of 'Crp', but changing it back because some of
-                    # the GATE processors have the same name as the Python ones
-                    # only different case
-                    if NKeys.VERSION in processor:
-                        if (proc.name == processor[NKeys.NAME]
-                                and proc.version == processor[NKeys.VERSION]):
-                            proc_obj = proc
-                            break
-                    else:
-                        if (proc.name == processor[NKeys.NAME]
-                                and proc.is_default_version):
-                            proc_obj = proc
-                            break
-                if not proc_obj:
-                    error = BAD_REQUEST
-                    self.request.response.status = error.http_status
-                    description = (
-                        f"Processor {processor[NKeys.NAME]} "
-                        f"does not exist in the version specified"
-                    )
-                    return self.create_error_response(error, description)
+            for requested_processor_dict in requested_processors:
+                proc_obj = Processor.get_processor_nlprp(
+                    requested_processor_dict)  # may raise
                 # Send the text off for processing
-                # processor_id = proc_obj.processor_id
-                result = process_nlp_text_immediate(
+                procresult = process_nlp_text_immediate(
                     text=text,
                     url=GATE_BASE_URL,
                     processor=proc_obj,
                     username=self.username,
                     password=self.password
                 )
-                proctitle = proc_obj.title
-                success, processed_text, errcode, errmsg, time = result
-                proc_dict = {
-                    NKeys.NAME: proc_obj.name,
-                    NKeys.TITLE: proctitle,
-                    NKeys.VERSION: proc_obj.version,
-                    NKeys.RESULTS: processed_text,
-                    NKeys.SUCCESS: success
-                }
-                if not success:
-                    proc_dict[NKeys.ERRORS] = [{
-                        NKeys.CODE: errcode,
-                        NKeys.MESSAGE: errmsg
-                    }]
-
-                # try:
-                #     json_response = response.json()
-                # except json.decoder.JSONDecodeError:
-                #     success = False
-                # if processed_text.status_code != 200:  # will success always be 200?  # noqa
-                #     success = False
-                # else:
-                #     success = True
-                    # See https://cloud.gate.ac.uk/info/help/online-api.html
-                    # for format of response from processor
-                    # entities = processed_text['entities']
-                    # for annottype, values in entities.items():
-                    #     for features in values:
-                    #         # Add annotation type, start position and end position  # noqa
-                    #         # and remove 'indices' - the rest of 'features' should  # noqa
-                    #         # just be actual features
-                    #         features['_type'] = annottype
-                    #         start, end = features['indices']
-                    #         features['_start'] = start
-                    #         features['_end'] = end
-                    #         del features['indices']
-                    #         proc_dict['results'].append(features)
-                    # ABOVE IS INCORRECT FORMAT
-                    # CORRECTION: Above actually was correct format, but dealt
-                    # with in 'tasks'
-                # proc_dict[NKeys.SUCCESS] = success
-
+                proc_dict = procresult.nlprp_processor_dict(proc_obj)
                 processor_data.append(proc_dict)
 
             doc_result = {
@@ -381,7 +317,6 @@ class NlpWebViews(object):
             NKeys.CLIENT_JOB_ID: args.get(NKeys.CLIENT_JOB_ID, ""),
             NKeys.RESULTS: results,
         }
-        self.request.response.status = HttpStatus.OK
         return self.create_response(status=HttpStatus.OK,
                                     extra_info=response_info)
 
@@ -393,15 +328,18 @@ class NlpWebViews(object):
         try:
             args = self.body[NKeys.ARGS]
         except KeyError:
-            return self.key_missing_error(is_args=True)
+            raise key_missing_error(is_args=True)
+
         try:
             content = args[NKeys.CONTENT]
         except KeyError:
-            return self.key_missing_error(key=NKeys.CONTENT)
+            raise key_missing_error(key=NKeys.CONTENT)
+
         try:
-            processors = args[NKeys.PROCESSORS]
+            requested_processors = args[NKeys.PROCESSORS]
         except KeyError:
-            return self.key_missing_error(key=NKeys.PROCESSORS)
+            raise key_missing_error(key=NKeys.PROCESSORS)
+
         include_text = args.get(NKeys.INCLUDE_TEXT, False)
         # Generate unique queue_id for whole client request
         queue_id = str(uuid.uuid4())
@@ -421,34 +359,15 @@ class NlpWebViews(object):
                 try:
                     doctext = document[NKeys.TEXT]
                 except KeyError:
-                    error = BAD_REQUEST
-                    self.request.response.status = error.http_status
-                    description = f"Missing key {NKeys.TEXT!r} in {NKeys.CONTENT!r}"  # noqa
-                    return self.create_error_response(error, description)
+                    raise mkerror(
+                        BAD_REQUEST,
+                        f"Missing key {NKeys.TEXT!r} in {NKeys.CONTENT!r}")
                 # result_ids = []  # result ids for all procs for this doc
                 proc_ids = []  # redo!
                 dpr_ids = []
-                for processor in processors:
-                    proc_obj = None
-                    for proc in Processor.processors.values():
-                        if NKeys.VERSION in processor:
-                            if (proc.name == processor[NKeys.NAME] and
-                                    proc.version == processor[NKeys.VERSION]):
-                                proc_obj = proc
-                                break
-                        else:
-                            if (proc.name == processor[NKeys.NAME]
-                                    and proc.is_default_version):
-                                proc_obj = proc
-                                break
-                    if not proc_obj:
-                        error = BAD_REQUEST
-                        self.request.response.status = error.http_status
-                        description = (
-                            f"Processor {processor[NKeys.NAME]} "
-                            f"does not exist in the version specified"
-                        )
-                        return self.create_error_response(error, description)
+                for requested_processor_dict in requested_processors:
+                    proc_obj = Processor.get_processor_nlprp(
+                        requested_processor_dict)  # may raise
                     docprocreq_id = str(uuid.uuid4())
                     processor_id = proc_obj.processor_id
                     docprocreq = DocProcRequest(
@@ -510,10 +429,9 @@ class NlpWebViews(object):
         # Actually, apparantly we do
         # transaction.commit()
 
-        status = 202  # accepted
-        self.request.response.status = status
         response_info = {NKeys.QUEUE_ID: queue_id}
-        return self.create_response(status=status, extra_info=response_info)
+        return self.create_response(status=HttpStatus.ACCEPTED,
+                                    extra_info=response_info)
 
     def fetch_from_queue(self) -> Dict[str, Any]:
         """
@@ -523,13 +441,15 @@ class NlpWebViews(object):
         try:
             args = self.body[NKeys.ARGS]
         except KeyError:
-            return self.key_missing_error(is_args=True)
+            raise key_missing_error(is_args=True)
+
         try:
             # Don't know how trailing whitespace got introduced at the client
             # end but it was there - hence '.strip()' - removing to test
             queue_id = args[NKeys.QUEUE_ID]
         except KeyError:
-            return self.key_missing_error(key=NKeys.QUEUE_ID)
+            raise key_missing_error(key=NKeys.QUEUE_ID)
+
         query = DBSession.query(Document).filter(
             and_(Document.queue_id == queue_id,
                  Document.username == self.username)
@@ -537,10 +457,7 @@ class NlpWebViews(object):
         client_job_id = None  # type: Optional[str]
         document_rows = query.all()  # type: Iterable[Document]
         if not document_rows:
-            error = NOT_FOUND
-            self.request.reaponse.status = error.http_status
-            description = "The queue_id given was not found"
-            return self.create_error_response(error, description)
+            raise mkerror(NOT_FOUND, "The queue_id given was not found")
         doc_results = []  # type: List[Dict[str, Any]]
         # Check if all results are ready
         asyncresults_all = []  # type: List[List[AsyncResult]]
@@ -561,6 +478,7 @@ class NlpWebViews(object):
         res_set = ResultSet(results=[x for y in asyncresults_all for x in y],
                             app=app)
         if not res_set.ready():
+            # todo: which HTTP status? ***
             self.request.response.status = HttpStatus.OK
             return self.create_response(HttpStatus.PROCESSING, {})
         # Unfortunately we have to loop twice to avoid doing a lot for
@@ -576,58 +494,15 @@ class NlpWebViews(object):
             proc_ids = json.loads(doc.processor_ids)
             asyncresults = asyncresults_all[j]
             for i, result in enumerate(asyncresults):
-                # Split on the last occurance of '_' - procs will be in correct
-                # order
-                procname, sep, procversion = proc_ids[i].rpartition("_")
-                if not procversion:
-                    for proc in Processor.processors.values():
-                        if proc.name == procname and proc.is_default_version:
-                            procversion = proc.version
-                            break
-                proctitle = None
-                for proc in Processor.processors.values():
-                    if (proc.name == procname
-                            and proc.version == procversion):
-                        proctitle = proc.title
-                        break
-                if not proctitle:
-                    error = BAD_REQUEST
-                    self.request.response.status = error.http_status
-                    description = (
-                        f"Processor '{procname}', "
-                        f"version {procversion} does not exist")
-                    return self.create_error_response(error, description)
-
-                success, processed_text, errcode, errmsg, time = result.get()
+                # Split on the last occurrence of '_' - procs will be in
+                # correct order
+                procname, _, procversion = proc_ids[i].rpartition("_")
+                proc_obj = Processor.get_processor(procname, procversion)  # may raise  # noqa
+                procresult = result.get()  # type: NlpServerResult
                 # result.forget()
-                proc_dict = {
-                    NKeys.NAME: procname,
-                    NKeys.TITLE: proctitle,
-                    NKeys.VERSION: procversion,
-                    NKeys.RESULTS: processed_text,
-                    NKeys.SUCCESS: success
-                }
-                if not success:
-                    proc_dict[NKeys.ERRORS] = [{
-                        NKeys.CODE: errcode,
-                        NKeys.MESSAGE: errmsg
-                    }]
-                    # See https://cloud.gate.ac.uk/info/help/online-api.html
-                    # for format of response from processor
-                    # entities = json_response['entities']
-                    # for annottype, values in entities.items():
-                    #     for features in values:
-                    #         # Add annotation type, start position and end position  # noqa
-                    #         # and remove 'indices' - the rest of 'features' should  # noqa
-                    #         # just be actual features
-                    #         features['_type'] = annottype
-                    #         start, end = features['indices']
-                    #         features['_start'] = start
-                    #         features['_end'] = end
-                    #         del features['indices']
-                    #         proc_dict['results'].append(features)
-                    # ABOVE IS INCORRECT FORMAT
+                proc_dict = procresult.nlprp_processor_dict(proc_obj)
                 processor_data.append(proc_dict)
+
             doc_result = {
                 NKeys.METADATA: metadata,
                 NKeys.PROCESSORS: processor_data
@@ -647,16 +522,13 @@ class NlpWebViews(object):
             transaction.commit()
         except SQLAlchemyError:
             DBSession.rollback()
-            error = INTERNAL_SERVER_ERROR
-            self.request.response.status = error.http_status
-            return self.create_error_response(error)
+            raise INTERNAL_SERVER_ERROR
         response_info = {
             NKeys.CLIENT_JOB_ID: (
                 client_job_id if client_job_id is not None else ""
             ),
             NKeys.RESULTS: doc_results
         }
-        self.request.response.status = HttpStatus.OK
         return self.create_response(status=HttpStatus.OK,
                                     extra_info=response_info)
 
@@ -707,8 +579,9 @@ class NlpWebViews(object):
                 NKeys.CLIENT_JOB_ID: client_job_id,
                 NKeys.STATUS: NlprpValues.BUSY if busy else NlprpValues.READY,
                 NKeys.DATETIME_SUBMITTED: dt_submitted,
-                NKeys.DATETIME_COMPLETED: None if busy else
-                str(max_time.isoformat())
+                NKeys.DATETIME_COMPLETED: (
+                    None if busy else str(max_time.isoformat())
+                )
             })
         return self.create_response(status=HttpStatus.OK,
                                     extra_info={NKeys.QUEUE: queue})
@@ -718,64 +591,61 @@ class NlpWebViews(object):
         Deletes from the queue all entries specified by the client.
         """
         args = self.body.get(NKeys.ARGS)
-        if args:
-            delete_all = args.get(NKeys.DELETE_ALL)
-            if delete_all:
-                docs = DBSession.query(Document).filter(
-                    Document.username == self.username
-                ).all()
-            else:
-                docs = []
-                client_job_ids = args.get(NKeys.CLIENT_JOB_IDS, "")
-                for cj_id in client_job_ids:
-                    docs.extend(DBSession.query(Document).filter(
-                        and_(Document.username == self.username,
-                             Document.client_job_id == cj_id)
-                    ).all())
-                queue_ids = args.get(NKeys.QUEUE_IDS)
-                for q_id in queue_ids:
-                    # Clumsy way of making sure we don't have same doc twice
-                    docs.extend(DBSession.query(Document).filter(
-                        and_(
-                            Document.username == self.username,
-                            Document.queue_id == q_id,
-                            Document.client_job_id not in [
-                                x.client_job_id for x in docs
-                            ]
-                        )
-                    ).all())
-            # Quicker to use ResultSet than forget them all separately
-            results = []
-            for doc in docs:
-                result_ids = json.loads(doc.result_ids)
-                # Remove from celery queue
-                for res_id in result_ids:
-                    results.append(AsyncResult(id=res_id, app=app))
-                    # result = AsyncResult(id=res_id, app=app)
-                    # Necessary to do both because revoke doesn't remove
-                    # completed task
-                    # result.revoke()
-                    # result.forget()
-            res_set = ResultSet(results=results, app=app)
-            res_set.revoke()
-            # Remove from docprocrequests
-            doc_ids = list(set([d.document_id for d in docs]))
-            DBSession.query(DocProcRequest).filter(
-                DocProcRequest.document_id.in_(doc_ids)).delete(
-                    synchronize_session='fetch')
-            # res_set.forget()
-            # Remove from documents
-            for doc in docs:
-                DBSession.delete(doc)
-            try:
-                transaction.commit()
-            except SQLAlchemyError:
-                DBSession.rollback()
-                error = INTERNAL_SERVER_ERROR
-                self.request.response.status = error.http_status
-                return self.create_error_response(error)
-            # Return response
-            self.request.response.status = HttpStatus.OK
-            return self.create_response(status=HttpStatus.OK, extra_info={})
+        if not args:
+            raise self.key_missing_error(is_args=True)
+
+        delete_all = args.get(NKeys.DELETE_ALL)
+        if delete_all:
+            docs = DBSession.query(Document).filter(
+                Document.username == self.username
+            ).all()
         else:
-            return self.key_missing_error(is_args=True)
+            docs = []
+            client_job_ids = args.get(NKeys.CLIENT_JOB_IDS, "")
+            for cj_id in client_job_ids:
+                docs.extend(DBSession.query(Document).filter(
+                    and_(Document.username == self.username,
+                         Document.client_job_id == cj_id)
+                ).all())
+            queue_ids = args.get(NKeys.QUEUE_IDS)
+            for q_id in queue_ids:
+                # Clumsy way of making sure we don't have same doc twice
+                docs.extend(DBSession.query(Document).filter(
+                    and_(
+                        Document.username == self.username,
+                        Document.queue_id == q_id,
+                        Document.client_job_id not in [
+                            x.client_job_id for x in docs
+                        ]
+                    )
+                ).all())
+        # Quicker to use ResultSet than forget them all separately
+        results = []
+        for doc in docs:
+            result_ids = json.loads(doc.result_ids)
+            # Remove from celery queue
+            for res_id in result_ids:
+                results.append(AsyncResult(id=res_id, app=app))
+                # result = AsyncResult(id=res_id, app=app)
+                # Necessary to do both because revoke doesn't remove
+                # completed task
+                # result.revoke()
+                # result.forget()
+        res_set = ResultSet(results=results, app=app)
+        res_set.revoke()
+        # Remove from docprocrequests
+        doc_ids = list(set([d.document_id for d in docs]))
+        DBSession.query(DocProcRequest).filter(
+            DocProcRequest.document_id.in_(doc_ids)).delete(
+                synchronize_session='fetch')
+        # res_set.forget()
+        # Remove from documents
+        for doc in docs:
+            DBSession.delete(doc)
+        try:
+            transaction.commit()
+        except SQLAlchemyError:
+            DBSession.rollback()
+            raise INTERNAL_SERVER_ERROR
+        # Return response
+        return self.create_response(status=HttpStatus.OK)

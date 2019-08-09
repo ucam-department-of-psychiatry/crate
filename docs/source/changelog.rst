@@ -1031,6 +1031,18 @@ Changes
 - Abstract base classes in NLP parsers to assist with NLPRP work.
 - Comments for NLP output columns (for build-in fields and those specified by
   :ref:`destfields <nlp_config_destfields>`).
+- Cloud NLP config modularized.
+- Some code simplification.
+- Reset ``count`` in :func:`crate_anon.nlp_manager.retrieve_nlp_data` after
+  committing.
+- Renamed ``max_retries`` to :ref:`max_tries <nlp_config_max_tries>`.
+- Moved "verify SSL" option from ``--noverify`` on the command line to the
+  :ref:`verify_ssl <nlp_config_verify_ssl>` parameter.
+- Parameterized maximum request frequency via :ref:`rate_limit_hz
+  <nlp_config_rate_limit_hz>`.
+- Split ``limit_before_write`` parameter into :ref:`max_records_per_request
+  <nlp_config_max_records_per_request>` and :ref:`limit_before_commit
+  <nlp_config_limit_before_commit>`.
 
 
 ===============================================================================

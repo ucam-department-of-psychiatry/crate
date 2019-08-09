@@ -44,9 +44,11 @@ class HttpStatus(object):
     # 3xx: redirection
     # ... not used
     # 4xx: client error
+    BAD_REQUEST = 400
     UNAUTHORIZED = 401
     NOT_FOUND = 404
     # 5xx: server error
+    INTERNAL_SERVER_ERROR = 500
     SERVICE_UNAVAILABLE = 503
 
 

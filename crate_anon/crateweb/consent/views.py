@@ -484,7 +484,7 @@ def submit_contact_request(request: HttpRequest) -> HttpResponse:
 
     study = form.cleaned_data['study']
     request_direct_approach = form.cleaned_data['request_direct_approach']
-    contact_requests = []
+    contact_requests = []  # type: List[ContactRequest]
 
     # NHS numbers
     if request.user.is_superuser:
@@ -555,8 +555,8 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
                                        form.cleaned_data['firstname'],
                                        form.cleaned_data['lastname'])
     signatory_title = form.cleaned_data['signatory_title']
-    contact_requests = []
-    msgs = []
+    contact_requests = []  # type: List[ContactRequest]
+    msgs = []  # type: List[str]
 
     # NHS numbers
     for nhs_number in form.cleaned_data['nhs_numbers']:

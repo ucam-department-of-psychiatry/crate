@@ -1354,23 +1354,37 @@ class HbA1cValidator(ValidatorBase):
 
 
 # =============================================================================
+# All classes in this module
+# =============================================================================
+
+ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS = [
+    (Creatinine, CreatinineValidator),
+    (Crp, CrpValidator),
+    (Glucose, GlucoseValidator),
+    (HbA1c, HbA1cValidator),
+    (HDLCholesterol, HDLCholesterolValidator),
+    (LDLCholesterol, LDLCholesterolValidator),
+    (Lithium, LithiumValidator),
+    (Potassium, PotassiumValidator),
+    (Sodium, SodiumValidator),
+    (TotalCholesterol, TotalCholesterolValidator),
+    (Triglycerides, TriglyceridesValidator),
+    (Tsh, TshValidator),
+    (Urea, UreaValidator),
+]
+ALL_BIOCHEMISTRY_NLP, ALL_BIOCHEMISTRY_VALIDATORS = zip(*ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS)  # noqa
+
+
+# =============================================================================
 # Command-line entry point
 # =============================================================================
 
 def test_all(verbose: bool = False) -> None:
-    Crp(None, None).test(verbose=verbose)
-    Sodium(None, None).test(verbose=verbose)
-    Potassium(None, None).test(verbose=verbose)
-    Urea(None, None).test(verbose=verbose)
-    Creatinine(None, None).test(verbose=verbose)
-    Lithium(None, None).test(verbose=verbose)
-    Tsh(None, None).test(verbose=verbose)
-    Glucose(None, None).test(verbose=verbose)
-    LDLCholesterol(None, None).test(verbose=verbose)
-    HDLCholesterol(None, None).test(verbose=verbose)
-    TotalCholesterol(None, None).test(verbose=verbose)
-    Triglycerides(None, None).test(verbose=verbose)
-    HbA1c(None, None).test(verbose=verbose)
+    """
+    Test all parsers in this module.
+    """
+    for cls in ALL_BIOCHEMISTRY_NLP:
+        cls(None, None).test(verbose=verbose)
 
 
 if __name__ == '__main__':
