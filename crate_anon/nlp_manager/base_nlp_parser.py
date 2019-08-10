@@ -117,8 +117,8 @@ class BaseNlpParser(ABC):
         self._nlpdef = nlpdef
         self._cfgsection = cfgsection
         self._commit = commit
-        self._destdb_name = None
-        self._destdb = None
+        self._destdb_name = None  # type: Optional[str]
+        self._destdb = None  # type: Optional[DatabaseHolder]
         if nlpdef is not None:
             self._sectionname = full_sectionname(
                 NlpConfigPrefixes.PROCESSOR, cfgsection)
@@ -128,7 +128,7 @@ class BaseNlpParser(ABC):
         else:
             self._sectionname = ""
             self._destdb_name = ""
-            self._destdb = None
+            self._destdb = None  # type: Optional[DatabaseHolder]
 
     @classmethod
     def print_info(cls, file: TextIO = sys.stdout) -> None:
@@ -672,7 +672,7 @@ class BaseNlpParser(ABC):
             sql_dialect: preferred SQL dialect for ``tabular_schema``
         """
         sql_dialect = sql_dialect or DEFAULT_NLPRP_SQL_DIALECT
-        tabular_schema = {}
+        tabular_schema = {}  # type: Dict[str, List[Dict[str, Any]]]
         for tablename, columns in self.dest_tables_columns().items():
             colinfo = []  # type: List[Dict[str, Any]]
             for column in columns:

@@ -56,7 +56,7 @@ class CloudConfig(object):
     Common config object for cloud NLP.
     """
 
-    def __init__(self, nlpdef: NlpDefinition, section: str) -> None:
+    def __init__(self, nlpdef: "NlpDefinition", section: str) -> None:
         """
         Reads the config from the NLP definition's config file.
 

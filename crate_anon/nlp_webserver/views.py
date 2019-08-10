@@ -26,6 +26,7 @@ crate_anon/nlp_web/views.py
 """
 
 import datetime
+import logging
 import json
 from typing import Any, Dict, Iterable, List, Optional
 import uuid
@@ -38,11 +39,12 @@ from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 import transaction
 
-from crate_anon.nlp_web.security import (
+from crate_anon.nlp_webserver.security import (
     check_password,
     get_auth_credentials,
     encrypt_password,
 )
+# from crate_anon.common.profiling import do_cprofile
 from crate_anon.nlprp.constants import (
     HttpStatus,
     NlprpCommands,
@@ -50,7 +52,7 @@ from crate_anon.nlprp.constants import (
     NlprpValues,
 )
 from crate_anon.nlprp.version import NLPRP_VERSION_STRING
-from crate_anon.nlp_web.errors import (
+from crate_anon.nlp_webserver.errors import (
     BAD_REQUEST,
     INTERNAL_SERVER_ERROR,
     key_missing_error,
@@ -59,15 +61,15 @@ from crate_anon.nlp_web.errors import (
     NOT_FOUND,
     UNAUTHORIZED,
 )
-from crate_anon.nlp_web.manage_users import get_users
-from crate_anon.nlp_web.models import DBSession, Document, DocProcRequest
-from crate_anon.nlp_web.procs import Processor
-from crate_anon.nlp_web.constants import (
+from crate_anon.nlp_webserver.manage_users import get_users
+from crate_anon.nlp_webserver.models import DBSession, Document, DocProcRequest
+from crate_anon.nlp_webserver.procs import Processor
+from crate_anon.nlp_webserver.constants import (
     GATE_BASE_URL,
     SERVER_NAME,
     SERVER_VERSION,
 )
-from crate_anon.nlp_web.tasks import (
+from crate_anon.nlp_webserver.tasks import (
     app,
     NlpServerResult,
     process_nlp_text,
@@ -75,7 +77,8 @@ from crate_anon.nlp_web.tasks import (
     TaskSession,
     start_task_session,
 )
-# from crate_anon.common.profiling import do_cprofile
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -106,12 +109,12 @@ class NlpWebViews(object):
         """
         self.request = request
         # Assign this later so we can return error to client if problem
-        self.body = None
+        self.body = None  # type: Optional[Dict[str, Any]]
         # Get username and password
         self.credentials = get_auth_credentials(self.request)
         # Assign these later after authentication
-        self.username = None
-        self.password = None
+        self.username = None  # type: Optional[str]
+        self.password = None  # type: Optional[str]
         # Start database sessions
         DBSession()
         start_task_session()
@@ -349,11 +352,11 @@ class NlpWebViews(object):
         # We must pass the password as a string to the task because it won;t
         # let us pass a bytes object
         crypt_pass = crypt_pass.decode()
-        docprocrequest_ids = []
-        docs = []
+        docprocrequest_ids = []  # type: List[List[str]]
+        docs = []  # type: List[Document]
         with transaction.manager:
             for document in content:
-                # print(document[NKeys.METADATA]['brcid'])
+                # log.critical(document[NKeys.METADATA]['brcid'])
                 doc_id = str(uuid.uuid4())
                 metadata = json.dumps(document.get(NKeys.METADATA, ""))
                 try:
@@ -363,8 +366,8 @@ class NlpWebViews(object):
                         BAD_REQUEST,
                         f"Missing key {NKeys.TEXT!r} in {NKeys.CONTENT!r}")
                 # result_ids = []  # result ids for all procs for this doc
-                proc_ids = []  # redo!
-                dpr_ids = []
+                proc_ids = []  # type: List[str]  # redo!
+                dpr_ids = []  # type: List[str]
                 for requested_processor_dict in requested_processors:
                     proc_obj = Processor.get_processor_nlprp(
                         requested_processor_dict)  # may raise
@@ -406,14 +409,14 @@ class NlpWebViews(object):
                 #     DBSession.add(doc)
         with transaction.manager:
             for i, doc in enumerate(docs):
-                result_ids = []  # result ids for all procs for this doc
+                result_ids = []  # type: List[str]  # result ids for all procs for this doc  # noqa
                 for dpr_id in docprocrequest_ids[i]:
                     result = process_nlp_text.delay(
                         docprocrequest_id=dpr_id,
                         url=GATE_BASE_URL,
                         username=self.username,
                         crypt_pass=crypt_pass
-                    )
+                    )  # type: AsyncResult
                     result_ids.append(result.id)
                 doc.result_ids = json.dumps(result_ids)
                 DBSession.add(doc)
@@ -478,8 +481,6 @@ class NlpWebViews(object):
         res_set = ResultSet(results=[x for y in asyncresults_all for x in y],
                             app=app)
         if not res_set.ready():
-            # todo: which HTTP status? ***
-            self.request.response.status = HttpStatus.OK
             return self.create_response(HttpStatus.PROCESSING, {})
         # Unfortunately we have to loop twice to avoid doing a lot for
         # nothing if it turns out a later result is not ready
@@ -490,14 +491,11 @@ class NlpWebViews(object):
             if client_job_id is None:
                 client_job_id = doc.client_job_id
             metadata = json.loads(doc.client_metadata)
-            processor_data = []  # data for *all* the processors for this doc
+            processor_data = []  # type: List[Dict[str, Any]]  # data for *all* the processors for this doc  # noqa
             proc_ids = json.loads(doc.processor_ids)
             asyncresults = asyncresults_all[j]
             for i, result in enumerate(asyncresults):
-                # Split on the last occurrence of '_' - procs will be in
-                # correct order
-                procname, _, procversion = proc_ids[i].rpartition("_")
-                proc_obj = Processor.get_processor(procname, procversion)  # may raise  # noqa
+                proc_obj = Processor.get_processor_from_id(proc_ids[i])  # may raise  # noqa
                 procresult = result.get()  # type: NlpServerResult
                 # result.forget()
                 proc_dict = procresult.nlprp_processor_dict(proc_obj)
@@ -552,8 +550,8 @@ class NlpWebViews(object):
                      Document.client_job_id == client_job_id)
             )
         records = query.all()
-        queue = []
-        results = []
+        queue = []  # type: List[Dict[str, Any]]
+        results = []  # type: List[AsyncResult]
         queue_ids = set([x.queue_id for x in records])
         for queue_id in queue_ids:
             busy = False
@@ -600,7 +598,7 @@ class NlpWebViews(object):
                 Document.username == self.username
             ).all()
         else:
-            docs = []
+            docs = []  # type: List[Document]
             client_job_ids = args.get(NKeys.CLIENT_JOB_IDS, "")
             for cj_id in client_job_ids:
                 docs.extend(DBSession.query(Document).filter(
@@ -620,7 +618,7 @@ class NlpWebViews(object):
                     )
                 ).all())
         # Quicker to use ResultSet than forget them all separately
-        results = []
+        results = []  # type: List[AsyncResult]
         for doc in docs:
             result_ids = json.loads(doc.result_ids)
             # Remove from celery queue

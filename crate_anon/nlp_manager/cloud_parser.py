@@ -340,7 +340,7 @@ class CloudRequest(object):
         processorpairs = self._nlpdef.opt_strlist(
             self._sectionname, CloudNlpConfigKeys.PROCESSORS,
             required=True, lower=False)
-        self.procs = {}
+        self.procs = {}  # type: Dict[str, str]
         for proctype, procname in chunks(processorpairs, 2):
             if proctype.upper() == "GATE":
                 # GATE processor - use procname

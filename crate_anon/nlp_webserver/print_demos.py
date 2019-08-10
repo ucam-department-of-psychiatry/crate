@@ -26,43 +26,51 @@ crate_anon/nlp_web/print_demo_config.py
 
 Prints a demo config for CRATE's implementation of an NLPRP server.
 """
+
 import argparse
 import logging
 
-# from crate_anon.nlp_web.constants import DEMO_CONFIG, DEMO_PROCESSORS
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+
+from crate_anon.nlp_webserver.constants import NlpServerConfigKeys
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
-# We need to do this here rather than in constants because otherwise it tries
-# to get the settings file before it's been created
-DEMO_CONFIG = """
+
+def demo_config() -> str:
+    """
+    Returns a demo config ``.ini`` for the CRATE NLPRP web server.
+    """
+    k = NlpServerConfigKeys
+    return (f"""
 [app:main]
 use = egg:crate_anon
 pyramid.reload_templates = true
 # pyramid.includes =
 #     pyramid_debugtoolbar
-nlp_web.secret = changethis
-sqlalchemy.url = mysql://username:password@localhost/dbname?charset=utf8
+
+{k.NLP_WEBSERVER_SECRET} = changethis
+{k.SQLALCHEMY_URL_FULL} = mysql://username:password@localhost/dbname?charset=utf8
 
 # Absolute path of users file
-users_file = /home/.../nlp_web_files/users.txt
+{k.USERS_FILE} = /home/.../nlp_web_files/users.txt
 
 # Absolute path of processors file - this must be a .py file in the correct
 # format
-processors_path = /home/.../nlp_web_files/processor_constants.py
+{k.PROCESSORS_PATH} = /home/.../nlp_web_files/processor_constants.py
 
-# urls for queueing
-broker_url = amqp://@localhost:3306/testbroker
-backend_url = db+mysql://username:password@localhost/backenddbname?charset=utf8
+# URLs for queueing
+{k.BROKER_URL} = amqp://@localhost:3306/testbroker
+{k.BACKEND_URL} = db+mysql://username:password@localhost/backenddbname?charset=utf8
 
-# Key for reversible encryption. Use 'nlp_web_generate_encryption_key'.
-encryption_key =
+# Key for reversible encryption. Use 'nlp_webserver_generate_encryption_key'.
+{k.ENCRYPTION_KEY} =
 
 [server:main]
 use = egg:waitress#main
 listen = localhost:6543
-"""
+"""  # noqa
+    )
 
 
 def main() -> None:
@@ -84,10 +92,12 @@ def main() -> None:
              "nlp.")
     args = parser.parse_args()
 
+    main_only_quicksetup_rootlogger()
+
     if args.config:
-        print(DEMO_CONFIG)
+        print(demo_config())
     elif args.processors:
-        from crate_anon.nlp_web.constants import DEMO_PROCESSORS
+        from crate_anon.nlp_webserver.constants import DEMO_PROCESSORS
         print(DEMO_PROCESSORS)
     else:
         log.error("One option required: '--config' or '--processors'.")

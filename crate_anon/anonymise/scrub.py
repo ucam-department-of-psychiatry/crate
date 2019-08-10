@@ -33,7 +33,7 @@ import datetime
 import logging
 import string
 from typing import (Any, Dict, Iterable, Generator, List, Optional, Pattern,
-                    Union)
+                    Set, Tuple, Union)
 
 from cardinal_pythonlib.datetimefunc import coerce_to_datetime
 from cardinal_pythonlib.hash import GenericHasher
@@ -178,12 +178,12 @@ class WordList(ScrubberBase):
         self.at_word_boundaries_only = at_word_boundaries_only
         self.max_errors = max_errors
         self.regex_method = regex_method
-        self._regex = None  # type: Optional[Pattern]
+        self._regex = None  # type: Optional[Pattern[str]]
         self._processor = None  # type: Optional[KeywordProcessor]
         self._cached_hash = None  # type: Optional[str]
         self._built = False
 
-        self.words = set()
+        self.words = set()  # type: Set[str]
         # Sets are faster than lists for "is x in s" operations:
         # http://stackoverflow.com/questions/2831212/python-sets-vs-lists
         # noinspection PyTypeChecker
@@ -200,9 +200,9 @@ class WordList(ScrubberBase):
         this scrubber).
         """
         self._built = False
-        self._regex = None
-        self._processor = None
-        self._cached_hash = None
+        self._regex = None  # type: Optional[Pattern[str]]
+        self._processor = None  # type: Optional[KeywordProcessor]
+        self._cached_hash = None  # type: Optional[str]
 
     def add_word(self, word: str, clear_cache: bool = True) -> None:
         """
@@ -268,7 +268,7 @@ class WordList(ScrubberBase):
         processor. Called only when we have collected all our words.
         """
         if self.regex_method:
-            elements = []
+            elements = []  # type: List[str]
             for w in self.words:
                 elements.extend(get_string_regex_elements(
                     w,
@@ -289,7 +289,7 @@ class WordList(ScrubberBase):
                 for w in self.words:
                     self._processor.add_keyword(w, replacement)
             else:
-                self._processor = None
+                self._processor = None  # type: Optional[KeywordProcessor]
         self._built = True
 
 
@@ -344,8 +344,8 @@ class NonspecificScrubber(ScrubberBase):
         self.scrub_all_numbers_of_n_digits = scrub_all_numbers_of_n_digits
         self.scrub_all_uk_postcodes = scrub_all_uk_postcodes
 
-        self._cached_hash = None
-        self._regex = None
+        self._cached_hash = None  # type: Optional[str]
+        self._regex = None  # type: Optional[Pattern[str]]
         self._regex_built = False
         self.build_regex()
 
@@ -376,7 +376,7 @@ class NonspecificScrubber(ScrubberBase):
         """
         Compile our high-speed regex.
         """
-        elements = []
+        elements = []  # type: List[str]
         if self.scrub_all_uk_postcodes:
             elements.extend(
                 get_uk_postcode_regex_elements(
@@ -495,14 +495,15 @@ class PersonalizedScrubber(ScrubberBase):
         self.debug = debug
 
         # Regex information
-        self.re_patient = None  # re: regular expression
-        self.re_tp = None
+        self.re_patient = None  # type: Optional[Pattern[str]]
+        self.re_tp = None  # type: Optional[Pattern[str]]
         self.regexes_built = False
-        self.re_patient_elements = []
-        self.re_tp_elements = []
+        self.re_patient_elements = []  # type: List[str]
+        self.re_tp_elements = []  # type: List[str]
         # ... both changed from set to list to reflect referee's point re
         #     potential importance of scrubber order
-        self.elements_tuplelist = []  # of tuples: (patient?, type, value)
+        self.elements_tuplelist = []  # type: List[Tuple[bool, SCRUBMETHOD, str]]  # noqa
+        # ... list of tuples: (patient?, type, value)
         # ... used for get_raw_info(); since we've made the order important,
         #     we should detect changes in order here as well
         self.clear_cache()
@@ -605,7 +606,7 @@ class PersonalizedScrubber(ScrubberBase):
         Returns a list of regex elements for a given string that contains
         textual words.
         """
-        elements = []
+        elements = []  # type: List[str]
         for s in get_anon_fragments_from_string(str(value)):
             length = len(s)
             if length < self.min_string_length_to_scrub_with:

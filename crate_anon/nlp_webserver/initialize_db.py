@@ -29,35 +29,36 @@ server.
 
 """
 
-import os
-import sys
-from typing import List
+import argparse
 
 from sqlalchemy import engine_from_config
 from pyramid.paster import get_appsettings
 
-from crate_anon.nlp_web.models import DBSession, Base
+from crate_anon.nlp_webserver.constants import NlpServerConfigKeys
+from crate_anon.nlp_webserver.models import DBSession, Base
 
 
-def usage(argv: List[str]) -> None:
-    """
-    Prints program usage to stdout and quits with an error code.
-    """
-    cmd = os.path.basename(argv[0])
-    print('usage: %s <config_uri>\n'
-          '(example: "%s development.ini")' % (cmd, cmd))
-    sys.exit(1)
-
-
-def main(argv: List[str] = sys.argv) -> None:
+def main() -> None:
     """
     Command-line entry point.
     """
-    if len(argv) != 2:
-        usage(argv)
-    config_uri = argv[1]
-    # setup_logging(config_uri)
-    settings = get_appsettings(config_uri)
-    engine = engine_from_config(settings, 'sqlalchemy.')
+    parser = argparse.ArgumentParser(
+        description="Tool to initialize the database used by CRATE's "
+                    "implementation of an NLPRP server."
+    )
+    parser.add_argument(
+        "config_uri", type=str,
+        help="Config file to read (e.g. 'development.ini'); URL of database "
+             "is found here."
+    )
+    args = parser.parse_args()
+
+    settings = get_appsettings(args.config_uri)
+    engine = engine_from_config(settings,
+                                NlpServerConfigKeys.SQLALCHEMY_URL_PREFIX)
     DBSession.configure(bind=engine)
     Base.metadata.create_all(engine)
+
+
+if __name__ == "__main__":
+    main()

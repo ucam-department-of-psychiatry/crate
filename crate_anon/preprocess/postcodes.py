@@ -70,7 +70,8 @@ import logging
 import os
 import sys
 # import textwrap
-from typing import Any, Dict, Generator, Iterable, List, Optional, TextIO
+from typing import (Any, Dict, Generator, Iterable, List, Optional, TextIO,
+                    Tuple)
 
 from cardinal_pythonlib.argparse_func import RawDescriptionArgumentDefaultsHelpFormatter  # noqa
 from cardinal_pythonlib.dicts import rename_key
@@ -171,7 +172,7 @@ def values_from_row(row: Iterable[Cell]) -> List[Any]:
 
     For the ``openpyxl`` interface to XLSX files.
     """
-    values = []
+    values = []  # type: List[Any]
     for cell in row:
         values.append(cell.value)
     return values
@@ -1636,7 +1637,7 @@ def populate_postcode_table(filename: str,
     log.info(f"Using ONSPD data file: {filename}")
     n = 0
     n_inserted = 0
-    extra_fields = []
+    extra_fields = []  # type: List[str]
     db_fields = sorted(k for k in table.columns.keys() if k != 'pcd_nospace')
     with open(filename) as csvfile:
         reader = csv.DictReader(csvfile)
@@ -1959,7 +1960,7 @@ def main() -> None:
     ]
 
     if args.list_lookup_tables:
-        tables_files = []
+        tables_files = []  # type: List[Tuple[str, str]]
         for sa_class in classlist:
             tables_files.append((sa_class.__tablename__,
                                  sa_class.__filename__))

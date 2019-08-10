@@ -39,12 +39,21 @@ from sqlalchemy.orm import scoped_session
 from sqlalchemy.exc import SQLAlchemyError
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-from crate_anon.nlp_manager.constants import GateApiKeys, GateResultKeys
-from crate_anon.nlp_web.models import Session, DocProcRequest
-from crate_anon.nlp_web.procs import Processor
-from crate_anon.nlp_web.constants import PROCTYPE_GATE, SETTINGS
-from crate_anon.nlp_web.security import decrypt_password
+from crate_anon.nlp_manager.constants import (
+    GateApiKeys,
+    GateResultKeys,
+)
+from crate_anon.nlp_webserver.models import Session, DocProcRequest
+from crate_anon.nlp_webserver.procs import Processor
+from crate_anon.nlp_webserver.constants import (
+    NlpServerConfigKeys,
+    PROCTYPE_GATE,
+    SQLALCHEMY_COMMON_OPTIONS,
+)
+from crate_anon.nlp_webserver.security import decrypt_password
+from crate_anon.nlp_webserver.settings import SETTINGS
 from crate_anon.nlprp.api import NlprpKeys
+from crate_anon.nlprp.constants import HttpStatus
 
 log = logging.getLogger(__name__)
 
@@ -53,23 +62,25 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 TaskSession = scoped_session(Session)
-engine = engine_from_config(SETTINGS, 'sqlalchemy.',
-                            **{'pool_recycle': 25200,
-                               'pool_pre_ping': True})
+engine = engine_from_config(SETTINGS,
+                            NlpServerConfigKeys.SQLALCHEMY_URL_PREFIX,
+                            **SQLALCHEMY_COMMON_OPTIONS)
 TaskSession.configure(bind=engine)
 
 try:
-    broker_url = SETTINGS['broker_url']
+    broker_url = SETTINGS[]
 except KeyError:
-    log.error("broker_url value missing from config file.")
+    log.error(f"{NlpServerConfigKeys.BROKER_URL} value "
+              f"missing from config file.")
     raise
 try:
-    backend_url = SETTINGS['backend_url']
+    backend_url = SETTINGS[NlpServerConfigKeys.BACKEND_URL]
 except KeyError:
-    log.error("backend_url value missing from config file.")
+    log.error(f"{NlpServerConfigKeys.BACKEND_URL} value "
+              f"missing from config file.")
     raise
 
-key = SETTINGS['encryption_key']
+key = SETTINGS[NlpServerConfigKeys.ENCRYPTION_KEY]
 # Turn key into bytes object
 key = key.encode()
 CIPHER_SUITE = Fernet(key)
@@ -78,8 +89,7 @@ CIPHER_SUITE = Fernet(key)
 expiry_time = 60 * 60 * 24 * 90
 app = Celery('tasks', backend=backend_url, broker=broker_url,
              result_expires=expiry_time)
-app.conf.database_engine_options = {'pool_recycle': 25200,
-                                    'pool_pre_ping': True}
+app.conf.database_engine_options = SQLALCHEMY_COMMON_OPTIONS
 
 
 # =============================================================================
@@ -108,7 +118,7 @@ class NlpServerResult(object):
         ``response["results"]["processors"] array; see :ref:`NLPRP <nlprp>`.
 
         Args:
-            processor: a :class:`crate_anon.nlp_web.procs.Processor`
+            processor: a :class:`crate_anon.nlp_webserver.procs.Processor`
 
         Returns:
             dict: as above
@@ -200,7 +210,7 @@ def process_nlp_text(
         log.error(f"Docprocrequest: {docprocrequest_id} does not exist")
         return NlpServerResult(
             False,
-            errcode=500,
+            errcode=HttpStatus.INTERNAL_SERVER_ERROR,
             errmsg="Internal Server Error: Docprocrequest does not exist"
         )
     # Turn the password back into bytes and decrypt
@@ -271,7 +281,7 @@ def process_nlp_gate(text: str, processor: Processor, url: str,
                 "The GATE processor returned the error: " + e.response.reason
             ),
         )
-    if response.status_code != 200:
+    if response.status_code != HttpStatus.OK:
         return NlpServerResult(
             False,
             errcode=response.status_code,
@@ -282,7 +292,7 @@ def process_nlp_gate(text: str, processor: Processor, url: str,
     except json.decoder.JSONDecodeError:
         return NlpServerResult(
             False,
-            errcode=502,  # 'Bad Gateway' - not sure if correct error code
+            errcode=HttpStatus.BAD_GATEWAY,
             errmsg="Bad Gateway: The GATE processor did not return json"
         )
     results = get_gate_results(json_response)
@@ -300,7 +310,7 @@ def process_nlp_internal(text: str, parser: BaseNlpParser) -> NlpServerResult:
         # 'parser' is not actual parser - must have happened internally
         return NlpServerResult(
             False,
-            errcode=500,  # 'Internal Server Error'
+            errcode=HttpStatus.INTERNAL_SERVER_ERROR,  # 'Internal Server Error'
             errmsg=(
                 "Internal Server Error: parser is not type 'BaseNlpProcessor"
             )

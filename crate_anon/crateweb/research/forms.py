@@ -82,7 +82,7 @@ class BlankQueryForm(ModelForm):
     """
     class Meta:
         model = Query
-        fields = []
+        fields = []  # type: List[str]
 
 
 class AddHighlightForm(ModelForm):
@@ -100,7 +100,7 @@ class BlankHighlightForm(ModelForm):
     """
     class Meta:
         model = Highlight
-        fields = []
+        fields = []  # type: List[str]
 
 
 class DatabasePickerForm(forms.Form):
@@ -532,7 +532,7 @@ class QueryBuilderForm(forms.Form):
     file = FileField(label="File (for IN)", required=False)
 
     def __init__(self, *args, **kwargs) -> None:
-        self.file_values_list = []
+        self.file_values_list = []  # type: List[Any]
         super().__init__(*args, **kwargs)
 
     def get_datatype(self) -> Optional[str]:
@@ -613,7 +613,7 @@ class QueryBuilderForm(forms.Form):
             # Safe defaults
             form_to_python_fn = str
         # Or: http://www.dabeaz.com/generators/Generators.pdf
-        self.file_values_list = []
+        self.file_values_list = []  # type: List[Any]
         for line in fileobj.read().decode("utf8").splitlines():
             raw_item = line.strip()
             if not raw_item or raw_item.startswith('#'):

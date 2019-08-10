@@ -32,7 +32,7 @@ from inspect import isabstract
 # noinspection PyUnresolvedReferences
 import logging
 # noinspection PyUnresolvedReferences
-from typing import Any, List, Type
+from typing import Any, List, Set, Type
 
 # noinspection PyUnresolvedReferences
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
@@ -112,7 +112,7 @@ def get_all_subclasses(cls: ClassType) -> List[ClassType]:
         #     log.critical(f"Skipping abstract class: {subclass.__name__}")
         all_subclasses.extend(get_all_subclasses(subclass))  # recursive
     all_subclasses.sort(key=lambda c: c.__name__.lower())
-    lower_case_names = set()
+    lower_case_names = set()  # type: Set[str]
     for cls in all_subclasses:
         lc_name = cls.__name__.lower()
         if lc_name in lower_case_names:

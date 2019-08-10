@@ -32,24 +32,30 @@ WSGI application implementing CRATE's built-in :ref:`NLPRP <nlprp>` server.
 from typing import Dict, Any
 import logging
 
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from pyramid.config import Router
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from sqlalchemy import engine_from_config
 
-from crate_anon.nlp_web.models import DBSession, Base
-
-logging.basicConfig()
-logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
+from crate_anon.nlp_webserver.constants import (
+    NlpServerConfigKeys,
+    SQLALCHEMY_COMMON_OPTIONS,
+)
+from crate_anon.nlp_webserver.models import DBSession, Base
 
 
 # noinspection PyUnusedLocal
 def main(global_config: Dict[Any, Any], **settings) -> Router:
+    # Logging
+    main_only_quicksetup_rootlogger()
+    logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
+
     # Database
-    engine = engine_from_config(settings, 'sqlalchemy.',
-                                **{'pool_recycle': 25200,
-                                   'pool_pre_ping': True})
+    engine = engine_from_config(settings,
+                                NlpServerConfigKeys.SQLALCHEMY_URL_PREFIX,
+                                **SQLALCHEMY_COMMON_OPTIONS)
     # ... add to config - pool_recycle is set to create new sessions every 7h
     DBSession.configure(bind=engine)
     Base.metadata.bind = engine
@@ -58,7 +64,7 @@ def main(global_config: Dict[Any, Any], **settings) -> Router:
 
     # Security policies
     authn_policy = AuthTktAuthenticationPolicy(
-        settings['nlp_web.secret'],
+        settings[NlpServerConfigKeys.NLP_WEBSERVER_SECRET],
         secure=True,  # only allow requests over HTTPS
         hashalg='sha512')
     authz_policy = ACLAuthorizationPolicy()

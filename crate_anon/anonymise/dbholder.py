@@ -29,10 +29,12 @@ crate_anon/anonymise/dbholder.py
 """
 
 import logging
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import create_engine
+from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.schema import MetaData
 
 log = logging.getLogger(__name__)
@@ -70,8 +72,8 @@ class DatabaseHolder(object):
         self.name = name
         self.srccfg = srccfg
         self.engine = create_engine(url, encoding=encoding)
-        self.conn = None
-        self.session = None
+        self.conn = None  # type: Optional[Connection]
+        self.session = None  # type: Optional[Session]
         self._reflect_on_request = reflect
         self._reflected = False
         self._table_names = []  # type: List[str]

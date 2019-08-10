@@ -28,9 +28,6 @@ NLP config file
    :local:
 
 
-.. todo:: document cloud NLP options and config file structure
-
-
 Overview
 ~~~~~~~~
 

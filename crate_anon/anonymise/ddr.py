@@ -34,7 +34,7 @@ crate_anon/anonymise/ddr.py
 
 import ast
 import logging
-from typing import Any, List, Dict, Iterable, TYPE_CHECKING, Union
+from typing import Any, List, Dict, Iterable, Optional, TYPE_CHECKING, Union
 
 from cardinal_pythonlib.convert import convert_to_int
 from cardinal_pythonlib.lists import count_bool
@@ -121,16 +121,16 @@ class DataDictionaryRow(object):
             config: :class:`crate_anon.anonymise.config.Config`
         """
         self.config = config
-        self.src_db = None
-        self.src_table = None
-        self.src_field = None
-        self.src_datatype = None  # in SQL string format
+        self.src_db = None  # type: Optional[str]
+        self.src_table = None  # type: Optional[str]
+        self.src_field = None  # type: Optional[str]
+        self.src_datatype = None    # type: Optional[str]  # in SQL string format  # noqa
         # src_flags: a property; see below
 
-        self._src_sqla_coltype = None
+        self._src_sqla_coltype = None  # type: Optional[str]
 
-        self.scrub_src = None
-        self.scrub_method = None
+        self.scrub_src = None  # type: Optional[str]
+        self.scrub_method = None  # type: Optional[str]
 
         # decision: a property; see below
         self.omit = False  # in the DD file, this is 'decision'
@@ -138,11 +138,11 @@ class DataDictionaryRow(object):
         # exclusion_values: a property; see below
         # alter_method: a property; see below
 
-        self.dest_table = None
-        self.dest_field = None
-        self.dest_datatype = None
-        self.index = None
-        self.indexlen = None
+        self.dest_table = None  # type: Optional[str]
+        self.dest_field = None  # type: Optional[str]
+        self.dest_datatype = None  # type: Optional[str]
+        self.index = None  # type: Optional[str]
+        self.indexlen = None  # type: Optional[int]
         self.comment = ''
 
         self._from_file = False
@@ -322,12 +322,12 @@ class DataDictionaryRow(object):
 
         """
         if value:
-            self._inclusion_values = ast.literal_eval(value) or []
+            self._inclusion_values = ast.literal_eval(value) or []  # type: List[Any]  # noqa
         else:
-            self._inclusion_values = []
+            self._inclusion_values = []  # type: List[Any]
 
     @property
-    def exclusion_values(self) -> List[Any]:
+    def exclusion_values(self) -> Union[List[Any], str]:
         """
         Returns a list of exclusion values (or an empty string if there are
         no such values).
@@ -355,9 +355,9 @@ class DataDictionaryRow(object):
 
         """
         if value:
-            self._exclusion_values = ast.literal_eval(value) or []
+            self._exclusion_values = ast.literal_eval(value) or []  # type: List[Any]  # noqa
         else:
-            self._exclusion_values = []
+            self._exclusion_values = []  # type: List[Any]
 
     @property
     def required_scrubber(self) -> bool:
@@ -386,14 +386,14 @@ class DataDictionaryRow(object):
         bunch of Boolean/simple fields internally.
         """
         # Get the list of elements in the user's order.
-        self._alter_methods = []
+        self._alter_methods = []  # type: List[AlterMethod]
         elements = [x.strip() for x in value.split(",") if x]
-        methods = []
+        methods = []  # type: List[AlterMethod]
         for e in elements:
             methods.append(AlterMethod(config=self.config,
                                        text_value=e))
         # Now establish order. Text extraction first; everything else in order.
-        text_extraction_indices = []
+        text_extraction_indices = []  # type: List[int]
         for i, am in enumerate(methods):
             if am.extract_text:
                 text_extraction_indices.append(i)
@@ -521,7 +521,7 @@ class DataDictionaryRow(object):
         """
         Return a TSV row for writing.
         """
-        values = []
+        values = []  # type: List[str]
         for x in DataDictionaryRow.ROWNAMES:
             v = getattr(self, x)
             if v is None:
@@ -1036,7 +1036,7 @@ class DataDictionaryRow(object):
                 dbconf.ddgen_scrubsrc_thirdparty_xref_pid_fields):
             self.scrub_src = SCRUBSRC.THIRDPARTY_XREF_PID
         else:
-            self.scrub_src = None
+            self.scrub_src = None  # type: Optional[str]
 
         # ---------------------------------------------------------------------
         # Is it a mandatory scrubbing field?

@@ -8,7 +8,7 @@ usage: crate_nlp [-h] [--version] [--config CONFIG] [--verbose]
                  [--showinfo [NLP_CLASS_NAME]] [--count] [-i | -f]
                  [--dropremake] [--skipdelete] [--nlp] [--echo] [--timing]
                  [--cloud] [--immediate] [--retrieve] [--cancelrequest]
-                 [--cancelall] [--showqueue] [--noverify]
+                 [--cancelall] [--showqueue]
 
 NLP manager. Version 0.18.87 (2019-08-06). By Rudolf Cardinal.
 
@@ -63,6 +63,5 @@ optional arguments:
                         option cancels all pending requests - not just those
                         for the nlp definition specified
   --showqueue           Shows all pending cloud requests.
-  --noverify            Don't verify server's SSL certificate
 
-# Generated at 2019-08-08 17:38:59
+# Generated at 2019-08-10 11:23:45

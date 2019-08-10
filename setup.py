@@ -427,10 +427,13 @@ setup(
             "crate_estimate_mysql_memory_usage=cardinal_pythonlib.tools.estimate_mysql_memory_usage:main",  # noqa
             "crate_list_all_extensions=cardinal_pythonlib.tools.list_all_extensions:main",  # noqa
             "crate_merge_csv=cardinal_pythonlib.tools.merge_csv:main",
-            "nlp_web_initialize_db = crate_anon.nlp_web.initialize_db:main",
-            "nlp_web_print_demo = crate_anon.nlp_web.print_demos:main",  # noqa
-            "nlp_web_manage_users = crate_anon.nlp_web.manage_users:main",
-            "nlp_web_generate_encryption_key=crate_anon.nlp_web.security:generate_encryption_key"  # noqa
+
+            # NLP web server
+
+            "nlp_webserver_initialize_db=crate_anon.nlp_webserver.initialize_db:main",  # noqa
+            "nlp_webserver_print_demo=crate_anon.nlp_webserver.print_demos:main",  # noqa
+            "nlp_webserver_manage_users=crate_anon.nlp_webserver.manage_users:main",  # noqa
+            "nlp_webserver_generate_encryption_key=crate_anon.nlp_webserver.security:generate_encryption_key"  # noqa
 
         ],
         # Entry point for nlp web

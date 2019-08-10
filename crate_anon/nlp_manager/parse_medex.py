@@ -515,7 +515,7 @@ class Medex(BaseNlpParser):
             self._tablename = self.__class__.__name__.lower()
             self._max_external_prog_uses = 1
             self._progenvsection = ""
-            self._env = {}
+            self._env = {}  # type: Dict[str, str]
             progargs = ""
         else:
             self._debug_mode = False

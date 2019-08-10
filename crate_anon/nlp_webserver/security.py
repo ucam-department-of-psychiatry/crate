@@ -38,7 +38,8 @@ from cryptography.fernet import Fernet
 from paste.httpheaders import AUTHORIZATION
 from pyramid.request import Request
 
-from crate_anon.nlp_web.constants import SETTINGS
+from crate_anon.nlp_webserver.constants import NlpServerConfigKeys
+from crate_anon.nlp_webserver.settings import SETTINGS
 
 
 def generate_encryption_key() -> None:
@@ -56,7 +57,7 @@ def encrypt_password(password: str) -> bytes:
     """
     Encrypts a password using the configured key.
     """
-    key = SETTINGS['encryption_key']
+    key = SETTINGS[NlpServerConfigKeys.ENCRYPTION_KEY]
     # Turn key into bytes object
     key = key.encode()
     cipher_suite = Fernet(key)

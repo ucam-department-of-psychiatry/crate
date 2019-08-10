@@ -28,21 +28,13 @@ Constants for CRATE's implementation of an NLPRP server.
 
 """
 
-import os
-
-from pyramid.paster import get_appsettings
-from pyramid.config import Configurator
-
-KEY_PROCPATH = "processors_path"
-
 KEY_PROCTYPE = "proctype"
 PROCTYPE_GATE = "GATE"
-
 
 # Demo of processors file, which will then be configurable
 DEMO_PROCESSORS = """
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
-from crate_anon.nlp_web.constants import (
+from crate_anon.nlp_webserver.constants import (
     KEY_PROCTYPE,
     PROCTYPE_GATE,
 )
@@ -456,39 +448,25 @@ PROCESSORS = [
 #         })
 
 GATE_BASE_URL = "https://api.nhsta.gate.ac.uk/process-document"
+NLP_WEBSERVER_CONFIG_ENVVAR = "CRATE_NLP_WEB_CONFIG"
 SERVER_NAME = 'test_server'
 SERVER_VERSION = '0.1'
-NLP_WEB_CONFIG_ENVVAR = "CRATE_NLP_WEB_CONFIG"
-SETTINGS_PATH = os.getenv(NLP_WEB_CONFIG_ENVVAR)
-assert NLP_WEB_CONFIG_ENVVAR, (
-    "Missing environment variable {}".format(NLP_WEB_CONFIG_ENVVAR))
-SETTINGS = get_appsettings(SETTINGS_PATH)
-CONFIG = Configurator(settings=SETTINGS)
 
-DEMO_CONFIG = """
-[app:main]
-use = egg:crate_anon
-pyramid.reload_templates = true
-# pyramid.includes =
-#     pyramid_debugtoolbar
-nlp_web.secret = changethis
-sqlalchemy.url = mysql://username:password@localhost/dbname?charset=utf8
+# todo: automate the processor stuff from the CRATE Python ones; NLPRP v0.2 support
 
-# Absolute path of users file
-users_file = /home/.../nlp_web_files/users.txt
 
-# Absolute path of processors file - this must be a .py file in the correct
-# format
-processors_path = /home/.../nlp_web_files/processor_constants.py
+class NlpServerConfigKeys(object):
+    BACKEND_URL = "backend_url"
+    BROKER_URL = "broker_url"
+    ENCRYPTION_KEY = "encryption_key"
+    USERS_FILE = "users_file"
+    NLP_WEBSERVER_SECRET = "nlp_webserver.secret"
+    PROCESSORS_PATH = "processors_path"
+    SQLALCHEMY_URL_PREFIX = "sqlalchemy."
+    SQLALCHEMY_URL_FULL = SQLALCHEMY_URL_PREFIX + "url"
 
-# urls for queueing
-broker_url = amqp://@localhost:3306/testbroker
-backend_url = db+mysql://username:password@localhost/backenddbname?charset=utf8
 
-# Key for reversible encryption. Use 'nlp_web_generate_encryption_key'.
-encryption_key =
-
-[server:main]
-use = egg:waitress#main
-listen = localhost:6543
-"""
+SQLALCHEMY_COMMON_OPTIONS = {
+    'pool_recycle': 25200,
+    'pool_pre_ping': True,
+}

@@ -36,7 +36,7 @@ set).**
 # - You can't filter on Python properties via the Django QuerySet ORM.
 
 import logging
-from typing import Any, Dict, Iterable, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 
 from cardinal_pythonlib.django.admin import (
     admin_view_fk_link,
@@ -323,8 +323,8 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
     get_view_attachments.short_description = "Attachments"
 
     def resend(self, request: HttpRequest, queryset: QuerySet) -> None:
-        email_ids = []
-        for email in queryset:
+        email_ids = []  # type: List[int]
+        for email in queryset:  # type: Email
             email_ids.append(email.id)
             # transaction.on_commit not required (no changes made to emails)
             resend_email.delay(email.id, request.user.id)  # Asynchronous
@@ -567,7 +567,7 @@ class ConsentModeAdminForm(forms.ModelForm):
     """
     def clean(self) -> Dict[str, Any]:
         if not self.cleaned_data.get('changed_by_clinician_override'):
-            kwargs = {}
+            kwargs = {}  # type: Dict[str, Any]
             for field in Decision.FIELDS:
                 kwargs[field] = self.cleaned_data.get(field)
             decision = Decision(**kwargs)
@@ -1005,7 +1005,7 @@ class PatientResponseAdminForm(forms.ModelForm):
     :class:`crate_anon.crateweb.consent.models.PatientResponse`.
     """
     def clean(self) -> Dict[str, Any]:
-        kwargs = {}
+        kwargs = {}  # type: Dict[str, Any]
         for field in Decision.FIELDS:
             kwargs[field] = self.cleaned_data.get(field)
         decision = Decision(**kwargs)
@@ -1143,7 +1143,7 @@ class LetterDevAdmin(ReadOnlyModelAdmin):
     actions = ['mark_sent']
 
     def mark_sent(self, request: HttpRequest, queryset: QuerySet) -> None:
-        ids = []
+        ids = []  # type: List[int]
         for letter in queryset:
             letter.mark_sent()
             ids.append(letter.id)

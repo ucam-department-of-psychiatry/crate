@@ -31,20 +31,20 @@ from typing import Any, Dict, Optional
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.all_processors import make_processor
 from crate_anon.nlprp.constants import NlprpKeys
-from crate_anon.nlp_web.constants import (
+from crate_anon.nlp_webserver.constants import (
     KEY_PROCTYPE,
-    KEY_PROCPATH,
-    SETTINGS,
+    NlpServerConfigKeys,
     PROCTYPE_GATE,
 )
-from crate_anon.nlp_web.errors import (
+from crate_anon.nlp_webserver.errors import (
     BAD_REQUEST,
     mkerror,
     no_such_proc_error,
 )
+from crate_anon.nlp_webserver.settings import SETTINGS
 
 
-proc_file = SETTINGS[KEY_PROCPATH]
+proc_file = SETTINGS[NlpServerConfigKeys.PROCESSORS_PATH]
 # from processor_file import PROCESSORS  # doesn't work, need importlib
 
 # Import the processors module using the full path as it is configurable
@@ -110,7 +110,7 @@ class Processor(object):
             a :class:`Processor`
 
         Raises:
-            :exc:`crate_anon.nlp_web.errors.NlprpError` if no processor
+            :exc:`crate_anon.nlp_webserver.errors.NlprpError` if no processor
             matches.
         """
         for candidate in cls.processors.values():
@@ -142,7 +142,7 @@ class Processor(object):
             a :class:`Processor`
 
         Raises:
-            :exc:`crate_anon.nlp_web.errors.NlprpError` if the
+            :exc:`crate_anon.nlp_webserver.errors.NlprpError` if the
             ``NlprpKeys.NAME`` key is missing or no processor matches.
         """
         version = requested_processor_dict.get(NlprpKeys.VERSION)
@@ -152,6 +152,27 @@ class Processor(object):
             raise mkerror(BAD_REQUEST,
                           f"Processor request has no {NlprpKeys.NAME!r} key")
         return cls.get_processor(name=name, version=version)
+
+    @classmethod
+    def get_processor_from_id(cls, processor_id: str) -> "Processor":
+        """
+        Fetch a processor, from a processor ID (a string representing name and
+        versio).
+
+        Args:
+            processor_id: string in the format ``name_version``. The version
+                part can't contain an underscore, but the name can.
+
+        Returns:
+            a :class:`Processor`
+
+        Raises:
+            :exc:`crate_anon.nlp_webserver.errors.NlprpError` if no processor
+            matches.
+        """
+        # Split on the last occurrence of '_'
+        name, _, version = processor_id.rpartition("_")
+        return cls.get_processor(name, version)
 
     def set_parser(self) -> None:
         """

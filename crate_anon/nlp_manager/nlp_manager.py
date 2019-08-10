@@ -580,7 +580,7 @@ def send_cloud_requests(
     whether the generator for the text is empty and the global record number
     for keeping track.
     """
-    requests = []
+    requests = []  # type: List[CloudRequest]
     cookies = None  # type: Optional[CookieJar]
     i = 1  # number of requests sent
     totalcount = ifconfig.get_count()  # total number of records in table
@@ -938,7 +938,7 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
         log.error(f"File {filename!r} does not exist. "
                   f"Request may not have been sent.")
         raise FileNotFoundError
-    queue_ids = []
+    queue_ids = []  # type: List[str]
     with open(filename, 'r') as request_data:
         reqdata = request_data.readlines()
         for line in reqdata:

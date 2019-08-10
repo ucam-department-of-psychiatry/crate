@@ -114,6 +114,8 @@ class DocProcRequest(Base):
 
     .. todo:: DocProcRequest: CLARIFY
 
+    .. todo:: is VARCHAR(50) enough for processor_id?
+
     """
     __tablename__ = 'docprocrequests'
     # docprocrequest_id = Column(Integer, primary_key=True, autoincrement=True)

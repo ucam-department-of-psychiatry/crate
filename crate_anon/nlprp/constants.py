@@ -37,17 +37,22 @@ class HttpStatus(object):
     """
     # 1xx: informational
     PROCESSING = 102
+
     # 2xx: success
     OK = 200
     ACCEPTED = 202
-    NO_CONTENT = 204
+    NO_CONTENT = 204  # todo: not emitted by an NLPRP server; unnecessary?
+
     # 3xx: redirection
     # ... not used
+
     # 4xx: client error
     BAD_REQUEST = 400
     UNAUTHORIZED = 401
     NOT_FOUND = 404
+
     # 5xx: server error
+    BAD_GATEWAY = 502
     INTERNAL_SERVER_ERROR = 500
     SERVICE_UNAVAILABLE = 503
 

@@ -43,6 +43,7 @@ from pendulum import DateTime as Pendulum  # NB name clash with SQLAlchemy
 from semantic_version import Version
 
 from crate_anon.nlprp.constants import (
+    HttpStatus,
     NlprpKeys,
     NlprpValues,
     ALL_NLPRP_COMMANDS,
@@ -429,7 +430,7 @@ class NlprpResponse(NlprpMessage):
     def __init__(self,
                  data: Union[str, bytes, Dict[str, Any]] = None,
                  data_is_gzipped: bool = False,
-                 http_status: int = 200,
+                 http_status: int = HttpStatus.OK,
                  reply_args: Dict[str, Any] = None,
                  server_info: Dict[str, Any] = None) -> None:
         """

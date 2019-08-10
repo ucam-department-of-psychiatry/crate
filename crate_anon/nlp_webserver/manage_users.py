@@ -34,13 +34,15 @@ import logging
 from shutil import copyfile
 from typing import Dict
 
-from crate_anon.nlp_web.constants import SETTINGS
-from crate_anon.nlp_web.security import hash_password
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+
+from crate_anon.nlp_webserver.constants import NlpServerConfigKeys
+from crate_anon.nlp_webserver.security import hash_password
+from crate_anon.nlp_webserver.settings import SETTINGS
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
-USERS_FILENAME = SETTINGS['users_file']
+USERS_FILENAME = SETTINGS[NlpServerConfigKeys.USERS_FILE]
 
 
 def get_users() -> Dict[str, str]:
@@ -151,6 +153,8 @@ def main() -> None:
         "--changepw", nargs=2, metavar=("USERNAME", "PASSWORD"),
         help="Change a user's password.")
     args = parser.parse_args()
+
+    main_only_quicksetup_rootlogger()
 
     if not args.adduser and not args.rmuser and not args.changepw:
         log.error(

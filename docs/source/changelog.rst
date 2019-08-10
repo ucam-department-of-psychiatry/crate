@@ -209,7 +209,7 @@ Changes
 
 - Environment variable changed from ``CRATE_LOCAL_SETTINGS`` to
   ``CRATE_WEB_LOCAL_SETTINGS`` and coded into
-  ``crate_anon/config/constants.py``.
+  :mod:`crate_anon.crateweb.config.constants`.
 
 - Web front end now happy getting structure from SQL Server and PostgreSQL.
 
@@ -368,7 +368,7 @@ Changes
     =============== =========== =========================== ======================================
 
 - Improved regex self-testing, including new test framework in
-  ``crate_anon/nlp_manager/test_all_regex.py``.
+  :mod:`crate_anon.nlp_manager.test_all_regex`.
 
 **v0.18.10, 2016-12-11**
 
@@ -381,7 +381,7 @@ Changes
   [#sqlserverfulltext]_; basic SELECT syntax is ``WHERE CONTAINS(fieldname,
   "word")``, and index creation with ``CREATE FULLTEXT INDEX ON table_name
   (column_name) KEY INDEX index_name ...``. Added to
-  ``crate_anon/common/sqla.py``.
+  :mod:`crate_anon.common.sqla`.
 
 - Support for SQL query building, with user-configurable selector mechanism.
   See Transact-SQL syntax reference [#tsql]_. We use the Django setting
@@ -432,7 +432,7 @@ Changes
   launch_cherrypy_server.py``. The Windows event log has a message reading
   “Process 1/2 (Django/CherryPy) (PID=62516): Subprocess finished cleanly
   (return code 0).” The problem was probably that in
-  ``crate_anon/crateweb/core/management/commands/runcpserver.py``, the
+  :mod:`crate_anon.crateweb.core.management.commands.runcpserver`, the
   ``cherrypy.engine.stop()`` call was only made upon a KeyboardInterrupt
   exception, and not on other exceptions. Solution: broadened to all
   exceptions.
@@ -645,8 +645,8 @@ Changes
 - New :ref:`crate_celery_status <crate_celery_status>` command.
 
 - Changed to using Celery ``--concurrency=1`` (formerly 4) from
-  ``launch_celery.py``, as this should prevent multiple Celery threads doing
-  the same work twice if you call ``crate_django_manage
+  :mod:`crate_anon.tools.launch_celery`, as this should prevent multiple Celery
+  threads doing the same work twice if you call ``crate_django_manage
   resubmit_unprocessed_tasks`` more than once. There was a risk that this
   breaks Flower or other Celery status monitoring (as it did with Celery
   v3.1.23, but that was a long time ago, and it works fine now.
@@ -707,7 +707,8 @@ Changes
 
 - Improved docstrings.
 
-- Minor bugfixes in ``anonymise.py`` for fetching values from files.
+- Minor bugfixes in :mod:`crate_anon.anonymise.anonymise` for fetching values
+  from files.
 
 - ``_addition_only`` DDR flag only permitted on PK fields. (Was only attended
   to for them in any case!)
@@ -781,7 +782,8 @@ Changes
 - New lithium NLP processor (still needs external validation).
 
 - Bugfix: "cmm" was meant to be accepted as an abbreviation for "cubic mm" as
-  per v0.18.53 above, but wasn't. Rechecked all with ``test_all_regex.py`` and
+  per v0.18.53 above, but wasn't. Rechecked all with
+  :mod:`crate_anon.nlp_manager.test_all_regex` and
   added additional specific tests for this unit in
   :func:`crate_anon.nlp_manager.regex_units.test_unit_regexes`. All passing.
 
@@ -823,8 +825,9 @@ Changes
 
 **v0.18.62, 2019-02-09**
 
-- Improved the ``crate_test_extract_text`` command (``test_extract_test.py``),
-  including errorlevel/return codes to detect text presence.
+- Improved the ``crate_test_extract_text`` command
+  (:mod:`crate_anon.anonymise.test_extract_text`), including errorlevel/return
+  codes to detect text presence.
 
 - Bump to ``cardinal_pythonlib==1.0.47``. Note that this now raises an
   exception from :func:`cardinal_pythonlib.extract_text.document_to_text` if
@@ -892,7 +895,7 @@ Changes
 - ``url`` and ``max_content_length`` configurable.
 
 - Bugfixes to :func:`crate_anon.nlp_manager.nlp_manager.send_cloud_requests`
-  and :meth:`crate_anon.nlp_web.views.NlpWebViews.show_queue`.
+  and :meth:`crate_anon.nlp_webserver.views.NlpWebViews.show_queue`.
 
 **v0.18.70, 2019-04-17**
 
@@ -935,22 +938,22 @@ Changes
 
 - Upgrade to ``SQLAlchemy==1.3.0`` and ``django==2.2.2``.
 
-- Bugfix to ``crate_anon/nlp_web/views.py`` - ``include_text`` and
+- Bugfix to :mod:`crate_anon.nlp_webserver.views` - ``include_text`` and
   ``client_job_id`` are obtained from args rather than top-level of the
   request.
 
-- In ``crate_anon/nlp_manager/nlp_manager.py``, open file to write after
+- In :mod:`crate_anon.nlp_manager.nlp_manager`, open file to write after
   completing retrieval of requests so if there is a problem you don't lose all
   your queue_ids.
 
 - Records will not be sent with no word character.
 
 - :meth:`session.remove()` has been added to to
-  ``crate_anon/nlp_web/views.py``.
+  :mod:`crate_anon.nlp_webserver.views`.
 
 **v0.18.77, 2019-06-12**
 
-- ``crate_anon/nlp_manager/cloud_parser.py`` won't crash if one request gives
+- :mod:`crate_anon.nlp_manager.cloud_parser` won't crash if one request gives
   an error. This is so we don't lose all data if just one request doesn't work.
 
 **v0.18.78, 2019-06-12**
@@ -995,7 +998,7 @@ Changes
   so that they don't try to fish out results for a processor when there are
   errors.
 
-- Retry after connection failure in ``crate_anon/nlp_manager/cloud_parser.py``.
+- Retry after connection failure in :mod:`crate_anon.nlp_manager.cloud_parser`.
 
 **v0.18.85, 2019-07-21**
 
@@ -1043,6 +1046,12 @@ Changes
 - Split ``limit_before_write`` parameter into :ref:`max_records_per_request
   <nlp_config_max_records_per_request>` and :ref:`limit_before_commit
   <nlp_config_limit_before_commit>`.
+- Renamed ``nlp_web`` to ``nlp_webserver`` for clarity (since "web" might refer
+  to client or server).
+- Split ``nlp_webserver/constants.py`` into
+  :mod:`crate_anon.nlp_webserver.constants` and
+  :mod:`crate_anon.nlp_webserver.settings` so "constants" has no import
+  side-effects
 
 
 ===============================================================================
