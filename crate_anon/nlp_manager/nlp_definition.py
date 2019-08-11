@@ -57,7 +57,6 @@ from crate_anon.common.extendedconfigparser import ExtendedConfigParser
 from crate_anon.common.sql import TransactionSizeLimiter
 from crate_anon.nlp_manager.cloud_config import CloudConfig
 from crate_anon.nlp_manager.constants import (
-    CLOUD_NLP_SECTION,
     CloudNlpConfigKeys,
     DatabaseConfigKeys,
     DEFAULT_CLOUD_LIMIT_BEFORE_COMMIT,
@@ -108,17 +107,6 @@ if TYPE_CHECKING:
 #   for a full list.
 
 log = logging.getLogger(__name__)
-
-_ALL_NLPRP_SECTION_PREFIXES = [
-    v for k, v in NlpConfigPrefixes.__dict__.items()
-    if not k.startswith("_")
-]
-
-
-def full_sectionname(section_type: str, section: str) -> str:
-    if section_type in _ALL_NLPRP_SECTION_PREFIXES:
-        return section_type + ":" + section
-    raise ValueError(f"Unrecognised section type: {section_type}")
 
 
 # =============================================================================
@@ -267,6 +255,23 @@ def demo_nlp_config() -> str:
 # {NlpDefConfigKeys.RECORD_TRUNCATED_VALUES} = False
 {NlpDefConfigKeys.MAX_ROWS_BEFORE_COMMIT} = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
 {NlpDefConfigKeys.MAX_BYTES_BEFORE_COMMIT} = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
+
+# -----------------------------------------------------------------------------
+# Cloud NLP demo
+# -----------------------------------------------------------------------------
+
+# todo: fix me!
+
+[{NlpConfigPrefixes.NLPDEF}:cloud_nlp_demo]
+
+{NlpDefConfigKeys.INPUTFIELDDEFS} =
+    {inputfields}
+{NlpDefConfigKeys.PROCESSORS} =
+    GATE procdef_gate_name_location
+{NlpDefConfigKeys.PROGRESSDB} = {destdb}
+{NlpDefConfigKeys.HASHPHRASE} = {hashphrase}
+{NlpDefConfigKeys.CLOUD_CONFIG} = my_uk_cloud_service
+{NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR} = /srv/crate/clouddata
 
 
 # =============================================================================
@@ -674,9 +679,8 @@ OS_PATHSEP = :
 # F. Information for using cloud-based NLP
 # =============================================================================
 
-[{CLOUD_NLP_SECTION}]
+[{NlpConfigPrefixes.CLOUD}:my_uk_cloud_service]
 
-{CloudNlpConfigKeys.REQUEST_DATA_DIR} = /home/.../nlp_req_data
 {CloudNlpConfigKeys.CLOUD_URL} = https://your_url
 {CloudNlpConfigKeys.USERNAME} = your_username
 {CloudNlpConfigKeys.PASSWORD} = your_password
@@ -726,7 +730,7 @@ class NlpDefinition(object):
         # DELAYED IMPORTS (to make life simpler for classes deriving from
         # NlpParser and using NlpDefinition -- they can now do it directly,
         # not just via forward reference).
-        from crate_anon.nlp_manager.all_processors import make_processor
+        from crate_anon.nlp_manager.all_processors import make_nlp_parser
         from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 
         self._nlpname = nlpname
@@ -783,6 +787,10 @@ class NlpDefinition(object):
         self.record_truncated_values = self.opt_bool(
             nlpsection, NlpDefConfigKeys.RECORD_TRUNCATED_VALUES,
             default=False)
+        self._cloud_config_name = self.opt_str(
+            nlpsection, NlpDefConfigKeys.CLOUD_CONFIG)
+        self._cloud_request_data_dir = self.opt_str(
+            nlpsection, NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR)
 
         # ---------------------------------------------------------------------
         # Input field definitions
@@ -807,7 +815,7 @@ class NlpDefinition(object):
             for proctype, procname in chunks(processorpairs, 2):
                 self.require_section(
                     full_sectionname(NlpConfigPrefixes.PROCESSOR, procname))
-                processor = make_processor(proctype, self, procname)
+                processor = make_nlp_parser(proctype, self, procname)
                 self._processors.append(processor)
         except ValueError:
             log.critical(f"Bad {NlpDefConfigKeys.PROCESSORS} specification")
@@ -1107,8 +1115,8 @@ class NlpDefinition(object):
 
     def nlprp_list_processors(self, sql_dialect: str = None) -> Dict[str, Any]:
         """
-        Returns a draft list of processors as per the :ref:`NLPRP <nlprp>`
-        :ref:`list_processors <list_processors>` command.
+        Returns a draft list of processors as per the NLPRP
+        :ref:`list_processors <nlprp_list_processors>` command.
         """
         processors = []  # type: List[Dict, str, Any]
         for proc in self.get_processors():
@@ -1144,11 +1152,27 @@ class NlpDefinition(object):
         object associated with this NLP definition, or ``None`` if there isn't
         one.
         """
+        our_name = self.get_name()
         if self._cloudcfg is None:
-            # todo: FIXME CloudConfig
-            section = CLOUD_NLP_SECTION  # todo: make cloud NLP section configurable
-            self._cloudcfg = CloudConfig(self, section)
-            # todo: store None on failure
+            if not self._cloud_config_name:
+                raise ValueError(
+                    f"No {NlpDefConfigKeys.CLOUD_CONFIG!r} parameter "
+                    f"specified for NLP definition {our_name!r}")
+            if not self._cloud_request_data_dir:
+                raise ValueError(
+                    f"No {NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR!r} parameter "  # noqa
+                    f"specified for NLP definition {our_name!r}")
+            req_root_dir = os.path.abspath(self._cloud_request_data_dir)
+            if not os.path.isdir(req_root_dir):
+                raise ValueError(
+                    f"Directory {req_root_dir!r}, specified by config "
+                    f"parameter {NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR!r} "
+                    f"for NLP definition {our_name!r}")
+            req_data_dir = os.path.join(req_root_dir, our_name)
+            os.makedirs(req_data_dir, exist_ok=True)
+            self._cloudcfg = CloudConfig(self,
+                                         name=self._cloud_config_name,
+                                         req_data_dir=req_data_dir)
         return self._cloudcfg
 
     def get_cloud_config_or_raise(self) -> CloudConfig:

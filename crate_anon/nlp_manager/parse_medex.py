@@ -404,13 +404,13 @@ from sqlalchemy import Column, Index, Integer, String, Text
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
+    full_sectionname,
     MEDEX_DATA_READY_SIGNAL,
     MEDEX_RESULTS_READY_SIGNAL,
     NlpConfigPrefixes,
     ProcessorConfigKeys,
 )
 from crate_anon.nlp_manager.nlp_definition import (
-    full_sectionname,
     NlpDefinition,
 )
 

@@ -39,6 +39,8 @@ from crate_anon.nlp_manager.constants import (
     DEFAULT_CLOUD_MAX_TRIES,
     DEFAULT_CLOUD_RATE_LIMIT_HZ,
     DEFAULT_CLOUD_WAIT_ON_CONN_ERR_S,
+    full_sectionname,
+    NlpConfigPrefixes,
 )
 
 if TYPE_CHECKING:
@@ -56,23 +58,25 @@ class CloudConfig(object):
     Common config object for cloud NLP.
     """
 
-    def __init__(self, nlpdef: "NlpDefinition", section: str) -> None:
+    def __init__(self, nlpdef: "NlpDefinition", name: str,
+                 req_data_dir: str) -> None:
         """
         Reads the config from the NLP definition's config file.
 
         Args:
             nlpdef:
                 a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            section:
-                config section name for the cloud NLP configuration
+            name:
+                name for the cloud NLP configuration (to which a standard
+                prefix will be added to get the config section name)
+            req_data_dir:
+                directory in which to store temporary request files
         """
         self._nlpdef = nlpdef
-        sectionname = section
-        # todo: sectionname = full_sectionname(..., section)
+        self.req_data_dir = req_data_dir
+
+        sectionname = full_sectionname(NlpConfigPrefixes.CLOUD, name)
         config = nlpdef.get_parser()
-        self.req_data_dir = os.path.abspath(config.get_str(
-            section=sectionname, option=CloudNlpConfigKeys.REQUEST_DATA_DIR,
-            required=True))
         self.url = config.get_str(
             section=sectionname, option=CloudNlpConfigKeys.CLOUD_URL,
             required=True)
@@ -115,4 +119,4 @@ class CloudConfig(object):
         """
         nlpname = self._nlpdef.get_name()
         return os.path.abspath(os.path.join(
-            self.req_data_dir, f"request_data_{nlpname}.txt"))
+            self.req_data_dir, f"request_data_{nlpname}.csv"))

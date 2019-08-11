@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 r"""
-crate_anon/nlp_web/models.py
+crate_anon/nlp_webserver/models.py
 
 ===============================================================================
 
@@ -29,7 +29,10 @@ SQLAlchemy models for CRATE's implementation of an NLPRP server.
 """
 
 import datetime
+from typing import Optional
 
+from cardinal_pythonlib.datetimefunc import coerce_to_pendulum
+from pendulum import DateTime as Pendulum
 from sqlalchemy import (
     Column,
     Text,
@@ -57,81 +60,86 @@ Base = declarative_base()
 class Document(Base):
     """
     Represents a user-submitted document for processing. (A single document
-    may be processed by multiple processors)
+    may be processed by multiple processors.)
     """
     # Check about indexes etc.
     __tablename__ = 'documents'
-    # document_id = Column(Integer, primary_key=True, autoincrement=True)
     document_id = Column(
         VARCHAR(50), primary_key=True,
-        comment="Primary key for the document"
-    )
+        comment="Primary key (unique ID) for the document"
+    )  # type: str
     doctext = Column(
         Text,
         comment="Text contents of the document"
-    )
+    )  # type: Optional[str]
     client_job_id = Column(
         Text,
         comment="Client job ID"
-    )
+    )  # type: Optional[str]
     queue_id = Column(
         VARCHAR(50),
         comment="Refers to the id of the client request if in queued mode"
-    )
+    )  # type: Optional[str]
     username = Column(
         Text,
         comment="Username that submitted this document"
-    )
-    # should be a JSON string representing:
-    # [processor_id1, processor_id2]
+    )  # type: Optional[str]
     processor_ids = Column(
         Text,
         comment="JSON string representing: [processor_id1, processor_id2]"
-    )
+    )  # type: Optional[str]
     client_metadata = Column(
         Text,
         comment="Metadata submitted by the client"
-    )
+    )  # type: Optional[str]
     result_ids = Column(
         Text,
         comment="JSON-encoded list of result IDs"
-    )
+    )  # type: Optional[str]
     include_text = Column(
         Boolean,
         comment="Include the source text in the reply?"
-    )
+    )  # type: Optional[bool]
     datetime_submitted = Column(
         DateTime,
-        # Is the following OK, given that it's not exactly when it was submitted?  # noqa
+        # Is the following OK, given that it's not exactly when it was
+        # submitted?
         default=datetime.datetime.utcnow,
-        comment="Date/time when the request was submitted"
-    )
+        comment="Date/time when the request was submitted (in UTC)"
+    )  # type: Optional[datetime.datetime]
+
+    @property
+    def datetime_submitted_pendulum(self) -> Optional[Pendulum]:
+        return coerce_to_pendulum(self.datetime_submitted, assume_local=False)
 
 
 class DocProcRequest(Base):
     """
-    SQLAlchemy table containing processor requests for a given document?
+    SQLAlchemy table recording processor requests for a given document (that
+    is, document/processor pairs).
 
-    .. todo:: DocProcRequest: CLARIFY
+    Note the size inefficiency, but speed efficiency (?), of storing the text
+    as part of the DocProcRequest, rather than cross-referencing to the
+    :class:`Document`.
 
-    .. todo:: is VARCHAR(50) enough for processor_id?
+    .. todo:: ask FS: is the storage of doctext here (too) optimal?
+    .. todo:: ask FS: is VARCHAR(50) enough for processor_id?
 
     """
     __tablename__ = 'docprocrequests'
-    # docprocrequest_id = Column(Integer, primary_key=True, autoincrement=True)
     docprocrequest_id = Column(
         VARCHAR(50), primary_key=True,
-        comment="???"  # todo: DocProcRequest: add comment
-    )
+        comment="Primary key (unique ID) for the document/processor pair"
+    )  # type: str
     document_id = Column(
         VARCHAR(50),
-        comment="???"  # todo: DocProcRequest: add comment
-    )
+        comment="Document ID (FK to documents.document_id)"
+    )  # type: str
     doctext = Column(
         Text,
-        comment="???"  # todo: DocProcRequest: add comment
-    )
+        comment="Text of the document to processs"
+    )  # type: str
     processor_id = Column(
         VARCHAR(50),
-        comment="???"  # todo: DocProcRequest: add comment
-    )
+        comment="Processor ID, in 'name_version' format"
+    )  # type: str

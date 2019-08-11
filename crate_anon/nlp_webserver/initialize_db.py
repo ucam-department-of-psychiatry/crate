@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 r"""
-crate_anon/nlp_web/initialize_db.py
+crate_anon/nlp_webserver/initialize_db.py
 
 ===============================================================================
 

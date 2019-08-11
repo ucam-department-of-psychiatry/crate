@@ -48,13 +48,13 @@ from sqlalchemy import Column, Index, Integer, Text
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
+    full_sectionname,
     MAX_SQL_FIELD_LEN,
     NlpConfigPrefixes,
     ProcessorConfigKeys,
     SqlTypeDbIdentifier,
 )
 from crate_anon.nlp_manager.nlp_definition import (
-    full_sectionname,
     NlpDefinition,
 )
 from crate_anon.nlprp.constants import NlprpKeys, NlprpValues

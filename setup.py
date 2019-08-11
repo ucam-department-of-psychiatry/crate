@@ -430,10 +430,10 @@ setup(
 
             # NLP web server
 
-            "nlp_webserver_initialize_db=crate_anon.nlp_webserver.initialize_db:main",  # noqa
-            "nlp_webserver_print_demo=crate_anon.nlp_webserver.print_demos:main",  # noqa
-            "nlp_webserver_manage_users=crate_anon.nlp_webserver.manage_users:main",  # noqa
-            "nlp_webserver_generate_encryption_key=crate_anon.nlp_webserver.security:generate_encryption_key"  # noqa
+            "crate_nlp_webserver_initialize_db=crate_anon.nlp_webserver.initialize_db:main",  # noqa
+            "crate_nlp_webserver_print_demo=crate_anon.nlp_webserver.print_demos:main",  # noqa
+            "crate_nlp_webserver_manage_users=crate_anon.nlp_webserver.manage_users:main",  # noqa
+            "crate_nlp_webserver_generate_encryption_key=crate_anon.nlp_webserver.security:generate_encryption_key"  # noqa
 
         ],
         # Entry point for nlp web

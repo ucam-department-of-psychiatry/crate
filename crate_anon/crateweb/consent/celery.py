@@ -241,6 +241,9 @@ app.autodiscover_tasks(['crate_anon.crateweb.consent'])  # simpler!
 def debug_task(self) -> None:
     """
     Debugging task for Celery that shows some request information only.
+
+    Args:
+        self: the :class:`celery.Task`
     """
     print(f'Request: {self.request!r}')
     print(f'Backend: {current_task.backend}')

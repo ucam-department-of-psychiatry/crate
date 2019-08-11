@@ -28,8 +28,28 @@ Natural Language Processing Request Protocol (NLPRP) constants.
 
 """
 
+from typing import Any, Dict, List, Union
+
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 
+
+# =============================================================================
+# Type definitions; see https://www.json.org/
+# =============================================================================
+
+# Types for the Python representation of JSON:
+JsonLiteralType = Union[str, int, float, bool, None]
+JsonValueType = Union[JsonLiteralType, Dict, List]
+JsonObjectType = Dict[str, JsonValueType]
+JsonArrayType = List[JsonValueType]
+
+# Type for the string representation of JSON:
+JsonAsStringType = str
+
+
+# =============================================================================
+# HTTP status codes
+# =============================================================================
 
 class HttpStatus(object):
     """
@@ -56,6 +76,17 @@ class HttpStatus(object):
     INTERNAL_SERVER_ERROR = 500
     SERVICE_UNAVAILABLE = 503
 
+    @classmethod
+    def is_good_answer(cls, status: int) -> bool:
+        """
+        Is the given HTTP status code a satisfactory answer?
+        """
+        return 200 <= status <= 299 or status == cls.PROCESSING
+
+
+# =============================================================================
+# NLPRP strings
+# =============================================================================
 
 class NlprpKeys(object):
     """

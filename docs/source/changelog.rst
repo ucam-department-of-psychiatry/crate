@@ -1035,7 +1035,11 @@ Changes
 - Comments for NLP output columns (for build-in fields and those specified by
   :ref:`destfields <nlp_config_destfields>`).
 - Cloud NLP config modularized.
-- Some code simplification.
+  **Breaking change to existing cloud NLP configs.**
+- Some code simplification, including classes:
+  - :class:`crate_anon.nlp_manager.errors.NlprpError`
+  - :class:`crate_anon.nlp_manager.tasks.NlpServerResult`
+  - :class:`crate_anon.nlp_manager.views.NlprpProcessRequest`
 - Reset ``count`` in :func:`crate_anon.nlp_manager.retrieve_nlp_data` after
   committing.
 - Renamed ``max_retries`` to :ref:`max_tries <nlp_config_max_tries>`.
@@ -1052,6 +1056,8 @@ Changes
   :mod:`crate_anon.nlp_webserver.constants` and
   :mod:`crate_anon.nlp_webserver.settings` so "constants" has no import
   side-effects
+- More compact encoding (including for CRATE web Javascript) via
+  :data:`crate_anon.constants.JSON_SEPARATORS_COMPACT`.
 
 
 ===============================================================================

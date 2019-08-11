@@ -256,7 +256,7 @@ JSON does not care about whitespace in formatting, and neither the client nor
 the server are under any obligation as to how they format their JSON.
 
 
-.. _response:
+.. _nlprp_response:
 
 Response
 ~~~~~~~~
@@ -294,8 +294,9 @@ The top-level structure of a response is a JSON object with the following keys.
     * - ``errors``
       - Array
       - Optional
-      - If the status is not in the range [200, 299], one or more errors will
-        be given. Each error is an object with at least the following keys:
+      - If the status is not 102 or in the range [200, 299], one or more errors
+        will be given. Each error is an object with at least the following
+        keys:
 
         - ``code`` (integer or null): error code
         - ``message`` (string): brief textual description of the error
@@ -322,7 +323,7 @@ The top-level structure of a response is a JSON object with the following keys.
 NLPRP commands
 ~~~~~~~~~~~~~~
 
-.. _list_processors:
+.. _nlprp_list_processors:
 
 list_processors
 ^^^^^^^^^^^^^^^
@@ -682,7 +683,7 @@ this:
     }
 
 
-.. _process:
+.. _nlprp_process:
 
 process
 ^^^^^^^
@@ -756,7 +757,7 @@ the following structure:
         - ``metadata`` (value, optional): The metadata will be returned
           verbatim with the results.
 
-.. _immediate_response:
+.. _nlprp_immediate_response:
 
 **Immediate processing**
 
@@ -1153,7 +1154,7 @@ key of ``queue_id``, whose value is a string. Like this:
     }
 
 
-.. _show_queue:
+.. _nlprp_show_queue:
 
 show_queue
 ^^^^^^^^^^
@@ -1267,7 +1268,7 @@ and corresponding response:
     }
 
 
-.. _fetch_from_queue:
+.. _nlprp_fetch_from_queue:
 
 fetch_from_queue
 ^^^^^^^^^^^^^^^^
@@ -1285,7 +1286,7 @@ the queue ID.
   collection.
 
 
-.. _delete_from_queue:
+.. _nlprp_delete_from_queue:
 
 delete_from_queue
 ^^^^^^^^^^^^^^^^^
@@ -1503,7 +1504,7 @@ NLPRP history
 - Comment re future potential use case for corpus-level processing
 - Signalling mechanism for dynamic failure via the ``success`` and
   ``errors`` parameters to the response (see `immediate response
-  <immediate_response>`_).
+  <nlprp_immediate_response>`_).
 - Ability for the client to pass a ``client_job_id`` to
   the queued processing mode, so it can add many requests to the same job and
   retrieve this data as part of ``show_queue``. Similar argument to

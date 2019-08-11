@@ -70,12 +70,14 @@ from crate_anon.nlp_manager.constants import (
     MAX_STRING_PK_LENGTH,
 )
 from crate_anon.common.parallel import is_my_job_by_hash_prehashed
-from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
+from crate_anon.nlp_manager.constants import (
+    full_sectionname,
+    SqlTypeDbIdentifier,
+)
 from crate_anon.nlp_manager.models import NlpRecord
 # if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
 #     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
 from crate_anon.nlp_manager.nlp_definition import (
-    full_sectionname,
     NlpConfigPrefixes,
     NlpDefinition,
 )

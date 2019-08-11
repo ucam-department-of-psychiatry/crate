@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 r"""
-crate_anon/nlp_web/__init__.py
+crate_anon/nlp_webserver/__init__.py
 
 ===============================================================================
 
@@ -24,8 +24,9 @@ crate_anon/nlp_web/__init__.py
 
 ===============================================================================
 
-Init file for ``crate_anon.nlp_web`` module, with :func:`main` that returns a
-WSGI application implementing CRATE's built-in :ref:`NLPRP <nlprp>` server.
+Init file for ``crate_anon.nlp_webserver`` module, with :func:`main` that
+returns a WSGI application implementing CRATE's built-in :ref:`NLPRP <nlprp>`
+server.
 
 """
 

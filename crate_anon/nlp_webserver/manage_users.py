@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 r"""
-crate_anon/nlp_web/manage_users.py
+crate_anon/nlp_webserver/manage_users.py
 
 ===============================================================================
 

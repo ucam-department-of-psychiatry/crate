@@ -61,6 +61,7 @@ from django.urls import reverse
 from django.utils.html import escape
 from pyparsing import ParseException
 
+from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 from crate_anon.common.contenttypes import ContentType
 from crate_anon.common.sql import (
     ColumnId,
@@ -270,7 +271,7 @@ def get_db_structure_json() -> str:
                 'schema': dbinfo.schema_name,
                 'tables': table_info,
             })
-    json_result = json.dumps(info)
+    json_result = json.dumps(info, separators=JSON_SEPARATORS_COMPACT)
     log.debug(f"... get_db_structure_json returning string of size "
               f"{len(json_result)}")
     return json_result
@@ -436,7 +437,8 @@ def query_build(request: HttpRequest) -> HttpResponse:
         'sql': prettify_sql_html(profile.sql_scratchpad),
         'parse_error': parse_error,
         'database_structure': get_db_structure_json(),
-        'starting_values': json.dumps(starting_values_dict),
+        'starting_values': json.dumps(starting_values_dict,
+                                      separators=JSON_SEPARATORS_COMPACT),
         'sql_dialect': settings.RESEARCH_DB_DIALECT,
         'dialect_mysql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
         'dialect_mssql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
@@ -2884,7 +2886,8 @@ def pe_build(request: HttpRequest) -> HttpResponse:
         'pmq_final_patient_query': pmq_final_patient_query,
         'warnings': warnings,
         'database_structure': get_db_structure_json(),
-        'starting_values': json.dumps(starting_values_dict),
+        'starting_values': json.dumps(starting_values_dict,
+                                      separators=JSON_SEPARATORS_COMPACT),
         'sql_dialect': settings.RESEARCH_DB_DIALECT,
         'dialect_mysql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
         'dialect_mssql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,

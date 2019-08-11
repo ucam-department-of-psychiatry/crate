@@ -47,22 +47,37 @@ from requests import post, Response
 from requests.exceptions import HTTPError, RequestException
 from urllib3.exceptions import NewConnectionError
 
+from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
+from crate_anon.common.memsize import getsize
 from crate_anon.common.stringfunc import does_text_contain_word_chars
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
     CloudNlpConfigKeys,
     FN_NLPDEF,
     FN_WHEN_FETCHED,
+    full_sectionname,
     GateResultKeys,
     NlpConfigPrefixes,
     ProcessorConfigKeys,
 )
 from crate_anon.nlp_manager.nlp_definition import (
-    full_sectionname,
     NlpDefinition,
 )
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 from crate_anon.nlprp.api import (
+    json_get_array,
+    json_get_str,
+    json_get_bool,
+    json_get_toplevel_args,
+    json_get_object,
+    json_get_int,
+    json_get_array_of_str,
+    json_get_float,
+    json_get_value,
+    JsonAsStringType,
+    JsonArrayType,
+    JsonValueType,
+    JsonObjectType,
     make_nlprp_dict,
     make_nlprp_request,
     nlprp_datetime_to_datetime_utc_no_tzinfo,
@@ -89,11 +104,12 @@ def utf8len(text: str) -> int:
     return len(text.encode('utf-8'))
 
 
-def to_json_str(json_structure: Dict[str, Any]) -> str:
+def to_json_str(json_structure: JsonValueType) -> str:
     """
-    Converts a Python dict to a JSON string.
+    Converts a Python object to a JSON string.
     """
-    return json.dumps(json_structure, default=str)
+    return json.dumps(json_structure, default=str,
+                      separators=JSON_SEPARATORS_COMPACT)
     # This needs 'default=str' to deal with non-JSON-serializable
     # objects that may occur, such as datetimes in the metadata.
 
@@ -107,7 +123,7 @@ class CloudRequest(object):
     Class to send requests to the cloud processors and process the results.
     """
     # Set up standard information for all requests
-    HEADERS = {
+    HTTP_HEADERS = {
         'charset': 'utf-8',
         'Content-Type': 'application/json'
     }
@@ -128,12 +144,12 @@ class CloudRequest(object):
             client_job_id:
                 optional string used to group together results into one job.
             remote_processors_available:
-                List of remote processor names (expected to be pre-checked for
-                validity). If ``None``, the :meth:'add_processor'` method
-                checks for validity using the :meth:'list_processors' method.
-                When doing many requests all with the same set of processors it
-                is best to test validity outside class and specify this
-                parameter.
+                List of remote processor names (expected to have been
+                pre-checked for validity). If ``None``, the
+                :meth:'add_processor'` method checks for validity using the
+                :meth:'list_processors' method. When doing many requests all
+                with the same set of processors it is best to test validity
+                outside class and specify this parameter.
             procs_auto_add:
                 add procs automatically if not provided
         """
@@ -161,7 +177,7 @@ class CloudRequest(object):
         self.fetch_request[NKeys.COMMAND] = NlprpCommands.FETCH_FROM_QUEUE
 
         self._remote_processors_available = remote_processors_available
-        self.nlp_data = None  # type: Optional[Dict[str, Any]]  # the JSON response  # noqa
+        self.nlp_data = None  # type: Optional[JsonObjectType]  # the JSON response  # noqa
         self.queue_id = None  # type: Optional[str]
 
         self.procs = {}  # type: Dict[str, str]
@@ -185,6 +201,91 @@ class CloudRequest(object):
             self._ratelimited_send_process_request = \
                 self._internal_send_process_request
             self._ratelimited_try_fetch = self.try_fetch
+
+    def process_request_too_long(self, max_length: Optional[int]) -> bool:
+        """
+        Is the number of bytes in the outbound JSON request more than the
+        permitted maximum?
+
+        Args:
+            max_length:
+                the maximum length, or ``None`` for no limit
+            exact:
+                be exact? If ``False``, we are much faster and conservative
+                (i.e. we might say it's too long when it's short enought, but
+                we won't say it's OK when it's too long). The default is
+                therefore ``False``.
+
+        Notes:
+
+        The JSON method was found to be slow.
+
+        Specimen methods:
+
+        .. code-block:: python
+
+            import timeit
+            setup = '''
+            import json
+            from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
+            from crate_anon.common.memsize import getsize
+            stringlength = 100000  # 100 kb
+            testdict = {'a': 1, 'b': {'c': [2,3,4, 'x' * stringlength]}}
+            '''
+            v1 = "len(json.dumps(testdict, separators=JSON_SEPARATORS_COMPACT).encode('utf-8'))"
+            timeit.timeit(v1, setup=setup, number=1000)
+            # ... answer is total time in s, and therefore per-call time in milliseconds
+            # v1 gives e.g. 0.39ms
+            
+            v2 = "getsize(testdict)"
+            timeit.timeit(v2, setup=setup, number=1000)
+            # v2 gives 0.006 ms
+
+        In general, long strings (which is the thing we're watching out for)
+        make :func:`json.dumps` particularly slow.
+
+        But also, in general, Python objects seem to take up more space than
+        their JSON representation; e.g. compare
+        
+        .. code-block:: python
+
+            import json
+            from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
+            from crate_anon.common.memsize import getsize
+            from typing import Any
+            
+            def compare(x: Any) -> None:
+                json_utf8_length = len(
+                    json.dumps(x, separators=JSON_SEPARATORS_COMPACT).encode('utf-8')
+                )
+                python_length = getsize(x)
+                print(f"{x!r} -> JSON-UTF8 {json_utf8_length}, Python {python_length}")
+            
+                
+            compare("a")  # JSON-UTF8 3, Python 50
+            compare(1)  # JSON-UTF8 1, Python 28
+            compare({"a": 1, "b": [2, 3, "xyz"]})  # JSON-UTF8 23, Python 464
+            
+        It can be quite a big overestimate, so we probably shouldn't chuck
+        out requests just because the Python size looks too big.  
+
+        """  # noqa
+        if max_length is None:
+            return False  # no maximum; not too long
+        # Fast, apt to overestimate size a bit (as above)
+        length = getsize(self.request_process)
+
+        if length <= max_length:  # test the Python length
+            # Because the Python length is an overestimate of the JSON, if that
+            # is not more than the max, we can stop.
+            return False  # not too long
+
+        # The Python size is too long. So now we recalculate using the slow but
+        # accurate way.
+        length = utf8len(to_json_str(self.request_process))
+
+        # Is it too long?
+        return length > max_length
 
     def _post(self, request_json: str,
               may_fail: bool = None) -> Optional[Response]:
@@ -217,7 +318,7 @@ class CloudRequest(object):
                     url=self._cloudcfg.url,
                     data=request_json,
                     auth=self.auth,
-                    headers=self.HEADERS,
+                    headers=self.HTTP_HEADERS,
                     cookies=self.cookies,
                     verify=self._cloudcfg.verify_ssl
                 )
@@ -238,7 +339,7 @@ class CloudRequest(object):
         return response
 
     def _post_get_json(self, request_json: str,
-                       may_fail: bool = False) -> Optional[Dict[str, Any]]:
+                       may_fail: bool = False) -> Optional[JsonObjectType]:
         """
         Executes :meth:`_post`, then parses the result as JSON.
 
@@ -261,9 +362,13 @@ class CloudRequest(object):
         try:
             # noinspection PyUnboundLocalVariable
             json_response = response.json()
+            assert isinstance(json_response, dict)
             return json_response
         except json.decoder.JSONDecodeError:
             log.error("Reply was not JSON")
+            raise
+        except AssertionError:
+            log.error("Reply was JSON but not a JSON object (dict)")
             raise
 
     def _sleep_for_remote(self, exc: Exception) -> None:
@@ -298,19 +403,11 @@ class CloudRequest(object):
         # Send request, get response
         json_response = self._post_get_json(request_json, may_fail=False)
 
-        status = json_response[NKeys.STATUS]
-        if status != HttpStatus.OK:
-            errors = json_response.get(NKeys.ERRORS)
-            if errors:
-                if isinstance(errors, list):
-                    for err in errors:
-                        if isinstance(err, str):
-                            log.error(err)
-                        else:
-                            for key in err:
-                                log.error(f"{key}: {err[key]}")
-                else:
-                    log.error(str(errors))
+        status = json_get_int(json_response, NKeys.STATUS)
+        if not HttpStatus.is_good_answer(status):
+            errors = json_get_array(json_response, NKeys.ERRORS)
+            for err in errors:
+                log.error(f"Error received: {err!r}")
             raise HTTPError(f"Response status was: {status}")
         self._remote_processors_available = [
             proc[NKeys.NAME] for proc in json_response[NKeys.PROCESSORS]
@@ -376,14 +473,13 @@ class CloudRequest(object):
         }
         # Add all the identifying information.
         args = self.request_process[NKeys.ARGS]
-        content_key = NKeys.CONTENT
+        content_key = NKeys.CONTENT  # local copy for fractional speedup
         old_content = copy(args[content_key])
         args[content_key].append(new_content)
         max_length = self._cloudcfg.max_content_length
         # Slow -- is there a way to get length without having to serialize?
         # At least -- do it only once (forgiveness not permission, etc.).
-        if (max_length and
-                utf8len(to_json_str(self.request_process)) > max_length):
+        if self.process_request_too_long(max_length):
             # Too long. Restore the previous state!
             args[content_key] = old_content
             return False
@@ -452,7 +548,7 @@ class CloudRequest(object):
         """
         self.queue_id = queue_id
 
-    def try_fetch(self, cookies: CookieJar = None) -> Optional[Dict[str, Any]]:
+    def try_fetch(self, cookies: CookieJar = None) -> Optional[JsonObjectType]:
         """
         Tries to fetch the response from the server. Assumes queued mode.
         Returns the JSON response.
@@ -460,7 +556,7 @@ class CloudRequest(object):
         return self._ratelimited_try_fetch(cookies=cookies)
 
     def _internal_try_fetch(self, cookies: CookieJar = None) \
-            -> Optional[Dict[str, Any]]:
+            -> Optional[JsonObjectType]:
         """
         See :meth:`try_fetch`. This is the internal main function, to which
         rate limiting may be applied.
@@ -540,7 +636,7 @@ class CloudRequest(object):
         request_json = to_json_str(delete_request)
         response = self._post(request_json, may_fail=False)
         # The GATE server-side doesn't send back JSON for this
-        # todo: ... should it?
+        # todo: ... should it? We're sending to an NLPRP server, so it should?
 
         status = response.status_code
         if status == HttpStatus.NOT_FOUND:
@@ -561,7 +657,7 @@ class CloudRequest(object):
         request_json = to_json_str(delete_request)
         response = self._post(request_json, may_fail=False)
         # ... not (always) a JSON response?
-        # todo: ... should it be?
+        # todo: ... should it? We're sending to an NLPRP server, so it should?
 
         status = response.status_code
         if status == HttpStatus.NOT_FOUND:

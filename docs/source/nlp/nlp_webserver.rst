@@ -22,19 +22,19 @@
 NLPRP web server
 ----------------
 
-nlp_webserver_initialize_db
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+crate_nlp_webserver_initialize_db
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. literalinclude:: nlp_webserver_initialize_db_help.txt
+.. literalinclude:: crate_nlp_webserver_initialize_db_help.txt
     :language: none
 
 
-nlp_webserver_print_demo
-~~~~~~~~~~~~~~~~~~~~~~~~
+crate_nlp_webserver_print_demo
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Prints a demo NLP web server config.
 
-.. literalinclude:: nlp_webserver_print_demo_help.txt
+.. literalinclude:: crate_nlp_webserver_print_demo_help.txt
     :language: none
 
 Config specimen:
@@ -48,14 +48,14 @@ Processors specimen:
     :language: json
 
 
-nlp_webserver_manage_users
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+crate_nlp_webserver_manage_users
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. literalinclude:: nlp_webserver_manage_users_help.txt
+.. literalinclude:: crate_nlp_webserver_manage_users_help.txt
     :language: none
 
 
-nlp_webserver_generate_encryption_key
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+crate_nlp_webserver_generate_encryption_key
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Generates a random encryption key and prints it to the screen.

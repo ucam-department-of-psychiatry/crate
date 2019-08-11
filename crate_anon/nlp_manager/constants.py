@@ -31,7 +31,9 @@ crate_anon/nlp_manager/constants.py
 from cardinal_pythonlib.hash import HmacMD5Hasher
 from sqlalchemy.types import String
 
-CLOUD_NLP_SECTION = "Cloud_NLP"
+# =============================================================================
+# Constants
+# =============================================================================
 
 DEFAULT_CLOUD_LIMIT_BEFORE_COMMIT = 1000
 DEFAULT_CLOUD_MAX_CONTENT_LENGTH = 0  # no limit
@@ -75,6 +77,10 @@ SqlTypeDbIdentifier = String(MAX_SQL_FIELD_LEN)
 # ... text field used for database names, table names, and field names
 
 
+# =============================================================================
+# Simple classes for string constant collections
+# =============================================================================
+
 class NlpConfigPrefixes(object):
     """
     Section name prefixes for the NLP config file.
@@ -85,6 +91,7 @@ class NlpConfigPrefixes(object):
     OUTPUT = "output"
     INPUT = "input"
     DATABASE = "database"
+    CLOUD = "cloud"
 
 
 class NlpDefConfigKeys(object):
@@ -100,6 +107,8 @@ class NlpDefConfigKeys(object):
     MAX_BYTES_BEFORE_COMMIT = "max_bytes_before_commit"
     TRUNCATE_TEXT_AT = "truncate_text_at"
     RECORD_TRUNCATED_VALUES = "record_truncated_values"
+    CLOUD_CONFIG = "cloud_config"
+    CLOUD_REQUEST_DATA_DIR = "cloud_request_data_dir"
 
 
 class InputFieldConfigKeys(object):
@@ -152,7 +161,6 @@ class CloudNlpConfigKeys(object):
     """
     Config file keys for cloud NLP.
     """
-    REQUEST_DATA_DIR = "request_data_dir"
     CLOUD_URL = "cloud_url"
     VERIFY_SSL = "verify_ssl"
     USERNAME = "username"
@@ -209,3 +217,19 @@ class GateResultKeys(object):
     END = "end"
     SET = "set"
     FEATURES = "features"
+
+
+# =============================================================================
+# Config helpers
+# =============================================================================
+
+_ALL_NLPRP_SECTION_PREFIXES = [
+    v for k, v in NlpConfigPrefixes.__dict__.items()
+    if not k.startswith("_")
+]
+
+
+def full_sectionname(section_type: str, section: str) -> str:
+    if section_type in _ALL_NLPRP_SECTION_PREFIXES:
+        return section_type + ":" + section
+    raise ValueError(f"Unrecognised section type: {section_type}")

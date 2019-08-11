@@ -32,6 +32,10 @@ import os
 
 
 ENVVAR_RUN_WITHOUT_CONFIG = "CRATE_RUN_WITHOUT_LOCAL_SETTINGS"
+
+JSON_SEPARATORS_COMPACT = (',', ':')
+# ... see https://docs.python.org/3/library/json.html
+
 LOWER_CASE_STRINGS_MEANING_TRUE = ['true', '1', 't', 'y', 'yes']
 
 # Is this program running on readthedocs.org?

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 r"""
-crate_anon/nlp_web/settings.py
+crate_anon/nlp_webserver/settings.py
 
 ===============================================================================
 
@@ -29,6 +29,7 @@ Settings for CRATE's implementation of an NLPRP server.
 """
 
 import os
+from typing import Any, Dict
 
 from pyramid.paster import get_appsettings
 from pyramid.config import Configurator
@@ -38,6 +39,6 @@ from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CONFIG_ENVVAR
 
 SETTINGS_PATH = os.getenv(NLP_WEBSERVER_CONFIG_ENVVAR)
 assert NLP_WEBSERVER_CONFIG_ENVVAR, (
-    "Missing environment variable {}".format(NLP_WEBSERVER_CONFIG_ENVVAR))
-SETTINGS = get_appsettings(SETTINGS_PATH)
+    f"Missing environment variable {NLP_WEBSERVER_CONFIG_ENVVAR}")
+SETTINGS = get_appsettings(SETTINGS_PATH)  # type: Dict[str, Any]
 CONFIG = Configurator(settings=SETTINGS)

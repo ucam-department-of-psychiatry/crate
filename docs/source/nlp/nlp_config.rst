@@ -290,6 +290,39 @@ source text was truncated (see :ref:`truncate_text_at
 .. todo:: RNC to ask FS for explanation of ``record_truncated_values``, i.e. when should it be used?
 
 
+cloud_config
+############
+
+*String.* Required to use cloud NLP.
+
+The name of the cloud NLP configuration to use if you ask for cloud-based
+processing with this NLP definition.
+
+For example, you might specify:
+
+.. code-block:: ini
+
+    cloud_config = my_uk_cloud_nlp_service
+
+and CRATE would then look for a :ref:`cloud NLP configuration
+<nlp_config_section_cloud_nlp>` in a config file section named
+``[cloud:my_uk_cloud_nlp_service]``, and use the information there to connect
+to a cloud NLP service via the :ref:`NLPRP <nlprp>`.
+
+
+cloud_request_data_dir
+######################
+
+*String.* Required to use cloud NLP.
+
+Directory (on your local filesystem) to hold files containing information for
+the retrieval of data which has been sent in queued mode.
+
+For safety (in case the user specifies a foolish directory!), CRATE will make a subdirectory of this directory (whose name is
+that of the NLP definition). CRATE will delete files at will within that
+subdirectory.
+
+
 .. _nlp_config_section_input:
 
 Config file section: input field definition
@@ -781,19 +814,11 @@ Example:
 
 .. _nlp_config_section_cloud_nlp:
 
-Config file section: cloud NLP
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Config file section: cloud NLP configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is a single config file section names ``[Cloud_NLP]``.
-
-
-request_data_dir
-################
-
-*String.* Required to use cloud NLP.
-
-Directory (on your local filesystem) to hold files containing information for
-the retrieval of data which has been sent in queued mode.
+These are config file sections named ``[cloud:XXX]`` where ``XXX`` is the name
+of one of your NLP definitions.
 
 
 .. _nlp_config_cloud_url:

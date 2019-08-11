@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 r"""
-crate_anon/nlp_web/errors.py
+crate_anon/nlprp/errors.py
 
 ===============================================================================
 
@@ -24,10 +24,11 @@ crate_anon/nlp_web/errors.py
 
 ===============================================================================
 
-Errors used by the NLPRP server.
+Errors used by NLPRP servers.
 
 """
 
+from cardinal_pythonlib.reprfunc import auto_repr
 from crate_anon.nlprp.constants import HttpStatus
 
 
@@ -44,11 +45,22 @@ class NlprpError(Exception):
                  http_status: int,
                  code: int,
                  message: str,
-                 description: str) -> None:
+                 description: str = "") -> None:
         self.http_status = http_status
         self.code = code
         self.message = message
         self.description = description
+
+    def __str__(self) -> str:
+        return (
+            f"NLPRP error: HTTP status {self.http_status}, "
+            f"code {self.code}; "
+            f"message {self.message!r}; "
+            f"description {self.description!r}"
+        )
+
+    def __repr__(self) -> str:
+        return auto_repr(self)
 
 
 # =============================================================================

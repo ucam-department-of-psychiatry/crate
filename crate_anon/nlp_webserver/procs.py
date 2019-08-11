@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 r"""
-crate_anon/nlp_web/procs.py
+crate_anon/nlp_webserver/procs.py
 
 ===============================================================================
 
@@ -23,23 +23,27 @@ crate_anon/nlp_web/procs.py
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+Representation of NLP processors used by CRATE's NLPRP server.
+
 """
 
 import importlib.util
 from typing import Any, Dict, Optional
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-from crate_anon.nlp_manager.all_processors import make_processor
+from crate_anon.nlp_manager.all_processors import make_nlp_parser_unconfigured
+from crate_anon.nlprp.api import JsonObjectType
 from crate_anon.nlprp.constants import NlprpKeys
+from crate_anon.nlprp.errors import (
+    BAD_REQUEST,
+    mkerror,
+    no_such_proc_error,
+)
 from crate_anon.nlp_webserver.constants import (
     KEY_PROCTYPE,
     NlpServerConfigKeys,
     PROCTYPE_GATE,
-)
-from crate_anon.nlp_webserver.errors import (
-    BAD_REQUEST,
-    mkerror,
-    no_such_proc_error,
 )
 from crate_anon.nlp_webserver.settings import SETTINGS
 
@@ -110,7 +114,7 @@ class Processor(object):
             a :class:`Processor`
 
         Raises:
-            :exc:`crate_anon.nlp_webserver.errors.NlprpError` if no processor
+            :exc:`crate_anon.nlprp.errors.NlprpError` if no processor
             matches.
         """
         for candidate in cls.processors.values():
@@ -130,7 +134,7 @@ class Processor(object):
         raise no_such_proc_error(name, version)
 
     @classmethod
-    def get_processor_nlprp(cls, requested_processor_dict: Dict[str, Any]) \
+    def get_processor_nlprp(cls, requested_processor_dict: JsonObjectType) \
             -> "Processor":
         """
         Fetch a processor, from an NLPRP dictionary specifying it.
@@ -142,10 +146,10 @@ class Processor(object):
             a :class:`Processor`
 
         Raises:
-            :exc:`crate_anon.nlp_webserver.errors.NlprpError` if the
+            :exc:`crate_anon.nlprp.errors.NlprpError` if the
             ``NlprpKeys.NAME`` key is missing or no processor matches.
         """
-        version = requested_processor_dict.get(NlprpKeys.VERSION)
+        version = requested_processor_dict.get(NlprpKeys.VERSION)  # optional
         try:
             name = requested_processor_dict[NlprpKeys.NAME]  # may raise
         except KeyError:
@@ -167,7 +171,7 @@ class Processor(object):
             a :class:`Processor`
 
         Raises:
-            :exc:`crate_anon.nlp_webserver.errors.NlprpError` if no processor
+            :exc:`crate_anon.nlprp.errors.NlprpError` if no processor
             matches.
         """
         # Split on the last occurrence of '_'
@@ -177,14 +181,12 @@ class Processor(object):
     def set_parser(self) -> None:
         """
         Sets 'self.parser' to an instance of a subclass of 'BaseNlpParser'
-        not bound to any nlpdef or cfgsection, unless self.proctype is GATE.
+        not bound to any nlpdef or cfgsection, unless self.proctype is GATE
+        (in which case, do nothing).
         """
         if self.proctype != PROCTYPE_GATE:
-            # Suppressed warning because, although make_processor asks for
-            # NlpDefinition, str, the processor it makes doesn't require this
-            # noinspection PyTypeChecker
-            self.parser = make_processor(processor_type=self.proctype,
-                                         nlpdef=None, section=None)
+            # We do not have to supply a NLP definition here.
+            self.parser = make_nlp_parser_unconfigured(self.proctype)
         # else: do nothing
 
 
@@ -195,7 +197,7 @@ for proc in processors.PROCESSORS:
         version=proc[NlprpKeys.VERSION],
         is_default_version=proc[NlprpKeys.IS_DEFAULT_VERSION],
         description=proc[NlprpKeys.DESCRIPTION],
-        proctype=proc.get(KEY_PROCTYPE)
+        proctype=proc.get(KEY_PROCTYPE)  # may be None
     )
     # Doing this here saves time per request
     x.set_parser()

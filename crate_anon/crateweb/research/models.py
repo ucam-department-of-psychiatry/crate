@@ -63,6 +63,7 @@ from openpyxl.workbook.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
 from crate_anon.anonymise.models import PatientInfoConstants
+from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 from crate_anon.common.sql import (
     ColumnId,
     columns_to_table_column_hierarchy,
@@ -906,7 +907,8 @@ class Query(QueryBase):
         Args:
             display_list: list of columns to display
         """
-        self.display = json.dumps(display_list)
+        self.display = json.dumps(display_list,
+                                  separators=JSON_SEPARATORS_COMPACT)
         self._display_list = None  # clear cache
 
     def _get_display_list(self) -> List[str]:

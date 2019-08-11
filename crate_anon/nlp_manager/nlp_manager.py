@@ -71,6 +71,7 @@ from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.exceptions import die
+from cardinal_pythonlib.fileops import purge
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.sqlalchemy.core_query import count_star
 from cardinal_pythonlib.timing import MultiTimerContext, timer
@@ -88,7 +89,7 @@ from crate_anon.anonymise.constants import (
 from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.nlp_manager.all_processors import (
-    get_nlp_parser_debug_instance,
+    make_nlp_parser_unconfigured,
     possible_processor_names,
     possible_processor_table,
 )
@@ -926,13 +927,18 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
     nlpname = nlpdef.get_name()
     cloudcfg = nlpdef.get_cloud_config_or_raise()
     cloud_request = CloudRequest(nlpdef, procs_auto_add=False)
+
     if cancel_all:
         # Deleting all from queue!
         cloud_request.delete_all_from_queue()
-        # Shoud the files be deleted in the program or is that dangerous?
-        log.info(f"All cloud requests cancelled. Delete files in "
-                 f"{cloudcfg.req_data_dir}")
+        log.info(f"All cloud requests cancelled.")
+        # Should the files be deleted in the program or is that dangerous?
+        # ... OK now we guarantee that CRATE will create and use a specific
+        # directory.
+        purge(cloudcfg.req_data_dir, "*")
         return
+    # Otherwise:
+
     filename = cloudcfg.data_filename()
     if not os.path.exists(filename):
         log.error(f"File {filename!r} does not exist. "
@@ -1166,7 +1172,8 @@ def main() -> None:
         print(possible_processor_table())
         return
     if args.showinfo:
-        parser = get_nlp_parser_debug_instance(args.showinfo)
+        parser = make_nlp_parser_unconfigured(args.showinfo,
+                                              raise_if_absent=False)
         if parser:
             print(f"Info for class {args.showinfo}:\n")
             parser.print_info()

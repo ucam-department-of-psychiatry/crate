@@ -60,12 +60,12 @@ from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
     FN_SRCPKVAL,
     FN_SRCPKSTR,
+    full_sectionname,
     NlpConfigPrefixes,
     ProcessorConfigKeys,
 )
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 from crate_anon.nlp_manager.nlp_definition import (
-    full_sectionname,
     NlpDefinition,
 )
 from crate_anon.nlprp.constants import (
@@ -129,6 +129,24 @@ class BaseNlpParser(ABC):
             self._sectionname = ""
             self._destdb_name = ""
             self._destdb = None  # type: Optional[DatabaseHolder]
+
+    @classmethod
+    def classname(cls) -> str:
+        """
+        Returns the short Python name of this class.
+        """
+        return cls.__name__
+
+    @classmethod
+    def fully_qualified_name(cls) -> str:
+        """
+        Returns the class's fully qualified name.
+        """
+        # This may be imperfect; see
+        # https://stackoverflow.com/questions/2020014/get-fully-qualified-class-name-of-an-object-in-python  # noqa
+        # https://www.python.org/dev/peps/pep-3155/
+        return ".".join([cls.__module__,
+                         cls.__qualname__])
 
     @classmethod
     def print_info(cls, file: TextIO = sys.stdout) -> None:
@@ -666,7 +684,10 @@ class BaseNlpParser(ABC):
         """
         Returns a dictionary for the ``schema_type`` parameter, and associated
         parameters describing the schema (e.g. ``tabular_schema``), of the
-        :ref:`NLPRP <nlprp>` :ref:`list_processors <list_processors>` command.
+        NLPRP :ref:`list_processors <nlprp_list_processors>` command.
+
+        This is not a classmethod, because it may be specialized as we load
+        external schema information (e.g. GATE processors).
 
         Args:
             sql_dialect: preferred SQL dialect for ``tabular_schema``
@@ -685,65 +706,70 @@ class BaseNlpParser(ABC):
         }
         return schema_info
 
-    def nlprp_name(self) -> str:
+    @classmethod
+    def nlprp_name(cls) -> str:
         """
-        Returns the processor's name for use in response to the :ref:`NLPRP
-        <nlprp>` :ref:`list_processors <list_processors>` command.
+        Returns the processor's name for use in response to the NLPRP
+        :ref:`list_processors <nlprp_list_processors>` command.
 
         The default is the fully qualified module/class name -- because this is
         highly unlikely to clash with any other NLP processors on a given
         server.
         """
-        # This may be imperfect; see
-        # https://stackoverflow.com/questions/2020014/get-fully-qualified-class-name-of-an-object-in-python  # noqa
-        # https://www.python.org/dev/peps/pep-3155/
-        return ".".join([self.__class__.__module__,
-                         self.__class__.__qualname__])
+        return cls.fully_qualified_name()
 
-    def nlprp_title(self) -> str:
+    @classmethod
+    def nlprp_title(cls) -> str:
         """
-        Returns the processor's title for use in response to the :ref:`NLPRP
-        <nlprp>` :ref:`list_processors <list_processors>` command.
+        Returns the processor's title for use in response to the NLPRP
+        :ref:`list_processors <nlprp_list_processors>` command.
 
         The default is the short Python class name.
         """
-        return self.__class__.__name__
+        return cls.__name__
 
-    # noinspection PyMethodMayBeStatic
-    def nlprp_version(self) -> str:
+    @classmethod
+    def nlprp_version(cls) -> str:
         """
-        Returns the processor's version for use in response to the :ref:`NLPRP
-        <nlprp>` :ref:`list_processors <list_processors>` command.
+        Returns the processor's version for use in response to the NLPRP
+        :ref:`list_processors <nlprp_list_processors>` command.
 
         The default is the current CRATE version.
         """
         return CRATE_VERSION
 
-    # noinspection PyMethodMayBeStatic
+    @classmethod
     def nlprp_is_default_version(self) -> bool:
         """
         Returns whether this processor is the default version of its name, for
-        use in response to the :ref:`NLPRP <nlprp>` :ref:`list_processors
-        <list_processors>` command.
+        use in response to the NLPRP :ref:`list_processors
+        <nlprp_list_processors>` command.
 
         The default is ``True``.
         """
         return True
 
-    def nlprp_description(self) -> str:
+    @classmethod
+    def nlprp_description(cls) -> str:
         """
-        Returns the processor's description for use in response to the
-        :ref:`NLPRP <nlprp>` :ref:`list_processors <list_processors>` command.
+        Returns the processor's description for use in response to the NLPRP
+        :ref:`list_processors <nlprp_list_processors>` command.
+
+        Uses each processor's docstring, and reformats it slightly.
         """
         # PyCharm thinks that __doc__ is bytes, but it's str!
-        # noinspection PyTypeChecker
-        return self.__class__.__doc__
+        docstring = str(cls.__doc__)
+        docstring = docstring.replace("\n", " ")
+        # https://stackoverflow.com/questions/2077897/substitute-multiple-whitespace-with-single-whitespace-in-python
+        return " ".join(docstring.split())
 
     def nlprp_processor_info(self, sql_dialect: str = None) -> Dict[str, Any]:
         """
         Returns a dictionary suitable for use as this processor's response to
-        the :ref:`NLPRP <nlprp>` :ref:`list_processors <list_processors>`
-        command.
+        the NLPRP :ref:`list_processors <nlprp_list_processors>` command.
+
+        This is not a classmethod, because it may be specialized as we load
+        external schema information (e.g. GATE processors).
 
         Args:
             sql_dialect: preferred SQL dialect for ``tabular_schema``

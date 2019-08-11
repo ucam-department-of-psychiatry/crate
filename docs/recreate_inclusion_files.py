@@ -108,16 +108,17 @@ def main():
             join(NLP_DIR, "crate_nlp_multiprocess_help.txt"))
     run_cmd(["crate_nlp", "--democonfig"],
             join(NLP_DIR, "specimen_nlp_config_file.ini"))
-    run_cmd(["nlp_webserver_initialize_db", "--help"],
-            join(NLP_DIR, "nlp_webserver_initialize_db_help.txt"))
-    run_cmd(["nlp_webserver_print_demo", "--help"],
-            join(NLP_DIR, "nlp_webserver_print_demo_help.txt"))
-    run_cmd(["nlp_webserver_print_demo", "--config"],
+    run_cmd(["crate_nlp_webserver_initialize_db", "--help"],
+            join(NLP_DIR, "crate_nlp_webserver_initialize_db_help.txt"))
+    run_cmd(["crate_nlp_webserver_print_demo", "--help"],
+            join(NLP_DIR, "crate_nlp_webserver_print_demo_help.txt"))
+    run_cmd(["crate_nlp_webserver_print_demo", "--config"],
             join(NLP_DIR, "nlp_webserver_demo_config.ini"))
-    run_cmd(["nlp_webserver_print_demo", "--processors"],
+    run_cmd(["crate_nlp_webserver_print_demo", "--processors"],
             join(NLP_DIR, "nlp_webserver_demo_processors.json"))
-    run_cmd(["nlp_webserver_manage_users", "--help"],
-            join(NLP_DIR, "nlp_webserver_manage_users_help.txt"))
+    run_cmd(["crate_nlp_webserver_manage_users", "--help"],
+            join(NLP_DIR, "crate_nlp_webserver_manage_users_help.txt"))
+    # todo: crate_nlp_webserver_manage_users not running (settings import fails)
     # preprocessing
     run_cmd(["crate_fetch_wordlists", "--help"],
             join(PREPROC_DIR, "crate_fetch_wordlists_help.txt"))
