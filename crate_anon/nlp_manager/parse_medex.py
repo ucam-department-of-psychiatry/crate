@@ -512,7 +512,7 @@ class Medex(BaseNlpParser):
 
         if nlpdef is None:  # only None for debugging!
             self._debug_mode = True
-            self._tablename = self.__class__.__name__.lower()
+            self._tablename = self.classname().lower()
             self._max_external_prog_uses = 1
             self._progenvsection = ""
             self._env = {}  # type: Dict[str, str]

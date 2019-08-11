@@ -296,7 +296,7 @@ class NumericalResultParser(BaseNlpParser):
         self.regex_str_for_debugging = regex_str_for_debugging
 
         if nlpdef is None:  # only None for debugging!
-            self.tablename = self.__class__.__name__.lower()
+            self.tablename = self.classname().lower()
             self.assume_preferred_unit = True
         else:
             self.tablename = nlpdef.opt_str(
@@ -370,7 +370,7 @@ class NumericalResultParser(BaseNlpParser):
         Raises:
             :exc:`AssertionError` if a comparison fails
         """
-        log.info(f"Testing parser: {type(self).__name__}")
+        log.info(f"Testing parser: {self.classname()}")
         if verbose:
             log.debug(f"... regex string:\n{self.regex_str_for_debugging}")
         for test_string, expected_values in test_expected_list:
@@ -380,7 +380,7 @@ class NumericalResultParser(BaseNlpParser):
             assert actual_values == expected_values, (
                 "Parser {name}: Expected {expected}, got {actual}, when "
                 "parsing {test_string}; full result:\n{full}".format(
-                    name=type(self).__name__,
+                    name=self.classname(),
                     expected=expected_values,
                     actual=actual_values,
                     test_string=repr(test_string),
@@ -525,7 +525,7 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
                          regex_str_for_debugging=regex_str,
                          commit=commit)
         if debug:
-            log.debug(f"Regex for {type(self).__name__}: {regex_str}")
+            log.debug(f"Regex for {self.classname()}: {regex_str}")
         self.compiled_regex = compile_regex(regex_str)
         self.units_to_factor = compile_regex_dict(units_to_factor)
         self.take_absolute = take_absolute
@@ -677,7 +677,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
                          cfgsection=cfgsection,
                          commit=commit)
         if nlpdef is None:  # only None for debugging!
-            self.tablename = self.__class__.__name__.lower()
+            self.tablename = self.classname().lower()
         else:
             self.tablename = nlpdef.opt_str(
                 self._sectionname, 'desttable', required=True)
@@ -698,7 +698,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
             )?
         """  # noqa
         if debug:
-            log.debug(f"Regex for {type(self).__name__}: {regex_str}")
+            log.debug(f"Regex for {self.classname()}: {regex_str}")
         self.regex_str = regex_str
         self.compiled_regex = compile_regex(regex_str)
 
@@ -816,7 +816,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
         Raises:
             :exc:`AssertionError` if a comparison fails
         """
-        log.info(f"Testing parser: {type(self).__name__}")
+        log.info(f"Testing parser: {self.classname()}")
         if verbose:
             log.debug(f"... regex:\n{self.regex_str}")
         for test_string, expected_values in test_expected_list:
@@ -827,7 +827,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
             assert actual_values == expected_values, (
                 "Parser {name}: Expected {expected}, got {actual}, when "
                 "parsing {test_string}; full result:\n{full}".format(
-                    name=type(self).__name__,
+                    name=self.classname(),
                     expected=expected_values,
                     actual=actual_values,
                     test_string=repr(test_string),
@@ -983,7 +983,7 @@ class ValidatorBase(BaseNlpParser):
         self.NAME = self.variable
 
         if nlpdef is None:  # only None for debugging!
-            self.tablename = self.__class__.__name__.lower()
+            self.tablename = self.classname().lower()
         else:
             self.tablename = nlpdef.opt_str(
                 self._sectionname, 'desttable', required=True)
@@ -1060,7 +1060,7 @@ class ValidatorBase(BaseNlpParser):
 
             https://docs.python.org/3/library/re.html#re.regex.match
         """
-        log.info(f"Testing validator: {type(self).__name__}")
+        log.info(f"Testing validator: {self.classname()}")
         if verbose:
             n = len(self.regex_str_list)
             for i, r in enumerate(self.regex_str_list):
@@ -1071,7 +1071,7 @@ class ValidatorBase(BaseNlpParser):
             assert actual_match == expected_match, (
                 "Validator {name}: Expected 'any search'={expected}, got "
                 "{actual}, when parsing {test_string}; full={full}".format(
-                    name=type(self).__name__,
+                    name=self.classname(),
                     expected=expected_match,
                     actual=actual_match,
                     test_string=repr(test_string),
@@ -1083,7 +1083,7 @@ class ValidatorBase(BaseNlpParser):
 
     def test(self, verbose: bool = False) -> None:
         log.info(
-            f"... no tests implemented for validator {type(self).__name__}")
+            f"... no tests implemented for validator {self.classname()}")
 
 
 # =============================================================================

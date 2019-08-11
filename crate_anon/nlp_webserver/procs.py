@@ -29,7 +29,7 @@ Representation of NLP processors used by CRATE's NLPRP server.
 """
 
 import importlib.util
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.all_processors import make_nlp_parser_unconfigured

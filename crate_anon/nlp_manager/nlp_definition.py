@@ -66,6 +66,7 @@ from crate_anon.nlp_manager.constants import (
     DEFAULT_CLOUD_RATE_LIMIT_HZ,
     DEFAULT_CLOUD_WAIT_ON_CONN_ERR_S,
     DEFAULT_TEMPORARY_TABLENAME,
+    full_sectionname,
     GATE_PIPELINE_CLASSNAME,
     GateOutputConfigKeys,
     HashClass,
@@ -81,30 +82,7 @@ from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 if TYPE_CHECKING:
     from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-
-# if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
-#     from crate_anon.nlp_manager import input_field_config
-#     from crate_anon.nlp_manager import base_nlp_parser  # SEE NEXT LINES
-
-# - see PEP0484 / forward references
-# - some circular imports work under Python 3.5 but not 3.4:
-#   https://docs.python.org/3/whatsnew/3.5.html#other-language-changes
-#   https://bugs.python.org/issue17636
-# - see also:
-#   http://stackoverflow.com/questions/6351805/cyclic-module-dependencies-and-relative-imports-in-python  # noqa
-#   http://stackoverflow.com/questions/35776791/type-hinting-union-with-forward-references  # noqa
-# - OK, still problems.
-#   Let's strip this back to something sensible.
-#   Does BaseNlpParser really need to know about NlpDefinition?
-#   - Not directly.
-#   - For typing, if it stores a reference (optional).
-#   - It could also be given subcomponents instead.
-#   Does NlpDefinition really need to know about BaseNlpParser?
-#   - Yes, but only for delayed imports.
-# - For now, solved by weakening type hints for NlpDefinition.
-# - # noinspection PyUnresolvedReferences
-#   ... see http://codeoptimism.com/blog/pycharm-suppress-inspections-list/
-#   for a full list.
+    from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 
 log = logging.getLogger(__name__)
 
@@ -143,7 +121,8 @@ def demo_nlp_config() -> str:
                                            Type["BaseNlpParser"]]]) -> str:
         _procdeflist = []  # type: List[str]
         for nlpclass, validatorclass in nlp_and_validators:
-            _procdeflist.append(_make_procdef_pair(nlpclass.__name__.lower()))
+            _procdeflist.append(
+                _make_procdef_pair(nlpclass.classname().lower()))
         return "\n\n".join(_procdeflist)
 
     def _make_proclist(
@@ -151,10 +130,10 @@ def demo_nlp_config() -> str:
                                            Type["BaseNlpParser"]]]) -> str:
         _proclist = []  # type: List[str]
         for nlpclass, validatorclass in nlp_and_validators:
-            _name = nlpclass.__name__.lower()
+            _name = nlpclass.classname().lower()
             _proclist.append(
-                f"    {nlpclass.__name__} procdef_{_name}\n"
-                f"    {validatorclass.__name__} procdef_validate_{_name}"
+                f"    {nlpclass.classname()} procdef_{_name}\n"
+                f"    {validatorclass.classname()} procdef_validate_{_name}"
             )
         return "\n".join(_proclist)
 
@@ -260,7 +239,7 @@ def demo_nlp_config() -> str:
 # Cloud NLP demo
 # -----------------------------------------------------------------------------
 
-# todo: fix me!
+# todo: complete the demo config for a cloud NLP setup
 
 [{NlpConfigPrefixes.NLPDEF}:cloud_nlp_demo]
 
@@ -691,7 +670,7 @@ OS_PATHSEP = :
 {CloudNlpConfigKeys.STOP_AT_FAILURE} = true
 {CloudNlpConfigKeys.MAX_TRIES} = {DEFAULT_CLOUD_MAX_TRIES}
 {CloudNlpConfigKeys.RATE_LIMIT_HZ} = {DEFAULT_CLOUD_RATE_LIMIT_HZ}
-{CloudNlpConfigKeys.PROCESSORS} = XXX_WRITE_ME_XXX
+{CloudNlpConfigKeys.PROCESSORS} = todo:XXX_WRITE_ME_XXX
 
 """  # noqa
     )
@@ -815,7 +794,8 @@ class NlpDefinition(object):
             for proctype, procname in chunks(processorpairs, 2):
                 self.require_section(
                     full_sectionname(NlpConfigPrefixes.PROCESSOR, procname))
-                processor = make_nlp_parser(proctype, self, procname)
+                processor = make_nlp_parser(
+                    classname=proctype, nlpdef=self, cfgsection=procname)
                 self._processors.append(processor)
         except ValueError:
             log.critical(f"Bad {NlpDefConfigKeys.PROCESSORS} specification")
@@ -1072,7 +1052,7 @@ class NlpDefinition(object):
         tl.commit()
 
     # noinspection PyUnresolvedReferences
-    def get_processors(self) -> List['base_nlp_parser.BaseNlpParser']:  # typing / circular reference problem  # noqa
+    def get_processors(self) -> List['BaseNlpParser']:
         """
         Returns all NLP processors used by this NLP definition.
 
@@ -1084,7 +1064,7 @@ class NlpDefinition(object):
         return self._processors
 
     # noinspection PyUnresolvedReferences
-    def get_ifconfigs(self) -> Iterable['input_field_config.InputFieldConfig']:  # typing / circular reference problem  # noqa
+    def get_ifconfigs(self) -> Iterable['InputFieldConfig']:
         """
         Returns all input field configurations used by this NLP definition.
 

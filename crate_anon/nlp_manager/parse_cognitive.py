@@ -304,6 +304,7 @@ class Moca(NumeratorOutOfDenominatorParser):
     """
     Montreal Cognitive Assessment (MOCA).
     """
+    # todo:: MOCA NLP parser: support also "scored X on the MOCA"?
     MOCA = fr"""
         (?: {WORD_BOUNDARY}
             (?: MOCA | (?: Montreal \s+ cognitive \s+ assessment ) )
@@ -379,6 +380,3 @@ def test_all(verbose: bool = False) -> None:
 if __name__ == '__main__':
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all(verbose=True)
-
-
-# .. todo:: MOCA NLP parser: support also "scored X on the MOCA"?

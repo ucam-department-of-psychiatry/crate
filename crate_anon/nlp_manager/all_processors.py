@@ -169,14 +169,17 @@ def get_nlp_parser_class(classname: str) -> Optional[Type[BaseNlpParser]]:
 
 def make_nlp_parser(classname: str,
                     nlpdef: NlpDefinition,
-                    section: str) -> BaseNlpParser:
+                    cfgsection: str) -> BaseNlpParser:
     """
     Fetch an NLP processor instance by name.
 
     Args:
-        classname: the name of the processor
-        nlpdef: a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-        section: the name of a CRATE NLP config file section, passed to the NLP
+        classname:
+            the name of the processor
+        nlpdef:
+            a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+        cfgsection:
+            the name of a CRATE NLP config file section, passed to the NLP
             parser as we create it (for it to get extra config information if
             it wishes)
 
@@ -190,7 +193,7 @@ def make_nlp_parser(classname: str,
     """
     cls = get_nlp_parser_class(classname)
     if cls:
-        return cls(nlpdef, section)
+        return cls(nlpdef=nlpdef, cfgsection=cfgsection)
     raise ValueError(f"Unknown NLP processor type: {classname!r}")
 
 
@@ -210,7 +213,7 @@ def make_nlp_parser_unconfigured(classname: str,
     """
     cls = get_nlp_parser_class(classname)
     if cls:
-        return cls(None, None)
+        return cls(nlpdef=None, cfgsection=None)
     if raise_if_absent:
         raise ValueError(f"Unknown NLP processor type: {classname!r}")
     return None
@@ -220,13 +223,13 @@ def possible_processor_names() -> List[str]:
     """
     Returns all NLP processor names.
     """
-    return [cls.__name__ for cls in all_parser_classes()]
+    return [cls.classname() for cls in all_parser_classes()]
 
 
 def possible_processor_table() -> str:
     """
     Returns a pretty-formatted string containing a table of all NLP processors
-    and their description.
+    and their description (from their docstring).
     """
     pt = prettytable.PrettyTable(["NLP name", "Description"],
                                  header=True,
@@ -235,7 +238,7 @@ def possible_processor_table() -> str:
     pt.valign = 't'
     pt.max_width = 80
     for cls in all_parser_classes():
-        name = cls.__name__
+        name = cls.classname()
         description = getattr(cls, '__doc__', "") or ""
         ptrow = [name, description]
         pt.add_row(ptrow)
@@ -252,9 +255,9 @@ def test_all_processors(verbose: bool = False,
         skip_validators: skip validator classes?
     """
     for cls in all_parser_classes():
-        if skip_validators and cls.__name__.endswith('Validator'):
+        if skip_validators and cls.classname().endswith('Validator'):
             continue
-        log.info("Testing parser class: {}".format(cls.__name__))
+        log.info("Testing parser class: {}".format(cls.classname()))
         instance = cls(None, None)
         log.info("... instantiated OK")
         schema_json = instance.nlprp_processor_info_json(

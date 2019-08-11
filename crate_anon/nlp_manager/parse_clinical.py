@@ -204,7 +204,7 @@ class Height(NumericalResultParser):
             commit=commit
         )
         if debug:
-            print(f"Regex for {type(self).__name__}: {self.REGEX}")
+            print(f"Regex for {self.classname()}: {self.REGEX}")
 
     def parse(self, text: str,
               debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
@@ -396,7 +396,7 @@ class Weight(NumericalResultParser):
             commit=commit
         )
         if debug:
-            print(f"Regex for {type(self).__name__}: {self.REGEX}")
+            print(f"Regex for {self.classname()}: {self.REGEX}")
 
     def parse(self, text: str,
               debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
@@ -659,7 +659,7 @@ class Bp(BaseNlpParser):
             commit=commit
         )
         if nlpdef is None:  # only None for debugging!
-            self.tablename = self.__class__.__name__.lower()
+            self.tablename = self.classname().lower()
         else:
             self.tablename = nlpdef.opt_str(
                 self._sectionname, 'desttable', required=True)
@@ -773,7 +773,7 @@ class Bp(BaseNlpParser):
             verbose:
                 be verbose?
         """
-        log.info(f"Testing parser: {type(self).__name__}")
+        log.info(f"Testing parser: {self.classname()}")
         if verbose:
             log.debug(f"... regex:\n{self.REGEX}")
         for test_string, expected_values in test_expected_list:
@@ -784,7 +784,7 @@ class Bp(BaseNlpParser):
             assert actual_values == expected_values, (
                 "Parser {name}: Expected {expected}, got {actual}, when "
                 "parsing {test_string}; full result={full}".format(
-                    name=type(self).__name__,
+                    name=self.classname(),
                     expected=expected_values,
                     actual=actual_values,
                     test_string=repr(test_string),

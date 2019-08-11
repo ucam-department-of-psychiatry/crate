@@ -279,7 +279,7 @@ class InputFieldConfig(object):
                    comment="Version of CRATE that generated this NLP record."),
             Column(FN_WHEN_FETCHED, DateTime, nullable=True,
                    comment="Date/time that the NLP processor fetched the "
-                           "record from the source database."),
+                           "record from the source database (in UTC)."),
         ]
 
     @staticmethod

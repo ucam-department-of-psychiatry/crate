@@ -1,4 +1,4 @@
-usage: nlp_webserver_print_demo [-h] [--config | --processors]
+usage: crate_nlp_webserver_print_demo [-h] [--config | --processors]
 
 Print demo config file or demo processor constants file for server side cloud nlp.
 
@@ -8,4 +8,4 @@ optional arguments:
   --processors  Print a demo processor constants file for server side cloud
                 nlp.
 
-# Generated at 2019-08-10 11:23:48
+# Generated at 2019-08-12 00:05:00

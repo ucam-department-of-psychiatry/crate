@@ -28,7 +28,7 @@ Natural Language Processing Request Protocol (NLPRP) constants.
 
 """
 
-from typing import Any, Dict, List, Union
+from typing import Dict, List, Union
 
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 
@@ -61,7 +61,7 @@ class HttpStatus(object):
     # 2xx: success
     OK = 200
     ACCEPTED = 202
-    NO_CONTENT = 204  # todo: not emitted by an NLPRP server; unnecessary?
+    NO_CONTENT = 204  # todo: this HTTP status not emitted by an NLPRP server; unnecessary?
 
     # 3xx: redirection
     # ... not used

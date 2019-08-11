@@ -108,8 +108,9 @@ class BaseNlpParser(ABC):
             nlpdef:
                 a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
             cfgsection:
-                the name of a CRATE NLP config file section (from which we may
-                choose to get extra config information)
+                the name of a CRATE NLP config file section, TO WHICH we will
+                add a "processor:" prefix (from which section we may choose to
+                get extra config information)
             commit:
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
@@ -216,6 +217,8 @@ class BaseNlpParser(ABC):
     def get_parser_name(self) -> str:
         """
         Returns the NLP parser's name, from our :attr:`NAME` attribute.
+
+        .. todo:: is this right?? Upper case?
         """
         return getattr(self, 'NAME', None)
 
@@ -509,13 +512,13 @@ class BaseNlpParser(ABC):
             verbose: be verbose?
         """
         raise NotImplementedError(f"No test function for regex class: "
-                                  f"{type(self).__name__}")
+                                  f"{self.classname()}")
 
     def test_parser(self, test_strings: List[str]) -> None:
         """
         Tests the NLP processor's parser with a set of test strings.
         """
-        log.info(f"Testing parser: {type(self).__name__}")
+        log.info(f"Testing parser: {self.classname()}")
         for text in test_strings:
             log.info(f"    {text} -> {list(self.parse(text))}")
         log.info("... OK")
@@ -739,7 +742,7 @@ class BaseNlpParser(ABC):
         return CRATE_VERSION
 
     @classmethod
-    def nlprp_is_default_version(self) -> bool:
+    def nlprp_is_default_version(cls) -> bool:
         """
         Returns whether this processor is the default version of its name, for
         use in response to the NLPRP :ref:`list_processors

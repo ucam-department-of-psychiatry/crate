@@ -26,6 +26,8 @@
 This module is for sending JSON requests to the NLP Cloud server and
 receiving responses.
 
+.. todo:: cloud_parser: handle new ``tabular_schema`` info from server
+
 """
 
 from copy import copy
@@ -66,16 +68,7 @@ from crate_anon.nlp_manager.nlp_definition import (
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 from crate_anon.nlprp.api import (
     json_get_array,
-    json_get_str,
-    json_get_bool,
-    json_get_toplevel_args,
-    json_get_object,
     json_get_int,
-    json_get_array_of_str,
-    json_get_float,
-    json_get_value,
-    JsonAsStringType,
-    JsonArrayType,
     JsonValueType,
     JsonObjectType,
     make_nlprp_dict,
@@ -155,8 +148,8 @@ class CloudRequest(object):
         """
         self._nlpdef = nlpdef
         self._cloudcfg = nlpdef.get_cloud_config_or_raise()
-        self._sectionname = full_sectionname(NlpConfigPrefixes.NLPDEF,
-                                             self._nlpdef.get_name())
+        self._nlpdef_sectionname = full_sectionname(NlpConfigPrefixes.NLPDEF,
+                                                    self._nlpdef.get_name())
         self._commit = commit
         self.auth = (self._cloudcfg.username, self._cloudcfg.password)
         self.fetched = False
@@ -210,11 +203,6 @@ class CloudRequest(object):
         Args:
             max_length:
                 the maximum length, or ``None`` for no limit
-            exact:
-                be exact? If ``False``, we are much faster and conservative
-                (i.e. we might say it's too long when it's short enought, but
-                we won't say it's OK when it's too long). The default is
-                therefore ``False``.
 
         Notes:
 
@@ -435,7 +423,7 @@ class CloudRequest(object):
         todo: docs
         """
         processorpairs = self._nlpdef.opt_strlist(
-            self._sectionname, CloudNlpConfigKeys.PROCESSORS,
+            self._nlpdef_sectionname, CloudNlpConfigKeys.PROCESSORS,
             required=True, lower=False)
         self.procs = {}  # type: Dict[str, str]
         for proctype, procname in chunks(processorpairs, 2):
@@ -819,6 +807,8 @@ class CloudRequest(object):
         """
         Sets 'mirror_processors'. The purpose of mirror_processors is so that
         we can easily access the sessions that come with the processors.
+
+        .. todo:: understand this
         """
         if procs:
             assert isinstance(procs, list), (
@@ -827,18 +817,14 @@ class CloudRequest(object):
                 assert isinstance(proc, BaseNlpParser), (
                     "Each element of 'procs' must be from a subclass "
                     "of BaseNlpParser")
-                # proctype = proc.get_parser_name()
-                # Use 'proc.__name__' instead, to handle case sensitivity
-                proctype = type(proc).__name__
+                proctype = proc.classname()
                 if proctype.upper() == 'GATE':
                     self.mirror_processors[proc.get_cfgsection()] = proc
                 else:
                     self.mirror_processors[proctype] = proc
         else:
             for proc in self._nlpdef.get_processors():
-                # proctype = proc.get_parser_name()
-                # Use 'proc.__name__' instead, to handle case sensitivity
-                proctype = type(proc).__name__
+                proctype = proc.classname()
                 if proctype.upper() == 'GATE':
                     self.mirror_processors[proc.get_cfgsection()] = proc
                 else:

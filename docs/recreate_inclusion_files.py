@@ -115,9 +115,9 @@ def main():
     run_cmd(["crate_nlp_webserver_print_demo", "--config"],
             join(NLP_DIR, "nlp_webserver_demo_config.ini"))
     run_cmd(["crate_nlp_webserver_print_demo", "--processors"],
-            join(NLP_DIR, "nlp_webserver_demo_processors.json"))
-    run_cmd(["crate_nlp_webserver_manage_users", "--help"],
-            join(NLP_DIR, "crate_nlp_webserver_manage_users_help.txt"))
+            join(NLP_DIR, "nlp_webserver_demo_processors.py"))
+    # run_cmd(["crate_nlp_webserver_manage_users", "--help"],
+    #         join(NLP_DIR, "crate_nlp_webserver_manage_users_help.txt"))
     # todo: crate_nlp_webserver_manage_users not running (settings import fails)
     # preprocessing
     run_cmd(["crate_fetch_wordlists", "--help"],

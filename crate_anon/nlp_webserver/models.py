@@ -123,7 +123,7 @@ class DocProcRequest(Base):
     :class:`Document`.
 
     .. todo:: ask FS: is the storage of doctext here (too) optimal?
-    .. todo:: ask FS: is VARCHAR(50) enough for processor_id?
+    .. todo:: ask FS: is VARCHAR(50) enough for processor_id? Probably not now I've messed with it (fully qualified class names)
 
     """
     __tablename__ = 'docprocrequests'
@@ -141,5 +141,5 @@ class DocProcRequest(Base):
     )  # type: str
     processor_id = Column(
         VARCHAR(50),
-        comment="Processor ID, in 'name_version' format"
+        comment="Processor ID, in '<name>_<version>' format"
     )  # type: str

@@ -44,8 +44,8 @@ Config specimen:
 
 Processors specimen:
 
-.. literalinclude:: nlp_webserver_demo_processors.json
-    :language: json
+.. literalinclude:: nlp_webserver_demo_processors.py
+    :language: python
 
 
 crate_nlp_webserver_manage_users
