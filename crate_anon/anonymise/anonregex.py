@@ -107,8 +107,8 @@ def get_anon_fragments_from_string(s: str) -> List[str]:
       Therefore, we don't need the largest-level chunks, like ``D'Souza``.
     """
     return NON_ALPHANUMERIC_SPLITTERS.split(s)
-    # smallfragments = []
-    # combinedsmallfragments = []
+    # smallfragments = []  # type: List[str]
+    # combinedsmallfragments = []  # type: List[str]
     # for chunk in s.split():  # split on whitespace
     #     for smallchunk in NON_WHITESPACE_SPLITTERS.split(chunk):
     #         if smallchunk.lower() in config.words_not_to_scrub:
@@ -371,7 +371,7 @@ def get_uk_postcode_regex_elements(
         "AANN NAA",
         "ANA NAA",
         "AANA NAA",
-    ]
+    ]  # type: List[str]
     for i in range(len(e)):
         e[i] = e[i].replace("A", "[A-Z]")  # letter
         e[i] = e[i].replace("N", "[0-9]")  # number

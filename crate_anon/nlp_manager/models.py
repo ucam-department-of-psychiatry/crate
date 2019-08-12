@@ -95,45 +95,46 @@ class NlpRecord(ProgressBase):
 
     pk = Column(
         'pk', BigInteger, primary_key=True, autoincrement=True,
-        doc="PK of NLP record (no specific use)")
+        comment="PK of NLP record (no specific use)")
     srcdb = Column(
-        'srcdb', SqlTypeDbIdentifier, doc="Source database"
+        'srcdb', SqlTypeDbIdentifier, comment="Source database"
         # primary_key=True
     )
     srctable = Column(
-        'srctable', SqlTypeDbIdentifier, doc="Source table name"
+        'srctable', SqlTypeDbIdentifier, comment="Source table name"
         # primary_key=True
     )
     srcpkfield = Column(
         'srcpkfield', SqlTypeDbIdentifier,
-        doc="Primary key column name in source table (for info only)")
+        comment="Primary key column name in source table (for info only)")
     srcpkval = Column(
         'srcpkval', BigInteger,
-        doc="Primary key value in source table (or hash if PK is a string)"
+        comment="Primary key value in source table (or hash if PK is a string)"
         # primary_key=True
     )
     srcpkstr = Column(
         'srcpkstr', String(MAX_STRING_PK_LENGTH),
-        doc="Original string PK, used when the table has a string PK, to deal "
-            "with hash collisions. Max length: {}".format(
-            MAX_STRING_PK_LENGTH)
+        comment=f"Original string PK, used when the table has a string PK, to "
+                f"deal with hash collisions. Max length: "
+                f"{MAX_STRING_PK_LENGTH}"
         # primary_key=True, default=''  # can't have a NULL in a composite PK
     )
     srcfield = Column(
         'srcfield', SqlTypeDbIdentifier,
-        doc="Name of column in source field containing actual data"
+        comment="Name of column in source field containing actual data"
         # primary_key=True
     )
     nlpdef = Column(
         'nlpdef', SqlTypeDbIdentifier,
-        doc="Name of natural language processing definition that source was "
-            "processed for"
+        comment="Name of natural language processing definition that source "
+                "was processed for"
         # primary_key=True
     )
     whenprocessedutc = Column(
         'whenprocessedutc', DateTime,
-        doc="Time that NLP record was processed (batch time that the run was "
-            "commenced for that NLP definition; UTC)")
+        comment="Time that NLP record was processed (batch time that the run "
+                "was commenced for that NLP definition; UTC)")
     srchash = Column(
         FN_SRCHASH, SqlTypeHash,
-        doc='Secure hash of source field contents at the time of processing')
+        comment='Secure hash of source field contents at the time of '
+                'processing')

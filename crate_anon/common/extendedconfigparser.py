@@ -246,6 +246,27 @@ class ExtendedConfigParser(configparser.ConfigParser):
                              maximum=maximum,
                              suppress_errors=suppress_errors))
 
+    def get_bool(self,
+                 section: str,
+                 option: str,
+                 default: bool = None) -> Optional[bool]:
+        """
+        Retrieves a boolean value from a parser.
+
+        Args:
+            section: section name within config file
+            option: option (variable) name within that section
+            default: value to return if option is absent
+
+        Returns:
+            Boolean value
+
+        Raises:
+            ValueError: if the section is absent
+
+        """
+        return self.getboolean(section, option, fallback=default)
+
     def get_pyvalue_list(self,
                          section: str,
                          option: str,
@@ -330,7 +351,7 @@ class ExtendedConfigParser(configparser.ConfigParser):
         if parent_env:
             env = parent_env.copy()
         else:
-            env = {}
+            env = {}  # type: Dict[str, str]
         newitems = {(str(k), str(v))
                     for k, v in self.items(section)}
         # items() returns a list of (name, value) tuples

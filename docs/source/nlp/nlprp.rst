@@ -17,6 +17,7 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
+.. _ANSI SQL: http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
 .. _authentication: https://en.wikipedia.org/wiki/Authentication
 .. _authorization: https://en.wikipedia.org/wiki/Authorization
 .. _GATE: https://gate.ac.uk/
@@ -27,34 +28,43 @@
 .. _HTTP Content-Encoding: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding
 .. _HTTP digest access authentication: https://en.wikipedia.org/wiki/Digest_access_authentication
 .. _ISO-8601: https://en.wikipedia.org/wiki/ISO_8601
+.. _INFORMATION_SCHEMA: https://en.wikipedia.org/wiki/Information_schema
 .. _JSON: https://www.json.org/
+.. _Microsoft SQL Server: https://en.wikipedia.org/wiki/Microsoft_SQL_Server
+.. _MySQL: https://www.mysql.com/
 .. _OAuth: https://en.wikipedia.org/wiki/OAuth
+.. _Oracle: https://en.wikipedia.org/wiki/Oracle_Database
+.. _PostgreSQL: https://www.postgresql.org/
 .. _RESTful: https://en.wikipedia.org/wiki/Representational_state_transfer
 .. _Semantic Versioning: http://www.semver.org/
+.. _SQLAlchemy: https://www.sqlalchemy.org/
+.. _SQLite: https://www.sqlite.org/
 .. _URL query string: https://en.wikipedia.org/wiki/Query_string
 .. _UTC: https://en.wikipedia.org/wiki/Coordinated_Universal_Time
 
 
 .. _nlprp:
 
-Natural Language Processing Request Protocol (NLPRP): DRAFT
------------------------------------------------------------
+Natural Language Processing Request Protocol (NLPRP)
+----------------------------------------------------
 
-**Version 0.1.0**
+**Version 0.2.0**
 
 .. contents::
    :local:
+
 
 Authors
 ~~~~~~~
 
 In alphabetical order:
 
-- Rudolf N. Cardinal (RNC), University of Cambridge
-- Joe Kearney (JK), University of Cambridge
-- Angus Roberts (AR), King's College London
-- Ian Roberts (IR), University of Sheffield
-- Francesca Spivack (FS), University of Cambridge
+- Rudolf N. Cardinal (RNC), University of Cambridge, 2017-.
+- Joe Kearney (JK), University of Cambridge, 2018.
+- Angus Roberts (AR), King's College London, 2018-.
+- Ian Roberts (IR), University of Sheffield, 2018-.
+- Francesca Spivack (FS), University of Cambridge, 2018-.
+
 
 Rationale
 ~~~~~~~~~
@@ -76,17 +86,21 @@ The protocol is not RESTful_. In particular, it is not stateless.
 State can be maintained on the server in between requests, if desired, through
 the notion of queued requests.
 
+
 Communications stack
 ~~~~~~~~~~~~~~~~~~~~
 
 The underlying application layer is HTTP_ (and HTTPS, encrypted HTTP, is
 strongly encouraged), over TCP/IP.
 
+
 Request
 ~~~~~~~
 
 Request format
 ^^^^^^^^^^^^^^
+
+**Requests via HTTP POST**
 
 Requests are always transmitted using the HTTP ``POST`` method.
 
@@ -99,6 +113,8 @@ Requests are always transmitted using the HTTP ``POST`` method.
   (4) Therefore, all requests are via ``POST`` [#getvspost]_.
 
 - The POST method itself is broad [#rfc7231]_.
+
+**Requests in JSON**
 
 The request content is in JSON_, with media type ``application/json``. The
 encoding can be specified, and will be assumed to be UTF-8 if not specified.
@@ -139,6 +155,9 @@ Note the JSON terminology:
 
 - JSON does *not* in general permit trailing commas in objects and arrays.
 
+- Comments are not supported in JSON (but we may illustrate some JSON examples
+  here using ``#`` to indicate comments).
+
 Where versions are passed, they are in `Semantic Versioning`_ 2.0.0
 format. Semantic versions are strings using a particular format
 (e.g. ``"1.2.0"``), referred to as a Version henceforth.
@@ -146,6 +165,7 @@ format. Semantic versions are strings using a particular format
 Where date/time values are passed, they are in `ISO-8601`_ format
 and must include all three of: date, time, timezone. (The choice of timezone is
 immaterial; servers may choose to use UTC_ throughout.)
+
 
 Authentication at HTTP/HTTPS level
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -196,6 +216,7 @@ Rejection of unauthorized or malformed responses
   content, and to allow NLPRP server software to operate within a broader
   institutional authentication, authorization, and/or accounting framework.
 
+
 Request JSON structure
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -234,7 +255,8 @@ The top-level structure of a request is a JSON object with the following keys.
 JSON does not care about whitespace in formatting, and neither the client nor
 the server are under any obligation as to how they format their JSON.
 
-.. _response:
+
+.. _nlprp_response:
 
 Response
 ~~~~~~~~
@@ -243,7 +265,7 @@ Response format
 ^^^^^^^^^^^^^^^
 
 The request is returned over HTTP as media type ``application/json``. The
-encoding *should** be specified (e.g. ``application/json; charset=utf-8``, and
+encoding *should* be specified (e.g. ``application/json; charset=utf-8``, and
 will be assumed to be UTF-8 if not specified.
 
 
@@ -272,8 +294,9 @@ The top-level structure of a response is a JSON object with the following keys.
     * - ``errors``
       - Array
       - Optional
-      - If the status is not in the range [200, 299], one or more errors will
-        be given. Each error is an object with at least the following keys:
+      - If the status is not 102 or in the range [200, 299], one or more errors
+        will be given. Each error is an object with at least the following
+        keys:
 
         - ``code`` (integer or null): error code
         - ``message`` (string): brief textual description of the error
@@ -300,12 +323,32 @@ The top-level structure of a response is a JSON object with the following keys.
 NLPRP commands
 ~~~~~~~~~~~~~~
 
-.. _list_processors:
+.. _nlprp_list_processors:
 
 list_processors
 ^^^^^^^^^^^^^^^
 
-No additional parameters are required.
+No additional parameters are required, but there is an optional parameter.
+
+.. rst-class:: nlprprequest
+
+  .. list-table::
+    :widths: 15 15 15 55
+    :header-rows: 1
+
+    * - Key
+      - JSON type
+      - Required?
+      - Description
+
+    * - ``sql_dialect``
+      - String
+      - Optional
+      - The SQL dialect that the client would prefer to receive its column
+        information in. (The server does not have to honour this.) See
+        :ref:`SQL dialects <nlprp_sql_dialect>` below.
+        *[Version 0.2.0 and higher.]*
+
 
 This command lists the NLP processors available to the requestor. (This might
 be a subset of all NLP processors on the server, depending on the
@@ -336,6 +379,151 @@ The relevant part of the response is:
           the default version for the given name. May be ``true`` for zero or
           one versions for a given processor name.
         - ``description`` (string): a description of the processor.
+        - ``schema_type`` (string): optional; must be one of ``unknown``,
+          ``tabular``; default is ``unknown``. (Future versions may add more
+          schema types.)
+          *[Version 0.2.0 and higher.]*
+        - ``sql_dialect`` (string): the SQL dialect (see below) used within the
+          ``tabular_schema`` object (see below). Must be present if
+          ``tabular_schema`` is given.
+          *[Version 0.2.0 and higher.]*
+        - ``tabular_schema`` (object): an object that is present if and only if
+          ``schema_type`` is ``tabular``. Represents a tabular schema and
+          describing the tables/columns provided by this processor. The format
+          of ``tabular_schema`` is described below.
+          *[Version 0.2.0 and higher.]*
+
+.. _nlprp_schema_definition:
+
+**Schema definition**
+
+The NLP server may not know the output format of its NLP processors, in which
+case ``schema_type`` may be set to ``unknown``. However, this is undesirable.
+Processors *should* describe their schema by enumerating their output
+tables/columns if they provide output compatible with storage in database
+tables. To do so, the server sets ``schema_type`` to ``tabular`` and provides
+the ``tabular_schema`` object.
+
+The ``tabular_schema`` object defines a tabular schema. It maps *table names*
+to *arrays of column definition objects*. Thus, in pseudocode:
+
+.. rst-class:: nlprpresponse
+
+  .. code-block:: none
+
+    "tabular_schema": {
+        "table_name_1" : [
+            <column_definition_1>,
+            <column_definition_2>,
+            ...
+        ],
+        "table_name_2" : [
+            <column_definition_1>,
+            <column_definition_2>,
+            ...
+        ],
+        ...
+    }
+
+Most NLP processors produce output for a single database table. The table name
+may be an empty string, ``""``, and that is fine (it is, after all, up to the
+client to decide how it names its tables). Such a schema would look like this:
+
+.. rst-class:: nlprpresponse
+
+  .. code-block:: none
+
+    "tabular_schema": {
+        "" : [
+            <column_definition_1>,
+            <column_definition_2>,
+            ...
+        ]
+    }
+
+A few (e.g. GATE) processors may give output that requires more than one
+database table to store. For example, a "people and places" processor may
+return one kind of result when it finds a person, and another kind when it
+finds a place; it would therefore need to define two tables.
+
+Each column definition object describes a column in the database being used to
+store results, and has the following keys.
+
+.. rst-class:: nlprpresponse
+
+  .. list-table::
+    :header-rows: 1
+
+    * - Key
+      - JSON type
+      - Required?
+      - Description
+
+    * - ``column_name``
+      - String
+      - Mandatory
+      - Name of the column.
+
+    * - ``column_type``
+      - String
+      - Mandatory
+      - Full column data type, e.g. ``VARCHAR(64)``. (*)
+
+    * - ``data_type``
+      - String
+      - Mandatory
+      - Type name only, e.g. ``VARCHAR``
+
+    * - ``is_nullable``
+      - Boolean
+      - Mandatory
+      - Whether this column can contain ``null`` values.
+
+    * - ``column_comment``
+      - String or ``null``
+      - Optional
+      - Comment describing this column. (*)
+
+    * - ``data_type``
+      - String
+      - Mandatory
+      - Type name only, e.g. ``VARCHAR``
+
+(The system follows the `ANSI SQL`_ INFORMATION_SCHEMA_ standard loosely;
+specifically, using some of the columns found in
+``INFORMATION_SCHEMA.COLUMNS``.)
+
+  For examples of ``INFORMATION_SCHEMA.COLUMNS``, see e.g.
+
+  - https://docs.microsoft.com/en-us/sql/relational-databases/system-information-schema-views/columns-transact-sql?view=sql-server-2017
+  - https://www.postgresql.org/docs/current/infoschema-columns.html
+  - https://dev.mysql.com/doc/refman/5.7/en/columns-table.html
+
+(*) Not part of the ANSI standard; a MySQL extension to
+``INFORMATION_SCHEMA.COLUMNS``.
+
+.. _nlprp_sql_dialect:
+
+**SQL dialects**
+
+The ``sql_dialect`` parameter, detailed above, names the SQL dialect in which
+``column_type`` and ``data_type`` are expressed. For example, "unlimited-length
+text" might be ``VARCHAR(MAX)`` in the ``mssql`` dialect but ``LONGTEXT`` in
+the ``mysql`` dialect.
+
+SQL dialect values are strings representing those major dialects used by
+SQLAlchemy_ (see https://docs.sqlalchemy.org/en/13/dialects/), i.e.
+
+=============== ===============================================================
+Dialect name    Dialect
+=============== ===============================================================
+``mysql``       MySQL_
+``mssql``       `Microsoft SQL Server`_
+``oracle``      Oracle_
+``postgresql``  PostgreSQL_
+``sqlite``      SQLite_
+=============== ===============================================================
+
 
 *Request example*
 
@@ -354,7 +542,7 @@ A full request as sent over TCP/IP might be as follows, being sent to
     {
         "protocol": {
             "name": "nlprp",
-            "version": "0.1.0"
+            "version": "0.2.0"
         },
         "command":  "list_processors"
     }
@@ -379,11 +567,11 @@ this:
         "status": 200,
         "protocol": {
             "name": "nlprp",
-            "version": "0.1.0"
+            "version": "0.2.0"
         },
         "server_info": {
             "name": "My NLPRP server software",
-            "version": "0.1.0"
+            "version": "0.2.0"
         },
         "processors": [
             {
@@ -391,20 +579,111 @@ this:
                 "title": "SLAM BRC GATE-based medication finder",
                 "version": "1.2.0",
                 "is_default_version": true,
-                "description": "Finds drug names"
+                "description": "Finds drug names",
+                "schema_type": "unknown",
             },
             {
                 "name": "python_c_reactive_protein",
                 "title": "Cardinal RN (2017) CRATE CRP finder",
                 "version": "0.1.3",
                 "is_default_version": true,
-                "description": "Finds C-reactive protein (CRP) values"
+                "description": "Finds C-reactive protein (CRP) values",
+                "schema_type": "tabular",
+                "sql_dialect": "mysql",
+                "tabular_schema": {
+                    "": [
+                        {
+                            "column_comment": "Variable name",
+                            "column_name": "variable_name",
+                            "column_type": "VARCHAR(64)",
+                            "data_type": "VARCHAR",
+                            "is_nullable": true
+                        },
+                        {
+                            "column_comment": "Matching text contents",
+                            "column_name": "_content",
+                            "column_type": "TEXT",
+                            "data_type": "TEXT",
+                            "is_nullable": true
+                        },
+                        {
+                            "column_comment": "Start position (of matching string within whole text)",
+                            "column_name": "_start",
+                            "column_type": "INTEGER",
+                            "data_type": "INTEGER",
+                            "is_nullable": true
+                        },
+                        {
+                            "column_comment": "End position (of matching string within whole text)",
+                            "column_name": "_end",
+                            "column_type": "INTEGER",
+                            "data_type": "INTEGER",
+                            "is_nullable": true
+                        },
+                        {
+                            "column_comment": "Text that matched the variable name",
+                            "column_name": "variable_text",
+                            "column_type": "TEXT",
+                            "data_type": "TEXT",
+                            "is_nullable": true
+                        },
+                        {
+                            "column_comment": "Text that matched the mathematical relationship between variable and value (e.g. '=', '<=', 'less than')",
+                            "column_name": "relation_text",
+                            "column_type": "VARCHAR(50)",
+                            "data_type": "VARCHAR",
+                            "is_nullable": true
+                        },
+                        {
+                            "column_comment": "Standardized mathematical relationship between variable and value (e.g. '=', '<=')",
+                            "column_name": "relation",
+                            "column_type": "VARCHAR(2)",
+                            "data_type": "VARCHAR",
+                            "is_nullable": true
+                        },
+                        {
+                            "column_comment": "Matched numerical value, as text",
+                            "column_name": "value_text",
+                            "column_type": "TEXT",
+                            "data_type": "TEXT",
+                            "is_nullable": true
+                        },
+                        {
+                            "column_comment": "Matched units, as text",
+                            "column_name": "units",
+                            "column_type": "VARCHAR(50)",
+                            "data_type": "VARCHAR",
+                            "is_nullable": true
+                        },
+                        {
+                            "column_comment": "Numerical value in preferred units, if known",
+                            "column_name": "value_mg_l",
+                            "column_type": "FLOAT",
+                            "data_type": "FLOAT",
+                            "is_nullable": true
+                        },
+                        {
+                            "column_comment": "Tense text, if known (e.g. 'is', 'was')",
+                            "column_name": "tense_text",
+                            "column_type": "VARCHAR(50)",
+                            "data_type": "VARCHAR",
+                            "is_nullable": true
+                        },
+                        {
+                            "column_comment": "Calculated tense, if known (e.g. 'past', 'present')",
+                            "column_name": "tense",
+                            "column_type": "VARCHAR(7)",
+                            "data_type": "VARCHAR",
+                            "is_nullable": true
+                        }
+                    ]
+                }
             }
         ]
     }
 
 
-.. _process:
+.. _nlprp_process:
 
 process
 ^^^^^^^
@@ -478,7 +757,7 @@ the following structure:
         - ``metadata`` (value, optional): The metadata will be returned
           verbatim with the results.
 
-.. _immediate_response:
+.. _nlprp_immediate_response:
 
 **Immediate processing**
 
@@ -534,23 +813,117 @@ format (on top of the basic response structure):
             - ``message`` (string): brief textual description of the error
             - ``description`` (string): more detail
 
-          - ``results``: array of objects (typically one per NLP result) each
-            with a format defined by the processor itself. For a failed
-            request, this should be an empty array. (Note that it may also be
-            an empty array following success, meaning that the processor found
-            nothing of interest to it).
+          - ``results``: see :ref:`Format of per-processor results
+            <nlprp_format_of_per_processor_results>` below.
 
         Note that it is strongly advisable for clients to specify ``metadata``
         as this will be necessary for them to recover order information
         whenever ``content`` has more than one item.
 
+.. _nlprp_format_of_per_processor_results:
+
+**Format of per-processor results**
+
 Remember that a single piece of source text can generate zero, one, or many NLP
 matches from each processor; and that a single NLP “match” can involve highly
 structured results, but typically involves one set of key/value pairs.
 
+We now consider the
+``response["results"][result_num]["processors"][processor_num]["results"]``
+value. This is processor-specific.
+
+- For a failed request, this should be an empty array, ``[]``, or an empty
+  object, ``{}``. (Note that it may also be empty following success, meaning
+  that the processor found nothing of interest to it.)
+
+- If the processor does not offer a ``tabular_schema`` definition (see
+  :ref:`Schema definition <nlprp_schema_definition>` above), then the format of
+  ``results`` is not constrained.
+  *[In NLPRP Version 0.1.0, there were no constraints, as a result.]*
+  A common format is an array of objects (each object providing a key-value
+  mapping of column/field names to values), like this:
+
+  .. rst-class:: nlprpresponse
+
+    .. code-block:: none
+
+        "results": [
+            {
+                # row 1
+                "column_name_1": <value_of_col_1>,
+                "column_name_2": <value_of_col_2>,
+                ...
+            },
+            {
+                # row 2
+                "column_name_1": <value_of_col_1>,
+                "column_name_2": <value_of_col_2>,
+                ...
+            },
+            ...
+        ]
+
+- If the processor does offer a ``tabular_schema`` definition, and that
+  definition is for only a single table, then ``results`` *may* be an array of
+  objects, each object representing a database row and containing a mapping
+  from column names to values (exactly as above).
+
+- If the processor offers a ``tabular_schema`` definition, the other
+  permissible format is that ``results`` is an object, not an array. In this
+  case, the ``results`` object maps table names (exactly as in the schema) to
+  arrays of rows, like this:
+
+  .. rst-class:: nlprpresponse
+
+    .. code-block:: none
+
+        "results": {
+            "table_name_1": [
+                {
+                    # row 1
+                    "column_name_1": <value_of_col_1>,
+                    "column_name_2": <value_of_col_2>,
+                    ...
+                },
+                {
+                    # row 2
+                    "column_name_1": <value_of_col_1>,
+                    "column_name_2": <value_of_col_2>,
+                    ...
+                },
+                ...
+            ],
+            "table_name_2": [
+                {
+                    # row 1
+                    "column_name_3": <value_of_col_3>,
+                    "column_name_4": <value_of_col_4>,
+                    ...
+                },
+                {
+                    # row 2
+                    "column_name_3": <value_of_col_3>,
+                    "column_name_4": <value_of_col_4>,
+                    ...
+                },
+                ...
+            ]
+        }
+
+  This format *must* be used by processors providing a ``tabular_schema`` and
+  using more than one table.
+
+- It is an error for the processor to offer a ``tabular_schema`` definition and
+  then not abide by it (e.g. by providing table or column names not as
+  described in the schema, or by returning data in non-tabular format).
+
+
+**Example**
+
 An example exchange using immediate processing follows. The request sends three
 pieces of text with metadata, and requests two processors to be run on each of
-them. (Neither processor takes any arguments.)
+them. (Neither processor takes any arguments. Since no version is specified for
+the ``python_c_reactive_protein`` processor, the default version will be used.)
 
 .. rst-class:: nlprprequest
 
@@ -564,7 +937,7 @@ them. (Neither processor takes any arguments.)
     {
         "protocol": {
             "name": "nlprp",
-            "version": "0.1.0"
+            "version": "0.2.0"
         },
         "command":  "process",
         "args": {
@@ -575,7 +948,6 @@ them. (Neither processor takes any arguments.)
                 },
                 {
                     "name": "python_c_reactive_protein",
-                    # no version specified; default will be used
                 },
             ],
             "queue": false,
@@ -616,11 +988,11 @@ generates a hit for ‘CRP’ and two drugs.
         "status": 200,
         "protocol": {
             "name": "nlprp",
-            "version": "0.1.0"
+            "version": "0.2.0"
         },
         "server_info": {
             "name": "My NLPRP server software",
-            "version": "0.1.0"
+            "version": "0.2.0"
         },
         "client_job_id": "My NLP job 57 for depression/CRP",
         "results": [
@@ -691,7 +1063,7 @@ generates a hit for ‘CRP’ and two drugs.
                                 "dose_multiple": null,
                                 "route": null,
                                 "status": "stop",
-                                "tense":  null
+                                "tense": null
                             },
                             {
                                 "drug": "co-amoxiclav",
@@ -732,7 +1104,6 @@ generates a hit for ‘CRP’ and two drugs.
 
 Note that the two NLP processors are returning different sets of information,
 in a processor-specific way.
-
 
 **Queued processing**
 
@@ -783,7 +1154,7 @@ key of ``queue_id``, whose value is a string. Like this:
     }
 
 
-.. _show_queue:
+.. _nlprp_show_queue:
 
 show_queue
 ^^^^^^^^^^
@@ -897,7 +1268,7 @@ and corresponding response:
     }
 
 
-.. _fetch_from_queue:
+.. _nlprp_fetch_from_queue:
 
 fetch_from_queue
 ^^^^^^^^^^^^^^^^
@@ -915,7 +1286,7 @@ the queue ID.
   collection.
 
 
-.. _delete_from_queue:
+.. _nlprp_delete_from_queue:
 
 delete_from_queue
 ^^^^^^^^^^^^^^^^^
@@ -963,13 +1334,13 @@ this:
      :language: python
 
 
-Specimen Python 3.6+ client program
+Specimen Python 3.6+ server program
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Similarly, for a dummy server program, run ``pip install pyramid crate_anon``
 and then you can run this:
 
-.. rst-class:: nlprprequest
+.. rst-class:: nlprpresponse
 
   .. literalinclude:: nlprp_test_server.py
      :language: python
@@ -979,22 +1350,25 @@ More on error responses
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 The main design question here is whether HTTP status codes should be used for
-errors, or not. There are pros and cons here [#errorsviahttpstatus]_. We shall follow best practice
-and encode the status both in HTTP and in the JSON.
+errors, or not. There are pros and cons here [#errorsviahttpstatus]_. We shall
+follow best practice and encode the status both in HTTP and in the JSON.
 
 Specific HTTP status codes not detailed above include:
 
-================== ========================================= ========================
+================== ========================================= ==========================
 Command            Situation                                 HTTP status code
-================== ========================================= ========================
+================== ========================================= ==========================
 Any                Success                                   200 OK
+Any                Request malformed                         400 Bad Request
 Any                Authorization failed                      401 Unauthorized
+Any                Server bug                                500 Internal Server Error
 process_           Results returned                          200 OK
 process_           Request queued                            202 Accepted
+process_           Upstream server went wrong                502 Bad Gateway
 process_           Server is too busy right now              503 Service Unavailable
 fetch_from_queue_  No such queue entry                       404 Not Found
 fetch_from_queue_  Entry still in queue and being processed  102 Processing [#http102]_
-================== ========================================= ========================
+================== ========================================= ==========================
 
 
 Python internal NLP interface
@@ -1038,6 +1412,7 @@ should allow easy installation of Python NLP managers (by Python package name
 and version). The NLPRP server should be able to import a ``nlp_process`` or
 equivalent function from the top-level package.
 
+
 Existing code of relevance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1046,6 +1421,7 @@ including GATE and other Java-based tools, and piping text to them; similarly
 for its internal Python code. From the Cambridge perspective we are likely to
 extend and use CRATE to send data to the NLP API/service and manage results,
 but it is also potentially extensible to serve as the NLP API server.
+
 
 Aspects of server function that are not part of the NLPRP specification
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1056,6 +1432,7 @@ The following are implementation details that are at the server's discretion:
 - authorization_
 - accounting (logging, billing, size/frequency restrictions)
 - containerization, parallel processing, message queue details 
+
 
 Abbreviations used in this section
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1081,15 +1458,11 @@ UTF-8   Unicode Transformation Format, 8-bit
 XML     Extensible Markup Language
 ======= =======================================================================
 
+
 NLPRP things to do and potential future requirements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. todo::
-    NLPRP: should all NLP processors offer up a database schema (or something
-    similar)?
-
-.. todo::
-    NLPRP: consider supra-document processing requirements
+.. todo:: NLPRP: consider supra-document processing requirements
 
 Corpus (supra-document) processing:
 
@@ -1097,6 +1470,7 @@ Corpus (supra-document) processing:
   consider more than one document (a "corpus" of documents, in GATE_
   terminology). This is not currently supported. However, batch processing is
   currently supported.
+
 
 NLPRP history
 ~~~~~~~~~~~~~
@@ -1130,16 +1504,23 @@ NLPRP history
 - Comment re future potential use case for corpus-level processing
 - Signalling mechanism for dynamic failure via the ``success`` and
   ``errors`` parameters to the response (see `immediate response
-  <immediate_response>`_).
+  <nlprp_immediate_response>`_).
 - Ability for the client to pass a ``client_job_id`` to
   the queued processing mode, so it can add many requests to the same job and
   retrieve this data as part of ``show_queue``. Similar argument to
   delete_from_queue_.
 - Consideration of processor version control and how this is managed in
   practice (e.g. Python modules; GATE apps) isn't part of the API; removed
-  from "to-do" list.
+  from NLPAPI "to-do" list.
 
-- CURRENT WORKING VERSION.
+**v0.2.0**
+
+- 4-6 Aug 2019, RNC.
+- Processors can describe their output format: ``schema_type`` and
+  ``tabular_schema`` attribute in the response to the list_processors_ command,
+  with associated ``sql_dialect`` options.
+- Corresponding constraints on the results format for processors that provide a
+  tabular schema.
 
 
 ===============================================================================

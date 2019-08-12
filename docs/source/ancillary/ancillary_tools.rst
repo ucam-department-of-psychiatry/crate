@@ -33,7 +33,7 @@ Launches this documentation via your web browser.
 crate_make_demo_database
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Options as of 2016-07-21:
+Options:
 
 ..  literalinclude:: crate_make_demo_database_help.txt
     :language: none
@@ -42,7 +42,7 @@ Options as of 2016-07-21:
 crate_test_extract_text
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Options as of 2019-02-09:
+Options:
 
 ..  literalinclude:: crate_test_extract_text_help.txt
     :language: none
@@ -51,7 +51,7 @@ Options as of 2019-02-09:
 crate_test_anonymisation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Options as of 2016-07-21:
+Options:
 
 ..  literalinclude:: crate_test_anonymisation_help.txt
     :language: none
@@ -60,7 +60,7 @@ Options as of 2016-07-21:
 crate_estimate_mysql_memory_usage
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Options as of 2016-07-21:
+Options:
 
 ..  literalinclude:: crate_estimate_mysql_memory_usage_help.txt
     :language: none

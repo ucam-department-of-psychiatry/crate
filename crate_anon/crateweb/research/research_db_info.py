@@ -32,7 +32,7 @@ from collections import OrderedDict
 # from functools import lru_cache
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from cardinal_pythonlib.dbfunc import dictfetchall
 from cardinal_pythonlib.django.django_constants import ConnectionVendors
@@ -887,8 +887,8 @@ class ResearchDatabaseInfo(object):
 
         if RUNNING_WITHOUT_CONFIG:
             self.dialect = ""
-            self.grammar = None
-            self.dbinfo_for_contact_lookup = None
+            self.grammar = None  # type: Optional[SqlGrammar]
+            self.dbinfo_for_contact_lookup = None  # type: Optional[SingleResearchDatabase]  # noqa
 
         else:
             self.dialect = settings.RESEARCH_DB_DIALECT
@@ -1308,7 +1308,7 @@ class ResearchDatabaseInfo(object):
         for c in colinfolist:
             table_id = c.table_id
             if table_id not in table_to_colinfolist:
-                table_to_colinfolist[table_id] = []
+                table_to_colinfolist[table_id] = []  # type: List[ColumnInfo]
             table_to_colinfolist[table_id].append(c)
         # noinspection PyTypeChecker
         return OrderedDict(sorted(table_to_colinfolist.items()))
@@ -1329,7 +1329,7 @@ class ResearchDatabaseInfo(object):
             table_id = c.table_id
             schema = table_id.schema_id
             if schema not in schema_to_colinfolist:
-                schema_to_colinfolist[schema] = []
+                schema_to_colinfolist[schema] = []  # type: List[ColumnInfo]
             schema_to_colinfolist[schema].append(c)
         # noinspection PyTypeChecker
         return OrderedDict(sorted(schema_to_colinfolist.items()))
@@ -1350,7 +1350,7 @@ class ResearchDatabaseInfo(object):
 
         """
         columns = self.get_colinfolist()
-        results = []
+        results = []  # type: List[TableId]
         for column in columns:
             if column.column_name == fieldname:
                 table_id = column.table_id
@@ -1371,7 +1371,7 @@ class ResearchDatabaseInfo(object):
             a list of :class:`crate_anon.common.sql.ColumnInfo` objects
 
         """
-        results = []
+        results = []  # type: List[ColumnInfo]
         for column in self.get_colinfolist():
             if column.table_id != table_id:
                 continue
@@ -1396,7 +1396,7 @@ class ResearchDatabaseInfo(object):
             a list of :class:`crate_anon.common.sql.ColumnInfo` objects
 
         """
-        results = []
+        results = []  # type: List[ColumnInfo]
         for column in self.get_colinfolist():
             if column.table_id != table_id:
                 continue
@@ -1451,7 +1451,7 @@ class ResearchDatabaseInfo(object):
         Returns:
             a list of :class:`crate_anon.common.sql.TableId` objects
         """
-        tables = set()
+        tables = set()  # type: Set[TableId]
         for column in self.get_colinfolist():
             tables.add(column.table_id)
         return sorted(list(tables))
@@ -1493,7 +1493,7 @@ class ResearchDatabaseInfo(object):
         Returns:
             a list of :class:`crate_anon.common.sql.TableId` objects
         """
-        eligible_tables = set()
+        eligible_tables = set()  # type: Set[TableId]
         for table in self.get_tables():
             dbinfo = self._get_db_info(table.schema_id)
             if not dbinfo.has_mrid:

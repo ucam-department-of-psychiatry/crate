@@ -41,9 +41,9 @@ commit:
 
 """
 
-from abc import ABCMeta
+from abc import ABC
 import logging
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
@@ -159,16 +159,8 @@ class HaemoglobinValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Haemoglobin.HAEMOGLOBIN],
-                         validated_variable=Haemoglobin.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Haemoglobin.NAME, [Haemoglobin.HAEMOGLOBIN]
 
 
 # =============================================================================
@@ -238,16 +230,8 @@ class HaematocritValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Haematocrit.HAEMATOCRIT],
-                         validated_variable=Haematocrit.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Haematocrit.NAME, [Haematocrit.HAEMATOCRIT]
 
 
 # =============================================================================
@@ -357,16 +341,8 @@ class RBCValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[RBC.RED_BLOOD_CELLS],
-                         validated_variable=RBC.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return RBC.NAME, [RBC.RED_BLOOD_CELLS]
 
 
 # =============================================================================
@@ -454,16 +430,8 @@ class EsrValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Esr.ESR],
-                         validated_variable=Esr.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Esr.NAME, [Esr.ESR]
 
 
 # =============================================================================
@@ -479,7 +447,7 @@ class EsrValidator(ValidatorBase):
 # if we are not allowing units, like "M0 3": macrophages 3 x 10^9/L, or part
 # of "T2 N0 M0 ..." cancer staging?
 
-class WbcBase(SimpleNumericalResultParser, metaclass=ABCMeta):
+class WbcBase(SimpleNumericalResultParser, ABC):
     """
     DO NOT USE DIRECTLY. White cell count base class.
     """
@@ -619,16 +587,8 @@ class WbcValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Wbc.WBC],
-                         validated_variable=Wbc.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Wbc.NAME, [Wbc.WBC]
 
 
 # -----------------------------------------------------------------------------
@@ -686,16 +646,8 @@ class NeutrophilsValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Neutrophils.NEUTROPHILS],
-                         validated_variable=Neutrophils.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Neutrophils.NAME, [Neutrophils.NEUTROPHILS]
 
 
 # -----------------------------------------------------------------------------
@@ -755,16 +707,8 @@ class LymphocytesValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Lymphocytes.LYMPHOCYTES],
-                         validated_variable=Lymphocytes.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Lymphocytes.NAME, [Lymphocytes.LYMPHOCYTES]
 
 
 # -----------------------------------------------------------------------------
@@ -822,16 +766,8 @@ class MonocytesValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Monocytes.MONOCYTES],
-                         validated_variable=Monocytes.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Monocytes.NAME, [Monocytes.MONOCYTES]
 
 
 # -----------------------------------------------------------------------------
@@ -889,16 +825,8 @@ class BasophilsValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Basophils.BASOPHILS],
-                         validated_variable=Basophils.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Basophils.NAME, [Basophils.BASOPHILS]
 
 
 # -----------------------------------------------------------------------------
@@ -956,16 +884,8 @@ class EosinophilsValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Eosinophils.EOSINOPHILS],
-                         validated_variable=Eosinophils.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Eosinophils.NAME, [Eosinophils.EOSINOPHILS]
 
 
 # -----------------------------------------------------------------------------
@@ -1021,16 +941,28 @@ class PlateletsValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Platelets.PLATELETS],
-                         validated_variable=Platelets.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Platelets.NAME, [Platelets.PLATELETS]
+
+
+# =============================================================================
+# All classes in this module
+# =============================================================================
+
+ALL_HAEMATOLOGY_NLP_AND_VALIDATORS = [
+    (Basophils, BasophilsValidator),
+    (Eosinophils, EosinophilsValidator),
+    (Esr, EsrValidator),
+    (Haematocrit, HaematocritValidator),
+    (Haemoglobin, HaemoglobinValidator),
+    (Lymphocytes, LymphocytesValidator),
+    (Monocytes, MonocytesValidator),
+    (Neutrophils, NeutrophilsValidator),
+    (Platelets, PlateletsValidator),
+    (RBC, RBCValidator),
+    (Wbc, WbcValidator),
+]
+ALL_HAEMATOLOGY_NLP, ALL_HAEMATOLOGY_VALIDATORS = zip(*ALL_HAEMATOLOGY_NLP_AND_VALIDATORS)  # noqa
 
 
 # =============================================================================
@@ -1041,24 +973,8 @@ def test_all(verbose: bool = False) -> None:
     """
     Test all parsers in this module.
     """
-    # Haemoglobin, haematocrit
-    Haemoglobin(None, None).test(verbose=verbose)
-    Haematocrit(None, None).test(verbose=verbose)
-    RBC(None, None).test(verbose=verbose)
-
-    # ESR
-    Esr(None, None).test(verbose=verbose)
-
-    # WBC and differential
-    Wbc(None, None).test(verbose=verbose)
-    Neutrophils(None, None).test(verbose=verbose)
-    Lymphocytes(None, None).test(verbose=verbose)
-    Monocytes(None, None).test(verbose=verbose)
-    Basophils(None, None).test(verbose=verbose)
-    Eosinophils(None, None).test(verbose=verbose)
-
-    # Platelets
-    Platelets(None, None).test(verbose=verbose)
+    for cls in ALL_HAEMATOLOGY_NLP:
+        cls(None, None).test(verbose=verbose)
 
 
 if __name__ == '__main__':

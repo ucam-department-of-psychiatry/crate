@@ -61,6 +61,7 @@ from django.urls import reverse
 from django.utils.html import escape
 from pyparsing import ParseException
 
+from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 from crate_anon.common.contenttypes import ContentType
 from crate_anon.common.sql import (
     ColumnId,
@@ -270,7 +271,7 @@ def get_db_structure_json() -> str:
                 'schema': dbinfo.schema_name,
                 'tables': table_info,
             })
-    json_result = json.dumps(info)
+    json_result = json.dumps(info, separators=JSON_SEPARATORS_COMPACT)
     log.debug(f"... get_db_structure_json returning string of size "
               f"{len(json_result)}")
     return json_result
@@ -436,7 +437,8 @@ def query_build(request: HttpRequest) -> HttpResponse:
         'sql': prettify_sql_html(profile.sql_scratchpad),
         'parse_error': parse_error,
         'database_structure': get_db_structure_json(),
-        'starting_values': json.dumps(starting_values_dict),
+        'starting_values': json.dumps(starting_values_dict,
+                                      separators=JSON_SEPARATORS_COMPACT),
         'sql_dialect': settings.RESEARCH_DB_DIALECT,
         'dialect_mysql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
         'dialect_mssql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
@@ -661,7 +663,7 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
                 raise ValueError("Bad command!")
 
     # if a GET (or any other method) we'll create a blank form
-    values = {}
+    values = {}  # type: Dict[str, Any]
     all_queries = get_all_queries(request)
     active_queries = all_queries.filter(active=True)
     if active_queries:
@@ -1075,7 +1077,7 @@ def save_display(request: HttpRequest, query_id: str) -> HttpResponse:
         except DatabaseError as exception:
             query.audit(failed=True, fail_msg=str(exception))
             return render_bad_query(request, query, exception)
-        display = []
+        display = []  # type: List[str]
         # noinspection PyArgumentList,PyCallByClass
         display_fieldnames = request.POST.getlist('include_field')
         for display_fieldname in display_fieldnames:
@@ -1695,7 +1697,7 @@ def get_highlight_descriptions(
     Returns:
         str: HTML describing the highlights
     """
-    desc = []
+    desc = []  # type: List[str]
     for n in range(N_CSS_HIGHLIGHT_CLASSES):
         if n not in highlight_dict:
             continue
@@ -2329,7 +2331,7 @@ def textfinder_sql(patient_id_fieldname: str,
 
     sql = "\nUNION\n".join(queries)
     if sql:
-        order_by_cols = []
+        order_by_cols = []  # type: List[str]
         if using_extra:
             order_by_cols.append(extra_fieldname)
         order_by_cols.append(patient_id_fieldname)
@@ -2884,7 +2886,8 @@ def pe_build(request: HttpRequest) -> HttpResponse:
         'pmq_final_patient_query': pmq_final_patient_query,
         'warnings': warnings,
         'database_structure': get_db_structure_json(),
-        'starting_values': json.dumps(starting_values_dict),
+        'starting_values': json.dumps(starting_values_dict,
+                                      separators=JSON_SEPARATORS_COMPACT),
         'sql_dialect': settings.RESEARCH_DB_DIALECT,
         'dialect_mysql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
         'dialect_mssql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
@@ -2999,7 +3002,7 @@ def pe_results(request: HttpRequest, pe_id: str) -> HttpResponse:
         mrids = pe.get_patient_mrids()
         page = paginate(request, mrids, per_page=patients_per_page)
         active_mrids = list(page)  # type: List[str]
-        results = []
+        results = []  # type: List[Dict[str, Any]]
         if active_mrids:
             for tsa in pe.all_queries(mrids=active_mrids):
                 table_id = tsa.table_id
@@ -3265,8 +3268,8 @@ def pe_data_finder_results(request: HttpRequest, pe_id: str) -> HttpResponse:
         results_table_html = ''
         query_html = ''
         if active_mrids:
-            fieldnames = []
-            rows = []
+            fieldnames = []  # type: List[str]
+            rows = []  # type: List[List[Any]]
             for tsa in pe.patient_multiquery.gen_data_finder_queries(
                         mrids=active_mrids):
                 table_identifier = tsa.table_id
@@ -3364,7 +3367,7 @@ def pe_monster_results(request: HttpRequest, pe_id: str) -> HttpResponse:
         rids = pe.get_patient_mrids()
         page = paginate(request, rids, per_page=patients_per_page)
         active_rids = list(page)
-        results = []
+        results = []  # type: List[Dict[str, Any]]
         pmq = pe.patient_multiquery
         if active_rids:
             for tsa in pmq.gen_monster_queries(mrids=active_rids):
@@ -3485,7 +3488,7 @@ def pe_one_table(request: HttpRequest, pe_id: str,
         active_mrids = list(page)
         table_html = "<div><i>No data</i></div>"
         sql = ""
-        args = []
+        args = []  # type: List[Any]
         rowcount = 0
         if active_mrids:
             mrid_column = research_database_info.get_mrid_column_from_table(

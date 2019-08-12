@@ -28,7 +28,7 @@ crate_anon/nlp_manager/regex_parser.py
 
 """
 
-from abc import ABCMeta
+from abc import abstractmethod, ABC
 import logging
 import sys
 from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
@@ -221,7 +221,7 @@ HELP_RELATION = (
     "(e.g. '=', '<=')"
 )
 HELP_VALUE_TEXT = "Matched numerical value, as text"
-HELP_UNITS = HELP_VALUE_TEXT
+HELP_UNITS = "Matched units, as text"
 HELP_TARGET_UNIT = "Numerical value in preferred units, if known"
 HELP_TENSE_TEXT = f"Tense text, if known (e.g. '{IS}', '{WAS}')"
 HELP_TENSE = f"Calculated tense, if known (e.g. '{PAST}', '{PRESENT}')"
@@ -261,7 +261,7 @@ def common_tense(tense_text: Optional[str], relation_text: Optional[str]) \
     return tense, relation
 
 
-class NumericalResultParser(BaseNlpParser, metaclass=ABCMeta):
+class NumericalResultParser(BaseNlpParser):
     """
     DO NOT USE DIRECTLY. Base class for generic numerical results, where
     a SINGLE variable is produced.
@@ -296,7 +296,7 @@ class NumericalResultParser(BaseNlpParser, metaclass=ABCMeta):
         self.regex_str_for_debugging = regex_str_for_debugging
 
         if nlpdef is None:  # only None for debugging!
-            self.tablename = ''
+            self.tablename = self.classname().lower()
             self.assume_preferred_unit = True
         else:
             self.tablename = nlpdef.opt_str(
@@ -330,23 +330,24 @@ class NumericalResultParser(BaseNlpParser, metaclass=ABCMeta):
         # docstring in superclass
         return {self.tablename: [
             Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
-                   doc=HELP_VARIABLE_NAME),
-            Column(FN_CONTENT, Text, doc=HELP_CONTENT),
-            Column(FN_START, Integer, doc=HELP_START),
-            Column(FN_END, Integer, doc=HELP_END),
-            Column(FN_VARIABLE_TEXT, Text, doc=HELP_VARIABLE_TEXT),
+                   comment=HELP_VARIABLE_NAME),
+            Column(FN_CONTENT, Text, comment=HELP_CONTENT),
+            Column(FN_START, Integer, comment=HELP_START),
+            Column(FN_END, Integer, comment=HELP_END),
+            Column(FN_VARIABLE_TEXT, Text, comment=HELP_VARIABLE_TEXT),
             Column(FN_RELATION_TEXT, String(MAX_RELATION_TEXT_LENGTH),
-                   doc=HELP_RELATION_TEXT),
+                   comment=HELP_RELATION_TEXT),
             Column(FN_RELATION, String(MAX_RELATION_LENGTH),
-                   doc=HELP_RELATION),
-            Column(FN_VALUE_TEXT, Text, doc=HELP_VALUE_TEXT),
-            Column(FN_UNITS, String(MAX_UNITS_LENGTH), doc=HELP_UNITS),
-            Column(self.target_unit, Float, doc=HELP_TARGET_UNIT),
+                   comment=HELP_RELATION),
+            Column(FN_VALUE_TEXT, Text, comment=HELP_VALUE_TEXT),
+            Column(FN_UNITS, String(MAX_UNITS_LENGTH), comment=HELP_UNITS),
+            Column(self.target_unit, Float, comment=HELP_TARGET_UNIT),
             Column(FN_TENSE_TEXT, String(MAX_TENSE_TEXT_LENGTH),
-                   doc=HELP_TENSE_TEXT),
-            Column(FN_TENSE, String(MAX_TENSE_LENGTH), doc=HELP_TENSE),
+                   comment=HELP_TENSE_TEXT),
+            Column(FN_TENSE, String(MAX_TENSE_LENGTH), comment=HELP_TENSE),
         ]}
 
+    @abstractmethod
     def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
                                             None, None]:
         # docstring in superclass
@@ -369,7 +370,7 @@ class NumericalResultParser(BaseNlpParser, metaclass=ABCMeta):
         Raises:
             :exc:`AssertionError` if a comparison fails
         """
-        log.info(f"Testing parser: {type(self).__name__}")
+        log.info(f"Testing parser: {self.classname()}")
         if verbose:
             log.debug(f"... regex string:\n{self.regex_str_for_debugging}")
         for test_string, expected_values in test_expected_list:
@@ -379,7 +380,7 @@ class NumericalResultParser(BaseNlpParser, metaclass=ABCMeta):
             assert actual_values == expected_values, (
                 "Parser {name}: Expected {expected}, got {actual}, when "
                 "parsing {test_string}; full result:\n{full}".format(
-                    name=type(self).__name__,
+                    name=self.classname(),
                     expected=expected_values,
                     actual=actual_values,
                     test_string=repr(test_string),
@@ -431,7 +432,7 @@ class NumericalResultParser(BaseNlpParser, metaclass=ABCMeta):
         log.info("... detailed_test: pass")
 
 
-class SimpleNumericalResultParser(NumericalResultParser, metaclass=ABCMeta):
+class SimpleNumericalResultParser(NumericalResultParser, ABC):
     """
     Base class for simple single-format numerical results. Use this when not
     only do you have a single variable to produce, but you have a single regex
@@ -524,7 +525,7 @@ class SimpleNumericalResultParser(NumericalResultParser, metaclass=ABCMeta):
                          regex_str_for_debugging=regex_str,
                          commit=commit)
         if debug:
-            log.debug(f"Regex for {type(self).__name__}: {regex_str}")
+            log.debug(f"Regex for {self.classname()}: {regex_str}")
         self.compiled_regex = compile_regex(regex_str)
         self.units_to_factor = compile_regex_dict(units_to_factor)
         self.take_absolute = take_absolute
@@ -593,7 +594,7 @@ class SimpleNumericalResultParser(NumericalResultParser, metaclass=ABCMeta):
             yield self.tablename, result
 
 
-class NumeratorOutOfDenominatorParser(BaseNlpParser, metaclass=ABCMeta):
+class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
     """
     Base class for X-out-of-Y numerical results, e.g. for MMSE/ACE.
 
@@ -676,7 +677,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, metaclass=ABCMeta):
                          cfgsection=cfgsection,
                          commit=commit)
         if nlpdef is None:  # only None for debugging!
-            self.tablename = ''
+            self.tablename = self.classname().lower()
         else:
             self.tablename = nlpdef.opt_str(
                 self._sectionname, 'desttable', required=True)
@@ -697,7 +698,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, metaclass=ABCMeta):
             )?
         """  # noqa
         if debug:
-            log.debug(f"Regex for {type(self).__name__}: {regex_str}")
+            log.debug(f"Regex for {self.classname()}: {regex_str}")
         self.regex_str = regex_str
         self.compiled_regex = compile_regex(regex_str)
 
@@ -711,29 +712,29 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, metaclass=ABCMeta):
         # docstring in superclass
         return {self.tablename: [
             Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
-                   doc=HELP_VARIABLE_NAME),
-            Column(FN_CONTENT, Text, doc=HELP_CONTENT),
-            Column(FN_START, Integer, doc=HELP_START),
-            Column(FN_END, Integer, doc=HELP_END),
-            Column(FN_VARIABLE_TEXT, Text, doc=HELP_VARIABLE_TEXT),
+                   comment=HELP_VARIABLE_NAME),
+            Column(FN_CONTENT, Text, comment=HELP_CONTENT),
+            Column(FN_START, Integer, comment=HELP_START),
+            Column(FN_END, Integer, comment=HELP_END),
+            Column(FN_VARIABLE_TEXT, Text, comment=HELP_VARIABLE_TEXT),
             Column(FN_RELATION_TEXT, String(MAX_RELATION_TEXT_LENGTH),
-                   doc=HELP_RELATION_TEXT),
+                   comment=HELP_RELATION_TEXT),
             Column(FN_RELATION, String(MAX_RELATION_LENGTH),
-                   doc=HELP_RELATION),
+                   comment=HELP_RELATION),
             Column(self.numerator_text_fieldname,
                    String(MAX_VALUE_TEXT_LENGTH),
-                   doc="Numerator, as text"),
+                   comment="Numerator, as text"),
             Column(self.numerator_fieldname, Float,
-                   doc="Numerator"),
+                   comment="Numerator"),
             Column(self.denominator_text_fieldname,
                    String(MAX_VALUE_TEXT_LENGTH),
-                   doc="Denominator, as text"),
+                   comment="Denominator, as text"),
             Column(self.denominator_fieldname, Float,
-                   doc="Denominator"),
+                   comment="Denominator"),
             Column(self.correct_numerator_fieldname, Float,
-                   doc="Numerator, if denominator is as expected (units are "
-                       "correct)"),
-            Column(FN_TENSE, String(MAX_TENSE_LENGTH), doc=HELP_TENSE),
+                   comment="Numerator, if denominator is as expected (units "
+                           "are correct)"),
+            Column(FN_TENSE, String(MAX_TENSE_LENGTH), comment=HELP_TENSE),
         ]}
 
     def parse(self, text: str,
@@ -815,7 +816,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, metaclass=ABCMeta):
         Raises:
             :exc:`AssertionError` if a comparison fails
         """
-        log.info(f"Testing parser: {type(self).__name__}")
+        log.info(f"Testing parser: {self.classname()}")
         if verbose:
             log.debug(f"... regex:\n{self.regex_str}")
         for test_string, expected_values in test_expected_list:
@@ -826,7 +827,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, metaclass=ABCMeta):
             assert actual_values == expected_values, (
                 "Parser {name}: Expected {expected}, got {actual}, when "
                 "parsing {test_string}; full result:\n{full}".format(
-                    name=type(self).__name__,
+                    name=self.classname(),
                     expected=expected_values,
                     actual=actual_values,
                     test_string=repr(test_string),
@@ -959,10 +960,8 @@ class ValidatorBase(BaseNlpParser):
     """
 
     def __init__(self,
-                 nlpdef: NlpDefinition,
-                 cfgsection: str,
-                 regex_str_list: List[str],
-                 validated_variable: str,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
                  commit: bool = False) -> None:
         """
         Args:
@@ -971,6 +970,31 @@ class ValidatorBase(BaseNlpParser):
 
             cfgsection:
                 config section name in the :ref:`NLP config file <nlp_config>`
+
+            commit:
+                force a COMMIT whenever we insert data? You should specify this
+                in multiprocess mode, or you may get database deadlocks.
+        """
+        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
+        validated_variable, regex_str_list = self.get_variablename_regexstrlist()  # noqa
+        self.regex_str_list = regex_str_list  # for debugging only
+        self.compiled_regex_list = [compile_regex(r) for r in regex_str_list]
+        self.variable = f"{validated_variable}_validator"
+        self.NAME = self.variable
+
+        if nlpdef is None:  # only None for debugging!
+            self.tablename = self.classname().lower()
+        else:
+            self.tablename = nlpdef.opt_str(
+                self._sectionname, 'desttable', required=True)
+
+    @abstractmethod
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        """
+        To be overridden.
+
+        Returns:
+            tuple: ``(validated_variable_name, regex_str_list)``, where:
 
             regex_str_list:
                 List of regular expressions, each in string format.
@@ -986,21 +1010,8 @@ class ValidatorBase(BaseNlpParser):
                 ``validated_variable == 'crp'``, then the ``variable_name``
                 field will be set to ``crp_validator``.
 
-            commit:
-                force a COMMIT whenever we insert data? You should specify this
-                in multiprocess mode, or you may get database deadlocks.
         """
-        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
-        self.regex_str_list = regex_str_list  # for debugging only
-        self.compiled_regex_list = [compile_regex(r) for r in regex_str_list]
-        self.variable = f"{validated_variable}_validator"
-        self.NAME = self.variable
-
-        if nlpdef is None:  # only None for debugging!
-            self.tablename = ''
-        else:
-            self.tablename = nlpdef.opt_str(
-                self._sectionname, 'desttable', required=True)
+        raise NotImplementedError
 
     def print_info(self, file: TextIO = sys.stdout) -> None:
         # docstring in superclass
@@ -1016,10 +1027,10 @@ class ValidatorBase(BaseNlpParser):
         # docstring in superclass
         return {self.tablename: [
             Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
-                   doc=HELP_VARIABLE_NAME),
-            Column(FN_CONTENT, Text, doc=HELP_CONTENT),
-            Column(FN_START, Integer, doc=HELP_START),
-            Column(FN_END, Integer, doc=HELP_END),
+                   comment=HELP_VARIABLE_NAME),
+            Column(FN_CONTENT, Text, comment=HELP_CONTENT),
+            Column(FN_START, Integer, comment=HELP_START),
+            Column(FN_END, Integer, comment=HELP_END),
         ]}
 
     def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
@@ -1049,7 +1060,7 @@ class ValidatorBase(BaseNlpParser):
 
             https://docs.python.org/3/library/re.html#re.regex.match
         """
-        log.info(f"Testing validator: {type(self).__name__}")
+        log.info(f"Testing validator: {self.classname()}")
         if verbose:
             n = len(self.regex_str_list)
             for i, r in enumerate(self.regex_str_list):
@@ -1060,7 +1071,7 @@ class ValidatorBase(BaseNlpParser):
             assert actual_match == expected_match, (
                 "Validator {name}: Expected 'any search'={expected}, got "
                 "{actual}, when parsing {test_string}; full={full}".format(
-                    name=type(self).__name__,
+                    name=self.classname(),
                     expected=expected_match,
                     actual=actual_match,
                     test_string=repr(test_string),
@@ -1072,7 +1083,7 @@ class ValidatorBase(BaseNlpParser):
 
     def test(self, verbose: bool = False) -> None:
         log.info(
-            f"... no tests implemented for validator {type(self).__name__}")
+            f"... no tests implemented for validator {self.classname()}")
 
 
 # =============================================================================

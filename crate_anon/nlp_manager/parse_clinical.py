@@ -204,7 +204,7 @@ class Height(NumericalResultParser):
             commit=commit
         )
         if debug:
-            print(f"Regex for {type(self).__name__}: {self.REGEX}")
+            print(f"Regex for {self.classname()}: {self.REGEX}")
 
     def parse(self, text: str,
               debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
@@ -311,7 +311,7 @@ class Height(NumericalResultParser):
             self.target_unit: m_from_ft_in(feet=5, inches=11),
             FN_UNITS: "ft in",
         }], verbose=verbose)
-        # *** Height NLP: deal with "tall" and plain "is", e.g.
+        # todo: Height NLP: deal with "tall" and plain "is", e.g.
         # she is 6'2"; she is 1.5m tall
 
 
@@ -321,16 +321,8 @@ class HeightValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Height.HEIGHT],
-                         validated_variable=Height.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Height.NAME, [Height.HEIGHT]
 
 
 # -----------------------------------------------------------------------------
@@ -404,7 +396,7 @@ class Weight(NumericalResultParser):
             commit=commit
         )
         if debug:
-            print(f"Regex for {type(self).__name__}: {self.REGEX}")
+            print(f"Regex for {self.classname()}: {self.REGEX}")
 
     def parse(self, text: str,
               debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
@@ -517,15 +509,8 @@ class WeightValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Weight.WEIGHT],
-                         validated_variable=Weight.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Weight.NAME, [Weight.WEIGHT]
 
 
 # -----------------------------------------------------------------------------
@@ -596,15 +581,8 @@ class BmiValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Bmi.BMI],
-                         validated_variable=Bmi.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Bmi.NAME, [Bmi.BMI]
 
 
 # =============================================================================
@@ -681,7 +659,7 @@ class Bp(BaseNlpParser):
             commit=commit
         )
         if nlpdef is None:  # only None for debugging!
-            self.tablename = ''
+            self.tablename = self.classname().lower()
         else:
             self.tablename = nlpdef.opt_str(
                 self._sectionname, 'desttable', required=True)
@@ -695,22 +673,22 @@ class Bp(BaseNlpParser):
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass
         return {self.tablename: [
-            Column(FN_CONTENT, Text, doc=HELP_CONTENT),
-            Column(FN_START, Integer, doc=HELP_START),
-            Column(FN_END, Integer, doc=HELP_END),
-            Column(FN_VARIABLE_TEXT, Text, doc=HELP_VARIABLE_TEXT),
+            Column(FN_CONTENT, Text, comment=HELP_CONTENT),
+            Column(FN_START, Integer, comment=HELP_START),
+            Column(FN_END, Integer, comment=HELP_END),
+            Column(FN_VARIABLE_TEXT, Text, comment=HELP_VARIABLE_TEXT),
             Column(FN_RELATION_TEXT, String(MAX_RELATION_TEXT_LENGTH),
-                   doc=HELP_RELATION_TEXT),
+                   comment=HELP_RELATION_TEXT),
             Column(FN_RELATION, String(MAX_RELATION_LENGTH),
-                   doc=HELP_RELATION),
+                   comment=HELP_RELATION),
             Column(FN_VALUE_TEXT, String(MAX_VALUE_TEXT_LENGTH),
-                   doc=HELP_VALUE_TEXT),
-            Column(FN_UNITS, String(MAX_UNITS_LENGTH), doc=HELP_UNITS),
+                   comment=HELP_VALUE_TEXT),
+            Column(FN_UNITS, String(MAX_UNITS_LENGTH), comment=HELP_UNITS),
             Column(self.FN_SYSTOLIC_BP_MMHG, Float,
-                   doc="Systolic blood pressure in mmHg"),
+                   comment="Systolic blood pressure in mmHg"),
             Column(self.FN_DIASTOLIC_BP_MMHG, Float,
-                   doc="Diastolic blood pressure in mmHg"),
-            Column(FN_TENSE, String(MAX_TENSE_LENGTH), doc=HELP_TENSE),
+                   comment="Diastolic blood pressure in mmHg"),
+            Column(FN_TENSE, String(MAX_TENSE_LENGTH), comment=HELP_TENSE),
         ]}
 
     def parse(self, text: str,
@@ -795,7 +773,7 @@ class Bp(BaseNlpParser):
             verbose:
                 be verbose?
         """
-        log.info(f"Testing parser: {type(self).__name__}")
+        log.info(f"Testing parser: {self.classname()}")
         if verbose:
             log.debug(f"... regex:\n{self.REGEX}")
         for test_string, expected_values in test_expected_list:
@@ -806,7 +784,7 @@ class Bp(BaseNlpParser):
             assert actual_values == expected_values, (
                 "Parser {name}: Expected {expected}, got {actual}, when "
                 "parsing {test_string}; full result={full}".format(
-                    name=type(self).__name__,
+                    name=self.classname(),
                     expected=expected_values,
                     actual=actual_values,
                     test_string=repr(test_string),
@@ -843,15 +821,21 @@ class BpValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Bp.REGEX],
-                         validated_variable=Bp.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Bp.NAME, [Bp.REGEX]
+
+
+# =============================================================================
+# All classes in this module
+# =============================================================================
+
+ALL_CLINICAL_NLP_AND_VALIDATORS = [
+    (Bmi, BmiValidator),
+    (Bp, BpValidator),
+    (Height, HeightValidator),
+    (Weight, WeightValidator),
+]
+ALL_CLINICAL_NLP, ALL_CLINICAL_VALIDATORS = zip(*ALL_CLINICAL_NLP_AND_VALIDATORS)  # noqa
 
 
 # =============================================================================
@@ -862,14 +846,8 @@ def test_all(verbose: bool = False) -> None:
     """
     Test all parsers in this module.
     """
-    height = Height(None, None)
-    height.test(verbose=verbose)
-    weight = Weight(None, None)
-    weight.test(verbose=verbose)
-    bmi = Bmi(None, None)
-    bmi.test(verbose=verbose)
-    bp = Bp(None, None)
-    bp.test(verbose=verbose)
+    for cls in ALL_CLINICAL_NLP:
+        cls(None, None).test(verbose=verbose)
 
 
 if __name__ == '__main__':

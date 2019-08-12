@@ -34,7 +34,7 @@ subcommands of
 
     crate_django_manage
 
-As of 2018-06-29, the available commands are:
+The available commands are:
 
 ..  literalinclude:: crate_django_manage_help.txt
     :language: none

@@ -34,7 +34,7 @@ IT WILL NOT WORK until you've edited it.
 """
 
 import os
-from typing import TYPE_CHECKING
+from typing import List, TYPE_CHECKING
 if TYPE_CHECKING:
     from django.http.request import HttpRequest
 
@@ -78,7 +78,7 @@ def always_show_toolbar(request: "HttpRequest") -> bool:
 
 
 if DEBUG:
-    ALLOWED_HOSTS = []
+    ALLOWED_HOSTS = []  # type: List[str]
     DEBUG_TOOLBAR_CONFIG = {
         'SHOW_TOOLBAR_CALLBACK': always_show_toolbar,
     }
@@ -366,7 +366,7 @@ EMAIL_SENDER = "My NHS Trust Research Database - DO NOT REPLY <noreply@somewhere
 SAFETY_CATCH_ON = True
 DEVELOPER_EMAIL = "testuser@somewhere.nhs.uk"
 
-VALID_RESEARCHER_EMAIL_DOMAINS = []
+VALID_RESEARCHER_EMAIL_DOMAINS = []  # type: List[str]
 # ... if empty, no checks are performed (any address is accepted)
 
 # =============================================================================
@@ -407,7 +407,7 @@ MANAGERS = (
 # but if that fails, use
 #   WKHTMLTOPDF_FILENAME = '/path/to/wkhtmltopdf.sh'
 # where wkhtmltopdf.sh is an executable script (chmod a+x ...) containing:
-#   #!/bin/bash
+#   #!/usr/bin/env bash
 #   xvfb-run --auto-servernum --server-args="-screen 0 640x480x16" \
 #       /usr/bin/wkhtmltopdf "$@"
 

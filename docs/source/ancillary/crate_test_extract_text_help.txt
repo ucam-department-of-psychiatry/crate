@@ -7,7 +7,7 @@ Exit codes:
 - 0 for "text found"
 - 1 for "no text found"
 - 2 for "error" (e.g. file not found)
-
+        
 
 positional arguments:
   filename       File from which to extract text
@@ -17,3 +17,5 @@ optional arguments:
   --plain        Use plainest format (not e.g. table layouts) (default: False)
   --width WIDTH  Width to word-wrap to (default: 80)
   --silent       Don't print the text, just exit with a code (default: False)
+
+# Generated at 2019-08-12 00:04:52

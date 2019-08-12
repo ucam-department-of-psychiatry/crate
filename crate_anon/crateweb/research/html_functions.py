@@ -377,7 +377,7 @@ def get_regex_from_highlights(highlight_list: Iterable[HIGHLIGHT_FWD_REF],
         a compiled regular expression (case-insensitive)
 
     """
-    elements = []
+    elements = []  # type: List[str]
     wb = r"\b"  # word boundary; escape the slash if not using a raw string
     for hl in highlight_list:
         h = escape_literal_string_for_regex(hl.text)
@@ -466,7 +466,7 @@ def make_result_element(x: Any,
     else:
         input_lines = [x]
     if line_length:
-        output_lines = []
+        output_lines = []  # type: List[str]
         for line in input_lines:
             if line:
                 output_lines.extend(textwrap.wrap(line, width=line_length))

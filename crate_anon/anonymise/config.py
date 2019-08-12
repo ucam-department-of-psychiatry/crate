@@ -80,7 +80,7 @@ from io import StringIO
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union, Set
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union, Set
 
 from cardinal_pythonlib.hash import GenericHasher, make_hasher
 from cardinal_pythonlib.logs import remove_all_logger_handlers
@@ -167,7 +167,7 @@ class DatabaseSafeConfig(object):
             return parser.get_int_default_if_failure(section, option, default)
 
         def opt_multiline_csv_pairs(option: str) -> Dict[str, str]:
-            d = {}
+            d = {}  # type: Dict[str, str]
             lines = opt_multiline(option, as_words=False)
             for line in lines:
                 pair = [item.strip() for item in line.split(",")]
@@ -686,7 +686,7 @@ class Config(object):
                              "source database")
 
         if RUNNING_WITHOUT_CONFIG:
-            self.destdb = None
+            self.destdb = None  # type: Optional[DatabaseHolder]
             self.dest_dialect = mysql_dialect
         else:
             self.destdb = get_database(destination_database_cfg_section,
@@ -707,7 +707,7 @@ class Config(object):
             )
 
         if RUNNING_WITHOUT_CONFIG:
-            self.admindb = None
+            self.admindb = None  # type: Optional[DatabaseHolder]
         else:
             self.admindb = get_database(admin_database_cfg_section,
                                         name=admin_database_cfg_section,
@@ -717,8 +717,8 @@ class Config(object):
             if not self.admindb:
                 raise ValueError("Admin database misconfigured")
 
-        self.sources = {}
-        self.src_dialects = {}
+        self.sources = {}  # type: Dict[str, DatabaseHolder]
+        self.src_dialects = {}  # type: Dict[str, Dialect]
         for sourcedb_name in source_database_cfg_sections:
             if RUNNING_WITHOUT_CONFIG:
                 continue
@@ -762,8 +762,8 @@ class Config(object):
 
         self.rows_in_transaction = 0
         self.bytes_in_transaction = 0
-        self.rows_inserted_per_table = {}
-        self.warned_re_limits = {}
+        self.rows_inserted_per_table = {}  # type: Dict[Tuple[str, str], int]
+        self.warned_re_limits = {}  # type: Dict[Tuple[str, str], bool]
 
         self.report_every_n_rows = DEFAULT_REPORT_EVERY
         self.chunksize = DEFAULT_CHUNKSIZE
@@ -834,7 +834,7 @@ class Config(object):
         Initialize the "number of rows inserted" counts to zero for all source
         tables.
         """
-        self.rows_inserted_per_table = {}
+        self.rows_inserted_per_table = {}  # type: Dict[Tuple[str, str], int]
         for db_table_tuple in self.dd.get_src_db_tablepairs():
             self.rows_inserted_per_table[db_table_tuple] = 0
             self.warned_re_limits[db_table_tuple] = False
@@ -867,7 +867,7 @@ class Config(object):
             "master_research_id_fieldname",
             "source_hash_fieldname",
         ]
-        fieldset = set()
+        fieldset = set()  # type: Set[str]
         for attrname in specialfieldlist:
             validate_fieldattr(attrname)
             fieldset.add(getattr(self, attrname))

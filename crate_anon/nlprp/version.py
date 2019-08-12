@@ -28,4 +28,4 @@ Natural Language Processing Request Protocol (NLPRP) constants.
 
 """
 
-NLPRP_VERSION_STRING = "0.1.0"
+NLPRP_VERSION_STRING = "0.2.0"

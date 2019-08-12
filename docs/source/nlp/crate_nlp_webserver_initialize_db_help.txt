@@ -1,0 +1,13 @@
+usage: crate_nlp_webserver_initialize_db [-h] config_uri
+
+Tool to initialize the database used by CRATE's implementation of an NLPRP
+server.
+
+positional arguments:
+  config_uri  Config file to read (e.g. 'development.ini'); URL of database is
+              found here.
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+# Generated at 2019-08-12 00:04:59

@@ -1,8 +1,8 @@
 usage: crate_make_demo_database [-h] [--size {0,1,2,3}] [--verbose] [--echo]
-                                [--doctest-doc DOCTEST_DOC]
-                                [--doctest-docx DOCTEST_DOCX]
-                                [--doctest-odt DOCTEST_ODT]
-                                [--doctest-pdf DOCTEST_PDF]
+                                [--doctest_doc DOCTEST_DOC]
+                                [--doctest_docx DOCTEST_DOCX]
+                                [--doctest_odt DOCTEST_ODT]
+                                [--doctest_pdf DOCTEST_PDF]
                                 url
 
 positional arguments:
@@ -15,22 +15,24 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --size {0,1,2,3}      Make tiny (0), small (1), medium (2), or large (3)
-                        database (default=0)
-  --verbose, -v         Be verbose (use twice for extra verbosity)
-  --echo                Echo SQL
-  --doctest-doc DOCTEST_DOC
+                        database (default: 0)
+  --verbose, -v         Be verbose (default: False)
+  --echo                Echo SQL (default: False)
+  --doctest_doc DOCTEST_DOC
                         Test file for .DOC (default: /home/rudolf/Documents/co
-                        de/crate/crate_anon/anonymise/../../testdocs_for_text_
-                        extraction/doctest.doc)
-  --doctest-docx DOCTEST_DOCX
+                        de/crate/crate_anon/testdocs_for_text_extraction/docte
+                        st.doc)
+  --doctest_docx DOCTEST_DOCX
                         Test file for .DOCX (default: /home/rudolf/Documents/c
-                        ode/crate/crate_anon/anonymise/../../testdocs_for_text
-                        _extraction/doctest.docx)
-  --doctest-odt DOCTEST_ODT
+                        ode/crate/crate_anon/testdocs_for_text_extraction/doct
+                        est.docx)
+  --doctest_odt DOCTEST_ODT
                         Test file for .ODT (default: /home/rudolf/Documents/co
-                        de/crate/crate_anon/anonymise/../../testdocs_for_text_
-                        extraction/doctest.odt)
-  --doctest-pdf DOCTEST_PDF
+                        de/crate/crate_anon/testdocs_for_text_extraction/docte
+                        st.odt)
+  --doctest_pdf DOCTEST_PDF
                         Test file for .PDF (default: /home/rudolf/Documents/co
-                        de/crate/crate_anon/anonymise/../../testdocs_for_text_
-                        extraction/doctest.pdf)
+                        de/crate/crate_anon/testdocs_for_text_extraction/docte
+                        st.pdf)
+
+# Generated at 2019-08-12 00:04:50

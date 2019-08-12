@@ -28,16 +28,38 @@ Validate Natural Language Processing Request Protocol (NLPRP) objects.
 
 """
 
+import datetime
 import json
 import gzip
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Union
 
+from cardinal_pythonlib.datetimefunc import (
+    coerce_to_pendulum,
+    convert_datetime_to_utc,
+    get_now_localtz_pendulum,
+    get_now_utc_pendulum,
+    pendulum_to_datetime,
+    pendulum_to_utc_datetime_without_tz,
+)
+import pendulum
+from pendulum import DateTime as Pendulum  # NB name clash with SQLAlchemy
 from semantic_version import Version
 
+from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 from crate_anon.nlprp.constants import (
+    HttpStatus,
+    JsonArrayType,
+    JsonAsStringType,
+    JsonObjectType,
+    JsonValueType,
     NlprpKeys,
     NlprpValues,
     ALL_NLPRP_COMMANDS,
+)
+from crate_anon.nlprp.errors import (
+    BAD_REQUEST,
+    key_missing_error,
+    mkerror,
 )
 from crate_anon.nlprp.version import NLPRP_VERSION_STRING
 
@@ -58,10 +80,360 @@ DEFAULT_SERVER_INFO = {
 
 
 # =============================================================================
+# Date/time conversion to/from NLPRP format
+# =============================================================================
+
+def nlprp_datetime_to_pendulum(ndt: str) -> Pendulum:
+    """
+    The NLPRP date/time format is ISO-8601 with all three of: date, time,
+    timezone.
+
+    Example:
+
+    .. code-block:: none
+
+        "2019-08-09T17:26:20.123456+01:00"
+
+    Args:
+        ndt: date/time in ISO-8601 format with timezone
+
+    Returns:
+        :class:`pendulum.DateTime` (with timezone information)
+    """
+    return pendulum.parse(ndt)
+
+
+def nlprp_datetime_to_datetime_with_tz(ndt: str) -> datetime.datetime:
+    """
+    Converts a NLPRP date/time (see :func:`nlprp_iso_datetime_to_pendulum`) to
+    a :class:`datetime.datetime` with timezone information.
+
+    Args:
+        ndt: date/time in ISO-8601 format with timezone
+
+    Returns:
+        datetime.datetime: with timezone information
+    """
+    p = nlprp_datetime_to_pendulum(ndt)
+    return pendulum_to_datetime(p)
+
+
+def nlprp_datetime_to_datetime_utc_no_tzinfo(ndt: str) -> \
+        datetime.datetime:
+    """
+    Converts a NLPRP date/time (see :func:`nlprp_iso_datetime_to_pendulum`) to
+    a :class:`datetime.datetime` in UTC with no timezone information.
+
+    Args:
+        ndt: date/time in ISO-8601 format with timezone
+
+    Returns:
+        datetime.datetime: in UTC with no timezone information
+    """
+    p = nlprp_datetime_to_pendulum(ndt)
+    return pendulum_to_utc_datetime_without_tz(p)
+
+
+def pendulum_to_nlprp_datetime(p: Pendulum, to_utc: bool = True) -> str:
+    """
+    Converts a :class:`pendulum.Pendulum` to the ISO string format (with
+    timezone) used by the NLPRP.
+    """
+    if to_utc:
+        p = convert_datetime_to_utc(p)
+    return p.isoformat()
+
+
+def datetime_to_nlprp_datetime(dt: datetime.datetime,
+                               assume_utc: bool = True) -> str:
+    """
+    Converts a :class:`datetime.datetime` to the ISO string format (with
+    timezone) used by the NLPRP.
+
+    If the datetime.datetime object has no timezone info, then assume the local
+    timezone if ``assume_local`` is true; otherwise, assume UTC.
+    """
+    p = coerce_to_pendulum(dt, assume_local=not assume_utc)
+    return pendulum_to_nlprp_datetime(p)
+
+
+def nlprp_datetime_now(as_local: bool = True) -> str:
+    """
+    Returns the time now, as a string suitable for use with NLPRP.
+
+    Args:
+        as_local: use local timezone? (Otherwise, use UTC.)
+    """
+    now = get_now_localtz_pendulum() if as_local else get_now_utc_pendulum()
+    return pendulum_to_nlprp_datetime(now)
+
+
+# =============================================================================
+# Get arguments from JSON objects
+# =============================================================================
+
+def json_get_bool(x: JsonObjectType, key: str, default: bool = None,
+                  required: bool = False) -> bool:
+    """
+    Gets a boolean parameter from part of the JSON request.
+
+    Args:
+        x: a JSON object (dictionary)
+        key: the name of the key
+        default: the default value
+        required: is it mandatory, or can it be missing or ``null``?
+
+    Returns:
+        bool: the result, or the default
+
+    Raises:
+        :exc:`NlprpError` if the value is bad, or is missing and required.
+    """
+    value = x.get(key)
+    if value is None:  # missing, or "null"
+        if required:
+            raise key_missing_error(key)
+        else:
+            return default
+    if not isinstance(value, bool):
+        mkerror(BAD_REQUEST, f"{key!r} parameter not Boolean")
+    return value
+
+
+def json_get_int(x: JsonObjectType, key: str, default: int = None,
+                 required: bool = False) -> int:
+    """
+    Gets an integer parameter from part of the JSON request.
+
+    Args:
+        x: a JSON object (dictionary)
+        key: the name of the key
+        default: the default value
+        required: is it mandatory, or can it be missing or ``null``?
+
+    Returns:
+        int: the result, or the default
+
+    Raises:
+        :exc:`NlprpError` if the value is bad, or is missing and required.
+    """
+    value = x.get(key, default)
+    if value is None:  # missing, or "null"
+        if required:
+            raise key_missing_error(key)
+        else:
+            return default
+    if not isinstance(value, int):
+        mkerror(BAD_REQUEST, f"{key!r} parameter not integer")
+    return value
+
+
+def json_get_float(x: JsonObjectType, key: str, default: int = None,
+                   required: bool = False) -> int:
+    """
+    Gets a float (or int) parameter from part of the JSON request.
+
+    Args:
+        x: a JSON object (dictionary)
+        key: the name of the key
+        default: the default value
+        required: is it mandatory, or can it be missing or ``null``?
+
+    Returns:
+        float: the result, or the default
+
+    Raises:
+        :exc:`NlprpError` if the value is bad, or is missing and required.
+    """
+    value = x.get(key, default)
+    if value is None:  # missing, or "null"
+        if required:
+            raise key_missing_error(key)
+        else:
+            return default
+    if not isinstance(value, (float, int)):
+        mkerror(BAD_REQUEST, f"{key!r} parameter not float")
+    return value
+
+
+def json_get_str(x: JsonObjectType, key: str, default: str = None,
+                 required: bool = False) -> str:
+    """
+    Gets a string parameter from part of the JSON request.
+
+    Args:
+        x: a JSON object (dictionary)
+        key: the name of the key
+        default: the default value
+        required: is it mandatory, or can it be missing or ``null``?
+
+    Returns:
+        str: the result, or the default
+
+    Raises:
+        :exc:`NlprpError` if the value is bad, or is missing and required.
+    """
+    value = x.get(key, default)
+    if value is None:  # missing, or "null"
+        if required:
+            raise key_missing_error(key)
+        else:
+            return default
+    if not isinstance(value, str):
+        mkerror(BAD_REQUEST, f"{key!r} parameter not string")
+    return value
+
+
+def json_get_array(x: JsonObjectType, key: str,
+                   required: bool = False) -> JsonArrayType:
+    """
+    Gets a array (list) parameter from part of the JSON request.
+
+    Args:
+        x: a JSON object (dictionary)
+        key: the name of the key
+        required: is the array required?
+
+    Returns:
+        list: the result, or ``[]`` if the parameter is missing and
+        ``required == False``.
+
+    Raises:
+        :exc:`NlprpError` if the value is bad, or is missing and required.
+    """
+    value = x.get(key)
+    if value is None:  # missing, or "null"
+        if required:
+            raise key_missing_error(key)
+        else:
+            return []  # type: JsonArrayType
+    if not isinstance(value, list):
+        mkerror(BAD_REQUEST, f"{key!r} parameter not a JSON array (list)")
+    return value
+
+
+def json_get_array_of_str(x: JsonObjectType, key: str,
+                          required: bool = False) -> List[str]:
+    """
+    Gets an array of strings from part of the JSON request.
+
+    Args:
+        x: a JSON object (dictionary)
+        key: the name of the key
+        required: is the array required?
+
+    Returns:
+        list: the result, or ``[]`` if the parameter is missing and
+        ``required == False``.
+
+    Raises:
+        :exc:`NlprpError` if the value is bad, or is missing and required.
+    """
+    value = x.get(key)
+    if value is None:  # missing, or "null"
+        if required:
+            raise key_missing_error(key)
+        else:
+            return []  # type: JsonArrayType
+    if not isinstance(value, list):
+        mkerror(BAD_REQUEST, f"{key!r} parameter not a JSON array (list)")
+    if not all(isinstance(x, str) for x in value):
+        mkerror(BAD_REQUEST, f"Non-string value as part of {key!r}")
+    return value
+
+
+def json_get_object(x: JsonObjectType, key: str,
+                    required: bool = False) -> JsonObjectType:
+    """
+    Gets an object (dictionary) parameter from part of the JSON request.
+
+    Args:
+        x: a JSON object (dictionary)
+        key: the name of the key
+        required: is the object required?
+
+    Returns:
+        list: the result, or ``{}`` if the parameter is missing and
+        ``required == False``.
+
+    Raises:
+        :exc:`NlprpError` if the value is bad, or is missing and required.
+    """
+    value = x.get(key)
+    if value is None:  # missing, or "null"
+        if required:
+            raise key_missing_error(key)
+        else:
+            return {}  # type: JsonArrayType
+    if not isinstance(value, dict):
+        mkerror(BAD_REQUEST,
+                f"{key!r} parameter not a JSON object (dictionary)")
+    return value
+
+
+def json_get_value(x: JsonValueType, key: str, default: JsonValueType = None,
+                   required: bool = False) -> JsonValueType:
+    """
+    Gets an JSON value (object, array, or literal) parameter from part of the
+    JSON request.
+
+    Args:
+        x: a JSON object (dictionary)
+        key: the name of the key
+        default: the default value
+        required: is the value required?
+
+    Returns:
+        the result, or the default
+
+    Raises:
+        :exc:`NlprpError` if the value is bad, or is missing and required.
+    """
+    value = x.get(key)
+    if value is None:  # missing, or "null"
+        if required:
+            raise key_missing_error(key)
+        else:
+            return default
+    if not isinstance(value, (dict, list, str, int, float, bool)):
+        # None is covered above
+        mkerror(BAD_REQUEST,
+                f"{key!r} parameter not a JSON value")
+    return value
+
+
+def json_get_toplevel_args(nlprp_request: JsonObjectType,
+                           required: bool = True) -> JsonObjectType:
+    """
+    Returns the top-level arguments for a NLPRP request.
+
+    Args:
+        nlprp_request: the NLPRP request object
+        required: are the args required?
+
+    Returns:
+        dict: the result
+
+    Raises:
+        :exc:`NlprpError` if the value is bad, or is missing and required.
+    """
+    value = nlprp_request.get(NlprpKeys.ARGS)
+    if value is None:
+        if required:
+            raise key_missing_error(NlprpKeys.ARGS, is_args=True)
+        else:
+            return {}  # type: JsonArrayType
+    if not isinstance(value, dict):
+        mkerror(BAD_REQUEST,
+                f"{NlprpKeys.ARGS!r} parameter not a JSON object (dictionary)")
+    return value
+
+
+# =============================================================================
 # Validity checkers
 # =============================================================================
 
-def is_nlprp_protocol_valid(x: Dict[str, Any],
+def is_nlprp_protocol_valid(x: JsonObjectType,
                             min_version: Version = None,
                             max_version: Version = None) -> bool:
     """
@@ -73,7 +445,7 @@ def is_nlprp_protocol_valid(x: Dict[str, Any],
         max_version: maximum NLPRP version to accept; None for no maximum
     """
     try:
-        protocol = x.get(NlprpKeys.PROTOCOL, None)  # type: Dict[str, Any]
+        protocol = x.get(NlprpKeys.PROTOCOL, None)  # type: JsonObjectType
         # ... will raise AttributeError if not a dict
         protocol_name = protocol[NlprpKeys.NAME]
         assert protocol_name.lower() == NlprpValues.NLPRP_PROTOCOL_NAME
@@ -88,7 +460,7 @@ def is_nlprp_protocol_valid(x: Dict[str, Any],
     return True
 
 
-def is_valid_nlprp_request(x: Dict[str, Any],
+def is_valid_nlprp_request(x: JsonObjectType,
                            min_version: Version = None,
                            max_version: Version = None) -> bool:
     """
@@ -109,7 +481,7 @@ def is_valid_nlprp_request(x: Dict[str, Any],
     return True
 
 
-def is_valid_nlprp_response(x: Dict[str, Any],
+def is_valid_nlprp_response(x: JsonObjectType,
                             min_version: Version = None,
                             max_version: Version = None) -> bool:
     """
@@ -123,7 +495,6 @@ def is_valid_nlprp_response(x: Dict[str, Any],
     try:
         assert is_nlprp_protocol_valid(
             x, min_version=min_version, max_version=max_version)
-        # *** more here?
     except (AssertionError, AttributeError, KeyError, TypeError, ValueError):
         return False
     return True
@@ -133,7 +504,7 @@ def is_valid_nlprp_response(x: Dict[str, Any],
 # Dictionary creators
 # =============================================================================
 
-def make_nlprp_dict() -> Dict[str, Any]:
+def make_nlprp_dict() -> JsonObjectType:
     """
     Creates the basic dictionary used by the NLPRP protocol.
     """
@@ -143,7 +514,7 @@ def make_nlprp_dict() -> Dict[str, Any]:
 
 
 def make_nlprp_request(command: str,
-                       command_args: Any = None) -> Dict[str, Any]:
+                       command_args: Any = None) -> JsonObjectType:
     """
     Creates a NLPRP request (client to server) dictionary.
 
@@ -160,8 +531,8 @@ def make_nlprp_request(command: str,
 
 
 def make_nlprp_response(http_status: int,
-                        reply_args: Dict[str, Any] = None,
-                        server_info: Dict[str, str] = None) -> Dict[str, Any]:
+                        reply_args: JsonObjectType = None,
+                        server_info: JsonObjectType = None) -> JsonObjectType:
     """
     Creates a NLPRP response (server to client) dictionary.
 
@@ -172,7 +543,7 @@ def make_nlprp_response(http_status: int,
     """
     assert http_status is not None
     server_info = server_info or DEFAULT_SERVER_INFO
-    reply_args = reply_args or {}  # type: Dict[str, Any]
+    reply_args = reply_args or {}  # type: JsonObjectType
     d = make_nlprp_dict()
     d[NlprpKeys.STATUS] = http_status
     d[NlprpKeys.SERVER_INFO] = server_info
@@ -191,7 +562,7 @@ class NlprpMessage(object):
     """
 
     def __init__(self,
-                 data: Union[str, bytes, Dict[str, Any]],
+                 data: Union[str, bytes, JsonObjectType],
                  data_is_gzipped: bool = False) -> None:
         """
         Initialize with data as either
@@ -205,14 +576,14 @@ class NlprpMessage(object):
             data: the data
             data_is_gzipped: if ``data`` is of type ``bytes``, is it gzipped?
         """
-        self._data = {}  # type: Dict[str, Any]
+        self._data = {}  # type: JsonObjectType
         if isinstance(data, bytes):
             if data_is_gzipped:
                 data = gzip.decompress(data)
             # noinspection PyTypeChecker
             data = data.decode("utf-8")  # now it's a str
         if isinstance(data, str):
-            data = json.loads(data)  # type: Dict[str, Any]
+            data = json.loads(data)  # type: JsonObjectType
         if isinstance(data, dict):
             self._data = data
 
@@ -220,18 +591,18 @@ class NlprpMessage(object):
         return repr(self._data)
 
     @property
-    def dict(self) -> Dict[str, Any]:
+    def dict(self) -> JsonObjectType:
         """
         Returns the underlying dictionary.
         """
         return self._data
 
     @property
-    def data_str(self) -> str:
+    def data_str(self) -> JsonAsStringType:
         """
         Returns a JSON-encoded version of the underlying dictionary.
         """
-        return json.dumps(self._data)
+        return json.dumps(self._data, separators=JSON_SEPARATORS_COMPACT)
 
     @property
     def data_bytes(self) -> bytes:
@@ -285,8 +656,8 @@ class NlprpRequest(NlprpMessage):
 
     def __init__(self,
                  command: str = None,
-                 command_args: Dict[str, Any] = None,
-                 data: Union[str, bytes, Dict[str, Any]] = None,
+                 command_args: JsonObjectType = None,
+                 data: Union[str, bytes, JsonObjectType] = None,
                  data_is_gzipped: bool = False) -> None:
         """
         Initialize with one of the following sets of parameters:
@@ -327,14 +698,14 @@ class NlprpRequest(NlprpMessage):
         """
         Returns the NLPRP command.
         """
-        return self._data.get(NlprpKeys.COMMAND, "")
+        return json_get_str(self._data, NlprpKeys.COMMAND, "")
 
     @property
-    def args(self) -> Dict[str, Any]:
+    def args(self) -> JsonObjectType:
         """
         Returns the NLPRP command arguments.
         """
-        return self._data.get(NlprpKeys.ARGS, {})
+        return json_get_object(self._data, NlprpKeys.ARGS, required=False)
 
 
 class NlprpResponse(NlprpMessage):
@@ -343,9 +714,9 @@ class NlprpResponse(NlprpMessage):
     """
 
     def __init__(self,
-                 data: Union[str, bytes, Dict[str, Any]] = None,
+                 data: Union[str, bytes, JsonObjectType] = None,
                  data_is_gzipped: bool = False,
-                 http_status: int = 200,
+                 http_status: int = HttpStatus.OK,
                  reply_args: Dict[str, Any] = None,
                  server_info: Dict[str, Any] = None) -> None:
         """
@@ -376,11 +747,12 @@ class NlprpResponse(NlprpMessage):
         """
         Returns the status of the NLPRP response, or -1 if it's missing.
         """
-        return self._data.get(NlprpKeys.STATUS, -1)
+        return json_get_int(self._data, NlprpKeys.STATUS, -1)
 
     @property
-    def server_info(self) -> Dict[str, Any]:
+    def server_info(self) -> JsonObjectType:
         """
         Returns the ``server_info`` part of the NLPRP response.
         """
-        return self._data.get(NlprpKeys.SERVER_INFO, {})
+        return json_get_object(self._data, NlprpKeys.SERVER_INFO,
+                               required=False)

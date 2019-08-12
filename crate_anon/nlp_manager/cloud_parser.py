@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/base_cloud_parser.py
+# crate_anon/nlp_manager/cloud_parser.py
 
 """
 ===============================================================================
@@ -26,19 +26,16 @@
 This module is for sending JSON requests to the NLP Cloud server and
 receiving responses.
 
+.. todo:: cloud_parser: handle new ``tabular_schema`` info from server
+
 """
 
-# todo: rationalise so that there isn't repeated code to check if reply is
-#       json etc.
-
-from copy import deepcopy
+from copy import copy
+from http.cookiejar import CookieJar
 import json
 import logging
 import sys
-# import uuid
 from typing import Any, Dict, List, Tuple, Generator, Optional
-from datetime import datetime
-import regex
 import time
 
 from cardinal_pythonlib.rate_limiting import rate_limited
@@ -48,27 +45,36 @@ from cardinal_pythonlib.dicts import (
     set_null_values_in_dict,
 )
 from cardinal_pythonlib.timing import MultiTimerContext, timer
-import requests
+from requests import post, Response
 from requests.exceptions import HTTPError, RequestException
 from urllib3.exceptions import NewConnectionError
 
+from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
+from crate_anon.common.memsize import getsize
+from crate_anon.common.stringfunc import does_text_contain_word_chars
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
+    CloudNlpConfigKeys,
     FN_NLPDEF,
     FN_WHEN_FETCHED,
-    MAX_RETRIES,
+    full_sectionname,
+    GateResultKeys,
+    NlpConfigPrefixes,
+    ProcessorConfigKeys,
 )
 from crate_anon.nlp_manager.nlp_definition import (
-    full_sectionname,
-    NlpConfigPrefixes,
     NlpDefinition,
 )
-from crate_anon.nlp_manager.parse_gate import (
-    # FN_TYPE,
-    GateConfigKeys,
-)
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
-from crate_anon.nlprp.api import make_nlprp_dict, make_nlprp_request
+from crate_anon.nlprp.api import (
+    json_get_array,
+    json_get_int,
+    JsonValueType,
+    JsonObjectType,
+    make_nlprp_dict,
+    make_nlprp_request,
+    nlprp_datetime_to_datetime_utc_no_tzinfo,
+)
 from crate_anon.nlprp.constants import (
     HttpStatus,
     NlprpCommands,
@@ -77,16 +83,30 @@ from crate_anon.nlprp.constants import (
 
 log = logging.getLogger(__name__)
 
-CLOUD_NLP_SECTION = "Cloud_NLP"
 TIMING_INSERT = "CloudRequest_sql_insert"
 
-START_GATE = 'start'
-END_GATE = 'end'
-FEATURES_GATE = 'features'
-TYPE_GATE = 'type'
-SET_GATE = 'set'
+
+# =============================================================================
+# Helper functions
+# =============================================================================
+
+def utf8len(text: str) -> int:
+    """
+    Returns the length of text once encoded in UTF-8.
+    """
+    return len(text.encode('utf-8'))
 
 
+def to_json_str(json_structure: JsonValueType) -> str:
+    """
+    Converts a Python object to a JSON string.
+    """
+    return json.dumps(json_structure, default=str,
+                      separators=JSON_SEPARATORS_COMPACT)
+    # This needs 'default=str' to deal with non-JSON-serializable
+    # objects that may occur, such as datetimes in the metadata.
+
+<<<<<<< HEAD
 class CloudNlpConfigKeys(object):
     USERNAME = "username"
     PASSWORD = "password"
@@ -98,15 +118,19 @@ class CloudNlpConfigKeys(object):
     RATE_LIMIT = "rate_limit"
     STOP_AT_FAILURE = "stop_at_failure"
     WAIT_ON_CONN_ERR = "wait_on_conn_err"
+=======
+>>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
 
+# =============================================================================
+# CloudRequest
+# =============================================================================
 
 class CloudRequest(object):
     """
     Class to send requests to the cloud processors and process the results.
     """
     # Set up standard information for all requests
-    STANDARD_INFO = make_nlprp_dict()
-    HEADERS = {
+    HTTP_HEADERS = {
         'charset': 'utf-8',
         'Content-Type': 'application/json'
     }
@@ -115,88 +139,64 @@ class CloudRequest(object):
 
     def __init__(self,
                  nlpdef: NlpDefinition,
-                 url: str,
-                 username: str = "",
-                 password: str = "",
-                 max_length: int = 0,
                  commit: bool = False,
                  client_job_id: str = None,
-                 allowable_procs: Optional[List[str]] = None,
-                 verify_ssl: bool = True,
-                 procs_auto_add: bool = True,
-                 wait_on_conn_err: int = 180,
-                 raise_on_failure: bool = True) -> None:
+                 remote_processors_available: Optional[List[str]] = None,
+                 procs_auto_add: bool = True) -> None:
         """
         Args:
             nlpdef:
                 :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            url:
-                the url to send requests to
-            username:
-                the username for accessing cloud nlp services
-            password:
-                the password for accessing cloud nlp services
-            max_length:
-                maximum content-length of a request
             commit:
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
             client_job_id:
                 optional string used to group together results into one job.
-            allowable_procs:
-                List of processors expected to be pre-checked for validity.
-                If None, the 'add_processor' method checks for validity using
-                the 'list_processors' method. When doing many requests all with
-                the same set of processors it is best to test validity outside
-                class and specify this parameter.
-            verify_ssl:
-                whether to verify the ssl certificate of the server or not
+            remote_processors_available:
+                List of remote processor names (expected to have been
+                pre-checked for validity). If ``None``, the
+                :meth:'add_processor'` method checks for validity using the
+                :meth:'list_processors' method. When doing many requests all
+                with the same set of processors it is best to test validity
+                outside class and specify this parameter.
             procs_auto_add:
-                add_procs_automatically if not provided
+                add procs automatically if not provided
         """
         self._nlpdef = nlpdef
-        self._sectionname = full_sectionname(NlpConfigPrefixes.NLPDEF,
-                                             self._nlpdef.get_name())
+        self._cloudcfg = nlpdef.get_cloud_config_or_raise()
+        self._nlpdef_sectionname = full_sectionname(NlpConfigPrefixes.NLPDEF,
+                                                    self._nlpdef.get_name())
         self._commit = commit
-        # self._destdbs = {}  # type: Dict[str, DatabaseHolder]
-        self.url = url
-        self.username = username
-        self.password = password
-        self.auth = (self.username, self.password)
+        self.auth = (self._cloudcfg.username, self._cloudcfg.password)
         self.fetched = False
-        self.verify_ssl = verify_ssl
-        if client_job_id:
-            self.client_job_id = client_job_id
-        else:
-            # self.client_job_id = "test_" + str(uuid.uuid4())
-            self.client_job_id = ""
+        self.client_job_id = client_job_id or ""
 
         # Set up processing request
-        self.request_process = deepcopy(self.STANDARD_INFO)
+        self.request_process = make_nlprp_dict()
         self.request_process[NKeys.COMMAND] = NlprpCommands.PROCESS
         self.request_process[NKeys.ARGS] = {
-            NKeys.PROCESSORS: [],
+            NKeys.PROCESSORS: [],  # type: List[str]
             NKeys.QUEUE: True,
             NKeys.CLIENT_JOB_ID: self.client_job_id,
             NKeys.INCLUDE_TEXT: False,
-            NKeys.CONTENT: []
+            NKeys.CONTENT: []  # type: List[str]
         }
         # Set up fetch_from_queue request
-        self.fetch_request = deepcopy(self.STANDARD_INFO)
+        self.fetch_request = make_nlprp_dict()
         self.fetch_request[NKeys.COMMAND] = NlprpCommands.FETCH_FROM_QUEUE
 
-        self.allowable_procs = allowable_procs
-        self.nlp_data = None
-        self.queue_id = None
+        self._remote_processors_available = remote_processors_available
+        self.nlp_data = None  # type: Optional[JsonObjectType]  # the JSON response  # noqa
+        self.queue_id = None  # type: Optional[str]
 
         self.procs = {}  # type: Dict[str, str]
         if procs_auto_add:
             self.add_all_processors()
 
-        self.mirror_processors = {}
-        self.max_length = max_length
-        self.cookies = None
+        self.mirror_processors = {}  # type: Dict[str, BaseNlpParser]
+        self.cookies = None  # type: Optional[CookieJar]
         self.request_failed = False
+<<<<<<< HEAD
         self.wait_on_conn_err = wait_on_conn_err
         self.raise_on_failure = raise_on_failure
 
@@ -226,55 +226,240 @@ class CloudRequest(object):
         list_procs_request[NKeys.COMMAND] = NlprpCommands.LIST_PROCESSORS
         request_json = json.dumps(list_procs_request)
         # print(request_json)
+=======
+
+        # Rate-limited functions
+        rate_limit_hz = self._cloudcfg.rate_limit_hz
+        if rate_limit_hz > 0:
+            # Rate-limited
+            self._ratelimited_send_process_request = rate_limited(
+                rate_limit_hz)(self._internal_send_process_request)
+            self._ratelimited_try_fetch = rate_limited(
+                rate_limit_hz)(self.try_fetch)
+        else:
+            # No limits!
+            self._ratelimited_send_process_request = \
+                self._internal_send_process_request
+            self._ratelimited_try_fetch = self.try_fetch
+
+    def process_request_too_long(self, max_length: Optional[int]) -> bool:
+        """
+        Is the number of bytes in the outbound JSON request more than the
+        permitted maximum?
+
+        Args:
+            max_length:
+                the maximum length, or ``None`` for no limit
+
+        Notes:
+
+        The JSON method was found to be slow.
+
+        Specimen methods:
+
+        .. code-block:: python
+
+            import timeit
+            setup = '''
+            import json
+            from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
+            from crate_anon.common.memsize import getsize
+            stringlength = 100000  # 100 kb
+            testdict = {'a': 1, 'b': {'c': [2,3,4, 'x' * stringlength]}}
+            '''
+            v1 = "len(json.dumps(testdict, separators=JSON_SEPARATORS_COMPACT).encode('utf-8'))"
+            timeit.timeit(v1, setup=setup, number=1000)
+            # ... answer is total time in s, and therefore per-call time in milliseconds
+            # v1 gives e.g. 0.39ms
+            
+            v2 = "getsize(testdict)"
+            timeit.timeit(v2, setup=setup, number=1000)
+            # v2 gives 0.006 ms
+
+        In general, long strings (which is the thing we're watching out for)
+        make :func:`json.dumps` particularly slow.
+
+        But also, in general, Python objects seem to take up more space than
+        their JSON representation; e.g. compare
+        
+        .. code-block:: python
+
+            import json
+            from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
+            from crate_anon.common.memsize import getsize
+            from typing import Any
+            
+            def compare(x: Any) -> None:
+                json_utf8_length = len(
+                    json.dumps(x, separators=JSON_SEPARATORS_COMPACT).encode('utf-8')
+                )
+                python_length = getsize(x)
+                print(f"{x!r} -> JSON-UTF8 {json_utf8_length}, Python {python_length}")
+            
+                
+            compare("a")  # JSON-UTF8 3, Python 50
+            compare(1)  # JSON-UTF8 1, Python 28
+            compare({"a": 1, "b": [2, 3, "xyz"]})  # JSON-UTF8 23, Python 464
+            
+        It can be quite a big overestimate, so we probably shouldn't chuck
+        out requests just because the Python size looks too big.  
+
+        """  # noqa
+        if max_length is None:
+            return False  # no maximum; not too long
+        # Fast, apt to overestimate size a bit (as above)
+        length = getsize(self.request_process)
+
+        if length <= max_length:  # test the Python length
+            # Because the Python length is an overestimate of the JSON, if that
+            # is not more than the max, we can stop.
+            return False  # not too long
+
+        # The Python size is too long. So now we recalculate using the slow but
+        # accurate way.
+        length = utf8len(to_json_str(self.request_process))
+
+        # Is it too long?
+        return length > max_length
+
+    def _post(self, request_json: str,
+              may_fail: bool = None) -> Optional[Response]:
+        """
+        Submits an HTTP POST request to the remote.
+        Tries up to a certain number of times.
+
+        Args:
+            request_json: JSON (string) request.
+            may_fail: may the request fail? Boolean, or ``None`` to use the
+                value from the cloud NLP config
+
+        Returns:
+            :class:`requests.Response`, or ``None`` for failure (if failure is
+            permitted by ``may_fail``).
+
+        Raises:
+            - :exc:`RequestException` if max retries exceeded and we are
+              stopping on failure
+        """
+        if may_fail is None:
+            may_fail = not self._cloudcfg.stop_at_failure
+>>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
         tries = 0
         success = False
-        while (not success) and (tries <= MAX_RETRIES):
+        response = None
+        while (not success) and tries <= self._cloudcfg.max_tries:
             try:
                 tries += 1
-                response = requests.post(url, data=request_json,
-                                         auth=auth, headers=cls.HEADERS,
-                                         verify=verify_ssl)
+                response = post(
+                    url=self._cloudcfg.url,
+                    data=request_json,
+                    auth=self.auth,
+                    headers=self.HTTP_HEADERS,
+                    cookies=self.cookies,
+                    verify=self._cloudcfg.verify_ssl
+                )
+                self.cookies = response.cookies
                 success = True
             except (RequestException, NewConnectionError) as e:
-                log.error(e)
-                log.warning(f"Retrying in {wait_on_conn_err} seconds.")
-                time.sleep(wait_on_conn_err)
+                self._sleep_for_remote(e)
         if not success:
-            raise RequestException("Max retries have been exceeded")
+            # Failure
+            msg = "Max tries exceeded. Request has failed."
+            log.error(msg)
+            if may_fail:
+                self.request_failed = True
+                return None
+            else:
+                raise RequestException(msg)
+        # Success
+        return response
+
+    def _post_get_json(self, request_json: str,
+                       may_fail: bool = False) -> Optional[JsonObjectType]:
+        """
+        Executes :meth:`_post`, then parses the result as JSON.
+
+        Args:
+            request_json: JSON (string) request.
+            may_fail: may the request fail?
+
+        Returns:
+            dict: JSON object, or ``None`` upon failure if ``may_fail`` is
+                ``True``
+
+        Raises:
+            - :exc:`RequestException` if max retries exceeded and we are
+              stopping on failure
+            - :exc:`JSONDecodeError` for bad JSON
+        """
+        response = self._post(request_json, may_fail=may_fail)
+        if response is None and may_fail:
+            return None
         try:
             # noinspection PyUnboundLocalVariable
             json_response = response.json()
+            assert isinstance(json_response, dict)
+            return json_response
         except json.decoder.JSONDecodeError:
             log.error("Reply was not JSON")
             raise
-        # cls.cookies = response.cookies
-        status = json_response[NKeys.STATUS]
-        if status != HttpStatus.OK:
-            errors = json_response.get(NKeys.ERRORS)
-            if errors:
-                if isinstance(errors, str):
-                    log.error(errors)
-                else:
-                    for err in errors:
-                        if isinstance(err, str):
-                            log.error(err)
-                        else:
-                            for key in err:
-                                log.error(f"{key}: {err[key]}")
+        except AssertionError:
+            log.error("Reply was JSON but not a JSON object (dict)")
+            raise
+
+    def _sleep_for_remote(self, exc: Exception) -> None:
+        """
+        Wait for a while, because the remote is unhappy for some reason.
+
+        Args:
+            exc: exception that caused us to wait.
+        """
+        log.error(exc)
+        time_s = self._cloudcfg.wait_on_conn_err
+        log.warning(f"Retrying in {time_s} seconds.")
+        time.sleep(time_s)
+
+    def get_remote_processors(self) -> Optional[List[str]]:
+        """
+        Returns the list of available processors from the remote. If that list
+        has not already been fetched, or unless it was pre-specified upon
+        construction, fetch it from the server.
+        """
+        if self._remote_processors_available is not None:
+            # Prespecified or already fetched.
+            return self._remote_processors_available
+
+        # Need to fetch...
+
+        # Make request
+        list_procs_request = make_nlprp_dict()
+        list_procs_request[NKeys.COMMAND] = NlprpCommands.LIST_PROCESSORS
+        request_json = to_json_str(list_procs_request)
+
+        # Send request, get response
+        json_response = self._post_get_json(request_json, may_fail=False)
+
+        status = json_get_int(json_response, NKeys.STATUS)
+        if not HttpStatus.is_good_answer(status):
+            errors = json_get_array(json_response, NKeys.ERRORS)
+            for err in errors:
+                log.error(f"Error received: {err!r}")
             raise HTTPError(f"Response status was: {status}")
-        procs = [proc[NKeys.NAME] for proc in json_response[NKeys.PROCESSORS]]
-        return procs
+        self._remote_processors_available = [
+            proc[NKeys.NAME] for proc in json_response[NKeys.PROCESSORS]
+        ]
+        return self._remote_processors_available
 
     def add_processor(self, processor: str) -> None:
-        # Make sure we don't send request to list processors twice for
-        # same request
-        if self.allowable_procs is None:
-            self.allowable_procs = self.list_processors(
-                                       self.url,
-                                       self.username,
-                                       self.password,
-                                       verify_ssl=self.verify_ssl)
-        if processor not in self.allowable_procs:
+        """
+        Add a remote processor to the list of processors that we will request
+        results from.
+
+        Args:
+            processor: name of processor on the server
+        """
+        remote_processors_available = self.get_remote_processors()
+        if processor not in remote_processors_available:
             log.warning(f"Unknown processor, skipping {processor}")
         else:
             self.request_process[NKeys.ARGS][NKeys.PROCESSORS].append({
@@ -282,10 +467,13 @@ class CloudRequest(object):
             })
 
     def add_all_processors(self) -> None:
+        """
+        todo: docs
+        """
         processorpairs = self._nlpdef.opt_strlist(
-            self._sectionname, CloudNlpConfigKeys.PROCESSORS,
+            self._nlpdef_sectionname, CloudNlpConfigKeys.PROCESSORS,
             required=True, lower=False)
-        self.procs = {}
+        self.procs = {}  # type: Dict[str, str]
         for proctype, procname in chunks(processorpairs, 2):
             if proctype.upper() == "GATE":
                 # GATE processor - use procname
@@ -298,141 +486,96 @@ class CloudRequest(object):
 
     def add_text(self, text: str, other_values: Dict[str, Any]) -> bool:
         """
-        Tests the size of the request if the text and metadata was added,
-        then adds it if it doesn't go over the size limit and there are word
-        characters in the text. Returns True if successfully added, False if
-        not.
-        """
-        # srcfield = other_values[FN_SRCFIELD]
-        # pkval = other_values[FN_SRCPKVAL]
-        # pkstr = other_values[FN_SRCPKSTR]
-        # pk = pkstr if pkstr else pkval
-        # new_values = {
-        #                  "metadata": {"field": self.srcfield, "pk": pk}
-        #                  "text": text
-        #              }
-        # self.request_process['args']['content'].append(new_values)
+        Adds text for analysis to the NLP request, with associated metadata.
 
-        # Check if text contains any word characters
-        regex_any_word_char = regex.compile(r'[\w\W]*[a-zA-Z0-9_][\w\W]*')
-        if not text or not regex_any_word_char.match(text):
-            log.warning(f"No word characters found in {text}")
+        Tests the size of the request if the text and metadata was added, then
+        adds it if it doesn't go over the size limit and there are word
+        characters in the text.
+
+        Args:
+            text: the text
+            other_values: the metadata
+
+        Returns:
+            bool: ``True`` if successfully added, ``False`` if not.
+        """
+        if not does_text_contain_word_chars(text):
+            log.warning(f"No word characters found in text: {text!r}")
             return False
 
         new_content = {
             NKeys.METADATA: other_values,
             NKeys.TEXT: text
         }
-        # Add all the identifying information
-        # Slow - is there a way to get length without having to serialize?
-        if ((not self.max_length) or
-            self.utf8len(json.dumps(new_content, default=str))
-                + self.utf8len(json.dumps(
-                    self.request_process, default=str)) < self.max_length):
-            self.request_process[NKeys.ARGS][NKeys.CONTENT].append(new_content)
-            return True
-        else:
+        # Add all the identifying information.
+        args = self.request_process[NKeys.ARGS]
+        content_key = NKeys.CONTENT  # local copy for fractional speedup
+        old_content = copy(args[content_key])
+        args[content_key].append(new_content)
+        max_length = self._cloudcfg.max_content_length
+        # Slow -- is there a way to get length without having to serialize?
+        # At least -- do it only once (forgiveness not permission, etc.).
+        if self.process_request_too_long(max_length):
+            # Too long. Restore the previous state!
+            args[content_key] = old_content
             return False
+        # Success.
+        return True
 
     def send_process_request(self, queue: bool,
-                             cookies: List[Any] = None,
+                             cookies: CookieJar = None,
                              include_text: bool = True) -> None:
         """
         Sends a request to the server to process the text.
+
+        Args:
+            queue: todo: XXX
+            cookies: optional :class:`http.cookiejar.CookieJar`
+            include_text: todo: XXX
+        """
+        self._ratelimited_send_process_request(
+            queue=queue,
+            cookies=cookies,
+            include_text=include_text
+        )
+
+    def _internal_send_process_request(self, queue: bool,
+                                       cookies: CookieJar = None,
+                                       include_text: bool = True) -> None:
+        """
+        See :meth:`send_process_request`. This is the internal main function,
+        to which rate limiting may be applied.
         """
         # Don't send off an empty request
         if not self.request_process[NKeys.ARGS][NKeys.CONTENT]:
             log.warning("Request empty - not sending.")
             return
+
+        # Create request
+        if cookies:
+            self.cookies = cookies
         self.request_process[NKeys.ARGS][NKeys.QUEUE] = queue
         self.request_process[NKeys.ARGS][NKeys.INCLUDE_TEXT] = include_text
-        # This needs 'default=str' to deal with non-json-serializable
-        # objects such as datetimes in the metadata
-        request_json = json.dumps(self.request_process, default=str)
-        # print(request_json)
-        # print()
-        if not cookies:
-            tries = 0
-            success = False
-            while (not success) and (tries <= MAX_RETRIES):
-                try:
-                    tries += 1
-                    response = requests.post(
-                        self.url, data=request_json, 
-                        auth=self.auth, headers=self.HEADERS,
-                        verify=self.verify_ssl)
-                    success = True
-                except (RequestException, NewConnectionError) as e:
-                    log.error(e)
-                    log.warning(f"Retrying in {self.wait_on_conn_err} "
-                                "seconds.")
-                    time.sleep(self.wait_on_conn_err)
-                
-        else:
-            tries = 0
-            success = False
-            while (not success) and (tries <= MAX_RETRIES):
-                try:
-                    tries += 1
-                    response = requests.post(
-                        self.url, data=request_json, 
-                        auth=self.auth, headers=self.HEADERS,
-                        cookies=cookies, verify=self.verify_ssl)
-                    success = True
-                except (RequestException, NewConnectionError) as e:
-                    log.error(e)
-                    log.warning(f"Retrying in {self.wait_on_conn_err} "
-                                "seconds.")
-                    time.sleep(self.wait_on_conn_err)
-        if not success:
-            log.error("Max retries exceeded. Request has failed.")
-            if self.raise_on_failure:
-                raise RequestException
-            else:
-                self.request_failed = True
-                return
-        try:
-            # noinspection PyUnboundLocalVariable
-            json_response = response.json()
-        except json.decoder.JSONDecodeError:
-            log.error("Reply was not JSON")
-            if self.raise_on_failure:
-                raise
-            else:
-                self.request_failed = True
-                return
+        request_json = to_json_str(self.request_process)
+
+        # Send request; get response
+        json_response = self._post_get_json(request_json)
+
         status = json_response[NKeys.STATUS]
-        # print(status)
-        if queue:
-            if status == HttpStatus.ACCEPTED:
-                self.queue_id = json_response[NKeys.QUEUE_ID]
-                self.fetched = False
-                self.cookies = response.cookies
-            else:
-                log.error(f"Got HTTP status code {status}.")
-                log.error(f"Response from server: {json_response}")
-                # raise HTTPError(f"Got HTTP status code {status}.")
-                if self.raise_on_failure:
-                    raise HTTPError
-                else:
-                    self.request_failed = True
-                    return
+        if queue and status == HttpStatus.ACCEPTED:
+            self.queue_id = json_response[NKeys.QUEUE_ID]
+            self.fetched = False
+        elif (not queue) and status == HttpStatus.OK:
+            self.nlp_data = json_response
+            self.fetched = True
         else:
-            if status == HttpStatus.OK:
-                self.nlp_data = json_response
-                # print(self.nlp_data)
-                # print()
-                self.fetched = True
-                self.cookies = response.cookies
+            log.error(f"Got HTTP status code {status}.")
+            log.error(f"Response from server: {json_response}")
+            if self._cloudcfg.stop_at_failure:
+                raise HTTPError
             else:
-                log.error(f"Response was status: {status}.")
-                log.error(f"Response from server: {json_response}")
-                # raise HTTPError(f"Response status was: {status}")
-                if self.raise_on_failure:
-                    raise HTTPError
-                else:
-                    self.request_failed = True
-                    return
+                self.request_failed = True
+                return
 
     def set_queue_id(self, queue_id: str) -> None:
         """
@@ -441,80 +584,47 @@ class CloudRequest(object):
         """
         self.queue_id = queue_id
 
+<<<<<<< HEAD
     def try_fetch(self, cookies: List[Any] = None) -> Optional[Dict[str, Any]]:
+=======
+    def try_fetch(self, cookies: CookieJar = None) -> Optional[JsonObjectType]:
+>>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
         """
         Tries to fetch the response from the server. Assumes queued mode.
-        Returns the json response.
+        Returns the JSON response.
         """
+        return self._ratelimited_try_fetch(cookies=cookies)
+
+    def _internal_try_fetch(self, cookies: CookieJar = None) \
+            -> Optional[JsonObjectType]:
+        """
+        See :meth:`try_fetch`. This is the internal main function, to which
+        rate limiting may be applied.
+        """
+        # Create request
+        if cookies:
+            self.cookies = cookies
         self.fetch_request[NKeys.ARGS] = {NKeys.QUEUE_ID: self.queue_id}
-        request_json = json.dumps(self.fetch_request)
-        if not cookies:
-            tries = 0
-            success = False
-            while (not success) and (tries <= MAX_RETRIES):
-                try:
-                    tries += 1
-                    response = requests.post(
-                        self.url, data=request_json,
-                        auth=self.auth, headers=self.HEADERS,
-                        verify=self.verify_ssl)
-                    success = True
-                except (RequestException, NewConnectionError) as e:
-                    log.error(e)
-                    log.warning(f"Retrying in {self.wait_on_conn_err} "
-                                "seconds.")
-                    time.sleep(self.wait_on_conn_err)
-        else:
-            tries = 0
-            success = False
-            while (not success) and (tries <= MAX_RETRIES):
-                try:
-                    tries += 1
-                    response = requests.post(
-                        self.url, data=request_json,
-                        auth=self.auth, headers=self.HEADERS,
-                        cookies=cookies, verify=self.verify_ssl)
-                    success = True
-                except (RequestException, NewConnectionError) as e:
-                    log.error(e)
-                    log.warning(f"Retrying in {self.wait_on_conn_err} "
-                                "seconds.")
-                    time.sleep(self.wait_on_conn_err)
-        if not success:
-            log.error("Max retries exceeded. Request has failed.")
-            if self.raise_on_failure:
-                raise RequestException
-            else:
-                self.request_failed = True
-                return
-        try:
-            # noinspection PyUnboundLocalVariable
-            json_response = response.json()
-        except json.decoder.JSONDecodeError:
-            log.error("Reply was not JSON")
-            if self.raise_on_failure:
-                raise
-            else:
-                self.request_failed = True
-                return None
-        self.cookies = response.cookies
+        request_json = to_json_str(self.fetch_request)
+
+        # Send request; get response
+        json_response = self._post_get_json(request_json)
         return json_response
 
-    def check_if_ready(self, cookies: List[Any] = None) -> bool:
+    def check_if_ready(self, cookies: CookieJar = None) -> bool:
         """
-        Checks if the data is ready yet. Assumes queued mode. If the data is
-        ready, collect it and return True, else return False.
+        Checks if the data is ready yet. Assumes queued mode (so
+        :meth:`set_queue_id` should have been called first). If the data is
+        ready, collect it and return ``True``, else return ``False``.
         """
         if self.queue_id is None:
             log.warning("Tried to fetch from queue before sending request.")
             return False
         if self.fetched:
-            return False
+            return False  # todo: check with FS; is that the right response?
         json_response = self.try_fetch(cookies)
         if not json_response:
             return False
-        # print(json_response)
-        # print()
         status = json_response[NKeys.STATUS]
         if status == HttpStatus.OK:
             self.nlp_data = json_response
@@ -535,26 +645,20 @@ class CloudRequest(object):
     def show_queue(self) -> Optional[List[Dict[str, Any]]]:
         """
         Returns a list of the user's queued requests. Each list element is a
-        dictionary as returned according to the nlprp.
+        dictionary as returned according to the :ref:`NLPRP <nlprp>`.
         """
         show_request = make_nlprp_request(
             command=NlprpCommands.SHOW_QUEUE
         )
-        request_json = json.dumps(show_request)
-        response = requests.post(self.url, data=request_json,
-                                 auth=self.auth, headers=self.HEADERS,
-                                 verify=self.verify_ssl)
-        try:
-            json_response = response.json()
-        except json.decoder.JSONDecodeError:
-            log.error("Reply was not JSON")
-            raise
+        request_json = to_json_str(show_request)
+        json_response = self._post_get_json(request_json, may_fail=False)
+
         status = json_response[NKeys.STATUS]
         if status == HttpStatus.OK:
             try:
                 queue = json_response[NKeys.QUEUE]
             except KeyError:
-                log.error("Response did not contain key 'queue'.")
+                log.error(f"Response did not contain key {NKeys.QUEUE!r}.")
                 raise
             return queue
         else:
@@ -569,18 +673,11 @@ class CloudRequest(object):
             command=NlprpCommands.DELETE_FROM_QUEUE,
             command_args={NKeys.DELETE_ALL: True}
         )
-        request_json = json.dumps(delete_request)
-        response = requests.post(self.url, data=request_json,
-                                 auth=self.auth, headers=self.HEADERS,
-                                 verify=self.verify_ssl)
+        request_json = to_json_str(delete_request)
+        response = self._post(request_json, may_fail=False)
         # The GATE server-side doesn't send back JSON for this
-        # try:
-        #     json_response = response.json()
-        # except json.decoder.JSONDecodeError:
-        #     log.error("Reply was not JSON")
-        #     raise
-        # print(json_response)
-        # status = json_response[NKeys.STATUS]
+        # todo: ... should it? We're sending to an NLPRP server, so it should?
+
         status = response.status_code
         if status == HttpStatus.NOT_FOUND:
             log.warning("Queued request(s) not found. May have been cancelled "
@@ -597,16 +694,11 @@ class CloudRequest(object):
             command=NlprpCommands.DELETE_FROM_QUEUE,
             command_args={NKeys.QUEUE_IDS: queue_ids}
         )
-        request_json = json.dumps(delete_request)
-        response = requests.post(self.url, data=request_json,
-                                 auth=self.auth, headers=self.HEADERS,
-                                 verify=self.verify_ssl)
-        # try:
-        #     json_response = response.json()
-        # except json.decoder.JSONDecodeError:
-        #     log.error("Reply was not JSON")
-        #     raise
-        # status = json_response[NKeys.STATUS]
+        request_json = to_json_str(delete_request)
+        response = self._post(request_json, may_fail=False)
+        # ... not (always) a JSON response?
+        # todo: ... should it? We're sending to an NLPRP server, so it should?
+
         status = response.status_code
         if status == HttpStatus.NOT_FOUND:
             log.warning("Queued request(s) not found. May have been cancelled "
@@ -618,9 +710,18 @@ class CloudRequest(object):
     def get_tablename_map(self, processor: str) -> Tuple[Dict[str, str],
                                                          Dict[str,
                                                          OutputUserConfig]]:
+        """
+        todo:: docs
+
+        Args:
+            processor:
+
+        Returns:
+
+        """
         proc_section = full_sectionname(NlpConfigPrefixes.PROCESSOR, processor)
         typepairs = self._nlpdef.opt_strlist(
-            proc_section, GateConfigKeys.OUTPUTTYPEMAP,
+            proc_section, ProcessorConfigKeys.OUTPUTTYPEMAP,
             required=True, lower=False)
 
         outputtypemap = {}  # type: Dict[str, OutputUserConfig]
@@ -643,6 +744,18 @@ class CloudRequest(object):
             procname: str,
             metadata: Dict[str, Any]) -> Generator[Tuple[
                 str, Dict[str, Any], str], None, None]:
+        """
+        todo:: docs
+
+        Args:
+            processor_data:
+            proctype:
+            procname:
+            metadata:
+
+        Returns:
+
+        """
         tablename = self._nlpdef.opt_str(
             full_sectionname(NlpConfigPrefixes.PROCESSOR, procname),
             'desttable', required=True)
@@ -693,13 +806,13 @@ class CloudRequest(object):
             # Assuming each set of results says what annotation type
             # it is
             # annottype = result[FN_TYPE].lower()
-            annottype = result[TYPE_GATE]
-            features = result[FEATURES_GATE]
-            start = result[START_GATE]
-            end = result[END_GATE]
+            annottype = result[GateResultKeys.TYPE]
+            features = result[GateResultKeys.FEATURES]
+            start = result[GateResultKeys.START]
+            end = result[GateResultKeys.END]
             formatted_result = {
                 '_type': annottype,
-                '_set': result[SET_GATE],
+                '_set': result[GateResultKeys.SET],
                 '_start': start,
                 '_end': end,
                 '_content': "" if not text else text[start:end]
@@ -716,11 +829,8 @@ class CloudRequest(object):
     def get_nlp_values(self) -> Generator[Tuple[str, Dict[str, Any], str],
                                           None, None]:
         """
-        Yields tablename, results and processorname for each set of results.
+        Yields ``(tablename, results, processorname)`` for each set of results.
         """
-        # if not self.nlp_data:
-        #     self.nlp_data = self.send_process_request()
-
         # Method should only be called if we already have the nlp data
         assert self.nlp_data, ("Method 'get_nlp_values' must only be called "
                                "after nlp_data is obtained")
@@ -749,6 +859,8 @@ class CloudRequest(object):
         """
         Sets 'mirror_processors'. The purpose of mirror_processors is so that
         we can easily access the sessions that come with the processors.
+
+        .. todo:: understand this
         """
         if procs:
             assert isinstance(procs, list), (
@@ -757,18 +869,14 @@ class CloudRequest(object):
                 assert isinstance(proc, BaseNlpParser), (
                     "Each element of 'procs' must be from a subclass "
                     "of BaseNlpParser")
-                # proctype = proc.get_parser_name()
-                # Use 'proc.__name__' instead, to handle case sensitivity
-                proctype = type(proc).__name__
+                proctype = proc.classname()
                 if proctype.upper() == 'GATE':
                     self.mirror_processors[proc.get_cfgsection()] = proc
                 else:
                     self.mirror_processors[proctype] = proc
         else:
             for proc in self._nlpdef.get_processors():
-                # proctype = proc.get_parser_name()
-                # Use 'proc.__name__' instead, to handle case sensitivity
-                proctype = type(proc).__name__
+                proctype = proc.classname()
                 if proctype.upper() == 'GATE':
                     self.mirror_processors[proc.get_cfgsection()] = proc
                 else:
@@ -776,10 +884,10 @@ class CloudRequest(object):
 
     def process_all(self) -> None:
         """
-        Puts the NLP data into the database. Very similar to 'process' from
-        BaseNlpParser, but deals with all relevant processors at once.
+        Puts the NLP data into the database. Very similar to
+        :meth:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser.process`,
+        but deals with all relevant processors at once.
         """
-        # procs_to_sessions = self.get_sessions_for_all_processors()
         nlpname = self._nlpdef.get_name()
 
         for tablename, nlp_values, procidentifier in self.get_nlp_values():
@@ -791,13 +899,12 @@ class CloudRequest(object):
             session = mirror_proc.get_session()
             sqla_table = mirror_proc.get_table(tablename)
             column_names = [c.name for c in sqla_table.columns]
-            # Convert string datetime back into datetime (disregard
-            # milliseconds)
+            # Convert string datetime back into datetime, using UTC
             for key in nlp_values:
                 if key == FN_WHEN_FETCHED:
-                    nlp_values[key] = datetime.strptime(
-                        nlp_values[key].split('.')[0],
-                        "%Y-%m-%d %H:%M:%S")
+                    nlp_values[key] = (
+                        nlprp_datetime_to_datetime_utc_no_tzinfo(
+                            nlp_values[key]))
             final_values = {k: v for k, v in nlp_values.items()
                             if k in column_names}
             insertquery = sqla_table.insert().values(final_values)
@@ -807,6 +914,7 @@ class CloudRequest(object):
                 session, n_rows=1, n_bytes=sys.getsizeof(final_values),
                 force_commit=self._commit)
 
+# todo: delete what's below?
 
 #            # REMEMBER TO FIX THIS!
 #            session = procs_to_sessions[procname][1]

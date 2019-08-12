@@ -28,6 +28,28 @@ Natural Language Processing Request Protocol (NLPRP) constants.
 
 """
 
+from typing import Dict, List, Union
+
+from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
+
+
+# =============================================================================
+# Type definitions; see https://www.json.org/
+# =============================================================================
+
+# Types for the Python representation of JSON:
+JsonLiteralType = Union[str, int, float, bool, None]
+JsonValueType = Union[JsonLiteralType, Dict, List]
+JsonObjectType = Dict[str, JsonValueType]
+JsonArrayType = List[JsonValueType]
+
+# Type for the string representation of JSON:
+JsonAsStringType = str
+
+
+# =============================================================================
+# HTTP status codes
+# =============================================================================
 
 class HttpStatus(object):
     """
@@ -35,18 +57,36 @@ class HttpStatus(object):
     """
     # 1xx: informational
     PROCESSING = 102
+
     # 2xx: success
     OK = 200
     ACCEPTED = 202
-    NO_CONTENT = 204
+    NO_CONTENT = 204  # todo: this HTTP status not emitted by an NLPRP server; unnecessary?
+
     # 3xx: redirection
     # ... not used
+
     # 4xx: client error
+    BAD_REQUEST = 400
     UNAUTHORIZED = 401
     NOT_FOUND = 404
+
     # 5xx: server error
+    BAD_GATEWAY = 502
+    INTERNAL_SERVER_ERROR = 500
     SERVICE_UNAVAILABLE = 503
 
+    @classmethod
+    def is_good_answer(cls, status: int) -> bool:
+        """
+        Is the given HTTP status code a satisfactory answer?
+        """
+        return 200 <= status <= 299 or status == cls.PROCESSING
+
+
+# =============================================================================
+# NLPRP strings
+# =============================================================================
 
 class NlprpKeys(object):
     """
@@ -56,8 +96,13 @@ class NlprpKeys(object):
     CLIENT_JOB_ID = "client_job_id"  # bidirectional
     CLIENT_JOB_IDS = "client_job_ids"  # request
     CODE = "code"  # response
+    COLUMN_COMMENT = "column_comment"  # response
+    COLUMN_NAME = "column_name"  # response
+    COLUMN_TYPE = "column_type"  # response
+    COLUMNS = "columns"  # response
     COMMAND = "command"  # request
     CONTENT = "content"  # request
+    DATA_TYPE = "data_type"  # response
     DATETIME_COMPLETED = "datetime_completed"  # response
     DATETIME_SUBMITTED = "datetime_submitted"  # response
     DELETE_ALL = "delete_all"  # request
@@ -65,6 +110,7 @@ class NlprpKeys(object):
     ERRORS = "errors"  # response
     INCLUDE_TEXT = "include_text"  # request
     IS_DEFAULT_VERSION = "is_default_version"  # response
+    IS_NULLABLE = "is_nullable"  # response
     MESSAGE = "message"  # response
     METADATA = "metadata"  # bidirectional
     NAME = "name"  # bidirectional
@@ -74,9 +120,12 @@ class NlprpKeys(object):
     QUEUE_ID = "queue_id"  # response
     QUEUE_IDS = "queue_ids"  # request
     RESULTS = "results"  # response
+    SCHEMA_TYPE = "schema_type"  # response
     SERVER_INFO = "server_info"  # response
+    SQL_DIALECT = "sql_dialect"  # response
     STATUS = "status"  # response
     SUCCESS = "success"  # response
+    TABULAR_SCHEMA = "tabular_schema"  # response
     TEXT = "text"  # request
     TITLE = "title"  # response
     VERSION = "version"  # bidirectional
@@ -89,6 +138,8 @@ class NlprpValues(object):
     BUSY = "busy"
     NLPRP_PROTOCOL_NAME = "nlprp"
     READY = "ready"
+    TABULAR = "tabular"  # for schema_type
+    UNKNOWN = "unknown"  # for schema_type
 
 
 class NlprpCommands(object):
@@ -104,3 +155,18 @@ class NlprpCommands(object):
 
 ALL_NLPRP_COMMANDS = [v for k, v in NlprpCommands.__dict__.items()
                       if not k.startswith("_")]
+
+
+class SqlDialects(object):
+    """
+    SQL dialects supported by the NLPRP.
+    """
+    MSSQL = SqlaDialectName.MSSQL
+    MYSQL = SqlaDialectName.MYSQL
+    ORACLE = SqlaDialectName.ORACLE
+    POSTGRES = SqlaDialectName.POSTGRES
+    SQLITE = SqlaDialectName.SQLITE
+
+
+ALL_SQL_DIALECTS = [v for k, v in SqlDialects.__dict__.items()
+                    if not k.startswith("_")]

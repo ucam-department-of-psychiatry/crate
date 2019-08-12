@@ -404,12 +404,13 @@ from sqlalchemy import Column, Index, Integer, String, Text
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
+    full_sectionname,
     MEDEX_DATA_READY_SIGNAL,
     MEDEX_RESULTS_READY_SIGNAL,
+    NlpConfigPrefixes,
+    ProcessorConfigKeys,
 )
 from crate_anon.nlp_manager.nlp_definition import (
-    full_sectionname,
-    NlpConfigPrefixes,
     NlpDefinition,
 )
 
@@ -509,24 +510,40 @@ class Medex(BaseNlpParser):
         """
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
 
-        self._tablename = nlpdef.opt_str(
-            self._sectionname, 'desttable', required=True)
-
-        self._max_external_prog_uses = nlpdef.opt_int(
-            self._sectionname, 'max_external_prog_uses', default=0)
-
-        self._progenvsection = nlpdef.opt_str(self._sectionname,
-                                              'progenvsection')
-        if self._progenvsection:
-            self._env = nlpdef.get_env_dict(
-                full_sectionname(NlpConfigPrefixes.ENV,
-                                 self._progenvsection),
-                os.environ)
+        if nlpdef is None:  # only None for debugging!
+            self._debug_mode = True
+            self._tablename = self.classname().lower()
+            self._max_external_prog_uses = 1
+            self._progenvsection = ""
+            self._env = {}  # type: Dict[str, str]
+            progargs = ""
         else:
-            self._env = os.environ.copy()
-        self._env["NLPLOGTAG"] = nlpdef.get_logtag() or '.'
-        # ... because passing a "-lt" switch with no parameter will make
-        # CrateGatePipeline.java complain and stop
+            self._debug_mode = False
+            self._tablename = nlpdef.opt_str(
+                self._sectionname, ProcessorConfigKeys.DESTTABLE,
+                required=True)
+
+            self._max_external_prog_uses = nlpdef.opt_int(
+                self._sectionname, ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
+                default=0)
+
+            self._progenvsection = nlpdef.opt_str(
+                self._sectionname, ProcessorConfigKeys.PROGENVSECTION)
+
+            if self._progenvsection:
+                self._env = nlpdef.get_env_dict(
+                    full_sectionname(NlpConfigPrefixes.ENV,
+                                     self._progenvsection),
+                    os.environ)
+            else:
+                self._env = os.environ.copy()
+            self._env["NLPLOGTAG"] = nlpdef.get_logtag() or '.'
+            # ... because passing a "-lt" switch with no parameter will make
+            # CrateGatePipeline.java complain and stop
+
+            progargs = nlpdef.opt_str(
+                self._sectionname, ProcessorConfigKeys.PROGARGS,
+                required=True)
 
         if USE_TEMP_DIRS:
             self._inputdir = tempfile.TemporaryDirectory()
@@ -547,7 +564,6 @@ class Medex(BaseNlpParser):
                 os.path.join(homedir, "medextemp", "working"))
             mkdir_p(self._workingdir.name)
 
-        progargs = nlpdef.opt_str(self._sectionname, 'progargs', required=True)
         formatted_progargs = progargs.format(**self._env)
         self._progargs = shlex.split(formatted_progargs)
         self._progargs.extend([
@@ -578,7 +594,7 @@ class Medex(BaseNlpParser):
         Launch the external process. We will save and retrieve data via files,
         and send signals ("data ready", "results ready) via stdin/stout.
         """
-        if self._started:
+        if self._started or self._debug_mode:
             return
         args = self._progargs
 
@@ -904,6 +920,8 @@ class Medex(BaseNlpParser):
         """
         Test the send function.
         """
+        if self._debug_mode:
+            return
         self.test_parser([
             "Bob Hope visited Seattle and took venlafaxine M/R 375mg od.",
             "James Joyce wrote Ulysses whilst taking aspirin 75mg mane."
@@ -921,84 +939,84 @@ class Medex(BaseNlpParser):
         return {
             self._tablename: [
                 Column('sentence_index', Integer,
-                       doc="One-based index of sentence in text"),
+                       comment="One-based index of sentence in text"),
                 Column('sentence_text', Text,
-                       doc="Text recognized as a sentence by MedEx"),
+                       comment="Text recognized as a sentence by MedEx"),
 
                 Column('drug', Text,
-                       doc="Drug name, as in the text"),
+                       comment="Drug name, as in the text"),
                 Column('drug_startpos', Integer,
-                       doc=startposdef + "drug"),
+                       comment=startposdef + "drug"),
                 Column('drug_endpos', Integer,
-                       doc=endposdef + "drug"),
+                       comment=endposdef + "drug"),
 
                 Column('brand', Text,
-                       doc="Drug brand name (?lookup ?only if given)"),
+                       comment="Drug brand name (?lookup ?only if given)"),
                 Column('brand_startpos', Integer,
-                       doc=startposdef + "brand"),
+                       comment=startposdef + "brand"),
                 Column('brand_endpos', Integer,
-                       doc=endposdef + "brand"),
+                       comment=endposdef + "brand"),
 
                 Column('form', String(MEDEX_MAX_FORM_LENGTH),
-                       doc="Drug/dose form (e.g. 'tablet')"),
+                       comment="Drug/dose form (e.g. 'tablet')"),
                 Column('form_startpos', Integer,
-                       doc=startposdef + "form"),
+                       comment=startposdef + "form"),
                 Column('form_endpos', Integer,
-                       doc=endposdef + "form"),
+                       comment=endposdef + "form"),
 
                 Column('strength', String(MEDEX_MAX_STRENGTH_LENGTH),
-                       doc="Strength (e.g. '75mg')"),
+                       comment="Strength (e.g. '75mg')"),
                 Column('strength_startpos', Integer,
-                       doc=startposdef + "strength"),
+                       comment=startposdef + "strength"),
                 Column('strength_endpos', Integer,
-                       doc=endposdef + "strength"),
+                       comment=endposdef + "strength"),
 
                 Column('dose_amount', String(MEDEX_MAX_DOSE_AMOUNT_LENGTH),
-                       doc="Dose amount (e.g. '2 tablets')"),
+                       comment="Dose amount (e.g. '2 tablets')"),
                 Column('dose_amount_startpos', Integer,
-                       doc=startposdef + "dose_amount"),
+                       comment=startposdef + "dose_amount"),
                 Column('dose_amount_endpos', Integer,
-                       doc=endposdef + "dose_amount"),
+                       comment=endposdef + "dose_amount"),
 
                 Column('route', String(MEDEX_MAX_ROUTE_LENGTH),
-                       doc="Route (e.g. 'by mouth')"),
+                       comment="Route (e.g. 'by mouth')"),
                 Column('route_startpos', Integer,
-                       doc=startposdef + "route"),
+                       comment=startposdef + "route"),
                 Column('route_endpos', Integer,
-                       doc=endposdef + "route"),
+                       comment=endposdef + "route"),
 
                 Column('frequency', String(MEDEX_MAX_FREQUENCY_LENGTH),
-                       doc="Frequency (e.g. 'b.i.d.')"),
+                       comment="Frequency (e.g. 'b.i.d.')"),
                 Column('frequency_startpos', Integer,
-                       doc=startposdef + "frequency"),
+                       comment=startposdef + "frequency"),
                 Column('frequency_endpos', Integer,
-                       doc=endposdef + "frequency"),
+                       comment=endposdef + "frequency"),
                 Column('frequency_timex3', String(TIMEX3_MAX_LENGTH),
-                       doc="Normalized frequency in TIMEX3 format "
+                       comment="Normalized frequency in TIMEX3 format "
                            "(e.g. 'R1P12H')"),
 
                 Column('duration', String(MEDEX_MAX_DURATION_LENGTH),
-                       doc="Duration (e.g. 'for 10 days')"),
+                       comment="Duration (e.g. 'for 10 days')"),
                 Column('duration_startpos', Integer,
-                       doc=startposdef + "duration"),
+                       comment=startposdef + "duration"),
                 Column('duration_endpos', Integer,
-                       doc=endposdef + "duration"),
+                       comment=endposdef + "duration"),
 
                 Column('necessity', String(MEDEX_MAX_NECESSITY_LENGTH),
-                       doc="Necessity (e.g. 'prn')"),
+                       comment="Necessity (e.g. 'prn')"),
                 Column('necessity_startpos', Integer,
-                       doc=startposdef + "necessity"),
+                       comment=startposdef + "necessity"),
                 Column('necessity_endpos', Integer,
-                       doc=endposdef + "necessity"),
+                       comment=endposdef + "necessity"),
 
                 Column('umls_code', String(UMLS_CUI_MAX_LENGTH),
-                       doc="UMLS CUI"),
+                       comment="UMLS CUI"),
                 Column('rx_code', Integer,
-                       doc="RxNorm RxCUI for drug"),
+                       comment="RxNorm RxCUI for drug"),
                 Column('generic_code', Integer,
-                       doc="RxNorm RxCUI for generic name"),
+                       comment="RxNorm RxCUI for generic name"),
                 Column('generic_name', Text,
-                       doc="Generic drug name (associated with RxCUI code)"),
+                       comment="Generic drug name (associated with RxCUI code)"),  # noqa
             ]
         }
 

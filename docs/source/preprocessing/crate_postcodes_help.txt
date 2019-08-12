@@ -1,0 +1,67 @@
+usage: crate_postcodes [-h] [--dir DIR] [--url URL] [--echo]
+                       [--reportevery REPORTEVERY] [--commitevery COMMITEVERY]
+                       [--startswith STARTSWITH [STARTSWITH ...]] [--replace]
+                       [--skiplookup]
+                       [--specific_lookup_tables [SPECIFIC_LOOKUP_TABLES [SPECIFIC_LOOKUP_TABLES ...]]]
+                       [--list_lookup_tables] [--skippostcodes] [--docsonly]
+                       [-v]
+
+-   This program reads data from the UK Office of National Statistics Postcode
+    Database (ONSPD) and inserts it into a database.
+
+-   You will need to download the ONSPD from
+        https://geoportal.statistics.gov.uk/geoportal/catalog/content/filelist.page
+    e.g. ONSPD_MAY_2016_csv.zip (79 Mb), and unzip it (>1.4 Gb) to a directory.
+    Tell this program which directory you used.
+
+-   Specify your database as an SQLAlchemy connection URL: see
+        http://docs.sqlalchemy.org/en/latest/core/engines.html
+    The general format is:
+        dialect[+driver]://username:password@host[:port]/database[?key=value...]
+
+-   If you get an error like:
+        UnicodeEncodeError: 'latin-1' codec can't encode character '\u2019' in
+        position 33: ordinal not in range(256)
+    then try appending "?charset=utf8" to the connection URL.
+
+-   ONS POSTCODE DATABASE LICENSE.
+    Output using this program must add the following attribution statements:
+
+    Contains OS data © Crown copyright and database right [year]
+    Contains Royal Mail data © Royal Mail copyright and database right [year]
+    Contains National Statistics data © Crown copyright and database right [year]
+
+    See http://www.ons.gov.uk/methodology/geography/licences
+    
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --dir DIR             Root directory of unzipped ONSPD download (default:
+                        /home/rudolf/dev/onspd)
+  --url URL             SQLAlchemy database URL (default: None)
+  --echo                Echo SQL (default: False)
+  --reportevery REPORTEVERY
+                        Report every n rows (default: 1000)
+  --commitevery COMMITEVERY
+                        Commit every n rows. If you make this too large
+                        (relative e.g. to your MySQL max_allowed_packet
+                        setting, you may get crashes with errors like 'MySQL
+                        has gone away'. (default: 10000)
+  --startswith STARTSWITH [STARTSWITH ...]
+                        Restrict to postcodes that start with one of these
+                        strings (default: None)
+  --replace             Replace tables even if they exist (default: skip
+                        existing tables) (default: False)
+  --skiplookup          Skip generation of code lookup tables (default: False)
+  --specific_lookup_tables [SPECIFIC_LOOKUP_TABLES [SPECIFIC_LOOKUP_TABLES ...]]
+                        Within the lookup tables, process only specific named
+                        tables (default: None)
+  --list_lookup_tables  List all possible lookup tables, then stop (default:
+                        False)
+  --skippostcodes       Skip generation of main (large) postcode table
+                        (default: False)
+  --docsonly            Show help for postcode table then stop (default:
+                        False)
+  -v, --verbose         Verbose (default: False)
+
+# Generated at 2019-08-12 00:05:04

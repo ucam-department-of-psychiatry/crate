@@ -21,8 +21,8 @@ source("https://egret.psychol.cam.ac.uk/rlib/miscplot.R")
 
 WORKING_DIR <- file.path(miscfile$current_script_directory(),
                          "..", "..", "working")
-INPUT_CSV <- file.path(WORKING_DIR, "fuzzy_validation_output.csv")
-FIGURE_FILENAME <- file.path(WORKING_DIR, "fuzzy_validation_figure.pdf")
+INPUT_CSV <- file.path(WORKING_DIR, "fuzzy_validation1_output.csv")
+FIGURE_FILENAME <- file.path(WORKING_DIR, "fuzzy_validation1_figure.pdf")
 
 
 # =============================================================================

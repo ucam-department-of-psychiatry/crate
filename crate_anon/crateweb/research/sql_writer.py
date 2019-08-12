@@ -183,7 +183,7 @@ def get_join_info(grammar: SqlGrammar,
         match_schema=existing_mrid_table.schema,
         match_table=existing_mrid_table.table))
 
-    joins = []
+    joins = []  # type: List[JoinInfo]
     if not existing_mrid_table_in_query:
         joins.append(JoinInfo(
             join_type='INNER JOIN',

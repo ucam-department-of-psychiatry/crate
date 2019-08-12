@@ -42,7 +42,7 @@ commit:
 """
 
 import logging
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
@@ -113,16 +113,8 @@ class MmseValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Mmse.MMSE],
-                         validated_variable=Mmse.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Mmse.NAME, [Mmse.MMSE]
 
 
 # =============================================================================
@@ -221,16 +213,8 @@ class AceValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[Ace.ACE],
-                         validated_variable=Ace.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Ace.NAME, [Ace.ACE]
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass
@@ -308,16 +292,8 @@ class MiniAceValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[MiniAce.MACE],
-                         validated_variable=MiniAce.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return MiniAce.NAME, [MiniAce.MACE]
 
 
 # =============================================================================
@@ -328,6 +304,7 @@ class Moca(NumeratorOutOfDenominatorParser):
     """
     Montreal Cognitive Assessment (MOCA).
     """
+    # todo:: MOCA NLP parser: support also "scored X on the MOCA"?
     MOCA = fr"""
         (?: {WORD_BOUNDARY}
             (?: MOCA | (?: Montreal \s+ cognitive \s+ assessment ) )
@@ -369,44 +346,37 @@ class MocaValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         regex_str_list=[MiniAce.MACE],
-                         validated_variable=MiniAce.NAME,
-                         commit=commit)
+    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+        return Moca.NAME, [Moca.MOCA]
 
 
 # =============================================================================
-#  Command-line entry point
+# All classes in this module
+# =============================================================================
+
+ALL_COGNITIVE_NLP_AND_VALIDATORS = [
+    (Ace, AceValidator),
+    (MiniAce, MiniAceValidator),
+    (Mmse, MmseValidator),
+    (Moca, MocaValidator),
+]
+ALL_COGNITIVE_NLP, ALL_COGNITIVE_VALIDATORS = zip(*ALL_COGNITIVE_NLP_AND_VALIDATORS)  # noqa
+
+
+# =============================================================================
+# Command-line entry point
 # =============================================================================
 
 def test_all(verbose: bool = False) -> None:
     """
     Test all parsers in this module.
     """
-    mmse = Mmse(None, None)
-    mmse.test(verbose=verbose)
-
-    ace = Ace(None, None)
-    ace.test(verbose=verbose)
-    ace_validator = AceValidator(None, None)
-    ace_validator.test(verbose=verbose)
-
-    mace = MiniAce(None, None)
-    mace.test(verbose=verbose)
-
-    moca = Moca(None, None)
-    moca.test(verbose=verbose)
+    for cls in ALL_COGNITIVE_NLP:
+        cls(None, None).test(verbose=verbose)
+    for cls in ALL_COGNITIVE_VALIDATORS:  # we want the ACE validator in particular  # noqa
+        cls(None, None).test(verbose=verbose)
 
 
 if __name__ == '__main__':
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all(verbose=True)
-
-
-# .. todo:: MOCA NLP parser: support also "scored X on the MOCA"?

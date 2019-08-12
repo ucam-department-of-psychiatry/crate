@@ -342,7 +342,7 @@ def gen_optout_rids() -> Generator[str, None, None]:
 # Functions for getting PIDs from restricted set
 # =============================================================================
 
-def get_valid_pid_subset(given_pids: List[Any]) -> List[str]:
+def get_valid_pid_subset(given_pids: List[str]) -> List[str]:
     """
     Takes a list of PIDs and returns those in the list which are also in the
     database.
@@ -350,7 +350,7 @@ def get_valid_pid_subset(given_pids: List[Any]) -> List[str]:
     pid_is_integer = config.pidtype_is_integer
     if pid_is_integer:
         # Remove non-integer values of pid if pids are supposed to be integer
-        final_given_pids = []
+        final_given_pids = []  # type: List[str]
         for pid in given_pids:
             try:
                 int(pid)
@@ -361,7 +361,7 @@ def get_valid_pid_subset(given_pids: List[Any]) -> List[str]:
     else:
         final_given_pids = given_pids
 
-    pids = []
+    pids = []  # type: List[str]
     for ddr in config.dd.rows:
         if not ddr.defines_primary_pids:
             continue
@@ -420,7 +420,7 @@ def get_pid_subset_from_field(field: str,
     marked as the PID column in the data dictionary.
 
     """
-    pids = []
+    pids = []  # type: List[Any]
 
     # Get database, table and field from 'field'
     db_parts = field.split(".")
@@ -555,7 +555,7 @@ def get_pids_from_file(field: str, filename: str) -> List[str]:
     return pids
 
 
-def get_pids_from_list(field: str, values: List[Any]) -> List[str]:
+def get_pids_from_list(field: str, values: List[str]) -> List[str]:
     """
     Takes a field name and a list of values, and returns a list of PIDs
     associated with them.
@@ -602,7 +602,7 @@ def get_pids_from_limits(low: int, high: int) -> List[Any]:
     Returns:
         list of PIDs in this range
     """
-    pids = []
+    pids = []  # type: List[Any]
     for ddr in config.dd.rows:
         if not ddr.defines_primary_pids:
             continue
@@ -655,7 +655,7 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[Any]:
     should return ``[3, 4]``, assuming that ``pid`` has been correctly marked
     as the PID column in the data dictionary.
     """
-    pids = []
+    pids = []  # type: List[Any]
     # Get database, table and field from 'field'
     db_parts = field.split(".")
     assert len(db_parts) == 3, (
@@ -1198,7 +1198,7 @@ def process_table(sourcedbname: str,
                     f"(destination) {dest_table}.{dest_pk_name} = "
                     f"{row[pkfield_index]}")
                 continue
-        destvalues = {}
+        destvalues = {}  # type: Dict[str, Any]
         skip_row = False
         for i, ddr in enumerate(ddrows):
             value = row[i]

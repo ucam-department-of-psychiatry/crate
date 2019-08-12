@@ -110,7 +110,7 @@ positions are the zero-based index of one beyond the last relevant character.
 crate_nlp_build_medex_java_interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Options as of 2017-02-28:
+Options:
 
 ..  literalinclude:: crate_nlp_build_medex_java_interface_help.txt
     :language: none
@@ -122,7 +122,7 @@ crate_nlp_build_medex_itself
 This program builds MedEx and implements some bug fixes and improvements for
 the UK.
 
-Options as of 2017-02-28:
+Options:
 
 ..  literalinclude:: crate_nlp_build_medex_itself_help.txt
     :language: none
@@ -136,18 +136,10 @@ The following specimen script assumes specific locations for the compiled Java
 
 Asking `CrateMedexPipeline` to show its command-line options:
 
-.. code-block:: bash
+.. literalinclude:: show_crate_medex_pipeline_options.sh
+    :language: bash
 
-    #!/bin/bash
-    THISDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-    CRATE_NLP_JAVA_CLASS_DIR=${THISDIR}/../crate_anon/nlp_manager/compiled_nlp_classes
-    MEDEX_DIR=~/dev/Medex_UIMA_1.3.6
-    java -classpath "${CRATE_NLP_JAVA_CLASS_DIR}":"${MEDEX_DIR}/bin":"${MEDEX_DIR}/lib/*" \
-        CrateMedexPipeline \
-        --help \
-        -v -v
-
-The resulting output (2019-03-28):
+The resulting output:
 
 ..  literalinclude:: CrateMedexPipeline_help.txt
     :language: none

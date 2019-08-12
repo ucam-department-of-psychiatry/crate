@@ -35,13 +35,6 @@ patient identifiers.**
 .. _ssdeep: https://ssdeep-project.github.io/ssdeep/index.html
 
 
-Coding note
------------
-
-This program duplicates and simplifies some hashing code from CRATE so it is a
-standalone program requiring minimal Python libraries.
-
-
 Terminology
 -----------
 
@@ -650,8 +643,6 @@ import argparse
 import collections
 import copy
 import csv
-import hashlib
-import hmac
 import logging
 import math
 import os
@@ -662,19 +653,31 @@ import re
 import string
 import sys
 import timeit
-from typing import Any, Dict, Generator, Iterable, List, Optional, Set, Tuple
+from typing import (
+    Any, Dict, Generator, Iterable, List, Optional, Set, Tuple, TYPE_CHECKING,
+)
 
 import appdirs
+from cardinal_pythonlib.argparse_func import ShowAllSubparserHelpAction
+from cardinal_pythonlib.hash import HmacSHA256Hasher
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.maths_py import round_sf
 from cardinal_pythonlib.probability import (
     log_odds_from_1_in_n,
     log_odds_from_probability,
     log_posterior_odds_from_pdh_pdnh,
+    log_probability_from_log_odds,
     probability_from_log_odds,
 )
 from cardinal_pythonlib.stringfunc import mangle_unicode_to_ascii
 from fuzzy import DMetaphone
+
+from crate_anon.anonymise.anonregex import get_uk_postcode_regex_elements
+from crate_anon.version import CRATE_VERSION
+
+if TYPE_CHECKING:
+    # noinspection PyProtectedMember
+    from argparse import _SubParsersAction
 
 log = logging.getLogger(__name__)
 
@@ -686,6 +689,9 @@ log = logging.getLogger(__name__)
 dmeta = DMetaphone()
 
 DAYS_PER_YEAR = 365.25  # approximately!
+DEFAULT_HASH_KEY = "fuzzy_id_match_default_hash_key_DO_NOT_USE_FOR_LIVE_DATA"
+EXIT_FAILURE = 1
+EXIT_SUCCESS = 0
 HIGHDEBUG = 15  # in between logging.DEBUG (10) and logging.INFO (20)
 MINUS_INFINITY = -math.inf
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -698,35 +704,7 @@ UK_MEAN_OA_POPULATION_2011 = 309
 # Hashing
 # =============================================================================
 
-class Hasher(object):
-    """
-    An HMAC SHA-256 hasher.
-
-    - HMAC = hash-based message authentication code
-    - SHA = Secure Hash Algorithm
-    """
-    def __init__(self, key: Any) -> None:
-        """
-        Args:
-            key: the secret key (passphrase)
-        """
-        self.key_bytes = str(key).encode('utf-8')
-        self.digestmod = hashlib.sha256
-
-    def hash(self, raw: Any) -> str:
-        """
-        Returns a hash of its input, as a hex digest.
-        """
-        raw_bytes = str(raw).encode('utf-8')
-        hmac_obj = hmac.new(key=self.key_bytes, msg=raw_bytes,
-                            digestmod=self.digestmod)
-        return hmac_obj.hexdigest()
-
-    def output_length(self) -> int:
-        """
-        Returns the length of the hashes produced by this hasher.
-        """
-        return len(self.hash("dummytext"))
+Hasher = HmacSHA256Hasher
 
 
 # =============================================================================
@@ -788,18 +766,7 @@ def get_uk_postcode_regex() -> str:
     Returns a regex strings for (exact) UK postcodes. These have a
     well-defined format.
     """
-    e = [
-        "AN NAA",
-        "ANN NAA",
-        "AAN NAA",
-        "AANN NAA",
-        "ANA NAA",
-        "AANA NAA",
-    ]
-    for i in range(len(e)):
-        e[i] = e[i].replace("A", "[A-Z]")  # letter
-        e[i] = e[i].replace("N", "[0-9]")  # number
-        e[i] = e[i].replace(" ", r"\s?")  # zero or one whitespace chars
+    e = get_uk_postcode_regex_elements(at_word_boundaries_only=False)
     return "|".join(f"(?:{x})" for x in e)
 
 
@@ -1075,8 +1042,8 @@ class FullOrPartialComparison(Comparison):
             return 1 - self.p_p
 
 
-def compare(prior_log_odds: float,
-            comparisons: Iterable[Optional[Comparison]]) -> float:
+def bayes_compare(prior_log_odds: float,
+                  comparisons: Iterable[Optional[Comparison]]) -> float:
     """
     Works through multiple comparisons and returns posterior log odds.
 
@@ -1426,6 +1393,8 @@ class MatchConfig(object):
         assert 0 <= p_sample_middle_name_missing <= 1
         assert 0 <= p_minor_postcode_error <= 1
 
+        log.debug("Building MatchConfig...")
+
         self.hasher = Hasher(hasher_key)
         self.rounding_sf = rounding_sf
         self.forename_csv_filename = forename_csv_filename
@@ -1453,6 +1422,8 @@ class MatchConfig(object):
             csv_filename=postcode_csv_filename,
             cache_filename=postcode_cache_filename,
             mean_oa_population=mean_oa_population)
+
+        log.debug("... MatchConfig built")
 
     @property
     def baseline_log_odds_same_person(self) -> float:
@@ -1598,11 +1569,85 @@ class Person(object):
     """
     Represents a person. The information may be incomplete or slightly wrong.
     """
+    _COMMON_ATTRS = [
+        # not: "is_hashed",
+        "unique_id",
+        "research_id",
+    ]
+    PLAINTEXT_ATTRS = _COMMON_ATTRS + [
+        "first_name",
+        "middle_names",
+        "surname",
+        "dob",
+        "postcodes",
+    ]
+    HASHED_ATTRS = _COMMON_ATTRS + [
+        "hashed_first_name",
+        "first_name_frequency",
+        "hashed_first_name_metaphone",
+        "first_name_metaphone_frequency",
+        "hashed_middle_names",
+        "middle_name_frequencies",
+        "hashed_middle_name_metaphones",
+        "middle_name_metaphone_frequencies",
+        "hashed_surname",
+        "surname_frequency",
+        "hashed_surname_metaphone",
+        "surname_metaphone_frequency",
+        "hashed_dob",
+        "hashed_postcode_units",
+        "postcode_unit_frequencies",
+        "hashed_postcode_sectors",
+        "postcode_sector_frequencies",
+    ]
+    INT_ATTRS = [
+        "unique_id",
+    ]
+    FLOAT_ATTRS = [
+        "first_name_frequency",
+        "first_name_metaphone_frequency",
+        "middle_name_frequencies",
+        "middle_name_metaphone_frequencies",
+        "surname_frequency",
+        "surname_metaphone_frequency",
+        "postcode_unit_frequencies",
+        "postcode_sector_frequencies",
+    ]
+    SEMICOLON_DELIMIT = [
+        # plaintext
+        "middle_names",
+        "postcodes",
+        # hashed
+        "hashed_middle_names",
+        "middle_name_frequencies",
+        "hashed_middle_name_metaphones",
+        "middle_name_metaphone_frequencies",
+        "hashed_postcode_units",
+        "postcode_unit_frequencies",
+        "hashed_postcode_sectors",
+        "postcode_sector_frequencies",
+    ]
+    PLAINTEXT_CSV_FORMAT_HELP = (
+        f"(Header row. Columns: {PLAINTEXT_ATTRS}. "
+        f"Use semicolon-separated values for "
+        f"{sorted(list(set(SEMICOLON_DELIMIT).intersection(PLAINTEXT_ATTRS)))}."
+    )
+    HASHED_CSV_FORMAT_HELP = (
+        f"(Header row. Columns: {HASHED_ATTRS}. "
+        f"Use semicolon-separated values for "
+        f"{sorted(list(set(SEMICOLON_DELIMIT).intersection(HASHED_ATTRS)))}."
+    )
+
+    # -------------------------------------------------------------------------
+    # __init__, __repr__, copy
+    # -------------------------------------------------------------------------
+
     def __init__(self,
                  # State
                  is_hashed: bool = False,
-                 # Reference code
+                 # Reference codes
                  unique_id: int = None,
+                 research_id: str = "",
                  # Plaintext
                  first_name: str = "",
                  middle_names: List[str] = None,
@@ -1636,6 +1681,8 @@ class Person(object):
             unique_id:
                 Unique integer ID. Not used at all for comparison; simply used
                 to retrieve an identity after a match has been confirmed.
+            research_id:
+                Research pseudonym (not itself identifying).
 
             first_name:
                 The person's first name.
@@ -1685,6 +1732,7 @@ class Person(object):
         """
         self.is_hashed = is_hashed
         self.unique_id = unique_id
+        self.research_id = research_id
 
         self.first_name = standardize_name(first_name)
         self.middle_names = [
@@ -1717,17 +1765,17 @@ class Person(object):
         if is_hashed:
             # hashed
             assert (
-                    not self.first_name and
-                    not self.middle_names and
-                    not self.surname and
-                    not self.dob and
-                    not self.postcodes
+                not self.first_name and
+                not self.middle_names and
+                not self.surname and
+                not self.dob and
+                not self.postcodes
             ), "Don't supply plaintext information for a hashed Person"
             if self.hashed_first_name:
                 assert (
-                        self.first_name_frequency is not None and
-                        self.hashed_first_name_metaphone and
-                        self.first_name_metaphone_frequency is not None
+                    self.first_name_frequency is not None and
+                    self.hashed_first_name_metaphone and
+                    self.first_name_metaphone_frequency is not None
                 )
             if self.hashed_middle_names:
                 n_middle = len(hashed_middle_names)
@@ -1781,44 +1829,28 @@ class Person(object):
         """
         Returns a string representation that can be used for reconstruction.
         """
-        attrs = ["unique_id"]
-        if self.is_hashed:
-            attrs += [
-                "hashed_first_name",
-                "first_name_frequency",
-                "hashed_first_name_metaphone",
-                "first_name_metaphone_frequency",
-                "hashed_middle_names",
-                "middle_name_frequencies",
-                "hashed_middle_name_metaphones",
-                "middle_name_metaphone_frequencies",
-                "hashed_surname",
-                "surname_frequency",
-                "hashed_surname_metaphone",
-                "surname_metaphone_frequency",
-                "hashed_dob",
-                "hashed_postcode_units",
-                "postcode_unit_frequencies",
-                "hashed_postcode_sectors",
-                "postcode_sector_frequencies",
-            ]
-        else:
-            attrs += [
-                "first_name",
-                "middle_names",
-                "surname",
-                "dob",
-                "postcodes",
-            ]
+        attrs = ["is_hashed"]
+        attrs += self.HASHED_ATTRS if self.is_hashed else self.PLAINTEXT_ATTRS
         attrlist = [f"{a}={getattr(self, a)!r}" for a in attrs]
         return f"Person({', '.join(attrlist)})"
 
+    def copy(self) -> "Person":
+        """
+        Returns a copy of this object.
+        """
+        return copy.deepcopy(self)
+
+    # -------------------------------------------------------------------------
+    # String and CSV formats
+    # -------------------------------------------------------------------------
+
     def __str__(self) -> str:
         if self.is_hashed:
-            return f"#{self.unique_id} (hashed)"
+            return f"ID#{self.unique_id}, RID {self.research_id} (hashed)"
         else:
             return ", ".join([
                 f"#{self.unique_id}",
+                f"RID {self.research_id}",
                 " ".join([self.first_name] +
                          self.middle_names +
                          [self.surname]),
@@ -1826,11 +1858,91 @@ class Person(object):
                 " - ".join(self.postcodes)
             ])
 
-    def copy(self) -> "Person":
+    def _csv_dict(self, attrs: List[str]) -> Dict[str, Any]:
         """
-        Returns a copy of this object.
+        Returns a dictionary suitable for :class:`csv.DictWriter`.
         """
-        return copy.deepcopy(self)
+        d = {}  # type: Dict[str, Any]
+        for k in attrs:
+            a = getattr(self, k)
+            if k in self.SEMICOLON_DELIMIT:
+                v = ";".join(str(x) for x in a)
+            else:
+                v = a
+            d[k] = v
+        return d
+
+    def plaintext_csv_dict(self) -> Dict[str, Any]:
+        """
+        Returns a dictionary suitable for :class:`csv.DictWriter`.
+        """
+        assert not self.is_hashed
+        return self._csv_dict(self.PLAINTEXT_ATTRS)
+
+    def hashed_csv_dict(self,
+                        include_unique_id: bool = False) -> Dict[str, Any]:
+        """
+        Returns a dictionary suitable for :class:`csv.DictWriter`.
+
+        Args:
+            include_unique_id:
+                include the (potentially identifying) ``unique_id`` data?
+                Usually ``False``; may be ``True`` for validation.
+        """
+        assert self.is_hashed
+        attrs = self.HASHED_ATTRS.copy()
+        if not include_unique_id:
+            attrs.remove("unique_id")
+        return self._csv_dict(attrs)
+
+    @classmethod
+    def _from_csv(cls, rowdict: Dict[str, str], attrs: List[str],
+                  is_hashed: bool) -> "Person":
+        """
+        Returns a :class:`Person` object from a CSV row.
+
+        Args:
+            rowdict: a CSV row, read via :class:`csv.DictReader`.
+        """
+        kwargs = {}  # type: Dict[str, Any]
+        for attr in attrs:
+            v = rowdict[attr]
+            if attr in cls.SEMICOLON_DELIMIT:
+                v = [x.strip() for x in v.split(";") if x]
+                if attr in cls.INT_ATTRS:
+                    v = [int(x) for x in v]
+                elif attr in cls.FLOAT_ATTRS:
+                    v = [float(x) for x in v]
+            elif attr in cls.INT_ATTRS:
+                v = int(v) if v else None
+            elif attr in cls.FLOAT_ATTRS:
+                v = float(v) if v else None
+            kwargs[attr] = v
+        return Person(is_hashed=is_hashed, **kwargs)
+
+    @classmethod
+    def from_plaintext_csv(cls, rowdict: Dict[str, str]) -> "Person":
+        """
+        Returns a :class:`Person` object from a plaintext CSV row.
+
+        Args:
+            rowdict: a CSV row, read via :class:`csv.DictReader`.
+        """
+        return cls._from_csv(rowdict, cls.PLAINTEXT_ATTRS, is_hashed=False)
+
+    @classmethod
+    def from_hashed_csv(cls, rowdict: Dict[str, str]) -> "Person":
+        """
+        Returns a :class:`Person` object from a hashed CSV row.
+
+        Args:
+            rowdict: a CSV row, read via :class:`csv.DictReader`.
+        """
+        return cls._from_csv(rowdict, cls.HASHED_ATTRS, is_hashed=True)
+
+    # -------------------------------------------------------------------------
+    # Created hashed version
+    # -------------------------------------------------------------------------
 
     def hashed(self, cfg: MatchConfig) -> "Person":
         """
@@ -1854,6 +1966,7 @@ class Person(object):
         return Person(
             is_hashed=True,
             unique_id=self.unique_id,
+            research_id=self.research_id,
             hashed_first_name=(
                 hasher.hash(self.first_name)
                 if self.first_name else ""
@@ -1936,11 +2049,15 @@ class Person(object):
             float: the log odds they're the same person
         """
         log.debug(f"Comparing self={self}; other={other}")
-        return compare(
+        return bayes_compare(
             prior_log_odds=cfg.baseline_log_odds_same_person,
             comparisons=self._gen_comparisons(other, cfg)
         )
         
+    # -------------------------------------------------------------------------
+    # Bayesian comparison
+    # -------------------------------------------------------------------------
+
     def _gen_comparisons(self, other: "Person", cfg: MatchConfig) \
             -> Generator[Optional[Comparison], None, None]:
         """
@@ -2277,6 +2394,10 @@ class Person(object):
         # log.critical(f"{self} //\n{other} //\n{result!r}")
         return result
 
+    # -------------------------------------------------------------------------
+    # Info functions
+    # -------------------------------------------------------------------------
+
     def has_first_name(self) -> bool:
         """
         Does this person have a first name?
@@ -2303,6 +2424,10 @@ class Person(object):
             return len(self.hashed_postcode_units)
         else:
             return len(self.postcodes)
+
+    # -------------------------------------------------------------------------
+    # Debugging functions to mutate this object
+    # -------------------------------------------------------------------------
 
     def debug_delete_something(self) -> None:
         """
@@ -2437,17 +2562,23 @@ class People(object):
 
         Returns:
             tuple:
-                winner (:exc:`Person`), best_log_odds (float), first_best_index
-                (int), next_best_log_odds (float)
+                winner (:class:`Person`), best_log_odds (float),
+                first_best_index (int), next_best_log_odds (float)
 
         Note that:
 
-        - winner will be None if there is no winner
-        - best_log_odds is the log odds of the best candidate (the winner, if
-          it passes a threshold test), or None if there are no candidates
-        - first_best_index is the index of the first person whose log odds are
-          best_log_odds, or minus infinity if there are no candidates
-        - next_best_log_odds will be None unless scan_everyone is True.
+        - ``winner`` will be ``None`` if there is no winner
+        - ``best_log_odds`` is the log odds of the best candidate (the winner,
+          if it passes a threshold test), or –∞ if there are no candidates
+        - ``first_best_index`` is the index of the first person whose log odds
+          are ``best_log_odds``, or –∞ if there are no candidates
+        - ``next_best_log_odds`` will be the log odds of the closest other
+          contender scanned (but, in the event of no match being declared, this
+          will only be the true second-place candidate if ``scan_everyone`` is
+          ``True``; if ``scan_everyone`` is ``False``, then it will be the
+          true second-place contender in the event of a match being declared,
+          but might be the third-place or worse also-ran if a match was not
+          declared).
         """
         verbose = self.verbose
         if verbose:
@@ -2473,6 +2604,7 @@ class People(object):
             return None, best_log_odds, None, None
         all_others_must_be_le = best_log_odds - cfg.exceeds_next_best_log_odds
         next_best_log_odds = MINUS_INFINITY
+        failed = False
         for i, lo in enumerate(log_odds):
             if i == first_best_idx_in_cand:  # ignore the candidate winner
                 continue
@@ -2480,17 +2612,19 @@ class People(object):
             if lo > all_others_must_be_le:
                 # Another person has log-odds that are high enough to exclude
                 # a unique match.
+                failed = True
                 if verbose:
                     log.info(f"Another is too similar, with log odds {lo}")
                 if not scan_everyone:
-                    return None, best_log_odds, first_best_idx_overall, None
-        if verbose:
+                    return (None, best_log_odds, first_best_idx_overall,
+                            next_best_log_odds)
+        if verbose and not failed:
             log.info("Found a winner")
         return (
-            candidates[first_best_idx_in_cand],
+            candidates[first_best_idx_in_cand] if not failed else None,
             best_log_odds,
             first_best_idx_overall,
-            next_best_log_odds if scan_everyone else None
+            next_best_log_odds
         )
 
     def get_unique_match(self,
@@ -2890,33 +3024,27 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
 
 
 # =============================================================================
-# Validation
+# Loading people data
 # =============================================================================
 
-def read_people(csv_filename: str,
-                alternate_groups: bool = False) -> Tuple[People, People]:
+def read_people_2(csv_filename: str,
+                  plaintext: bool = True,
+                  alternate_groups: bool = False) -> Tuple[People, People]:
     """
-    Read a list of people from a CSV file.
-
-    There is no header row.
-
-    Columns:
-
-    - unique ID
-    - first name
-    - middle name(s), semicolon-separated
-    - surname
-    - DOB in "YYYY-MM-DD" format
-    - postcode(s), semicolon-separaterd
+    Read a list of people from a CSV file. See :class:`People` for the
+    column details.
 
     Args:
         csv_filename:
             filename to read
+        plaintext:
+            read in plaintext, rather than hashed, format?
         alternate_groups:
             split consecutive people into "first group", "second group"?
+            (A debugging/validation feature.)
 
     Returns:
-        tuple: first_group, second_group (or None)
+        tuple: ``first_group``, ``second_group`` (or ``None``)
 
     """
     log.info(f"Reading file: {csv_filename}")
@@ -2924,20 +3052,12 @@ def read_people(csv_filename: str,
     a = People()
     b = People()
     with open(csv_filename, "rt") as f:
-        reader = csv.reader(f)
-        for i, row in enumerate(reader):
-            unique_id, first_name, mn_str, surname, dob, pu_str = row
-            middle_names = mn_str.split(";")
-            postcodes = pu_str.split(";")
-            person = Person(
-                unique_id=unique_id,
-                is_hashed=False,
-                first_name=first_name,
-                middle_names=middle_names,
-                surname=surname,
-                dob=dob,
-                postcodes=postcodes,
-            )
+        reader = csv.DictReader(f)
+        for i, rowdict in enumerate(reader):
+            if plaintext:
+                person = Person.from_plaintext_csv(rowdict)
+            else:
+                person = Person.from_hashed_csv(rowdict)
             if alternate_groups and i % 2 == 1:
                 b.add_person(person)
             else:
@@ -2945,6 +3065,24 @@ def read_people(csv_filename: str,
     log.info("... done")
     return a, b
 
+
+def read_people(csv_filename: str, plaintext: bool = True) -> People:
+    """
+    Read a list of people from a CSV file.
+
+    See :func:`read_people_2`, but this version doesn't offer the feature of
+    splitting into two groups, and returns only a single :class:`People`
+    object.
+    """
+    people, _ = read_people_2(csv_filename,
+                              plaintext=plaintext,
+                              alternate_groups=False)
+    return people
+
+
+# =============================================================================
+# Validation
+# =============================================================================
 
 def make_deletion_data(people: People) -> People:
     """
@@ -3030,7 +3168,7 @@ def validate(cfg: MatchConfig,
              cache_filename: str,
              output_csv: str,
              seed: int = 1234,
-             report_every: int = 1) -> None:
+             report_every: int = 100) -> None:
     """
     Read data and perform split-half validation.
 
@@ -3055,7 +3193,7 @@ def validate(cfg: MatchConfig,
             in_typos_hashed, out_typos_hashed,
         ) = cache_load(cache_filename)
     except FileNotFoundError:
-        in_plaintext, out_plaintext = read_people(
+        in_plaintext, out_plaintext = read_people_2(
             people_csv, alternate_groups=True)
         log.info(f"Seeding random number generator with: {seed}")
         random.seed(seed)
@@ -3175,6 +3313,150 @@ def validate(cfg: MatchConfig,
 
 
 # =============================================================================
+# Hash plaintext to encrypted CSV
+# =============================================================================
+
+def hash_identity_file(cfg: MatchConfig,
+                       input_csv: str,
+                       output_csv: str,
+                       include_unique_id: bool = False) -> None:
+    """
+    Hash a file of identifiable people to a hashed version.
+
+    Args:
+        cfg:
+            the master :class:`MatchConfig` object
+        input_csv:
+            input (plaintext) CSV filename to read
+        output_csv:
+            output (hashed) CSV filename to write
+        include_unique_id:
+            include the (potentially identifying) ``unique_id`` data? Usually
+            ``False``; may be ``True`` for validation.
+    """
+    if include_unique_id:
+        log.warning("include_unique_id is set -- use this for validation only")
+    with open(input_csv, "rt") as infile, open(output_csv, "wt") as outfile:
+        reader = csv.DictReader(infile)
+        writer = csv.DictWriter(outfile, fieldnames=Person.HASHED_ATTRS)
+        writer.writeheader()
+        for inputrow in reader:
+            plaintext_person = Person.from_plaintext_csv(inputrow)
+            hashed_person = plaintext_person.hashed(cfg)
+            writer.writerow(hashed_person.hashed_csv_dict(
+                include_unique_id=include_unique_id))
+
+
+# =============================================================================
+# Main comparisons
+# =============================================================================
+
+def compare_probands_to_sample(cfg: MatchConfig,
+                               probands: People,
+                               sample: People,
+                               output_csv: str,
+                               report_every: int = 100) -> None:
+    """
+    Compares each proband to the sample. Writes to an output file.
+
+    Args:
+        cfg: the master :class:`MatchConfig` object.
+        probands: :class:`People`
+        sample: :class:`People`
+        output_csv: output CSV filename
+        report_every: report progress every n probands
+    """
+    log.info("Comparing each proband to sample")
+    with open(output_csv, "wt") as f:
+        writer = csv.DictWriter(f, fieldnames=[
+            "proband_unique_id",
+            "proband_research_id",
+            "matched",
+            "log_odds_match",
+            "p_match",
+            "log_p_match",
+            "sample_match_unique_id",
+            "sample_match_research_id",
+            "next_best_log_odds",
+        ])
+        writer.writeheader()
+        for rownum, proband in enumerate(probands.people, start=1):
+            if rownum % report_every == 0:
+                log.info(f"Processing proband row {rownum}")
+            match, log_odds, _, next_best_log_odds = \
+                sample.get_unique_match_detailed(proband, cfg)
+            rowdata = dict(
+                proband_unique_id=proband.unique_id,
+                proband_research_id=proband.research_id,
+                matched=int(bool(match)),
+                log_odds_match=log_odds,
+                p_match=probability_from_log_odds(log_odds),
+                log_p_match=log_probability_from_log_odds(log_odds),
+                sample_match_unique_id=match.unique_id if match else None,
+                sample_match_research_id=match.research_id if match else None,
+                next_best_log_odds=next_best_log_odds,
+            )
+            writer.writerow(rowdata)
+    log.info("... comparisons done.")
+
+
+def compare_probands_to_sample_from_csv(
+        cfg: MatchConfig,
+        probands_csv: str,
+        sample_csv: str,
+        output_csv: str,
+        probands_plaintext: bool = True,
+        sample_plaintext: bool = True,
+        sample_cache_filename: str = "") -> None:
+    """
+    Compares each of the people in the probands file to the sample file.
+
+    Args:
+        cfg: the master :class:`MatchConfig` object.
+        probands_csv: CSV of people (probands); see :func:`read_people`.
+        sample_csv: CSV of people (sample); see :func:`read_people`.
+        output_csv: output CSV filename
+        sample_cache_filename: file in which to cache sample, for speed
+        probands_plaintext: is the probands file plaintext (not hashed)?
+        sample_plaintext: is the sample file plaintext (not hashed)?
+    """
+    # Sample
+    log.info("Loading (or caching) sample data")
+    if sample_plaintext:
+        assert sample_cache_filename
+        try:
+            (sample, ) = cache_load(sample_cache_filename)
+        except FileNotFoundError:
+            sample = read_people(sample_csv)
+            cache_save(sample_cache_filename, [sample])
+    else:
+        sample = read_people(sample_csv, plaintext=False)
+
+    # Probands
+    log.info("Loading proband data")
+    probands = read_people(probands_csv, plaintext=probands_plaintext)
+
+    # Ensure they are comparable
+    if sample_plaintext and not probands_plaintext:
+        log.info("Hashing sample...")
+        sample = sample.hashed(cfg)
+        log.info("... done")
+    elif probands_plaintext and not sample_plaintext:
+        log.warning("Odd: comparing plaintext probands to hashed sample!")
+        log.info("Hashing probands...")
+        probands = probands.hashed(cfg)
+        log.info("... done")
+
+    # Compare
+    compare_probands_to_sample(
+        cfg=cfg,
+        probands=probands,
+        sample=sample,
+        output_csv=output_csv
+    )
+
+
+# =============================================================================
 # Main
 # =============================================================================
 
@@ -3189,9 +3471,25 @@ def main() -> None:
     appname = "crate"
     default_cache_dir = os.path.join(appdirs.user_data_dir(appname=appname))
 
+    # -------------------------------------------------------------------------
+    # Argument parser
+    # -------------------------------------------------------------------------
+
     parser = argparse.ArgumentParser(
+        description="Identity matching via hashed fuzzy identifiers",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument(
+        "--version", action="version",
+        version=f"CRATE {CRATE_VERSION}")
+    parser.add_argument(
+        '--allhelp',
+        action=ShowAllSubparserHelpAction,
+        help='show help for all commands and exit')
+
+    # -------------------------------------------------------------------------
+    # Common arguments
+    # -------------------------------------------------------------------------
 
     display_group = parser.add_argument_group("display options")
     display_group.add_argument(
@@ -3199,53 +3497,20 @@ def main() -> None:
         help="Be verbose"
     )
 
-    hashing_group = parser.add_argument_group("hashing (secrecy) options")
-    hashing_group.add_argument(
+    hasher_group = parser.add_argument_group("hasher (secrecy) options")
+    hasher_group.add_argument(
         "--key", type=str,
-        default="_?6~2+#)1VUr)(&v'19F$KXR*d0cV?ve'2UlO)r5V/L28n{9JdAU/1^]-Ss?'<",  # noqa
+        default=DEFAULT_HASH_KEY,
         help="Key (passphrase) for hasher"
     )
-    hashing_group.add_argument(
+    hasher_group.add_argument(
+        "--allow_default_hash_key", action="store_true",
+        help="Allow the default hash key to be used beyond tests. INADVISABLE!"
+    )
+    hasher_group.add_argument(
         "--rounding_sf", type=int, default=3,
         help="Number of significant figures to use when rounding frequencies "
              "in hashed version"
-    )
-
-    test_group = parser.add_argument_group("testing")
-    test_group.add_argument(
-        "--selftest", action="store_true",
-        help="Run self-tests and stop"
-    )
-    test_group.add_argument(
-        "--speedtest", action="store_true",
-        help="Run speed tests and stop"
-    )
-    test_group.add_argument(
-        "--validate", action="store_true",
-        help="Run validation tests and stop"
-    )
-    test_group.add_argument(
-        "--validate_people_csv", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_validation_people.csv"),
-        help="CSV filename for validation data (columns: unique ID, first "
-             "name, semicolon-separated middle names, surname, DOB in "
-             "YYYY-MM-DD format, semicolon-separated postcodes)."
-    )
-    test_group.add_argument(
-        "--validate_people_cache_filename", type=str,
-        default=os.path.join(default_cache_dir,
-                             "fuzzy_validation_people_cache.pickle"),
-        help="File in which to store cached people info (to speed loading)"
-    )
-    test_group.add_argument(
-        "--validate_output_csv", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_validation_output.csv"),
-        help="Output CSV file for validation"
-    )
-    test_group.add_argument(
-        "--seed", type=int, default=1234,
-        help="Random number seed, for introducing deliberate errors in "
-             "validation"
     )
 
     priors_group = parser.add_argument_group(
@@ -3354,9 +3619,193 @@ def main() -> None:
              "match to be considered a unique match."
     )
 
+    # -------------------------------------------------------------------------
+    # Subcommand subparser
+    # -------------------------------------------------------------------------
+
+    subparsers = parser.add_subparsers(
+        title="commands",
+        description="Valid commands are as follows.",
+        help='Specify one command.',
+        dest='command',  # sorts out the help for the command being mandatory
+    )  # type: _SubParsersAction  # noqa
+    subparsers.required = True  # requires a command
+
+    # -------------------------------------------------------------------------
+    # selftest command
+    # -------------------------------------------------------------------------
+
+    subparsers.add_parser(
+        "selftest",
+        help="Run self-tests and stop"
+    )
+
+    # -------------------------------------------------------------------------
+    # speedtest command
+    # -------------------------------------------------------------------------
+
+    subparsers.add_parser(
+        "speedtest",
+        help="Run speed tests and stop"
+    )
+
+    # -------------------------------------------------------------------------
+    # validate1 command
+    # -------------------------------------------------------------------------
+
+    validate1_parser = subparsers.add_parser(
+        "validate1",
+        help="Run validation test 1 and stop. In this test, a list of people "
+             "is compared to a version of itself, at times with elements "
+             "deleted or with typos introduced."
+    )
+    validate1_parser.add_argument(
+        "--people_csv", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_validation1_people.csv"),
+        help="CSV filename for validation 1 data. " +
+             Person.PLAINTEXT_CSV_FORMAT_HELP
+    )
+    validate1_parser.add_argument(
+        "--people_cache_filename", type=str,
+        default=os.path.join(default_cache_dir,
+                             "fuzzy_validation1_people_cache.pickle"),
+        help="File in which to store cached people info (to speed loading)"
+    )
+    validate1_parser.add_argument(
+        "--output_csv", type=str,
+        default=os.path.join(default_names_dir,
+                             "fuzzy_validation1_output.csv"),
+        help="Output CSV file for validation"
+    )
+    validate1_parser.add_argument(
+        "--seed", type=int, default=1234,
+        help="Random number seed, for introducing deliberate errors in "
+             "validation test 1"
+    )
+
+    # -------------------------------------------------------------------------
+    # hash command
+    # -------------------------------------------------------------------------
+
+    hash_parser = subparsers.add_parser(
+        "hash",
+        help="Hash an identifiable CSV file into an encrypted one."
+    )
+    hash_parser.add_argument(
+        "--input", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_probands.csv"),
+        help="CSV filename for input (plaintext) data. " +
+             Person.PLAINTEXT_CSV_FORMAT_HELP
+    )
+    hash_parser.add_argument(
+        "--output", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_probands_hashed.csv"),
+        help="Output CSV file for hashed version. "
+    )
+    hash_parser.add_argument(
+        "--include_unique_id", action="store_true",
+        help="Include the (potentially identifying) 'unique_id' data? "
+             "Usually False; may be set to True for validation."
+    )
+
+    # -------------------------------------------------------------------------
+    # compare_plaintext command
+    # -------------------------------------------------------------------------
+
+    compare_plaintext_parser = subparsers.add_parser(
+        "compare_plaintext",
+        help="Compare a list of probands against a sample (both in plaintext)."
+    )
+    compare_plaintext_parser.add_argument(
+        "--probands", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_probands.csv"),
+        help="CSV filename for probands data. " +
+             Person.PLAINTEXT_CSV_FORMAT_HELP
+    )
+    compare_plaintext_parser.add_argument(
+        "--sample", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_sample.csv"),
+        help="CSV filename for sample data. " +
+             Person.PLAINTEXT_CSV_FORMAT_HELP
+    )
+    compare_plaintext_parser.add_argument(
+        "--sample_cache", type=str,
+        default=os.path.join(default_cache_dir, "fuzzy_sample_cache.pickle"),
+        help="File in which to store cached sample info (to speed loading)"
+    )
+    compare_plaintext_parser.add_argument(
+        "--output", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_output_p2p.csv"),
+        help="Output CSV file for proband/sample comparison"
+    )
+
+    # -------------------------------------------------------------------------
+    # compare_hashed_to_hashed command
+    # -------------------------------------------------------------------------
+
+    compare_h2h_parser = subparsers.add_parser(
+        "compare_hashed_to_hashed",
+        help="Compare a list of probands against a sample (both hashed)."
+    )
+    compare_h2h_parser.add_argument(
+        "--probands", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_probands_hashed.csv"),
+        help="CSV filename for probands data. " +
+             Person.HASHED_CSV_FORMAT_HELP
+    )
+    compare_h2h_parser.add_argument(
+        "--sample", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_sample_hashed.csv"),
+        help="CSV filename for sample data. " +
+             Person.HASHED_CSV_FORMAT_HELP
+    )
+    compare_h2h_parser.add_argument(
+        "--output", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_output_h2h.csv"),
+        help="Output CSV file for proband/sample comparison"
+    )
+
+    # -------------------------------------------------------------------------
+    # compare_hashed_to_plaintext command
+    # -------------------------------------------------------------------------
+
+    compare_h2p_parser = subparsers.add_parser(
+        "compare_hashed_to_plaintext",
+        help="Compare a list of probands (hashed) against a sample "
+             "(plaintext)."
+    )
+    compare_h2p_parser.add_argument(
+        "--probands", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_probands_hashed.csv"),
+        help="CSV filename for probands data. " +
+             Person.HASHED_CSV_FORMAT_HELP
+    )
+    compare_h2p_parser.add_argument(
+        "--sample", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_sample.csv"),
+        help="CSV filename for sample data. " +
+             Person.PLAINTEXT_CSV_FORMAT_HELP
+    )
+    compare_h2p_parser.add_argument(
+        "--sample_cache", type=str,
+        default=os.path.join(default_cache_dir, "fuzzy_sample_cache.pickle"),
+        help="File in which to store cached sample info (to speed loading)"
+    )
+    compare_h2p_parser.add_argument(
+        "--output", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_output_h2p.csv"),
+        help="Output CSV file for proband/sample comparison"
+    )
+
+    # -------------------------------------------------------------------------
+    # Parse arguments and set up
+    # -------------------------------------------------------------------------
+
     args = parser.parse_args()
     main_only_quicksetup_rootlogger(
         level=logging.DEBUG if args.verbose else logging.INFO)
+    log.debug(f"Ensuring default cache directory exists: {default_cache_dir}")
+    os.makedirs(default_cache_dir, exist_ok=True)
 
     p_middle_name_n_present = [
         float(x) for x in args.p_middle_name_n_present.split(",")]
@@ -3387,28 +3836,103 @@ def main() -> None:
         p_minor_postcode_error=args.p_minor_postcode_error,
     )
 
-    log.debug(f"Ensuring directory exists: {default_cache_dir}")
-    os.makedirs(default_cache_dir, exist_ok=True)
+    def warn_if_default_key() -> None:
+        if args.key == DEFAULT_HASH_KEY:
+            if args.allow_default_hash_key:
+                log.warning("Proceeding with default hash key at user's "
+                            "explicit request.")
+            else:
+                log.error(
+                    "You have not specified a hash key, so are using the "
+                    "default! Stopping, because this is a very bad idea for "
+                    "real data. Specify --allow_default_hash_key to use the "
+                    "default for testing purposes.")
+                sys.exit(EXIT_FAILURE)
 
     # pdb.set_trace()
 
-    if args.selftest:
+    # -------------------------------------------------------------------------
+    # Run a command
+    # -------------------------------------------------------------------------
+
+    log.info(f"Command: {args.command}")
+    if args.command == "selftest":
         selftest(cfg, speedtest=False)
-        return
-    if args.speedtest:
+
+    elif args.command == "speedtest":
         selftest(cfg, speedtest=True)
-        return
-    if args.validate:
+
+    elif args.command == "validate1":
+        log.info("Running validation test 1.")
         validate(
             cfg,
-            people_csv=args.validate_people_csv,
-            cache_filename=args.validate_people_cache_filename,
-            output_csv=args.validate_output_csv,
+            people_csv=args.people_csv,
+            cache_filename=args.people_cache_filename,
+            output_csv=args.output_csv,
             seed=args.seed,
         )
+        log.warning("Validation test 1 complete.")
 
-    sys.exit(0)
+    elif args.command == "hash":
+        warn_if_default_key()
+        log.info(f"Hashing identity file: {args.input}")
+        hash_identity_file(cfg=cfg,
+                           input_csv=args.input,
+                           output_csv=args.output,
+                           include_unique_id=args.include_unique_id)
+        log.info(f"... finished; written to {args.output}")
+
+    elif args.command == "compare_plaintext":
+        log.info(f"Comparing files:\n"
+                 f"- plaintext probands: {args.probands}\n"
+                 f"- plaintext sample: {args.sample}")
+        compare_probands_to_sample_from_csv(
+            cfg=cfg,
+            probands_csv=args.probands,
+            sample_csv=args.sample,
+            output_csv=args.output,
+            probands_plaintext=True,
+            sample_plaintext=True,
+            sample_cache_filename=args.sample_cache,
+        )
+        log.info(f"... comparison finished; results are in {args.output}")
+
+    elif args.command == "compare_hashed_to_hashed":
+        log.info(f"Comparing files:\n"
+                 f"- hashed probands: {args.probands}\n"
+                 f"- hashed sample: {args.sample}")
+        compare_probands_to_sample_from_csv(
+            cfg=cfg,
+            probands_csv=args.probands,
+            sample_csv=args.sample,
+            output_csv=args.output,
+            probands_plaintext=False,
+            sample_plaintext=False,
+        )
+        log.info(f"... comparison finished; results are in {args.output}")
+
+    elif args.command == "compare_hashed_to_plaintext":
+        warn_if_default_key()
+        log.info(f"Comparing files:\n"
+                 f"- hashed probands: {args.probands}\n"
+                 f"- plaintext sample: {args.sample}")
+        compare_probands_to_sample_from_csv(
+            cfg=cfg,
+            probands_csv=args.probands,
+            sample_csv=args.sample,
+            output_csv=args.output,
+            probands_plaintext=False,
+            sample_plaintext=True,
+            sample_cache_filename=args.sample_cache,
+        )
+        log.info(f"... comparison finished; results are in {args.output}")
+
+    else:
+        # Shouldn't get here.
+        log.error(f"Unknown command: {args.command}")
+        sys.exit(EXIT_FAILURE)
 
 
 if __name__ == "__main__":
     main()
+    sys.exit(EXIT_SUCCESS)

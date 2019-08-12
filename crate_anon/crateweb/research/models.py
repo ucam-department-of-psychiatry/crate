@@ -63,6 +63,7 @@ from openpyxl.workbook.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
 from crate_anon.anonymise.models import PatientInfoConstants
+from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 from crate_anon.common.sql import (
     ColumnId,
     columns_to_table_column_hierarchy,
@@ -182,7 +183,7 @@ def database_last_updated(dbname: str) -> Optional[datetime.datetime]:
     except ValueError:
         raise ValueError(
             f"Database {dbname} is not specified in config file")
-    tables_with_timecol = []
+    tables_with_timecol = []  # type: List[str]
     for col in dbinfo.colinfolist:
         if col.column_name == dbinfo.update_date_field:
             tables_with_timecol.append(col.table_name)
@@ -552,7 +553,7 @@ class Query(QueryBase):
         self._display_list = None  # type: Optional[List[str]]
         self._display_indexes = None  # type: Optional[List[int]]
         self._n_times_executed = 0
-        self._finalizer = None
+        self._finalizer = None  # type: Optional[weakref.finalize]
 
     def activate(self) -> None:
         """
@@ -643,7 +644,7 @@ class Query(QueryBase):
                 # noinspection PyTypeChecker
                 self._column_names = get_fieldnames_from_cursor(cursor)
             except TypeError:
-                self._column_names = []
+                self._column_names = []  # type: List[str]
             self._rowcount = cursor.rowcount
             self._executed_cursor = cursor
             self._finalizer = weakref.finalize(
@@ -656,8 +657,8 @@ class Query(QueryBase):
         """
         if self._executed_cursor is not None:
             self._finalizer()
-            self._finalizer = None
-        self._executed_cursor = None
+            self._finalizer = None  # type: Optional[weakref.finalize]
+        self._executed_cursor = None  # type: Optional[CursorWrapper]
 
     def _cache_basics(self) -> None:
         """
@@ -906,7 +907,8 @@ class Query(QueryBase):
         Args:
             display_list: list of columns to display
         """
-        self.display = json.dumps(display_list)
+        self.display = json.dumps(display_list,
+                                  separators=JSON_SEPARATORS_COMPACT)
         self._display_list = None  # clear cache
 
     def _get_display_list(self) -> List[str]:
@@ -1559,7 +1561,7 @@ class PatientMultiQuery(object):
         """
         Removes all output columns from the multiquery.
         """
-        self._output_columns = []
+        self._output_columns = []  # type: List[ColumnId]
 
     def add_patient_condition(self, where: WhereCondition) -> None:
         """
@@ -1576,7 +1578,7 @@ class PatientMultiQuery(object):
         """
         Removes all ``WHERE`` conditions on the patient.
         """
-        self._patient_conditions = []
+        self._patient_conditions = []  # type: List[WhereCondition]
 
     def set_override_query(self, query: str) -> None:
         """
@@ -1736,7 +1738,7 @@ class PatientMultiQuery(object):
             list: a list of :class:`TableQueryArgs` objects (q.v.)
 
         """
-        queries = []
+        queries = []  # type: List[TableQueryArgs]
         table_columns_map = columns_to_table_column_hierarchy(
             self._output_columns, sort=True)
         for table, columns in table_columns_map:
@@ -1779,7 +1781,7 @@ class PatientMultiQuery(object):
             # "The ORDER BY clause is invalid in views, inline functions,
             # derived tables, subqueries, ... unless TOP, OFFSET or FOR XML
             # is specified."
-            args = []
+            args = []  # type: List[Any]
         sql = f"{mrid_column.identifier(grammar)} IN ({in_clause})"
         return sql, args
 
@@ -2257,7 +2259,7 @@ class PatientExplorer(models.Model):
                 try:
                     fieldnames = get_fieldnames_from_cursor(cursor)
                 except TypeError:
-                    fieldnames = []
+                    fieldnames = []  # type: List[str]
                 tsv = make_tsv_row(fieldnames)
                 row = cursor.fetchone()
                 while row is not None:
@@ -2295,7 +2297,7 @@ class PatientExplorer(models.Model):
                 try:
                     fieldnames = get_fieldnames_from_cursor(cursor)
                 except (AttributeError, IndexError):
-                    fieldnames = []
+                    fieldnames = []  # type: List[str]
                 ws.append(fieldnames)
                 row = cursor.fetchone()
                 while row is not None:
@@ -2370,7 +2372,7 @@ class PatientExplorer(models.Model):
 
         See :meth:`PatientMultiQuery.gen_data_finder_queries`.
         """
-        fieldnames = []
+        fieldnames = []  # type: List[str]
         wb = Workbook()
         wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
         all_ws = wb.create_sheet("All_patients")
@@ -2390,7 +2392,7 @@ class PatientExplorer(models.Model):
                     try:
                         fieldnames = get_fieldnames_from_cursor(cursor)
                     except TypeError:
-                        fieldnames = []
+                        fieldnames = []  # type: List[str]
                     all_ws.append(fieldnames)
                 row = cursor.fetchone()
                 while row is not None:

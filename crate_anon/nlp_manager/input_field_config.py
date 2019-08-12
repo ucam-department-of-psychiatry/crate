@@ -64,17 +64,20 @@ from crate_anon.nlp_manager.constants import (
     FN_SRCPKVAL,
     FN_SRCPKSTR,
     FN_SRCFIELD,
-    FN_TRUNCATED,
+    TRUNCATED_FLAG,
+    InputFieldConfigKeys,
     MAX_SEMANTIC_VERSION_STRING_LENGTH,
     MAX_STRING_PK_LENGTH,
 )
 from crate_anon.common.parallel import is_my_job_by_hash_prehashed
-from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
+from crate_anon.nlp_manager.constants import (
+    full_sectionname,
+    SqlTypeDbIdentifier,
+)
 from crate_anon.nlp_manager.models import NlpRecord
 # if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
 #     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
 from crate_anon.nlp_manager.nlp_definition import (
-    full_sectionname,
     NlpConfigPrefixes,
     NlpDefinition,
 )
@@ -131,18 +134,20 @@ class InputFieldConfig(object):
 
         self._nlpdef = nlpdef
 
-        self._srcdb = opt_str('srcdb')
-        self._srctable = opt_str('srctable')
-        self._srcpkfield = opt_str('srcpkfield')
-        self._srcfield = opt_str('srcfield')
-        self._srcdatetimefield = opt_str('srcdatetimefield',
+        self._srcdb = opt_str(InputFieldConfigKeys.SRCDB)
+        self._srctable = opt_str(InputFieldConfigKeys.SRCTABLE)
+        self._srcpkfield = opt_str(InputFieldConfigKeys.SRCPKFIELD)
+        self._srcfield = opt_str(InputFieldConfigKeys.SRCFIELD)
+        self._srcdatetimefield = opt_str(InputFieldConfigKeys.SRCDATETIMEFIELD,
                                          required=False)  # new in v0.18.52
         # Make these case-sensitive to avoid our failure in renaming SQLA
         # Column objects to be lower-case:
-        self._copyfields = opt_strlist('copyfields', lower=False)  # fieldnames
-        self._indexed_copyfields = opt_strlist('indexed_copyfields',
-                                               lower=False)
-        self._debug_row_limit = opt_int('debug_row_limit', default=0)
+        self._copyfields = opt_strlist(
+            InputFieldConfigKeys.COPYFIELDS, lower=False)  # fieldnames
+        self._indexed_copyfields = opt_strlist(
+            InputFieldConfigKeys.INDEXED_COPYFIELDS, lower=False)
+        self._debug_row_limit = opt_int(
+            InputFieldConfigKeys.DEBUG_ROW_LIMIT, default=0)
         # self._fetch_sorted = opt_bool('fetch_sorted', default=True)
 
         # In case we want to store this value after running
@@ -247,34 +252,34 @@ class InputFieldConfig(object):
         return [
             Column(FN_PK, BigInteger, primary_key=True,
                    autoincrement=True,
-                   doc="Arbitrary primary key (PK) of output record"),
+                   comment="Arbitrary primary key (PK) of output record"),
             Column(FN_NLPDEF, SqlTypeDbIdentifier,
-                   doc="Name of the NLP definition producing this row"),
+                   comment="Name of the NLP definition producing this row"),
             Column(FN_SRCDB, SqlTypeDbIdentifier,
-                   doc="Source database name (from CRATE NLP config)"),
+                   comment="Source database name (from CRATE NLP config)"),
             Column(FN_SRCTABLE, SqlTypeDbIdentifier,
-                   doc="Source table name"),
+                   comment="Source table name"),
             Column(FN_SRCPKFIELD, SqlTypeDbIdentifier,
-                   doc="PK field (column) name in source table"),
+                   comment="PK field (column) name in source table"),
             Column(FN_SRCPKVAL, BigInteger,
-                   doc="PK of source record (or integer hash of PK if the PK "
-                       "is a string)"),
+                   comment="PK of source record (or integer hash of PK if the "
+                           "PK is a string)"),
             Column(FN_SRCPKSTR, String(MAX_STRING_PK_LENGTH),
-                   doc="NULL if the table has an integer PK, but the PK if "
-                       "the PK was a string, to deal with hash collisions. "
-                       "Max length: {}".format(MAX_STRING_PK_LENGTH)),
+                   comment=f"NULL if the table has an integer PK, but the PK "
+                           f"if the PK was a string, to deal with hash "
+                           f"collisions. Max length: {MAX_STRING_PK_LENGTH}"),
             Column(FN_SRCFIELD, SqlTypeDbIdentifier,
-                   doc="Field (column) name of source text"),
+                   comment="Field (column) name of source text"),
             Column(FN_SRCDATETIMEFIELD, SqlTypeDbIdentifier,
-                   doc="Date/time field (column) name in source table"),
+                   comment="Date/time field (column) name in source table"),
             Column(FN_SRCDATETIMEVAL, DateTime, nullable=True,
-                   doc="Date/time of source field"),
+                   comment="Date/time of source field"),
             Column(FN_CRATE_VERSION_FIELD,
                    String(MAX_SEMANTIC_VERSION_STRING_LENGTH), nullable=True,
-                   doc="Version of CRATE that generated this NLP record."),
+                   comment="Version of CRATE that generated this NLP record."),
             Column(FN_WHEN_FETCHED, DateTime, nullable=True,
-                   doc="Date/time that the NLP processor fetched the record "
-                       "from the source database."),
+                   comment="Date/time that the NLP processor fetched the "
+                           "record from the source database (in UTC)."),
         ]
 
     @staticmethod
@@ -529,9 +534,9 @@ class InputFieldConfig(object):
                     if (self._nlpdef.truncate_text_at
                             and len(text) > self._nlpdef.truncate_text_at):
                         text = text[:self._nlpdef.truncate_text_at]
-                        other_values[FN_TRUNCATED] = True
+                        other_values[TRUNCATED_FLAG] = True
                     else:
-                        other_values[FN_TRUNCATED] = False
+                        other_values[TRUNCATED_FLAG] = False
 
                     # Yield the result
                     yield text, other_values

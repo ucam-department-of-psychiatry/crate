@@ -29,6 +29,7 @@ crate_anon/nlp_manager/output_user_config.py
 """
 
 import ast
+import logging
 import shlex
 from typing import Dict, List
 
@@ -45,11 +46,14 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.schema import Column, Index
 
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
-from crate_anon.nlp_manager.input_field_config import InputFieldConfig
-from crate_anon.nlp_manager.nlp_definition import (
+from crate_anon.nlp_manager.constants import (
     full_sectionname,
+    GateOutputConfigKeys,
     NlpConfigPrefixes,
 )
+from crate_anon.nlp_manager.input_field_config import InputFieldConfig
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -98,7 +102,8 @@ class OutputUserConfig(object):
         # desttable
         # ---------------------------------------------------------------------
 
-        self._desttable = opt_str('desttable', required=True)
+        self._desttable = opt_str(
+            GateOutputConfigKeys.DESTTABLE, required=True)
         ensure_valid_table_name(self._desttable)
 
         # ---------------------------------------------------------------------
@@ -106,15 +111,17 @@ class OutputUserConfig(object):
         # ---------------------------------------------------------------------
 
         self._renames = {}  # type: Dict[str, str]
-        rename_lines = opt_strlist('renames', required=False, as_words=False)
+        rename_lines = opt_strlist(
+            GateOutputConfigKeys.RENAMES, required=False, as_words=False)
         for line in rename_lines:
             if not line.strip():
                 continue
             words = shlex.split(line)
             if len(words) != 2:
                 raise ValueError(
-                    f"Bad 'renames' option in config section {sectionname!r}; "
-                    f"line was {line!r} but should have contained two things")
+                    f"Bad {GateOutputConfigKeys.RENAMES!r} option in config "
+                    f"section {sectionname!r}; line was {line!r} but should "
+                    f"have contained two things")
             annotation_name = words[0]
             field_name = words[1]
             ensure_valid_field_name(field_name)
@@ -124,8 +131,9 @@ class OutputUserConfig(object):
         # null_literals
         # ---------------------------------------------------------------------
 
-        null_literal_lines = opt_strlist('null_literals', required=False,
-                                         as_words=False)
+        null_literal_lines = opt_strlist(
+            GateOutputConfigKeys.NULL_LITERALS,
+            required=False, as_words=False)
         self._null_literals = []  # type: List[str]
         for line in null_literal_lines:
             self._null_literals += shlex.split(line)
@@ -136,17 +144,25 @@ class OutputUserConfig(object):
 
         self._destfields = []  # type: List[str]
         self._dest_datatypes = []  # type: List[str]
-        dest_fields_datatypes = opt_strlist('destfields', required=True)
-        # log.critical(dest_fields_datatypes)
-        for c in chunks(dest_fields_datatypes, 2):
-            field = c[0]
-            datatype = c[1].upper()
+        self._dest_comments = []  # type: List[str]
+        dest_field_lines = opt_strlist(
+            GateOutputConfigKeys.DESTFIELDS,
+            required=True, as_words=False)
+        # ... comments will be removed during that process.
+        log.critical(dest_field_lines)
+        for dfl in dest_field_lines:
+            parts = dfl.split(maxsplit=2)
+            assert len(parts) >= 2, f"Bad field definition line: {dfl!r}"
+            field = parts[0]
+            datatype = parts[1].upper()
+            comment = parts[2] if len(parts) > 2 else None
             ensure_valid_field_name(field)
             if not is_sqltype_valid(datatype):
                 raise Exception(
                     f"Invalid datatype for {field}: {datatype}")
             self._destfields.append(field)
             self._dest_datatypes.append(datatype)
+            self._dest_comments.append(comment)
 
         src_fields = [c.name for c in
                       InputFieldConfig.get_core_columns_for_dest()]
@@ -166,7 +182,7 @@ class OutputUserConfig(object):
 
         self._indexfields = []  # type: List[str]
         self._indexlengths = []  # type: List[int]
-        indexdefs = opt_strlist('indexdefs')
+        indexdefs = opt_strlist(GateOutputConfigKeys.INDEXDEFS)
         if indexdefs:
             for c in chunks(indexdefs, 2):  # pairs: field, length
                 indexfieldname = c[0]
@@ -206,9 +222,11 @@ class OutputUserConfig(object):
         columns = []  # type: List[Column]
         for i, field in enumerate(self._destfields):
             datatype = self._dest_datatypes[i]
+            comment = self._dest_comments[i]
             columns.append(Column(
                 field,
-                get_sqla_coltype_from_dialect_str(datatype, engine.dialect)
+                get_sqla_coltype_from_dialect_str(datatype, engine.dialect),
+                comment=comment
             ))
         return columns
 
@@ -223,9 +241,9 @@ class OutputUserConfig(object):
         """
         indexes = []  # type: List[Index]
         for i, field in enumerate(self._indexfields):
-            index_name = f'_idx_{field}'
+            index_name = f"_idx_{field}"
             length = self._indexlengths[i]
-            kwargs = {'mysql_length': length} if length is not None else {}
+            kwargs = {"mysql_length": length} if length is not None else {}
             indexes.append(Index(index_name, field, **kwargs))
         return indexes
 

@@ -17,6 +17,8 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
+.. _anonymisation:
+
 Anonymisation
 =============
 
@@ -25,8 +27,6 @@ Anonymisation
 
     overview.rst
     data_prerequisites.rst
-    ancillary.rst
-    preprocessing.rst
     anon_config.rst
     data_dictionary.rst
     anonymise.rst

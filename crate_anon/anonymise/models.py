@@ -40,7 +40,7 @@ To create a SQLAlchemy ORM programmatically:
 
 import logging
 import random
-from typing import TYPE_CHECKING, Union
+from typing import Optional, TYPE_CHECKING, Union
 
 from cardinal_pythonlib.sqlalchemy.orm_query import exists_orm
 from sqlalchemy import (
@@ -118,30 +118,30 @@ class PatientInfo(AdminBase):
     pid = Column(
         PatientInfoConstants.PID_FIELDNAME, config.pidtype,
         primary_key=True, autoincrement=False,
-        doc="Patient ID (PID) (PK)")
+        comment="Patient ID (PID) (PK)")
     rid = Column(
         PatientInfoConstants.RID_FIELDNAME, config.SqlTypeEncryptedPid,
         nullable=False, unique=True,
-        doc="Research ID (RID)")
+        comment="Research ID (RID)")
     trid = Column(
         PatientInfoConstants.TRID_FIELDNAME, TridType,
         unique=True,
-        doc="Transient integer research ID (TRID)")
+        comment="Transient integer research ID (TRID)")
     mpid = Column(
         PatientInfoConstants.MPID_FIELDNAME, config.mpidtype,
-        doc="Master patient ID (MPID)")
+        comment="Master patient ID (MPID)")
     mrid = Column(
         PatientInfoConstants.MRID_FIELDNAME, config.SqlTypeEncryptedPid,
-        doc="Master research ID (MRID)")
+        comment="Master research ID (MRID)")
     scrubber_hash = Column(
         'scrubber_hash', config.SqlTypeEncryptedPid,
-        doc="Scrubber hash (for change detection)")
+        comment="Scrubber hash (for change detection)")
     patient_scrubber_text = Column(
         "_raw_scrubber_patient", Text,
-        doc="Raw patient scrubber (for debugging only)")
+        comment="Raw patient scrubber (for debugging only)")
     tp_scrubber_text = Column(
         "_raw_scrubber_tp", Text,
-        doc="Raw third-party scrubber (for debugging only)")
+        comment="Raw third-party scrubber (for debugging only)")
 
     def ensure_rid(self) -> None:
         """
@@ -195,8 +195,8 @@ class PatientInfo(AdminBase):
             self.patient_scrubber_text = scrubber.get_patient_regex_string()
             self.tp_scrubber_text = scrubber.get_tp_regex_string()
         else:
-            self.patient_scrubber_text = None
-            self.tp_scrubber_text = None
+            self.patient_scrubber_text = None  # type: Optional[str]
+            self.tp_scrubber_text = None  # type: Optional[str]
 
 
 class TridRecord(AdminBase):
@@ -210,11 +210,11 @@ class TridRecord(AdminBase):
     pid = Column(
         "pid", config.pidtype,
         primary_key=True, autoincrement=False,
-        doc="Patient ID (PID) (PK)")
+        comment="Patient ID (PID) (PK)")
     trid = Column(
         "trid", TridType,
         nullable=False, unique=True,
-        doc="Transient integer research ID (TRID)")
+        comment="Transient integer research ID (TRID)")
 
     @classmethod
     def get_trid(cls, session: Session, pid: Union[int, str]) -> int:
@@ -271,7 +271,7 @@ class OptOutPid(AdminBase):
     pid = Column(
         'pid', config.pidtype,
         primary_key=True,
-        doc="Patient ID")
+        comment="Patient ID")
 
     @classmethod
     def opting_out(cls, session: Session, pid: Union[int, str]) -> bool:
@@ -314,7 +314,7 @@ class OptOutMpid(AdminBase):
     mpid = Column(
         'mpid', config.mpidtype,
         primary_key=True,
-        doc="Patient ID")
+        comment="Patient ID")
 
     @classmethod
     def opting_out(cls, session: Session, mpid: Union[int, str]) -> bool:

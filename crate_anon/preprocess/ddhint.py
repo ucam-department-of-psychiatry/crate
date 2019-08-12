@@ -29,7 +29,7 @@ crate_anon/preprocess/ddhint.py
 """
 
 import logging
-from typing import Dict, Iterable, List, Union
+from typing import Any, Dict, Iterable, List, Set, Union
 
 from cardinal_pythonlib.dicts import get_case_insensitive_dict_key
 from sqlalchemy import MetaData
@@ -52,8 +52,8 @@ class DDHint(object):
     Represents a hint for creating data dictionaries.
     """
     def __init__(self) -> None:
-        self._suppressed_tables = set()
-        self._index_requests = {}  # dict of dicts
+        self._suppressed_tables = set()  # type: Set[str]
+        self._index_requests = {}  # type: Dict[str, Dict[str, Any]]
 
     def suppress_table(self, table: str) -> None:
         """
@@ -141,7 +141,7 @@ class DDHint(object):
             metadata: SQLAlchemy ORM Metadata
         """
         for tablename, tabledict in self._index_requests.items():
-            indexdictlist = []
+            indexdictlist = []  # type: List[Dict[str, Any]]
             for indexname, indexdict in tabledict.items():
                 indexdictlist.append(indexdict)
             tablename_casematch = get_case_insensitive_dict_key(

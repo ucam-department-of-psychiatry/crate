@@ -28,11 +28,14 @@ crate_anon/nlp_manager/base_nlp_parser.py
 
 """
 
+from abc import ABC, abstractmethod
 from functools import lru_cache
+import json
 import logging
 import sys
 from typing import (
-    Any, Dict, Generator, Iterable, List, Optional, TextIO, Tuple
+    Any, Dict, Generator, Iterable, List, Optional, TextIO, Tuple,
+    TYPE_CHECKING,
 )
 
 from cardinal_pythonlib.timing import MultiTimerContext, timer
@@ -40,30 +43,45 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     column_lists_equal,
     index_lists_equal
 )
+# OK to import "registry"; see
+# https://github.com/zzzeek/sqlalchemy/blob/master/README.dialects.rst
+# noinspection PyProtectedMember
+from sqlalchemy.dialects import registry
+# from sqlalchemy.dialects.mssql.base import MSDialect
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
 from sqlalchemy.sql.schema import MetaData
 
+from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.common.stringfunc import does_text_contain_word_chars
 from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
     FN_SRCPKVAL,
     FN_SRCPKSTR,
-)
-from crate_anon.nlp_manager.input_field_config import InputFieldConfig
-from crate_anon.anonymise.dbholder import DatabaseHolder
-
-# if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
-#     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
-from crate_anon.nlp_manager.nlp_definition import (
     full_sectionname,
     NlpConfigPrefixes,
+    ProcessorConfigKeys,
+)
+from crate_anon.nlp_manager.input_field_config import InputFieldConfig
+from crate_anon.nlp_manager.nlp_definition import (
     NlpDefinition,
 )
+from crate_anon.nlprp.constants import (
+    ALL_SQL_DIALECTS,
+    NlprpKeys,
+    NlprpValues,
+    SqlDialects,
+)
+from crate_anon.version import CRATE_VERSION
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine.interfaces import Dialect
 
 log = logging.getLogger(__name__)
 
+DEFAULT_NLPRP_SQL_DIALECT = SqlDialects.MYSQL
 TIMING_DELETE_DEST_RECORD = "BaseNlpParser_delete_dest_record"
 TIMING_INSERT = "BaseNlpParser_sql_insert"
 TIMING_PARSE = "parse"
@@ -74,7 +92,7 @@ TIMING_HANDLE_PARSED = "handled_parsed"
 # Base class for all parser types
 # =============================================================================
 
-class BaseNlpParser(object):
+class BaseNlpParser(ABC):
     """
     Base class for all CRATE NLP processors, including those that talk to
     third-party software. Manages the interface to databases for results
@@ -90,8 +108,9 @@ class BaseNlpParser(object):
             nlpdef:
                 a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
             cfgsection:
-                the name of a CRATE NLP config file section (from which we may
-                choose to get extra config information)
+                the name of a CRATE NLP config file section, TO WHICH we will
+                add a "processor:" prefix (from which section we may choose to
+                get extra config information)
             commit:
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
@@ -99,14 +118,36 @@ class BaseNlpParser(object):
         self._nlpdef = nlpdef
         self._cfgsection = cfgsection
         self._commit = commit
-        self._destdb_name = None
-        self._destdb = None
+        self._destdb_name = None  # type: Optional[str]
+        self._destdb = None  # type: Optional[DatabaseHolder]
         if nlpdef is not None:
             self._sectionname = full_sectionname(
                 NlpConfigPrefixes.PROCESSOR, cfgsection)
-            self._destdb_name = nlpdef.opt_str(self._sectionname, 'destdb',
-                                               required=True)
+            self._destdb_name = nlpdef.opt_str(
+                self._sectionname, ProcessorConfigKeys.DESTDB, required=True)
             self._destdb = nlpdef.get_database(self._destdb_name)
+        else:
+            self._sectionname = ""
+            self._destdb_name = ""
+            self._destdb = None  # type: Optional[DatabaseHolder]
+
+    @classmethod
+    def classname(cls) -> str:
+        """
+        Returns the short Python name of this class.
+        """
+        return cls.__name__
+
+    @classmethod
+    def fully_qualified_name(cls) -> str:
+        """
+        Returns the class's fully qualified name.
+        """
+        # This may be imperfect; see
+        # https://stackoverflow.com/questions/2020014/get-fully-qualified-class-name-of-an-object-in-python  # noqa
+        # https://www.python.org/dev/peps/pep-3155/
+        return ".".join([cls.__module__,
+                         cls.__qualname__])
 
     @classmethod
     def print_info(cls, file: TextIO = sys.stdout) -> None:
@@ -118,6 +159,7 @@ class BaseNlpParser(object):
         """
         print("Base class for all CRATE NLP parsers", file=file)
 
+    @abstractmethod
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         """
         Describes the destination table(s) that this NLP processor wants to
@@ -175,6 +217,8 @@ class BaseNlpParser(object):
     def get_parser_name(self) -> str:
         """
         Returns the NLP parser's name, from our :attr:`NAME` attribute.
+
+        .. todo:: is this right?? Upper case?
         """
         return getattr(self, 'NAME', None)
 
@@ -381,6 +425,7 @@ class BaseNlpParser(object):
             pretty_names.append(pretty_name)
         return pretty_names
 
+    @abstractmethod
     def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
                                             None, None]:
         """
@@ -418,6 +463,7 @@ class BaseNlpParser(object):
                 values that the user has told us to copy across from the source
                 database.
         """
+<<<<<<< HEAD
         # Check if text contains any word characters - using '[\w\W]' instead
         # of '.' because '.' doesn't include newline characters
         # regex_any_word_char = regex.compile(r'[\w\W]*[a-zA-Z0-9_][\w\W]*')
@@ -426,6 +472,10 @@ class BaseNlpParser(object):
         #     return
         if not text or not any(32 <= ord(c) <= 126 for c in text):
             # log.warning(f"No word characters found in {text}")
+=======
+        if not does_text_contain_word_chars(text):
+            log.warning(f"No word characters found in {text}")
+>>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
             return
         starting_fields_values[FN_NLPDEF] = self._nlpdef.get_name()
         session = self.get_session()
@@ -464,6 +514,7 @@ class BaseNlpParser(object):
             f"NLP processor {self.get_nlpdef_name()}/{self.get_parser_name()}:"
             f" found {n_values} values")
 
+    @abstractmethod
     def test(self, verbose: bool = False) -> None:
         """
         Performs a self-test on the NLP processor.
@@ -472,13 +523,13 @@ class BaseNlpParser(object):
             verbose: be verbose?
         """
         raise NotImplementedError(f"No test function for regex class: "
-                                  f"{type(self).__name__}")
+                                  f"{self.classname()}")
 
     def test_parser(self, test_strings: List[str]) -> None:
         """
         Tests the NLP processor's parser with a set of test strings.
         """
-        log.info(f"Testing parser: {type(self).__name__}")
+        log.info(f"Testing parser: {self.classname()}")
         for text in test_strings:
             log.info(f"    {text} -> {list(self.parse(text))}")
         log.info("... OK")
@@ -607,3 +658,159 @@ class BaseNlpParser(object):
         Returns the destination database.
         """
         return self._destdb
+
+    # -------------------------------------------------------------------------
+    # NLPRP info
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    def describe_sqla_col(column: Column, sql_dialect: str = None) \
+            -> Dict[str, Any]:
+        """
+        Describes a single SQLAlchemy :class:`Column` in the :ref:`NLPRP
+        <nlprp>` format, which follows ``INFORMATION_SCHEMA.COLUMNS`` closely.
+
+        Args:
+            column: the :class:`Column`
+            sql_dialect: preferred SQL dialect for response, or ``None`` for
+                a default
+        """
+        sql_dialect = sql_dialect or DEFAULT_NLPRP_SQL_DIALECT
+        assert sql_dialect in ALL_SQL_DIALECTS, (
+            f"Unknown SQL dialect {sql_dialect!r}; must be one of "
+            f"{ALL_SQL_DIALECTS}"
+        )
+        dialect = registry.load(sql_dialect)()  # type: Dialect
+        # log.critical(f"dialect: {dialect}")
+        # dialect = MSDialect()
+        column_type = column.type.compile(dialect)
+        data_type = column_type.partition("(")[0]
+        # ... https://stackoverflow.com/questions/27387415/how-would-i-get-everything-before-a-in-a-string-python  # noqa
+        return {
+            NlprpKeys.COLUMN_NAME: column.name,
+            NlprpKeys.COLUMN_TYPE: column_type,
+            NlprpKeys.DATA_TYPE: data_type,
+            NlprpKeys.IS_NULLABLE: column.nullable,
+            NlprpKeys.COLUMN_COMMENT: column.comment,
+        }
+
+    def nlprp_schema_info(self, sql_dialect: str = None) -> Dict[str, Any]:
+        """
+        Returns a dictionary for the ``schema_type`` parameter, and associated
+        parameters describing the schema (e.g. ``tabular_schema``), of the
+        NLPRP :ref:`list_processors <nlprp_list_processors>` command.
+
+        This is not a classmethod, because it may be specialized as we load
+        external schema information (e.g. GATE processors).
+
+        Args:
+            sql_dialect: preferred SQL dialect for ``tabular_schema``
+        """
+        sql_dialect = sql_dialect or DEFAULT_NLPRP_SQL_DIALECT
+        tabular_schema = {}  # type: Dict[str, List[Dict[str, Any]]]
+        for tablename, columns in self.dest_tables_columns().items():
+            colinfo = []  # type: List[Dict[str, Any]]
+            for column in columns:
+                colinfo.append(self.describe_sqla_col(column, sql_dialect))
+            tabular_schema[tablename] = colinfo
+        schema_info = {
+            NlprpKeys.SCHEMA_TYPE: NlprpValues.TABULAR,
+            NlprpKeys.SQL_DIALECT: sql_dialect,
+            NlprpKeys.TABULAR_SCHEMA: tabular_schema,
+        }
+        return schema_info
+
+    @classmethod
+    def nlprp_name(cls) -> str:
+        """
+        Returns the processor's name for use in response to the NLPRP
+        :ref:`list_processors <nlprp_list_processors>` command.
+
+        The default is the fully qualified module/class name -- because this is
+        highly unlikely to clash with any other NLP processors on a given
+        server.
+        """
+        return cls.fully_qualified_name()
+
+    @classmethod
+    def nlprp_title(cls) -> str:
+        """
+        Returns the processor's title for use in response to the NLPRP
+        :ref:`list_processors <nlprp_list_processors>` command.
+
+        The default is the short Python class name.
+        """
+        return cls.__name__
+
+    @classmethod
+    def nlprp_version(cls) -> str:
+        """
+        Returns the processor's version for use in response to the NLPRP
+        :ref:`list_processors <nlprp_list_processors>` command.
+
+        The default is the current CRATE version.
+        """
+        return CRATE_VERSION
+
+    @classmethod
+    def nlprp_is_default_version(cls) -> bool:
+        """
+        Returns whether this processor is the default version of its name, for
+        use in response to the NLPRP :ref:`list_processors
+        <nlprp_list_processors>` command.
+
+        The default is ``True``.
+        """
+        return True
+
+    @classmethod
+    def nlprp_description(cls) -> str:
+        """
+        Returns the processor's description for use in response to the NLPRP
+        :ref:`list_processors <nlprp_list_processors>` command.
+
+        Uses each processor's docstring, and reformats it slightly.
+        """
+        # PyCharm thinks that __doc__ is bytes, but it's str!
+        docstring = str(cls.__doc__)
+        docstring = docstring.replace("\n", " ")
+        # https://stackoverflow.com/questions/2077897/substitute-multiple-whitespace-with-single-whitespace-in-python
+        return " ".join(docstring.split())
+
+    def nlprp_processor_info(self, sql_dialect: str = None) -> Dict[str, Any]:
+        """
+        Returns a dictionary suitable for use as this processor's response to
+        the NLPRP :ref:`list_processors <nlprp_list_processors>` command.
+
+        This is not a classmethod, because it may be specialized as we load
+        external schema information (e.g. GATE processors).
+
+        Args:
+            sql_dialect: preferred SQL dialect for ``tabular_schema``
+        """
+        proc_info = {
+            NlprpKeys.NAME: self.nlprp_name(),
+            NlprpKeys.TITLE: self.nlprp_title(),
+            NlprpKeys.VERSION: self.nlprp_version(),
+            NlprpKeys.IS_DEFAULT_VERSION: self.nlprp_is_default_version(),
+            NlprpKeys.DESCRIPTION: self.nlprp_description(),
+        }
+        proc_info.update(self.nlprp_schema_info(sql_dialect))
+        return proc_info
+
+    def nlprp_processor_info_json(self,
+                                  indent: int = 4,
+                                  sort_keys: bool = True,
+                                  sql_dialect: str = None) -> str:
+        """
+        Returns a formatted JSON string from :func:`nlprp_schema_info`.
+        This is primarily for debugging.
+
+        Args:
+            indent: number of spaces for indentation
+            sort_keys: sort keys?
+            sql_dialect: preferred SQL dialect for ``tabular_schema``, or
+                ``None`` for default
+        """
+        json_structure = self.nlprp_processor_info(sql_dialect=sql_dialect)
+        return json.dumps(json_structure, indent=indent, sort_keys=sort_keys)

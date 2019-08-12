@@ -581,7 +581,7 @@ def columns_to_table_column_hierarchy(
     tables = unique_list(c.table_id for c in columns)
     if sort:
         tables.sort()
-    table_column_map = []
+    table_column_map = []  # type: List[Tuple[TableId, List[ColumnId]]]
     for t in tables:
         t_columns = [c for c in columns if c.table_id == t]
         if sort:
@@ -964,7 +964,7 @@ def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
     """
     existing_column_names = get_column_names(engine, tablename=table.name,
                                              to_lower=True)
-    column_defs = []
+    column_defs = []  # type: List[str]
     for column in columns:
         if column.name.lower() not in existing_column_names:
             column_defs.append(column_creation_ddl(column, engine.dialect))
@@ -1340,11 +1340,11 @@ class ViewMaker(object):
         self.basetable = basetable
         self.userobj = userobj  # only for others' benefit
         self.enforce_same_n_rows_as_base = enforce_same_n_rows_as_base
-        self.select_elements = []
-        self.from_elements = [basetable]
-        self.where_elements = []
+        self.select_elements = []  # type: List[str]
+        self.from_elements = [basetable]  # type: List[str]
+        self.where_elements = []  # type: List[str]
         self.lookup_tables = []  # type: List[str]
-        self.index_requests = OrderedDict()
+        self.index_requests = OrderedDict()  # type: Dict[str, List[str]]
 
         if insert_basetable_columns:
             grammar = make_grammar(engine.dialect.name)

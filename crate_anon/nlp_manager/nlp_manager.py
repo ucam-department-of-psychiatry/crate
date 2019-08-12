@@ -57,8 +57,6 @@ Speed testing:
         mysqld about 18% [from top]
         nlp_manager.py about 4-5% * 8 [from top]
 
-.. todo:: comments for NLP output fields (in table definition, destfields)
-
 """  # noqa
 
 # =============================================================================
@@ -69,14 +67,17 @@ import argparse
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.exceptions import die
+from cardinal_pythonlib.fileops import purge
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.sqlalchemy.core_query import count_star
 from cardinal_pythonlib.timing import MultiTimerContext, timer
-from sqlalchemy.schema import Column, Index, Table
+from sqlalchemy.engine.base import Engine
+from sqlalchemy.orm.session import Session
+from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.types import BigInteger, String
 
 from crate_anon.anonymise.constants import (
@@ -85,15 +86,15 @@ from crate_anon.anonymise.constants import (
     TABLE_KWARGS,
     SEP,
 )
+from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.nlp_manager.all_processors import (
-    get_nlp_parser_debug_instance,
+    make_nlp_parser_unconfigured,
     possible_processor_names,
     possible_processor_table,
 )
 from crate_anon.nlp_manager.constants import (
     DEFAULT_REPORT_EVERY_NLP,
-    DEMO_CONFIG,
     MAX_STRING_PK_LENGTH,
     NLP_CONFIG_ENV_VAR,
 )
@@ -105,13 +106,19 @@ from crate_anon.nlp_manager.input_field_config import (
     FN_SRCPKVAL,
     FN_SRCPKSTR,
     FN_SRCFIELD,
-    FN_TRUNCATED,
+    TRUNCATED_FLAG,
 )
 from crate_anon.nlp_manager.models import FN_SRCHASH, NlpRecord
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition
-from crate_anon.nlp_manager.cloud_parser import CloudRequest, CloudNlpConfigKeys
+from crate_anon.nlp_manager.nlp_definition import (
+    NlpDefinition,
+    demo_nlp_config,
+)
+from crate_anon.nlp_manager.cloud_parser import CloudRequest
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
+
+if TYPE_CHECKING:
+    from http.cookiejar import CookieJar
 
 log = logging.getLogger(__name__)
 
@@ -119,7 +126,27 @@ TIMING_DROP_REMAKE = "drop_remake"
 TIMING_DELETE_WHERE_NO_SOURCE = "delete_where_no_source"
 TIMING_PROGRESS_DB_ADD = "progress_db_add"
 
-CLOUD_NLP_SECTION = "Cloud_NLP"
+
+# =============================================================================
+# Simple information classes
+# =============================================================================
+
+class DbInfo(object):
+    """
+    Simple object carrying information about a database.
+    Used by :func:`delete_where_no_source`.
+    """
+    def __init__(self,
+                 session: Session = None,
+                 engine: Engine = None,
+                 metadata: MetaData = None,
+                 db: DatabaseHolder = None,
+                 temptable: Table = None) -> None:
+        self.session = session
+        self.engine = engine
+        self.metadata = metadata
+        self.db = db
+        self.temptable = temptable
 
 
 # =============================================================================
@@ -225,15 +252,13 @@ def delete_where_no_source(nlpdef: NlpDefinition,
         n_rows = len(records_)
         log.debug(f"... inserting {n_rows} records")
         for db in databases:
-            session_ = db['session']
-            temptable_ = db['temptable']  # type: Table
-            session_.execute(temptable_.insert(), records_)
-            nlpdef.notify_transaction(session_, n_rows=n_rows,
+            db.session.execute(db.temptable.insert(), records_)
+            nlpdef.notify_transaction(db.session, n_rows=n_rows,
                                       n_bytes=sys.getsizeof(records_))
 
     def commit() -> None:
         for db in databases:
-            nlpdef.commit(db['session'])
+            nlpdef.commit(db.session)
 
     # -------------------------------------------------------------------------
     # Main code
@@ -245,42 +270,41 @@ def delete_where_no_source(nlpdef: NlpDefinition,
              f"{ifconfig.get_srcdb()}.{ifconfig.get_srctable()}; MAY BE SLOW")
 
     # Start our list with the progress database
-    databases = [{
-        'session': nlpdef.get_progdb_session(),
-        'engine': nlpdef.get_progdb_engine(),
-        'metadata': nlpdef.get_progdb_metadata(),
-        'db': nlpdef.get_progdb(),
-        'temptable': None,  # type: Table
-    }]
+    databases = [DbInfo(
+        session=nlpdef.get_progdb_session(),
+        engine=nlpdef.get_progdb_engine(),
+        metadata=nlpdef.get_progdb_metadata(),
+        db=nlpdef.get_progdb(),
+        temptable=None
+    )]
 
     # Add the processors' destination databases
     for processor in nlpdef.get_processors():  # of type BaseNlpParser
         session = processor.get_session()
-        if any(x['session'] == session for x in databases):
+        if any(x.session == session for x in databases):
             continue  # already exists
-        databases.append({
-            'session': session,
-            'engine': processor.get_engine(),
-            'metadata': processor.get_metadata(),
-            'db': processor.get_destdb(),
-        })
+        databases.append(DbInfo(
+            session=session,
+            engine=processor.get_engine(),
+            metadata=processor.get_metadata(),
+            db=processor.get_destdb(),
+        ))
 
     # Make a temporary table in each database (note: the Table objects become
     # affiliated to their engine, I think, so make separate ones for each).
     log.info(f"... using {len(databases)} destination database(s)")
     log.info("... dropping (if exists) and creating temporary table(s)")
     for database in databases:
-        engine = database['engine']
         temptable = Table(
             nlpdef.get_temporary_tablename(),
-            database['metadata'],
+            database.metadata,
             Column(FN_SRCPKVAL, BigInteger),  # not PK, as may be a hash
             Column(FN_SRCPKSTR, String(MAX_STRING_PK_LENGTH)),
             **TABLE_KWARGS
         )
-        temptable.drop(engine, checkfirst=True)
-        temptable.create(engine, checkfirst=True)
-        database['temptable'] = temptable
+        temptable.drop(database.engine, checkfirst=True)
+        temptable.create(database.engine, checkfirst=True)
+        database.temptable = temptable
 
     # Insert PKs into temporary tables
 
@@ -306,29 +330,29 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     # Index, for speed
     log.info("... creating index(es) on temporary table(s)")
     for database in databases:
-        temptable = database['temptable']  # type: Table
+        temptable = database.temptable
         index = Index('_temptable_idx', temptable.columns[FN_SRCPKVAL])
-        index.create(database['engine'])
+        index.create(database.engine)
 
     # DELETE FROM desttable WHERE destpk NOT IN (SELECT srcpk FROM temptable)
     log.info("... deleting from progress/destination DBs where appropriate")
 
     # Delete from progress database
     prog_db = databases[0]
-    prog_temptable = prog_db['temptable']
+    prog_temptable = prog_db.temptable
     ifconfig.delete_progress_records_where_srcpk_not(prog_temptable)
 
     # Delete from others
     for processor in nlpdef.get_processors():
         database = [x for x in databases
-                    if x['session'] == processor.get_session()][0]
-        temptable = database['temptable']
+                    if x.session == processor.get_session()][0]
+        temptable = database.temptable
         processor.delete_where_srcpk_not(ifconfig, temptable)
 
     # Drop temporary tables
     log.info("... dropping temporary table(s)")
     for database in databases:
-        database['temptable'].drop(database['engine'], checkfirst=True)
+        database.temptable.drop(database.engine, checkfirst=True)
 
     # Commit
     commit()
@@ -336,11 +360,74 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     # Update metadata to reflect the fact that the temporary tables have been
     # dropped
     for database in databases:
-        database['db'].update_metadata()
+        database.db.update_metadata()
+
+
+def drop_remake(nlpdef: NlpDefinition,
+                incremental: bool = False,
+                skipdelete: bool = False,
+                report_every: int = DEFAULT_REPORT_EVERY,
+                chunksize: int = DEFAULT_CHUNKSIZE) -> None:
+    """
+    Drop output tables and recreate them.
+
+    Args:
+        nlpdef:
+            :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+        incremental: incremental processing mode?
+        skipdelete:
+            For incremental updates, skip deletion of rows present in the
+            destination but not the source
+        report_every: report to the log every *n* source rows
+        chunksize: insert into the SQLAlchemy session every *n* records
+    """
+    # Not parallel.
+    # -------------------------------------------------------------------------
+    # 1. Progress database
+    # -------------------------------------------------------------------------
+    progengine = nlpdef.get_progdb_engine()
+    if not incremental:
+        log.debug("Dropping progress tables")
+        # noinspection PyUnresolvedReferences
+        NlpRecord.__table__.drop(progengine, checkfirst=True)
+    log.info("Creating progress table (with index)")
+    # noinspection PyUnresolvedReferences
+    NlpRecord.__table__.create(progengine, checkfirst=True)
+
+    # -------------------------------------------------------------------------
+    # 2. Output database(s)
+    # -------------------------------------------------------------------------
+    pretty_names = []  # type: List[str]
+    for processor in nlpdef.get_processors():
+        new_pretty_names = processor.make_tables(drop_first=not incremental)
+        for npn in new_pretty_names:
+            if npn in pretty_names:
+                log.warning(f"An NLP processor has tried to re-make a table "
+                            f"made by one of its colleagues: {npn}")
+        pretty_names.extend(new_pretty_names)
+
+    # -------------------------------------------------------------------------
+    # 3. Delete WHERE NOT IN for incremental
+    # -------------------------------------------------------------------------
+    for ifconfig in nlpdef.get_ifconfigs():
+        with MultiTimerContext(timer, TIMING_DELETE_WHERE_NO_SOURCE):
+            if incremental:
+                if not skipdelete:
+                    delete_where_no_source(
+                        nlpdef, ifconfig,
+                        report_every=report_every,
+                        chunksize=chunksize)
+            else:  # full
+                ifconfig.delete_all_progress_records()
+
+    # -------------------------------------------------------------------------
+    # 4. Overall commit (superfluous)
+    # -------------------------------------------------------------------------
+    nlpdef.commit_all()
 
 
 # =============================================================================
-# Core functions
+# Core functions: local NLP
 # =============================================================================
 
 def process_nlp(nlpdef: NlpDefinition,
@@ -421,7 +508,7 @@ def process_nlp(nlpdef: NlpDefinition,
 
             # Make a note in the progress database that we've processed a
             # source record.
-            truncated = other_values[FN_TRUNCATED]
+            truncated = other_values[TRUNCATED_FLAG]
             if not truncated or nlpdef.record_truncated_values:
                 if progrec:  # modifying an existing record
                     progrec.whenprocessedutc = nlpdef.get_now()
@@ -475,54 +562,35 @@ def process_nlp(nlpdef: NlpDefinition,
     nlpdef.commit_all()
 
 
+# =============================================================================
+# Core functions: cloud NLP
+# =============================================================================
+
 def send_cloud_requests(
         nlpdef: NlpDefinition,
         ifconfig: InputFieldConfig,
         start_record: int,
         number_of_records: int,
-        url: str,
-        username: str,
-        password: str,
         global_recnum: int,
-        max_length: int = 0,
         report_every: int = DEFAULT_REPORT_EVERY_NLP,
         incremental: bool = False,
-        queue: bool = True,
-        verify_ssl: bool = True,
-        stop_at_failure: bool = True) -> Tuple[List[CloudRequest],
-                                               int]:
+        queue: bool = True) -> Tuple[List[CloudRequest], int]:
     """
     Sends off a series of cloud requests and returns them as a list.
     'queue' determines whether these are queued requests or not. Also returns
     whether the generator for the text is empty and the global record number
     for keeping track.
     """
-    requests = []
-    cookies = None
+    requests = []  # type: List[CloudRequest]
+    cookies = None  # type: Optional[CookieJar]
     i = 1  # number of requests sent
     totalcount = ifconfig.get_count()  # total number of records in table
-    config = nlpdef.get_parser()
-    wait_on_conn_err = config.get_int_default_if_failure(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.WAIT_ON_CONN_ERR,
-        default=180)
     # Check processors are available
-    available_procs = CloudRequest.list_processors(url,
-                                                   username,
-                                                   password,
-                                                   verify_ssl,
-                                                   wait_on_conn_err)
-    if available_procs is None:  # request failed
+    available_procs = CloudRequest(nlpdef).get_remote_processors()
+    if not available_procs:  # request failed, or no processors available
         return [], global_recnum
-    cloud_request = CloudRequest(nlpdef=nlpdef,
-                                 url=url,
-                                 username=username,
-                                 password=password,
-                                 max_length=max_length,
-                                 allowable_procs=available_procs,
-                                 verify_ssl=verify_ssl,
-                                 wait_on_conn_err=wait_on_conn_err,
-                                 raise_on_failure=stop_at_failure)
+    cloud_request = CloudRequest(
+        nlpdef, remote_processors_available=available_procs)
     empty_request = True
     for text, other_values in ifconfig.gen_text(start=start_record,
                                                 how_many=number_of_records):
@@ -574,15 +642,7 @@ def send_cloud_requests(
                     i += 1
                     requests.append(cloud_request)
             cloud_request = CloudRequest(
-                nlpdef=nlpdef,
-                url=url,
-                username=username,
-                password=password,
-                max_length=max_length,
-                allowable_procs=available_procs,
-                verify_ssl=verify_ssl,
-                wait_on_conn_err=wait_on_conn_err,
-                raise_on_failure=stop_at_failure)
+                nlpdef, remote_processors_available=available_procs)
             empty_request = True
             # Is the text too big on its own? If so, don't send it. Otherwise
             # add it to the new request
@@ -617,12 +677,12 @@ def send_cloud_requests(
 
 def process_cloud_nlp(nlpdef: NlpDefinition,
                       incremental: bool = False,
-                      report_every: int = DEFAULT_REPORT_EVERY_NLP,
-                      verify_ssl: bool = True) -> None:
+                      report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
     """
     Process text by sending it off to the cloud processors in queued mode.
     """
     log.info(SEP + "NLP")
+<<<<<<< HEAD
     nlpname = nlpdef.get_name()
     config = nlpdef.get_parser()
     req_data_dir = config.get_str(section=CLOUD_NLP_SECTION,
@@ -658,48 +718,46 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
         option=CloudNlpConfigKeys.RATE_LIMIT,
         default=2)
     CloudRequest.set_rate_limit(rate_limit)
+=======
+    cloudcfg = nlpdef.get_cloud_config_or_raise()
+    filename = cloudcfg.data_filename()
+>>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
     # Start with blank file
-    open(f'{req_data_dir}/request_data_{nlpname}.txt', 'w').close()
+    open(filename, 'w').close()
     # Use append so that, if there's a problem part-way through, we don't lose
     # all data
-    with open(f'{req_data_dir}/request_data_{nlpname}.txt', 'a') as request_data:  # noqa
+    with open(filename, 'a') as request_data:
         for ifconfig in nlpdef.get_ifconfigs():
             # Global record number within this ifconfig
-            glob_recnum = 0
+            global_recnum = 0
             # Start for first block
             start = 0
             total = ifconfig.get_count()
             while start <= total:
-                cloud_requests, glob_recnum = send_cloud_requests(
+                cloud_requests, global_recnum = send_cloud_requests(
                     nlpdef=nlpdef,
                     ifconfig=ifconfig,
                     start_record=start,
-                    number_of_records=limit_before_write,
-                    url=url,
-                    username=username,
-                    password=password,
-                    global_recnum=glob_recnum,
-                    max_length=max_length,
+                    number_of_records=cloudcfg.max_records_per_request,
+                    global_recnum=global_recnum,
                     incremental=incremental,
-                    report_every=report_every,
-                    verify_ssl=verify_ssl,
-                    stop_at_failure=stop_at_failure)
+                    report_every=report_every)
                 for cloud_request in cloud_requests:
                     if cloud_request.queue_id:
                         request_data.write(
                             f"{ifconfig.section},{cloud_request.queue_id}\n")
                     else:
                         log.warning("Sent request does not contain queue_id.")
-                start += limit_before_write
+                start += cloudcfg.limit_before_commit
 
 
 def retrieve_nlp_data(nlpdef: NlpDefinition,
-                      incremental: bool = False,
-                      verify_ssl: bool = True) -> None:
+                      incremental: bool = False) -> None:
     """
     Try to retrieve the data from the cloud processors.
     """
     session = nlpdef.get_progdb_session()
+<<<<<<< HEAD
     nlpname = nlpdef.get_name()
     config = nlpdef.get_parser()
     req_data_dir = config.get_str(section=CLOUD_NLP_SECTION,
@@ -741,21 +799,26 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                                                    password,
                                                    verify_ssl,
                                                    wait_on_conn_err)
+=======
+    cloudcfg = nlpdef.get_cloud_config_or_raise()
+    filename = cloudcfg.data_filename()
+    available_procs = CloudRequest(nlpdef).get_remote_processors()
+>>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
     mirror_procs = nlpdef.get_processors()
     if not os.path.exists(filename):
-        log.error(f"File 'request_data_{nlpname}.txt' does not exist in the "
-                  f"relevant directory. Request may not have been sent.")
+        log.error(f"File {filename!r} does not exist. "
+                  f"Request may not have been sent.")
         raise FileNotFoundError
     with open(filename, 'r') as request_data:
         reqdata = request_data.readlines()
     i = 1  # number of requests
-    cookies = None
+    cookies = None  # type: Optional[CookieJar]
     # with open(filename, 'w') as request_data:
-    remaining_data = []
+    remaining_data = []  # type: List[str]
     ifconfig_cache = {}  # type: Dict[str, InputFieldConfig]
     all_ready = True  # not necessarily true, but need for later
     count = 0  # count of records before a write to the database
-    uncommited_data = False
+    uncommitted_data = False
     for line in reqdata:
         # Are there are records (whether ready or not) associated with
         # the queue_id
@@ -766,15 +829,9 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
         else:
             ifconfig = InputFieldConfig(nlpdef=nlpdef, section=if_section)
             ifconfig_cache[if_section] = ifconfig
-        seen_srchashs = []
-        cloud_request = CloudRequest(nlpdef=nlpdef,
-                                     url=url,
-                                     username=username,
-                                     password=password,
-                                     allowable_procs=available_procs,
-                                     verify_ssl=verify_ssl,
-                                     wait_on_conn_err=wait_on_conn_err,
-                                     raise_on_failure=stop_at_failure)
+        seen_srchashs = []  # type: List[str]
+        cloud_request = CloudRequest(
+            nlpdef, remote_processors_available=available_procs)
         cloud_request.set_mirror_processors(mirror_procs)
         cloud_request.set_queue_id(queue_id)
         log.info(f"Atempting to retrieve data from request #{i} ...")
@@ -794,7 +851,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
             for result in nlp_data[NKeys.RESULTS]:
                 # There are records associated with the given queue_id
                 records_exist = True
-                uncommited_data = True
+                uncommitted_data = True
                 # 'metadata' is just 'other_values' from before
                 metadata = result[NKeys.METADATA]
                 pkval = metadata[FN_SRCPKVAL]
@@ -846,12 +903,13 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
             if records_exist:
                 log.info("Request ready.")
                 cloud_request.process_all()
-                if count >= limit_before_write:
+                if count >= cloudcfg.limit_before_commit:
                     nlpdef.commit_all()
-                    uncommited_data = False
+                    count = 0
+                    uncommitted_data = False
             else:
                 log.warning(f"No records found for queue_id {queue_id}.")
-    if uncommited_data:
+    if uncommitted_data:
         nlpdef.commit_all()
     if all_ready:
         os.remove(filename)
@@ -867,13 +925,13 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
 def process_cloud_now(
         nlpdef: NlpDefinition,
         incremental: bool = False,
-        report_every: int = DEFAULT_REPORT_EVERY_NLP,
-        verify_ssl: bool = True) -> None:
+        report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
     """
     Process text by sending it off to the cloud processors in non queued mode.
     """
     session = nlpdef.get_progdb_session()
     mirror_procs = nlpdef.get_processors()
+<<<<<<< HEAD
     config = nlpdef.get_parser()
     url = config.get_str(section=CLOUD_NLP_SECTION,
                          option=CloudNlpConfigKeys.URL,
@@ -905,29 +963,26 @@ def process_cloud_now(
         option=CloudNlpConfigKeys.RATE_LIMIT,
         default=2)
     CloudRequest.set_rate_limit(rate_limit)
+=======
+    cloudcfg = nlpdef.get_cloud_config_or_raise()
+>>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
     for ifconfig in nlpdef.get_ifconfigs():
         # Global record number within this ifconfig
-        glob_recnum = 0
+        global_recnum = 0
         # Start for first block
         start = 0
-        seen_srchashs = []
+        seen_srchashs = []  # type: List[str]
         total = ifconfig.get_count()
         while start <= total:
-            cloud_requests, glob_recnum = send_cloud_requests(
+            cloud_requests, global_recnum = send_cloud_requests(
                 nlpdef=nlpdef,
-                url=url,
                 start_record=start,
-                number_of_records=limit_before_write,
-                username=username,
-                password=password,
-                global_recnum=glob_recnum,
-                max_length=max_length,
+                number_of_records=cloudcfg.max_records_per_request,
+                global_recnum=global_recnum,
                 ifconfig=ifconfig,
                 incremental=incremental,
                 report_every=report_every,
-                queue=False,
-                verify_ssl=verify_ssl,
-                stop_at_failure=stop_at_failure)
+                queue=False)
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
                     continue
@@ -978,47 +1033,34 @@ def process_cloud_now(
                             session.add(progrec)
 
             nlpdef.commit_all()
-            start += limit_before_write
+            start += cloudcfg.limit_before_commit
 
 
-def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False,
-                   verify_ssl: bool = True) -> None:
+def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
     """
     Delete pending requests from the server's queue.
     """
     nlpname = nlpdef.get_name()
-    config = nlpdef.get_parser()
-    req_data_dir = config.get_str(section=CLOUD_NLP_SECTION,
-                                  option=CloudNlpConfigKeys.REQUEST_DATA_DIR,
-                                  required=True)
-    url = config.get_str(section=CLOUD_NLP_SECTION,
-                         option=CloudNlpConfigKeys.URL,
-                         required=True)
-    username = config.get_str(section=CLOUD_NLP_SECTION,
-                              option=CloudNlpConfigKeys.USERNAME,
-                              default="")
-    password = config.get_str(section=CLOUD_NLP_SECTION,
-                              option=CloudNlpConfigKeys.PASSWORD,
-                              default="")
-    cloud_request = CloudRequest(nlpdef=nlpdef,
-                                 url=url,
-                                 username=username,
-                                 password=password,
-                                 verify_ssl=verify_ssl,
-                                 procs_auto_add=False)
+    cloudcfg = nlpdef.get_cloud_config_or_raise()
+    cloud_request = CloudRequest(nlpdef, procs_auto_add=False)
+
     if cancel_all:
         # Deleting all from queue!
         cloud_request.delete_all_from_queue()
-        # Shoud the files be deleted in the program or is that dangerous?
-        log.info(f"All cloud requests cancelled. Delete files in "
-                 "{req_data_dir}")
+        log.info(f"All cloud requests cancelled.")
+        # Should the files be deleted in the program or is that dangerous?
+        # ... OK now we guarantee that CRATE will create and use a specific
+        # directory.
+        purge(cloudcfg.req_data_dir, "*")
         return
-    filename = f'{req_data_dir}/request_data_{nlpname}.txt'
+    # Otherwise:
+
+    filename = cloudcfg.data_filename()
     if not os.path.exists(filename):
-        log.error(f"File 'request_data_{nlpname}.txt' does not exist in the "
-                  f"relevant directory. Request may not have been sent.")
+        log.error(f"File {filename!r} does not exist. "
+                  f"Request may not have been sent.")
         raise FileNotFoundError
-    queue_ids = []
+    queue_ids = []  # type: List[str]
     with open(filename, 'r') as request_data:
         reqdata = request_data.readlines()
         for line in reqdata:
@@ -1030,26 +1072,11 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False,
     log.info(f"Cloud request for nlp definition {nlpname} cancelled.")
 
 
-def show_cloud_queue(nlpdef: NlpDefinition, verify_ssl: bool = True) -> None:
+def show_cloud_queue(nlpdef: NlpDefinition) -> None:
     """
     Get list of the user's queued requests and print to screen.
     """
-    config = nlpdef.get_parser()
-    url = config.get_str(section=CLOUD_NLP_SECTION,
-                         option=CloudNlpConfigKeys.URL,
-                         required=True)
-    username = config.get_str(section=CLOUD_NLP_SECTION,
-                              option=CloudNlpConfigKeys.USERNAME,
-                              default="")
-    password = config.get_str(section=CLOUD_NLP_SECTION,
-                              option=CloudNlpConfigKeys.PASSWORD,
-                              default="")
-    cloud_request = CloudRequest(nlpdef=nlpdef,
-                                 url=url,
-                                 username=username,
-                                 password=password,
-                                 verify_ssl=verify_ssl,
-                                 procs_auto_add=False)
+    cloud_request = CloudRequest(nlpdef=nlpdef, procs_auto_add=False)
     queue = cloud_request.show_queue()
     if not queue:
         print("\nNo requests in queue.")
@@ -1059,68 +1086,9 @@ def show_cloud_queue(nlpdef: NlpDefinition, verify_ssl: bool = True) -> None:
             print(f"{key}: {entry[key]}")
 
 
-def drop_remake(nlpdef: NlpDefinition,
-                incremental: bool = False,
-                skipdelete: bool = False,
-                report_every: int = DEFAULT_REPORT_EVERY,
-                chunksize: int = DEFAULT_CHUNKSIZE) -> None:
-    """
-    Drop output tables and recreate them.
-
-    Args:
-        nlpdef:
-            :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-        incremental: incremental processing mode?
-        skipdelete:
-            For incremental updates, skip deletion of rows present in the
-            destination but not the source
-        report_every: report to the log every *n* source rows
-        chunksize: insert into the SQLAlchemy session every *n* records
-    """
-    # Not parallel.
-    # -------------------------------------------------------------------------
-    # 1. Progress database
-    # -------------------------------------------------------------------------
-    progengine = nlpdef.get_progdb_engine()
-    if not incremental:
-        log.debug("Dropping progress tables")
-        # noinspection PyUnresolvedReferences
-        NlpRecord.__table__.drop(progengine, checkfirst=True)
-    log.info("Creating progress table (with index)")
-    # noinspection PyUnresolvedReferences
-    NlpRecord.__table__.create(progengine, checkfirst=True)
-
-    # -------------------------------------------------------------------------
-    # 2. Output database(s)
-    # -------------------------------------------------------------------------
-    pretty_names = []  # type: List[str]
-    for processor in nlpdef.get_processors():
-        new_pretty_names = processor.make_tables(drop_first=not incremental)
-        for npn in new_pretty_names:
-            if npn in pretty_names:
-                log.warning(f"An NLP processor has tried to re-make a table "
-                            f"made by one of its colleagues: {npn}")
-        pretty_names.extend(new_pretty_names)
-
-    # -------------------------------------------------------------------------
-    # 3. Delete WHERE NOT IN for incremental
-    # -------------------------------------------------------------------------
-    for ifconfig in nlpdef.get_ifconfigs():
-        with MultiTimerContext(timer, TIMING_DELETE_WHERE_NO_SOURCE):
-            if incremental:
-                if not skipdelete:
-                    delete_where_no_source(
-                        nlpdef, ifconfig,
-                        report_every=report_every,
-                        chunksize=chunksize)
-            else:  # full
-                ifconfig.delete_all_progress_records()
-
-    # -------------------------------------------------------------------------
-    # 4. Overall commit (superfluous)
-    # -------------------------------------------------------------------------
-    nlpdef.commit_all()
-
+# =============================================================================
+# Database info
+# =============================================================================
 
 def show_source_counts(nlpdef: NlpDefinition) -> None:
     """
@@ -1171,6 +1139,8 @@ def main() -> None:
     version = f"Version {CRATE_VERSION} ({CRATE_VERSION_DATE})"
     description = f"NLP manager. {version}. By Rudolf Cardinal."
 
+    # todo: better with a subcommand parser?
+
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -1220,6 +1190,11 @@ def main() -> None:
     parser.add_argument(
         "--describeprocessors", action="store_true",
         help="Show details of built-in NLP processors")
+    parser.add_argument(
+        "--print_nlprp_list_processors_json", action="store_true",
+        help="Show NLPRP JSON for processors that are part of the chosen NLP "
+             "definition, then stop"
+    )
     parser.add_argument(
         "--showinfo", required=False, nargs='?',
         metavar="NLP_CLASS_NAME",
@@ -1274,9 +1249,6 @@ def main() -> None:
     parser.add_argument(
         "--showqueue", action="store_true",
         help="Shows all pending cloud requests.")
-    parser.add_argument(
-        "--noverify", action="store_true",
-        help="Don't verify server's SSL certificate")
     args = parser.parse_args()
 
     # Validate args
@@ -1305,7 +1277,7 @@ def main() -> None:
 
     # Demo config?
     if args.democonfig:
-        print(DEMO_CONFIG)
+        print(demo_nlp_config())
         return
 
     # List or describe processors?
@@ -1316,7 +1288,8 @@ def main() -> None:
         print(possible_processor_table())
         return
     if args.showinfo:
-        parser = get_nlp_parser_debug_instance(args.showinfo)
+        parser = make_nlp_parser_unconfigured(args.showinfo,
+                                              raise_if_absent=False)
         if parser:
             print(f"Info for class {args.showinfo}:\n")
             parser.print_info()
@@ -1346,21 +1319,24 @@ def main() -> None:
         show_dest_counts(config)
         return
 
-    # -------------------------------------------------------------------------
+    # Show configured processor definitions only?
+    if args.print_nlprp_list_processors_json:
+        print(config.nlprp_list_processors_json())
+        return
 
-    verify_ssl = not args.noverify
+    # -------------------------------------------------------------------------
 
     # Delete from queue - do this before Drop/Remake and return so we don't
     # drop all the tables just to cancel the request
     # Same for 'showqueue'. All of these need config as they require url etc.
     if args.cancelrequest:
-        cancel_request(config, verify_ssl=verify_ssl)
+        cancel_request(config)
         return
     if args.cancelall:
-        cancel_request(config, cancel_all=args.cancelall, verify_ssl=verify_ssl)
+        cancel_request(config, cancel_all=args.cancelall)
         return
     if args.showqueue:
-        show_cloud_queue(config, verify_ssl=verify_ssl)
+        show_cloud_queue(config)
         return
 
     log.info(f"Starting: incremental={args.incremental}")
@@ -1397,8 +1373,7 @@ def main() -> None:
                     process_cloud_now(
                         config,
                         incremental=args.incremental,
-                        report_every=args.report_every_nlp,
-                        verify_ssl=verify_ssl)
+                        report_every=args.report_every_nlp)
                 except Exception as exc:
                     log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
                     die(exc)
@@ -1406,16 +1381,14 @@ def main() -> None:
                 try:
                     process_cloud_nlp(config,
                                       incremental=args.incremental,
-                                      report_every=args.report_every_nlp,
-                                      verify_ssl=verify_ssl)
+                                      report_every=args.report_every_nlp)
                 except Exception as exc:
                     log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
                     die(exc)
         elif args.retrieve:
             try:
                 retrieve_nlp_data(config,
-                                  incremental=args.incremental,
-                                  verify_ssl=verify_ssl)
+                                  incremental=args.incremental)
             except Exception as exc:
                 log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
                 die(exc)

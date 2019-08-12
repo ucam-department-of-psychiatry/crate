@@ -67,7 +67,7 @@ import csv
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from cardinal_pythonlib.fileops import mkdir_p
 from cardinal_pythonlib.logs import configure_logger_for_colour
@@ -163,7 +163,7 @@ def get_patientnum_rawtext(docid: int,
     pidfield = fieldinfo.pid_ddrow.src_field
     pkfield = fieldinfo.pk_ddrow.src_field
     src_ddrows = config.dd.get_rows_for_src_table(sourcedbname, table)
-    sourcefields = []
+    sourcefields = []  # type: List[str]
     idx_pidfield = None
     idx_textfield = None
     for i, ddr in enumerate(src_ddrows):
@@ -413,8 +413,8 @@ def test_anon(uniquepatients: bool,
     )
     mkdir_p(rawdir)
     mkdir_p(anondir)
-    scrubdict = {}
-    pidset = set()
+    scrubdict = {}  # type: Dict[int, Dict[str, Any]]
+    pidset = set()  # type: Set[int]
     with open(resultsfile, 'w') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter='\t')
         first = True

@@ -32,7 +32,7 @@ crate_launch_cherrypy_server
 This is the standard cross-platform production server for CRATE, using
 CherryPy_.
 
-Options as of 2016-07-21:
+Options:
 
 ..  literalinclude:: crate_launch_cherrypy_server_help.txt
     :language: none
@@ -43,7 +43,7 @@ crate_launch_django_server
 
 This is a lightweight test server, using Django_ itself.
 
-Options as of 2016-07-21:
+Options:
 
 ..  literalinclude:: crate_launch_django_server_help.txt
     :language: none

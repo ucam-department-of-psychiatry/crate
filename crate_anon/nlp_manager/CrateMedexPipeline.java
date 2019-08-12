@@ -191,7 +191,7 @@ public class CrateMedexPipeline {
     /** Show a usage message. */
 
     private void usage() {
-        status(
+        System.out.print(
 "usage: CrateMedexPipeline -i DIR -o DIR\n" +
 "                          [-h] [-v [-v]] [-lt LOGTAG]\n" +
 "                          [-data_ready_signal DATA_READY]\n" +
@@ -217,8 +217,7 @@ public class CrateMedexPipeline {
 "                   Sets the 'data ready' signal that this program sends on\n" +
 "                   stdout once results are ready on disk.\n" +
 "\n" +
-"(*) MedEx argument\n",
-            false
+"(*) MedEx argument\n"
         );
     }
 

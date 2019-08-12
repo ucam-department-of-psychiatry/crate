@@ -34,6 +34,6 @@ Automatic documentation of source code
     common/_index.rst
     crateweb/_index.rst
     nlp_manager/_index.rst
-    nlp_web/_index.rst
+    nlp_webserver/_index.rst
     preprocess/_index.rst
     tools/_index.rst

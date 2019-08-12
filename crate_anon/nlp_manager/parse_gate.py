@@ -48,18 +48,21 @@ from sqlalchemy import Column, Index, Integer, Text
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
+    full_sectionname,
     MAX_SQL_FIELD_LEN,
+    NlpConfigPrefixes,
+    ProcessorConfigKeys,
     SqlTypeDbIdentifier,
 )
 from crate_anon.nlp_manager.nlp_definition import (
-    full_sectionname,
-    NlpConfigPrefixes,
     NlpDefinition,
 )
+from crate_anon.nlprp.constants import NlprpKeys, NlprpValues
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 
 log = logging.getLogger(__name__)
 
+# Field (column) names for results from GATE.
 # These match KEY_* strings in CrateGatePipeline.java:
 FN_SET = '_set'
 FN_TYPE = '_type'
@@ -67,15 +70,6 @@ FN_ID = '_id'
 FN_STARTPOS = '_start'
 FN_ENDPOS = '_end'
 FN_CONTENT = '_content'
-
-
-class GateConfigKeys(object):
-    MAX_EXTERNAL_PROG_USES = "max_external_prog_uses"
-    INPUT_TERMINATOR = "input_terminator"
-    OUTPUT_TERMINATOR = "output_terminator"
-    OUTPUTTYPEMAP = "outputtypemap"
-    PROGENVSECTION = "progenvsection"
-    PROGARGS = "progargs"
 
 
 # =============================================================================
@@ -143,6 +137,7 @@ class Gate(BaseNlpParser):
 
         if not nlpdef and not cfgsection:
             # Debugging only
+            self._debug_mode = True
             self._max_external_prog_uses = 0
             self._input_terminator = 'input_terminator'
             self._output_terminator = 'output_terminator'
@@ -151,22 +146,23 @@ class Gate(BaseNlpParser):
             progargs = ''
             logtag = ''
         else:
+            self._debug_mode = False
             self._max_external_prog_uses = nlpdef.opt_int(
-                self._sectionname, GateConfigKeys.MAX_EXTERNAL_PROG_USES,
+                self._sectionname, ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
                 default=0)
             self._input_terminator = nlpdef.opt_str(
-                self._sectionname, GateConfigKeys.INPUT_TERMINATOR,
+                self._sectionname, ProcessorConfigKeys.INPUT_TERMINATOR,
                 required=True)
             self._output_terminator = nlpdef.opt_str(
-                self._sectionname, GateConfigKeys.OUTPUT_TERMINATOR,
+                self._sectionname, ProcessorConfigKeys.OUTPUT_TERMINATOR,
                 required=True)
             typepairs = nlpdef.opt_strlist(
-                self._sectionname, GateConfigKeys.OUTPUTTYPEMAP,
+                self._sectionname, ProcessorConfigKeys.OUTPUTTYPEMAP,
                 required=True, lower=False)
             self._progenvsection = nlpdef.opt_str(
-                self._sectionname, GateConfigKeys.PROGENVSECTION)
+                self._sectionname, ProcessorConfigKeys.PROGENVSECTION)
             progargs = nlpdef.opt_str(
-                self._sectionname, GateConfigKeys.PROGARGS,
+                self._sectionname, ProcessorConfigKeys.PROGARGS,
                 required=True)
             logtag = nlpdef.get_logtag() or '.'
 
@@ -314,7 +310,7 @@ class Gate(BaseNlpParser):
             d = tsv_pairs_to_dict(line)
             log.debug(f"dictionary received: {d}")
             try:
-                annottype = d['_type'].lower()
+                annottype = d[FN_TYPE].lower()
             except KeyError:
                 raise ValueError("_type information not in data received")
             if annottype not in self._type_to_tablename:
@@ -342,6 +338,8 @@ class Gate(BaseNlpParser):
         """
         Test the :func:`send` function.
         """
+        if self._debug_mode:
+            return
         self.test_parser([
             "Bob Hope visited Seattle.",
             "James Joyce wrote Ulysses."
@@ -358,17 +356,17 @@ class Gate(BaseNlpParser):
         """
         return [
             Column(FN_SET, SqlTypeDbIdentifier,
-                   doc="GATE output set name"),
+                   comment="GATE output set name"),
             Column(FN_TYPE, SqlTypeDbIdentifier,
-                   doc="GATE annotation type name"),
+                   comment="GATE annotation type name"),
             Column(FN_ID, Integer,
-                   doc="GATE annotation ID (not clear this is very useful)"),
+                   comment="GATE annotation ID (not clear this is very useful)"),  # noqa
             Column(FN_STARTPOS, Integer,
-                   doc="Start position in the content"),
+                   comment="Start position in the content"),
             Column(FN_ENDPOS, Integer,
-                   doc="End position in the content"),
+                   comment="End position in the content"),
             Column(FN_CONTENT, Text,
-                   doc="Full content marked as relevant."),
+                   comment="Full content marked as relevant."),
         ]
 
     @staticmethod
@@ -399,3 +397,20 @@ class Gate(BaseNlpParser):
                 otconfig.get_indexes()
             )
         return tables
+
+    def nlprp_name(self) -> str:
+        # docstring in superclass
+        if self._debug_mode:
+            return super().nlprp_name()
+        else:
+            return self._nlpdef.get_name()
+
+    def nlprp_schema_info(self, sql_dialect: str = None) -> Dict[str, Any]:
+        # We do not absolutely need to override nlprp_schema_info(). Although
+        # CRATE's GATE processor doesn't automatically know its schema, it is
+        # told by the config (i.e. by the user) and can pass on that
+        # information. However, for debug mode, it's helpful to override.
+        if self._debug_mode:
+            return {NlprpKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN}
+        else:
+            return super().nlprp_schema_info(sql_dialect)
