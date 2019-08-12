@@ -1005,7 +1005,7 @@ Here's the specimen NLP config:
     Internally, this information is represented by classes such as
     :class:`crate_anon.nlp_manager.parse_gate.Gate` and
     :class:`crate_anon.nlp_manager.parse_biochemistry.Crp`, which are
-    subclasses of :class:`crate_anon.nlp_manager.regex_parser.BaseNlpParser`.
+    subclasses of :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`.
 
 .. [#cloudconfigclass]
    Internally, this information is represented by the

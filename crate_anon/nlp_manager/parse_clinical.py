@@ -596,7 +596,7 @@ class Bp(BaseNlpParser):
     (Since we produce two variables, SBP and DBP, and we use something a little
     more complex than
     :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`,
-    we subclass :class:`crate_anon.nlp_manager.regex_parser.BaseNlpParser`
+    we subclass :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
     directly.)
     """  # noqa
     BP = r"(?: \b blood \s+ pressure \b | \b B\.?P\.? \b )"
