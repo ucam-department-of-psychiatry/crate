@@ -1058,7 +1058,19 @@ Changes
   side-effects
 - More compact encoding (including for CRATE web Javascript) via
   :data:`crate_anon.constants.JSON_SEPARATORS_COMPACT`.
+- Removed dependencies:
 
+  - ``typing`` -- now using Python 3.6
+  - ``Werkzeug`` -- no longer in use
+
+- Pinned versions:
+
+  - ``pytz==2018.5``
+
+- Added requirements:
+
+  - ``cairosvg==2.4.0``
+  - ``pillow==6.1.0``
 
 ===============================================================================
 

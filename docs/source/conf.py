@@ -148,6 +148,10 @@ html_theme = "sphinx_rtd_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# favicon; see
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_favicon  # noqa
+html_favicon = "images/scrubber.ico"
+
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
 #
