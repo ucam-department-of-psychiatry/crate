@@ -462,6 +462,8 @@ Parameters for GATE processors
 What's GATE? See the section on :ref:`GATE NLP <gate_nlp>`.
 
 
+.. _nlp_config_section_gate_outputtypemap:
+
 outputtypemap
 +++++++++++++
 
@@ -505,7 +507,8 @@ example:
 
 .. code-block:: none
 
-    progargs = java
+    progargs =
+        java
         -classpath "{NLPPROGDIR}"{OS_PATHSEP}"{GATEDIR}/bin/gate.jar"{OS_PATHSEP}"{GATEDIR}/lib/*"
         -Dgate.home="{GATEDIR}"
         CrateGatePipeline
@@ -528,7 +531,7 @@ NOTE IN PARTICULAR:
 
 - Use a **forward slash directory separator, even under Windows.**
 
-- ... ? If that doesn't work, use a double backslash, ``\\``.
+  - ... ? If that doesn't work, use a double backslash, ``\\``.
 
 - Under Windows, use a semicolon to separate parts of the Java classpath.
   Under Linux, use a colon.
@@ -626,11 +629,14 @@ Config file section: GATE output definition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 These are config file sections named ``[output:XXX]`` where ``XXX`` is the
-name of one of your GATE output types.
+name of one of your GATE output types [#outputuserconfig]_.
 
 This is an additional thing we need for GATE applications, since CRATE doesn't
 automatically know what sort of output they will produce. The tables and
 SPECIFIC output fields for a given GATE processor are defined here.
+
+They are referred to by the :ref:`outputtypemap
+<nlp_config_section_gate_outputtypemap>` parameter (q.v.).
 
 
 desttable
@@ -818,7 +824,7 @@ Config file section: cloud NLP configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 These are config file sections named ``[cloud:XXX]`` where ``XXX`` is the name
-of one of your NLP definitions.
+of one of your NLP definitions [#cloudconfigclass]_.
 
 
 .. _nlp_config_cloud_url:
@@ -987,17 +993,27 @@ Here's the specimen NLP config:
 .. rubric:: Footnotes
 
 .. [#nlpdefinitionclass]
-    Internally, the config file section is represented by the `NlpDefinition`
-    class, which acts as the master config class.
+    Internally, the config file section is represented by the
+    :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition` class, which
+    acts as the master config class.
 
 .. [#inputfieldconfig]
-    Internally, this information is represented by the `InputFieldConfig`
-    class.
+    Internally, this information is represented by the
+    :class:`crate_anon.nlp_manager.input_field_config.InputFieldConfig` class.
 
 .. [#nlpparser]
     Internally, this information is represented by classes such as
-    `GateExtProgController` and `NumericalResultParser`, which are subclasses
-    of `NlpParser`.
+    :class:`crate_anon.nlp_manager.parse_gate.Gate` and
+    :class:`crate_anon.nlp_manager.parse_biochemistry.Crp`, which are
+    subclasses of :class:`crate_anon.nlp_manager.regex_parser.BaseNlpParser`.
+
+.. [#cloudconfigclass]
+   Internally, this information is represented by the
+   :class:`crate_anon.nlp_manager.cloud_config.CloudConfig` class.
 
 .. [#hashcollisions]
     https://en.wikipedia.org/wiki/Hash_function
+
+.. [#outputuserconfig]
+   Internally, this information is represented by the
+   :class:`crate_anon.nlp_manager.output_user_config.OutputUserConfig` class.

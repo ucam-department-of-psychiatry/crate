@@ -102,11 +102,17 @@ def demo_nlp_config() -> str:
 
     destdb = "DESTINATION_DATABASE"
     hashphrase = "doesnotmatter"
+    if_clin_docs = "INPUT_FIELD_CLINICAL_DOCUMENTS"
+    if_prog_notes = "INPUT_FIELD_PROGRESS_NOTES"
     inputfields = (
-        "INPUT_FIELD_CLINICAL_DOCUMENTS\n"
-        "    INPUT_FIELD_PROGRESS_NOTES"
+        f"{if_clin_docs}\n"
+        f"    {if_prog_notes}"
     )
     truncate_text_at = "32766"
+    my_src_db = "SOURCE_DATABASE"
+    my_cloud = "my_uk_cloud_service"
+    ridfield = "RID_FIELD"
+    tridfield = "TRID_FIELD"
 
     def _make_procdef_pair(name: str) -> str:
         return (f"""[{NlpConfigPrefixes.PROCESSOR}:procdef_{name}]
@@ -249,7 +255,7 @@ def demo_nlp_config() -> str:
     GATE procdef_gate_name_location
 {NlpDefConfigKeys.PROGRESSDB} = {destdb}
 {NlpDefConfigKeys.HASHPHRASE} = {hashphrase}
-{NlpDefConfigKeys.CLOUD_CONFIG} = my_uk_cloud_service
+{NlpDefConfigKeys.CLOUD_CONFIG} = {my_cloud}
 {NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR} = /srv/crate/clouddata
 
 
@@ -525,7 +531,8 @@ def demo_nlp_config() -> str:
 {ProcessorConfigKeys.OUTPUTTYPEMAP} =
     cDiagnosis output_lbd_diagnosis
     DiagnosisAlmost output_lbd_diagnosis
-{ProcessorConfigKeys.PROGARGS} = java
+{ProcessorConfigKeys.PROGARGS} =
+    java
     -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     CrateGatePipeline
@@ -583,7 +590,8 @@ def demo_nlp_config() -> str:
 
 {ProcessorConfigKeys.DESTDB} = {destdb}
 {ProcessorConfigKeys.DESTTABLE} = drugs
-{ProcessorConfigKeys.PROGARGS} = java
+{ProcessorConfigKeys.PROGARGS} =
+    java
     -classpath {{NLPPROGDIR}}:{{MEDEXDIR}}/bin:{{MEDEXDIR}}/lib/*
     -Dfile.encoding=UTF-8
     CrateMedexPipeline
@@ -611,41 +619,41 @@ OS_PATHSEP = :
 # D. Input field definitions
 # =============================================================================
 
-[{NlpConfigPrefixes.INPUT}:INPUT_FIELD_CLINICAL_DOCUMENTS]
+[{NlpConfigPrefixes.INPUT}:{if_clin_docs}]
 
-{InputFieldConfigKeys.SRCDB} = SOURCE_DATABASE
+{InputFieldConfigKeys.SRCDB} = {my_src_db}
 {InputFieldConfigKeys.SRCTABLE} = EXTRACTED_CLINICAL_DOCUMENTS
 {InputFieldConfigKeys.SRCPKFIELD} = DOCUMENT_PK
 {InputFieldConfigKeys.SRCFIELD} = DOCUMENT_TEXT
 {InputFieldConfigKeys.SRCDATETIMEFIELD} = DOCUMENT_DATE
 {InputFieldConfigKeys.COPYFIELDS} =
-    RID_FIELD
-    TRID_FIELD
+    {ridfield}
+    {tridfield}
 {InputFieldConfigKeys.INDEXED_COPYFIELDS} =
-    RID_FIELD
-    TRID_FIELD
+    {ridfield}
+    {tridfield}
 # {InputFieldConfigKeys.DEBUG_ROW_LIMIT} = 0
 
-[{NlpConfigPrefixes.INPUT}:INPUT_FIELD_PROGRESS_NOTES]
+[{NlpConfigPrefixes.INPUT}:{if_prog_notes}]
 
-{InputFieldConfigKeys.SRCDB} = SOURCE_DATABASE
+{InputFieldConfigKeys.SRCDB} = {my_src_db}
 {InputFieldConfigKeys.SRCTABLE} = PROGRESS_NOTES
 {InputFieldConfigKeys.SRCPKFIELD} = PN_PK
 {InputFieldConfigKeys.SRCFIELD} = PN_TEXT
 {InputFieldConfigKeys.SRCDATETIMEFIELD} = PN_DATE
 {InputFieldConfigKeys.COPYFIELDS} =
-    RID_FIELD
-    TRID_FIELD
+    {ridfield}
+    {tridfield}
 {InputFieldConfigKeys.INDEXED_COPYFIELDS} =
-    RID_FIELD
-    TRID_FIELD
+    {ridfield}
+    {tridfield}
 
 
 # =============================================================================
 # E. Database definitions, each in its own section
 # =============================================================================
 
-[{NlpConfigPrefixes.DATABASE}:SOURCE_DATABASE]
+[{NlpConfigPrefixes.DATABASE}:{my_src_db}]
 
 {DatabaseConfigKeys.URL} = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
 
@@ -658,7 +666,7 @@ OS_PATHSEP = :
 # F. Information for using cloud-based NLP
 # =============================================================================
 
-[{NlpConfigPrefixes.CLOUD}:my_uk_cloud_service]
+[{NlpConfigPrefixes.CLOUD}:{my_cloud}]
 
 {CloudNlpConfigKeys.CLOUD_URL} = https://your_url
 {CloudNlpConfigKeys.USERNAME} = your_username
