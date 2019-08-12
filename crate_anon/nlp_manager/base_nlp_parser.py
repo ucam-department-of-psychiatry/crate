@@ -425,7 +425,7 @@ class BaseNlpParser(object):
         #     log.warning(f"No word characters found in {text}")
         #     return
         if not text or not any(32 <= ord(c) <= 126 for c in text):
-            log.warning(f"No word characters found in {text}")
+            # log.warning(f"No word characters found in {text}")
             return
         starting_fields_values[FN_NLPDEF] = self._nlpdef.get_name()
         session = self.get_session()

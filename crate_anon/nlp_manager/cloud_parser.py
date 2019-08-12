@@ -95,6 +95,7 @@ class CloudNlpConfigKeys(object):
     REQUEST_DATA_DIR = "request_data_dir"
     MAX_LENGTH = "max_content_length"
     LIMIT_BEFORE_WRITE = "limit_before_write"
+    RATE_LIMIT = "rate_limit"
     STOP_AT_FAILURE = "stop_at_failure"
     WAIT_ON_CONN_ERR = "wait_on_conn_err"
 
@@ -109,6 +110,8 @@ class CloudRequest(object):
         'charset': 'utf-8',
         'Content-Type': 'application/json'
     }
+
+    rate_limit = 2
 
     def __init__(self,
                  nlpdef: NlpDefinition,
@@ -200,6 +203,16 @@ class CloudRequest(object):
     @staticmethod
     def utf8len(text: str) -> int:
         return len(text.encode('utf-8'))
+
+    @classmethod
+    def set_rate_limit(cls, limit: int) -> None:
+        """
+        Creates new methods which are rate limited. Only use this once per run.
+        """
+        cls.limited_process_request = rate_limited(
+            limit)(cls.send_process_request)
+        cls.limited_check_if_ready = rate_limited(
+            limit)(cls.check_if_ready)
 
     @classmethod
     def list_processors(cls,
@@ -321,7 +334,6 @@ class CloudRequest(object):
         else:
             return False
 
-    @rate_limited(2)
     def send_process_request(self, queue: bool,
                              cookies: List[Any] = None,
                              include_text: bool = True) -> None:
@@ -429,7 +441,6 @@ class CloudRequest(object):
         """
         self.queue_id = queue_id
 
-    @rate_limited(2)
     def try_fetch(self, cookies: List[Any] = None) -> Optional[Dict[str, Any]]:
         """
         Tries to fetch the response from the server. Assumes queued mode.

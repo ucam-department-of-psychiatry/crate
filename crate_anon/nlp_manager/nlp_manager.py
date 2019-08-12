@@ -561,7 +561,7 @@ def send_cloud_requests(
             empty_request = False
         else:
             if not empty_request:
-                cloud_request.send_process_request(queue, cookies)
+                cloud_request.limited_process_request(queue, cookies)
                 # If there's a connection error, we only get this far if we
                 # didn't choose to stop at failure
                 if cloud_request.request_failed:
@@ -606,7 +606,7 @@ def send_cloud_requests(
         other_values[FN_SRCHASH] = srchash
     if not empty_request:
         # Send last request
-        cloud_request.send_process_request(queue, cookies)
+        cloud_request.limited_process_request(queue, cookies)
         if cloud_request.request_failed:
             log.warning("Continuing after failed request.")
         else:
@@ -653,6 +653,11 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
         stop_at_failure = False
     else:
         stop_at_failure = True
+    rate_limit = config.get_int_default_if_failure(
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.RATE_LIMIT,
+        default=2)
+    CloudRequest.set_rate_limit(rate_limit)
     # Start with blank file
     open(f'{req_data_dir}/request_data_{nlpname}.txt', 'w').close()
     # Use append so that, if there's a problem part-way through, we don't lose
@@ -725,6 +730,11 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
         stop_at_failure = False
     else:
         stop_at_failure = True
+    rate_limit = config.get_int_default_if_failure(
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.RATE_LIMIT,
+        default=2)
+    CloudRequest.set_rate_limit(rate_limit)
     filename = f'{req_data_dir}/request_data_{nlpname}.txt'
     available_procs = CloudRequest.list_processors(url,
                                                    username,
@@ -769,7 +779,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
         cloud_request.set_queue_id(queue_id)
         log.info(f"Atempting to retrieve data from request #{i} ...")
         i += 1
-        ready = cloud_request.check_if_ready(cookies)
+        ready = cloud_request.limited_check_if_ready(cookies)
         if cloud_request.cookies:
             cookies = cloud_request.cookies
 
@@ -890,6 +900,11 @@ def process_cloud_now(
         stop_at_failure = False
     else:
         stop_at_failure = True
+    rate_limit = config.get_int_default_if_failure(
+        section=CLOUD_NLP_SECTION,
+        option=CloudNlpConfigKeys.RATE_LIMIT,
+        default=2)
+    CloudRequest.set_rate_limit(rate_limit)
     for ifconfig in nlpdef.get_ifconfigs():
         # Global record number within this ifconfig
         glob_recnum = 0
