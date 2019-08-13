@@ -21,6 +21,21 @@
 
 Web config file
 ===============
+.. todo:: add the rest
+
+Research Database Manager (RDBM) settings
+-----------------------------------------
+
+.. _webconfig_rdbm_email:
+
+RDBM_EMAIL
+##########
+
+*String.*
+
+E-mail address of the Research Database Manager (RDBM).
+
+
 
 Specimen config file
 --------------------

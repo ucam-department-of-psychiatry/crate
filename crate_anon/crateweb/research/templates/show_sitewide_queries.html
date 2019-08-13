@@ -11,37 +11,39 @@
     <h1>Standard Queries</h1>
 
     {% if queries %}
-        <table>
-            <tr>
-                <th>Description</th>
-                <th>SQL</th>
-                <th>Add</th>
-                <th>Run</th>
-            </tr>
+        <div class="table">  <!-- table div -->
+            <div>  <!-- row level, via CSS -->
+                <div class="th">Description</div>  <!-- cell level, via CSS -->
+                <div class="th">SQL</div>
+                <div class="th">Add</div>
+                <div class="th">Run</div>
+            </div>
+
             {% for query in queries %}
-                <tr>
-                    <form action="{% url 'process_standard_query' query.id %}" method="post">
-                        {% csrf_token %}
-                        <td>{{ query.description }}</td>
-                        <td>
+                <form action="{% url 'process_standard_query' query.id %}" method="post">  <!-- row level, via CSS -->
+                    {% csrf_token %}
+                    <div>{{ query.description }}</div>  <!-- cell level, via CSS -->
+                    <div>
                         {% for chunk in query.prettified_chunks %}
                             {% if forloop.counter|divisibleby:2 %}
                                 <input type="text" name="chunk{{ forloop.counter }}"
-                                       placeholder="{{ chunk }}"></input>
+                                       placeholder="{{ chunk }}">
                             {% else %}
                                 {{ chunk|safe }}
                             {% endif %}
                         {% endfor %}
-                         </td>
-                        <td>
-                            <input type="submit" name="submit_add" value="Add">
-                        </td>
-                        <td>
-                            <input type="submit" name="submit_run" value="Run">
-                        </td>
-                    </form>
-                </tr>
+                     </div>
+                    <div>
+                        <input type="submit" name="submit_add" value="Add">
+                    </div>
+                    <div>
+                        <input type="submit" name="submit_run" value="Run">
+                    </div>
+                </form>
             {% endfor %}
+
     {% endif %}
 
 {% endblock %}
+
+{% block helpurl %}{{ HelpUrl.sitewide_queries }}{% endblock %}

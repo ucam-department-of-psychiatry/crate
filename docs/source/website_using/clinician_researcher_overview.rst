@@ -44,11 +44,6 @@ There are some special (privileged) functions for clinicians:
 For researchers
 ~~~~~~~~~~~~~~~
 
-**Database structure**
-
-- Ask CRATE to show you the :ref:`structure of your database
-  <database_structure>` in different ways.
-
 **Standard query functions**
 
 - :ref:`Build a database query interactively <research_query_builder>`
@@ -79,6 +74,11 @@ For researchers
   database administrator, to answer commonly asked questions about your
   local data.
 
+**Database structure**
+
+- Ask CRATE to show you the :ref:`structure of your database
+  <database_structure>` in different ways.
+
 
 For researchers wishing to re-identify and contact patients
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -88,3 +88,32 @@ For researchers wishing to re-identify and contact patients
 
 - :ref:`Submit contact requests <c4c_submit_contact_request>`, seeking to
   re-identify and communicate with patients subject to their explicit consent.
+
+
+Your settings
+~~~~~~~~~~~~~
+
+Change your settings
+####################
+
+You can change your display formatting settings here (such as the default
+number of items to show per page, and how long textual result fields need to be
+before the site "collapses" the result so you have to click to see everything).
+
+
+Change your password
+####################
+
+You can change your CRATE password here.
+
+
+About CRATE
+~~~~~~~~~~~
+
+Show information about your CRATE server, including:
+
+- a link to this documentation at https://crateanon.readthedocs.io/;
+- the CRATE version your server is running;
+- how to cite CRATE in publications;
+- links to the CRATE source code and Python package;
+- third-party licence details.

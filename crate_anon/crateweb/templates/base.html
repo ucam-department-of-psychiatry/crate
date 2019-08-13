@@ -109,7 +109,9 @@
                 </div>
 
                 <div id="login-info">
-                    <p>User: <strong>{{ user }}</strong> | <a href="{% url 'logout' %}">logout</a></p>
+                    <p>User: <strong>{{ user }}</strong>
+                        | <a href="{% block helpurl %}{{ HelpUrl.website }}{% endblock %}">help</a>
+                        | <a href="{% url 'logout' %}">logout</a></p>
                 </div>
             </div>
 

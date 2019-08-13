@@ -14,7 +14,7 @@
         <textarea name="sql" rows="10" cols="70" required>{{ selected_sql }}</textarea>
         <div style="display: block;">
             <p><strong>Description:</strong></p>
-            <input type="text" name="description" size="50" value="{{ selected_description }}"></input>
+            <input type="text" name="description" size="50" value="{{ selected_description }}">
         </div>
         <input style="display: block;" type="submit" name="submit_add"
                value="Save to sitewide library" />
@@ -64,3 +64,5 @@
     </ul>
 
 {% endblock %}
+
+{% block helpurl %}{{ HelpUrl.rdbm }}{% endblock %}
