@@ -578,6 +578,104 @@ def get_identical_queries(request: HttpRequest, sql: str,
     return [q for q in identical_queries if q.sql == sql]
 
 
+@user_passes_test(is_clinician)
+def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
+    """
+    Parses clinicians' queries to find rid from pid.
+
+    SQL should be, e.g.:
+    'SELECT * FROM tablename WHERE ~pid:dbname = pidnumber' or
+    'SELECT * FROM tablename WHERE ~mpid:dbname IN (value1, value2, ...)'
+    where dbname has the secret lookup table the user wants to use.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        sql: SQL text
+
+    Returns:
+        [bool, str] where the bool is success (0) or failure (1).
+        If success, the str is the new sql and if failure it's the
+        error message.
+    """
+    sql_components = sql.split()
+    new_sql = ""
+    i = 0
+    while i < len(sql_components):
+        split_component = sql_components[i].split(":")
+        if len(split_component) == 2 and (
+                split_component[0] == "~pid"
+                or split_component[0] == "~mpid"):
+            id_type, dbname = split_component
+            try:
+                dbinfo = research_database_info.get_dbinfo_by_name(dbname)
+            except ValueError:
+                return [1, f"No such database with name '{dbname}'"]
+            rid_field = dbinfo.rid_field
+            i += 1
+            try:
+                operator = sql_components[i]
+            except IndexError:
+                return [1, "No operator given"]
+            if operator.upper() == "IN":
+                i += 1
+                try:
+                    if not sql_components[i].startswith("("):
+                        return [1, "When using the operator 'IN', values "
+                                "must be enclosed with brackets"]
+                except IndexError:
+                    return [1, "Missing values in clause"]
+                values = []
+                at_end = False
+                while not at_end:
+                    try:
+                        current = sql_components[i]
+                    except IndexError:
+                        return [1, "Final bracket missing in list of values"]
+                    values.extend(
+                        [x for x in
+                         current.replace("(", "").replace(")", "").split(",")
+                         if x]
+                    )
+                    if ")" in current or i >= len(sql_components):
+                        at_end = True
+                    i += 1
+                i += 1
+                if id_type == "~mpid":
+                    print(values)
+                    print(i)
+                    lookups = PidLookup.objects.using(
+                        dbinfo.secret_lookup_db).filter(Q(mpid__in=values))
+                else:
+                    lookups = PidLookup.objects.using(
+                        dbinfo.secret_lookup_db).filter(Q(pid__in=values))
+                rids = [l.rid for l in lookups]
+                if rids:
+                    rids = [f"'{rid}'" for rid in rids]
+                    extra_sql = ','.join(rids)
+                    new_sql += f"{rid_field} IN ({extra_sql})"
+                else:
+                    new_sql += f"{rid_field} = ''"
+            else:
+                i += 1
+                try:
+                    value = sql_components[i]
+                except IndexError:
+                    return [1, "Missing value in clause"]
+                i += 1
+                if id_type == "~mpid":
+                    lookup = PidLookup.objects.using(
+                        dbinfo.secret_lookup_db).filter(mpid=value).first()
+                else:
+                    lookup = PidLookup.objects.using(
+                        dbinfo.secret_lookup_db).filter(pid=value).first()
+                rid = "" if not lookup else lookup.rid
+                new_sql += f"{rid_field} {operator} '{rid}' "
+        else:
+            new_sql += f"{sql_components[i]} "
+            i += 1
+    return [0, new_sql]
+
+
 def query_submit(request: HttpRequest,
                  sql: str,
                  run: bool = False,
@@ -596,6 +694,13 @@ def query_submit(request: HttpRequest,
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    if is_clinician(request.user):
+        parsed_sql = parse_privileged_sql(request, sql)
+        print(parsed_sql[0])
+        if not parsed_sql[0]:
+            sql = parsed_sql[1]
+        else:
+            return generic_error(request, parsed_sql[1])
     identical_queries = get_identical_queries(request, sql)
     if identical_queries:
         identical_queries[0].activate()
