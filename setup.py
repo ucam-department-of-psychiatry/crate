@@ -119,9 +119,7 @@ EXTRAS_ARG = "extras"
 
 # Directories
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))  # .../crate
-CRATE_ANON_ROOT_DIR_NAME = "crate_anon"
 CRATE_ROOT_DIR = os.path.join(THIS_DIR, "crate_anon")  # .../crate/crate_anon/
-# DOC_ROOT_DIR = os.path.join(CRATE_ROOT_DIR, "docs")
 DOC_ROOT_DIR = os.path.join(THIS_DIR, "docs")
 DOC_HTML_DIR = os.path.join(DOC_ROOT_DIR, "build", "html")
 # noinspection PyUnresolvedReferences
@@ -141,65 +139,65 @@ with open(os.path.join(THIS_DIR, "README.rst"), encoding="utf-8") as f:
 
 # Package dependencies
 INSTALL_REQUIRES = [
-    "amqp==2.3.2",  # amqp is used by Celery  # noqa
+    "amqp==2.3.2",  # amqp is used by Celery
     "appdirs==1.4.3",  # where to store some temporary data
-    "arrow==0.12.1",  # better datetime
-    "beautifulsoup4==4.6.0",
-    "cardinal_pythonlib==1.0.60",
+    "arrow==0.12.1",  # [pin exact version from cardinal_pythonlib]
+    "beautifulsoup4==4.6.0",  # [pin exact version from cardinal_pythonlib]
+    "cardinal_pythonlib==1.0.60",  # RNC libraries
+    "cairosvg==2.4.0",  # work with SVG files
     "celery==4.0.1",  # 4.0.1 is the highest that"ll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
     "cherrypy==16.0.2",  # Cross-platform web server
     "colorlog==3.1.4",  # colour in logs
     "distro==1.3.0",  # replaces platform.linux_distribution
     "django==2.1.11",  # downgraded from 2.2.2 because it doesn"t work with django-pyodbc-azure  # noqa
-    "django-debug-toolbar==1.10.1",
+    "django-debug-toolbar==1.10.1",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==1.0.1",  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
-    "django-extensions==2.0.7",
+    "django-extensions==2.0.7",  # for graph_models, show_urls etc.
     "django-picklefield==1.0.0",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
-    # "django-silk==0.5.7",
-    "django-sslserver==0.20",
-    "flashtext==2.7",
+    # "django-silk==0.5.7",  # Django profiler
+    "django-sslserver==0.20",  # SSL development server for Django
+    "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==0.9.2",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==19.8.1",  # UNIX only, though will install under Windows
-    "kombu==4.1.0",  # requires VC++ under Windows # "mmh3==2.2",  # MurmurHash, for fast non-cryptographic hashing  # noqa
-    "openpyxl==2.5.4",  # for ONSPD
+    "kombu==4.1.0",  # AMQP library for Celery; requires VC++ under Windows
+    # "mmh3==2.2"  # MurmurHash, for fast non-cryptographic hashing
+    "openpyxl==2.5.4",  # read Excel
     "pendulum==2.0.2",  # dates/times
-    "pdfkit==0.6.1",
-    "prettytable==0.7.2",
+    "pillow==6.1.0",  # image processing; import as PIL (Python Imaging Library)  # noqa
+    "pdfkit==0.6.1",  # interface to wkhtmltopdf
+    "prettytable==0.7.2",  # pretty formating of text-based tables
     "psutil==5.4.6",  # process management
     "pygments==2.2.0",  # syntax highlighting
-    # REMOVED in version 0.18.42; needs Visual C++ under Windows  # "pyhashxx==0.1.3",  # fast non-cryptographic hashing  # noqa
     "pyparsing==2.2.0",  # generic grammar parser
-    "PyPDF2==1.26.0",
-    # "pytz==2016.10",
-    "python-dateutil==2.6.1",
+    "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]
+    "pytz==2018.5",  # timezones
+    "python-dateutil==2.6.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.5",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
-    "regex==2018.6.21",
+    "regex==2018.6.21",  # better regexes (cf. re)
     "semantic_version==2.6.0",  # semantic versioning; better than semver
-    "sortedcontainers==2.0.4",
+    "sortedcontainers==2.0.4",  # for SortedSet
     "SQLAlchemy==1.3.6",  # database access
-    "sqlparse==0.2.4",
-    "typing==3.6.4",  # part of stdlib in Python 3.5, but not 3.4
+    "sqlparse==0.2.4",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.0.22",  # for removing accents
-    "Werkzeug==0.14.1",
-    "xlrd==1.1.0",  # for ONSPD
+    "xlrd==1.1.0",  # for ONS postcode database handling; read Excel files
 
-    # Packages for cloud nlp
-    "bcrypt==3.1.6",
-    "cryptography==2.5",
-    # "mysqlclient",
-    "paste==3.0.6",
-    "pyramid==1.10.2",
-    "pyramid_tm==2.2.1",
-    "redis==3.2.1",
-    "requests==2.21.0",
-    "tornado==4.2",
-    "transaction==2.4.0",
+    # Packages for cloud NLP:
+    "bcrypt==3.1.6",  # bcrypt encryption
+    "cryptography==2.5",  # cryptography librar
+    # "mysqlclient",  # database access
+    "paste==3.0.6",  # middleware; https://github.com/cdent/paste/
+    "pyramid==1.10.2",  # Pyramid web framework
+    "pyramid_tm==2.2.1",  # Pyramid transaction management
+    "redis==3.2.1",  # interface to Redis in-memory key-value database
+    "requests==2.21.0",  # HTTP requests
+    "tornado==4.2",  # web framework
+    "transaction==2.4.0",  # generic transaction management
     "urllib3==1.24.2",  # used by requests
-    "waitress==1.2.1",
-    "zope.sqlalchemy==1.1",
+    "waitress==1.2.1",  # pure-Python WSGI server
+    "zope.sqlalchemy==1.1",  # Zope/SQLAlchemy transaction integration
 
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually

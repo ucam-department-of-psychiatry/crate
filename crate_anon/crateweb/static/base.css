@@ -1,5 +1,7 @@
 /* base.css */
 
+/* General HTML tags: */
+
 body {
     font-family: Arial, Helvetica, sans-serif;
     text-align: left;
@@ -9,37 +11,44 @@ em {
     color: rgb(0, 94, 184); /* NHS Blue; rgb(0, 94, 184) = #005EB8; https://www.england.nhs.uk/nhsidentity/identity-guidelines/colours/ */
     font-style: normal;
 }
+p {
+    margin: 0.4em 0;
+}
 pre {
     margin: 0;
 }
 span {
     display: inline;
 }
-table {
+table, .table {  /* ".table" is for e.g. <div class="table"> */
     display: table;  /* with table-cell, auto-resizing goes wrong */
     border-collapse: collapse;
     vertical-align: top;
     margin: 0.25em 0;
     /* width: 100%; */
 }
-tr {
+tr, .table>* {
     display: table-row;
 }
-th, td {
+th, td, .table>*>* {
     display: table-cell;
     vertical-align: top;
     border: 1px solid black;
     margin: 0.25em;
     padding: 0.1em 0.3em;
 }
-p {
-    margin: 0.4em 0;
+th, .th {
+    font-weight: bold;
 }
-td p {
-    /* p within td */
+td p {  /* p within td */
     margin: 0 0 0.4em 0;
 }
 
+/* Named classes: */
+
+.action {
+    color: rgb(0, 0, 150);
+}
 .addresses {
     clear: both;
 }
@@ -50,8 +59,8 @@ td p {
     float: right;
     text-align: right;
 }
-.action {
-    color: rgb(0, 0, 150);
+.code {
+    font-family: monospace;
 }
 .collapsible {
     margin: 0;
@@ -66,7 +75,6 @@ td p {
     max-height: 5em;
     overflow: hidden;
 }
-
 .consent {
     background-color: rgb(230, 230, 230);
     border: 0.5mm solid black;
@@ -94,6 +102,21 @@ td p {
 }
 .deadcell {
     background-color: rgb(200, 200, 200);
+}
+.ditto {
+    font-style: italic;
+    font-weight: bold;
+    text-align: center;
+    background-color: rgb(230, 230, 230);
+}
+.email_label {
+    text-align: left;
+    vertical-align: bottom;
+}
+.email_box, .options .email_box {
+    /* Increase CSS specificity to have this override ".options td" etc. */
+    padding-top: 0.5em;
+    border-bottom: 0.5mm solid black;
 }
 .error {
     color: rgb(255, 0, 0);
@@ -200,6 +223,10 @@ table.options, .options table {
 .patientprefs td {
     border-style: none;
 }
+.queryresult {
+    /* font-family: Georgia, "Times New Roman", Times, serif; */
+    font-family: "Times New Roman", Times, serif;
+}
 .rjust {
     text-align: right;
 }
@@ -221,34 +248,8 @@ table.options, .options table {
     padding-top: 2.5em;
     border-bottom: 0.5mm solid black;
 }
-.email_label {
-    text-align: left;
-    vertical-align: bottom;
-}
-.email_box, .options .email_box {
-    /* Increase CSS specificity to have this override ".options td" etc. */
-    padding-top: 0.5em;
-    border-bottom: 0.5mm solid black;
-}
-
 .study {
     background-color: rgb(200, 200, 255);
-}
-.titlecolour {
-    color: rgb(0, 114, 198);
-}
-.underline {
-    text-decoration: underline;
-}
-.queryresult {
-    /* font-family: Georgia, "Times New Roman", Times, serif; */
-    font-family: "Times New Roman", Times, serif;
-}
-.ditto {
-    font-style: italic;
-    font-weight: bold;
-    text-align: center;
-    background-color: rgb(230, 230, 230);
 }
 .stripy_odd {
 }
@@ -262,13 +263,18 @@ table.options, .options table {
     font-family: 'Consolas', 'Monaco', 'Bitstream Vera Sans Mono', monospace;
     text-align: right;
 }
+.titlecolour {
+    color: rgb(0, 114, 198);
+}
+.underline {
+    text-decoration: underline;
+}
 .warning {
     font-weight: bold;
     color: rgb(255, 0, 0);
 }
-.code {
-    font-family: monospace;
-}
+
+/* For paged media: */
 
 .page_break_before {
     page-break-before: always;

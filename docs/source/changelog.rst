@@ -1058,6 +1058,29 @@ Changes
   side-effects
 - More compact encoding (including for CRATE web Javascript) via
   :data:`crate_anon.constants.JSON_SEPARATORS_COMPACT`.
+- Removed dependencies:
+
+  - ``typing`` -- now using Python 3.6
+  - ``Werkzeug`` -- no longer in use
+
+- Pinned versions:
+
+  - ``pytz==2018.5``
+
+- Added requirements:
+
+  - ``cairosvg==2.4.0``
+  - ``pillow==6.1.0``
+
+- Context-sensitive help on the CRATE web site, via
+  :class:`crate_anon.common.constants.HelpUrl`.
+
+- Amended ``show_sitewide_queries.html`` to remove ``<form>`` children of
+  ``<tr>``; see
+
+  - https://stackoverflow.com/questions/7737163/form-within-table-row-tag
+  - https://stackoverflow.com/questions/1249688/html-is-it-possible-to-have-a-form-tag-in-each-table-row-in-a-xhtml-valid-way/16941843
+
 
 
 ===============================================================================

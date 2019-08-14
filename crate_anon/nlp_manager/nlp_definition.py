@@ -102,11 +102,20 @@ def demo_nlp_config() -> str:
 
     destdb = "DESTINATION_DATABASE"
     hashphrase = "doesnotmatter"
+    if_clin_docs = "INPUT_FIELD_CLINICAL_DOCUMENTS"
+    if_prog_notes = "INPUT_FIELD_PROGRESS_NOTES"
     inputfields = (
-        "INPUT_FIELD_CLINICAL_DOCUMENTS\n"
-        "    INPUT_FIELD_PROGRESS_NOTES"
+        f"{if_clin_docs}\n"
+        f"    {if_prog_notes}"
     )
     truncate_text_at = "32766"
+    my_env = "MY_ENV_SECTION"
+    my_src_db = "SOURCE_DATABASE"
+    my_cloud = "my_uk_cloud_service"
+    ridfield = "RID_FIELD"
+    tridfield = "TRID_FIELD"
+    nlp_input_terminator = "END_OF_TEXT_FOR_NLP"
+    nlp_output_terminator = "END_OF_NLP_OUTPUT_RECORD"
 
     def _make_procdef_pair(name: str) -> str:
         return (f"""[{NlpConfigPrefixes.PROCESSOR}:procdef_{name}]
@@ -249,7 +258,7 @@ def demo_nlp_config() -> str:
     GATE procdef_gate_name_location
 {NlpDefConfigKeys.PROGRESSDB} = {destdb}
 {NlpDefConfigKeys.HASHPHRASE} = {hashphrase}
-{NlpDefConfigKeys.CLOUD_CONFIG} = my_uk_cloud_service
+{NlpDefConfigKeys.CLOUD_CONFIG} = {my_cloud}
 {NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR} = /srv/crate/clouddata
 
 
@@ -298,20 +307,21 @@ def demo_nlp_config() -> str:
 {ProcessorConfigKeys.OUTPUTTYPEMAP} =
     Person output_person
     Location output_location
-{ProcessorConfigKeys.PROGARGS} = java
+{ProcessorConfigKeys.PROGARGS} =
+    java
     -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     {GATE_PIPELINE_CLASSNAME}
     --gate_app "{{GATEDIR}}/plugins/ANNIE/ANNIE_with_defaults.gapp"
     --annotation Person
     --annotation Location
-    --input_terminator END_OF_TEXT_FOR_NLP
-    --output_terminator END_OF_NLP_OUTPUT_RECORD
+    --input_terminator {nlp_input_terminator}
+    --output_terminator {nlp_output_terminator}
     --log_tag {{NLPLOGTAG}}
     --verbose
-{ProcessorConfigKeys.PROGENVSECTION} = MY_ENV_SECTION
-{ProcessorConfigKeys.INPUT_TERMINATOR} = END_OF_TEXT_FOR_NLP
-{ProcessorConfigKeys.OUTPUT_TERMINATOR} = END_OF_NLP_OUTPUT_RECORD
+{ProcessorConfigKeys.PROGENVSECTION} = {my_env}
+{ProcessorConfigKeys.INPUT_TERMINATOR} = {nlp_input_terminator}
+{ProcessorConfigKeys.OUTPUT_TERMINATOR} = {nlp_output_terminator}
 # {ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES} = 1000
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -361,20 +371,21 @@ def demo_nlp_config() -> str:
 {ProcessorConfigKeys.DESTDB} = {destdb}
 {ProcessorConfigKeys.OUTPUTTYPEMAP} =
     Disease_or_Syndrome output_disease_or_syndrome
-{ProcessorConfigKeys.PROGARGS} = java
+{ProcessorConfigKeys.PROGARGS} =
+    java
     -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     CrateGatePipeline
     --gate_app "{{KCONNECTDIR}}/main-bio/main-bio.xgapp"
     --annotation Disease_or_Syndrome
-    --input_terminator END_OF_TEXT_FOR_NLP
-    --output_terminator END_OF_NLP_OUTPUT_RECORD
+    --input_terminator {nlp_input_terminator}
+    --output_terminator {nlp_output_terminator}
     --log_tag {{NLPLOGTAG}}
     --suppress_gate_stdout
     --verbose
-{ProcessorConfigKeys.PROGENVSECTION} = MY_ENV_SECTION
-{ProcessorConfigKeys.INPUT_TERMINATOR} = END_OF_TEXT_FOR_NLP
-{ProcessorConfigKeys.OUTPUT_TERMINATOR} = END_OF_NLP_OUTPUT_RECORD
+{ProcessorConfigKeys.PROGENVSECTION} = {my_env}
+{ProcessorConfigKeys.INPUT_TERMINATOR} = {nlp_input_terminator}
+{ProcessorConfigKeys.OUTPUT_TERMINATOR} = {nlp_output_terminator}
 # {ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES} = 1000
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -426,21 +437,22 @@ def demo_nlp_config() -> str:
 {ProcessorConfigKeys.DESTDB} = {destdb}
 {ProcessorConfigKeys.OUTPUTTYPEMAP} =
     Prescription output_prescription
-{ProcessorConfigKeys.PROGARGS} = java
+{ProcessorConfigKeys.PROGARGS} =
+    java
     -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     CrateGatePipeline
     --gate_app "{{GATE_PHARMACOTHERAPY_DIR}}/application.xgapp"
     --include_set Output
     --annotation Prescription
-    --input_terminator END_OF_TEXT_FOR_NLP
-    --output_terminator END_OF_NLP_OUTPUT_RECORD
+    --input_terminator {nlp_input_terminator}
+    --output_terminator {nlp_output_terminator}
     --log_tag {{NLPLOGTAG}}
     --suppress_gate_stdout
     --show_contents_on_crash
 {ProcessorConfigKeys.PROGENVSECTION} = CPFT_ENV_SECTION
-{ProcessorConfigKeys.INPUT_TERMINATOR} = END_OF_TEXT_FOR_NLP
-{ProcessorConfigKeys.OUTPUT_TERMINATOR} = END_OF_NLP_OUTPUT_RECORD
+{ProcessorConfigKeys.INPUT_TERMINATOR} = {nlp_input_terminator}
+{ProcessorConfigKeys.OUTPUT_TERMINATOR} = {nlp_output_terminator}
 # {ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES} = 1000
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -485,11 +497,11 @@ def demo_nlp_config() -> str:
     date            VARCHAR(100)  ?. Optional string; max length unclear
     directionality  VARCHAR(100)  ?. Optional string; max length unclear
     experiencer     VARCHAR(100)  Person experiencing the drug-related event. Optional string; e.g. "Patient"
-    frequency       DECIMAL       ?. Optional numeric; "double" in the XML but DECIMAL probably better
-    interval        DECIMAL       ?. Optional numeric; "double" in the XML but DECIMAL probably better
+    frequency       DECIMAL       Frequency (times per <time_unit>). Optional numeric; "double" in the XML but DECIMAL probably better
+    interval        DECIMAL       The n in "every n <time_unit>s" (1 for "every <time_unit>"). Optional numeric; "double" in the XML but DECIMAL probably better
     length_of_time  VARCHAR(100)  ?. Optional string; from "Length of Time"; max length unclear
-    temporality     VARCHAR(100)  ?. Optional string; e.g. "Recent"
-    time_unit       VARCHAR(100)  ?. Optional string; from "time-unit"; e.g. "day"; max length unclear
+    temporality     VARCHAR(100)  ?. Optional string; e.g. "Recent", "Historical"
+    time_unit       VARCHAR(100)  Unit of time (see frequency, interval). Optional string; from "time-unit"; e.g. "day"; max length unclear
     unit_of_time    VARCHAR(100)  ?. Optional string; from "Unit of Time"; max length unclear
     when            VARCHAR(100)  ?. Optional string; max length unclear
 {GateOutputConfigKeys.INDEXDEFS} =
@@ -525,21 +537,22 @@ def demo_nlp_config() -> str:
 {ProcessorConfigKeys.OUTPUTTYPEMAP} =
     cDiagnosis output_lbd_diagnosis
     DiagnosisAlmost output_lbd_diagnosis
-{ProcessorConfigKeys.PROGARGS} = java
+{ProcessorConfigKeys.PROGARGS} =
+    java
     -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     CrateGatePipeline
     --gate_app "{{KCL_LBDA_DIR}}/application.xgapp"
     --set_annotation "" DiagnosisAlmost
     --set_annotation Automatic cDiagnosis
-    --input_terminator END_OF_TEXT_FOR_NLP
-    --output_terminator END_OF_NLP_OUTPUT_RECORD
+    --input_terminator {nlp_input_terminator}
+    --output_terminator {nlp_output_terminator}
     --log_tag {{NLPLOGTAG}}
     --suppress_gate_stdout
     --verbose
-{ProcessorConfigKeys.PROGENVSECTION} = MY_ENV_SECTION
-{ProcessorConfigKeys.INPUT_TERMINATOR} = END_OF_TEXT_FOR_NLP
-{ProcessorConfigKeys.OUTPUT_TERMINATOR} = END_OF_NLP_OUTPUT_RECORD
+{ProcessorConfigKeys.PROGENVSECTION} = {my_env}
+{ProcessorConfigKeys.INPUT_TERMINATOR} = {nlp_input_terminator}
+{ProcessorConfigKeys.OUTPUT_TERMINATOR} = {nlp_output_terminator}
 # {ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES} = 1000
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -567,8 +580,8 @@ def demo_nlp_config() -> str:
     #       ./application.xgapp
     #           ... in annotationTypes
     # On that basis:
-    rule            VARCHAR(100)  #
-    text            VARCHAR(200)  #
+    rule            VARCHAR(100)  Rule that generated the hit.
+    text            VARCHAR(200)  Text that matched the rule.
 {GateOutputConfigKeys.INDEXDEFS} =
     rule    100
     text    200
@@ -583,14 +596,15 @@ def demo_nlp_config() -> str:
 
 {ProcessorConfigKeys.DESTDB} = {destdb}
 {ProcessorConfigKeys.DESTTABLE} = drugs
-{ProcessorConfigKeys.PROGARGS} = java
+{ProcessorConfigKeys.PROGARGS} =
+    java
     -classpath {{NLPPROGDIR}}:{{MEDEXDIR}}/bin:{{MEDEXDIR}}/lib/*
     -Dfile.encoding=UTF-8
     CrateMedexPipeline
     -lt {{NLPLOGTAG}}
     -v -v
 # ... other arguments are added by the code
-{ProcessorConfigKeys.PROGENVSECTION} = MY_ENV_SECTION
+{ProcessorConfigKeys.PROGENVSECTION} = {my_env}
 
 
 # =============================================================================
@@ -598,7 +612,7 @@ def demo_nlp_config() -> str:
 # =============================================================================
 # - You'll need to modify this according to your local configuration.
 
-[{NlpConfigPrefixes.ENV}:MY_ENV_SECTION]
+[{NlpConfigPrefixes.ENV}:{my_env}]
 
 GATEDIR = /home/myuser/somewhere/GATE_Developer_8.0
 NLPPROGDIR = /home/myuser/somewhere/crate_anon/nlp_manager/compiled_nlp_classes
@@ -611,41 +625,41 @@ OS_PATHSEP = :
 # D. Input field definitions
 # =============================================================================
 
-[{NlpConfigPrefixes.INPUT}:INPUT_FIELD_CLINICAL_DOCUMENTS]
+[{NlpConfigPrefixes.INPUT}:{if_clin_docs}]
 
-{InputFieldConfigKeys.SRCDB} = SOURCE_DATABASE
+{InputFieldConfigKeys.SRCDB} = {my_src_db}
 {InputFieldConfigKeys.SRCTABLE} = EXTRACTED_CLINICAL_DOCUMENTS
 {InputFieldConfigKeys.SRCPKFIELD} = DOCUMENT_PK
 {InputFieldConfigKeys.SRCFIELD} = DOCUMENT_TEXT
 {InputFieldConfigKeys.SRCDATETIMEFIELD} = DOCUMENT_DATE
 {InputFieldConfigKeys.COPYFIELDS} =
-    RID_FIELD
-    TRID_FIELD
+    {ridfield}
+    {tridfield}
 {InputFieldConfigKeys.INDEXED_COPYFIELDS} =
-    RID_FIELD
-    TRID_FIELD
+    {ridfield}
+    {tridfield}
 # {InputFieldConfigKeys.DEBUG_ROW_LIMIT} = 0
 
-[{NlpConfigPrefixes.INPUT}:INPUT_FIELD_PROGRESS_NOTES]
+[{NlpConfigPrefixes.INPUT}:{if_prog_notes}]
 
-{InputFieldConfigKeys.SRCDB} = SOURCE_DATABASE
+{InputFieldConfigKeys.SRCDB} = {my_src_db}
 {InputFieldConfigKeys.SRCTABLE} = PROGRESS_NOTES
 {InputFieldConfigKeys.SRCPKFIELD} = PN_PK
 {InputFieldConfigKeys.SRCFIELD} = PN_TEXT
 {InputFieldConfigKeys.SRCDATETIMEFIELD} = PN_DATE
 {InputFieldConfigKeys.COPYFIELDS} =
-    RID_FIELD
-    TRID_FIELD
+    {ridfield}
+    {tridfield}
 {InputFieldConfigKeys.INDEXED_COPYFIELDS} =
-    RID_FIELD
-    TRID_FIELD
+    {ridfield}
+    {tridfield}
 
 
 # =============================================================================
 # E. Database definitions, each in its own section
 # =============================================================================
 
-[{NlpConfigPrefixes.DATABASE}:SOURCE_DATABASE]
+[{NlpConfigPrefixes.DATABASE}:{my_src_db}]
 
 {DatabaseConfigKeys.URL} = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
 
@@ -658,7 +672,7 @@ OS_PATHSEP = :
 # F. Information for using cloud-based NLP
 # =============================================================================
 
-[{NlpConfigPrefixes.CLOUD}:my_uk_cloud_service]
+[{NlpConfigPrefixes.CLOUD}:{my_cloud}]
 
 {CloudNlpConfigKeys.CLOUD_URL} = https://your_url
 {CloudNlpConfigKeys.USERNAME} = your_username

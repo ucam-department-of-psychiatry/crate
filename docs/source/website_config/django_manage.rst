@@ -38,3 +38,89 @@ The available commands are:
 
 ..  literalinclude:: crate_django_manage_help.txt
     :language: none
+
+Particularly relevant functions are as follows.
+
+[auth]
+------
+
+changepassword
+##############
+
+Change a user's password from the command line.
+
+
+createsuperuser
+###############
+
+Create a superuser from the command line.
+
+
+[consent]
+---------
+
+fetch_optouts
+#############
+
+Show PIDs/MPIDs for patients who have opted out entirely from the anonymised
+research database. See
+:class:`crate_anon.crateweb.consent.management.commands.fetch_optouts.Command`.
+This functionality is also available from the :ref`front-end web site, for
+RDBMs <rdbm_view_optouts>`.
+
+
+lookup_consent
+##############
+
+Tests patient identity lookup from the command line, without saving anything.
+See
+:class:`crate_anon.crateweb.consent.management.commands.lookup_consent.Command`.
+This functionality is also available from the :ref`front-end web site, for
+developers <dev_lookup_consent_mode>`.
+
+
+lookup_patient
+##############
+
+Tests patient identity lookup from the command line, without saving anything.
+See
+:class:`crate_anon.crateweb.consent.management.commands.lookup_patient.Command`.
+This functionality is also available from the :ref`front-end web site, for
+developers <dev_lookup_patient>`.
+
+
+populate
+########
+
+Ensures the database has entries for all the master leaflets used by CRATE.
+(Will not destroy any existing leaflet records.)
+
+See
+
+- :class:`crate_anon.crateweb.consent.management.commands.populate.Command`
+- :meth:`crate_anon.crateweb.consent.models.Leaflet.populate`
+
+
+resubmit_unprocessed_tasks
+##########################
+
+Ask Celery to catch up on any unprocessed CRATE tasks. Use this with caution!
+See :func:`crate_anon.crateweb.consent.tasks.resubmit_unprocessed_tasks_task`.
+
+
+test_email
+##########
+
+Tests the backend and e-mail systems by sending an e-mail to the RDBM. Also
+available from the :ref:`front-end web site <rdbm_test_message_queue>`.
+
+
+[staticfiles]
+-------------
+
+collectstatic
+~~~~~~~~~~~~~
+
+Copy relevant static files from their source location to the place that CRATE
+will serve them to users (or another front-end server, like Apache, will on its
+behalf). Needs to be run as part of site setup.

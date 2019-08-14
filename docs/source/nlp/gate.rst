@@ -83,6 +83,40 @@ You tell CRATE about the specific fields produced by a GATE application using
 the ``destfields`` option; see the :ref:`NLP config file <nlp_config>`.
 
 
+crate_nlp_build_gate_java_interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This program builds ``CrateGatePipeline``.
+
+Options:
+
+..  literalinclude:: crate_nlp_build_gate_java_interface_help.txt
+    :language: none
+
+
+CrateGatePipeline
+~~~~~~~~~~~~~~~~~
+
+The following specimen scripts presuppose that you have set the environment
+variable `GATE_DIR`, and assume specific locations for the compiled Java (e.g.
+files like `CrateGatePipeline.class`); edit them as required.
+
+Asking `CrateGatePipeline` to show its command-line options:
+
+.. literalinclude:: show_crate_gate_pipeline_options.sh
+    :language: bash
+
+The resulting output:
+
+..  literalinclude:: CrateGatePipeline_help.txt
+    :language: none
+
+Asking `CrateGatePipeline` to run the GATE “ANNIE” demonstration:
+
+.. literalinclude:: run_gate_annie_demo_via_crate.sh
+    :language: bash
+
+
 KConnect (Bio-YODIE)
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -95,6 +129,11 @@ This GATE application finds diseases.
 |testapp|
 
 |specimen|
+
+Script to test the app via the command line:
+
+.. literalinclude:: run_gate_kcl_kconnect_via_crate.sh
+    :language: bash
 
 
 KCL pharmacotherapy application
@@ -109,6 +148,11 @@ This GATE application finds drugs (medications).
 |testapp|
 
 |specimen|
+
+Script to test the app via the command line:
+
+.. literalinclude:: run_gate_kcl_pharmacotherapy_via_crate.sh
+    :language: bash
 
 
 KCL Lewy Body Diagnosis Application
@@ -128,6 +172,11 @@ This GATE application finds references to Lewy body dementia.
 |testapp|
 
 |specimen|
+
+Script to test the app via the command line:
+
+.. literalinclude:: run_gate_kcl_lbd_via_crate.sh
+    :language: bash
 
 
 .. _testgateapps:
@@ -181,38 +230,6 @@ different; see above.
   the Annotation List window (at the bottom).
 
 
-crate_nlp_build_gate_java_interface
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Options:
-
-..  literalinclude:: crate_nlp_build_gate_java_interface_help.txt
-    :language: none
-
-
-CrateGatePipeline
-~~~~~~~~~~~~~~~~~
-
-The following specimen scripts presuppose that you have set the environment
-variable `GATE_DIR`, and assume specific locations for the compiled Java (e.g.
-files like `CrateGatePipeline.class`); edit them as required.
-
-Asking `CrateGatePipeline` to show its command-line options:
-
-.. literalinclude:: show_crate_gate_pipeline_options.sh
-    :language: bash
-
-The resulting output:
-
-..  literalinclude:: CrateGatePipeline_help.txt
-    :language: none
-
-Asking `CrateGatePipeline` to run the GATE “ANNIE” demonstration:
-
-.. literalinclude:: run_gate_annie_demo_via_crate.sh
-    :language: bash
-
-
 Troubleshooting GATE
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -220,14 +237,14 @@ Troubleshooting GATE
 
 You may see an error like "Out of memory error: java heap space".
 
-On a Windows machine, set the ``_JAVA_OPTIONS`` environment variable (not
-``JAVA_OPTS``; we're not sure when that one applies).
+- On a Windows machine, set the ``_JAVA_OPTIONS`` environment variable (not
+  ``JAVA_OPTS``; we're not sure when that one applies).
 
-- Edit environment variables via the control panel or e.g.
-  ``rundll32 sysdm.cpl,EditEnvironmentVariables``.
+  - Edit environment variables via the control panel or e.g.
+    ``rundll32 sysdm.cpl,EditEnvironmentVariables``.
 
-- For the user or the system (as you prefer), set ``_JAVA_OPTIONS`` to e.g.
-  ``-Xms2048m -Xmx4096m -XX:MaxPermSize=1024m``.
+  - For the user or the system (as you prefer), set ``_JAVA_OPTIONS`` to e.g.
+    ``-Xms2048m -Xmx4096m -XX:MaxPermSize=1024m``.
 
 - Restart the relevant application (e.g. GATE Developer) and retry.
 

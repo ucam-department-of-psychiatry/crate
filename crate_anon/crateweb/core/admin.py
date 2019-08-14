@@ -411,7 +411,7 @@ class EmailMgrAdmin(EmailDevAdmin):
 
 class EmailResAdmin(EmailDevAdmin):
     """
-    Researcher RDBM admin view on
+    Researcher admin view on
     :class:`crate_anon.crateweb.consent.models.Email`.
 
     Restrict to e-mails visible to a researcher. Also, since we're not inhering

@@ -98,7 +98,7 @@ class Crp(SimpleNumericalResultParser):
     - values of <=6 mg/L or <10 mg/L are normal, and e.g. 70-250 mg/L in
       pneumonia.
 
-    - Refs include:
+    - Refs include:ga
       - http://www.ncbi.nlm.nih.gov/pubmed/7705110
       - http://emedicine.medscape.com/article/2086909-overview
 

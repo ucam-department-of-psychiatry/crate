@@ -59,65 +59,14 @@ then install it (see :ref:`Database drivers <database_drivers>`).
 Which Python modules should be installed?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use ``pip freeze`` to show what you have installed. For a Windows installation
-using SQL Server, the list below works. The ones you have to install manually
-are marked with ``# MANUAL``; CRATE installs the others.
+Use ``pip freeze`` to show what you have installed. The ones you have to
+install manually are marked with ``# MANUAL``; CRATE installs the others.
 
 .. code-block:: none
 
-    amqp==2.1.3
-    appdirs==1.4.0
-    arrow==0.10.0
-    Babel==2.3.4
-    beautifulsoup4==4.5.3
-    billiard==3.5.0.2
-    cardinal-pythonlib==0.2.13
-    celery==4.0.1
-    chardet==3.0.2
-    cheroot==5.1.0
-    CherryPy==10.0.0
-    colorama==0.3.7
-    colorlog==2.10.0
-    crate-anon==0.18.32
-    distro==1.0.2
-    Django==1.10.5
-    django-debug-toolbar==1.6
-    django-extensions==1.7.6
-    django-picklefield==0.3.2
     django-pyodbc-azure==1.10.4.0  # MANUAL: for Django to talk to SQL Server
-    django-sslserver==0.19
-    et-xmlfile==1.0.1
-    flower==0.9.1
-    gunicorn==19.6.0
-    jdcal==1.3
-    kombu==4.0.1
     mmh3==2.3.1  # MANUAL: to speed up hashing
-    openpyxl==2.4.2
-    packaging==16.8
-    pdfkit==0.6.1
-    portend==1.8
-    prettytable==0.7.2
-    psutil==5.0.1
-    Pygments==2.2.0
-    pyhashxx==0.1.3
     pyodbc==4.0.3  # MANUAL: for ODBC database connections
-    pyparsing==2.1.10
-    PyPDF2==1.26.0
-    pypiwin32==219
-    python-dateutil==2.6.0
-    pytz==2016.10
-    regex==2017.1.17
-    semver==2.7.5
-    six==1.10.0
-    sortedcontainers==1.5.7
-    SQLAlchemy==1.1.5
-    sqlparse==0.2.2
-    tempora==1.6.1
-    tornado==4.2
-    typing==3.5.3.0
-    vine==1.1.3
-    Werkzeug==0.11.15
-    xlrd==1.0.0
 
 
 Pretty colours all gone (anonymiser, NLP, etc.)

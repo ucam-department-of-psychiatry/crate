@@ -74,7 +74,9 @@ def run_cmd(cmdargs: List[str],
 
 
 def main():
+    # -------------------------------------------------------------------------
     # ancillary
+    # -------------------------------------------------------------------------
     run_cmd(["crate_estimate_mysql_memory_usage", "--help"],
             join(ANCILLARY_DIR, "crate_estimate_mysql_memory_usage_help.txt"))
     run_cmd(["crate_make_demo_database", "--help"],
@@ -83,7 +85,10 @@ def main():
             join(ANCILLARY_DIR, "crate_test_anonymisation_help.txt"))
     run_cmd(["crate_test_extract_text", "--help"],
             join(ANCILLARY_DIR, "crate_test_extract_text_help.txt"))
+
+    # -------------------------------------------------------------------------
     # anonymisation
+    # -------------------------------------------------------------------------
     run_cmd(["crate_anonymise", "--help"],
             join(ANON_DIR, "crate_anonymise_help.txt"))
     run_cmd(["crate_anonymise_multiprocess", "--help"],
@@ -91,7 +96,10 @@ def main():
     run_cmd(["crate_anonymise", "--democonfig"],
             join(ANON_DIR, "specimen_anonymiser_config.ini"))
     log.info("Manually generated: minimal_anonymiser_config.ini")
+
+    # -------------------------------------------------------------------------
     # nlp
+    # -------------------------------------------------------------------------
     run_cmd([join(NLP_DIR, "show_crate_gate_pipeline_options.sh")],
             join(NLP_DIR, "CrateGatePipeline_help.txt"))
     run_cmd([join(NLP_DIR, "show_crate_medex_pipeline_options.sh")],
@@ -119,7 +127,10 @@ def main():
     # run_cmd(["crate_nlp_webserver_manage_users", "--help"],
     #         join(NLP_DIR, "crate_nlp_webserver_manage_users_help.txt"))
     # todo: crate_nlp_webserver_manage_users not running (settings import fails)
+
+    # -------------------------------------------------------------------------
     # preprocessing
+    # -------------------------------------------------------------------------
     run_cmd(["crate_fetch_wordlists", "--help"],
             join(PREPROC_DIR, "crate_fetch_wordlists_help.txt"))
     run_cmd(["crate_fuzzy_id_match", "--allhelp"],
@@ -130,7 +141,10 @@ def main():
             join(PREPROC_DIR, "crate_preprocess_pcmis_help.txt"))
     run_cmd(["crate_preprocess_rio", "--help"],
             join(PREPROC_DIR, "crate_preprocess_rio_help.txt"))
+
+    # -------------------------------------------------------------------------
     # website_config
+    # -------------------------------------------------------------------------
     run_cmd(["crate_django_manage", "--help"],
             join(WEB_DIR, "crate_django_manage_help.txt"))
     run_cmd(["crate_launch_celery", "--help"],

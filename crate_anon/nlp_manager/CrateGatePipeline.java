@@ -218,6 +218,9 @@ public class CrateGatePipeline {
         // We're going to write to this:
         m_out = new PrintStream(System.out, true, m_pipe_encoding);
 
+        // Report arguments etc.
+        reportArgs(true);
+
         // Some GATE apps may write to System.out, which will cause us problems
         // unless we divert them:
         if (m_suppress_gate_stdout) {
@@ -233,9 +236,6 @@ public class CrateGatePipeline {
             System.setOut(System.err);
         }
 
-        // Report arguments etc.
-
-        reportArgs(true);
         // Sets:
         if (m_set_inclusion_list.size() == 0) {
             m_log.debug("Including all sets by default");
@@ -1206,11 +1206,27 @@ public class CrateGatePipeline {
 
     /** Write a key/value map to the debugging log. */
 
-    private void reportMap(Map<String, String> map) {
-        for (Map.Entry<String, String> entry : map.entrySet()) {
-            m_log.debug(entry.getKey() + ":" +
-                        escapeTabsNewlines(entry.getValue()));
+    private void reportEntry(String key, String value) {
+        m_log.debug(key + ":" + escapeTabsNewlines(value));
+    }
+
+    private void reportMap(Map<String, String> map, boolean sort_keys) {
+        if (sort_keys) {
+            // https://stackoverflow.com/questions/922528/how-to-sort-map-values-by-key-in-java
+            SortedSet<String> keys = new TreeSet<>(map.keySet());
+            for (String key : keys) {
+                String value = map.get(key);
+                reportEntry(key, value);
+            }
+        } else {
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                reportEntry(entry.getKey(), entry.getValue());
+            }
         }
+    }
+
+    private void reportMap(Map<String, String> map) {
+        reportMap(map, true);
     }
 
     // ========================================================================

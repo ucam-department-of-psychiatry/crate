@@ -31,14 +31,14 @@ RiO is a mental health EMR system from Servelec.
 
 **Things to do**
 
-TODO:
+.. todo::
     preprocess_rio: specific supposed PK failing (non-unique) on incremental
 
-TODO:
+.. todo::
     preprocess_rio: Imperfectly tested: Audit_Created_Date, Audit_Updated_Date
     ... some data for Audit_Created_Date, but incomplete audit table
 
-TODO:
+.. todo::
     preprocess_rio: Similarly, all cross-checks to RCEP output (currently
     limited by data availability)
 
