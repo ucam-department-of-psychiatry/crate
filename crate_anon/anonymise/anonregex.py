@@ -61,7 +61,8 @@ log = logging.getLogger(__name__)
 
 REGEX_METACHARS = ["\\", "^", "$", ".",
                    "|", "?", "*", "+",
-                   "(", ")", "[", "{"]
+                   "(", ")", "[", "{",
+                   "#", " "]
 # http://www.regular-expressions.info/characters.html
 # Start with \, for replacement.
 
@@ -527,7 +528,10 @@ def get_regex_from_elements(elementlist: List[str]) -> Optional[Pattern]:
         return None
     try:
         s = get_regex_string_from_elements(elementlist)
-        return regex.compile(s, regex.IGNORECASE | regex.UNICODE)
+        return regex.compile(
+            s,
+            regex.IGNORECASE | regex.UNICODE | regex.VERBOSE | regex.MULTILINE
+        )
     except _regex_core.error:
         log.exception(f"Failed regex: elementlist={elementlist}")
         raise
