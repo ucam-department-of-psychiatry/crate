@@ -140,6 +140,8 @@ urlpatterns = [
         research_views.save_display, name='save_display'),
     url(r'^show_query/(?P<query_id>[0-9]+)/$',
         research_views.show_query, name='show_query'),
+    url(r'^source_information/(?P<srcdb>.+)/(?P<srctable>.+)/(?P<srcfield>.+)/(?P<srcpkfield>.+)/(?P<srcpkval>.+)/(?P<srcpkstr>.+)/$',  # noqa
+        research_views.source_info, name='srcinfo'),
 
     # -------------------------------------------------------------------------
     # Patient Explorer views

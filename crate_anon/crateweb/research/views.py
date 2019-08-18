@@ -33,7 +33,7 @@ import datetime
 import json
 import logging
 # import pprint
-from typing import Any, Dict, Iterable, List, Type, Union
+from typing import Any, Dict, Iterable, List, Type, Union, Optional
 
 from cardinal_pythonlib.dbfunc import get_fieldnames_from_cursor
 from cardinal_pythonlib.django.function_cache import django_cache_function
@@ -51,7 +51,7 @@ from django.core.exceptions import (
     ValidationError,
 )
 # from django.db import connection
-from django.db import DatabaseError
+from django.db import DatabaseError, ProgrammingError
 from django.db.models import Q, QuerySet
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django.http.request import HttpRequest
@@ -106,6 +106,7 @@ from crate_anon.crateweb.research.models import (
     PatientMultiQuery,
     Query,
     SitewideQuery,
+    get_executed_researchdb_cursor,
 )
 from crate_anon.crateweb.research.research_db_info import (
     research_database_info,
@@ -127,6 +128,16 @@ log = BraceStyleAdapter(logging.getLogger(__name__))
 
 # Maximum number of characters to show of a query in html
 MAX_LEN_SHOW = 20000
+
+
+# Fieldnames for CRATE NLP table
+FN_NLPDEF = '_nlpdef'
+FN_SRCDB = '_srcdb'
+FN_SRCTABLE = '_srctable'
+FN_SRCFIELD = '_srcfield'
+FN_SRCPKFIELD = '_srcpkfield'
+FN_SRCPKVAL = '_srcpkval'
+FN_SRCPKSTR = '_srcpkstr'
 
 
 # =============================================================================
@@ -578,6 +589,7 @@ def get_identical_queries(request: HttpRequest, sql: str,
     return [q for q in identical_queries if q.sql == sql]
 
 
+# noinspection PyUnusedLocal
 @user_passes_test(is_clinician)
 def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
     """
@@ -641,8 +653,6 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
                     i += 1
                 i += 1
                 if id_type == "~mpid":
-                    print(values)
-                    print(i)
                     lookups = PidLookup.objects.using(
                         dbinfo.secret_lookup_db).filter(Q(mpid__in=values))
                 else:
@@ -673,6 +683,8 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
         else:
             new_sql += f"{sql_components[i]} "
             i += 1
+    # Remove trailing space
+    new_sql = new_sql.strip()
     return [0, new_sql]
 
 
@@ -696,7 +708,6 @@ def query_submit(request: HttpRequest,
     """
     if is_clinician(request.user):
         parsed_sql = parse_privileged_sql(request, sql)
-        print(parsed_sql[0])
         if not parsed_sql[0]:
             sql = parsed_sql[1]
         else:
@@ -1042,6 +1053,71 @@ def query_count_current(request: HttpRequest) -> HttpResponse:
     return render_resultcount(request, query)
 
 
+@django_cache_function(timeout=None)
+def get_source_results(srcdb: str, srctable: str,
+                       srcfield: str, srcpkfield: str,
+                       srcpk: Union[str, int]) -> List[Any]:
+    dbname = research_database_info.sourcedb_defs.get(srcdb)
+    try:
+        dbinfo = research_database_info.get_dbinfo_by_name(dbname)
+    except ValueError:
+        return [None, None, None, f"No source database named {srcdb}"]
+    full_tablename = dbinfo.schema_identifier + "." + srctable
+    sql = f"SELECT {srcfield} FROM {full_tablename} WHERE {srcpkfield}={srcpk}"
+    try:
+        cursor = get_executed_researchdb_cursor(sql)
+    except ProgrammingError:
+        return [None, None, None, "Table or fieldname incorrect"]
+    fieldnames = get_fieldnames_from_cursor(cursor)
+    results = cursor.fetchall()
+    return [fieldnames, results, sql, None]
+
+
+def source_info(request: HttpRequest, srcdb: str, srctable: str,
+                srcfield: str, srcpkfield: str, srcpkval: Optional[str],
+                srcpkstr: Optional[str]) -> HttpResponse:
+    """
+    Show source information for a record in a CRATE NLP table.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        srcdb: source database as given by the nlp record
+        srctable: source table
+        srcfield: source field
+        srcpkfield: the fieldname in the source table which contains the
+                    primary key
+        srcpkval: primary key value in source table - may be 'None'
+        srcpkstr: primary key string in source table - may be 'None'
+
+    Returns:
+        a :class:`django.http.response.HttpResponse`
+
+    Only one of srcpkval and srcpkstr should be 'None', and this will be given
+    as a string because it's through a link.
+    """
+    if srcpkstr == 'None':
+        srcpkstr = None
+    srcpk = srcpkstr if srcpkstr else srcpkval
+    fieldnames, results, sql, error = get_source_results(
+        srcdb, srctable, srcfield, srcpkfield, srcpk)
+    if error:
+        return generic_error(request, f"Source info lookup failed: {error}")
+    if not results:
+        log.warning(f"No source data found. SQL: {sql}")
+    else:
+        if len(results) > 1:
+            log.warning(f"More than one source record found. SQL: {sql}")
+    table_html = resultset_html_table(fieldnames=fieldnames, rows=results,
+                                      element_counter=HtmlElementCounter())
+    context = {
+        'table_html': table_html,
+        'sql': prettify_sql_html(sql),
+        'sql_highlight_css': prettify_sql_css(),
+    }
+    # context.update(query_context(request))
+    return render(request, 'source_information.html', context)
+
+
 def query_results(request: HttpRequest, query_id: str) -> HttpResponse:
     """
     View the results of chosen query, in conventional tabular format.
@@ -1327,6 +1403,33 @@ def resultset_html_table(fieldnames: List[str],
     # Considered but not implemented: hiding table columns
     # ... see esp "tr > *:nth-child(n)" at
     # http://stackoverflow.com/questions/5440657/how-to-hide-columns-in-html-table  # noqa
+    nlptable = False
+    if FN_NLPDEF in fieldnames:
+        print("_nlpdef found!")
+        srcdb_ind = srctable_ind = srcfield_ind = None
+        srcpkfield_ind = srcpkval_ind = srcpkstr_ind = None
+        for i, field in enumerate(fieldnames):
+            if field == FN_SRCDB:
+                print("_srcdb found!")
+                srcdb_ind = i
+            elif field == FN_SRCTABLE:
+                print("_srctable found!")
+                srctable_ind = i
+            elif field == FN_SRCFIELD:
+                print("_srcfield found!")
+                srcfield_ind = i
+            elif field == FN_SRCPKFIELD:
+                print("_srcpkfield found!")
+                srcpkfield_ind = i
+            elif field == FN_SRCPKVAL:
+                print("_srcpkval found!")
+                srcpkval_ind = i
+            elif field == FN_SRCPKSTR:
+                print("_srcpkstr found!")
+                srcpkstr_ind = i
+        if all((srcdb_ind, srctable_ind, srcfield_ind, srcpkfield_ind,
+               srcpkval_ind, srcpkstr_ind)):
+            nlptable = True
     no_ditto_cols = no_ditto_cols or []
     ditto_cell = f'    <td class="queryresult ditto">{ditto_html}</td>\n'
     html = '<table>\n'
@@ -1334,6 +1437,8 @@ def resultset_html_table(fieldnames: List[str],
     html += '    <th><i>#</i></th>\n'
     for field in fieldnames:
         html += f'    <th>{escape(field)}</th>\n'
+    if nlptable:
+        html += '    <th>Link to source</th>\n'
     html += '  </tr>\n'
     for row_index, row in enumerate(rows):
         # row_index is zero-based within this table
@@ -1360,6 +1465,18 @@ def resultset_html_table(fieldnames: List[str],
                         null=null
                     )
                 )
+        # If it's an NLP table, add link to source info
+        if nlptable:
+            # noinspection PyUnboundLocalVariable
+            source_url = reverse('srcinfo', kwargs={
+                'srcdb': row[srcdb_ind],
+                'srctable': row[srctable_ind],
+                'srcfield': row[srcfield_ind],
+                'srcpkfield': row[srcpkfield_ind],
+                'srcpkval': row[srcpkval_ind],
+                'srcpkstr': row[srcpkstr_ind]
+            })
+            html += f'    <td><a href="{source_url}">Source info</a></td>\n'
         html += '  </tr>\n'
     html += '</table>\n'
     return html

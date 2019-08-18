@@ -932,6 +932,8 @@ class ResearchDatabaseInfo(object):
                 f"{ResearchDbInfoKeys.SECRET_LOOKUP_DB!r} attribute"
             )
 
+            self.sourcedb_defs = settings.SOURCEDB_DEFS
+
     # -------------------------------------------------------------------------
     # Classmethods, staticmethods
     # -------------------------------------------------------------------------
