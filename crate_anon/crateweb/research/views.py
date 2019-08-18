@@ -1057,6 +1057,23 @@ def query_count_current(request: HttpRequest) -> HttpResponse:
 def get_source_results(srcdb: str, srctable: str,
                        srcfield: str, srcpkfield: str,
                        srcpk: Union[str, int]) -> List[Any]:
+    """
+    Get source text for CRATE NLP table record.
+
+    Args:
+        srcdb: source database as given by the nlp record
+        srctable: source table
+        srcfield: source field
+        srcpkfield: the fieldname in the source table which contains the
+                    primary key
+        srcpk: source primary key value
+
+    Returns:
+        A list: [fieldnames in source record - type Optional[List[str]],
+                 source record result - type Optional[List[List[Any]]],
+                 sql used in getting source text - type Optional[str],
+                 error - type Optional[str]]
+    """
     dbname = research_database_info.sourcedb_defs.get(srcdb)
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
