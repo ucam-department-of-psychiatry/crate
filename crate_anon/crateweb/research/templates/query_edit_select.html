@@ -53,6 +53,44 @@
                 </li>
         {% endif %}
 
+        {% if dbinfolist %}
+            <li>If you are registered with the website as a clinician, you can
+                use the following method to convert unanonymised patient ids to
+                anonymised research ids:<br>
+                Write your query as normal but replace the condition
+                <code>rid = ridvalue</code> with
+                <b><code>~pid:dbname = pidvalue</code></b> or
+                <b><code>~mpid:dbname = mpidvalue</code></b>.
+                where 'dbname' is the website's name for the database whose
+                whose rid you want to find (choices are
+                {% for dbinfo in dbinfolist %}
+                    '{{dbinfo.name}}',
+                {% endfor %}).
+                Note:
+                <ul>
+                    <li>This works with the 'IN' operator as well.</li>
+                    <li>'pid' refers to the patient id, which for the databases
+                        in the order listed above means
+                        {% for dbinfo in dbinfolist %}
+                            '{{dbinfo.pid_pseudo_field}}',
+                        {% endfor %}
+                    </li>
+                    <li>'mpid' refers to the master patient id, which for the
+                        databases in the order listed above means
+                        {% for dbinfo in dbinfolist %}
+                            '{{dbinfo.mpid_pseudo_field}}',
+                        {% endfor %}
+                    </li>
+                    <li>'rid' refers to the research id, which for the
+                        databases in the order listed above means
+                        {% for dbinfo in dbinfolist %}
+                            '{{dbinfo.rid_field}}',
+                        {% endfor %}
+                    </li>
+                </ul>
+            </li>
+        {% endif %}
+
         <li>The query builder is not as sophisticated as raw SQL, so it may
             fail to alter complex SQL properly.</li>
     </ul>

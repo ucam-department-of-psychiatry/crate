@@ -622,6 +622,8 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
                 dbinfo = research_database_info.get_dbinfo_by_name(dbname)
             except ValueError:
                 return [1, f"No such database with name '{dbname}'"]
+            if not dbinfo.secret_lookup_db:
+                return [1, f"Database '{dbname}' has no pid to rid lookup"]
             rid_field = dbinfo.rid_field
             i += 1
             try:
@@ -812,6 +814,8 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
         'dialect_mysql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
         'dialect_mssql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
         'sql_highlight_css': prettify_sql_css(),
+        'dbinfolist': (None if not is_clinician(request.user) else
+                      research_database_info.dbinfolist),
     }
     context.update(query_context(request))
     return render(request, 'query_edit_select.html', context)
