@@ -667,7 +667,7 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
                     new_sql += f"{rid_field} IN ({extra_sql})"
                 else:
                     new_sql += f"{rid_field} = ''"
-            else:
+            elif operator == "=":
                 i += 1
                 try:
                     value = sql_components[i]
@@ -682,6 +682,10 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
                         dbinfo.secret_lookup_db).filter(pid=value).first()
                 rid = "" if not lookup else lookup.rid
                 new_sql += f"{rid_field} {operator} '{rid}' "
+            else:
+                return [1, "pid and mpid conversion does not work with "
+                           f"operator '{operator}', only with operators '=' "
+                           "and 'IN'."]
         else:
             new_sql += f"{sql_components[i]} "
             i += 1
