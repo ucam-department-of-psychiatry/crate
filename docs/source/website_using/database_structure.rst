@@ -86,10 +86,12 @@ The same information as for the :ref:`HTML view
 `Office Open XML`_ (Excel .XLSX) file.
 
 
+.. _help_local_database_structure:
+
 Help on local database structure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This simply shows a page defined by your administrator.
 
-(See ``DATABASE_HELP_HTML_FILENAME`` in :ref:`Web config file
-<web_config_file>`.)
+(See :ref:`DATABASE_HELP_HTML_FILENAME <DATABASE_HELP_HTML_FILENAME>` in
+:ref:`Web config file <web_config_file>`.)

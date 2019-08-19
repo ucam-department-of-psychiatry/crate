@@ -7,7 +7,7 @@ crate_anonymise --help).
 optional arguments:
   -h, --help            show this help message and exit
   --nproc [NPROC], -n [NPROC]
-                        Number of processes (default on this machine: 8)
+                        Number of processes (default on this machine: 4)
   --verbose, -v         Be verbose
 
-# Generated at 2019-08-12 00:04:53
+# Generated at 2019-08-19 17:31:31

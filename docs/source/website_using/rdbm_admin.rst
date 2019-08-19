@@ -221,7 +221,7 @@ Test message queue by sending an e-mail to the RDBM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This tests the full CRATE message system, by sending an e-mail to the e-mail
-address defined by the :ref:`RDBM_EMAIL <webconfig_rdbm_email>` setting in the
+address defined by the :ref:`RDBM_EMAIL <RDBM_EMAIL>` setting in the
 CRATE web config file. The sequence is as follows:
 
 - CRATE front end → Celery → Celery broker (e.g. via AMQP to RabbitMQ)

@@ -31,6 +31,9 @@ Put the secret stuff here.
 SPECIMEN FILE ONLY - edit to your own requirements.
 IT WILL NOT WORK until you've edited it.
 
+For help, see
+https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html
+
 """
 
 import os
@@ -49,6 +52,7 @@ from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 # =============================================================================
 # Site URL configuration
 # =============================================================================
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"  # example for Apache  # noqa
 # DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://localhost:8000"  # for the Django dev server  # noqa
@@ -59,9 +63,7 @@ FORCE_SCRIPT_NAME = ""
 # =============================================================================
 # Site security
 # =============================================================================
-
-# FOR SECURITY:
-# See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  # CHANGE THIS!  # noqa
@@ -88,20 +90,16 @@ else:
 # =============================================================================
 # Celery configuration
 # =============================================================================
-
-# Override BROKER_URL if you want.
-# This will allow you to use multiple virtual hosts, to host multiple
-# independent instances (in the unlikely event you'd wat to!)
-# See
-#   http://stackoverflow.com/questions/12209652/multi-celery-projects-with-same-rabbitmq-broker-backend-process  # noqa
-# Similarly, override BROKER_URL to improve RabbitMQ security.
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 # =============================================================================
 # Database configuration
 # =============================================================================
-# https://docs.djangoproject.com/en/1.8/ref/settings/#databases
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 DATABASES = {
+    # See https://docs.djangoproject.com/en/1.8/ref/settings/#databases
+
     # -------------------------------------------------------------------------
     # Django database for web site (inc. users, audit).
     # -------------------------------------------------------------------------
@@ -174,10 +172,6 @@ DATABASES = {
 }
 
 # Which database should be used to look up demographic details?
-# Must (a) be a key of ClinicalDatabaseType.DATABASE_CHOICES in
-#          crate_anon/crateweb/config/constants.py;
-#      (b) be defined in DATABASES, above, UNLESS it is 'dummy_clinical'
-#          (which is just for testing purposes)
 CLINICAL_LOOKUP_DB = 'dummy_clinical'
 
 # Which database should be used to look up consent modes?
@@ -186,21 +180,8 @@ CLINICAL_LOOKUP_CONSENT_DB = 'dummy_clinical'
 # Research database title (displayed in web site)
 RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 
-# Databases/schemas to provide database structure info for, and details on how
-# to join within/between them (for the query builder).
-# - Note that ALL these databases use the DATABASES['research'] connection
-#   specified above.
-# - Under SQL Server, "database" and "schema" are different levels of
-#   organization. Specify a schema of "dbo" if you are unsure; this is the
-#   default.
-# - Under MySQL, "database" and "schema" mean the same thing. Here, we'll call
-#   this a SCHEMA.
-# - The first database/schema is the default selected in the query builder.
-# - WITHIN a schema, tables will be autojoined on the trid_field.
-# - ACROSS schemas, tables will be autojoined on the rid_field if they are in
-#   the same rid_family (a non-False Python value, e.g. integers starting at
-#   1), and on mrid_table.mrid_field otherwise.
-# - PostgreSQL can only query a single database via a single connection.
+# Database structure information for CRATE's query builders.
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 RESEARCH_DB_INFO = [
     {
         # Unique name:
@@ -244,10 +225,11 @@ RESEARCH_DB_INFO = [
         # that is a database alias from DATABASES:
         RDIKeys.SECRET_LOOKUP_DB: 'secret_1',
 
-        # For the data finder: is there a standard date field for most patient
-        # tables?
+        # For the data finder: table-specific and default date column names
         RDIKeys.DATE_FIELDS_BY_TABLE: {},
         RDIKeys.DEFAULT_DATE_FIELDS: ['default_date_field'],
+
+        # Column name giving time that record was updated
         RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
     },
     {
@@ -272,6 +254,7 @@ RESEARCH_DB_INFO = [
 
         RDIKeys.DATE_FIELDS_BY_TABLE: {},
         RDIKeys.DEFAULT_DATE_FIELDS: [],
+
         RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
     },
     {
@@ -296,6 +279,7 @@ RESEARCH_DB_INFO = [
 
         RDIKeys.DATE_FIELDS_BY_TABLE: {},
         RDIKeys.DEFAULT_DATE_FIELDS: [],
+
         RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
     },
 ]
@@ -320,7 +304,6 @@ DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = True
 
 # If specified, this must be a string that is an absolute filename of TRUSTED
 # HTML that will be included.
-
 DATABASE_HELP_HTML_FILENAME = None
 
 # =============================================================================
@@ -342,7 +325,10 @@ MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 Mb
 # =============================================================================
 # Outgoing e-mail
 # =============================================================================
+
+# -----------------------------------------------------------------------------
 # General settings for sending e-mail from Django
+# -----------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/1.8/ref/settings/#email-backend
 
 #   default backend:
@@ -361,6 +347,11 @@ EMAIL_USE_SSL = False
 # Who will the e-mails appear to come from?
 EMAIL_SENDER = "My NHS Trust Research Database - DO NOT REPLY <noreply@somewhere.nhs.uk>"  # noqa
 
+# -----------------------------------------------------------------------------
+# Additional settings
+# -----------------------------------------------------------------------------
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+
 # During development, we route all consent-related e-mails to the developer.
 # Switch SAFETY_CATCH_ON to False for production mode.
 SAFETY_CATCH_ON = True
@@ -372,6 +363,7 @@ VALID_RESEARCHER_EMAIL_DOMAINS = []  # type: List[str]
 # =============================================================================
 # Research Database Manager (RDBM) details
 # =============================================================================
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 RDBM_NAME = "John Doe"
 RDBM_TITLE = "Research Database Manager"
@@ -382,39 +374,26 @@ RDBM_ADDRESS = ["FREEPOST SOMEWHERE_HOSPITAL RESEARCH DATABASE MANAGER"]  # a li
 # =============================================================================
 # Administrators/managers to be notified of errors
 # =============================================================================
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 # Exceptions get sent to these people.
-ADMINS = (
+ADMINS = [
     ('Mr Administrator', 'mr_admin@somewhere.domain'),
-)
+]
 
 # Broken links get sent to these people
 SEND_BROKEN_LINK_EMAILS = True
-MANAGERS = (
+MANAGERS = [
     ('Mr Administrator', 'mr_admin@somewhere.domain'),
-)
+]
 
 # =============================================================================
 # PDF creation
 # =============================================================================
-# WKHTMLTOPDF_FILENAME: for the pdfkit PDF engine, specify a filename for
-# wkhtmltopdf that incorporates any need for an X Server (not the default
-# /usr/bin/wkhtmltopdf). See http://stackoverflow.com/questions/9604625/ .
-# Basically, you can try
-#   WKHTMLTOPDF_FILENAME = ''
-# and if it fails, try
-#   WKHTMLTOPDF_FILENAME = '/usr/bin/wkhtmltopdf'
-# but if that fails, use
-#   WKHTMLTOPDF_FILENAME = '/path/to/wkhtmltopdf.sh'
-# where wkhtmltopdf.sh is an executable script (chmod a+x ...) containing:
-#   #!/usr/bin/env bash
-#   xvfb-run --auto-servernum --server-args="-screen 0 640x480x16" \
-#       /usr/bin/wkhtmltopdf "$@"
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
-# For a recent version, fetch one from http://wkhtmltopdf.org/, e.g.
-# v0.12.4 for your OS.
-# WKHTMLTOPDF_FILENAME = ''
-WKHTMLTOPDF_FILENAME = '/home/rudolf/dev/wkhtmltopdf/wkhtmltox/bin/wkhtmltopdf'
+WKHTMLTOPDF_FILENAME = ''
+# WKHTMLTOPDF_FILENAME = '/home/rudolf/dev/wkhtmltopdf/wkhtmltox/bin/wkhtmltopdf'  # noqa
 # WKHTMLTOPDF_FILENAME = '/usr/bin/wkhtmltopdf'
 
 WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
@@ -447,6 +426,7 @@ TRAFFIC_LIGHT_GREEN_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/gree
 # =============================================================================
 # Consent-for-contact settings
 # =============================================================================
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 # For how long may we contact discharged patients without specific permission?
 # Use 0 for "not at all".
@@ -459,73 +439,16 @@ CHARITY_AMOUNT_CLINICIAN_RESPONSE = 1.0  # in local currency, e.g. GBP
 # "patched Qt". See above.
 # Fetch one from http://wkhtmltopdf.org/, e.g. v0.12.4 for your OS.
 PDF_LETTER_HEADER_HTML = ''
-# PDF_LETTER_HEADER_HTML = '''
-# <!DOCTYPE html>
-# <head>
-#     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-# </head>
-# <html>
-#     <body>
-#         <div>boo! header</div>
-#     </body>
-# </html>
-# '''
-
 PDF_LETTER_FOOTER_HTML = ''
-# http://stackoverflow.com/questions/11948158/wkhtmltopdf-how-to-disable-header-on-the-first-page  # noqa
-# PDF_LETTER_FOOTER_HTML = '''
-# <!DOCTYPE html>
-# <html>
-#     <head>
-#         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-#         <script>
-# function restrict_page_display() {
-#     var vars = {},
-#         kvp_list = document.location.search.substring(1).split('&'),
-#         key_value_pair,
-#         debug_element = document.getElementById("debug"),
-#         i;
-#     for (i = 0; i < kvp_list.length; ++i) {
-#         key_value_pair = kvp_list[i].split('=', 2);
-#         vars[key_value_pair[0]] = unescape(key_value_pair[1]);
-#     }
-#     // debug_element.textContent = kvp_list;
-#
-#     // Turn off footer except on first page
-#     if (vars['page'] != 1) {
-#         document.getElementById("footer").style.display = 'none';
-#     }
-# }
-#         </script>
-#         <style>
-# body {
-#     color: #005EB8;  /* NHS Blue */
-#     font-family: Arial, Helvetica, sans-serif;
-#     font-size: small;
-#     text-align: right;
-# }
-#         </style>
-#     </head>
-#     <!-- <body onload="restrict_page_display()"> -->
-#     <body>
-#         <div id="footer">
-#             CPFT
-#             | HQ: Elizabeth House, Fulbourn Hospital, Fulbourn,
-#               Cambridge CB21 5EF
-#             | www.cpft.nhs.uk
-#         </div>
-#         <div id="debug"></div>
-#     </body>
-# </html>
-# '''
 
 # =============================================================================
 # Local information links
 # =============================================================================
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 CHARITY_URL = "http://www.cpft.nhs.uk/research.htm"
 CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
 PUBLIC_RESEARCH_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 
-# Generated at 2019-08-12 00:05:12
+# Generated at 2019-08-19 17:32:09
