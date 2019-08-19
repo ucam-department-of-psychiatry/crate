@@ -130,6 +130,11 @@ log = BraceStyleAdapter(logging.getLogger(__name__))
 MAX_LEN_SHOW = 20000
 
 
+# Prefix for inline pid and mpid conversion
+PID_PREFIX = '~pid'
+MPID_PREFIX = '~mpid'
+
+
 # Fieldnames for CRATE NLP table
 FN_NLPDEF = '_nlpdef'
 FN_SRCDB = '_srcdb'
@@ -615,8 +620,8 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
     while i < len(sql_components):
         split_component = sql_components[i].split(":")
         if len(split_component) == 2 and (
-                split_component[0] == "~pid"
-                or split_component[0] == "~mpid"):
+                split_component[0] == PID_PREFIX
+                or split_component[0] == MPID_PREFIX):
             id_type, dbname = split_component
             try:
                 dbinfo = research_database_info.get_dbinfo_by_name(dbname)
@@ -653,7 +658,7 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
                     if ")" in current or i >= len(sql_components):
                         at_end = True
                     i += 1
-                if id_type == "~mpid":
+                if id_type == MPID_PREFIX:
                     lookups = PidLookup.objects.using(
                         dbinfo.secret_lookup_db).filter(Q(mpid__in=values))
                 else:
@@ -673,7 +678,7 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
                 except IndexError:
                     return [1, "Missing value in clause"]
                 i += 1
-                if id_type == "~mpid":
+                if id_type == MPID_PREFIX:
                     lookup = PidLookup.objects.using(
                         dbinfo.secret_lookup_db).filter(mpid=value).first()
                 else:
@@ -717,6 +722,9 @@ def query_submit(request: HttpRequest,
             sql = parsed_sql[1]
         else:
             return generic_error(request, parsed_sql[1])
+    elif PID_PREFIX in sql or MPID_PREFIX in sql:
+        return generic_error(request, "Only clinicians are authorised to use "
+                                      "pid to rid conversion")
     identical_queries = get_identical_queries(request, sql)
     if identical_queries:
         identical_queries[0].activate()
