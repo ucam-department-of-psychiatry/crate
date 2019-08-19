@@ -35,6 +35,7 @@ import logging
 # import pprint
 from typing import Any, Dict, Iterable, List, Type, Union, Optional
 
+from cardinal_pythonlib.typing_helpers import Pep249DatabaseCursorType
 from cardinal_pythonlib.dbfunc import get_fieldnames_from_cursor
 from cardinal_pythonlib.django.function_cache import django_cache_function
 from cardinal_pythonlib.django.serve import file_response
@@ -826,7 +827,7 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
         'dialect_mssql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
         'sql_highlight_css': prettify_sql_css(),
         'dbinfolist': (None if not is_clinician(request.user) else
-                      research_database_info.dbinfolist),
+                       research_database_info.dbinfolist),
     }
     context.update(query_context(request))
     return render(request, 'query_edit_select.html', context)
@@ -1097,7 +1098,7 @@ def get_source_results(srcdb: str, srctable: str,
     full_tablename = dbinfo.schema_identifier + "." + srctable
     sql = f"SELECT {srcfield} FROM {full_tablename} WHERE {srcpkfield}={srcpk}"
     try:
-        cursor = get_executed_researchdb_cursor(sql)
+        cursor = get_executed_researchdb_cursor(sql)  # type: Pep249DatabaseCursorType
     except ProgrammingError:
         return [None, None, None, "Table or fieldname incorrect"]
     fieldnames = get_fieldnames_from_cursor(cursor)
