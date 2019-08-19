@@ -463,19 +463,9 @@ class BaseNlpParser(ABC):
                 values that the user has told us to copy across from the source
                 database.
         """
-<<<<<<< HEAD
-        # Check if text contains any word characters - using '[\w\W]' instead
-        # of '.' because '.' doesn't include newline characters
-        # regex_any_word_char = regex.compile(r'[\w\W]*[a-zA-Z0-9_][\w\W]*')
-        # if not text or not regex_any_word_char.match(text):
-        #     log.warning(f"No word characters found in {text}")
-        #     return
-        if not text or not any(32 <= ord(c) <= 126 for c in text):
-            # log.warning(f"No word characters found in {text}")
-=======
         if not does_text_contain_word_chars(text):
-            log.warning(f"No word characters found in {text}")
->>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
+            # log.warning(f"No word characters found in {text}")
+            # ... the warning occurs frequently so slows down processing
             return
         starting_fields_values[FN_NLPDEF] = self._nlpdef.get_name()
         session = self.get_session()

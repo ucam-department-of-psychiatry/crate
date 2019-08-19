@@ -1027,8 +1027,8 @@ Changes
   1.3.6.
 - ``python-dateutil==2.6.1`` (required by ``pandas``), from 2.6.0 (was
   blocking readthedocs updates).
-- ``cardinal_pythonlib==1.0.60`` (from 1.0.58); bugfix in log probability
-  handling.
+- ``cardinal_pythonlib==1.0.61`` (from 1.0.58); bugfix in log probability
+  handling; fix relating to Django ``settings.XSENDFILE``.
 - Bugfix to :class:`crate_anon.nlp_manager.parse_cognitive.MocaValidator`; was
   looking at the mini-ACE instead!
 - Abstract base classes in NLP parsers to assist with NLPRP work.
@@ -1081,6 +1081,12 @@ Changes
   - https://stackoverflow.com/questions/7737163/form-within-table-row-tag
   - https://stackoverflow.com/questions/1249688/html-is-it-possible-to-have-a-form-tag-in-each-table-row-in-a-xhtml-valid-way/16941843
 
+- NLPRP client sets ``include_text`` to ``False`` (see :ref:`process
+  <nlprp_process>`).
+
+- Removed reference to Django setting ``SEND_BROKEN_LINK_EMAILS`` (and thus
+  ``MANAGERS`` since we won't enable Django's ``BrokenLinkEmailsMiddleware``);
+  see https://docs.djangoproject.com/en/dev/internals/deprecation/.
 
 
 ===============================================================================

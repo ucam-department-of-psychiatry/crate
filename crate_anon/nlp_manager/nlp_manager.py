@@ -629,7 +629,8 @@ def send_cloud_requests(
             empty_request = False
         else:
             if not empty_request:
-                cloud_request.limited_process_request(queue, cookies)
+                cloud_request.send_process_request(
+                    queue=queue, cookies=cookies, include_text_in_reply=False)
                 # If there's a connection error, we only get this far if we
                 # didn't choose to stop at failure
                 if cloud_request.request_failed:
@@ -666,7 +667,8 @@ def send_cloud_requests(
         other_values[FN_SRCHASH] = srchash
     if not empty_request:
         # Send last request
-        cloud_request.limited_process_request(queue, cookies)
+        cloud_request.send_process_request(
+            queue=queue, cookies=cookies, include_text_in_reply=False)
         if cloud_request.request_failed:
             log.warning("Continuing after failed request.")
         else:
@@ -682,46 +684,8 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
     Process text by sending it off to the cloud processors in queued mode.
     """
     log.info(SEP + "NLP")
-<<<<<<< HEAD
-    nlpname = nlpdef.get_name()
-    config = nlpdef.get_parser()
-    req_data_dir = config.get_str(section=CLOUD_NLP_SECTION,
-                                  option=CloudNlpConfigKeys.REQUEST_DATA_DIR,
-                                  required=True)
-    url = config.get_str(section=CLOUD_NLP_SECTION,
-                         option=CloudNlpConfigKeys.URL,
-                         required=True)
-    username = config.get_str(section=CLOUD_NLP_SECTION,
-                              option=CloudNlpConfigKeys.USERNAME,
-                              default="")
-    password = config.get_str(section=CLOUD_NLP_SECTION,
-                              option=CloudNlpConfigKeys.PASSWORD,
-                              default="")
-    max_length = config.get_int_default_if_failure(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.MAX_LENGTH,
-        default=0)
-    limit_before_write = config.get_int_default_if_failure(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.LIMIT_BEFORE_WRITE,
-        default=1000)
-    stop_at_failure = config.get_str(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.STOP_AT_FAILURE,
-        default="True")
-    if stop_at_failure == "False" or stop_at_failure == "false":
-        stop_at_failure = False
-    else:
-        stop_at_failure = True
-    rate_limit = config.get_int_default_if_failure(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.RATE_LIMIT,
-        default=2)
-    CloudRequest.set_rate_limit(rate_limit)
-=======
     cloudcfg = nlpdef.get_cloud_config_or_raise()
     filename = cloudcfg.data_filename()
->>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
     # Start with blank file
     open(filename, 'w').close()
     # Use append so that, if there's a problem part-way through, we don't lose
@@ -757,53 +721,9 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     Try to retrieve the data from the cloud processors.
     """
     session = nlpdef.get_progdb_session()
-<<<<<<< HEAD
-    nlpname = nlpdef.get_name()
-    config = nlpdef.get_parser()
-    req_data_dir = config.get_str(section=CLOUD_NLP_SECTION,
-                                  option=CloudNlpConfigKeys.REQUEST_DATA_DIR,
-                                  required=True)
-    url = config.get_str(section=CLOUD_NLP_SECTION,
-                         option=CloudNlpConfigKeys.URL,
-                         required=True)
-    username = config.get_str(section=CLOUD_NLP_SECTION,
-                              option=CloudNlpConfigKeys.USERNAME,
-                              default="")
-    password = config.get_str(section=CLOUD_NLP_SECTION,
-                              option=CloudNlpConfigKeys.PASSWORD,
-                              default="")
-    wait_on_conn_err = config.get_int_default_if_failure(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.WAIT_ON_CONN_ERR,
-        default=180)
-    limit_before_write = config.get_int_default_if_failure(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.LIMIT_BEFORE_WRITE,
-        default=1000)
-    stop_at_failure = config.get_str(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.STOP_AT_FAILURE,
-        default="True")
-    if stop_at_failure == "False" or stop_at_failure == "false":
-        stop_at_failure = False
-    else:
-        stop_at_failure = True
-    rate_limit = config.get_int_default_if_failure(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.RATE_LIMIT,
-        default=2)
-    CloudRequest.set_rate_limit(rate_limit)
-    filename = f'{req_data_dir}/request_data_{nlpname}.txt'
-    available_procs = CloudRequest.list_processors(url,
-                                                   username,
-                                                   password,
-                                                   verify_ssl,
-                                                   wait_on_conn_err)
-=======
     cloudcfg = nlpdef.get_cloud_config_or_raise()
     filename = cloudcfg.data_filename()
     available_procs = CloudRequest(nlpdef).get_remote_processors()
->>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
     mirror_procs = nlpdef.get_processors()
     if not os.path.exists(filename):
         log.error(f"File {filename!r} does not exist. "
@@ -836,7 +756,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
         cloud_request.set_queue_id(queue_id)
         log.info(f"Atempting to retrieve data from request #{i} ...")
         i += 1
-        ready = cloud_request.limited_check_if_ready(cookies)
+        ready = cloud_request.check_if_ready(cookies)
         if cloud_request.cookies:
             cookies = cloud_request.cookies
 
@@ -931,41 +851,7 @@ def process_cloud_now(
     """
     session = nlpdef.get_progdb_session()
     mirror_procs = nlpdef.get_processors()
-<<<<<<< HEAD
-    config = nlpdef.get_parser()
-    url = config.get_str(section=CLOUD_NLP_SECTION,
-                         option=CloudNlpConfigKeys.URL,
-                         required=True)
-    username = config.get_str(section=CLOUD_NLP_SECTION,
-                              option=CloudNlpConfigKeys.USERNAME,
-                              default="")
-    password = config.get_str(section=CLOUD_NLP_SECTION,
-                              option=CloudNlpConfigKeys.PASSWORD,
-                              default="")
-    max_length = config.get_int_default_if_failure(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.MAX_LENGTH,
-        default=0)
-    limit_before_write = config.get_int_default_if_failure(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.LIMIT_BEFORE_WRITE,
-        default=1000)
-    stop_at_failure = config.get_str(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.STOP_AT_FAILURE,
-        default="True")
-    if stop_at_failure == "False" or stop_at_failure == "false":
-        stop_at_failure = False
-    else:
-        stop_at_failure = True
-    rate_limit = config.get_int_default_if_failure(
-        section=CLOUD_NLP_SECTION,
-        option=CloudNlpConfigKeys.RATE_LIMIT,
-        default=2)
-    CloudRequest.set_rate_limit(rate_limit)
-=======
     cloudcfg = nlpdef.get_cloud_config_or_raise()
->>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
     for ifconfig in nlpdef.get_ifconfigs():
         # Global record number within this ifconfig
         global_recnum = 0

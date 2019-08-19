@@ -447,7 +447,8 @@ Specify ``False`` to serve files via Django (inefficient but useful for
 testing) or ``True`` to serve via Apache with ``mod_xsendfile`` (or another web
 server configured for the X-SendFile directive).
 
-.. todo:: XSENDFILE: is this a Django (or Django extension) setting? How is it working?
+This setting is read by :func:`cardinal_pythonlib.django.serve.serve_file`,
+called by several functions within :mod:`crate_anon/crateweb/consent/views`.
 
 
 MAX_UPLOAD_SIZE_BYTES
@@ -591,32 +592,6 @@ get sent to these people.
 
 This is a Django setting; see
 https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-ADMINS.
-
-
-.. _SEND_BROKEN_LINK_EMAILS:
-
-SEND_BROKEN_LINK_EMAILS
-#######################
-
-``type: bool``
-
-Should the site e-mail MANAGERS_ about broken links?
-
-.. todo: SEND_BROKEN_LINK_EMAILS deprecated by Django
-
-
-.. _MANAGERS:
-
-MANAGERS
-########
-
-``type: List[Tuple[str, str], ...]``
-
-This is a list of ``(name, email_address)`` pairs. Broken link reports
-get sent to these people, if SEND_BROKEN_LINK_EMAILS_ is set.
-
-This is a Django setting; see
-https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-MANAGERS.
 
 
 PDF creation

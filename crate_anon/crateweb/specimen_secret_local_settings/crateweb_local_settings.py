@@ -384,11 +384,6 @@ ADMINS = [
     ('Mr Administrator', 'mr_admin@somewhere.domain'),
 ]
 
-# Broken links get sent to these people
-SEND_BROKEN_LINK_EMAILS = True
-MANAGERS = [
-    ('Mr Administrator', 'mr_admin@somewhere.domain'),
-]
 
 # =============================================================================
 # PDF creation

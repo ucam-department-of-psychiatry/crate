@@ -106,20 +106,6 @@ def to_json_str(json_structure: JsonValueType) -> str:
     # This needs 'default=str' to deal with non-JSON-serializable
     # objects that may occur, such as datetimes in the metadata.
 
-<<<<<<< HEAD
-class CloudNlpConfigKeys(object):
-    USERNAME = "username"
-    PASSWORD = "password"
-    PROCESSORS = "processors"
-    URL = "cloud_url"
-    REQUEST_DATA_DIR = "request_data_dir"
-    MAX_LENGTH = "max_content_length"
-    LIMIT_BEFORE_WRITE = "limit_before_write"
-    RATE_LIMIT = "rate_limit"
-    STOP_AT_FAILURE = "stop_at_failure"
-    WAIT_ON_CONN_ERR = "wait_on_conn_err"
-=======
->>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
 
 # =============================================================================
 # CloudRequest
@@ -196,37 +182,6 @@ class CloudRequest(object):
         self.mirror_processors = {}  # type: Dict[str, BaseNlpParser]
         self.cookies = None  # type: Optional[CookieJar]
         self.request_failed = False
-<<<<<<< HEAD
-        self.wait_on_conn_err = wait_on_conn_err
-        self.raise_on_failure = raise_on_failure
-
-    @staticmethod
-    def utf8len(text: str) -> int:
-        return len(text.encode('utf-8'))
-
-    @classmethod
-    def set_rate_limit(cls, limit: int) -> None:
-        """
-        Creates new methods which are rate limited. Only use this once per run.
-        """
-        cls.limited_process_request = rate_limited(
-            limit)(cls.send_process_request)
-        cls.limited_check_if_ready = rate_limited(
-            limit)(cls.check_if_ready)
-
-    @classmethod
-    def list_processors(cls,
-                        url: str,
-                        username: str = "",
-                        password: str = "",
-                        verify_ssl: bool = True,
-                        wait_on_conn_err: int = 180) -> Optional[List[str]]:
-        auth = (username, password)
-        list_procs_request = deepcopy(cls.STANDARD_INFO)
-        list_procs_request[NKeys.COMMAND] = NlprpCommands.LIST_PROCESSORS
-        request_json = json.dumps(list_procs_request)
-        # print(request_json)
-=======
 
         # Rate-limited functions
         rate_limit_hz = self._cloudcfg.rate_limit_hz
@@ -343,7 +298,6 @@ class CloudRequest(object):
         """
         if may_fail is None:
             may_fail = not self._cloudcfg.stop_at_failure
->>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
         tries = 0
         success = False
         response = None
@@ -524,24 +478,30 @@ class CloudRequest(object):
 
     def send_process_request(self, queue: bool,
                              cookies: CookieJar = None,
-                             include_text: bool = True) -> None:
+                             include_text_in_reply: bool = True) -> None:
         """
-        Sends a request to the server to process the text.
+        Sends a request to the server to process the text we have stored.
 
         Args:
-            queue: todo: XXX
-            cookies: optional :class:`http.cookiejar.CookieJar`
-            include_text: todo: XXX
+            queue:
+                queue the request for back-end processing (rather than waiting
+                for an immediate reply)?
+            cookies:
+                optional :class:`http.cookiejar.CookieJar`
+            include_text_in_reply:
+                should the server include the source text in the reply?
         """
         self._ratelimited_send_process_request(
             queue=queue,
             cookies=cookies,
-            include_text=include_text
+            include_text_in_reply=include_text_in_reply
         )
 
-    def _internal_send_process_request(self, queue: bool,
-                                       cookies: CookieJar = None,
-                                       include_text: bool = True) -> None:
+    def _internal_send_process_request(
+            self,
+            queue: bool,
+            cookies: CookieJar = None,
+            include_text_in_reply: bool = True) -> None:
         """
         See :meth:`send_process_request`. This is the internal main function,
         to which rate limiting may be applied.
@@ -555,7 +515,7 @@ class CloudRequest(object):
         if cookies:
             self.cookies = cookies
         self.request_process[NKeys.ARGS][NKeys.QUEUE] = queue
-        self.request_process[NKeys.ARGS][NKeys.INCLUDE_TEXT] = include_text
+        self.request_process[NKeys.ARGS][NKeys.INCLUDE_TEXT] = include_text_in_reply  # noqa
         request_json = to_json_str(self.request_process)
 
         # Send request; get response
@@ -584,11 +544,7 @@ class CloudRequest(object):
         """
         self.queue_id = queue_id
 
-<<<<<<< HEAD
-    def try_fetch(self, cookies: List[Any] = None) -> Optional[Dict[str, Any]]:
-=======
     def try_fetch(self, cookies: CookieJar = None) -> Optional[JsonObjectType]:
->>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
         """
         Tries to fetch the response from the server. Assumes queued mode.
         Returns the JSON response.
