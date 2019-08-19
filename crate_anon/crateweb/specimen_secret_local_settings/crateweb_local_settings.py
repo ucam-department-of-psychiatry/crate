@@ -290,6 +290,9 @@ RESEARCH_DB_INFO = [
 # Its secret_lookup_db will be used for the actual lookup process.
 RESEARCH_DB_FOR_CONTACT_LOOKUP = 'myresearchdb'
 
+# Definitions of source database names in CRATE NLP tables
+SOURCEDB_DEFS = {'SOURCE_DATABASE': 'research'}
+
 # For the automatic query generator, we need to know the underlying SQL dialect
 # Options are
 # - 'mysql' => MySQL

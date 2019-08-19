@@ -309,7 +309,8 @@ class NonspecificScrubber(ScrubberBase):
                  anonymise_numbers_at_word_boundaries_only: bool = True,
                  blacklist: WordList = None,
                  scrub_all_numbers_of_n_digits: List[int] = None,
-                 scrub_all_uk_postcodes: bool = False) -> None:
+                 scrub_all_uk_postcodes: bool = False,
+                 extra_regexes: Optional[List[str]] = None) -> None:
         """
         Args:
             replacement_text:
@@ -331,6 +332,8 @@ class NonspecificScrubber(ScrubberBase):
                 list of values of n; number lengths to scrub
             scrub_all_uk_postcodes:
                 scrub all UK postcodes?
+            extra_regexes:
+                list of user-defined extra regexes to scrub
         """
         scrub_all_numbers_of_n_digits = scrub_all_numbers_of_n_digits or []
 
@@ -343,6 +346,7 @@ class NonspecificScrubber(ScrubberBase):
         self.blacklist = blacklist
         self.scrub_all_numbers_of_n_digits = scrub_all_numbers_of_n_digits
         self.scrub_all_uk_postcodes = scrub_all_uk_postcodes
+        self.extra_regexes = extra_regexes
 
         self._cached_hash = None  # type: Optional[str]
         self._regex = None  # type: Optional[Pattern[str]]
@@ -389,6 +393,8 @@ class NonspecificScrubber(ScrubberBase):
                 at_word_boundaries_only=(
                     self.anonymise_numbers_at_word_boundaries_only)
             ))
+        if self.extra_regexes:
+            elements.extend(self.extra_regexes)
         self._regex = get_regex_from_elements(elements)
         self._regex_built = True
 

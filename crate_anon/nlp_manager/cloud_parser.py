@@ -106,6 +106,20 @@ def to_json_str(json_structure: JsonValueType) -> str:
     # This needs 'default=str' to deal with non-JSON-serializable
     # objects that may occur, such as datetimes in the metadata.
 
+<<<<<<< HEAD
+class CloudNlpConfigKeys(object):
+    USERNAME = "username"
+    PASSWORD = "password"
+    PROCESSORS = "processors"
+    URL = "cloud_url"
+    REQUEST_DATA_DIR = "request_data_dir"
+    MAX_LENGTH = "max_content_length"
+    LIMIT_BEFORE_WRITE = "limit_before_write"
+    RATE_LIMIT = "rate_limit"
+    STOP_AT_FAILURE = "stop_at_failure"
+    WAIT_ON_CONN_ERR = "wait_on_conn_err"
+=======
+>>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
 
 # =============================================================================
 # CloudRequest
@@ -120,6 +134,8 @@ class CloudRequest(object):
         'charset': 'utf-8',
         'Content-Type': 'application/json'
     }
+
+    rate_limit = 2
 
     def __init__(self,
                  nlpdef: NlpDefinition,
@@ -180,6 +196,37 @@ class CloudRequest(object):
         self.mirror_processors = {}  # type: Dict[str, BaseNlpParser]
         self.cookies = None  # type: Optional[CookieJar]
         self.request_failed = False
+<<<<<<< HEAD
+        self.wait_on_conn_err = wait_on_conn_err
+        self.raise_on_failure = raise_on_failure
+
+    @staticmethod
+    def utf8len(text: str) -> int:
+        return len(text.encode('utf-8'))
+
+    @classmethod
+    def set_rate_limit(cls, limit: int) -> None:
+        """
+        Creates new methods which are rate limited. Only use this once per run.
+        """
+        cls.limited_process_request = rate_limited(
+            limit)(cls.send_process_request)
+        cls.limited_check_if_ready = rate_limited(
+            limit)(cls.check_if_ready)
+
+    @classmethod
+    def list_processors(cls,
+                        url: str,
+                        username: str = "",
+                        password: str = "",
+                        verify_ssl: bool = True,
+                        wait_on_conn_err: int = 180) -> Optional[List[str]]:
+        auth = (username, password)
+        list_procs_request = deepcopy(cls.STANDARD_INFO)
+        list_procs_request[NKeys.COMMAND] = NlprpCommands.LIST_PROCESSORS
+        request_json = json.dumps(list_procs_request)
+        # print(request_json)
+=======
 
         # Rate-limited functions
         rate_limit_hz = self._cloudcfg.rate_limit_hz
@@ -296,6 +343,7 @@ class CloudRequest(object):
         """
         if may_fail is None:
             may_fail = not self._cloudcfg.stop_at_failure
+>>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
         tries = 0
         success = False
         response = None
@@ -536,7 +584,11 @@ class CloudRequest(object):
         """
         self.queue_id = queue_id
 
+<<<<<<< HEAD
+    def try_fetch(self, cookies: List[Any] = None) -> Optional[Dict[str, Any]]:
+=======
     def try_fetch(self, cookies: CookieJar = None) -> Optional[JsonObjectType]:
+>>>>>>> 8b5532599a0cfebb41a835636aeadc580601958f
         """
         Tries to fetch the response from the server. Assumes queued mode.
         Returns the JSON response.

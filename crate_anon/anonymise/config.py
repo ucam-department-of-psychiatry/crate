@@ -610,6 +610,9 @@ class Config(object):
             'scrub_all_numbers_of_n_digits', minimum=1)
         self.timefield = opt_str('timefield_name')
 
+        # Get all extra regexes
+        self.extra_regexes = [x[1] for x in parser.items('extra_regexes')]
+
         if not self.extract_text_extensions_case_sensitive:
             self.extract_text_extensions_permitted = [
                 x.upper() for x in self.extract_text_extensions_permitted]
@@ -639,6 +642,7 @@ class Config(object):
             blacklist=self.blacklist,
             scrub_all_numbers_of_n_digits=self.scrub_all_numbers_of_n_digits,
             scrub_all_uk_postcodes=self.scrub_all_uk_postcodes,
+            extra_regexes=self.extra_regexes,
         )
         self.phrase_alternative_words = get_word_alternatives(
             self.phrase_alternative_word_filenames)

@@ -318,6 +318,19 @@ optout_mpid_filenames =
 
 optout_col_values =
 
+[extra_regexes]
+
+# Extra regular expression patterns you wish to be scrubbed from the text
+# as nonspecific information. These can be multiline and contain comments -
+# just remember to escape spaces and hash signs which you actually want to
+# be part of the regex. You can name each of them anything, e.g.
+#
+# my_regex_canadian_postcodes = [a-zA-Z][0-9][a-zA-Z]\w+[0-9][a-zA-Z][0-9]
+#
+# another_regex =
+#    \d+\#x    # a number then a hash sign then an 'x'
+#    \d+\ y    # then another number then a space then 'y'
+
 # =============================================================================
 # Destination database details. User should have WRITE access.
 # =============================================================================

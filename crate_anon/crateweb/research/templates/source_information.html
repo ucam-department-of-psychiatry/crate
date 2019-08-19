@@ -1,0 +1,28 @@
+{# source_information.html #}
+{% extends "base.html" %}
+
+{% comment %}
+    template parameters:
+        sql: str
+        sql_highlight_css: str
+        table_html: str
+{% endcomment %}
+
+{% block extrahead %}
+    <style type="text/css">{{ sql_highlight_css }}</style>
+{% endblock %}
+
+{% block content %}
+
+    <h1>Source information</h1>
+
+    {% include "expand_collapse_buttons.html" %}
+
+    {{ table_html|safe }}
+
+    <h1>SQL</h1>
+    {{ sql|safe }}
+
+{% endblock %}
+
+{% block helpurl %}{{ HelpUrl.results }}{% endblock %}
