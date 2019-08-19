@@ -653,7 +653,6 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
                     if ")" in current or i >= len(sql_components):
                         at_end = True
                     i += 1
-                i += 1
                 if id_type == "~mpid":
                     lookups = PidLookup.objects.using(
                         dbinfo.secret_lookup_db).filter(Q(mpid__in=values))
@@ -664,7 +663,7 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
                 if rids:
                     rids = [f"'{rid}'" for rid in rids]
                     extra_sql = ','.join(rids)
-                    new_sql += f"{rid_field} IN ({extra_sql})"
+                    new_sql += f"{rid_field} IN ({extra_sql}) "
                 else:
                     new_sql += f"{rid_field} = ''"
             elif operator == "=":
