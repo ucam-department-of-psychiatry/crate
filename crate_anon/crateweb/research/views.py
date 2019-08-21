@@ -1438,27 +1438,20 @@ def resultset_html_table(fieldnames: List[str],
     # http://stackoverflow.com/questions/5440657/how-to-hide-columns-in-html-table  # noqa
     nlptable = False
     if FN_NLPDEF in fieldnames:
-        print("_nlpdef found!")
         srcdb_ind = srctable_ind = srcfield_ind = None
         srcpkfield_ind = srcpkval_ind = srcpkstr_ind = None
         for i, field in enumerate(fieldnames):
             if field == FN_SRCDB:
-                print("_srcdb found!")
                 srcdb_ind = i
             elif field == FN_SRCTABLE:
-                print("_srctable found!")
                 srctable_ind = i
             elif field == FN_SRCFIELD:
-                print("_srcfield found!")
                 srcfield_ind = i
             elif field == FN_SRCPKFIELD:
-                print("_srcpkfield found!")
                 srcpkfield_ind = i
             elif field == FN_SRCPKVAL:
-                print("_srcpkval found!")
                 srcpkval_ind = i
             elif field == FN_SRCPKSTR:
-                print("_srcpkstr found!")
                 srcpkstr_ind = i
         if all((srcdb_ind, srctable_ind, srcfield_ind, srcpkfield_ind,
                srcpkval_ind, srcpkstr_ind)):

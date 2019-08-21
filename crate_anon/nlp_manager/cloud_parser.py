@@ -422,7 +422,8 @@ class CloudRequest(object):
 
     def add_all_processors(self) -> None:
         """
-        todo: docs
+        Add all user-specified remote processors to the list of processors
+        that we will request results from.
         """
         processorpairs = self._nlpdef.opt_strlist(
             self._nlpdef_sectionname, CloudNlpConfigKeys.PROCESSORS,
@@ -667,12 +668,18 @@ class CloudRequest(object):
                                                          Dict[str,
                                                          OutputUserConfig]]:
         """
-        todo:: docs
+        For GATE remote processors, get a map from annotation types to
+        tablenames and also annotation type returned to what the user wants
+        to call it in the database.
 
         Args:
-            processor:
+            processor: which GATE processor to find the mapping for?
 
         Returns:
+            a dictionary mapping annotation types to tableanmes, and
+            a dictionary mapping annotaion types to
+            :class:`crate_anon.nlp_manager.output_user_config.OutputUserConfig`
+            for the purpose of renaming keys
 
         """
         proc_section = full_sectionname(NlpConfigPrefixes.PROCESSOR, processor)
@@ -701,15 +708,17 @@ class CloudRequest(object):
             metadata: Dict[str, Any]) -> Generator[Tuple[
                 str, Dict[str, Any], str], None, None]:
         """
-        todo:: docs
+        Get result values from processed data from a CRATE server-side.
 
         Args:
-            processor_data:
-            proctype:
-            procname:
+            processor_data: nlprp results for one processor
+            proctype: the remote CRATE processor used
+            procname: the user-defined name for the processor
             metadata:
+                the metadata for a particular document - it would have been
+                sent with the document and the server would have sent it back
 
-        Returns:
+        Yields: output tablename, formatted result, processor name (proctype)
 
         """
         tablename = self._nlpdef.opt_str(
@@ -869,26 +878,3 @@ class CloudRequest(object):
             self._nlpdef.notify_transaction(
                 session, n_rows=1, n_bytes=sys.getsizeof(final_values),
                 force_commit=self._commit)
-
-# todo: delete what's below?
-
-#            # REMEMBER TO FIX THIS!
-#            session = procs_to_sessions[procname][1]
-#            destdb_name = procs_to_sessions[procname][0]
-#            destdb = self._destdbs[destdb_name]
-#            engine = destdb.engine
-#            if not engine.dialect.has_table(engine, tablename):
-#                sqla_table = self.get_table(tablename)
-#            else:
-#                metadata = MetaData(engine, reflect=True)
-#                sqla_table = metadata.tables[tablename]
-#            column_names = [c.name for c in sqla_table.columns]
-#            final_values = {k: v for k, v in nlp_values.items()
-#                            if k in column_names}
-#            insertquery = sqla_table.insert().values(final_values)
-#            with MultiTimerContext(timer, TIMING_INSERT):
-#                session.execute(insertquery)
-#
-#            self._nlpdef.notify_transaction(
-#                session, n_rows=1, n_bytes=sys.getsizeof(final_values),
-#                force_commit=self._commit)

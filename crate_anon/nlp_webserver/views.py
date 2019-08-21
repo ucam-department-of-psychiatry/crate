@@ -629,7 +629,6 @@ class NlpWebViews(object):
                 doc_result[NKeys.TEXT] = doc.doctext
             doc_results.append(doc_result)
             # Delete leftovers
-            # TEST PROPERLY!
             subquery = DBSession.query(DocProcRequest).filter(
                 DocProcRequest.document_id == doc.document_id)
             DBSession.query(Document).filter(
@@ -682,9 +681,6 @@ class NlpWebViews(object):
                 result_ids = json.loads(record.result_ids)
                 for result_id in result_ids:
                     results.append(AsyncResult(id=result_id, app=app))
-                    # if not result.ready():
-                    #     busy = True
-                    #     break
             res_set = ResultSet(results=results, app=app)
             if res_set.ready():
                 result_values = res_set.get()  # type: Iterable[NlpServerResult]  # noqa
@@ -744,11 +740,6 @@ class NlpWebViews(object):
             # Remove from celery queue
             for res_id in result_ids:
                 results.append(AsyncResult(id=res_id, app=app))
-                # result = AsyncResult(id=res_id, app=app)
-                # Necessary to do both because revoke doesn't remove
-                # completed task
-                # result.revoke()
-                # result.forget()
         res_set = ResultSet(results=results, app=app)
         res_set.revoke()
         # Remove from docprocrequests

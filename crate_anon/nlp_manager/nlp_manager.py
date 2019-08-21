@@ -780,15 +780,6 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                 progrec = None
                 if incremental:
                     progrec = ifconfig.get_progress_record(pkval, pkstr)
-                    # if progrec is not None:
-                    #     if progrec.srchash == srchash:
-                    #         log.debug("Record previously processed; "
-                    #                   "skipping")
-                    #         continue
-                    #     else:
-                    #         log.debug("Record has changed")
-                    # else:
-                    #     log.debug("Record is new")
                     for processor in (
                             cloud_request.mirror_processors.values()):
                         processor.delete_dest_record(ifconfig,
