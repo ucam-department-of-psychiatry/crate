@@ -1110,7 +1110,7 @@ def get_source_results(srcdb: str, srctable: str,
         a :class:`NlpSourceResult`
     """
     try:
-        dbname = research_database_info.nlp_sourcedb_map.get(srcdb)
+        dbname = research_database_info.nlp_sourcedb_map[srcdb]
     except KeyError:
         return NlpSourceResult(
             error=f"No source database in settings.NLP_SOURCEDB_MAP "

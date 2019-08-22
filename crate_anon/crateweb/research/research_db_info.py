@@ -933,6 +933,14 @@ class ResearchDatabaseInfo(object):
             )
 
             self.nlp_sourcedb_map = getattr(settings, "NLP_SOURCEDB_MAP", {})  # type: Dict[str, str]  # noqa
+            try:
+                assert isinstance(self.nlp_sourcedb_map, dict)
+                for k, v in self.nlp_sourcedb_map.items():
+                    assert isinstance(k, str)
+                    assert isinstance(v, str)
+            except AssertionError:
+                raise ValueError(
+                    "settings.NLP_SOURCEDB_MAP is not a Dict[str, str]")
 
     # -------------------------------------------------------------------------
     # Classmethods, staticmethods
