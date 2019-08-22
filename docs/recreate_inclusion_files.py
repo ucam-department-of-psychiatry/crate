@@ -32,7 +32,9 @@ That is, e.g. "command --help > somefile.txt".
 
 import datetime
 import logging
-from os.path import dirname, join, realpath
+import os
+from os.path import  dirname, join, realpath
+import stat
 import subprocess
 import sys
 from typing import List
@@ -49,12 +51,19 @@ NLP_DIR = join(DOCS_SOURCE_DIR, "nlp")
 PREPROC_DIR = join(DOCS_SOURCE_DIR, "preprocessing")
 WEB_DIR = join(DOCS_SOURCE_DIR, "website_config")
 
+EXECUTABLE_PERMISSIONS = (
+    stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
+    stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP |
+    stat.S_IROTH | stat.S_IXOTH
+)  # = 509 = 0o775; try also "stat -c '%a %n' *" to show octal permissions
+
 
 def run_cmd(cmdargs: List[str],
             output_filename: str,
             timestamp: bool = True,
             comment_prefix: str = "# ",
-            encoding: str = sys.getdefaultencoding()) -> None:
+            encoding: str = sys.getdefaultencoding(),
+            executable: bool = False) -> None:
     """
     Args:
         cmdargs: command to run
@@ -62,6 +71,7 @@ def run_cmd(cmdargs: List[str],
         timestamp: add timestamp?
         comment_prefix: comment prefix for this type of output file
         encoding: encoding to use
+        executable: make the output file executable?
     """
     log.info(f"Running: {cmdargs}")
     output = subprocess.check_output(cmdargs).decode(encoding)
@@ -71,6 +81,8 @@ def run_cmd(cmdargs: List[str],
         if timestamp:
             now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             f.write(f"\n{comment_prefix}Generated at {now}\n")
+    if executable:
+        os.chmod(output_filename, EXECUTABLE_PERMISSIONS)
 
 
 def main():
@@ -123,7 +135,8 @@ def main():
     run_cmd(["crate_nlp_webserver_print_demo", "--config"],
             join(NLP_DIR, "nlp_webserver_demo_config.ini"))
     run_cmd(["crate_nlp_webserver_print_demo", "--processors"],
-            join(NLP_DIR, "nlp_webserver_demo_processors.py"))
+            join(NLP_DIR, "nlp_webserver_demo_processors.py"),
+            executable=True)
     # run_cmd(["crate_nlp_webserver_manage_users", "--help"],
     #         join(NLP_DIR, "crate_nlp_webserver_manage_users_help.txt"))
     # todo: crate_nlp_webserver_manage_users not running (settings import fails)

@@ -611,7 +611,10 @@ class Config(object):
         self.timefield = opt_str('timefield_name')
 
         # Get all extra regexes
-        self.extra_regexes = [x[1] for x in parser.items('extra_regexes')]
+        if parser.has_section('extra_regexes'):
+            self.extra_regexes = [x[1] for x in parser.items('extra_regexes')]
+        else:
+            self.extra_regexes = []  # type: List[str]
 
         if not self.extract_text_extensions_case_sensitive:
             self.extract_text_extensions_permitted = [

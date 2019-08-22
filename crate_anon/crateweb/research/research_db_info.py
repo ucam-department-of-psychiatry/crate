@@ -891,7 +891,7 @@ class ResearchDatabaseInfo(object):
             self.dbinfo_for_contact_lookup = None  # type: Optional[SingleResearchDatabase]  # noqa
 
         else:
-            self.dialect = settings.RESEARCH_DB_DIALECT
+            self.dialect = settings.RESEARCH_DB_DIALECT  # type: str
             assert self.dialect in SUPPORTED_DIALECTS, (
                 f"Unsupported dialect: {self.dialect!r}"
             )
@@ -932,7 +932,7 @@ class ResearchDatabaseInfo(object):
                 f"{ResearchDbInfoKeys.SECRET_LOOKUP_DB!r} attribute"
             )
 
-            self.sourcedb_defs = settings.SOURCEDB_DEFS
+            self.nlp_sourcedb_map = getattr(settings, "NLP_SOURCEDB_MAP", {})  # type: Dict[str, str]  # noqa
 
     # -------------------------------------------------------------------------
     # Classmethods, staticmethods

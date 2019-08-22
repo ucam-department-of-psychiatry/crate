@@ -290,6 +290,9 @@ RESEARCH_DB_INFO = [
 # Its secret_lookup_db will be used for the actual lookup process.
 RESEARCH_DB_FOR_CONTACT_LOOKUP = 'myresearchdb'
 
+# Definitions of source database names in CRATE NLP tables
+NLP_SOURCEDB_MAP = {'SOURCE_DATABASE': 'research'}
+
 # For the automatic query generator, we need to know the underlying SQL dialect
 # Options are
 # - 'mysql' => MySQL
@@ -381,11 +384,6 @@ ADMINS = [
     ('Mr Administrator', 'mr_admin@somewhere.domain'),
 ]
 
-# Broken links get sent to these people
-SEND_BROKEN_LINK_EMAILS = True
-MANAGERS = [
-    ('Mr Administrator', 'mr_admin@somewhere.domain'),
-]
 
 # =============================================================================
 # PDF creation
@@ -451,4 +449,4 @@ CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
 PUBLIC_RESEARCH_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 
-# Generated at 2019-08-19 17:32:09
+# Generated at 2019-08-22 16:29:54

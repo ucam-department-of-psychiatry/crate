@@ -396,6 +396,23 @@ Give the ``name`` attribute of one of the databases in RESEARCH_DB_INFO_.
 Its ``secret_lookup_db`` will be used for the actual lookup process.
 
 
+NLP_SOURCEDB_MAP
+################
+
+``type: Dict[str, str]``
+
+This is an optional setting.
+
+Used to provide automatic links from results involving CRATE NLP tables. Such
+tables have :ref:`standard NLP output columns <standard_nlp_output_columns>`.
+When the CRATE web front end detects a table, it tries to provide a hyperlink
+to the original data, if available. However, database names in these tables
+(the ``_srcdb`` column) are user-defined.
+
+In ``NLP_SOURCEDB_MAP``, you can provide a mapping from ``_srcdb`` names to the
+names of databases in RESEARCH_DB_INFO_, and this will enable the auto-linking.
+
+
 RESEARCH_DB_DIALECT
 ###################
 
@@ -410,7 +427,6 @@ Options are
 
 Site-specific help
 ------------------
-
 
 .. _DATABASE_HELP_HTML_FILENAME:
 
@@ -448,7 +464,7 @@ testing) or ``True`` to serve via Apache with ``mod_xsendfile`` (or another web
 server configured for the X-SendFile directive).
 
 This setting is read by :func:`cardinal_pythonlib.django.serve.serve_file`,
-called by several functions within :mod:`crate_anon/crateweb/consent/views`.
+called by several functions within :mod:`crate_anon.crateweb.consent.views`.
 
 
 MAX_UPLOAD_SIZE_BYTES
