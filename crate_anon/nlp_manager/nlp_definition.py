@@ -81,7 +81,10 @@ from crate_anon.nlprp.constants import NlprpKeys
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 if TYPE_CHECKING:
-    from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
+    from crate_anon.nlp_manager.base_nlp_parser import (
+        BaseNlpParser,
+        TableMaker,
+    )
     from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 
 log = logging.getLogger(__name__)
@@ -804,12 +807,14 @@ class NlpDefinition(object):
         processorpairs = self.opt_strlist(
             nlpsection, NlpDefConfigKeys.PROCESSORS,
             required=True, lower=False)
+        # self._procstmp = {}
         try:
             for proctype, procname in chunks(processorpairs, 2):
                 self.require_section(
                     full_sectionname(NlpConfigPrefixes.PROCESSOR, procname))
                 processor = make_nlp_parser(
                     classname=proctype, nlpdef=self, cfgsection=procname)
+                # self._procstmp[proctype] = procname
                 self._processors.append(processor)
         except ValueError:
             log.critical(f"Bad {NlpDefConfigKeys.PROCESSORS} specification")
@@ -1066,7 +1071,7 @@ class NlpDefinition(object):
         tl.commit()
 
     # noinspection PyUnresolvedReferences
-    def get_processors(self) -> List['BaseNlpParser']:
+    def get_processors(self) -> List['TableMaker']:
         """
         Returns all NLP processors used by this NLP definition.
 
@@ -1076,6 +1081,21 @@ class NlpDefinition(object):
 
         """
         return self._processors
+
+    # def get_procstmp(self):
+    #     return self._procstmp
+
+    # def get_tablemakers(self, cloud: bool = False) -> List['TableMaker']:
+    #     if not cloud:
+    #         return self.get_processors()
+    #     else:
+    #         # if not self._cloudcfg.remote_processors:
+    #             # CloudParser(self).set_tablemaker_objects()
+    #         assert self._cloudcfg.remote_processors, (
+    #                         "Call CloudParser method "
+    #                         "'set_tablemaker_objects()' before calling "
+    #                         "NlpDefinition method 'get_tablemakers'")
+    #         return self._cloudcfg.remote_processors.values()
 
     # noinspection PyUnresolvedReferences
     def get_ifconfigs(self) -> Iterable['InputFieldConfig']:

@@ -84,6 +84,7 @@ from crate_anon.nlp_webserver.constants import (
     GATE_BASE_URL,
     SERVER_NAME,
     SERVER_VERSION,
+    NlpServerConfigKeys,
 )
 from crate_anon.nlp_webserver.tasks import (
     app,
@@ -93,6 +94,7 @@ from crate_anon.nlp_webserver.tasks import (
     TaskSession,
     start_task_session,
 )
+from crate_anon.nlp_webserver.settings import SETTINGS
 
 log = logging.getLogger(__name__)
 
@@ -107,8 +109,13 @@ REDIS_HOST = "localhost"
 REDIS_PORT = 6379  # https://redis.io/topics/quickstart
 REDIS_DB_NUMBER = 0  # https://redis.io/commands/select
 
+REDIS_PASSWORD = SETTINGS.get(NlpServerConfigKeys.REDIS_PASSWORD)
+# ... 'None' if not set - if the redis server doesn't require a password,
+# it's fine to pass 'password=None' to StricRedis
+
 REDIS_SESSIONS = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT,
-                                   db=REDIS_DB_NUMBER)
+                                   db=REDIS_DB_NUMBER,
+                                   password=REDIS_PASSWORD)
 
 SESSION_TOKEN_EXPIRY_S = 300
 
@@ -186,7 +193,8 @@ class NlprpProcessRequest(object):
         return json.dumps(self.processor_ids(),
                           separators=JSON_SEPARATORS_COMPACT)
 
-    def gen_text_metadataobj(self) -> Generator[Tuple[str, JsonValueType]]:
+    def gen_text_metadataobj(self) -> Generator[Tuple[str, JsonValueType],
+                                                None, None]:
         """
         Generates text and metadata pairs from the request, with the metadata
         in JSON object (Python dictionary) format.
@@ -200,7 +208,8 @@ class NlprpProcessRequest(object):
                                       default=None, required=False)
             yield text, metadata
 
-    def gen_text_metadatastr(self) -> Generator[Tuple[str, str]]:
+    def gen_text_metadatastr(self) -> Generator[Tuple[str, str],
+                                                None, None]:
         """
         Generates text and metadata pairs from the request, with the metadata
         in string (serialized JSON) format.
@@ -296,12 +305,14 @@ class NlpWebViews(object):
         """
         Returns an HTTP response for a given error and description of the error
         """
+        # Turned 'errors' into array
+        # Should this allow for multiple errors?
         error_info = {
-            NKeys.ERRORS: {
+            NKeys.ERRORS: [{
                 NKeys.CODE: error.code,
                 NKeys.MESSAGE: error.message,
                 NKeys.DESCRIPTION: error.description
-            }
+            }]
         }
         return self.create_response(error.http_status, error_info)
 

@@ -29,12 +29,12 @@ Representation of NLP processors used by CRATE's NLPRP server.
 """
 
 import importlib.util
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.all_processors import make_nlp_parser_unconfigured
 from crate_anon.nlprp.api import JsonObjectType
-from crate_anon.nlprp.constants import NlprpKeys
+from crate_anon.nlprp.constants import NlprpKeys, NlprpValues
 from crate_anon.nlprp.errors import (
     BAD_REQUEST,
     mkerror,
@@ -76,7 +76,13 @@ class Processor(object):
                  version: str,
                  is_default_version: bool,
                  description: str,
-                 proctype: Optional[str] = None) -> None:
+                 proctype: Optional[str] = None,
+                 schema_type: str = NlprpValues.UNKNOWN,
+                 sql_dialect: Optional[str] = None,
+                 tabular_schema: Optional[Dict[str, Any]] = None) -> None:
+        assert schema_type in (NlprpValues.UNKNOWN, NlprpValues.TABULAR), (
+            "'schema_type' must be one of '{NlprpValues.UNKNOWN}', "
+            "'{NlprpValues.TABULAR}' for each processor.")
         self.name = name
         self.title = title
         self.version = version
@@ -95,7 +101,12 @@ class Processor(object):
             NlprpKeys.VERSION: version,
             NlprpKeys.IS_DEFAULT_VERSION: is_default_version,
             NlprpKeys.DESCRIPTION: description,
+            NlprpKeys.SCHEMA_TYPE: schema_type,
         }
+
+        if schema_type == NlprpValues.TABULAR:
+            self.dict[NlprpKeys.SQL_DIALECT] = sql_dialect
+            self.dict[NlprpKeys.TABULAR_SCHEMA] = tabular_schema
 
         # Add instance to list of processors
         Processor.processors[self.processor_id] = self
@@ -197,7 +208,10 @@ for proc in processors.PROCESSORS:
         version=proc[NlprpKeys.VERSION],
         is_default_version=proc[NlprpKeys.IS_DEFAULT_VERSION],
         description=proc[NlprpKeys.DESCRIPTION],
-        proctype=proc.get(KEY_PROCTYPE)  # may be None
+        proctype=proc.get(KEY_PROCTYPE),  # may be None
+        schema_type=proc[NlprpKeys.SCHEMA_TYPE],  # 'unknown' or 'tabular'
+        sql_dialect=proc.get(NlprpKeys.SQL_DIALECT),
+        tabular_schema=proc.get(NlprpKeys.TABULAR_SCHEMA)
     )
     # Doing this here saves time per request
     x.set_parser()

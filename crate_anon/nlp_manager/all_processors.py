@@ -39,7 +39,7 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 import prettytable
 
 # noinspection PyUnresolvedReferences
-from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
+from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser, TableMaker
 from crate_anon.nlp_manager.parse_gate import Gate
 from crate_anon.nlp_manager.parse_medex import Medex
 from crate_anon.nlp_manager.parse_biochemistry import *
@@ -145,6 +145,15 @@ def all_parser_classes() -> List[Type[BaseNlpParser]]:
     return classes
 
 
+def all_tablemaker_classes() -> List[Type[TableMaker]]:
+    """
+    Return all classes that are non-abstract subclasses of
+    :class:`crate_anon.nlp_manager.base_nlp_parser.TableMaker`.
+    """
+    # noinspection PyTypeChecker
+    return get_all_subclasses(TableMaker)
+
+
 def get_nlp_parser_class(classname: str) -> Optional[Type[BaseNlpParser]]:
     """
     Fetch an NLP parser class (not instance) by name. The match may be on
@@ -159,7 +168,7 @@ def get_nlp_parser_class(classname: str) -> Optional[Type[BaseNlpParser]]:
 
     """
     classname = classname.lower()
-    classes = all_parser_classes()
+    classes = all_tablemaker_classes()
     for cls in classes:
         if (cls.classname().lower() == classname or
                 cls.fully_qualified_name().lower() == classname):

@@ -111,6 +111,17 @@ class NlpDefConfigKeys(object):
     CLOUD_REQUEST_DATA_DIR = "cloud_request_data_dir"
 
 
+class NlpDefValues(object):
+    """
+    Config file values for NLP definitions
+    """
+    PROCTYPE_CLOUD = "Cloud"
+    # Since any server with the same output format as CRATE's is compatible,
+    # we call this format standard
+    FORMAT_STANDARD = "Standard"
+    FORMAT_GATE = "GATE"
+
+
 class InputFieldConfigKeys(object):
     """
     Config file keys for input database fields (columns).
@@ -137,6 +148,9 @@ class ProcessorConfigKeys(object):
     INPUT_TERMINATOR = "input_terminator"
     OUTPUT_TERMINATOR = "output_terminator"
     MAX_EXTERNAL_PROG_USES = "max_external_prog_uses"
+    PROCESSOR_NAME = "processor_name"
+    PROCESSOR_VERSION = "processor_version"
+    PROCESSOR_TYPE = "processor_type"
 
 
 class GateOutputConfigKeys(object):

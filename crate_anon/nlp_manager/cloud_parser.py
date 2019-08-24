@@ -35,7 +35,7 @@ from http.cookiejar import CookieJar
 import json
 import logging
 import sys
-from typing import Any, Dict, List, Tuple, Generator, Optional
+from typing import Any, Dict, List, Tuple, Generator, Optional, Type
 import time
 
 from cardinal_pythonlib.rate_limiting import rate_limited
@@ -48,22 +48,23 @@ from cardinal_pythonlib.timing import MultiTimerContext, timer
 from requests import post, Response
 from requests.exceptions import HTTPError, RequestException
 from urllib3.exceptions import NewConnectionError
+from sqlalchemy.schema import Column, Index
+from sqlalchemy import types as sqlatypes
 
 from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 from crate_anon.common.memsize import getsize
 from crate_anon.common.stringfunc import does_text_contain_word_chars
-from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
+from crate_anon.nlp_manager.nlp_definition import (
+    NlpDefinition,
+)
 from crate_anon.nlp_manager.constants import (
-    CloudNlpConfigKeys,
     FN_NLPDEF,
     FN_WHEN_FETCHED,
     full_sectionname,
     GateResultKeys,
     NlpConfigPrefixes,
     ProcessorConfigKeys,
-)
-from crate_anon.nlp_manager.nlp_definition import (
-    NlpDefinition,
+    NlpDefValues,
 )
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 from crate_anon.nlprp.api import (
@@ -79,7 +80,9 @@ from crate_anon.nlprp.constants import (
     HttpStatus,
     NlprpCommands,
     NlprpKeys as NKeys,
+    NlprpValues,
 )
+from crate_anon.nlp_manager.base_nlp_parser import TableMaker
 
 log = logging.getLogger(__name__)
 
@@ -108,6 +111,191 @@ def to_json_str(json_structure: JsonValueType) -> str:
 
 
 # =============================================================================
+# Cloud class for cloud-based processsors
+# =============================================================================
+
+class Cloud(TableMaker):
+    """
+    Class to hold information on remote processors and create the relavant
+    tables.
+    """
+    # Index for anonymous tables
+    i = 0
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        """
+        Args:
+            nlpdef:
+                :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+            cfgsection:
+                the config section for the processor
+            commit:
+                force a COMMIT whenever we insert data? You should specify this
+                in multiprocess mode, or you may get database deadlocks.
+        """
+        super().__init__(nlpdef, cfgsection, commit)
+        self.processor_dict = None  # type: Dict[str, Any]
+        sectionname = full_sectionname(NlpConfigPrefixes.PROCESSOR,
+                                       cfgsection)
+        self.procname = nlpdef.opt_str(
+            sectionname, ProcessorConfigKeys.PROCESSOR_NAME,
+            required=True)
+        self.procversion = nlpdef.opt_str(
+            sectionname, ProcessorConfigKeys.PROCESSOR_VERSION,
+            default=None)
+        self.tablename = nlpdef.opt_str(sectionname,
+                                        ProcessorConfigKeys.DESTTABLE,
+                                        default=None)  # not required
+        self.format = nlpdef.opt_str(
+            sectionname,
+            ProcessorConfigKeys.PROCESSOR_TYPE,
+            default=NlpDefValues.FORMAT_STANDARD)
+        self.schema_type = None
+        self.sql_dialect = None
+        self.schema = None  # type: Dict[str, Any]
+        self.available_remotely = False  # update later if available
+
+    @staticmethod
+    def get_coltype_parts(coltype_str: str) -> List[str]:
+        """
+        Get root column type and parameter, i.e. for VARCHAR(50)
+        root column type is VARCHAR and parameter is 50.
+        """
+        parts = [x.strip() for x in coltype_str.replace(")", "").split("(")]
+        if len(parts) == 1:
+            col_str = parts[0]
+            parameter = ""
+        else:
+            try:
+                col_str, parameter = parts
+            except ValueError:
+                log.error(f"Invalid column type in response: {coltype_str}")
+                raise
+            try:
+                # Turn the parameter into an integer if it's supposed to be one
+                parameter = int(parameter)
+            except ValueError:
+                pass
+        return [col_str, parameter]
+
+    @staticmethod
+    def str_to_coltype_general(
+            coltype_str: str) -> Type[sqlatypes.TypeEngine]:
+        """
+        Get the sqlalchemy column type class which fits with the column type.
+        """
+        coltype = getattr(sqlatypes, coltype_str)
+        # Check if 'coltype' is really an sqlalchemy column type
+        if issubclass(coltype, sqlatypes.TypeEngine):
+            return coltype
+
+    @classmethod
+    def unique_identifier(cls) -> str:
+        """
+        Create a unique (for this run) identifier for the output table. Only
+        used if the remote processor has an empty string for the tablename,
+        and no name is specified by the user.
+        """
+        cls.i += 1
+        return f"anon_table{cls.i}"
+
+    def is_tabular(self) -> bool:
+        """
+        Is the format of the schema information given by the remote processor
+        tabular?
+        """
+        return self.schema_type == NlprpValues.TABULAR
+
+    def confirm_available(self, available: bool = True) -> None:
+        """
+        Set the attribute 'available_remotely', which indicates whether
+        a requested processor is actually available from the specified server.
+        """
+        self.available_remotely = available
+
+    def set_procinfo_if_correct(self, processor_dict: Dict[str, Any]) -> None:
+        """
+        Checks if a processor dictionary, with all the nlprp specified info
+        a processor should have, belongs to this processor. If it does, then
+        we add the information from the procesor dictionary.
+        """
+        if self.procname != processor_dict[NKeys.NAME]:
+            return
+        if ((self.procversion is None and
+                processor_dict[NKeys.IS_DEFAULT_VERSION]) or
+                (self.procversion == processor_dict[NKeys.VERSION])):
+            self.set_processor_info(processor_dict)
+
+    def set_processor_info(self, processor_dict: Dict[str, Any]) -> None:
+        """
+        Add the information from a processor dictionary. If it contains
+        table information, this allows us to create the correct tables when
+        the time comes.
+        """
+        # This won't be called unless the remote processor is available
+        self.confirm_available()
+        self.processor_dict = processor_dict
+        # self.name = processor_dict[NKeys.NAME]
+        self.schema_type = processor_dict.get(NKeys.SCHEMA_TYPE)
+        if self.is_tabular():
+            self.schema = processor_dict[NKeys.TABULAR_SCHEMA]
+            self.sql_dialect = processor_dict[NKeys.SQL_DIALECT]
+
+    def str_to_coltype(self, data_type_str: str) -> sqlatypes.TypeEngine:
+        """
+        This is supposed to get column types depending on the sql dialect
+        used by the server, but it's not implemented yet.
+        """
+        raise NotImplementedError
+        # if self.sql_dialect == SqlDialects.MSSQL:
+        #     return self.str_to_coltype_mssql(data_type_str)
+        # elif self.sql_dialect == SqlDialects.MYSQL:
+        #     return self.str_to_coltype_mysql(data_type_str)
+        # elif self.sql_dialect == SqlDialects.ORACLE:
+        #     return self.str_to_coltype_oracle(data_type_str)
+        # elif self.sql_dialect == SqlDialects.POSTGRES:
+        #     return self.str_to_coltype_postgres(data_type_str)
+        # elif self.sql_dialect == SqlDialects.SQLITE:
+        #     return self.str_to_coltype_sqlite(data_type_str)
+        # else:
+        #     pass
+
+    def dest_tables_columns(self) -> Dict[str, List[Column]]:
+        """
+        Gets the destination tables and their columns, currently using just
+        the remote processor information, but will soon be ammended to
+        have the option of using user-specified table definitions.
+        """
+        tables = {}
+        for table, columns in self.schema.items():
+            identifier = table if table else self.unique_identifier()
+            self.tablename = self.tablename if self.tablename else identifier
+            column_objects = []
+            for column in columns:
+                col_str, parameter = self.get_coltype_parts(
+                    column[NKeys.COLUMN_TYPE])
+                data_type_str = column[NKeys.DATA_TYPE]
+                coltype = self.str_to_coltype_general(data_type_str)
+                column_objects.append(Column(
+                    column[NKeys.COLUMN_NAME],
+                    coltype if not parameter else coltype(parameter),
+                    comment=column[NKeys.COLUMN_COMMENT],
+                    nullable=column[NKeys.IS_NULLABLE]
+                ))
+            tables[self.tablename] = column_objects
+        return tables
+
+    def dest_tables_indexes(self) -> Dict[str, List[Index]]:
+        """
+        Not implemented yet.
+        """
+        return {}
+
+
+# =============================================================================
 # CloudRequest
 # =============================================================================
 
@@ -120,8 +308,6 @@ class CloudRequest(object):
         'charset': 'utf-8',
         'Content-Type': 'application/json'
     }
-
-    rate_limit = 2
 
     def __init__(self,
                  nlpdef: NlpDefinition,
@@ -175,13 +361,18 @@ class CloudRequest(object):
         self.nlp_data = None  # type: Optional[JsonObjectType]  # the JSON response  # noqa
         self.queue_id = None  # type: Optional[str]
 
-        self.procs = {}  # type: Dict[str, str]
-        if procs_auto_add:
-            self.add_all_processors()
-
-        self.mirror_processors = {}  # type: Dict[str, BaseNlpParser]
+        # self.mirror_processors = {}  # type: Dict[str, BaseNlpParser]
         self.cookies = None  # type: Optional[CookieJar]
         self.request_failed = False
+
+        # Of the form:
+        #     {cfgsection for processor: 'Cloud' object}
+        self.requested_processors = self._cloudcfg.remote_processors  # type: Dict[Tuple[str, Optional[str]], Cloud]  # noqa
+        self._remote_processors_full_info = None  # type: List[Dict[str, Any]]
+
+        # This fails if it's above the setting of 'self.cookies'
+        if procs_auto_add:
+            self.add_all_processors()
 
         # Rate-limited functions
         rate_limit_hz = self._cloudcfg.rate_limit_hz
@@ -399,45 +590,51 @@ class CloudRequest(object):
             for err in errors:
                 log.error(f"Error received: {err!r}")
             raise HTTPError(f"Response status was: {status}")
+        self._remote_processors_full_info = json_response[NKeys.PROCESSORS]
         self._remote_processors_available = [
-            proc[NKeys.NAME] for proc in json_response[NKeys.PROCESSORS]
+            proc[NKeys.NAME] for proc in self._remote_processors_full_info
         ]
         return self._remote_processors_available
 
-    def add_processor(self, processor: str) -> None:
+    def set_cloud_processor_info(self) -> None:
+        self.get_remote_processors()
+        for processor in self.requested_processors.values():
+            for proc_dict in self._remote_processors_full_info:
+                # This is a bit messy, but I wasn't sure how to do it otherwise
+                processor.set_procinfo_if_correct(proc_dict)
+
+    def add_processor(self, procname: str, procversion: str) -> None:
         """
         Add a remote processor to the list of processors that we will request
         results from.
 
         Args:
-            processor: name of processor on the server
+            procname: name of processor on the server
+            procversion: version of processor on the server
         """
         remote_processors_available = self.get_remote_processors()
-        if processor not in remote_processors_available:
-            log.warning(f"Unknown processor, skipping {processor}")
+        if procname not in remote_processors_available:
+            log.warning(f"Unknown processor, skipping {procname}")
         else:
-            self.request_process[NKeys.ARGS][NKeys.PROCESSORS].append({
-                NKeys.NAME: processor
-            })
+            info = {NKeys.NAME: procname}
+            if procversion:
+                info[NKeys.VERSION] = procversion
+            self.request_process[NKeys.ARGS][NKeys.PROCESSORS].append(info)
+
+    def get_confirmed_processors(self):
+        confirmed = []  # type: List[Cloud]
+        for processor in self.requested_processors.values():
+            if processor.available_remotely:
+                confirmed.append(processor)
+        return confirmed
 
     def add_all_processors(self) -> None:
         """
         Add all user-specified remote processors to the list of processors
         that we will request results from.
         """
-        processorpairs = self._nlpdef.opt_strlist(
-            self._nlpdef_sectionname, CloudNlpConfigKeys.PROCESSORS,
-            required=True, lower=False)
-        self.procs = {}  # type: Dict[str, str]
-        for proctype, procname in chunks(processorpairs, 2):
-            if proctype.upper() == "GATE":
-                # GATE processor - use procname
-                self.add_processor(procname)
-            else:
-                # CRATE Python processor - use proctype
-                self.add_processor(proctype)
-            # Save procnames for later to get tablenames
-            self.procs[procname] = proctype
+        for processor in self.get_confirmed_processors():
+            self.add_processor(processor.procname, processor.procversion)
 
     def add_text(self, text: str, other_values: Dict[str, Any]) -> bool:
         """
@@ -700,11 +897,10 @@ class CloudRequest(object):
 
         return type_to_tablename, outputtypemap
 
+    @staticmethod
     def get_nlp_values_internal(
-            self,
             processor_data: Dict[str, Any],
-            proctype: str,
-            procname: str,
+            processor: Cloud,
             metadata: Dict[str, Any]) -> Generator[Tuple[
                 str, Dict[str, Any], str], None, None]:
         """
@@ -712,36 +908,33 @@ class CloudRequest(object):
 
         Args:
             processor_data: nlprp results for one processor
-            proctype: the remote CRATE processor used
-            procname: the user-defined name for the processor
+            processor: the remote CRATE processor used
             metadata:
                 the metadata for a particular document - it would have been
                 sent with the document and the server would have sent it back
 
-        Yields: output tablename, formatted result, processor name (proctype)
+        Yields ``(output_tablename, formatted_result, processor_name)``.
 
         """
-        tablename = self._nlpdef.opt_str(
-            full_sectionname(NlpConfigPrefixes.PROCESSOR, procname),
-            'desttable', required=True)
+        # procname = self.requested_processors[processor]
         if not processor_data[NKeys.SUCCESS]:
             log.warning(
-                f"Processor {proctype} failed for this document. Errors:")
+                f"Processor {processor} failed for this document. Errors:")
             errors = processor_data[NKeys.ERRORS]
             for error in errors:
                 log.warning(f"{error[NKeys.CODE]} - {error[NKeys.MESSAGE]}")
             return
         for result in processor_data[NKeys.RESULTS]:
             result.update(metadata)
-            yield tablename, result, proctype
+            yield result, processor
 
     def get_nlp_values_gate(
             self,
             processor_data: Dict[str, Any],
-            procname: str,
+            processor: Cloud,
             metadata: Dict[str, Any],
             text: str = "") -> Generator[Tuple[
-                str, Dict[str, Any], str], None, None]:
+                Dict[str, Any], Cloud], None, None]:
         """
         Gets result values from processed GATE data which will originally
         be in the following format:
@@ -756,16 +949,18 @@ class CloudRequest(object):
                 'features': {a dictionary of features e.g. 'drug', 'frequency', etc}
             }
 
-        Yields output tablename, formatted result and processor name.
+        Yields ``(output_tablename, formatted_result, processor_name)``.
         """  # noqa
         type_to_tablename, outputtypemap = self.get_tablename_map(
-            procname)
+            processor.procname)
         if not processor_data[NKeys.SUCCESS]:
             log.warning(
-                f"Processor {procname} failed for this document. Errors:")
+                f"Processor {processor.procname} failed for this document. Errors:")
             errors = processor_data[NKeys.ERRORS]
             for error in errors:
                 log.warning(f"{error[NKeys.CODE]} - {error[NKeys.MESSAGE]}")
+                # in some cases the GATE 'errors' value was a string rather
+                # than a list - will check if still applies
             return
         for result in processor_data[NKeys.RESULTS]:
             # Assuming each set of results says what annotation type
@@ -786,12 +981,11 @@ class CloudRequest(object):
             c = outputtypemap[annottype]
             rename_keys_in_dict(formatted_result, c.renames())
             set_null_values_in_dict(formatted_result, c.null_literals())
-            tablename = type_to_tablename[annottype]
             formatted_result.update(metadata)
             # Return procname as well, so we find the right database
-            yield tablename, formatted_result, procname
+            yield formatted_result, processor
 
-    def get_nlp_values(self) -> Generator[Tuple[str, Dict[str, Any], str],
+    def get_nlp_values(self) -> Generator[Tuple[Dict[str, Any], Cloud],
                                           None, None]:
         """
         Yields ``(tablename, results, processorname)`` for each set of results.
@@ -801,51 +995,38 @@ class CloudRequest(object):
                                "after nlp_data is obtained")
         for result in self.nlp_data[NKeys.RESULTS]:
             metadata = result[NKeys.METADATA]
-            text = result[NKeys.TEXT]
+            text = result.get(NKeys.TEXT)
             for processor_data in result[NKeys.PROCESSORS]:
-                procidentifier = processor_data[NKeys.NAME]
-                mirror_proc = self.mirror_processors[procidentifier]
-                if mirror_proc.get_parser_name().upper() == 'GATE':
+                name = processor_data[NKeys.NAME]
+                version = processor_data[NKeys.VERSION]
+                # is_default_version = processor_data[NKeys.IS_DEFAULT_VERSION]
+                # processor = self.get_proc_by_name_version(name, version)
+                try:
+                    processor = self.requested_processors[(name, version)]
+                except KeyError:
+                    # if is_default_version:
+                    try:
+                        processor = self.requested_processors.get(
+                            (name, None))
+                    except KeyError:
+                        log.error(f"Server returned processor {name} "
+                                  "version {version}, but this processor "
+                                  "was not requested.")
+                        raise
+                    # else:
+                    #     raise err(f"Server returned processor {name} "
+                    #                "version {version}, but this processor "
+                    #                "was not requested.")
+                if processor.format == NlpDefValues.FORMAT_GATE:
                     for t, r, p in self.get_nlp_values_gate(processor_data,
-                                                            procidentifier,
+                                                            processor,
                                                             metadata,
                                                             text):
                         yield t, r, p
                 else:
-                    procname = mirror_proc.get_cfgsection()
-                    for t, r, p in self.get_nlp_values_internal(
-                            processor_data, procidentifier,
-                            procname, metadata):
-                        yield t, r, p
-
-    def set_mirror_processors(
-            self,
-            procs: List[BaseNlpParser] = None) -> None:
-        """
-        Sets 'mirror_processors'. The purpose of mirror_processors is so that
-        we can easily access the sessions that come with the processors.
-
-        .. todo:: understand this
-        """
-        if procs:
-            assert isinstance(procs, list), (
-                "Argument 'procs' must be a list")
-            for proc in procs:
-                assert isinstance(proc, BaseNlpParser), (
-                    "Each element of 'procs' must be from a subclass "
-                    "of BaseNlpParser")
-                proctype = proc.classname()
-                if proctype.upper() == 'GATE':
-                    self.mirror_processors[proc.get_cfgsection()] = proc
-                else:
-                    self.mirror_processors[proctype] = proc
-        else:
-            for proc in self._nlpdef.get_processors():
-                proctype = proc.classname()
-                if proctype.upper() == 'GATE':
-                    self.mirror_processors[proc.get_cfgsection()] = proc
-                else:
-                    self.mirror_processors[proctype] = proc
+                    for r, p in self.get_nlp_values_internal(
+                            processor_data, processor, metadata):
+                        yield r, p
 
     def process_all(self) -> None:
         """
@@ -855,14 +1036,10 @@ class CloudRequest(object):
         """
         nlpname = self._nlpdef.get_name()
 
-        for tablename, nlp_values, procidentifier in self.get_nlp_values():
-            mirror_proc = self.mirror_processors[procidentifier]
+        for nlp_values, processor in self.get_nlp_values():
             nlp_values[FN_NLPDEF] = nlpname
-            # Doesn't matter if we do this more than once for the same database
-            # as it just returns the database object, rather than starting a
-            # new connection
-            session = mirror_proc.get_session()
-            sqla_table = mirror_proc.get_table(tablename)
+            session = processor.get_session()
+            sqla_table = processor.get_table(processor.tablename)
             column_names = [c.name for c in sqla_table.columns]
             # Convert string datetime back into datetime, using UTC
             for key in nlp_values:

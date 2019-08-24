@@ -434,9 +434,9 @@ setup(
             "crate_nlp_webserver_generate_encryption_key=crate_anon.nlp_webserver.security:generate_encryption_key"  # noqa
 
         ],
-        # Entry point for nlp web
+        # Entry point for nlp webserver
         "paste.app_factory": [
-            "main = crate_anon.nlp_web:main"
+            "main = crate_anon.nlp_webserver:main"
         ],
     },
 )

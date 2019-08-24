@@ -279,7 +279,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     )]
 
     # Add the processors' destination databases
-    for processor in nlpdef.get_processors():  # of type BaseNlpParser
+    for processor in nlpdef.get_processors():  # of type TableMaker
         session = processor.get_session()
         if any(x.session == session for x in databases):
             continue  # already exists
@@ -367,7 +367,8 @@ def drop_remake(nlpdef: NlpDefinition,
                 incremental: bool = False,
                 skipdelete: bool = False,
                 report_every: int = DEFAULT_REPORT_EVERY,
-                chunksize: int = DEFAULT_CHUNKSIZE) -> None:
+                chunksize: int = DEFAULT_CHUNKSIZE,
+                cloud: bool = False) -> None:
     """
     Drop output tables and recreate them.
 
@@ -380,6 +381,7 @@ def drop_remake(nlpdef: NlpDefinition,
             destination but not the source
         report_every: report to the log every *n* source rows
         chunksize: insert into the SQLAlchemy session every *n* records
+        cloud: is this for a cloud request?
     """
     # Not parallel.
     # -------------------------------------------------------------------------
@@ -397,6 +399,11 @@ def drop_remake(nlpdef: NlpDefinition,
     # -------------------------------------------------------------------------
     # 2. Output database(s)
     # -------------------------------------------------------------------------
+
+    if cloud:
+        # Set appropriate things for cloud
+        nlpdef.get_cloud_config_or_raise()
+        CloudRequest(nlpdef).set_cloud_processor_info()
     pretty_names = []  # type: List[str]
     for processor in nlpdef.get_processors():
         new_pretty_names = processor.make_tables(drop_first=not incremental)
@@ -592,6 +599,7 @@ def send_cloud_requests(
     cloud_request = CloudRequest(
         nlpdef, remote_processors_available=available_procs)
     empty_request = True
+    cloudcfg = nlpdef.get_cloud_config()
     for text, other_values in ifconfig.gen_text(start=start_record,
                                                 how_many=number_of_records):
         pkval = other_values[FN_SRCPKVAL]
@@ -630,7 +638,8 @@ def send_cloud_requests(
         else:
             if not empty_request:
                 cloud_request.send_process_request(
-                    queue=queue, cookies=cookies, include_text_in_reply=False)
+                    queue=queue, cookies=cookies,
+                    include_text_in_reply=cloudcfg.has_gate_processors)
                 # If there's a connection error, we only get this far if we
                 # didn't choose to stop at failure
                 if cloud_request.request_failed:
@@ -668,7 +677,8 @@ def send_cloud_requests(
     if not empty_request:
         # Send last request
         cloud_request.send_process_request(
-            queue=queue, cookies=cookies, include_text_in_reply=False)
+            queue=queue, cookies=cookies,
+            include_text_in_reply=cloudcfg.has_gate_processors)
         if cloud_request.request_failed:
             log.warning("Continuing after failed request.")
         else:
@@ -724,7 +734,6 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     cloudcfg = nlpdef.get_cloud_config_or_raise()
     filename = cloudcfg.data_filename()
     available_procs = CloudRequest(nlpdef).get_remote_processors()
-    mirror_procs = nlpdef.get_processors()
     if not os.path.exists(filename):
         log.error(f"File {filename!r} does not exist. "
                   f"Request may not have been sent.")
@@ -752,7 +761,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
         seen_srchashs = []  # type: List[str]
         cloud_request = CloudRequest(
             nlpdef, remote_processors_available=available_procs)
-        cloud_request.set_mirror_processors(mirror_procs)
+        # cloud_request.set_mirror_processors(mirror_procs)
         cloud_request.set_queue_id(queue_id)
         log.info(f"Atempting to retrieve data from request #{i} ...")
         i += 1
@@ -781,7 +790,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                 if incremental:
                     progrec = ifconfig.get_progress_record(pkval, pkstr)
                     for processor in (
-                            cloud_request.mirror_processors.values()):
+                            cloud_request.requested_processors.values()):
                         processor.delete_dest_record(ifconfig,
                                                      pkval,
                                                      pkstr,
@@ -841,7 +850,6 @@ def process_cloud_now(
     Process text by sending it off to the cloud processors in non queued mode.
     """
     session = nlpdef.get_progdb_session()
-    mirror_procs = nlpdef.get_processors()
     cloudcfg = nlpdef.get_cloud_config_or_raise()
     for ifconfig in nlpdef.get_ifconfigs():
         # Global record number within this ifconfig
@@ -863,7 +871,7 @@ def process_cloud_now(
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
                     continue
-                cloud_request.set_mirror_processors(mirror_procs)
+                # cloud_request.set_mirror_processors(mirror_procs)
                 cloud_request.process_all()
                 nlp_data = cloud_request.nlp_data
                 for result in nlp_data[NKeys.RESULTS]:
@@ -874,7 +882,7 @@ def process_cloud_now(
                     srchash = metadata[FN_SRCHASH]
                     progrec = None
                     if incremental:
-                        for processor in cloud_request.mirror_processors.values():  # noqa
+                        for processor in cloud_request.requested_processors.values():  # noqa
                             processor.delete_dest_record(ifconfig, pkval,
                                                          pkstr,
                                                          commit=incremental)
@@ -1190,6 +1198,10 @@ def main() -> None:
                            logtag="_".join(mynames).replace(" ", "_"))
     config.set_echo(args.echo)
 
+    # We'll need this for drop_remake
+    if args.cloud:
+        config.get_cloud_config_or_raise()
+
     # Count only?
     if args.count:
         show_source_counts(config)
@@ -1227,7 +1239,8 @@ def main() -> None:
                         incremental=args.incremental,
                         skipdelete=args.skipdelete,
                         report_every=args.report_every_fast,
-                        chunksize=args.chunksize)
+                        chunksize=args.chunksize,
+                        cloud=args.cloud)
 
     # From here, in a multiprocessing environment, trap any errors simply so
     # we can report the process number clearly.

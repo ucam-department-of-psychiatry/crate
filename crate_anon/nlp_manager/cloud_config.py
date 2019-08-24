@@ -29,10 +29,11 @@ Config object used for cloud NLP requests.
 
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Tuple
 
 from crate_anon.nlp_manager.constants import (
     CloudNlpConfigKeys,
+    NlpDefValues,
     DEFAULT_CLOUD_LIMIT_BEFORE_COMMIT,
     DEFAULT_CLOUD_MAX_CONTENT_LENGTH,
     DEFAULT_CLOUD_MAX_RECORDS_PER_REQUEST,
@@ -111,7 +112,22 @@ class CloudConfig(object):
         self.rate_limit_hz = config.get_int_default_if_failure(
             section=sectionname, option=CloudNlpConfigKeys.RATE_LIMIT_HZ,
             default=DEFAULT_CLOUD_RATE_LIMIT_HZ)
-        # todo: processors
+        # self._destdbs_by_proc = {}
+        self.remote_processors = {}  # type: Dict[Tuple[str, str], 'Cloud']
+        for processor in self._nlpdef.get_processors():
+            if processor.classname() == NlpDefValues.PROCTYPE_CLOUD:
+                # ... only add 'Cloud' processors
+                # self.remote_processors[
+                #     processor.get_cfgsection()] = processor
+                self.remote_processors[(
+                    processor.procname, processor.procversion)] = processor
+                # NOTE: KEY IS A TUPLE!
+        # We need the following in order to decide whether toask to include
+        # text in reply - if a processor is GATE we need to as it does not
+        # send back the content of the nlp snippet
+        self.has_gate_processors = any(
+            (x.format == NlpDefValues.FORMAT_GATE)
+            for x in self.remote_processors.values())
 
     def data_filename(self) -> str:
         """

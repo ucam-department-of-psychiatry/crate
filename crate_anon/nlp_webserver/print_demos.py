@@ -93,7 +93,7 @@ NLPRP web server. The PROCESSORS variable is the one of interest.
 from crate_anon.nlp_manager.all_processors import (
     all_crate_python_processors_nlprp_processor_info
 )
-from crate_anon.nlprp.constants import NlprpKeys as NKeys
+from crate_anon.nlprp.constants import NlprpValues, NlprpKeys as NKeys
 from crate_anon.nlp_webserver.constants import (
     KEY_PROCTYPE,
     PROCTYPE_GATE,
@@ -118,7 +118,8 @@ PROCESSORS = [
         NKeys.IS_DEFAULT_VERSION: True,
         NKeys.DESCRIPTION: "Finds mentions of drug prescriptions, "
                            "including the dose, route and frequency.",
-        KEY_PROCTYPE: PROCTYPE_GATE
+        KEY_PROCTYPE: PROCTYPE_GATE,
+        NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
     {
         NKeys.NAME: "diagnosis",
@@ -127,7 +128,8 @@ PROCESSORS = [
         NKeys.IS_DEFAULT_VERSION: True,
         NKeys.DESCRIPTION: "Finds mentions of diagnoses, in words or "
                            "in coded form.",
-        KEY_PROCTYPE: PROCTYPE_GATE
+        KEY_PROCTYPE: PROCTYPE_GATE,
+        NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
     {
         NKeys.NAME: "blood-pressure",
@@ -135,7 +137,8 @@ PROCESSORS = [
         NKeys.VERSION: "0.1",
         NKeys.IS_DEFAULT_VERSION: True,
         NKeys.DESCRIPTION: "Finds mentions of blood pressure measurements.",
-        KEY_PROCTYPE: PROCTYPE_GATE
+        KEY_PROCTYPE: PROCTYPE_GATE,
+        NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
     {
         NKeys.NAME: "cbt",
@@ -144,7 +147,8 @@ PROCESSORS = [
         NKeys.IS_DEFAULT_VERSION: True,
         NKeys.DESCRIPTION: "Identifies mentions of cases where the patient "
                            "has attended CBT sessions.",
-        KEY_PROCTYPE: PROCTYPE_GATE
+        KEY_PROCTYPE: PROCTYPE_GATE,
+        NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
     {
         NKeys.NAME: "lives-alone",
@@ -152,7 +156,8 @@ PROCESSORS = [
         NKeys.VERSION: "0.1",
         NKeys.IS_DEFAULT_VERSION: True,
         NKeys.DESCRIPTION: "Identifies if the patient lives alone.",
-        KEY_PROCTYPE: PROCTYPE_GATE
+        KEY_PROCTYPE: PROCTYPE_GATE,
+        NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
     {
         NKeys.NAME: "mmse",
@@ -163,7 +168,8 @@ PROCESSORS = [
                            "Extractor finds the results of this common "
                            "dementia screening test within documents along "
                            "with the date on which the test was administered.",
-        KEY_PROCTYPE: PROCTYPE_GATE
+        KEY_PROCTYPE: PROCTYPE_GATE,
+        NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
     {
         NKeys.NAME: "bmi",
@@ -171,7 +177,8 @@ PROCESSORS = [
         NKeys.VERSION: "0.1",
         NKeys.IS_DEFAULT_VERSION: True,
         NKeys.DESCRIPTION: "Finds mentions of BMI scores.",
-        KEY_PROCTYPE: PROCTYPE_GATE
+        KEY_PROCTYPE: PROCTYPE_GATE,
+        NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
     {
         NKeys.NAME: "smoking",
@@ -181,7 +188,8 @@ PROCESSORS = [
         NKeys.DESCRIPTION: "Identifies instances of smoking being discussed "
                            "and determines the status and subject (patient or "
                            "someone else).",
-        KEY_PROCTYPE: PROCTYPE_GATE
+        KEY_PROCTYPE: PROCTYPE_GATE,
+        NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
     {
         NKeys.NAME: "ADR",
@@ -189,7 +197,8 @@ PROCESSORS = [
         NKeys.VERSION: "0.1",
         NKeys.IS_DEFAULT_VERSION: True,
         NKeys.DESCRIPTION: "Adverse drug event mentions in clinical notes.",
-        KEY_PROCTYPE: PROCTYPE_GATE
+        KEY_PROCTYPE: PROCTYPE_GATE,
+        NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
     {
         NKeys.NAME: "suicide",
@@ -197,7 +206,8 @@ PROCESSORS = [
         NKeys.VERSION: "0.1",
         NKeys.IS_DEFAULT_VERSION: True,
         NKeys.DESCRIPTION: "App derived from TextHunter project suicide.",
-        KEY_PROCTYPE: PROCTYPE_GATE
+        KEY_PROCTYPE: PROCTYPE_GATE,
+        NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
     {
         NKeys.NAME: "appetite",
@@ -205,7 +215,8 @@ PROCESSORS = [
         NKeys.VERSION: "0.1",
         NKeys.IS_DEFAULT_VERSION: True,
         NKeys.DESCRIPTION: "Finds markers of good or poor appetite.",
-        KEY_PROCTYPE: PROCTYPE_GATE
+        KEY_PROCTYPE: PROCTYPE_GATE,
+        NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
     {
         NKeys.NAME: "low_mood",
@@ -213,7 +224,8 @@ PROCESSORS = [
         NKeys.VERSION: "0.1",
         NKeys.IS_DEFAULT_VERSION: True,
         NKeys.DESCRIPTION: "App derived from TextHunter project low_mood.",
-        KEY_PROCTYPE: PROCTYPE_GATE
+        KEY_PROCTYPE: PROCTYPE_GATE,
+        NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
 ] + all_crate_python_processors_nlprp_processor_info()
 
