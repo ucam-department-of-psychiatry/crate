@@ -18,4 +18,4 @@ optional arguments:
   --width WIDTH  Width to word-wrap to (default: 80)
   --silent       Don't print the text, just exit with a code (default: False)
 
-# Generated at 2019-08-19 17:31:29
+# Generated at 2019-08-22 16:29:15

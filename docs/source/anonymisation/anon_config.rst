@@ -299,6 +299,8 @@ recursion trawls a lot of information (and also uses an extra simultaneous
 database cursor for each recursion).
 
 
+.. _anon_config_replace_nonspecific_info_with:
+
 replace_nonspecific_info_with
 #############################
 
@@ -555,6 +557,13 @@ when CRATE processed that row (see
 An example might be ``_when_processed_utc``.
 
 
+Other anonymisation options
++++++++++++++++++++++++++++
+
+You can also specify additional "nonspecific" regular expressions yourself.
+See :ref:`extra_regexes <anon_config_extra_regexes>`.
+
+
 Output fields and formatting
 ++++++++++++++++++++++++++++
 
@@ -750,6 +759,39 @@ Specify a LIST OF PYTHON VALUES; for example:
 .. code-block:: ini
 
     optout_col_values = [True, 1, '1', 'Yes', 'yes', 'Y', 'y']
+
+
+.. _anon_config_extra_regexes:
+
+[extra_regexes] section
+~~~~~~~~~~~~~~~~~~~~~~~
+
+*Arbitrary number of name (string), value (string) pairs.*
+
+This section is optional.
+
+Here, you can specify extra regular expression patterns (regexes) that you wish
+to be scrubbed from the text as nonspecific information (see
+:ref:`replace_nonspecific_info_with
+<anon_config_replace_nonspecific_info_with>`).
+
+These regexes can be multiline and contain comments -- just remember to escape
+spaces and hash signs which you actually want to be part of the regex.
+
+They have their own section so that you can use the parameter name as a helpful
+descriptive name (these names are ignored, and you could specify a giant regex
+combining them yourself, but CRATE will do that for you to enhance config file
+legibility and convenience). You can name each of them anything, e.g.
+
+.. code-block:: ini
+
+    [extra_regexes]
+
+    my_regex_canadian_postcodes = [a-zA-Z][0-9][a-zA-Z]\w+[0-9][a-zA-Z][0-9]
+
+    another_regex =
+       \d+\#x    # a number then a hash sign then an 'x'
+       \d+\ y    # then another number then a space then 'y'
 
 
 .. _anon_config_db_section:

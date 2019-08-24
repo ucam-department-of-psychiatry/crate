@@ -33,7 +33,7 @@ import datetime
 import json
 import logging
 # import pprint
-from typing import Any, Dict, Iterable, List, Type, Union, Optional
+from typing import Any, Dict, Iterable, List, Sequence, Type, Union, Optional
 
 from cardinal_pythonlib.typing_helpers import Pep249DatabaseCursorType
 from cardinal_pythonlib.dbfunc import get_fieldnames_from_cursor
@@ -1069,10 +1069,32 @@ def query_count_current(request: HttpRequest) -> HttpResponse:
     return render_resultcount(request, query)
 
 
+class NlpSourceResult(object):
+    """
+    Serves as the return value for :func:`get_source_results`.
+    """
+    def __init__(self,
+                 fieldnames: List[str] = None,
+                 results: Sequence[Sequence[Any]] = None,
+                 sql: str = None,
+                 error: str = None) -> None:
+        """
+        Args:
+            fieldnames: fieldnames in source record
+            results: source record result
+            sql: SQL used in getting source text
+            error: error message
+        """
+        self.fieldnames = fieldnames or []  # type: List[str]
+        self.results = results or []  # type: List[List[Any]]
+        self.sql = sql
+        self.error = error
+
+
 @django_cache_function(timeout=None)
 def get_source_results(srcdb: str, srctable: str,
                        srcfield: str, srcpkfield: str,
-                       srcpk: Union[str, int]) -> List[Any]:
+                       srcpk: Union[str, int]) -> NlpSourceResult:
     """
     Get source text for CRATE NLP table record.
 
@@ -1085,25 +1107,31 @@ def get_source_results(srcdb: str, srctable: str,
         srcpk: source primary key value
 
     Returns:
-        A list: [fieldnames in source record - type Optional[List[str]],
-                 source record result - type Optional[List[List[Any]]],
-                 sql used in getting source text - type Optional[str],
-                 error - type Optional[str]]
+        a :class:`NlpSourceResult`
     """
-    dbname = research_database_info.sourcedb_defs.get(srcdb)
+    try:
+        dbname = research_database_info.nlp_sourcedb_map[srcdb]
+    except KeyError:
+        return NlpSourceResult(
+            error=f"No source database in settings.NLP_SOURCEDB_MAP "
+                  f"named {srcdb}")
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
-        return [None, None, None, f"No source database named {srcdb}"]
+        return NlpSourceResult(
+            error=f"No source database in settings.RESEARCH_DB_INFO "
+                  f"named {dbname}, for source database {srcdb}")
     full_tablename = dbinfo.schema_identifier + "." + srctable
     sql = f"SELECT {srcfield} FROM {full_tablename} WHERE {srcpkfield}={srcpk}"
     try:
-        cursor = get_executed_researchdb_cursor(sql)  # type: Pep249DatabaseCursorType
+        # noinspection PyTypeChecker
+        cursor = get_executed_researchdb_cursor(sql)  # type: Pep249DatabaseCursorType  # noqa
     except ProgrammingError:
-        return [None, None, None, "Table or fieldname incorrect"]
+        return NlpSourceResult(
+            error=f"Table or fieldname incorrect in: {srctable}.{srcfield}")
     fieldnames = get_fieldnames_from_cursor(cursor)
     results = cursor.fetchall()
-    return [fieldnames, results, sql, None]
+    return NlpSourceResult(fieldnames=fieldnames, results=results, sql=sql)
 
 
 def source_info(request: HttpRequest, srcdb: str, srctable: str,
@@ -1126,25 +1154,30 @@ def source_info(request: HttpRequest, srcdb: str, srctable: str,
         a :class:`django.http.response.HttpResponse`
 
     Only one of srcpkval and srcpkstr should be 'None', and this will be given
-    as a string because it's through a link.
+    as a string because it's through a URL link.
     """
     if srcpkstr == 'None':
         srcpkstr = None
     srcpk = srcpkstr if srcpkstr else srcpkval
-    fieldnames, results, sql, error = get_source_results(
+    nlpsourceresult = get_source_results(
         srcdb, srctable, srcfield, srcpkfield, srcpk)
-    if error:
-        return generic_error(request, f"Source info lookup failed: {error}")
+    if nlpsourceresult.error:
+        return generic_error(
+            request, f"Source info lookup failed: {nlpsourceresult.error}")
+    results = nlpsourceresult.results
     if not results:
-        log.warning(f"No source data found. SQL: {sql}")
+        log.warning(f"No source data found. SQL: {nlpsourceresult.sql}")
     else:
         if len(results) > 1:
-            log.warning(f"More than one source record found. SQL: {sql}")
-    table_html = resultset_html_table(fieldnames=fieldnames, rows=results,
-                                      element_counter=HtmlElementCounter())
+            log.warning(f"More than one source record found. "
+                        f"SQL: {nlpsourceresult.sql}")
+    table_html = resultset_html_table(
+        fieldnames=nlpsourceresult.fieldnames,
+        rows=results,
+        element_counter=HtmlElementCounter())
     context = {
         'table_html': table_html,
-        'sql': prettify_sql_html(sql),
+        'sql': prettify_sql_html(nlpsourceresult.sql),
         'sql_highlight_css': prettify_sql_css(),
     }
     # context.update(query_context(request))
