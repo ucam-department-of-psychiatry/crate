@@ -30,6 +30,7 @@ Representation of NLP processors used by CRATE's NLPRP server.
 
 import importlib.util
 from typing import Dict, Optional, Any
+import logging
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.all_processors import make_nlp_parser_unconfigured
@@ -47,6 +48,7 @@ from crate_anon.nlp_webserver.constants import (
 )
 from crate_anon.nlp_webserver.settings import SETTINGS
 
+log = logging.getLogger(__name__)
 
 proc_file = SETTINGS[NlpServerConfigKeys.PROCESSORS_PATH]
 # from processor_file import PROCESSORS  # doesn't work, need importlib
@@ -89,6 +91,9 @@ class Processor(object):
         self.is_default_version = is_default_version
         self.description = description
         self.processor_id = "{}_{}".format(self.name, self.version)
+        if len(self.processor_id) > 100:
+            log.warning(f"Processor id {self.processor_id} is too long for "
+                        "database field")
 
         self.parser = None  # type: Optional[BaseNlpParser]
         if not proctype:

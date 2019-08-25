@@ -1203,12 +1203,11 @@ def main() -> None:
         print(config.nlprp_list_processors_json())
         return
 
-    if args.cloud:
+    if args.cloud or args.retrieve:
         # Set appropriate things for cloud - need to do this before drop_remake
         cloudcfg = config.get_cloud_config_or_raise()
         cloud_request = CloudRequest(config)
         cloud_request.set_cloud_processor_info()
-        print(cloudcfg.rate_limit_hz)
         cloud_request.set_rate_limit(cloudcfg.rate_limit_hz)
 
     # -------------------------------------------------------------------------

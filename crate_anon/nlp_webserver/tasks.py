@@ -32,6 +32,7 @@ import logging
 import json
 import requests
 import transaction
+# import time
 
 from celery import Celery
 from cryptography.fernet import Fernet
@@ -263,7 +264,7 @@ def process_nlp_text(
     we know that the NLP has succeeded; we handle failure by returning a
     failure code to the client.
     """
-    # time.sleep(0.2)
+    # time.sleep(0.3)
     # Can't figure out how not to have to do this everytime
     # engine = engine_from_config(SETTINGS, 'sqlalchemy.')
     # TaskSession.configure(bind=engine)
@@ -272,8 +273,6 @@ def process_nlp_text(
     dpr = (
         TaskSession.query(DocProcRequest).get(docprocrequest_id)
     )  # type: Optional[DocProcRequest]
-    # The above is probably wrong, but if we use a different session, the
-    # data doesn't always reach the database in time
     if not dpr:
         return internal_error(
             f"DocProcRequest {docprocrequest_id} does not exist")

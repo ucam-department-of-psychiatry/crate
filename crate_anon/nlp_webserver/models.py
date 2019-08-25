@@ -125,7 +125,7 @@ class DocProcRequest(Base):
     .. todo:: ask FS: is the storage of doctext here (too) optimal?
     .. todo:: ask FS: is VARCHAR(50) enough for processor_id? Probably not now I've messed with it (fully qualified class names)
 
-    """
+    """  # noqa
     __tablename__ = 'docprocrequests'
     docprocrequest_id = Column(
         VARCHAR(50), primary_key=True,
@@ -140,6 +140,6 @@ class DocProcRequest(Base):
         comment="Text of the document to processs"
     )  # type: str
     processor_id = Column(
-        VARCHAR(50),
+        VARCHAR(100),
         comment="Processor ID, in '<name>_<version>' format"
     )  # type: str

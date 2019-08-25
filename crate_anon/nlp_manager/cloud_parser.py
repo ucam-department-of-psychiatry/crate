@@ -137,7 +137,7 @@ class Cloud(TableMaker):
                 in multiprocess mode, or you may get database deadlocks.
         """
         super().__init__(nlpdef, cfgsection, commit)
-        self.processor_dict = None  # type: Dict[str, Any]
+        self.processor_dict = None  # type: Optional[Dict[str, Any]]
         sectionname = full_sectionname(NlpConfigPrefixes.PROCESSOR,
                                        cfgsection)
         self.procname = nlpdef.opt_str(
@@ -155,7 +155,7 @@ class Cloud(TableMaker):
             default=NlpDefValues.FORMAT_STANDARD)
         self.schema_type = None
         self.sql_dialect = None
-        self.schema = None  # type: Dict[str, Any]
+        self.schema = None  # type: Optional[Dict[str, Any]]
         self.available_remotely = False  # update later if available
 
     @staticmethod
@@ -368,7 +368,7 @@ class CloudRequest(object):
         # Of the form:
         #     {cfgsection for processor: 'Cloud' object}
         self.requested_processors = self._cloudcfg.remote_processors  # type: Dict[Tuple[str, Optional[str]], Cloud]  # noqa
-        self._remote_processors_full_info = None  # type: List[Dict[str, Any]]
+        self._remote_processors_full_info = None  # type: Optional[List[Dict[str, Any]]]
 
         # This fails if it's above the setting of 'self.cookies'
         if procs_auto_add:
@@ -384,12 +384,12 @@ class CloudRequest(object):
             cls._ratelimited_send_process_request = rate_limited(
                 rate_limit_hz)(cls._internal_send_process_request)
             cls._ratelimited_try_fetch = rate_limited(
-                rate_limit_hz)(cls.try_fetch)
+                rate_limit_hz)(cls._internal_try_fetch)
         else:
             # No limits!
             cls._ratelimited_send_process_request = \
                 cls._internal_send_process_request
-            cls._ratelimited_try_fetch = cls.try_fetch
+            cls._ratelimited_try_fetch = cls._internal_try_fetch
 
     def process_request_too_long(self, max_length: Optional[int]) -> bool:
         """
