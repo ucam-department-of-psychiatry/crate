@@ -149,7 +149,7 @@ class OutputUserConfig(object):
             GateOutputConfigKeys.DESTFIELDS,
             required=True, as_words=False)
         # ... comments will be removed during that process.
-        log.critical(dest_field_lines)
+        # log.critical(dest_field_lines)
         for dfl in dest_field_lines:
             parts = dfl.split(maxsplit=2)
             assert len(parts) >= 2, f"Bad field definition line: {dfl!r}"

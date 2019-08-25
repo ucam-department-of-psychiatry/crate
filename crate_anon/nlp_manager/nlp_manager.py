@@ -367,8 +367,7 @@ def drop_remake(nlpdef: NlpDefinition,
                 incremental: bool = False,
                 skipdelete: bool = False,
                 report_every: int = DEFAULT_REPORT_EVERY,
-                chunksize: int = DEFAULT_CHUNKSIZE,
-                cloud: bool = False) -> None:
+                chunksize: int = DEFAULT_CHUNKSIZE) -> None:
     """
     Drop output tables and recreate them.
 
@@ -381,7 +380,6 @@ def drop_remake(nlpdef: NlpDefinition,
             destination but not the source
         report_every: report to the log every *n* source rows
         chunksize: insert into the SQLAlchemy session every *n* records
-        cloud: is this for a cloud request?
     """
     # Not parallel.
     # -------------------------------------------------------------------------
@@ -400,10 +398,6 @@ def drop_remake(nlpdef: NlpDefinition,
     # 2. Output database(s)
     # -------------------------------------------------------------------------
 
-    if cloud:
-        # Set appropriate things for cloud
-        nlpdef.get_cloud_config_or_raise()
-        CloudRequest(nlpdef).set_cloud_processor_info()
     pretty_names = []  # type: List[str]
     for processor in nlpdef.get_processors():
         new_pretty_names = processor.make_tables(drop_first=not incremental)
@@ -1198,10 +1192,6 @@ def main() -> None:
                            logtag="_".join(mynames).replace(" ", "_"))
     config.set_echo(args.echo)
 
-    # We'll need this for drop_remake
-    if args.cloud:
-        config.get_cloud_config_or_raise()
-
     # Count only?
     if args.count:
         show_source_counts(config)
@@ -1212,6 +1202,14 @@ def main() -> None:
     if args.print_nlprp_list_processors_json:
         print(config.nlprp_list_processors_json())
         return
+
+    if args.cloud:
+        # Set appropriate things for cloud - need to do this before drop_remake
+        cloudcfg = config.get_cloud_config_or_raise()
+        cloud_request = CloudRequest(config)
+        cloud_request.set_cloud_processor_info()
+        print(cloudcfg.rate_limit_hz)
+        cloud_request.set_rate_limit(cloudcfg.rate_limit_hz)
 
     # -------------------------------------------------------------------------
 
@@ -1239,8 +1237,7 @@ def main() -> None:
                         incremental=args.incremental,
                         skipdelete=args.skipdelete,
                         report_every=args.report_every_fast,
-                        chunksize=args.chunksize,
-                        cloud=args.cloud)
+                        chunksize=args.chunksize)
 
     # From here, in a multiprocessing environment, trap any errors simply so
     # we can report the process number clearly.

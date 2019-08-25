@@ -374,19 +374,22 @@ class CloudRequest(object):
         if procs_auto_add:
             self.add_all_processors()
 
-        # Rate-limited functions
-        rate_limit_hz = self._cloudcfg.rate_limit_hz
+    @classmethod
+    def set_rate_limit(cls, rate_limit_hz: int) -> None:
+        """
+        Creates new methods which are rate limited. Only use this once per run.
+        """
         if rate_limit_hz > 0:
             # Rate-limited
-            self._ratelimited_send_process_request = rate_limited(
-                rate_limit_hz)(self._internal_send_process_request)
-            self._ratelimited_try_fetch = rate_limited(
-                rate_limit_hz)(self.try_fetch)
+            cls._ratelimited_send_process_request = rate_limited(
+                rate_limit_hz)(cls._internal_send_process_request)
+            cls._ratelimited_try_fetch = rate_limited(
+                rate_limit_hz)(cls.try_fetch)
         else:
             # No limits!
-            self._ratelimited_send_process_request = \
-                self._internal_send_process_request
-            self._ratelimited_try_fetch = self.try_fetch
+            cls._ratelimited_send_process_request = \
+                cls._internal_send_process_request
+            cls._ratelimited_try_fetch = cls.try_fetch
 
     def process_request_too_long(self, max_length: Optional[int]) -> bool:
         """
