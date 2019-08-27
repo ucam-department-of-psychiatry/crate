@@ -45,6 +45,7 @@ from crate_anon.nlp_webserver.constants import (
     KEY_PROCTYPE,
     NlpServerConfigKeys,
     PROCTYPE_GATE,
+    GATE_BASE_URL,
 )
 from crate_anon.nlp_webserver.settings import SETTINGS
 
@@ -94,6 +95,10 @@ class Processor(object):
         if len(self.processor_id) > 100:
             log.warning(f"Processor id {self.processor_id} is too long for "
                         "database field")
+
+        self.base_url = None
+        if proctype == PROCTYPE_GATE:
+            self.base_url = GATE_BASE_URL
 
         self.parser = None  # type: Optional[BaseNlpParser]
         if not proctype:

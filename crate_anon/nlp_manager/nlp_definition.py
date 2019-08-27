@@ -804,7 +804,7 @@ class NlpDefinition(object):
         # ---------------------------------------------------------------------
         # NLP processors
         # ---------------------------------------------------------------------
-        self._processors = []  # type: List[BaseNlpParser]
+        self._processors = []  # type: List[TableMaker]
         processorpairs = self.opt_strlist(
             nlpsection, NlpDefConfigKeys.PROCESSORS,
             required=True, lower=False)
@@ -1081,6 +1081,7 @@ class NlpDefinition(object):
             :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
 
         """
+        # noinspection PyTypeChecker
         return [x for x in self._processors if
                 x.classname() != NlpDefValues.PROCTYPE_CLOUD]
 

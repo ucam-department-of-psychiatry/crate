@@ -232,6 +232,7 @@ class GateResultKeys(object):
     SET = "set"
     FEATURES = "features"
 
+
 class GateFieldNames(object):
     """
     Field (column) names for results from GATE.

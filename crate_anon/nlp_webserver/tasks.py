@@ -238,7 +238,6 @@ def start_task_session() -> None:
 def process_nlp_text(
         self,
         docprocrequest_id: str,
-        gate_url: str = None,
         username: str = "",
         crypt_pass: str = "") -> NlpServerResult:
     """
@@ -249,8 +248,6 @@ def process_nlp_text(
             the :class:`celery.Task`
         docprocrequest_id:
             the :class:`crate_anon.nlp_webserver.models.DocProcRequest` ID
-        gate_url:
-            the URL of the GATE API
         username:
             username in use
         crypt_pass:
@@ -299,7 +296,7 @@ def process_nlp_text(
 
     # Run the NLP
     if processor.proctype == PROCTYPE_GATE:
-        return process_nlp_gate(text, processor, gate_url, username, password)
+        return process_nlp_gate(text, processor, username, password)
     else:
         if not processor.parser:
             processor.set_parser()
@@ -309,7 +306,6 @@ def process_nlp_text(
 def process_nlp_text_immediate(
         text: str,
         processor: Processor,
-        gate_url: str = None,
         username: str = "",
         password: str = "") -> NlpServerResult:
     """
@@ -320,8 +316,6 @@ def process_nlp_text_immediate(
             text to run the NLP over
         processor:
             NLP processor; a class:`crate_anon.nlp_webserver.procs.Processor`
-        gate_url:
-            the URL of the GATE API
         username:
             username in use
         password:
@@ -331,7 +325,7 @@ def process_nlp_text_immediate(
         a :class:`NlpServerResult`
     """
     if processor.proctype == PROCTYPE_GATE:
-        return process_nlp_gate(text, processor, gate_url, username, password)
+        return process_nlp_gate(text, processor, username, password)
     else:
         if not processor.parser:
             processor.set_parser()
@@ -340,7 +334,6 @@ def process_nlp_text_immediate(
 
 def process_nlp_gate(text: str,
                      processor: Processor,
-                     gate_url: str,
                      username: str,
                      password: str) -> NlpServerResult:
     """
@@ -352,8 +345,6 @@ def process_nlp_gate(text: str,
             text to run the NLP over
         processor:
             NLP processor; a class:`crate_anon.nlp_webserver.procs.Processor`
-        gate_url:
-            the URL of the GATE API
         username:
             username in use
         password:
@@ -373,7 +364,7 @@ def process_nlp_gate(text: str,
         'charset': 'utf8'
     }
     try:
-        response = requests.post(gate_url + '/' + processor.name,
+        response = requests.post(processor.base_url + '/' + processor.name,
                                  data=text.encode('utf-8'),
                                  headers=headers,
                                  auth=(username, password))  # basic auth

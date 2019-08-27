@@ -81,7 +81,6 @@ from crate_anon.nlp_webserver.manage_users import get_users
 from crate_anon.nlp_webserver.models import DBSession, Document, DocProcRequest
 from crate_anon.nlp_webserver.procs import Processor
 from crate_anon.nlp_webserver.constants import (
-    GATE_BASE_URL,
     SERVER_NAME,
     SERVER_VERSION,
     NlpServerConfigKeys,
@@ -457,7 +456,6 @@ class NlpWebViews(object):
                 # Send the text off for processing
                 procresult = process_nlp_text_immediate(
                     text=text,
-                    gate_url=GATE_BASE_URL,
                     processor=processor,
                     username=self.username,
                     password=self.password
@@ -542,7 +540,6 @@ class NlpWebViews(object):
                 for dpr_id in docprocrequest_ids[i]:
                     result = process_nlp_text.delay(
                         docprocrequest_id=dpr_id,
-                        gate_url=GATE_BASE_URL,
                         username=self.username,
                         crypt_pass=crypt_pass
                     )  # type: AsyncResult

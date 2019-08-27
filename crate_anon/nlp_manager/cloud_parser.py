@@ -151,13 +151,12 @@ class Cloud(TableMaker):
             sectionname,
             ProcessorConfigKeys.PROCESSOR_FORMAT,
             required=True)
-            #default=NlpDefValues.FORMAT_STANDARD)
         self.schema_type = None
         self.sql_dialect = None
         self.schema = None  # type: Optional[Dict[str, Any]]
         self.available_remotely = False  # update later if available
 
-         # Output section - bit of repetition from the 'Gate' parser
+        # Output section - bit of repetition from the 'Gate' parser
         typepairs = nlpdef.opt_strlist(
             sectionname, ProcessorConfigKeys.OUTPUTTYPEMAP,
             required=False, lower=False)
@@ -237,7 +236,7 @@ class Cloud(TableMaker):
     def get_tablename_from_type(self, output_type: str) -> str:
         return self._type_to_tablename[output_type]
 
-    def get_otconf_from_type(self, output_type: str) -> str:
+    def get_otconf_from_type(self, output_type: str) -> OutputUserConfig:
         return self._outputtypemap[output_type]
 
     def _standard_columns_if_gate(self) -> List[Column]:
@@ -1020,8 +1019,8 @@ class CloudRequest(object):
             result.update(metadata)
             yield result
 
+    @staticmethod
     def get_nlp_values_gate(
-            self,
             processor_data: Dict[str, Any],
             processor: Cloud,
             metadata: Dict[str, Any],
@@ -1116,11 +1115,11 @@ class CloudRequest(object):
                                                          text):
                         yield t, r, processor
                 else:
-                    for result in self.get_nlp_values_internal(
+                    for res in self.get_nlp_values_internal(
                             processor_data, processor, metadata):
                         # For non-GATE processors ther will only be one table
                         # name
-                        yield processor.tablename, result, processor
+                        yield processor.tablename, res, processor
 
     def process_all(self) -> None:
         """

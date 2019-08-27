@@ -31,7 +31,8 @@ Constants for CRATE's implementation of an NLPRP server.
 KEY_PROCTYPE = "proctype"
 PROCTYPE_GATE = "GATE"
 
-GATE_BASE_URL = "https://api.nhsta.gate.ac.uk/process-document"
+# GATE_BASE_URL = "https://api.nhsta.gate.ac.uk/process-document"
+GATE_BASE_URL = "https://nhsta-api.slam-services.gate.ac.uk/process-document"
 NLP_WEBSERVER_CONFIG_ENVVAR = "CRATE_NLP_WEB_CONFIG"
 SERVER_NAME = 'test_server'
 SERVER_VERSION = '0.1'

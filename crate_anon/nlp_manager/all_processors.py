@@ -154,7 +154,7 @@ def all_tablemaker_classes() -> List[Type[TableMaker]]:
     return get_all_subclasses(TableMaker)
 
 
-def get_nlp_parser_class(classname: str) -> Optional[Type[BaseNlpParser]]:
+def get_nlp_parser_class(classname: str) -> Optional[Type[TableMaker]]:
     """
     Fetch an NLP parser class (not instance) by name. The match may be on
     either the class's short name or the fully-qualified name, and is
@@ -178,7 +178,7 @@ def get_nlp_parser_class(classname: str) -> Optional[Type[BaseNlpParser]]:
 
 def make_nlp_parser(classname: str,
                     nlpdef: NlpDefinition,
-                    cfgsection: str) -> BaseNlpParser:
+                    cfgsection: str) -> TableMaker:
     """
     Fetch an NLP processor instance by name.
 
@@ -208,7 +208,7 @@ def make_nlp_parser(classname: str,
 
 def make_nlp_parser_unconfigured(classname: str,
                                  raise_if_absent: bool = True) \
-        -> Optional[BaseNlpParser]:
+        -> Optional[TableMaker]:
     """
     Get a debugging (unconfigured) instance of an NLP parser.
 

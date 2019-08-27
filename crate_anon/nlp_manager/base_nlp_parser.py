@@ -53,7 +53,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
 from sqlalchemy.sql.schema import MetaData
-from sqlalchemy.types import  Integer, Text
+from sqlalchemy.types import Integer, Text
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.common.stringfunc import does_text_contain_word_chars
