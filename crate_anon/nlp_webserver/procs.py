@@ -93,8 +93,8 @@ class Processor(object):
         self.description = description
         self.processor_id = "{}_{}".format(self.name, self.version)
         if len(self.processor_id) > 100:
-            log.warning(f"Processor id {self.processor_id} is too long for "
-                        "database field")
+            raise ValueError(f"Processor id {self.processor_id} is too "
+                             "long for database field")
 
         self.base_url = None
         if proctype == PROCTYPE_GATE:

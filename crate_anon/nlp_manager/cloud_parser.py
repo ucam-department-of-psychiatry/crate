@@ -673,8 +673,6 @@ class CloudRequest(object):
         # Send request, get response
         json_response = self._post_get_json(request_json, may_fail=False)
 
-        print(json_response)
-
         status = json_get_int(json_response, NKeys.STATUS)
         if not HttpStatus.is_good_answer(status):
             errors = json_get_array(json_response, NKeys.ERRORS)
