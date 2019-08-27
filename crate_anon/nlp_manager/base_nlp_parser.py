@@ -53,6 +53,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
 from sqlalchemy.sql.schema import MetaData
+from sqlalchemy.types import  Integer, Text
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.common.stringfunc import does_text_contain_word_chars
@@ -63,6 +64,9 @@ from crate_anon.nlp_manager.constants import (
     full_sectionname,
     NlpConfigPrefixes,
     ProcessorConfigKeys,
+    GateFieldNames as GateFN,
+    SqlTypeDbIdentifier,
+    MAX_SQL_FIELD_LEN,
 )
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 from crate_anon.nlp_manager.nlp_definition import (
@@ -326,6 +330,37 @@ class TableMaker(ABC):
                 log.critical(msg)
                 raise ValueError(msg)
 
+    # Put these GATE methods here because it's also useful for Cloud processors
+
+    @staticmethod
+    def _standard_gate_columns() -> List[Column]:
+        """
+        Returns standard columns for GATE output.
+        """
+        return [
+            Column(GateFN.SET, SqlTypeDbIdentifier,
+                   comment="GATE output set name"),
+            Column(GateFN.TYPE, SqlTypeDbIdentifier,
+                   comment="GATE annotation type name"),
+            Column(GateFN.ID, Integer,
+                   comment="GATE annotation ID (not clear this is very useful)"),  # noqa
+            Column(GateFN.STARTPOS, Integer,
+                   comment="Start position in the content"),
+            Column(GateFN.ENDPOS, Integer,
+                   comment="End position in the content"),
+            Column(GateFN.CONTENT, Text,
+                   comment="Full content marked as relevant."),
+        ]
+
+    @staticmethod
+    def _standard_gate_indexes() -> List[Index]:
+        """
+        Returns standard indexes for GATE output.
+        """
+        return [
+            Index('_idx__set', GateFN.SET, mysql_length=MAX_SQL_FIELD_LEN),
+        ]
+
     @lru_cache(maxsize=None)
     def tables(self) -> Dict[str, Table]:
         """
@@ -549,30 +584,6 @@ class TableMaker(ABC):
         Returns the destination database.
         """
         return self._destdb
-
-    def process(self, text: str,
-                starting_fields_values: Dict[str, Any]) -> None:
-        """
-        The core function that takes a single piece of text and feeds it
-        through a single NLP processor. This may produce zero, one, or many
-        output records. Those records are then merged with information about
-        their source (etc)., and inserted into the destination database.
-
-        It's only going to be implemented for subclasses of
-        :class:`BaseNlpParser`.
-
-        Args:
-            text:
-                the raw text to parse
-            starting_fields_values:
-                a dictionary of the format ``{columnname: value}`` that should
-                be added to whatever the NLP processor comes up with. This
-                will, in practice, include source metadata (which table,
-                row [PK], and column did the text come from), processing
-                metadata (when did the NLP processing take place?), and other
-                values that the user has told us to copy across from the source
-                database.
-        """
 
 
 # =============================================================================

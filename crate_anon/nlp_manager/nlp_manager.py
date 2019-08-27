@@ -1203,13 +1203,6 @@ def main() -> None:
         print(config.nlprp_list_processors_json())
         return
 
-    if args.cloud or args.retrieve:
-        # Set appropriate things for cloud - need to do this before drop_remake
-        cloudcfg = config.get_cloud_config_or_raise()
-        cloud_request = CloudRequest(config)
-        cloud_request.set_cloud_processor_info()
-        cloud_request.set_rate_limit(cloudcfg.rate_limit_hz)
-
     # -------------------------------------------------------------------------
 
     # Delete from queue - do this before Drop/Remake and return so we don't
@@ -1224,6 +1217,15 @@ def main() -> None:
     if args.showqueue:
         show_cloud_queue(config)
         return
+
+    if args.cloud or args.retrieve:
+        # Set appropriate things for cloud - need to do this before
+        # drop_remake, but after cancel_request or show_cloud_queue to avoid
+        # unecessary requests
+        cloudcfg = config.get_cloud_config_or_raise()
+        cloud_request = CloudRequest(config)
+        cloud_request.set_cloud_processor_info()
+        cloud_request.set_rate_limit(cloudcfg.rate_limit_hz)
 
     log.info(f"Starting: incremental={args.incremental}")
     start = get_now_utc_pendulum()

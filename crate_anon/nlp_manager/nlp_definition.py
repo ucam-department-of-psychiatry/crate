@@ -68,7 +68,7 @@ from crate_anon.nlp_manager.constants import (
     DEFAULT_TEMPORARY_TABLENAME,
     full_sectionname,
     GATE_PIPELINE_CLASSNAME,
-    GateOutputConfigKeys,
+    NlpOutputConfigKeys,
     HashClass,
     InputFieldConfigKeys,
     MAX_SQL_FIELD_LEN,
@@ -334,29 +334,29 @@ def demo_nlp_config() -> str:
 
 [{NlpConfigPrefixes.OUTPUT}:output_person]
 
-{GateOutputConfigKeys.DESTTABLE} = person
-{GateOutputConfigKeys.RENAMES} =
+{NlpOutputConfigKeys.DESTTABLE} = person
+{NlpOutputConfigKeys.RENAMES} =
     firstName   firstname
-{GateOutputConfigKeys.DESTFIELDS} =
+{NlpOutputConfigKeys.DESTFIELDS} =
     rule        VARCHAR(100)    Rule used to find this person (e.g. TitleFirstName, PersonFull)
     firstname   VARCHAR(100)    First name
     surname     VARCHAR(100)    Surname
     gender      VARCHAR(7)      Gender (e.g. male, female, unknown)
     kind        VARCHAR(100)    Kind of name (e.g. personName, fullName)
     # ... longest gender: "unknown" (7)
-{GateOutputConfigKeys.INDEXDEFS} =
+{NlpOutputConfigKeys.INDEXDEFS} =
     firstname   64
     surname     64
 
 [{NlpConfigPrefixes.OUTPUT}:output_location]
 
-{GateOutputConfigKeys.DESTTABLE} = location
-{GateOutputConfigKeys.RENAMES} =
+{NlpOutputConfigKeys.DESTTABLE} = location
+{NlpOutputConfigKeys.RENAMES} =
     locType     loctype
-{GateOutputConfigKeys.DESTFIELDS} =
+{NlpOutputConfigKeys.DESTFIELDS} =
     rule        VARCHAR(100)    Rule used (e.g. Location1)
     loctype     VARCHAR(100)    Location type (e.g. city)
-{GateOutputConfigKeys.INDEXDEFS} =
+{NlpOutputConfigKeys.INDEXDEFS} =
     rule    100
     loctype 100
 
@@ -398,8 +398,8 @@ def demo_nlp_config() -> str:
 
 [{NlpConfigPrefixes.OUTPUT}:output_disease_or_syndrome]
 
-{GateOutputConfigKeys.DESTTABLE} = kconnect_diseases
-{GateOutputConfigKeys.RENAMES} =
+{NlpOutputConfigKeys.DESTTABLE} = kconnect_diseases
+{NlpOutputConfigKeys.RENAMES} =
     Experiencer     experiencer
     Negation        negation
     PREF            pref
@@ -407,7 +407,7 @@ def demo_nlp_config() -> str:
     TUI             tui
     Temporality     temporality
     VOCABS          vocabs
-{GateOutputConfigKeys.DESTFIELDS} =
+{NlpOutputConfigKeys.DESTFIELDS} =
     # Found by manual inspection of KConnect/Bio-YODIE output from the GATE console:
     experiencer  VARCHAR(100)  Who experienced it; e.g. "Patient", "Other"
     negation     VARCHAR(100)  Was it negated or not; e.g. "Affirmed", "Negated"
@@ -420,7 +420,7 @@ def demo_nlp_config() -> str:
     inst_full    VARCHAR(255)  Looks like a URL to a CUI; e.g. "http://linkedlifedata.com/resource/umls/id/C0003873"
     language     VARCHAR(100)  Language; e.g. ""; ?will look like "ENG" for English? See https://www.nlm.nih.gov/research/umls/implementation_resources/query_diagrams/er1.html
     tui_full     VARCHAR(255)  TUI (?); e.g. "http://linkedlifedata.com/resource/semanticnetwork/id/T047"
-{GateOutputConfigKeys.INDEXDEFS} =
+{NlpOutputConfigKeys.INDEXDEFS} =
     pref    100
     sty     100
     tui     4
@@ -465,8 +465,8 @@ def demo_nlp_config() -> str:
 
 [{NlpConfigPrefixes.OUTPUT}:output_prescription]
 
-{GateOutputConfigKeys.DESTTABLE} = medications_gate
-{GateOutputConfigKeys.RENAMES} =
+{NlpOutputConfigKeys.DESTTABLE} = medications_gate
+{NlpOutputConfigKeys.RENAMES} =
     drug-type           drug_type
     dose-value          dose_value
     dose-unit           dose_unit
@@ -476,10 +476,10 @@ def demo_nlp_config() -> str:
     "Length of Time"    length_of_time
     Temporality         temporality
     "Unit of Time"      unit_of_time
-{GateOutputConfigKeys.NULL_LITERALS} =
+{NlpOutputConfigKeys.NULL_LITERALS} =
     null
     ""
-{GateOutputConfigKeys.DESTFIELDS} =
+{NlpOutputConfigKeys.DESTFIELDS} =
     # Found by (a) manual inspection of BRC GATE pharmacotherapy output from
     # the GATE console; (b) inspection of
     # application-resources/schemas/Prescription.xml
@@ -508,7 +508,7 @@ def demo_nlp_config() -> str:
     time_unit       VARCHAR(100)  Unit of time (see frequency, interval). Optional string; from "time-unit"; e.g. "day"; max length unclear
     unit_of_time    VARCHAR(100)  ?. Optional string; from "Unit of Time"; max length unclear
     when            VARCHAR(100)  ?. Optional string; max length unclear
-{GateOutputConfigKeys.INDEXDEFS} =
+{NlpOutputConfigKeys.INDEXDEFS} =
     rule    100
     drug    200
     route   7
@@ -565,11 +565,11 @@ def demo_nlp_config() -> str:
 
 [{NlpConfigPrefixes.OUTPUT}:output_lbd_diagnosis]
 
-{GateOutputConfigKeys.DESTTABLE} = lewy_body_dementia_gate
-{GateOutputConfigKeys.NULL_LITERALS} =
+{NlpOutputConfigKeys.DESTTABLE} = lewy_body_dementia_gate
+{NlpOutputConfigKeys.NULL_LITERALS} =
     null
     ""
-{GateOutputConfigKeys.DESTFIELDS} =
+{NlpOutputConfigKeys.DESTFIELDS} =
     # Found by
     # (a) manual inspection of output from the GATE Developer console:
     # - e.g. {{rule=Includefin, text=Lewy body dementia}}
@@ -586,7 +586,7 @@ def demo_nlp_config() -> str:
     # On that basis:
     rule            VARCHAR(100)  Rule that generated the hit.
     text            VARCHAR(200)  Text that matched the rule.
-{GateOutputConfigKeys.INDEXDEFS} =
+{NlpOutputConfigKeys.INDEXDEFS} =
     rule    100
     text    200
 

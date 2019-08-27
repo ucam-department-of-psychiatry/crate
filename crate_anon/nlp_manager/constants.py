@@ -150,12 +150,12 @@ class ProcessorConfigKeys(object):
     MAX_EXTERNAL_PROG_USES = "max_external_prog_uses"
     PROCESSOR_NAME = "processor_name"
     PROCESSOR_VERSION = "processor_version"
-    PROCESSOR_TYPE = "processor_type"
+    PROCESSOR_FORMAT = "processor_format"
 
 
-class GateOutputConfigKeys(object):
+class NlpOutputConfigKeys(object):
     """
-    Config file keys for output tables from GATE NLP processors.
+    Config file keys for output tables from GATE or Cloud NLP processors.
     """
     DESTTABLE = "desttable"
     RENAMES = "renames"
@@ -231,6 +231,18 @@ class GateResultKeys(object):
     END = "end"
     SET = "set"
     FEATURES = "features"
+
+class GateFieldNames(object):
+    """
+    Field (column) names for results from GATE.
+    These match KEY_* strings in ``CrateGatePipeline.java``.
+    """
+    SET = '_set'
+    TYPE = '_type'
+    ID = '_id'
+    STARTPOS = '_start'
+    ENDPOS = '_end'
+    CONTENT = '_content'
 
 
 # =============================================================================

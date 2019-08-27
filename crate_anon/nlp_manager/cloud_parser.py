@@ -146,17 +146,42 @@ class Cloud(TableMaker):
         self.procversion = nlpdef.opt_str(
             sectionname, ProcessorConfigKeys.PROCESSOR_VERSION,
             default=None)
-        self.tablename = nlpdef.opt_str(sectionname,
-                                        ProcessorConfigKeys.DESTTABLE,
-                                        default=None)  # not required
+        # Made format required so people are less likely to make mistakes
         self.format = nlpdef.opt_str(
             sectionname,
-            ProcessorConfigKeys.PROCESSOR_TYPE,
-            default=NlpDefValues.FORMAT_STANDARD)
+            ProcessorConfigKeys.PROCESSOR_FORMAT,
+            required=True)
+            #default=NlpDefValues.FORMAT_STANDARD)
         self.schema_type = None
         self.sql_dialect = None
         self.schema = None  # type: Optional[Dict[str, Any]]
         self.available_remotely = False  # update later if available
+
+         # Output section - bit of repetition from the 'Gate' parser
+        typepairs = nlpdef.opt_strlist(
+            sectionname, ProcessorConfigKeys.OUTPUTTYPEMAP,
+            required=False, lower=False)
+        self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
+        self._type_to_tablename = {}  # type: Dict[str, str]
+        self.tablename = None
+        # If typepairs is empty the following block won't execute
+        for c in chunks(typepairs, 2):
+            output_type = c[0]
+            outputsection = c[1]
+            output_type = output_type.lower()
+            c = OutputUserConfig(nlpdef.get_parser(), outputsection,
+                                 schema_required=False)
+            self._outputtypemap[output_type] = c
+            self._type_to_tablename[output_type] = c.get_tablename()
+            if output_type == "all_output":
+                self.tablename = c.get_tablename()
+        # If there is no 'outputtypemap', we get the table name, if it exists,
+        # from the processor section. However, if there is an outputtypemap
+        # section this overrides the table name in the processor section
+        if not self._outputtypemap:
+            self.tablename = nlpdef.opt_str(sectionname,
+                                            ProcessorConfigKeys.DESTTABLE,
+                                            default=None)  # not required
 
     @staticmethod
     def get_coltype_parts(coltype_str: str) -> List[str]:
@@ -209,6 +234,30 @@ class Cloud(TableMaker):
         """
         return self.schema_type == NlprpValues.TABULAR
 
+    def get_tablename_from_type(self, output_type: str) -> str:
+        return self._type_to_tablename[output_type]
+
+    def get_otconf_from_type(self, output_type: str) -> str:
+        return self._outputtypemap[output_type]
+
+    def _standard_columns_if_gate(self) -> List[Column]:
+        """
+        Returns standard columns for GATE output if ``self.format`` is GATE.
+        """
+        if self.format == NlpDefValues.FORMAT_GATE:
+            return self._standard_gate_columns()
+        else:
+            return []
+
+    def _standard_indexes_if_gate(self) -> List[Column]:
+        """
+        Returns standard indexes for GATE output if ``self.format`` is GATE.
+        """
+        if self.format == NlpDefValues.FORMAT_GATE:
+            return self._standard_gate_indexes()
+        else:
+            return []
+
     def confirm_available(self, available: bool = True) -> None:
         """
         Set the attribute 'available_remotely', which indicates whether
@@ -224,8 +273,9 @@ class Cloud(TableMaker):
         """
         if self.procname != processor_dict[NKeys.NAME]:
             return
-        if ((self.procversion is None and
-                processor_dict[NKeys.IS_DEFAULT_VERSION]) or
+        # if ((self.procversion is None and
+        #         processor_dict[NKeys.IS_DEFAULT_VERSION]) or
+        if (self.procversion is None or
                 (self.procversion == processor_dict[NKeys.VERSION])):
             self.set_processor_info(processor_dict)
 
@@ -243,6 +293,12 @@ class Cloud(TableMaker):
         if self.is_tabular():
             self.schema = processor_dict[NKeys.TABULAR_SCHEMA]
             self.sql_dialect = processor_dict[NKeys.SQL_DIALECT]
+        # Check that, by this stage, we either have a tabular shcema from
+        # the processor, or we have user-specified destfields
+        assert self.is_tabular or all([x.get_destfields() for
+                                      x in self._outputtypemap.values()]), (
+            "You haven't specified a table structure and the processor hasn't "
+            "provided one.")
 
     def str_to_coltype(self, data_type_str: str) -> sqlatypes.TypeEngine:
         """
@@ -263,11 +319,30 @@ class Cloud(TableMaker):
         # else:
         #     pass
 
-    def dest_tables_columns(self) -> Dict[str, List[Column]]:
+    def dest_tables_columns_user(self) -> Dict[str, List[Column]]:
+        
+        tables = {}  # type: Dict[str, List[Column]]
+        
+        for output_type, otconfig in self._outputtypemap.items():
+            tables[otconfig.get_tablename()] = (
+                self._standard_columns_if_gate() +
+                otconfig.get_columns(self.get_engine())
+            )
+        return tables
+
+    def dest_tables_indexes_user(self) -> Dict[str, List[Index]]:
+        tables = {}  # type: Dict[str, List[Index]]
+        for output_type, otconfig in self._outputtypemap.items():
+            tables[otconfig.get_tablename()] = (
+                self._standard_indexes_if_gate() +
+                otconfig.get_indexes()
+            )
+        return tables
+
+    def dest_tables_columns_auto(self) -> Dict[str, List[Column]]:
         """
-        Gets the destination tables and their columns, currently using just
-        the remote processor information, but will soon be ammended to
-        have the option of using user-specified table definitions.
+        Gets the destination tables and their columns using the remote
+        processor information.
         """
         tables = {}
         for table, columns in self.schema.items():
@@ -289,10 +364,22 @@ class Cloud(TableMaker):
         return tables
 
     def dest_tables_indexes(self) -> Dict[str, List[Index]]:
-        """
-        Not implemented yet.
-        """
-        return {}
+        # Docstring in superclass
+        if self._outputtypemap and all([x.get_destfields() for
+                                        x in self._outputtypemap.values()]):
+            return self.dest_tables_indexes_user()
+        else:
+            return {}
+
+    def dest_tables_columns(self) -> Dict[str, List[Column]]:
+        # Docstring in superclass
+        if self._outputtypemap and all([x.get_destfields() for
+                                        x in self._outputtypemap.values()]):
+            return self.dest_tables_columns_user()
+        else:
+            # Must have processor-defined schema because we already checked
+            # for it
+            return self.dest_tables_columns_auto()
 
 
 # =============================================================================
@@ -366,9 +453,9 @@ class CloudRequest(object):
         self.request_failed = False
 
         # Of the form:
-        #     {cfgsection for processor: 'Cloud' object}
+        #     {(procname, version): 'Cloud' object}
         self.requested_processors = self._cloudcfg.remote_processors  # type: Dict[Tuple[str, Optional[str]], Cloud]  # noqa
-        self._remote_processors_full_info = None  # type: Optional[List[Dict[str, Any]]]
+        self._remote_processors_full_info = None  # type: Optional[List[Dict[str, Any]]]  # noqa
 
         # This fails if it's above the setting of 'self.cookies'
         if procs_auto_add:
@@ -586,6 +673,8 @@ class CloudRequest(object):
 
         # Send request, get response
         json_response = self._post_get_json(request_json, may_fail=False)
+
+        print(json_response)
 
         status = json_get_int(json_response, NKeys.STATUS)
         if not HttpStatus.is_good_answer(status):
@@ -929,7 +1018,7 @@ class CloudRequest(object):
             return
         for result in processor_data[NKeys.RESULTS]:
             result.update(metadata)
-            yield result, processor
+            yield result
 
     def get_nlp_values_gate(
             self,
@@ -954,8 +1043,8 @@ class CloudRequest(object):
 
         Yields ``(output_tablename, formatted_result, processor_name)``.
         """  # noqa
-        type_to_tablename, outputtypemap = self.get_tablename_map(
-            processor.procname)
+        # type_to_tablename, outputtypemap = self.get_tablename_map(
+        #     processor.procname)
         if not processor_data[NKeys.SUCCESS]:
             log.warning(
                 f"Processor {processor.procname} failed for this document. Errors:")
@@ -968,8 +1057,8 @@ class CloudRequest(object):
         for result in processor_data[NKeys.RESULTS]:
             # Assuming each set of results says what annotation type
             # it is
-            # annottype = result[FN_TYPE].lower()
-            annottype = result[GateResultKeys.TYPE]
+            # (annotation type is stored as lower case)
+            annottype = result[GateResultKeys.TYPE].lower()
             features = result[GateResultKeys.FEATURES]
             start = result[GateResultKeys.START]
             end = result[GateResultKeys.END]
@@ -980,13 +1069,14 @@ class CloudRequest(object):
                 '_end': end,
                 '_content': "" if not text else text[start:end]
             }
+            
             formatted_result.update(features)
-            c = outputtypemap[annottype]
+            c = processor.get_otconf_from_type(annottype)
             rename_keys_in_dict(formatted_result, c.renames())
             set_null_values_in_dict(formatted_result, c.null_literals())
             formatted_result.update(metadata)
-            # Return procname as well, so we find the right database
-            yield formatted_result, processor
+            tablename = processor.get_tablename_from_type(annottype)
+            yield tablename, formatted_result
 
     def get_nlp_values(self) -> Generator[Tuple[Dict[str, Any], Cloud],
                                           None, None]:
@@ -1003,7 +1093,6 @@ class CloudRequest(object):
                 name = processor_data[NKeys.NAME]
                 version = processor_data[NKeys.VERSION]
                 # is_default_version = processor_data[NKeys.IS_DEFAULT_VERSION]
-                # processor = self.get_proc_by_name_version(name, version)
                 try:
                     processor = self.requested_processors[(name, version)]
                 except KeyError:
@@ -1021,15 +1110,17 @@ class CloudRequest(object):
                     #                "version {version}, but this processor "
                     #                "was not requested.")
                 if processor.format == NlpDefValues.FORMAT_GATE:
-                    for t, r, p in self.get_nlp_values_gate(processor_data,
-                                                            processor,
-                                                            metadata,
-                                                            text):
-                        yield t, r, p
+                    for t, r in self.get_nlp_values_gate(processor_data,
+                                                         processor,
+                                                         metadata,
+                                                         text):
+                        yield t, r, processor
                 else:
-                    for r, p in self.get_nlp_values_internal(
+                    for result in self.get_nlp_values_internal(
                             processor_data, processor, metadata):
-                        yield r, p
+                        # For non-GATE processors ther will only be one table
+                        # name
+                        yield processor.tablename, result, processor
 
     def process_all(self) -> None:
         """
@@ -1039,10 +1130,10 @@ class CloudRequest(object):
         """
         nlpname = self._nlpdef.get_name()
 
-        for nlp_values, processor in self.get_nlp_values():
+        for tablename, nlp_values, processor in self.get_nlp_values():
             nlp_values[FN_NLPDEF] = nlpname
             session = processor.get_session()
-            sqla_table = processor.get_table(processor.tablename)
+            sqla_table = processor.get_table(tablename)
             column_names = [c.name for c in sqla_table.columns]
             # Convert string datetime back into datetime, using UTC
             for key in nlp_values:

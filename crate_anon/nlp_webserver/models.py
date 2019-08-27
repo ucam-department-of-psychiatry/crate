@@ -48,7 +48,6 @@ from sqlalchemy.orm import (
 # noinspection PyPackageRequirements
 from zope.sqlalchemy import ZopeTransactionExtension
 
-# testing
 Session = sessionmaker(extension=ZopeTransactionExtension())
 DBSession = scoped_session(Session)
 

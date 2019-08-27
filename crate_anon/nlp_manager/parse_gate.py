@@ -53,6 +53,7 @@ from crate_anon.nlp_manager.constants import (
     NlpConfigPrefixes,
     ProcessorConfigKeys,
     SqlTypeDbIdentifier,
+    GateFieldNames as GateFN,
 )
 from crate_anon.nlp_manager.nlp_definition import (
     NlpDefinition,
@@ -61,15 +62,6 @@ from crate_anon.nlprp.constants import NlprpKeys, NlprpValues
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 
 log = logging.getLogger(__name__)
-
-# Field (column) names for results from GATE.
-# These match KEY_* strings in CrateGatePipeline.java:
-FN_SET = '_set'
-FN_TYPE = '_type'
-FN_ID = '_id'
-FN_STARTPOS = '_start'
-FN_ENDPOS = '_end'
-FN_CONTENT = '_content'
 
 
 # =============================================================================
@@ -310,7 +302,7 @@ class Gate(BaseNlpParser):
             d = tsv_pairs_to_dict(line)
             log.debug(f"dictionary received: {d}")
             try:
-                annottype = d[FN_TYPE].lower()
+                annottype = d[GateFN.TYPE].lower()
             except KeyError:
                 raise ValueError("_type information not in data received")
             if annottype not in self._type_to_tablename:
@@ -349,41 +341,12 @@ class Gate(BaseNlpParser):
     # Database structure
     # -------------------------------------------------------------------------
 
-    @staticmethod
-    def _standard_columns() -> List[Column]:
-        """
-        Returns standard columns for GATE output.
-        """
-        return [
-            Column(FN_SET, SqlTypeDbIdentifier,
-                   comment="GATE output set name"),
-            Column(FN_TYPE, SqlTypeDbIdentifier,
-                   comment="GATE annotation type name"),
-            Column(FN_ID, Integer,
-                   comment="GATE annotation ID (not clear this is very useful)"),  # noqa
-            Column(FN_STARTPOS, Integer,
-                   comment="Start position in the content"),
-            Column(FN_ENDPOS, Integer,
-                   comment="End position in the content"),
-            Column(FN_CONTENT, Text,
-                   comment="Full content marked as relevant."),
-        ]
-
-    @staticmethod
-    def _standard_indexes() -> List[Index]:
-        """
-        Returns standard indexes for GATE output.
-        """
-        return [
-            Index('_idx__set', FN_SET, mysql_length=MAX_SQL_FIELD_LEN),
-        ]
-
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass
         tables = {}  # type: Dict[str, List[Column]]
         for anottype, otconfig in self._outputtypemap.items():
             tables[otconfig.get_tablename()] = (
-                self._standard_columns() +
+                self._standard_gate_columns() +
                 otconfig.get_columns(self.get_engine())
             )
         return tables
@@ -393,7 +356,7 @@ class Gate(BaseNlpParser):
         tables = {}  # type: Dict[str, List[Index]]
         for anottype, otconfig in self._outputtypemap.items():
             tables[otconfig.get_tablename()] = (
-                self._standard_indexes() +
+                self._standard_gate_indexes() +
                 otconfig.get_indexes()
             )
         return tables

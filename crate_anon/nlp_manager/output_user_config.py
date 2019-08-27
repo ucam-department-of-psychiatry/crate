@@ -48,7 +48,7 @@ from sqlalchemy.schema import Column, Index
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
 from crate_anon.nlp_manager.constants import (
     full_sectionname,
-    GateOutputConfigKeys,
+    NlpOutputConfigKeys,
     NlpConfigPrefixes,
 )
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
@@ -67,7 +67,8 @@ class OutputUserConfig(object):
     See the documentation for the :ref:`NLP config file <nlp_config>`.
     """
 
-    def __init__(self, parser: ExtendedConfigParser, section: str) -> None:
+    def __init__(self, parser: ExtendedConfigParser,
+                 section: str, schema_required: bool = True) -> None:
         """
         Read config from a configparser section.
 
@@ -81,6 +82,11 @@ class OutputUserConfig(object):
                 
                 - :ref:`NLP config file <nlp_config>`
                 - :class:`crate_anon.nlp_manager.parse_gate.Gate`
+           schema_required:
+               is it required that the user has specified a schema, i.e.
+               destfields and a desttable? - Should be true for Gate, False
+               for Cloud as the remote processors may have their own schema
+               definition.
         """  # noqa
 
         sectionname = full_sectionname(NlpConfigPrefixes.OUTPUT, section)
@@ -103,8 +109,9 @@ class OutputUserConfig(object):
         # ---------------------------------------------------------------------
 
         self._desttable = opt_str(
-            GateOutputConfigKeys.DESTTABLE, required=True)
-        ensure_valid_table_name(self._desttable)
+            NlpOutputConfigKeys.DESTTABLE, required=schema_required)
+        if self._desttable:
+            ensure_valid_table_name(self._desttable)
 
         # ---------------------------------------------------------------------
         # renames
@@ -112,14 +119,14 @@ class OutputUserConfig(object):
 
         self._renames = {}  # type: Dict[str, str]
         rename_lines = opt_strlist(
-            GateOutputConfigKeys.RENAMES, required=False, as_words=False)
+            NlpOutputConfigKeys.RENAMES, required=False, as_words=False)
         for line in rename_lines:
             if not line.strip():
                 continue
             words = shlex.split(line)
             if len(words) != 2:
                 raise ValueError(
-                    f"Bad {GateOutputConfigKeys.RENAMES!r} option in config "
+                    f"Bad {NlpOutputConfigKeys.RENAMES!r} option in config "
                     f"section {sectionname!r}; line was {line!r} but should "
                     f"have contained two things")
             annotation_name = words[0]
@@ -132,7 +139,7 @@ class OutputUserConfig(object):
         # ---------------------------------------------------------------------
 
         null_literal_lines = opt_strlist(
-            GateOutputConfigKeys.NULL_LITERALS,
+            NlpOutputConfigKeys.NULL_LITERALS,
             required=False, as_words=False)
         self._null_literals = []  # type: List[str]
         for line in null_literal_lines:
@@ -146,10 +153,13 @@ class OutputUserConfig(object):
         self._dest_datatypes = []  # type: List[str]
         self._dest_comments = []  # type: List[str]
         dest_field_lines = opt_strlist(
-            GateOutputConfigKeys.DESTFIELDS,
-            required=True, as_words=False)
+            NlpOutputConfigKeys.DESTFIELDS,
+            required=schema_required, as_words=False)
         # ... comments will be removed during that process.
         # log.critical(dest_field_lines)
+        # If dest_field_lines is empty (as it may be for a Cloud processor)
+        # the following block doesn't execute, so the 'dest' attributed remain
+        # empty
         for dfl in dest_field_lines:
             parts = dfl.split(maxsplit=2)
             assert len(parts) >= 2, f"Bad field definition line: {dfl!r}"
@@ -182,7 +192,7 @@ class OutputUserConfig(object):
 
         self._indexfields = []  # type: List[str]
         self._indexlengths = []  # type: List[int]
-        indexdefs = opt_strlist(GateOutputConfigKeys.INDEXDEFS)
+        indexdefs = opt_strlist(NlpOutputConfigKeys.INDEXDEFS)
         if indexdefs:
             for c in chunks(indexdefs, 2):  # pairs: field, length
                 indexfieldname = c[0]
@@ -206,6 +216,12 @@ class OutputUserConfig(object):
         Returns the name of the destination table.
         """
         return self._desttable
+
+    def get_destfields(self) -> List[str]:
+        """
+        Returns the list of destination fields.
+        """
+        return self._destfields
 
     def get_columns(self, engine: Engine) -> List[Column]:
         """
