@@ -159,7 +159,8 @@ class HaemoglobinValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Haemoglobin.NAME, [Haemoglobin.HAEMOGLOBIN]
 
 
@@ -230,7 +231,8 @@ class HaematocritValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Haematocrit.NAME, [Haematocrit.HAEMATOCRIT]
 
 
@@ -341,7 +343,8 @@ class RBCValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return RBC.NAME, [RBC.RED_BLOOD_CELLS]
 
 
@@ -430,7 +433,8 @@ class EsrValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Esr.NAME, [Esr.ESR]
 
 
@@ -587,7 +591,8 @@ class WbcValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Wbc.NAME, [Wbc.WBC]
 
 
@@ -646,7 +651,8 @@ class NeutrophilsValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Neutrophils.NAME, [Neutrophils.NEUTROPHILS]
 
 
@@ -707,7 +713,8 @@ class LymphocytesValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Lymphocytes.NAME, [Lymphocytes.LYMPHOCYTES]
 
 
@@ -766,7 +773,8 @@ class MonocytesValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Monocytes.NAME, [Monocytes.MONOCYTES]
 
 
@@ -825,7 +833,8 @@ class BasophilsValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Basophils.NAME, [Basophils.BASOPHILS]
 
 
@@ -884,7 +893,8 @@ class EosinophilsValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Eosinophils.NAME, [Eosinophils.EOSINOPHILS]
 
 
@@ -941,7 +951,8 @@ class PlateletsValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Platelets.NAME, [Platelets.PLATELETS]
 
 

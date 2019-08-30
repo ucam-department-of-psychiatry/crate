@@ -53,7 +53,7 @@ JsonAsStringType = str
 
 class HttpStatus(object):
     """
-    HTTP status codes used by the NLPRP.
+    HTTP status codes used by the NLPRP (plus a couple of others).
     """
     # 1xx: informational
     PROCESSING = 102
@@ -61,7 +61,7 @@ class HttpStatus(object):
     # 2xx: success
     OK = 200
     ACCEPTED = 202
-    NO_CONTENT = 204  # todo: this HTTP status not emitted by an NLPRP server; unnecessary?
+    NO_CONTENT = 204  # this HTTP status not emitted by an NLPRP server
 
     # 3xx: redirection
     # ... not used

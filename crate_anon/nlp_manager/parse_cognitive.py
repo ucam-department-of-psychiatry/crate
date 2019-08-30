@@ -113,7 +113,8 @@ class MmseValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Mmse.NAME, [Mmse.MMSE]
 
 
@@ -213,7 +214,8 @@ class AceValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Ace.NAME, [Ace.ACE]
 
     def test(self, verbose: bool = False) -> None:
@@ -292,7 +294,8 @@ class MiniAceValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return MiniAce.NAME, [MiniAce.MACE]
 
 
@@ -346,7 +349,8 @@ class MocaValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Moca.NAME, [Moca.MOCA]
 
 

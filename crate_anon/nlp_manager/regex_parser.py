@@ -290,7 +290,8 @@ class NumericalResultParser(BaseNlpParser):
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
+        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit,
+                         name=variable)
         self.variable = variable
         self.target_unit = target_unit
         self.regex_str_for_debugging = regex_str_for_debugging
@@ -975,11 +976,13 @@ class ValidatorBase(BaseNlpParser):
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
         validated_variable, regex_str_list = self.get_variablename_regexstrlist()  # noqa
+        vname = f"{validated_variable}_validator"
+        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit,
+                         name=vname)
         self.regex_str_list = regex_str_list  # for debugging only
         self.compiled_regex_list = [compile_regex(r) for r in regex_str_list]
-        self.variable = f"{validated_variable}_validator"
+        self.variable = vname
         self.NAME = self.variable
 
         if nlpdef is None:  # only None for debugging!
@@ -988,8 +991,9 @@ class ValidatorBase(BaseNlpParser):
             self.tablename = nlpdef.opt_str(
                 self._sectionname, 'desttable', required=True)
 
+    @classmethod
     @abstractmethod
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         """
         To be overridden.
 

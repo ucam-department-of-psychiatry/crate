@@ -491,8 +491,6 @@ class Medex(BaseNlpParser):
     interface, ``CrateMedexPipeline.java``.
     """
 
-    NAME = "MedEx"
-
     def __init__(self,
                  nlpdef: NlpDefinition,
                  cfgsection: str,
@@ -508,7 +506,8 @@ class Medex(BaseNlpParser):
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
+        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit,
+                         name="MedEx")
 
         if nlpdef is None:  # only None for debugging!
             self._debug_mode = True

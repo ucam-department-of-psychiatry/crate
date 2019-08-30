@@ -73,6 +73,8 @@ class CloudConfig(object):
             req_data_dir:
                 directory in which to store temporary request files
         """
+        from crate_anon.nlp_manager.cloud_parser import Cloud  # delayed import  # noqa
+
         self._nlpdef = nlpdef
         self.req_data_dir = req_data_dir
 
@@ -115,13 +117,17 @@ class CloudConfig(object):
         # self._destdbs_by_proc = {}
         self.remote_processors = {}  # type: Dict[Tuple[str, str], 'Cloud']
         for processor in self._nlpdef.get_processors():
-            if processor.classname() == NlpDefValues.PROCTYPE_CLOUD:
+            if not isinstance(processor, Cloud):
                 # ... only add 'Cloud' processors
-                # self.remote_processors[
-                #     processor.get_cfgsection()] = processor
-                self.remote_processors[(
-                    processor.procname, processor.procversion)] = processor
-                # NOTE: KEY IS A TUPLE!
+                log.warning(
+                    f"Skipping NLP processor of non-cloud (e.g. local) "
+                    f"type: {processor.get_parser_name()}")
+                continue
+            # self.remote_processors[
+            #     processor.get_cfgsection()] = processor
+            self.remote_processors[(
+                processor.procname, processor.procversion)] = processor
+            # NOTE: KEY IS A TUPLE!
         # We need the following in order to decide whether toask to include
         # text in reply - if a processor is GATE we need to as it does not
         # send back the content of the nlp snippet

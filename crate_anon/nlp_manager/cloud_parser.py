@@ -136,7 +136,7 @@ class Cloud(TableMaker):
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        super().__init__(nlpdef, cfgsection, commit)
+        super().__init__(nlpdef, cfgsection, commit, name="Cloud")
         self.processor_dict = None  # type: Optional[Dict[str, Any]]
         sectionname = full_sectionname(NlpConfigPrefixes.PROCESSOR,
                                        cfgsection)
@@ -1044,7 +1044,8 @@ class CloudRequest(object):
         #     processor.procname)
         if not processor_data[NKeys.SUCCESS]:
             log.warning(
-                f"Processor {processor.procname} failed for this document. Errors:")
+                f"Processor {processor.procname} "
+                f"failed for this document. Errors:")
             errors = processor_data[NKeys.ERRORS]
             for error in errors:
                 log.warning(f"{error[NKeys.CODE]} - {error[NKeys.MESSAGE]}")

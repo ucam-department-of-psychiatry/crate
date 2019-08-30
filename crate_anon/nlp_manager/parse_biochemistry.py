@@ -188,7 +188,8 @@ class CrpValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Crp.NAME, [Crp.CRP]
 
 
@@ -273,7 +274,8 @@ class SodiumValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Sodium.NAME, [Sodium.SODIUM]
 
 
@@ -357,7 +359,8 @@ class PotassiumValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Potassium.NAME, [Potassium.POTASSIUM]
 
 
@@ -440,7 +443,8 @@ class UreaValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Urea.NAME, [Urea.UREA]
 
 
@@ -536,7 +540,8 @@ class CreatinineValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Creatinine.NAME, [Creatinine.CREATININE]
 
 
@@ -624,7 +629,8 @@ class LithiumValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Lithium.NAME, [Lithium.LITHIUM]
 
 
@@ -700,7 +706,8 @@ class TshValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Tsh.NAME, [Tsh.TSH]
 
 
@@ -798,7 +805,8 @@ class GlucoseValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Glucose.NAME, [Glucose.GLUCOSE]
 
 
@@ -899,7 +907,8 @@ class LDLCholesterolValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return LDLCholesterol.NAME, [LDLCholesterol.LDL]
 
 
@@ -1000,7 +1009,8 @@ class HDLCholesterolValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return HDLCholesterol.NAME, [HDLCholesterol.HDL]
 
 
@@ -1102,7 +1112,8 @@ class TotalCholesterolValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return TotalCholesterol.NAME, [TotalCholesterol.CHOLESTEROL]
 
 
@@ -1202,7 +1213,8 @@ class TriglyceridesValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Triglycerides.NAME, [Triglycerides.TG]
 
 
@@ -1349,7 +1361,8 @@ class HbA1cValidator(ValidatorBase):
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
-    def get_variablename_regexstrlist(self) -> Tuple[str, List[str]]:
+    @classmethod
+    def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return HbA1c.NAME, [HbA1c.HBA1C]
 
 

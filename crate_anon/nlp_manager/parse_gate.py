@@ -44,7 +44,7 @@ from cardinal_pythonlib.dicts import (
 )
 from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.tsv import tsv_pairs_to_dict
-from sqlalchemy import Column, Index, Integer, Text
+from sqlalchemy import Column, Index
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
@@ -52,7 +52,6 @@ from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
     NlpConfigPrefixes,
     ProcessorConfigKeys,
-    SqlTypeDbIdentifier,
     GateFieldNames as GateFN,
 )
 from crate_anon.nlp_manager.nlp_definition import (
@@ -108,8 +107,6 @@ class Gate(BaseNlpParser):
         - Implemented and exposed as ``--suppress_gate_stdout``.
 
     """
-    NAME = "GATE"
-
     def __init__(self,
                  nlpdef: NlpDefinition,
                  cfgsection: str,
@@ -125,7 +122,8 @@ class Gate(BaseNlpParser):
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
+        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit,
+                         name="GATE")
 
         if not nlpdef and not cfgsection:
             # Debugging only

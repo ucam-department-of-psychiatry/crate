@@ -106,7 +106,8 @@ class TableMaker(ABC):
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
-                 commit: bool = False) -> None:
+                 commit: bool = False,
+                 name: str = "?") -> None:
         """
         Args:
             nlpdef:
@@ -118,10 +119,13 @@ class TableMaker(ABC):
             commit:
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
+            name:
+                friendly name for the parser
         """
         self._nlpdef = nlpdef
         self._cfgsection = cfgsection
         self._commit = commit
+        self._name = name
         self._destdb_name = None  # type: Optional[str]
         self._destdb = None  # type: Optional[DatabaseHolder]
         if nlpdef is not None:
@@ -220,11 +224,9 @@ class TableMaker(ABC):
 
     def get_parser_name(self) -> str:
         """
-        Returns the NLP parser's name, from our :attr:`NAME` attribute.
-
-        .. todo:: is this right?? Upper case?
+        Returns the NLP parser's friendly name
         """
-        return getattr(self, 'NAME', None)
+        return self._name
 
     def get_dbname(self) -> str:
         """
@@ -594,8 +596,9 @@ class BaseNlpParser(TableMaker):
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
-                 commit: bool = False) -> None:
-        super().__init__(nlpdef, cfgsection, commit)
+                 commit: bool = False,
+                 name: str = "?") -> None:
+        super().__init__(nlpdef, cfgsection, commit, name=name)
 
     # -------------------------------------------------------------------------
     # NLP processing

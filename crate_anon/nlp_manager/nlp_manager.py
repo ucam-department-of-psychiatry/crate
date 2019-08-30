@@ -93,6 +93,7 @@ from crate_anon.nlp_manager.all_processors import (
     possible_processor_names,
     possible_processor_table,
 )
+from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
     DEFAULT_REPORT_EVERY_NLP,
     MAX_STRING_PK_LENGTH,
@@ -502,6 +503,12 @@ def process_nlp(nlpdef: NlpDefinition,
                     log.debug("Record is new")
 
             for processor in nlpdef.get_processors():
+                if not isinstance(processor, BaseNlpParser):
+                    log.warning(
+                        f"Skipping NLP processor of non-local (e.g. cloud) "
+                        f"type: {processor.get_parser_name()}")
+                    continue
+
                 if incremental:
                     processor.delete_dest_record(ifconfig, pkval, pkstr,
                                                  commit=incremental)
