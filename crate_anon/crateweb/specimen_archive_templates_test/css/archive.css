@@ -1,0 +1,72 @@
+/* CSS for demonstration CRATE archive */
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: medium;
+    padding: 2px;
+}
+code {
+    font-size: 0.8em;
+    font-family: Consolas, Monaco, 'Lucida Console', 'Liberation Mono',
+        'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
+    background-color: #eeeeee;
+    padding: 1px 5px 1px 5px;
+}
+div {
+    padding: 2px;
+}
+sup, sub {
+    font-size: 0.7em;  /* 1 em is the size of the parent font */
+    vertical-align: baseline;
+    position: relative;
+    top: -0.5em;
+}
+sub {
+    top: 0.5em;
+}
+table {
+    vertical-align: top;
+    border-collapse: collapse;
+    border: 1px solid black;
+    padding: 0;
+    margin: 2px 0 2px 0;
+}
+tr, th, td {
+    vertical-align: top;
+    text-align: left;
+    margin: 0;
+    padding: 2px;
+    border: 1px solid black;
+    line-height: 1.1em;
+}
+th {
+    font-weight: bold;
+    background-color: #eeeeee;
+}
+tr:nth-child(even) {
+    background-color: #eeffdd;
+}
+
+.contains_floats {
+    overflow: auto;
+}
+.left {
+    float: left;
+}
+.navigation {
+    background-color: lightblue;
+}
+.right {
+    float: right;
+}
+.template_description {
+    font-weight: bold;
+    background-color: lightsalmon;
+}
+.title_bar {
+    background-color: lightgreen;
+}
+.warning {
+    font-weight: bold;
+    background-color: red;
+}

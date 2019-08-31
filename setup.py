@@ -273,6 +273,9 @@ if getattr(our_args, EXTRAS_ARG):
     add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/static'),
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)
+    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/specimen_archive_templates_test'),  # noqa
+                  extra_files, relative_to=THIS_DIR,
+                  skip_patterns=SKIP_PATTERNS)
     add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/templates'),
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)

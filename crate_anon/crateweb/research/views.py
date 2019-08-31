@@ -31,6 +31,7 @@ crate_anon/crateweb/research/views.py
 import datetime
 import json
 import logging
+import mimetypes
 from os.path import abspath, basename, isfile, join
 from typing import Any, Dict, Iterable, List, Sequence, Type, Union, Optional
 
@@ -188,8 +189,9 @@ class ArchiveUrlKeys(object):
     """
     CONTENT_TYPE = "content_type"
     FILENAME = "filename"
+    GUESS_CONTENT_TYPE = "guess_content_type"  # 0 or 1
     OFFERED_FILENAME = "offered_filename"
-    # TEMPLATE is in ArchiveContextKeys
+    TEMPLATE = ArchiveContextKeys.TEMPLATE
 
 
 PROHIBITED_ARCHIVE_KEYS = [x for x in dir(ArchiveContextKeys)
@@ -3908,7 +3910,7 @@ def archive_url(patient_id: str, template_name: str, **kwargs) -> str:
 
     """
     kwargs = kwargs or {}  # type: Dict[str, Any]
-    qparams = {ArchiveContextKeys.TEMPLATE: template_name}
+    qparams = {ArchiveUrlKeys.TEMPLATE: template_name}
     qparams.update(kwargs)
     # log.critical("qparams: {!r}", qparams)
     return url_with_querystring(
@@ -3928,8 +3930,9 @@ def archive_root_url(patient_id: str) -> str:
     return archive_url(patient_id, _archive_root_template)
 
 
-def archive_attachment_url(filename: str, content_type: str,
-                           offered_filename: str = "") -> str:
+def archive_attachment_url(filename: str, content_type: str = "",
+                           offered_filename: str = "",
+                           guess_content_type: bool = True) -> str:
     """
     Returns a URL to download an archive attachment
 
@@ -3941,13 +3944,16 @@ def archive_attachment_url(filename: str, content_type: str,
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type
         offered_filename:
             filename offered to user
+        guess_content_type:
+            if no content_type is specified, should we guess?
     """  # noqa
-    return url_with_querystring(
-        reverse("archive_attachment"),
-        content_type=content_type,
-        filename=filename,
-        offered_filename=offered_filename
-    )
+    qparams = {
+        ArchiveUrlKeys.CONTENT_TYPE: content_type,
+        ArchiveUrlKeys.FILENAME: filename,
+        ArchiveUrlKeys.GUESS_CONTENT_TYPE: int(guess_content_type),
+        ArchiveUrlKeys.OFFERED_FILENAME: offered_filename,
+    }
+    return url_with_querystring(reverse("archive_attachment"), **qparams)
 
 
 def safe_path(directory: str, filename: str) -> str:
@@ -4075,6 +4081,8 @@ def archive(request: HttpRequest,
         elif k in kwargs:
             return HttpResponseBadRequest(
                 f"URL arguments may not include the key {k!r}")
+
+    # Get template and other arguments
     # noinspection PyCallByClass,PyArgumentList
     template_name = request.GET.get(ArchiveContextKeys.TEMPLATE)
     # noinspection PyArgumentList
@@ -4083,6 +4091,7 @@ def archive(request: HttpRequest,
     # request.GET is a curious immutable dictionary that holds multi-value
     # values, so tends to return lists.
 
+    # URL builder
     def same_patient_archive_url(_template: str, **kw) -> str:
         """
         Returns a URL for the same patient but with a different template or
@@ -4102,8 +4111,8 @@ def archive(request: HttpRequest,
         ArchiveContextKeys.TEMPLATE: template_name,
         **params
     }
-    log.debug("Archive template {!r} with context {!r}",
-              template_name, context)
+    # log.debug("Archive template {!r} with context {!r}",
+    #           template_name, context)
 
     # Render
     template = mako_lookup.get_template(template_name)
@@ -4119,23 +4128,49 @@ def archive_attachment(request: HttpRequest) -> HttpResponseBase:
         request:
             the Django :class:`HttpRequest` object
     """  # noqa
-    # noinspection PyCallByClass,PyArgumentList
-    content_type = request.GET.get(ArchiveUrlKeys.CONTENT_TYPE)
+    # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
+    content_type = request.GET.get(ArchiveUrlKeys.CONTENT_TYPE, None)
     # noinspection PyCallByClass,PyArgumentList
     filename = request.GET.get(ArchiveUrlKeys.FILENAME)
+    try:
+        # noinspection PyArgumentList,PyCallByClass
+        guess_content_type = bool(int(
+            request.GET.get(ArchiveUrlKeys.GUESS_CONTENT_TYPE)))
+    except (TypeError, ValueError):
+        guess_content_type = True
     # noinspection PyCallByClass,PyTypeChecker
     offered_filename = request.GET.get(ArchiveUrlKeys.OFFERED_FILENAME, None)
 
     full_filename = safe_path(_archive_attachment_root_dir, filename)
     if not full_filename:
         return HttpResponseBadRequest(f"Invalid filename: {filename!r}")
-    if not content_type:
-        return HttpResponseBadRequest("Missing content_type")
+
+    if content_type:
+        final_content_type = content_type
+    elif guess_content_type:
+        final_content_type = mimetypes.guess_type(filename)[0]  # type: Optional[str]  # noqa
+    else:
+        final_content_type = None  # ensure it's not ""
+    # If content_type is None, we wil end up with "application/force-download",
+    # which is OK.
+
+    prefer_inline = bool(final_content_type)
+
     offered_filename = offered_filename or basename(filename)
+
+    # log.critical(
+    #     f"content_type: {content_type!r}, "
+    #     f"guess_content_type: {guess_content_type!r}, "
+    #     f"final_content_type: {final_content_type!r}, "
+    #     f"filename: {filename!r}, "
+    #     f"full_filename: {full_filename!r}, "
+    #     f"offered_filename: {offered_filename!r}, "
+    #     f"prefer_inline: {prefer_inline!r}")
+
     return serve_file(
         path_to_file=full_filename,
         offered_filename=offered_filename,
         content_type=content_type,
-        as_attachment=False,
-        as_inline=True
+        as_attachment=not prefer_inline,
+        as_inline=prefer_inline
     )

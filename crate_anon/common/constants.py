@@ -171,3 +171,7 @@ class HelpUrl(object):
     @classmethod
     def about_crate(cls) -> str:
         return cls.make_url("website_using/clinician_researcher_overview.html#about-crate")  # noqa
+
+    @classmethod
+    def archive(cls) -> str:
+        return cls.make_url("website_using/archive.html")
