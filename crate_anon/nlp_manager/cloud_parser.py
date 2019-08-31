@@ -248,7 +248,7 @@ class Cloud(TableMaker):
         else:
             return []
 
-    def _standard_indexes_if_gate(self) -> List[Column]:
+    def _standard_indexes_if_gate(self) -> List[Index]:
         """
         Returns standard indexes for GATE output if ``self.format`` is GATE.
         """
@@ -347,7 +347,8 @@ class Cloud(TableMaker):
         for table, columns in self.schema.items():
             identifier = table if table else self.unique_identifier()
             self.tablename = self.tablename if self.tablename else identifier
-            column_objects = []
+            column_objects = self._standard_columns_if_gate()  # type: List[Column]  # noqa
+            # ... might be empty list
             for column in columns:
                 col_str, parameter = self.get_coltype_parts(
                     column[NKeys.COLUMN_TYPE])
@@ -362,23 +363,37 @@ class Cloud(TableMaker):
             tables[self.tablename] = column_objects
         return tables
 
+    def dest_tables_indexes_auto(self) -> Dict[str, List[Index]]:
+        if self.format != NlpDefValues.FORMAT_GATE:
+            return {}  # indexes can't be returned by the server
+        tables = {}  # type: Dict[str, List[Index]]
+        for table in self.schema:
+            tables[table] = self._standard_gate_indexes()
+        return tables
+
     def dest_tables_indexes(self) -> Dict[str, List[Index]]:
         # Docstring in superclass
         if self._outputtypemap and all([x.get_destfields() for
                                         x in self._outputtypemap.values()]):
             return self.dest_tables_indexes_user()
+        elif self.is_tabular():
+            return self.dest_tables_indexes_auto()
         else:
-            return {}
+            raise ValueError("You haven't specified a table structure and "
+                             "the processor hasn't provided one.")
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # Docstring in superclass
         if self._outputtypemap and all([x.get_destfields() for
                                         x in self._outputtypemap.values()]):
             return self.dest_tables_columns_user()
-        else:
+        elif self.is_tabular():
             # Must have processor-defined schema because we already checked
             # for it
             return self.dest_tables_columns_auto()
+        else:
+            raise ValueError("You haven't specified a table structure and "
+                             "the processor hasn't provided one.")
 
 
 # =============================================================================
@@ -1094,7 +1109,7 @@ class CloudRequest(object):
                 try:
                     processor = self.requested_processors[(name, version)]
                 except KeyError:
-                    # if is_default_version:
+                    # if is_default_version:  # GATE doesn't send this info
                     try:
                         processor = self.requested_processors.get(
                             (name, None))

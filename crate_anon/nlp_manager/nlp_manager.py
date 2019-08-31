@@ -114,7 +114,7 @@ from crate_anon.nlp_manager.nlp_definition import (
     NlpDefinition,
     demo_nlp_config,
 )
-from crate_anon.nlp_manager.cloud_parser import CloudRequest
+from crate_anon.nlp_manager.cloud_parser import CloudRequest, Cloud
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
@@ -281,6 +281,8 @@ def delete_where_no_source(nlpdef: NlpDefinition,
 
     # Add the processors' destination databases
     for processor in nlpdef.get_processors():  # of type TableMaker
+        if isinstance(processor, Cloud) and not processor.available_remotely:
+            continue
         session = processor.get_session()
         if any(x.session == session for x in databases):
             continue  # already exists
@@ -345,6 +347,8 @@ def delete_where_no_source(nlpdef: NlpDefinition,
 
     # Delete from others
     for processor in nlpdef.get_processors():
+        if isinstance(processor, Cloud) and not processor.available_remotely:
+            continue
         database = [x for x in databases
                     if x.session == processor.get_session()][0]
         temptable = database.temptable
@@ -401,6 +405,8 @@ def drop_remake(nlpdef: NlpDefinition,
 
     pretty_names = []  # type: List[str]
     for processor in nlpdef.get_processors():
+        if isinstance(processor, Cloud) and not processor.available_remotely:
+            continue
         new_pretty_names = processor.make_tables(drop_first=not incremental)
         for npn in new_pretty_names:
             if npn in pretty_names:
