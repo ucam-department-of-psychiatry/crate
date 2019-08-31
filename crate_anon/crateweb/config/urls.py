@@ -226,6 +226,22 @@ urlpatterns = [
         name='clinician_contact_request'),
 
     # -------------------------------------------------------------------------
+    # Archive views
+    # -------------------------------------------------------------------------
+    url(r'^select_patient_for_archive/$',
+        research_views.select_patient_for_archive,
+        name='select_patient_for_archive'),
+    url(r'^launch_archive/$',
+        research_views.launch_archive,
+        name='launch_archive'),
+    url(r'^archive/(?P<patient_id>[a-zA-Z0-9_]+)/$',
+        research_views.archive,
+        name='archive'),
+    url(r'^archive_attachment/$',
+        research_views.archive_attachment,
+        name='archive_attachment'),
+
+    # -------------------------------------------------------------------------
     # Look up PID/RID
     # -------------------------------------------------------------------------
     url(r'^pidlookup/$', research_views.pidlookup, name='pidlookup'),

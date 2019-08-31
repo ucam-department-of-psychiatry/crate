@@ -24,7 +24,7 @@ crate_anon/crateweb/core/constants.py
 
 ===============================================================================
 
-**Core constantsly, like field lengths.**
+**Core constants, like field lengths.**
 
 """
 
@@ -35,3 +35,19 @@ LEN_NAME = 100
 LEN_PHONE = 20
 LEN_TITLE = 20
 MAX_HASH_LENGTH = 128
+SCRUBBER_PNG_FILENAME = "scrubber.png"
+
+
+class SettingsKeys(object):
+    """
+    Keys for the Django ``settings.py`` file -- particularly those that are
+    optional, for which we use :func:`getattr`.
+    """
+    ARCHIVE_TEMPLATE_DIRS = "ARCHIVE_TEMPLATE_DIRS"
+    ARCHIVE_ROOT_TEMPLATE = "ARCHIVE_ROOT_TEMPLATE"
+    ARCHIVE_TEMPLATE_CACHE_DIR = "ARCHIVE_TEMPLATE_CACHE_DIR"
+    ARCHIVE_ATTACHMENT_ROOT_DIR = "ARCHIVE_ATTACHMENT_ROOT_DIR"
+    DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = (
+        "DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET"
+    )
+    NLP_SOURCEDB_MAP = "NLP_SOURCEDB_MAP"

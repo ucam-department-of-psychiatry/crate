@@ -98,7 +98,7 @@
                     <div class="separator"> --- </div>
                     <p class="explanation">
                         See a count of all records in every patient table
-                        for the patients selected int he acitve PE.
+                        for the patients selected in the acitve PE.
                     </p>
                 </div>
                 <div class="item-row">
@@ -125,6 +125,7 @@
                 </div>
             </div>
         </div>
+
         <div class="{{ box_colours }}">
             <h3>More query functions:</h3>
             <p><strong>SQL helpers:</strong></p>
@@ -146,6 +147,14 @@
             </ul>
             <p><a href="{% url 'standard_queries' %}">Standard queries</a></p>
         </div>
+
+        <div class="{{ box_colours }}">
+            <h3>Archive:</h3>
+            <ul>
+                <li><a href="{% url 'select_patient_for_archive' %}">Explore the archive for a patient</a></li>
+            </ul>
+        </div>
+
         <div class="{{ box_colours }}">
             <h3>Database structure</h3>
             <P>View research database structure:</p>

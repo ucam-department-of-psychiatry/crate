@@ -1088,6 +1088,10 @@ Changes
   ``MANAGERS`` since we won't enable Django's ``BrokenLinkEmailsMiddleware``);
   see https://docs.djangoproject.com/en/dev/internals/deprecation/.
 
+- Experimental: :ref:`archive <archive>` system.
+
+- ``cardinal_pythonlib==1.0.62``
+
 
 ===============================================================================
 

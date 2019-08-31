@@ -30,6 +30,7 @@ Using the CRATE web interface
     sql_helpers.rst
     patient_explorer.rst
     clinician_privileged.rst
+    archive.rst
     contact_patients.rst
     rdbm_admin.rst
     developer_admin.rst

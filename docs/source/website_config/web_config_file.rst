@@ -425,6 +425,69 @@ Options are
 - ``mssql`` = Microsoft SQL Server
 
 
+DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET
+###################################################
+
+``type: bool``
+
+*Default: True.*
+
+If True, calls
+:func:`crate_anon.crateweb.research.models.hack_django_pyodbc_azure_cursorwrapper`
+at startup (q.v.).
+
+
+.. _ARCHIVE_TEMPLATE_DIRS:
+
+ARCHIVE_TEMPLATE_DIRS
+#####################
+
+``type: List[str]``
+
+*Optional.*
+
+.. warning:: Experimental; in development.
+
+Root directory of the :ref:`archive <archive>` template system.
+
+
+ARCHIVE_ROOT_TEMPLATE
+#####################
+
+``type: str``
+
+*Optional.*
+
+.. warning:: Experimental; in development.
+
+Filename of the :ref:`archive <archive>`'s root template. This should be
+found in one of the directories given in ARCHIVE_TEMPLATE_DIRS_.
+
+
+ARCHIVE_TEMPLATE_CACHE_DIR
+##########################
+
+``type: str``
+
+*Optional.*
+
+.. warning:: Experimental; in development.
+
+Directory in which to store compiled versions of the archive templates.
+
+
+ARCHIVE_ATTACHMENT_ROOT_DIR
+###########################
+
+``type: str``
+
+*Optional.*
+
+.. warning:: Experimental; in development.
+
+Root directory for archive attachments.
+
+
 Site-specific help
 ------------------
 

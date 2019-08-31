@@ -73,6 +73,7 @@ from crate_anon.common.sql import (
     TableId,
     translate_sql_qmark_to_percent,
 )
+from crate_anon.crateweb.core.constants import SettingsKeys
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
@@ -932,7 +933,8 @@ class ResearchDatabaseInfo(object):
                 f"{ResearchDbInfoKeys.SECRET_LOOKUP_DB!r} attribute"
             )
 
-            self.nlp_sourcedb_map = getattr(settings, "NLP_SOURCEDB_MAP", {})  # type: Dict[str, str]  # noqa
+            self.nlp_sourcedb_map = getattr(
+                settings, SettingsKeys.NLP_SOURCEDB_MAP, {})  # type: Dict[str, str]  # noqa
             try:
                 assert isinstance(self.nlp_sourcedb_map, dict)
                 for k, v in self.nlp_sourcedb_map.items():

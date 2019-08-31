@@ -43,6 +43,7 @@ from cardinal_pythonlib.django.files import (
     auto_delete_files_on_instance_delete,
 )
 from cardinal_pythonlib.django.reprfunc import modelrepr
+from cardinal_pythonlib.httpconst import ContentType
 from cardinal_pythonlib.logs import BraceStyleAdapter
 from cardinal_pythonlib.pdf import get_concatenated_pdf_in_memory
 from cardinal_pythonlib.reprfunc import simple_repr
@@ -61,7 +62,6 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.html import escape
 
-from crate_anon.common.contenttypes import ContentType
 from crate_anon.crateweb.config.constants import (
     ClinicalDatabaseType,
     SOURCE_DB_NAME_MAX_LENGTH,

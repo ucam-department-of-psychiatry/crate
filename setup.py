@@ -143,7 +143,7 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.3",  # where to store some temporary data
     "arrow==0.12.1",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.6.0",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.0.61",  # RNC libraries
+    "cardinal_pythonlib==1.0.62",  # RNC libraries
     "cairosvg==2.4.0",  # work with SVG files
     "celery==4.0.1",  # 4.0.1 is the highest that"ll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
@@ -162,6 +162,7 @@ INSTALL_REQUIRES = [
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==19.8.1",  # UNIX only, though will install under Windows
     "kombu==4.1.0",  # AMQP library for Celery; requires VC++ under Windows
+    "mako==1.0.7",  # templates with Python in
     # "mmh3==2.2"  # MurmurHash, for fast non-cryptographic hashing
     "openpyxl==2.5.4",  # read Excel
     "pendulum==2.0.2",  # dates/times

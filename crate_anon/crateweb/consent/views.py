@@ -37,6 +37,7 @@ from cardinal_pythonlib.django.serve import (
     serve_concatenated_pdf_from_disk,
     serve_file,
 )
+from cardinal_pythonlib.httpconst import ContentType
 from cardinal_pythonlib.nhs import generate_random_nhs_number
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
@@ -47,7 +48,6 @@ from django.http.response import HttpResponseBase
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, render
 
-from crate_anon.common.contenttypes import ContentType
 from crate_anon.crateweb.consent.forms import (
     ClinicianResponseForm,
     SingleNhsNumberForm,

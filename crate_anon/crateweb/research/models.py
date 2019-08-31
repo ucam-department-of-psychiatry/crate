@@ -75,6 +75,8 @@ from crate_anon.common.sql import (
     translate_sql_qmark_to_percent,
     WhereCondition,
 )
+from crate_anon.crateweb.config.constants import ResearchDbInfoKeys
+from crate_anon.crateweb.core.constants import SettingsKeys
 from crate_anon.crateweb.research.html_functions import (
     HtmlElementCounter,
     N_CSS_HIGHLIGHT_CLASSES,
@@ -89,7 +91,6 @@ from crate_anon.crateweb.research.sql_writer import (
     add_to_select,
     SelectElement,
 )
-from crate_anon.crateweb.config.constants import ResearchDbInfoKeys
 
 log = logging.getLogger(__name__)
 
@@ -162,8 +163,10 @@ def hack_django_pyodbc_azure_cursorwrapper() -> None:
         return
 
 
-if getattr(settings, 'DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET',
-           True):
+if getattr(
+        settings,
+        SettingsKeys.DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET,
+        True):
     # http://stackoverflow.com/questions/5601590/how-to-define-a-default-value-for-a-custom-django-setting  # noqa
     hack_django_pyodbc_azure_cursorwrapper()
 
@@ -279,6 +282,18 @@ def get_executed_researchdb_cursor(sql: str,
         add_info_to_exception(exception, {'sql': sql, 'args': args})
         raise
     return cursor
+
+
+def get_executed_researchdb_cursor_qmark_placeholders(
+        sql: str,
+        args: List[Any] = None) -> CursorWrapper:
+    """
+    As for :func:`get_executed_researchdb_cursor`, but assumes its SQL may
+    contain question-mark parameter placeholders (``?``) and translates these
+    to the ones we need internally.
+    """
+    sql = translate_sql_qmark_to_percent(sql)
+    return get_executed_researchdb_cursor(sql, args)
 
 
 # =============================================================================

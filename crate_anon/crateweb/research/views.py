@@ -29,41 +29,47 @@ crate_anon/crateweb/research/views.py
 """
 
 import datetime
-# from functools import lru_cache
 import json
 import logging
-# import pprint
+from os.path import abspath, basename, isfile, join
 from typing import Any, Dict, Iterable, List, Sequence, Type, Union, Optional
 
 from cardinal_pythonlib.typing_helpers import Pep249DatabaseCursorType
 from cardinal_pythonlib.dbfunc import get_fieldnames_from_cursor
 from cardinal_pythonlib.django.function_cache import django_cache_function
-from cardinal_pythonlib.django.serve import file_response
+from cardinal_pythonlib.django.serve import file_response, serve_file
 from cardinal_pythonlib.exceptions import recover_info_from_exception
+from cardinal_pythonlib.fileops import mkdir_p
 from cardinal_pythonlib.hash import hash64
+from cardinal_pythonlib.httpconst import ContentType
 from cardinal_pythonlib.logs import BraceStyleAdapter
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 from cardinal_pythonlib.psychiatry.drugs import Drug, all_drugs_where
 from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
+from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.core.exceptions import (
     ObjectDoesNotExist,
     ValidationError,
 )
-# from django.db import connection
 from django.db import DatabaseError, ProgrammingError
 from django.db.models import Q, QuerySet
-from django.http.response import HttpResponse, HttpResponseRedirect
+from django.http.response import (
+    HttpResponse,
+    HttpResponseBase,
+    HttpResponseBadRequest,
+    HttpResponseRedirect,
+)
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.html import escape
+from mako.lookup import TemplateLookup
 from pyparsing import ParseException
 
 from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
-from crate_anon.common.contenttypes import ContentType
 from crate_anon.common.sql import (
     ColumnId,
     escape_sql_string_literal,
@@ -74,7 +80,16 @@ from crate_anon.common.sql import (
     toggle_distinct,
     WhereCondition,
 )
-from crate_anon.crateweb.core.utils import is_clinician, is_superuser, paginate
+from crate_anon.crateweb.core.utils import (
+    is_clinician,
+    is_superuser,
+    paginate,
+    url_with_querystring,
+)
+from crate_anon.crateweb.core.constants import (
+    SCRUBBER_PNG_FILENAME,
+    SettingsKeys,
+)
 from crate_anon.crateweb.research.forms import (
     AddHighlightForm,
     AddQueryForm,
@@ -101,17 +116,18 @@ from crate_anon.crateweb.research.html_functions import (
     prettify_sql_and_args,
 )
 from crate_anon.crateweb.research.models import (
+    get_executed_researchdb_cursor,
+    get_executed_researchdb_cursor_qmark_placeholders,
     Highlight,
-    PidLookup,
     PatientExplorer,
     PatientMultiQuery,
+    PidLookup,
     Query,
     SitewideQuery,
-    get_executed_researchdb_cursor,
 )
 from crate_anon.crateweb.research.research_db_info import (
-    research_database_info,
     PatientFieldPythonTypes,
+    research_database_info,
     SingleResearchDatabase,
 )
 from crate_anon.crateweb.userprofile.models import (
@@ -126,6 +142,10 @@ from crate_anon.crateweb.research.sql_writer import (
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
 
+
+# =============================================================================
+# Constants
+# =============================================================================
 
 # Maximum number of characters to show of a query in html
 MAX_LEN_SHOW = 20000
@@ -144,6 +164,36 @@ FN_SRCFIELD = '_srcfield'
 FN_SRCPKFIELD = '_srcpkfield'
 FN_SRCPKVAL = '_srcpkval'
 FN_SRCPKSTR = '_srcpkstr'
+
+
+class ArchiveContextKeys(object):
+    """
+    Names of objects that become part of the context in which archive templates
+    operate. Some are also used as URL parameter keys.
+    """
+    ARCHIVE_URL = "archive_url"
+    ATTACHMENT_URL = "attachment_url"
+    CRATE_HOME_URL = "CRATE_HOME_URL"
+    PATIENT_ID = "patient_id"
+    QUERY = "query"
+    REQUEST = "request"
+    TEMPLATE = "template"  # in case the template wants to know
+    URL_FAVICON_PNG = "URL_FAVICON_PNG"
+
+
+class ArchiveUrlKeys(object):
+    """
+    URL parameter keys used by the archive system.
+    These are things, typically, that may contain ``/`` characters.
+    """
+    CONTENT_TYPE = "content_type"
+    FILENAME = "filename"
+    OFFERED_FILENAME = "offered_filename"
+    # TEMPLATE is in ArchiveContextKeys
+
+
+PROHIBITED_ARCHIVE_KEYS = [x for x in dir(ArchiveContextKeys)
+                           if not x.startswith("_")]
 
 
 # =============================================================================
@@ -3820,3 +3870,272 @@ def pe_one_table(request: HttpRequest, pe_id: str,
 
     except DatabaseError as exception:
         return render_bad_pe(request, pe, exception)
+
+
+# =============================================================================
+# Archive ancillary functions
+# =============================================================================
+
+# Read from settings. Better to crash early than when a user asks.
+_archive_template_dirs = getattr(
+    settings, SettingsKeys.ARCHIVE_TEMPLATE_DIRS, [])
+_archive_template_cache_dir = getattr(
+    settings, SettingsKeys.ARCHIVE_TEMPLATE_CACHE_DIR, "")
+_archive_root_template = getattr(
+    settings, SettingsKeys.ARCHIVE_ROOT_TEMPLATE, "")
+_archive_attachment_root_dir = getattr(
+    settings, SettingsKeys.ARCHIVE_ATTACHMENT_ROOT_DIR, "")
+
+mkdir_p(_archive_template_cache_dir)
+mako_lookup = TemplateLookup(directories=_archive_template_dirs,
+                             module_directory=_archive_template_cache_dir)
+
+
+def archive_url(patient_id: str, template_name: str, **kwargs) -> str:
+    """
+    Creates a URL to inspect part of the archive.
+
+    Args:
+        patient_id:
+            patient ID
+        template_name:
+            short name of the (configurable) template
+        **kwargs:
+            other optional arguments, passed as URL parameters
+
+    Returns:
+        A URL.
+
+    """
+    kwargs = kwargs or {}  # type: Dict[str, Any]
+    qparams = {ArchiveContextKeys.TEMPLATE: template_name}
+    qparams.update(kwargs)
+    # log.critical("qparams: {!r}", qparams)
+    return url_with_querystring(
+        reverse("archive", args=[patient_id]),
+        **qparams
+    )
+
+
+def archive_root_url(patient_id: str) -> str:
+    """
+    Returns a URL to the root of the archive, for a given patient.
+
+    Args:
+        patient_id:
+            patient ID
+    """
+    return archive_url(patient_id, _archive_root_template)
+
+
+def archive_attachment_url(filename: str, content_type: str,
+                           offered_filename: str = "") -> str:
+    """
+    Returns a URL to download an archive attachment
+
+    Args:
+        filename:
+            filename on disk, within the archive directory 
+        content_type: 
+            HTTP content type; see
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type
+        offered_filename:
+            filename offered to user
+    """  # noqa
+    return url_with_querystring(
+        reverse("archive_attachment"),
+        content_type=content_type,
+        filename=filename,
+        offered_filename=offered_filename
+    )
+
+
+def safe_path(directory: str, filename: str) -> str:
+    """
+    Ensures that a filename is safe and within a directory -- for example, that
+    nobody passes a filename like ``../../../etc/passwd`` to break out of our
+    directory.
+
+    Args:
+        directory: directory, within which filename must be
+        filename: filename
+
+    Returns:
+        str: the filename if it's safe and exists
+    """
+    if not directory:
+        return ""
+    final_filename = abspath(join(directory, filename))
+    if not final_filename.startswith(directory):
+        return ""
+    if not isfile(final_filename):
+        return ""
+    return final_filename
+
+
+# =============================================================================
+# Archive views
+# =============================================================================
+
+def select_patient_for_archive(request: HttpRequest) -> HttpResponse:
+    """
+    Takes the submitted ``patient_id`` (from ``request.POST``) and launches
+    the archive's root page for that patient.
+
+    Args:
+        request:
+            the Django :class:`HttpRequest` object
+    """
+    # Check archive is configured.
+    prefix = "Archive not configured. Administrator has not set: "
+    if not _archive_template_dirs:
+        return HttpResponseBadRequest(
+            prefix + SettingsKeys.ARCHIVE_TEMPLATE_DIRS)
+    if not _archive_template_cache_dir:
+        return HttpResponseBadRequest(
+            prefix + SettingsKeys.ARCHIVE_TEMPLATE_CACHE_DIR)
+    if not _archive_root_template:
+        return HttpResponseBadRequest(
+            prefix + SettingsKeys.ARCHIVE_ROOT_TEMPLATE)
+    if not _archive_attachment_root_dir:
+        return HttpResponseBadRequest(
+            prefix + SettingsKeys.ARCHIVE_ATTACHMENT_ROOT_DIR)
+
+    # All OK.
+    return render(request, "launch_archive.html")
+
+
+def launch_archive(request: HttpRequest) -> HttpResponse:
+    """
+    Takes the submitted ``patient_id`` (from ``request.POST``) and launches
+    the archive's root page for that patient.
+
+    Args:
+        request:
+            the Django :class:`HttpRequest` object
+    """
+    validate_blank_form(request)
+    # noinspection PyCallByClass,PyArgumentList
+    patient_id = request.POST.get("patient_id")
+    if not patient_id:
+        return HttpResponseBadRequest("Patient ID not given")
+    return redirect(archive_root_url(patient_id))
+
+
+def archive(request: HttpRequest,
+            patient_id: str) -> HttpResponse:
+    """
+    Provides the views for the configurable "archive" system.
+
+    Args:
+        request:
+            the Django :class:`HttpRequest` object
+        patient_id:
+            patient ID
+
+    Returns:
+        a Django :class:`HttpResponse`.
+
+    Note:
+        
+    - The archive template name is in ``request.GET``; this allows the use of
+      special (e.g. filename) characters.
+
+    - Additional arguments are also in ``request.GET``.
+
+    - To create a URL within a Django template, one would use e.g.
+
+      .. code-block:: none
+
+        <a href="{% url 'archive' patient_id template_name %}">link text</a>
+        
+      (the ``'archive'`` bit being configured in
+      :mod:`crate_anon.crateweb.config.urls`).
+
+    - But to create a URL within a Mako template, there are several ways...
+      for example, in CamCOPS via Pyramid, we use ``request.route_url(...)``.
+      We can make this simple by passing an ``archive_url`` function (see
+      :func:`archive_url`) to the context. Then our archive templates can use
+
+      .. code-block:: none
+
+        <a href="${archive_url(patient_id, template_name, ...)}">link text</a>
+        
+    - If we use DMP, it will add a ``request.dmp`` object; see 
+      http://doconix.github.io/django-mako-plus/topics_variables.html.
+
+    """  # noqa
+    # Are arguments safe?
+    kwargs = request.GET
+    for k in PROHIBITED_ARCHIVE_KEYS:
+        if k == ArchiveContextKeys.TEMPLATE:
+            if k not in kwargs:
+                return HttpResponseBadRequest(
+                    f"URL arguments must include the key {k!r}")
+        elif k in kwargs:
+            return HttpResponseBadRequest(
+                f"URL arguments may not include the key {k!r}")
+    # noinspection PyCallByClass,PyArgumentList
+    template_name = request.GET.get(ArchiveContextKeys.TEMPLATE)
+    # noinspection PyArgumentList
+    params = {k: v for k, v in request.GET.items()
+              if k != ArchiveContextKeys.TEMPLATE}
+    # request.GET is a curious immutable dictionary that holds multi-value
+    # values, so tends to return lists.
+
+    def same_patient_archive_url(_template: str, **kw) -> str:
+        """
+        Returns a URL for the same patient but with a different template or
+        different arguments.
+        """
+        return archive_url(patient_id, _template, **kw)
+
+    # Build context
+    context = {
+        ArchiveContextKeys.ARCHIVE_URL: same_patient_archive_url,
+        ArchiveContextKeys.ATTACHMENT_URL: archive_attachment_url,
+        ArchiveContextKeys.CRATE_HOME_URL: reverse("home"),
+        ArchiveContextKeys.PATIENT_ID: patient_id,
+        ArchiveContextKeys.QUERY: get_executed_researchdb_cursor_qmark_placeholders,  # noqa
+        ArchiveContextKeys.REQUEST: request,
+        ArchiveContextKeys.URL_FAVICON_PNG: static(SCRUBBER_PNG_FILENAME),
+        ArchiveContextKeys.TEMPLATE: template_name,
+        **params
+    }
+    log.debug("Archive template {!r} with context {!r}",
+              template_name, context)
+
+    # Render
+    template = mako_lookup.get_template(template_name)
+    html = template.render(**context)
+    return HttpResponse(html)
+
+
+def archive_attachment(request: HttpRequest) -> HttpResponseBase:
+    """
+    Serve a binary file from the archive.
+
+    Args:
+        request:
+            the Django :class:`HttpRequest` object
+    """  # noqa
+    # noinspection PyCallByClass,PyArgumentList
+    content_type = request.GET.get(ArchiveUrlKeys.CONTENT_TYPE)
+    # noinspection PyCallByClass,PyArgumentList
+    filename = request.GET.get(ArchiveUrlKeys.FILENAME)
+    # noinspection PyCallByClass,PyTypeChecker
+    offered_filename = request.GET.get(ArchiveUrlKeys.OFFERED_FILENAME, None)
+
+    full_filename = safe_path(_archive_attachment_root_dir, filename)
+    if not full_filename:
+        return HttpResponseBadRequest(f"Invalid filename: {filename!r}")
+    if not content_type:
+        return HttpResponseBadRequest("Missing content_type")
+    offered_filename = offered_filename or basename(filename)
+    return serve_file(
+        path_to_file=full_filename,
+        offered_filename=offered_filename,
+        content_type=content_type,
+        as_attachment=False,
+        as_inline=True
+    )
