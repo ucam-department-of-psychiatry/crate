@@ -112,7 +112,7 @@ class Haemoglobin(SimpleNumericalResultParser):
         )?
     """
     NAME = "Haemoglobin"
-    PREFERRED_UNIT_COLUMN = "value_g_l"
+    PREFERRED_UNIT_COLUMN = "value_g_L"
     UNIT_MAPPING = {
         G_PER_L: 1,  # preferred unit
         G_PER_DL: 10,  # older unit (e.g. 2000)
@@ -190,7 +190,7 @@ class Haematocrit(SimpleNumericalResultParser):
         )?
     """
     NAME = "Haematocrit"
-    PREFERRED_UNIT_COLUMN = "value_l_l"
+    PREFERRED_UNIT_COLUMN = "value_L_L"
     UNIT_MAPPING = {
         L_PER_L: 1,  # preferred unit
         # not MG_PER_DL, MG_PER_L

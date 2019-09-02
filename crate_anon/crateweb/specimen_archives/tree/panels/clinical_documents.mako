@@ -1,7 +1,42 @@
 ## -*- coding: utf-8 -*-
 ## crate_anon/crateweb/specimen_archives/tree/panels/clinical_documents.mako
 <%inherit file="../base.mako"/>
-<%namespace name="attachments" file="../snippets/attachments.mako"/>
+
+<%doc>
+I tried this with
+
+    <%inherit file="../snippets/subtree_page.mako"/>
+
+    <%
+    tree = JavascriptTree(
+        tree_id="doc_tree",
+        child_id_prefix="doc_tree_child_",
+        children=[
+            JavascriptLeafNode(filename, embedded_attachment_html(filename))
+            for filename in gen_downloadable_filenames()
+        ]
+    )
+    log.critical(repr(tree))
+    %>
+
+    <%block name="tree_id">doc_tree</%block>
+    <%block name="treepage_title">Clinical Documents</%block>
+    <%block name="tree_html">${tree.html()}</%block>
+    <%block name="tree_js_data">${tree.js_data()}</%block>
+    <%block name="no_content_selected"><div class="obscure_spinner"><i>Choose a document.</i></div></%block>
+
+However, I think the inheritance system works such that the parent is evaluated
+first, and therefore the Python definition of "tree" has not yet occurred by
+the time the parent calls back to our (child) <%block> overrides. See
+https://docs.makotemplates.org/en/latest/inheritance.html.
+
+Inspecting the source of the "child" template shows that the Python above (to
+create "tree") appears within "def render_body(context, **pageargs):" -- which
+is separate from e.g. "def render_tree_id()", "def render_treepage_title()".
+
+So we need to use an "inclusion" or a "namespace" method instead.
+
+</%doc>
 
 <%!
 
@@ -9,12 +44,21 @@
 # Imports
 # =============================================================================
 
+import logging
 import os
-from typing import Callable, Generator
+from typing import Generator
 
 from django.conf import settings
 
 from crate_anon.crateweb.core.constants import SettingsKeys
+from crate_anon.crateweb.core.utils import (
+    JavascriptBranchNode,
+    JavascriptLeafNode,
+    JavascriptTree,
+)
+from crate_anon.crateweb.research.archive_func import embedded_attachment_html
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -38,111 +82,24 @@ def gen_downloadable_filenames() -> Generator[str, None, None]:
             for filename in files:
                 yield os.path.join(final_dir, filename)
 
-
-def blank_content() -> str:
-    return '<div class="obscure_spinner"><i>Choose a document.</i></div>'
-
 %>
 
+<%namespace name="subtree" file="../snippets/subtree.mako"/>
 
 <%
 
-file_info = [
-    (i, filename)
-    for i, filename in enumerate(gen_downloadable_filenames())
-]
+tree = JavascriptTree(
+    tree_id="doc_tree",
+    child_id_prefix="doc_tree_child_",
+    children=[
+        JavascriptBranchNode("All", children=[
+            JavascriptLeafNode(filename, embedded_attachment_html(filename))
+            for filename in gen_downloadable_filenames()
+        ]),
+    ],
+)
+# log.critical(repr(tree))
 
 %>
 
-<div class="mainpage_row">
-  ## --------------------------------------------------------------------------
-  ## Left-hand side: list of documents
-  ## --------------------------------------------------------------------------
-  <div class="mainpage_col_left">
-    <h1>Clinical Documents</h1>
-    <ul class="tree" id="doc_tree">
-        %for i, filename in enumerate(gen_downloadable_filenames()):
-            <li id="${i}">${filename | h}</li>
-        %endfor
-    </ul>
-
-  </div>
-
-  ## --------------------------------------------------------------------------
-  ## Right-hand side: content
-  ## --------------------------------------------------------------------------
-  <div class="mainpage_col_right" id="doc_content">${blank_content()}</div>
-
-</div>
-## ============================================================================
-## Scripts
-## ============================================================================
-
-<script src="${static_url("tree.js")}" type="text/javascript"></script>
-<script type="text/javascript">
-
-// ----------------------------------------------------------------------------
-// Infrastructure
-// ----------------------------------------------------------------------------
-
-function getRightContentDiv()
-{
-    // Returns the <div> for the main right panel.
-    return document.getElementById("doc_content");
-}
-
-
-function callback(id)
-{
-    // Called when the user clicks an item in the expanding menu.
-
-    console.log("Item clicked: " + id);
-
-    // Is this a change?
-    if (id === g_current_tree_item_id) {
-        // Don't reload existing content
-        // return;
-    }
-
-    // Set the contents panels
-    var rcd = getRightContentDiv();
-    rcd.innerHTML = getRightContent(id);
-
-    // Indicate on the left-hand tree which is currently selected
-    if (g_current_tree_item_id !== "") {
-        setElementClassName(g_current_tree_item_id, "");
-    }
-    setElementClassName(id, "tree_chosen");
-    g_current_tree_item_id = id;
-}
-
-
-// ----------------------------------------------------------------------------
-// Main callback choice
-// ----------------------------------------------------------------------------
-
-function getRightContent(id)
-{
-    html = JS_FILE_INFO[id];
-    return html;
-}
-
-
-// ----------------------------------------------------------------------------
-// Execute immediately
-// ----------------------------------------------------------------------------
-
-var JS_FILE_INFO = [
-    %for _, filename in file_info:
-        ${attachments.embedded_attachment(filename)},
-    %endfor
-];
-console.log(JS_FILE_INFO);
-
-var TREE_ID = "doc_tree";
-activateTreeExpansion();
-addTreeIDCallbacks(TREE_ID, callback);
-
-var g_current_tree_item_id = "";  // global
-
-</script>
+${subtree.subtree_page(tree=tree, page_title="Clinical Documents", no_content_selected="Choose a document.")}

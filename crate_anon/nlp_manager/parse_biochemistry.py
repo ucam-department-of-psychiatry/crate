@@ -127,7 +127,7 @@ class Crp(SimpleNumericalResultParser):
         )?
     """
     NAME = "CRP"
-    PREFERRED_UNIT_COLUMN = "value_mg_l"
+    PREFERRED_UNIT_COLUMN = "value_mg_L"
     UNIT_MAPPING = {
         MG_PER_L: 1,       # preferred unit
         MG_PER_DL: 10,     # 1 mg/dL -> 10 mg/L
@@ -483,7 +483,7 @@ class Creatinine(SimpleNumericalResultParser):
     CREATININE_MOLECULAR_MASS_G_PER_MOL = 113.12
     # ... https://pubchem.ncbi.nlm.nih.gov/compound/creatinine
     NAME = "Creatinine"
-    PREFERRED_UNIT_COLUMN = "value_mmol_L"
+    PREFERRED_UNIT_COLUMN = "value_micromol_L"
     UNIT_MAPPING = {
         MICROMOLAR: 1,       # preferred unit
         MICROMOLES_PER_L: 1,
@@ -1299,7 +1299,7 @@ class HbA1c(SimpleNumericalResultParser):
         )?
     """
     NAME = "HBA1C"
-    PREFERRED_UNIT_COLUMN = "value_mmol_L"
+    PREFERRED_UNIT_COLUMN = "value_mmol_mol"
     UNIT_MAPPING = {
         MILLIMOLES_PER_MOL: 1,       # preferred unit
         PERCENT: hba1c_mmol_per_mol_from_percent,

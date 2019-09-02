@@ -28,13 +28,15 @@ crate_anon/crateweb/core/utils.py
 
 """
 
+from abc import ABC, abstractmethod
 import datetime
 import logging
 import mimetypes
 import re
 import urllib.parse
-from typing import Any, List, Optional, Union
+from typing import Any, Generator, List, Optional, Union
 
+from cardinal_pythonlib.reprfunc import auto_repr
 from django.conf import settings
 from django.core.paginator import Paginator, EmptyPage, Page, PageNotAnInteger
 from django.db.models import QuerySet
@@ -142,15 +144,41 @@ def url_with_querystring(path: str,
     Returns:
         the URL with query parameters
     """
-    if querydict is not None and not isinstance(querydict, QueryDict):
-        raise ValueError("Bad querydict value")
-    if querydict and kwargs:
-        raise ValueError("Pass either a QueryDict or kwargs")
-    if querydict:
-        querystring = querydict.urlencode()
+    # Get initial query parameters, if any.
+    # log.critical(f"IN: path={path!r}, querydict={querydict!r}, "
+    #              f"kwargs={kwargs!r}")
+    pr = urllib.parse.urlparse(path)  # type: urllib.parse.ParseResult
+    qd = QueryDict(mutable=True)
+    if pr.query:
+        for k, values in urllib.parse.parse_qs(pr.query).items():
+            for v in values:
+                qd[k] = v
+
+    # Update with the new parameters
+    if querydict is not None:
+        if not isinstance(querydict, QueryDict):
+            raise ValueError("Bad querydict value")
+        qd.update(querydict)
+    if kwargs:
+        qd.update(kwargs)
+
+    # Calculate the query string
+    if qd:
+        querystring = qd.urlencode()
+        # for kwargs: querystring = urllib.parse.urlencode(kwargs)
     else:
-        querystring = urllib.parse.urlencode(kwargs)
-    return path + '?' + querystring
+        querystring = ""
+
+    # Return the final rebuilt URL.
+    # You can't write to a urllib.parse.ParseResult. So, as per
+    # https://stackoverflow.com/questions/26221669/how-do-i-replace-a-query-with-a-new-value-in-urlparse  # noqa
+    # we have do to this:
+
+    components = list(pr)
+    components[4] = querystring
+    url = urllib.parse.urlunparse(components)
+    # log.critical(f"OUT: {url}")
+    return url
 
 
 def site_absolute_url(path: str) -> str:
@@ -264,3 +292,230 @@ def javascript_quoted_string_from_html(html: str) -> str:
     x = f'"{x}"'  # Enclose string in double quotes
     # log.critical(f"After: {x}")
     return x
+
+
+# =============================================================================
+# Javascript tree
+# =============================================================================
+
+class JavascriptTreeNode(ABC):
+    """
+    Represents a node of a :class:`JavascriptTree`.
+    """
+    def __init__(self,
+                 text: str = "",
+                 node_id: str = "",
+                 children: List["JavascriptTreeNode"] = None) -> None:
+        """
+        Args:
+            text: text to display
+            node_id: CSS node ID (only the root node will use this mechanism;
+                the rest will be autoset by the root node)
+            children: child nodes, if any
+        """
+        self.text = text
+        self.node_id = node_id
+        self.children = children or []  # type: List[JavascriptTreeNode]
+
+    def __repr__(self) -> str:
+        return auto_repr(self)
+
+    def set_node_id(self, node_id: str) -> None:
+        """
+        Sets the node's ID.
+        """
+        self.node_id = node_id
+
+    def gen_descendants(self) -> Generator["JavascriptTreeNode", None, None]:
+        """
+        Yields all descendants, recursively.
+        """
+        for child in self.children:
+            yield child
+            for descendant in child.gen_descendants():
+                yield descendant
+
+    @abstractmethod
+    def html(self) -> str:
+        """
+        Returns HTML for this node.
+        """
+        pass
+
+
+class JavascriptLeafNode(JavascriptTreeNode):
+    """
+    Represents a leaf node of a :class:`JavascriptTree`, i.e. one that launches
+    some action.
+    """
+    def __init__(self,
+                 text: str,
+                 action_html: str) -> None:
+        """
+        Args:
+            text: text to display
+            action_html: HTML associated with the action (e.g. to attach to
+                part of the page, in order to load other content)
+        """
+        super().__init__(text=text)
+        self.action_html = action_html
+
+    def html(self) -> str:
+        return f'<li id="{self.node_id}">{self.text}</li>'
+
+    def js_action_dict_key_value(self) -> str:
+        """
+        Returns a Javascript snippet for incorporating into a dictionary:
+        ``node_id: action_html``.
+        """
+        js_action_html = javascript_quoted_string_from_html(self.action_html)
+        return f'"{self.node_id}":{js_action_html}'
+
+
+class JavascriptBranchNode(JavascriptTreeNode):
+    """
+    Represents a leaf node of a :class:`JavascriptTree`, i.e. one that has
+    children but does not itself perform an action.
+    """
+    def __init__(self,
+                 text: str,
+                 children: List[JavascriptTreeNode] = None,
+                 branch_class: str = "caret",
+                 child_ul_class: str = "nested") -> None:
+        """
+        Args:
+            text: text to display
+            children: children of this node
+            branch_class: CSS class for the branch with caret/indicator
+            child_ul_class: CSS class for the sublist with the children
+        """
+        super().__init__(text=text, children=children)
+        self.branch_class = branch_class
+        self.child_ul_class = child_ul_class
+
+    def html(self) -> str:
+        child_html = "".join(node.html() for node in self.children)
+        return (
+            f'<li>'
+            f'<span class="{self.branch_class}">{self.text}</span>'
+            f'<ul class="{self.child_ul_class}">'
+            f'{child_html}'
+            f'</ul>'
+            f'</li>'
+        )
+
+    def add_child(self, child: JavascriptTreeNode) -> None:
+        """
+        Adds a child at the end of our list.
+        """
+        self.children.append(child)
+
+
+class JavascriptTree(JavascriptTreeNode):
+    """
+    Represents the root node of an expanding tree implemented via Javascript.
+
+    Demo:
+
+    .. code-block:: Python
+
+# Django debugging preamble
+import os
+import django
+os.environ['DJANGO_SETTINGS_MODULE'] = 'crate_anon.crateweb.config.settings'
+django.setup()
+
+from crate_anon.crateweb.core.utils import (
+    JavascriptBranchNode,
+    JavascriptLeafNode,
+    JavascriptTree,
+)
+
+t = JavascriptTree(
+    tree_id="my_tree",
+    child_id_prefix="my_tree_child_",
+    children=[
+        JavascriptBranchNode("RiO", [
+            JavascriptLeafNode("Clinical Documents", "<p>Clinical docs</p>"),
+            JavascriptLeafNode("Progress Notes", "<p>Prog notes</p>"),
+        ]),
+        JavascriptLeafNode("Test PDF", "<p>Test a PDF</p>"),
+    ]
+)
+print(t.html())
+print(t.js_str_html())
+print(t.js_data())
+
+    """
+    def __init__(self,
+                 tree_id: str,
+                 child_id_prefix: str,
+                 children: List[JavascriptTreeNode] = None,
+                 tree_class: str = "tree") -> None:
+        """
+        Args:
+            tree_id: CSS ID for this tree
+            child_id_prefix: CSS ID prefix for children
+            children: child nodes
+            tree_class: CSS class for this tree
+        """
+        super().__init__(children=children, node_id=tree_id)
+        self.node_id_prefix = child_id_prefix
+        self.tree_class = tree_class
+        self._node_ids_set = False
+
+    def add_child(self, child: JavascriptTreeNode) -> None:
+        """
+        Adds a child at the end of our list.
+        """
+        self.children.append(child)
+        self._node_ids_set = False
+
+    def _write_child_ids(self) -> None:
+        """
+        Sets the node IDs for all our children.
+        """
+        if self._node_ids_set:
+            return
+        for i, descendant in enumerate(self.gen_descendants()):
+            descendant.set_node_id(f"{self.node_id_prefix}{i}")
+        self._node_ids_set = True
+
+    def html(self) -> str:
+        """
+        Returns HTML for this tree.
+        """
+        self._write_child_ids()
+        child_html = "".join(node.html() for node in self.children)
+        return (
+            f'<ul class="{self.tree_class}" id="{self.node_id}">'
+            f'{child_html}'
+            f'</ul>'
+        )
+
+    def js_str_html(self) -> str:
+        """
+        Returns HTML for this tree, as a quoted Javascript string, for
+        embedding in Javascript code directly.
+        """
+        return javascript_quoted_string_from_html(self.html())
+
+    def js_data(self) -> str:
+        """
+        Returns Javascript code for a dictionary mapping node IDs to
+        action HTML.
+        """
+        self._write_child_ids()
+        content = ",".join(
+            child.js_action_dict_key_value()
+            for child in self.gen_descendants()
+            if isinstance(child, JavascriptLeafNode)
+        )
+        return f"{{{content}}}"
+
+    @property
+    def tree_id(self) -> str:
+        """
+        Synonym for ``node_id`` for the root node.
+        """
+        return self.node_id

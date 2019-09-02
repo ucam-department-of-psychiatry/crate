@@ -188,7 +188,7 @@ def demo_nlp_config() -> str:
 
 
 # -----------------------------------------------------------------------------
-# KConnect (Bio-YODIE) GATE app
+# KConnect (Bio-YODIE) disease-finding GATE app
 # -----------------------------------------------------------------------------
 
 [{NlpConfigPrefixes.NLPDEF}:gate_kconnect_diseases]
@@ -202,6 +202,34 @@ def demo_nlp_config() -> str:
 
 
 # -----------------------------------------------------------------------------
+# KCL Lewy body dementia GATE app
+# -----------------------------------------------------------------------------
+
+[{NlpConfigPrefixes.NLPDEF}:gate_kcl_lbd]
+
+{NlpDefConfigKeys.INPUTFIELDDEFS} =
+    {inputfields}
+{NlpDefConfigKeys.PROCESSORS} =
+    GATE procdef_gate_kcl_lbda
+{NlpDefConfigKeys.PROGRESSDB} = {destdb}
+{NlpDefConfigKeys.HASHPHRASE} = {hashphrase}
+
+
+# -----------------------------------------------------------------------------
+# KCL pharmacotherapy GATE app
+# -----------------------------------------------------------------------------
+
+[{NlpConfigPrefixes.NLPDEF}:gate_kcl_pharmacotherapy]
+
+{NlpDefConfigKeys.INPUTFIELDDEFS} =
+    {inputfields}
+{NlpDefConfigKeys.PROCESSORS} =
+    GATE procdef_gate_pharmacotherapy
+{NlpDefConfigKeys.PROGRESSDB} = {destdb}
+{NlpDefConfigKeys.HASHPHRASE} = {hashphrase}
+
+
+# -----------------------------------------------------------------------------
 # Medex-UIMA medication-finding app
 # -----------------------------------------------------------------------------
 
@@ -210,7 +238,7 @@ def demo_nlp_config() -> str:
 {NlpDefConfigKeys.INPUTFIELDDEFS} =
     {inputfields}
 {NlpDefConfigKeys.PROCESSORS} =
-    Medex procdef_medex_drugs
+    Medex procdef_medex_medications
 {NlpDefConfigKeys.PROGRESSDB} = {destdb}
 {NlpDefConfigKeys.HASHPHRASE} = {hashphrase}
 
@@ -454,7 +482,7 @@ def demo_nlp_config() -> str:
     --log_tag {{NLPLOGTAG}}
     --suppress_gate_stdout
     --show_contents_on_crash
-{ProcessorConfigKeys.PROGENVSECTION} = CPFT_ENV_SECTION
+{ProcessorConfigKeys.PROGENVSECTION} = {my_env}
 {ProcessorConfigKeys.INPUT_TERMINATOR} = {nlp_input_terminator}
 {ProcessorConfigKeys.OUTPUT_TERMINATOR} = {nlp_output_terminator}
 # {ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES} = 1000
@@ -596,10 +624,10 @@ def demo_nlp_config() -> str:
 # -----------------------------------------------------------------------------
 # https://sbmi.uth.edu/ccb/resources/medex.htm
 
-[{NlpConfigPrefixes.PROCESSOR}:procdef_medex_drugs]
+[{NlpConfigPrefixes.PROCESSOR}:procdef_medex_medications]
 
 {ProcessorConfigKeys.DESTDB} = {destdb}
-{ProcessorConfigKeys.DESTTABLE} = drugs
+{ProcessorConfigKeys.DESTTABLE} = medications_medex
 {ProcessorConfigKeys.PROGARGS} =
     java
     -classpath {{NLPPROGDIR}}:{{MEDEXDIR}}/bin:{{MEDEXDIR}}/lib/*
@@ -618,10 +646,12 @@ def demo_nlp_config() -> str:
 
 [{NlpConfigPrefixes.ENV}:{my_env}]
 
-GATEDIR = /home/myuser/somewhere/GATE_Developer_8.0
-NLPPROGDIR = /home/myuser/somewhere/crate_anon/nlp_manager/compiled_nlp_classes
-MEDEXDIR = /home/myuser/somewhere/Medex_UIMA_1.3.6
-KCONNECTDIR = /home/myuser/somewhere/yodie-pipeline-1-2-umls-only
+GATEDIR = /home/myuser/dev/GATE_Developer_8.0
+GATE_PHARMACOTHERAPY_DIR = /home/myuser/dev/brc-gate-pharmacotherapy
+KCL_LBDA_DIR = /home/myuser/dev/brc-gate-LBD/Lewy_Body_Diagnosis
+KCONNECTDIR = /home/myuser/dev/yodie-pipeline-1-2-umls-only
+MEDEXDIR = /home/myuser/dev/Medex_UIMA_1.3.6
+NLPPROGDIR = /home/myuser/dev/crate_anon/nlp_manager/compiled_nlp_classes
 OS_PATHSEP = :
 
 

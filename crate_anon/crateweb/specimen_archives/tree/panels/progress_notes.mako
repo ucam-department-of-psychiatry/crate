@@ -4,7 +4,7 @@
 <%!
 import logging
 
-log = logging.getLogger("panels/progress_notes.mako")
+log = logging.getLogger(__name__)
 %>
 
 <%
@@ -22,10 +22,12 @@ cursor = execute(sql, args)
 
 %>
 
-<h1>Progress Notes</h1>
-<p><i>Old at the top, new at the bottom.</i></p>
-%for row in cursor:
-    ## <% log.debug(repr(row)) %>
-    <h2>${row[0]}</h2>
-    <div>${row[1] | h}</div>
-%endfor
+<div class="pad">
+    <h1>Progress Notes</h1>
+    <p><i>Old at the top, new at the bottom.</i></p>
+    %for row in cursor:
+        ## <% log.debug(repr(row)) %>
+        <h2>${row[0]}</h2>
+        <div>${row[1] | h}</div>
+    %endfor
+</div>

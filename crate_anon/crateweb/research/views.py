@@ -197,6 +197,10 @@ PROHIBITED_ARCHIVE_KEYS = [x for x in dir(ArchiveContextKeys)
                            if not x.startswith("_")]
 
 
+# For attachments: default for guess_content_type
+DEFAULT_GUESS_CONTENT_TYPE = True
+
+
 # =============================================================================
 # Helper functions
 # =============================================================================
@@ -4003,9 +4007,11 @@ def archive_root_url(patient_id: str) -> str:
     return archive_template_url(patient_id, _archive_root_template)
 
 
-def archive_attachment_url(filename: str, content_type: str = "",
-                           offered_filename: str = "",
-                           guess_content_type: bool = True) -> str:
+def archive_attachment_url(
+        filename: str,
+        content_type: str = "",
+        offered_filename: str = "",
+        guess_content_type: bool = None) -> str:
     """
     Returns a URL to download an archive attachment (e.g. a PDF).
 
@@ -4018,14 +4024,16 @@ def archive_attachment_url(filename: str, content_type: str = "",
         offered_filename:
             filename offered to user
         guess_content_type:
-            if no content_type is specified, should we guess?
+            if no content_type is specified, should we guess? Pass
+            ``None`` for the default, :data:`DEFAULT_GUESS_CONTENT_TYPE`.
     """  # noqa
-    qparams = {
-        ArchiveUrlKeys.CONTENT_TYPE: content_type,
-        ArchiveUrlKeys.FILENAME: filename,
-        ArchiveUrlKeys.GUESS_CONTENT_TYPE: int(guess_content_type),
-        ArchiveUrlKeys.OFFERED_FILENAME: offered_filename,
-    }
+    qparams = {ArchiveUrlKeys.FILENAME: filename}
+    if content_type:
+        qparams[ArchiveUrlKeys.CONTENT_TYPE] = content_type
+    if offered_filename:
+        qparams[ArchiveUrlKeys.OFFERED_FILENAME] = offered_filename
+    if guess_content_type is not None:
+        qparams[ArchiveUrlKeys.GUESS_CONTENT_TYPE] = int(guess_content_type)
     return url_with_querystring(reverse("archive_attachment"), **qparams)
 
 
@@ -4188,7 +4196,7 @@ def archive_attachment(request: HttpRequest) -> HttpResponseBase:
         guess_content_type = bool(int(
             request.GET.get(ArchiveUrlKeys.GUESS_CONTENT_TYPE)))
     except (TypeError, ValueError):
-        guess_content_type = True
+        guess_content_type = DEFAULT_GUESS_CONTENT_TYPE
     # noinspection PyCallByClass,PyTypeChecker
     offered_filename = request.GET.get(ArchiveUrlKeys.OFFERED_FILENAME, None)
 

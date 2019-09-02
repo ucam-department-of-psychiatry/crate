@@ -1096,6 +1096,20 @@ Changes
   :class:`crate_anon.nlp_manager.parse_clinical.Bp`,
   :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`.
 
+- Python NLP:
+
+  - CRP value column case changed from ``value_mg_l`` to ``value_mg_L``.
+  - Creatinine value column renamed from ``value_mmol_L`` (wrong!) to
+    ``value_micromol_L``.
+  - HbA1c value column renamed from ``value_mmol_L`` (wrong!) to
+    ``value_mmol_mol``.
+  - Haematocrit value column case changed from ``value_l_l`` to ``value_L_L``.
+  - Haemoglobin value column case changed from ``value_g_l`` to ``value_g_L``.
+
+- GATE parser now avoids stripping terminal tabs (now just newlines), removing
+  error messages saying "Bad chunk, not of length 2". See
+  :meth:`crate_anon.nlp_manager.parse_gate.Gate.parse`.
+
 
 ===============================================================================
 

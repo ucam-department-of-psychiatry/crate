@@ -295,7 +295,9 @@ class Gate(BaseNlpParser):
         for line in iter(self._decode_from_subproc_stdout,
                          self._output_terminator + os.linesep):
             # ... iterate until the sentinel output_terminator is received
-            line = line.rstrip()  # remove trailing newline
+            line = line.rstrip("\n")  # remove trailing newline, but NOT TABS
+            # ... if you strip tabs, you get superfluous
+            #     "Bad chunk, not of length 2" messages.
             log.debug("stdout received: " + line)
             d = tsv_pairs_to_dict(line)
             log.debug(f"dictionary received: {d}")

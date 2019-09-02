@@ -175,3 +175,5 @@ Design notes
   that take much time to create). See
   :func:`crate_anon.crateweb.research.views.archive_view`.
 
+
+.. todo:: archive: consider Windows authentication to Django

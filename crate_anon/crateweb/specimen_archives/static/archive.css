@@ -25,12 +25,13 @@ code {
     padding: 1px 5px 1px 5px;
 }
 div {
+    border: none;
     margin: 0;
-    padding: 2px;
+    padding: 0;
 }
 h1 {
     font-size: 1.2em;
-    margin: 12px 0 6px 0;
+    margin: 0 0 6px 0;
 }
 h2 {
     font-size: 1.0em;
@@ -39,6 +40,8 @@ h2 {
 iframe {
     border: none;
     background-color: #ffffee;
+    margin: 0;
+    padding: 0;
 }
 sup, sub {
     font-size: 0.7em;  /* 1 em is the size of the parent font */
@@ -91,6 +94,7 @@ Colours and other simple styling
 }
 .title_bar {
     background-color: lightgreen;
+    padding: 6px;
 }
 .warning {
     font-weight: bold;
@@ -112,6 +116,10 @@ Layout
         https://www.w3schools.com/css/css3_box-sizing.asp.
     */
     box-sizing: border-box;
+}
+
+.pad {
+    padding: 6px;
 }
 
 /* Row to contain columns or float objects */
@@ -153,6 +161,8 @@ Layout
     overflow: auto;
 
     /*
+        Show spinner when nothing else is there:
+
         https://stackoverflow.com/questions/8626638/how-to-display-loading-message-when-an-iframe-is-loading
         https://codepen.io/ryanallen/pen/OPpbbR
         https://blog.codepen.io/legal/licensing/
@@ -164,6 +174,7 @@ Layout
 }
 .obscure_spinner {
     background-color: #ffffee;
+    padding: 6px;
 }
 
 .contains_embedded_attachments {

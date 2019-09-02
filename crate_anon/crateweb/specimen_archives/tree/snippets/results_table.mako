@@ -25,3 +25,4 @@ NULL_HTML = "<i>NULL</i>"
         </tr>
     %endfor
 </table>
+<div><i>${cursor.rowcount} rows.</i></div>
