@@ -32,7 +32,6 @@ crate_anon/common
 
     __init__.py.rst
     constants.py.rst
-    contenttypes.py.rst
     extendedconfigparser.py.rst
     file_io.py.rst
     formatting.py.rst

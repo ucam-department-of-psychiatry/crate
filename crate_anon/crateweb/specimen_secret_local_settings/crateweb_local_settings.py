@@ -305,11 +305,15 @@ RESEARCH_DB_DIALECT = 'mysql'
 
 DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = True
 
-ARCHIVE_TEMPLATE_DIRS = [
-    "/home/somewhere/my_archive_templates",
-]
+# =============================================================================
+# Archive views
+# =============================================================================
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+
+ARCHIVE_TEMPLATE_DIR = "/home/somewhere/my_archive_templates"
+ARCHIVE_STATIC_DIR = "/home/somewhere/my_archive_templates/static"
 ARCHIVE_ROOT_TEMPLATE = "root.mako"
-ARCHIVE_ATTACHMENT_ROOT_DIR = "/home/somewhere/my_archive_attachments"
+ARCHIVE_ATTACHMENT_DIR = "/home/somewhere/my_archive_attachments"
 
 
 # =============================================================================

@@ -1,0 +1,246 @@
+/*
+    crate_anon/crateweb/specimen_archives/static/archives.css
+
+    CSS for demonstration CRATE archives.
+*/
+
+/*
+===============================================================================
+Basic HTML elements
+===============================================================================
+*/
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: small;
+    /* Content goes right to the edges: */
+    margin: 0;
+    padding: 0;
+}
+code {
+    font-size: 0.8em;
+    font-family: Consolas, Monaco, 'Lucida Console', 'Liberation Mono',
+        'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
+    background-color: #eeeeee;
+    padding: 1px 5px 1px 5px;
+}
+div {
+    margin: 0;
+    padding: 2px;
+}
+h1 {
+    font-size: 1.2em;
+    margin: 12px 0 6px 0;
+}
+h2 {
+    font-size: 1.0em;
+    margin: 6px 0 6px 0;
+}
+iframe {
+    border: none;
+    background-color: #ffffee;
+}
+sup, sub {
+    font-size: 0.7em;  /* 1 em is the size of the parent font */
+    vertical-align: baseline;
+    position: relative;
+    top: -0.5em;
+}
+sub {
+    top: 0.5em;
+}
+table {
+    vertical-align: top;
+    border-collapse: collapse;
+    border: 1px solid black;
+    padding: 0;
+    margin: 2px 0 2px 0;
+}
+tr, th, td {
+    vertical-align: top;
+    text-align: left;
+    margin: 0;
+    padding: 2px;
+    border: 1px solid black;
+    line-height: 1.1em;
+}
+th {
+    font-weight: bold;
+    background-color: #eeeeee;
+}
+/* Stripy tables. */
+tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+tr:nth-child(even) {
+    background-color: #ffffdd;
+}
+
+/*
+===============================================================================
+Colours and other simple styling
+===============================================================================
+*/
+
+.navigation {
+    background-color: lightblue;
+}
+.template_description {
+    font-weight: bold;
+    background-color: lightsalmon;
+}
+.title_bar {
+    background-color: lightgreen;
+}
+.warning {
+    font-weight: bold;
+    background-color: red;
+}
+
+/*
+===============================================================================
+Layout
+===============================================================================
+- https://stackoverflow.com/questions/2062258/floating-elements-within-a-div-floats-outside-of-div-why
+- https://matthewjamestaylor.com/blog/perfect-2-column-left-menu.htm
+*/
+
+* {
+    /*
+        Without this, silly wrapping occurs.
+        See https://www.w3schools.com/howto/howto_css_two_columns.asp;
+        https://www.w3schools.com/css/css3_box-sizing.asp.
+    */
+    box-sizing: border-box;
+}
+
+/* Row to contain columns or float objects */
+.row {
+    overflow: auto;
+    padding: 0;
+}
+/* Clear floats after the columns */
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.float_left {
+    float: left;
+}
+.float_right {
+    float: right;
+}
+
+.mainpage_row {
+    overflow: hidden;
+    /* ... scrolling within the columns, not the whole page */
+}
+.mainpage_col_left {
+    float: left;
+    margin: 0;
+    padding: 0;
+    width: 15%;
+    background-color: #ccccff;
+    overflow: auto;
+}
+.mainpage_col_right {
+    float: left;
+    margin: 0;
+    padding: 0;
+    width: 85%;
+    overflow: auto;
+
+    /*
+        https://stackoverflow.com/questions/8626638/how-to-display-loading-message-when-an-iframe-is-loading
+        https://codepen.io/ryanallen/pen/OPpbbR
+        https://blog.codepen.io/legal/licensing/
+    */
+    background:
+        url(data:image/svg+xml;base64,PCEtLSBodHRwczovL2NvZGVwZW4uaW8vcnlhbmFsbGVuL3Blbi9PUHBiYlIgLS0+IDxzdmcgdmVyc2lvbj0iMS4xIiBjbGFzcz0ic3ZnLWxvYWRlciIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiIHZpZXdCb3g9IjAgMCA4MCA4MCIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIgPiA8cGF0aCBmaWxsPSIjMzM5OUZGIiBkPSJNMTAsNDBjMCwwLDAtMC40LDAtMS4xYzAtMC4zLDAtMC44LDAtMS4zYzAtMC4zLDAtMC41LDAtMC44YzAtMC4zLDAuMS0wLjYsMC4xLTAuOWMwLjEtMC42LDAuMS0xLjQsMC4yLTIuMSBjMC4yLTAuOCwwLjMtMS42LDAuNS0yLjVjMC4yLTAuOSwwLjYtMS44LDAuOC0yLjhjMC4zLTEsMC44LTEuOSwxLjItM2MwLjUtMSwxLjEtMiwxLjctMy4xYzAuNy0xLDEuNC0yLjEsMi4yLTMuMSBjMS42LTIuMSwzLjctMy45LDYtNS42YzIuMy0xLjcsNS0zLDcuOS00LjFjMC43LTAuMiwxLjUtMC40LDIuMi0wLjdjMC43LTAuMywxLjUtMC4zLDIuMy0wLjVjMC44LTAuMiwxLjUtMC4zLDIuMy0wLjRsMS4yLTAuMSBsMC42LTAuMWwwLjMsMGwwLjEsMGwwLjEsMGwwLDBjMC4xLDAtMC4xLDAsMC4xLDBjMS41LDAsMi45LTAuMSw0LjUsMC4yYzAuOCwwLjEsMS42LDAuMSwyLjQsMC4zYzAuOCwwLjIsMS41LDAuMywyLjMsMC41IGMzLDAuOCw1LjksMiw4LjUsMy42YzIuNiwxLjYsNC45LDMuNCw2LjgsNS40YzEsMSwxLjgsMi4xLDIuNywzLjFjMC44LDEuMSwxLjUsMi4xLDIuMSwzLjJjMC42LDEuMSwxLjIsMi4xLDEuNiwzLjEgYzAuNCwxLDAuOSwyLDEuMiwzYzAuMywxLDAuNiwxLjksMC44LDIuN2MwLjIsMC45LDAuMywxLjYsMC41LDIuNGMwLjEsMC40LDAuMSwwLjcsMC4yLDFjMCwwLjMsMC4xLDAuNiwwLjEsMC45IGMwLjEsMC42LDAuMSwxLDAuMSwxLjRDNzQsMzkuNiw3NCw0MCw3NCw0MGMwLjIsMi4yLTEuNSw0LjEtMy43LDQuM3MtNC4xLTEuNS00LjMtMy43YzAtMC4xLDAtMC4yLDAtMC4zbDAtMC40YzAsMCwwLTAuMywwLTAuOSBjMC0wLjMsMC0wLjcsMC0xLjFjMC0wLjIsMC0wLjUsMC0wLjdjMC0wLjItMC4xLTAuNS0wLjEtMC44Yy0wLjEtMC42LTAuMS0xLjItMC4yLTEuOWMtMC4xLTAuNy0wLjMtMS40LTAuNC0yLjIgYy0wLjItMC44LTAuNS0xLjYtMC43LTIuNGMtMC4zLTAuOC0wLjctMS43LTEuMS0yLjZjLTAuNS0wLjktMC45LTEuOC0xLjUtMi43Yy0wLjYtMC45LTEuMi0xLjgtMS45LTIuN2MtMS40LTEuOC0zLjItMy40LTUuMi00LjkgYy0yLTEuNS00LjQtMi43LTYuOS0zLjZjLTAuNi0wLjItMS4zLTAuNC0xLjktMC42Yy0wLjctMC4yLTEuMy0wLjMtMS45LTAuNGMtMS4yLTAuMy0yLjgtMC40LTQuMi0wLjVsLTIsMGMtMC43LDAtMS40LDAuMS0yLjEsMC4xIGMtMC43LDAuMS0xLjQsMC4xLTIsMC4zYy0wLjcsMC4xLTEuMywwLjMtMiwwLjRjLTIuNiwwLjctNS4yLDEuNy03LjUsMy4xYy0yLjIsMS40LTQuMywyLjktNiw0LjdjLTAuOSwwLjgtMS42LDEuOC0yLjQsMi43IGMtMC43LDAuOS0xLjMsMS45LTEuOSwyLjhjLTAuNSwxLTEsMS45LTEuNCwyLjhjLTAuNCwwLjktMC44LDEuOC0xLDIuNmMtMC4zLDAuOS0wLjUsMS42LTAuNywyLjRjLTAuMiwwLjctMC4zLDEuNC0wLjQsMi4xIGMtMC4xLDAuMy0wLjEsMC42LTAuMiwwLjljMCwwLjMtMC4xLDAuNi0wLjEsMC44YzAsMC41LTAuMSwwLjktMC4xLDEuM0MxMCwzOS42LDEwLDQwLDEwLDQweiIgPiA8YW5pbWF0ZVRyYW5zZm9ybSBhdHRyaWJ1dGVUeXBlPSJ4bWwiIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBmcm9tPSIwIDQwIDQwIiB0bz0iMzYwIDQwIDQwIiBkdXI9IjAuOHMiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiAvPiA8L3BhdGg+IDxwYXRoIGZpbGw9IiMzMzk5RkYiIGQ9Ik02Miw0MC4xYzAsMCwwLDAuMi0wLjEsMC43YzAsMC4yLDAsMC41LTAuMSwwLjhjMCwwLjIsMCwwLjMsMCwwLjVjMCwwLjItMC4xLDAuNC0wLjEsMC43IGMtMC4xLDAuNS0wLjIsMS0wLjMsMS42Yy0wLjIsMC41LTAuMywxLjEtMC41LDEuOGMtMC4yLDAuNi0wLjUsMS4zLTAuNywxLjljLTAuMywwLjctMC43LDEuMy0xLDIuMWMtMC40LDAuNy0wLjksMS40LTEuNCwyLjEgYy0wLjUsMC43LTEuMSwxLjQtMS43LDJjLTEuMiwxLjMtMi43LDIuNS00LjQsMy42Yy0xLjcsMS0zLjYsMS44LTUuNSwyLjRjLTIsMC41LTQsMC43LTYuMiwwLjdjLTEuOS0wLjEtNC4xLTAuNC02LTEuMSBjLTEuOS0wLjctMy43LTEuNS01LjItMi42Yy0xLjUtMS4xLTIuOS0yLjMtNC0zLjdjLTAuNi0wLjYtMS0xLjQtMS41LTJjLTAuNC0wLjctMC44LTEuNC0xLjItMmMtMC4zLTAuNy0wLjYtMS4zLTAuOC0yIGMtMC4yLTAuNi0wLjQtMS4yLTAuNi0xLjhjLTAuMS0wLjYtMC4zLTEuMS0wLjQtMS42Yy0wLjEtMC41LTAuMS0xLTAuMi0xLjRjLTAuMS0wLjktMC4xLTEuNS0wLjEtMmMwLTAuNSwwLTAuNywwLTAuNyBzMCwwLjIsMC4xLDAuN2MwLjEsMC41LDAsMS4xLDAuMiwyYzAuMSwwLjQsMC4yLDAuOSwwLjMsMS40YzAuMSwwLjUsMC4zLDEsMC41LDEuNmMwLjIsMC42LDAuNCwxLjEsMC43LDEuOCBjMC4zLDAuNiwwLjYsMS4yLDAuOSwxLjljMC40LDAuNiwwLjgsMS4zLDEuMiwxLjljMC41LDAuNiwxLDEuMywxLjYsMS44YzEuMSwxLjIsMi41LDIuMyw0LDMuMmMxLjUsMC45LDMuMiwxLjYsNSwyLjEgYzEuOCwwLjUsMy42LDAuNiw1LjYsMC42YzEuOC0wLjEsMy43LTAuNCw1LjQtMWMxLjctMC42LDMuMy0xLjQsNC43LTIuNGMxLjQtMSwyLjYtMi4xLDMuNi0zLjNjMC41LTAuNiwwLjktMS4yLDEuMy0xLjggYzAuNC0wLjYsMC43LTEuMiwxLTEuOGMwLjMtMC42LDAuNi0xLjIsMC44LTEuOGMwLjItMC42LDAuNC0xLjEsMC41LTEuN2MwLjEtMC41LDAuMi0xLDAuMy0xLjVjMC4xLTAuNCwwLjEtMC44LDAuMS0xLjIgYzAtMC4yLDAtMC40LDAuMS0wLjVjMC0wLjIsMC0wLjQsMC0wLjVjMC0wLjMsMC0wLjYsMC0wLjhjMC0wLjUsMC0wLjcsMC0wLjdjMC0xLjEsMC45LTIsMi0yczIsMC45LDIsMkM2Miw0MCw2Miw0MC4xLDYyLDQwLjF6IiA+IDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZVR5cGU9InhtbCIgYXR0cmlidXRlTmFtZT0idHJhbnNmb3JtIiB0eXBlPSJyb3RhdGUiIGZyb209IjAgNDAgNDAiIHRvPSItMzYwIDQwIDQwIiBkdXI9IjAuNnMiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiAvPiA8L3BhdGg+IDwvc3ZnPg==)
+        center center no-repeat;
+    /* ... which is overwritten by the background of the iframe */
+}
+.obscure_spinner {
+    background-color: #ffffee;
+}
+
+.contains_embedded_attachments {
+    display: block;
+    overflow: hidden;
+    width: 100%;  /* avoids extra scroll bar with .embedded_attachment */
+    margin: 0;
+    padding: 0;
+}
+.embedded_attachment {
+    height: 99vh;  /* very hard to avoid an extra scroll bar otherwise! */
+    width: 100%;
+    resize: both;
+    overflow: scroll;
+    color: red;  /* for failure messages */
+}
+
+/*
+===============================================================================
+Tree view
+===============================================================================
+See https://www.w3schools.com/howto/howto_js_treeview.asp
+*/
+
+/* Remove default bullets */
+.tree, .tree ul {
+    list-style-type: none;
+}
+
+/* Remove margins and padding from the parent ul */
+.tree {
+    margin: 0;
+    padding: 0;
+}
+
+/* Reduce the indent; see https://stackoverflow.com/questions/11445453/css-set-li-indent */
+.tree ul, .tree li {
+    padding-left: 10px;
+}
+.tree li {
+    /* All our li elements are clickable. */
+    cursor: pointer;
+}
+
+/* Style the headings */
+.tree li span {
+    font-weight: bold;
+}
+
+/* Style the caret/arrow */
+.caret {
+    cursor: pointer;
+    user-select: none; /* Prevent text selection */
+}
+
+/* Create the caret/arrow with a unicode, and style it */
+.caret::before {
+    content: "\25B6";
+    color: black;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+/* Rotate the caret/arrow icon when clicked on (using JavaScript) */
+.caret-down::before {
+    transform: rotate(90deg);
+}
+
+/* Hide the nested list */
+.nested {
+    display: none;
+}
+
+/* Show the nested list when the user clicks on the caret/arrow (with JavaScript) */
+.active {
+    display: block;
+}
+.tree_chosen {
+    color: red;
+}

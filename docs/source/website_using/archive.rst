@@ -30,9 +30,6 @@
 Archive view
 ------------
 
-.. warning:: Development thoughts only.
-
-
 Background
 ~~~~~~~~~~
 
@@ -44,85 +41,61 @@ This view provides an "archive" (read-only) view of an electronic health record
 
 - potentially, to act as an archive view onto an identifiable EHR.
 
-It is *entirely* configurable by the local system.
-
-
-Design notes
-~~~~~~~~~~~~
-
-- Config, via Django ``settings``:
-
-  - ``ARCHIVE_TEMPLATE_DIRS``
-  - ``ARCHIVE_ROOT_TEMPLATE``, e.g. ``root.mako``
-
-- HTML templates, written locally, stored on disk in one of
-  ``ARCHIVE_TEMPLATE_DIRS``.
-
-  - Any template engine would be reasonable, but the two obvious candidates are
-
-    - Django_, because we use that for the CRATE web front end (but the
-      template language is somewhat restricted);
-    - Mako_, because the templates can include arbitrary Python, and because
-      Django/Mako interoperability is possible via
-      Django-Mako-Plus_.
-    - `Other template engines`_, but nothing is particularly compelling over
-      those two.
-
-    Let's use Mako.
-
-- A structure that is configurable by the local administrator (stored in a
-  config file or conceivably a database, but probably a config file),
-  including:
-
-  - A catalogue of templates:
-
-    .. code-block:: none
-
-        template_name   template_filename
-        =============== =======================================================
-        core2           assessments/core2/core2_root.mako
-        ...             ...
-
-  - One template is referred to by ``ARCHIVE_ROOT_TEMPLATE` and should  need
-    any additional arguments
-
-- A URL system to produce requests. For example,
-
-  ``https://site/crate/archive/<patient_id>/<template_name>?<args>``
-
-  The URL parameters (the parts after the "?") become the ``request.GET``
-  dictionary in Django.
-
-- Pre-population of the template dictionary with useful objects (but not those
-  that take much time to create). See
-  :func:`crate_anon.crateweb.research.views.archive_view`.
+It is *entirely* configurable by the local system, though CRATE comes with
+some specimens.
 
 
 How to customize the archive view
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. todo:: write how-to for archive view ***
+Write your archive
+##################
+
+Within a directory tree of your choice, write Mako_ templates. Some specimen
+miniature web sites are provided to show you how, in:
+
+.. code-block:: none
+
+    crate_anon/crateweb/specimen_archives/basic/
+    crate_anon/crateweb/specimen_archives/tree/
+
+The "basic" one demonstrates basic layout, SQL queries, and downloading of
+binary attachments. The "tree" one uses a collapsible tree-style menu on the
+left and a range of specimen views onto the EHR on the right.
+
+This system gives you full use of HTML/Javascript and Python simultaneously.
+(Python code will run within the same interpreter and virtual environment used
+by CRATE.)
 
 
-These Python objects are visible to the templates:
+.. _archive_mako_context:
+
+The Python context
+##################
+
+These Python objects are visible to the Mako templates:
 
 - ``archive_url``:
 
-  Function to generate a URL to another part of the archive, for the
-  same patient. Call it as
+  Function to generate a URL to a template in another part of the archive, for
+  the same patient. Call it as
 
   .. code-block:: python
 
     archive_url(template_name, **kwargs)
 
+  You can pass any keyword parameters except the built-in keywords (see
+  :class:`crate_anon.crateweb.research.views.ArchiveContextKeys`).
+
 - ``attachment_url``:
 
-  Function to generate a URL to a binary attachment. Call it as:
+  Function to generate a URL to a binary attachment, which is
+  :func:`crate_anon.crateweb.research.views.archive_attachment_url` (see that
+  for details). Call it like this:
 
   .. code-block:: python
 
-    attachment_url(filename, content_type)
-    attachment_url(filename, content_type, offered_filename)
+    attachment_url(filename, ...)
 
 - ``CRATE_HOME_URL``:
 
@@ -130,18 +103,19 @@ These Python objects are visible to the templates:
 
 - ``patient_id``:
 
-  The ID of this patient. (A string, but that will still work with
-  integer fields.)
+  The ID of this patient. (A string, but that will still work an an SQL
+  parameter for integer fields. You can of course process it further if you
+  wish.)
 
-- ``query``:
+- ``execute``:
 
-  Function to run an SQL query (on the research database) and return
-  a database cursor. Call it as
+  Function to run an SQL query (via the research database connection), or just
+  execute raw SQL, and return a database cursor. Call it as
 
   .. code-block:: python
 
-    cursor = query(sql)
-    cursor = query(sql, args)
+    cursor = execute(sql)
+    cursor = execute(sql, args)
 
   Use question marks (``?``) in the SQL as argument placeholders.
 
@@ -149,11 +123,55 @@ These Python objects are visible to the templates:
 
   The Django request.
 
+- ``static_url``:
+
+  Function to generate a URL to a binary attachment, which is
+  :func:`crate_anon.crateweb.research.views.archive_static_url` (see that
+  for details). Call it like this:
+
+  .. code-block:: python
+
+    static_url(filename, ...)
+
 - ``template``:
 
   The  name of the template (introspection!). Also used as a URL parameter
   key.
 
-- ``URL_FAVICON``:
 
-  URL to the default favicon on this site (the scrubber picture).
+Point CRATE at your archive
+###########################
+
+See the relevant section of the :ref:`web config file <webconfig_archive>`.
+
+
+Design notes
+~~~~~~~~~~~~
+
+- HTML templates, written locally, stored on disk in a user-defined directory.
+
+  - Any template engine would be reasonable, but the two obvious candidates are
+
+    - Django_, because we use that for the CRATE web front end (but the
+      template language is somewhat restricted);
+    - Mako_, because the templates can include arbitrary Python, and because
+      Django/Mako interoperability is possible (including via
+      Django-Mako-Plus_ but also directly).
+    - `Other template engines`_, but nothing is particularly compelling over
+      those two.
+
+    Let's use Mako.
+
+- A structure that is configurable by the local administrator (stored in a
+  config file, a database, or on disk), mapping the templates.
+
+  The best is probably to specify a single template as the root template in
+  the config file.
+
+- A URL system to produce requests to other parts of the archive, with
+  arbitrary parameters via HTTP GET URL parameters.
+
+- Pre-population of the template dictionary with useful objects (but not those
+  that take much time to create). See
+  :func:`crate_anon.crateweb.research.views.archive_view`.
+

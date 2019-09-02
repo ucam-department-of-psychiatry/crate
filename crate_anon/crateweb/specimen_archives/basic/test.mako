@@ -1,4 +1,5 @@
-## progress_notes.mako
+## -*- coding: utf-8 -*-
+## crate_anon/crateweb/specimen_archives/basic/test.mako
 <%inherit file="base.mako"/>
 <%namespace name="attachments" file="snippets/attachments.mako"/>
 
@@ -17,7 +18,7 @@ from cardinal_pythonlib.httpconst import ContentType
 sql = """
     SELECT 1 AS one, 2 AS two, 3 AS three;
 """
-cursor = query(sql)  # or: context["query"](sql)
+cursor = execute(sql)  # or: context["query"](sql)
 
 %>
 

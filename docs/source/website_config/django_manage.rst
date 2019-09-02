@@ -119,7 +119,7 @@ available from the :ref:`front-end web site <rdbm_test_message_queue>`.
 -------------
 
 collectstatic
-~~~~~~~~~~~~~
+#############
 
 Copy relevant static files from their source location to the place that CRATE
 will serve them to users (or another front-end server, like Apache, will on its

@@ -235,11 +235,14 @@ urlpatterns = [
         research_views.launch_archive,
         name='launch_archive'),
     url(r'^archive/(?P<patient_id>[a-zA-Z0-9_]+)/$',
-        research_views.archive,
-        name='archive'),
+        research_views.archive_template,
+        name='archive_template'),
     url(r'^archive_attachment/$',
         research_views.archive_attachment,
         name='archive_attachment'),
+    url(r'^archive_static/$',
+        research_views.archive_static,
+        name='archive_static'),
 
     # -------------------------------------------------------------------------
     # Look up PID/RID

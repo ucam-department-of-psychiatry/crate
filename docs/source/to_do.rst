@@ -22,10 +22,6 @@ Things to do
 
 .. todolist::
 
-- maybe autosense when a results table is a CRATE NLP output table, and provide
-  an extra column with a "run query" hyperlink to show the source text, if
-  available?
-
 - fix bug (reported by JL 6/11/2018) where the RiO preprocessor tries to put
   the same column into the same index more than once (see RNC email 6/11/2018)
 
@@ -52,3 +48,5 @@ Things to do
 - NLP protocol revision whereby processors describe their output fields,
   saying which SQL dialect they're using; and (automatic) implementation for
   our built-in NLP.
+
+- There's some placeholder junk in ``consent_lookup_result.html``.

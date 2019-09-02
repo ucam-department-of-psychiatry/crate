@@ -437,12 +437,17 @@ If True, calls
 at startup (q.v.).
 
 
-.. _ARCHIVE_TEMPLATE_DIRS:
+.. _webconfig_archive:
 
-ARCHIVE_TEMPLATE_DIRS
-#####################
+Archive views
+-------------
 
-``type: List[str]``
+.. _ARCHIVE_TEMPLATE_DIR:
+
+ARCHIVE_TEMPLATE_DIR
+####################
+
+``type: str``
 
 *Optional.*
 
@@ -461,7 +466,31 @@ ARCHIVE_ROOT_TEMPLATE
 .. warning:: Experimental; in development.
 
 Filename of the :ref:`archive <archive>`'s root template. This should be
-found in one of the directories given in ARCHIVE_TEMPLATE_DIRS_.
+found within ARCHIVE_TEMPLATE_DIR_.
+
+
+ARCHIVE_ATTACHMENT_DIR
+######################
+
+``type: str``
+
+*Optional.*
+
+.. warning:: Experimental; in development.
+
+Root directory for archive attachments.
+
+
+ARCHIVE_STATIC_DIR
+##################
+
+``type: str``
+
+*Optional.*
+
+.. warning:: Experimental; in development.
+
+Root directory for archive static files.
 
 
 ARCHIVE_TEMPLATE_CACHE_DIR
@@ -474,18 +503,6 @@ ARCHIVE_TEMPLATE_CACHE_DIR
 .. warning:: Experimental; in development.
 
 Directory in which to store compiled versions of the archive templates.
-
-
-ARCHIVE_ATTACHMENT_ROOT_DIR
-###########################
-
-``type: str``
-
-*Optional.*
-
-.. warning:: Experimental; in development.
-
-Root directory for archive attachments.
 
 
 Site-specific help

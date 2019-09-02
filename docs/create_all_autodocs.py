@@ -86,6 +86,7 @@ def make_subindex(directory: str) -> AutodocIndex:
         source_filenames_or_globs=[
             os.path.join(CODE_ROOT_DIR, directory, "**/*.css"),
             os.path.join(CODE_ROOT_DIR, directory, "**/*.html"),
+            os.path.join(CODE_ROOT_DIR, directory, "**/*.mako"),
             os.path.join(CODE_ROOT_DIR, directory, "**/*.py"),
             os.path.join(CODE_ROOT_DIR, directory, "**/*.java"),
             os.path.join(CODE_ROOT_DIR, directory, "**/*.js"),

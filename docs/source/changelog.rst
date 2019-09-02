@@ -1090,7 +1090,11 @@ Changes
 
 - Experimental: :ref:`archive <archive>` system.
 
-- ``cardinal_pythonlib==1.0.62``
+- ``cardinal_pythonlib==1.0.63``
+
+- Added standard ``tense_text`` column to NLP classes
+  :class:`crate_anon.nlp_manager.parse_clinical.Bp`,
+  :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`.
 
 
 ===============================================================================

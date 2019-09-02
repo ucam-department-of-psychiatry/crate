@@ -75,12 +75,14 @@ from crate_anon.nlp_manager.regex_parser import (
     HELP_RELATION_TEXT,
     HELP_START,
     HELP_TENSE,
+    HELP_TENSE_TEXT,
     HELP_UNITS,
     HELP_VALUE_TEXT,
     HELP_VARIABLE_TEXT,
     MAX_RELATION_LENGTH,
     MAX_RELATION_TEXT_LENGTH,
     MAX_TENSE_LENGTH,
+    MAX_TENSE_TEXT_LENGTH,
     MAX_UNITS_LENGTH,
     MAX_VALUE_TEXT_LENGTH,
     NumericalResultParser,
@@ -692,6 +694,8 @@ class Bp(BaseNlpParser):
                    comment="Systolic blood pressure in mmHg"),
             Column(self.FN_DIASTOLIC_BP_MMHG, Float,
                    comment="Diastolic blood pressure in mmHg"),
+            Column(FN_TENSE_TEXT, String(MAX_TENSE_TEXT_LENGTH),
+                   comment=HELP_TENSE_TEXT),
             Column(FN_TENSE, String(MAX_TENSE_LENGTH), comment=HELP_TENSE),
         ]}
 
@@ -708,7 +712,7 @@ class Bp(BaseNlpParser):
             endpos = m.end()
             matching_text = m.group(0)  # the whole thing
             variable_text = m.group(1)
-            tense_indicator = m.group(2)
+            tense_text = m.group(2)
             relation_text = m.group(3)
             value_text = m.group(4)
             units = m.group(5)
@@ -745,7 +749,7 @@ class Bp(BaseNlpParser):
                 # )
                 continue
 
-            tense, relation = common_tense(tense_indicator, relation_text)
+            tense, relation = common_tense(tense_text, relation_text)
 
             yield self.tablename, {
                 FN_CONTENT: matching_text,
@@ -758,6 +762,7 @@ class Bp(BaseNlpParser):
                 FN_UNITS: units,
                 self.FN_SYSTOLIC_BP_MMHG: sbp,
                 self.FN_DIASTOLIC_BP_MMHG: dbp,
+                FN_TENSE_TEXT: tense_text,
                 FN_TENSE: tense,
             }
 

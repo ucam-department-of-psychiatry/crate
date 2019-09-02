@@ -30,8 +30,10 @@ crate_anon/crateweb/core/utils.py
 
 import datetime
 import logging
+import mimetypes
+import re
 import urllib.parse
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 
 from django.conf import settings
 from django.core.paginator import Paginator, EmptyPage, Page, PageNotAnInteger
@@ -225,3 +227,40 @@ def string_time_now() -> str:
     Returns the current time in short-form ISO-8601 UTC, for filenames.
     """
     return timezone.now().strftime("%Y%m%dT%H%M%SZ")
+
+
+# =============================================================================
+# HTTP Content-Type and MIME types
+# =============================================================================
+
+def guess_mimetype(filename: str, default: str = None) -> Optional[str]:
+    """
+    Guesses a file's MIME type (HTTP Content-Type) from its filename.
+
+    Args:
+        filename: filename
+        default: value to return if guessing fails
+    """
+    return mimetypes.guess_type(filename)[0] or default
+
+
+# =============================================================================
+# Javascript help
+# =============================================================================
+
+HTML_WHITESPACE = re.compile("[ \n\t]+")
+
+
+def javascript_quoted_string_from_html(html: str) -> str:
+    """
+    Takes some HTML, which may be multiline, and makes it into a single quoted
+    Javascript string, for when we want to muck around with the DOM.
+
+    We elect to use double-quotes.
+    """
+    # log.error(f"Before: {html}")
+    x = " ".join(HTML_WHITESPACE.split(html))  # Remove extra whitespace/newlines  # noqa
+    x = x.replace('"', r'\"')  # Escape double quotes
+    x = f'"{x}"'  # Enclose string in double quotes
+    # log.critical(f"After: {x}")
+    return x

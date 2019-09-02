@@ -40,6 +40,10 @@ There are some special (privileged) functions for clinicians:
 - :ref:`Request that your patient is contacted about a study
   <clinician_privileged_submit_contact_request>`.
 
+Your administrator might also have set up a "standalone" clinician-only
+instance of CRATE so that you can use its :ref:`Archive View <archive>` to
+browse a read-only copy of a patient's electronic health record (EHR).
+
 
 For researchers
 ~~~~~~~~~~~~~~~
@@ -78,6 +82,11 @@ For researchers
 
 - Ask CRATE to show you the :ref:`structure of your database
   <database_structure>` in different ways.
+
+**Archive view**
+
+- Use the :ref:`Archive View <archive>` to browse a de-identified record like
+  a front-end electronic health record (EHR).
 
 
 For researchers wishing to re-identify and contact patients

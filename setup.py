@@ -143,7 +143,7 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.3",  # where to store some temporary data
     "arrow==0.12.1",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.6.0",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.0.62",  # RNC libraries
+    "cardinal_pythonlib==1.0.63",  # RNC libraries
     "cairosvg==2.4.0",  # work with SVG files
     "celery==4.0.1",  # 4.0.1 is the highest that"ll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
@@ -273,7 +273,7 @@ if getattr(our_args, EXTRAS_ARG):
     add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/static'),
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)
-    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/specimen_archive_templates_test'),  # noqa
+    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/specimen_archives'),  # noqa
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)
     add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/templates'),

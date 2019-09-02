@@ -735,6 +735,8 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
             Column(self.correct_numerator_fieldname, Float,
                    comment="Numerator, if denominator is as expected (units "
                            "are correct)"),
+            Column(FN_TENSE_TEXT, String(MAX_TENSE_TEXT_LENGTH),
+                   comment=HELP_TENSE_TEXT),
             Column(FN_TENSE, String(MAX_TENSE_LENGTH), comment=HELP_TENSE),
         ]}
 

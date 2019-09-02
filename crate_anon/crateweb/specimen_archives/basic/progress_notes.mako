@@ -1,4 +1,5 @@
-## progress_notes.mako
+## -*- coding: utf-8 -*-
+## crate_anon/crateweb/specimen_archives/basic/progress_notes.mako
 <%inherit file="base.mako"/>
 
 <%block name="template_description">Progress Notes</%block>
@@ -14,7 +15,7 @@ sql = """
     ORDER BY note_datetime DESC
 """
 args = [patient_id]
-cursor = query(sql, args)
+cursor = execute(sql, args)
 
 %>
 

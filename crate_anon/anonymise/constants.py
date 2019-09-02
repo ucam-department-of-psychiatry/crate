@@ -318,12 +318,14 @@ optout_mpid_filenames =
 
 optout_col_values =
 
+
 # =============================================================================
 # Extra regular expression patterns you wish to be scrubbed from the text
 # as nonspecific information. See help.
 # =============================================================================
 
 [extra_regexes]
+
 
 # =============================================================================
 # Destination database details. User should have WRITE access.
@@ -333,6 +335,7 @@ optout_col_values =
 
 url = mysql+mysqldb://username:password@127.0.0.1:3306/output_databasename?charset=utf8
 
+
 # =============================================================================
 # Administrative database. User should have WRITE access.
 # =============================================================================
@@ -340,6 +343,7 @@ url = mysql+mysqldb://username:password@127.0.0.1:3306/output_databasename?chars
 [my_admin_database]
 
 url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charset=utf8
+
 
 # =============================================================================
 # SOURCE DATABASE DETAILS BELOW HERE.

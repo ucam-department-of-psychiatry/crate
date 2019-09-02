@@ -1,4 +1,5 @@
-## base.mako
+## -*- coding: utf-8 -*-
+## crate_anon/crateweb/specimen_archives/basic/base.mako
 
 <%!
 from crate_anon.common.constants import HelpUrl
@@ -13,19 +14,17 @@ from crate_anon.common.constants import HelpUrl
             </%block>
             <meta charset="utf-8">
             <%block name="extra_head_start"></%block>
-            <link rel="icon" type="image/png" href="${URL_FAVICON_PNG}" >
-            <style type="text/css">
-                <%include file="css/archive.css" />
-            </style>
+            <link rel="icon" type="image/png" href="${static_url("scrubber.png")}" >
+            <link rel="stylesheet" type="text/css" href="${static_url("archive.css")}" >
             <%block name="extra_head_end"></%block>
         </%block>
     </head>
-    <body>
-        <div class="title_bar contains_floats">
+    <body <%block name="body_tags"></%block>>
+        <div class="title_bar row">
             <%block name="title_bar">
-                <div class="left">CRATE archive: BRCID <b>${patient_id}</b>.</div>
-                <div class="right">
-                    [<a href="${CRATE_HOME_URL}">Return to CRATE home</a>
+                <div class="float_left">CRATE basic archive demo: BRCID <b>${patient_id}</b>.</div>
+                <div class="float_right">
+                    [ <a href="${CRATE_HOME_URL}">Return to CRATE home</a>
                     | <a href="<%block name="helpurl">${HelpUrl.archive()}</%block>">Help</a>
                     ]
                 </div>

@@ -49,6 +49,7 @@ raise Exception(
 # noinspection PyPep8, PyUnreachableCode
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 
+
 # =============================================================================
 # Site URL configuration
 # =============================================================================
@@ -59,6 +60,7 @@ DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"  # example for Apach
 
 FORCE_SCRIPT_NAME = ""
 # FORCE_SCRIPT_NAME = "/crate"  # example for CherryPy or Apache non-root hosting  # noqa
+
 
 # =============================================================================
 # Site security
@@ -87,10 +89,12 @@ if DEBUG:
 else:
     ALLOWED_HOSTS = ['*']
 
+
 # =============================================================================
 # Celery configuration
 # =============================================================================
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+
 
 # =============================================================================
 # Database configuration
@@ -302,16 +306,30 @@ RESEARCH_DB_DIALECT = 'mysql'
 DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = True
 
 # =============================================================================
+# Archive views
+# =============================================================================
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+
+ARCHIVE_TEMPLATE_DIR = "/home/somewhere/my_archive_templates"
+ARCHIVE_STATIC_DIR = "/home/somewhere/my_archive_templates/static"
+ARCHIVE_ROOT_TEMPLATE = "root.mako"
+ARCHIVE_ATTACHMENT_DIR = "/home/somewhere/my_archive_attachments"
+
+
+# =============================================================================
 # Database extra help file
 # =============================================================================
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 # If specified, this must be a string that is an absolute filename of TRUSTED
 # HTML that will be included.
 DATABASE_HELP_HTML_FILENAME = None
 
+
 # =============================================================================
 # Local file storage (for PDFs etc).
 # =============================================================================
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 # Where should we store the files? Make this directory (and don't let it
 # be served by a generic web server that doesn't check permissions).
@@ -325,9 +343,11 @@ XSENDFILE = False
 # How big will we accept?
 MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 Mb
 
+
 # =============================================================================
 # Outgoing e-mail
 # =============================================================================
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 # -----------------------------------------------------------------------------
 # General settings for sending e-mail from Django
@@ -363,6 +383,7 @@ DEVELOPER_EMAIL = "testuser@somewhere.nhs.uk"
 VALID_RESEARCHER_EMAIL_DOMAINS = []  # type: List[str]
 # ... if empty, no checks are performed (any address is accepted)
 
+
 # =============================================================================
 # Research Database Manager (RDBM) details
 # =============================================================================
@@ -373,6 +394,7 @@ RDBM_TITLE = "Research Database Manager"
 RDBM_TELEPHONE = "01223-XXXXXX"
 RDBM_EMAIL = "research.database@somewhere.nhs.uk"
 RDBM_ADDRESS = ["FREEPOST SOMEWHERE_HOSPITAL RESEARCH DATABASE MANAGER"]  # a list  # noqa
+
 
 # =============================================================================
 # Administrators/managers to be notified of errors
@@ -421,6 +443,7 @@ TRAFFIC_LIGHT_RED_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/red.pn
 TRAFFIC_LIGHT_YELLOW_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/yellow.png'  # noqa
 TRAFFIC_LIGHT_GREEN_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/green.png'  # noqa
 
+
 # =============================================================================
 # Consent-for-contact settings
 # =============================================================================
@@ -439,6 +462,7 @@ CHARITY_AMOUNT_CLINICIAN_RESPONSE = 1.0  # in local currency, e.g. GBP
 PDF_LETTER_HEADER_HTML = ''
 PDF_LETTER_FOOTER_HTML = ''
 
+
 # =============================================================================
 # Local information links
 # =============================================================================
@@ -449,4 +473,4 @@ CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
 PUBLIC_RESEARCH_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 
-# Generated at 2019-08-22 16:29:54
+# Generated at 2019-09-01 22:19:39

@@ -421,9 +421,10 @@ def main() -> None:
         colour=EnumColours.red,
     )
     session.add(p1)
-    n1 = Note(
-        patient=p1,
-        note="""
+    for _ in range(notes_per_patient):
+        n1 = Note(
+            patient=p1,
+            note="""
 Ronald MacDonald lived on a farm and kept a gibbet for scaring off
 small animals. He was born on 11 Nov 1911 and was very proud of this.
 His cat’s name was Flitterwick. It did not like the gibbets.
@@ -449,10 +450,10 @@ MMSE 28/30. ACE-R 72, ACE-II 73, ACE 73.
 ESR 16 (H) mm/h.
 WBC 9.2; neutrophils 4.3; lymphocytes 2.6; eosinophils 0.4; monocytes 1.2;
 basophils 0.6.
-        """,
-        note_datetime=incdatetime()
-    )
-    session.add(n1)
+            """,
+            note_datetime=incdatetime()
+        )
+        session.add(n1)
     for filename in (args.doctest_doc,
                      args.doctest_docx,
                      args.doctest_odt,
@@ -477,9 +478,10 @@ basophils 0.6.
         colour=EnumColours.green,
     )
     session.add(p2)
-    n2 = Note(
-        patient=p2,
-        note="""
+    for _ in range(notes_per_patient):
+        n2 = Note(
+            patient=p2,
+            note="""
 Bob D'Souza, also known as Bob, or Mr DSouza, or sometimes Mr D Souza,
 or the D'Souza bloke down the road, or BobDSouza or BobD'Souza.
 His phone number was 0122-312-3456, or 01223-123456, or (01223) 123456,
@@ -488,10 +490,10 @@ His NHS number was 123.456 or possibly 12 34 56 or 123456, perhaps.
 His postcode was CB2 3EB, or possible CB23EB, or CB2, or 3EB.
 Bob Hope visited Seattle.
 Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
-        """,
-        note_datetime=incdatetime(),
-    )
-    session.add(n2)
+            """,
+            note_datetime=incdatetime(),
+        )
+        session.add(n2)
 
     # A bunch of patients
     random.seed(1)
