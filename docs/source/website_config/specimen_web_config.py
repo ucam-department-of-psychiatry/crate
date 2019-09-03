@@ -36,12 +36,15 @@ https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html
 
 """
 
+import logging
 import os
 from typing import List, TYPE_CHECKING
 if TYPE_CHECKING:
     from django.http.request import HttpRequest
 
-raise Exception(
+log = logging.getLogger(__name__)
+
+log.critical(
     "Well done - CRATE has found your crate_local_settings.py file at {}. "
     "However, you need to configure it for your institution's set-up, and "
     "remove this line.".format(os.path.abspath(__file__)))
@@ -314,6 +317,10 @@ ARCHIVE_TEMPLATE_DIR = "/home/somewhere/my_archive_templates"
 ARCHIVE_STATIC_DIR = "/home/somewhere/my_archive_templates/static"
 ARCHIVE_ROOT_TEMPLATE = "root.mako"
 ARCHIVE_ATTACHMENT_DIR = "/home/somewhere/my_archive_attachments"
+ARCHIVE_CONTEXT = {}
+CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS = 0
+CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES = 0
+CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC = 0
 
 
 # =============================================================================
@@ -473,4 +480,4 @@ CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
 PUBLIC_RESEARCH_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 
-# Generated at 2019-09-02 21:57:43
+# Generated at 2019-09-03 15:49:28

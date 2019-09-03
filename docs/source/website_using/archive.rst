@@ -22,6 +22,7 @@
 .. _Django: https://docs.djangoproject.com/
 .. _Django-Mako-Plus: http://doconix.github.io/django-mako-plus/index.html;
 .. _Mako: https://www.makotemplates.org/
+.. _Mako Runtime Environment: https://docs.makotemplates.org/en/latest/runtime.html
 .. _Other template engines: https://wiki.python.org/moin/Templating#Templating_Engines
 
 
@@ -70,42 +71,31 @@ by CRATE.)
 
 .. _archive_mako_context:
 
-The Python context
-##################
+The archive's Python context
+############################
 
-These Python objects are visible to the Mako templates:
+You
 
-- ``archive_url``:
+Mako templates have a context, which is a collection of Python objects
+"visible" to template code (see `Mako Runtime Environment`_). In the CRATE
+archive, this context is built up as follows:
 
-  Function to generate a URL to a template in another part of the archive, for
-  the same patient. Call it as
+#.  The config file's :ref:`ARCHIVE_CONTEXT <ARCHIVE_CONTEXT>` dictionary is
+    shallow-copied with :func:`copy.copy`. You can use :ref:`ARCHIVE_CONTEXT
+    <ARCHIVE_CONTEXT>` to pass a set of custom variables to your templates.
 
-  .. code-block:: python
+#.  That copy is updated with a specific set of keys, described next, which
+    become visible as Python object. (Doing it in this order means that you
+    can't override the special CRATE keys.)
 
-    archive_url(template_name, **kwargs)
+#.  Mako will later add a few special objects of its own (see `Mako Runtime
+    Environment`_).
 
-  You can pass any keyword parameters except the built-in keywords (see
-  :class:`crate_anon.crateweb.research.views.ArchiveContextKeys`).
-
-- ``attachment_url``:
-
-  Function to generate a URL to a binary attachment, which is
-  :func:`crate_anon.crateweb.research.views.archive_attachment_url` (see that
-  for details). Call it like this:
-
-  .. code-block:: python
-
-    attachment_url(filename, ...)
+The special objects are:
 
 - ``CRATE_HOME_URL``:
 
-  URL to the CRATE home page.
-
-- ``patient_id``:
-
-  The ID of this patient. (A string, but that will still work an an SQL
-  parameter for integer fields. You can of course process it further if you
-  wish.)
+  URL to your site's CRATE home page. Use this to escape from the archive view!
 
 - ``execute``:
 
@@ -119,11 +109,17 @@ These Python objects are visible to the Mako templates:
 
   Use question marks (``?``) in the SQL as argument placeholders.
 
-- ``request``:
+- ``get_attachment_url``:
 
-  The Django request.
+  Function to generate a URL to a binary attachment, which is
+  :func:`crate_anon.crateweb.research.views.archive_attachment_url` (see that
+  for details). Call it like this:
 
-- ``static_url``:
+  .. code-block:: python
+
+    get_attachment_url(filename, ...)
+
+- ``get_static_url``:
 
   Function to generate a URL to a binary attachment, which is
   :func:`crate_anon.crateweb.research.views.archive_static_url` (see that
@@ -131,12 +127,41 @@ These Python objects are visible to the Mako templates:
 
   .. code-block:: python
 
-    static_url(filename, ...)
+    get_static_url(filename, ...)
 
-- ``template``:
+- ``get_template_url``:
 
-  The  name of the template (introspection!). Also used as a URL parameter
-  key.
+  Function to generate a URL to a template in another part of the archive, for
+  the same patient. Call it as
+
+  .. code-block:: python
+
+    get_template_url(template_name, **kwargs)
+
+  You can pass any keyword parameters except ``template`` and ``mtime`` (see
+  :class:`crate_anon.crateweb.research.archive_backend.ArchiveUrlKeys`).
+
+- ``patient_id``:
+
+  The ID of this patient. (A string, but that will still work an an SQL
+  parameter for integer fields. You can of course process it further if you
+  wish.)
+
+- ``query_params``:
+
+  The HTTP GET query parameters, as a Django
+  :class:`django.http.request.QueryDict`.
+
+- ``request``:
+
+  The Django HTTP request, a :class:`django.http.request.HttpRequest` object.
+
+One use for :ref:`ARCHIVE_CONTEXT <ARCHIVE_CONTEXT>` is to have a set of
+templates that operate either with an original identified clinical records
+database or with a de-identified version with slightly different structure (but
+similar enough to want to avoid code redundancy). You could set a flag in
+:ref:`ARCHIVE_CONTEXT <ARCHIVE_CONTEXT>` to tell your template which is
+currently operating.
 
 
 Point CRATE at your archive
@@ -174,6 +199,38 @@ Design notes
 - Pre-population of the template dictionary with useful objects (but not those
   that take much time to create). See
   :func:`crate_anon.crateweb.research.views.archive_view`.
+
+
+Examples
+########
+
+Here's part of the demonstration tree-style archive, with entirely fictional
+data (and de-identified to boot).
+
+.. figure:: screenshots/archive_progress_notes.png
+
+    "Progress Notes" display. The template has fetched data for the current
+    patient via an SQL query and reformatted it to look like a conventional EHR
+    "progress notes" journal (though in this case without author information).
+
+.. figure:: screenshots/archive_clinical_documents.png
+
+    "Clinical Documents" display, showing PDFs inline.
+
+.. figure:: screenshots/archive_nlp_crp.png
+
+    View on a NLP table, created by CRATE through analysis of free text. A
+    generic "query results" template is used.
+
+.. figure:: screenshots/archive_nlp_source.png
+
+    The NLP results hyperlink through to their source data, if available.
+    Here's the note that generated one of the CRP values.
+
+.. figure:: screenshots/archive_nlp_kcl_drugs.png
+
+    Another NLP view, this time of drugs found via the :ref:`KCL GATE
+    pharmacotherapy <kcl_pharmacotherapy>` app.
 
 
 .. todo:: archive: consider Windows authentication to Django

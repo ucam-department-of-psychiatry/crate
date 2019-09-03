@@ -44,7 +44,7 @@ def gen_downloadable_filenames() -> Generator[str, None, None]:
     ## HTML list to download all files.
     <ul>
         %for filename in gen_downloadable_filenames():
-            <li><a href="${attachment_url(filename)}">${filename}</a></li>
+            <li><a href="${get_attachment_url(filename)}">${filename}</a></li>
         %endfor
     </ul>
 </%def>
@@ -53,7 +53,7 @@ def gen_downloadable_filenames() -> Generator[str, None, None]:
 <%def name="embedded_attachment(filename)">
     ## HTML to show an attachment (such as a PDF) within an HTML element.
     <%
-        url = attachment_url(filename)
+        url = get_attachment_url(filename)
         content_type = guess_mimetype(filename, default=ContentType.TEXT)
     %>
     <%doc>

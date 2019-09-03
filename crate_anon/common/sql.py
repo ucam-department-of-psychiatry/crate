@@ -1860,14 +1860,14 @@ class WhereCondition(object):
 
     def __repr__(self) -> str:
         return (
-            "<{qualname}("
+            "{qualname}("
             "column_id={column_id}, "
             "op={op}, "
             "datatype={datatype}, "
             "value_or_values={value_or_values}, "
             "raw_sql={raw_sql}, "
             "from_table_for_raw_sql={from_table_for_raw_sql}"
-            ") at {addr}>".format(
+            ")".format(
                 qualname=self.__class__.__qualname__,
                 column_id=repr(self._column_id),
                 op=repr(self._op),
@@ -1875,7 +1875,6 @@ class WhereCondition(object):
                 value_or_values=repr(self._value),
                 raw_sql=repr(self._raw_sql),
                 from_table_for_raw_sql=repr(self._from_table_for_raw_sql),
-                addr=hex(id(self)),
             )
         )
 

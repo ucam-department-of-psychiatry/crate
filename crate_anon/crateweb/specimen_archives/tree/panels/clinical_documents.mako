@@ -12,7 +12,7 @@ I tried this with
         tree_id="doc_tree",
         child_id_prefix="doc_tree_child_",
         children=[
-            JavascriptLeafNode(filename, embedded_attachment_html(filename))
+            JavascriptLeafNode(filename, embedded_attachment_html(filename, context))
             for filename in gen_downloadable_filenames()
         ]
     )
@@ -93,7 +93,7 @@ tree = JavascriptTree(
     child_id_prefix="doc_tree_child_",
     children=[
         JavascriptBranchNode("All", children=[
-            JavascriptLeafNode(filename, embedded_attachment_html(filename))
+            JavascriptLeafNode(filename, embedded_attachment_html(filename, context))
             for filename in gen_downloadable_filenames()
         ]),
     ],

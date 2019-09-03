@@ -14,8 +14,8 @@ from crate_anon.common.constants import HelpUrl
             </%block>
             <meta charset="utf-8">
             <%block name="extra_head_start"></%block>
-            <link rel="icon" type="image/png" href="${static_url("scrubber.png")}" >
-            <link rel="stylesheet" type="text/css" href="${static_url("archive.css")}" >
+            <link rel="icon" type="image/png" href="${get_static_url("scrubber.png")}" >
+            <link rel="stylesheet" type="text/css" href="${get_static_url("archive.css")}" >
             <%block name="extra_head_end"></%block>
         </%block>
     </head>
@@ -37,7 +37,7 @@ from crate_anon.common.constants import HelpUrl
         </div>
         <%block name="navigate_to_root">
             <div class="navigation">
-                <a href="${archive_url("root.mako")}">Go to top</a>
+                <a href="${get_template_url("root.mako")}">Go to top</a>
             </div>
         </%block>
 

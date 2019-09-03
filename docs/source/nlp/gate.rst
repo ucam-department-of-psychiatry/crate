@@ -136,6 +136,8 @@ Script to test the app via the command line:
     :language: bash
 
 
+.. _kcl_pharmacotherapy:
+
 KCL pharmacotherapy application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

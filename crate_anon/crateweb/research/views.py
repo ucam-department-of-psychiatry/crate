@@ -28,10 +28,11 @@ crate_anon/crateweb/research/views.py
 
 """
 
+import copy
 import datetime
 import json
 import logging
-from os.path import abspath, basename, isfile, join
+from os.path import basename
 from typing import Any, Dict, Iterable, List, Sequence, Type, Union, Optional
 
 from cardinal_pythonlib.typing_helpers import Pep249DatabaseCursorType
@@ -39,7 +40,6 @@ from cardinal_pythonlib.dbfunc import get_fieldnames_from_cursor
 from cardinal_pythonlib.django.function_cache import django_cache_function
 from cardinal_pythonlib.django.serve import file_response, serve_file
 from cardinal_pythonlib.exceptions import recover_info_from_exception
-from cardinal_pythonlib.fileops import mkdir_p
 from cardinal_pythonlib.hash import hash64
 from cardinal_pythonlib.httpconst import ContentType
 from cardinal_pythonlib.logs import BraceStyleAdapter
@@ -65,11 +65,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.html import escape
-from mako.lookup import TemplateLookup
+from django.views.decorators.cache import cache_control
 from mako.exceptions import TemplateLookupException
 from pyparsing import ParseException
 
 from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
+# from crate_anon.common.profiling import do_cprofile
 from crate_anon.common.sql import (
     ColumnId,
     escape_sql_string_literal,
@@ -85,10 +86,26 @@ from crate_anon.crateweb.core.utils import (
     is_clinician,
     is_superuser,
     paginate,
-    url_with_querystring,
 )
-from crate_anon.crateweb.core.constants import (
-    SettingsKeys,
+from crate_anon.crateweb.research.archive_backend import (
+    archive_attachment_url,
+    ARCHIVE_CONTEXT,
+    archive_is_configured,
+    archive_misconfigured_response,
+    archive_root_url,
+    archive_static_url,
+    archive_template_url,
+    ArchiveContextKeys,
+    ArchiveUrlKeys,
+    audit_archive_template,
+    audit_archive_attachment,
+    CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS,
+    CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC,
+    CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES,
+    DEFAULT_GUESS_CONTENT_TYPE,
+    get_attachment_filepath,
+    get_static_filepath,
+    mako_lookup,
 )
 from crate_anon.crateweb.research.forms import (
     AddHighlightForm,
@@ -130,15 +147,14 @@ from crate_anon.crateweb.research.research_db_info import (
     research_database_info,
     SingleResearchDatabase,
 )
-from crate_anon.crateweb.userprofile.models import (
-    get_patients_per_page,
-    UserProfile,
-)
 from crate_anon.crateweb.research.sql_writer import (
     add_to_select,
     SelectElement,
 )
-# from crate_anon.common.profiling import do_cprofile
+from crate_anon.crateweb.userprofile.models import (
+    get_patients_per_page,
+    UserProfile,
+)
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
 
@@ -164,41 +180,6 @@ FN_SRCFIELD = '_srcfield'
 FN_SRCPKFIELD = '_srcpkfield'
 FN_SRCPKVAL = '_srcpkval'
 FN_SRCPKSTR = '_srcpkstr'
-
-
-class ArchiveContextKeys(object):
-    """
-    Names of objects that become part of the context in which archive templates
-    operate. Some are also used as URL parameter keys.
-    """
-    ARCHIVE_URL = "archive_url"
-    ATTACHMENT_URL = "attachment_url"
-    CRATE_HOME_URL = "CRATE_HOME_URL"
-    EXECUTE = "execute"
-    PATIENT_ID = "patient_id"
-    REQUEST = "request"
-    STATIC_URL = "static_url"
-    TEMPLATE = "template"  # in case the template wants to know
-
-
-class ArchiveUrlKeys(object):
-    """
-    URL parameter keys used by the archive system.
-    These are things, typically, that may contain ``/`` characters.
-    """
-    CONTENT_TYPE = "content_type"
-    FILENAME = "filename"
-    GUESS_CONTENT_TYPE = "guess_content_type"  # 0 or 1
-    OFFERED_FILENAME = "offered_filename"
-    TEMPLATE = ArchiveContextKeys.TEMPLATE
-
-
-PROHIBITED_ARCHIVE_KEYS = [x for x in dir(ArchiveContextKeys)
-                           if not x.startswith("_")]
-
-
-# For attachments: default for guess_content_type
-DEFAULT_GUESS_CONTENT_TYPE = True
 
 
 # =============================================================================
@@ -3364,19 +3345,22 @@ def pe_results(request: HttpRequest, pe_id: str) -> HttpResponse:
                         'table_html': table_html,
                         'query_html': query_html,
                     })
+        n_records = len(mrids)
         context = {
             'nav_on_pe_results': True,
             'results': results,
             'page': page,
-            'rowcount': len(mrids),
+            'rowcount': n_records,
             'patient_id_query_html': patient_id_query_html,
             'patients_per_page': patients_per_page,
             'sql_highlight_css': prettify_sql_css(),
         }
         context.update(query_context(request))
+        pe.audit(n_records=n_records)
         return render(request, 'pe_result.html', context)
 
     except DatabaseError as exception:
+        pe.audit(failed=True, fail_msg=str(exception))
         return render_bad_pe(request, pe, exception)
 
 
@@ -3534,7 +3518,7 @@ def pe_tsv_zip(request: HttpRequest, pe_id: str) -> HttpResponse:
     # http://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
-        return file_response(
+        response = file_response(
             pe.get_zipped_tsv_binary(),
             content_type=ContentType.ZIP,
             filename="crate_pe_{num}_{datetime}.zip".format(
@@ -3542,7 +3526,10 @@ def pe_tsv_zip(request: HttpRequest, pe_id: str) -> HttpResponse:
                 datetime=datetime_iso_for_filename(),
             )
         )
+        pe.audit()
+        return response
     except DatabaseError as exception:
+        pe.audit(failed=True, fail_msg=str(exception))
         return render_bad_pe(request, pe, exception)
 
 
@@ -3562,7 +3549,7 @@ def pe_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
-        return file_response(
+        response = file_response(
             pe.get_xlsx_binary(),
             content_type=ContentType.XLSX,
             filename="crate_pe_{num}_{datetime}.xlsx".format(
@@ -3570,7 +3557,10 @@ def pe_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
                 datetime=datetime_iso_for_filename(),
             )
         )
+        pe.audit()
+        return response
     except DatabaseError as exception:
+        pe.audit(failed=True, fail_msg=str(exception))
         return render_bad_pe(request, pe, exception)
 
 
@@ -3628,21 +3618,24 @@ def pe_data_finder_results(request: HttpRequest, pe_id: str) -> HttpResponse:
                 no_ditto_cols=[2, 3, 4],
                 null=''
             )
+        n_records = len(mrids)
         context = {
             'nav_on_pe_df_results': True,
             'some_patients': len(active_mrids) > 0,
             'results_table_html': results_table_html,
             'query_html': query_html,
             'page': page,
-            'rowcount': len(mrids),
+            'rowcount': n_records,
             'patient_id_query_html': patient_id_query_html,
             'patients_per_page': patients_per_page,
             'sql_highlight_css': prettify_sql_css(),
         }
         context.update(query_context(request))
+        pe.audit(count_only=True, n_records=n_records)
         return render(request, 'pe_df_result.html', context)
 
     except DatabaseError as exception:
+        pe.audit(failed=True, fail_msg=str(exception))
         return render_bad_pe(request, pe, exception)
 
 
@@ -3882,174 +3875,6 @@ def pe_one_table(request: HttpRequest, pe_id: str,
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Quasi-constants
-# -----------------------------------------------------------------------------
-
-# Read from settings. Better to crash early than when a user asks.
-_archive_attachment_dir = getattr(
-    settings, SettingsKeys.ARCHIVE_ATTACHMENT_DIR, "")
-_archive_root_template = getattr(
-    settings, SettingsKeys.ARCHIVE_ROOT_TEMPLATE, "")
-_archive_static_dir = getattr(
-    settings, SettingsKeys.ARCHIVE_STATIC_DIR, "")
-_archive_template_cache_dir = getattr(
-    settings, SettingsKeys.ARCHIVE_TEMPLATE_CACHE_DIR, "")
-_archive_template_dir = getattr(
-    settings, SettingsKeys.ARCHIVE_TEMPLATE_DIR, "")
-
-mkdir_p(_archive_template_cache_dir)
-mako_lookup = TemplateLookup(directories=[_archive_template_dir],
-                             module_directory=_archive_template_cache_dir)
-
-
-# -----------------------------------------------------------------------------
-# Configuration checks
-# -----------------------------------------------------------------------------
-
-def archive_is_configured() -> bool:
-    """
-    Is the archive properly configured?
-    """
-    return bool(
-        _archive_attachment_dir and
-        _archive_root_template and
-        _archive_static_dir and
-        _archive_template_cache_dir and
-        _archive_template_dir
-    )
-
-
-def archive_misconfigured_response() -> HttpResponse:
-    """
-    Returns an error :class:`HttpResponse` describing how the archive is
-    misconfigured.
-    """
-    missing = []  # type: List[str]
-    if not _archive_attachment_dir:
-        missing.append(SettingsKeys.ARCHIVE_ATTACHMENT_DIR)
-    if not _archive_root_template:
-        missing.append(SettingsKeys.ARCHIVE_ROOT_TEMPLATE)
-    if not _archive_static_dir:
-        missing.append(SettingsKeys.ARCHIVE_STATIC_DIR)
-    if not _archive_template_cache_dir:
-        missing.append(SettingsKeys.ARCHIVE_TEMPLATE_CACHE_DIR)
-    if not _archive_template_dir:
-        missing.append(SettingsKeys.ARCHIVE_TEMPLATE_DIR)
-    return HttpResponseBadRequest(
-        f"Archive not configured. Administrator has not set: {missing!r}")
-
-
-# -----------------------------------------------------------------------------
-# Paths
-# -----------------------------------------------------------------------------
-
-def safe_path(directory: str, filename: str) -> str:
-    """
-    Ensures that a filename is safe and within a directory -- for example, that
-    nobody passes a filename like ``../../../etc/passwd`` to break out of our
-    directory.
-
-    Args:
-        directory: directory, within which filename must be
-        filename: filename
-
-    Returns:
-        str: the filename if it's safe and exists
-    """
-    if not directory:
-        return ""
-    final_filename = abspath(join(directory, filename))
-    if not final_filename.startswith(directory):
-        return ""
-    if not isfile(final_filename):
-        return ""
-    return final_filename
-
-
-# -----------------------------------------------------------------------------
-# URL generation
-# -----------------------------------------------------------------------------
-
-def archive_template_url(patient_id: str, template_name: str, **kwargs) -> str:
-    """
-    Creates a URL to inspect part of the archive.
-
-    Args:
-        patient_id:
-            patient ID
-        template_name:
-            short name of the (configurable) template
-        **kwargs:
-            other optional arguments, passed as URL parameters
-
-    Returns:
-        A URL.
-
-    """
-    kwargs = kwargs or {}  # type: Dict[str, Any]
-    qparams = {ArchiveUrlKeys.TEMPLATE: template_name}
-    qparams.update(kwargs)
-    # log.critical("qparams: {!r}", qparams)
-    return url_with_querystring(
-        reverse("archive_template", args=[patient_id]),
-        **qparams
-    )
-
-
-def archive_root_url(patient_id: str) -> str:
-    """
-    Returns a URL to the root of the archive, for a given patient.
-
-    Args:
-        patient_id:
-            patient ID
-    """
-    return archive_template_url(patient_id, _archive_root_template)
-
-
-def archive_attachment_url(
-        filename: str,
-        content_type: str = "",
-        offered_filename: str = "",
-        guess_content_type: bool = None) -> str:
-    """
-    Returns a URL to download an archive attachment (e.g. a PDF).
-
-    Args:
-        filename:
-            filename on disk, within the archive's attachment directory 
-        content_type: 
-            HTTP content type; see
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type
-        offered_filename:
-            filename offered to user
-        guess_content_type:
-            if no content_type is specified, should we guess? Pass
-            ``None`` for the default, :data:`DEFAULT_GUESS_CONTENT_TYPE`.
-    """  # noqa
-    qparams = {ArchiveUrlKeys.FILENAME: filename}
-    if content_type:
-        qparams[ArchiveUrlKeys.CONTENT_TYPE] = content_type
-    if offered_filename:
-        qparams[ArchiveUrlKeys.OFFERED_FILENAME] = offered_filename
-    if guess_content_type is not None:
-        qparams[ArchiveUrlKeys.GUESS_CONTENT_TYPE] = int(guess_content_type)
-    return url_with_querystring(reverse("archive_attachment"), **qparams)
-
-
-def archive_static_url(filename: str) -> str:
-    """
-    Returns a URL to download a static file from the archive.
-
-    Args:
-        filename:
-            filename on disk, within the archive's static directory 
-    """  # noqa
-    qparams = {ArchiveUrlKeys.FILENAME: filename}
-    return url_with_querystring(reverse("archive_static"), **qparams)
-
-
-# -----------------------------------------------------------------------------
 # Archive views
 # -----------------------------------------------------------------------------
 
@@ -4087,6 +3912,7 @@ def launch_archive(request: HttpRequest) -> HttpResponse:
     return redirect(archive_root_url(patient_id))
 
 
+@cache_control(private=True, max_age=CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES)
 def archive_template(request: HttpRequest,
                      patient_id: str) -> HttpResponse:
     """
@@ -4126,71 +3952,86 @@ def archive_template(request: HttpRequest,
       http://doconix.github.io/django-mako-plus/topics_variables.html.
 
     """  # noqa
-    # Are arguments safe?
-    kwargs = request.GET
-    for k in PROHIBITED_ARCHIVE_KEYS:
-        if k == ArchiveContextKeys.TEMPLATE:
-            if k not in kwargs:
-                return HttpResponseBadRequest(
-                    f"URL arguments must include the key {k!r}")
-        elif k in kwargs:
-            return HttpResponseBadRequest(
-                f"URL arguments may not include the key {k!r}")
-
     # Get template and other arguments
     # noinspection PyCallByClass,PyArgumentList
-    template_name = request.GET.get(ArchiveContextKeys.TEMPLATE)
-    # noinspection PyArgumentList
-    params = {k: v for k, v in request.GET.items()
-              if k != ArchiveContextKeys.TEMPLATE}
-    # request.GET is a curious immutable dictionary that holds multi-value
-    # values, so tends to return lists.
+    template_name = request.GET.get(ArchiveUrlKeys.TEMPLATE)
+    if not template_name:
+        return HttpResponseBadRequest("URL arguments must include the key "
+                                      "{ArchiveContextKeys.TEMPLATE!r}")
+    # log.debug(f"Archive template request: {template_name!r}")
 
-    # URL builder
-    def same_patient_archive_url(_template: str, **kw) -> str:
+    # -------------------------------------------------------------------------
+    # URL builders
+    # -------------------------------------------------------------------------
+    def same_patient_template_url(_template: str, **kw) -> str:
         """
-        Returns a URL for the same patient but with a different template or
-        different arguments.
+        Returns a URL to a template for the same patient.
         """
         return archive_template_url(patient_id, _template, **kw)
 
+    def same_patient_attachment_url(*args, **kw) -> str:
+        """
+        Returns a URL to an attachment, marked as being for the same patient.
+        """
+        return archive_attachment_url(*args, patient_id=patient_id, **kw)
+
+    # -------------------------------------------------------------------------
     # Build context
-    context = {
-        ArchiveContextKeys.ARCHIVE_URL: same_patient_archive_url,
-        ArchiveContextKeys.ATTACHMENT_URL: archive_attachment_url,
+    # -------------------------------------------------------------------------
+    context = copy.copy(ARCHIVE_CONTEXT)
+    context.update({
+        ArchiveContextKeys.get_template_url: same_patient_template_url,
+        ArchiveContextKeys.get_attachment_url: same_patient_attachment_url,
         ArchiveContextKeys.CRATE_HOME_URL: reverse("home"),
-        ArchiveContextKeys.PATIENT_ID: patient_id,
-        ArchiveContextKeys.EXECUTE: get_executed_researchdb_cursor_qmark_placeholders,  # noqa
-        ArchiveContextKeys.REQUEST: request,
-        ArchiveContextKeys.STATIC_URL: archive_static_url,
-        ArchiveContextKeys.TEMPLATE: template_name,
-        **params
-    }
+        ArchiveContextKeys.execute: get_executed_researchdb_cursor_qmark_placeholders,  # noqa
+        ArchiveContextKeys.patient_id: patient_id,
+        ArchiveContextKeys.query_params: request.GET,
+        ArchiveContextKeys.request: request,
+        ArchiveContextKeys.get_static_url: archive_static_url,
+    })
     # log.debug("Archive template {!r} with context {!r}",
     #           template_name, context)
 
+    # -------------------------------------------------------------------------
     # Render
+    # -------------------------------------------------------------------------
     try:
         template = mako_lookup.get_template(template_name)
     except TemplateLookupException:
         return HttpResponseBadRequest(
             f"No such archive template: {template_name!r}")
     html = template.render(**context)
+
+    # noinspection PyArgumentList
+    query_string = request.GET.urlencode()
+    audit_archive_template(request, patient_id, query_string)
+
     return HttpResponse(html)
 
 
-def archive_attachment(request: HttpRequest) -> HttpResponseBase:
+@cache_control(private=True,
+               max_age=CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS)
+def archive_attachment(request: HttpRequest,
+                       patient_id: str) -> HttpResponseBase:
     """
     Serve a binary file from the archive.
+    
+    The patient_id is not required to find the file -- but is used for the
+    audit trail. (It would be possible for the end user to look up a file by
+    name via a faked patient_id. However, this could be established from the
+    audit log.)
 
     Args:
         request:
             the Django :class:`HttpRequest` object
+        patient_id:
+            patient ID
     """  # noqa
     # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
     content_type = request.GET.get(ArchiveUrlKeys.CONTENT_TYPE, None)
     # noinspection PyCallByClass,PyArgumentList
     filename = request.GET.get(ArchiveUrlKeys.FILENAME)
+    # log.debug(f"Archive attachment request: {filename!r}")
     try:
         # noinspection PyArgumentList,PyCallByClass
         guess_content_type = bool(int(
@@ -4200,7 +4041,7 @@ def archive_attachment(request: HttpRequest) -> HttpResponseBase:
     # noinspection PyCallByClass,PyTypeChecker
     offered_filename = request.GET.get(ArchiveUrlKeys.OFFERED_FILENAME, None)
 
-    full_filename = safe_path(_archive_attachment_dir, filename)
+    full_filename = get_attachment_filepath(filename)
     if not full_filename:
         return HttpResponseBadRequest(
             f"Invalid attachment filename: {filename!r}")
@@ -4228,6 +4069,8 @@ def archive_attachment(request: HttpRequest) -> HttpResponseBase:
     #     f"offered_filename: {offered_filename!r}, "
     #     f"prefer_inline: {prefer_inline!r}")
 
+    audit_archive_attachment(request, patient_id, filename)
+
     return serve_file(
         path_to_file=full_filename,
         offered_filename=offered_filename,
@@ -4237,6 +4080,7 @@ def archive_attachment(request: HttpRequest) -> HttpResponseBase:
     )
 
 
+@cache_control(private=True, max_age=CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC)
 def archive_static(request: HttpRequest) -> HttpResponseBase:
     """
     Serve a static file from the archive.
@@ -4247,7 +4091,8 @@ def archive_static(request: HttpRequest) -> HttpResponseBase:
     """  # noqa
     # noinspection PyCallByClass,PyArgumentList
     filename = request.GET.get(ArchiveUrlKeys.FILENAME)
-    full_filename = safe_path(_archive_static_dir, filename)
+    # log.debug(f"Archive static request: {filename!r}")
+    full_filename = get_static_filepath(filename)
     if not full_filename:
         return HttpResponseBadRequest(f"Invalid static filename: {filename!r}")
 

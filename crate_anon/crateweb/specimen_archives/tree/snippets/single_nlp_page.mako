@@ -4,13 +4,13 @@
 
 <%doc>
 
-Page parameters (from URL):
+Query parameters (from URL):
 
     tablename:
         str: table to query
     description:
         str: description of the NLP tool
-    columns:
+    column_csv:
         str: CSV of column names, other than the ever-present ones
 
 </%doc>
@@ -62,6 +62,10 @@ def nlp_sql(tablename: str, columns: Iterable[str]) -> str:
 %>
 
 <%
+
+tablename = query_params["tablename"]
+description = query_params["description"]
+column_csv = query_params["column_csv"]
 
 columns = column_csv.split(",")
 cursor = execute(nlp_sql(tablename, columns), [patient_id])

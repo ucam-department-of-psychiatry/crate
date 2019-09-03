@@ -451,8 +451,6 @@ ARCHIVE_TEMPLATE_DIR
 
 *Optional.*
 
-.. warning:: Experimental; in development.
-
 Root directory of the :ref:`archive <archive>` template system.
 
 
@@ -462,8 +460,6 @@ ARCHIVE_ROOT_TEMPLATE
 ``type: str``
 
 *Optional.*
-
-.. warning:: Experimental; in development.
 
 Filename of the :ref:`archive <archive>`'s root template. This should be
 found within ARCHIVE_TEMPLATE_DIR_.
@@ -476,8 +472,6 @@ ARCHIVE_ATTACHMENT_DIR
 
 *Optional.*
 
-.. warning:: Experimental; in development.
-
 Root directory for archive attachments.
 
 
@@ -487,8 +481,6 @@ ARCHIVE_STATIC_DIR
 ``type: str``
 
 *Optional.*
-
-.. warning:: Experimental; in development.
 
 Root directory for archive static files.
 
@@ -500,9 +492,59 @@ ARCHIVE_TEMPLATE_CACHE_DIR
 
 *Optional.*
 
-.. warning:: Experimental; in development.
-
 Directory in which to store compiled versions of the archive templates.
+
+
+.. _ARCHIVE_CONTEXT:
+
+ARCHIVE_CONTEXT
+###############
+
+``type: Dict[str, Any]``
+
+*Optional.*
+
+A dictionary that forms the basis of the Python context within archive
+templates. See :ref:`archive Python context <archive_mako_context>`.
+
+
+.. _CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC:
+
+CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC
+####################################
+
+``type: int``
+
+*Optional; default 0.*
+
+Ask client browsers to cache files from the static part of the archive up to
+this maximum age in seconds. (This sets the ``Cache-Control:
+max-age=<seconds>`` parameter in the HTTP header.)
+
+CRATE will add file modification times to URLs, so setting a long cache expiry
+time will not prevent automatic reloading if the file changes.
+
+
+CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS
+#########################################
+
+``type: int``
+
+*Optional; default 0.*
+
+As for CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC_, but for attachments within the
+archive.
+
+
+CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES
+#######################################
+
+``type: int``
+
+*Optional; default 0.*
+
+As for CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC_, but for calls to render
+templates.
 
 
 Site-specific help

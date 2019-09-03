@@ -139,6 +139,8 @@ crate_anon/crateweb
     extra/salutation.py.rst
     manage.py.rst
     research/__init__.py.rst
+    research/archive_backend.py.rst
+    research/archive_func.py.rst
     research/forms.py.rst
     research/html_functions.py.rst
     research/migrations/0001_initial.py.rst
@@ -152,6 +154,7 @@ crate_anon/crateweb
     research/migrations/0009_query_no_null.py.rst
     research/migrations/0010_query_last_run.py.rst
     research/migrations/0011_auto_20190521_2109.py.rst
+    research/migrations/0012_archiveattachmentaudit_archivetemplateaudit.py.rst
     research/migrations/__init__.py.rst
     research/models.py.rst
     research/research_db_info.py.rst
@@ -221,12 +224,14 @@ crate_anon/crateweb
     specimen_archives/static/archive.css.rst
     specimen_archives/static/tree.js.rst
     specimen_archives/tree/base.mako.rst
+    specimen_archives/tree/panels/clinical_documents.mako.rst
     specimen_archives/tree/panels/nlp.mako.rst
     specimen_archives/tree/panels/progress_notes.mako.rst
     specimen_archives/tree/root.mako.rst
-    specimen_archives/tree/snippets/attachments.mako.rst
-    specimen_archives/tree/snippets/nlp_section.mako.rst
     specimen_archives/tree/snippets/results_table.mako.rst
+    specimen_archives/tree/snippets/results_table_nlp.mako.rst
+    specimen_archives/tree/snippets/single_nlp_page.mako.rst
+    specimen_archives/tree/snippets/subtree.mako.rst
     specimen_secret_local_settings/__init__.py.rst
     specimen_secret_local_settings/crateweb_local_settings.py.rst
     static/base.css.rst

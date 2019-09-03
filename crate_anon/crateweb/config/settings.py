@@ -110,7 +110,7 @@ MIDDLEWARE = (
     # Additional:
     'cardinal_pythonlib.django.middleware.UserBasedExceptionMiddleware',  # provide debugging details to superusers  # noqa
     'cardinal_pythonlib.django.middleware.LoginRequiredMiddleware',  # prohibit all pages except login pages if not logged in  # noqa
-    'cardinal_pythonlib.django.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa
+    # 'cardinal_pythonlib.django.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa
     'crate_anon.crateweb.core.middleware.RestrictAdminMiddleware',  # non-developers can't access the devadmin site  # noqa
     # 'cardinal_pythonlib.django.request_cache.RequestCacheMiddleware',  # per-request cache, UNTESTED  # noqa
 

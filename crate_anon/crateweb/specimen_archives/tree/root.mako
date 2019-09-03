@@ -27,9 +27,8 @@ NOT_IMPLEMENTED = '<div class="warning pad"><i>Not implemented yet.</i></div>'
 %>
 <%
 
-def template_element(filename: str) -> str:
-    url = archive_url(filename)
-    return template_html(url)
+def template_element(template_name: str) -> str:
+    return template_html(template_name, context)
 
 
 %>
@@ -67,7 +66,7 @@ tree = JavascriptTree(
             ]),
         ]),
         JavascriptLeafNode("NLP", template_element("panels/nlp.mako")),
-        JavascriptLeafNode("Test PDF", embedded_attachment_html("doctest.pdf")),
+        JavascriptLeafNode("Test PDF", embedded_attachment_html("doctest.pdf", context)),
     ]
 )
 

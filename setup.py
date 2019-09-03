@@ -163,6 +163,7 @@ INSTALL_REQUIRES = [
     "gunicorn==19.8.1",  # UNIX only, though will install under Windows
     "kombu==4.1.0",  # AMQP library for Celery; requires VC++ under Windows
     "mako==1.0.7",  # templates with Python in
+    "MarkupSafe==1.0",  # for HTML escaping
     # "mmh3==2.2"  # MurmurHash, for fast non-cryptographic hashing
     "openpyxl==2.5.4",  # read Excel
     "pendulum==2.0.2",  # dates/times

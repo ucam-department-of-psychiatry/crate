@@ -36,10 +36,7 @@ def nlp_url(tablename: str, description: str, columns: List[str]) -> str:
         "description": description,
         "column_csv": ",".join(columns),
     }
-    return template_html(
-        archive_url("snippets/single_nlp_page.mako"),
-        **qparams
-    )
+    return template_html("snippets/single_nlp_page.mako", context, **qparams)
 
 
 tree = JavascriptTree(
@@ -56,20 +53,20 @@ tree = JavascriptTree(
                 ["value_mmol_L"] + SIMPLE_NUMERIC_COLUMNS
             )),
             JavascriptLeafNode("Urea", nlp_url(
-                "urea", "Urea",
+                "urea", "Urea (U)",
                 ["value_mmol_L"] + SIMPLE_NUMERIC_COLUMNS
             )),
             JavascriptLeafNode("Creatinine", nlp_url(
-                "creatinine", "Creatinine",
+                "creatinine", "Creatinine (Cr)",
                 ["value_micromol_L"] + SIMPLE_NUMERIC_COLUMNS
             )),
             JavascriptLeafNode("Glucose", nlp_url(
-                "glucose", "Glucose",
+                "glucose", "Glucose (glu)",
                 ["value_mmol_L"] + SIMPLE_NUMERIC_COLUMNS
             )),
 
             JavascriptLeafNode("CRP", nlp_url(
-                "crp", "C-reactive protein",
+                "crp", "C-reactive protein (CRP)",
                 ["value_mg_L"] + SIMPLE_NUMERIC_COLUMNS
             )),
             JavascriptLeafNode("TSH", nlp_url(

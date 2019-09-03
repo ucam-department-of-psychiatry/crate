@@ -143,7 +143,15 @@ def url_with_querystring(path: str,
 
     Returns:
         the URL with query parameters
-    """
+
+    Note:
+        
+        This does not currently sort query parameters. Doing that might be
+        slightly advantageous for caching, i.e. to ensure that
+        "path?a=1&b=2" is treated as identical to "path?b=2&a=1". However, it
+        is legal for servers to treat them as ordered. See
+        https://stackoverflow.com/questions/43893853/http-cache-control-and-params-order.
+    """  # noqa
     # Get initial query parameters, if any.
     # log.critical(f"IN: path={path!r}, querydict={querydict!r}, "
     #              f"kwargs={kwargs!r}")

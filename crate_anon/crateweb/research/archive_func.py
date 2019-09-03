@@ -29,7 +29,7 @@ crate_anon/crateweb/research/archive_func.py
 """
 
 import logging
-from typing import Any, List
+from typing import Any, Dict, List
 
 from cardinal_pythonlib.httpconst import ContentType
 from cardinal_pythonlib.logs import BraceStyleAdapter
@@ -39,11 +39,11 @@ from crate_anon.crateweb.core.utils import (
     guess_mimetype,
     url_with_querystring,
 )
+from crate_anon.crateweb.research.archive_backend import ArchiveContextKeys
 from crate_anon.crateweb.research.research_db_info import (
     research_database_info,
 )
 from crate_anon.crateweb.research.views import (
-    archive_attachment_url,
     FN_SRCDB,
     FN_SRCTABLE,
     FN_SRCFIELD,
@@ -70,6 +70,7 @@ SILENT_NLP_XREF_COLS = [
 # =============================================================================
 
 def embedded_attachment_html(filename: str,
+                             context: Dict[str, Any],
                              object_class: str = "embedded_attachment",
                              alt_div_class: str = "obscure_spinner") -> str:
     """
@@ -77,13 +78,16 @@ def embedded_attachment_html(filename: str,
 
     Args:
         filename:
-            filename to use, within the archive
+            filename of attachment
+        context:
+            Mako context
         object_class:
             CSS class of the <object>
         alt_div_class:
             CSS class of the <div> to show on load failure
     """
-    url = archive_attachment_url(filename)
+    get_attachment_url = context[ArchiveContextKeys.get_attachment_url]
+    url = get_attachment_url(filename)
     content_type = guess_mimetype(filename, default=ContentType.TEXT)
     return (
         f'<object class="{object_class}" data="{url}" type="{content_type}">'
@@ -95,16 +99,21 @@ def embedded_attachment_html(filename: str,
     )
 
 
-def template_html(url: str, iframe_class: str = "embedded_attachment",
+def template_html(template_name: str,
+                  context: Dict[str, Any],
+                  iframe_class: str = "embedded_attachment",
                   **qparams) -> str:
     """
     HTML element to show aonther archive template inline.
 
     Args:
-        url: patient-specific URL for the template
+        template_name: relative filename of the template
+        context: Mako context
         iframe_class: CSS class for the <iframe>
         qparams: query parameters to pass to the template
     """
+    get_template_url = context[ArchiveContextKeys.get_template_url]
+    url = get_template_url(template_name)
     final_url = url_with_querystring(url, **qparams)
     return f'<iframe class="{iframe_class}" src="{final_url}"></iframe>'
 

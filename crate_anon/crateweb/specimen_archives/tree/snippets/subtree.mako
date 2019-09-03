@@ -43,7 +43,7 @@ log = logging.getLogger(__name__)
 ## Scripts
 ## ============================================================================
 
-<script src="${static_url("tree.js")}" type="text/javascript"></script>
+<script src="${get_static_url("tree.js")}" type="text/javascript"></script>
 <script type="text/javascript">
 
 // ----------------------------------------------------------------------------

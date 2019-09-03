@@ -1173,6 +1173,7 @@ class QueryAudit(models.Model):
     """
     id = models.AutoField(primary_key=True)  # automatic
     query = models.ForeignKey('Query', on_delete=models.PROTECT)
+    # ... contains information about which user
     when = models.DateTimeField(auto_now_add=True)
     count_only = models.BooleanField(default=False)
     n_records = models.IntegerField(default=0)
@@ -1490,16 +1491,15 @@ class PatientMultiQuery(object):
 
     def __repr__(self) -> str:
         return (
-            "<{qualname}("
+            "{qualname}("
             "output_columns={output_columns}, "
             "patient_conditions={patient_conditions}, "
             "manual_patient_id_query={manual_patient_id_query}"
-            ") at {addr}>".format(
+            ")".format(
                 qualname=self.__class__.__qualname__,
                 output_columns=repr(self._output_columns),
                 patient_conditions=repr(self._patient_conditions),
                 manual_patient_id_query=repr(self._manual_patient_id_query),
-                addr=hex(id(self)),
             )
         )
 
@@ -2435,6 +2435,7 @@ class PatientExplorerAudit(models.Model):
     id = models.AutoField(primary_key=True)  # automatic
     patient_explorer = models.ForeignKey('PatientExplorer',
                                          on_delete=models.PROTECT)
+    # ... contains information on which user
     when = models.DateTimeField(auto_now_add=True)
     count_only = models.BooleanField(default=False)
     n_records = models.IntegerField(default=0)
@@ -2444,3 +2445,43 @@ class PatientExplorerAudit(models.Model):
 
     def __str__(self) -> str:
         return f"<PatientExplorerAudit id={self.id}>"
+
+
+# =============================================================================
+# Archive auditing classes
+# =============================================================================
+
+ARCHIVE_PATIENT_ID_MAX_LENGTH = 255
+ARCHIVE_ATTACHMENT_FILENAME_MAX_LENGTH = 255
+
+
+class ArchiveTemplateAudit(models.Model):
+    """
+    Audit log for access to an archive template.
+    """
+    id = models.AutoField(primary_key=True)  # automatic
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE)
+    when = models.DateTimeField(auto_now_add=True)
+    patient_id = models.CharField(max_length=ARCHIVE_PATIENT_ID_MAX_LENGTH)
+    query_string = models.TextField()
+    # ... no max length; see
+    # https://stackoverflow.com/questions/812925/what-is-the-maximum-possible-length-of-a-query-string  # noqa
+
+    def __str__(self) -> str:
+        return f"<ArchiveTemplateAudit id={self.id}>"
+
+
+class ArchiveAttachmentAudit(models.Model):
+    """
+    Audit log for access to an archive attachment.
+    """
+    id = models.AutoField(primary_key=True)  # automatic
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE)
+    when = models.DateTimeField(auto_now_add=True)
+    patient_id = models.CharField(max_length=ARCHIVE_PATIENT_ID_MAX_LENGTH)
+    filename = models.CharField(max_length=ARCHIVE_ATTACHMENT_FILENAME_MAX_LENGTH)  # noqa
+
+    def __str__(self) -> str:
+        return f"<ArchiveAttachmentAudit id={self.id}>"

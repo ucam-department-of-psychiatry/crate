@@ -10,8 +10,8 @@
             </%block>
             <meta charset="utf-8">
             <%block name="extra_head_start"></%block>
-            <link rel="icon" type="image/png" href="${static_url("scrubber.png")}" >
-            <link rel="stylesheet" type="text/css" href="${static_url("archive.css")}" >
+            <link rel="icon" type="image/png" href="${get_static_url("scrubber.png")}" >
+            <link rel="stylesheet" type="text/css" href="${get_static_url("archive.css")}" >
             <%block name="extra_head_end"></%block>
         </%block>
     </head>

@@ -1090,6 +1090,10 @@ Changes
 
 - Experimental: :ref:`archive <archive>` system.
 
+  - Removed
+    :class:`cardinal_pythonlib.django.middleware.DisableClientSideCachingMiddleware`
+    since we may want to do some caching.
+
 - ``cardinal_pythonlib==1.0.63``
 
 - Added standard ``tense_text`` column to NLP classes
@@ -1109,6 +1113,8 @@ Changes
 - GATE parser now avoids stripping terminal tabs (now just newlines), removing
   error messages saying "Bad chunk, not of length 2". See
   :meth:`crate_anon.nlp_manager.parse_gate.Gate.parse`.
+
+- :class:`crate_anon.crateweb.research.models.PatientExplorer` use is audited.
 
 
 ===============================================================================

@@ -27,15 +27,15 @@ cursor = execute(sql)  # or: context["query"](sql)
 <p>Some files:</p>
 
 <ul>
-    <li><a href="${attachment_url("doctest.odt", ContentType.ODT)}">doctest.odt</a></li>
-    <li><a href="${attachment_url("doctest.odt")}">doctest.odt</a> (autodetect Content-Type)</li>
-    <li><a href="${attachment_url("doctest.odt", guess_content_type=False)}">doctest.odt</a> (force generic Content-Type)</li>
-    <li><a href="${attachment_url("doctest.pdf", ContentType.PDF)}">doctest.pdf</a></li>
-    <li><a href="${attachment_url("doctest.pdf")}">doctest.pdf</a> (autodetect Content-Type)</li>
-    <li><a href="${attachment_url("doctest.pdf", guess_content_type=False)}">doctest.pdf</a> (force generic Content-Type)</li>
-    <li><a href="${attachment_url("subdir/doctest2.pdf", ContentType.PDF)}">subdir/doctest2.pdf</a> (from subdirectory)</li>
-    <li><a href="${attachment_url("/etc/passwd")}">/etc/passwd</a> (will fail)</li>
-    <li><a href="${attachment_url("../whitelist.txt")}">../whitelist.txt</a> (will fail)</li>
+    <li><a href="${get_attachment_url("doctest.odt", ContentType.ODT)}">doctest.odt</a></li>
+    <li><a href="${get_attachment_url("doctest.odt")}">doctest.odt</a> (autodetect Content-Type)</li>
+    <li><a href="${get_attachment_url("doctest.odt", guess_content_type=False)}">doctest.odt</a> (force generic Content-Type)</li>
+    <li><a href="${get_attachment_url("doctest.pdf", ContentType.PDF)}">doctest.pdf</a></li>
+    <li><a href="${get_attachment_url("doctest.pdf")}">doctest.pdf</a> (autodetect Content-Type)</li>
+    <li><a href="${get_attachment_url("doctest.pdf", guess_content_type=False)}">doctest.pdf</a> (force generic Content-Type)</li>
+    <li><a href="${get_attachment_url("subdir/doctest2.pdf", ContentType.PDF)}">subdir/doctest2.pdf</a> (from subdirectory)</li>
+    <li><a href="${get_attachment_url("/etc/passwd")}">/etc/passwd</a> (will fail)</li>
+    <li><a href="${get_attachment_url("../whitelist.txt")}">../whitelist.txt</a> (will fail)</li>
 </ul>
 
 <p>Autocreated "all files" list, via more sophisticated embedded Python:</p>

@@ -237,7 +237,7 @@ urlpatterns = [
     url(r'^archive/(?P<patient_id>[a-zA-Z0-9_]+)/$',
         research_views.archive_template,
         name='archive_template'),
-    url(r'^archive_attachment/$',
+    url(r'^archive_attachment/(?P<patient_id>[a-zA-Z0-9_]+)/$',
         research_views.archive_attachment,
         name='archive_attachment'),
     url(r'^archive_static/$',

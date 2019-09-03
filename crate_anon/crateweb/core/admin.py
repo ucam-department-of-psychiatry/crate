@@ -88,6 +88,9 @@ from crate_anon.crateweb.extra.admin import (
     ReadOnlyModelAdmin,
 )
 from crate_anon.crateweb.research.models import (
+    ArchiveAttachmentAudit,
+    ArchiveTemplateAudit,
+    PatientExplorerAudit,
     QueryAudit,
 )
 from crate_anon.crateweb.userprofile.models import UserProfile
@@ -140,6 +143,96 @@ class QueryMgrAdmin(ReadOnlyModelAdmin):
         return yesno(obj.failed)
     get_failed.short_description = "Failed?"
     get_failed.admin_order_field = 'failed'
+
+
+class PatientExplorerAuditMgrAdmin(ReadOnlyModelAdmin):
+    """
+    Read-only admin view of
+    :class:`crate_anon.crateweb.research.models.PatientExplorerAudit` objects.
+    """
+    model = PatientExplorerAudit
+    # Make all fields read-only (see also ReadOnlyModelAdmin):
+    readonly_fields = ('id', 'when', 'get_user',
+                       'get_details', 'get_count_only',
+                       'n_records', 'get_failed', 'fail_msg')
+    fields = readonly_fields  # or other things could appear
+    # Group entries by date conveniently:
+    date_hierarchy = 'when'
+    # Prefetch related objects (hugely reduces number of SQL queries):
+    list_select_related = ('patient_explorer', 'patient_explorer__user')
+    # What to show in the list:
+    list_display = readonly_fields
+    # Filter on Booleans on the right-hand side:
+    list_filter = ('count_only', 'failed')
+    # Search text content of these:
+    search_fields = ('patient_explorer__user__username', )
+
+    def get_details(self, obj: PatientExplorerAudit) -> str:
+        return str(obj.patient_explorer.patient_multiquery)
+    get_details.short_description = "Multiquery"
+    get_details.admin_order_field = 'patient_explorer__patient_multiquery'
+
+    def get_user(self, obj: PatientExplorerAudit) -> str:
+        return obj.patient_explorer.user
+    get_user.short_description = "User"
+    get_user.admin_order_field = 'patient_explorer__user'
+
+    def get_count_only(self, obj: PatientExplorerAudit) -> str:
+        return yesno(obj.count_only)
+    get_count_only.short_description = "Count only?"
+    get_count_only.admin_order_field = 'count_only'
+
+    def get_failed(self, obj: PatientExplorerAudit) -> str:
+        return yesno(obj.failed)
+    get_failed.short_description = "Failed?"
+    get_failed.admin_order_field = 'failed'
+
+
+class ArchiveTemplateAuditMgrAdmin(ReadOnlyModelAdmin):
+    """
+    Read-only admin view of
+    :class:`crate_anon.crateweb.research.models.ArchiveTemplateAudit` objects.
+    """
+    model = ArchiveTemplateAudit
+    # Make all fields read-only (see also ReadOnlyModelAdmin):
+    readonly_fields = ('id', 'when', 'get_user', 'patient_id', 'query_string')
+    fields = readonly_fields  # or other things could appear
+    # Group entries by date conveniently:
+    date_hierarchy = 'when'
+    # Prefetch related objects (hugely reduces number of SQL queries):
+    list_select_related = ('user', )
+    # What to show in the list:
+    list_display = readonly_fields
+    search_fields = ('user__username', 'patient_id', 'query_string')
+
+    def get_user(self, obj: ArchiveTemplateAudit) -> str:
+        return obj.user
+    get_user.short_description = "User"
+    get_user.admin_order_field = 'query__user'
+
+
+class ArchiveAttachmentAuditMgrAdmin(ReadOnlyModelAdmin):
+    """
+    Read-only admin view of
+    :class:`crate_anon.crateweb.research.models.ArchiveAttachmentAudit`
+    objects.
+    """
+    model = ArchiveAttachmentAudit
+    # Make all fields read-only (see also ReadOnlyModelAdmin):
+    readonly_fields = ('id', 'when', 'get_user', 'patient_id', 'filename')
+    fields = readonly_fields  # or other things could appear
+    # Group entries by date conveniently:
+    date_hierarchy = 'when'
+    # Prefetch related objects (hugely reduces number of SQL queries):
+    list_select_related = ('user', )
+    # What to show in the list:
+    list_display = readonly_fields
+    search_fields = ('user__username', 'patient_id', 'filename')
+
+    def get_user(self, obj: ArchiveAttachmentAudit) -> str:
+        return obj.user
+    get_user.short_description = "User"
+    get_user.admin_order_field = 'query__user'
 
 
 # =============================================================================
@@ -1313,12 +1406,15 @@ mgr_admin_site = MgrAdminSite(name="mgradmin")
 mgr_admin_site.disable_action('delete_selected')
 # ... particularly for e-mail where we manually specify a bulk action (resend)
 # https://docs.djangoproject.com/en/1.8/ref/contrib/admin/actions/
+mgr_admin_site.register(ArchiveAttachmentAudit, ArchiveAttachmentAuditMgrAdmin)
+mgr_admin_site.register(ArchiveTemplateAudit, ArchiveTemplateAuditMgrAdmin)
 mgr_admin_site.register(CharityPaymentRecord, CharityPaymentRecordMgrAdmin)
 mgr_admin_site.register(ConsentMode, ConsentModeMgrAdmin)
 mgr_admin_site.register(ContactRequest, ContactRequestMgrAdmin)
 mgr_admin_site.register(Email, EmailMgrAdmin)
 mgr_admin_site.register(Leaflet, LeafletMgrAdmin)
 mgr_admin_site.register(Letter, LetterMgrAdmin)
+mgr_admin_site.register(PatientExplorerAudit, PatientExplorerAuditMgrAdmin)
 mgr_admin_site.register(PatientResponse, PatientResponseMgrAdmin)
 mgr_admin_site.register(QueryAudit, QueryMgrAdmin)
 mgr_admin_site.register(Study, StudyMgrAdmin)
@@ -1349,6 +1445,8 @@ class DevAdminSite(admin.AdminSite):
 dev_admin_site = DevAdminSite(name="devadmin")
 dev_admin_site.disable_action('delete_selected')
 # Where no specific DevAdmin version exists, use the MgrAdmin
+dev_admin_site.register(ArchiveAttachmentAudit, ArchiveAttachmentAuditMgrAdmin)
+dev_admin_site.register(ArchiveTemplateAudit, ArchiveTemplateAuditMgrAdmin)
 dev_admin_site.register(CharityPaymentRecord, CharityPaymentRecordMgrAdmin)
 dev_admin_site.register(ClinicianResponse, ClinicianResponseDevAdmin)
 dev_admin_site.register(ConsentMode, ConsentModeDevAdmin)
@@ -1357,6 +1455,7 @@ dev_admin_site.register(DummyPatientSourceInfo, DummyPatientSourceInfoDevAdmin)
 dev_admin_site.register(Email, EmailDevAdmin)
 dev_admin_site.register(Leaflet, LeafletMgrAdmin)
 dev_admin_site.register(Letter, LetterDevAdmin)
+dev_admin_site.register(PatientExplorerAudit, PatientExplorerAuditMgrAdmin)
 dev_admin_site.register(PatientLookup, PatientLookupDevAdmin)
 dev_admin_site.register(PatientResponse, PatientResponseDevAdmin)
 dev_admin_site.register(QueryAudit, QueryMgrAdmin)
