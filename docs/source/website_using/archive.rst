@@ -85,13 +85,13 @@ archive, this context is built up as follows:
     <ARCHIVE_CONTEXT>` to pass a set of custom variables to your templates.
 
 #.  That copy is updated with a specific set of keys, described next, which
-    become visible as Python object. (Doing it in this order means that you
-    can't override the special CRATE keys.)
+    become visible as Python objects. (Doing it in this order means that
+    ARCHIVE_CONTEXT can't override the special CRATE keys.)
 
 #.  Mako will later add a few special objects of its own (see `Mako Runtime
     Environment`_).
 
-The special objects are:
+The special objects provided by CRATE are:
 
 - ``CRATE_HOME_URL``:
 
@@ -111,7 +111,8 @@ The special objects are:
 
 - ``get_attachment_url``:
 
-  Function to generate a URL to a binary attachment, which is
+  Function to generate a URL to a binary attachment. This function
+  adds the referring patient ID (for audit purposes) and calls
   :func:`crate_anon.crateweb.research.views.archive_attachment_url` (see that
   for details). Call it like this:
 
@@ -156,12 +157,17 @@ The special objects are:
 
   The Django HTTP request, a :class:`django.http.request.HttpRequest` object.
 
-One use for :ref:`ARCHIVE_CONTEXT <ARCHIVE_CONTEXT>` is to have a set of
+These objects are directly accessible, e.g. as ``${patient_id}``, in Mako
+statements. In the more obvious Python blocks (e.g. within Mako's ``<% ... %>``
+blocks), they are also accessible, as (in this example) any of ``patient_id``,
+``context["patient_id"]``, or ``context[ArchiveContextKeys.patient_id]``.
+
+One use for :ref:`ARCHIVE_CONTEXT <ARCHIVE_CONTEXT>` is to develop a set of
 templates that operate either with an original identified clinical records
 database or with a de-identified version with slightly different structure (but
 similar enough to want to avoid code redundancy). You could set a flag in
-:ref:`ARCHIVE_CONTEXT <ARCHIVE_CONTEXT>` to tell your template which is
-currently operating.
+:ref:`ARCHIVE_CONTEXT <ARCHIVE_CONTEXT>` to tell your templates which one is
+currently in use.
 
 
 Point CRATE at your archive

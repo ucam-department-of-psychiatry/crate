@@ -79,7 +79,7 @@ tree = JavascriptTree(
                 ["value_mmol_L"] + SIMPLE_NUMERIC_COLUMNS
             )),
             JavascriptLeafNode("Urea", nlp_url(
-                "urea", "Urea (U)",
+                "urea", "Urea",
                 ["value_mmol_L"] + SIMPLE_NUMERIC_COLUMNS
             )),
             JavascriptLeafNode("Creatinine", nlp_url(
