@@ -170,39 +170,8 @@ Point CRATE at your archive
 See the relevant section of the :ref:`web config file <webconfig_archive>`.
 
 
-Design notes
-~~~~~~~~~~~~
-
-- HTML templates, written locally, stored on disk in a user-defined directory.
-
-  - Any template engine would be reasonable, but the two obvious candidates are
-
-    - Django_, because we use that for the CRATE web front end (but the
-      template language is somewhat restricted);
-    - Mako_, because the templates can include arbitrary Python, and because
-      Django/Mako interoperability is possible (including via
-      Django-Mako-Plus_ but also directly).
-    - `Other template engines`_, but nothing is particularly compelling over
-      those two.
-
-    Let's use Mako.
-
-- A structure that is configurable by the local administrator (stored in a
-  config file, a database, or on disk), mapping the templates.
-
-  The best is probably to specify a single template as the root template in
-  the config file.
-
-- A URL system to produce requests to other parts of the archive, with
-  arbitrary parameters via HTTP GET URL parameters.
-
-- Pre-population of the template dictionary with useful objects (but not those
-  that take much time to create). See
-  :func:`crate_anon.crateweb.research.views.archive_view`.
-
-
 Examples
-########
+~~~~~~~~
 
 Here's part of the demonstration tree-style archive, with entirely fictional
 data (and de-identified to boot).
@@ -231,6 +200,40 @@ data (and de-identified to boot).
 
     Another NLP view, this time of drugs found via the :ref:`KCL GATE
     pharmacotherapy <kcl_pharmacotherapy>` app.
+
+
+Design notes
+~~~~~~~~~~~~
+
+2019-08-31:
+
+- HTML templates, written locally, stored on disk in a user-defined directory.
+
+  - Any template engine would be reasonable, but the two obvious candidates are
+
+    - Django_, because we use that for the CRATE web front end (but the
+      template language is somewhat restricted);
+    - Mako_, because the templates can include arbitrary Python, and because
+      Django/Mako interoperability is possible (including via
+      Django-Mako-Plus_ but also directly).
+    - `Other template engines`_, but nothing is particularly compelling over
+      those two.
+
+    Let's use Mako.
+
+- A structure that is configurable by the local administrator (stored in a
+  config file, a database, or on disk), mapping the templates.
+
+  The best is probably to specify a single template as the root template in
+  the config file.
+
+- A URL system to produce requests to other parts of the archive, with
+  arbitrary parameters via HTTP GET URL parameters.
+
+- Pre-population of the template dictionary with useful objects (but not those
+  that take much time to create). See
+  :func:`crate_anon.crateweb.research.views.archive_template`.
+
 
 
 .. todo:: archive: consider Windows authentication to Django
