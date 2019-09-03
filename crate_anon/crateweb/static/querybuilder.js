@@ -1,4 +1,30 @@
 /*
+
+crate_anon/crateweb/static/querybuilder.js
+
+===============================================================================
+
+    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
+===============================================================================
+
+Javascript to help research users build SQL queries.
+
 -   The Document Object Model (DOM) is built in. So is Javascript.
     Libraries like jQuery aren't.
     Using Javascript to talk to the DOM:
@@ -21,7 +47,8 @@
     Not equals: <> in ANSI SQL, but != is supported by MySQL and clearer.
 
 */
-    // QB_DATATYPE_* values must match crate_anon.common.sql.py
+
+// QB_DATATYPE_* values must match crate_anon/common/sql.py
 var QB_DATATYPE_DATE = "date",
     QB_DATATYPE_FLOAT = "float",
     QB_DATATYPE_INTEGER = "int",

@@ -1,5 +1,31 @@
 ## -*- coding: utf-8 -*-
-## crate_anon/crateweb/specimen_archives/tree/panels/nlp.mako
+<%doc>
+
+crate_anon/crateweb/specimen_archives/tree/panels/nlp.mako
+
+===============================================================================
+
+    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
+===============================================================================
+
+</%doc>
+
 <%inherit file="../base.mako"/>
 <%!
 
@@ -185,6 +211,24 @@ tree = JavascriptTree(
                 ["value_mm_h"] + SIMPLE_NUMERIC_COLUMNS
             )),
         ]),
+        JavascriptBranchNode("Pathology", [
+            JavascriptLeafNode("KConnect diseases", nlp_url(
+                "kconnect_diseases", "Diseases (via KConnect/BioYODIE app)",
+                [
+                    "pref",
+                    "negation",
+                    "experiencer",
+                    "temporality",
+                    "inst",
+                ]
+            )),
+            JavascriptLeafNode("KCL Lewy body dementia", nlp_url(
+                "lewy_body_dementia_gate", "Lewy body dementia (LBD, DLB) (via KCL GATE app)",
+                [
+                    "rule", "text",
+                ]
+            )),
+        ]),
         JavascriptBranchNode("Pharmacy", [
             JavascriptLeafNode("KCL/GATE drugs", nlp_url(
                 "medications_gate", "Drugs (via KCL/GATE pharmacotherapy app)",
@@ -203,24 +247,6 @@ tree = JavascriptTree(
                     "form", "strength", "dose_amount", "route",
                     "frequency", "duration", "necessity",
                     "sentence_text",
-                ]
-            )),
-        ]),
-        JavascriptBranchNode("Pathology", [
-            JavascriptLeafNode("KConnect diseases", nlp_url(
-                "kconnect_diseases", "Diseases (via KConnect/BioYODIE app)",
-                [
-                    "pref",
-                    "negation",
-                    "experiencer",
-                    "temporality",
-                    "inst",
-                ]
-            )),
-            JavascriptLeafNode("KCL Lewy body dementia", nlp_url(
-                "lewy_body_dementia_gate", "Lewy body dementia (LBD, DBL) (via KCL GATE app)",
-                [
-                    "rule", "text",
                 ]
             )),
         ]),

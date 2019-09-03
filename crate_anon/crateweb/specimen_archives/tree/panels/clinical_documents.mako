@@ -1,8 +1,29 @@
 ## -*- coding: utf-8 -*-
-## crate_anon/crateweb/specimen_archives/tree/panels/clinical_documents.mako
-<%inherit file="../base.mako"/>
-
 <%doc>
+
+crate_anon/crateweb/specimen_archives/tree/panels/clinical_documents.mako
+
+===============================================================================
+
+    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
+===============================================================================
+
 I tried this with
 
     <%inherit file="../snippets/subtree_page.mako"/>
@@ -37,6 +58,8 @@ is separate from e.g. "def render_tree_id()", "def render_treepage_title()".
 So we need to use an "inclusion" or a "namespace" method instead.
 
 </%doc>
+
+<%inherit file="../base.mako"/>
 
 <%!
 
