@@ -100,3 +100,180 @@ class ClinicalDatabaseType(object):
         (CPFT_RIO_DATAMART,
          'CPFT RiO 2013- (data warehouse processed version)'),
     )
+
+
+# Special URL for a situation not amenable to reverse():
+DOWNLOAD_PRIVATESTORAGE_URL_STEM = "download_privatestorage"
+
+
+class UrlNames(object):
+    r"""
+    Strings used as Django names for CRATE views; see
+    :mod:`crate_anon.crateweb.config.urls`.
+
+    We should use this lookup method throughout the Python code, e.g. for calls
+    to :func:`reverse` and :func:`redirect`.
+
+    We could also use them in the templates, rather than using hard-coded
+    strings. We can do that via our common context,
+    :func:`crate_anon.crateweb.core.context_processors.common_context`.
+    However, the (runtime) failure message then becomes e.g.
+
+    .. code-block:: none
+
+        Reverse for '' not found. '' is not a valid view function or pattern
+        name.
+
+    rather than the more informative
+
+    .. code-block:: none
+
+        Reverse for 'ridlookup2' not found. 'ridlookup2' is not a valid view
+        function or pattern name.
+
+    ... so probably best not to (there is also no PyCharm checking of the
+    Django context).
+    """
+    # Login, auth
+    LOGIN = "login"
+    LOGOUT = "logout"
+    PASSWORD_CHANGE = "password_change"
+
+    # Home, about
+    HOME = "home"
+    ABOUT = "about"
+
+    # Main query views
+    BUILD_QUERY = "build_query"
+    QUERY = "query"
+    ACTIVATE_QUERY = "activate_query"
+    DELETE_QUERY = "delete_query"
+    HIGHLIGHT = "highlight"
+    ACTIVATE_HIGHLIGHT = "activate_highlight"
+    DEACTIVATE_HIGHLIGHT = "deactivate_highlight"
+    DELETE_HIGHLIGHT = "delete_highlight"
+    COUNT = "count"
+    RESULTS = "results"
+    RESULTS_RECORDWISE = "results_recordwise"
+    TSV = "tsv"
+    QUERY_EXCEL = "query_excel"
+    SITEWIDE_QUERIES = "sitewide_queries"
+    DELETE_SITEWIDE_QUERY = "delete_sitewide_query"
+    STANDARD_QUERIES = "standard_queries"
+    PROCESS_STANDARD_QUERY = "process_standard_query"
+    EDIT_DISPLAY = "edit_display"
+    SAVE_DISPLAY = "save_display"
+    SHOW_QUERY = "show_query"
+    SRCINFO = "srcinfo"
+
+    # Patient Explorer views
+    PE_BUILD = "pe_build"
+    PE_CHOOSE = "pe_choose"
+    PE_ACTIVATE = "pe_activate"
+    PE_EDIT = "pe_edit"
+    PE_DELETE = "pe_delete"
+    PE_RESULTS = "pe_results"
+    PE_EXCEL = "pe_excel"
+    PE_DF_RESULTS = "pe_df_results"
+    PE_DF_EXCEL = "pe_df_excel"
+    PE_MONSTER_RESULTS = "pe_monster_results"
+    PE_TABLE_BROWSER = "pe_table_browser"
+    PE_ONE_TABLE = "pe_one_table"
+
+    # Structure
+    STRUCTURE_TABLE_LONG = "structure_table_long"
+    STRUCTURE_TABLE_PAGINATED = "structure_table_paginated"
+    STRUCTURE_TREE = "structure_tree"
+    STRUCTURE_TSV = "structure_tsv"
+    STRUCTURE_EXCEL = "structure_excel"
+    STRUCTURE_HELP = "structure_help"
+
+    # SQL helpers
+    SQLHELPER_TEXT_ANYWHERE = "sqlhelper_text_anywhere"
+    SQLHELPER_TEXT_ANYWHERE_WITH_DB = "sqlhelper_text_anywhere_with_db"
+    SQLHELPER_DRUG_TYPE = "sqlhelper_drug_type"
+    SQLHELPER_DRUG_TYPE_WITH_DB = "sqlhelper_drug_type_with_db"
+
+    # Consent for contact
+    SUBMIT_CONTACT_REQUEST = "submit_contact_request"
+
+    # Clinician views
+    ALL_TEXT_FROM_PID = "all_text_from_pid"
+    ALL_TEXT_FROM_PID_WITH_DB = "all_text_from_pid_with_db"
+    CLINICIAN_CONTACT_REQUEST = "clinician_contact_request"
+
+    # Archive views
+    SELECT_PATIENT_FOR_ARCHIVE = "select_patient_for_archive"
+    LAUNCH_ARCHIVE = "launch_archive"
+    ARCHIVE_TEMPLATE = "archive_template"
+    ARCHIVE_ATTACHMENT = "archive_attachment"
+    ARCHIVE_STATIC = "archive_static"
+
+    # Look up PID/RID
+    PIDLOOKUP = "pidlookup"
+    PIDLOOKUP_WITH_DB = "pidlookup_with_db"
+    RIDLOOKUP = "ridlookup"
+    RIDLOOKUP_WITH_DB = "ridlookup_with_db"
+
+    # User profile
+    EDIT_PROFILE = "edit_profile"
+
+    # Superuser
+    DOWNLOAD_PRIVATESTORAGE = "download_privatestorage"
+    CHARITY_REPORT = "charity_report"
+    EXCLUSION_REPORT = "exclusion_report"
+    TEST_EMAIL_RDBM = "test_email_rdbm"
+
+    # Public views
+    STUDY_DETAILS = "study_details"
+    STUDY_FORM = "study_form"
+    STUDY_PACK = "study_pack"
+    LEAFLET = "leaflet"
+
+    # Restricted C4C views for clinicians
+    CLINICIAN_RESPONSE = "clinician_response"
+    CLINICIAN_PACK = "clinician_pack"
+
+    # Restricted views; superuser + researchers
+    VIEW_EMAIL_HTML = "view_email_html"
+    VIEW_EMAIL_ATTACHMENT = "view_email_attachment"
+    LETTER = "letter"
+
+    # Developer functions and test views
+    GENERATE_RANDOM_NHS = "generate_random_nhs"
+    TEST_PATIENT_LOOKUP = "test_patient_lookup"
+    TEST_CONSENT_LOOKUP = "test_consent_lookup"
+    DRAFT_CLINICIAN_EMAIL = "draft_clinician_email"
+    DRAFT_APPROVAL_EMAIL = "draft_approval_email"
+    DRAFT_WITHDRAWAL_EMAIL = "draft_withdrawal_email"
+    DRAFT_APPROVAL_LETTER = "draft_approval_letter"
+    DRAFT_WITHDRAWAL_LETTER = "draft_withdrawal_letter"
+    DRAFT_FIRST_TRAFFIC_LIGHT_LETTER = "draft_first_traffic_light_letter"
+    DRAFT_LETTER_CLINICIAN_TO_PT_RE_STUDY = "draft_letter_clinician_to_pt_re_study"  # noqa
+    DECISION_FORM_TO_PT_RE_STUDY = "decision_form_to_pt_re_study"
+    DRAFT_CONFIRM_TRAFFIC_LIGHT_LETTER = "draft_confirm_traffic_light_letter"
+    DRAFT_TRAFFIC_LIGHT_DECISION_FORM = "draft_traffic_light_decision_form"
+
+
+class AdminSiteNames(object):
+    DEVADMIN = "devadmin"
+    MGRADMIN = "mgradmin"
+    RESADMIN = "resadmin"
+
+
+class UrlKeys(object):
+    """
+    Keys used in GET parameters as part of a query string:
+    ```...path?a=1&b=2``, etc.
+    """
+    # Generic
+    NEXT = "next"  # must match django.contrib.auth.REDIRECT_FIELD_NAME
+
+    # Archive system:
+    CONTENT_TYPE = "content_type"
+    FILENAME = "filename"
+    GUESS_CONTENT_TYPE = "guess_content_type"  # 0 or 1
+    MTIME = "mtime"  # file modification time, from os.path.getmtime()
+    PATIENT_ID = "patient_id"
+    OFFERED_FILENAME = "offered_filename"
+    TEMPLATE = "template"

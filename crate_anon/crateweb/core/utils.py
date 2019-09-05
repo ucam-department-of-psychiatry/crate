@@ -198,7 +198,7 @@ def site_absolute_url(path: str) -> str:
 
         url = site_absolute_url(static('red.png'))
             # ... determined in part by STATIC_URL.
-        url = site_absolute_url(reverse('clinician_response', args=[self.id]))
+        url = site_absolute_url(reverse(UrlNames.CLINICIAN_RESPONSE, args=[self.id]))
             # ... determined by SCRIPT_NAME or FORCE_SCRIPT_NAME
             # ... which is context-dependent: see below
 
@@ -209,15 +209,15 @@ def site_absolute_url(path: str) -> str:
 
     See also:
 
-    - http://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object  # noqa
-    - https://fragmentsofcode.wordpress.com/2009/02/24/django-fully-qualified-url/  # noqa
+    - http://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object
+    - https://fragmentsofcode.wordpress.com/2009/02/24/django-fully-qualified-url/
 
     **IMPORTANT**
 
     BEWARE: :func:`reverse` will produce something different inside a request
     and outside it.
 
-    - http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell  # noqa
+    - http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell
 
     So the only moderately clean way of doing this is to do this in the Celery
     backend jobs, for anything that uses Django URLs (e.g. :func:`reverse`) --
@@ -232,7 +232,7 @@ def site_absolute_url(path: str) -> str:
 
     But that does at least mean we can use the same method for static and
     Django URLs.
-    """
+    """  # noqa
     url = settings.DJANGO_SITE_ROOT_ABSOLUTE_URL + path
     log.debug(f"site_absolute_url: {path} -> {url}")
     return url

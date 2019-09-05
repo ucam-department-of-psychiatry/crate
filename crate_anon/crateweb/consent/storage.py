@@ -36,6 +36,10 @@ from django.utils.encoding import filepath_to_uri
 # noinspection PyUnresolvedReferences
 from django.utils.six.moves.urllib.parse import urljoin
 
+from crate_anon.crateweb.config.constants import (
+    DOWNLOAD_PRIVATESTORAGE_URL_STEM,
+)
+
 log = logging.getLogger(__name__)
 
 
@@ -82,7 +86,7 @@ class CustomFileSystemStorage(FileSystemStorage):
 
 privatestorage = CustomFileSystemStorage(
     location=settings.PRIVATE_FILE_STORAGE_ROOT,
-    base_url='download_privatestorage',  # NB must match urls.py
+    base_url=DOWNLOAD_PRIVATESTORAGE_URL_STEM,  # NB must match urls.py
 )
 
 

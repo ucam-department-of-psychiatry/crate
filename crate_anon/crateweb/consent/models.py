@@ -2629,7 +2629,7 @@ class ClinicianResponse(models.Model):
 
         This is used in the e-mail to the clinician.
         """
-        rev = reverse('clinician_response', args=[self.id])
+        rev = reverse(UrlNames.CLINICIAN_RESPONSE, args=[self.id])
         url = site_absolute_url(rev)
         return url
 

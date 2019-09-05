@@ -35,6 +35,7 @@ from cardinal_pythonlib.httpconst import ContentType
 from cardinal_pythonlib.logs import BraceStyleAdapter
 from django.urls import reverse
 
+from crate_anon.crateweb.config.constants import UrlNames
 from crate_anon.crateweb.core.utils import (
     guess_mimetype,
     url_with_querystring,
@@ -133,7 +134,7 @@ def nlp_source_url(row: List[Any]) -> str:
     Args:
         row: result row
     """
-    return reverse('srcinfo', kwargs={
+    return reverse(UrlNames.SRCINFO, kwargs={
         'srcdb': row[-6],
         'srctable': row[-5],
         'srcfield': row[-4],

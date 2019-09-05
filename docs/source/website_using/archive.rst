@@ -139,7 +139,8 @@ The special objects provided by CRATE are:
 
     get_template_url(template_name, **kwargs)
 
-  You can pass any keyword parameters except ``template`` and ``mtime`` (see
+  You can pass any keyword parameters except ``patient_id``, ``template``, and
+  ``mtime`` (see
   :class:`crate_anon.crateweb.research.archive_backend.ArchiveUrlKeys`).
 
 - ``patient_id``:

@@ -40,7 +40,10 @@ import logging
 import os
 
 from crate_anon.common.constants import RUNNING_WITHOUT_CONFIG
-from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
+from crate_anon.crateweb.config.constants import (
+    CRATEWEB_CONFIG_ENV_VAR,
+    UrlNames,
+)
 
 # http://stackoverflow.com/questions/2636536/how-to-make-django-work-with-unsupported-mysql-drivers-such-as-gevent-mysql-or-c  # noqa
 try:
@@ -129,7 +132,7 @@ CELERY_RESULT_BACKEND = "rpc://"  # uses AMQP
 CELERY_RESULT_PERSISTENT = False
 
 LOGIN_URL = '/login/'  # for LoginRequiredMiddleware
-LOGIN_VIEW_NAME = 'login'  # for LoginRequiredMiddleware
+LOGIN_VIEW_NAME = UrlNames.LOGIN  # for LoginRequiredMiddleware
 LOGIN_EXEMPT_URLS = []  # for LoginRequiredMiddleware
 
 ROOT_URLCONF = 'crate_anon.crateweb.config.urls'

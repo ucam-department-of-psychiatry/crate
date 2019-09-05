@@ -43,6 +43,7 @@ from django.http.response import (
 from django.urls import reverse
 from mako.lookup import TemplateLookup
 
+from crate_anon.crateweb.config.constants import UrlNames, UrlKeys
 from crate_anon.crateweb.core.utils import url_with_querystring
 from crate_anon.crateweb.core.constants import SettingsKeys
 from crate_anon.crateweb.research.models import (
@@ -73,19 +74,6 @@ class ArchiveContextKeys(object):
     patient_id = "patient_id"
     query_params = "query_params"
     request = "request"
-
-
-class ArchiveUrlKeys(object):
-    """
-    URL parameter keys used by the archive system.
-    These are things, typically, that may contain ``/`` characters.
-    """
-    CONTENT_TYPE = "content_type"
-    FILENAME = "filename"
-    GUESS_CONTENT_TYPE = "guess_content_type"  # 0 or 1
-    MTIME = "mtime"  # file modification time, from os.path.getmtime()
-    OFFERED_FILENAME = "offered_filename"
-    TEMPLATE = "template"
 
 
 # For attachments: default for guess_content_type
@@ -293,7 +281,7 @@ def add_file_timestamp_to_url_query(filepath: str,
         log.error(
             f"add_file_timestamp_to_url_query: nonexistent file {filepath!r}")
         return
-    qparams[ArchiveUrlKeys.MTIME] = str(getmtime(filepath))
+    qparams[UrlKeys.MTIME] = str(getmtime(filepath))
 
 
 def archive_template_url(patient_id: str, template_name: str, **kwargs) -> str:
@@ -313,15 +301,15 @@ def archive_template_url(patient_id: str, template_name: str, **kwargs) -> str:
 
     """
     kwargs = kwargs or {}  # type: Dict[str, Any]
-    qparams = {ArchiveUrlKeys.TEMPLATE: template_name}
+    qparams = {
+        UrlKeys.PATIENT_ID: patient_id,
+        UrlKeys.TEMPLATE: template_name,
+    }
     qparams.update(kwargs)
     # log.critical("qparams: {!r}", qparams)
     filepath = get_template_filepath(template_name)
     add_file_timestamp_to_url_query(filepath, qparams)
-    return url_with_querystring(
-        reverse("archive_template", args=[patient_id]),
-        **qparams
-    )
+    return url_with_querystring(reverse(UrlNames.ARCHIVE_TEMPLATE), **qparams)
 
 
 def archive_root_url(patient_id: str) -> str:
@@ -358,19 +346,20 @@ def archive_attachment_url(
             if no content_type is specified, should we guess? Pass
             ``None`` for the default, :data:`DEFAULT_GUESS_CONTENT_TYPE`.
     """  # noqa
-    qparams = {ArchiveUrlKeys.FILENAME: filename}
+    qparams = {
+        UrlKeys.PATIENT_ID: patient_id,
+        UrlKeys.FILENAME: filename,
+    }
     if content_type:
-        qparams[ArchiveUrlKeys.CONTENT_TYPE] = content_type
+        qparams[UrlKeys.CONTENT_TYPE] = content_type
     if offered_filename:
-        qparams[ArchiveUrlKeys.OFFERED_FILENAME] = offered_filename
+        qparams[UrlKeys.OFFERED_FILENAME] = offered_filename
     if guess_content_type is not None:
-        qparams[ArchiveUrlKeys.GUESS_CONTENT_TYPE] = int(guess_content_type)
+        qparams[UrlKeys.GUESS_CONTENT_TYPE] = int(guess_content_type)
     filepath = get_attachment_filepath(filename)
     add_file_timestamp_to_url_query(filepath, qparams)
     return url_with_querystring(
-        reverse("archive_attachment", args=[patient_id]),
-        **qparams
-    )
+        reverse(UrlNames.ARCHIVE_ATTACHMENT), **qparams)
 
 
 def archive_static_url(filename: str) -> str:
@@ -381,7 +370,7 @@ def archive_static_url(filename: str) -> str:
         filename:
             filename on disk, within the archive's static directory 
     """  # noqa
-    qparams = {ArchiveUrlKeys.FILENAME: filename}
+    qparams = {UrlKeys.FILENAME: filename}
     filepath = get_static_filepath(filename)
     add_file_timestamp_to_url_query(filepath, qparams)
-    return url_with_querystring(reverse("archive_static"), **qparams)
+    return url_with_querystring(reverse(UrlNames.ARCHIVE_STATIC), **qparams)

@@ -59,6 +59,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy
 
+from crate_anon.crateweb.config.constants import UrlNames, AdminSiteNames
 from crate_anon.crateweb.consent.forms import TeamRepAdminForm
 from crate_anon.crateweb.consent.models import (
     CharityPaymentRecord,
@@ -321,7 +322,7 @@ class LeafletResAdmin(AllStaffReadOnlyModelAdmin):
         if not obj.pdf:
             return "(Missing)"
         return mark_safe('<a href="{}">PDF</a>'.format(
-            reverse("leaflet", args=[obj.name])))
+            reverse(UrlNames.LEAFLET, args=[obj.name])))
     get_pdf.short_description = "Leaflet PDF"
 
 
@@ -380,7 +381,7 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
     # Anyway, premature optimization is the root of all evil, and all that.
 
     def get_view_msg_html(self, obj: Email) -> str:
-        url = reverse('view_email_html', args=[obj.id])
+        url = reverse(UrlNames.VIEW_EMAIL_HTML, args=[obj.id])
         return mark_safe(
             '<a href="{}">View HTML message</a> ({} bytes)'.format(
                 url, len(obj.msg_html)))
@@ -398,7 +399,8 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
                     '({} bytes), sent as <b>{}</b></a><br>'
                 ).format(
                     i + 1,
-                    reverse('view_email_attachment', args=[attachment.id]),
+                    reverse(UrlNames.VIEW_EMAIL_ATTACHMENT,
+                            args=[attachment.id]),
                     attachment.file,
                     attachment.size(),
                     attachment.sent_filename,
@@ -632,9 +634,9 @@ class PatientLookupDevAdmin(ReadOnlyModelAdmin):
                 <a href="{}">Draft letter to patient re first traffic-light
                     choice (as PDF)</a>
             '''.format(
-                reverse('draft_first_traffic_light_letter',
+                reverse(UrlNames.DRAFT_FIRST_TRAFFIC_LIGHT_LETTER,
                         args=[obj.id, "html"]),
-                reverse('draft_first_traffic_light_letter',
+                reverse(UrlNames.DRAFT_FIRST_TRAFFIC_LIGHT_LETTER,
                         args=[obj.id, "pdf"]),
             )
         )
@@ -802,9 +804,9 @@ class ConsentModeDevAdmin(ReadOnlyModelAdmin):
                 <a href="{}">Draft letter to patient confirming traffic-light
                     choice (as PDF)</a>
             '''.format(
-                reverse('draft_confirm_traffic_light_letter',
+                reverse(UrlNames.DRAFT_CONFIRM_TRAFFIC_LIGHT_LETTER,
                         args=[obj.id, "html"]),
-                reverse('draft_confirm_traffic_light_letter',
+                reverse(UrlNames.DRAFT_CONFIRM_TRAFFIC_LIGHT_LETTER,
                         args=[obj.id, "pdf"]),
             )
         )
@@ -1041,21 +1043,21 @@ class ContactRequestDevAdmin(ContactRequestMgrAdmin):
             <a href="{}">Draft withdrawal letter to researcher (PDF)</a><br>
             <a href="{}">Draft withdrawal covering e-mail to researcher</a>
         '''.format(
-            reverse('draft_clinician_email', args=[obj.id]),
-            reverse('draft_letter_clinician_to_pt_re_study',
+            reverse(UrlNames.DRAFT_CLINICIAN_EMAIL, args=[obj.id]),
+            reverse(UrlNames.DRAFT_LETTER_CLINICIAN_TO_PT_RE_STUDY,
                     args=[obj.id, "html"]),
-            reverse('draft_letter_clinician_to_pt_re_study',
+            reverse(UrlNames.DRAFT_LETTER_CLINICIAN_TO_PT_RE_STUDY,
                     args=[obj.id, "pdf"]),
-            reverse('decision_form_to_pt_re_study',
+            reverse(UrlNames.DECISION_FORM_TO_PT_RE_STUDY,
                     args=[obj.id, "html"]),
-            reverse('decision_form_to_pt_re_study',
+            reverse(UrlNames.DECISION_FORM_TO_PT_RE_STUDY,
                     args=[obj.id, "pdf"]),
-            reverse('draft_approval_letter', args=[obj.id, "html"]),
-            reverse('draft_approval_letter', args=[obj.id, "pdf"]),
-            reverse('draft_approval_email', args=[obj.id]),
-            reverse('draft_withdrawal_letter', args=[obj.id, "html"]),
-            reverse('draft_withdrawal_letter', args=[obj.id, "pdf"]),
-            reverse('draft_withdrawal_email', args=[obj.id]),
+            reverse(UrlNames.DRAFT_APPROVAL_LETTER, args=[obj.id, "html"]),
+            reverse(UrlNames.DRAFT_APPROVAL_LETTER, args=[obj.id, "pdf"]),
+            reverse(UrlNames.DRAFT_APPROVAL_EMAIL, args=[obj.id]),
+            reverse(UrlNames.DRAFT_WITHDRAWAL_LETTER, args=[obj.id, "html"]),
+            reverse(UrlNames.DRAFT_WITHDRAWAL_LETTER, args=[obj.id, "pdf"]),
+            reverse(UrlNames.DRAFT_WITHDRAWAL_EMAIL, args=[obj.id]),
         )
         return mark_safe(html)
     get_test_views.short_description = "Test views"
@@ -1300,7 +1302,7 @@ class LetterResAdmin(LetterDevAdmin):
         if not obj.pdf:
             return "(Missing)"
         return mark_safe('<a href="{}">PDF</a>'.format(
-            reverse("letter", args=[obj.id])))
+            reverse(UrlNames.LETTER, args=[obj.id])))
     get_pdf.short_description = "Letter PDF"
 
 
@@ -1402,7 +1404,7 @@ class MgrAdminSite(admin.AdminSite):
     app_index_template = 'admin/viewchange_admin_app_index.html'
 
 
-mgr_admin_site = MgrAdminSite(name="mgradmin")
+mgr_admin_site = MgrAdminSite(name=AdminSiteNames.MGRADMIN)
 mgr_admin_site.disable_action('delete_selected')
 # ... particularly for e-mail where we manually specify a bulk action (resend)
 # https://docs.djangoproject.com/en/1.8/ref/contrib/admin/actions/
@@ -1442,7 +1444,7 @@ class DevAdminSite(admin.AdminSite):
     app_index_template = 'admin/viewchange_admin_app_index.html'
 
 
-dev_admin_site = DevAdminSite(name="devadmin")
+dev_admin_site = DevAdminSite(name=AdminSiteNames.DEVADMIN)
 dev_admin_site.disable_action('delete_selected')
 # Where no specific DevAdmin version exists, use the MgrAdmin
 dev_admin_site.register(ArchiveAttachmentAudit, ArchiveAttachmentAuditMgrAdmin)
@@ -1482,7 +1484,7 @@ class ResearcherAdminSite(admin.AdminSite):
     app_index_template = 'admin/viewchange_admin_app_index.html'
 
 
-res_admin_site = ResearcherAdminSite(name="resadmin")
+res_admin_site = ResearcherAdminSite(name=AdminSiteNames.RESADMIN)
 res_admin_site.disable_action('delete_selected')
 res_admin_site.register(Study, StudyResAdmin)
 res_admin_site.register(Leaflet, LeafletResAdmin)

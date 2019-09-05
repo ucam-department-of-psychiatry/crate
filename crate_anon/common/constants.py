@@ -80,6 +80,9 @@ class HelpUrl(object):
     i.e. further brackets are unnecessary (and an error). See:
     
     - https://docs.djangoproject.com/en/2.2/topics/templates/#variables
+    
+    ... "If a variable resolves to a callable, the template system will call it
+    with no arguments and use its result instead of the callable."
 
     """  # noqa
 

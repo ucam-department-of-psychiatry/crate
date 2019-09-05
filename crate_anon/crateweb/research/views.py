@@ -81,6 +81,7 @@ from crate_anon.common.sql import (
     toggle_distinct,
     WhereCondition,
 )
+from crate_anon.crateweb.config.constants import UrlNames, UrlKeys
 from crate_anon.crateweb.core.utils import (
     guess_mimetype,
     is_clinician,
@@ -96,7 +97,6 @@ from crate_anon.crateweb.research.archive_backend import (
     archive_static_url,
     archive_template_url,
     ArchiveContextKeys,
-    ArchiveUrlKeys,
     audit_archive_template,
     audit_archive_attachment,
     CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS,
@@ -773,11 +773,11 @@ def query_submit(request: HttpRequest,
         query_id = query.id
     # redirect to a new URL:
     if run:
-        return redirect('results', query_id)
+        return redirect(UrlNames.RESULTS, query_id)
     elif filter_display:
-        return redirect('edit_display', query_id)
+        return redirect(UrlNames.EDIT_DISPLAY, query_id)
     else:
-        return redirect('query')
+        return redirect(UrlNames.QUERY)
 
 
 def show_query(request: HttpRequest, query_id: str) -> HttpResponse:
@@ -821,7 +821,7 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
                 profile = request.user.profile  # type: UserProfile
                 profile.sql_scratchpad = sql
                 profile.save()
-                return redirect('build_query')
+                return redirect(UrlNames.BUILD_QUERY)
             elif cmd_filter:
                 # If filtering, also add the query
                 return query_submit(request, sql, filter_display=True)
@@ -959,7 +959,7 @@ def query_activate(request: HttpRequest, query_id: str) -> HttpResponse:
     validate_blank_form(request)
     query = get_object_or_404(Query, id=query_id)  # type: Query
     query.activate()
-    return redirect('query')
+    return redirect(UrlNames.QUERY)
 
 
 def query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
@@ -978,7 +978,7 @@ def query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
     validate_blank_form(request)
     query = get_object_or_404(Query, id=query_id)  # type: Query
     query.delete_if_permitted()
-    return redirect('query')
+    return redirect(UrlNames.QUERY)
 
 
 @user_passes_test(is_superuser)
@@ -1008,7 +1008,7 @@ def sitewide_query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
     validate_blank_form(request)
     query = get_object_or_404(SitewideQuery, id=query_id)  # type: SitewideQuery  # noqa
     query.delete()
-    return redirect('sitewide_queries')
+    return redirect(UrlNames.SITEWIDE_QUERIES)
 
 
 def sitewide_query_process(request: HttpRequest, query_id: str) -> HttpResponse:
@@ -1045,7 +1045,7 @@ def sitewide_query_process(request: HttpRequest, query_id: str) -> HttpResponse:
                 sql += replacement
         return query_submit(request, sql, run=cmd_run)
     else:
-        return redirect('standard_queries')
+        return redirect(UrlNames.STANDARD_QUERIES)
 
 
 def no_query_selected(request: HttpRequest) -> HttpResponse:
@@ -1563,7 +1563,7 @@ def resultset_html_table(fieldnames: List[str],
         # If it's an NLP table, add link to source info
         if nlptable:
             # noinspection PyUnboundLocalVariable
-            source_url = reverse('srcinfo', kwargs={
+            source_url = reverse(UrlNames.SRCINFO, kwargs={
                 'srcdb': row[srcdb_ind],
                 'srctable': row[srctable_ind],
                 'srcfield': row[srcfield_ind],
@@ -1915,7 +1915,7 @@ def highlight_edit_select(request: HttpRequest) -> HttpResponse:
                 highlight = Highlight(colour=colour, text=text,
                                       user=request.user, active=True)
                 highlight.save()
-            return redirect('highlight')
+            return redirect(UrlNames.HIGHLIGHT)
 
     values = {'colour': 0}
     form = AddHighlightForm(values)
@@ -1951,7 +1951,7 @@ def highlight_activate(request: HttpRequest,
     validate_blank_form(request)
     highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
     highlight.activate()
-    return redirect('highlight')
+    return redirect(UrlNames.HIGHLIGHT)
 
 
 def highlight_deactivate(request: HttpRequest,
@@ -1970,7 +1970,7 @@ def highlight_deactivate(request: HttpRequest,
     validate_blank_form(request)
     highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
     highlight.deactivate()
-    return redirect('highlight')
+    return redirect(UrlNames.HIGHLIGHT)
 
 
 def highlight_delete(request: HttpRequest,
@@ -1989,7 +1989,7 @@ def highlight_delete(request: HttpRequest,
     validate_blank_form(request)
     highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
     highlight.delete()
-    return redirect('highlight')
+    return redirect(UrlNames.HIGHLIGHT)
 
 
 # def render_bad_highlight_id(request, highlight_id):
@@ -2869,7 +2869,7 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
     if research_database_info.single_research_db:
         dbname = research_database_info.first_dbinfo.name
         return HttpResponseRedirect(
-            reverse('sqlhelper_text_anywhere_with_db', args=[dbname])
+            reverse(UrlNames.SQLHELPER_TEXT_ANYWHERE_WITH_DB, args=[dbname])
         )
     else:
         form = DatabasePickerForm(request.POST or None,
@@ -2877,7 +2877,7 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             dbname = form.cleaned_data['database']
             return HttpResponseRedirect(
-                reverse('sqlhelper_text_anywhere_with_db', args=[dbname])
+                reverse(UrlNames.SQLHELPER_TEXT_ANYWHERE_WITH_DB, args=[dbname])
             )
         return render(request, 'sqlhelper_form_text_anywhere_choose_db.html',
                       {'form': form})
@@ -2930,7 +2930,7 @@ def sqlhelper_drug_type(request: HttpRequest) -> HttpResponse:
     if research_database_info.single_research_db:
         dbname = research_database_info.first_dbinfo.name
         return HttpResponseRedirect(
-            reverse('sqlhelper_drug_type_with_db', args=[dbname])
+            reverse(UrlNames.SQLHELPER_DRUG_TYPE_WITH_DB, args=[dbname])
         )
     else:
         form = DatabasePickerForm(request.POST or None,
@@ -2938,7 +2938,7 @@ def sqlhelper_drug_type(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             dbname = form.cleaned_data['database']
             return HttpResponseRedirect(
-                reverse('sqlhelper_drug_type_with_db', args=[dbname])
+                reverse(UrlNames.SQLHELPER_DRUG_TYPE_WITH_DB, args=[dbname])
             )
         return render(request, 'sqlhelper_form_drug_type_choose_db.html',
                       {'form': form})
@@ -2996,14 +2996,14 @@ def all_text_from_pid(request: HttpRequest) -> HttpResponse:
     elif n == 1:
         dbname = dbinfolist[0].name
         return HttpResponseRedirect(
-            reverse('all_text_from_pid_with_db', args=[dbname])
+            reverse(UrlNames.ALL_TEXT_FROM_PID_WITH_DB, args=[dbname])
         )
     else:
         form = DatabasePickerForm(request.POST or None, dbinfolist=dbinfolist)
         if form.is_valid():
             dbname = form.cleaned_data['database']
             return HttpResponseRedirect(
-                reverse('all_text_from_pid_with_db', args=[dbname])
+                reverse(UrlNames.ALL_TEXT_FROM_PID_WITH_DB, args=[dbname])
             )
         return render(request,
                       'clinician_form_all_text_from_pid_choose_db.html',
@@ -3252,7 +3252,7 @@ def pe_activate(request: HttpRequest, pe_id: str) -> HttpResponse:
     validate_blank_form(request)
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     pe.activate()
-    return redirect('pe_choose')
+    return redirect(UrlNames.PE_CHOOSE)
 
 
 def pe_delete(request: HttpRequest, pe_id: str) -> HttpResponse:
@@ -3270,7 +3270,7 @@ def pe_delete(request: HttpRequest, pe_id: str) -> HttpResponse:
     validate_blank_form(request)
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     pe.delete_if_permitted()
-    return redirect('pe_choose')
+    return redirect(UrlNames.PE_CHOOSE)
 
 
 def pe_edit(request: HttpRequest, pe_id: str) -> HttpResponse:
@@ -3291,7 +3291,7 @@ def pe_edit(request: HttpRequest, pe_id: str) -> HttpResponse:
     profile = request.user.profile  # type: UserProfile
     profile.patient_multiquery_scratchpad = pe.patient_multiquery
     profile.save()
-    return redirect('pe_build')
+    return redirect(UrlNames.PE_BUILD)
 
 
 def pe_results(request: HttpRequest, pe_id: str) -> HttpResponse:
@@ -3496,9 +3496,9 @@ def pe_submit(request: HttpRequest,
     # log.critical(pprint.pformat(connection.queries))  # show all queries
     # redirect to a new URL:
     if run:
-        return redirect('pe_results', pe_id)
+        return redirect(UrlNames.PE_RESULTS, pe_id)
     else:
-        return redirect('pe_choose')
+        return redirect(UrlNames.PE_CHOOSE)
 
 
 def pe_tsv_zip(request: HttpRequest, pe_id: str) -> HttpResponse:
@@ -3913,16 +3913,13 @@ def launch_archive(request: HttpRequest) -> HttpResponse:
 
 
 @cache_control(private=True, max_age=CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES)
-def archive_template(request: HttpRequest,
-                     patient_id: str) -> HttpResponse:
+def archive_template(request: HttpRequest) -> HttpResponse:
     """
     Provides the views for the configurable "archive" system.
 
     Args:
         request:
             the Django :class:`HttpRequest` object
-        patient_id:
-            patient ID
 
     Returns:
         a Django :class:`HttpResponse`.
@@ -3931,6 +3928,10 @@ def archive_template(request: HttpRequest,
         
     - The archive template name is in ``request.GET``; this allows the use of
       special (e.g. filename) characters.
+      
+    - The patient ID is also in ``request.GET``; this allows the optional use
+      of more complex strings, e.g. JSON, to represent multiple ID numbers for
+      use with several databases.
 
     - Additional arguments are also in ``request.GET``.
 
@@ -3950,11 +3951,17 @@ def archive_template(request: HttpRequest,
         
     - If we use DMP, it will add a ``request.dmp`` object; see 
       http://doconix.github.io/django-mako-plus/topics_variables.html.
+      (We won't use DMP.)
 
     """  # noqa
-    # Get template and other arguments
+    # Get critical GET arguments
     # noinspection PyCallByClass,PyArgumentList
-    template_name = request.GET.get(ArchiveUrlKeys.TEMPLATE)
+    patient_id = request.GET.get(UrlKeys.PATIENT_ID)
+    if not patient_id:
+        return HttpResponseBadRequest("URL arguments must include the key "
+                                      "{ArchiveContextKeys.PATIENT_ID!r}")
+    # noinspection PyCallByClass,PyArgumentList
+    template_name = request.GET.get(UrlKeys.TEMPLATE)
     if not template_name:
         return HttpResponseBadRequest("URL arguments must include the key "
                                       "{ArchiveContextKeys.TEMPLATE!r}")
@@ -4011,8 +4018,7 @@ def archive_template(request: HttpRequest,
 
 @cache_control(private=True,
                max_age=CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS)
-def archive_attachment(request: HttpRequest,
-                       patient_id: str) -> HttpResponseBase:
+def archive_attachment(request: HttpRequest) -> HttpResponseBase:
     """
     Serve a binary file from the archive.
     
@@ -4024,22 +4030,28 @@ def archive_attachment(request: HttpRequest,
     Args:
         request:
             the Django :class:`HttpRequest` object
-        patient_id:
-            patient ID
     """  # noqa
-    # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
-    content_type = request.GET.get(ArchiveUrlKeys.CONTENT_TYPE, None)
     # noinspection PyCallByClass,PyArgumentList
-    filename = request.GET.get(ArchiveUrlKeys.FILENAME)
+    patient_id = request.GET.get(UrlKeys.PATIENT_ID)
+    if not patient_id:
+        return HttpResponseBadRequest("URL arguments must include the key "
+                                      "{ArchiveContextKeys.PATIENT_ID!r}")
+    # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
+    content_type = request.GET.get(UrlKeys.CONTENT_TYPE, None)
+    # noinspection PyCallByClass,PyArgumentList
+    filename = request.GET.get(UrlKeys.FILENAME)
+    if not filename:
+        return HttpResponseBadRequest("URL arguments must include the key "
+                                      "{ArchiveContextKeys.FILENAME!r}")
     # log.debug(f"Archive attachment request: {filename!r}")
     try:
         # noinspection PyArgumentList,PyCallByClass
         guess_content_type = bool(int(
-            request.GET.get(ArchiveUrlKeys.GUESS_CONTENT_TYPE)))
+            request.GET.get(UrlKeys.GUESS_CONTENT_TYPE)))
     except (TypeError, ValueError):
         guess_content_type = DEFAULT_GUESS_CONTENT_TYPE
     # noinspection PyCallByClass,PyTypeChecker
-    offered_filename = request.GET.get(ArchiveUrlKeys.OFFERED_FILENAME, None)
+    offered_filename = request.GET.get(UrlKeys.OFFERED_FILENAME, None)
 
     full_filename = get_attachment_filepath(filename)
     if not full_filename:
@@ -4090,7 +4102,7 @@ def archive_static(request: HttpRequest) -> HttpResponseBase:
             the Django :class:`HttpRequest` object
     """  # noqa
     # noinspection PyCallByClass,PyArgumentList
-    filename = request.GET.get(ArchiveUrlKeys.FILENAME)
+    filename = request.GET.get(UrlKeys.FILENAME)
     # log.debug(f"Archive static request: {filename!r}")
     full_filename = get_static_filepath(filename)
     if not full_filename:

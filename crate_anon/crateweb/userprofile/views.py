@@ -33,6 +33,8 @@ from typing import TYPE_CHECKING
 from django.http.response import HttpResponse
 from django.http.request import HttpRequest
 from django.shortcuts import redirect, render
+
+from crate_anon.crateweb.config.constants import UrlNames
 from crate_anon.crateweb.userprofile.forms import UserProfileForm
 
 if TYPE_CHECKING:
@@ -63,6 +65,6 @@ def edit_profile(request: HttpRequest) -> HttpResponse:
     if form.is_valid():
         profile = form.save()
         profile.save()
-        return redirect('home')
+        return redirect(UrlNames.HOME)
     return render(request, 'edit_profile.html',
                   {'form': form, 'profile': profile})

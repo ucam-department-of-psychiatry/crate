@@ -33,6 +33,7 @@ from django.http import HttpResponse, HttpResponseForbidden, HttpRequest
 from django.urls import reverse
 from django.utils.deprecation import MiddlewareMixin
 
+from crate_anon.crateweb.config.constants import AdminSiteNames
 from crate_anon.crateweb.core.utils import is_developer
 
 
@@ -55,11 +56,11 @@ class RestrictAdminMiddleware(MiddlewareMixin):
                 " MIDDLEWARE_CLASSES setting to insert"
                 " 'django.contrib.auth.middleware.AuthenticationMiddleware'"
                 " before the RestrictDevAdminMiddleware class.")
-        if request.path.startswith(reverse('devadmin:index')):
+        if request.path.startswith(reverse(f"{AdminSiteNames.DEVADMIN}:index")):  # noqa
             if not is_developer(request.user):
                 return HttpResponseForbidden(
                     "Non-developers cannot access the devadmin")
-        if request.path.startswith(reverse('mgradmin:index')):
+        if request.path.startswith(reverse(f"{AdminSiteNames.MGRADMIN}:index")):  # noqa
             if not request.user.is_superuser:
                 return HttpResponseForbidden(
                     "Non-superusers cannot access the mgradmin")

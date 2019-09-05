@@ -59,15 +59,27 @@ def template_element(template_name: str) -> str:
 
 %>
 
+<%namespace name="patient_details" file="snippets/patient_details.mako"/>
 <%namespace name="subtree" file="snippets/subtree.mako"/>
 
 <%
+
+pd = patient_details.get_patient_details()
 
 # Title bar (keep this small!)
 title_bar = f"""
     <div class="title_bar">
         <div>
-            CRATE tree-style archive demo: BRCID <b>{patient_id}</b>.<br>
+            CRATE tree-style archive demo.<br>
+
+            Patient ID: <b>{patient_id}</b>.<br>
+
+            CPFT patient details:<br>
+            Name: <b>{pd.surname.upper() or "?"}, {pd.forename.upper() or "?"}</b><br>
+            NHS# <b>{pd.nhs_number or "?"}</b><br>
+            RiO# <b>{pd.rio_number or "?"}</b><br>
+            CDL# <b>{pd.crs_cdl_number or "?"}</b><br>
+
             [ <a href="{CRATE_HOME_URL}">Return to CRATE home</a>
             | <a href="{HelpUrl.archive()}">Help</a>
             ]

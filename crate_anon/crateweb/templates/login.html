@@ -8,6 +8,7 @@
     <h1>Please log in below.</h1>
 
     {% if next %}
+        {# <p>Onward destination: "{% url 'login' %}?next={{next}}"</p> #}
         <form action="{% url 'login' %}?next={{next}}" method="post" >
     {%else%}
         <form action="{% url 'login' %}" method="post" >
