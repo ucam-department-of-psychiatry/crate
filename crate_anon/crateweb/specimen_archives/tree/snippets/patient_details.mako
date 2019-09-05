@@ -230,7 +230,3 @@ class CPFTPatientDetails(object):
     pd = CPFTPatientDetails(context)
     return pd
 %></%def>
-
-<%def name="testfunc()"><%
-    return 5
-%></%def>
