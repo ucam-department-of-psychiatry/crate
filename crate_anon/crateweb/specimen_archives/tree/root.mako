@@ -74,7 +74,7 @@ title_bar = f"""
 
             Patient ID: <b>{patient_id}</b>.<br>
 
-            CPFT patient details:<br>
+            Imaginary CPFT patient details:<br>
             Name: <b>{pd.surname.upper() or "?"}, {pd.forename.upper() or "?"}</b><br>
             NHS# <b>{pd.nhs_number or "?"}</b><br>
             RiO# <b>{pd.rio_number or "?"}</b><br>
