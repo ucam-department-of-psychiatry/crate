@@ -149,7 +149,7 @@ The special objects provided by CRATE are:
 
   The ID of this patient. (A string, but that will still work an an SQL
   parameter for integer fields. You can of course process it further if you
-  wish.)
+  wish; this is illustrated in the "tree" example.)
 
 - ``query_params``:
 
