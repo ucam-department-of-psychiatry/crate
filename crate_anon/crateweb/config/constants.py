@@ -267,13 +267,15 @@ class UrlKeys(object):
     ```...path?a=1&b=2``, etc.
     """
     # Generic
-    NEXT = "next"  # must match django.contrib.auth.REDIRECT_FIELD_NAME
+    NEXT = "next"
+    # ... used for login redirectionmust match
+    # django.contrib.auth.REDIRECT_FIELD_NAME
 
     # Archive system:
-    CONTENT_TYPE = "content_type"
-    FILENAME = "filename"
-    GUESS_CONTENT_TYPE = "guess_content_type"  # 0 or 1
+    CONTENT_TYPE = "content_type"  # used for attachments
+    FILENAME = "filename"  # used for attachments and static files
+    GUESS_CONTENT_TYPE = "guess_content_type"  # used for attachments; 0 or 1
     MTIME = "mtime"  # file modification time, from os.path.getmtime()
-    PATIENT_ID = "patient_id"
-    OFFERED_FILENAME = "offered_filename"
-    TEMPLATE = "template"
+    PATIENT_ID = "patient_id"  # used for attachments and templates
+    OFFERED_FILENAME = "offered_filename"  # used for attachments
+    TEMPLATE = "template"  # used for templates

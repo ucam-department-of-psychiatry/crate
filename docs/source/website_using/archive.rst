@@ -40,10 +40,10 @@ This view provides an "archive" (read-only) view of an electronic health record
 - to provide a useful, configurable way in which researchers can explore the
   anonymised EHR of a single patient;
 
-- potentially, to act as an archive view onto an identifiable EHR.
+- to act as an archive view onto an identifiable EHR, if so configured.
 
-It is *entirely* configurable by the local system, though CRATE comes with
-some specimens.
+It is *entirely* configurable by the local system administrators, though CRATE
+comes with some specimen archive views.
 
 
 How to customize the archive view
@@ -73,8 +73,6 @@ by CRATE.)
 
 The archive's Python context
 ############################
-
-You
 
 Mako templates have a context, which is a collection of Python objects
 "visible" to template code (see `Mako Runtime Environment`_). In the CRATE
@@ -139,9 +137,13 @@ The special objects provided by CRATE are:
 
     get_template_url(template_name, **kwargs)
 
-  You can pass any keyword parameters except ``patient_id``, ``template``, and
-  ``mtime`` (see
-  :class:`crate_anon.crateweb.research.archive_backend.ArchiveUrlKeys`).
+  You can pass any keyword parameters except:
+
+  - ``patient_id``
+  - ``template``
+  - ``mtime``
+
+  (see :class:`crate_anon.crateweb.config.constants.UrlKeys`).
 
 - ``patient_id``:
 
