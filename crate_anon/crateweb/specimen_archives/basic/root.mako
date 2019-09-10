@@ -26,7 +26,7 @@ crate_anon/crateweb/specimen_archives/basic/root.mako
 
 </%doc>
 
-<%inherit file="base.mako"/>
+<%inherit file="inherit/base.mako"/>
 
 <%block name="template_description">Choose an area to explore:</%block>
 

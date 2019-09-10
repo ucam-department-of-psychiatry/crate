@@ -24,6 +24,8 @@ crate_anon/crateweb/specimen_archives/tree/inherit/base.mako
 
 ===============================================================================
 
+Base template for CRATE "tree-style" demo archive.
+
 </%doc>
 
 <!DOCTYPE html> <!-- HTML 5 -->

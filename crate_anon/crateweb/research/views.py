@@ -3976,11 +3976,11 @@ def archive_template(request: HttpRequest) -> HttpResponse:
         """
         return archive_template_url(patient_id, _template, **kw)
 
-    def same_patient_attachment_url(*args, **kw) -> str:
+    def same_patient_attachment_url(_filename: str, **kw) -> str:
         """
         Returns a URL to an attachment, marked as being for the same patient.
         """
-        return archive_attachment_url(*args, patient_id=patient_id, **kw)
+        return archive_attachment_url(_filename, patient_id=patient_id, **kw)
 
     # -------------------------------------------------------------------------
     # Build context

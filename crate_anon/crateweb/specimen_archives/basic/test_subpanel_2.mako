@@ -26,7 +26,7 @@ crate_anon/crateweb/specimen_archives/basic/test_subpanel_2.mako
 
 </%doc>
 
-<%inherit file="base.mako"/>
+<%inherit file="inherit/base.mako"/>
 <%namespace name="attachments" file="snippets/attachments.mako"/>
 
 <%block name="template_description">Test subpanels (2)</%block>

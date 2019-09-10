@@ -26,7 +26,7 @@ crate_anon/crateweb/specimen_archives/basic/progress_notes.mako
 
 </%doc>
 
-<%inherit file="base.mako"/>
+<%inherit file="inherit/base.mako"/>
 
 <%block name="template_description">Progress Notes</%block>
 

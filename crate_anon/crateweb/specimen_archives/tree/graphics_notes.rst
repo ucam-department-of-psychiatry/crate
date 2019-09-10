@@ -31,10 +31,18 @@ Plotly
 - https://plot.ly/
 
 - MIT licensed core. Good graphics.
-- PNG export for free; SVG export requires a subscription. See
-  https://plot.ly/javascript/static-image-export/#saving-as-svg
+
+- PNG export for free; documents suggest that SVG export requires a
+  subscription. See
+  https://plot.ly/javascript/static-image-export/#saving-as-svg. However,
+  actually not; see
+  https://community.plot.ly/t/save-as-svg-instead-of-png-in-modebar/4560;
+  https://codepen.io/etpinard/pen/zzzBXv?editors=0010.
 
 - Uses D3 behind the scenes.
+
+- Python version has a ggplot-style interface, ggplotly(); see
+  https://plot.ly/ggplot2/.
 
 
 D3
@@ -53,3 +61,23 @@ D3
 
 - ... via FileSaver.js:
   https://github.com/eligrey/FileSaver.js/
+
+- Markedly harder to get basic graphs going than with Plotly.
+
+
+Decision
+--------
+
+Plotly looks like an excellent open-source default.
+
+
+
+Mapping
+=======
+
+Plotly uses GeoJSON data for choropleth maps.
+
+For the UK, see http://geoportal.statistics.gov.uk/. Specifically, for LSOA
+data, see
+https://data.gov.uk/dataset/fa883558-22fb-4a1a-8529-cffdee47d500/lower-layer-super-output-area-lsoa-boundaries.
+But see also https://github.com/martinjc/UK-GeoJSON.

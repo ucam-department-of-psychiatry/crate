@@ -26,6 +26,6 @@ crate_anon/crateweb/specimen_archives/basic/diagnoses.mako
 
 </%doc>
 
-<%inherit file="base.mako"/>
+<%inherit file="inherit/base.mako"/>
 
 <%block name="template_description">Diagnoses</%block>

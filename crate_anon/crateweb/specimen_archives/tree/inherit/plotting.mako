@@ -24,12 +24,14 @@ crate_anon/crateweb/specimen_archives/tree/inherit/plotting.mako
 
 ===============================================================================
 
+Base template that pre-loads the Plotly chart library.
+
 </%doc>
 
 <%inherit file="../inherit/base.mako"/>
 
 <%block name="extra_head_end">
-    <script src="${get_static_url("plotly.min.js")}" type="text/javascript"></script>
+    <script src="${get_static_url("plotly-1.49.4.min.js")}" type="text/javascript"></script>
 </%block>
 
 <script>
