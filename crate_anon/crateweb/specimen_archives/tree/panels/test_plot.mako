@@ -1,7 +1,7 @@
 ## -*- coding: utf-8 -*-
 <%doc>
 
-crate_anon/crateweb/specimen_archives/tree/panels/progress_notes.mako
+crate_anon/crateweb/specimen_archives/tree/panels/test_plot.mako
 
 ===============================================================================
 
@@ -26,34 +26,29 @@ crate_anon/crateweb/specimen_archives/tree/panels/progress_notes.mako
 
 </%doc>
 
-<%inherit file="../inherit/base.mako"/>
-<%!
-import logging
+<%inherit file="../inherit/plotting.mako"/>
 
-log = logging.getLogger(__name__)
-%>
+<h1>Plotly chart</h1>
+<div id="plotly_chart"></div>
 
-<%
+<script>
 
-sql = """
-    SELECT
-        note_datetime AS 'When',
-        note AS 'Note'
-    FROM note
-    WHERE brcid = ?
-    ORDER BY note_datetime ASC
-"""
-args = [patient_id]
-cursor = execute(sql, args)
+// ============================================================================
+// Plotly
+// ============================================================================
 
-%>
+var chart = document.getElementById("plotly_chart");
+var data = [{
+    x: [1, 2, 3, 4, 5],
+    y: [1, 2, 4, 8, 16],
+    line: { shape: "spline" }
+}];
+var layout = {
+    width: window.innerWidth,
+    // height: window.innerHeight,
+    margin: { t: 0 }
+};
 
-<div class="pad">
-    <h1>Progress Notes</h1>
-    <p><i>Old at the top, new at the bottom.</i></p>
-    %for row in cursor:
-        ## <% log.debug(repr(row)) %>
-        <h2>${row[0]}</h2>
-        <div>${row[1] | h}</div>
-    %endfor
-</div>
+Plotly.plot(chart, data, layout, default_plotly_config);
+
+</script>

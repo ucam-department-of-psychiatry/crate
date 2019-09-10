@@ -35,7 +35,7 @@ Query parameters (from URL):
 
 </%doc>
 
-<%inherit file="../base.mako"/>
+<%inherit file="../inherit/base.mako"/>
 
 <%!
 from typing import Iterable

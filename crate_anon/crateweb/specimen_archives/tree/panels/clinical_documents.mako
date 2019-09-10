@@ -59,7 +59,7 @@ So we need to use an "inclusion" or a "namespace" method instead.
 
 </%doc>
 
-<%inherit file="../base.mako"/>
+<%inherit file="../inherit/base.mako"/>
 
 <%!
 

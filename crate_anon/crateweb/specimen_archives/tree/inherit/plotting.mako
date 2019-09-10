@@ -1,7 +1,7 @@
 ## -*- coding: utf-8 -*-
 <%doc>
 
-crate_anon/crateweb/specimen_archives/tree/base.mako
+crate_anon/crateweb/specimen_archives/tree/inherit/plotting.mako
 
 ===============================================================================
 
@@ -26,23 +26,36 @@ crate_anon/crateweb/specimen_archives/tree/base.mako
 
 </%doc>
 
-<!DOCTYPE html> <!-- HTML 5 -->
-<html lang="en">
-    <head>
-        <%block name="head">
-            <%block name="title">
-                <title>CRATE Archive: ${patient_id}</title>
-            </%block>
-            <meta charset="utf-8">
-            <%block name="extra_head_start"></%block>
-            <link rel="icon" type="image/png" href="${get_static_url("scrubber.png")}" >
-            <link rel="stylesheet" type="text/css" href="${get_static_url("archive.css")}" >
-            <%block name="extra_head_end"></%block>
-        </%block>
-    </head>
-    <body <%block name="body_tags"></%block>>
-        ${next.body()}
+<%inherit file="../inherit/base.mako"/>
 
-        <%block name="body_end"></%block>
-    </body>
-</html>
+<%block name="extra_head_end">
+    <script src="${get_static_url("plotly.min.js")}" type="text/javascript"></script>
+</%block>
+
+<script>
+
+// https://community.plot.ly/t/save-as-svg-instead-of-png-in-modebar/4560
+// https://codepen.io/etpinard/pen/zzzBXv?editors=0010
+var default_plotly_config = {
+    modeBarButtonsToRemove: ['toImage', 'sendDataToCloud'],
+    modeBarButtonsToAdd: [
+        {
+            name: 'Save as PNG',
+            icon: Plotly.Icons.camera,
+            click: function(gd) {
+                Plotly.downloadImage(gd, {format: 'png'})
+            }
+        },
+        {
+            name: 'Save as SVG',
+            icon: Plotly.Icons.camera,
+            click: function(gd) {
+                Plotly.downloadImage(gd, {format: 'svg'})
+            }
+        },
+    ]
+};
+
+</script>
+
+${next.body()}

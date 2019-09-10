@@ -26,7 +26,7 @@ crate_anon/crateweb/specimen_archives/tree/root.mako
 
 </%doc>
 
-<%inherit file="base.mako"/>
+<%inherit file="inherit/base.mako"/>
 
 ## ============================================================================
 ## Imports
@@ -105,6 +105,9 @@ tree = JavascriptTree(
         ]),
         JavascriptLeafNode("NLP", template_element("panels/nlp.mako")),
         JavascriptLeafNode("Test PDF", embedded_attachment_html("doctest.pdf", context)),
+        JavascriptLeafNode(
+            "Test plotting",
+            template_element("panels/test_plot.mako")),
     ]
 )
 

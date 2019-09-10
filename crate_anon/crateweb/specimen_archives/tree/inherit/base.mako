@@ -1,7 +1,7 @@
 ## -*- coding: utf-8 -*-
 <%doc>
 
-crate_anon/crateweb/specimen_archives/tree/panels/progress_notes.mako
+crate_anon/crateweb/specimen_archives/tree/inherit/base.mako
 
 ===============================================================================
 
@@ -26,34 +26,23 @@ crate_anon/crateweb/specimen_archives/tree/panels/progress_notes.mako
 
 </%doc>
 
-<%inherit file="../inherit/base.mako"/>
-<%!
-import logging
+<!DOCTYPE html> <!-- HTML 5 -->
+<html lang="en">
+    <head>
+        <%block name="head">
+            <%block name="title">
+                <title>CRATE Archive: ${patient_id}</title>
+            </%block>
+            <meta charset="utf-8">
+            <%block name="extra_head_start"></%block>
+            <link rel="icon" type="image/png" href="${get_static_url("scrubber.png")}" >
+            <link rel="stylesheet" type="text/css" href="${get_static_url("archive.css")}" >
+            <%block name="extra_head_end"></%block>
+        </%block>
+    </head>
+    <body <%block name="body_tags"></%block>>
+        ${next.body()}
 
-log = logging.getLogger(__name__)
-%>
-
-<%
-
-sql = """
-    SELECT
-        note_datetime AS 'When',
-        note AS 'Note'
-    FROM note
-    WHERE brcid = ?
-    ORDER BY note_datetime ASC
-"""
-args = [patient_id]
-cursor = execute(sql, args)
-
-%>
-
-<div class="pad">
-    <h1>Progress Notes</h1>
-    <p><i>Old at the top, new at the bottom.</i></p>
-    %for row in cursor:
-        ## <% log.debug(repr(row)) %>
-        <h2>${row[0]}</h2>
-        <div>${row[1] | h}</div>
-    %endfor
-</div>
+        <%block name="body_end"></%block>
+    </body>
+</html>
