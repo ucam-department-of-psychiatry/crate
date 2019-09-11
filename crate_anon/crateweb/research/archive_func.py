@@ -28,6 +28,7 @@ crate_anon/crateweb/research/archive_func.py
 
 """
 
+import json
 import logging
 from typing import Any, Dict, List
 
@@ -35,6 +36,7 @@ from cardinal_pythonlib.httpconst import ContentType
 from cardinal_pythonlib.logs import BraceStyleAdapter
 from django.urls import reverse
 
+from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 from crate_anon.crateweb.config.constants import UrlNames
 from crate_anon.crateweb.core.utils import (
     guess_mimetype,
@@ -142,3 +144,10 @@ def nlp_source_url(row: List[Any]) -> str:
         'srcpkval': row[-2],
         'srcpkstr': row[-1]
     })
+
+
+def json_compact(x: Any) -> str:
+    """
+    Returns a compact JSON version of the object.
+    """
+    return json.dumps(x, separators=JSON_SEPARATORS_COMPACT)

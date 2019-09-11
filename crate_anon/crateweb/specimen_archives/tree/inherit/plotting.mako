@@ -26,19 +26,11 @@ crate_anon/crateweb/specimen_archives/tree/inherit/plotting.mako
 
 Base template that pre-loads the Plotly chart library.
 
-</%doc>
+SVG METHOD 1:
 
-<%inherit file="../inherit/base.mako"/>
-
-<%block name="extra_head_end">
-    <script src="${get_static_url("plotly-1.49.4.min.js")}" type="text/javascript"></script>
-</%block>
-
-<script>
-
-// https://community.plot.ly/t/save-as-svg-instead-of-png-in-modebar/4560
-// https://codepen.io/etpinard/pen/zzzBXv?editors=0010
-var default_plotly_config = {
+var plotly_config = {
+    // https://community.plot.ly/t/save-as-svg-instead-of-png-in-modebar/4560
+    // https://codepen.io/etpinard/pen/zzzBXv?editors=0010
     modeBarButtonsToRemove: ['toImage', 'sendDataToCloud'],
     modeBarButtonsToAdd: [
         {
@@ -54,8 +46,32 @@ var default_plotly_config = {
             click: function(gd) {
                 Plotly.downloadImage(gd, {format: 'svg'})
             }
-        },
+        }
     ]
+};
+
+
+SVG METHOD 2:
+
+
+</%doc>
+
+<%inherit file="../inherit/base.mako"/>
+
+<%block name="extra_head_end">
+    <script src="${get_static_url("plotly-1.49.4.min.js")}" type="text/javascript"></script>
+</%block>
+
+<script>
+
+// Default plotly config, which may be modified by inherited pages.
+var plotly_config = {
+    // https://plot.ly/javascript/configuration-options/
+    modeBarButtonsToRemove: ['sendDataToCloud'],
+    scrollZoom: true,
+    toImageButtonOptions: {
+        format: "svg"
+    }
 };
 
 </script>

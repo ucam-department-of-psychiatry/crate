@@ -35,12 +35,18 @@ Query parameters (from URL):
 
 </%doc>
 
-<%inherit file="../inherit/base.mako"/>
+<%inherit file="../inherit/plotting.mako"/>
 
 <%!
+import logging
 from typing import Iterable
+
 from cardinal_pythonlib.dbfunc import genrows, get_fieldnames_from_cursor
-from crate_anon.crateweb.research.archive_func import delimit_sql_identifier
+
+from crate_anon.crateweb.research.archive_func import (
+    delimit_sql_identifier,
+    json_compact,
+)
 from crate_anon.crateweb.research.views import (
     FN_SRCDB,
     FN_SRCTABLE,
@@ -49,6 +55,8 @@ from crate_anon.crateweb.research.views import (
     FN_SRCPKVAL,
     FN_SRCPKSTR,
 )
+
+log = logging.getLogger(__name__)
 
 SILENT_COLS = [
     FN_SRCDB,
@@ -64,6 +72,7 @@ STARTCOLS = [
 ENDCOLS = [
     "_when_fetched_utc AS 'NLP time'",
 ] + SILENT_COLS
+DATECOLNAME = "_srcdatetimeval"
 
 
 def nlp_sql(tablename: str, columns: Iterable[str]) -> str:
@@ -88,9 +97,37 @@ def nlp_sql(tablename: str, columns: Iterable[str]) -> str:
 tablename = query_params["tablename"]
 description = query_params["description"]
 column_csv = query_params["column_csv"]
+n_graph_columns = int(query_params["n_graph_columns"])
 
 columns = column_csv.split(",")
 cursor = execute(nlp_sql(tablename, columns), [patient_id])
+
+nrows = cursor.rowcount
+datecolidx = 0
+
+if n_graph_columns > 0 and datecolidx is not None and nrows > 0:
+    do_chart = True
+    data = []
+    for idx_in_columns in range(n_graph_columns):
+        idx_in_query = idx_in_columns + len(STARTCOLS)
+        d_v = [(row[datecolidx].isoformat(),
+                row[idx_in_query]) for row in cursor]
+        dates, values = zip(*d_v)
+        data.append({
+            "type": "scatter",
+            "x": dates,
+            "y": values,
+            "name": columns[idx_in_columns],
+            "mode": "lines+markers",
+            "showlegend": True,
+        })
+    # log.critical(f"data: {data!r}")
+    layout = {
+        "title": description
+    }
+    filename = f"{patient_id}_{tablename}"
+else:
+    do_chart = False
 
 %>
 
@@ -105,3 +142,26 @@ cursor = execute(nlp_sql(tablename, columns), [patient_id])
 
     <%include file="results_table_nlp.mako" args="cursor=cursor"/>
 </div>
+
+%if do_chart:
+
+    <div id="chart"></div>
+
+    <script>
+
+        // ====================================================================
+        // Graph
+        // ====================================================================
+
+        var chart = document.getElementById("chart");
+        var data = ${json_compact(data)};
+        var layout = ${json_compact(layout)};
+
+        plotly_config["toImageButtonOptions"]["filename"] = ${json_compact(filename)};
+        console.log(plotly_config);
+
+        Plotly.plot(chart, data, layout, plotly_config);
+
+    </script>
+
+%endif

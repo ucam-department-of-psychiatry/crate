@@ -36,19 +36,33 @@ crate_anon/crateweb/specimen_archives/tree/panels/test_plot.mako
 // ============================================================================
 // Plotly
 // ============================================================================
+// See https://plot.ly/javascript/reference/
 
 var chart = document.getElementById("plotly_chart");
 var data = [{
     x: [1, 2, 3, 4, 5],
     y: [1, 2, 4, 8, 16],
-    line: { shape: "spline" }
+    type: "scatter",
+    name: "Fictional data"
+    // line: { shape: "spline" }
 }];
 var layout = {
     width: window.innerWidth,
     // height: window.innerHeight,
-    margin: { t: 0 }
+    margin: {
+        // t: 0  // a top margin of zero wipes out any title
+    },
+    title: {
+        text: "Fictional data"
+    },
+    xaxis: {
+        title: "Some x data"
+    },
+    yaxis: {
+        title: "Some y data"
+    }
 };
 
-Plotly.plot(chart, data, layout, default_plotly_config);
+Plotly.plot(chart, data, layout, plotly_config);
 
 </script>
