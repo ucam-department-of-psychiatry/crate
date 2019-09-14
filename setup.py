@@ -325,8 +325,7 @@ setup(
     long_description=LONG_DESCRIPTION,
 
     # The project"s main homepage.
-    # url="https://github.com/RudolfCardinal/crate",
-    url="https://egret.psychol.cam.ac.uk/crate",
+    url="https://crateanon.readthedocs.io",
 
     # Author details
     author="Rudolf Cardinal",

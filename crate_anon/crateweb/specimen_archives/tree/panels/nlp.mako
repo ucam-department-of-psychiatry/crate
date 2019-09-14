@@ -68,7 +68,7 @@ def nlp_url(tablename: str, description: str, columns: List[str],
         "snippets/single_nlp_page.mako", context, **qparams)
 
 
-tree = JavascriptTree(
+tree = JavascriptTree(get
     tree_id="nlp_tree",
     child_id_prefix="nlp_tree_child_",
     children=[

@@ -19,16 +19,10 @@ Purpose
   - querying the anonymised database
   - managing a consent-to-contact process
 
-Authors
--------
-
-- Rudolf Cardinal, 2015-.
-- Francesca Spivack, 2018-.
-
 Documentation
 -------------
 
-See https://egret.psychol.cam.ac.uk/crate
+See https://crateanon.readthedocs.io
 
 Sources
 -------

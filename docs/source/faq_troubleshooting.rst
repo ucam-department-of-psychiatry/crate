@@ -659,7 +659,7 @@ How?
 One possibility is that you are processing a big binary field, and MySQL's
 ``max_allowed_packet`` parameter is too small. Try increasing it (e.g. from 16M
 to 32M). See also
-https://egret.psychol.cam.ac.uk/camcops/documentation/server/server_troubleshooting.html?highlight=max_allowed_packet#mysql-server-has-gone-away
+https://camcops.readthedocs.io/en/latest/administrator/server_troubleshooting.html?highlight=max_allowed_packet#mysql-server-has-gone-away
 
 
 How to convert a database from SQL Server to MySQL?
