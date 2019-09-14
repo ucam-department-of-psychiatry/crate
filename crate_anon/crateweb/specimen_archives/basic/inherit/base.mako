@@ -53,7 +53,12 @@ from crate_anon.crateweb.research.archive_backend import ArchiveContextKeys
             <%block name="title_bar">
                 <div class="float_left">CRATE basic archive demo: BRCID <b>${patient_id}</b>.</div>
                 <div class="float_right">
-                    [ <a href="${CRATE_HOME_URL}">Return to CRATE home</a>
+                    [
+                        <%block name="navigate_to_root">
+                            <a href="${get_patient_template_url("patient_root.mako")}">Go to this patient’s root</a>
+                            |
+                        </%block>
+                    <a href="${CRATE_HOME_URL}">Return to CRATE home</a>
                     | <a href="<%block name="helpurl">${HelpUrl.archive()}</%block>">Help</a>
                     ]
                 </div>
@@ -61,14 +66,9 @@ from crate_anon.crateweb.research.archive_backend import ArchiveContextKeys
         </div>
         <div class="template_description">
             <%block name="template_description">
-                <div class="warning">Missing template_description for ${query_params.get[UrlKeys.TEMPLATE]}</div>
+                <div class="warning">Missing template_description for ${query_params.get(UrlKeys.TEMPLATE)}</div>
             </%block>
         </div>
-        <%block name="navigate_to_root">
-            <div class="navigation">
-                <a href="${get_template_url("root.mako")}">Go to top</a>
-            </div>
-        </%block>
 
         ${next.body()}
 

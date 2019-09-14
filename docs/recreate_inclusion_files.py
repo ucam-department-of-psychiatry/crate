@@ -33,7 +33,7 @@ That is, e.g. "command --help > somefile.txt".
 import datetime
 import logging
 import os
-from os.path import  dirname, join, realpath
+from os.path import dirname, join, realpath
 import stat
 import subprocess
 import sys

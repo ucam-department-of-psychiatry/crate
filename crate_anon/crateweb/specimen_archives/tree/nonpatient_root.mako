@@ -1,7 +1,7 @@
 ## -*- coding: utf-8 -*-
 <%doc>
 
-crate_anon/crateweb/specimen_archives/basic/root.mako
+crate_anon/crateweb/specimen_archives/tree/nonpatient_root.mako
 
 ===============================================================================
 
@@ -28,26 +28,6 @@ crate_anon/crateweb/specimen_archives/basic/root.mako
 
 <%inherit file="inherit/base.mako"/>
 
-<%!
+[ <a href="${CRATE_HOME_URL}">Return to CRATE home</a> ]
 
-from crate_anon.common.constants import HelpUrl
-
-%>
-
-## Don't show the "navigate to root" link on the root page.
-<%block name="navigate_to_root"></%block>
-
-<%block name="template_description">Choose a patient:</%block>
-
-<div class="pad">
-    <h1>Launch archive view for a specific patient</h1>
-
-    <form action="${get_template_url()}" method="GET">
-        <input type="text" name="patient_id" title="Patient ID" placeholder="Patient ID" />
-        <input type="submit" name="submit" value="Launch" />
-        ## The query parameters in the URL will be REPLACED, as per
-        ## https://stackoverflow.com/questions/1116019/, so we also need:
-        <input type="hidden" name="template" value="patient_root.mako" />
-    </form>
-
-</div>
+<h1>Generic non-patient archive view</h1>

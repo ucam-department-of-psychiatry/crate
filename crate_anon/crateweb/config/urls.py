@@ -120,7 +120,7 @@ urlpatterns = [
     url(r'^activate_highlight/(?P<highlight_id>[0-9]+)/$',
         research_views.highlight_activate, name=UrlNames.ACTIVATE_HIGHLIGHT),
     url(r'^deactivate_highlight/(?P<highlight_id>[0-9]+)/$',
-        research_views.highlight_deactivate, name=UrlNames.DEACTIVATE_HIGHLIGHT),
+        research_views.highlight_deactivate, name=UrlNames.DEACTIVATE_HIGHLIGHT),  # noqa
     url(r'^delete_highlight/(?P<highlight_id>[0-9]+)/$',
         research_views.highlight_delete, name=UrlNames.DELETE_HIGHLIGHT),
     url(r'^count/(?P<query_id>[0-9]+)/$',
@@ -241,9 +241,6 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # Archive views
     # -------------------------------------------------------------------------
-    url(r'^select_patient_for_archive/$',
-        research_views.select_patient_for_archive,
-        name=UrlNames.SELECT_PATIENT_FOR_ARCHIVE),
     url(r'^launch_archive/$',
         research_views.launch_archive, name=UrlNames.LAUNCH_ARCHIVE),
     url(r'^archive/$',

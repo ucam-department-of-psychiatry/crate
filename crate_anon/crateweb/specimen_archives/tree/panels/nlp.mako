@@ -36,7 +36,7 @@ from crate_anon.crateweb.core.utils import (
     JavascriptTree,
     url_with_querystring,
 )
-from crate_anon.crateweb.research.archive_func import template_html
+from crate_anon.crateweb.research.archive_func import patient_template_html
 
 
 COMMON_END_COLUMNS = [
@@ -64,7 +64,8 @@ def nlp_url(tablename: str, description: str, columns: List[str],
         "column_csv": ",".join(columns),
         "n_graph_columns": n_graph_columns
     }
-    return template_html("snippets/single_nlp_page.mako", context, **qparams)
+    return patient_template_html(
+        "snippets/single_nlp_page.mako", context, **qparams)
 
 
 tree = JavascriptTree(

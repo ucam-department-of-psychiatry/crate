@@ -144,55 +144,55 @@ class UrlNames(object):
     ABOUT = "about"
 
     # Main query views
-    BUILD_QUERY = "build_query"
-    QUERY = "query"
-    ACTIVATE_QUERY = "activate_query"
-    DELETE_QUERY = "delete_query"
-    HIGHLIGHT = "highlight"
     ACTIVATE_HIGHLIGHT = "activate_highlight"
+    ACTIVATE_QUERY = "activate_query"
+    BUILD_QUERY = "build_query"
+    COUNT = "count"
     DEACTIVATE_HIGHLIGHT = "deactivate_highlight"
     DELETE_HIGHLIGHT = "delete_highlight"
-    COUNT = "count"
+    DELETE_QUERY = "delete_query"
+    DELETE_SITEWIDE_QUERY = "delete_sitewide_query"
+    EDIT_DISPLAY = "edit_display"
+    HIGHLIGHT = "highlight"
+    PROCESS_STANDARD_QUERY = "process_standard_query"
+    QUERY = "query"
+    QUERY_EXCEL = "query_excel"
     RESULTS = "results"
     RESULTS_RECORDWISE = "results_recordwise"
-    TSV = "tsv"
-    QUERY_EXCEL = "query_excel"
-    SITEWIDE_QUERIES = "sitewide_queries"
-    DELETE_SITEWIDE_QUERY = "delete_sitewide_query"
-    STANDARD_QUERIES = "standard_queries"
-    PROCESS_STANDARD_QUERY = "process_standard_query"
-    EDIT_DISPLAY = "edit_display"
     SAVE_DISPLAY = "save_display"
     SHOW_QUERY = "show_query"
+    SITEWIDE_QUERIES = "sitewide_queries"
     SRCINFO = "srcinfo"
+    STANDARD_QUERIES = "standard_queries"
+    TSV = "tsv"
 
     # Patient Explorer views
+    PE_ACTIVATE = "pe_activate"
     PE_BUILD = "pe_build"
     PE_CHOOSE = "pe_choose"
-    PE_ACTIVATE = "pe_activate"
-    PE_EDIT = "pe_edit"
     PE_DELETE = "pe_delete"
-    PE_RESULTS = "pe_results"
-    PE_EXCEL = "pe_excel"
-    PE_DF_RESULTS = "pe_df_results"
     PE_DF_EXCEL = "pe_df_excel"
+    PE_DF_RESULTS = "pe_df_results"
+    PE_EDIT = "pe_edit"
+    PE_EXCEL = "pe_excel"
     PE_MONSTER_RESULTS = "pe_monster_results"
-    PE_TABLE_BROWSER = "pe_table_browser"
     PE_ONE_TABLE = "pe_one_table"
+    PE_RESULTS = "pe_results"
+    PE_TABLE_BROWSER = "pe_table_browser"
 
     # Structure
+    STRUCTURE_EXCEL = "structure_excel"
+    STRUCTURE_HELP = "structure_help"
     STRUCTURE_TABLE_LONG = "structure_table_long"
     STRUCTURE_TABLE_PAGINATED = "structure_table_paginated"
     STRUCTURE_TREE = "structure_tree"
     STRUCTURE_TSV = "structure_tsv"
-    STRUCTURE_EXCEL = "structure_excel"
-    STRUCTURE_HELP = "structure_help"
 
     # SQL helpers
-    SQLHELPER_TEXT_ANYWHERE = "sqlhelper_text_anywhere"
-    SQLHELPER_TEXT_ANYWHERE_WITH_DB = "sqlhelper_text_anywhere_with_db"
     SQLHELPER_DRUG_TYPE = "sqlhelper_drug_type"
     SQLHELPER_DRUG_TYPE_WITH_DB = "sqlhelper_drug_type_with_db"
+    SQLHELPER_TEXT_ANYWHERE = "sqlhelper_text_anywhere"
+    SQLHELPER_TEXT_ANYWHERE_WITH_DB = "sqlhelper_text_anywhere_with_db"
 
     # Consent for contact
     SUBMIT_CONTACT_REQUEST = "submit_contact_request"
@@ -203,11 +203,10 @@ class UrlNames(object):
     CLINICIAN_CONTACT_REQUEST = "clinician_contact_request"
 
     # Archive views
-    SELECT_PATIENT_FOR_ARCHIVE = "select_patient_for_archive"
-    LAUNCH_ARCHIVE = "launch_archive"
-    ARCHIVE_TEMPLATE = "archive_template"
     ARCHIVE_ATTACHMENT = "archive_attachment"
     ARCHIVE_STATIC = "archive_static"
+    ARCHIVE_TEMPLATE = "archive_template"
+    LAUNCH_ARCHIVE = "launch_archive"
 
     # Look up PID/RID
     PIDLOOKUP = "pidlookup"
@@ -219,40 +218,40 @@ class UrlNames(object):
     EDIT_PROFILE = "edit_profile"
 
     # Superuser
-    DOWNLOAD_PRIVATESTORAGE = "download_privatestorage"
     CHARITY_REPORT = "charity_report"
+    DOWNLOAD_PRIVATESTORAGE = "download_privatestorage"
     EXCLUSION_REPORT = "exclusion_report"
     TEST_EMAIL_RDBM = "test_email_rdbm"
 
     # Public views
+    LEAFLET = "leaflet"
     STUDY_DETAILS = "study_details"
     STUDY_FORM = "study_form"
     STUDY_PACK = "study_pack"
-    LEAFLET = "leaflet"
 
     # Restricted C4C views for clinicians
-    CLINICIAN_RESPONSE = "clinician_response"
     CLINICIAN_PACK = "clinician_pack"
+    CLINICIAN_RESPONSE = "clinician_response"
 
     # Restricted views; superuser + researchers
-    VIEW_EMAIL_HTML = "view_email_html"
-    VIEW_EMAIL_ATTACHMENT = "view_email_attachment"
     LETTER = "letter"
+    VIEW_EMAIL_ATTACHMENT = "view_email_attachment"
+    VIEW_EMAIL_HTML = "view_email_html"
 
     # Developer functions and test views
-    GENERATE_RANDOM_NHS = "generate_random_nhs"
-    TEST_PATIENT_LOOKUP = "test_patient_lookup"
-    TEST_CONSENT_LOOKUP = "test_consent_lookup"
-    DRAFT_CLINICIAN_EMAIL = "draft_clinician_email"
+    DECISION_FORM_TO_PT_RE_STUDY = "decision_form_to_pt_re_study"
     DRAFT_APPROVAL_EMAIL = "draft_approval_email"
-    DRAFT_WITHDRAWAL_EMAIL = "draft_withdrawal_email"
     DRAFT_APPROVAL_LETTER = "draft_approval_letter"
-    DRAFT_WITHDRAWAL_LETTER = "draft_withdrawal_letter"
+    DRAFT_CLINICIAN_EMAIL = "draft_clinician_email"
+    DRAFT_CONFIRM_TRAFFIC_LIGHT_LETTER = "draft_confirm_traffic_light_letter"
     DRAFT_FIRST_TRAFFIC_LIGHT_LETTER = "draft_first_traffic_light_letter"
     DRAFT_LETTER_CLINICIAN_TO_PT_RE_STUDY = "draft_letter_clinician_to_pt_re_study"  # noqa
-    DECISION_FORM_TO_PT_RE_STUDY = "decision_form_to_pt_re_study"
-    DRAFT_CONFIRM_TRAFFIC_LIGHT_LETTER = "draft_confirm_traffic_light_letter"
     DRAFT_TRAFFIC_LIGHT_DECISION_FORM = "draft_traffic_light_decision_form"
+    DRAFT_WITHDRAWAL_EMAIL = "draft_withdrawal_email"
+    DRAFT_WITHDRAWAL_LETTER = "draft_withdrawal_letter"
+    GENERATE_RANDOM_NHS = "generate_random_nhs"
+    TEST_CONSENT_LOOKUP = "test_consent_lookup"
+    TEST_PATIENT_LOOKUP = "test_patient_lookup"
 
 
 class AdminSiteNames(object):

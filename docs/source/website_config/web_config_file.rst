@@ -475,6 +475,8 @@ ARCHIVE_ATTACHMENT_DIR
 Root directory for archive attachments.
 
 
+.. _ARCHIVE_STATIC_DIR:
+
 ARCHIVE_STATIC_DIR
 ##################
 
@@ -484,6 +486,8 @@ ARCHIVE_STATIC_DIR
 
 Root directory for archive static files.
 
+
+.. _ARCHIVE_TEMPLATE_CACHE_DIR:
 
 ARCHIVE_TEMPLATE_CACHE_DIR
 ##########################

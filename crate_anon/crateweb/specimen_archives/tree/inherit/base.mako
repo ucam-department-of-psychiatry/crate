@@ -33,7 +33,11 @@ Base template for CRATE "tree-style" demo archive.
     <head>
         <%block name="head">
             <%block name="title">
-                <title>CRATE Archive: ${patient_id}</title>
+                %if patient_id:
+                    <title>CRATE Archive: patient ${patient_id}</title>
+                %else:
+                    <title>CRATE Archive</title>
+                %endif
             </%block>
             <meta charset="utf-8">
             <%block name="extra_head_start"></%block>

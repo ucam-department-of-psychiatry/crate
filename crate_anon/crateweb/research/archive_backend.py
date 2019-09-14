@@ -69,6 +69,7 @@ class ArchiveContextKeys(object):
     CRATE_HOME_URL = "CRATE_HOME_URL"
     execute = "execute"
     get_attachment_url = "get_attachment_url"
+    get_patient_template_url = "get_patient_template_url"
     get_static_url = "get_static_url"
     get_template_url = "get_template_url"
     patient_id = "patient_id"
@@ -107,29 +108,17 @@ CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES = getattr(
 CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC = getattr(
     settings, SettingsKeys.CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC, 0)
 
-mkdir_p(_archive_template_cache_dir)
-mako_lookup = TemplateLookup(
-    directories=[_archive_template_dir],
-    module_directory=_archive_template_cache_dir,
-    strict_undefined=True,  # raise error immediately upon typos!
-)
-
-
 # =============================================================================
 # Configuration checks
 # =============================================================================
 
-def archive_is_configured() -> bool:
-    """
-    Is the archive properly configured?
-    """
-    return bool(
-        _archive_attachment_dir and
-        _archive_root_template and
-        _archive_static_dir and
-        _archive_template_cache_dir and
-        _archive_template_dir
-    )
+ARCHIVE_IS_CONFIGURED = bool(
+    _archive_attachment_dir and
+    _archive_root_template and
+    _archive_static_dir and
+    _archive_template_cache_dir and
+    _archive_template_dir
+)
 
 
 def archive_misconfigured_response() -> HttpResponse:
@@ -150,6 +139,21 @@ def archive_misconfigured_response() -> HttpResponse:
         missing.append(SettingsKeys.ARCHIVE_TEMPLATE_DIR)
     return HttpResponseBadRequest(
         f"Archive not configured. Administrator has not set: {missing!r}")
+
+
+# =============================================================================
+# Set up caches and Mako lookups.
+# =============================================================================
+
+if ARCHIVE_IS_CONFIGURED:
+    mkdir_p(_archive_template_cache_dir)
+    archive_mako_lookup = TemplateLookup(
+        directories=[_archive_template_dir],
+        module_directory=_archive_template_cache_dir,
+        strict_undefined=True,  # raise error immediately upon typos!
+    )
+else:
+    archive_mako_lookup = None
 
 
 # =============================================================================
@@ -196,7 +200,7 @@ def audit_archive_attachment(request: HttpRequest,
 
 
 # =============================================================================
-# Paths
+# Generic paths
 # =============================================================================
 
 def safe_path(directory: str, filename: str) -> str:
@@ -222,7 +226,11 @@ def safe_path(directory: str, filename: str) -> str:
     return final_filename
 
 
-def get_template_filepath(template_name: str) -> str:
+# =============================================================================
+# Archive paths
+# =============================================================================
+
+def get_archive_template_filepath(template_name: str) -> str:
     """
     Returns the full path of a template, or "" if none is found.
 
@@ -236,9 +244,9 @@ def get_template_filepath(template_name: str) -> str:
     # return ""
 
 
-def get_attachment_filepath(filename: str) -> str:
+def get_archive_attachment_filepath(filename: str) -> str:
     """
-    Returns the full path of an attachment.
+    Returns the full path of an archive attachment.
 
     Args:
         filename: name of the attachment
@@ -246,18 +254,18 @@ def get_attachment_filepath(filename: str) -> str:
     return safe_path(_archive_attachment_dir, filename)
 
 
-def get_static_filepath(filename: str) -> str:
+def get_archive_static_filepath(filename: str) -> str:
     """
-    Returns the full path of an attachment.
+    Returns the full path of an archive static file.
 
     Args:
-        filename: name of the attachment
+        filename: name of the static file
     """
     return safe_path(_archive_static_dir, filename)
 
 
 # =============================================================================
-# URL generation
+# Generic URL generation
 # =============================================================================
 
 def add_file_timestamp_to_url_query(filepath: str,
@@ -284,15 +292,20 @@ def add_file_timestamp_to_url_query(filepath: str,
     qparams[UrlKeys.MTIME] = str(getmtime(filepath))
 
 
-def archive_template_url(patient_id: str, template_name: str, **kwargs) -> str:
+# =============================================================================
+# Archive URL generation
+# =============================================================================
+
+def archive_template_url(template_name: str = "", patient_id: str = "",
+                         **kwargs) -> str:
     """
     Creates a URL to inspect part of the archive.
 
     Args:
-        patient_id:
-            patient ID
         template_name:
             short name of the (configurable) template
+        patient_id:
+            patient ID
         **kwargs:
             other optional arguments, passed as URL parameters
 
@@ -301,26 +314,25 @@ def archive_template_url(patient_id: str, template_name: str, **kwargs) -> str:
 
     """
     kwargs = kwargs or {}  # type: Dict[str, Any]
-    qparams = {
-        UrlKeys.PATIENT_ID: patient_id,
-        UrlKeys.TEMPLATE: template_name,
-    }
-    qparams.update(kwargs)
+    qparams = kwargs.copy()
+    if template_name:
+        qparams[UrlKeys.TEMPLATE] = template_name
+        filepath = get_archive_template_filepath(template_name)
+        add_file_timestamp_to_url_query(filepath, qparams)
+    if patient_id:
+        qparams[UrlKeys.PATIENT_ID] = patient_id
     # log.critical("qparams: {!r}", qparams)
-    filepath = get_template_filepath(template_name)
-    add_file_timestamp_to_url_query(filepath, qparams)
-    return url_with_querystring(reverse(UrlNames.ARCHIVE_TEMPLATE), **qparams)
+    url = url_with_querystring(reverse(UrlNames.ARCHIVE_TEMPLATE), **qparams)
+    # log.critical(f"archive_template_url: {url!r}")
+    return url
 
 
-def archive_root_url(patient_id: str) -> str:
+def archive_root_url() -> str:
     """
-    Returns a URL to the root of the archive, for a given patient.
-
-    Args:
-        patient_id:
-            patient ID
+    Returns a URL to the root of the archive, typically including the "launch
+    for patient" view.
     """
-    return archive_template_url(patient_id, _archive_root_template)
+    return archive_template_url(_archive_root_template)
 
 
 def archive_attachment_url(
@@ -356,7 +368,7 @@ def archive_attachment_url(
         qparams[UrlKeys.OFFERED_FILENAME] = offered_filename
     if guess_content_type is not None:
         qparams[UrlKeys.GUESS_CONTENT_TYPE] = int(guess_content_type)
-    filepath = get_attachment_filepath(filename)
+    filepath = get_archive_attachment_filepath(filename)
     add_file_timestamp_to_url_query(filepath, qparams)
     return url_with_querystring(
         reverse(UrlNames.ARCHIVE_ATTACHMENT), **qparams)
@@ -371,6 +383,6 @@ def archive_static_url(filename: str) -> str:
             filename on disk, within the archive's static directory 
     """  # noqa
     qparams = {UrlKeys.FILENAME: filename}
-    filepath = get_static_filepath(filename)
+    filepath = get_archive_static_filepath(filename)
     add_file_timestamp_to_url_query(filepath, qparams)
     return url_with_querystring(reverse(UrlNames.ARCHIVE_STATIC), **qparams)
