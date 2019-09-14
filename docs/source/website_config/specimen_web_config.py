@@ -318,6 +318,7 @@ ARCHIVE_STATIC_DIR = "/home/somewhere/my_archive_templates/static"
 ARCHIVE_ROOT_TEMPLATE = "root.mako"
 ARCHIVE_ATTACHMENT_DIR = "/home/somewhere/my_archive_attachments"
 ARCHIVE_CONTEXT = {}
+ARCHIVE_TEMPLATE_CACHE_DIR = "/tmp/crate_archive_template_cache"
 CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS = 0
 CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES = 0
 CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC = 0

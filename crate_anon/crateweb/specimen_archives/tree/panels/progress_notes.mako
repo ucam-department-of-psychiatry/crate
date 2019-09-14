@@ -26,7 +26,7 @@ crate_anon/crateweb/specimen_archives/tree/panels/progress_notes.mako
 
 </%doc>
 
-<%inherit file="../base.mako"/>
+<%inherit file="../inherit/base.mako"/>
 <%!
 import logging
 

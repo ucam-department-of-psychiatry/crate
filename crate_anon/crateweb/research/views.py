@@ -91,21 +91,21 @@ from crate_anon.crateweb.core.utils import (
 from crate_anon.crateweb.research.archive_backend import (
     archive_attachment_url,
     ARCHIVE_CONTEXT,
-    archive_is_configured,
+    ARCHIVE_IS_CONFIGURED,
+    archive_mako_lookup,
     archive_misconfigured_response,
     archive_root_url,
     archive_static_url,
     archive_template_url,
     ArchiveContextKeys,
-    audit_archive_template,
     audit_archive_attachment,
+    audit_archive_template,
     CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS,
     CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC,
     CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES,
     DEFAULT_GUESS_CONTENT_TYPE,
-    get_attachment_filepath,
-    get_static_filepath,
-    mako_lookup,
+    get_archive_attachment_filepath,
+    get_archive_static_filepath,
 )
 from crate_anon.crateweb.research.forms import (
     AddHighlightForm,
@@ -3871,29 +3871,12 @@ def pe_one_table(request: HttpRequest, pe_id: str,
 
 
 # =============================================================================
-# Archive system
+# Archive and visualization zone system
 # =============================================================================
 
 # -----------------------------------------------------------------------------
 # Archive views
 # -----------------------------------------------------------------------------
-
-def select_patient_for_archive(request: HttpRequest) -> HttpResponse:
-    """
-    Takes the submitted ``patient_id`` (from ``request.POST``) and launches
-    the archive's root page for that patient.
-
-    Args:
-        request:
-            the Django :class:`HttpRequest` object
-    """
-    # Check archive is configured.
-    if not archive_is_configured():
-        return archive_misconfigured_response()
-
-    # All OK.
-    return render(request, "launch_archive.html")
-
 
 def launch_archive(request: HttpRequest) -> HttpResponse:
     """
@@ -3904,12 +3887,9 @@ def launch_archive(request: HttpRequest) -> HttpResponse:
         request:
             the Django :class:`HttpRequest` object
     """
-    validate_blank_form(request)
-    # noinspection PyCallByClass,PyArgumentList
-    patient_id = request.POST.get("patient_id")
-    if not patient_id:
-        return HttpResponseBadRequest("Patient ID not given")
-    return redirect(archive_root_url(patient_id))
+    if not ARCHIVE_IS_CONFIGURED:
+        return archive_misconfigured_response()
+    return redirect(archive_root_url())
 
 
 @cache_control(private=True, max_age=CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES)
@@ -3954,18 +3934,17 @@ def archive_template(request: HttpRequest) -> HttpResponse:
       (We won't use DMP.)
 
     """  # noqa
-    # Get critical GET arguments
-    # noinspection PyCallByClass,PyArgumentList
-    patient_id = request.GET.get(UrlKeys.PATIENT_ID)
-    if not patient_id:
-        return HttpResponseBadRequest("URL arguments must include the key "
-                                      "{ArchiveContextKeys.PATIENT_ID!r}")
+    if not ARCHIVE_IS_CONFIGURED:
+        return archive_misconfigured_response()
+
     # noinspection PyCallByClass,PyArgumentList
     template_name = request.GET.get(UrlKeys.TEMPLATE)
     if not template_name:
-        return HttpResponseBadRequest("URL arguments must include the key "
-                                      "{ArchiveContextKeys.TEMPLATE!r}")
+        return HttpResponseBadRequest(
+            f"URL arguments must include the key {UrlKeys.TEMPLATE!r}")
     # log.debug(f"Archive template request: {template_name!r}")
+    # noinspection PyCallByClass,PyArgumentList
+    patient_id = request.GET.get(UrlKeys.PATIENT_ID, "")
 
     # -------------------------------------------------------------------------
     # URL builders
@@ -3974,20 +3953,21 @@ def archive_template(request: HttpRequest) -> HttpResponse:
         """
         Returns a URL to a template for the same patient.
         """
-        return archive_template_url(patient_id, _template, **kw)
+        return archive_template_url(_template, patient_id=patient_id, **kw)
 
-    def same_patient_attachment_url(*args, **kw) -> str:
+    def same_patient_attachment_url(_filename: str, **kw) -> str:
         """
         Returns a URL to an attachment, marked as being for the same patient.
         """
-        return archive_attachment_url(*args, patient_id=patient_id, **kw)
+        return archive_attachment_url(_filename, patient_id=patient_id, **kw)
 
     # -------------------------------------------------------------------------
     # Build context
     # -------------------------------------------------------------------------
     context = copy.copy(ARCHIVE_CONTEXT)
     context.update({
-        ArchiveContextKeys.get_template_url: same_patient_template_url,
+        ArchiveContextKeys.get_patient_template_url: same_patient_template_url,
+        ArchiveContextKeys.get_template_url: archive_template_url,
         ArchiveContextKeys.get_attachment_url: same_patient_attachment_url,
         ArchiveContextKeys.CRATE_HOME_URL: reverse("home"),
         ArchiveContextKeys.execute: get_executed_researchdb_cursor_qmark_placeholders,  # noqa
@@ -4003,7 +3983,7 @@ def archive_template(request: HttpRequest) -> HttpResponse:
     # Render
     # -------------------------------------------------------------------------
     try:
-        template = mako_lookup.get_template(template_name)
+        template = archive_mako_lookup.get_template(template_name)
     except TemplateLookupException:
         return HttpResponseBadRequest(
             f"No such archive template: {template_name!r}")
@@ -4031,18 +4011,21 @@ def archive_attachment(request: HttpRequest) -> HttpResponseBase:
         request:
             the Django :class:`HttpRequest` object
     """  # noqa
+    if not ARCHIVE_IS_CONFIGURED:
+        return archive_misconfigured_response()
+
     # noinspection PyCallByClass,PyArgumentList
     patient_id = request.GET.get(UrlKeys.PATIENT_ID)
     if not patient_id:
-        return HttpResponseBadRequest("URL arguments must include the key "
-                                      "{ArchiveContextKeys.PATIENT_ID!r}")
+        return HttpResponseBadRequest(
+            f"URL arguments must include the key {UrlKeys.PATIENT_ID!r}")
     # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
     content_type = request.GET.get(UrlKeys.CONTENT_TYPE, None)
     # noinspection PyCallByClass,PyArgumentList
     filename = request.GET.get(UrlKeys.FILENAME)
     if not filename:
-        return HttpResponseBadRequest("URL arguments must include the key "
-                                      "{ArchiveContextKeys.FILENAME!r}")
+        return HttpResponseBadRequest(
+            f"URL arguments must include the key {UrlKeys.FILENAME!r}")
     # log.debug(f"Archive attachment request: {filename!r}")
     try:
         # noinspection PyArgumentList,PyCallByClass
@@ -4053,10 +4036,10 @@ def archive_attachment(request: HttpRequest) -> HttpResponseBase:
     # noinspection PyCallByClass,PyTypeChecker
     offered_filename = request.GET.get(UrlKeys.OFFERED_FILENAME, None)
 
-    full_filename = get_attachment_filepath(filename)
+    full_filename = get_archive_attachment_filepath(filename)
     if not full_filename:
         return HttpResponseBadRequest(
-            f"Invalid attachment filename: {filename!r}")
+            f"Invalid archive attachment filename: {filename!r}")
 
     if content_type:
         final_content_type = content_type
@@ -4101,12 +4084,16 @@ def archive_static(request: HttpRequest) -> HttpResponseBase:
         request:
             the Django :class:`HttpRequest` object
     """  # noqa
+    if not ARCHIVE_IS_CONFIGURED:
+        return archive_misconfigured_response()
+
     # noinspection PyCallByClass,PyArgumentList
     filename = request.GET.get(UrlKeys.FILENAME)
     # log.debug(f"Archive static request: {filename!r}")
-    full_filename = get_static_filepath(filename)
+    full_filename = get_archive_static_filepath(filename)
     if not full_filename:
-        return HttpResponseBadRequest(f"Invalid static filename: {filename!r}")
+        return HttpResponseBadRequest(
+            f"Invalid archive static filename: {filename!r}")
 
     return serve_file(
         path_to_file=full_filename,

@@ -26,7 +26,7 @@ crate_anon/crateweb/specimen_archives/tree/panels/nlp.mako
 
 </%doc>
 
-<%inherit file="../base.mako"/>
+<%inherit file="../inherit/base.mako"/>
 <%!
 
 from typing import List
@@ -36,7 +36,7 @@ from crate_anon.crateweb.core.utils import (
     JavascriptTree,
     url_with_querystring,
 )
-from crate_anon.crateweb.research.archive_func import template_html
+from crate_anon.crateweb.research.archive_func import patient_template_html
 
 
 COMMON_END_COLUMNS = [
@@ -56,13 +56,16 @@ NUMERATOR_DENOMINATOR_COLUMNS = [
 
 <%
 
-def nlp_url(tablename: str, description: str, columns: List[str]) -> str:
+def nlp_url(tablename: str, description: str, columns: List[str],
+            n_graph_columns: int = 1) -> str:
     qparams = {
         "tablename": tablename,
         "description": description,
         "column_csv": ",".join(columns),
+        "n_graph_columns": n_graph_columns
     }
-    return template_html("snippets/single_nlp_page.mako", context, **qparams)
+    return patient_template_html(
+        "snippets/single_nlp_page.mako", context, **qparams)
 
 
 tree = JavascriptTree(
@@ -130,7 +133,8 @@ tree = JavascriptTree(
             JavascriptLeafNode("BP", nlp_url(
                 "bp", "Blood pressure (BP)",
                 ["systolic_bp_mmhg",
-                 "diastolic_bp_mmhg"] + SIMPLE_NUMERIC_COLUMNS
+                 "diastolic_bp_mmhg"] + SIMPLE_NUMERIC_COLUMNS,
+                n_graph_columns=2
             )),
             JavascriptLeafNode("Height", nlp_url(
                 "height", "Height",
@@ -220,13 +224,15 @@ tree = JavascriptTree(
                     "experiencer",
                     "temporality",
                     "inst",
-                ]
+                ],
+                n_graph_columns=0
             )),
             JavascriptLeafNode("KCL Lewy body dementia", nlp_url(
                 "lewy_body_dementia_gate", "Lewy body dementia (LBD, DLB) (via KCL GATE app)",
                 [
                     "rule", "text",
-                ]
+                ],
+                n_graph_columns=0
             )),
         ]),
         JavascriptBranchNode("Pharmacy", [
@@ -238,7 +244,8 @@ tree = JavascriptTree(
                     "route", "status", "tense",
                     "experiencer",
                     "frequency", "interval", "unit_of_time",
-                ]
+                ],
+                n_graph_columns=0
             )),
             JavascriptLeafNode("MedEx drugs", nlp_url(
                 "medications_medex", "Drugs (via MedEx)",
@@ -247,7 +254,8 @@ tree = JavascriptTree(
                     "form", "strength", "dose_amount", "route",
                     "frequency", "duration", "necessity",
                     "sentence_text",
-                ]
+                ],
+                n_graph_columns=0
             )),
         ]),
     ]

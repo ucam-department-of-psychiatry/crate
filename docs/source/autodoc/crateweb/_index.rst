@@ -169,7 +169,6 @@ crate_anon/crateweb
     research/templates/highlight_edit_select.html.rst
     research/templates/include_clinician_warning_lag.html.rst
     research/templates/include_clinician_warning_yours_only.html.rst
-    research/templates/launch_archive.html.rst
     research/templates/local_structure_help.html.rst
     research/templates/page_nav_results.html.rst
     research/templates/pe_bad.html.rst
@@ -210,9 +209,10 @@ crate_anon/crateweb
     research/templates/sqlhelper_form_text_anywhere_choose_db.html.rst
     research/tests.py.rst
     research/views.py.rst
-    specimen_archives/basic/base.mako.rst
     specimen_archives/basic/clinical_documents.mako.rst
     specimen_archives/basic/diagnoses.mako.rst
+    specimen_archives/basic/inherit/base.mako.rst
+    specimen_archives/basic/patient_root.mako.rst
     specimen_archives/basic/progress_notes.mako.rst
     specimen_archives/basic/root.mako.rst
     specimen_archives/basic/search.mako.rst
@@ -222,12 +222,19 @@ crate_anon/crateweb
     specimen_archives/basic/test_subpanel_1.mako.rst
     specimen_archives/basic/test_subpanel_2.mako.rst
     specimen_archives/static/archive.css.rst
+    specimen_archives/static/plotly-1.49.4.js.rst
+    specimen_archives/static/plotly-1.49.4.min.js.rst
     specimen_archives/static/tree.js.rst
-    specimen_archives/tree/base.mako.rst
+    specimen_archives/tree/inherit/base.mako.rst
+    specimen_archives/tree/inherit/plotting.mako.rst
+    specimen_archives/tree/nonpatient_root.mako.rst
     specimen_archives/tree/panels/clinical_documents.mako.rst
     specimen_archives/tree/panels/nlp.mako.rst
     specimen_archives/tree/panels/progress_notes.mako.rst
+    specimen_archives/tree/panels/test_plot.mako.rst
+    specimen_archives/tree/patient_root.mako.rst
     specimen_archives/tree/root.mako.rst
+    specimen_archives/tree/snippets/patient_details.mako.rst
     specimen_archives/tree/snippets/results_table.mako.rst
     specimen_archives/tree/snippets/results_table_nlp.mako.rst
     specimen_archives/tree/snippets/single_nlp_page.mako.rst

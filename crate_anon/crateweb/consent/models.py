@@ -65,6 +65,7 @@ from django.utils.html import escape
 from crate_anon.crateweb.config.constants import (
     ClinicalDatabaseType,
     SOURCE_DB_NAME_MAX_LENGTH,
+    UrlNames,
 )
 from crate_anon.crateweb.core.constants import (
     LEN_ADDRESS,

@@ -2448,7 +2448,7 @@ class PatientExplorerAudit(models.Model):
 
 
 # =============================================================================
-# Archive auditing classes
+# Archive and visualization zone auditing classes
 # =============================================================================
 
 ARCHIVE_PATIENT_ID_MAX_LENGTH = 255

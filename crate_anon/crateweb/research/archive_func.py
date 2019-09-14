@@ -28,6 +28,7 @@ crate_anon/crateweb/research/archive_func.py
 
 """
 
+import json
 import logging
 from typing import Any, Dict, List
 
@@ -35,12 +36,16 @@ from cardinal_pythonlib.httpconst import ContentType
 from cardinal_pythonlib.logs import BraceStyleAdapter
 from django.urls import reverse
 
+from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 from crate_anon.crateweb.config.constants import UrlNames
 from crate_anon.crateweb.core.utils import (
     guess_mimetype,
     url_with_querystring,
 )
-from crate_anon.crateweb.research.archive_backend import ArchiveContextKeys
+from crate_anon.crateweb.research.archive_backend import (
+    ArchiveContextKeys,
+    archive_template_url,
+)
 from crate_anon.crateweb.research.research_db_info import (
     research_database_info,
 )
@@ -100,12 +105,12 @@ def embedded_attachment_html(filename: str,
     )
 
 
-def template_html(template_name: str,
-                  context: Dict[str, Any],
-                  iframe_class: str = "embedded_attachment",
-                  **qparams) -> str:
+def patient_template_html(template_name: str,
+                          context: Dict[str, Any],
+                          iframe_class: str = "embedded_attachment",
+                          **qparams) -> str:
     """
-    HTML element to show aonther archive template inline.
+    HTML element to show aonther archive patient template inline.
 
     Args:
         template_name: relative filename of the template
@@ -113,8 +118,25 @@ def template_html(template_name: str,
         iframe_class: CSS class for the <iframe>
         qparams: query parameters to pass to the template
     """
-    get_template_url = context[ArchiveContextKeys.get_template_url]
-    url = get_template_url(template_name)
+    get_patient_template_url = context[ArchiveContextKeys.get_patient_template_url]  # noqa
+    url = get_patient_template_url(template_name)
+    final_url = url_with_querystring(url, **qparams)
+    return f'<iframe class="{iframe_class}" src="{final_url}"></iframe>'
+
+
+def template_html(template_name: str,
+                  iframe_class: str = "embedded_attachment",
+                  **qparams) -> str:
+    """
+    HTML element to show aonther archive template inline (not necessarily for
+    a specific patient).
+
+    Args:
+        template_name: relative filename of the template
+        iframe_class: CSS class for the <iframe>
+        qparams: query parameters to pass to the template
+    """
+    url = archive_template_url(template_name)
     final_url = url_with_querystring(url, **qparams)
     return f'<iframe class="{iframe_class}" src="{final_url}"></iframe>'
 
@@ -142,3 +164,10 @@ def nlp_source_url(row: List[Any]) -> str:
         'srcpkval': row[-2],
         'srcpkstr': row[-1]
     })
+
+
+def json_compact(x: Any) -> str:
+    """
+    Returns a compact JSON version of the object.
+    """
+    return json.dumps(x, separators=JSON_SEPARATORS_COMPACT)

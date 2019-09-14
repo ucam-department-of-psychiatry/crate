@@ -1,7 +1,7 @@
 ## -*- coding: utf-8 -*-
 <%doc>
 
-crate_anon/crateweb/specimen_archives/tree/root.mako
+crate_anon/crateweb/specimen_archives/tree/launch_archive.mako
 
 ===============================================================================
 
@@ -26,88 +26,29 @@ crate_anon/crateweb/specimen_archives/tree/root.mako
 
 </%doc>
 
-<%inherit file="base.mako"/>
+<%inherit file="inherit/base.mako"/>
 
-## ============================================================================
-## Imports
-## ============================================================================
 <%!
-import logging
 
 from crate_anon.common.constants import HelpUrl
-from crate_anon.crateweb.core.utils import (
-    javascript_quoted_string_from_html,
-    JavascriptBranchNode,
-    JavascriptLeafNode,
-    JavascriptTree,
-)
-from crate_anon.crateweb.research.archive_func import (
-    embedded_attachment_html,
-    template_html,
-)
-
-log = logging.getLogger(__name__)
-
-NOT_IMPLEMENTED = '<div class="warning pad"><i>Not implemented yet.</i></div>'
-
-%>
-<%
-
-def template_element(template_name: str) -> str:
-    return template_html(template_name, context)
-
 
 %>
 
-<%namespace name="patient_details" file="snippets/patient_details.mako"/>
-<%namespace name="subtree" file="snippets/subtree.mako"/>
+<div class="pad">
+    [ <a href="${CRATE_HOME_URL}">Return to CRATE home</a> ]
 
-<%
+    <h1>Launch archive view for a specific patient</h1>
 
-pd = patient_details.get_patient_details()
+    <form action="${get_template_url()}" method="GET">
+        <input type="text" name="patient_id" title="Patient ID" placeholder="Patient ID" />
+        <input type="submit" name="submit" value="Launch" />
+        ## The query parameters in the URL will be REPLACED, as per
+        ## https://stackoverflow.com/questions/1116019/, so we also need:
+        <input type="hidden" name="template" value="patient_root.mako" />
+    </form>
 
-# Title bar (keep this small!)
-title_bar = f"""
-    <div class="title_bar">
-        <div>
-            CRATE tree-style archive demo.<br>
+    <h1>Archive views for multiple patients simultaneously</h1>
 
-            Patient ID: <b>{patient_id}</b>.<br>
+    <a href="${get_template_url("nonpatient_root.mako")}">Nonpatient archive page</a>
 
-            Imaginary CPFT patient details:<br>
-            Name: <b>{pd.surname.upper() or "?"}, {pd.forename.upper() or "?"}</b><br>
-            NHS# <b>{pd.nhs_number or "?"}</b><br>
-            RiO# <b>{pd.rio_number or "?"}</b><br>
-            CDL# <b>{pd.crs_cdl_number or "?"}</b><br>
-
-            [ <a href="{CRATE_HOME_URL}">Return to CRATE home</a>
-            | <a href="{HelpUrl.archive()}">Help</a>
-            ]
-        </div>
-    </div>
-"""
-
-tree = JavascriptTree(
-    tree_id="main_tree",
-    child_id_prefix="main_tree_child_",
-    children=[
-        JavascriptBranchNode("RiO", [
-            JavascriptLeafNode(
-                "Clinical Documents",
-                template_element("panels/clinical_documents.mako")),
-            JavascriptLeafNode("Diagnoses", NOT_IMPLEMENTED),
-            JavascriptLeafNode(
-                "Progress Notes",
-                template_element("panels/progress_notes.mako")),
-            JavascriptBranchNode("Assessments", [
-                JavascriptLeafNode("Core Assessments", NOT_IMPLEMENTED),
-            ]),
-        ]),
-        JavascriptLeafNode("NLP", template_element("panels/nlp.mako")),
-        JavascriptLeafNode("Test PDF", embedded_attachment_html("doctest.pdf", context)),
-    ]
-)
-
-%>
-
-${subtree.subtree_page(tree=tree, html_above_title=title_bar)}
+</div>

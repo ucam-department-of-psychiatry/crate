@@ -68,6 +68,9 @@ This system gives you full use of HTML/Javascript and Python simultaneously.
 (Python code will run within the same interpreter and virtual environment used
 by CRATE.)
 
+There are assistance functions that you can import, such as those in
+:mod:`crate_anon.crateweb.research.archive_func`.
+
 
 .. _archive_mako_context:
 
@@ -128,10 +131,27 @@ The special objects provided by CRATE are:
 
     get_static_url(filename, ...)
 
-- ``get_template_url``:
+- ``get_patient_template_url``:
 
   Function to generate a URL to a template in another part of the archive, for
   the same patient. Call it as
+
+  .. code-block:: python
+
+    get_patient_template_url(template_name, **kwargs)
+
+  You can pass any keyword parameters except:
+
+  - ``patient_id``
+  - ``template``
+  - ``mtime``
+
+  (see :class:`crate_anon.crateweb.config.constants.UrlKeys`).
+
+- ``get_template_url``:
+
+  Function to generate a URL to a template in another part of the archive,
+  without (necessarily) passing a patient ID. Call it as
 
   .. code-block:: python
 
@@ -139,7 +159,6 @@ The special objects provided by CRATE are:
 
   You can pass any keyword parameters except:
 
-  - ``patient_id``
   - ``template``
   - ``mtime``
 
@@ -246,3 +265,4 @@ Design notes
 
 
 .. todo:: archive: consider Windows authentication to Django
+.. todo:: optional launch page for archive (e.g. allowing JSON POST for patient ID)

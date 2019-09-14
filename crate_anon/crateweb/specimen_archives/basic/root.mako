@@ -26,21 +26,28 @@ crate_anon/crateweb/specimen_archives/basic/root.mako
 
 </%doc>
 
-<%inherit file="base.mako"/>
+<%inherit file="inherit/base.mako"/>
 
-<%block name="template_description">Choose an area to explore:</%block>
+<%!
+
+from crate_anon.common.constants import HelpUrl
+
+%>
 
 ## Don't show the "navigate to root" link on the root page.
 <%block name="navigate_to_root"></%block>
 
-<div class="navigation">
-  <ul>
-    <li><a href="${get_template_url("clinical_documents.mako")}">Clinical documents</a></li>
-    <li><a href="${get_template_url("diagnoses.mako")}">Diagnoses</a></li>
-    <li><a href="${get_template_url("progress_notes.mako")}">Progress notes</a></li>
-    <li><a href="${get_template_url("search.mako")}">Search</a></li>
-    <li><a href="${get_template_url("test.mako")}">Test page</a></li>
-    <li><a href="${get_template_url("test_subpanel_1.mako")}">Test sub-panels (1)</a></li>
-    <li><a href="${get_template_url("test_subpanel_2.mako")}">Test sub-panels (2)</a></li>
-  </ul>
+<%block name="template_description">Choose a patient:</%block>
+
+<div class="pad">
+    <h1>Launch archive view for a specific patient</h1>
+
+    <form action="${get_template_url()}" method="GET">
+        <input type="text" name="patient_id" title="Patient ID" placeholder="Patient ID" />
+        <input type="submit" name="submit" value="Launch" />
+        ## The query parameters in the URL will be REPLACED, as per
+        ## https://stackoverflow.com/questions/1116019/, so we also need:
+        <input type="hidden" name="template" value="patient_root.mako" />
+    </form>
+
 </div>
