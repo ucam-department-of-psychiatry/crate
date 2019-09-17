@@ -29,6 +29,7 @@ crate_anon/crateweb/specimen_archives/tree/panels/nlp.mako
 <%inherit file="../inherit/base.mako"/>
 <%!
 
+import logging
 from typing import List
 from crate_anon.crateweb.core.utils import (
     JavascriptBranchNode,
@@ -37,6 +38,8 @@ from crate_anon.crateweb.core.utils import (
     url_with_querystring,
 )
 from crate_anon.crateweb.research.archive_func import patient_template_html
+
+log = logging.getLogger(__name__)
 
 
 COMMON_END_COLUMNS = [
@@ -68,7 +71,7 @@ def nlp_url(tablename: str, description: str, columns: List[str],
         "snippets/single_nlp_page.mako", context, **qparams)
 
 
-tree = JavascriptTree(get
+tree = JavascriptTree(
     tree_id="nlp_tree",
     child_id_prefix="nlp_tree_child_",
     children=[
