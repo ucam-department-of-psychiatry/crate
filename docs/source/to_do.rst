@@ -71,6 +71,8 @@ Things to do
 
 - Option to add MRID to every table, to make cross-database queries simpler?
 
+  - Column would have to support NULL values; not all patients with a PID
+    (e.g. local identifier) will have a MPID (e.g. national identifier).
   - Would not require sequencing of tables during anonymisation, since the MRID
     should be found via
     :meth:`crate_anon.anonymise.patient.Patient._build_scrubber`.
