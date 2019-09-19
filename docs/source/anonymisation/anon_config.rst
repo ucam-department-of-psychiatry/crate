@@ -545,6 +545,16 @@ As for :ref:`anonymise_codes_at_word_boundaries_only
 <dd_scrub_method>`).
 
 
+Other anonymisation options
++++++++++++++++++++++++++++
+
+You can also specify additional "nonspecific" regular expressions yourself.
+See :ref:`extra_regexes <anon_config_extra_regexes>`.
+
+
+Output fields and formatting
+++++++++++++++++++++++++++++
+
 timefield_name
 ##############
 
@@ -556,16 +566,6 @@ when CRATE processed that row (see
 
 An example might be ``_when_processed_utc``.
 
-
-Other anonymisation options
-+++++++++++++++++++++++++++
-
-You can also specify additional "nonspecific" regular expressions yourself.
-See :ref:`extra_regexes <anon_config_extra_regexes>`.
-
-
-Output fields and formatting
-++++++++++++++++++++++++++++
 
 research_id_fieldname
 #####################

@@ -47,7 +47,7 @@ td p {  /* p within td */
 /* Named classes: */
 
 .action {
-    color: rgb(0, 0, 150);
+    color: rgb(0, 0, 150);  /* close to navy blue */
 }
 .addresses {
     clear: both;
@@ -71,12 +71,12 @@ td p {  /* p within td */
 }
 .collapse_big {}
 .collapse_small {
-    background-color: rgb(240, 240, 255);
+    background-color: rgb(240, 240, 255);  /* very pale blue */
     max-height: 5em;
     overflow: hidden;
 }
 .consent {
-    background-color: rgb(230, 230, 230);
+    background-color: rgb(230, 230, 230);  /* pale grey */
     border: 0.5mm solid black;
     padding: 0.5em;
     margin: 0.25em 0;
@@ -101,13 +101,13 @@ td p {  /* p within td */
     line-height: 1.2em;
 }
 .deadcell {
-    background-color: rgb(200, 200, 200);
+    background-color: rgb(200, 200, 200);  /* grey */
 }
 .ditto {
     font-style: italic;
     font-weight: bold;
     text-align: center;
-    background-color: rgb(230, 230, 230);
+    background-color: rgb(230, 230, 230);  /* pale grey */
 }
 .email_label {
     text-align: left;
@@ -119,12 +119,12 @@ td p {  /* p within td */
     border-bottom: 0.5mm solid black;
 }
 .error {
-    color: rgb(255, 0, 0);
+    color: red;
 }
 
 /*noinspection CssUnusedSymbol*/
 .errorlist {  /* Django forms */
-    color: rgb(255, 0, 0);
+    color: red;
 }
 .expandcollapsewrapper {
     display: table;
@@ -144,7 +144,7 @@ td p {  /* p within td */
 .formtitle {
     font-size: 1.6em;
     line-height: 1.2em;
-    color: rgb(0, 114, 198);
+    color: rgb(0, 114, 198);  /* "dark washed azure" */
 }
 
 .hangingindent {
@@ -152,21 +152,26 @@ td p {  /* p within td */
     text-indent: -1.5em;
 }
 .highlight {
-    background-color: rgb(255, 255, 224);
+    background-color: lightyellow;
 }
 
-/* yellow and red are typically used by browsers for all-instances and
-   instance-at-the-cursor with Ctrl-F */
+/*
+    User highlight colours.
+    Chrome v77 uses yellow for Ctrl-F "all instances" and orange for "instance
+    at the cursor". Firefox uses a pale green for Ctrl-F "instance at the
+    cursor".
+*/
+
 /*noinspection CssUnusedSymbol*/
-.highlight0 { background-color: #0F0; }
+.highlight0 { background-color: lime; }
 /*noinspection CssUnusedSymbol*/
-.highlight1 { background-color: #88F; }
+.highlight1 { background-color: rgb(136, 136, 255); }  /* blue-ish */
 /*noinspection CssUnusedSymbol*/
-.highlight2 { background-color: #F0F; }
+.highlight2 { background-color: magenta; }
 /* If altering: change also N_CSS_HIGHLIGHT_CLASSES in the source */
 
 .important {
-    color: rgb(150, 0, 0);
+    color: rgb(150, 0, 0);  /* dark red */
 }
 .indent {
     margin-left: 3em;
@@ -181,7 +186,7 @@ td p {  /* p within td */
     text-align: right;
 }
 .office {
-    background-color: rgb(200, 200, 200);
+    background-color: rgb(200, 200, 200);  /* grey */
     padding: 0.5em;
 }
 
@@ -199,10 +204,10 @@ table.options, .options table {
 }
 
 .patient {
-    background-color: rgb(127, 255, 127);
+    background-color: rgb(127, 255, 127);  /* vivid green */
 }
 .patient_withdrawal {
-    background-color: rgb(255, 127, 127);
+    background-color: rgb(255, 127, 127);  /* red/pink */
 }
 .patient, .patient_withdrawal {
     /* width: 100%; */
@@ -249,29 +254,29 @@ table.options, .options table {
     border-bottom: 0.5mm solid black;
 }
 .study {
-    background-color: rgb(200, 200, 255);
+    background-color: rgb(200, 200, 255);  /* close to lavender */
 }
 .stripy_odd {
 }
 .stripy_even {
-    background-color: rgb(245, 255, 230);
+    background-color: rgb(245, 255, 230);  /* very pale cream */
 }
 .sql {
-    background-color: rgb(230, 230, 255);
+    background-color: rgb(230, 230, 255);  /* very pale blue */
 }
 .tickbox {
     font-family: 'Consolas', 'Monaco', 'Bitstream Vera Sans Mono', monospace;
     text-align: right;
 }
 .titlecolour {
-    color: rgb(0, 114, 198);
+    color: rgb(0, 114, 198);  /* "dark washed azure" */
 }
 .underline {
     text-decoration: underline;
 }
 .warning {
     font-weight: bold;
-    color: rgb(255, 0, 0);
+    color: red;
 }
 
 /* For paged media: */

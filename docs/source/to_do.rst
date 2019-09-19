@@ -32,7 +32,25 @@ Things to do
   anonymisation)
 
 - Personal configurable highlight colours (with default set if none
-  configured)? Or just more colours? Look at a standard highlighter pack.
+  configured)? Or just more colours? Look at a standard highlighter pack --
+  e.g.
+
+  - https://www.jetpens.com/Stabilo-Boss-Original-Highlighter-9-Color-Bundle/pd/21976.
+  - https://www.rapidtables.com/web/css/css-color.html
+
+  - Yellow, https://hexcolor.co/hex/ffff00
+  - Blue, maybe cornflowerblue, https://hexcolor.co/hex/6495ed
+  - Green, maybe https://hexcolor.co/hex/72ff66 ("Stabilo Boss 1")
+  - Lavender, e.g. https://hexcolor.co/hex/967bb6
+  - Lilac pink, maybe magenta-ish, e.g. https://hexcolor.co/hex/ff66e5
+    ("Stabilo Boss 2")
+  - Orange, e.g. https://hexcolor.co/hex/ffa500
+  - Pink, e.g. https://hexcolor.co/hex/f24c7c
+  - Red, e.g. https://hexcolor.co/hex/ff0000
+  - Turquoise blue, no idea which one that is, but consider
+    https://hexcolor.co/hex/0ac768 ("Stabilo:)")
+
+  - Note default browser Ctrl-F colours; see ``base.css``.
 
 - More of JL’s ideas from 8 Jan 2018:
 
@@ -50,3 +68,20 @@ Things to do
   our built-in NLP.
 
 - There's some placeholder junk in ``consent_lookup_result.html``.
+
+- Option to add MRID to every table, to make cross-database queries simpler?
+
+  - Would not require sequencing of tables during anonymisation, since the MRID
+    should be found via
+    :meth:`crate_anon.anonymise.patient.Patient._build_scrubber`.
+  - Would involve modifying
+    :func:`crate_anon.anonymise.anonymise.process_table` to call
+    :meth:`crate_anon.anonymise.patient.Patient.get_mrid`, possibly where it
+    checks for a column being the primary PID, and adding an extra row there
+    subject to a flag.
+  - The flag relates to the whole database rather than a specific row, so
+    it should probably be in the config file -- e.g. named
+    ``add_mrid_wherever_rid_added``, within the ``[main]`` section, and the
+    "Output fields and formatting" subsection.
+  - Might also need an option to index that field automatically (true by
+    default).
