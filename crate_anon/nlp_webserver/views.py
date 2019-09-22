@@ -31,7 +31,7 @@ Pyramid views making up the CRATE NLPRP web server.
 import datetime
 import logging
 import json
-from typing import Dict, Generator, Iterable, List, Optional, Set, Tuple
+from typing import Dict, Generator, Iterable, List, Optional, Set, Tuple, Any
 import uuid
 import redis
 
@@ -48,7 +48,7 @@ from crate_anon.nlp_webserver.security import (
     get_auth_credentials,
     encrypt_password,
 )
-# from crate_anon.common.profiling import do_cprofile
+from crate_anon.common.profiling import do_cprofile
 from crate_anon.nlprp.api import (
     json_get_array,
     json_get_array_of_str,
@@ -87,7 +87,7 @@ from crate_anon.nlp_webserver.constants import (
 )
 from crate_anon.nlp_webserver.tasks import (
     app,
-    NlpServerResult,
+    # NlpServerResult,
     process_nlp_text,
     process_nlp_text_immediate,
     TaskSession,
@@ -460,8 +460,12 @@ class NlpWebViews(object):
                     username=self.username,
                     password=self.password
                 )
-                proc_dict = procresult.nlprp_processor_dict(processor)
-                processor_data.append(proc_dict)
+                # proc_dict = procresult.nlprp_processor_dict(processor)
+                if procresult[NKeys.NAME] is None:
+                    procresult[NKeys.NAME] = processor.name
+                    procresult[NKeys.TITLE] = processor.title
+                    procresult[NKeys.VERSION] = processor.version
+                processor_data.append(procresult)
 
             doc_result = {
                 NKeys.METADATA: metadata,
@@ -624,10 +628,15 @@ class NlpWebViews(object):
             asyncresults = asyncresults_all[j]
             for i, result in enumerate(asyncresults):
                 processor = get_processor_cached(proc_ids[i])
-                procresult = result.get()  # type: NlpServerResult
+                procresult = result.get()  # type: Dict[str, Any]
                 # result.forget()
-                proc_dict = procresult.nlprp_processor_dict(processor)
-                processor_data.append(proc_dict)
+                # proc_dict = procresult.nlprp_processor_dict(processor)
+                # processor_data.append(proc_dict)
+                if procresult[NKeys.NAME] is None:
+                    procresult[NKeys.NAME] = processor.name
+                    procresult[NKeys.TITLE] = processor.title
+                    procresult[NKeys.VERSION] = processor.version
+                processor_data.append(procresult)
 
             doc_result = {
                 NKeys.METADATA: metadata,
@@ -657,6 +666,7 @@ class NlpWebViews(object):
         return self.create_response(status=HttpStatus.OK,
                                     extra_info=response_info)
 
+    # @do_cprofile
     def show_queue(self) -> JsonObjectType:
         """
         Finds the queue entries associated with the client, optionally
@@ -685,17 +695,35 @@ class NlpWebViews(object):
             busy = False
             max_time = datetime.datetime.min
             qid_recs = [x for x in records if x.queue_id == queue_id]
-            for record in qid_recs:
-                result_ids = json.loads(record.result_ids)
-                for result_id in result_ids:
-                    results.append(AsyncResult(id=result_id, app=app))
-            res_set = ResultSet(results=results, app=app)
-            if res_set.ready():
-                result_values = res_set.get()  # type: Iterable[NlpServerResult]  # noqa
-                times = [x.time for x in result_values]
-                max_time = max(times)
-            else:
+            docids = [x.document_id for
+                      x in records if x.queue_id == queue_id]
+            dpr_query = DBSession.query(DocProcRequest).filter(
+                DocProcRequest.document_id.in_(docids)
+            )
+            dprs = dpr_query.all()
+            if not all([dpr.done for dpr in dprs]):
                 busy = True
+            else:
+                times = [dpr.date_done for dpr in dprs]
+                max_time = max(times)
+
+            # for record in qid_recs:
+            #     result_ids = json.loads(record.result_ids)
+            #     print(record.done_count)
+            #     if len(result_ids) != record.done_count:
+            #         busy = True
+            # for record in qid_recs:
+            #     result_ids = json.loads(record.result_ids)
+            #     for result_id in result_ids:
+            #         results.append(AsyncResult(id=result_id, app=app))
+            # res_set = ResultSet(results=results, app=app)
+            # if res_set.ready():
+                # result_values = res_set.get()  # type: Iterable[Dict[str, Any]]  # noqa
+                # times = [x.time for x in result_values]
+            #     times = [x._cache['date_done'] for x in res_set]  # TEMPORARY!!
+           #      max_time = max(times)
+           #  else:
+           #      busy = True
             dt_submitted = qid_recs[0].datetime_submitted_pendulum
             queue.append({
                 NKeys.QUEUE_ID: queue_id,
