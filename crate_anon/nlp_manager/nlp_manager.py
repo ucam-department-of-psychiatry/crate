@@ -664,18 +664,19 @@ def send_cloud_requests(
             # Is the text too big on its own? If so, don't send it. Otherwise
             # add it to the new request
             text_too_big = not cloud_request.add_text(text, other_values)
-            if text_too_big:
-                log.warning(
-                    "Record {db}.{t}.{c}, PK: {pkf}={pkv} "
-                    "is too big to send or contains no word characters".format(
-                        db=other_values[FN_SRCDB],
-                        t=other_values[FN_SRCTABLE],
-                        c=other_values[FN_SRCFIELD],
-                        pkf=other_values[FN_SRCPKFIELD],
-                        pkv=pkstr if pkstr else pkval,
-                    )
-                )
-            else:
+            # Get rid of this so as to speed things up
+            # if text_too_big:
+            #     log.warning(
+            #         "Record {db}.{t}.{c}, PK: {pkf}={pkv} "
+            #         "is too big to send or contains no word characters".format(
+            #             db=other_values[FN_SRCDB],
+            #             t=other_values[FN_SRCTABLE],
+            #             c=other_values[FN_SRCFIELD],
+            #             pkf=other_values[FN_SRCPKFIELD],
+            #             pkv=pkstr if pkstr else pkval,
+            #         )
+            #     )
+            if not text_too_big:
                 empty_request = False
 
         # Add 'srchash' to 'other_values' so the metadata will contain it

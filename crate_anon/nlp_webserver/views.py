@@ -48,7 +48,7 @@ from crate_anon.nlp_webserver.security import (
     get_auth_credentials,
     encrypt_password,
 )
-from crate_anon.common.profiling import do_cprofile
+# from crate_anon.common.profiling import do_cprofile
 from crate_anon.nlprp.api import (
     json_get_array,
     json_get_array_of_str,
@@ -584,10 +584,14 @@ class NlpWebViews(object):
                 result = AsyncResult(id=result_id, app=app)
                 asyncresults[i] = result
             asyncresults_all.append(asyncresults)
-        # Flatten asyncresults_all to make a result set
-        res_set = ResultSet(results=[x for y in asyncresults_all for x in y],
-                            app=app)
-        if not res_set.ready():
+
+        docids = [x.document_id for
+                  x in document_rows]
+        dpr_query = DBSession.query(DocProcRequest).filter(
+            DocProcRequest.document_id.in_(docids)
+        )
+        dprs = dpr_query.all()
+        if not all([dpr.done for dpr in dprs]):
             response = self.create_response(HttpStatus.PROCESSING, {})
             # todo: is it correct (from previous comments) that we can't
             # return JSON via Pyramid with a status of HttpStatus.PROCESSING?
@@ -596,6 +600,19 @@ class NlpWebViews(object):
             # should always be the same).
             self.set_http_response_status(HttpStatus.OK)
             return response
+
+        # Flatten asyncresults_all to make a result set
+        # res_set = ResultSet(results=[x for y in asyncresults_all for x in y],
+        #                     app=app)
+        # if not res_set.ready():
+        #     response = self.create_response(HttpStatus.PROCESSING, {})
+            # todo: is it correct (from previous comments) that we can't
+            # return JSON via Pyramid with a status of HttpStatus.PROCESSING?
+            # If that's true, we have to force as below, but then we need to
+            # alter the NLPRP docs (as these state the JSON code and HTTP code
+            # should always be the same).
+        #     self.set_http_response_status(HttpStatus.OK)
+        #     return response
 
         # Unfortunately we have to loop twice to avoid doing a lot for
         # nothing if it turns out a later result is not ready
@@ -663,6 +680,12 @@ class NlpWebViews(object):
             ),
             NKeys.RESULTS: doc_results
         }
+        # Delete docprocrequests from database
+        dpr_query.delete(synchronize_session='fetch')
+        try:
+            transaction.commit()
+        except SQLAlchemyError:
+            DBSession.rollback()
         return self.create_response(status=HttpStatus.OK,
                                     extra_info=response_info)
 
@@ -689,7 +712,7 @@ class NlpWebViews(object):
             )
         records = query.all()  # type: Iterable[Document]
         queue = []  # type: JsonArrayType
-        results = []  # type: List[AsyncResult]
+        # results = []  # type: List[AsyncResult]
         queue_ids = set([x.queue_id for x in records])  # type: Set[str]
         for queue_id in queue_ids:
             busy = False
@@ -721,9 +744,9 @@ class NlpWebViews(object):
                 # result_values = res_set.get()  # type: Iterable[Dict[str, Any]]  # noqa
                 # times = [x.time for x in result_values]
             #     times = [x._cache['date_done'] for x in res_set]  # TEMPORARY!!
-           #      max_time = max(times)
-           #  else:
-           #      busy = True
+            #      max_time = max(times)
+            #  else:
+            #      busy = True
             dt_submitted = qid_recs[0].datetime_submitted_pendulum
             queue.append({
                 NKeys.QUEUE_ID: queue_id,

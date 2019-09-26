@@ -33,10 +33,10 @@ import json
 import requests
 import transaction
 import datetime
-import time
+# import time
 
-from celery import Celery, Task
-from celery.worker.request import Request
+from celery import Celery
+# from celery.worker.request import Request
 from cryptography.fernet import Fernet
 # from pendulum import DateTime as Pendulum
 from sqlalchemy import engine_from_config
@@ -48,7 +48,7 @@ from crate_anon.nlp_manager.constants import (
     GateApiKeys,
     GateResultKeys,
 )
-from crate_anon.nlp_webserver.models import Session, DocProcRequest, Document
+from crate_anon.nlp_webserver.models import Session, DocProcRequest
 from crate_anon.nlp_webserver.procs import Processor
 from crate_anon.nlp_webserver.constants import (
     NlpServerConfigKeys,
@@ -197,6 +197,7 @@ def internal_error(msg: str, processor: Processor = None) -> JsonObjectType:
 
     Args:
         msg: the error message
+        processor: the :class:`Processor` object to be used
     """
     log.error(msg)
     return nlprp_processor_dict(
@@ -213,6 +214,7 @@ def gate_api_error(msg: str, processor: Processor = None) -> JsonObjectType:
 
     Args:
         msg: description of the error
+        processor: the :class:`Processor` object to be used
     """
     log.error(f"GATE API error: {msg}")
     return nlprp_processor_dict(
@@ -325,6 +327,7 @@ def process_nlp_text(
         try:
             transaction.commit()
         except SQLAlchemyError:
+            # noinspection PyUnresolvedReferences
             TaskSession.rollback()
         return internal_error(f"No such processor: {processor_id!r}")
 
@@ -345,6 +348,7 @@ def process_nlp_text(
         try:
             transaction.commit()
         except SQLAlchemyError:
+            # noinspection PyUnresolvedReferences
             TaskSession.rollback()
         return results
     else:
@@ -356,6 +360,7 @@ def process_nlp_text(
         try:
             transaction.commit()
         except SQLAlchemyError:
+            # noinspection PyUnresolvedReferences
             TaskSession.rollback()
         return results
 
