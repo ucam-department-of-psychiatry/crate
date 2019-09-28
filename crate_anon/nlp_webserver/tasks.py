@@ -165,13 +165,22 @@ def nlprp_processor_dict(
         errmsg: str = None) -> JsonObjectType:
     """
     Returns a dictionary suitable for use as one of the elements of the
-    ``response["results"]["processors"] array; see :ref:`NLPRP <nlprp>`.
+    ``response["results"]["processors"]`` array; see :ref:`NLPRP <nlprp>`.
 
     Args:
-        ??? FILL IN LATER
+        success:
+            did the request succeed?
+        processor:
+            a :class:`crate_anon.nlp_webserver.procs.Processor`, or ``None``
+        results:
+            a JSON array of results
+        errcode:
+            (if not ``success``) an integer error code
+        errmsg:
+            (if not ``success``) an error message
 
     Returns:
-        dict: FILL IN LATER
+        a JSON object in NLPRP format
     """
     proc_dict = {
         NlprpKeys.RESULTS: results or [],

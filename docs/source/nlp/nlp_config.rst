@@ -643,6 +643,40 @@ uses before it's restarted. Specify this option if so. Specify 0 or omit the
 option entirely to ignore this.
 
 
+processor_name
+##############
+
+*String.*
+
+**Applicable to: Cloud.**
+
+Name of the remote processor; see :ref:`NLPRP list_processors
+<nlprp_list_processors>`.
+
+
+processor_version
+#################
+
+*String.* Default: None.
+
+**Applicable to: Cloud.**
+
+Version of the remote processor; see :ref:`NLPRP list_processors
+<nlprp_list_processors>`.
+
+
+processor_format
+################
+
+*String.*
+
+**Applicable to: Cloud.**
+
+One of:  ``Standard``, ``GATE``.
+
+.. todo:: explain
+
+
 .. _nlp_config_section_gate_output:
 
 Config file section: GATE output definition

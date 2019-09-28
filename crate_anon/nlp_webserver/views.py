@@ -412,6 +412,8 @@ class NlpWebViews(object):
         self._authenticate()
         self._set_body_json_from_request()
         command = json_get_str(self.body, NKeys.COMMAND, required=True)
+        log.debug(f"NLPRP request received from {self.request.remote_addr}: "
+                  f"username={self.username}, command={command}")
         return self.parse_command(command)
 
     def parse_command(self, command: str) -> JsonObjectType:
