@@ -59,3 +59,39 @@ crate_nlp_webserver_generate_encryption_key
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Generates a random encryption key and prints it to the screen.
+
+
+
+.. _Redis: https://redis.io
+
+redis_host
+~~~~~~~~~~
+
+*String.* Default: ``localhost``.
+
+Host for Redis_ database,
+
+
+redis_port
+~~~~~~~~~~
+
+*Integer.* Default: 6379.
+
+Port for Redis_.
+
+
+redis_password
+~~~~~~~~~~~~~~
+
+*String.* Default: None.
+
+Password for Redis_.
+
+
+redis_db_number
+~~~~~~~~~~~~~~~
+
+*Integer.* Default: 0.
+
+Database number for Redis_.
+

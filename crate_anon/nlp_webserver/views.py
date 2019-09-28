@@ -104,13 +104,17 @@ log = logging.getLogger(__name__)
 
 COOKIE_SESSION_TOKEN = 'session_token'
 
-REDIS_HOST = "localhost"
-REDIS_PORT = 6379  # https://redis.io/topics/quickstart
-REDIS_DB_NUMBER = 0  # https://redis.io/commands/select
+DEFAULT_REDIS_HOST = "localhost"
+DEFAULT_REDIS_PORT = 6379  # https://redis.io/topics/quickstart
+DEFAULT_REDIS_DB_NUMBER = 0  # https://redis.io/commands/select
 
-REDIS_PASSWORD = SETTINGS.get(NlpServerConfigKeys.REDIS_PASSWORD)
-# ... 'None' if not set - if the redis server doesn't require a password,
-# it's fine to pass 'password=None' to StricRedis
+REDIS_HOST = SETTINGS.get(NlpServerConfigKeys.REDIS_HOST, DEFAULT_REDIS_HOST)
+REDIS_PORT = SETTINGS.get(NlpServerConfigKeys.REDIS_PORT, DEFAULT_REDIS_PORT)
+REDIS_DB_NUMBER = SETTINGS.get(NlpServerConfigKeys.REDIS_DB_NUMBER,
+                               DEFAULT_REDIS_DB_NUMBER)
+REDIS_PASSWORD = SETTINGS.get(NlpServerConfigKeys.REDIS_PASSWORD, None)
+# If the redis server doesn't require a password, it's fine to pass
+# 'password=None' to StrictRedis.
 
 REDIS_SESSIONS = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT,
                                    db=REDIS_DB_NUMBER,
@@ -324,7 +328,13 @@ class NlpWebViews(object):
         Checks to see if the user has given the correct token for the current
         session connected to their username.
         """
-        redis_token = REDIS_SESSIONS.get(self.username)
+        try:
+            redis_token = REDIS_SESSIONS.get(self.username)
+        except redis.exceptions.ConnectionError:
+            log.critical(
+                f"Could not connect to Redis (host={REDIS_HOST!r}, "
+                f"port={REDIS_PORT!r}, password not shown)")
+            raise
         if redis_token:
             redis_token = redis_token.decode()
         token = self.request.cookies.get(COOKIE_SESSION_TOKEN)

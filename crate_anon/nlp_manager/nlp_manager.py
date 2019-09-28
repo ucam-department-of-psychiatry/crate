@@ -606,7 +606,7 @@ def send_cloud_requests(
     cloud_request = CloudRequest(
         nlpdef, remote_processors_available=available_procs)
     empty_request = True
-    cloudcfg = nlpdef.get_cloud_config()
+    cloudcfg = nlpdef.get_cloud_config_or_raise()
     for text, other_values in ifconfig.gen_text(start=start_record,
                                                 how_many=number_of_records):
         pkval = other_values[FN_SRCPKVAL]

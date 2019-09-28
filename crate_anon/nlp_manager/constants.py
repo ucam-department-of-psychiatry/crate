@@ -140,6 +140,7 @@ class ProcessorConfigKeys(object):
     """
     Config file keys for NLP processors.
     """
+    ASSUME_PREFERRED_UNIT = "assume_preferred_unit"
     DESTDB = "destdb"
     DESTTABLE = "desttable"
     OUTPUTTYPEMAP = "outputtypemap"
