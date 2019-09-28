@@ -35,8 +35,12 @@ NLPRP web server
 This is CRATE's implementation of a full :ref:`NLPRP <nlprp>` web server. To
 use it:
 
-#.  Create a blank database. This database will be used to store documents
-    and processing requests transiently.
+#.  Create a blank database, for storing documents and processing requests
+    transiently.
+
+#.  Create another blank database, for storing Celery backend information.
+    (Optionally, you can skip this step and use your first database for both
+    functions.)
 
 #.  Create a blank text file to contain details of your users (with their
     encrypted passwords).
@@ -45,8 +49,8 @@ use it:
     Edit it.
 
 #.  Create a config file with crate_nlp_webserver_print_demo_. Edit it,
-    including pointing it to the database, the users file, and the processors
-    file, and setting an encryption key (e.g. with
+    including pointing it to the database(s), the users file, and the
+    processors file, and setting an encryption key (e.g. with
     crate_nlp_webserver_generate_encryption_key_). For more details, see below.
 
 #.  Initialize your empty database with crate_nlp_webserver_initialize_db_,
