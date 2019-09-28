@@ -109,6 +109,9 @@ tree = JavascriptTree(
         JavascriptLeafNode(
             "Test plotting",
             template_element("panels/test_plot.mako")),
+        JavascriptLeafNode(
+            "Deliberately crash",
+            template_element("panels/crash.mako")),
     ]
 )
 
