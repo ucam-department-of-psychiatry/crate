@@ -137,6 +137,8 @@ def main():
     run_cmd(["crate_nlp_webserver_print_demo", "--processors"],
             join(NLP_DIR, "nlp_webserver_demo_processors.py"),
             executable=True)
+    run_cmd(["crate_nlp_webserver_pserve", "--help"],
+            join(NLP_DIR, "crate_nlp_webserver_pserve_help.txt"))
     run_cmd(["crate_nlp_webserver_manage_users", "--help"],
             join(NLP_DIR, "crate_nlp_webserver_manage_users_help.txt"))
 

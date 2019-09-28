@@ -30,12 +30,17 @@ server.
 """
 
 import argparse
+import logging
 
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from cardinal_pythonlib.sqlalchemy.session import get_safe_url_from_engine
 from sqlalchemy import engine_from_config
 from pyramid.paster import get_appsettings
 
 from crate_anon.nlp_webserver.constants import NlpServerConfigKeys
 from crate_anon.nlp_webserver.models import DBSession, Base
+
+log = logging.getLogger(__name__)
 
 
 def main() -> None:
@@ -52,12 +57,19 @@ def main() -> None:
              "is found here."
     )
     args = parser.parse_args()
+    main_only_quicksetup_rootlogger()
 
-    settings = get_appsettings(args.config_uri)
+    config_file = args.config_uri
+    log.debug(f"Settings file: {config_file}")
+    settings = get_appsettings(config_file)
     engine = engine_from_config(settings,
                                 NlpServerConfigKeys.SQLALCHEMY_URL_PREFIX)
+    sqla_url = get_safe_url_from_engine(engine)
+    log.info(f"Using database {sqla_url!r}")
     DBSession.configure(bind=engine)
+    log.info("Creating database structure...")
     Base.metadata.create_all(engine)
+    log.info("... done.")
 
 
 if __name__ == "__main__":

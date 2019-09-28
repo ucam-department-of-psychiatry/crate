@@ -127,7 +127,7 @@ class NlpServerResult(object):
     def nlprp_processor_dict(self, processor: Processor) -> JsonObjectType:
         """
         Returns a dictionary suitable for use as one of the elements of the
-        ``response["results"]["processors"] array; see :ref:`NLPRP <nlprp>`.
+        ``response["results"]["processors"]`` array; see :ref:`NLPRP <nlprp>`.
 
         Args:
             processor: a :class:`crate_anon.nlp_webserver.procs.Processor`

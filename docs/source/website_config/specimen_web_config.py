@@ -318,7 +318,6 @@ ARCHIVE_STATIC_DIR = "/home/somewhere/my_archive_templates/static"
 ARCHIVE_ROOT_TEMPLATE = "root.mako"
 ARCHIVE_ATTACHMENT_DIR = "/home/somewhere/my_archive_attachments"
 ARCHIVE_CONTEXT = {}
-ARCHIVE_TEMPLATE_CACHE_DIR = "/tmp/crate_archive_template_cache"
 CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS = 0
 CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES = 0
 CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC = 0
@@ -481,4 +480,4 @@ CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
 PUBLIC_RESEARCH_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 
-# Generated at 2019-09-03 15:49:28
+# Generated at 2019-09-28 18:30:05

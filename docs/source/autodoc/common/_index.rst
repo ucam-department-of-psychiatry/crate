@@ -31,6 +31,7 @@ crate_anon/common
     :maxdepth: 1
 
     __init__.py.rst
+    compression.py.rst
     constants.py.rst
     extendedconfigparser.py.rst
     file_io.py.rst

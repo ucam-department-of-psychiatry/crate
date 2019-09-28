@@ -41,3 +41,5 @@ crate_anon/nlp_webserver
     settings.py.rst
     tasks.py.rst
     views.py.rst
+    wsgi_app.py.rst
+    wsgi_launchers.py.rst

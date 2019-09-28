@@ -229,6 +229,7 @@ crate_anon/crateweb
     specimen_archives/tree/inherit/plotting.mako.rst
     specimen_archives/tree/nonpatient_root.mako.rst
     specimen_archives/tree/panels/clinical_documents.mako.rst
+    specimen_archives/tree/panels/crash.mako.rst
     specimen_archives/tree/panels/nlp.mako.rst
     specimen_archives/tree/panels/progress_notes.mako.rst
     specimen_archives/tree/panels/test_plot.mako.rst

@@ -427,34 +427,34 @@ class JavascriptTree(JavascriptTreeNode):
 
     .. code-block:: Python
 
-# Django debugging preamble
-import os
-import django
-os.environ['DJANGO_SETTINGS_MODULE'] = 'crate_anon.crateweb.config.settings'
-django.setup()
+        # Django debugging preamble
+        import os
+        import django
+        os.environ['DJANGO_SETTINGS_MODULE'] = 'crate_anon.crateweb.config.settings'
+        django.setup()
+        
+        from crate_anon.crateweb.core.utils import (
+            JavascriptBranchNode,
+            JavascriptLeafNode,
+            JavascriptTree,
+        )
+        
+        t = JavascriptTree(
+            tree_id="my_tree",
+            child_id_prefix="my_tree_child_",
+            children=[
+                JavascriptBranchNode("RiO", [
+                    JavascriptLeafNode("Clinical Documents", "<p>Clinical docs</p>"),
+                    JavascriptLeafNode("Progress Notes", "<p>Prog notes</p>"),
+                ]),
+                JavascriptLeafNode("Test PDF", "<p>Test a PDF</p>"),
+            ]
+        )
+        print(t.html())
+        print(t.js_str_html())
+        print(t.js_data())
 
-from crate_anon.crateweb.core.utils import (
-    JavascriptBranchNode,
-    JavascriptLeafNode,
-    JavascriptTree,
-)
-
-t = JavascriptTree(
-    tree_id="my_tree",
-    child_id_prefix="my_tree_child_",
-    children=[
-        JavascriptBranchNode("RiO", [
-            JavascriptLeafNode("Clinical Documents", "<p>Clinical docs</p>"),
-            JavascriptLeafNode("Progress Notes", "<p>Prog notes</p>"),
-        ]),
-        JavascriptLeafNode("Test PDF", "<p>Test a PDF</p>"),
-    ]
-)
-print(t.html())
-print(t.js_str_html())
-print(t.js_data())
-
-    """
+    """  # noqa
     def __init__(self,
                  tree_id: str,
                  child_id_prefix: str,

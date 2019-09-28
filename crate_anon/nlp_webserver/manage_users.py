@@ -38,7 +38,7 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.nlp_webserver.constants import NlpServerConfigKeys
 from crate_anon.nlp_webserver.security import hash_password
-from crate_anon.nlp_webserver.settings import SETTINGS
+from crate_anon.nlp_webserver.settings import SETTINGS, SETTINGS_PATH
 
 log = logging.getLogger(__name__)
 
@@ -158,9 +158,11 @@ def main() -> None:
 
     if not args.adduser and not args.rmuser and not args.changepw:
         log.error(
-            "One option required: '--aduser', '--rmuser' or '--changepw'.")
+            "One option required: '--adduser', '--rmuser' or '--changepw'.")
         return
 
+    log.debug(f"Settings file: {SETTINGS_PATH}")
+    log.debug(f"Users file: {USERS_FILENAME}")
     if args.rmuser:
         username = args.rmuser[0]
         proceed = input(f"Confirm remove user: {username} ? [yes/no] ")

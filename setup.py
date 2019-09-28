@@ -435,12 +435,19 @@ setup(
             "crate_nlp_webserver_initialize_db=crate_anon.nlp_webserver.initialize_db:main",  # noqa
             "crate_nlp_webserver_print_demo=crate_anon.nlp_webserver.print_demos:main",  # noqa
             "crate_nlp_webserver_manage_users=crate_anon.nlp_webserver.manage_users:main",  # noqa
-            "crate_nlp_webserver_generate_encryption_key=crate_anon.nlp_webserver.security:generate_encryption_key"  # noqa
+            "crate_nlp_webserver_generate_encryption_key=crate_anon.nlp_webserver.security:generate_encryption_key",  # noqa
+            "crate_nlp_webserver_pserve=pyramid.scripts.pserve:main",  # noqa
 
         ],
         # Entry point for nlp webserver
         "paste.app_factory": [
-            "main = crate_anon.nlp_webserver:main"
+            "main = crate_anon.nlp_webserver.wsgi_app:make_wsgi_app",
+            # ... means we can launch with "pserve <config_file>"; see
+            # https://docs.pylonsproject.org/projects/pyramid-cookbook/en/latest/pylons/launch.html  # noqa
+        ],
+        "paste.server_runner": [
+            "cherrypy = crate_anon.nlp_webserver.wsgi_launchers:cherrypy",
+            "waitress = crate_anon.nlp_webserver.wsgi_launchers:waitress",
         ],
     },
 )

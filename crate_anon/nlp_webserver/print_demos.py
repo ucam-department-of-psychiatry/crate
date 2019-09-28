@@ -44,7 +44,7 @@ def demo_config() -> str:
     k = NlpServerConfigKeys
     return (f"""
 [app:main]
-use = egg:crate_anon
+use = egg:crate_anon#main
 pyramid.reload_templates = true
 # pyramid.includes =
 #     pyramid_debugtoolbar
@@ -236,7 +236,6 @@ PROCESSORS = [
 if __name__ == "__main__":
     import json  # delayed import
     print(json.dumps(PROCESSORS, indent=4, sort_keys=True))
-
 '''  # noqa
     )
 
