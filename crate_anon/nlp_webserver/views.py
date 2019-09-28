@@ -741,9 +741,9 @@ class NlpWebViews(object):
             #         results.append(AsyncResult(id=result_id, app=app))
             # res_set = ResultSet(results=results, app=app)
             # if res_set.ready():
-                # result_values = res_set.get()  # type: Iterable[Dict[str, Any]]  # noqa
-                # times = [x.time for x in result_values]
-            #     times = [x._cache['date_done'] for x in res_set]  # TEMPORARY!!
+            #     result_values = res_set.get()  # type: Iterable[Dict[str, Any]]  # noqa
+            #     times = [x.time for x in result_values]
+            #     times = [x._cache['date_done'] for x in res_set]  # TEMPORARY!!  # noqa
             #      max_time = max(times)
             #  else:
             #      busy = True

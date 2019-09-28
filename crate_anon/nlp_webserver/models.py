@@ -39,14 +39,14 @@ from sqlalchemy import (
     VARCHAR,
     Boolean,
     DateTime,
-    Integer,
+    # Integer,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     scoped_session,
     sessionmaker,
 )
-from sqlalchemy.schema import Index
+# from sqlalchemy.schema import Index
 # noinspection PyPackageRequirements
 from zope.sqlalchemy import ZopeTransactionExtension
 
