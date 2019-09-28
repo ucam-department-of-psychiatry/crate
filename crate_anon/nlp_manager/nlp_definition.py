@@ -1229,4 +1229,7 @@ class NlpDefinition(object):
         if cloudcfg is None:
             raise ValueError(f"No cloud NLP configuration for NLP definition "
                              f"{self.get_name()!r}")
+        if not cloudcfg.remote_processors:
+            raise ValueError(f"No remote (cloud) processors configured for "
+                             f"NLP definition {self.get_name()!r}")
         return cloudcfg

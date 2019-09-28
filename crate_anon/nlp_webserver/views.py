@@ -31,7 +31,7 @@ Pyramid views making up the CRATE NLPRP web server.
 import datetime
 import logging
 import json
-from typing import Dict, Generator, Iterable, List, Optional, Set, Tuple
+from typing import Dict, Generator, Iterable, List, Optional, Set, Tuple, Any
 import uuid
 import redis
 
@@ -87,7 +87,7 @@ from crate_anon.nlp_webserver.constants import (
 )
 from crate_anon.nlp_webserver.tasks import (
     app,
-    NlpServerResult,
+    # NlpServerResult,
     process_nlp_text,
     process_nlp_text_immediate,
     TaskSession,
@@ -104,13 +104,17 @@ log = logging.getLogger(__name__)
 
 COOKIE_SESSION_TOKEN = 'session_token'
 
-REDIS_HOST = "localhost"
-REDIS_PORT = 6379  # https://redis.io/topics/quickstart
-REDIS_DB_NUMBER = 0  # https://redis.io/commands/select
+DEFAULT_REDIS_HOST = "localhost"
+DEFAULT_REDIS_PORT = 6379  # https://redis.io/topics/quickstart
+DEFAULT_REDIS_DB_NUMBER = 0  # https://redis.io/commands/select
 
-REDIS_PASSWORD = SETTINGS.get(NlpServerConfigKeys.REDIS_PASSWORD)
-# ... 'None' if not set - if the redis server doesn't require a password,
-# it's fine to pass 'password=None' to StricRedis
+REDIS_HOST = SETTINGS.get(NlpServerConfigKeys.REDIS_HOST, DEFAULT_REDIS_HOST)
+REDIS_PORT = SETTINGS.get(NlpServerConfigKeys.REDIS_PORT, DEFAULT_REDIS_PORT)
+REDIS_DB_NUMBER = SETTINGS.get(NlpServerConfigKeys.REDIS_DB_NUMBER,
+                               DEFAULT_REDIS_DB_NUMBER)
+REDIS_PASSWORD = SETTINGS.get(NlpServerConfigKeys.REDIS_PASSWORD, None)
+# If the redis server doesn't require a password, it's fine to pass
+# 'password=None' to StrictRedis.
 
 REDIS_SESSIONS = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT,
                                    db=REDIS_DB_NUMBER,
@@ -324,7 +328,13 @@ class NlpWebViews(object):
         Checks to see if the user has given the correct token for the current
         session connected to their username.
         """
-        redis_token = REDIS_SESSIONS.get(self.username)
+        try:
+            redis_token = REDIS_SESSIONS.get(self.username)
+        except redis.exceptions.ConnectionError:
+            log.critical(
+                f"Could not connect to Redis (host={REDIS_HOST!r}, "
+                f"port={REDIS_PORT!r}, password not shown)")
+            raise
         if redis_token:
             redis_token = redis_token.decode()
         token = self.request.cookies.get(COOKIE_SESSION_TOKEN)
@@ -460,8 +470,12 @@ class NlpWebViews(object):
                     username=self.username,
                     password=self.password
                 )
-                proc_dict = procresult.nlprp_processor_dict(processor)
-                processor_data.append(proc_dict)
+                # proc_dict = procresult.nlprp_processor_dict(processor)
+                if procresult[NKeys.NAME] is None:
+                    procresult[NKeys.NAME] = processor.name
+                    procresult[NKeys.TITLE] = processor.title
+                    procresult[NKeys.VERSION] = processor.version
+                processor_data.append(procresult)
 
             doc_result = {
                 NKeys.METADATA: metadata,
@@ -580,10 +594,14 @@ class NlpWebViews(object):
                 result = AsyncResult(id=result_id, app=app)
                 asyncresults[i] = result
             asyncresults_all.append(asyncresults)
-        # Flatten asyncresults_all to make a result set
-        res_set = ResultSet(results=[x for y in asyncresults_all for x in y],
-                            app=app)
-        if not res_set.ready():
+
+        docids = [x.document_id for
+                  x in document_rows]
+        dpr_query = DBSession.query(DocProcRequest).filter(
+            DocProcRequest.document_id.in_(docids)
+        )
+        dprs = dpr_query.all()
+        if not all([dpr.done for dpr in dprs]):
             response = self.create_response(HttpStatus.PROCESSING, {})
             # todo: is it correct (from previous comments) that we can't
             # return JSON via Pyramid with a status of HttpStatus.PROCESSING?
@@ -592,6 +610,19 @@ class NlpWebViews(object):
             # should always be the same).
             self.set_http_response_status(HttpStatus.OK)
             return response
+
+        # Flatten asyncresults_all to make a result set
+        # res_set = ResultSet(results=[x for y in asyncresults_all for x in y],
+        #                     app=app)
+        # if not res_set.ready():
+        #     response = self.create_response(HttpStatus.PROCESSING, {})
+            # todo: is it correct (from previous comments) that we can't
+            # return JSON via Pyramid with a status of HttpStatus.PROCESSING?
+            # If that's true, we have to force as below, but then we need to
+            # alter the NLPRP docs (as these state the JSON code and HTTP code
+            # should always be the same).
+        #     self.set_http_response_status(HttpStatus.OK)
+        #     return response
 
         # Unfortunately we have to loop twice to avoid doing a lot for
         # nothing if it turns out a later result is not ready
@@ -624,10 +655,15 @@ class NlpWebViews(object):
             asyncresults = asyncresults_all[j]
             for i, result in enumerate(asyncresults):
                 processor = get_processor_cached(proc_ids[i])
-                procresult = result.get()  # type: NlpServerResult
+                procresult = result.get()  # type: Dict[str, Any]
                 # result.forget()
-                proc_dict = procresult.nlprp_processor_dict(processor)
-                processor_data.append(proc_dict)
+                # proc_dict = procresult.nlprp_processor_dict(processor)
+                # processor_data.append(proc_dict)
+                if procresult[NKeys.NAME] is None:
+                    procresult[NKeys.NAME] = processor.name
+                    procresult[NKeys.TITLE] = processor.title
+                    procresult[NKeys.VERSION] = processor.version
+                processor_data.append(procresult)
 
             doc_result = {
                 NKeys.METADATA: metadata,
@@ -654,9 +690,16 @@ class NlpWebViews(object):
             ),
             NKeys.RESULTS: doc_results
         }
+        # Delete docprocrequests from database
+        dpr_query.delete(synchronize_session='fetch')
+        try:
+            transaction.commit()
+        except SQLAlchemyError:
+            DBSession.rollback()
         return self.create_response(status=HttpStatus.OK,
                                     extra_info=response_info)
 
+    # @do_cprofile
     def show_queue(self) -> JsonObjectType:
         """
         Finds the queue entries associated with the client, optionally
@@ -679,23 +722,41 @@ class NlpWebViews(object):
             )
         records = query.all()  # type: Iterable[Document]
         queue = []  # type: JsonArrayType
-        results = []  # type: List[AsyncResult]
+        # results = []  # type: List[AsyncResult]
         queue_ids = set([x.queue_id for x in records])  # type: Set[str]
         for queue_id in queue_ids:
             busy = False
             max_time = datetime.datetime.min
             qid_recs = [x for x in records if x.queue_id == queue_id]
-            for record in qid_recs:
-                result_ids = json.loads(record.result_ids)
-                for result_id in result_ids:
-                    results.append(AsyncResult(id=result_id, app=app))
-            res_set = ResultSet(results=results, app=app)
-            if res_set.ready():
-                result_values = res_set.get()  # type: Iterable[NlpServerResult]  # noqa
-                times = [x.time for x in result_values]
-                max_time = max(times)
-            else:
+            docids = [x.document_id for
+                      x in records if x.queue_id == queue_id]
+            dpr_query = DBSession.query(DocProcRequest).filter(
+                DocProcRequest.document_id.in_(docids)
+            )
+            dprs = dpr_query.all()
+            if not all([dpr.done for dpr in dprs]):
                 busy = True
+            else:
+                times = [dpr.date_done for dpr in dprs]
+                max_time = max(times)
+
+            # for record in qid_recs:
+            #     result_ids = json.loads(record.result_ids)
+            #     print(record.done_count)
+            #     if len(result_ids) != record.done_count:
+            #         busy = True
+            # for record in qid_recs:
+            #     result_ids = json.loads(record.result_ids)
+            #     for result_id in result_ids:
+            #         results.append(AsyncResult(id=result_id, app=app))
+            # res_set = ResultSet(results=results, app=app)
+            # if res_set.ready():
+            #     result_values = res_set.get()  # type: Iterable[Dict[str, Any]]  # noqa
+            #     times = [x.time for x in result_values]
+            #     times = [x._cache['date_done'] for x in res_set]  # TEMPORARY!!  # noqa
+            #      max_time = max(times)
+            #  else:
+            #      busy = True
             dt_submitted = qid_recs[0].datetime_submitted_pendulum
             queue.append({
                 NKeys.QUEUE_ID: queue_id,

@@ -48,6 +48,9 @@ class NlpServerConfigKeys(object):
     SQLALCHEMY_URL_PREFIX = "sqlalchemy."
     SQLALCHEMY_URL_FULL = SQLALCHEMY_URL_PREFIX + "url"
     REDIS_PASSWORD = "redis_password"
+    REDIS_HOST = "redis_host"
+    REDIS_PORT = "redis_port"
+    REDIS_DB_NUMBER = "redis_db_number"
 
 
 SQLALCHEMY_COMMON_OPTIONS = {

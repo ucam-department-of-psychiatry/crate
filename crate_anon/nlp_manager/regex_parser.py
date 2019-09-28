@@ -38,6 +38,7 @@ from sqlalchemy import Column, Integer, Float, String, Text
 
 from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
+    ProcessorConfigKeys,
     SqlTypeDbIdentifier,
 )
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
@@ -301,9 +302,11 @@ class NumericalResultParser(BaseNlpParser):
             self.assume_preferred_unit = True
         else:
             self.tablename = nlpdef.opt_str(
-                self._sectionname, 'desttable', required=True)
+                self._sectionname, ProcessorConfigKeys.DESTTABLE,
+                required=True)
             self.assume_preferred_unit = nlpdef.opt_bool(
-                self._sectionname, 'assume_preferred_unit', default=True)
+                self._sectionname, ProcessorConfigKeys.ASSUME_PREFERRED_UNIT,
+                default=True)
 
         # Sanity checks
         assert len(self.variable) <= MAX_SQL_FIELD_LEN, (
@@ -681,7 +684,8 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
             self.tablename = self.classname().lower()
         else:
             self.tablename = nlpdef.opt_str(
-                self._sectionname, 'desttable', required=True)
+                self._sectionname, ProcessorConfigKeys.DESTTABLE,
+                required=True)
 
         regex_str = fr"""
             ( {variable_regex_str} )           # 1. group for variable (thing being measured)
@@ -991,7 +995,8 @@ class ValidatorBase(BaseNlpParser):
             self.tablename = self.classname().lower()
         else:
             self.tablename = nlpdef.opt_str(
-                self._sectionname, 'desttable', required=True)
+                self._sectionname, ProcessorConfigKeys.DESTTABLE,
+                required=True)
 
     @classmethod
     @abstractmethod

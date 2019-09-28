@@ -290,6 +290,8 @@ source text was truncated (see :ref:`truncate_text_at
 .. todo:: RNC to ask FS for explanation of ``record_truncated_values``, i.e. when should it be used?
 
 
+.. _cloud_config:
+
 cloud_config
 ############
 
@@ -432,42 +434,50 @@ The format depends on the specific processor *type* (see :ref:`processors
 <nlp_config_nlpdef_processors>`).
 
 
-Parameters for all NLP parsers
-##############################
-
 destdb
-++++++
+######
 
 *String.*
+
+**Applicable to: all parsers.**
 
 Destination database; the name of a :ref:`database definition
 <nlp_config_section_database>` in the config file.
 
 
-Parameters for CRATE Python regular expression NLP parsers
-##########################################################
-
 desttable
-+++++++++
+#########
 
 *String.*
+
+**Applicable to: Cloud, MedEx, all CRATE Python processors.**
 
 The name of the table in the destination database in which the results should
 be stored.
 
 
-Parameters for GATE processors
-##############################
+assume_preferred_unit
+#####################
 
-What's GATE? See the section on :ref:`GATE NLP <gate_nlp>`.
+*Boolean.* Default: True.
+
+**Applicable to: all numerical CRATE Python processors.**
+
+If a unit is not specified, assume that values are in the processor's preferred
+units. (For example, :class:`crate_anon.nlp_manager.parse_biochemistry.Crp`
+will assume mg/L.)
 
 
 .. _nlp_config_section_gate_outputtypemap:
 
 outputtypemap
-+++++++++++++
+#############
 
 *Multiline string.*
+
+**Applicable to: GATE.**
+
+What's GATE? See the section on :ref:`GATE NLP <gate_nlp>`.
 
 Map GATE '_type' parameters to possible destination tables (in
 case-insensitive fashion). This parameter is follows is a list of pairs, one pair per line.
@@ -494,9 +504,11 @@ config file -- see :ref:`GATE output definitions
 .. _nlp_config_section_gate_progargs:
 
 progargs
-++++++++
+########
 
 *Multiline string.*
+
+**Applicable to: GATE, MedEx.**
 
 This parameter defines how we will launch GATE. See :ref:`GATE NLP <gate_nlp>`.
 
@@ -567,9 +579,11 @@ NOTE IN PARTICULAR:
 .. _nlp_config_section_gate_progenvsection:
 
 progenvsection
-++++++++++++++
+##############
 
 *String.*
+
+**Applicable to: GATE, MedEx.**
 
 :ref:`Environment variable config section <nlp_config_section_envvar>` to use
 when launching this program.
@@ -578,9 +592,11 @@ when launching this program.
 .. _nlp_config_section_gate_inputterminator:
 
 input_terminator
-++++++++++++++++
+################
 
 *String.*
+
+**Applicable to: GATE.**
 
 The external GATE program is slow, because NLP is slow. Therefore, we set up
 the external program and use it repeatedly for a whole bunch of text.
@@ -606,17 +622,21 @@ THE SAME VALUE.
 .. _nlp_config_section_gate_outputterminator:
 
 output_terminator
-+++++++++++++++++
+#################
 
 *String.*
+
+**Applicable to: GATE.**
 
 See :ref:`input_terminator <nlp_config_section_gate_inputterminator>`.
 
 
 max_external_prog_uses
-++++++++++++++++++++++
+######################
 
 *Integer.*
+
+**Applicable to: GATE, MedEx.**
 
 If the external GATE program leaks memory, you may wish to cap the number of
 uses before it's restarted. Specify this option if so. Specify 0 or omit the
@@ -824,7 +844,8 @@ Config file section: cloud NLP configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 These are config file sections named ``[cloud:XXX]`` where ``XXX`` is the name
-of one of your NLP definitions [#cloudconfigclass]_.
+of one of your cloud NLP configurations (referred to by the cloud_config_
+parameter in a NLP definition) [#cloudconfigclass]_.
 
 
 .. _nlp_config_cloud_url:

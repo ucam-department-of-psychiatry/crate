@@ -23,6 +23,7 @@
 .. _Paste: https://pythonpaste.readthedocs.io/
 .. _PasteDeploy: https://pastedeploy.readthedocs.io
 .. _pserve: https://docs.pylonsproject.org/projects/pyramid/en/latest/pscripts/pserve.html
+.. _Redis: https://redis.io
 .. _Waitress: https://docs.pylonsproject.org/projects/waitress/
 .. _WSGI: https://en.wikipedia.org/wiki/Web_Server_Gateway_Interface
 
@@ -106,31 +107,100 @@ These options include:
 
 #.  CRATE NLP web server settings:
 
-    - ``nlp_webserver.secret``: a secret key for cookies (see `Pyramid
-      AuthTktAuthenticationPolicy
-      <https://docs.pylonsproject.org/projects/pyramid/en/latest/api/authentication.html>`_;
-      make one using crate_nlp_webserver_generate_encryption_key_).
 
-    - ``sqlalchemy.url``: the SQLAlchemy URL to your database; see
-      `database URLs <https://docs.sqlalchemy.org/en/13/core/engines.html>`_.
+nlp_webserver.secret
+~~~~~~~~~~~~~~~~~~~~
 
-    - ``users_file``: the path to your user definition file; see
-      crate_nlp_webserver_manage_users_.
+*String.*
 
-    - ``processors_path``: the path to your processor definition file; see
-      :ref:`Processors file format <nlp_webserver_processors>`.
+A secret key for cookies (see `Pyramid AuthTktAuthenticationPolicy
+<https://docs.pylonsproject.org/projects/pyramid/en/latest/api/authentication.html>`_;
+make one using crate_nlp_webserver_generate_encryption_key_).
 
-    - ``broker_url``: the URL to your Celery_ broker server, e.g. via AMQP_,
-      for back-end processing.
 
-    - ``backend_url``: the URL to your Celery_ backend database, used to
-      store queuing information. For the format, see
-      `Celery database URL examples
-      <https://docs.celeryproject.org/en/latest/userguide/configuration.html#database-url-examples>`_.
+sqlalchemy.url
+~~~~~~~~~~~~~~
 
-    - ``encryption_key``: a secret key used for password encryption in the
-      users file. You can make one with
-      crate_nlp_webserver_generate_encryption_key_.
+*String.*
+
+The SQLAlchemy URL to your database; see `database URLs
+<https://docs.sqlalchemy.org/en/13/core/engines.html>`_.
+
+
+users_file
+~~~~~~~~~~
+
+*String.*
+
+The path to your user definition file; see crate_nlp_webserver_manage_users_.
+
+
+processors_path
+~~~~~~~~~~~~~~~
+
+*String.*
+
+The path to your processor definition file; see :ref:`Processors file format
+<nlp_webserver_processors>`.
+
+
+broker_url
+~~~~~~~~~~
+
+*String.*
+
+The URL to your Celery_ broker server, e.g. via AMQP_, for back-end processing.
+
+
+backend_url
+~~~~~~~~~~~
+
+*String.*
+
+The URL to your Celery_ backend database, used to store queuing information.
+For the format, see `Celery database URL examples
+<https://docs.celeryproject.org/en/latest/userguide/configuration.html#database-url-examples>`_.
+
+
+encryption_key
+~~~~~~~~~~~~~~
+
+*String.*
+
+A secret key used for password encryption in the users file. You can make one
+with crate_nlp_webserver_generate_encryption_key_.
+
+
+redis_host
+~~~~~~~~~~
+
+*String.* Default: ``localhost``.
+
+Host for Redis_ database,
+
+
+redis_port
+~~~~~~~~~~
+
+*Integer.* Default: 6379.
+
+Port for Redis_.
+
+
+redis_password
+~~~~~~~~~~~~~~
+
+*String.* Default: None.
+
+Password for Redis_.
+
+
+redis_db_number
+~~~~~~~~~~~~~~~
+
+*Integer.* Default: 0.
+
+Database number for Redis_.
 
 
 Web server section

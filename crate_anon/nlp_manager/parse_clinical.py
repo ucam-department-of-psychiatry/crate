@@ -53,6 +53,7 @@ from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy import Column, Integer, Float, String, Text
 
+from crate_anon.nlp_manager.constants import ProcessorConfigKeys
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_parser import (
     BaseNlpParser,
@@ -668,7 +669,8 @@ class Bp(BaseNlpParser):
             self.tablename = self.classname().lower()
         else:
             self.tablename = nlpdef.opt_str(
-                self._sectionname, 'desttable', required=True)
+                self._sectionname, ProcessorConfigKeys.DESTTABLE,
+                required=True)
 
     @classmethod
     def print_info(cls, file: TextIO = sys.stdout) -> None:

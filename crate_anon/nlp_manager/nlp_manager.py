@@ -114,7 +114,7 @@ from crate_anon.nlp_manager.nlp_definition import (
     NlpDefinition,
     demo_nlp_config,
 )
-from crate_anon.nlp_manager.cloud_parser import CloudRequest
+from crate_anon.nlp_manager.cloud_parser import CloudRequest, Cloud
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
@@ -281,6 +281,8 @@ def delete_where_no_source(nlpdef: NlpDefinition,
 
     # Add the processors' destination databases
     for processor in nlpdef.get_processors():  # of type TableMaker
+        if isinstance(processor, Cloud) and not processor.available_remotely:
+            continue
         session = processor.get_session()
         if any(x.session == session for x in databases):
             continue  # already exists
@@ -345,6 +347,8 @@ def delete_where_no_source(nlpdef: NlpDefinition,
 
     # Delete from others
     for processor in nlpdef.get_processors():
+        if isinstance(processor, Cloud) and not processor.available_remotely:
+            continue
         database = [x for x in databases
                     if x.session == processor.get_session()][0]
         temptable = database.temptable
@@ -401,6 +405,8 @@ def drop_remake(nlpdef: NlpDefinition,
 
     pretty_names = []  # type: List[str]
     for processor in nlpdef.get_processors():
+        if isinstance(processor, Cloud) and not processor.available_remotely:
+            continue
         new_pretty_names = processor.make_tables(drop_first=not incremental)
         for npn in new_pretty_names:
             if npn in pretty_names:
@@ -600,7 +606,7 @@ def send_cloud_requests(
     cloud_request = CloudRequest(
         nlpdef, remote_processors_available=available_procs)
     empty_request = True
-    cloudcfg = nlpdef.get_cloud_config()
+    cloudcfg = nlpdef.get_cloud_config_or_raise()
     for text, other_values in ifconfig.gen_text(start=start_record,
                                                 how_many=number_of_records):
         pkval = other_values[FN_SRCPKVAL]
@@ -658,18 +664,19 @@ def send_cloud_requests(
             # Is the text too big on its own? If so, don't send it. Otherwise
             # add it to the new request
             text_too_big = not cloud_request.add_text(text, other_values)
-            if text_too_big:
-                log.warning(
-                    "Record {db}.{t}.{c}, PK: {pkf}={pkv} "
-                    "is too big to send or contains no word characters".format(
-                        db=other_values[FN_SRCDB],
-                        t=other_values[FN_SRCTABLE],
-                        c=other_values[FN_SRCFIELD],
-                        pkf=other_values[FN_SRCPKFIELD],
-                        pkv=pkstr if pkstr else pkval,
-                    )
-                )
-            else:
+            # Get rid of this so as to speed things up
+            # if text_too_big:
+            #     log.warning(
+            #         "Record {db}.{t}.{c}, PK: {pkf}={pkv} "
+            #         "is too big to send or contains no word characters".format(  #
+            #             db=other_values[FN_SRCDB],
+            #             t=other_values[FN_SRCTABLE],
+            #             c=other_values[FN_SRCFIELD],
+            #             pkf=other_values[FN_SRCPKFIELD],
+            #             pkv=pkstr if pkstr else pkval,
+            #         )
+            #     )
+            if not text_too_big:
                 empty_request = False
 
         # Add 'srchash' to 'other_values' so the metadata will contain it

@@ -39,12 +39,14 @@ from sqlalchemy import (
     VARCHAR,
     Boolean,
     DateTime,
+    # Integer,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     scoped_session,
     sessionmaker,
 )
+# from sqlalchemy.schema import Index
 # noinspection PyPackageRequirements
 from zope.sqlalchemy import ZopeTransactionExtension
 
@@ -142,3 +144,13 @@ class DocProcRequest(Base):
         VARCHAR(100),
         comment="Processor ID, in '<name>_<version>' format"
     )  # type: str
+    done = Column(
+        Boolean,
+        default=False,
+        comment="Has the task associated with this request been completed?"
+    )  # type: bool
+    date_done = Column(
+        DateTime,
+        default=None,
+        comment="Date/time when the request was completed (in UTC)"
+    )

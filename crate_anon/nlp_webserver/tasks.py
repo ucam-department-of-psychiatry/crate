@@ -32,16 +32,18 @@ import logging
 import json
 import requests
 import transaction
+import datetime
 # import time
 
 from celery import Celery
+# from celery.worker.request import Request
 from cryptography.fernet import Fernet
-from pendulum import DateTime as Pendulum
+# from pendulum import DateTime as Pendulum
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.exc import SQLAlchemyError
 
-from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
+# from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
     GateApiKeys,
     GateResultKeys,
@@ -100,87 +102,124 @@ app.conf.database_engine_options = SQLALCHEMY_COMMON_OPTIONS
 # NlpServerResult
 # =============================================================================
 
-class NlpServerResult(object):
-    """
-    Object to represent the server-side results of processing some text.
-    """
-    def __init__(self,
-                 success: bool,
-                 time: Pendulum = None,
-                 results: JsonArrayType = None,
-                 errcode: int = None,
-                 errmsg: str = None) -> None:
-        """
-        Args:
-            success: did the request succeed?
-            time: result time
-            results: results, as a JSON array (Python list)
-            errcode: error code, if there was an error
-            errmsg: error message, if there was an error
-        """
-        self.success = success
-        self.time = time or Pendulum.now()
-        self.results = results or []  # type: JsonArrayType
-        self.errcode = errcode
-        self.errmsg = errmsg
-
-    def nlprp_processor_dict(self, processor: Processor) -> JsonObjectType:
-        """
-        Returns a dictionary suitable for use as one of the elements of the
-        ``response["results"]["processors"]`` array; see :ref:`NLPRP <nlprp>`.
-
-        Args:
-            processor: a :class:`crate_anon.nlp_webserver.procs.Processor`
-
-        Returns:
-            dict: as above
-        """
-        proc_dict = {
-            NlprpKeys.NAME: processor.name,
-            NlprpKeys.TITLE: processor.title,
-            NlprpKeys.VERSION: processor.version,
-            NlprpKeys.RESULTS: self.results,
-            NlprpKeys.SUCCESS: self.success
-        }
-        if not self.success:
-            proc_dict[NlprpKeys.ERRORS] = [{
-                NlprpKeys.CODE: self.errcode,
-                NlprpKeys.MESSAGE: self.errmsg,
-                NlprpKeys.DESCRIPTION: self.errmsg,
-            }]
-        return proc_dict
+# class NlpServerResult(object):
+#     """
+#     Object to represent the server-side results of processing some text.
+#     """
+#     def __init__(self,
+#                  success: bool,
+#                  time: Pendulum = None,
+#                  results: JsonArrayType = None,
+#                  errcode: int = None,
+#                  errmsg: str = None) -> None:
+#         """
+#         Args:
+#             success: did the request succeed?
+#             time: result time
+#             results: results, as a JSON array (Python list)
+#             errcode: error code, if there was an error
+#             errmsg: error message, if there was an error
+#         """
+#         self.success = success
+#         self.time = time or Pendulum.now()
+#         self.results = results or []  # type: JsonArrayType
+#         self.errcode = errcode
+#         self.errmsg = errmsg
+#
+#     def nlprp_processor_dict(self, processor: Processor) -> JsonObjectType:
+#         """
+#         Returns a dictionary suitable for use as one of the elements of the
+#         ``response["results"]["processors"] array; see :ref:`NLPRP <nlprp>`.
+#
+#         Args:
+#             processor: a :class:`crate_anon.nlp_webserver.procs.Processor`
+#
+#         Returns:
+#             dict: as above
+#         """
+#         proc_dict = {
+#             NlprpKeys.NAME: processor.name,
+#             NlprpKeys.TITLE: processor.title,
+#             NlprpKeys.VERSION: processor.version,
+#             NlprpKeys.RESULTS: self.results,
+#             NlprpKeys.SUCCESS: self.success
+#         }
+#         if not self.success:
+#             proc_dict[NlprpKeys.ERRORS] = [{
+#                 NlprpKeys.CODE: self.errcode,
+#                 NlprpKeys.MESSAGE: self.errmsg,
+#                 NlprpKeys.DESCRIPTION: self.errmsg,
+#             }]
+#         return proc_dict
 
 
 # =============================================================================
 # Helper functions
 # =============================================================================
 
-def internal_error(msg: str) -> NlpServerResult:
+def nlprp_processor_dict(
+        success: bool,
+        processor: Processor = None,
+        results: JsonArrayType = None,
+        errcode: int = None,
+        errmsg: str = None) -> JsonObjectType:
+    """
+    Returns a dictionary suitable for use as one of the elements of the
+    ``response["results"]["processors"] array; see :ref:`NLPRP <nlprp>`.
+
+    Args:
+        ??? FILL IN LATER
+
+    Returns:
+        dict: FILL IN LATER
+    """
+    proc_dict = {
+        NlprpKeys.RESULTS: results or [],
+        NlprpKeys.SUCCESS: success
+    }
+    if processor:
+        proc_dict[NlprpKeys.NAME] = processor.name
+        proc_dict[NlprpKeys.TITLE] = processor.title
+        proc_dict[NlprpKeys.VERSION] = processor.version
+    if not success:
+        proc_dict[NlprpKeys.ERRORS] = [{
+            NlprpKeys.CODE: errcode,
+            NlprpKeys.MESSAGE: errmsg,
+            NlprpKeys.DESCRIPTION: errmsg,
+        }]
+    return proc_dict
+
+
+def internal_error(msg: str, processor: Processor = None) -> JsonObjectType:
     """
     Log an error message, and raise a corresponding :exc:`NlprpError` for
     an internal server error.
 
     Args:
         msg: the error message
+        processor: the :class:`Processor` object to be used
     """
     log.error(msg)
-    return NlpServerResult(
-        False,
+    return nlprp_processor_dict(
+        success=False,
+        processor=processor,
         errcode=HttpStatus.INTERNAL_SERVER_ERROR,
         errmsg=f"Internal Server Error: {msg}"
     )
 
 
-def gate_api_error(msg: str) -> NlpServerResult:
+def gate_api_error(msg: str, processor: Processor = None) -> JsonObjectType:
     """
     Return a "GATE failed" error.
 
     Args:
         msg: description of the error
+        processor: the :class:`Processor` object to be used
     """
     log.error(f"GATE API error: {msg}")
-    return NlpServerResult(
-        False,
+    return nlprp_processor_dict(
+        success=False,
+        processor=processor,
         errcode=HttpStatus.BAD_GATEWAY,
         errmsg=f"Bad Gateway: {msg}"
     )
@@ -239,7 +278,7 @@ def process_nlp_text(
         self,
         docprocrequest_id: str,
         username: str = "",
-        crypt_pass: str = "") -> NlpServerResult:
+        crypt_pass: str = "") -> JsonObjectType:
     """
     Task to send text to the relevant processor.
 
@@ -283,31 +322,54 @@ def process_nlp_text(
     try:
         processor = Processor.processors[processor_id]
     except KeyError:
+        dpr.done = True
+        dpr.date_done = datetime.datetime.utcnow()
+        try:
+            transaction.commit()
+        except SQLAlchemyError:
+            # noinspection PyUnresolvedReferences
+            TaskSession.rollback()
         return internal_error(f"No such processor: {processor_id!r}")
 
     # Delete docprocrequest from database
     # noinspection PyUnresolvedReferences
-    TaskSession.delete(dpr)
-    try:
-        transaction.commit()
-    except SQLAlchemyError:
-        # noinspection PyUnresolvedReferences
-        TaskSession.rollback()
+    # TaskSession.delete(dpr)
+    # try:
+    #     transaction.commit()
+    # except SQLAlchemyError:
+    #     # noinspection PyUnresolvedReferences
+    #     TaskSession.rollback()
 
     # Run the NLP
     if processor.proctype == PROCTYPE_GATE:
-        return process_nlp_gate(text, processor, username, password)
+        results = process_nlp_gate(text, processor, username, password)
+        dpr.done = True
+        dpr.date_done = datetime.datetime.utcnow()
+        try:
+            transaction.commit()
+        except SQLAlchemyError:
+            # noinspection PyUnresolvedReferences
+            TaskSession.rollback()
+        return results
     else:
         if not processor.parser:
             processor.set_parser()
-        return process_nlp_internal(text=text, parser=processor.parser)
+        results = process_nlp_internal(text=text, processor=processor)
+        dpr.done = True
+        dpr.date_done = datetime.datetime.utcnow()
+        try:
+            transaction.commit()
+        except SQLAlchemyError:
+            # noinspection PyUnresolvedReferences
+            TaskSession.rollback()
+        return results
 
 
 def process_nlp_text_immediate(
         text: str,
         processor: Processor,
         username: str = "",
-        password: str = "") -> NlpServerResult:
+        password: str = "") -> JsonObjectType:
     """
     Function to send text immediately to the relevant processor.
 
@@ -329,13 +391,13 @@ def process_nlp_text_immediate(
     else:
         if not processor.parser:
             processor.set_parser()
-        return process_nlp_internal(text=text, parser=processor.parser)
+        return process_nlp_internal(text=text, processor=processor)
 
 
 def process_nlp_gate(text: str,
                      processor: Processor,
                      username: str,
-                     password: str) -> NlpServerResult:
+                     password: str) -> JsonObjectType:
     """
     Send text to a chosen GATE processor (via an HTTP connection, using the
     GATE JSON API; see https://cloud.gate.ac.uk/info/help/online-api.html).
@@ -371,28 +433,34 @@ def process_nlp_gate(text: str,
     except requests.exceptions.RequestException as e:
         return gate_api_error(
             f"The GATE processor returned the error: {e.response.reason} "
-            f"(with status code {e.response.status_code})"
+            f"(with status code {e.response.status_code})",
+            processor=processor
         )
     if response.status_code != HttpStatus.OK:
         return gate_api_error(
             f"The GATE processor returned the error: {response.reason} "
-            f"(with status code {response.status_code})"
+            f"(with status code {response.status_code})",
+            processor=processor
         )
     try:
         json_response = response.json()
     except json.decoder.JSONDecodeError:
         return gate_api_error(
-            "Bad Gateway: The GATE processor did not return JSON"
+            "Bad Gateway: The GATE processor did not return JSON",
+            processor=processor
         )
     results = get_gate_results(json_response)
-    return NlpServerResult(True, results=results)
+    return nlprp_processor_dict(success=True,
+                                processor=processor,
+                                results=results)
 
 
-def process_nlp_internal(text: str, parser: BaseNlpParser) -> NlpServerResult:
+def process_nlp_internal(text: str, processor: Processor) -> JsonObjectType:
     """
     Send text to a chosen CRATE Python NLP processor and return a
     :class:`NlpServerResult`.
     """
+    parser = processor.parser
     try:
         tablename_valuedict_generator = parser.parse(text)
     except AttributeError:
@@ -400,7 +468,8 @@ def process_nlp_internal(text: str, parser: BaseNlpParser) -> NlpServerResult:
             f"parser is not a CRATE Python NLP parser; is {parser!r}")
     # Get second element of each element in parsed text as first is tablename
     # which will have no meaning here
-    return NlpServerResult(
+    return nlprp_processor_dict(
         True,
+        processor,
         results=[x[1] for x in tablename_valuedict_generator]
     )
