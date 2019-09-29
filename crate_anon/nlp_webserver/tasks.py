@@ -28,22 +28,20 @@ Tasks to process text for an NLPRP server (and be scheduled via Celery).
 
 """
 
-import logging
+import datetime
 import json
+import logging
 import requests
 import transaction
-import datetime
-# import time
 
 from celery import Celery
-# from celery.worker.request import Request
+# from celery.app.task import Task  # see "def delay", "def apply_async"
 from cryptography.fernet import Fernet
-# from pendulum import DateTime as Pendulum
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.exc import SQLAlchemyError
 
-# from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
+from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 from crate_anon.nlp_manager.constants import (
     GateApiKeys,
     GateResultKeys,
@@ -69,7 +67,7 @@ log = logging.getLogger(__name__)
 
 TaskSession = scoped_session(Session)
 engine = engine_from_config(SETTINGS,
-                            NlpServerConfigKeys.SQLALCHEMY_URL_PREFIX,
+                            NlpServerConfigKeys.SQLALCHEMY_PREFIX,
                             **SQLALCHEMY_COMMON_OPTIONS)
 TaskSession.configure(bind=engine)
 
@@ -96,61 +94,6 @@ expiry_time = 60 * 60 * 24 * 90
 app = Celery('tasks', backend=backend_url, broker=broker_url,
              result_expires=expiry_time)
 app.conf.database_engine_options = SQLALCHEMY_COMMON_OPTIONS
-
-
-# =============================================================================
-# NlpServerResult
-# =============================================================================
-
-# class NlpServerResult(object):
-#     """
-#     Object to represent the server-side results of processing some text.
-#     """
-#     def __init__(self,
-#                  success: bool,
-#                  time: Pendulum = None,
-#                  results: JsonArrayType = None,
-#                  errcode: int = None,
-#                  errmsg: str = None) -> None:
-#         """
-#         Args:
-#             success: did the request succeed?
-#             time: result time
-#             results: results, as a JSON array (Python list)
-#             errcode: error code, if there was an error
-#             errmsg: error message, if there was an error
-#         """
-#         self.success = success
-#         self.time = time or Pendulum.now()
-#         self.results = results or []  # type: JsonArrayType
-#         self.errcode = errcode
-#         self.errmsg = errmsg
-#
-#     def nlprp_processor_dict(self, processor: Processor) -> JsonObjectType:
-#         """
-#         Returns a dictionary suitable for use as one of the elements of the
-#         ``response["results"]["processors"] array; see :ref:`NLPRP <nlprp>`.
-#
-#         Args:
-#             processor: a :class:`crate_anon.nlp_webserver.procs.Processor`
-#
-#         Returns:
-#             dict: as above
-#         """
-#         proc_dict = {
-#             NlprpKeys.NAME: processor.name,
-#             NlprpKeys.TITLE: processor.title,
-#             NlprpKeys.VERSION: processor.version,
-#             NlprpKeys.RESULTS: self.results,
-#             NlprpKeys.SUCCESS: self.success
-#         }
-#         if not self.success:
-#             proc_dict[NlprpKeys.ERRORS] = [{
-#                 NlprpKeys.CODE: self.errcode,
-#                 NlprpKeys.MESSAGE: self.errmsg,
-#                 NlprpKeys.DESCRIPTION: self.errmsg,
-#             }]
-#         return proc_dict
 
 
 # =============================================================================
@@ -289,9 +232,10 @@ def process_nlp_text(
         self,
         docprocrequest_id: str,
         username: str = "",
-        crypt_pass: str = "") -> JsonObjectType:
+        crypt_pass: str = "") -> None:
     """
-    Task to send text to the relevant processor.
+    Task to process a single ``DocProcRequest`` by sending text to the relevant
+    processor.
 
     Args:
         self:
@@ -302,27 +246,17 @@ def process_nlp_text(
             username in use
         crypt_pass:
             encrypted password
-
-    Returns:
-        a :class:`NlpServerResult`
-
-    Note that the corresponding
-    :class:`crate_anon.nlp_webserver.models.DocProcRequest` is deleted before
-    we know that the NLP has succeeded; we handle failure by returning a
-    failure code to the client.
     """
-    # time.sleep(0.3)
-    # Can't figure out how not to have to do this everytime
-    # engine = engine_from_config(SETTINGS, 'sqlalchemy.')
-    # TaskSession.configure(bind=engine)
 
     # noinspection PyUnresolvedReferences
     dpr = (
         TaskSession.query(DocProcRequest).get(docprocrequest_id)
     )  # type: Optional[DocProcRequest]
     if not dpr:
-        return internal_error(
-            f"DocProcRequest {docprocrequest_id} does not exist")
+        log.error(f"DocProcRequest {docprocrequest_id} does not exist")
+    if dpr.done:
+        log.error(f"DocProcRequest {docprocrequest_id} already processed")
+        return
 
     # Turn the password back into bytes and decrypt
     password = decrypt_password(crypt_pass.encode(), CIPHER_SUITE)
@@ -330,50 +264,26 @@ def process_nlp_text(
 
     # Get the processor
     processor_id = dpr.processor_id
+
     try:
-        processor = ServerProcessor.processors[processor_id]
-    except KeyError:
-        dpr.done = True
-        dpr.date_done = datetime.datetime.utcnow()
+        # Fetch the processor
         try:
-            transaction.commit()
-        except SQLAlchemyError:
-            # noinspection PyUnresolvedReferences
-            TaskSession.rollback()
-        return internal_error(f"No such processor: {processor_id!r}")
+            processor = ServerProcessor.processors[processor_id]  # may raise
+            # Run the NLP
+            results = process_nlp_text_immediate(
+                text, processor, username, password)
 
-    # Delete docprocrequest from database
-    # noinspection PyUnresolvedReferences
-    # TaskSession.delete(dpr)
-    # try:
-    #     transaction.commit()
-    # except SQLAlchemyError:
-    #     # noinspection PyUnresolvedReferences
-    #     TaskSession.rollback()
+        except KeyError:
+            results = internal_error(f"No such processor: {processor_id!r}")
 
-    # Run the NLP
-    if processor.proctype == PROCTYPE_GATE:
-        results = process_nlp_gate(text, processor, username, password)
         dpr.done = True
-        dpr.date_done = datetime.datetime.utcnow()
-        try:
-            transaction.commit()
-        except SQLAlchemyError:
-            # noinspection PyUnresolvedReferences
-            TaskSession.rollback()
-        return results
-    else:
-        if not processor.parser:
-            processor.set_parser()
-        results = process_nlp_internal(text=text, processor=processor)
-        dpr.done = True
-        dpr.date_done = datetime.datetime.utcnow()
-        try:
-            transaction.commit()
-        except SQLAlchemyError:
-            # noinspection PyUnresolvedReferences
-            TaskSession.rollback()
-        return results
+        dpr.when_done_utc = datetime.datetime.utcnow()
+        dpr.results = json.dumps(results,
+                                 separators=JSON_SEPARATORS_COMPACT)
+        transaction.commit()
+    except SQLAlchemyError:
+        # noinspection PyUnresolvedReferences
+        TaskSession.rollback()
 
 
 def process_nlp_text_immediate(

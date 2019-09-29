@@ -28,17 +28,19 @@ Pyramid views making up the CRATE NLPRP web server.
 
 """
 
+from contextlib import contextmanager
 import datetime
 import logging
 import json
-from typing import Dict, Generator, Iterable, List, Optional, Set, Tuple, Any
+from typing import Dict, Generator, List, Optional, Tuple, Any
 import redis
 
+from cardinal_pythonlib.sqlalchemy.core_query import fetch_all_first_values
 from celery.result import AsyncResult, ResultSet
 from pyramid.view import view_config, view_defaults
 from pyramid.request import Request
-from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.sql.expression import and_, ClauseElement, select
 import transaction
 
 from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
@@ -78,7 +80,7 @@ from crate_anon.nlprp.errors import (
 from crate_anon.nlprp.version import NLPRP_VERSION_STRING
 from crate_anon.nlp_webserver.manage_users import get_users
 from crate_anon.nlp_webserver.models import (
-    DBSession,
+    dbsession,
     Document,
     DocProcRequest,
     make_unique_id,
@@ -91,7 +93,6 @@ from crate_anon.nlp_webserver.constants import (
 )
 from crate_anon.nlp_webserver.tasks import (
     app,
-    # NlpServerResult,
     process_nlp_text,
     process_nlp_text_immediate,
     TaskSession,
@@ -106,7 +107,7 @@ log = logging.getLogger(__name__)
 # Debugging settings
 # =============================================================================
 
-DEBUG_SHOW_REQUESTS = True
+DEBUG_SHOW_REQUESTS = False
 
 
 if DEBUG_SHOW_REQUESTS:
@@ -136,6 +137,21 @@ REDIS_SESSIONS = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT,
                                    password=REDIS_PASSWORD)
 
 SESSION_TOKEN_EXPIRY_S = 300
+
+
+# =============================================================================
+# SQLAlchemy context
+# =============================================================================
+
+@contextmanager
+def sqla_transaction_commit():
+    try:
+        yield
+        transaction.commit()
+    except SQLAlchemyError as e:
+        log.critical(f"SQLAlchemy error: {e}")
+        dbsession.rollback()
+        raise INTERNAL_SERVER_ERROR
 
 
 # =============================================================================
@@ -259,7 +275,7 @@ class NlpWebViews(object):
         self.username = None  # type: Optional[str]
         self.password = None  # type: Optional[str]
         # Start database sessions
-        DBSession()
+        dbsession()
         start_task_session()
 
     # -------------------------------------------------------------------------
@@ -299,7 +315,7 @@ class NlpWebViews(object):
         }
         if extra_info is not None:
             response_dict.update(extra_info)
-        DBSession.remove()
+        dbsession.remove()
         TaskSession.remove()
         return response_dict
 
@@ -502,8 +518,6 @@ class NlpWebViews(object):
         Puts the document-processor pairs specified by the user into a celery
         queue to be processed.
 
-        todo: this seems to be hard-coded to GATE requests; change?
-
         Args:
             process_request: a :class:`NlprpProcessRequest`
         """
@@ -516,16 +530,23 @@ class NlpWebViews(object):
         # let us pass a bytes object
         crypt_pass = encrypt_password(self.password).decode()
 
-        # Processor IDs (ask for this only once):
-        processor_id_str = process_request.processor_ids_jsonstr()
-
-        docprocrequest_ids = []  # type: List[List[str]]
-        docs = []  # type: List[Document]
+        docprocrequest_ids = []  # type: List[str]
         with transaction.manager:  # one COMMIT for everything inside this
             # Iterate through documents...
             for doctext, metadata in process_request.gen_text_metadatastr():
                 doc_id = make_unique_id()
-                dpr_ids = []  # type: List[str]
+                # PyCharm doesn't like the "deferred" columns, so:
+                # noinspection PyArgumentList
+                doc = Document(
+                    document_id=doc_id,
+                    doctext=doctext,
+                    client_job_id=process_request.client_job_id,
+                    queue_id=queue_id,
+                    username=self.username,
+                    client_metadata=metadata,
+                    include_text=process_request.include_text
+                )
+                dbsession.add(doc)  # add to database
                 # Iterate through processors...
                 for processor in process_request.processors:
                     # The combination of a document and a processor gives us
@@ -534,38 +555,26 @@ class NlpWebViews(object):
                     docprocreq = DocProcRequest(
                         docprocrequest_id=docprocreq_id,
                         document_id=doc_id,
-                        doctext=doctext,
                         processor_id=processor.processor_id
                     )
-                    DBSession.add(docprocreq)  # add to database
-                    dpr_ids.append(docprocreq_id)
-                docprocrequest_ids.append(dpr_ids)
-                doc = Document(
-                    document_id=doc_id,
-                    doctext=doctext,
-                    client_job_id=process_request.client_job_id,
-                    queue_id=queue_id,
+                    dbsession.add(docprocreq)  # add to database
+                    docprocrequest_ids.append(docprocreq_id)
+
+        # Now everything's in the database and committed, we can fire off
+        # back-end jobs:
+        for dpr_id in docprocrequest_ids:
+            process_nlp_text.apply_async(
+                # unlike delay(), this allows us to specify task_id, and
+                # then the Celery task ID is the same as the DocProcRequest
+                # ID.
+                args=(dpr_id, ),  # docprocrequest_id
+                kwargs=dict(
                     username=self.username,
-                    processor_ids=processor_id_str,
-                    client_metadata=metadata,
-                    include_text=process_request.include_text
-                )
-                docs.append(doc)
-        with transaction.manager:
-            for i, doc in enumerate(docs):
-                result_ids = []  # type: List[str]
-                # ... result ids for all procs for this doc
-                for dpr_id in docprocrequest_ids[i]:
-                    result = process_nlp_text.delay(
-                        docprocrequest_id=dpr_id,
-                        username=self.username,
-                        crypt_pass=crypt_pass
-                    )  # type: AsyncResult
-                    result_ids.append(result.id)
-                doc.result_ids = json.dumps(result_ids,
-                                            separators=JSON_SEPARATORS_COMPACT)
-                DBSession.add(doc)  # add to database
-                
+                    crypt_pass=crypt_pass,
+                ),
+                task_id=dpr_id,  # for Celery
+            )
+
         response_info = {NKeys.QUEUE_ID: queue_id}
         return self.create_response(status=HttpStatus.ACCEPTED,
                                     extra_info=response_info)
@@ -573,39 +582,34 @@ class NlpWebViews(object):
     def fetch_from_queue(self) -> JsonObjectType:
         """
         Fetches requests for all document-processor pairs for the queue_id
-        supplied by the user.
+        supplied by the user (if complete).
         """
+        # ---------------------------------------------------------------------
+        # Args
+        # ---------------------------------------------------------------------
         args = json_get_toplevel_args(self.body)
         queue_id = json_get_str(args, NKeys.QUEUE_ID, required=True)
 
-        query = DBSession.query(Document).filter(
-            and_(Document.queue_id == queue_id,
-                 Document.username == self.username)
+        # ---------------------------------------------------------------------
+        # Start with the DocProcRequests, because if some are still busy,
+        # we will return a "busy" response.
+        # ---------------------------------------------------------------------
+        q_dpr = (
+            dbsession.query(DocProcRequest)
+            .join(Document)
+            .filter(Document.username == self.username)
+            .filter(Document.queue_id == queue_id)
         )
-        client_job_id = None  # type: Optional[str]
-        document_rows = query.all()  # type: Iterable[Document]
-        if not document_rows:
+        q_doc = (
+            dbsession.query(Document)
+            .filter(Document.username == self.username)
+            .filter(Document.queue_id == queue_id)
+        )
+        dprs = list(q_dpr.all())  # type: List[DocProcRequest]
+        if not dprs:
             raise mkerror(NOT_FOUND, "The queue_id given was not found")
-        doc_results = []  # type: JsonArrayType
-        # Check if all results are ready
-        asyncresults_all = []  # type: List[List[AsyncResult]]
-        for doc in document_rows:
-            result_ids = json.loads(doc.result_ids)
-            # More efficient than append? Should we do this wherever possible?
-            asyncresults = [None] * len(result_ids)  # type: List[Optional[AsyncResult]]  # noqa
-            for i, result_id in enumerate(result_ids):
-                # get result for this doc-proc pair
-                result = AsyncResult(id=result_id, app=app)
-                asyncresults[i] = result
-            asyncresults_all.append(asyncresults)
-
-        docids = [x.document_id for
-                  x in document_rows]
-        dpr_query = DBSession.query(DocProcRequest).filter(
-            DocProcRequest.document_id.in_(docids)
-        )
-        dprs = dpr_query.all()
-        if not all([dpr.done for dpr in dprs]):
+        busy = not all([dpr.done for dpr in dprs])
+        if busy:
             response = self.create_response(HttpStatus.PROCESSING, {})
             # todo: is it correct (from previous comments) that we can't
             # return JSON via Pyramid with a status of HttpStatus.PROCESSING?
@@ -615,24 +619,9 @@ class NlpWebViews(object):
             self.set_http_response_status(HttpStatus.OK)
             return response
 
-        # Flatten asyncresults_all to make a result set
-        # res_set = ResultSet(results=[x for y in asyncresults_all for x in y],
-        #                     app=app)
-        # if not res_set.ready():
-        #     response = self.create_response(HttpStatus.PROCESSING, {})
-        #     self.set_http_response_status(HttpStatus.OK)
-        #     return response
-        # todo: is it correct (from previous comments) that we can't
-        # return JSON via Pyramid with a status of HttpStatus.PROCESSING?
-        # If that's true, we have to force as below, but then we need to
-        # alter the NLPRP docs (as these state the JSON code and HTTP code
-        # should always be the same).
-
-        # Unfortunately we have to loop twice to avoid doing a lot for
-        # nothing if it turns out a later result is not ready
-        #
-        # Fixed a crucial bug in which, if all results for one doc are ready
-        # but not subsequent ones, it wouldn't return a 'processing' status.
+        # ---------------------------------------------------------------------
+        # Make it easy to look up processors
+        # ---------------------------------------------------------------------
 
         processor_cache = {}  # type: Dict[str, ServerProcessor]
 
@@ -649,26 +638,27 @@ class NlpWebViews(object):
                 processor_cache[_processor_id] = _processor
                 return _processor
 
-        for j, doc in enumerate(document_rows):
+        # ---------------------------------------------------------------------
+        # Collect results by document
+        # ---------------------------------------------------------------------
+
+        doc_results = []  # type: JsonArrayType
+        client_job_id = None  # type: Optional[str]
+        docs = set(dpr.document for dpr in dprs)
+        for doc in docs:
             if client_job_id is None:
                 client_job_id = doc.client_job_id
-            metadata = json.loads(doc.client_metadata)
             processor_data = []  # type: JsonArrayType
             # ... data for *all* the processors for this doc
-            proc_ids = json.loads(doc.processor_ids)
-            asyncresults = asyncresults_all[j]
-            for i, result in enumerate(asyncresults):
-                processor = get_processor_cached(proc_ids[i])
-                procresult = result.get()  # type: Dict[str, Any]
-                # result.forget()
-                # proc_dict = procresult.nlprp_processor_dict(processor)
-                # processor_data.append(proc_dict)
+            for dpr in doc.docprocrequests:
+                procresult = json.loads(dpr.results)  # type: Dict[str, Any]
                 if procresult[NKeys.NAME] is None:
+                    processor = get_processor_cached(dpr.processor_id)
                     procresult[NKeys.NAME] = processor.name
                     procresult[NKeys.TITLE] = processor.title
                     procresult[NKeys.VERSION] = processor.version
                 processor_data.append(procresult)
-
+            metadata = json.loads(doc.client_metadata)
             doc_result = {
                 NKeys.METADATA: metadata,
                 NKeys.PROCESSORS: processor_data
@@ -676,30 +666,21 @@ class NlpWebViews(object):
             if doc.include_text:
                 doc_result[NKeys.TEXT] = doc.doctext
             doc_results.append(doc_result)
-            # Delete leftovers
-            subquery = DBSession.query(DocProcRequest).filter(
-                DocProcRequest.document_id == doc.document_id)
-            DBSession.query(Document).filter(
-                and_(Document.document_id == doc.document_id,
-                     ~subquery.exists())
-            ).delete(synchronize_session='fetch')
-        try:
-            transaction.commit()
-        except SQLAlchemyError:
-            DBSession.rollback()
-            raise INTERNAL_SERVER_ERROR
+
+        # ---------------------------------------------------------------------
+        # Delete leftovers
+        # ---------------------------------------------------------------------
+
+        with sqla_transaction_commit():
+            q_doc.delete(synchronize_session=False)
+            # ... will also delete the DocProcRequests via a cascade
+
         response_info = {
             NKeys.CLIENT_JOB_ID: (
                 client_job_id if client_job_id is not None else ""
             ),
             NKeys.RESULTS: doc_results
         }
-        # Delete docprocrequests from database
-        dpr_query.delete(synchronize_session='fetch')
-        try:
-            transaction.commit()
-        except SQLAlchemyError:
-            DBSession.rollback()
         return self.create_response(status=HttpStatus.OK,
                                     extra_info=response_info)
 
@@ -715,33 +696,39 @@ class NlpWebViews(object):
                                          default="", required=False)
         else:
             client_job_id = ""
-        query = DBSession.query(Document).filter(
-            Document.username == self.username
-        )
-        if client_job_id:
-            query = query.filter(Document.client_job_id == client_job_id)
-        records = query.all()  # type: Iterable[Document]
-        queue = []  # type: JsonArrayType
-        # results = []  # type: List[AsyncResult]
-        queue_ids = set([x.queue_id for x in records])  # type: Set[str]
-        for queue_id in queue_ids:
-            busy = False
-            max_time = datetime.datetime.min
-            qid_recs = [x for x in records if x.queue_id == queue_id]
-            docids = [x.document_id for
-                      x in records if x.queue_id == queue_id]
-            dpr_query = DBSession.query(DocProcRequest).filter(
-                DocProcRequest.document_id.in_(docids)
-            )
-            dprs = dpr_query.all()
-            if not all([dpr.done for dpr in dprs]):
-                busy = True
-            else:
-                times = [dpr.date_done for dpr in dprs]
-                max_time = max(times)
 
-            dt_submitted = qid_recs[0].datetime_submitted_pendulum
-            queue.append({
+        # Queue IDs that are of interest
+        queue_id_wheres = [Document.username == self.username]  # type: List[ClauseElement]  # nopep8
+        if client_job_id:
+            queue_id_wheres.append(Document.client_job_id == client_job_id)
+        # noinspection PyUnresolvedReferences
+        queue_ids = fetch_all_first_values(
+            dbsession,
+            select([Document.queue_id])
+            .select_from(Document.__table__)
+            .where(and_(*queue_id_wheres))
+            .distinct()
+            .order_by(Document.queue_id)
+        )  # type: List[str]
+
+        queue_answer = []  # type: JsonArrayType
+        for queue_id in queue_ids:
+            # DocProcRequest objects that are of interest
+            dprs = list(
+                dbsession.query(DocProcRequest)
+                .join(Document)
+                .filter(Document.queue_id == queue_id)
+                .all()
+            )  # type: List[DocProcRequest]
+            busy = not all([dpr.done for dpr in dprs])
+            if busy:
+                max_time = datetime.datetime.min
+            else:
+                max_time = max([dpr.when_done_utc for dpr in dprs])
+            assert dprs, "No DocProcRequests found; bug?"
+            dt_submitted = dprs[0].document.datetime_submitted_pendulum
+
+            queue_answer.append({
                 NKeys.QUEUE_ID: queue_id,
                 NKeys.CLIENT_JOB_ID: client_job_id,
                 NKeys.STATUS: NlprpValues.BUSY if busy else NlprpValues.READY,
@@ -753,7 +740,7 @@ class NlpWebViews(object):
                 )
             })
         return self.create_response(status=HttpStatus.OK,
-                                    extra_info={NKeys.QUEUE: queue})
+                                    extra_info={NKeys.QUEUE: queue_answer})
 
     def delete_from_queue(self) -> JsonObjectType:
         """
@@ -761,52 +748,42 @@ class NlpWebViews(object):
         """
         args = json_get_toplevel_args(self.body)
         delete_all = json_get_bool(args, NKeys.DELETE_ALL, default=False)
-        if delete_all:
-            docs = DBSession.query(Document).filter(
-                Document.username == self.username
-            ).all()
-        else:
-            docs = []  # type: List[Document]
-            client_job_ids = json_get_array_of_str(args, NKeys.CLIENT_JOB_IDS)
-            for cj_id in client_job_ids:
-                docs.extend(DBSession.query(Document).filter(
-                    and_(Document.username == self.username,
-                         Document.client_job_id == cj_id)
-                ).all())
-            queue_ids = json_get_array_of_str(args, NKeys.QUEUE_IDS)
-            for q_id in queue_ids:
-                # Clumsy way of making sure we don't have same doc twice
-                docs.extend(DBSession.query(Document).filter(
-                    and_(
-                        Document.username == self.username,
-                        Document.queue_id == q_id,
-                        Document.client_job_id not in [
-                            x.client_job_id for x in docs
-                        ]
-                    )
-                ).all())
+        client_job_ids = json_get_array_of_str(args, NKeys.CLIENT_JOB_IDS)
+
+        # Establish what to cancel/delete
+        q_dpr = (
+            dbsession.query(DocProcRequest)
+            .join(Document)
+            .filter(Document.username == self.username)
+        )
+        if not delete_all:
+            q_dpr = q_dpr.filter(Document.client_job_id.in_(client_job_ids))
+
+        # Remove from Celery queue (cancel ongoing jobs)
+        task_ids_to_cancel = [
+            dpr.docprocrequest_id
+            for dpr in q_dpr.all()
+        ]
         # Quicker to use ResultSet than forget them all separately
         results = []  # type: List[AsyncResult]
-        for doc in docs:
-            result_ids = json.loads(doc.result_ids)
-            # Remove from celery queue
-            for res_id in result_ids:
-                results.append(AsyncResult(id=res_id, app=app))
+        for task_id in task_ids_to_cancel:
+            results.append(AsyncResult(id=task_id, app=app))
         res_set = ResultSet(results=results, app=app)
-        res_set.revoke()
-        # Remove from docprocrequests
-        doc_ids = list(set([d.document_id for d in docs]))
-        DBSession.query(DocProcRequest).filter(
-            DocProcRequest.document_id.in_(doc_ids)).delete(
-                synchronize_session='fetch')
-        # res_set.forget()
-        # Remove from documents
-        for doc in docs:
-            DBSession.delete(doc)
-        try:
-            transaction.commit()
-        except SQLAlchemyError:
-            DBSession.rollback()
-            raise INTERNAL_SERVER_ERROR
+        log.debug("About to revoke jobs...")
+        res_set.revoke()  # will hang if backend not operational
+        log.debug("... jobs revoked.")
+
+        q_docs = (
+            dbsession.query(Document)
+            .filter(Document.username == self.username)
+        )
+        if not delete_all:
+            q_docs = q_docs.filter(Document.client_job_id.in_(client_job_ids))
+
+        with sqla_transaction_commit():
+            # Delete the Document objects, which will cascade-delete the
+            # DocProcRequest objects.
+            q_docs.delete(synchronize_session=False)
+
         # Return response
         return self.create_response(status=HttpStatus.OK)

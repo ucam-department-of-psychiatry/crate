@@ -57,7 +57,7 @@ pyramid.reload_templates = true
 #     pyramid_debugtoolbar
 
 {k.NLP_WEBSERVER_SECRET} = changethis
-{k.SQLALCHEMY_URL_FULL} = mysql://username:password@localhost/dbname?charset=utf8
+{k.SQLALCHEMY_URL} = mysql://username:password@localhost/dbname?charset=utf8
 
 # Absolute path of users file
 {k.USERS_FILE} = /home/.../nlp_web_files/users.txt
@@ -67,7 +67,7 @@ pyramid.reload_templates = true
 {k.PROCESSORS_PATH} = /home/.../nlp_web_files/processor_constants.py
 
 # URLs for queueing
-{k.BROKER_URL} = amqp://@localhost:3306/testbroker
+{k.BROKER_URL} = amqp://localhost/
 {k.BACKEND_URL} = db+mysql://username:password@localhost/backenddbname?charset=utf8
 
 # Key for reversible encryption. Use 'crate_nlp_webserver_generate_encryption_key'.

@@ -95,7 +95,6 @@ class ServerProcessor(NlprpServerProcessor):
             sql_dialect=sql_dialect,
             tabular_schema=tabular_schema
         )
-        self.processor_id = "{}_{}".format(self.name, self.version)
         if len(self.processor_id) > 100:
             raise ValueError(f"Processor id {self.processor_id} is too "
                              "long for database field")
@@ -112,6 +111,10 @@ class ServerProcessor(NlprpServerProcessor):
 
         # Add instance to list of processors
         ServerProcessor.processors[self.processor_id] = self
+
+    @property
+    def processor_id(self) -> str:
+        return f"{self.name}_{self.version}"
 
     @classmethod
     def get_processor(cls, name: str,

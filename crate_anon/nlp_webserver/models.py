@@ -44,6 +44,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
+    deferred,
     relationship,
     scoped_session,
     sessionmaker,
@@ -52,12 +53,20 @@ from sqlalchemy.sql.schema import ForeignKey
 # noinspection PyPackageRequirements
 from zope.sqlalchemy import ZopeTransactionExtension
 
-Session = sessionmaker(extension=ZopeTransactionExtension())
-DBSession = scoped_session(Session)
 
-# DBSession = scoped_session(
-#     sessionmaker(extension=ZopeTransactionExtension()))
+# =============================================================================
+# SQLAlchemy setup
+# =============================================================================
+
+Session = sessionmaker(extension=ZopeTransactionExtension())
+dbsession = scoped_session(Session)
+
 Base = declarative_base()
+
+
+# =============================================================================
+# Constants
+# =============================================================================
 
 UUID64_LEN = 36  # see make_unique_id()
 
@@ -95,18 +104,18 @@ class Document(Base):
     Represents a user-submitted document for processing. (A single document
     may be processed by multiple processors.)
     """
-    # Check about indexes etc.
     __tablename__ = 'documents'
+
     document_id = Column(
         "document_id",
         VARCHAR(MAX_DOC_ID_LEN), primary_key=True,
-        comment="Primary key (unique ID) for the document"
+        comment="Primary key (UUID) for the document"
     )  # type: str
-    doctext = Column(
+    doctext = deferred(Column(
         "doctext",
         Text,
         comment="Text contents of the document"
-    )  # type: Optional[str]
+    ))  # type: Optional[str]
     client_job_id = Column(
         "client_job_id",
         VARCHAR(MAX_JOB_ID_LEN),
@@ -116,38 +125,32 @@ class Document(Base):
     queue_id = Column(
         "queue_id",
         VARCHAR(MAX_QUEUE_ID_LEN),
-        comment="Refers to the id of the client request if in queued mode",
+        comment="The UUID of the client request, if in queued mode",
         index=True
     )  # type: Optional[str]
     username = Column(
         "username",
         VARCHAR(MAX_USERNAME_LEN),
         comment="Username that submitted this document",
+        nullable=False,
         index=True,
     )  # type: Optional[str]
-    processor_ids = Column(
-        "processor_ids",
-        Text,
-        comment="JSON string representing: [processor_id1, processor_id2]"
-    )  # type: Optional[str]
-    client_metadata = Column(
+    client_metadata = deferred(Column(
         "client_metadata",
         Text,
         comment="Metadata submitted by the client"
-    )  # type: Optional[str]
-    result_ids = Column(
-        "result_ids",
-        Text,
-        comment="JSON-encoded list of result IDs"
-    )  # type: Optional[str]
+    ))  # type: Optional[str]
     include_text = Column(
         "include_text",
         Boolean,
+        nullable=False,
+        default=False,
         comment="Include the source text in the reply?"
     )  # type: Optional[bool]
-    datetime_submitted = Column(
-        "datetime_submitted",
+    datetime_submitted_utc = Column(
+        "datetime_submitted_utc",
         DateTime,
+        nullable=False,
         # Is the following OK, given that it's not exactly when it was
         # submitted?
         default=datetime.datetime.utcnow,
@@ -156,56 +159,71 @@ class Document(Base):
 
     docprocrequests = relationship(
         "DocProcRequest",
-        back_populates="document"
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        back_populates="document",
+        lazy="select",
+        # https://docs.sqlalchemy.org/en/13/orm/collections.html#using-passive-deletes  # noqa
     )  # type: List[DocProcRequest]
 
     @property
     def datetime_submitted_pendulum(self) -> Optional[Pendulum]:
-        return coerce_to_pendulum(self.datetime_submitted, assume_local=False)
+        return coerce_to_pendulum(self.datetime_submitted_utc,
+                                  assume_local=False)
 
 
 class DocProcRequest(Base):
     """
     SQLAlchemy table recording processor requests for a given document (that
     is, document/processor pairs).
-
-    Note the size inefficiency, but speed efficiency (?), of storing the text
-    as part of the DocProcRequest, rather than cross-referencing to the
-    :class:`Document`.
     """  # noqa
     __tablename__ = 'docprocrequests'
+
     docprocrequest_id = Column(
         "docprocrequest_id",
         VARCHAR(MAX_DOCPROC_ID_LEN), primary_key=True,
-        comment="Primary key (unique ID) for the document/processor pair"
+        comment="Primary key (UUID) for the document/processor pair; also "
+                "used as the Celery task ID"
     )  # type: str
     document_id = Column(
         "document_id",
         VARCHAR(MAX_DOC_ID_LEN),
-        ForeignKey("documents.document_id"),
+        ForeignKey("documents.document_id", ondelete='CASCADE'),
+        # ... delete DocProcRequests when their Documents are deleted
+        # ... https://stackoverflow.com/questions/5033547/sqlalchemy-cascade-delete  # noqa
+        # ... https://docs.sqlalchemy.org/en/13/orm/collections.html#using-passive-deletes  # noqa
+        nullable=False,
         comment="Document ID (FK to documents.document_id)"
     )  # type: str
     processor_id = Column(
         "processor_id",
         VARCHAR(MAX_PROCESSOR_ID_LEN),
+        nullable=False,
         comment="Processor ID, in '<name>_<version>' format"
     )  # type: str
     done = Column(
         "done",
         Boolean,
+        nullable=False,
         default=False,
         comment="Has the task associated with this request been completed?"
     )  # type: bool
-    when_done = Column(
-        "when_done",
+    when_done_utc = Column(
+        "when_done_utc",
         DateTime,
         default=None,
         comment="Date/time when the request was completed (in UTC)"
-    )
+    )  # type: Optional[datetime.datetime]
+    results = deferred(Column(
+        "results",
+        Text,
+        comment="Results (as JSON)"
+    ))  # type: Optional[str]
 
     document = relationship(
         "Document",
-        back_populates="docprocrequests"
+        back_populates="docprocrequests",
+        lazy="select",
     )  # type: Document
 
     @property

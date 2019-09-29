@@ -44,7 +44,7 @@ from crate_anon.nlp_webserver.constants import (
     NlpServerConfigKeys,
     SQLALCHEMY_COMMON_OPTIONS,
 )
-from crate_anon.nlp_webserver.models import DBSession, Base
+from crate_anon.nlp_webserver.models import dbsession, Base
 
 log = logging.getLogger(__name__)
 
@@ -60,12 +60,12 @@ def make_wsgi_app(global_config: Dict[Any, Any], **settings) -> Router:
 
     # Database
     engine = engine_from_config(settings,
-                                NlpServerConfigKeys.SQLALCHEMY_URL_PREFIX,
+                                NlpServerConfigKeys.SQLALCHEMY_PREFIX,
                                 **SQLALCHEMY_COMMON_OPTIONS)
     # ... add to config - pool_recycle is set to create new sessions every 7h
     sqla_url = get_safe_url_from_engine(engine)
     log.info(f"Using database {sqla_url!r}")
-    DBSession.configure(bind=engine)
+    dbsession.configure(bind=engine)
     Base.metadata.bind = engine
 
     # Pyramid

@@ -446,7 +446,11 @@ class TableMaker(ABC):
         this NLP processor whose name is ``tablename``.
         """
         tables = self.tables()
-        return tables[tablename]
+        try:
+            return tables[tablename]
+        except KeyError:
+            raise KeyError(f"No destination table for this NLP processor "
+                           f"named {tablename!r}")
 
     def make_tables(self, drop_first: bool = False) -> List[str]:
         """

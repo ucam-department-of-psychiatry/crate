@@ -64,6 +64,7 @@ Speed testing:
 # =============================================================================
 
 import argparse
+import csv
 import logging
 import os
 import sys
@@ -956,11 +957,14 @@ def show_cloud_queue(nlpdef: NlpDefinition) -> None:
     cloud_request = CloudRequestProcess(nlpdef=nlpdef)
     queue = cloud_request.show_queue()
     if not queue:
-        print("\nNo requests in queue.")
+        log.info("No requests in queue.")
+        return
+    writer = None
     for entry in queue:
-        print("\nQUEUE ITEM:\n")
-        for key in entry:
-            print(f"{key}: {entry[key]}")
+        if writer is None:  # first line
+            writer = csv.DictWriter(sys.stdout, fieldnames = entry.keys())
+            writer.writeheader()
+        writer.writerow(entry)
 
 
 # =============================================================================

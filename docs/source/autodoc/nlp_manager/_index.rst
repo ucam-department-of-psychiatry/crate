@@ -40,6 +40,8 @@ crate_anon/nlp_manager
     build_medex_java_interface.py.rst
     cloud_config.py.rst
     cloud_parser.py.rst
+    cloud_request.py.rst
+    cloud_run_info.py.rst
     constants.py.rst
     input_field_config.py.rst
     launch_multiprocess_nlp.py.rst

@@ -38,7 +38,7 @@ from sqlalchemy import engine_from_config
 from pyramid.paster import get_appsettings
 
 from crate_anon.nlp_webserver.constants import NlpServerConfigKeys
-from crate_anon.nlp_webserver.models import DBSession, Base
+from crate_anon.nlp_webserver.models import dbsession, Base
 
 log = logging.getLogger(__name__)
 
@@ -63,10 +63,10 @@ def main() -> None:
     log.debug(f"Settings file: {config_file}")
     settings = get_appsettings(config_file)
     engine = engine_from_config(settings,
-                                NlpServerConfigKeys.SQLALCHEMY_URL_PREFIX)
+                                NlpServerConfigKeys.SQLALCHEMY_PREFIX)
     sqla_url = get_safe_url_from_engine(engine)
     log.info(f"Using database {sqla_url!r}")
-    DBSession.configure(bind=engine)
+    dbsession.configure(bind=engine)
     log.info("Creating database structure...")
     Base.metadata.create_all(engine)
     log.info("... done.")

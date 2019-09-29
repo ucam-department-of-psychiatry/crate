@@ -62,8 +62,19 @@ use it:
 
 #.  Launch the web server, e.g. via crate_nlp_webserver_pserve_.
 
+    - That is: ``crate_nlp_webserver_pserve <config_file>`.
+
     - If you are using Gunicorn_, the preferred syntax is instead
       ``gunicorn --paste <config_file>``.
+
+#.  Launch the Celery workers:
+
+    .. todo:: improve NLP web server Celery launch
+
+    .. code-block:: bash
+
+        celery worker --app crate_anon.nlp_webserver.tasks
+
 
 To test it, set up your NLP client for a :ref:`cloud processor
 <nlp_config_section_cloud_nlp>`, point it at your server, and try some NLP.
@@ -78,6 +89,8 @@ Suppose your :ref`NLP definition <nlp_config_section_nlpdef>` is called
     # With queuing:
     crate_nlp --nlpdef cloud_nlp_demo --verbose --full --cloud
     crate_nlp --nlpdef cloud_nlp_demo --verbose --full --showqueue
+    # crate_nlp --nlpdef cloud_nlp_demo --verbose --full --cancelrequest
+    # crate_nlp --nlpdef cloud_nlp_demo --verbose --full --cancelall
     crate_nlp --nlpdef cloud_nlp_demo --verbose --full --retrieve
 
 
