@@ -38,6 +38,7 @@ import sys
 from typing import Any, Dict, List, Tuple, Generator, Optional, Type
 import time
 
+from cardinal_pythonlib.compression import gzip_string
 from cardinal_pythonlib.rate_limiting import rate_limited
 from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.dicts import (
@@ -578,6 +579,13 @@ class CloudRequest(object):
         Submits an HTTP POST request to the remote.
         Tries up to a certain number of times.
 
+        Notes:
+
+        - The Python ``requests`` library automatically applies
+          ``Accept-Encoding: gzip, deflate`` to outbound HTTP requests, and
+          automatically gzip-decodes responses.
+        - However, we have to do outbound compression manually.
+
         Args:
             request_json: JSON (string) request.
             may_fail: may the request fail? Boolean, or ``None`` to use the
@@ -596,14 +604,21 @@ class CloudRequest(object):
         tries = 0
         success = False
         response = None
+        if self._cloudcfg.compress:
+            headers = self.HTTP_HEADERS.copy()
+            headers["Content-Encoding"] = "gzip"
+            data = gzip_string(request_json)
+        else:
+            headers = self.HTTP_HEADERS
+            data = request_json
         while (not success) and tries <= self._cloudcfg.max_tries:
             try:
                 tries += 1
                 response = post(
                     url=self._cloudcfg.url,
-                    data=request_json,
+                    data=data,
                     auth=self.auth,
-                    headers=self.HTTP_HEADERS,
+                    headers=headers,
                     cookies=self.cookies,
                     verify=self._cloudcfg.verify_ssl
                 )

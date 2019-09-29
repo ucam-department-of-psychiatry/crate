@@ -902,6 +902,18 @@ verify_ssl
 Should CRATE verify the SSL certificate of the remote NLP server?
 
 
+compress
+########
+
+*Boolean.* Default: true.
+
+Should CRATE compress messages going to the NLP server, using ``gzip``?
+
+CRATE (via the Python ``requests`` library) also always tells the server that
+it will accept ``gzip`` compression back; the server should respond to this by
+compressing results.
+
+
 username
 ########
 

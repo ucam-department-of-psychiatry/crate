@@ -86,6 +86,9 @@ class CloudConfig(object):
         self.verify_ssl = config.get_bool(
             section=sectionname, option=CloudNlpConfigKeys.VERIFY_SSL,
             default=True)
+        self.compress = config.get_bool(
+            section=sectionname, option=CloudNlpConfigKeys.COMPRESS,
+            default=True)
         self.username = config.get_str(
             section=sectionname, option=CloudNlpConfigKeys.USERNAME,
             default="")

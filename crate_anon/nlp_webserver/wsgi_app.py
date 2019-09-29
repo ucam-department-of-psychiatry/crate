@@ -68,6 +68,7 @@ def make_wsgi_app(global_config: Dict[Any, Any], **settings) -> Router:
     DBSession.configure(bind=engine)
     Base.metadata.bind = engine
 
+    # Pyramid
     config = Configurator(settings=settings)
 
     # Security policies
@@ -79,6 +80,12 @@ def make_wsgi_app(global_config: Dict[Any, Any], **settings) -> Router:
     config.set_authentication_policy(authn_policy)
     config.set_authorization_policy(authz_policy)
 
+    # Compression
+    config.add_tween("cardinal_pythonlib.pyramid.compression.CompressionTweenFactory")  # noqa
+
+    # Routes
     config.add_route('index', '/')
     config.scan('.views')
+
+    # Create WSGI app
     return config.make_wsgi_app()

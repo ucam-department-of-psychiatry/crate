@@ -178,6 +178,7 @@ class CloudNlpConfigKeys(object):
     """
     CLOUD_URL = "cloud_url"
     VERIFY_SSL = "verify_ssl"
+    COMPRESS = "compress"
     USERNAME = "username"
     PASSWORD = "password"
     WAIT_ON_CONN_ERR = "wait_on_conn_err"
