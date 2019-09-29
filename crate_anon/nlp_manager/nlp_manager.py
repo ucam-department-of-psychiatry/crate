@@ -93,7 +93,6 @@ from crate_anon.nlp_manager.all_processors import (
     possible_processor_names,
     possible_processor_table,
 )
-from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
     DEFAULT_REPORT_EVERY_NLP,
     MAX_STRING_PK_LENGTH,
@@ -114,7 +113,12 @@ from crate_anon.nlp_manager.nlp_definition import (
     NlpDefinition,
     demo_nlp_config,
 )
-from crate_anon.nlp_manager.cloud_parser import CloudRequest, Cloud
+from crate_anon.nlp_manager.cloud_parser import Cloud
+from crate_anon.nlp_manager.cloud_request import (
+    CloudRequest,
+    CloudRequestProcess,
+)
+from crate_anon.nlp_manager.cloud_run_info import CloudRunInfo
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
@@ -458,7 +462,7 @@ def process_nlp(nlpdef: NlpDefinition,
     """
     log.info(SEP + "NLP")
     session = nlpdef.get_progdb_session()
-    if not nlpdef.get_local_processors():
+    if not nlpdef.get_noncloud_processors():
         errmsg = (
             f"Can't use NLP definition {nlpdef.get_name()!r} as it has no "
             f"local processors (e.g. only has cloud processors). Specify the "
@@ -517,7 +521,7 @@ def process_nlp(nlpdef: NlpDefinition,
                 else:
                     log.debug("Record is new")
 
-            for processor in nlpdef.get_local_processors():
+            for processor in nlpdef.get_noncloud_processors():
                 if incremental:
                     processor.delete_dest_record(ifconfig, pkval, pkstr,
                                                  commit=incremental)
@@ -584,32 +588,32 @@ def process_nlp(nlpdef: NlpDefinition,
 # =============================================================================
 
 def send_cloud_requests(
-        nlpdef: NlpDefinition,
+        crinfo: CloudRunInfo,
         ifconfig: InputFieldConfig,
         start_record: int,
-        number_of_records: int,
         global_recnum: int,
         report_every: int = DEFAULT_REPORT_EVERY_NLP,
         incremental: bool = False,
-        queue: bool = True) -> Tuple[List[CloudRequest], int]:
+        queue: bool = True) -> Tuple[List[CloudRequestProcess], int]:
     """
     Sends off a series of cloud requests and returns them as a list.
     'queue' determines whether these are queued requests or not. Also returns
     whether the generator for the text is empty and the global record number
     for keeping track.
     """
-    requests = []  # type: List[CloudRequest]
+    requests = []  # type: List[CloudRequestProcess]
     cookies = None  # type: Optional[CookieJar]
     i = 1  # number of requests sent
     totalcount = ifconfig.get_count()  # total number of records in table
     # Check processors are available
-    available_procs = CloudRequest(nlpdef).get_remote_processors()
+    available_procs = crinfo.get_remote_processors()
     if not available_procs:  # request failed, or no processors available
         return [], global_recnum
-    cloud_request = CloudRequest(
-        nlpdef, remote_processors_available=available_procs)
+    cloudcfg = crinfo.cloudcfg
+    cloud_request = CloudRequestProcess(crinfo=crinfo)
     empty_request = True
-    cloudcfg = nlpdef.get_cloud_config_or_raise()
+    number_of_records = cloudcfg.max_records_per_request
+    hasher = crinfo.nlpdef.hash
     for text, other_values in ifconfig.gen_text(start=start_record,
                                                 how_many=number_of_records):
         pkval = other_values[FN_SRCPKVAL]
@@ -629,7 +633,7 @@ def send_cloud_requests(
                 )
             )
         # log.critical("other_values={}".format(repr(other_values)))
-        srchash = nlpdef.hash(text)
+        srchash = hasher(text)
         if incremental:
             progrec = ifconfig.get_progress_record(pkval, pkstr)
             if progrec is not None:
@@ -648,8 +652,10 @@ def send_cloud_requests(
         else:
             if not empty_request:
                 cloud_request.send_process_request(
-                    queue=queue, cookies=cookies,
-                    include_text_in_reply=cloudcfg.has_gate_processors)
+                    queue=queue,
+                    cookies=cookies,
+                    include_text_in_reply=crinfo.cloudcfg.has_gate_processors  # noqa
+                )
                 # If there's a connection error, we only get this far if we
                 # didn't choose to stop at failure
                 if cloud_request.request_failed:
@@ -661,26 +667,13 @@ def send_cloud_requests(
                              "block")
                     i += 1
                     requests.append(cloud_request)
-            cloud_request = CloudRequest(
-                nlpdef, remote_processors_available=available_procs)
-            empty_request = True
+            cloud_request = CloudRequestProcess(crinfo=crinfo)
             # Is the text too big on its own? If so, don't send it. Otherwise
             # add it to the new request
             text_too_big = not cloud_request.add_text(text, other_values)
-            # Get rid of this so as to speed things up
-            # if text_too_big:
-            #     log.warning(
-            #         "Record {db}.{t}.{c}, PK: {pkf}={pkv} "
-            #         "is too big to send or contains no word characters".format(  #
-            #             db=other_values[FN_SRCDB],
-            #             t=other_values[FN_SRCTABLE],
-            #             c=other_values[FN_SRCFIELD],
-            #             pkf=other_values[FN_SRCPKFIELD],
-            #             pkv=pkstr if pkstr else pkval,
-            #         )
-            #     )
-            if not text_too_big:
-                empty_request = False
+            if text_too_big:
+                log.warning("Skipping text that's too long to send")
+            empty_request = text_too_big
 
         # Add 'srchash' to 'other_values' so the metadata will contain it
         # and we can use it later on for updating the progress database
@@ -705,25 +698,22 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
     Process text by sending it off to the cloud processors in queued mode.
     """
     log.info(SEP + "NLP")
-    cloudcfg = nlpdef.get_cloud_config_or_raise()
-    filename = cloudcfg.data_filename()
+    crinfo = CloudRunInfo(nlpdef=nlpdef)
+    filename = crinfo.cloudcfg.data_filename()
     # Start with blank file
     open(filename, 'w').close()
     # Use append so that, if there's a problem part-way through, we don't lose
     # all data
     with open(filename, 'a') as request_data:
         for ifconfig in nlpdef.get_ifconfigs():
-            # Global record number within this ifconfig
-            global_recnum = 0
-            # Start for first block
-            start = 0
+            global_recnum = 0  # Global record number within this ifconfig
+            start = 0  # Start for first block
             total = ifconfig.get_count()
             while start <= total:
                 cloud_requests, global_recnum = send_cloud_requests(
-                    nlpdef=nlpdef,
+                    crinfo=crinfo,
                     ifconfig=ifconfig,
                     start_record=start,
-                    number_of_records=cloudcfg.max_records_per_request,
                     global_recnum=global_recnum,
                     incremental=incremental,
                     report_every=report_every)
@@ -733,7 +723,7 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
                             f"{ifconfig.section},{cloud_request.queue_id}\n")
                     else:
                         log.warning("Sent request does not contain queue_id.")
-                start += cloudcfg.limit_before_commit
+                start += crinfo.cloudcfg.limit_before_commit
 
 
 def retrieve_nlp_data(nlpdef: NlpDefinition,
@@ -742,9 +732,9 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
     Try to retrieve the data from the cloud processors.
     """
     session = nlpdef.get_progdb_session()
-    cloudcfg = nlpdef.get_cloud_config_or_raise()
+    crinfo = CloudRunInfo(nlpdef=nlpdef)
+    cloudcfg = crinfo.cloudcfg
     filename = cloudcfg.data_filename()
-    available_procs = CloudRequest(nlpdef).get_remote_processors()
     if not os.path.exists(filename):
         log.error(f"File {filename!r} does not exist. "
                   f"Request may not have been sent.")
@@ -770,8 +760,7 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
             ifconfig = InputFieldConfig(nlpdef=nlpdef, section=if_section)
             ifconfig_cache[if_section] = ifconfig
         seen_srchashs = []  # type: List[str]
-        cloud_request = CloudRequest(
-            nlpdef, remote_processors_available=available_procs)
+        cloud_request = CloudRequestProcess(crinfo=crinfo)
         # cloud_request.set_mirror_processors(mirror_procs)
         cloud_request.set_queue_id(queue_id)
         log.info(f"Atempting to retrieve data from request #{i} ...")
@@ -800,12 +789,8 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
                 progrec = None
                 if incremental:
                     progrec = ifconfig.get_progress_record(pkval, pkstr)
-                    for processor in (
-                            cloud_request.requested_processors.values()):
-                        processor.delete_dest_record(ifconfig,
-                                                     pkval,
-                                                     pkstr,
-                                                     commit=incremental)
+                    crinfo.delete_dest_records(ifconfig, pkval, pkstr,
+                                               commit=True)
                 elif srchash in seen_srchashs:
                     progrec = ifconfig.get_progress_record(pkval, pkstr)
                 seen_srchashs.append(srchash)
@@ -858,27 +843,25 @@ def process_cloud_now(
         incremental: bool = False,
         report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
     """
-    Process text by sending it off to the cloud processors in non queued mode.
+    Process text by sending it off to the cloud processors in non-queued mode.
     """
     session = nlpdef.get_progdb_session()
-    cloudcfg = nlpdef.get_cloud_config_or_raise()
+    crinfo = CloudRunInfo(nlpdef=nlpdef)
     for ifconfig in nlpdef.get_ifconfigs():
-        # Global record number within this ifconfig
-        global_recnum = 0
-        # Start for first block
-        start = 0
+        global_recnum = 0  # Global record number within this ifconfig
+        start = 0  # Start for first block
         seen_srchashs = []  # type: List[str]
         total = ifconfig.get_count()
         while start <= total:
             cloud_requests, global_recnum = send_cloud_requests(
-                nlpdef=nlpdef,
+                crinfo=crinfo,
                 start_record=start,
-                number_of_records=cloudcfg.max_records_per_request,
                 global_recnum=global_recnum,
                 ifconfig=ifconfig,
                 incremental=incremental,
                 report_every=report_every,
-                queue=False)
+                queue=False
+            )
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
                     continue
@@ -893,10 +876,8 @@ def process_cloud_now(
                     srchash = metadata[FN_SRCHASH]
                     progrec = None
                     if incremental:
-                        for processor in cloud_request.requested_processors.values():  # noqa
-                            processor.delete_dest_record(ifconfig, pkval,
-                                                         pkstr,
-                                                         commit=incremental)
+                        crinfo.delete_dest_records(ifconfig, pkval, pkstr,
+                                                   commit=True)
                         # Record progress in progress database
                         progrec = ifconfig.get_progress_record(pkval, pkstr)
                     # Check that we haven't already done the progrec for this
@@ -929,7 +910,7 @@ def process_cloud_now(
                             session.add(progrec)
 
             nlpdef.commit_all()
-            start += cloudcfg.limit_before_commit
+            start += crinfo.cloudcfg.limit_before_commit
 
 
 def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
@@ -938,7 +919,7 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
     """
     nlpname = nlpdef.get_name()
     cloudcfg = nlpdef.get_cloud_config_or_raise()
-    cloud_request = CloudRequest(nlpdef, procs_auto_add=False)
+    cloud_request = CloudRequestProcess(nlpdef=nlpdef)
 
     if cancel_all:
         # Deleting all from queue!
@@ -972,7 +953,7 @@ def show_cloud_queue(nlpdef: NlpDefinition) -> None:
     """
     Get list of the user's queued requests and print to screen.
     """
-    cloud_request = CloudRequest(nlpdef=nlpdef, procs_auto_add=False)
+    cloud_request = CloudRequestProcess(nlpdef=nlpdef)
     queue = cloud_request.show_queue()
     if not queue:
         print("\nNo requests in queue.")
@@ -1205,19 +1186,19 @@ def main() -> None:
     log.debug(f"arguments: {args}")
 
     # Load/validate config
-    config = NlpDefinition(args.nlpdef,
+    nlpdef = NlpDefinition(args.nlpdef,
                            logtag="_".join(mynames).replace(" ", "_"))
-    config.set_echo(args.echo)
+    nlpdef.set_echo(args.echo)
 
     # Count only?
     if args.count:
-        show_source_counts(config)
-        show_dest_counts(config)
+        show_source_counts(nlpdef)
+        show_dest_counts(nlpdef)
         return
 
     # Show configured processor definitions only?
     if args.print_nlprp_list_processors_json:
-        print(config.nlprp_list_processors_json())
+        print(nlpdef.nlprp_list_processors_json())
         return
 
     # -------------------------------------------------------------------------
@@ -1226,23 +1207,21 @@ def main() -> None:
     # drop all the tables just to cancel the request
     # Same for 'showqueue'. All of these need config as they require url etc.
     if args.cancelrequest:
-        cancel_request(config)
+        cancel_request(nlpdef)
         return
     if args.cancelall:
-        cancel_request(config, cancel_all=args.cancelall)
+        cancel_request(nlpdef, cancel_all=args.cancelall)
         return
     if args.showqueue:
-        show_cloud_queue(config)
+        show_cloud_queue(nlpdef)
         return
 
     if args.cloud or args.retrieve:
         # Set appropriate things for cloud - need to do this before
         # drop_remake, but after cancel_request or show_cloud_queue to avoid
         # unecessary requests
-        cloudcfg = config.get_cloud_config_or_raise()
-        cloud_request = CloudRequest(config)
-        cloud_request.set_cloud_processor_info()
-        cloud_request.set_rate_limit(cloudcfg.rate_limit_hz)
+        cloudcfg = nlpdef.get_cloud_config_or_raise()
+        CloudRequest.set_rate_limit(cloudcfg.rate_limit_hz)
 
     log.info(f"Starting: incremental={args.incremental}")
     start = get_now_utc_pendulum()
@@ -1251,7 +1230,7 @@ def main() -> None:
     # 1. Drop/remake tables. Single-tasking only.
     with MultiTimerContext(timer, TIMING_DROP_REMAKE):
         if args.dropremake or everything:
-            drop_remake(config,
+            drop_remake(nlpdef,
                         incremental=args.incremental,
                         skipdelete=args.skipdelete,
                         report_every=args.report_every_fast,
@@ -1261,52 +1240,30 @@ def main() -> None:
     # we can report the process number clearly.
 
     # 2. NLP
-    # if args.nlp or everything:
-    #     try:
-    #         process_nlp(config,
-    #                     incremental=args.incremental,
-    #                     report_every=args.report_every_nlp,
-    #                     tasknum=args.process,
-    #                     ntasks=args.nprocesses)
-    #     except Exception as exc:
-    #         log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
-    #         die(exc)
     if args.nlp or everything:
-        if args.cloud:
-            if args.immediate:
-                try:
+        try:
+            if args.cloud:
+                if args.immediate:
                     process_cloud_now(
-                        config,
+                        nlpdef,
                         incremental=args.incremental,
                         report_every=args.report_every_nlp)
-                except Exception as exc:
-                    log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
-                    die(exc)
-            else:
-                try:
-                    process_cloud_nlp(config,
+                else:
+                    process_cloud_nlp(nlpdef,
                                       incremental=args.incremental,
                                       report_every=args.report_every_nlp)
-                except Exception as exc:
-                    log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
-                    die(exc)
-        elif args.retrieve:
-            try:
-                retrieve_nlp_data(config,
+            elif args.retrieve:
+                retrieve_nlp_data(nlpdef,
                                   incremental=args.incremental)
-            except Exception as exc:
-                log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
-                die(exc)
-        else:
-            try:
-                process_nlp(config,
+            else:
+                process_nlp(nlpdef,
                             incremental=args.incremental,
                             report_every=args.report_every_nlp,
                             tasknum=args.process,
                             ntasks=args.nprocesses)
-            except Exception as exc:
-                log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#  # noqa
-                die(exc)
+        except Exception as exc:
+            log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+            die(exc)
 
     log.info("Finished")
     end = get_now_utc_pendulum()

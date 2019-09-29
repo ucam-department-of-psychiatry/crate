@@ -38,6 +38,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from cardinal_pythonlib.reprfunc import auto_repr
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 from cardinal_pythonlib.sqlalchemy.schema import (
     column_lists_equal,
@@ -72,6 +73,7 @@ from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 from crate_anon.nlp_manager.nlp_definition import (
     NlpDefinition,
 )
+from crate_anon.nlprp.api import NlprpServerProcessor
 from crate_anon.nlprp.constants import (
     ALL_SQL_DIALECTS,
     NlprpKeys,
@@ -138,6 +140,12 @@ class TableMaker(ABC):
             self._sectionname = ""
             self._destdb_name = ""
             self._destdb = None  # type: Optional[DatabaseHolder]
+
+    def __str__(self) -> str:
+        return self.classname()
+
+    def __repr__(self) -> str:
+        return auto_repr(self)
 
     @classmethod
     def classname(cls) -> str:
@@ -821,6 +829,20 @@ class BaseNlpParser(TableMaker):
         # https://stackoverflow.com/questions/2077897/substitute-multiple-whitespace-with-single-whitespace-in-python
         return " ".join(docstring.split())
 
+    def nlprp_server_processor(self, sql_dialect: str = None) \
+            -> NlprpServerProcessor:
+        schema_info = self.nlprp_schema_info(sql_dialect)
+        return NlprpServerProcessor(
+            name=self.nlprp_name(),
+            title=self.nlprp_title(),
+            version=self.nlprp_version(),
+            is_default_version=self.nlprp_is_default_version(),
+            description=self.nlprp_description(),
+            schema_type=schema_info[NlprpKeys.SCHEMA_TYPE],
+            sql_dialect=schema_info.get(NlprpKeys.SQL_DIALECT),
+            tabular_schema=schema_info.get(NlprpKeys.TABULAR_SCHEMA)
+        )
+
     def nlprp_processor_info(self, sql_dialect: str = None) -> Dict[str, Any]:
         """
         Returns a dictionary suitable for use as this processor's response to
@@ -832,15 +854,7 @@ class BaseNlpParser(TableMaker):
         Args:
             sql_dialect: preferred SQL dialect for ``tabular_schema``
         """
-        proc_info = {
-            NlprpKeys.NAME: self.nlprp_name(),
-            NlprpKeys.TITLE: self.nlprp_title(),
-            NlprpKeys.VERSION: self.nlprp_version(),
-            NlprpKeys.IS_DEFAULT_VERSION: self.nlprp_is_default_version(),
-            NlprpKeys.DESCRIPTION: self.nlprp_description(),
-        }
-        proc_info.update(self.nlprp_schema_info(sql_dialect))
-        return proc_info
+        return self.nlprp_server_processor(sql_dialect).infodict
 
     def nlprp_processor_info_json(self,
                                   indent: int = 4,

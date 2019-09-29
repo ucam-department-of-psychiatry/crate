@@ -20,6 +20,7 @@
 .. _AMQP: http://www.amqp.org
 .. _Celery: http://www.celeryproject.org
 .. _CherryPy: https://cherrypy.org
+.. _Gunicorn: https://gunicorn.org
 .. _Paste: https://pythonpaste.readthedocs.io/
 .. _PasteDeploy: https://pastedeploy.readthedocs.io
 .. _pserve: https://docs.pylonsproject.org/projects/pyramid/en/latest/pscripts/pserve.html
@@ -61,8 +62,23 @@ use it:
 
 #.  Launch the web server, e.g. via crate_nlp_webserver_pserve_.
 
+    - If you are using Gunicorn_, the preferred syntax is instead
+      ``gunicorn --paste <config_file>``.
+
 To test it, set up your NLP client for a :ref:`cloud processor
 <nlp_config_section_cloud_nlp>`, point it at your server, and try some NLP.
+Suppose your :ref`NLP definition <nlp_config_section_nlpdef>` is called
+``cloud_nlp_demo``:
+
+.. code-block:: bash
+
+    # No queuing:
+    crate_nlp --nlpdef cloud_nlp_demo --verbose --full --cloud --immediate
+
+    # With queuing:
+    crate_nlp --nlpdef cloud_nlp_demo --verbose --full --cloud
+    crate_nlp --nlpdef cloud_nlp_demo --verbose --full --showqueue
+    crate_nlp --nlpdef cloud_nlp_demo --verbose --full --retrieve
 
 
 .. _crate_nlp_webserver_print_demo:
@@ -240,6 +256,20 @@ Examples include:
 
   For arguments, see `CherryPy: Configure
   <https://docs.cherrypy.org/en/latest/config.html>`_.
+
+- Gunicorn_ (Linux only):
+
+  .. code-block:: ini
+
+    [server:main]
+    use = egg:gunicorn#main
+    bind = localhost:6543
+    workers = 4
+    # certfile = /etc/ssl/certs/ca-certificates.crt
+    # ssl_version = 5
+
+  For arguments, see `Gunicorn: Settings
+  <http://docs.gunicorn.org/en/latest/settings.html#settings>`_.
 
 
 .. _nlp_webserver_processors:

@@ -49,7 +49,7 @@ from crate_anon.nlp_manager.constants import (
     GateResultKeys,
 )
 from crate_anon.nlp_webserver.models import Session, DocProcRequest
-from crate_anon.nlp_webserver.procs import Processor
+from crate_anon.nlp_webserver.procs import ServerProcessor
 from crate_anon.nlp_webserver.constants import (
     NlpServerConfigKeys,
     PROCTYPE_GATE,
@@ -159,7 +159,7 @@ app.conf.database_engine_options = SQLALCHEMY_COMMON_OPTIONS
 
 def nlprp_processor_dict(
         success: bool,
-        processor: Processor = None,
+        processor: ServerProcessor = None,
         results: JsonArrayType = None,
         errcode: int = None,
         errmsg: str = None) -> JsonObjectType:
@@ -199,7 +199,8 @@ def nlprp_processor_dict(
     return proc_dict
 
 
-def internal_error(msg: str, processor: Processor = None) -> JsonObjectType:
+def internal_error(msg: str,
+                   processor: ServerProcessor = None) -> JsonObjectType:
     """
     Log an error message, and raise a corresponding :exc:`NlprpError` for
     an internal server error.
@@ -217,7 +218,8 @@ def internal_error(msg: str, processor: Processor = None) -> JsonObjectType:
     )
 
 
-def gate_api_error(msg: str, processor: Processor = None) -> JsonObjectType:
+def gate_api_error(msg: str,
+                   processor: ServerProcessor = None) -> JsonObjectType:
     """
     Return a "GATE failed" error.
 
@@ -329,7 +331,7 @@ def process_nlp_text(
     # Get the processor
     processor_id = dpr.processor_id
     try:
-        processor = Processor.processors[processor_id]
+        processor = ServerProcessor.processors[processor_id]
     except KeyError:
         dpr.done = True
         dpr.date_done = datetime.datetime.utcnow()
@@ -376,7 +378,7 @@ def process_nlp_text(
 
 def process_nlp_text_immediate(
         text: str,
-        processor: Processor,
+        processor: ServerProcessor,
         username: str = "",
         password: str = "") -> JsonObjectType:
     """
@@ -404,7 +406,7 @@ def process_nlp_text_immediate(
 
 
 def process_nlp_gate(text: str,
-                     processor: Processor,
+                     processor: ServerProcessor,
                      username: str,
                      password: str) -> JsonObjectType:
     """
@@ -464,7 +466,8 @@ def process_nlp_gate(text: str,
                                 results=results)
 
 
-def process_nlp_internal(text: str, processor: Processor) -> JsonObjectType:
+def process_nlp_internal(text: str,
+                         processor: ServerProcessor) -> JsonObjectType:
     """
     Send text to a chosen CRATE Python NLP processor and return a
     :class:`NlpServerResult`.

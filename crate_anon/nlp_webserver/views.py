@@ -32,7 +32,6 @@ import datetime
 import logging
 import json
 from typing import Dict, Generator, Iterable, List, Optional, Set, Tuple, Any
-import uuid
 import redis
 
 from celery.result import AsyncResult, ResultSet
@@ -78,8 +77,13 @@ from crate_anon.nlprp.errors import (
 )
 from crate_anon.nlprp.version import NLPRP_VERSION_STRING
 from crate_anon.nlp_webserver.manage_users import get_users
-from crate_anon.nlp_webserver.models import DBSession, Document, DocProcRequest
-from crate_anon.nlp_webserver.procs import Processor
+from crate_anon.nlp_webserver.models import (
+    DBSession,
+    Document,
+    DocProcRequest,
+    make_unique_id,
+)
+from crate_anon.nlp_webserver.procs import ServerProcessor
 from crate_anon.nlp_webserver.constants import (
     SERVER_NAME,
     SERVER_VERSION,
@@ -96,6 +100,17 @@ from crate_anon.nlp_webserver.tasks import (
 from crate_anon.nlp_webserver.settings import SETTINGS
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Debugging settings
+# =============================================================================
+
+DEBUG_SHOW_REQUESTS = True
+
+
+if DEBUG_SHOW_REQUESTS:
+    log.warning("Debugging options enabled! Turn off for production.")
 
 
 # =============================================================================
@@ -121,22 +136,6 @@ REDIS_SESSIONS = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT,
                                    password=REDIS_PASSWORD)
 
 SESSION_TOKEN_EXPIRY_S = 300
-
-
-# =============================================================================
-# Helper functions
-# =============================================================================
-
-def make_unique_id() -> str:
-    """
-    Generates a random unique ID for labelling objects, via :func:`uuid.uuid4`.
-
-    They look like '79cc4bac-6e8b-4ac6-bbd9-a65b5e1d1e29' (that is, hex with
-    format 8-4-4-4-12, so 32 informative characters and overall length 36
-    including the hyphens). The space is 16^32 = 3.4e38. See
-    https://docs.python.org/3.7/library/uuid.html.
-    """
-    return str(uuid.uuid4())
 
 
 # =============================================================================
@@ -167,7 +166,7 @@ class NlprpProcessRequest(object):
         # can be iterated through fast for each document.
         requested_processors = json_get_array(args, NKeys.PROCESSORS,
                                               required=True)
-        self.processors = [Processor.get_processor_nlprp(d)
+        self.processors = [ServerProcessor.get_processor_nlprp(d)
                            for d in requested_processors]
 
         # Queue?
@@ -414,6 +413,8 @@ class NlpWebViews(object):
         command = json_get_str(self.body, NKeys.COMMAND, required=True)
         log.debug(f"NLPRP request received from {self.request.remote_addr}: "
                   f"username={self.username}, command={command}")
+        if DEBUG_SHOW_REQUESTS:
+            log.debug(f"Request: {self.body!r}")
         return self.parse_command(command)
 
     def parse_command(self, command: str) -> JsonObjectType:
@@ -447,7 +448,8 @@ class NlpWebViews(object):
             status=HttpStatus.OK,
             extra_info={
                 NKeys.PROCESSORS: [
-                    proc.dict for proc in Processor.processors.values()
+                    proc.infodict
+                    for proc in ServerProcessor.processors.values()
                 ]
             }
         )
@@ -618,13 +620,13 @@ class NlpWebViews(object):
         #                     app=app)
         # if not res_set.ready():
         #     response = self.create_response(HttpStatus.PROCESSING, {})
-            # todo: is it correct (from previous comments) that we can't
-            # return JSON via Pyramid with a status of HttpStatus.PROCESSING?
-            # If that's true, we have to force as below, but then we need to
-            # alter the NLPRP docs (as these state the JSON code and HTTP code
-            # should always be the same).
         #     self.set_http_response_status(HttpStatus.OK)
         #     return response
+        # todo: is it correct (from previous comments) that we can't
+        # return JSON via Pyramid with a status of HttpStatus.PROCESSING?
+        # If that's true, we have to force as below, but then we need to
+        # alter the NLPRP docs (as these state the JSON code and HTTP code
+        # should always be the same).
 
         # Unfortunately we have to loop twice to avoid doing a lot for
         # nothing if it turns out a later result is not ready
@@ -632,9 +634,9 @@ class NlpWebViews(object):
         # Fixed a crucial bug in which, if all results for one doc are ready
         # but not subsequent ones, it wouldn't return a 'processing' status.
 
-        processor_cache = {}  # type: Dict[str, Processor]
+        processor_cache = {}  # type: Dict[str, ServerProcessor]
 
-        def get_processor_cached(_processor_id: str) -> Processor:
+        def get_processor_cached(_processor_id: str) -> ServerProcessor:
             """
             Cache lookups for speed. (All documents will share the same set
             of processors, so there'll be a fair bit of duplication.)
@@ -643,7 +645,7 @@ class NlpWebViews(object):
             try:
                 return processor_cache[_processor_id]
             except KeyError:
-                _processor = Processor.get_processor_from_id(_processor_id)  # may raise  # noqa
+                _processor = ServerProcessor.get_processor_from_id(_processor_id)  # may raise  # noqa
                 processor_cache[_processor_id] = _processor
                 return _processor
 
@@ -713,15 +715,11 @@ class NlpWebViews(object):
                                          default="", required=False)
         else:
             client_job_id = ""
-        if not client_job_id:
-            query = DBSession.query(Document).filter(
-                Document.username == self.username
-            )
-        else:
-            query = DBSession.query(Document).filter(
-                and_(Document.username == self.username,
-                     Document.client_job_id == client_job_id)
-            )
+        query = DBSession.query(Document).filter(
+            Document.username == self.username
+        )
+        if client_job_id:
+            query = query.filter(Document.client_job_id == client_job_id)
         records = query.all()  # type: Iterable[Document]
         queue = []  # type: JsonArrayType
         # results = []  # type: List[AsyncResult]
@@ -742,23 +740,6 @@ class NlpWebViews(object):
                 times = [dpr.date_done for dpr in dprs]
                 max_time = max(times)
 
-            # for record in qid_recs:
-            #     result_ids = json.loads(record.result_ids)
-            #     print(record.done_count)
-            #     if len(result_ids) != record.done_count:
-            #         busy = True
-            # for record in qid_recs:
-            #     result_ids = json.loads(record.result_ids)
-            #     for result_id in result_ids:
-            #         results.append(AsyncResult(id=result_id, app=app))
-            # res_set = ResultSet(results=results, app=app)
-            # if res_set.ready():
-            #     result_values = res_set.get()  # type: Iterable[Dict[str, Any]]  # noqa
-            #     times = [x.time for x in result_values]
-            #     times = [x._cache['date_done'] for x in res_set]  # TEMPORARY!!  # noqa
-            #      max_time = max(times)
-            #  else:
-            #      busy = True
             dt_submitted = qid_recs[0].datetime_submitted_pendulum
             queue.append({
                 NKeys.QUEUE_ID: queue_id,

@@ -46,6 +46,7 @@ from crate_anon.nlp_manager.constants import (
 
 if TYPE_CHECKING:
     from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+    from crate_anon.nlp_manager.cloud_parser import Cloud
 
 log = logging.getLogger(__name__)
 
@@ -126,13 +127,11 @@ class CloudConfig(object):
                     f"Skipping NLP processor of non-cloud (e.g. local) "
                     f"type: {processor.get_parser_name()}")
                 continue
-            # self.remote_processors[
-            #     processor.get_cfgsection()] = processor
             self.remote_processors[(
                 processor.procname, processor.procversion)] = processor
             # NOTE: KEY IS A TUPLE!
-        # We need the following in order to decide whether toask to include
-        # text in reply - if a processor is GATE we need to as it does not
+        # We need the following in order to decide whether to ask to include
+        # text in reply - if a processor is GATE we need to, as it does not
         # send back the content of the nlp snippet
         self.has_gate_processors = any(
             (x.format == NlpDefValues.FORMAT_GATE)

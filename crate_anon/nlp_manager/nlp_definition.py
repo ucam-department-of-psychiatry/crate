@@ -718,7 +718,6 @@ OS_PATHSEP = :
 {CloudNlpConfigKeys.STOP_AT_FAILURE} = true
 {CloudNlpConfigKeys.MAX_TRIES} = {DEFAULT_CLOUD_MAX_TRIES}
 {CloudNlpConfigKeys.RATE_LIMIT_HZ} = {DEFAULT_CLOUD_RATE_LIMIT_HZ}
-{CloudNlpConfigKeys.PROCESSORS} = todo:XXX_WRITE_ME_XXX
 
 """  # noqa
     )
@@ -1102,7 +1101,7 @@ class NlpDefinition(object):
         tl.commit()
 
     # noinspection PyUnresolvedReferences
-    def get_local_processors(self) -> List['BaseNlpParser']:
+    def get_noncloud_processors(self) -> List['BaseNlpParser']:
         """
         Returns all local (non-cloud) NLP processors used by this NLP
         definition.
@@ -1164,7 +1163,7 @@ class NlpDefinition(object):
         :ref:`list_processors <nlprp_list_processors>` command.
         """
         processors = []  # type: List[Dict, str, Any]
-        for proc in self.get_local_processors():
+        for proc in self.get_noncloud_processors():
             processors.append(proc.nlprp_processor_info(sql_dialect))
         return {
             NlprpKeys.PROCESSORS: processors,

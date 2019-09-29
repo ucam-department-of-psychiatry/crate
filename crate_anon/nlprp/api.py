@@ -31,7 +31,7 @@ Validate Natural Language Processing Request Protocol (NLPRP) objects.
 import datetime
 import json
 import gzip
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from cardinal_pythonlib.datetimefunc import (
     coerce_to_pendulum,
@@ -41,6 +41,7 @@ from cardinal_pythonlib.datetimefunc import (
     pendulum_to_datetime,
     pendulum_to_utc_datetime_without_tz,
 )
+from cardinal_pythonlib.reprfunc import auto_repr
 import pendulum
 from pendulum import DateTime as Pendulum  # NB name clash with SQLAlchemy
 from semantic_version import Version
@@ -756,3 +757,52 @@ class NlprpResponse(NlprpMessage):
         """
         return json_get_object(self._data, NlprpKeys.SERVER_INFO,
                                required=False)
+
+
+class NlprpServerProcessor(object):
+    """
+    Class for containing information about am NLP processor known to an NLPRP
+    server.
+    """
+
+    def __init__(self,
+                 name: str,
+                 title: str,
+                 version: str,
+                 is_default_version: bool,
+                 description: str,
+                 schema_type: str = NlprpValues.UNKNOWN,
+                 sql_dialect: Optional[str] = None,
+                 tabular_schema: Optional[Dict[str, Any]] = None) -> None:
+        assert schema_type in (NlprpValues.UNKNOWN, NlprpValues.TABULAR), (
+            "'schema_type' must be one of '{NlprpValues.UNKNOWN}', "
+            "'{NlprpValues.TABULAR}' for each processor.")
+        self.name = name
+        self.title = title
+        self.version = version
+        self.is_default_version = is_default_version
+        self.description = description
+        self.schema_type = schema_type
+        self.sql_dialect = sql_dialect
+        self.tabular_schema = tabular_schema
+
+    @property
+    def infodict(self) -> Dict[str, Any]:
+        d = {
+            NlprpKeys.NAME: self.name,
+            NlprpKeys.TITLE: self.title,
+            NlprpKeys.VERSION: self.version,
+            NlprpKeys.IS_DEFAULT_VERSION: self.is_default_version,
+            NlprpKeys.DESCRIPTION: self.description,
+            NlprpKeys.SCHEMA_TYPE: self.schema_type,
+        }
+        if self.schema_type == NlprpValues.TABULAR:
+            d[NlprpKeys.SQL_DIALECT] = self.sql_dialect
+            d[NlprpKeys.TABULAR_SCHEMA] = self.tabular_schema
+        return d
+
+    def __str__(self) -> str:
+        return str(self.infodict)
+
+    def __repr__(self) -> str:
+        return auto_repr(self)

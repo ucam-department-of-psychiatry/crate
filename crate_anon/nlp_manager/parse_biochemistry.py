@@ -93,12 +93,13 @@ class Crp(SimpleNumericalResultParser):
     CRP units:
 
     - mg/L is commonest in the UK (or at least standard at Addenbrooke's,
-      Hinchingbrooke, and Dundee)
+      Hinchingbrooke, and Dundee);
 
     - values of <=6 mg/L or <10 mg/L are normal, and e.g. 70-250 mg/L in
       pneumonia.
 
-    - Refs include:ga
+    - Refs include:
+
       - http://www.ncbi.nlm.nih.gov/pubmed/7705110
       - http://emedicine.medscape.com/article/2086909-overview
 

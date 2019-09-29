@@ -43,7 +43,14 @@ def demo_config() -> str:
     """
     k = NlpServerConfigKeys
     return (f"""
+# This is a "paste" configuration file for the CRATE NLPRP web server.
+
+# =============================================================================
+# The CRATE NLPRP server web application 
+# =============================================================================
+
 [app:main]
+
 use = egg:crate_anon#main
 pyramid.reload_templates = true
 # pyramid.includes =
@@ -63,10 +70,15 @@ pyramid.reload_templates = true
 {k.BROKER_URL} = amqp://@localhost:3306/testbroker
 {k.BACKEND_URL} = db+mysql://username:password@localhost/backenddbname?charset=utf8
 
-# Key for reversible encryption. Use 'nlp_webserver_generate_encryption_key'.
+# Key for reversible encryption. Use 'crate_nlp_webserver_generate_encryption_key'.
 {k.ENCRYPTION_KEY} =
 
+# =============================================================================
+# The web server software
+# =============================================================================
+
 [server:main]
+
 use = egg:waitress#main
 listen = localhost:6543
 """  # noqa

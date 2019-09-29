@@ -34,7 +34,7 @@ import logging
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.all_processors import make_nlp_parser_unconfigured
-from crate_anon.nlprp.api import JsonObjectType
+from crate_anon.nlprp.api import JsonObjectType, NlprpServerProcessor
 from crate_anon.nlprp.constants import NlprpKeys, NlprpValues
 from crate_anon.nlprp.errors import (
     BAD_REQUEST,
@@ -60,18 +60,20 @@ processors = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(processors)
 
 
-class Processor(object):
+class ServerProcessor(NlprpServerProcessor):
     """
-    Class for containing information about NLP processors known to an NLPRP
-    server.
+    Adds extra information to
+    :class:`crate_anon.nlprp.api.NlprpServerProcessor`.
 
-    For ease of finding processor info based on name and version
-    (alternative would be a dictionary in which the keys were name_version
-    and the values were another dictionary with the rest of the info)
+    - For ease of finding processor info based on name and version
+      (alternative would be a dictionary in which the keys were name_version
+      and the values were another dictionary with the rest of the info).
+
+    - Also used as the client-side representation.
     """
 
     # Master list of all instances (processors)
-    processors = {}  # type: Dict[str, "Processor"]
+    processors = {}  # type: Dict[str, "ServerProcessor"]
 
     def __init__(self,
                  name: str,
@@ -79,18 +81,20 @@ class Processor(object):
                  version: str,
                  is_default_version: bool,
                  description: str,
-                 proctype: Optional[str] = None,
                  schema_type: str = NlprpValues.UNKNOWN,
                  sql_dialect: Optional[str] = None,
-                 tabular_schema: Optional[Dict[str, Any]] = None) -> None:
-        assert schema_type in (NlprpValues.UNKNOWN, NlprpValues.TABULAR), (
-            "'schema_type' must be one of '{NlprpValues.UNKNOWN}', "
-            "'{NlprpValues.TABULAR}' for each processor.")
-        self.name = name
-        self.title = title
-        self.version = version
-        self.is_default_version = is_default_version
-        self.description = description
+                 tabular_schema: Optional[Dict[str, Any]] = None,
+                 proctype: Optional[str] = None) -> None:
+        super().__init__(
+            name=name,
+            title=title,
+            version=version,
+            is_default_version=is_default_version,
+            description=description,
+            schema_type=schema_type,
+            sql_dialect=sql_dialect,
+            tabular_schema=tabular_schema
+        )
         self.processor_id = "{}_{}".format(self.name, self.version)
         if len(self.processor_id) > 100:
             raise ValueError(f"Processor id {self.processor_id} is too "
@@ -105,25 +109,13 @@ class Processor(object):
             self.proctype = name
         else:
             self.proctype = proctype
-        self.dict = {
-            NlprpKeys.NAME: name,
-            NlprpKeys.TITLE: title,
-            NlprpKeys.VERSION: version,
-            NlprpKeys.IS_DEFAULT_VERSION: is_default_version,
-            NlprpKeys.DESCRIPTION: description,
-            NlprpKeys.SCHEMA_TYPE: schema_type,
-        }
-
-        if schema_type == NlprpValues.TABULAR:
-            self.dict[NlprpKeys.SQL_DIALECT] = sql_dialect
-            self.dict[NlprpKeys.TABULAR_SCHEMA] = tabular_schema
 
         # Add instance to list of processors
-        Processor.processors[self.processor_id] = self
+        ServerProcessor.processors[self.processor_id] = self
 
     @classmethod
     def get_processor(cls, name: str,
-                      version: str = "") -> "Processor":
+                      version: str = "") -> "ServerProcessor":
         """
         Fetch a processor by name and (optionally) version.
 
@@ -156,7 +148,7 @@ class Processor(object):
 
     @classmethod
     def get_processor_nlprp(cls, requested_processor_dict: JsonObjectType) \
-            -> "Processor":
+            -> "ServerProcessor":
         """
         Fetch a processor, from an NLPRP dictionary specifying it.
 
@@ -179,7 +171,7 @@ class Processor(object):
         return cls.get_processor(name=name, version=version)
 
     @classmethod
-    def get_processor_from_id(cls, processor_id: str) -> "Processor":
+    def get_processor_from_id(cls, processor_id: str) -> "ServerProcessor":
         """
         Fetch a processor, from a processor ID (a string representing name and
         versio).
@@ -212,7 +204,7 @@ class Processor(object):
 
 
 for proc in processors.PROCESSORS:
-    x = Processor(
+    x = ServerProcessor(
         name=proc[NlprpKeys.NAME],
         title=proc[NlprpKeys.TITLE],
         version=proc[NlprpKeys.VERSION],

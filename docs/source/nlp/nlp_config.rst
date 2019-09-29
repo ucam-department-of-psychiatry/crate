@@ -1010,12 +1010,6 @@ send requests. Use this to avoid overloading the cloud NLP server. Specify 0
 for no limit.
 
 
-processors
-##########
-
-.. todo:: write help for processors
-
-
 Parallel processing
 ~~~~~~~~~~~~~~~~~~~
 
