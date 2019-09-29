@@ -1104,7 +1104,8 @@ class NlpDefinition(object):
     # noinspection PyUnresolvedReferences
     def get_local_processors(self) -> List['BaseNlpParser']:
         """
-        Returns all NLP processors used by this NLP definition.
+        Returns all local (non-cloud) NLP processors used by this NLP
+        definition.
 
         Returns:
             list of objects derived from

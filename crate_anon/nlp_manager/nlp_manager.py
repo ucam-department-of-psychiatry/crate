@@ -458,6 +458,15 @@ def process_nlp(nlpdef: NlpDefinition,
     """
     log.info(SEP + "NLP")
     session = nlpdef.get_progdb_session()
+    if not nlpdef.get_local_processors():
+        errmsg = (
+            f"Can't use NLP definition {nlpdef.get_name()!r} as it has no "
+            f"local processors (e.g. only has cloud processors). Specify the "
+            f"cloud option to process via the cloud."
+        )
+        log.critical(errmsg)
+        raise ValueError(errmsg)
+
     for ifconfig in nlpdef.get_ifconfigs():
         i = 0  # record count within this process
         recnum = tasknum  # record count overall
@@ -508,13 +517,7 @@ def process_nlp(nlpdef: NlpDefinition,
                 else:
                     log.debug("Record is new")
 
-            for processor in nlpdef.get_processors():
-                if not isinstance(processor, BaseNlpParser):
-                    log.warning(
-                        f"Skipping NLP processor of non-local (e.g. cloud) "
-                        f"type: {processor.get_parser_name()}")
-                    continue
-
+            for processor in nlpdef.get_local_processors():
                 if incremental:
                     processor.delete_dest_record(ifconfig, pkval, pkstr,
                                                  commit=incremental)
