@@ -66,11 +66,6 @@ use it:
 #.  Launch the web server, e.g. via crate_nlp_webserver_pserve_ or
     crate_nlp_webserver_launch_gunicorn_.
 
-    - That is: ``crate_nlp_webserver_pserve <config_file>``.
-
-    - If you are using Gunicorn_, the preferred syntax is instead
-      ``gunicorn --paste <config_file>``.
-
 #.  Launch the Celery workers with crate_nlp_webserver_launch_celery_.
 
 

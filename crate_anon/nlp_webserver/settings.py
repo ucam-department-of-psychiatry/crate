@@ -29,16 +29,20 @@ Settings for CRATE's implementation of an NLPRP server.
 """
 
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from pyramid.paster import get_appsettings
 from pyramid.config import Configurator
 
 from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CONFIG_ENVVAR
 
-
 SETTINGS_PATH = os.getenv(NLP_WEBSERVER_CONFIG_ENVVAR)
-assert NLP_WEBSERVER_CONFIG_ENVVAR, (
-    f"Missing environment variable {NLP_WEBSERVER_CONFIG_ENVVAR}")
-SETTINGS = get_appsettings(SETTINGS_PATH)  # type: Dict[str, Any]
-CONFIG = Configurator(settings=SETTINGS)
+
+if os.environ.get("_SPHINX_AUTODOC_IN_PROGRESS", None):
+    SETTINGS = {}
+    CONFIG = None  # type: Optional[Configurator]
+else:
+    assert NLP_WEBSERVER_CONFIG_ENVVAR, (
+        f"Missing environment variable {NLP_WEBSERVER_CONFIG_ENVVAR}")
+    SETTINGS = get_appsettings(SETTINGS_PATH)  # type: Dict[str, Any]
+    CONFIG = Configurator(settings=SETTINGS)
