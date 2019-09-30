@@ -1126,6 +1126,13 @@ Changes
 
 - ``cardinal_pythonlib==1.0.65``
 
+- readthedocs.org problems fixed; see
+
+  - environment variable ``_SPHINX_AUTODOC_IN_PROGRESS`` (re errors from
+    docs build environment)
+  - ``readthedocs.yml`` (re resource usage)
+  - all ``.ini`` files were being ignored (despite being fine on a local Sphinx
+    build) -- this was a ``.gitignore`` bug.
 
 
 ===============================================================================
