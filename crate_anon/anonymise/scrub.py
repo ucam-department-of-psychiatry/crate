@@ -37,7 +37,7 @@ from typing import (Any, Dict, Iterable, Generator, List, Optional, Pattern,
 
 from cardinal_pythonlib.datetimefunc import coerce_to_datetime
 from cardinal_pythonlib.hash import GenericHasher
-from cardinal_pythonlib.rnc_db import (
+from cardinal_pythonlib.sql.validation import (
     is_sqltype_date,
     is_sqltype_text_over_one_char,
 )

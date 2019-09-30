@@ -33,7 +33,7 @@ import logging
 import shlex
 from typing import Dict, List
 
-from cardinal_pythonlib.rnc_db import (
+from cardinal_pythonlib.sql.validation import (
     ensure_valid_field_name,
     ensure_valid_table_name,
     is_sqltype_valid

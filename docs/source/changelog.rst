@@ -1117,6 +1117,17 @@ Changes
 - :class:`crate_anon.crateweb.research.models.PatientExplorer` use is audited.
 
 
+**v0.18.87, 2019-09-30**
+
+- NLP web server performance tweaks; database structure changes.
+
+- Remove dependence on ``cardinal_pythonlib.rnc_db``, which is trivial but
+  gives a warning.
+
+- ``cardinal_pythonlib==1.0.65``
+
+
+
 ===============================================================================
 
 .. rubric:: Footnotes

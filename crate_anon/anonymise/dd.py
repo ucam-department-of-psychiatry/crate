@@ -43,7 +43,7 @@ import operator
 from typing import (AbstractSet, Any, List, Optional, Tuple, TYPE_CHECKING,
                     Union)
 
-from cardinal_pythonlib.rnc_db import is_sqltype_integer
+from cardinal_pythonlib.sql.validation import is_sqltype_integer
 from cardinal_pythonlib.sqlalchemy.schema import (
     is_sqlatype_integer,
     is_sqlatype_string,

@@ -38,7 +38,7 @@ from typing import Any, List, Dict, Iterable, Optional, TYPE_CHECKING, Union
 
 from cardinal_pythonlib.convert import convert_to_int
 from cardinal_pythonlib.lists import count_bool
-from cardinal_pythonlib.rnc_db import (
+from cardinal_pythonlib.sql.validation import (
     ensure_valid_field_name,
     ensure_valid_table_name,
     is_sqltype_valid,

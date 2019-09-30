@@ -84,7 +84,7 @@ from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union, Set
 
 from cardinal_pythonlib.hash import GenericHasher, make_hasher
 from cardinal_pythonlib.logs import remove_all_logger_handlers
-from cardinal_pythonlib.rnc_db import (
+from cardinal_pythonlib.sql.validation import (
     ensure_valid_field_name,
     ensure_valid_table_name,
 )

@@ -34,7 +34,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_notz_datetime
 from cardinal_pythonlib.hash import hash64
-from cardinal_pythonlib.rnc_db import (
+from cardinal_pythonlib.sql.validation import (
     ensure_valid_field_name,
     ensure_valid_table_name,
 )
