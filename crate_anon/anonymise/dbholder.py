@@ -58,7 +58,8 @@ class DatabaseHolder(object):
                  with_session: bool = False,
                  with_conn: bool = True,
                  reflect: bool = True,
-                 encoding: str = 'utf-8') -> None:
+                 encoding: str = 'utf-8',
+                 echo: bool = False) -> None:
         """
         Args:
             name: internal database name
@@ -68,10 +69,11 @@ class DatabaseHolder(object):
             with_conn: create an SQLAlchemy connection (via an Engine)?
             reflect: read the database structure (when required)?
             encoding: passed to SQLAlchemy's :func:`create_engine`
+            echo: passed to SQLAlchemy's :func:`create_engine`
         """
         self.name = name
         self.srccfg = srccfg
-        self.engine = create_engine(url, encoding=encoding)
+        self.engine = create_engine(url, encoding=encoding, echo=echo)
         self.conn = None  # type: Optional[Connection]
         self.session = None  # type: Optional[Session]
         self._reflect_on_request = reflect

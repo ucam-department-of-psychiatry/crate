@@ -12,7 +12,7 @@ usage: crate_anonymise [-h] [--version] [--democonfig] [--config CONFIG]
                        [-i | -f] [--skipdelete] [--seed SEED] [--echo]
                        [--checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]]
 
-Database anonymiser. Version 0.18.87 (2019-08-06). By Rudolf Cardinal.
+Database anonymiser. Version 0.18.87 (2019-09-30). By Rudolf Cardinal.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -81,4 +81,4 @@ optional arguments:
                         extension 'None' to check the fallback processor
                         (default: None)
 
-# Generated at 2019-09-30 09:48:35
+# Generated at 2019-09-30 11:20:04

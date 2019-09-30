@@ -170,6 +170,7 @@ class DatabaseConfigKeys(object):
     Config file keys for database definitions.
     """
     URL = "url"
+    ECHO = "echo"
 
 
 class CloudNlpConfigKeys(object):

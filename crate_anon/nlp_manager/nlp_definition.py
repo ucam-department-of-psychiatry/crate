@@ -280,14 +280,12 @@ def demo_nlp_config() -> str:
 # Cloud NLP demo
 # -----------------------------------------------------------------------------
 
-# todo: complete the demo config for a cloud NLP setup
-
 [{NlpConfigPrefixes.NLPDEF}:cloud_nlp_demo]
 
 {NlpDefConfigKeys.INPUTFIELDDEFS} =
     {inputfields}
 {NlpDefConfigKeys.PROCESSORS} =
-    GATE procdef_gate_name_location
+    Cloud procdef_cloud_crp
 {NlpDefConfigKeys.PROGRESSDB} = {destdb}
 {NlpDefConfigKeys.HASHPHRASE} = {hashphrase}
 {NlpDefConfigKeys.CLOUD_CONFIG} = {my_cloud}
@@ -718,6 +716,13 @@ OS_PATHSEP = :
 {CloudNlpConfigKeys.STOP_AT_FAILURE} = true
 {CloudNlpConfigKeys.MAX_TRIES} = {DEFAULT_CLOUD_MAX_TRIES}
 {CloudNlpConfigKeys.RATE_LIMIT_HZ} = {DEFAULT_CLOUD_RATE_LIMIT_HZ}
+
+[{NlpConfigPrefixes.PROCESSOR}:procdef_cloud_crp]
+
+{ProcessorConfigKeys.DESTDB} = {destdb}
+{ProcessorConfigKeys.DESTTABLE} = crp_test
+{ProcessorConfigKeys.PROCESSOR_NAME} = crate_anon.nlp_manager.parse_biochemistry.Crp
+{ProcessorConfigKeys.PROCESSOR_FORMAT} = {NlpDefValues.FORMAT_STANDARD}
 
 """  # noqa
     )
@@ -1157,7 +1162,8 @@ class NlpDefinition(object):
     # NLPRP info
     # -------------------------------------------------------------------------
 
-    def nlprp_list_processors(self, sql_dialect: str = None) -> Dict[str, Any]:
+    def nlprp_local_processors(self,
+                               sql_dialect: str = None) -> Dict[str, Any]:
         """
         Returns a draft list of processors as per the NLPRP
         :ref:`list_processors <nlprp_list_processors>` command.
@@ -1169,10 +1175,10 @@ class NlpDefinition(object):
             NlprpKeys.PROCESSORS: processors,
         }
 
-    def nlprp_list_processors_json(self,
-                                   indent: int = 4,
-                                   sort_keys: bool = True,
-                                   sql_dialect: str = None) -> Dict[str, Any]:
+    def nlprp_local_processors_json(self,
+                                    indent: int = 4,
+                                    sort_keys: bool = True,
+                                    sql_dialect: str = None) -> Dict[str, Any]:
         """
         Returns a formatted JSON string from :func:`nlprp_list_processors`.
         This is primarily for debugging.
@@ -1183,7 +1189,7 @@ class NlpDefinition(object):
             sql_dialect: preferred SQL dialect for ``tabular_schema``, or
                 ``None`` for default
         """
-        json_structure = self.nlprp_list_processors(sql_dialect=sql_dialect)
+        json_structure = self.nlprp_local_processors(sql_dialect=sql_dialect)
         return json.dumps(json_structure, indent=indent, sort_keys=sort_keys)
 
     # -------------------------------------------------------------------------

@@ -36,6 +36,7 @@ from cardinal_pythonlib.lists import chunks
 from sqlalchemy.schema import Column, Index
 from sqlalchemy import types as sqlatypes
 
+from crate_anon.common.extendedconfigparser import configfail
 from crate_anon.nlp_manager.nlp_definition import (
     NlpDefinition,
 )
@@ -127,6 +128,12 @@ class Cloud(TableMaker):
             self.tablename = nlpdef.opt_str(sectionname,
                                             ProcessorConfigKeys.DESTTABLE,
                                             default=None)  # not required
+        if not self._outputtypemap and not self.tablename:
+            configfail(
+                f"In section [{sectionname}], neither "
+                f"{ProcessorConfigKeys.OUTPUTTYPEMAP!r} nor "
+                f"{ProcessorConfigKeys.DESTTABLE!r} is specified. The cloud "
+                f"processor won't know where to store its results.")
 
     @staticmethod
     def get_coltype_parts(coltype_str: str) -> List[str]:

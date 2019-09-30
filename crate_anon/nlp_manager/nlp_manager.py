@@ -65,6 +65,7 @@ Speed testing:
 
 import argparse
 import csv
+import json
 import logging
 import os
 import sys
@@ -117,6 +118,7 @@ from crate_anon.nlp_manager.nlp_definition import (
 from crate_anon.nlp_manager.cloud_parser import Cloud
 from crate_anon.nlp_manager.cloud_request import (
     CloudRequest,
+    CloudRequestListProcessors,
     CloudRequestProcess,
     CloudRequestQueueManagement,
 )
@@ -968,6 +970,19 @@ def show_cloud_queue(nlpdef: NlpDefinition) -> None:
         writer.writerow(entry)
 
 
+def print_cloud_processors(nlpdef: NlpDefinition,
+                           indent: int = 4,
+                           sort_keys: bool = True) -> None:
+    """
+    Print remote processor definitions to the screen.
+    """
+    cloud_request = CloudRequestListProcessors(nlpdef=nlpdef)
+    procs = cloud_request.get_remote_processors()
+    asdictlist = [p.infodict for p in procs]
+    text = json.dumps(asdictlist, indent=indent, sort_keys=sort_keys)
+    print(text)
+
+
 # =============================================================================
 # Database info
 # =============================================================================
@@ -1073,10 +1088,13 @@ def main() -> None:
         "--describeprocessors", action="store_true",
         help="Show details of built-in NLP processors")
     parser.add_argument(
-        "--print_nlprp_list_processors_json", action="store_true",
-        help="Show NLPRP JSON for processors that are part of the chosen NLP "
-             "definition, then stop"
-    )
+        "--print_local_processors", action="store_true",
+        help="Show NLPRP JSON for local processors that are part of the "
+             "chosen NLP definition, then stop")
+    parser.add_argument(
+        "--print_cloud_processors", action="store_true",
+        help="Show NLPRP JSON for cloud (remote) processors that are part of "
+             "the chosen NLP definition, then stop")
     parser.add_argument(
         "--showinfo", required=False, nargs='?',
         metavar="NLP_CLASS_NAME",
@@ -1202,8 +1220,11 @@ def main() -> None:
         return
 
     # Show configured processor definitions only?
-    if args.print_nlprp_list_processors_json:
-        print(nlpdef.nlprp_list_processors_json())
+    if args.print_local_processors:
+        print(nlpdef.nlprp_local_processors_json())
+        return
+    if args.print_cloud_processors:
+        print_cloud_processors(nlpdef)
         return
 
     # -------------------------------------------------------------------------

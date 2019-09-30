@@ -468,37 +468,65 @@ units. (For example, :class:`crate_anon.nlp_manager.parse_biochemistry.Crp`
 will assume mg/L.)
 
 
-.. _nlp_config_section_gate_outputtypemap:
+.. _nlp_config_processor_desttable:
+
+desttable
+#########
+
+*String.*
+
+**Applicable to: Cloud.**
+
+Table name in the destination (NLP output) database into which to write results
+from the cloud NLP processor. Use this for single-table processors.
+
+The alternative is :ref:`outputtypemap <nlp_config_processor_outputtypemap>`.
+
+
+
+
+.. _nlp_config_processor_outputtypemap:
 
 outputtypemap
 #############
 
 *Multiline string.*
 
-**Applicable to: GATE.**
+**Applicable to: GATE, Cloud.**
 
-What's GATE? See the section on :ref:`GATE NLP <gate_nlp>`.
+For GATE:
 
-Map GATE '_type' parameters to possible destination tables (in
-case-insensitive fashion). This parameter is follows is a list of pairs, one pair per line.
+    What's GATE? See the section on :ref:`GATE NLP <gate_nlp>`.
 
-- The first item of each is the annotation type coming out of the GATE system.
+    Map GATE '_type' parameters to possible destination tables (in
+    case-insensitive fashion). This parameter is follows is a list of pairs,
+    one pair per line.
 
-- The second is the output type section defined in this file (as a separate
-  section). Those sections (q.v.) define tables and columns (fields).
+    - The first item of each is the annotation type coming out of the GATE
+      system.
 
-Example:
+    - The second is the output type section defined in this file (as a separate
+      section). Those sections (q.v.) define tables and columns (fields).
 
-.. code-block:: none
+    Example:
 
-    outputtypemap =
-        Person output_person
-        Location output_location
+    .. code-block:: none
 
-This example would take output from GATE labelled with ``_type=Person`` and
-send it to output defined in the ``[output:output_person]`` section of the
-config file -- see :ref:`GATE output definitions
-<nlp_config_section_gate_output>`. Equivalently for the ``Location`` type.
+        outputtypemap =
+            Person output_person
+            Location output_location
+
+    This example would take output from GATE labelled with ``_type=Person`` and
+    send it to output defined in the ``[output:output_person]`` section of the
+    config file -- see :ref:`GATE output definitions
+    <nlp_config_section_gate_output>`. Equivalently for the ``Location`` type.
+
+For cloud:
+
+    - The alternative is :ref:`desttable <nlp_config_processor_desttable>`.
+
+    - If both are present, only :ref:`outputtypemap
+      <nlp_config_processor_outputtypemap>` will be used.
 
 
 .. _nlp_config_section_gate_progargs:
@@ -690,7 +718,7 @@ automatically know what sort of output they will produce. The tables and
 SPECIFIC output fields for a given GATE processor are defined here.
 
 They are referred to by the :ref:`outputtypemap
-<nlp_config_section_gate_outputtypemap>` parameter (q.v.).
+<nlp_config_processor_outputtypemap>` parameter (q.v.).
 
 
 desttable
@@ -852,7 +880,7 @@ Config file section: database definition
 These are config file sections named ``[database:XXX]`` where ``XXX`` is the
 name of one of your database definitions.
 
-These are simply URLs that define how to connect to different databases.
+These simply tell CRATE how to connect to different databases.
 
 
 url
@@ -870,6 +898,15 @@ Example:
     [database:MY_SOURCE_DATABASE]
 
     url = mysql+mysqldb://myuser:password@127.0.0.1:3306/anonymous_output_db?charset=utf8
+
+
+echo
+####
+
+*Boolean.* Default: False.
+
+Optional parameter for debugging. If set to True, all SQL being sent to the
+database will be logged to the Python console log.
 
 
 .. _nlp_config_section_cloud_nlp:

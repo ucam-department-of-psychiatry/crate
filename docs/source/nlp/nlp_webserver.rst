@@ -81,10 +81,13 @@ Suppose your :ref:`NLP definition <nlp_config_section_nlpdef>` is called
 
 .. code-block:: bash
 
-    # No queuing:
+    # Show what the server's offering:
+    crate_nlp --nlpdef cloud_nlp_demo --verbose --print_cloud_processors
+
+    # Run without queuing:
     crate_nlp --nlpdef cloud_nlp_demo --verbose --full --cloud --immediate
 
-    # With queuing:
+    # Run with queuing:
     crate_nlp --nlpdef cloud_nlp_demo --verbose --full --cloud
     crate_nlp --nlpdef cloud_nlp_demo --verbose --full --showqueue
     # crate_nlp --nlpdef cloud_nlp_demo --verbose --full --cancelrequest

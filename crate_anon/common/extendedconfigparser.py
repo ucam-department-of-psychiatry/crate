@@ -37,11 +37,12 @@ from typing import Any, Dict, Iterable, Generator, List, Optional
 # https://docs.python.org/3/library/typing.html
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.nlp_manager.constants import DatabaseConfigKeys
 
 log = logging.getLogger(__name__)
 
 
-def fail(errmsg) -> None:
+def configfail(errmsg) -> None:
     """
     Args:
         errmsg: error message
@@ -100,10 +101,10 @@ def gen_ints(words: Iterable[str],
             value = int(word)
             if minimum is not None:
                 if value < minimum:
-                    fail(f"Value {value} less than minimum of {minimum}")
+                    configfail(f"Value {value} less than minimum of {minimum}")
             if maximum is not None:
                 if value > maximum:
-                    fail(f"Value {value} more than maximum of {maximum}")
+                    configfail(f"Value {value} more than maximum of {maximum}")
             yield value
         except ValueError:
             if not suppress_errors:
@@ -155,7 +156,7 @@ class ExtendedConfigParser(configparser.ConfigParser):
             section: section name
             option: parameter name
         """
-        fail(f"Config section [{section}]: missing parameter: {option}")
+        configfail(f"Config section [{section}]: missing parameter: {option}")
 
     def get_str(self,
                 section: str,
@@ -310,8 +311,8 @@ class ExtendedConfigParser(configparser.ConfigParser):
         # Now, make sure it's a list:
         # http://stackoverflow.com/questions/1835018
         if not isinstance(pyvalue, list):
-            fail(f"Option {option} must evaluate to a Python list "
-                 f"using ast.literal_eval()")
+            configfail(f"Option {option} must evaluate to a Python list "
+                       f"using ast.literal_eval()")
         return pyvalue
 
     def get_database(self,
@@ -339,11 +340,13 @@ class ExtendedConfigParser(configparser.ConfigParser):
         """
 
         dbname = dbname or section
-        url = self.get_str(section, 'url', required=True)
+        url = self.get_str(section, DatabaseConfigKeys.URL, required=True)
+        echo = self.get_bool(section, DatabaseConfigKeys.ECHO, default=False)
         return DatabaseHolder(dbname, url, srccfg=srccfg,
                               with_session=with_session,
                               with_conn=with_conn,
-                              reflect=reflect)
+                              reflect=reflect,
+                              echo=echo)
 
     def get_env_dict(
             self,
