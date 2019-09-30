@@ -24,6 +24,7 @@
 .. _Paste: https://pythonpaste.readthedocs.io/
 .. _PasteDeploy: https://pastedeploy.readthedocs.io
 .. _pserve: https://docs.pylonsproject.org/projects/pyramid/en/latest/pscripts/pserve.html
+.. _RabbitMQ: https://www.rabbitmq.com
 .. _Redis: https://redis.io
 .. _Waitress: https://docs.pylonsproject.org/projects/waitress/
 .. _WSGI: https://en.wikipedia.org/wiki/Web_Server_Gateway_Interface
@@ -62,7 +63,7 @@ use it:
 
 #.  Launch the web server, e.g. via crate_nlp_webserver_pserve_.
 
-    - That is: ``crate_nlp_webserver_pserve <config_file>`.
+    - That is: ``crate_nlp_webserver_pserve <config_file>``.
 
     - If you are using Gunicorn_, the preferred syntax is instead
       ``gunicorn --paste <config_file>``.
@@ -78,7 +79,7 @@ use it:
 
 To test it, set up your NLP client for a :ref:`cloud processor
 <nlp_config_section_cloud_nlp>`, point it at your server, and try some NLP.
-Suppose your :ref`NLP definition <nlp_config_section_nlpdef>` is called
+Suppose your :ref:`NLP definition <nlp_config_section_nlpdef>` is called
 ``cloud_nlp_demo``:
 
 .. code-block:: bash
@@ -118,7 +119,7 @@ Here's a specimen config file:
 
 
 Application section
-###################
++++++++++++++++++++
 
 The ``[app:main]`` section defines an *application* named *main*, which is
 the default name. Options within this section are provided as keyword arguments
@@ -134,11 +135,11 @@ These options include:
 
 #.  Pyramid settings, such as ``pyramid.reload_templates``;
 
-#.  CRATE NLP web server settings:
+#.  CRATE NLP web server settings, as follows.
 
 
 nlp_webserver.secret
-~~~~~~~~~~~~~~~~~~~~
+####################
 
 *String.*
 
@@ -148,16 +149,20 @@ make one using crate_nlp_webserver_generate_encryption_key_).
 
 
 sqlalchemy.url
-~~~~~~~~~~~~~~
+##############
 
 *String.*
 
 The SQLAlchemy URL to your database; see `database URLs
 <https://docs.sqlalchemy.org/en/13/core/engines.html>`_.
 
+**Other SQLAlchemy parameters also work;** all begin ``sqlalchemy.` For
+example, ``sqlalchemy.echo = True`` enables a debugging feature where all SQL
+is echoed.
+
 
 users_file
-~~~~~~~~~~
+##########
 
 *String.*
 
@@ -165,7 +170,7 @@ The path to your user definition file; see crate_nlp_webserver_manage_users_.
 
 
 processors_path
-~~~~~~~~~~~~~~~
+###############
 
 *String.*
 
@@ -174,7 +179,7 @@ The path to your processor definition file; see :ref:`Processors file format
 
 
 broker_url
-~~~~~~~~~~
+##########
 
 *String.*
 
@@ -182,7 +187,7 @@ The URL to your Celery_ broker server, e.g. via AMQP_, for back-end processing.
 
 
 backend_url
-~~~~~~~~~~~
+###########
 
 *String.*
 
@@ -192,7 +197,7 @@ For the format, see `Celery database URL examples
 
 
 encryption_key
-~~~~~~~~~~~~~~
+##############
 
 *String.*
 
@@ -201,7 +206,7 @@ with crate_nlp_webserver_generate_encryption_key_.
 
 
 redis_host
-~~~~~~~~~~
+##########
 
 *String.* Default: ``localhost``.
 
@@ -209,7 +214,7 @@ Host for Redis_ database,
 
 
 redis_port
-~~~~~~~~~~
+##########
 
 *Integer.* Default: 6379.
 
@@ -217,7 +222,7 @@ Port for Redis_.
 
 
 redis_password
-~~~~~~~~~~~~~~
+##############
 
 *String.* Default: None.
 
@@ -225,7 +230,7 @@ Password for Redis_.
 
 
 redis_db_number
-~~~~~~~~~~~~~~~
+###############
 
 *Integer.* Default: 0.
 
@@ -233,7 +238,7 @@ Database number for Redis_.
 
 
 Web server section
-##################
+++++++++++++++++++
 
 The ``[server:main]`` section defines the web server configuration for the app
 named ``main``.
@@ -350,6 +355,28 @@ starts the web server.
 
 .. literalinclude:: crate_nlp_webserver_pserve_help.txt
     :language: none
+
+
+Internal operations: where is your data stored?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- CRATE's NLP web server uses Redis to store web sessions (for user/session
+  authentication). No content is stored here.
+
+- It uses Celery for back-end jobs.
+
+  - Celery is configured with a *broker* and a *backend*.
+  - The broker is a messaging system, such as AMQP_ via RabbitMQ_.
+  - The backend is typically a database of jobs. Job results are stored here,
+    but CRATE does not use this database for storing job results; it uses a
+    separate database (used for storing, transiently, the potentially
+    confidential incoming client information and outgoing NLP results).
+  - If you want, the Celery backend database can be the same as your main CRATE
+    NLP server database (Celery uses tables named ``celery_taskmeta`` and
+    ``celery_tasksetmeta``; these do not conflict with CRATE's NLP servertable
+    names).
+
+- All client data and all NLP results are stored in a single database.
 
 
 ===============================================================================
