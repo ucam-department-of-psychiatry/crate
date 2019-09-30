@@ -77,12 +77,7 @@ except KeyError:
     log.error(f"{NlpServerConfigKeys.BROKER_URL} value "
               f"missing from config file.")
     raise
-try:
-    backend_url = SETTINGS[NlpServerConfigKeys.BACKEND_URL]
-except KeyError:
-    log.error(f"{NlpServerConfigKeys.BACKEND_URL} value "
-              f"missing from config file.")
-    raise
+backend_url = SETTINGS.get(NlpServerConfigKeys.BACKEND_URL) or None
 
 key = SETTINGS[NlpServerConfigKeys.ENCRYPTION_KEY]
 # Turn key into bytes object
@@ -91,9 +86,12 @@ CIPHER_SUITE = Fernet(key)
 
 # Set expiry time to 90 days in seconds
 expiry_time = 60 * 60 * 24 * 90
-app = Celery('tasks', backend=backend_url, broker=broker_url,
-             result_expires=expiry_time)
-app.conf.database_engine_options = SQLALCHEMY_COMMON_OPTIONS
+celery_app = Celery('tasks',
+                    broker=broker_url,
+                    backend=backend_url,
+                    result_expires=expiry_time)
+NLP_WEBSERVER_CELERY_APP_NAME = "crate_anon.nlp_webserver.tasks"
+celery_app.conf.database_engine_options = SQLALCHEMY_COMMON_OPTIONS
 
 
 # =============================================================================
@@ -227,7 +225,7 @@ def start_task_session() -> None:
 # =============================================================================
 
 # noinspection PyUnusedLocal
-@app.task(bind=True, name='tasks.process_nlp_text')
+@celery_app.task(bind=True, name='tasks.process_nlp_text')
 def process_nlp_text(
         self,
         docprocrequest_id: str,

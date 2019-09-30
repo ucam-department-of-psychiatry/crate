@@ -1,0 +1,12 @@
+usage: crate_nlp_webserver_launch_gunicorn [-h] [--crate_config CRATE_CONFIG]
+
+Launch CRATE NLP web server via Gunicorn. (Any leftover arguments will be
+passed to Gunicorn.)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --crate_config CRATE_CONFIG
+                        CRATE NLP web server config file (default is read from
+                        environment variable CRATE_NLP_WEB_CONFIG)
+
+# Generated at 2019-09-30 09:48:57

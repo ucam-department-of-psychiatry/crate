@@ -381,8 +381,7 @@ setup(
 
             # Documentation
 
-            "crate_docs=crate_anon.tools.launch_docs:main",
-            "crate_help=crate_anon.tools.launch_docs:main",  # synonym
+            "crate_help=crate_anon.tools.launch_docs:main",
 
             # Preprocessing
 
@@ -437,6 +436,9 @@ setup(
             "crate_nlp_webserver_manage_users=crate_anon.nlp_webserver.manage_users:main",  # noqa
             "crate_nlp_webserver_generate_encryption_key=crate_anon.nlp_webserver.security:generate_encryption_key",  # noqa
             "crate_nlp_webserver_pserve=pyramid.scripts.pserve:main",  # noqa
+            "crate_nlp_webserver_launch_gunicorn=crate_anon.tools.launch_nlp_webserver_gunicorn:main",  # noqa
+            "crate_nlp_webserver_launch_celery=crate_anon.tools.launch_nlp_webserver_celery:main",  # noqa
+            "crate_nlp_webserver_launch_flower=crate_anon.tools.launch_nlp_webserver_flower:main",  # noqa
 
         ],
         # Entry point for nlp webserver

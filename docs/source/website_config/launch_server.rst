@@ -38,6 +38,8 @@ Options:
     :language: none
 
 
+.. _crate_launch_django_server:
+
 crate_launch_django_server
 --------------------------
 

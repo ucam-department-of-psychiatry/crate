@@ -20,7 +20,9 @@
 .. _AMQP: http://www.amqp.org
 .. _Celery: http://www.celeryproject.org
 .. _CherryPy: https://cherrypy.org
+.. _Flower: http://flower.readthedocs.io/
 .. _Gunicorn: https://gunicorn.org
+.. _MySQL: https://www.mysql.com/
 .. _Paste: https://pythonpaste.readthedocs.io/
 .. _PasteDeploy: https://pastedeploy.readthedocs.io
 .. _pserve: https://docs.pylonsproject.org/projects/pyramid/en/latest/pscripts/pserve.html
@@ -38,12 +40,12 @@ NLPRP web server
 This is CRATE's implementation of a full :ref:`NLPRP <nlprp>` web server. To
 use it:
 
+#.  Make sure you have the necessary other software installed and running,
+    including Redis_ and (if you wish to use it as your Celery broker)
+    RabbitMQ_, plus a database such as MySQL_.
+
 #.  Create a blank database, for storing documents and processing requests
     transiently.
-
-#.  Create another blank database, for storing Celery backend information.
-    (Optionally, you can skip this step and use your first database for both
-    functions.)
 
 #.  Create a blank text file to contain details of your users (with their
     encrypted passwords).
@@ -61,20 +63,15 @@ use it:
 
 #.  Add a test user with crate_nlp_webserver_manage_users_.
 
-#.  Launch the web server, e.g. via crate_nlp_webserver_pserve_.
+#.  Launch the web server, e.g. via crate_nlp_webserver_pserve_ or
+    crate_nlp_webserver_launch_gunicorn_.
 
     - That is: ``crate_nlp_webserver_pserve <config_file>``.
 
     - If you are using Gunicorn_, the preferred syntax is instead
       ``gunicorn --paste <config_file>``.
 
-#.  Launch the Celery workers:
-
-    .. todo:: improve NLP web server Celery launch
-
-    .. code-block:: bash
-
-        celery worker --app crate_anon.nlp_webserver.tasks
+#.  Launch the Celery workers with crate_nlp_webserver_launch_celery_.
 
 
 To test it, set up your NLP client for a :ref:`cloud processor
@@ -189,11 +186,18 @@ The URL to your Celery_ broker server, e.g. via AMQP_, for back-end processing.
 backend_url
 ###########
 
-*String.*
+*String.* Default: None.
 
 The URL to your Celery_ backend database, used to store queuing information.
 For the format, see `Celery database URL examples
 <https://docs.celeryproject.org/en/latest/userguide/configuration.html#database-url-examples>`_.
+
+- You can ignore this, as it is not necessary to configure a backend for
+  Celery, since results are stored elsewhere. See :ref:`Internals
+  <nlp_webserver_internals>`.
+
+- If you do want to enable a backend: you can use the same database as above,
+  if you wish, or you can create a separate database for Celery.
 
 
 encryption_key
@@ -352,10 +356,48 @@ This is the standard Pyramid pserve_ command. At its most basic, it takes a
 single parameter, being the name of your NLP web server config file, and it
 starts the web server.
 
-
 .. literalinclude:: crate_nlp_webserver_pserve_help.txt
     :language: none
 
+
+.. _crate_nlp_webserver_launch_gunicorn:
+
+crate_nlp_webserver_launch_gunicorn
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is the preferred alternative to crate_nlp_webserver_pserve_ for launching
+the CRATE NLP web server via Gunicorn_ (it stops Gunicorn complaining but
+otherwise does the same thing).
+
+.. literalinclude:: crate_nlp_webserver_launch_gunicorn_help.txt
+    :language: none
+
+
+.. _crate_nlp_webserver_launch_celery:
+
+crate_nlp_webserver_launch_celery
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This launches the Celery_ back-end job controller for the CRATE NLP web server.
+It needs to be running for your NLP web server to do any proper work!
+
+.. literalinclude:: crate_nlp_webserver_launch_celery_help.txt
+    :language: none
+
+
+.. _crate_nlp_webserver_launch_flower:
+
+crate_nlp_webserver_launch_flower
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This command has no options. It launches the Celery Flower_ tool, which is for
+monitoring Celery, and associates it with the CRATE NLP web server. It starts a
+local web server (by default on port 5555; see :ref:`TCP/IP ports
+<tcpip_ports>`); if you browse to http://localhost:5555/ or
+http://127.0.0.1:5555/, you can monitor what's happening.
+
+
+.. _nlp_webserver_internals:
 
 Internal operations: where is your data stored?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -366,11 +408,15 @@ Internal operations: where is your data stored?
 - It uses Celery for back-end jobs.
 
   - Celery is configured with a *broker* and a *backend*.
-  - The broker is a messaging system, such as AMQP_ via RabbitMQ_.
-  - The backend is typically a database of jobs. Job results are stored here,
-    but CRATE does not use this database for storing job results; it uses a
-    separate database (used for storing, transiently, the potentially
-    confidential incoming client information and outgoing NLP results).
+  - The `broker
+    <https://docs.celeryproject.org/en/latest/getting-started/first-steps-with-celery.html#choosing-a-broker>`_
+    is a messaging system, such as RabbitMQ_ via AMQP_.
+  - The `backend
+    <https://docs.celeryproject.org/en/latest/getting-started/first-steps-with-celery.html#keeping-results>`_
+    is typically a database of jobs. Job results are stored here, but CRATE
+    does not use this database for storing job results; it uses a separate
+    database (used for storing, transiently, the potentially confidential
+    incoming client information and outgoing NLP results).
   - If you want, the Celery backend database can be the same as your main CRATE
     NLP server database (Celery uses tables named ``celery_taskmeta`` and
     ``celery_tasksetmeta``; these do not conflict with CRATE's NLP servertable

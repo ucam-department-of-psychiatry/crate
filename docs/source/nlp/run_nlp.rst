@@ -55,6 +55,8 @@ Get more help with
     crate_nlp --help
 
 
+.. _crate_nlp:
+
 crate_nlp
 ~~~~~~~~~
 
@@ -74,6 +76,8 @@ NLP processors (from ``crate_nlp --describeprocessors``):
 ..  literalinclude:: crate_nlp_describeprocessors.txt
     :language: none
 
+
+.. _crate_nlp_multiprocess:
 
 crate_nlp_multiprocess
 ~~~~~~~~~~~~~~~~~~~~~~

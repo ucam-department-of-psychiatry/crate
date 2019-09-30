@@ -367,7 +367,6 @@ class CloudRequestProcess(CloudRequest):
         super().__init__(nlpdef=nlpdef)
         self._crinfo = crinfo
         self._commit = commit
-        self._auth = (self._cloudcfg.username, self._cloudcfg.password)
         self._fetched = False
         self._client_job_id = client_job_id or ""
 
@@ -592,7 +591,7 @@ class CloudRequestProcess(CloudRequest):
                 return
 
     # -------------------------------------------------------------------------
-    # Queue management
+    # Queue management for processing requests
     # -------------------------------------------------------------------------
 
     def set_queue_id(self, queue_id: str) -> None:
@@ -647,71 +646,6 @@ class CloudRequestProcess(CloudRequest):
             log.error(
                 f"Got HTTP status code {status} for queue_id {self.queue_id}.")
             return False
-
-    def show_queue(self) -> Optional[List[Dict[str, Any]]]:
-        """
-        Returns a list of the user's queued requests. Each list element is a
-        dictionary as returned according to the :ref:`NLPRP <nlprp>`.
-        """
-        show_request = make_nlprp_request(
-            command=NlprpCommands.SHOW_QUEUE
-        )
-        request_json = to_json_str(show_request)
-        json_response = self._post_get_json(request_json, may_fail=False)
-
-        status = json_response[NKeys.STATUS]
-        if status == HttpStatus.OK:
-            try:
-                queue = json_response[NKeys.QUEUE]
-            except KeyError:
-                log.error(f"Response did not contain key {NKeys.QUEUE!r}.")
-                raise
-            return queue
-        else:
-            # Is this the right error to raise?
-            raise ValueError(f"Response status was: {status}")
-
-    def delete_all_from_queue(self) -> None:
-        """
-        Delete ALL pending requests from the server's queue. Use with caution.
-        """
-        delete_request = make_nlprp_request(
-            command=NlprpCommands.DELETE_FROM_QUEUE,
-            command_args={NKeys.DELETE_ALL: True}
-        )
-        request_json = to_json_str(delete_request)
-        response = self._post(request_json, may_fail=False)
-        # The GATE server-side doesn't send back JSON for this
-        # todo: ... should it? We're sending to an NLPRP server, so it should?
-
-        status = response.status_code
-        if status == HttpStatus.NOT_FOUND:
-            log.warning("Queued request(s) not found. May have been cancelled "
-                        "already.")
-        elif status != HttpStatus.OK and status != HttpStatus.NO_CONTENT:
-            raise HTTPError(f"Response status was: {status}")
-
-    def delete_from_queue(self, queue_ids: List[str]) -> None:
-        """
-        Delete pending requests from the server's queue for queue_ids
-        specified.
-        """
-        delete_request = make_nlprp_request(
-            command=NlprpCommands.DELETE_FROM_QUEUE,
-            command_args={NKeys.QUEUE_IDS: queue_ids}
-        )
-        request_json = to_json_str(delete_request)
-        response = self._post(request_json, may_fail=False)
-        # ... not (always) a JSON response?
-        # todo: ... should it? We're sending to an NLPRP server, so it should?
-
-        status = response.status_code
-        if status == HttpStatus.NOT_FOUND:
-            log.warning("Queued request(s) not found. May have been cancelled "
-                        "already.")
-        elif status != HttpStatus.OK and status != HttpStatus.NO_CONTENT:
-            raise HTTPError(f"Response status was: {status}")
-        self.cookies = response.cookies
 
     # -------------------------------------------------------------------------
     # Results handling
@@ -912,3 +846,78 @@ class CloudRequestProcess(CloudRequest):
             self._nlpdef.notify_transaction(
                 session, n_rows=1, n_bytes=sys.getsizeof(final_values),
                 force_commit=self._commit)
+
+
+# =============================================================================
+# CloudRequestQueueManagement
+# =============================================================================
+
+class CloudRequestQueueManagement(CloudRequest):
+    """
+    Request to manage the queue in some way.
+    """
+
+    def show_queue(self) -> Optional[List[Dict[str, Any]]]:
+        """
+        Returns a list of the user's queued requests. Each list element is a
+        dictionary as returned according to the :ref:`NLPRP <nlprp>`.
+        """
+        show_request = make_nlprp_request(
+            command=NlprpCommands.SHOW_QUEUE
+        )
+        request_json = to_json_str(show_request)
+        json_response = self._post_get_json(request_json, may_fail=False)
+
+        status = json_response[NKeys.STATUS]
+        if status == HttpStatus.OK:
+            try:
+                queue = json_response[NKeys.QUEUE]
+            except KeyError:
+                log.error(f"Response did not contain key {NKeys.QUEUE!r}.")
+                raise
+            return queue
+        else:
+            # Is this the right error to raise?
+            raise ValueError(f"Response status was: {status}")
+
+    def delete_all_from_queue(self) -> None:
+        """
+        Delete ALL pending requests from the server's queue. Use with caution.
+        """
+        delete_request = make_nlprp_request(
+            command=NlprpCommands.DELETE_FROM_QUEUE,
+            command_args={NKeys.DELETE_ALL: True}
+        )
+        request_json = to_json_str(delete_request)
+        response = self._post(request_json, may_fail=False)
+        # The GATE server-side doesn't send back JSON for this
+        # todo: ... should it? We're sending to an NLPRP server, so it should?
+
+        status = response.status_code
+        if status == HttpStatus.NOT_FOUND:
+            log.warning("Queued request(s) not found. May have been cancelled "
+                        "already.")
+        elif status != HttpStatus.OK and status != HttpStatus.NO_CONTENT:
+            raise HTTPError(f"Response status was: {status}")
+
+    def delete_from_queue(self, queue_ids: List[str]) -> None:
+        """
+        Delete pending requests from the server's queue for queue_ids
+        specified.
+        """
+        delete_request = make_nlprp_request(
+            command=NlprpCommands.DELETE_FROM_QUEUE,
+            command_args={NKeys.QUEUE_IDS: queue_ids}
+        )
+        request_json = to_json_str(delete_request)
+        response = self._post(request_json, may_fail=False)
+        # ... not (always) a JSON response?
+        # todo: ... should it? We're sending to an NLPRP server, so it should?
+
+        status = response.status_code
+        if status == HttpStatus.NOT_FOUND:
+            log.warning("Queued request(s) not found. May have been cancelled "
+                        "already.")
+        elif status != HttpStatus.OK and status != HttpStatus.NO_CONTENT:
+            raise HTTPError(f"Response status was: {status}")
+        self.cookies = response.cookies

@@ -79,6 +79,8 @@ https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-SECRET_KEY.
 
 Use this command to generate a new random secret key:
 
+.. _crate_generate_new_django_secret_key:
+
 .. code-block:: bash
 
     crate_generate_new_django_secret_key
@@ -1022,6 +1024,8 @@ Specimen config file
 --------------------
 
 To obtain a specimen file, use
+
+.. _crate_print_demo_crateweb_config:
 
 .. code-block:: none
 

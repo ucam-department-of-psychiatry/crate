@@ -1,0 +1,11 @@
+usage: crate_nlp_webserver_launch_celery [-h] [--command COMMAND] [--debug]
+
+Launch CRATE NLP web server Celery processes. (Any leftover arguments will be
+passed to Celery.)
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --command COMMAND  Celery command (default: worker)
+  --debug            Ask Celery to be verbose (default: False)
+
+# Generated at 2019-09-30 09:49:00

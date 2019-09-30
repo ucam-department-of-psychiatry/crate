@@ -33,7 +33,7 @@ import os
 import platform
 import subprocess
 
-from crate_anon.crateweb.config.constants import CELERY_APP_NAME
+from crate_anon.crateweb.config.constants import CRATEWEB_CELERY_APP_NAME
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -45,37 +45,13 @@ WINDOWS = platform.system() == 'Windows'
 # HOWEVER: autoreload appears (a) not to work, and (b) to prevent processing!
 
 
-# def get_python_modules(rootdir, prefix=''):
-#     # Find Python files within the relevant root, and convert their filenames
-#     # to relative module names.
-#     # NOT NEEDED WITH A PROPERLY CONFIGURED, pip-INSTALLED, PACKAGE.
-#     # AND MAKES THINGS GO WRONG UNDER WINDOWS.
-#     modules = []
-#     for root, _, files in os.walk(rootdir):
-#         if root.endswith(os.sep + "specimen_secret_local_settings"):
-#             # importing the demo secret settings will raise an exception
-#             continue
-#         for filename in files:
-#             basename, ext = os.path.splitext(filename)
-#             if ext != ".py":
-#                 continue
-#             reldir = os.path.relpath(root, DJANGO_ROOT)
-#             if reldir == ".":  # special for Python modules
-#                 relfile_no_ext = basename
-#             else:
-#                 relfile_no_ext = os.path.join(reldir, basename)
-#             module = prefix + relfile_no_ext.replace(os.sep, '.')
-#             modules.append(module)
-#     return modules
-
-
 def main() -> None:
     """
     Command-line parser. See command-line help.
     """
     parser = argparse.ArgumentParser(
-        description="Launch CRATE Celery processes. (Any leftover arguments "
-                    "will be passed to Celery.)")
+        description="Launch CRATE Celery processes. "
+                    "(Any leftover arguments will be passed to Celery.)")
     parser.add_argument("--command", default="worker",
                         help="Celery command (default: worker)")
     parser.add_argument("--debug", action="store_true",
@@ -87,7 +63,7 @@ def main() -> None:
     cmdargs = [
         "celery",
         args.command,
-        "-A", CELERY_APP_NAME,
+        "-A", CRATEWEB_CELERY_APP_NAME,
     ]
     if args.command == "worker":
         cmdargs += ["-l", "debug" if args.debug else "info"]  # --loglevel

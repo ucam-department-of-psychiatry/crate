@@ -30,7 +30,7 @@ crate_anon/tools/launch_flower.py
 
 import subprocess
 
-from crate_anon.crateweb.config.constants import CELERY_APP_NAME
+from crate_anon.crateweb.config.constants import CRATEWEB_CELERY_APP_NAME
 
 
 def main() -> None:
@@ -39,7 +39,7 @@ def main() -> None:
     """
     cmdargs = [
         "celery",
-        "-A", CELERY_APP_NAME,
+        "-A", CRATEWEB_CELERY_APP_NAME,
         "flower"
     ]
     print(f"Launching Flower: {cmdargs}")

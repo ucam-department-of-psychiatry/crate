@@ -42,6 +42,8 @@ Get more help with
 
     crate_anonymise --help
 
+.. _crate_anonymise:
+
 crate_anonymise
 ~~~~~~~~~~~~~~~
 
@@ -52,6 +54,8 @@ Options:
 ..  literalinclude:: crate_anonymise_help.txt
     :language: none
 
+
+.. _crate_anonymise_multiprocess:
 
 crate_anonymise_multiprocess
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

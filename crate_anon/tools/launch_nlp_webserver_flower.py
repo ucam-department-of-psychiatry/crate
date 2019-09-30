@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/tools/celery_status.py
+crate_anon/tools/launch_nlp_webserver_flower.py
 
 ===============================================================================
 
@@ -24,30 +24,25 @@ crate_anon/tools/celery_status.py
 
 ===============================================================================
 
-**Show the status of CRATE Celery processes.**
+**Launch Flower, the Celery monitoring tool, for the CRATE NLP web server.**
 
 """
 
-import argparse
 import subprocess
 
-from crate_anon.crateweb.config.constants import CRATEWEB_CELERY_APP_NAME
+from crate_anon.nlp_webserver.tasks import NLP_WEBSERVER_CELERY_APP_NAME
 
 
 def main() -> None:
     """
-    Command-line parser. See command-line help.
+    Command-line entry point.
     """
-    parser = argparse.ArgumentParser(
-        description="Show status of CRATE Celery processes, by calling Celery."
-    )
-    parser.parse_args()
-
     cmdargs = [
         "celery",
-        "status",
-        "-A", CRATEWEB_CELERY_APP_NAME,
+        "-A", NLP_WEBSERVER_CELERY_APP_NAME,
+        "flower"
     ]
+    print(f"Launching Flower: {cmdargs}")
     subprocess.call(cmdargs)
 
 

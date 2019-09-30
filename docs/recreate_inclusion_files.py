@@ -139,8 +139,12 @@ def main():
             executable=True)
     run_cmd(["crate_nlp_webserver_pserve", "--help"],
             join(NLP_DIR, "crate_nlp_webserver_pserve_help.txt"))
-    run_cmd(["crate_nlp_webserver_manage_users", "--help"],
-            join(NLP_DIR, "crate_nlp_webserver_manage_users_help.txt"))
+    run_cmd(["crate_nlp_webserver_pserve", "--help"],
+            join(NLP_DIR, "crate_nlp_webserver_pserve_help.txt"))
+    run_cmd(["crate_nlp_webserver_launch_gunicorn", "--help"],
+            join(NLP_DIR, "crate_nlp_webserver_launch_gunicorn_help.txt"))
+    run_cmd(["crate_nlp_webserver_launch_celery", "--help"],
+            join(NLP_DIR, "crate_nlp_webserver_launch_celery_help.txt"))
 
     # -------------------------------------------------------------------------
     # preprocessing

@@ -83,6 +83,8 @@ You tell CRATE about the specific fields produced by a GATE application using
 the ``destfields`` option; see the :ref:`NLP config file <nlp_config>`.
 
 
+.. _crate_nlp_build_gate_java_interface:
+
 crate_nlp_build_gate_java_interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

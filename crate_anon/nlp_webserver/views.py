@@ -92,7 +92,7 @@ from crate_anon.nlp_webserver.constants import (
     NlpServerConfigKeys,
 )
 from crate_anon.nlp_webserver.tasks import (
-    app,
+    celery_app,
     process_nlp_text,
     process_nlp_text_immediate,
     TaskSession,
@@ -767,8 +767,8 @@ class NlpWebViews(object):
         # Quicker to use ResultSet than forget them all separately
         results = []  # type: List[AsyncResult]
         for task_id in task_ids_to_cancel:
-            results.append(AsyncResult(id=task_id, app=app))
-        res_set = ResultSet(results=results, app=app)
+            results.append(AsyncResult(id=task_id, app=celery_app))
+        res_set = ResultSet(results=results, app=celery_app)
         log.debug("About to revoke jobs...")
         res_set.revoke()  # will hang if backend not operational
         log.debug("... jobs revoked.")

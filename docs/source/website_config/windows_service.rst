@@ -41,6 +41,8 @@ logs. However, output from the service itself goes to the Windows logs: see
 :menuselection:`Event Viewer --> Windows Logs --> Application`.
 
 
+.. _crate_windows_service:
+
 crate_windows_service
 ---------------------
 

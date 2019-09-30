@@ -24,11 +24,15 @@ Ancillary tools
    :local:
 
 
-crate_docs
+.. _crate_help:
+
+crate_help
 ~~~~~~~~~~
 
 Launches this documentation via your web browser.
 
+
+.. _crate_make_demo_database:
 
 crate_make_demo_database
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -39,6 +43,8 @@ Options:
     :language: none
 
 
+.. _crate_test_extract_text:
+
 crate_test_extract_text
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -48,6 +54,8 @@ Options:
     :language: none
 
 
+.. _crate_test_anonymisation:
+
 crate_test_anonymisation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -56,6 +64,8 @@ Options:
 ..  literalinclude:: crate_test_anonymisation_help.txt
     :language: none
 
+
+.. _crate_estimate_mysql_memory_usage:
 
 crate_estimate_mysql_memory_usage
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

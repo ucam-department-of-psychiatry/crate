@@ -118,6 +118,7 @@ from crate_anon.nlp_manager.cloud_parser import Cloud
 from crate_anon.nlp_manager.cloud_request import (
     CloudRequest,
     CloudRequestProcess,
+    CloudRequestQueueManagement,
 )
 from crate_anon.nlp_manager.cloud_run_info import CloudRunInfo
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
@@ -920,7 +921,7 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
     """
     nlpname = nlpdef.get_name()
     cloudcfg = nlpdef.get_cloud_config_or_raise()
-    cloud_request = CloudRequestProcess(nlpdef=nlpdef)
+    cloud_request = CloudRequestQueueManagement(nlpdef=nlpdef)
 
     if cancel_all:
         # Deleting all from queue!
@@ -954,7 +955,7 @@ def show_cloud_queue(nlpdef: NlpDefinition) -> None:
     """
     Get list of the user's queued requests and print to screen.
     """
-    cloud_request = CloudRequestProcess(nlpdef=nlpdef)
+    cloud_request = CloudRequestQueueManagement(nlpdef=nlpdef)
     queue = cloud_request.show_queue()
     if not queue:
         log.info("No requests in queue.")
@@ -962,7 +963,7 @@ def show_cloud_queue(nlpdef: NlpDefinition) -> None:
     writer = None
     for entry in queue:
         if writer is None:  # first line
-            writer = csv.DictWriter(sys.stdout, fieldnames = entry.keys())
+            writer = csv.DictWriter(sys.stdout, fieldnames=entry.keys())
             writer.writeheader()
         writer.writerow(entry)
 

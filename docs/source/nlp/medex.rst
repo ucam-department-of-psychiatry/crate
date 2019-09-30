@@ -107,6 +107,8 @@ Start positions are the zero-based index of the first relevant character. End
 positions are the zero-based index of one beyond the last relevant character.
 
 
+.. _crate_nlp_build_medex_java_interface:
+
 crate_nlp_build_medex_java_interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

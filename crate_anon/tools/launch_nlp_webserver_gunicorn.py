@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/tools/celery_status.py
+crate_anon/tools/launch_nlp_webserver_gunicorn.py
 
 ===============================================================================
 
@@ -24,14 +24,19 @@ crate_anon/tools/celery_status.py
 
 ===============================================================================
 
-**Show the status of CRATE Celery processes.**
+**Launch CRATE NLP web server via Gunicorn.**
 
 """
 
 import argparse
+import os
+import platform
 import subprocess
+import sys
 
-from crate_anon.crateweb.config.constants import CRATEWEB_CELERY_APP_NAME
+from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CONFIG_ENVVAR
+
+WINDOWS = platform.system() == 'Windows'
 
 
 def main() -> None:
@@ -39,15 +44,26 @@ def main() -> None:
     Command-line parser. See command-line help.
     """
     parser = argparse.ArgumentParser(
-        description="Show status of CRATE Celery processes, by calling Celery."
+        description="Launch CRATE NLP web server via Gunicorn."
+                    " (Any leftover arguments will be passed to Gunicorn.)"
     )
-    parser.parse_args()
+    parser.add_argument(
+        "--crate_config", default=os.getenv(NLP_WEBSERVER_CONFIG_ENVVAR),
+        help=f"CRATE NLP web server config file (default is read from "
+             f"environment variable {NLP_WEBSERVER_CONFIG_ENVVAR})"
+    )
+    args, leftovers = parser.parse_known_args()
+
+    if WINDOWS:
+        print("Gunicorn will not run under Windows.")
+        sys.exit(1)
 
     cmdargs = [
-        "celery",
-        "status",
-        "-A", CRATEWEB_CELERY_APP_NAME,
-    ]
+        "gunicorn",
+        "--paste", args.crate_config,
+    ] + leftovers
+    cmdargs += leftovers
+    print(f"Launching Gunicorn: {cmdargs}")
     subprocess.call(cmdargs)
 
 
