@@ -520,7 +520,7 @@ class CloudRequestProcess(CloudRequest):
             bool: ``True`` if successfully added, ``False`` if not.
         """
         if not does_text_contain_word_chars(text):
-            log.warning(f"No word characters found in text: {text!r}")
+            # log.warning(f"No word characters found in text: {text!r}")
             return False
 
         new_content = {
@@ -536,7 +536,7 @@ class CloudRequestProcess(CloudRequest):
         # Slow -- is there a way to get length without having to serialize?
         # At least -- do it only once (forgiveness not permission, etc.).
         if self._process_request_too_long(max_length):
-            log.warning("too long!")
+            # log.warning("too long!")
             # Too long. Restore the previous state!
             args[content_key] = old_content
             return False

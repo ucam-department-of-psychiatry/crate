@@ -695,14 +695,14 @@ def send_cloud_requests(
     return requests, global_recnum
 
 
-def process_cloud_nlp(nlpdef: NlpDefinition,
+def process_cloud_nlp(crinfo: CloudRunInfo,
                       incremental: bool = False,
                       report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
     """
     Process text by sending it off to the cloud processors in queued mode.
     """
     log.info(SEP + "NLP")
-    crinfo = CloudRunInfo(nlpdef=nlpdef)
+    nlpdef = crinfo.nlpdef
     filename = crinfo.cloudcfg.data_filename()
     # Start with blank file
     open(filename, 'w').close()
@@ -730,13 +730,13 @@ def process_cloud_nlp(nlpdef: NlpDefinition,
                 start += crinfo.cloudcfg.limit_before_commit
 
 
-def retrieve_nlp_data(nlpdef: NlpDefinition,
+def retrieve_nlp_data(crinfo: CloudRunInfo,
                       incremental: bool = False) -> None:
     """
     Try to retrieve the data from the cloud processors.
     """
+    nlpdef = crinfo.nlpdef
     session = nlpdef.get_progdb_session()
-    crinfo = CloudRunInfo(nlpdef=nlpdef)
     cloudcfg = crinfo.cloudcfg
     filename = cloudcfg.data_filename()
     if not os.path.exists(filename):
@@ -843,14 +843,14 @@ def retrieve_nlp_data(nlpdef: NlpDefinition,
 
 
 def process_cloud_now(
-        nlpdef: NlpDefinition,
+        crinfo: CloudRunInfo,
         incremental: bool = False,
         report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
     """
     Process text by sending it off to the cloud processors in non-queued mode.
     """
+    nlpdef = crinfo.nlpdef
     session = nlpdef.get_progdb_session()
-    crinfo = CloudRunInfo(nlpdef=nlpdef)
     for ifconfig in nlpdef.get_ifconfigs():
         global_recnum = 0  # Global record number within this ifconfig
         start = 0  # Start for first block
@@ -1248,7 +1248,7 @@ def main() -> None:
         # unecessary requests
         cloudcfg = nlpdef.get_cloud_config_or_raise()
         CloudRequest.set_rate_limit(cloudcfg.rate_limit_hz)
-        CloudRunInfo(nlpdef)
+        crinfo = CloudRunInfo(nlpdef)
 
     log.info(f"Starting: incremental={args.incremental}")
     start = get_now_utc_pendulum()
@@ -1272,15 +1272,15 @@ def main() -> None:
             if args.cloud:
                 if args.immediate:
                     process_cloud_now(
-                        nlpdef,
+                        crinfo,
                         incremental=args.incremental,
                         report_every=args.report_every_nlp)
                 else:
-                    process_cloud_nlp(nlpdef,
+                    process_cloud_nlp(crinfo,
                                       incremental=args.incremental,
                                       report_every=args.report_every_nlp)
             elif args.retrieve:
-                retrieve_nlp_data(nlpdef,
+                retrieve_nlp_data(crinfo,
                                   incremental=args.incremental)
             else:
                 process_nlp(nlpdef,
