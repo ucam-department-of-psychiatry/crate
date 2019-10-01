@@ -1248,6 +1248,7 @@ def main() -> None:
         # unecessary requests
         cloudcfg = nlpdef.get_cloud_config_or_raise()
         CloudRequest.set_rate_limit(cloudcfg.rate_limit_hz)
+        CloudRunInfo(nlpdef)
 
     log.info(f"Starting: incremental={args.incremental}")
     start = get_now_utc_pendulum()
