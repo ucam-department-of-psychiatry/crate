@@ -106,7 +106,7 @@ class Cloud(TableMaker):
         # Output section - bit of repetition from the 'Gate' parser
         typepairs = nlpdef.opt_strlist(
             sectionname, ProcessorConfigKeys.OUTPUTTYPEMAP,
-            required=False, lower=False)
+            required=True, lower=False)
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
         self._type_to_tablename = {}  # type: Dict[str, str]
         self.tablename = None
@@ -119,21 +119,15 @@ class Cloud(TableMaker):
                                  schema_required=False)
             self._outputtypemap[output_type] = c
             self._type_to_tablename[output_type] = c.get_tablename()
-            if output_type == "all_output":
+            if output_type == '""':
                 self.tablename = c.get_tablename()
-        # If there is no 'outputtypemap', we get the table name, if it exists,
-        # from the processor section. However, if there is an outputtypemap
-        # section this overrides the table name in the processor section
-        if not self._outputtypemap:
-            self.tablename = nlpdef.opt_str(sectionname,
-                                            ProcessorConfigKeys.DESTTABLE,
-                                            default=None)  # not required
-        if not self._outputtypemap and not self.tablename:
-            configfail(
-                f"In section [{sectionname}], neither "
-                f"{ProcessorConfigKeys.OUTPUTTYPEMAP!r} nor "
-                f"{ProcessorConfigKeys.DESTTABLE!r} is specified. The cloud "
-                f"processor won't know where to store its results.")
+        # Checks are now taken care of elsewhere
+        # if not self._outputtypemap and not self.tablename:
+        #     configfail(
+        #         f"In section [{sectionname}], neither "
+        #         f"{ProcessorConfigKeys.OUTPUTTYPEMAP!r} nor "
+        #         f"{ProcessorConfigKeys.DESTTABLE!r} is specified. The cloud "
+        #         f"processor won't know where to store its results.")
 
     @staticmethod
     def get_coltype_parts(coltype_str: str) -> List[str]:
@@ -300,9 +294,13 @@ class Cloud(TableMaker):
         """
         tables = {}
         for table, columns in self.schema.items():
-            identifier = table if table else self.unique_identifier()
-            self.tablename = self.tablename if self.tablename else identifier
+            # identifier = table if table else self.unique_identifier()
+            # self.tablename = self.tablename if self.tablename else identifier
             column_objects = self._standard_columns_if_gate()  # type: List[Column]  # noqa
+            if self.tablename:
+                tablename = self.tablename
+            else:
+                tablename = self.get_tablename_from_type(table)
             # ... might be empty list
             for column in columns:
                 col_str, parameter = self.get_coltype_parts(
@@ -315,7 +313,7 @@ class Cloud(TableMaker):
                     comment=column[NKeys.COLUMN_COMMENT],
                     nullable=column[NKeys.IS_NULLABLE]
                 ))
-            tables[self.tablename] = column_objects
+            tables[tablename] = column_objects
         return tables
 
     def _dest_tables_indexes_auto(self) -> Dict[str, List[Index]]:

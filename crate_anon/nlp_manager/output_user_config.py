@@ -109,9 +109,8 @@ class OutputUserConfig(object):
         # ---------------------------------------------------------------------
 
         self._desttable = opt_str(
-            NlpOutputConfigKeys.DESTTABLE, required=schema_required)
-        if self._desttable:
-            ensure_valid_table_name(self._desttable)
+            NlpOutputConfigKeys.DESTTABLE, required=True)
+        ensure_valid_table_name(self._desttable)
 
         # ---------------------------------------------------------------------
         # renames

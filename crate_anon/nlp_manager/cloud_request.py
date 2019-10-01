@@ -651,40 +651,41 @@ class CloudRequestProcess(CloudRequest):
     # Results handling
     # -------------------------------------------------------------------------
 
-    def get_tablename_map(self, processor: str) \
-            -> Tuple[Dict[str, str], Dict[str, OutputUserConfig]]:
-        """
-        For GATE remote processors, get a map from annotation types to
-        tablenames and also annotation type returned to what the user wants
-        to call it in the database.
-
-        Args:
-            processor: which GATE processor to find the mapping for?
-
-        Returns:
-            a dictionary mapping annotation types to tableanmes, and
-            a dictionary mapping annotaion types to
-            :class:`crate_anon.nlp_manager.output_user_config.OutputUserConfig`
-            for the purpose of renaming keys
-
-        """
-        proc_section = full_sectionname(NlpConfigPrefixes.PROCESSOR, processor)
-        typepairs = self._nlpdef.opt_strlist(
-            proc_section, ProcessorConfigKeys.OUTPUTTYPEMAP,
-            required=True, lower=False)
-
-        outputtypemap = {}  # type: Dict[str, OutputUserConfig]
-        type_to_tablename = {}  # type: Dict[str, str]
-        for c in chunks(typepairs, 2):
-            annottype = c[0]
-            outputsection = c[1]
-            # annottype = annottype.lower()
-            otconfig = OutputUserConfig(self._nlpdef.get_parser(),
-                                        outputsection)
-            outputtypemap[annottype] = otconfig
-            type_to_tablename[annottype] = otconfig.get_tablename()
-
-        return type_to_tablename, outputtypemap
+    # Don't think we need this anymore?
+    # def get_tablename_map(self, processor: str) \
+    #         -> Tuple[Dict[str, str], Dict[str, OutputUserConfig]]:
+    #     """
+    #     For GATE remote processors, get a map from annotation types to
+    #     tablenames and also annotation type returned to what the user wants
+    #     to call it in the database.
+    #
+    #     Args:
+    #         processor: which GATE processor to find the mapping for?
+    #
+    #     Returns:
+    #         a dictionary mapping annotation types to tableanmes, and
+    #         a dictionary mapping annotaion types to
+    #         :class:`crate_anon.nlp_manager.output_user_config.OutputUserConfig`
+    #         for the purpose of renaming keys
+    # 
+    #     """
+    #     proc_section = full_sectionname(NlpConfigPrefixes.PROCESSOR, processor)
+    #     typepairs = self._nlpdef.opt_strlist(
+    #         proc_section, ProcessorConfigKeys.OUTPUTTYPEMAP,
+    #         required=True, lower=False)
+    # 
+    #     outputtypemap = {}  # type: Dict[str, OutputUserConfig]
+    #     type_to_tablename = {}  # type: Dict[str, str]
+    #     for c in chunks(typepairs, 2):
+    #         annottype = c[0]
+    #         outputsection = c[1]
+    #         # annottype = annottype.lower()
+    #         otconfig = OutputUserConfig(self._nlpdef.get_parser(),
+    #                                     outputsection)
+    #         outputtypemap[annottype] = otconfig
+    #         type_to_tablename[annottype] = otconfig.get_tablename()
+    #
+    #     return type_to_tablename, outputtypemap
 
     @staticmethod
     def get_nlp_values_internal(
