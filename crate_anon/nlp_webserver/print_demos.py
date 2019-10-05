@@ -118,7 +118,7 @@ from crate_anon.nlp_webserver.constants import (
 # GATE processors correct as of 19/04/2019 for KCL server.
 # Python processors are automatic, as below.
 
-PROCESSORS = [
+PROCESSORS = all_crate_python_processors_nlprp_processor_info() + [
     # -------------------------------------------------------------------------
     # GATE processors
     # -------------------------------------------------------------------------
@@ -238,7 +238,7 @@ PROCESSORS = [
         KEY_PROCTYPE: PROCTYPE_GATE,
         NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN
     },
-] + all_crate_python_processors_nlprp_processor_info()
+]
 
 
 # =============================================================================

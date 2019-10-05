@@ -253,7 +253,7 @@ Examples include:
 
 - Waitress_:
 
-  .. code-block:: none
+  .. code-block:: ini
 
     [server:main]
     use = egg:waitress#main
