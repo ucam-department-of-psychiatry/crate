@@ -95,7 +95,7 @@ def uprint(*objects: Any,
            file: TextIO = sys.stdout) -> None:
     """
     Prints strings to outputs that support UTF-8 encoding, but also to those
-    that do not (e.g. Windows stdout).
+    that do not (e.g. Windows stdout, sometimes).
 
     Args:
         *objects: things to print
@@ -105,9 +105,14 @@ def uprint(*objects: Any,
 
     See
     http://stackoverflow.com/questions/14630288/unicodeencodeerror-charmap-codec-cant-encode-character-maps-to-undefined
+
+    Examples:
+
+    - Python 3.6.8, Linux: ``sys.stdout.encoding == "UTF-8"``
+    - Python 3.7.4, Windows: ``sys.stdout.encoding == "utf-8"``
     """  # noqa
-    enc = file.encoding
-    if enc == 'UTF-8':
+    enc = file.encoding.lower()
+    if enc == 'utf-8':
         print(*objects, sep=sep, end=end, file=file)
     else:
         def f(obj: Any) -> str:

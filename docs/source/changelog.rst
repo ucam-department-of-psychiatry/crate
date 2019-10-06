@@ -1135,7 +1135,7 @@ Changes
     build) -- this was a ``.gitignore`` bug.
 
 
-**v0.18.88, 2019-10-06**
+**v0.18.88 to 0.18.89, 2019-10-06**
 
 - We were seeing :exc:`BrokenPipeError` exceptions when very large chunks of
   text (e.g. 27 Mb) were being sent to GATE processors under Windows. This was

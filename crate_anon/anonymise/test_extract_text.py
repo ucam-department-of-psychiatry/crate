@@ -76,6 +76,10 @@ Exit codes:
                         help="Right-strip all lines")
     parser.add_argument('--silent', action="store_true",
                         help="Don't print the text, just exit with a code")
+    parser.add_argument('--outfile', type=str,
+                        help="Filename to which to write (rather than stdout)")
+    parser.add_argument('--encoding', type=str, default="utf-8",
+                        help="Encoding used for --outfile")
     parser.add_argument('--verbose', action="store_true",
                         help="Be verbose")
 
@@ -100,9 +104,14 @@ Exit codes:
         traceback.print_exc(file=sys.stderr)  # full details, please
         return EXIT_ERROR
 
-    contains_text = bool(result.strip())
     if not args.silent:
-        uprint(result)
+        if args.outfile:
+            with open(args.outfile, "wt", encoding=args.encoding) as f:
+                f.write(result)
+        else:
+            uprint(result)
+
+    contains_text = bool(result.strip())
     return EXIT_TEXT if contains_text else EXIT_NO_TEXT
 
 
