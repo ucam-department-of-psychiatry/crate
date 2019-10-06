@@ -570,7 +570,7 @@ class Config(object):
             'extract_text_extensions_permitted')
         self.extract_text_extensions_prohibited = opt_multiline(
             'extract_text_extensions_prohibited')
-        self.extract_text_plain = opt_bool('extract_text_plain', False)
+        self.extract_text_plain = opt_bool('extract_text_plain', True)
         self.extract_text_width = opt_int('extract_text_width', 80)
 
         # ---------------------------------------------------------------------

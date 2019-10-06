@@ -95,6 +95,7 @@ from crate_anon.nlp_manager.all_processors import (
     possible_processor_names,
     possible_processor_table,
 )
+from crate_anon.nlp_manager.base_nlp_parser import TextProcessingFailed
 from crate_anon.nlp_manager.constants import (
     DEFAULT_REPORT_EVERY_NLP,
     MAX_STRING_PK_LENGTH,
@@ -525,11 +526,30 @@ def process_nlp(nlpdef: NlpDefinition,
                 else:
                     log.debug("Record is new")
 
+            processor_failure = False
             for processor in nlpdef.get_noncloud_processors():
                 if incremental:
                     processor.delete_dest_record(ifconfig, pkval, pkstr,
                                                  commit=incremental)
-                processor.process(text, other_values)
+                try:
+                    processor.process(text, other_values)
+                except TextProcessingFailed:
+                    processor_failure = True
+
+            # If at least one processor failed, don't tell the progress
+            # database that this record has been handled. That means that if
+            # the administrator fixes this problem, this record will be
+            # re-processed. (There may be some stray output from other,
+            # successful, processors, but that will be deleted before
+            # reprocessing in a subsequent incremental update.)
+            if processor_failure:
+                log.error(
+                    f"At least one processor failed for this record "
+                    f"(srctable={ifconfig.get_srctable()!r}, "
+                    f"pkfield={ifconfig.get_srcpkfield()!r}, "
+                    f"pkval={pkval!r}, pkstr={pkstr!r}); "
+                    f"not marking it as processed.")
+                continue
 
             # Make a note in the progress database that we've processed a
             # source record.
@@ -1242,6 +1262,7 @@ def main() -> None:
         show_cloud_queue(nlpdef)
         return
 
+    crinfo = None  # type: Optional[CloudRunInfo]  # for type checker!
     if args.cloud or args.retrieve:
         # Set appropriate things for cloud - need to do this before
         # drop_remake, but after cancel_request or show_cloud_queue to avoid

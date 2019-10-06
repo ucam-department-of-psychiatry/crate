@@ -1135,6 +1135,25 @@ Changes
     build) -- this was a ``.gitignore`` bug.
 
 
+**v0.18.88, 2019-10-06**
+
+- We were seeing :exc:`BrokenPipeError` exceptions when very large chunks of
+  text (e.g. 27 Mb) were being sent to GATE processors under Windows. This was
+  due to a bug in the DOCX text extractor. So:
+
+  - new :exc:`crate_anon.nlp_manager.base_nlp_parser.TextProcessingFailed`
+    exception;
+
+  - :exc:`BrokenPipeError` exceptions now trapped by the GATE and MedEx
+    processors (leading to a log error, a restart of the processor, and a
+    :exc:`crate_anon.nlp_manager.base_nlp_parser.TextProcessingFailed` error);
+
+  - ``cardinal_pythonlib==1.0.67``, which has improvements to DOCX table
+    extraction;
+
+  - right-strip all extracted text
+
+
 ===============================================================================
 
 .. rubric:: Footnotes

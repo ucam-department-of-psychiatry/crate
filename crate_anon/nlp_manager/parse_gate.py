@@ -46,7 +46,10 @@ from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.tsv import tsv_pairs_to_dict
 from sqlalchemy import Column, Index
 
-from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
+from crate_anon.nlp_manager.base_nlp_parser import (
+    BaseNlpParser,
+    TextProcessingFailed,
+)
 from crate_anon.nlp_manager.constants import (
     full_sectionname,
     MAX_SQL_FIELD_LEN,
@@ -265,6 +268,14 @@ class Gate(BaseNlpParser):
             return
         self._p.communicate()  # close p.stdout, wait for the subprocess to exit
         self._started = False
+        self._n_uses = 0
+
+    def _restart(self) -> None:
+        """
+        Close down the external process and restart it.
+        """
+        self._finish()
+        self._start()
 
     # -------------------------------------------------------------------------
     # Input processing
@@ -284,43 +295,49 @@ class Gate(BaseNlpParser):
           complete.
         """
         self._start()  # ensure started
-        # Send
-        log.debug("writing: " + text)
-        self._encode_to_subproc_stdin(text)
-        self._encode_to_subproc_stdin(os.linesep)
-        self._encode_to_subproc_stdin(self._input_terminator + os.linesep)
-        self._flush_subproc_stdin()  # required in the Python 3 system
 
-        # Receive
-        for line in iter(self._decode_from_subproc_stdout,
-                         self._output_terminator + os.linesep):
-            # ... iterate until the sentinel output_terminator is received
-            line = line.rstrip("\n")  # remove trailing newline, but NOT TABS
-            # ... if you strip tabs, you get superfluous
-            #     "Bad chunk, not of length 2" messages.
-            log.debug("stdout received: " + line)
-            d = tsv_pairs_to_dict(line)
-            log.debug(f"dictionary received: {d}")
-            try:
-                annottype = d[GateFN.TYPE].lower()
-            except KeyError:
-                raise ValueError("_type information not in data received")
-            if annottype not in self._type_to_tablename:
-                log.warning(
-                    f"Unknown annotation type, skipping: {annottype}")
-                continue
-            c = self._outputtypemap[annottype]
-            rename_keys_in_dict(d, c.renames())
-            set_null_values_in_dict(d, c.null_literals())
-            yield self._type_to_tablename[annottype], d
+        try:
+            # Send
+            log.debug("writing: " + text)
+            self._encode_to_subproc_stdin(text)
+            self._encode_to_subproc_stdin(os.linesep)
+            self._encode_to_subproc_stdin(self._input_terminator + os.linesep)
+            self._flush_subproc_stdin()  # required in the Python 3 system
 
-        self._n_uses += 1
-        # Restart subprocess?
-        if 0 < self._max_external_prog_uses <= self._n_uses:
-            log.info(f"relaunching app after {self._n_uses} uses")
-            self._finish()
-            self._start()
-            self._n_uses = 0
+            # Receive
+            for line in iter(self._decode_from_subproc_stdout,
+                             self._output_terminator + os.linesep):
+                # ... iterate until the sentinel output_terminator is received
+                line = line.rstrip("\n")
+                # ... remove trailing newline, but NOT TABS
+                # ... if you strip tabs, you get superfluous
+                #     "Bad chunk, not of length 2" messages.
+                log.debug("stdout received: " + line)
+                d = tsv_pairs_to_dict(line)
+                log.debug(f"dictionary received: {d}")
+                try:
+                    annottype = d[GateFN.TYPE].lower()
+                except KeyError:
+                    raise ValueError("_type information not in data received")
+                if annottype not in self._type_to_tablename:
+                    log.warning(
+                        f"Unknown annotation type, skipping: {annottype}")
+                    continue
+                c = self._outputtypemap[annottype]
+                rename_keys_in_dict(d, c.renames())
+                set_null_values_in_dict(d, c.null_literals())
+                yield self._type_to_tablename[annottype], d
+
+            self._n_uses += 1
+            # Restart subprocess?
+            if 0 < self._max_external_prog_uses <= self._n_uses:
+                log.info(f"relaunching app after {self._n_uses} uses")
+                self._restart()
+
+        except BrokenPipeError:
+            log.error("Broken pipe; relaunching app")
+            self._restart()
+            raise TextProcessingFailed()
 
     # -------------------------------------------------------------------------
     # Test

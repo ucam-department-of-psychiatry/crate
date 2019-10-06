@@ -228,7 +228,7 @@ See :ref:`extract_text_extensions_permitted
 extract_text_plain
 ##################
 
-*Boolean.* Default: false.
+*Boolean.* Default: true. (Changed to true from v0.18.88.)
 
 Use the plainest possible layout for text extraction?
 
@@ -236,22 +236,25 @@ Use the plainest possible layout for text extraction?
 
 .. code-block:: none
 
-    +---------+---------+
-    | AAA AAA | BBB BBB |
-    | AAA AAA | BBB BBB |
-    +---------+---------+
+    ┼─────────────┼─────────────┼
+    │ Row 1 col 1 │ Row 1 col 2 │
+    ┼─────────────┼─────────────┼
+    │ Row 2 col 1 │ Row 2 col 2 │
+    ┼─────────────┼─────────────┼
 
 ``True`` = good for natural language processing. Table example from DOCX:
 
 .. code-block:: none
 
-    ---------------------
-      AAA AAA
-      AAA AAA
-    ---------------------
-                BBB BBB
-                BBB BBB
-    ---------------------
+    ╔═════════════════════════════════════════════════════════════════╗
+    Row 1 col 1
+    ───────────────────────────────────────────────────────────────────
+    Row 1 col 2
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    Row 2 col 1
+    ───────────────────────────────────────────────────────────────────
+    Row 2 col 2
+    ╚═════════════════════════════════════════════════════════════════╝
 
 ... note the absence of vertical interruptions, and that text from one cell
 remains contiguous.

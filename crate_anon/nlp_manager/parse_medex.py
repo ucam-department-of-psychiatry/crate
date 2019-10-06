@@ -402,7 +402,10 @@ from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 from cardinal_pythonlib.fileops import mkdir_p
 from sqlalchemy import Column, Index, Integer, String, Text
 
-from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
+from crate_anon.nlp_manager.base_nlp_parser import (
+    BaseNlpParser,
+    TextProcessingFailed,
+)
 from crate_anon.nlp_manager.constants import (
     full_sectionname,
     MEDEX_DATA_READY_SIGNAL,
@@ -696,6 +699,13 @@ class Medex(BaseNlpParser):
             self._started = False
         return finished
 
+    def _restart(self) -> None:
+        """
+        Close down the external process and restart it.
+        """
+        self._finish()
+        self._start()
+
     # -------------------------------------------------------------------------
     # Input processing
     # -------------------------------------------------------------------------
@@ -723,126 +733,136 @@ class Medex(BaseNlpParser):
         outputfilename = os.path.join(self._outputdir.name, basefilename)
         # ... MedEx gives output files the SAME NAME as input files.
 
-        with open(inputfilename, mode='w',
-                  encoding=self._file_encoding) as infile:
-            # log.critical(f"text: {repr(text)}")
-            infile.write(text)
+        try:
+            with open(inputfilename, mode='w',
+                      encoding=self._file_encoding) as infile:
+                # log.critical(f"text: {repr(text)}")
+                infile.write(text)
 
-        if (not self._signal_data_ready() or  # send
-                not self._await_results_ready()):  # receive
-            log.critical("Subprocess terminated unexpectedly")
+            if (not self._signal_data_ready() or  # send
+                    not self._await_results_ready()):  # receive
+                log.critical("Subprocess terminated unexpectedly")
+                os.remove(inputfilename)
+                # We were using "log.critical()" and "return", but if the Medex
+                # processor is misconfigured, the failed processor can be run
+                # over thousands of records over many hours before the failure
+                # is obvious. Changed 2017-03-17.
+                raise ValueError(
+                    "Java interface to Medex failed - miconfigured?")
+
+            with open(outputfilename, mode='r',
+                      encoding=self._file_encoding) as infile:
+                resultlines = infile.readlines()
+            for line in resultlines:
+                # log.critical(f"received: {line}")
+                # Output code, from MedTagger.print_result():
+                # out.write(
+                #     index + 1 + "\t" + sent_text + "|" +
+                #     drug + "|" + brand + "|" + dose_form + "|" +
+                #     strength + "|" + dose_amt + "|" +
+                #     route + "|" + frequency + "|" + duration + "|" +
+                #     necessity + "|" +
+                #     umls_code + "|" + rx_code + "|" + generic_code + "|" +
+                #     generic_name + "\n");
+                # NOTE that the text can contain | characters. So work from the
+                # right.
+                line = line.rstrip()  # remove any trailing newline
+                fields = line.split('|')
+                if len(fields) < 14:
+                    log.warning(f"Bad result received: {line!r}")
+                    continue
+                generic_name = self.str_or_none(fields[-1])
+                if not generic_name and SKIP_IF_NO_GENERIC:
+                    continue
+                generic_code = self.int_or_none(fields[-2])
+                rx_code = self.int_or_none(fields[-3])
+                umls_code = self.str_or_none(fields[-4])
+                (necessity, necessity_startpos, necessity_endpos) = \
+                    self.get_text_start_end(fields[-5])
+                (duration, duration_startpos, duration_endpos) = \
+                    self.get_text_start_end(fields[-6])
+                (_freq_text, frequency_startpos, frequency_endpos) = \
+                    self.get_text_start_end(fields[-7])
+                frequency, frequency_timex = \
+                    self.frequency_and_timex(_freq_text)
+                (route, route_startpos, route_endpos) = \
+                    self.get_text_start_end(fields[-8])
+                (dose_amount, dose_amount_startpos, dose_amount_endpos) = \
+                    self.get_text_start_end(fields[-9])
+                (strength, strength_startpos, strength_endpos) = \
+                    self.get_text_start_end(fields[-10])
+                (form, form_startpos, form_endpos) = \
+                    self.get_text_start_end(fields[-11])
+                (brand, brand_startpos, brand_endpos) = \
+                    self.get_text_start_end(fields[-12])
+                (drug, drug_startpos, drug_endpos) = \
+                    self.get_text_start_end(fields[-13])
+                _start_bit = '|'.join(fields[0:-13])
+                _index_text, sent_text = _start_bit.split('\t', maxsplit=1)
+                index = self.int_or_none(_index_text)
+                yield self._tablename, {
+                    'sentence_index': index,
+                    'sentence_text': sent_text,
+
+                    'drug': drug,
+                    'drug_startpos': drug_startpos,
+                    'drug_endpos': drug_endpos,
+
+                    'brand': brand,
+                    'brand_startpos': brand_startpos,
+                    'brand_endpos': brand_endpos,
+
+                    'form': form,
+                    'form_startpos': form_startpos,
+                    'form_endpos': form_endpos,
+
+                    'strength': strength,
+                    'strength_startpos': strength_startpos,
+                    'strength_endpos': strength_endpos,
+
+                    'dose_amount': dose_amount,
+                    'dose_amount_startpos': dose_amount_startpos,
+                    'dose_amount_endpos': dose_amount_endpos,
+
+                    'route': route,
+                    'route_startpos': route_startpos,
+                    'route_endpos': route_endpos,
+
+                    'frequency': frequency,
+                    'frequency_startpos': frequency_startpos,
+                    'frequency_endpos': frequency_endpos,
+                    'frequency_timex3': frequency_timex,
+
+                    'duration': duration,
+                    'duration_startpos': duration_startpos,
+                    'duration_endpos': duration_endpos,
+
+                    'necessity': necessity,
+                    'necessity_startpos': necessity_startpos,
+                    'necessity_endpos': necessity_endpos,
+
+                    'umls_code': umls_code,
+                    'rx_code': rx_code,
+                    'generic_code': generic_code,
+                    'generic_name': generic_name,
+                }
+
+            # Since MedEx scans all files in the input directory, then if we're
+            # not using temporary directories (and are therefore using a new
+            # filename per item), we should remove the old one.
             os.remove(inputfilename)
-            # We were using "log.critical()" and "return", but if the Medex
-            # processor is misconfigured, the failed processor can be run over
-            # thousands of records over many hours before the failure is
-            # obvious. Changed 2017-03-17.
-            raise ValueError("Java interface to Medex failed - miconfigured?")
 
-        with open(outputfilename, mode='r',
-                  encoding=self._file_encoding) as infile:
-            resultlines = infile.readlines()
-        for line in resultlines:
-            # log.critical(f"received: {line}")
-            # Output code, from MedTagger.print_result():
-            # out.write(
-            #     index + 1 + "\t" + sent_text + "|" + drug + "|" + brand + "|"
-            #     + dose_form + "|" + strength + "|" + dose_amt + "|" + route
-            #     + "|" + frequency + "|" + duration + "|" + necessity + "|"
-            #     + umls_code + "|" + rx_code + "|" + generic_code + "|" + generic_name + "\n");  # noqa
-            # NOTE that the text can contain | characters. So work from the
-            # right.
-            line = line.rstrip()  # remove any trailing newline
-            fields = line.split('|')
-            if len(fields) < 14:
-                log.warning(f"Bad result received: {line!r}")
-                continue
-            generic_name = self.str_or_none(fields[-1])
-            if not generic_name and SKIP_IF_NO_GENERIC:
-                continue
-            generic_code = self.int_or_none(fields[-2])
-            rx_code = self.int_or_none(fields[-3])
-            umls_code = self.str_or_none(fields[-4])
-            (necessity, necessity_startpos, necessity_endpos) = \
-                self.get_text_start_end(fields[-5])
-            (duration, duration_startpos, duration_endpos) = \
-                self.get_text_start_end(fields[-6])
-            (_freq_text, frequency_startpos, frequency_endpos) = \
-                self.get_text_start_end(fields[-7])
-            frequency, frequency_timex = self.frequency_and_timex(_freq_text)
-            (route, route_startpos, route_endpos) = \
-                self.get_text_start_end(fields[-8])
-            (dose_amount, dose_amount_startpos, dose_amount_endpos) = \
-                self.get_text_start_end(fields[-9])
-            (strength, strength_startpos, strength_endpos) = \
-                self.get_text_start_end(fields[-10])
-            (form, form_startpos, form_endpos) = \
-                self.get_text_start_end(fields[-11])
-            (brand, brand_startpos, brand_endpos) = \
-                self.get_text_start_end(fields[-12])
-            (drug, drug_startpos, drug_endpos) = \
-                self.get_text_start_end(fields[-13])
-            _start_bit = '|'.join(fields[0:-13])
-            _index_text, sent_text = _start_bit.split('\t', maxsplit=1)
-            index = self.int_or_none(_index_text)
-            yield self._tablename, {
-                'sentence_index': index,
-                'sentence_text': sent_text,
+            # Restart subprocess?
+            if (self._max_external_prog_uses > 0 and
+                    self._n_uses % self._max_external_prog_uses == 0):
+                log.info(f"relaunching app after "
+                         f"{self._max_external_prog_uses} uses")
+                self._restart()
 
-                'drug': drug,
-                'drug_startpos': drug_startpos,
-                'drug_endpos': drug_endpos,
-
-                'brand': brand,
-                'brand_startpos': brand_startpos,
-                'brand_endpos': brand_endpos,
-
-                'form': form,
-                'form_startpos': form_startpos,
-                'form_endpos': form_endpos,
-
-                'strength': strength,
-                'strength_startpos': strength_startpos,
-                'strength_endpos': strength_endpos,
-
-                'dose_amount': dose_amount,
-                'dose_amount_startpos': dose_amount_startpos,
-                'dose_amount_endpos': dose_amount_endpos,
-
-                'route': route,
-                'route_startpos': route_startpos,
-                'route_endpos': route_endpos,
-
-                'frequency': frequency,
-                'frequency_startpos': frequency_startpos,
-                'frequency_endpos': frequency_endpos,
-                'frequency_timex3': frequency_timex,
-
-                'duration': duration,
-                'duration_startpos': duration_startpos,
-                'duration_endpos': duration_endpos,
-
-                'necessity': necessity,
-                'necessity_startpos': necessity_startpos,
-                'necessity_endpos': necessity_endpos,
-
-                'umls_code': umls_code,
-                'rx_code': rx_code,
-                'generic_code': generic_code,
-                'generic_name': generic_name,
-            }
-
-        # Since MedEx scans all files in the input directory, then if we're
-        # not using temporary directories (and are therefore using a new
-        # filename per item), we should remove the old one.
-        os.remove(inputfilename)
-
-        # Restart subprocess?
-        if (self._max_external_prog_uses > 0 and
-                self._n_uses % self._max_external_prog_uses == 0):
-            log.info(f"relaunching app after "
-                     f"{self._max_external_prog_uses} uses")
-            self._finish()
-            self._start()
+        except BrokenPipeError:
+            log.error("Broken pipe; relaunching app")
+            self._restart()
+            raise TextProcessingFailed()
 
     @staticmethod
     def get_text_start_end(medex_str: Optional[str]) -> Tuple[Optional[str],

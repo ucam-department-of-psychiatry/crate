@@ -29,6 +29,7 @@ crate_anon/anonymise/test_extract_text.py
 """
 
 import argparse
+import logging
 import os
 import sys
 import traceback
@@ -40,6 +41,7 @@ from cardinal_pythonlib.extract_text import (
     document_to_text,
     TextProcessingConfig,
 )
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.stringfunc import uprint
 
@@ -65,18 +67,28 @@ Exit codes:
     parser.add_argument('filename', type=str,
                         help="File from which to extract text")
     parser.add_argument('--plain', action='store_true',
-                        help="Use plainest format (not e.g. table layouts)")
+                        help="Use plainest format (re e.g. table layouts)")
+    parser.add_argument('--semiplain', action='store_true',
+                        help="Use semi-plain format (re e.g. table layouts)")
     parser.add_argument('--width', type=int, default=80,
                         help="Width to word-wrap to")
+    parser.add_argument('--rstrip', action="store_true",
+                        help="Right-strip all lines")
     parser.add_argument('--silent', action="store_true",
                         help="Don't print the text, just exit with a code")
+    parser.add_argument('--verbose', action="store_true",
+                        help="Be verbose")
 
     args = parser.parse_args()
+    main_only_quicksetup_rootlogger(level=logging.DEBUG if args.verbose
+                                    else logging.INFO)
 
     extension = os.path.splitext(args.filename)[1]
     config = TextProcessingConfig(
         plain=args.plain,
-        width=args.width
+        semiplain=args.semiplain,
+        width=args.width,
+        rstrip=args.rstrip
     )
     # noinspection PyBroadException
     try:
