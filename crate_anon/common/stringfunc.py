@@ -108,8 +108,9 @@ def uprint(*objects: Any,
 
     Examples:
 
-    - Python 3.6.8, Linux: ``sys.stdout.encoding == "UTF-8"``
-    - Python 3.7.4, Windows: ``sys.stdout.encoding == "utf-8"``
+    - Linux, Python 3.6.8 console: ``sys.stdout.encoding == "UTF-8"``
+    - Windows, Python 3.7.4 console: ``sys.stdout.encoding == "utf-8"``
+    - Windows, Python 3.7.4, from script: ``sys.stdout.encoding == "cp1252"``
     """  # noqa
     enc = file.encoding.lower()
     if enc == 'utf-8':
