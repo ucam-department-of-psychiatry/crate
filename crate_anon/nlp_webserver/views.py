@@ -85,7 +85,7 @@ from crate_anon.nlp_webserver.models import (
     DocProcRequest,
     make_unique_id,
 )
-from crate_anon.nlp_webserver.procs import ServerProcessor
+from crate_anon.nlp_webserver.server_processor import ServerProcessor
 from crate_anon.nlp_webserver.constants import (
     SERVER_NAME,
     SERVER_VERSION,

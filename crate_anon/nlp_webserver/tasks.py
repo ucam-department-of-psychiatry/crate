@@ -47,7 +47,7 @@ from crate_anon.nlp_manager.constants import (
     GateResultKeys,
 )
 from crate_anon.nlp_webserver.models import Session, DocProcRequest
-from crate_anon.nlp_webserver.procs import ServerProcessor
+from crate_anon.nlp_webserver.server_processor import ServerProcessor
 from crate_anon.nlp_webserver.constants import (
     NlpServerConfigKeys,
     PROCTYPE_GATE,

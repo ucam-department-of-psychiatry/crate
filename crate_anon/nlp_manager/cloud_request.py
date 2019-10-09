@@ -81,7 +81,7 @@ from crate_anon.nlprp.constants import (
     NlprpKeys as NKeys,
     NlprpValues,
 )
-from crate_anon.nlp_webserver.procs import ServerProcessor
+from crate_anon.nlp_webserver.server_processor import ServerProcessor
 
 if TYPE_CHECKING:
     from crate_anon.nlp_manager.cloud_run_info import CloudRunInfo

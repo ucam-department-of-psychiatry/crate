@@ -52,7 +52,7 @@ from crate_anon.nlprp.constants import (
     NlprpValues,
 )
 from crate_anon.nlp_manager.base_nlp_parser import TableMaker
-from crate_anon.nlp_webserver.procs import ServerProcessor
+from crate_anon.nlp_webserver.server_processor import ServerProcessor
 
 log = logging.getLogger(__name__)
 

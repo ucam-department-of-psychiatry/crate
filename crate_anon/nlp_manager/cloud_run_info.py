@@ -35,7 +35,7 @@ from crate_anon.nlp_manager.cloud_parser import Cloud
 from crate_anon.nlp_manager.cloud_request import CloudRequestListProcessors
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
-from crate_anon.nlp_webserver.procs import ServerProcessor
+from crate_anon.nlp_webserver.server_processor import ServerProcessor
 
 log = logging.getLogger(__name__)
 

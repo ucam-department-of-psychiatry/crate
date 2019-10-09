@@ -42,7 +42,7 @@ if os.environ.get("_SPHINX_AUTODOC_IN_PROGRESS", None):
     SETTINGS = {}
     CONFIG = None  # type: Optional[Configurator]
 else:
-    assert NLP_WEBSERVER_CONFIG_ENVVAR, (
+    assert SETTINGS_PATH, (
         f"Missing environment variable {NLP_WEBSERVER_CONFIG_ENVVAR}")
     SETTINGS = get_appsettings(SETTINGS_PATH)  # type: Dict[str, Any]
     CONFIG = Configurator(settings=SETTINGS)
