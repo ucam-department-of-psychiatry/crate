@@ -165,10 +165,34 @@ def main():
     # -------------------------------------------------------------------------
     run_cmd(["crate_django_manage", "--help"],
             join(WEB_DIR, "crate_django_manage_help.txt"))
+
+    run_cmd(["crate_django_manage", "help", "changepassword"],
+            join(WEB_DIR, "crate_django_manage_changepassword_help.txt"))
+    run_cmd(["crate_django_manage", "help", "collectstatic"],
+            join(WEB_DIR, "crate_django_manage_collectstatic_help.txt"))
+    run_cmd(["crate_django_manage", "help", "createsuperuser"],
+            join(WEB_DIR, "crate_django_manage_createsuperuser_help.txt"))
+    run_cmd(["crate_django_manage", "help", "email_rdbm"],
+            join(WEB_DIR, "crate_django_manage_email_rdbm_help.txt"))
+    run_cmd(["crate_django_manage", "help", "fetch_optouts"],
+            join(WEB_DIR, "crate_django_manage_fetch_optouts_help.txt"))
+    run_cmd(["crate_django_manage", "help", "lookup_consent"],
+            join(WEB_DIR, "crate_django_manage_lookup_consent_help.txt"))
+    run_cmd(["crate_django_manage", "help", "lookup_patient"],
+            join(WEB_DIR, "crate_django_manage_lookup_patient_help.txt"))
+    run_cmd(["crate_django_manage", "help", "populate"],
+            join(WEB_DIR, "crate_django_manage_populate_help.txt"))
+    run_cmd(["crate_django_manage", "help", "resubmit_unprocessed_tasks"],
+            join(WEB_DIR, "crate_django_manage_resubmit_unprocessed_tasks_help.txt"))  # noqa
+    run_cmd(["crate_django_manage", "help", "runcpserver"],
+            join(WEB_DIR, "crate_django_manage_runcpserver_help.txt"))
+    run_cmd(["crate_django_manage", "help", "runserver"],
+            join(WEB_DIR, "crate_django_manage_runserver_help.txt"))
+    run_cmd(["crate_django_manage", "help", "test_email"],
+            join(WEB_DIR, "crate_django_manage_test_email_help.txt"))
+
     run_cmd(["crate_launch_celery", "--help"],
             join(WEB_DIR, "crate_launch_celery_help.txt"))
-    run_cmd(["crate_launch_cherrypy_server", "--help"],
-            join(WEB_DIR, "crate_launch_cherrypy_server_help.txt"))
     run_cmd(["crate_launch_django_server", "--help"],
             join(WEB_DIR, "crate_launch_django_server_help.txt"))
     run_cmd(["crate_print_demo_crateweb_config"],

@@ -1153,6 +1153,18 @@ Changes
 
   - right-strip all extracted text
 
+**v0.18.92, 2019-10-10**
+
+- Bugfix: tools that were unrelated to the NLP web server were importing its
+  settings (so requiring a dummy config file).
+
+- ``crate_email_rdbm`` tool
+
+- Bugfix in the way that ``postcodes.py`` imported from
+  :mod:`cardinal_pythonlib.extract_text`.
+
+- ``cardinal_pythonlib==1.0.73``
+
 
 ===============================================================================
 

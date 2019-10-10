@@ -33,7 +33,8 @@ import os
 import platform
 import subprocess
 
-from crate_anon.crateweb.config.constants import CRATEWEB_CELERY_APP_NAME
+from crate_anon.crateweb.\
+    config.constants import CRATEWEB_CELERY_APP_NAME
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))

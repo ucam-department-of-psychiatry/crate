@@ -143,7 +143,7 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.3",  # where to store some temporary data
     "arrow==0.12.1",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.6.0",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.0.69",  # RNC libraries
+    "cardinal_pythonlib==1.0.73",  # RNC libraries
     "cairosvg==2.4.0",  # work with SVG files
     "celery==4.0.1",  # 4.0.1 is the highest that"ll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
@@ -412,16 +412,19 @@ setup(
             "crate_django_manage=crate_anon.crateweb.manage:main",  # will cope with argv  # noqa
             "crate_generate_new_django_secret_key=cardinal_pythonlib.django.tools.generate_new_django_secret_key:main",  # noqa
             "crate_celery_status=crate_anon.tools.celery_status:main",
+            "crate_email_rdbm=crate_anon.tools.email_rdbm:main",
             "crate_launch_celery=crate_anon.tools.launch_celery:main",
+            "crate_launch_flower=crate_anon.tools.launch_flower:main",
+            "crate_print_demo_crateweb_config=crate_anon.tools.print_crateweb_demo_config:main",  # noqa
+            "crate_windows_service=crate_anon.tools.winservice:main",
+
+            # Indirect shortcuts to "crate_django_manage" commands:
             "crate_launch_cherrypy_server=crate_anon.tools.launch_cherrypy_server:main",  # noqa
             # ... a separate script with ":main" rather than
             # "crate_anon.crateweb.manage:runcpserver" so that we can launch
             # the "runcpserver" function from our Windows service, and have it
             # deal with the CherryPy special environment variable
             "crate_launch_django_server=crate_anon.crateweb.manage:runserver",
-            "crate_launch_flower=crate_anon.tools.launch_flower:main",
-            "crate_print_demo_crateweb_config=crate_anon.tools.print_crateweb_demo_config:main",  # noqa
-            "crate_windows_service=crate_anon.tools.winservice:main",
 
             # Miscellaneous, from cardinal_pythonlib
 

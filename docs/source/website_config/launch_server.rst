@@ -32,10 +32,8 @@ crate_launch_cherrypy_server
 This is the standard cross-platform production server for CRATE, using
 CherryPy_.
 
-Options:
-
-..  literalinclude:: crate_launch_cherrypy_server_help.txt
-    :language: none
+The command is a shortcut to :ref:`crate_django_manage runcpserver
+<django_manage_runcpserver>`.
 
 
 .. _crate_launch_django_server:
@@ -45,7 +43,5 @@ crate_launch_django_server
 
 This is a lightweight test server, using Django_ itself.
 
-Options:
-
-..  literalinclude:: crate_launch_django_server_help.txt
-    :language: none
+The command is a shortcut to :ref:`crate_django_manage runserver
+<django_manage_runserver>`.

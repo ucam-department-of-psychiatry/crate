@@ -75,7 +75,7 @@ from typing import (Any, Dict, Generator, Iterable, List, Optional, TextIO,
 
 from cardinal_pythonlib.argparse_func import RawDescriptionArgumentDefaultsHelpFormatter  # noqa
 from cardinal_pythonlib.dicts import rename_key
-from cardinal_pythonlib.extract_text import docx_process_simple_text
+from cardinal_pythonlib.extract_text import wordwrap
 from cardinal_pythonlib.fileops import find_first
 from cardinal_pythonlib.logs import configure_logger_for_colour
 import openpyxl
@@ -1803,7 +1803,7 @@ def show_docs() -> None:
     pt.max_width = 80
     for col in columns:
         doc = getattr(Postcode, col).doc
-        doc = docx_process_simple_text(doc, width=70)
+        doc = wordwrap(doc, width=70)
         ptrow = [col, doc]
         pt.add_row(ptrow)
     print(pt.get_string())

@@ -74,3 +74,14 @@ Options:
 
 ..  literalinclude:: crate_estimate_mysql_memory_usage_help.txt
     :language: none
+
+
+.. _crate_email_rdbm:
+
+crate_email_rdbm
+----------------
+
+E-mails the RDBM.
+
+The command is a shortcut to :ref:`crate_django_manage email_rdbm
+<django_manage_email_rdbm>`.

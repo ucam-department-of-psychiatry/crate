@@ -1,7 +1,7 @@
 usage: crate_nlp_multiprocess [-h] --nlpdef NLPDEF [--nproc [NPROC]]
                               [--verbose]
 
-Runs the CRATE NLP manager in parallel. Version 0.18.87 (2019-09-30). Note
+Runs the CRATE NLP manager in parallel. Version 0.18.92 (2019-10-10). Note
 that all arguments not specified here are passed to the underlying script (see
 crate_nlp --help).
 
@@ -9,7 +9,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --nlpdef NLPDEF       NLP processing name, from the config file
   --nproc [NPROC], -n [NPROC]
-                        Number of processes (default on this machine: 4)
+                        Number of processes (default on this machine: 8)
   --verbose, -v         Be verbose
 
-# Generated at 2019-09-30 11:20:15
+# Generated at 2019-10-10 10:23:31

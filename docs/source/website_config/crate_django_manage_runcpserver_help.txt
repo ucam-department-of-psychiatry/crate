@@ -1,18 +1,15 @@
 Loading local settings from: /home/rudolf/Documents/code/crate/secret_local_settings/crateweb_rudolf_config.py
-usage: crate_launch_cherrypy_server runcpserver [-h] [--host HOST]
-                                                [--port PORT]
-                                                [--server_name SERVER_NAME]
-                                                [--threads THREADS]
-                                                [--ssl_certificate SSL_CERTIFICATE]
-                                                [--ssl_private_key SSL_PRIVATE_KEY]
-                                                [--log_screen]
-                                                [--no_log_screen]
-                                                [--debug_static]
-                                                [--root_path ROOT_PATH]
-                                                [--version] [-v {0,1,2,3}]
-                                                [--settings SETTINGS]
-                                                [--pythonpath PYTHONPATH]
-                                                [--traceback] [--no-color]
+usage: crate_django_manage runcpserver [-h] [--host HOST] [--port PORT]
+                                       [--server_name SERVER_NAME]
+                                       [--threads THREADS]
+                                       [--ssl_certificate SSL_CERTIFICATE]
+                                       [--ssl_private_key SSL_PRIVATE_KEY]
+                                       [--log_screen] [--no_log_screen]
+                                       [--debug_static]
+                                       [--root_path ROOT_PATH] [--version]
+                                       [-v {0,1,2,3}] [--settings SETTINGS]
+                                       [--pythonpath PYTHONPATH] [--traceback]
+                                       [--no-color]
 
 Run this project in a CherryPy webserver. To do this, CherryPy is required
 (pip install cherrypy).
@@ -50,4 +47,4 @@ optional arguments:
   --traceback           Raise on CommandError exceptions
   --no-color            Don't colorize the command output.
 
-# Generated at 2019-09-30 11:20:45
+# Generated at 2019-10-10 10:24:14

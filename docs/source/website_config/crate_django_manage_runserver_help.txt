@@ -1,12 +1,11 @@
 Loading local settings from: /home/rudolf/Documents/code/crate/secret_local_settings/crateweb_rudolf_config.py
-usage: crate_launch_django_server runserver [-h] [--ipv6] [--nothreading]
-                                            [--noreload] [--nostatic]
-                                            [--insecure] [--version]
-                                            [-v {0,1,2,3}]
-                                            [--settings SETTINGS]
-                                            [--pythonpath PYTHONPATH]
-                                            [--traceback] [--no-color]
-                                            [addrport]
+usage: crate_django_manage runserver [-h] [--ipv6] [--nothreading]
+                                     [--noreload] [--nostatic] [--insecure]
+                                     [--version] [-v {0,1,2,3}]
+                                     [--settings SETTINGS]
+                                     [--pythonpath PYTHONPATH] [--traceback]
+                                     [--no-color]
+                                     [addrport]
 
 Starts a lightweight Web server for development and also serves static files.
 
@@ -35,4 +34,4 @@ optional arguments:
   --traceback           Raise on CommandError exceptions
   --no-color            Don't colorize the command output.
 
-# Generated at 2019-10-10 10:24:22
+# Generated at 2019-10-10 10:24:16

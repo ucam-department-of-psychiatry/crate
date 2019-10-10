@@ -10,7 +10,7 @@ usage: crate_nlp [-h] [--version] [--config CONFIG] [--verbose]
                  [--cloud] [--immediate] [--retrieve] [--cancelrequest]
                  [--cancelall] [--showqueue]
 
-NLP manager. Version 0.18.87 (2019-09-30). By Rudolf Cardinal.
+NLP manager. Version 0.18.92 (2019-10-10). By Rudolf Cardinal.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -67,4 +67,4 @@ optional arguments:
                         for the nlp definition specified
   --showqueue           Shows all pending cloud requests.
 
-# Generated at 2019-09-30 11:20:14
+# Generated at 2019-10-10 10:23:30

@@ -1,4 +1,6 @@
-usage: crate_test_extract_text [-h] [--plain] [--width WIDTH] [--silent]
+usage: crate_test_extract_text [-h] [--plain] [--semiplain] [--width WIDTH]
+                               [--rstrip] [--silent] [--outfile OUTFILE]
+                               [--encoding ENCODING] [--verbose]
                                filename
 
 Test CRATE text extraction and/or detect text in files.
@@ -10,12 +12,21 @@ Exit codes:
         
 
 positional arguments:
-  filename       File from which to extract text
+  filename             File from which to extract text
 
 optional arguments:
-  -h, --help     show this help message and exit
-  --plain        Use plainest format (not e.g. table layouts) (default: False)
-  --width WIDTH  Width to word-wrap to (default: 80)
-  --silent       Don't print the text, just exit with a code (default: False)
+  -h, --help           show this help message and exit
+  --plain              Use plainest format (re e.g. table layouts) (default:
+                       False)
+  --semiplain          Use semi-plain format (re e.g. table layouts) (default:
+                       False)
+  --width WIDTH        Width to word-wrap to (default: 80)
+  --rstrip             Right-strip all lines (default: False)
+  --silent             Don't print the text, just exit with a code (default:
+                       False)
+  --outfile OUTFILE    Filename to which to write (rather than stdout)
+                       (default: None)
+  --encoding ENCODING  Encoding used for --outfile (default: utf-8)
+  --verbose            Be verbose (default: False)
 
-# Generated at 2019-09-30 11:20:03
+# Generated at 2019-10-10 10:23:23

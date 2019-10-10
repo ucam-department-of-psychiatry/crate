@@ -1,0 +1,25 @@
+Loading local settings from: /home/rudolf/Documents/code/crate/secret_local_settings/crateweb_rudolf_config.py
+usage: crate_django_manage populate [-h] [--version] [-v {0,1,2,3}]
+                                    [--settings SETTINGS]
+                                    [--pythonpath PYTHONPATH] [--traceback]
+                                    [--no-color]
+
+Populate the database with leaflet entries if necessary
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  -v {0,1,2,3}, --verbosity {0,1,2,3}
+                        Verbosity level; 0=minimal output, 1=normal output,
+                        2=verbose output, 3=very verbose output
+  --settings SETTINGS   The Python path to a settings module, e.g.
+                        "myproject.settings.main". If this isn't provided, the
+                        DJANGO_SETTINGS_MODULE environment variable will be
+                        used.
+  --pythonpath PYTHONPATH
+                        A directory to add to the Python path, e.g.
+                        "/home/djangoprojects/myproject".
+  --traceback           Raise on CommandError exceptions
+  --no-color            Don't colorize the command output.
+
+# Generated at 2019-10-10 10:24:08

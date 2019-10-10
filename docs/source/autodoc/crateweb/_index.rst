@@ -46,6 +46,7 @@ crate_anon/crateweb
     consent/lookup_rio.py.rst
     consent/management/__init__.py.rst
     consent/management/commands/__init__.py.rst
+    consent/management/commands/email_rdbm.py.rst
     consent/management/commands/fetch_optouts.py.rst
     consent/management/commands/lookup_consent.py.rst
     consent/management/commands/lookup_patient.py.rst

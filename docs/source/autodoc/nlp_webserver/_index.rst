@@ -38,6 +38,7 @@ crate_anon/nlp_webserver
     print_demos.py.rst
     procs.py.rst
     security.py.rst
+    server_processor.py.rst
     settings.py.rst
     tasks.py.rst
     views.py.rst

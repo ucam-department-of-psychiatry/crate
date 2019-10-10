@@ -9,6 +9,7 @@ Available subcommands:
     createsuperuser
 
 [consent]
+    email_rdbm
     fetch_optouts
     lookup_consent
     lookup_patient
@@ -109,4 +110,4 @@ Available subcommands:
     findstatic
     runserver
 
-# Generated at 2019-09-30 11:20:40
+# Generated at 2019-10-10 10:23:48

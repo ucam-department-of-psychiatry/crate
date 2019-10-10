@@ -1,0 +1,30 @@
+Loading local settings from: /home/rudolf/Documents/code/crate/secret_local_settings/crateweb_rudolf_config.py
+usage: crate_django_manage fetch_optouts [-h] --pidfile PIDFILE --mpidfile
+                                         MPIDFILE [--version] [-v {0,1,2,3}]
+                                         [--settings SETTINGS]
+                                         [--pythonpath PYTHONPATH]
+                                         [--traceback] [--no-color]
+
+Fetch patient IDs (PIDs) and master patient IDs (MPIDs, e.g. NHS numbers) from
+the clinical consent-mode lookup database, and store them in a file (e.g. for
+use by the CRATE anonymiser).
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --pidfile PIDFILE     Filename to store PIDs in (one line per PID)
+  --mpidfile MPIDFILE   Filename to store MPIDs in (one line per PID)
+  --version             show program's version number and exit
+  -v {0,1,2,3}, --verbosity {0,1,2,3}
+                        Verbosity level; 0=minimal output, 1=normal output,
+                        2=verbose output, 3=very verbose output
+  --settings SETTINGS   The Python path to a settings module, e.g.
+                        "myproject.settings.main". If this isn't provided, the
+                        DJANGO_SETTINGS_MODULE environment variable will be
+                        used.
+  --pythonpath PYTHONPATH
+                        A directory to add to the Python path, e.g.
+                        "/home/djangoprojects/myproject".
+  --traceback           Raise on CommandError exceptions
+  --no-color            Don't colorize the command output.
+
+# Generated at 2019-10-10 10:24:01

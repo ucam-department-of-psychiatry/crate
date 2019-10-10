@@ -25,7 +25,8 @@ crate_anon/crateweb/manage.py
 ===============================================================================
 
 **Command-line entry point so we can call Django management commands directly
-from the command line if we want.**
+from the command line if we want without the ``crate_django_manage <COMMAND>``
+syntax.**
 
 """
 
@@ -96,6 +97,7 @@ def runcpserver() -> None:
     main(argv)
 
 
+_ = '''
 def fetch_optouts() -> None:
     """
     Fetch details of patients opting out.
@@ -107,6 +109,18 @@ def fetch_optouts() -> None:
     extraargs = shlex.split(os.environ.get(CHERRYPY_EXTRA_ARGS_ENV_VAR, ''))
     # log.critical(extraargs)
     argv.extend(extraargs)
+    main(argv)
+'''
+
+
+def email_rdbm() -> None:
+    """
+    E-mails the RDBM.
+
+    Modifies ``argv`` and calls :func:`main`.
+    """
+    argv = sys.argv[:]  # copy
+    argv.insert(1, 'email_rdbm')
     main(argv)
 
 
