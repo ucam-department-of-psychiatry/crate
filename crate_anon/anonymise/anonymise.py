@@ -1298,10 +1298,16 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
                           unique=(tr.index is INDEX.UNIQUE),
                           fulltext=fulltext,
                           length=tr.indexlen)
-            # Extra index for TRID?
+            # Extra indexes for TRID, MRID?
             if tr.primary_pid:
                 add_index(engine, sqla_table.columns[config.trid_fieldname],
                           unique=(tr.index is INDEX.UNIQUE))
+                if config.add_mrid_wherever_rid_added:
+                    add_index(
+                        engine,
+                        sqla_table.columns[config.master_research_id_fieldname],  # noqa
+                        unique=False  # see docs
+                    )
         if mssql_fulltext_columns:
             mssql_fulltext_columns_by_table.append(mssql_fulltext_columns)
     # Special processing for SQL Server FULLTEXT indexes, if any:
