@@ -864,7 +864,8 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_dest_sqla_table(self, tablename: str,
-                            timefield: str = None) -> Table:
+                            timefield: str = None,
+                            add_mrid_wherever_rid_added: bool = False) -> Table:
         """
         For a given destination table name, return an
         :class:`sqlalchemy.sql.schema.Table` object for the destination table
@@ -878,6 +879,8 @@ class DataDictionary(object):
                 columns.append(self._get_srchash_sqla_column())
             if ddr.primary_pid:
                 columns.append(self._get_trid_sqla_column())
+                if add_mrid_wherever_rid_added:
+                    columns.append(self._get_mrid_sqla_column())
         if timefield:
             timecol = Column(timefield, DateTime)
             columns.append(timecol)
@@ -907,6 +910,19 @@ class DataDictionary(object):
             TridType,
             nullable=False,
             comment='Transient integer research ID (TRID)'
+        )
+
+    def _get_mrid_sqla_column(self) -> Column:
+        """
+        Returns a :class:`sqlalchemy.sql.schema.Column` object for the "MRID"
+        column. This is inserted into all patient-related destination tables 
+        where the flag 'add_mrid_wherever_rid_added' is set.
+        """
+        return Column(
+            self.config.master_research_id_fieldname,
+            self.config.SqlTypeEncryptedPid,
+            nullable=True,
+            comment='Master research ID (MRID)'
         )
 
     # =========================================================================

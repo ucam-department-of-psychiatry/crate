@@ -132,8 +132,8 @@ def wipe_and_recreate_destination_db(incremental: bool = False) -> None:
     log.info(f"Rebuilding destination database (incremental={incremental})")
     engine = config.destdb.engine
     for tablename in config.dd.get_dest_tables():
-        sqla_table = config.dd.get_dest_sqla_table(tablename,
-                                                   config.timefield)
+        sqla_table = config.dd.get_dest_sqla_table(
+            tablename, config.timefield, config.add_mrid_wherever_rid_added)
         # Drop
         if not incremental:
             log.info(f"dropping table {tablename}")
@@ -193,8 +193,8 @@ def delete_dest_rows_with_no_src_row(
     metadata = MetaData()  # operate in isolation!
     destengine = config.destdb.engine
     destsession = config.destdb.session
-    dest_table = config.dd.get_dest_sqla_table(dest_table_name,
-                                               config.timefield)
+    dest_table = config.dd.get_dest_sqla_table(
+        dest_table_name, config.timefield, config.add_mrid_wherever_rid_added)
     pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
 
     # If there's no source PK, we just delete everything
@@ -1158,7 +1158,10 @@ def process_table(sourcedbname: str,
         sourcefields.append(ddr.src_field)
     srchash = None
     timefield = config.timefield
-    sqla_table = config.dd.get_dest_sqla_table(dest_table, timefield)
+    add_mrid_wherever_rid_added = config.add_mrid_wherever_rid_added
+    mrid_fieldname = config.master_research_id_fieldname
+    sqla_table = config.dd.get_dest_sqla_table(dest_table, timefield,
+                                               add_mrid_wherever_rid_added)
     session = config.destdb.session
 
     # Count what we'll do, so we can give a better indication of progress
@@ -1249,6 +1252,8 @@ def process_table(sourcedbname: str,
             destvalues[config.source_hash_fieldname] = srchash
         if addtrid:
             destvalues[config.trid_fieldname] = patient.get_trid()
+            if add_mrid_wherever_rid_added:
+                destvalues[mrid_fieldname] = patient.get_mrid()
 
         q = sqla_table.insert_on_duplicate().values(destvalues)
         session.execute(q)
@@ -1276,7 +1281,8 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
     mssql_fulltext_columns_by_table = []  # type: List[List[Column]]
     for (tablename, tablerows) in gen_index_row_sets_by_table(tasknum=tasknum,
                                                               ntasks=ntasks):
-        sqla_table = config.dd.get_dest_sqla_table(tablename, config.timefield)
+        sqla_table = config.dd.get_dest_sqla_table(
+            tablename, config.timefield, config.add_mrid_wherever_rid_added)
         mssql_fulltext_columns = []  # type: List[Column]
         for tr in tablerows:
             sqla_column = sqla_table.columns[tr.dest_field]
@@ -1292,10 +1298,16 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
                           unique=(tr.index is INDEX.UNIQUE),
                           fulltext=fulltext,
                           length=tr.indexlen)
-            # Extra index for TRID?
+            # Extra indexes for TRID, MRID?
             if tr.primary_pid:
                 add_index(engine, sqla_table.columns[config.trid_fieldname],
                           unique=(tr.index is INDEX.UNIQUE))
+                if config.add_mrid_wherever_rid_added:
+                    add_index(
+                        engine,
+                        sqla_table.columns[config.master_research_id_fieldname],  # noqa
+                        unique=False  # see docs
+                    )
         if mssql_fulltext_columns:
             mssql_fulltext_columns_by_table.append(mssql_fulltext_columns)
     # Special processing for SQL Server FULLTEXT indexes, if any:
@@ -1446,8 +1458,10 @@ def wipe_destination_data_for_opt_out_patients(report_every: int = 1000,
     log.debug(start + ": 5. deleting from destination table by opt-out RID")
     for dest_table_name in config.dd.get_dest_tables_with_patient_info():
         log.debug(start + f": ... {dest_table_name}")
-        dest_table = config.dd.get_dest_sqla_table(dest_table_name,
-                                                   config.timefield)
+        dest_table = config.dd.get_dest_sqla_table(
+            dest_table_name,
+            config.timefield,
+            config.add_mrid_wherever_rid_added)
         query = dest_table.delete().where(
             column(ridfield).in_(
                 select([temptable.columns[pkfield]])

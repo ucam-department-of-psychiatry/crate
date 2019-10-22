@@ -658,6 +658,8 @@ class Config(object):
         self.trid_fieldname = opt_str('trid_fieldname')
         self.master_research_id_fieldname = opt_str(
             'master_research_id_fieldname')
+        self.add_mrid_wherever_rid_added = opt_bool(
+            'add_mrid_wherever_rid_added', True)
         self.source_hash_fieldname = opt_str('source_hash_fieldname')
         self.ddgen_append_source_info_to_comment = opt_bool(
             'ddgen_append_source_info_to_comment', True)

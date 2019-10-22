@@ -587,7 +587,8 @@ trid_fieldname
 
 Transient integer research ID (TRID) fieldname. An unsigned integer field with
 this name will be added to every table containing a primary patient ID (in the
-source) or research ID (in the destination).
+source) or research ID (in the destination). It will be indexed (and whether
+that index is unique or not depends on the settings for the PID field).
 
 
 master_research_id_fieldname
@@ -599,6 +600,19 @@ Master research ID (MRID) field name for destination tables. This will be a
 ``VARCHAR`` of length determined by :ref:`hash_method
 <anon_config_hash_method>`. Used to replace master patient ID fields from
 source tables.
+
+
+.. _add_mrid_wherever_rid_added:
+
+add_mrid_wherever_rid_added
+###########################
+
+*Boolean.* Default: true.
+
+Whenever adding a RID field to a destination table (replacing the PID field
+from the source, and adding a TRID field), should we also add an MRID field?
+It will be indexed (non-uniquely; the MRID is not always guaranteed to be
+present just because the PID is present).
 
 
 source_hash_fieldname

@@ -68,22 +68,3 @@ Things to do
   our built-in NLP.
 
 - There's some placeholder junk in ``consent_lookup_result.html``.
-
-- Option to add MRID to every table, to make cross-database queries simpler?
-
-  - Column would have to support NULL values; not all patients with a PID
-    (e.g. local identifier) will have a MPID (e.g. national identifier).
-  - Would not require sequencing of tables during anonymisation, since the MRID
-    should be found via
-    :meth:`crate_anon.anonymise.patient.Patient._build_scrubber`.
-  - Would involve modifying
-    :func:`crate_anon.anonymise.anonymise.process_table` to call
-    :meth:`crate_anon.anonymise.patient.Patient.get_mrid`, possibly where it
-    checks for a column being the primary PID, and adding an extra row there
-    subject to a flag.
-  - The flag relates to the whole database rather than a specific row, so
-    it should probably be in the config file -- e.g. named
-    ``add_mrid_wherever_rid_added``, within the ``[main]`` section, and the
-    "Output fields and formatting" subsection.
-  - Might also need an option to index that field automatically (true by
-    default).
