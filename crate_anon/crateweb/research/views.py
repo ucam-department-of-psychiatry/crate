@@ -1617,7 +1617,38 @@ def single_record_html_table(fieldnames: List[str],
         str: HTML
 
     """  # noqa
-    table_html = '<table>\n'
+    nlptable = False
+    table_html = ''
+    if FN_NLPDEF in fieldnames:
+        srcdb_ind = srctable_ind = srcfield_ind = None
+        srcpkfield_ind = srcpkval_ind = srcpkstr_ind = None
+        for i, field in enumerate(fieldnames):
+            if field == FN_SRCDB:
+                srcdb_ind = i
+            elif field == FN_SRCTABLE:
+                srctable_ind = i
+            elif field == FN_SRCFIELD:
+                srcfield_ind = i
+            elif field == FN_SRCPKFIELD:
+                srcpkfield_ind = i
+            elif field == FN_SRCPKVAL:
+                srcpkval_ind = i
+            elif field == FN_SRCPKSTR:
+                srcpkstr_ind = i
+        if all((srcdb_ind, srctable_ind, srcfield_ind, srcpkfield_ind,
+               srcpkval_ind, srcpkstr_ind)):
+            # If it's an NLP table, add link to source info above the results
+            # noinspection PyUnboundLocalVariable
+            source_url = reverse(UrlNames.SRCINFO, kwargs={
+                'srcdb': record[srcdb_ind],
+                'srctable': record[srctable_ind],
+                'srcfield': record[srcfield_ind],
+                'srcpkfield': record[srcpkfield_ind],
+                'srcpkval': record[srcpkval_ind],
+                'srcpkstr': record[srcpkstr_ind]
+            })
+            table_html += f'<b><a href="{source_url}">See NLP source info</a></b>\n'  # noqa
+    table_html += '<table>\n'
     for col_index, value in enumerate(record):
         fieldname = fieldnames[col_index]
         table_html += '  <tr class="{}">\n'.format(
