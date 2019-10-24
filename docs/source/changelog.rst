@@ -1190,6 +1190,9 @@ Changes
     - Might also need an option to index that field automatically (true by
       default) -- *indexed automatically*.
 
+- Update ``pillow`` from 6.1.0 to 6.2.0
+  (https://nvd.nist.gov/vuln/detail/CVE-2019-16865).
+
 
 ===============================================================================
 

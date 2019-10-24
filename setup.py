@@ -167,7 +167,7 @@ INSTALL_REQUIRES = [
     # "mmh3==2.2"  # MurmurHash, for fast non-cryptographic hashing
     "openpyxl==2.5.4",  # read Excel
     "pendulum==2.0.2",  # dates/times
-    "pillow==6.1.0",  # image processing; import as PIL (Python Imaging Library)  # noqa
+    "pillow==6.2.0",  # image processing; import as PIL (Python Imaging Library)  # noqa
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==0.7.2",  # pretty formating of text-based tables
     "psutil==5.4.6",  # process management
