@@ -158,7 +158,8 @@ def main() -> None:
              "specified in '--restrict'")
     parser.add_argument(
         "--filtertext", type=int,
-        help="Filter out all free text over the specified length")
+        help="Filter out all free text over the specified length. "
+             "Set this to 0 to filter out all free text.")
 
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(

@@ -72,7 +72,7 @@ from crate_anon.common.file_io import (
 )
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.common.parallel import is_my_job_by_hash, is_my_job_by_int
-from crate_anon.common.sql import matches_tabledef
+from crate_anon.common.sql import matches_tabledef, is_sql_column_type_textual
 
 log = logging.getLogger(__name__)
 
@@ -1205,14 +1205,13 @@ def process_table(sourcedbname: str,
         skip_row = False
         for i, ddr in enumerate(ddrows):
             value = row[i]
-            # Filter out free text over specified length
-            if (free_text_limit is not None and
-                    len(str(value)) > free_text_limit):
+            # Filter out free text over specified length (or all free text
+            # if it's set to 0)
+            if (free_text_limit == 0 or
+                    (free_text_limit is not None and
+                     len(str(value)) > free_text_limit)):
                 datatype = ddr.src_datatype
-                if (datatype == "TEXT" or datatype.startswith("CHAR") or
-                        datatype.startswith("VARCHAR")):
-                    # This is safe because no destination fields are nullable
-                    # except id columns?
+                if is_sql_column_type_textual(datatype):
                     destvalues[ddr.dest_field] = None
                     continue
             if ddr.skip_row_by_value(value):
