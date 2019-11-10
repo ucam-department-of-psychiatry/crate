@@ -89,6 +89,7 @@ class CratewebService(WindowsService):
         # Define processes
         djangolog = os.path.join(logdir, 'crate_log_django.txt')
         celerylog = os.path.join(logdir, 'crate_log_celery.txt')
+        celerybeatlog = os.path.join(logdir, 'crate_log_celerybeat.txt')
         procdetails = [
             ProcessDetails(
                 name='Django/CherryPy',
@@ -107,6 +108,16 @@ class CratewebService(WindowsService):
                 ],
                 logfile_out=celerylog,
                 logfile_err=celerylog,
+            ),
+            ProcessDetails(
+                name='Celery Beat',
+                procargs=[
+                    sys.executable,
+                    os.path.join(
+                        CURRENT_DIR, 'launch_celery.py --command=beat'),
+                ],
+                logfile_out=celerybeatlog,
+                logfile_err=celerybeatlog,
             ),
         ]
 

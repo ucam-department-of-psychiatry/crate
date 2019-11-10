@@ -39,6 +39,10 @@ https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html
 import logging
 import os
 from typing import List, TYPE_CHECKING
+
+# Include the following if you want to use it in CELERYBEAT_SCHEDULE
+# from celery.schedules import crontab  # delayed import
+
 if TYPE_CHECKING:
     from django.http.request import HttpRequest
 
@@ -97,6 +101,18 @@ else:
 # Celery configuration
 # =============================================================================
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+
+# Schedule celery tasks for specific times - the following schedules a
+# refresh of consent modes for midnight every night
+# See https://stackoverflow.com/questions/37848481/how-to-configure-celerybeat-schedule-in-django-settings/37851090  # noqa
+# NOTE: the scheduled tasks will not run unless you start celery with the beat
+# option - i.e. run 'crate_launch_celery --command=beat'
+# CELERYBEAT_SCHEDULE = {
+# 'scheduled_task1': {
+#       'task': 'crate_anon.crateweb.consent.tasks.refresh_all_consent_modes',
+#       'schedule': crontab(minute=0, hour=0),
+#    },
+# }
 
 
 # =============================================================================

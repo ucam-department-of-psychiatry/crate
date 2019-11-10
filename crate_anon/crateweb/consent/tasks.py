@@ -194,6 +194,27 @@ def finalize_clinician_response(clinician_response_id: int) -> None:
     clinician_response.finalize_b()  # second part of processing
 
 
+@shared_task(ignore_result=True)
+def refresh_all_consent_modes() -> None:
+    """
+    Celery task to refresh all consent modes. Uses ConesntMode's own
+    'refresh_from_primary_clinical_record' method so it uses the correct
+     consent mode, i.e. external primary clinical record takes priority.
+    """
+    from crate_anon.crateweb.consent.models import ConsentMode  # delayed import  # noqa
+    from django.contrib.auth.models import User  # delayed import
+
+    # Get a superuser to be the 'created_by' user for the consent modes.
+    # Maybe we should: (1) add an 'is_rdbm' field to auth user or
+    # (2) have a superuser especially for automatic tasks?
+    auto_creator = User.objects.first()
+    all_consent_modes = ConsentMode.objects.all()
+    for cm in all_consent_modes:
+        ConsentMode.refresh_from_primary_clinical_record(
+            nhs_number=cm.nhs_number,
+            created_by=auto_creator)
+
+
 # noinspection PyCallingNonCallable
 @shared_task(ignore_result=True)
 def process_consent_change(consent_mode_id: int) -> None:
