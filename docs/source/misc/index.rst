@@ -28,3 +28,4 @@ Additional notes
     tcpip_ports.rst
     external_dependencies.rst
     python_from_sql_server.rst
+    semehr.rst
