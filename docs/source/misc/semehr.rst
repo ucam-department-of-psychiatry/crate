@@ -227,39 +227,30 @@ Prerequisites:
     #   cd "${GITDIR}"; git reset --hard origin/master
 
     # -------------------------------------------------------------------------
-    # Start
+    # Start Elasticsearch
     # -------------------------------------------------------------------------
     # Start the containers (will fetch all necessary software the first time).
     # Run in foreground mode, so we can see the log output.
     docker-compose -f "${ELASTICSEARCH_COMPOSE}" up
 
-Once the Elasticsearch containers are happy, you can (if you want) shut them
-down (``Ctrl-C``) and restart them in the background:
+Now fire up another terminal, enter the same variable definitions as above, and
+fix an Elasticsearch problem:
 
 .. code-block:: bash
 
-    docker-compose -f "${ELASTICSEARCH_COMPOSE}" up -d
-
-    # Now fix an Elasticsearch error (once only):
+    # Fix an Elasticsearch error (once only):
     curl -X PUT "localhost:8200/_cluster/settings" -H 'Content-Type: application/json' -d'
-    {
-      "transient": {
-        "cluster.routing.allocation.disk.watermark.low": "2gb",
-        "cluster.routing.allocation.disk.watermark.high": "1gb",
-        "cluster.routing.allocation.disk.watermark.flood_stage": "500mb",
-        "cluster.info.update.interval": "1m"
-      }
-    }
+        {
+          "transient": {
+            "cluster.routing.allocation.disk.watermark.low": "2gb",
+            "cluster.routing.allocation.disk.watermark.high": "1gb",
+            "cluster.routing.allocation.disk.watermark.flood_stage": "500mb",
+            "cluster.info.update.interval": "1m"
+          }
+        }
     '
 
-    # NOT NOW, but when you want to shut down Elasticsearch:
-    docker-compose -f "${ELASTICSEARCH_COMPOSE}" down
-
-Alternatively, you could fire up another terminal (and enter the same variable
-definitions as above, plus the ``curl`` command) to see the output from both
-simultaneously.
-
-Now run SemEHR:
+Now in that second terminal, run SemEHR:
 
 .. code-block:: bash
 
@@ -268,6 +259,16 @@ Now run SemEHR:
 Browse to http://127.0.0.1:8080/SemEHR.html and try searching for patient
 ``P001``. Try also http://127.0.0.1:8200/_cat/indices/, which should show
 current indices (you expect one called ``eprdoc``).
+
+Once the Elasticsearch container group is  happy, you can (if you want) shut it
+down (``Ctrl-C``) and restart it in the background:
+
+.. code-block:: bash
+
+    docker-compose -f "${ELASTICSEARCH_COMPOSE}" up -d
+
+    # And when you want to shut down Elasticsearch:
+    docker-compose -f "${ELASTICSEARCH_COMPOSE}" down
 
 
 Notes on Docker
@@ -280,7 +281,6 @@ Docker information and debugging
 
   .. code-block:: bash
 
-    # And to explore what's going on:
     docker-compose -f <COMPOSEFILE> images
     docker-compose -f <COMPOSEFILE> top
     docker images
@@ -628,14 +628,14 @@ https://stackoverflow.com/questions/30289024/high-disk-watermark-exceeded-even-w
 .. code-block:: bash
 
     curl -X PUT "localhost:8200/_cluster/settings" -H 'Content-Type: application/json' -d'
-    {
-      "transient": {
-        "cluster.routing.allocation.disk.watermark.low": "2gb",
-        "cluster.routing.allocation.disk.watermark.high": "1gb",
-        "cluster.routing.allocation.disk.watermark.flood_stage": "500mb",
-        "cluster.info.update.interval": "1m"
-      }
-    }
+        {
+          "transient": {
+            "cluster.routing.allocation.disk.watermark.low": "2gb",
+            "cluster.routing.allocation.disk.watermark.high": "1gb",
+            "cluster.routing.allocation.disk.watermark.flood_stage": "500mb",
+            "cluster.info.update.interval": "1m"
+          }
+        }
     '
 
 
