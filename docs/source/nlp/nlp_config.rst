@@ -287,7 +287,10 @@ Record in the progress database that we have processed records for which the
 source text was truncated (see :ref:`truncate_text_at
 <nlp_config_truncate_text_at>`).
 
-.. todo:: RNC to ask FS for explanation of ``record_truncated_values``, i.e. when should it be used?
+The purpose for this option is so the program, when running in incremental
+mode, can decide whether to re-run the nlp records which were truncated before
+processing. If this option is set to true, such records won't be run again
+unless they have changed.
 
 
 .. _cloud_config:
@@ -702,7 +705,9 @@ processor_format
 
 One of:  ``Standard``, ``GATE``.
 
-.. todo:: explain
+``Standard`` refers primarily to CRATE python-based rempote processors,
+but would be compatible with any remote processor which returned data in the
+same format as the CRATE processors.
 
 
 .. _nlp_config_section_gate_output:

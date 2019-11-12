@@ -323,7 +323,8 @@ class CloudRequestListProcessors(CloudRequest):
                 name=procinfo[NKeys.NAME],
                 title=procinfo[NKeys.TITLE],
                 version=procinfo[NKeys.VERSION],
-                is_default_version=procinfo[NKeys.IS_DEFAULT_VERSION],
+                is_default_version=procinfo.get(
+                    NKeys.IS_DEFAULT_VERSION, True),
                 description=procinfo[NKeys.DESCRIPTION],
                 # Optional:
                 schema_type=procinfo.get(NKeys.SCHEMA_TYPE,
@@ -790,23 +791,24 @@ class CloudRequestProcess(CloudRequest):
             for processor_data in result[NKeys.PROCESSORS]:
                 name = processor_data[NKeys.NAME]
                 version = processor_data[NKeys.VERSION]
-                # is_default_version = processor_data[NKeys.IS_DEFAULT_VERSION]
+                is_default_version = processor_data.get(
+                    NKeys.IS_DEFAULT_VERSION, True)
                 try:
                     processor = self.requested_processors[(name, version)]
                 except KeyError:
-                    # if is_default_version:  # GATE doesn't send this info
-                    try:
-                        processor = self.requested_processors.get(
-                            (name, None))
-                    except KeyError:
-                        log.error(f"Server returned processor {name} "
-                                  "version {version}, but this processor "
-                                  "was not requested.")
-                        raise
-                    # else:
-                    #     raise err(f"Server returned processor {name} "
-                    #                "version {version}, but this processor "
-                    #                "was not requested.")
+                    if is_default_version:
+                        try:
+                            processor = self.requested_processors.get(
+                                (name, None))
+                        except KeyError:
+                            log.error(f"Server returned processor {name} "
+                                      "version {version}, but this processor "
+                                      "was not requested.")
+                            raise
+                    else:
+                        raise err(f"Server returned processor {name} "
+                                   "version {version}, but this processor "
+                                   "was not requested.")
                 if processor.format == NlpDefValues.FORMAT_GATE:
                     for t, r in self.get_nlp_values_gate(processor_data,
                                                          processor,
