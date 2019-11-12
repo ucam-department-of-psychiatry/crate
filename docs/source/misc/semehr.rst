@@ -256,7 +256,8 @@ down (``Ctrl-C``) and restart them in the background:
     docker-compose -f "${ELASTICSEARCH_COMPOSE}" down
 
 Alternatively, you could fire up another terminal (and enter the same variable
-definitions as above) to see both operating.
+definitions as above, plus the ``curl`` command) to see the output from both
+simultaneously.
 
 Now run SemEHR:
 
