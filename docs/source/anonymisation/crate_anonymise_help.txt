@@ -1,56 +1,56 @@
-usage: crate_anonymise [-h] [--version] [--democonfig] [--config CONFIG]
-                       [--verbose] [--reportevery [REPORTEVERY]]
-                       [--chunksize [CHUNKSIZE]] [--process [PROCESS]]
-                       [--nprocesses [NPROCESSES]]
-                       [--processcluster PROCESSCLUSTER] [--draftdd]
-                       [--incrementaldd] [--debugscrubbers] [--savescrubbers]
-                       [--count] [--dropremake] [--optout]
-                       [--nonpatienttables] [--patienttables] [--index]
-                       [--skip_dd_check] [--restrict RESTRICT]
-                       [--limits LIMITS LIMITS] [--file FILE]
-                       [--list LIST [LIST ...]] [--filtertext FILTERTEXT]
-                       [-i | -f] [--skipdelete] [--seed SEED] [--echo]
+usage: crate_anonymise [-h] [--config CONFIG] [--verbose] [--version]
+                       [--democonfig]
                        [--checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]]
+                       [--draftdd] [--incrementaldd] [--count] [--dropremake]
+                       [--optout] [-i | -f] [--skipdelete]
+                       [--nonpatienttables] [--patienttables] [--index]
+                       [--restrict RESTRICT] [--limits LIMITS LIMITS]
+                       [--file FILE] [--list LIST [LIST ...]]
+                       [--filtertext FILTERTEXT] [--process [PROCESS]]
+                       [--nprocesses [NPROCESSES]]
+                       [--processcluster PROCESSCLUSTER] [--skip_dd_check]
+                       [--seed SEED] [--chunksize [CHUNKSIZE]]
+                       [--reportevery [REPORTEVERY]] [--debugscrubbers]
+                       [--savescrubbers] [--echo]
 
-Database anonymiser. Version 0.18.92 (2019-10-10). By Rudolf Cardinal.
+Database anonymiser. Version 0.18.93 (2019-10-22). By Rudolf Cardinal.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --version             show program's version number and exit
-  --democonfig          Print a demo config file (default: False)
   --config CONFIG       Config file (overriding environment variable
                         CRATE_ANON_CONFIG) (default: None)
   --verbose, -v         Be verbose (default: False)
-  --reportevery [REPORTEVERY]
-                        Report insert progress every n rows in verbose mode
-                        (default: 100000)
-  --chunksize [CHUNKSIZE]
-                        Number of records copied in a chunk when copying PKs
-                        from one database to another (default: 100000)
-  --process [PROCESS]   For multiprocess mode: specify process number
-                        (default: 0)
-  --nprocesses [NPROCESSES]
-                        For multiprocess mode: specify total number of
-                        processes (launched somehow, of which this is to be
-                        one) (default: 1)
-  --processcluster PROCESSCLUSTER
-                        Process cluster name (default: )
+  --version             show program's version number and exit
+
+Simple commands not requiring a config:
+  --democonfig          Print a demo config file (default: False)
+  --checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]
+                        File extensions to check for availability of a text
+                        extractor (use a '.' prefix, and use the special
+                        extension 'None' to check the fallback processor
+                        (default: None)
+
+Simple commands requiring a config:
   --draftdd             Print a draft data dictionary (default: False)
   --incrementaldd       Print an INCREMENTAL draft data dictionary (default:
                         False)
-  --debugscrubbers      Report sensitive scrubbing information, for debugging
-                        (default: False)
-  --savescrubbers       Saves sensitive scrubbing information in admin
-                        database, for debugging (default: False)
   --count               Count records in source/destination databases, then
                         stop (default: False)
-  --dropremake          Drop/remake destination tables, then stop (default:
-                        False)
-  --optout              Build opt-out list, then stop (default: False)
+
+Action options:
+  --dropremake          Drop/remake destination tables. (default: False)
+  --optout              Update opt-out list in administrative database.
+                        (default: False)
+  -i, --incremental     Process only new/changed information, where possible
+                        (* default) (default: True)
+  -f, --full            Drop and remake everything (default: True)
+  --skipdelete          For incremental updates, skip deletion of rows present
+                        in the destination but not the source (default: False)
   --nonpatienttables    Process non-patient tables only (default: False)
   --patienttables       Process patient tables only (default: False)
   --index               Create indexes only (default: False)
-  --skip_dd_check       Skip data dictionary validity check (default: False)
+
+Restriction options:
   --restrict RESTRICT   Restrict which patients are processed. Specify which
                         field to base the restriction on or 'pid' for patient
                         ids. (default: None)
@@ -63,22 +63,37 @@ optional arguments:
                         Specify a list of values for the field specified in '
                         --restrict' (default: None)
   --filtertext FILTERTEXT
-                        Filter out all free text over the specified length
-                        (default: None)
-  -i, --incremental     Process only new/changed information, where possible
-                        (* default) (default: True)
-  -f, --full            Drop and remake everything (default: True)
-  --skipdelete          For incremental updates, skip deletion of rows present
-                        in the destination but not the source (default: False)
+                        Filter out all free text over the specified length.
+                        Set this to 0 to filter out all free text. (default:
+                        None)
+
+Processing options:
+  --process [PROCESS]   For multiprocess mode: specify process number
+                        (default: 0)
+  --nprocesses [NPROCESSES]
+                        For multiprocess mode: specify total number of
+                        processes (launched somehow, of which this is to be
+                        one) (default: 1)
+  --processcluster PROCESSCLUSTER
+                        Process cluster name (used as part of log name)
+                        (default: )
+  --skip_dd_check       Skip data dictionary validity check (default: False)
   --seed SEED           String to use as the basis of the seed for the random
                         number generator used for the transient integer RID
                         (TRID). Leave blank to use the default seed (system
                         time). (default: None)
-  --echo                Echo SQL (default: False)
-  --checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]
-                        File extensions to check for availability of a text
-                        extractor (use a '.' prefix, and use the special
-                        extension 'None' to check the fallback processor
-                        (default: None)
+  --chunksize [CHUNKSIZE]
+                        Number of records copied in a chunk when copying PKs
+                        from one database to another (default: 100000)
 
-# Generated at 2019-10-10 10:23:23
+Reporting and debugging:
+  --reportevery [REPORTEVERY]
+                        Report insert progress every n rows in verbose mode
+                        (default: 100000)
+  --debugscrubbers      Report sensitive scrubbing information, for debugging
+                        (default: False)
+  --savescrubbers       Saves sensitive scrubbing information in admin
+                        database, for debugging (default: False)
+  --echo                Echo SQL (default: False)
+
+# Generated at 2019-11-14 21:34:46

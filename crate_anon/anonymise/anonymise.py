@@ -37,7 +37,7 @@ import logging
 import random
 import sys
 from datetime import datetime
-from typing import Any, Dict, Iterable, Generator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Generator, List, Tuple, Union
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.sqlalchemy.core_query import count_star, exists_plain
@@ -1778,19 +1778,19 @@ def anonymise(draftdd: bool = False,
               count: bool = False,
               dropremake: bool = False,
               optout: bool = False,
-              skip_dd_check: bool = False,
-              restrict: str = "",
-              restrict_file: str = "",
-              restrict_limits: Tuple[Any, Any] = None,
-              restrict_list: List[Any] = None,
-              free_text_limit: int = None,
               incremental: bool = False,
               skipdelete: bool = False,
               patienttables: bool = False,
               nonpatienttables: bool = False,
               index: bool = False,
+              restrict: str = "",
+              restrict_file: str = "",
+              restrict_limits: Tuple[Any, Any] = None,
+              restrict_list: List[Any] = None,
+              free_text_limit: int = None,
               nprocesses: int = 1,
               process: int = 0,
+              skip_dd_check: bool = False,
               seed: str = "",
               chunksize: int = DEFAULT_CHUNKSIZE,
               reportevery: int = DEFAULT_REPORT_EVERY,
@@ -1812,9 +1812,17 @@ def anonymise(draftdd: bool = False,
             If true: drop/remake destination tables.
         optout:
             If true: update opt-out list.
-
-        skip_dd_check:
-            If true: skip data dictionary validity check.
+        incremental:
+            If true: incremental run, rather than full.
+        skipdelete:
+            (For "incremental".) Skip deletion of rows present in the
+            destination but not the source.
+        patienttables:
+            If true: process patient tables only (rather than all tables).
+        nonpatienttables:
+            If true: process non-patient tables only (rather than all tables).
+        index:
+            If true: create indexes only.
 
         restrict:
             Restrict to certain patients? Specify a field name, or ``pid``
@@ -1830,24 +1838,16 @@ def anonymise(draftdd: bool = False,
             Filter out all free text over the specified length. Set this to 0
             to filter out all free text.
 
-        incremental:
-            If true: incremental run, rather than full.
-        skipdelete:
-            (For "incremental".) Skip deletion of rows present in the
-            destination but not the source.
-        patienttables:
-            If true: process patient tables only (rather than all tables).
-        nonpatienttables:
-            If true: process non-patient tables only (rather than all tables).
-        index:
-            If true: create indexes only.
-
         nprocesses:
             Number of processing being run (of which this is one), for work
             allocation.
         process:
             Number of this process (from 0 to nprocesses - 1), for work
             allocation.
+        skip_dd_check:
+            If true: skip data dictionary validity check. (Useful in
+            multiprocessing contexts when another process has already done
+            this.)
         seed:
             Seed for random number generator (for TRID generation).
             Blank for the default of system time.

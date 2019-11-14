@@ -43,5 +43,3 @@ You set things up as follows.
   - CRATE can draft one for you, but you will need to check it manually.
 
 - You run the **anonymiser**, pointing it at your config file.
-
-

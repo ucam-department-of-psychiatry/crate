@@ -1,4 +1,4 @@
-Loading local settings from: /home/rudolf/Documents/code/crate/secret_local_settings/crateweb_rudolf_config.py
+Loading local settings from: /home/rudolf/Documents/code/crate/working/crateweb_rudolf_config.py
 usage: crate_django_manage fetch_optouts [-h] --pidfile PIDFILE --mpidfile
                                          MPIDFILE [--version] [-v {0,1,2,3}]
                                          [--settings SETTINGS]
@@ -27,4 +27,4 @@ optional arguments:
   --traceback           Raise on CommandError exceptions
   --no-color            Don't colorize the command output.
 
-# Generated at 2019-10-10 10:24:01
+# Generated at 2019-11-14 21:35:21

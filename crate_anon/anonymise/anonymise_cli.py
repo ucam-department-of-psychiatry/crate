@@ -77,11 +77,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "--version", action="version", version=version)
-    parser.add_argument(
-        "--democonfig", action="store_true",
-        help="Print a demo config file")
+
     parser.add_argument(
         "--config",
         help=f"Config file (overriding environment variable {CONFIG_ENV_VAR})")
@@ -89,79 +85,43 @@ def main() -> None:
         '--verbose', '-v', action="store_true",
         help="Be verbose")
     parser.add_argument(
-        '--reportevery', nargs="?", type=int, default=DEFAULT_REPORT_EVERY,
-        help="Report insert progress every n rows in verbose mode")
-    parser.add_argument(
-        '--chunksize', nargs="?", type=int,
-        default=DEFAULT_CHUNKSIZE,
-        help="Number of records copied in a chunk when copying PKs from one "
-             "database to another")
-    parser.add_argument(
-        "--process", nargs="?", type=int, default=0,
-        help="For multiprocess mode: specify process number")
-    parser.add_argument(
-        "--nprocesses", nargs="?", type=int, default=1,
-        help="For multiprocess mode: specify total number of processes "
-             "(launched somehow, of which this is to be one)")
-    parser.add_argument(
-        "--processcluster", default="",
-        help="Process cluster name")
-    parser.add_argument(
+        "--version", action="version", version=version)
+
+    simple_group_1 = parser.add_argument_group(
+        "Simple commands not requiring a config"
+    )
+    simple_group_1.add_argument(
+        "--democonfig", action="store_true",
+        help="Print a demo config file")
+    simple_group_1.add_argument(
+        "--checkextractor", nargs='*',
+        help="File extensions to check for availability of a text extractor "
+             "(use a '.' prefix, and use the special extension 'None' to "
+             "check the fallback processor")
+
+    simple_group_2 = parser.add_argument_group(
+        "Simple commands requiring a config"
+    )
+    simple_group_2.add_argument(
         "--draftdd", action="store_true",
         help="Print a draft data dictionary")
-    parser.add_argument(
+    simple_group_2.add_argument(
         "--incrementaldd", action="store_true",
         help="Print an INCREMENTAL draft data dictionary")
-    parser.add_argument(
-        "--debugscrubbers", action="store_true",
-        help="Report sensitive scrubbing information, for debugging")
-    parser.add_argument(
-        "--savescrubbers", action="store_true",
-        help="Saves sensitive scrubbing information in admin database, "
-             "for debugging")
-    parser.add_argument(
+    simple_group_2.add_argument(
         "--count", action="store_true",
         help="Count records in source/destination databases, then stop")
-    parser.add_argument(
+
+    action_options = parser.add_argument_group(
+        "Action options"
+    )
+    action_options.add_argument(
         "--dropremake", action="store_true",
         help="Drop/remake destination tables.")
-    parser.add_argument(
+    action_options.add_argument(
         "--optout", action="store_true",
         help="Update opt-out list in administrative database.")
-    parser.add_argument(
-        "--nonpatienttables", action="store_true",
-        help="Process non-patient tables only")
-    parser.add_argument(
-        "--patienttables", action="store_true",
-        help="Process patient tables only")
-    parser.add_argument(
-        "--index", action="store_true",
-        help="Create indexes only")
-    parser.add_argument(
-        "--skip_dd_check", action="store_true",
-        help="Skip data dictionary validity check")
-    parser.add_argument(
-        "--restrict",
-        help="Restrict which patients are processed. Specify which field to "
-             "base the restriction on or 'pid' for patient ids.")
-    parser.add_argument(
-        "--limits", nargs=2,
-        help="Specify lower and upper limits of the field "
-             "specified in '--restrict'")
-    parser.add_argument(
-        "--file",
-        help="Specify a file with a list of values for the field "
-             "specified in '--restrict'")
-    parser.add_argument(
-        "--list", nargs="+",
-        help="Specify a list of values for the field "
-             "specified in '--restrict'")
-    parser.add_argument(
-        "--filtertext", type=int,
-        help="Filter out all free text over the specified length. "
-             "Set this to 0 to filter out all free text.")
-
-    mode_group = parser.add_mutually_exclusive_group()
+    mode_group = action_options.add_mutually_exclusive_group()
     mode_group.add_argument(
         "-i", "--incremental", dest="incremental", action="store_true",
         help="Process only new/changed information, where possible "
@@ -170,28 +130,93 @@ def main() -> None:
         "-f", "--full", dest="incremental", action="store_false",
         help="Drop and remake everything")
     parser.set_defaults(incremental=True)
-
-    parser.add_argument(
+    action_options.add_argument(
         "--skipdelete", dest="skipdelete", action="store_true",
         help="For incremental updates, skip deletion of rows present in the "
              "destination but not the source")
-    parser.add_argument(
+    action_options.add_argument(
+        "--nonpatienttables", action="store_true",
+        help="Process non-patient tables only")
+    action_options.add_argument(
+        "--patienttables", action="store_true",
+        help="Process patient tables only")
+    action_options.add_argument(
+        "--index", action="store_true",
+        help="Create indexes only")
+
+    restrict_options = parser.add_argument_group(
+        "Restriction options"
+    )
+    restrict_options.add_argument(
+        "--restrict",
+        help="Restrict which patients are processed. Specify which field to "
+             "base the restriction on or 'pid' for patient ids.")
+    restrict_options.add_argument(
+        "--limits", nargs=2,
+        help="Specify lower and upper limits of the field "
+             "specified in '--restrict'")
+    restrict_options.add_argument(
+        "--file",
+        help="Specify a file with a list of values for the field "
+             "specified in '--restrict'")
+    restrict_options.add_argument(
+        "--list", nargs="+",
+        help="Specify a list of values for the field "
+             "specified in '--restrict'")
+    restrict_options.add_argument(
+        "--filtertext", type=int,
+        help="Filter out all free text over the specified length. "
+             "Set this to 0 to filter out all free text.")
+
+    processing_options = parser.add_argument_group(
+        "Processing options"
+    )
+    processing_options.add_argument(
+        "--process", nargs="?", type=int, default=0,
+        help="For multiprocess mode: specify process number")
+    processing_options.add_argument(
+        "--nprocesses", nargs="?", type=int, default=1,
+        help="For multiprocess mode: specify total number of processes "
+             "(launched somehow, of which this is to be one)")
+    processing_options.add_argument(
+        "--processcluster", default="",
+        help="Process cluster name (used as part of log name)")
+    processing_options.add_argument(
+        "--skip_dd_check", action="store_true",
+        help="Skip data dictionary validity check")
+    processing_options.add_argument(
         "--seed",
         help="String to use as the basis of the seed for the random number "
              "generator used for the transient integer RID (TRID). Leave "
              "blank to use the default seed (system time).")
-    parser.add_argument(
+    processing_options.add_argument(
+        '--chunksize', nargs="?", type=int,
+        default=DEFAULT_CHUNKSIZE,
+        help="Number of records copied in a chunk when copying PKs from one "
+             "database to another")
+
+    debugging_options = parser.add_argument_group(
+        "Reporting and debugging"
+    )
+    debugging_options.add_argument(
+        '--reportevery', nargs="?", type=int, default=DEFAULT_REPORT_EVERY,
+        help="Report insert progress every n rows in verbose mode")
+    debugging_options.add_argument(
+        "--debugscrubbers", action="store_true",
+        help="Report sensitive scrubbing information, for debugging")
+    debugging_options.add_argument(
+        "--savescrubbers", action="store_true",
+        help="Saves sensitive scrubbing information in admin database, "
+             "for debugging")
+    debugging_options.add_argument(
         "--echo", action="store_true", help="Echo SQL")
-    parser.add_argument(
-        "--checkextractor", nargs='*',
-        help="File extensions to check for availability of a text extractor "
-             "(use a '.' prefix, and use the special extension 'None' to "
-             "check the fallback processor")
+
     args = parser.parse_args()
 
     # -------------------------------------------------------------------------
+    # Verbosity, logging
+    # -------------------------------------------------------------------------
 
-    # Verbosity
     mynames = []  # type: List[str]
     if args.processcluster:
         mynames.append(args.processcluster)
@@ -200,6 +225,10 @@ def main() -> None:
     loglevel = logging.DEBUG if args.verbose else logging.INFO
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, loglevel, extranames=mynames)
+
+    # -------------------------------------------------------------------------
+    # Simple commands
+    # -------------------------------------------------------------------------
 
     # Check text converters
     if args.checkextractor:
@@ -210,13 +239,17 @@ def main() -> None:
             print(f"Text extractor for extension {ext} present: {available}")
         return
 
-    if args.config:
-        os.environ[CONFIG_ENV_VAR] = args.config
-
     # Demo config?
     if args.democonfig:
         print(DEMO_CONFIG)
         return
+
+    # -------------------------------------------------------------------------
+    # Onwards
+    # -------------------------------------------------------------------------
+
+    if args.config:
+        os.environ[CONFIG_ENV_VAR] = args.config
 
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import
@@ -228,8 +261,11 @@ def main() -> None:
 
             dropremake=args.dropremake,
             optout=args.optout,
-
-            skip_dd_check=args.skip_dd_check,
+            incremental=args.incremental,
+            skipdelete=args.skipdelete,
+            patienttables=args.patienttables,
+            nonpatienttables=args.nonpatienttables,
+            index=args.index,
 
             restrict=args.restrict,
             restrict_file=args.file,
@@ -237,14 +273,9 @@ def main() -> None:
             restrict_list=args.list,
             free_text_limit=args.filtertext,
 
-            incremental=args.incremental,
-            skipdelete=args.skipdelete,
-            patienttables=args.patienttables,
-            nonpatienttables=args.nonpatienttables,
-            index=args.index,
-
             nprocesses=args.nprocesses,
             process=args.process,
+            skip_dd_check=args.skip_dd_check,
             seed=args.seed,
             chunksize=args.chunksize,
 
