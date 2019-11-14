@@ -124,10 +124,10 @@ def main() -> None:
         help="Count records in source/destination databases, then stop")
     parser.add_argument(
         "--dropremake", action="store_true",
-        help="Drop/remake destination tables, then stop")
+        help="Drop/remake destination tables.")
     parser.add_argument(
         "--optout", action="store_true",
-        help="Build opt-out list, then stop")
+        help="Update opt-out list in administrative database.")
     parser.add_argument(
         "--nonpatienttables", action="store_true",
         help="Process non-patient tables only")
@@ -221,7 +221,38 @@ def main() -> None:
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import
     try:
-        anonymise(args)
+        anonymise(
+            draftdd=args.draftdd,
+            incrementaldd=args.incrementaldd,
+            count=args.count,
+
+            dropremake=args.dropremake,
+            optout=args.optout,
+
+            skip_dd_check=args.skip_dd_check,
+
+            restrict=args.restrict,
+            restrict_file=args.file,
+            restrict_limits=args.limits,
+            restrict_list=args.list,
+            free_text_limit=args.filtertext,
+
+            incremental=args.incremental,
+            skipdelete=args.skipdelete,
+            patienttables=args.patienttables,
+            nonpatienttables=args.nonpatienttables,
+            index=args.index,
+
+            nprocesses=args.nprocesses,
+            process=args.process,
+            seed=args.seed,
+            chunksize=args.chunksize,
+
+            reportevery=args.reportevery,
+            echo=args.echo,
+            debugscrubbers=args.debugscrubbers,
+            savescrubbers=args.savescrubbers,
+        )
     except Exception as exc:
         log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
         die(exc)

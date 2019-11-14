@@ -37,7 +37,7 @@ import logging
 import random
 import sys
 from datetime import datetime
-from typing import Any, Dict, Iterable, Generator, List, Tuple, Union
+from typing import Any, Dict, Iterable, Generator, List, Optional, Tuple, Union
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.sqlalchemy.core_query import count_star, exists_plain
@@ -1773,39 +1773,127 @@ def show_dest_counts() -> None:
 # Main
 # =============================================================================
 
-def anonymise(args: Any) -> None:
+def anonymise(draftdd: bool = False,
+              incrementaldd: bool = False,
+              count: bool = False,
+              dropremake: bool = False,
+              optout: bool = False,
+              skip_dd_check: bool = False,
+              restrict: str = "",
+              restrict_file: str = "",
+              restrict_limits: Optional[Tuple[Any, Any]] = None,
+              restrict_list: List[Any] = None,
+              free_text_limit: int = None,
+              incremental: bool = False,
+              skipdelete: bool = False,
+              patienttables: bool = False,
+              nonpatienttables: bool = False,
+              index: bool = False,
+              nprocesses: int = 1,
+              process: int = 0,
+              seed: str = "",
+              chunksize: int = DEFAULT_CHUNKSIZE,
+              reportevery: int = DEFAULT_REPORT_EVERY,
+              echo: bool = False,
+              debugscrubbers: bool = False,
+              savescrubbers: bool = False) -> None:
     """
     Main entry point for anonymisation.
 
     Args:
-        args:
-            argparse arguments, from
-            :func:`crate_anon.anonymise.anonymise_cli.main`
+        draftdd:
+            If true: print a data dictionary, then stop.
+        incrementaldd:
+            If true: print an incremental data dictionary, then stop.
+        count:
+            If true: show source/destination record counts, then stop.
+
+        dropremake:
+            If true: drop/remake destination tables.
+        optout:
+            If true: update opt-out list.
+
+        skip_dd_check:
+            If true: skip data dictionary validity check.
+
+        restrict:
+            Restrict to certain patients? Specify a field name, or ``pid``
+            to restrict by patient IDs.
+        restrict_file:
+            (For "restrict".) Filename for permitted values.
+        restrict_limits:
+            (For "restrict".) Tuple of lower and upper limits to
+            apply to the field.
+        restrict_list:
+            (For "restrict".) List of permitted values.
+        free_text_limit:
+            Filter out all free text over the specified length. Set this to 0
+            to filter out all free text.
+
+        incremental:
+            If true: incremental run, rather than full.
+        skipdelete:
+            (For "incremental".) Skip deletion of rows present in the
+            destination but not the source.
+        patienttables:
+            If true: process patient tables only (rather than all tables).
+        nonpatienttables:
+            If true: process non-patient tables only (rather than all tables).
+        index:
+            If true: create indexes only.
+
+        nprocesses:
+            Number of processing being run (of which this is one), for work
+            allocation.
+        process:
+            Number of this process (from 0 to nprocesses - 1), for work
+            allocation.
+        seed:
+            Seed for random number generator (for TRID generation).
+            Blank for the default of system time.
+        chunksize:
+            Number of records copied in a chunk when copying PKs from one
+            database to another.
+
+        reportevery:
+            Report insert progress every n rows in verbose mode.
+        echo:
+            Echo SQL?
+        debugscrubbers:
+            Report sensitive scrubbing information, for debugging
+        savescrubbers:
+            Saves sensitive scrubbing information in admin database, for
+            debugging
+
     """
     # Validate args
-    if args.nprocesses < 1:
+    if nprocesses < 1:
         raise ValueError("--nprocesses must be >=1")
-    if args.process < 0 or args.process >= args.nprocesses:
+    if process < 0 or process >= nprocesses:
         raise ValueError(
             "--process argument must be from 0 to (nprocesses - 1) inclusive")
-    if args.nprocesses > 1 and args.dropremake:
+    if nprocesses > 1 and dropremake:
         raise ValueError("Can't use nprocesses > 1 with --dropremake")
-    if args.incrementaldd and args.draftdd:
+    if incrementaldd and draftdd:
         raise ValueError("Can't use --incrementaldd and --draftdd")
 
-    everything = not any([args.dropremake, args.optout, args.nonpatienttables,
-                          args.patienttables, args.index])
+    everything = not any([dropremake, optout, nonpatienttables,
+                          patienttables, index])
 
     # Load/validate config
-    config.report_every_n_rows = args.reportevery
-    config.chunksize = args.chunksize
-    config.debug_scrubbers = args.debugscrubbers
-    config.save_scrubbers = args.savescrubbers
-    config.set_echo(args.echo)
-    if not args.draftdd:
-        config.load_dd(check_against_source_db=not args.skip_dd_check)
+    config.report_every_n_rows = reportevery
+    config.chunksize = chunksize
+    config.debug_scrubbers = debugscrubbers
+    config.save_scrubbers = savescrubbers
+    config.set_echo(echo)
+    if not draftdd:
+        config.load_dd(check_against_source_db=not skip_dd_check)
 
-    if args.draftdd or args.incrementaldd:
+    # -------------------------------------------------------------------------
+    # One-off actions
+    # -------------------------------------------------------------------------
+
+    if draftdd or incrementaldd:
         # Note: the difference is that for incrementaldd, the data dictionary
         # will have been loaded from disk; for draftdd, it won't (so a
         # completely fresh one will be generated).
@@ -1813,22 +1901,27 @@ def anonymise(args: Any) -> None:
         print(config.dd.get_tsv())
         return
 
+    # If we are doing more than generating a data dictionary, the config must
+    # be valid.
     config.check_valid()
 
-    if args.count:
+    if count:
         show_source_counts()
         show_dest_counts()
         return
 
+    # -------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
+
     pids = None
-    if args.restrict:
-        if args.file:
-            pids = get_pids_from_file(args.restrict, args.file)
-        elif args.limits:
-            pids = get_pids_from_field_limits(args.restrict, args.limits[0],
-                                              args.limits[1])
-        elif args.list:
-            pids = get_pids_from_list(args.restrict, args.list)
+    if restrict:
+        if restrict_file:
+            pids = get_pids_from_file(restrict, restrict_file)
+        elif restrict_limits:
+            pids = get_pids_from_field_limits(restrict, restrict_limits[0],
+                                              restrict_limits[1])
+        elif restrict_list:
+            pids = get_pids_from_list(restrict, restrict_list)
         else:
             raise ValueError("'--restrict' option requires one of "
                              "'--file', '--limits' or '--list'")
@@ -1836,7 +1929,7 @@ def anonymise(args: Any) -> None:
             log.warning("No valid patient ids found for the conditions given")
 
     # random number seed
-    random.seed(args.seed)
+    random.seed(seed)
 
     # -------------------------------------------------------------------------
 
@@ -1844,34 +1937,33 @@ def anonymise(args: Any) -> None:
     start = get_now_utc_pendulum()
 
     # 1. Drop/remake tables. Single-tasking only.
-    if args.dropremake or everything:
-        drop_remake(incremental=args.incremental,
-                    skipdelete=args.skipdelete)
+    if dropremake or everything:
+        drop_remake(incremental=incremental, skipdelete=skipdelete)
 
     # 2. Deal with opt-outs
-    if args.optout or everything:
-        setup_opt_out(incremental=args.incremental)
+    if optout or everything:
+        setup_opt_out(incremental=incremental)
 
     # 3. Tables with patient info.
     #    Process PER PATIENT, across all tables, because we have to synthesize
     #    information to scrub across the entirety of that patient's record.
-    if args.patienttables or everything:
-        process_patient_tables(tasknum=args.process,
-                               ntasks=args.nprocesses,
-                               incremental=args.incremental,
+    if patienttables or everything:
+        process_patient_tables(tasknum=process,
+                               ntasks=nprocesses,
+                               incremental=incremental,
                                specified_pids=pids,
-                               free_text_limit=args.filtertext)
+                               free_text_limit=free_text_limit)
 
     # 4. Tables without any patient ID (e.g. lookup tables). Process PER TABLE.
-    if args.nonpatienttables or everything:
-        process_nonpatient_tables(tasknum=args.process,
-                                  ntasks=args.nprocesses,
-                                  incremental=args.incremental,
-                                  free_text_limit=args.filtertext)
+    if nonpatienttables or everything:
+        process_nonpatient_tables(tasknum=process,
+                                  ntasks=nprocesses,
+                                  incremental=incremental,
+                                  free_text_limit=free_text_limit)
 
     # 5. Indexes. ALWAYS FASTEST TO DO THIS LAST. Process PER TABLE.
-    if args.index or everything:
-        create_indexes(tasknum=args.process, ntasks=args.nprocesses)
+    if index or everything:
+        create_indexes(tasknum=process, ntasks=nprocesses)
 
     log.info(BIGSEP + "Finished")
     end = get_now_utc_pendulum()
