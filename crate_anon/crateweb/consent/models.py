@@ -1394,10 +1394,9 @@ class ConsentMode(Decision):
 
           - create a new ConsentMode with (..., source=source_db)
           - save it
-
-        .. todo:: also: use celery beat to refresh regularly +/- trigger
-            withdrawal of consent if consent mode changed;
-            http://docs.celeryproject.org/en/latest/userguide/periodic-tasks.html
+          - trigger
+            :func:`crate_anon.crateweb.consent.tasks.process_consent_change` on
+            commit, which might take further action
 
         .. todo:: also make automatic opt-out list
 

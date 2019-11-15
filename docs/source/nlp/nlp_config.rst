@@ -702,7 +702,7 @@ processor_format
 
 One of:  ``Standard``, ``GATE``.
 
-.. todo:: explain
+.. todo:: explain processor_format (cloud NLP) setting
 
 
 .. _nlp_config_section_gate_output:

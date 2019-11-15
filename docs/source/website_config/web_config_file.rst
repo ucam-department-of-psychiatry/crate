@@ -130,6 +130,55 @@ Optionally, this can be overridden. By default, it is ``amqp://``.
 - Similarly, override ``BROKER_URL`` to improve RabbitMQ security.
 
 
+CELERYBEAT_SCHEDULE
+###################
+
+Schedule back-end (Celery) tasks for specific times. See:
+
+- Celery periodic tasks:
+  https://docs.celeryproject.org/en/latest/userguide/periodic-tasks.html
+- Celery ``beat_schedule`` setting:
+  https://docs.celeryproject.org/en/latest/userguide/configuration.html
+- Via Django:
+  https://stackoverflow.com/questions/37848481/how-to-configure-celerybeat-schedule-in-django-settings/37851090
+- Renaming from ``CELERYBEAT_SCHEDULE`` to ``beat_schedule`` (and from
+  ``BROKER_URL`` to ``broker_url`` from Celery version 4.0, with backwards
+  compatibility):
+  https://docs.celeryproject.org/en/latest/userguide/configuration.html#new-lowercase-settings
+
+The typical use is to make CRATE check the primary clinical record regularly --
+so that, for example, if a patient withdraws their consent, this is processed
+promptly to create a withdrawal-of-consent letter to relevant researchers. Like
+this:
+
+.. code-block:: python
+
+    from celery.schedules import crontab
+
+    # ...
+
+    CELERYBEAT_SCHEDULE = {
+        'refresh_consent_modes_at_midnight': {
+            'task': 'crate_anon.crateweb.consent.tasks.refresh_all_consent_modes',
+            'schedule': crontab(minute=0, hour=0),
+        },
+    }
+
+.. note::
+
+    The scheduled tasks will not run unless you start Celery with the beat
+    option - i.e. run ``crate_launch_celery --command=beat``. This is
+    done automatically as part of the Windows service launcher.
+
+Celery picks up these definitions as follows:
+
+- ``crate_anon/crateweb/consent/celery.py`` sets the environment variable
+  ``DJANGO_SETTINGS_MODULE``, then calls
+  ``app.config_from_object('django.conf:settings')``. That loads
+  ``django.conf`` and reads its ``settings`` (which loads the user's Django
+  configuration file).
+
+
 Database configuration
 ----------------------
 
