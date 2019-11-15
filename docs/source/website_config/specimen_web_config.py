@@ -478,6 +478,5 @@ PDF_LETTER_FOOTER_HTML = ''
 CHARITY_URL = "http://www.cpft.nhs.uk/research.htm"
 CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
-PUBLIC_RESEARCH_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 
 # Generated at 2019-11-14 21:35:43

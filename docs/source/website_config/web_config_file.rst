@@ -1050,23 +1050,12 @@ Short "humanized" version of CHARITY_URL_, for use as clickable text; e.g.
 LEAFLET_URL_CPFTRD_CLINRES_SHORT
 ################################
 
-Short "humanized" version of CHARITY_URL_, for use in printed PDFs such as
-leaflets; e.g.
+Short "humanized" version of where to click to get the patient leaflet about
+your research database. (Used by ``.html`` templates.)
 
 .. code-block:: python
 
     LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
-
-PUBLIC_RESEARCH_URL_SHORT
-#########################
-
-Another version of CHARITY_URL_; e.g.
-
-.. code-block:: python
-
-    PUBLIC_RESEARCH_URL_SHORT = "www.cpft.nhs.uk/research.htm"
-
-.. todo:: is this one currently unused? Looks like it.
 
 
 Specimen config file
