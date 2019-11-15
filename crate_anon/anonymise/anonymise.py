@@ -1776,10 +1776,10 @@ def show_dest_counts() -> None:
 def anonymise(draftdd: bool = False,
               incrementaldd: bool = False,
               count: bool = False,
-              dropremake: bool = False,
-              optout: bool = False,
               incremental: bool = False,
               skipdelete: bool = False,
+              dropremake: bool = False,
+              optout: bool = False,
               patienttables: bool = False,
               nonpatienttables: bool = False,
               index: bool = False,
@@ -1808,15 +1808,16 @@ def anonymise(draftdd: bool = False,
         count:
             If true: show source/destination record counts, then stop.
 
-        dropremake:
-            If true: drop/remake destination tables.
-        optout:
-            If true: update opt-out list.
         incremental:
             If true: incremental run, rather than full.
         skipdelete:
             (For "incremental".) Skip deletion of rows present in the
             destination but not the source.
+
+        dropremake:
+            If true: drop/remake destination tables.
+        optout:
+            If true: update opt-out list.
         patienttables:
             If true: process patient tables only (rather than all tables).
         nonpatienttables:

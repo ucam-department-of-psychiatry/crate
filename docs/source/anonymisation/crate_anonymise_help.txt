@@ -1,8 +1,8 @@
 usage: crate_anonymise [-h] [--config CONFIG] [--verbose] [--version]
                        [--democonfig]
                        [--checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]]
-                       [--draftdd] [--incrementaldd] [--count] [--dropremake]
-                       [--optout] [-i | -f] [--skipdelete]
+                       [--draftdd] [--incrementaldd] [--count] [-i | -f]
+                       [--skipdelete] [--dropremake] [--optout]
                        [--nonpatienttables] [--patienttables] [--index]
                        [--restrict RESTRICT] [--limits LIMITS LIMITS]
                        [--file FILE] [--list LIST [LIST ...]]
@@ -37,15 +37,17 @@ Simple commands requiring a config:
   --count               Count records in source/destination databases, then
                         stop (default: False)
 
-Action options:
-  --dropremake          Drop/remake destination tables. (default: False)
-  --optout              Update opt-out list in administrative database.
-                        (default: False)
+Mode options:
   -i, --incremental     Process only new/changed information, where possible
                         (* default) (default: True)
   -f, --full            Drop and remake everything (default: True)
   --skipdelete          For incremental updates, skip deletion of rows present
                         in the destination but not the source (default: False)
+
+Action options (default is to do all, but if any one is specified, only the specified actions are taken):
+  --dropremake          Drop/remake destination tables. (default: False)
+  --optout              Update opt-out list in administrative database.
+                        (default: False)
   --nonpatienttables    Process non-patient tables only (default: False)
   --patienttables       Process patient tables only (default: False)
   --index               Create indexes only (default: False)
@@ -96,4 +98,4 @@ Reporting and debugging:
                         database, for debugging (default: False)
   --echo                Echo SQL (default: False)
 
-# Generated at 2019-11-14 21:34:46
+# Generated at 2019-11-15 01:09:13

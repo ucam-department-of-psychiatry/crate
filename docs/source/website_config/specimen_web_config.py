@@ -39,6 +39,12 @@ https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html
 import logging
 import os
 from typing import List, TYPE_CHECKING
+
+# Include the following if you want to use it in CELERYBEAT_SCHEDULE
+# from celery.schedules import crontab
+
+from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
+
 if TYPE_CHECKING:
     from django.http.request import HttpRequest
 
@@ -48,9 +54,6 @@ log.critical(
     "Well done - CRATE has found your crate_local_settings.py file at {}. "
     "However, you need to configure it for your institution's set-up, and "
     "remove this line.".format(os.path.abspath(__file__)))
-
-# noinspection PyPep8, PyUnreachableCode
-from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 
 
 # =============================================================================
@@ -479,4 +482,4 @@ CHARITY_URL = "http://www.cpft.nhs.uk/research.htm"
 CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
 
-# Generated at 2019-11-14 21:35:43
+# Generated at 2019-11-15 01:10:10

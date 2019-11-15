@@ -262,7 +262,8 @@ Design notes
   that take much time to create). See
   :func:`crate_anon.crateweb.research.views.archive_template`.
 
+Not done:
 
+- consider Windows authentication to Django
 
-.. todo:: archive: consider Windows authentication to Django
-.. todo:: optional launch page for archive (e.g. allowing JSON POST for patient ID)
+- optional launch page for archive (e.g. allowing JSON POST for patient ID)

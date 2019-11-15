@@ -8,4 +8,4 @@ optional arguments:
   --command COMMAND  Celery command (default: worker)
   --debug            Ask Celery to be verbose
 
-# Generated at 2019-11-14 21:35:39
+# Generated at 2019-11-15 01:10:06

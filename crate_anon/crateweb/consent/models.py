@@ -1398,8 +1398,6 @@ class ConsentMode(Decision):
             :func:`crate_anon.crateweb.consent.tasks.process_consent_change` on
             commit, which might take further action
 
-        .. todo:: also make automatic opt-out list
-
         """
         from crate_anon.crateweb.consent.lookup import lookup_consent  # delayed import  # noqa
 

@@ -112,16 +112,10 @@ def main() -> None:
         "--count", action="store_true",
         help="Count records in source/destination databases, then stop")
 
-    action_options = parser.add_argument_group(
-        "Action options"
+    mode_options = parser.add_argument_group(
+        "Mode options"
     )
-    action_options.add_argument(
-        "--dropremake", action="store_true",
-        help="Drop/remake destination tables.")
-    action_options.add_argument(
-        "--optout", action="store_true",
-        help="Update opt-out list in administrative database.")
-    mode_group = action_options.add_mutually_exclusive_group()
+    mode_group = mode_options.add_mutually_exclusive_group()
     mode_group.add_argument(
         "-i", "--incremental", dest="incremental", action="store_true",
         help="Process only new/changed information, where possible "
@@ -130,10 +124,21 @@ def main() -> None:
         "-f", "--full", dest="incremental", action="store_false",
         help="Drop and remake everything")
     parser.set_defaults(incremental=True)
-    action_options.add_argument(
+    mode_options.add_argument(
         "--skipdelete", dest="skipdelete", action="store_true",
         help="For incremental updates, skip deletion of rows present in the "
              "destination but not the source")
+
+    action_options = parser.add_argument_group(
+        "Action options (default is to do all, but if any one is specified, "
+        "only the specified actions are taken)"
+    )
+    action_options.add_argument(
+        "--dropremake", action="store_true",
+        help="Drop/remake destination tables.")
+    action_options.add_argument(
+        "--optout", action="store_true",
+        help="Update opt-out list in administrative database.")
     action_options.add_argument(
         "--nonpatienttables", action="store_true",
         help="Process non-patient tables only")
@@ -259,10 +264,11 @@ def main() -> None:
             incrementaldd=args.incrementaldd,
             count=args.count,
 
-            dropremake=args.dropremake,
-            optout=args.optout,
             incremental=args.incremental,
             skipdelete=args.skipdelete,
+
+            dropremake=args.dropremake,
+            optout=args.optout,
             patienttables=args.patienttables,
             nonpatienttables=args.nonpatienttables,
             index=args.index,
