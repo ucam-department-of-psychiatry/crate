@@ -705,9 +705,10 @@ processor_format
 
 One of:  ``Standard``, ``GATE``.
 
-``Standard`` refers primarily to CRATE python-based rempote processors,
+``Standard`` refers primarily to CRATE Python-based rempote processors,
 but would be compatible with any remote processor which returned data in the
-same format as the CRATE processors.
+same format as the CRATE processors. ``GATE`` refers to GATE remote
+processors, which return a standard set of columns.
 
 
 .. _nlp_config_section_gate_output:

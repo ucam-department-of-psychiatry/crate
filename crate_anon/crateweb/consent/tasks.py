@@ -123,6 +123,7 @@ def add(x: float, y: float) -> float:
         x + y
 
     """
+    log.debug("add")
     return x + y
 
 
@@ -142,8 +143,9 @@ def resend_email(email_id: int, user_id: int) -> None:
     Creates/saves an
     :class:`crate_anon.crateweb.consent.models.EmailTransmission`.
     """
-    User = get_user_model()
     from crate_anon.crateweb.consent.models import Email  # delayed import
+    log.debug("resend_email")
+    User = get_user_model()
     email = Email.objects.get(pk=email_id)
     user = User.objects.get(pk=user_id)
     email.resend(user)
@@ -166,6 +168,7 @@ def process_contact_request(contact_request_id: int) -> None:
         contact_request_id: PK of the contact request
     """
     from crate_anon.crateweb.consent.models import ContactRequest  # delayed import  # noqa
+    log.debug("process_contact_request")
     set_script_prefix(settings.FORCE_SCRIPT_NAME)  # see site_absolute_url
     contact_request = ContactRequest.objects.get(pk=contact_request_id)  # type: ContactRequest  # noqa
     contact_request.process_request()
@@ -189,9 +192,33 @@ def finalize_clinician_response(clinician_response_id: int) -> None:
         clinician_response_id: PK of the clinician response
     """  # noqa
     from crate_anon.crateweb.consent.models import ClinicianResponse  # delayed import  # noqa
+    log.debug("finalize_clinician_response")
     clinician_response = ClinicianResponse.objects.get(
         pk=clinician_response_id)
     clinician_response.finalize_b()  # second part of processing
+
+
+@shared_task(ignore_result=True)
+def refresh_all_consent_modes() -> None:
+    """
+    Celery task to refresh all consent modes. Uses
+    :meth:`crate_anon.crateweb.consent.models.ConsentMode.refresh_from_primary_clinical_record`
+    so it uses the correct consent mode, i.e. external primary clinical record
+    takes priority.
+    """
+    from crate_anon.crateweb.consent.models import ConsentMode  # delayed import  # noqa
+    from django.contrib.auth.models import User  # delayed import
+    log.debug("refresh_all_consent_modes")
+
+    # Get a superuser to be the 'created_by' user for the consent modes.
+    # Maybe we should: (1) add an 'is_rdbm' field to auth user or
+    # (2) have a superuser especially for automatic tasks?
+    auto_creator = User.objects.first()
+    all_consent_modes = ConsentMode.objects.all()
+    for cm in all_consent_modes:
+        ConsentMode.refresh_from_primary_clinical_record(
+            nhs_number=cm.nhs_number,
+            created_by=auto_creator)
 
 
 # noinspection PyCallingNonCallable
@@ -214,6 +241,7 @@ def process_consent_change(consent_mode_id: int) -> None:
         consent_mode_id: PK of the consent mode
     """
     from crate_anon.crateweb.consent.models import ConsentMode  # delayed import  # noqa
+    log.debug("process_consent_change")
     consent_mode = ConsentMode.objects.get(pk=consent_mode_id)
     consent_mode.process_change()
 
@@ -232,6 +260,7 @@ def process_patient_response(patient_response_id: int) -> None:
         patient_response_id: PK of the patient response
     """
     from crate_anon.crateweb.consent.models import PatientResponse  # delayed import  # noqa
+    log.debug("process_patient_response")
     patient_response = PatientResponse.objects.get(pk=patient_response_id)
     patient_response.process_response()
 
@@ -243,6 +272,7 @@ def test_email_rdbm_task() -> None:
     Celery task to test the e-mail system by e-mailing the Research Database
     Manager.
     """
+    log.debug("test_email_rdbm_task")
     subject = "TEST MESSAGE FROM RESEARCH DATABASE COMPUTER"
     text = (
         "Success! The CRATE framework can communicate via Celery with its "
@@ -267,6 +297,7 @@ def email_rdbm_task(subject: str, text: str) -> None:
         text: e-mail body text
     """
     from crate_anon.crateweb.consent.models import Email  # delayed import
+    log.debug("email_rdbm_task")
     email = Email.create_rdbm_text_email(subject, text)
     et = email.send()
     if et is None:
@@ -296,6 +327,7 @@ def resubmit_unprocessed_tasks_task() -> None:
     from crate_anon.crateweb.consent.models import ConsentMode  # delayed import  # noqa
     from crate_anon.crateweb.consent.models import ContactRequest  # delayed import  # noqa
     from crate_anon.crateweb.consent.models import PatientResponse  # delayed import  # noqa
+    log.debug("resubmit_unprocessed_tasks_task")
 
     for patient_response in PatientResponse.get_unprocessed():
         process_patient_response.delay(patient_response.id)
