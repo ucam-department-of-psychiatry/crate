@@ -1193,6 +1193,10 @@ Changes
 - Update ``pillow`` from 6.1.0 to 6.2.0
   (https://nvd.nist.gov/vuln/detail/CVE-2019-16865).
 
+- :class:`crate_anon.nlp_manager.parse_biochemistry.TotalCholesterol` was
+  incorrectly labelling its output "HDL cholesterol"; changed to "Total
+  cholesterol".
+
 
 ===============================================================================
 

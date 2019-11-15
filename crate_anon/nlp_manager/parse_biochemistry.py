@@ -1047,7 +1047,7 @@ class TotalCholesterol(SimpleNumericalResultParser):
             | {MG_PER_DL}                       # OK but needs conversion
         )?
     """
-    NAME = "HDL cholesterol"
+    NAME = "Total cholesterol"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     FACTOR_MG_DL_TO_MMOL_L = 0.02586
     # ... https://www.ncbi.nlm.nih.gov/books/NBK33478/

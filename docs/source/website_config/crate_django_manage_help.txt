@@ -1,4 +1,4 @@
-Loading local settings from: /home/rudolf/Documents/code/crate/secret_local_settings/crateweb_rudolf_config.py
+Loading local settings from: /home/rudolf/Documents/code/crate/working/crateweb_rudolf_config.py
 
 Type 'crate_django_manage help <subcommand>' for help on a specific subcommand.
 
@@ -110,4 +110,4 @@ Available subcommands:
     findstatic
     runserver
 
-# Generated at 2019-10-10 10:23:48
+# Generated at 2019-11-14 21:35:09

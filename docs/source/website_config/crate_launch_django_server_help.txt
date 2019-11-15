@@ -1,4 +1,4 @@
-Loading local settings from: /home/rudolf/Documents/code/crate/secret_local_settings/crateweb_rudolf_config.py
+Loading local settings from: /home/rudolf/Documents/code/crate/working/crateweb_rudolf_config.py
 usage: crate_launch_django_server runserver [-h] [--ipv6] [--nothreading]
                                             [--noreload] [--nostatic]
                                             [--insecure] [--version]
@@ -35,4 +35,4 @@ optional arguments:
   --traceback           Raise on CommandError exceptions
   --no-color            Don't colorize the command output.
 
-# Generated at 2019-10-10 10:24:22
+# Generated at 2019-11-14 21:35:42
