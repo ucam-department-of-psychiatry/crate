@@ -38,7 +38,6 @@ import logging
 import os
 from typing import List
 
-from cardinal_pythonlib.argparse_func import RawDescriptionArgumentDefaultsHelpFormatter  # noqa
 from cardinal_pythonlib.exceptions import die
 from cardinal_pythonlib.extract_text import is_text_extractor_available
 from cardinal_pythonlib.logs import configure_logger_for_colour
@@ -76,7 +75,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(
         description=description,
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
         "--config",
@@ -84,12 +83,13 @@ def main() -> None:
     parser.add_argument(
         '--verbose', '-v', action="store_true",
         help="Be verbose")
-    parser.add_argument(
-        "--version", action="version", version=version)
 
+    # Group descriptions are not word-wrapped automatically.
     simple_group_1 = parser.add_argument_group(
         "Simple commands not requiring a config"
     )
+    simple_group_1.add_argument(
+        "--version", action="version", version=version)
     simple_group_1.add_argument(
         "--democonfig", action="store_true",
         help="Print a demo config file")
@@ -130,8 +130,8 @@ def main() -> None:
              "destination but not the source")
 
     action_options = parser.add_argument_group(
-        "Action options (default is to do all, but if any one is specified, "
-        "only the specified actions are taken)"
+        "Action options (default is to do all, but if any are specified, "
+        "only those are done)"
     )
     action_options.add_argument(
         "--dropremake", action="store_true",
