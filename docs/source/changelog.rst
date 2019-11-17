@@ -1165,7 +1165,7 @@ Changes
 
 - ``cardinal_pythonlib==1.0.73``
 
-**v0.18.93, 2019-10-22**
+**v0.18.93, 2019-10-22, IN PROGRESS**
 
 - New option :ref:`add_mrid_wherever_rid_added <add_mrid_wherever_rid_added>`.
 
@@ -1196,6 +1196,8 @@ Changes
 - :class:`crate_anon.nlp_manager.parse_biochemistry.TotalCholesterol` was
   incorrectly labelling its output "HDL cholesterol"; changed to "Total
   cholesterol".
+
+- ``cardinal_pythonlib==1.0.78``.
 
 
 ===============================================================================
