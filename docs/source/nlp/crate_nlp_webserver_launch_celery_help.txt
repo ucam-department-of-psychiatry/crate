@@ -1,9 +1,14 @@
-usage: crate_nlp_webserver_launch_celery [-h] [--command COMMAND] [--debug]
+usage: crate_nlp_webserver_launch_celery [-h] [--command COMMAND]
+                                         [--cleanup_timeout_s CLEANUP_TIMEOUT_S]
+                                         [--debug]
 
 Launch CRATE NLP web server Celery processes. (Any leftover arguments will be
 passed to Celery.)
 
 optional arguments:
-  -h, --help         show this help message and exit
-  --command COMMAND  Celery command (default: worker)
-  --debug            Ask Celery to be verbose (default: False)
+  -h, --help            show this help message and exit
+  --command COMMAND     Celery command (default: worker)
+  --cleanup_timeout_s CLEANUP_TIMEOUT_S
+                        Time to wait when shutting down Celery via Ctrl-C
+                        (default: 10.0)
+  --debug               Ask Celery to be verbose (default: False)

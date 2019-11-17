@@ -1197,7 +1197,9 @@ Changes
   incorrectly labelling its output "HDL cholesterol"; changed to "Total
   cholesterol".
 
-- ``cardinal_pythonlib==1.0.79``.
+- ``cardinal_pythonlib==1.0.80``, including a better call to Celery that
+  handles a Ctrl-C to the Python process better (via the ``nice_call``
+  function). See CamCOPS documentation for more detail.
 
 
 ===============================================================================

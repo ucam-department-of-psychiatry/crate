@@ -13,7 +13,7 @@ usage: crate_anonymise [-h] [--config CONFIG] [--verbose] [--version]
                        [--reportevery [REPORTEVERY]] [--debugscrubbers]
                        [--savescrubbers] [--echo]
 
-Database anonymiser. Version 0.18.93 (2019-10-22). By Rudolf Cardinal.
+Database anonymiser. Version 0.18.93 (2019-11-17). By Rudolf Cardinal.
 
 optional arguments:
   -h, --help            show this help message and exit

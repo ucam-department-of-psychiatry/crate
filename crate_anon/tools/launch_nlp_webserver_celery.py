@@ -33,7 +33,8 @@ Compare crate_anon/tools/launch_celery.py (for the main CRATE web site).
 import argparse
 import os
 import platform
-import subprocess
+
+from cardinal_pythonlib.process import nice_call
 
 from crate_anon.nlp_webserver.tasks import NLP_WEBSERVER_CELERY_APP_NAME
 
@@ -57,6 +58,10 @@ def main() -> None:
         help="Celery command"
     )
     parser.add_argument(
+        "--cleanup_timeout_s", type=float, default=10.0,
+        help="Time to wait when shutting down Celery via Ctrl-C"
+    )
+    parser.add_argument(
         "--debug", action="store_true",
         help="Ask Celery to be verbose"
     )
@@ -75,7 +80,7 @@ def main() -> None:
             cmdargs += ["--pool=solo"]
     cmdargs += leftovers
     print(f"Launching Celery: {cmdargs}")
-    subprocess.call(cmdargs)
+    nice_call(cmdargs, cleanup_timeout=args.cleanup_timeout_s)
 
 
 if __name__ == '__main__':

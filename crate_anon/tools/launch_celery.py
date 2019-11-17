@@ -31,10 +31,10 @@ crate_anon/tools/launch_celery.py
 import argparse
 import os
 import platform
-import subprocess
 
-from crate_anon.crateweb.\
-    config.constants import CRATEWEB_CELERY_APP_NAME
+from cardinal_pythonlib.process import nice_call
+
+from crate_anon.crateweb.config.constants import CRATEWEB_CELERY_APP_NAME
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -52,11 +52,21 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(
         description="Launch CRATE Celery processes. "
-                    "(Any leftover arguments will be passed to Celery.)")
-    parser.add_argument("--command", default="worker",
-                        help="Celery command (default: worker)")
-    parser.add_argument("--debug", action="store_true",
-                        help="Ask Celery to be verbose")
+                    "(Any leftover arguments will be passed to Celery.)",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "--command", default="worker",
+        help="Celery command"
+    )
+    parser.add_argument(
+        "--cleanup_timeout_s", type=float, default=10.0,
+        help="Time to wait when shutting down Celery via Ctrl-C"
+    )
+    parser.add_argument(
+        "--debug", action="store_true",
+        help="Ask Celery to be verbose"
+    )
     args, leftovers = parser.parse_known_args()
 
     # print(f"Changing to directory: {DJANGO_ROOT}")
@@ -95,7 +105,7 @@ def main() -> None:
         # "--autoreload",
     cmdargs += leftovers
     print(f"Launching Celery: {cmdargs}")
-    subprocess.call(cmdargs)
+    nice_call(cmdargs, cleanup_timeout=args.cleanup_timeout_s)
 
 
 if __name__ == '__main__':
