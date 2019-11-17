@@ -41,7 +41,7 @@ from cardinal_pythonlib.sql.validation import (
     is_sqltype_date,
     is_sqltype_text_over_one_char,
 )
-from cardinal_pythonlib.text import UNICODE_CATEGORY_STRINGS
+from cardinal_pythonlib.text import get_unicode_characters
 from flashtext import KeywordProcessor
 
 from crate_anon.anonymise.constants import SCRUBMETHOD
@@ -121,7 +121,7 @@ FLASHTEXT_WORD_CHARACTERS = set(
     string.digits +  # part of flashtext default
     string.ascii_letters +  # part of flashtext default
     '_' +  # part of flashtext default
-    UNICODE_CATEGORY_STRINGS['Latin_Alphabetic']
+    get_unicode_characters('Latin_Alphabetic')
 )
 # Why do we do this? So e.g. "naïve" isn't truncated to "naï[~~~]".
 # Check: FLASHTEXT_WORDCHAR_STR = "".join(sorted(FLASHTEXT_WORD_CHARACTERS))

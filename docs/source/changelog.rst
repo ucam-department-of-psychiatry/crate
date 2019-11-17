@@ -1197,7 +1197,7 @@ Changes
   incorrectly labelling its output "HDL cholesterol"; changed to "Total
   cholesterol".
 
-- ``cardinal_pythonlib==1.0.78``.
+- ``cardinal_pythonlib==1.0.79``.
 
 
 ===============================================================================
