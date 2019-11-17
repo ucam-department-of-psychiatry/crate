@@ -7,5 +7,3 @@ optional arguments:
   --config      Print a demo config file for server side cloud nlp.
   --processors  Print a demo processor constants file for server side cloud
                 nlp.
-
-# Generated at 2019-11-15 01:09:24

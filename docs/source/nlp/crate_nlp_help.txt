@@ -66,5 +66,3 @@ optional arguments:
                         option cancels all pending requests - not just those
                         for the nlp definition specified
   --showqueue           Shows all pending cloud requests.
-
-# Generated at 2019-11-15 01:09:20

@@ -109,5 +109,3 @@ Available subcommands:
     collectstatic
     findstatic
     runserver
-
-# Generated at 2019-11-15 01:09:36

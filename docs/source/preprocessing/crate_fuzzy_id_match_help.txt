@@ -313,5 +313,3 @@ optional arguments:
                         loading)
   --output OUTPUT       Output CSV file for proband/sample comparison
 
-
-# Generated at 2019-11-15 01:09:31

@@ -11,5 +11,3 @@ optional arguments:
   --nproc [NPROC], -n [NPROC]
                         Number of processes (default on this machine: 8)
   --verbose, -v         Be verbose
-
-# Generated at 2019-11-15 01:09:21

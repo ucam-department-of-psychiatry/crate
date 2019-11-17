@@ -24,5 +24,3 @@ optional arguments:
                    stdout once results are ready on disk.
 
 (*) MedEx argument
-
-# Generated at 2019-11-15 01:09:15

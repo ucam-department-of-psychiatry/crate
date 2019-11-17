@@ -34,5 +34,3 @@ optional arguments:
                         'pserve' section of the configuration file.
   -v, --verbose         Set verbose level (default 1)
   -q, --quiet           Suppress verbose output
-
-# Generated at 2019-11-15 01:09:27

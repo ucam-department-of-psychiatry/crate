@@ -8,5 +8,3 @@ optional arguments:
   --crate_config CRATE_CONFIG
                         CRATE NLP web server config file (default is read from
                         environment variable CRATE_NLP_WEB_CONFIG)
-
-# Generated at 2019-11-15 01:09:27

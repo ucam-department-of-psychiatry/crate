@@ -62,5 +62,3 @@ optional arguments:
   --settings-filename SETTINGS_FILENAME
                         Specify filename to write draft ddgen_* settings to,
                         for use in a CRATE anonymiser configuration file.
-
-# Generated at 2019-11-15 01:09:34

@@ -20,9 +20,9 @@ optional arguments:
   --config CONFIG       Config file (overriding environment variable
                         CRATE_ANON_CONFIG) (default: None)
   --verbose, -v         Be verbose (default: False)
-  --version             show program's version number and exit
 
 Simple commands not requiring a config:
+  --version             show program's version number and exit
   --democonfig          Print a demo config file (default: False)
   --checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]
                         File extensions to check for availability of a text
@@ -44,7 +44,7 @@ Mode options:
   --skipdelete          For incremental updates, skip deletion of rows present
                         in the destination but not the source (default: False)
 
-Action options (default is to do all, but if any one is specified, only the specified actions are taken):
+Action options (default is to do all, but if any are specified, only those are done):
   --dropremake          Drop/remake destination tables. (default: False)
   --optout              Update opt-out list in administrative database.
                         (default: False)
@@ -97,5 +97,3 @@ Reporting and debugging:
   --savescrubbers       Saves sensitive scrubbing information in admin
                         database, for debugging (default: False)
   --echo                Echo SQL (default: False)
-
-# Generated at 2019-11-15 01:09:13

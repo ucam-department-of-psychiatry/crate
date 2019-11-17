@@ -60,7 +60,7 @@ EXECUTABLE_PERMISSIONS = (
 
 def run_cmd(cmdargs: List[str],
             output_filename: str,
-            timestamp: bool = True,
+            timestamp: bool = False,
             comment_prefix: str = "# ",
             encoding: str = sys.getdefaultencoding(),
             executable: bool = False) -> None:

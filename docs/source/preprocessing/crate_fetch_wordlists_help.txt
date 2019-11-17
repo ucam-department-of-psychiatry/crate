@@ -136,5 +136,3 @@ Filter functions:
                         Exclusion file(s). See above. (default: None)
   --filter_output [FILTER_OUTPUT]
                         Exclusion file(s). See above. (default: None)
-
-# Generated at 2019-11-15 01:09:30

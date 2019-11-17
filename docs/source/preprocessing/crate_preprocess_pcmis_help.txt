@@ -38,5 +38,3 @@ optional arguments:
                         Specify filename to write draft ddgen_* settings to,
                         for use in a CRATE anonymiser configuration file.
                         (default: None)
-
-# Generated at 2019-11-15 01:09:33

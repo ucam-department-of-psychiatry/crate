@@ -11,5 +11,3 @@ optional arguments:
   --deletefirst        Delete existing .class files first (optional) (default:
                        False)
   --verbose, -v        Be verbose (default: False)
-
-# Generated at 2019-11-15 01:09:16

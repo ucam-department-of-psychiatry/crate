@@ -9,5 +9,3 @@ positional arguments:
 
 optional arguments:
   -h, --help  show this help message and exit
-
-# Generated at 2019-11-15 01:09:23

@@ -7,5 +7,3 @@ optional arguments:
   --host HOST    MySQL server/host (prefer '127.0.0.1' to 'localhost')
   --port PORT    MySQL port (default=3306)
   --user USER    MySQL user (default=root)
-
-# Generated at 2019-11-15 01:09:09

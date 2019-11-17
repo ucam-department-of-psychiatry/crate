@@ -28,5 +28,3 @@ optional arguments:
                        (default: None)
   --encoding ENCODING  Encoding used for --outfile (default: utf-8)
   --verbose            Be verbose (default: False)
-
-# Generated at 2019-11-15 01:09:12

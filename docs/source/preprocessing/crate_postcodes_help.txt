@@ -63,5 +63,3 @@ optional arguments:
   --docsonly            Show help for postcode table then stop (default:
                         False)
   -v, --verbose         Verbose (default: False)
-
-# Generated at 2019-11-15 01:09:32

@@ -102,5 +102,3 @@ Optional arguments:
   --verbose
   -v
                    Verbose (use up to 3 times to be more verbose).
-
-# Generated at 2019-11-15 01:09:15

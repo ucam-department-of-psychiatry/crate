@@ -34,5 +34,3 @@ optional arguments:
                         Test file for .PDF (default: /home/rudolf/Documents/co
                         de/crate/crate_anon/testdocs_for_text_extraction/docte
                         st.pdf)
-
-# Generated at 2019-11-15 01:09:10

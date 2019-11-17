@@ -157,5 +157,3 @@ if __name__ == "__main__":
     import json  # delayed import
     print(json.dumps(PROCESSORS, indent=4, sort_keys=True))
 
-
-# Generated at 2019-11-15 01:09:25
