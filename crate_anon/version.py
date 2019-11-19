@@ -29,4 +29,4 @@ crate_anon/version.py
 """
 
 CRATE_VERSION = "0.18.93"
-CRATE_VERSION_DATE = "2019-11-17"
+CRATE_VERSION_DATE = "2019-11-19"
