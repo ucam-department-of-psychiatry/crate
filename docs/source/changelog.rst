@@ -1165,7 +1165,7 @@ Changes
 
 - ``cardinal_pythonlib==1.0.73``
 
-**v0.18.93, 2019-10-22, IN PROGRESS**
+**v0.18.93, 2019-11-19**
 
 - New option :ref:`add_mrid_wherever_rid_added <add_mrid_wherever_rid_added>`.
 
