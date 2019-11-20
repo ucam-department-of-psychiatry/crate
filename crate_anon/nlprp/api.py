@@ -41,6 +41,12 @@ from cardinal_pythonlib.datetimefunc import (
     pendulum_to_datetime,
     pendulum_to_utc_datetime_without_tz,
 )
+from cardinal_pythonlib.json.typing_helpers import (
+    JsonArrayType,
+    JsonAsStringType,
+    JsonObjectType,
+    JsonValueType,
+)
 from cardinal_pythonlib.reprfunc import auto_repr
 import pendulum
 from pendulum import DateTime as Pendulum  # NB name clash with SQLAlchemy
@@ -49,10 +55,6 @@ from semantic_version import Version
 from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 from crate_anon.nlprp.constants import (
     HttpStatus,
-    JsonArrayType,
-    JsonAsStringType,
-    JsonObjectType,
-    JsonValueType,
     NlprpKeys,
     NlprpValues,
     ALL_NLPRP_COMMANDS,

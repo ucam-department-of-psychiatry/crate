@@ -34,6 +34,10 @@ import logging
 import requests
 import transaction
 
+from cardinal_pythonlib.json.typing_helpers import (
+    JsonArrayType,
+    JsonObjectType,
+)
 from celery import Celery
 # from celery.app.task import Task  # see "def delay", "def apply_async"
 from cryptography.fernet import Fernet
@@ -55,7 +59,7 @@ from crate_anon.nlp_webserver.constants import (
 )
 from crate_anon.nlp_webserver.security import decrypt_password
 from crate_anon.nlp_webserver.settings import SETTINGS
-from crate_anon.nlprp.api import JsonArrayType, JsonObjectType, NlprpKeys
+from crate_anon.nlprp.api import NlprpKeys
 from crate_anon.nlprp.constants import HttpStatus
 
 log = logging.getLogger(__name__)

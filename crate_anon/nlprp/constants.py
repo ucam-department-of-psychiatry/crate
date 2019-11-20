@@ -28,23 +28,7 @@ Natural Language Processing Request Protocol (NLPRP) constants.
 
 """
 
-from typing import Dict, List, Union
-
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
-
-
-# =============================================================================
-# Type definitions; see https://www.json.org/
-# =============================================================================
-
-# Types for the Python representation of JSON:
-JsonLiteralType = Union[str, int, float, bool, None]
-JsonValueType = Union[JsonLiteralType, Dict, List]
-JsonObjectType = Dict[str, JsonValueType]
-JsonArrayType = List[JsonValueType]
-
-# Type for the string representation of JSON:
-JsonAsStringType = str
 
 
 # =============================================================================

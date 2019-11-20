@@ -38,6 +38,11 @@ import time
 
 from cardinal_pythonlib.compression import gzip_string
 from cardinal_pythonlib.rate_limiting import rate_limited
+from cardinal_pythonlib.json.typing_helpers import (
+    JsonArrayType,
+    JsonObjectType,
+    JsonValueType,
+)
 from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.dicts import (
     rename_keys_in_dict,
@@ -58,19 +63,16 @@ from crate_anon.nlp_manager.constants import (
     full_sectionname,
     GateResultKeys,
     NlpConfigPrefixes,
-    ProcessorConfigKeys,
+    # ProcessorConfigKeys,
     NlpDefValues,
 )
 from crate_anon.nlp_manager.nlp_definition import (
     NlpDefinition,
 )
-from crate_anon.nlp_manager.output_user_config import OutputUserConfig
+# from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 from crate_anon.nlprp.api import (
     json_get_array,
     json_get_int,
-    JsonArrayType,
-    JsonObjectType,
-    JsonValueType,
     make_nlprp_dict,
     make_nlprp_request,
     nlprp_datetime_to_datetime_utc_no_tzinfo,
