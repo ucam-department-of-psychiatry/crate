@@ -32,7 +32,7 @@ from collections import OrderedDict
 import functools
 import logging
 import re
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, Tuple, Union, Optional
 
 from cardinal_pythonlib.json.serialize import (
     METHOD_PROVIDES_INIT_KWARGS,
@@ -116,6 +116,26 @@ COLTYPE_WITH_ONE_INTEGER_REGEX = re.compile(r"^([A-z]+)\((-?\d+)\)$")
 # ... start, group(alphabetical), literal (, group(optional_minus_sign digits),
 # literal ), end
 
+# Dictionaries for the different dialects mapping text column type to length
+# or default length
+# Doesn't include things like VARCHAR which require the user to specify length
+MYSQL_COLTYPE_TO_LEN = {
+    "CHAR": 1,
+    "TINYTEXT": 255,
+    "TEXT": 65535,
+    "MEDIUMTEXT": 16777215,
+    "LONGTEXT": 4294967295
+}
+
+MSSQL_COLTYPE_TO_LEN = {
+    "NVARCHAR": 4000,
+    "TEXT": 2000000000,
+    "NTEXT": 2000000000,
+}
+
+VARACHAR_MAX_LEN = 1073741824
+
+NVARCHAR_MAX_LEN = 536870912
 
 # def combine_db_schema_table(db: Optional[str],
 #                             schema: Optional[str],
@@ -2026,6 +2046,57 @@ def is_sql_column_type_textual(column_type: str,
     except (AttributeError, ValueError):
         return False
     return (length >= min_length or length < 0) and basetype in SQLTYPES_TEXT
+
+def coltype_length_if_text(column_type: str, dialect: str) -> Optional[int]:
+    """
+    Find the length of an sql text column type.
+
+    Args:
+        column_type: SQL column type as a string, e.g. ``"VARCHAR(50)"``
+        dialect: the sql dialect the column type is from
+
+    Returns:
+        length of the column or ``None`` if it's not a text column.
+
+    """
+    column_type = column_type.upper()
+    if column_type in SQLTYPES_TEXT:
+        # No length specified - get the default
+        try:
+            if dialect == SqlaDialectName.MYSQL:
+                return MYSQL_COLTYPE_TO_LEN[column_type]
+            elif dialect == SqlaDialectName.MSSQL:
+                return MSSQL_COLTYPE_TO_LEN[column_type]
+            else:
+                raise ValueError(f"{dialect} is not a valid sql dialect. Must "
+                                  f"be one of '{SqlaDialectName.MYSQL}' and "
+                                  f"'{SqlaDialectName.MSSQL}'")
+        except KeyError:
+            log.error(f"SQL dialect {dialect} has no data type "
+                      f"{column_type}")
+            raise
+    else:
+        # Length specified - get it from the column type
+        try:
+            m = COLTYPE_WITH_ONE_INTEGER_REGEX.match(column_type)
+            basetype = m.group(1)
+            length = m.group(2)
+            if length == "MAX" or length == "-1":
+                if basetype == "VARCHAR":
+                    return VARCHAR_MAX_LEN
+                elif basetype == "NVARCHAR":
+                    return NVARCHAR_MAX_LEN
+                else:
+                    return None
+        except AttributeError:
+            # Not the correct type of column
+            return None
+        try:
+            length = int(length)
+        except ValueError:
+            # Not the correct type of column
+            return None
+        return length
 
 
 def escape_quote_in_literal(s: str) -> str:

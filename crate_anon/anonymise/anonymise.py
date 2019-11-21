@@ -1085,7 +1085,8 @@ def process_table(sourcedbname: str,
                   intpkname: str = None,
                   tasknum: int = 0,
                   ntasks: int = 1,
-                  free_text_limit: int = None) -> None:
+                  free_text_limit: int = None,
+                  exclude_scrubbed_fields: bool = False) -> None:
     """
     Process a table. This can either be a patient table (in which case the
     patient's scrubber is applied and only rows for that patient are processed)
@@ -1108,9 +1109,9 @@ def process_table(sourcedbname: str,
         ntasks:
             total number of processes (for dividing up work)
         free_text_limit:
-            If specified, any text field that contains content longer than this
-            many characters will be wiped (set to ``NULL``) as it's sent to the
-            destination database.
+            If specified, any text field longer than this will be excluded
+        exclude_scrubbed_fields:
+            Exclude all text fields which are being scrubbed.
     """
     start = f"process_table: {sourcedbname}.{sourcetable}: "
     pid = None if patient is None else patient.get_pid()
@@ -1141,6 +1142,15 @@ def process_table(sourcedbname: str,
                   ddr.inclusion_values or  # used for filter
                   ddr.exclusion_values  # used for filter
               )]
+    # Exclude all text fields over a chosen length
+    if free_text_limit is not None:
+        ddrows = [ddr for ddr in ddrows
+                  if (ddr.src_textlength is None) or
+                  (ddr.src_textlength < free_text_limit)]
+    # Exclude all scrubbed fields if requested
+    if exclude_scrubbed_fields:
+        ddrows = [ddr for ddr in ddrows
+                  if (not ddr.src_is_textual) or (not ddr.being_scrubbed())]
     if not ddrows:
         # No columns to process at all.
         return
@@ -1205,15 +1215,6 @@ def process_table(sourcedbname: str,
         skip_row = False
         for i, ddr in enumerate(ddrows):
             value = row[i]
-            # Filter out free text over specified length (or all free text
-            # if it's set to 0)
-            if (free_text_limit == 0 or
-                    (free_text_limit is not None and
-                     len(str(value)) > free_text_limit)):
-                datatype = ddr.src_datatype
-                if is_sql_column_type_textual(datatype):
-                    destvalues[ddr.dest_field] = None
-                    continue
             if ddr.skip_row_by_value(value):
                 # log.debug("skipping row based on inclusion/exclusion values")
                 skip_row = True
@@ -1320,7 +1321,8 @@ def patient_processing_fn(tasknum: int = 0,
                           ntasks: int = 1,
                           incremental: bool = False,
                           specified_pids: List[int] = None,
-                          free_text_limit: int = None) -> None:
+                          free_text_limit: int = None,
+                          exclude_scrubbed_fields: bool = False) -> None:
     """
     Main function to anonymise patient data.
 
@@ -1335,6 +1337,7 @@ def patient_processing_fn(tasknum: int = 0,
         incremental: perform an incremental update, rather than a full run?
         specified_pids: if specified, restrict to specific PIDs
         free_text_limit: as per :func:`process_table`
+        exclude_scrubbed_fields: as per :func:`process_table`
     """
     n_patients = estimate_count_patients() // ntasks
     i = 0
@@ -1385,7 +1388,8 @@ def patient_processing_fn(tasknum: int = 0,
                 process_table(d, t,
                               patient=patient,
                               incremental=(incremental and patient_unchanged),
-                              free_text_limit=free_text_limit)
+                              free_text_limit=free_text_limit,
+                              exclude_scrubbed_fields=exclude_scrubbed_fields)
 
     commit_destdb()
 
@@ -1647,7 +1651,8 @@ def setup_opt_out(incremental: bool = False) -> None:
 def process_nonpatient_tables(tasknum: int = 0,
                               ntasks: int = 1,
                               incremental: bool = False,
-                              free_text_limit: int = None) -> None:
+                              free_text_limit: int = None,
+                              exclude_scrubbed_fields: bool = False) -> None:
     """
     Copies all non-patient tables.
 
@@ -1663,9 +1668,9 @@ def process_nonpatient_tables(tasknum: int = 0,
         incremental:
             perform an incremental update, rather than a full run?
         free_text_limit:
-            If specified, any text field that contains content longer than this
-            many characters will be wiped (set to ``NULL``) as it's sent to the
-            destination database.
+            as per :func:`process_table`
+        exclude_scrubbed_fields:
+            as per :func:`process_table`
 
     """
     log.info(SEP + "Non-patient tables: (a) with integer PK")
@@ -1677,7 +1682,8 @@ def process_nonpatient_tables(tasknum: int = 0,
         process_table(d, t, patient=None,
                       incremental=incremental,
                       intpkname=pkname, tasknum=tasknum, ntasks=ntasks,
-                      free_text_limit=free_text_limit)
+                      free_text_limit=free_text_limit,
+                      exclude_scrubbed_fields=exclude_scrubbed_fields)
         commit_destdb()
     log.info(SEP + "Non-patient tables: (b) without integer PK")
     for (d, t) in gen_nonpatient_tables_without_int_pk(tasknum=tasknum,
@@ -1692,7 +1698,8 @@ def process_nonpatient_tables(tasknum: int = 0,
         process_table(d, t, patient=None,
                       incremental=incremental,
                       intpkname=None, tasknum=0, ntasks=1,
-                      free_text_limit=free_text_limit)
+                      free_text_limit=free_text_limit,
+                      exclude_scrubbed_fields=exclude_scrubbed_fields)
         commit_destdb()
 
 
@@ -1700,7 +1707,8 @@ def process_patient_tables(tasknum: int = 0,
                            ntasks: int = 1,
                            incremental: bool = False,
                            specified_pids: List[int] = None,
-                           free_text_limit: int = None) -> None:
+                           free_text_limit: int = None,
+                           exclude_scrubbed_fields: bool = False) -> None:
     """
     Process all patient tables, optionally in a parallel-processing fashion.
 
@@ -1716,9 +1724,9 @@ def process_patient_tables(tasknum: int = 0,
         specified_pids:
             if specified, restrict to specific PIDs
         free_text_limit:
-            If specified, any text field that contains content longer than this
-            many characters will be wiped (set to ``NULL``) as it's sent to the
-            destination database.
+            as per :func:`process_table`
+        exclude_scrubbed_fields:
+            as per :func:`process_table`
 
     """
     # We'll use multiple destination tables, so commit right at the end.
@@ -1731,7 +1739,8 @@ def process_patient_tables(tasknum: int = 0,
     patient_processing_fn(tasknum=tasknum, ntasks=ntasks,
                           incremental=incremental,
                           specified_pids=specified_pids,
-                          free_text_limit=free_text_limit)
+                          free_text_limit=free_text_limit,
+                          exclude_scrubbed_fields=exclude_scrubbed_fields)
 
     if ntasks > 1:
         log.info(f"Process {tasknum}: FINISHED ANONYMISATION")
@@ -1788,6 +1797,7 @@ def anonymise(draftdd: bool = False,
               restrict_limits: Tuple[Any, Any] = None,
               restrict_list: List[Any] = None,
               free_text_limit: int = None,
+              exclude_scrubbed_fields: bool = False,
               nprocesses: int = 1,
               process: int = 0,
               skip_dd_check: bool = False,
@@ -1836,8 +1846,9 @@ def anonymise(draftdd: bool = False,
         restrict_list:
             (For "restrict".) List of permitted values.
         free_text_limit:
-            Filter out all free text over the specified length. Set this to 0
-            to filter out all free text.
+            Filter out all free text over the specified length.
+        exclude_scrubbed_fields:
+            Exclude all text fields which are being scrubbed.
 
         nprocesses:
             Number of processing being run (of which this is one), for work
@@ -1953,14 +1964,17 @@ def anonymise(draftdd: bool = False,
                                ntasks=nprocesses,
                                incremental=incremental,
                                specified_pids=pids,
-                               free_text_limit=free_text_limit)
+                               free_text_limit=free_text_limit,
+                               exclude_scrubbed_fields=exclude_scrubbed_fields)
 
     # 4. Tables without any patient ID (e.g. lookup tables). Process PER TABLE.
     if nonpatienttables or everything:
-        process_nonpatient_tables(tasknum=process,
-                                  ntasks=nprocesses,
-                                  incremental=incremental,
-                                  free_text_limit=free_text_limit)
+        process_nonpatient_tables(
+            tasknum=process,
+            ntasks=nprocesses,
+            incremental=incremental,
+            free_text_limit=free_text_limit,
+            exclude_scrubbed_fields=exclude_scrubbed_fields)
 
     # 5. Indexes. ALWAYS FASTEST TO DO THIS LAST. Process PER TABLE.
     if index or everything:
