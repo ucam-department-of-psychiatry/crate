@@ -1019,6 +1019,8 @@ class DataDictionaryRow(object):
             )
         if self.matches_fielddef(dbconf.ddgen_per_table_pid_field):
             self._primary_pid = True
+            if self.matches_tabledef(dbconf.ddgen_table_defines_pids):
+                self._defines_primary_pids = True
         if self.matches_fielddef(dbconf.ddgen_master_pid_fieldname):
             self._master_pid = True
         if self.matches_fielddef(dbconf.ddgen_pid_defining_fieldnames):
