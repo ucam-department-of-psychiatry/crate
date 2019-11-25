@@ -72,7 +72,7 @@ from crate_anon.common.file_io import (
 )
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.common.parallel import is_my_job_by_hash, is_my_job_by_int
-from crate_anon.common.sql import matches_tabledef, is_sql_column_type_textual
+from crate_anon.common.sql import matches_tabledef
 
 log = logging.getLogger(__name__)
 
@@ -1146,7 +1146,7 @@ def process_table(sourcedbname: str,
     if free_text_limit is not None:
         ddrows = [ddr for ddr in ddrows
                   if (ddr.src_textlength is None) or
-                  (ddr.src_textlength < free_text_limit)]
+                  (ddr.src_textlength <= free_text_limit)]
     # Exclude all scrubbed fields if requested
     if exclude_scrubbed_fields:
         ddrows = [ddr for ddr in ddrows

@@ -169,8 +169,11 @@ def main() -> None:
         help="Specify a list of values for the field "
              "specified in '--restrict'")
     restrict_options.add_argument(
-        "--filtertext", type=int,
-        help="Filter out all free text fields over the specified length.")
+        "--free_text_limit", type=int,
+        help="Filter out all free text fields over the specified length. "
+             "For example, if you specify 200, then VARCHAR(200) fields will "
+             "be permitted, but VARCHAR(200), or VARCHAR(MAX), or TEXT "
+             "(etc., etc.) fields will be excluded.")
     restrict_options.add_argument(
         "--excludescrubbed", action="store_true",
         help="Exclude all text fields which are being scrubbed.")
@@ -279,7 +282,7 @@ def main() -> None:
             restrict_file=args.file,
             restrict_limits=args.limits,
             restrict_list=args.list,
-            free_text_limit=args.filtertext,
+            free_text_limit=args.free_text_limit,
             exclude_scrubbed_fields=args.excludescrubbed,
 
             nprocesses=args.nprocesses,
