@@ -43,3 +43,8 @@ You set things up as follows.
   - CRATE can draft one for you, but you will need to check it manually.
 
 - You run the **anonymiser**, pointing it at your config file.
+
+  - There are some additional options here (for example, to restrict to
+    specific patients or eliminate all free text fields), which allow you to
+    use a standard config file and data dictionary but produce variant versions
+    of your database without too much effort.
