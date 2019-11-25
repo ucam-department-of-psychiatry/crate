@@ -28,9 +28,6 @@ Things to do
 - BENCHMARK name blacklisting (with forenames + surnames – English words –
   eponyms): speed, precision, recall. Share results with MB.
 
-- option to filter out all free text automatically (as part of full
-  anonymisation)
-
 - Personal configurable highlight colours (with default set if none
   configured)? Or just more colours? Look at a standard highlighter pack --
   e.g.

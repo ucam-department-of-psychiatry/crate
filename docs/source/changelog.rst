@@ -1201,6 +1201,9 @@ Changes
   handles a Ctrl-C to the Python process better (via the ``nice_call``
   function). See CamCOPS documentation for more detail.
 
+- Option to filter out free text; see ``--free_text_limit``; see
+  :ref:`crate_anonymise <crate_anonymise>`.
+
 
 ===============================================================================
 
