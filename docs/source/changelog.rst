@@ -1201,8 +1201,13 @@ Changes
   handles a Ctrl-C to the Python process better (via the ``nice_call``
   function). See CamCOPS documentation for more detail.
 
+**v0.18.94, in progress**
+
 - Option to filter out free text; see ``--free_text_limit``; see
   :ref:`crate_anonymise <crate_anonymise>`.
+
+- Option to exclude all text fields which are set to be scrubbed via
+  ``--excludescrubbed``.
 
 
 ===============================================================================
