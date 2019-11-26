@@ -336,7 +336,7 @@ Component                       Meaning
 ``skip_if_extract_fails``       If one of the text extraction methods is
                                 specified, and this flag is also specified,
                                 then the data row will be skipped if text
-                                extrcation fails (rather than inserted with a
+                                extraction fails (rather than inserted with a
                                 NULL value for the text). This is helpful, for
                                 example, if your text-processing pipeline
                                 breaks; the option prevents rows being created
