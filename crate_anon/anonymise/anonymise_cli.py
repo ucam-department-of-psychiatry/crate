@@ -36,7 +36,7 @@ command-line input; uses a delayed import when starting anonymisation.
 import argparse
 import logging
 import os
-from typing import List
+from typing import List, Optional, Any
 
 from cardinal_pythonlib.exceptions import die
 from cardinal_pythonlib.extract_text import is_text_extractor_available
@@ -58,6 +58,37 @@ if DEBUG_RUN_WITH_PDB:
     from cardinal_pythonlib.debugging import pdb_run
 else:
     pdb_run = None
+
+
+# =============================================================================
+# Class for keeping track of record
+# =============================================================================
+
+class CurrentRecord(object):
+    """
+    Class to store info about which records is currently being processed.
+
+    This information will be used to make crash messages more informative.
+    """
+    def __init__(self,
+                 initial_db: Optional[str] = None,
+                 initial_table: Optional[str] = None,
+                 initial_pkfield: Optional[str] = None,
+                 initial_pk: Any = None,
+                 initial_pid: Any = None) -> None:
+        self.db = initial_db
+        self.table = initial_table
+        self.pkfield = initial_pkfield
+        self.pk = initial_pk
+        self.pid = initial_pid
+
+    def __repr__(self) -> None:
+        printable = f"db: {self.db}, table: {self.table}, "
+        if self.pkfield:
+            printable += f"pkfield: {self.pkfield}, pk: {self.pk}, "
+        if self.pid:
+            printable += f"pid: {self.pid}"
+        return printable
 
 
 # =============================================================================
@@ -256,6 +287,8 @@ def main() -> None:
     if args.config:
         os.environ[CONFIG_ENV_VAR] = args.config
 
+    current_record = CurrentRecord()
+
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import
     try:
@@ -289,9 +322,12 @@ def main() -> None:
             echo=args.echo,
             debugscrubbers=args.debugscrubbers,
             savescrubbers=args.savescrubbers,
+
+            current_record=current_record,
         )
     except Exception as exc:
         log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+        log.critical(f"Record info at crash - {current_record}")
         die(exc)
 
 

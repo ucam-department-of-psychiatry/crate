@@ -66,6 +66,7 @@ from crate_anon.anonymise.models import (
 )
 from crate_anon.anonymise.patient import Patient
 from crate_anon.anonymise.ddr import DataDictionaryRow
+from crate_anon.anonymise.anonymise_cli import CurrentRecord
 from crate_anon.common.file_io import (
     gen_integers_from_file,
     gen_words_from_file,
@@ -1080,6 +1081,7 @@ def gen_pks(srcdbname: str,
 
 def process_table(sourcedbname: str,
                   sourcetable: str,
+                  current_record: CurrentRecord,
                   patient: Patient = None,
                   incremental: bool = False,
                   intpkname: str = None,
@@ -1096,6 +1098,10 @@ def process_table(sourcedbname: str,
             name (as per the data dictionary) of the source database
         sourcetable:
             name of the source table
+        current_record:
+            a :class:`crate_anon.anonymise.anonymise_cli.CurrentRecord`
+            for keeping track of what record is being processed so the
+            information can be shown to the user in the event of a crash
         patient:
             :class:`crate_anon.anonymise.patient.Patient` object, or ``None``
             for non-patient tables
@@ -1154,6 +1160,7 @@ def process_table(sourcedbname: str,
         if ddr.pk:
             pkfield_index = i
             src_pk_name = ddr.src_field
+            current_record.pkfield = src_pk_name
             dest_pk_name = ddr.dest_field
         sourcefields.append(ddr.src_field)
     srchash = None
@@ -1173,6 +1180,8 @@ def process_table(sourcedbname: str,
     for row in gen_rows(sourcedbname, sourcetable, sourcefields,
                         pid, debuglimit=debuglimit,
                         intpkname=intpkname, tasknum=tasknum, ntasks=ntasks):
+        if src_pk_name:
+            current_record.pk = row[pkfield_index]
         n += 1
         if n % config.report_every_n_rows == 0:
             log.info(
@@ -1262,6 +1271,9 @@ def process_table(sourcedbname: str,
             n_rows=1, n_bytes=sys.getsizeof(destvalues))  # ... approximate!
         # ... quicker than e.g. len(repr(...)), as judged by a timeit() call.
 
+    current_record.pk = None
+    current_record.pkfield = None
+
     log.debug(start + f"finished: pid={pid}")
     commit_destdb()
 
@@ -1316,7 +1328,8 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
                   fulltext=True)
 
 
-def patient_processing_fn(tasknum: int = 0,
+def patient_processing_fn(current_record: CurrentRecord,
+                          tasknum: int = 0,
                           ntasks: int = 1,
                           incremental: bool = False,
                           specified_pids: List[int] = None,
@@ -1330,16 +1343,18 @@ def patient_processing_fn(tasknum: int = 0,
     - insert the patient into the mapping table in the admin database.
 
     Args:
+        current_record: :class:`crate_anon.anonymise.anonymise_cli.CurrentRecord`
         tasknum: task number of this process (for dividing up work)
         ntasks: total number of processes (for dividing up work)
         incremental: perform an incremental update, rather than a full run?
         specified_pids: if specified, restrict to specific PIDs
         free_text_limit: as per :func:`process_table`
-    """
+    """  # noqa
     n_patients = estimate_count_patients() // ntasks
     i = 0
     for pid in gen_patient_ids(tasknum, ntasks,
                                specified_pids=specified_pids):
+        current_record.pid = pid
         # gen_patient_ids() assigns the work to the appropriate thread/process
         # Check for an abort signal once per patient processed
         i += 1
@@ -1379,13 +1394,19 @@ def patient_processing_fn(tasknum: int = 0,
 
         # For each source database/table...
         for d in config.dd.get_source_databases():
+            current_record.db = d
             log.debug(f"Patient {pid}, processing database: {d}")
             for t in config.dd.get_patient_src_tables_with_active_dest(d):
+                current_record.table = t
                 log.debug(f"Patient {pid}, processing table {d}.{t}")
                 process_table(d, t,
                               patient=patient,
                               incremental=(incremental and patient_unchanged),
-                              free_text_limit=free_text_limit)
+                              free_text_limit=free_text_limit,
+                              current_record=current_record)
+            current_record.table = None
+        current_record.db = None
+    current_record.pid = None
 
     commit_destdb()
 
@@ -1644,7 +1665,8 @@ def setup_opt_out(incremental: bool = False) -> None:
         wipe_destination_data_for_opt_out_patients()
 
 
-def process_nonpatient_tables(tasknum: int = 0,
+def process_nonpatient_tables(current_record: CurrentRecord,
+                              tasknum: int = 0,
                               ntasks: int = 1,
                               incremental: bool = False,
                               free_text_limit: int = None) -> None:
@@ -1656,6 +1678,10 @@ def process_nonpatient_tables(tasknum: int = 0,
       mode.
 
     Args:
+        current_record:
+            a :class:`crate_anon.anonymise.anonymise_cli.CurrentRecord`
+            for keeping track of what record is being processed so the
+            information can be shown to the user in the event of a crash
         tasknum:
             task number of this process (for dividing up work)
         ntasks:
@@ -1673,18 +1699,27 @@ def process_nonpatient_tables(tasknum: int = 0,
         log.info(
             f"Processing non-patient table {d}.{t} (PK: {pkname}) "
             f"({config.overall_progress()})...")
+        current_record.db = d
+        current_record.table = t
+        current_record.pkfield = pkname
         # noinspection PyTypeChecker
         process_table(d, t, patient=None,
                       incremental=incremental,
                       intpkname=pkname, tasknum=tasknum, ntasks=ntasks,
-                      free_text_limit=free_text_limit)
+                      free_text_limit=free_text_limit,
+                      current_record=current_record)
         commit_destdb()
     log.info(SEP + "Non-patient tables: (b) without integer PK")
+    current_record.db = None
+    current_record.table = None
+    current_record.pkfield = None
     for (d, t) in gen_nonpatient_tables_without_int_pk(tasknum=tasknum,
                                                        ntasks=ntasks):
         log.info(
             f"Processing non-patient table {d}.{t} "
             f"({config.overall_progress()})...")
+        current_record.db = d
+        current_record.table = t
         # Force this into single-task mode, i.e. we have already parallelized
         # by assigning different tables to different processes; don't split
         # the work within a single table.
@@ -1692,11 +1727,15 @@ def process_nonpatient_tables(tasknum: int = 0,
         process_table(d, t, patient=None,
                       incremental=incremental,
                       intpkname=None, tasknum=0, ntasks=1,
-                      free_text_limit=free_text_limit)
+                      free_text_limit=free_text_limit,
+                      current_record=current_record)
         commit_destdb()
+    current_record.db = None
+    current_record.table = None
 
 
-def process_patient_tables(tasknum: int = 0,
+def process_patient_tables(current_record: CurrentRecord,
+                           tasknum: int = 0,
                            ntasks: int = 1,
                            incremental: bool = False,
                            specified_pids: List[int] = None,
@@ -1707,6 +1746,10 @@ def process_patient_tables(tasknum: int = 0,
     All the work is done via :func:`patient_processing_fn`.
 
     Args:
+        current_record:
+            a :class:`crate_anon.anonymise.anonymise_cli.CurrentRecord`
+            for keeping track of what record is being processed so the
+            information can be shown to the user in the event of a crash
         tasknum:
             task number of this process (for dividing up work)
         ntasks:
@@ -1731,7 +1774,8 @@ def process_patient_tables(tasknum: int = 0,
     patient_processing_fn(tasknum=tasknum, ntasks=ntasks,
                           incremental=incremental,
                           specified_pids=specified_pids,
-                          free_text_limit=free_text_limit)
+                          free_text_limit=free_text_limit,
+                          current_record=current_record)
 
     if ntasks > 1:
         log.info(f"Process {tasknum}: FINISHED ANONYMISATION")
@@ -1773,7 +1817,8 @@ def show_dest_counts() -> None:
 # Main
 # =============================================================================
 
-def anonymise(draftdd: bool = False,
+def anonymise(current_record: CurrentRecord,
+              draftdd: bool = False,
               incrementaldd: bool = False,
               count: bool = False,
               incremental: bool = False,
@@ -1801,6 +1846,10 @@ def anonymise(draftdd: bool = False,
     Main entry point for anonymisation.
 
     Args:
+        current_record:
+            a :class:`crate_anon.anonymise.anonymise_cli.CurrentRecord`
+            for keeping track of what record is being processed so the
+            information can be shown to the user in the event of a crash
         draftdd:
             If true: print a data dictionary, then stop.
         incrementaldd:
@@ -1953,14 +2002,16 @@ def anonymise(draftdd: bool = False,
                                ntasks=nprocesses,
                                incremental=incremental,
                                specified_pids=pids,
-                               free_text_limit=free_text_limit)
+                               free_text_limit=free_text_limit,
+                               current_record=current_record)
 
     # 4. Tables without any patient ID (e.g. lookup tables). Process PER TABLE.
     if nonpatienttables or everything:
         process_nonpatient_tables(tasknum=process,
                                   ntasks=nprocesses,
                                   incremental=incremental,
-                                  free_text_limit=free_text_limit)
+                                  free_text_limit=free_text_limit,
+                                  current_record=current_record)
 
     # 5. Indexes. ALWAYS FASTEST TO DO THIS LAST. Process PER TABLE.
     if index or everything:
