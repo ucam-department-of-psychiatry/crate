@@ -13,13 +13,14 @@ Thanks to Ihor Bobak for this bugfix.
 
 from flashtext import KeywordProcessor
 
+
 class KeywordProcessorFixed(KeywordProcessor):
-    def replace_keywords(self, a_sentence):
+    def replace_keywords(self, a_sentence: str) -> str:
         """Searches in the string for all keywords present in corpus.
         Keywords present are replaced by the clean name and a new string is returned.
 
         Args:
-            sentence (str): Line of text where we will replace keywords
+            a_sentence (str): Line of text where we will replace keywords
 
         Returns:
             new_sentence (str): Line of text with replaced keywords
