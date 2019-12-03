@@ -1262,9 +1262,6 @@ def process_table(sourcedbname: str,
             n_rows=1, n_bytes=sys.getsizeof(destvalues))  # ... approximate!
         # ... quicker than e.g. len(repr(...)), as judged by a timeit() call.
 
-    if pid == 52:
-        crash
-
     log.debug(start + f"finished: pid={pid}")
     commit_destdb()
 
