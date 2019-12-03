@@ -56,6 +56,9 @@ B: Clinician vetoes on clinical grounds
 C: Patient is definitely ineligible
 D: Patient is dead/discharged or details are defunct
 
+As of CRATE version 0.18.94, option C will always be available to the
+clinician.
+
 
 Emails
 ######
