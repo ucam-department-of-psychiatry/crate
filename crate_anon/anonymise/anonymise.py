@@ -1382,10 +1382,16 @@ def patient_processing_fn(tasknum: int = 0,
             log.debug(f"Patient {pid}, processing database: {d}")
             for t in config.dd.get_patient_src_tables_with_active_dest(d):
                 log.debug(f"Patient {pid}, processing table {d}.{t}")
-                process_table(d, t,
-                              patient=patient,
-                              incremental=(incremental and patient_unchanged),
-                              free_text_limit=free_text_limit)
+                try:
+                    process_table(
+                        d, t,
+                        patient=patient,
+                        incremental=(incremental and patient_unchanged),
+                        free_text_limit=free_text_limit)
+                except Exception:
+                    log.critical("Error whilst processing - "
+                                 f"db: {d} table: {t}, patient id: {pid}")
+                    raise
 
     commit_destdb()
 
@@ -1673,11 +1679,15 @@ def process_nonpatient_tables(tasknum: int = 0,
         log.info(
             f"Processing non-patient table {d}.{t} (PK: {pkname}) "
             f"({config.overall_progress()})...")
-        # noinspection PyTypeChecker
-        process_table(d, t, patient=None,
-                      incremental=incremental,
-                      intpkname=pkname, tasknum=tasknum, ntasks=ntasks,
-                      free_text_limit=free_text_limit)
+        try:
+            # noinspection PyTypeChecker
+            process_table(d, t, patient=None,
+                          incremental=incremental,
+                          intpkname=pkname, tasknum=tasknum, ntasks=ntasks,
+                          free_text_limit=free_text_limit)
+        except Exception:
+            log.critical(f"Error whilst processing - db: {d} table: {t}")
+            raise
         commit_destdb()
     log.info(SEP + "Non-patient tables: (b) without integer PK")
     for (d, t) in gen_nonpatient_tables_without_int_pk(tasknum=tasknum,
@@ -1688,11 +1698,15 @@ def process_nonpatient_tables(tasknum: int = 0,
         # Force this into single-task mode, i.e. we have already parallelized
         # by assigning different tables to different processes; don't split
         # the work within a single table.
-        # noinspection PyTypeChecker
-        process_table(d, t, patient=None,
-                      incremental=incremental,
-                      intpkname=None, tasknum=0, ntasks=1,
-                      free_text_limit=free_text_limit)
+        try:
+            # noinspection PyTypeChecker
+            process_table(d, t, patient=None,
+                          incremental=incremental,
+                          intpkname=None, tasknum=0, ntasks=1,
+                          free_text_limit=free_text_limit)
+        except Exception:
+            log.critical(f"Error whilst processing - db: {d} table: {t}")
+            raise
         commit_destdb()
 
 
