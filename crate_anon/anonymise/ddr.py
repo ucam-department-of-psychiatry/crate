@@ -126,6 +126,8 @@ class DataDictionaryRow(object):
         self.src_field = None  # type: Optional[str]
         self.src_datatype = None    # type: Optional[str]  # in SQL string format  # noqa
         # src_flags: a property; see below
+        self.src_is_textual = None  # type: Optional[bool]
+        self.src_textlength = None  # type: Optional[int]
 
         self._src_sqla_coltype = None  # type: Optional[str]
 
@@ -543,6 +545,13 @@ class DataDictionaryRow(object):
         self.src_table = valuedict['src_table']
         self.src_field = valuedict['src_field']
         self.src_datatype = valuedict['src_datatype'].upper()
+        self.src_is_textual = crate_anon.common.sql.is_sql_column_type_textual(
+            self.src_datatype)
+        if self.src_is_textual:
+            dialect = self.config.get_src_dialect(self.src_db)
+            # Get length of field if text field (otherwise this remains 'None')
+            self.src_textlength = crate_anon.common.sql.coltype_length_if_text(
+                self.src_datatype, dialect.name)
         # noinspection PyAttributeOutsideInit
         self.src_flags = valuedict['src_flags']  # a property
         self.scrub_src = SCRUBSRC.lookup(valuedict['scrub_src'],
@@ -1010,6 +1019,8 @@ class DataDictionaryRow(object):
             )
         if self.matches_fielddef(dbconf.ddgen_per_table_pid_field):
             self._primary_pid = True
+            if self.matches_tabledef(dbconf.ddgen_table_defines_pids):
+                self._defines_primary_pids = True
         if self.matches_fielddef(dbconf.ddgen_master_pid_fieldname):
             self._master_pid = True
         if self.matches_fielddef(dbconf.ddgen_pid_defining_fieldnames):

@@ -373,6 +373,7 @@ ddgen_include_fields =
 ddgen_allow_no_patient_info = False
 
 ddgen_per_table_pid_field = patient_id
+ddgen_table_defines_pids = patient
 
 ddgen_add_per_table_pids_to_scrubber = False
 
