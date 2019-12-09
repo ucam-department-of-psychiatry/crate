@@ -1201,13 +1201,20 @@ Changes
   handles a Ctrl-C to the Python process better (via the ``nice_call``
   function). See CamCOPS documentation for more detail.
 
-**v0.18.94, in progress**
+**v0.18.94, 2019-12-05**
 
 - Option to filter out free text; see ``--free_text_limit``; see
   :ref:`crate_anonymise <crate_anonymise>`.
 
 - Option to exclude all text fields which are set to be scrubbed via
   ``--excludescrubbed``.
+
+- Temporary bugfix to get round a bug in the ``flashtext`` module.
+
+- On crash, show which record is being processed in anonymiser.
+
+- Allow option 'C' ('patient is definitely ineligible') for all clinician
+  responses to contact requests.
 
 
 ===============================================================================
