@@ -34,6 +34,10 @@ import logging
 # noinspection PyUnresolvedReferences
 from typing import Any, List, Set, Type
 
+from cardinal_pythonlib.json.typing_helpers import (
+    JsonArrayType,
+    JsonObjectType,
+)
 # noinspection PyUnresolvedReferences
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 import prettytable
@@ -49,8 +53,6 @@ from crate_anon.nlp_manager.parse_haematology import *
 # noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.regex_parser import NumericalResultParser
 from crate_anon.nlprp.constants import (
-    JsonArrayType,
-    JsonObjectType,
     SqlDialects,
 )
 

@@ -42,7 +42,9 @@ from cardinal_pythonlib.sql.validation import (
     is_sqltype_text_over_one_char,
 )
 from cardinal_pythonlib.text import get_unicode_characters
-from flashtext import KeywordProcessor
+# from flashtext import KeywordProcessor
+from crate_anon.common.bugfix_flashtext import KeywordProcessorFixed
+# ... temp bugfix
 
 from crate_anon.anonymise.constants import SCRUBMETHOD
 from crate_anon.anonymise.anonregex import (
@@ -179,7 +181,7 @@ class WordList(ScrubberBase):
         self.max_errors = max_errors
         self.regex_method = regex_method
         self._regex = None  # type: Optional[Pattern[str]]
-        self._processor = None  # type: Optional[KeywordProcessor]
+        self._processor = None  # type: Optional[KeywordProcessorFixed]
         self._cached_hash = None  # type: Optional[str]
         self._built = False
 
@@ -201,7 +203,7 @@ class WordList(ScrubberBase):
         """
         self._built = False
         self._regex = None  # type: Optional[Pattern[str]]
-        self._processor = None  # type: Optional[KeywordProcessor]
+        self._processor = None  # type: Optional[KeywordProcessorFixed]
         self._cached_hash = None  # type: Optional[str]
 
     def add_word(self, word: str, clear_cache: bool = True) -> None:
@@ -280,7 +282,7 @@ class WordList(ScrubberBase):
             self._regex = get_regex_from_elements(elements)
         else:
             if self.words:
-                self._processor = KeywordProcessor(case_sensitive=False)
+                self._processor = KeywordProcessorFixed(case_sensitive=False)
                 self._processor.set_non_word_boundaries(
                     FLASHTEXT_WORD_CHARACTERS)
                 replacement = self.replacement_text
@@ -289,7 +291,7 @@ class WordList(ScrubberBase):
                 for w in self.words:
                     self._processor.add_keyword(w, replacement)
             else:
-                self._processor = None  # type: Optional[KeywordProcessor]
+                self._processor = None  # type: Optional[KeywordProcessorFixed]
         self._built = True
 
 

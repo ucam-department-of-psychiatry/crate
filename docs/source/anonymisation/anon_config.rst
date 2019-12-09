@@ -922,6 +922,18 @@ present in EVERY table. It will be replaced by the research ID (RID) in the
 destination database.
 
 
+ddgen_table_defines_pids
+########################
+
+*String*
+
+Specify a table which will define patient identifiers (PIDs) in the field
+specified above. Only the PIDs in this field (and any other field defining
+PIDs - see ``ddgen_pid_defining_fieldnames`` below) will be included in the
+anonymisation. If both this option and ``ddgen_pid_defining_fieldnames`` are
+left blank, the data dictionary will not work without manual editing.
+
+
 ddgen_add_per_table_pids_to_scrubber
 ####################################
 

@@ -35,6 +35,11 @@ import json
 from typing import Dict, Generator, List, Optional, Tuple, Any
 import redis
 
+from cardinal_pythonlib.json.typing_helpers import (
+    JsonArrayType,
+    JsonObjectType,
+    JsonValueType,
+)
 from cardinal_pythonlib.sqlalchemy.core_query import fetch_all_first_values
 from celery.result import AsyncResult, ResultSet
 from pyramid.view import view_config, view_defaults
@@ -57,9 +62,6 @@ from crate_anon.nlprp.api import (
     json_get_str,
     json_get_toplevel_args,
     json_get_value,
-    JsonArrayType,
-    JsonObjectType,
-    JsonValueType,
     pendulum_to_nlprp_datetime,
 )
 from crate_anon.nlprp.constants import (

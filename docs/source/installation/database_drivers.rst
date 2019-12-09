@@ -485,8 +485,11 @@ since the program will be running as a system account.
     ``django-mssql``.
 
 
-.. todo:: Upgrade to ``django-pyodbc-azure==2.0.6.1``, which will require
-   Django 2.0.6, pyodbc 3.0+.
+.. todo::
+    Check if ``DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET`` with
+    more recent of ``django-pyodbc-azure`` (and if not necessary, document
+    successful version).
+
 
 .. _psycopg2:
 

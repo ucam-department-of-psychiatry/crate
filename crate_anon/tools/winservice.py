@@ -113,8 +113,8 @@ class CratewebService(WindowsService):
                 name='Celery Beat',
                 procargs=[
                     sys.executable,
-                    os.path.join(
-                        CURRENT_DIR, 'launch_celery.py --command=beat'),
+                    os.path.join(CURRENT_DIR, 'launch_celery.py'),
+                    '--command=beat',
                 ],
                 logfile_out=celerybeatlog,
                 logfile_err=celerybeatlog,

@@ -47,6 +47,18 @@ the aspects that you're allowed to see) [#researchercrclass]_.
 
 You can also :ref:`submit a contact request <c4c_submit_contact_request>`.
 
+Clinicians will be able to respond in one of the following ways, with the
+coresponding code letter:
+
+R: Clinician asks RDBM to pass request to patient
+A: Clinician will pass the request to the patient
+B: Clinician vetoes on clinical grounds
+C: Patient is definitely ineligible
+D: Patient is dead/discharged or details are defunct
+
+As of CRATE version 0.18.94, option C will always be available to the
+clinician.
+
 
 Emails
 ######

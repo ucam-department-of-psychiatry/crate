@@ -1617,6 +1617,7 @@ def single_record_html_table(fieldnames: List[str],
         str: HTML
 
     """  # noqa
+    # noinspection PyUnusedLocal
     nlptable = False
     table_html = ''
     if FN_NLPDEF in fieldnames:
@@ -3823,6 +3824,10 @@ def pe_one_table(request: HttpRequest, pe_id: str,
 
     Returns:
         a :class:`django.http.response.HttpResponse`
+
+    Notes:
+
+    - ***
 
     .. todo:: pe_one_table
 
