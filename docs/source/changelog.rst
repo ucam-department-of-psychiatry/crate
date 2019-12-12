@@ -1216,6 +1216,11 @@ Changes
 - Allow option 'C' ('patient is definitely ineligible') for all clinician
   responses to contact requests.
 
+**v0.18.95, 2019-12-10**
+
+- Bugfix to
+  :func:`crate_anon.anonymise.anonymise.process_nonpatient_tables`.
+
 
 ===============================================================================
 

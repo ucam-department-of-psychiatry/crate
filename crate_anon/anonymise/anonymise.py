@@ -1710,7 +1710,7 @@ def process_nonpatient_tables(tasknum: int = 0,
                           incremental=incremental,
                           intpkname=None, tasknum=0, ntasks=1,
                           free_text_limit=free_text_limit,
-                          exclude_scrubbed_fields=exclude_scrubbed_fields))
+                          exclude_scrubbed_fields=exclude_scrubbed_fields)
         except Exception:
             log.critical(f"Error whilst processing - db: {d} table: {t}")
             raise
