@@ -129,6 +129,8 @@ public class CrateGatePipeline {
     private File m_gapp_file = null;
     private String m_file_encoding = null;  // null: use system default
     private int m_verbose = 0;
+    private String m_loglevel = null;  // null so we know if user has specified
+    private String m_gateloglevel = null;
     private String m_annotxml_filename_stem = null;
     private String m_gatexml_filename_stem = null;
     private String m_tsv_filename_stem = null;
@@ -182,12 +184,34 @@ public class CrateGatePipeline {
         // --------------------------------------------------------------------
         // http://stackoverflow.com/questions/8965946/configuring-log4j-loggers-programmatically
         // https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PatternLayout.html
-        Level main_level = m_verbose >= 2 ? Level.DEBUG
-                                          : (m_verbose >= 1 ? Level.INFO
-                                                            : Level.WARN);
-        Level gate_level = m_verbose >= 3 ? Level.DEBUG
-                                          : (m_verbose >= 2 ? Level.INFO
-                                                            : Level.WARN);
+        Level main_level;
+        if (m_loglevel == null) {
+            main_level = m_verbose >= 2 ? Level.DEBUG
+                                        : (m_verbose >= 1 ? Level.INFO
+                                                          : Level.WARN);
+        } else if (m_loglevel.equals("debug")) {
+            main_level = Level.DEBUG;
+        } else if (m_loglevel.equals("info")) {
+            main_level = Level.INFO;
+        } else if (m_loglevel.equals("warn")) {
+            main_level = Level.WARN;
+        } else {
+            main_level = Level.ERROR;
+        }
+        Level gate_level;
+        if (m_gateloglevel == null) {
+            gate_level = m_verbose >= 3 ? Level.DEBUG
+                                        : (m_verbose >= 2 ? Level.INFO
+                                                          : Level.WARN);
+        } else if (m_gateloglevel.equals("debug")) {
+            gate_level = Level.DEBUG;
+        } else if (m_gateloglevel.equals("info")) {
+            gate_level = Level.INFO;
+        } else if (m_gateloglevel.equals("warn")) {
+            gate_level = Level.WARN;
+        } else {
+            gate_level = Level.ERROR;
+        }
         String tag = "";
         if (!m_extra_log_prefix.isEmpty()) {
             tag += "|" + escapePercent(m_extra_log_prefix);
@@ -427,6 +451,8 @@ public class CrateGatePipeline {
 "                         [-wa FILESTEM] [-wg FILESTEM] [-wt FILESTEM]\n" +
 "                         [-s] [--show_contents_on_crash]\n" +
 "                         [-h] [-v [-v [-v]]]\n" +
+"                         [--loglevel <debug|info|warn|error>]\n" +
+"                         [--gateloglevel <debug|info|warn|error>\n" +
 "\n" +
 "Java front end to GATE natural language processor.\n" +
 "\n" +
@@ -523,7 +549,13 @@ public class CrateGatePipeline {
 "\n" +
 "  --verbose\n" +
 "  -v\n" +
-"                   Verbose (use up to 3 times to be more verbose).\n"
+"                   Verbose (use up to 3 times to be more verbose).\n" +
+"  --loglevel LEVEL\n" +
+"                   Main log level. Overrides verbose. Options are:\n" +
+"                   debug, info, warn, error\n" +
+"  --gateloglevel LEVEL\n" +
+"                   GATE log level. Overrides verbose. Options are:\n" +
+"                   debug, info, warn, error\n"
         );
     }
 
@@ -615,6 +647,26 @@ public class CrateGatePipeline {
                 case "-v":
                 case "--verbose":
                     m_verbose++;
+                    break;
+
+                case "--loglevel":
+                    if (nleft < 1) argfail(insufficient + arg);
+                    m_loglevel = m_args[i++];
+                    if (!Arrays.asList(
+                            "debug", "info", "warn", "error").contains(m_loglevel)) {
+                        usage();
+                        exit();
+                    }
+                    break;
+
+                case "--gateloglevel":
+                    if (nleft < 1) argfail(insufficient + arg);
+                    m_gateloglevel = m_args[i++];
+                    if (!Arrays.asList(
+                            "debug", "info", "warn", "error").contains(m_gateloglevel)) {
+                        usage();
+                        exit();
+                    }
                     break;
 
                 case "-wa":
