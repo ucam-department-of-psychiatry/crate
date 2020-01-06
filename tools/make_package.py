@@ -24,7 +24,10 @@ tools/make_package.py
 
 ===============================================================================
 
-Make CRATE Python package.
+Make CRATE packages:
+
+- Python, for PyPI and pip (named like ``dist/crate-anon-VERSION.tar.gz``)
+- Debian (named like ``built_packages/crate_VERSION_all.deb``)
 
 """
 
@@ -285,7 +288,12 @@ print("Creating preinst file. Will be installed as " +
       join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.preinst'))
 # -----------------------------------------------------------------------------
 with open(join(DEB_DIR, 'preinst'), 'w') as outfile:
-    print(f"""#!/usr/bin/env bash
+    # NB "#!/usr/bin/env bash" is refused by Lintian; it gives errors like
+    # "unknown-control-interpreter" and "forbidden-postrm-interpreter".
+    # On Debian, Bash is always /bin/bash.
+    # See also
+    # https://stackoverflow.com/questions/10376206/what-is-the-preferred-bash-shebang  # noqa
+    print(f"""#!/bin/bash
 set -e  # Exit on any errors. (Lintian strongly advises this.)
 
 {BASHFUNC}
@@ -325,7 +333,8 @@ else:
     MAKE_USER_COMMAND_2 = ""
 
 with open(join(DEB_DIR, 'postinst'), 'w') as outfile:
-    print(fr"""#!/usr/bin/env bash
+    # See above re Lintian and shebangs.
+    print(fr"""#!/bin/bash
 # Exit on any errors? (Lintian strongly advises this.)
 set -e
 {BASHFUNC}
@@ -342,7 +351,11 @@ echo '{PACKAGE_FOR_DEB}: postinst file executing'
 # -----------------------------------------------------------------------------
 echo "Setting ownership"
 # -----------------------------------------------------------------------------
-chown -R {CRATE_USER}:{CRATE_GROUP} {DEST_ROOT}
+
+# Lintian dislikes this:
+# chown -R {CRATE_USER}:{CRATE_GROUP} {DEST_ROOT}
+# ... it says maintainer-script-should-not-use-recursive-chown-or-chmod
+
 chown {CRATE_USER}:{CRATE_GROUP} {DEST_SUPERVISOR_CONF_FILE}
 chown {CRATE_USER}:{CRATE_GROUP} {DEST_CRATEWEB_CONF_FILE}
 
@@ -392,7 +405,8 @@ print("Creating prerm file. Will be installed as " +
       join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.prerm'))
 # -----------------------------------------------------------------------------
 with open(join(DEB_DIR, 'prerm'), 'w') as outfile:
-    print(f"""#!/usr/bin/env bash
+    # See above re Lintian and shebangs.
+    print(f"""#!/bin/bash
 set -e
 {BASHFUNC}
 echo '{PACKAGE_FOR_DEB}: prerm file executing'
@@ -408,7 +422,8 @@ print("Creating postrm file. Will be installed as " +
       join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.postrm'))
 # -----------------------------------------------------------------------------
 with open(join(DEB_DIR, 'postrm'), 'w') as outfile:
-    print(f"""#!/usr/bin/env bash
+    # See above re Lintian and shebangs.
+    print(f"""#!/bin/bash
 set -e
 {BASHFUNC}
 echo '{PACKAGE_FOR_DEB}: postrm file executing'
