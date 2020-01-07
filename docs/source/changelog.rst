@@ -1221,6 +1221,18 @@ Changes
 - Bugfix to
   :func:`crate_anon.anonymise.anonymise.process_nonpatient_tables`.
 
+**v0.18.96, 2020-01-07 and in progress**
+
+- Security fixes for external dependencies:
+
+  - waitress from 1.4.1 to 1.4.2
+    (https://github.com/advisories/GHSA-m5ff-3wj3-8ph4;
+    https://github.com/advisories/GHSA-968f-66r5-5v74)
+
+  - django from 2.1.11 to 2.1.15
+    (https://github.com/advisories/GHSA-hvmf-r92r-27hr)
+
+
 
 ===============================================================================
 
