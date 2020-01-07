@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-# crate_anon/common/memsize.py
 
 """
+crate_anon/common/memsize.py
+
 ===============================================================================
 
     Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
