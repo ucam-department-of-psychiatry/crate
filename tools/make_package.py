@@ -200,7 +200,7 @@ for cmd in PREREQUISITES:
 # Software
 # -----------------------------------------------------------------------------
 
-PYTHON_WITH_VER = "python3.5"
+PYTHON_WITH_VER = "python3.6"
 
 # -----------------------------------------------------------------------------
 # Directory constants
