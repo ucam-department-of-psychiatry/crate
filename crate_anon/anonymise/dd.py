@@ -5,7 +5,7 @@ crate_anon/anonymise/dd.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -915,7 +915,7 @@ class DataDictionary(object):
     def _get_mrid_sqla_column(self) -> Column:
         """
         Returns a :class:`sqlalchemy.sql.schema.Column` object for the "MRID"
-        column. This is inserted into all patient-related destination tables 
+        column. This is inserted into all patient-related destination tables
         where the flag 'add_mrid_wherever_rid_added' is set.
         """
         return Column(

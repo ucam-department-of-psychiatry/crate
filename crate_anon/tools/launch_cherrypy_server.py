@@ -5,7 +5,7 @@ crate_anon/tools/launch_cherrypy_server.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -19,7 +19,7 @@ crate_anon/tools/launch_cherrypy_server.py
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
     GNU General Public License for more details.
 
-    should have received a copy of the GNU General Public License
+    You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================

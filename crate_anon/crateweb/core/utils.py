@@ -5,7 +5,7 @@ crate_anon/crateweb/core/utils.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -145,7 +145,7 @@ def url_with_querystring(path: str,
         the URL with query parameters
 
     Note:
-        
+
         This does not currently sort query parameters. Doing that might be
         slightly advantageous for caching, i.e. to ensure that
         "path?a=1&b=2" is treated as identical to "path?b=2&a=1". However, it
@@ -432,13 +432,13 @@ class JavascriptTree(JavascriptTreeNode):
         import django
         os.environ['DJANGO_SETTINGS_MODULE'] = 'crate_anon.crateweb.config.settings'
         django.setup()
-        
+
         from crate_anon.crateweb.core.utils import (
             JavascriptBranchNode,
             JavascriptLeafNode,
             JavascriptTree,
         )
-        
+
         t = JavascriptTree(
             tree_id="my_tree",
             child_id_prefix="my_tree_child_",

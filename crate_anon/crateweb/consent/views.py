@@ -5,7 +5,7 @@ crate_anon/crateweb/consent/views.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -632,7 +632,7 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
     #     generate_automatic_yes.delay(
     #         contact_request.id,
     #         rdbm_to_contact_pt=let_rdbm_contact_pt)
-            
+
     return render(request, 'clinician_contact_request_result.html', {
         'contact_requests': contact_requests,
         'msgs': msgs,

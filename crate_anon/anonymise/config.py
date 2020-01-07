@@ -5,7 +5,7 @@ crate_anon/anonymise/config.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -381,7 +381,7 @@ def get_word_alternatives(filenames: List[str]) -> List[List[str]]:
         avenue, circus, close, crescent, drive, gardens, grove, hill, lane, mead, mews, place, rise, road, row, square, street, vale, way, wharf
 
     Args:
-        filenames: filenames to read from 
+        filenames: filenames to read from
 
     Returns:
         a list of lists of equivalent words
@@ -791,7 +791,7 @@ class Config(object):
         configure itself so transactions aren't used (equivalently:
         ``autocommit`` is True; equivalently, the database commits after every
         statement).
-        
+
         See
         https://github.com/mkleehammer/pyodbc/wiki/Database-Transaction-Management
 

@@ -5,7 +5,7 @@ crate_anon/crateweb/research/research_db_info.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -486,23 +486,23 @@ class SingleResearchDatabase(object):
         """
         Returns a query to fetche the database structure from an SQL Server
         database.
-        
+
         The columns returned are as expected by
         :func:`get_schema_infodictlist`.
-        
+
         Args:
             db_name: a database name
             schema_names: a list of schema names within the database
 
         Returns:
             tuple: ``sql, args``
-            
+
         Notes:
-            
+
         - SQL Server ``INFORMATION_SCHEMA.COLUMNS``: see
           https://msdn.microsoft.com/en-us/library/ms188348.aspx
         - Re fulltext indexes:
-        
+
           - http://stackoverflow.com/questions/16280918/how-to-find-full-text-indexing-on-database-in-sql-server-2008
           - ``sys.fulltext_indexes``: https://msdn.microsoft.com/en-us/library/ms186903.aspx
           - ``sys.fulltext_catalogs``: https://msdn.microsoft.com/en-us/library/ms188779.aspx
@@ -706,21 +706,21 @@ ORDER BY
 
         Returns:
             tuple: ``sql, args``
-            
+
         Notes:
-            
+
         - A PostgreSQL connection is always to a single database; see
           http://stackoverflow.com/questions/10335561/use-database-name-command-in-postgresql
         - http://dba.stackexchange.com/questions/75015
         - http://stackoverflow.com/questions/14713774
         - Note that creating a GIN index looks like:
-        
+
           .. code-block:: sql
-          
+
             ALTER TABLE t ADD COLUMN tsv_mytext TSVECTOR;
             UPDATE t SET tsv_mytext = to_tsvector(mytext);
             CREATE INDEX idx_t_mytext_gin ON t USING GIN(tsv_mytext);
-            
+
         - PostgreSQL ``INFORMATION_SCHEMA.COLUMNS``: see
           https://www.postgresql.org/docs/9.1/static/infoschema-columns.html
 

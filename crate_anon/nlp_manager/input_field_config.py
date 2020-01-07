@@ -5,7 +5,7 @@ crate_anon/nlp_manager/input_field_config.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -287,12 +287,12 @@ class InputFieldConfig(object):
         """
         Returns the core indexes to be applied to the destination tables.
         Primarily, these are for columns that refer to the source.
-        
+
         Returns:
             a list of SQLAlchemy :class:`Index` objects
-        
+
         See
-        
+
         - http://stackoverflow.com/questions/179085/multiple-indexes-vs-multi-column-indexes
         """  # noqa
         return [

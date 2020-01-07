@@ -5,7 +5,7 @@ crate_anon/crateweb/research/forms.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -142,7 +142,7 @@ class PidLookupForm(forms.Form):
         Args:
             dbinfo:
                 research database to look up descriptions from, as a
-                :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase` 
+                :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`
         """  # noqa
         super().__init__(*args, **kwargs)
         rids = self.fields['rids']  # type: MultipleIntAreaField
@@ -170,7 +170,7 @@ class RidLookupForm(forms.Form):
         Args:
             dbinfo:
                 research database to look up descriptions from, as a
-                :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase` 
+                :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`
         """  # noqa
         super().__init__(*args, **kwargs)
         pids = self.fields['pids']  # type: MultipleIntAreaField

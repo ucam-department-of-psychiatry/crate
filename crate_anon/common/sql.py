@@ -5,7 +5,7 @@ crate_anon/common/sql.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -167,19 +167,19 @@ class SchemaId(object):
 
     - In SQL Server, schemas live within databases. Tables can be referred to
       as ``table``, ``schema.table``, or ``database.schema.table``.
-    
+
       - https://docs.microsoft.com/en-us/dotnet/framework/data/adonet/sql/ownership-and-user-schema-separation-in-sql-server
       - The default schema is named ``dbo``.
-      
+
     - In PostgreSQL, schemas live within databases. Tables can be referred to
       as ``table``, ``schema.table``, or ``database.schema.table``.
-    
+
       - https://www.postgresql.org/docs/current/static/ddl-schemas.html
       - The default schema is named ``public``.
 
     - In MySQL, "database" and "schema" are synonymous. Tables can be referred
-      to as ``table`` or ``database.table`` (= ``schema.table``). 
-      
+      to as ``table`` or ``database.table`` (= ``schema.table``).
+
       - https://stackoverflow.com/questions/11618277/difference-between-schema-database-in-mysql
 
     """  # noqa
@@ -203,7 +203,7 @@ class SchemaId(object):
         """
         String suitable for encoding the SchemaId e.g. in a single HTML form.
         Takes the format ``database.schema``.
-        
+
         The :func:`__init__` function has already checked the assumption of no
         ``'.'`` characters in either part.
         """
@@ -245,7 +245,7 @@ class SchemaId(object):
         """
         Returns an SQL identifier for this schema using the specified SQL
         grammar, quoting it if need be.
-        
+
         Args:
             grammar: :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar`
         """
@@ -257,9 +257,9 @@ class SchemaId(object):
         """
         Returns a :class:`TableId` combining this schema and the specified
         table.
-        
+
         Args:
-            table: name of the table 
+            table: name of the table
         """
         return TableId(db=self._db, schema=self._schema, table=table)
 
@@ -270,7 +270,7 @@ class SchemaId(object):
 
         Args:
             table: name of the table
-            column: name of the column 
+            column: name of the column
         """
         return ColumnId(db=self._db, schema=self._schema,
                         table=table, column=column)
@@ -307,7 +307,7 @@ class TableId(object):
                  table: str = '') -> None:
         """
         Args:
-            db: database name 
+            db: database name
             schema: schema name
             table: table name
         """
@@ -360,7 +360,7 @@ class TableId(object):
         column.
 
         Args:
-            column: name of the column 
+            column: name of the column
         """
         return ColumnId(db=self._db, schema=self._schema,
                         table=self._table, column=column)
@@ -1075,7 +1075,7 @@ def add_indexes(engine: Engine, table: Table,
             log.info(f"Table {table.name!r}: adding index {index_name!r} on "
                      f"column {column!r}")
             execute(engine, f"""
-                CREATE{" UNIQUE" if unique else ""} INDEX {index_name} 
+                CREATE{" UNIQUE" if unique else ""} INDEX {index_name}
                     ON {table.name} ({column})
             """)
         else:
@@ -1712,9 +1712,9 @@ def sql_fragment_cast_to_int(expr: str,
 
     Returns:
         modified SQL expression
-    
+
     *Notes*
-    
+
     Conversion to INT:
 
     - http://stackoverflow.com/questions/2000045
@@ -1767,7 +1767,7 @@ def sql_fragment_cast_to_int(expr: str,
         END
 
     That only works for positive integers.
-    
+
     LTRIM/RTRIM are not ANSI SQL.
     Nor are unusual LIKE clauses; see
     http://stackoverflow.com/questions/712580/list-of-special-characters-for-sql-like-clause
@@ -1780,12 +1780,12 @@ def sql_fragment_cast_to_int(expr: str,
 
     ... which returns NULL upon failure; see
     https://msdn.microsoft.com/en-us/library/hh974669.aspx
-    
+
     Therefore, our **method** is as follows:
-    
+
     - If the database supports TRY_CAST, use that.
     - Otherwise if we're using SQL Server, use a CASE/CAST construct.
-    - Otherwise, raise :exc:`ValueError` as we don't know what to do. 
+    - Otherwise, raise :exc:`ValueError` as we don't know what to do.
 
     """  # noqa
     inttype = "BIGINT" if big else "INTEGER"
@@ -2039,7 +2039,7 @@ def is_sql_column_type_textual(column_type: str,
 
     Note:
 
-    - For SQL Server's NVARCHAR(MAX), 
+    - For SQL Server's NVARCHAR(MAX),
       :meth:`crate_anon.crateweb.research.research_db_info._schema_query_microsoft`
       returns "NVARCHAR(-1)"
     """
@@ -2167,28 +2167,28 @@ def translate_sql_qmark_to_percent(sql: str) -> str:
     This function translates SQL using ``?`` placeholders to SQL using ``%s``
     placeholders, without breaking literal ``'?'`` or ``'%'``, e.g. inside
     string literals.
-    
+
     *Notes*
 
     - MySQL likes ``?`` as a placeholder.
-    
+
       - https://dev.mysql.com/doc/refman/5.7/en/sql-syntax-prepared-statements.html
 
     - Python DBAPI allows several: ``%s``, ``?``, ``:1``, ``:name``,
       ``%(name)s``.
-    
+
       - https://www.python.org/dev/peps/pep-0249/#paramstyle
 
     - Django uses ``%s``.
-    
+
       - https://docs.djangoproject.com/en/1.8/topics/db/sql/
 
     - Microsoft like ``?``, ``@paramname``, and ``:paramname``.
-    
+
       - https://msdn.microsoft.com/en-us/library/yy6y35y8(v=vs.110).aspx
 
     - We need to parse SQL with argument placeholders.
-    
+
       - See :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar` classes,
         particularly: ``bind_parameter``
 

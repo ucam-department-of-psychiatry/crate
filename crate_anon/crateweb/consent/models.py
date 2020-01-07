@@ -5,7 +5,7 @@ crate_anon/crateweb/consent/models.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -1313,7 +1313,7 @@ class ConsentMode(Decision):
         like this, we can have a simple query that says "get the current
         records for all patients" -- which is harder if done by date (group by
         patient, order by patient/date, pick last one for each patient...).
-        
+
         See
         http://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django
         """  # noqa
@@ -3081,11 +3081,11 @@ def auto_delete_letter_files_on_change(sender: Type[Letter],
 def _get_default_email_sender() -> str:
     """
     Returns the default e-mail sender.
-    
+
     Using a callable, ``default=_get_default_email_sender``, rather than a
     value, ``default=settings.EMAIL_SENDER``, makes the Django migration system
     stop implementing pointless changes when local settings change.
-    
+
     See
     https://docs.djangoproject.com/en/2.1/ref/models/fields/#django.db.models.Field.default
     """  # noqa
@@ -3611,10 +3611,10 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         <p>An investigation of the change in <b>blood-oxygen-level-dependent
         (BOLD)</b> <i>functional magnetic resonance imaging (fMRI)</i> signals
         during the experience of quaint and fanciful humour activity.</p>
-        
+
         <p>Now with extra HTML.</p>
-        
-        <p>For patients aged &gt;18 and &lt;65.</p> 
+
+        <p>For patients aged &gt;18 and &lt;65.</p>
     """
     use_html = False
     study = Study(

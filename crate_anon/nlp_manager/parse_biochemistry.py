@@ -5,7 +5,7 @@ crate_anon/nlp_manager/parse_biochemistry.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -1024,9 +1024,9 @@ class TotalCholesterol(SimpleNumericalResultParser):
     Total cholesterol.
     """
     CHOLESTEROL = fr"""
-        (?: 
+        (?:
             {WORD_BOUNDARY}
-            (?<!HDL[-\s]+) (?<!LDL[-\s]+)  # not preceded by HDL or LDL 
+            (?<!HDL[-\s]+) (?<!LDL[-\s]+)  # not preceded by HDL or LDL
             (?: tot(?:al) [-\s] )?         # optional "total" prefix
             (?: chol(?:esterol)? )         # cholesterol
         {WORD_BOUNDARY} )

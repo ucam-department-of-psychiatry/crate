@@ -5,7 +5,7 @@ crate_anon/common/extendedconfigparser.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -218,12 +218,12 @@ class ExtendedConfigParser(configparser.ConfigParser):
                                    default: int = None) -> Optional[int]:
         """
         Returns an integer parameter, or a default if we can't read one.
-        
+
         Args:
             section: section name
             option: parameter name
             default: value to return if the parameter cannot be read (missing
-                or not an integer) 
+                or not an integer)
 
         Returns:
             an integer, or ``default``
@@ -241,7 +241,7 @@ class ExtendedConfigParser(configparser.ConfigParser):
                      suppress_errors: bool = True) -> List[int]:
         """
         Returns a list of integers from a parameter.
-        
+
         Args:
             section: config section name
             option: parameter name

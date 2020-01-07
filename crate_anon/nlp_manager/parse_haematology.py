@@ -5,7 +5,7 @@ crate_anon/nlp_manager/parse_haematology.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -81,16 +81,16 @@ log = logging.getLogger(__name__)
 class Haemoglobin(SimpleNumericalResultParser):
     """
     Haemoglobin (Hb).
-    
+
     UK reporting for haemoglobin switched in 2013 from g/dL to g/L; see
     e.g.
-    
+
     - http://www.pathology.leedsth.nhs.uk/pathology/Portals/0/PDFs/BP-2013-02%20Hb%20units.pdf
     - http://www.acb.org.uk/docs/default-source/committees/scientific/guidelines/acb/pathology-harmony-haematology.pdf
-    
+
     The *DANGER* remains that "Hb 9" may have been from someone assuming
     old-style units, 9 g/dL = 90 g/L, but this will be interpreted as 9 g/L.
-    This problem is hard to avoid. 
+    This problem is hard to avoid.
 
     """  # noqa
     HAEMOGLOBIN = fr"""
@@ -252,15 +252,15 @@ class RBC(SimpleNumericalResultParser):
         RBC, POC    9.99    (H)     10*12/L
     """
     RED_BLOOD_CELLS = fr"""
-        (?: 
+        (?:
             {WORD_BOUNDARY}
-            (?: 
+            (?:
                 # Red [blood] cell[s] [(RBC)] [count]
                 Red \b \s* (?: blood \s*)? \b cells? \b
-                    (?:\s* \(RBC\) )? 
+                    (?:\s* \(RBC\) )?
                     (?:\s* count \b )?
                 # RBC(s)
-                | (?: RBCs? )       
+                | (?: RBCs? )
             )
         )
     """

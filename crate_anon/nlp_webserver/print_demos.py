@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 r"""
-crate_anon/nlp_webserver/print_demo_config.py
+crate_anon/nlp_webserver/print_demos.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -24,6 +24,7 @@ crate_anon/nlp_webserver/print_demo_config.py
 
 ===============================================================================
 
+crate_anon/nlp_webserver/print_demo_config.py
 Prints a demo config for CRATE's implementation of an NLPRP server.
 """
 
@@ -46,7 +47,7 @@ def demo_config() -> str:
 # This is a "paste" configuration file for the CRATE NLPRP web server.
 
 # =============================================================================
-# The CRATE NLPRP server web application 
+# The CRATE NLPRP server web application
 # =============================================================================
 
 [app:main]

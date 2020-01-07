@@ -5,7 +5,7 @@ crate_anon/nlp_webserver/views.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -309,7 +309,7 @@ class NlpWebViews(object):
             NKeys.PROTOCOL: {
                 NKeys.NAME: NlprpValues.NLPRP_PROTOCOL_NAME,
                 NKeys.VERSION: NLPRP_VERSION_STRING
-            }, 
+            },
             NKeys.SERVER_INFO: {
                 NKeys.NAME: SERVER_NAME,
                 NKeys.VERSION: SERVER_VERSION

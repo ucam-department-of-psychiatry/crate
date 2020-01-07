@@ -5,7 +5,7 @@ crate_anon/nlp_manager/base_nlp_parser.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -489,7 +489,7 @@ class TableMaker(ABC):
                            commit: bool = False) -> None:
         """
         Deletes all destination records for a given source record.
-        
+
         - Used during incremental updates.
         - For when a record (specified by ``srcpkval``) has been updated in the
           source; wipe older entries for it in the destination database(s).
@@ -499,7 +499,7 @@ class TableMaker(ABC):
                 :class:`crate_anon.nlp_manager.input_field_config.InputFieldConfig`
                 that defines the source database, table, and field (column)
             srcpkval:
-                integer primary key (PK) value 
+                integer primary key (PK) value
             srcpkstr:
                 for tables with string PKs: the string PK value
             commit:

@@ -5,7 +5,7 @@ crate_anon/common/constants.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -78,9 +78,9 @@ class HelpUrl(object):
         HelpUrl.main()
 
     i.e. further brackets are unnecessary (and an error). See:
-    
+
     - https://docs.djangoproject.com/en/2.2/topics/templates/#variables
-    
+
     ... "If a variable resolves to a callable, the template system will call it
     with no arguments and use its result instead of the callable."
 

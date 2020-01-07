@@ -5,7 +5,7 @@ crate_anon/preprocess/postcodes.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -641,7 +641,7 @@ class BUASD(Base):
 class CASWard(Base):
     """
     Represents censua area statistics (CAS) wards in the UK, 2003.
-    
+
     - https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#statistical-wards-cas-wards-and-st-wards
     """  # noqa
     __filename__ = "CAS ward names and codes UK as at 01_03.xlsx"
@@ -1556,7 +1556,7 @@ class PopWeightedCentroidsLsoa2011(Base):
     """
     Represents a population-weighted centroid of a lower layer super output
     area (LSOA).
-    
+
     That is, the geographical centre of the LSOA, weighted by population. (A
     first approximation: imagine every person pulling on the centroid
     simultaneously and with equal force from their home. Where will it end up?)

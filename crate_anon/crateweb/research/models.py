@@ -5,7 +5,7 @@ crate_anon/crateweb/research/models.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -261,9 +261,9 @@ def get_executed_researchdb_cursor(sql: str,
         a :class:`django.db.backends.utils.CursorWrapper`, which is a context
         manager that behaves as the executed cursor and also closes it on
         completion
-        
+
     Test code:
-    
+
     .. code-block:: python
 
         import os
@@ -1264,7 +1264,7 @@ def get_pid_lookup(dbinfo: SingleResearchDatabase,
     """
     Looks up a patient in the secret lookup database associated with a
     database, from one of several possible identifiers.
-    
+
     Args:
         dbinfo: a
             :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`
@@ -1276,7 +1276,7 @@ def get_pid_lookup(dbinfo: SingleResearchDatabase,
 
     Returns:
         a :class:`crate_anon.crateweb.research.models.PidLookup` or ``None``
-        
+
     Raises:
         :exc:`ValueError` if none of the IDs was specified
 
@@ -1379,22 +1379,22 @@ class PatientMultiQuery(object):
     """
     Represents a set of queries across many tables relating to one or several
     patients (but the same patients across all the tables).
-    
+
     Used for the Patient Explorer.
-    
+
     *Development notes:*
-        
+
     - Patient ID query
-    
+
       - Single database is easy; we can use RID or TRID, and therefore TRID for
         performance.
-        
+
         Note that ``UNION`` gives only ``DISTINCT`` results by default (``UNION
         ALL`` gives everything); see
         http://stackoverflow.com/questions/49925/what-is-the-difference-between-union-and-union-all.
-        
+
         .. code-block:: sql
-    
+
             -- Clear, but extensibility of boolean logic less clear:
             SELECT trid
                 FROM diagnosis_table
@@ -1406,7 +1406,7 @@ class PatientMultiQuery(object):
             ORDER BY trid
             -- ... logic across tables requires careful arrangement of UNION vs. INTERSECT
             -- ... logic for multiple fields within one table can be done with AND/OR
-    
+
             -- Slower (?), but simpler to manipulate logic?
             SELECT DISTINCT something.trid
             FROM diagnosis_table INNER JOIN progress_note_table
@@ -1420,25 +1420,25 @@ class PatientMultiQuery(object):
             -- ... can also share existing join code
             -- ... ?reasonable speed since the TRID fields will be indexed
             -- ... preferable.
-    
+
     - Which ID for the patient ID query?
-    
+
       - the TRID (for speed, inc. sorting) of the first database
       - can use the TRID from the first "where clause" table
         (don't have to join to a master patient table)
       - join everything across databases as before
-    
+
     - Results queries
-    
+
       .. code-block:: none
-    
+
         -- Something like:
-    
+
         SELECT rid, date_of_note, note
         FROM progress_note_table
         WHERE trid IN ( ... patient_id_query ... )
         ORDER BY trid
-    
+
         SELECT rid, date_of_diagnosis, diagnosis, diagnosis_description
         FROM diagnosis_table
         WHERE trid IN ( ... patient_id_query ... )
@@ -1446,16 +1446,16 @@ class PatientMultiQuery(object):
 
       This means we will repeat the patient_id_query, which may be inefficient.
       Options:
-    
+
       - store the TRIDs in Python, then pass them as arguments
-    
+
         - at which point the SQL string/packet length becomes relevant;
         - http://stackoverflow.com/questions/1869753/maximum-size-for-a-sql-server-query-in-clause-is-there-a-better-approach
         - http://stackoverflow.com/questions/16335011/what-is-maximum-query-size-for-mysql
         - http://stackoverflow.com/questions/96553/practical-limit-to-length-of-sql-query-specifically-mysql
-      
+
       - let the database worry about it
-    
+
         - probably best for now!
 
     - Display
@@ -1463,9 +1463,9 @@ class PatientMultiQuery(object):
       - One patient per page, with multiple results tables.
 
     - Boolean logic on patient selection
-    
+
       - ... within
-    
+
     """  # noqa
     def __init__(self,
                  output_columns: List[ColumnId] = None,
@@ -1615,7 +1615,7 @@ class PatientMultiQuery(object):
             WHERE MATCH (anonymous_output.note.note) AGAINST ('neutrophils')
                 AND anonymous_output.patient.nhshash IS NOT NULL
             ORDER BY _mrid
-            
+
         """  # noqa
         self._manual_patient_id_query = query
 
@@ -1874,7 +1874,7 @@ class PatientMultiQuery(object):
     def summary_html(self, element_counter: HtmlElementCounter) -> str:
         """
         Returns an HTML representation of this multiquery.
-        
+
         Args:
             element_counter: a
                 :class:`crate_anon.crateweb.research.html_functions.HtmlElementCounter`,

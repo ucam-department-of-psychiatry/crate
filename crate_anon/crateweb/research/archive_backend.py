@@ -5,7 +5,7 @@ crate_anon/crateweb/research/archive_backend.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -348,8 +348,8 @@ def archive_attachment_url(
         filename:
             filename on disk, within the archive's attachment directory
         patient_id:
-            patient ID (used for auditing) 
-        content_type: 
+            patient ID (used for auditing)
+        content_type:
             HTTP content type; see
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type
         offered_filename:
@@ -380,7 +380,7 @@ def archive_static_url(filename: str) -> str:
 
     Args:
         filename:
-            filename on disk, within the archive's static directory 
+            filename on disk, within the archive's static directory
     """  # noqa
     qparams = {UrlKeys.FILENAME: filename}
     filepath = get_archive_static_filepath(filename)

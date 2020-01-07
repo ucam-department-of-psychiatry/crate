@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/cloud_server_info.py
 
 """
+crate_anon/nlp_manager/cloud_run_info.py
+
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 

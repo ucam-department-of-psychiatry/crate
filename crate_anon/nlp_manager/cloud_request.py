@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/cloud_request.py
 
 """
+crate_anon/nlp_manager/cloud_request.py
+
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -463,7 +464,7 @@ class CloudRequestProcess(CloudRequest):
             compare({"a": 1, "b": [2, 3, "xyz"]})  # JSON-UTF8 23, Python 464
 
         It can be quite a big overestimate, so we probably shouldn't chuck
-        out requests just because the Python size looks too big.  
+        out requests just because the Python size looks too big.
 
         """  # noqa
         if not max_length:  # None or 0
@@ -670,13 +671,13 @@ class CloudRequestProcess(CloudRequest):
     #         a dictionary mapping annotaion types to
     #         :class:`crate_anon.nlp_manager.output_user_config.OutputUserConfig`
     #         for the purpose of renaming keys
-    # 
+    #
     #     """
     #     proc_section = full_sectionname(NlpConfigPrefixes.PROCESSOR, processor)
     #     typepairs = self._nlpdef.opt_strlist(
     #         proc_section, ProcessorConfigKeys.OUTPUTTYPEMAP,
     #         required=True, lower=False)
-    # 
+    #
     #     outputtypemap = {}  # type: Dict[str, OutputUserConfig]
     #     type_to_tablename = {}  # type: Dict[str, str]
     #     for c in chunks(typepairs, 2):

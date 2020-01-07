@@ -5,7 +5,7 @@ crate_anon/nlp_manager/nlp_definition.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -311,7 +311,7 @@ def demo_nlp_config() -> str:
 {procdefs_biochemistry}
 
     # Clinical
-    
+
 {procdefs_clinical}
 
     # Cognitive
@@ -319,7 +319,7 @@ def demo_nlp_config() -> str:
 {procdefs_cognitive}
 
     # Haematology
-    
+
 {procdefs_haematology}
 
 
@@ -437,9 +437,9 @@ def demo_nlp_config() -> str:
     # Found by manual inspection of KConnect/Bio-YODIE output from the GATE console:
     experiencer  VARCHAR(100)  Who experienced it; e.g. "Patient", "Other"
     negation     VARCHAR(100)  Was it negated or not; e.g. "Affirmed", "Negated"
-    pref         VARCHAR(100)  PREFferred name; e.g. "Rheumatic gout" 
-    sty          VARCHAR(100)  Semantic Type (STY) [semantic type name]; e.g. "Disease or Syndrome" 
-    tui          VARCHAR(4)    Type Unique Identifier (TUI) [semantic type identifier]; 4 characters; https://www.ncbi.nlm.nih.gov/books/NBK9679/; e.g. "T047" 
+    pref         VARCHAR(100)  PREFferred name; e.g. "Rheumatic gout"
+    sty          VARCHAR(100)  Semantic Type (STY) [semantic type name]; e.g. "Disease or Syndrome"
+    tui          VARCHAR(4)    Type Unique Identifier (TUI) [semantic type identifier]; 4 characters; https://www.ncbi.nlm.nih.gov/books/NBK9679/; e.g. "T047"
     temporality  VARCHAR(100)  Occurrence in time; e.g. "Recent", "historical", "hypothetical"
     vocabs       VARCHAR(255)  List of UMLS vocabularies; e.g. "AIR,MSH,NDFRT,MEDLINEPLUS,NCI,LNC,NCI_FDA,NCI,MTH,AIR,ICD9CM,LNC,SNOMEDCT_US,LCH_NW,HPO,SNOMEDCT_US,ICD9CM,SNOMEDCT_US,COSTAR,CST,DXP,QMR,OMIM,OMIM,AOD,CSP,NCI_NCI-GLOSS,CHV"
     inst         VARCHAR(8)    Looks like a Concept Unique Identifier (CUI); 1 letter then 7 digits; e.g. "C0003873"

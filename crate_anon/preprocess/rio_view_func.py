@@ -5,7 +5,7 @@ crate_anon/preprocess/rio_view_func.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -157,7 +157,7 @@ def lookup_from_fragment_first_row(lookup_table: str,
         lookup_table: name of the lookup table
         aliased_lookup_table: alias to use (in SQL) for the lookup table
         lookup_key: a field we'll match to ``basetable.basecolumn``
-        lookup_unique_field: the field from which we want the first value 
+        lookup_unique_field: the field from which we want the first value
         basetable: name of the base table from which to look up information
         basecolumn: name of the column in the base table that maps to the PK
             in the lookup table
@@ -225,7 +225,7 @@ def lookup_from_fragment_first_row_outer_apply(lookup_fields: Iterable[str],
     unique field in the lookup table.
 
     Args:
-        lookup_fields: field(s) to look up the first values from 
+        lookup_fields: field(s) to look up the first values from
         lookup_table: name of the lookup table
         aliased_lookup_table: alias to use (in SQL) for the lookup table
         lookup_key: a field we'll match to ``basetable.basecolumn``
@@ -237,7 +237,7 @@ def lookup_from_fragment_first_row_outer_apply(lookup_fields: Iterable[str],
         an SQL string
 
     See
-    
+
     - http://stackoverflow.com/questions/2043259/sql-server-how-to-join-to-first-row
     - http://stackoverflow.com/questions/9275132/real-life-example-when-to-use-outer-cross-apply-in-sql
     """  # noqa

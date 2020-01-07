@@ -5,7 +5,7 @@ crate_anon/preprocess/fuzzy_id_match.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -91,7 +91,7 @@ then we calculate
 
     \text{posterior} &= \frac{ \text{likelihood} \cdot \text{prior} }
                              { \text{marginal likelihood} }
-                             
+
 It's more convenient to work with log odds:
 
 .. math::
@@ -106,9 +106,9 @@ It's more convenient to work with log odds:
 
     \text{posterior odds} &= \text{likelihood ratio} \cdot \text{prior odds}  \\
 
-    \log \text{posterior odds} &= \log \text{likelihood ratio} + 
+    \log \text{posterior odds} &= \log \text{likelihood ratio} +
                                   \log \text{prior odds}
-                                  
+
 That way, the iterative process is to start with log odds for the prior, then
 add log likelihood ratios consecutively.
 
@@ -134,7 +134,7 @@ For a given single piece of information (e.g. surname), if
 - :math:`p_p` is the probability of a randomly selected person giving a
   partial (fuzzy) match to our proband (e.g. same fuzzy first name, or same
   postcode district);
-  
+
 then we have the following:
 
 +------------------------------+------------------+-----------------------+
@@ -159,10 +159,10 @@ block, and then compare the sequence of mini-hashes for similarity.
 
 - the trend micro locality sensitive hash (TLSH_), for fuzzy hashing of byte
   streams of at least 50 bytes;
-  
+
 - sdhash_, comparison of arbitrary data blobs based on common strings of binary
   data.
-  
+
 - Nilsimsa_ (2001/2004) a locality-sensitive hashing algorithm) and ssdeep_, a
   context triggered piecewise hashing (CTPH) algorithm.
 
@@ -332,9 +332,9 @@ proceed as follows.
     .. math::
 
         P(\text{proband in sample}) &= 1  \\
-    
+
         \sum_{j=1}^{n_s} P(H_j) &= 1  \\
-    
+
         P(H_i | D) &= \frac{ P(D | H_i) P(H_i) / P(D) }
                            { \sum_{j=1}^{n_s} P(D | H_j) P(H_j) / P(D) }  \\
 
@@ -347,7 +347,7 @@ proceed as follows.
     Compare [#gronau2017]_.
 
     With equal priors, :math:`H_i = H_j \forall i, j` and the expression above
-    reduces to: 
+    reduces to:
 
     .. math::
 
@@ -358,9 +358,9 @@ proceed as follows.
 
     .. math::
 
-        \log P(H_i | D) &= \log P(D | H_i) - 
+        \log P(H_i | D) &= \log P(D | H_i) -
                            \log \sum_{j=1}^{n_s} e^{ log P(D | H_j) }
-                      
+
     or in pseudocode:
 
     .. code-block:: none
@@ -382,7 +382,7 @@ For example, if :math:`p_s = 0.02` as in situation C above, it would be wrong
 to cap the posterior probability at 0.02.
 
 We have already seen that changing the sampling fraction is irrelevant; thus
-:math:`p_s` is too. 
+:math:`p_s` is too.
 
 So, the correct posterior probability is given by :math:`P(H_i | D), \forall
 i`. All we have to do is add some sanity check for incorrect priors. We
@@ -411,44 +411,44 @@ Fairly easy: first name, surname, DOB (very unlikely to be absent).
   name). This may be too restrictive (leading to under-recognition of matches)
   if e.g. someone is formally named Arthur Brian JONES but is always known as
   Brian.
-  
+
 - Surnames are assumed to be fixed (not e.g. interchangeable with a first
   name). This assumption may be too restrictive (leading to under-recognition
   of matches) with e.g. Chinese names (written and spoken in Chinese as:
   SURNAME Firstname, sometimes Anglicized as Firstname SURNAME, and often
   confused by English-speaking people).
-  
+
 - Dates of birth are assumed to be error-free (which may be incorrect) (*).
 
   - (*) Known real-world categories of DOB error include:
-  
+
     - day/month transposition
     - plain numerical typographical errors
-    - entering today's date as a date of birth  
+    - entering today's date as a date of birth
 
 Harder: middle names
 
 - We could consider only "shared middle names". Then, the order of middle names
   is ignored; the test is "sharing a middle name" (or more than one middle
   names). So "A B C D" is just a good a match to "A B C D" as "A C B D" is.
-  
+
   However, with a proband "A D", that makes "A D" and "A B C D" equally good
   matches; perhaps that is not so plausible (you might expect "A D" to be
   slightly more likely).
-  
+
   We could extend this by considering (a) middle names present in the proband
   but absent from the sample, and (b) middle names present in the proband but
   absent in the sample.
 
-- We end up with a more full scheme: 
+- We end up with a more full scheme:
 
   .. code-block:: none
-    
+
     define global P(proband middle name omitted) (e.g. 0.1)
     define global P(sample middle name omitted) (e.g. 0.1)
 
     n_proband_middle_names = ...
-    n_sample_middle_names = ...    
+    n_sample_middle_names = ...
     for mn in shared_exact_match_middle_names:
         P(D | H) = 1 - p_e
         P(D | ¬H) = name_frequency
@@ -462,29 +462,29 @@ Harder: middle names
         P(D | H) = P(sample middle name omitted)
         # ... rationale: they are the same person, but this middle name is
         #     not present in the sample record
-        P(D | ¬H) = P(person has a "n_sample_middle_names + i"th middle name, 
-                      given that they have "n_sample_middle_names + i - 1" of 
+        P(D | ¬H) = P(person has a "n_sample_middle_names + i"th middle name,
+                      given that they have "n_sample_middle_names + i - 1" of
                       them)
-        # ... rationale: they are not the same person; the proband has an 
-        #     additional middle name at position n (sort of -- exact order is 
+        # ... rationale: they are not the same person; the proband has an
+        #     additional middle name at position n (sort of -- exact order is
         #     ignored!); how likely is that?
     for i, mn in enumerate(sample_but_not_proband_middle_names, start=1):
         P(D | H) = P(proband middle name omitted)
-        # ... rationale: they are the same person, but this middle name is 
+        # ... rationale: they are the same person, but this middle name is
         #     not present in the proband record
-        P(D | ¬H) = P(person has a "n_sample_middle_names + i"th middle name, 
-                      given that they have "n_sample_middle_names + i - 1" of 
+        P(D | ¬H) = P(person has a "n_sample_middle_names + i"th middle name,
+                      given that they have "n_sample_middle_names + i - 1" of
                       them)
-        # ... rationale: they are not the same person; the sample has an 
-        #     additional middle name at position n (sort of -- exact order is 
+        # ... rationale: they are not the same person; the sample has an
+        #     additional middle name at position n (sort of -- exact order is
         #     ignored!); how likely is that?
-                          
+
     # Roughly 80% of UK children in ~2013 had a middle name [1].
     # Roughly 11% of people have at least two. So P(two | one) = 0.1375.
-    
+
     # [1] Daily Mail, 29 Nov 2013:
     # https://www.dailymail.co.uk/news/article-2515376/Middle-names-booming-80-children-given-parents-chosen-honour-lost-relatives.html
-    
+
 Harder: postcodes
 
 - Postcodes are assumed to provide evidence if there is a match, but not to
@@ -543,8 +543,8 @@ postcode sector? Smaller, I think.
 - https://data.gov.uk/dataset/7f4e1818-4305-4962-adc4-e4e3effd7784/output-area-to-postcode-sector-december-2011-lookup-in-england-and-wales
 - this allows you to look up *from* output area *to* postcode sector, implying
   that postcode sectors must be larger.
-  
-  
+
+
 Validation strategy
 -------------------
 
@@ -557,10 +557,10 @@ Validation strategy
   - surname
   - DOB
   - a single specimen postcode
-  
+
 - Split that data set into two (arbitrarily, 50:50). One half is the "sample",
   one is the "others".
-  
+
 - Establish P(unique plaintext match | proband in sample) -- should be close to
   1.
 
@@ -569,19 +569,19 @@ Validation strategy
 
 - Establish P(unique hashed match | proband in sample).
 
-- Establish P(unique hashed match | proband in others). 
+- Establish P(unique hashed match | proband in others).
 
 - More broadly, for every individual (sample and others), treat that person as
   a proband and establish P(match) and P(next best match), represented as log
   odds. That allows generation of a ROC curve based on the "match" threshold
   and the "better than the next one" threshold.
-  
+
 - For a data set of size :math:`n`, this gives :math:`\frac{n^2}{2}`
   comparisons.
 
 - Then, repeat these with "typos" or "deletions".
 
-  - No point in surname or DOB typo as our rule excludes that. 
+  - No point in surname or DOB typo as our rule excludes that.
 
 
 Speed
@@ -594,7 +594,7 @@ A comparison of 1000 pre-hashed subjects to 50m records requiring hashing,
 without any caching, is going to take about 1000 * 50m * 120 μs, or quite a
 long time -- a big part of which would be pointless re-hashing. A reasonable
 strategy for a large database would therefore be to:
- 
+
 - pre-hash the sample with the agreed key (e.g. about 1.8 hours for 66m
   records);
 - for each hashed proband, restrict the comparison to those with a matching
@@ -713,14 +713,14 @@ Hasher = HmacSHA256Hasher
 
 def cache_load(filename: str) -> Any:
     """
-    Reads from a cache. 
+    Reads from a cache.
 
     Args:
         filename: cache filename (pickle format)
 
     Returns:
         the result
-        
+
     Raises:
         :exc:`FileNotFoundError` if it doesn't exist.
 
@@ -860,7 +860,7 @@ class Comparison(object):
             name: name of this comparison, for cosmetic purposes
         """
         self.name = name
-        
+
     def __str__(self) -> str:
         """
         Returns a brief description.
@@ -2053,7 +2053,7 @@ class Person(object):
             prior_log_odds=cfg.baseline_log_odds_same_person,
             comparisons=self._gen_comparisons(other, cfg)
         )
-        
+
     # -------------------------------------------------------------------------
     # Bayesian comparison
     # -------------------------------------------------------------------------
@@ -2074,7 +2074,7 @@ class Person(object):
             yield c
         for c in self._comparisons_postcodes(other, cfg):
             yield c
-        
+
     def _comparison_dob(self, other: "Person") -> Optional[Comparison]:
         """
         Returns a comparison for date of birth.
@@ -2103,8 +2103,8 @@ class Person(object):
             p_match_given_same_person=1,  # no typos allows in dates of birth
             p_match_given_diff_person=1 / DAYS_PER_YEAR
         )
-    
-    def _comparison_surname(self, other: "Person", 
+
+    def _comparison_surname(self, other: "Person",
                             cfg: MatchConfig) -> Optional[Comparison]:
         """
         Returns a comparison for surname.
@@ -2120,7 +2120,7 @@ class Person(object):
                 return None
             full_match = self.hashed_surname == other.hashed_surname
             p_f = self.surname_frequency
-            partial_match = (self.hashed_surname_metaphone == 
+            partial_match = (self.hashed_surname_metaphone ==
                              other.hashed_surname_metaphone)
             p_p = self.surname_metaphone_frequency
         else:

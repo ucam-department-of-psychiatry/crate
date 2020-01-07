@@ -5,7 +5,7 @@ crate_anon/anonymise/fetch_wordlists.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -534,11 +534,11 @@ def gen_us_surname_1990_info(lines: Iterable[str]) -> \
     """
     Process a series of lines from a textfile and generate US surname
     information from the 1990 census data.
-    
+
     Args:
         lines:
             iterable of lines, with this format:
-        
+
             .. code-block:: none
 
                 # Format is e.g.
@@ -560,7 +560,7 @@ def gen_us_surname_2010_info(rows: Iterable[Iterable[str]]) -> \
     """
     Process a series of rows and generate US surname information from the 2010
     census data.
-    
+
     Args:
         rows:
             iterable giving "row" objects, where each row is an iterable of
@@ -585,12 +585,12 @@ def fetch_us_surnames(url_1990: str,
     """
     Fetches US surnames from the 1990 and 2010 census data. Writes them to a
     file.
-    
+
     Args:
         url_1990:
             URL for 1990 US census data
         url_2010:
-            URL for 2010 US census data 
+            URL for 2010 US census data
         filename:
             text filename to write names to (one name per line)
         freq_csv_filename:
@@ -668,7 +668,7 @@ def fetch_us_surnames(url_1990: str,
 def fetch_eponyms(filename: str, add_unaccented_versions: bool) -> None:
     """
     Writes medical eponyms to a file.
-    
+
     Args:
         filename:
             filename to write to
@@ -690,11 +690,11 @@ def filter_files(input_filenames: List[str],  # "A"
                  min_line_length: int = 0) -> None:
     """
     Provides an "A-not-B" file filtering function.
-    
+
     Finds all lines in files defined by ``input_filenames`` (A) that are not
     present in any files defined by ``exclusion_filenames`` (B). Writes them
     to ``output_filename`` (OUT).
-    
+
     Args:
         input_filenames: a list of "A" filenames
         exclusion_filenames: a list of "B" filenames

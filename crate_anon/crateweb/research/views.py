@@ -5,7 +5,7 @@ crate_anon/crateweb/research/views.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -1459,10 +1459,10 @@ def resultset_html_table(fieldnames: List[str],
     """
     Returns an HTML table representing a set of results from a query. Its
     columns are the database columns; its rows are the database rows.
-    
+
     Args:
         fieldnames:
-            list of column names 
+            list of column names
         rows:
             list of rows (each row being a list of values in the same order as
             ``fieldnames``)
@@ -1488,8 +1488,8 @@ def resultset_html_table(fieldnames: List[str],
             if specified, the line length to word-wrap at
         ditto:
             whether to replace cells that are identical to the cell immediately
-            above with ditto marks 
-        ditto_html: 
+            above with ditto marks
+        ditto_html:
             the HTML string to use as a ditto mark
         no_ditto_cols:
             column indexes (zero-based) for which ditto marks should never be
@@ -1589,10 +1589,10 @@ def single_record_html_table(fieldnames: List[str],
     recordwise format. It has two columns, effectively "database column" and
     "value"; its rows are the database columns; it displays a single database
     result row.
-    
+
     Args:
         fieldnames:
-            list of column names 
+            list of column names
         record:
             a single result row, i.e. a list of values in the same order as
             ``fieldnames``
@@ -1684,7 +1684,7 @@ def render_resultset(request: HttpRequest,
                      ditto_html: str = '″') -> HttpResponse:
     """
     Show the results of a user's query in paginated, tabular format.
-    
+
     Args:
         request:
             the :class:`django.http.request.HttpRequest`
@@ -2251,13 +2251,13 @@ def render_lookup(request: HttpRequest,
         trids:
             list of TRIDs to look up from
         rids:
-            list of RIDs to look up from 
+            list of RIDs to look up from
         mrids:
-            list of MRIDs to look up from 
+            list of MRIDs to look up from
         pids:
             list of PIDs to look up from
         mpids:
-            list of MPIDs to look up from 
+            list of MPIDs to look up from
 
     Returns:
         a :class:`django.http.response.HttpResponse`
@@ -2540,14 +2540,14 @@ def textfinder_sql(patient_id_fieldname: str,
             use database full-text indexing?
         include_content:
             include the text fields in the output?
-        include_datetime: 
+        include_datetime:
             include the date/time of each record, if known (see
             :meth:`crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo.get_default_date_column`
         patient_id_value:
             specify this to restrict to a single patient; the value of the
             patient ID column (see ``patient_id_fieldname``) to restrict to
-        extra_fieldname: 
-        extra_value: 
+        extra_fieldname:
+        extra_value:
 
     Returns:
         str: SQL query
@@ -2704,7 +2704,7 @@ def common_find_text(request: HttpRequest,
     Args:
         request:
             the :class:`django.http.request.HttpRequest`
-        dbinfo: 
+        dbinfo:
             a :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`
             detailing the research database to use
         form_class:
@@ -2713,7 +2713,7 @@ def common_find_text(request: HttpRequest,
             or a subclass of it (like
             `crate_anon.crateweb.research.forms.ClinicianAllTextFromPidForm`)
         default_values:
-            default values to be passed to the form (see ``form_class``) 
+            default values to be passed to the form (see ``form_class``)
         permit_pid_search:
             allow the user to search by PID/MPID (for clinicians)?
         html_filename:
@@ -3941,10 +3941,10 @@ def archive_template(request: HttpRequest) -> HttpResponse:
         a Django :class:`HttpResponse`.
 
     Note:
-        
+
     - The archive template name is in ``request.GET``; this allows the use of
       special (e.g. filename) characters.
-      
+
     - The patient ID is also in ``request.GET``; this allows the optional use
       of more complex strings, e.g. JSON, to represent multiple ID numbers for
       use with several databases.
@@ -3956,7 +3956,7 @@ def archive_template(request: HttpRequest) -> HttpResponse:
       .. code-block:: none
 
         <a href="{% url 'archive' patient_id template_name %}">link text</a>
-        
+
       (the ``'archive'`` bit being configured in
       :mod:`crate_anon.crateweb.config.urls`).
 
@@ -3964,8 +3964,8 @@ def archive_template(request: HttpRequest) -> HttpResponse:
       for example, in CamCOPS via Pyramid, we use ``request.route_url(...)``.
       We can make this simple by passing patient-specific function to the
       context; see :ref:`the Python Mako context <archive_mako_context>`.
-        
-    - If we use DMP, it will add a ``request.dmp`` object; see 
+
+    - If we use DMP, it will add a ``request.dmp`` object; see
       http://doconix.github.io/django-mako-plus/topics_variables.html.
       (We won't use DMP.)
 
@@ -4037,7 +4037,7 @@ def archive_template(request: HttpRequest) -> HttpResponse:
 def archive_attachment(request: HttpRequest) -> HttpResponseBase:
     """
     Serve a binary file from the archive.
-    
+
     The patient_id is not required to find the file -- but is used for the
     audit trail. (It would be possible for the end user to look up a file by
     name via a faked patient_id. However, this could be established from the

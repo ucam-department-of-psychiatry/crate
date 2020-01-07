@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 """
-crate_anon/anonymise/anonymise.py
+crate_anon/common/file_io.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -24,6 +24,7 @@ crate_anon/anonymise/anonymise.py
 
 ===============================================================================
 
+crate_anon/anonymise/anonymise.py
 **Simple functions for file I/O.**
 
 """

@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/cloud_parser.py
 
 """
+crate_anon/nlp_manager/cloud_parser.py
+
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -268,9 +269,9 @@ class Cloud(TableMaker):
         #     pass
 
     def _dest_tables_columns_user(self) -> Dict[str, List[Column]]:
-        
+
         tables = {}  # type: Dict[str, List[Column]]
-        
+
         for output_type, otconfig in self._outputtypemap.items():
             tables[otconfig.get_tablename()] = (
                 self._standard_columns_if_gate() +

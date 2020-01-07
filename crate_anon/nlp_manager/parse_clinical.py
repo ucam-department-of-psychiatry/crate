@@ -5,7 +5,7 @@ crate_anon/nlp_manager/parse_clinical.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -598,7 +598,7 @@ class BmiValidator(ValidatorBase):
 class Bp(BaseNlpParser):
     """
     Blood pressure, in mmHg. (Systolic and diastolic.)
-    
+
     (Since we produce two variables, SBP and DBP, and we use something a little
     more complex than
     :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`,

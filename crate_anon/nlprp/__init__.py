@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 """
-crate_anon/nlp_manager/__init__.py
+crate_anon/nlprp/__init__.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -24,6 +24,7 @@ crate_anon/nlp_manager/__init__.py
 
 ===============================================================================
 
+crate_anon/nlp_manager/__init__.py
 The mere existence of this file makes Python treat the directory as a package.
 
 """

@@ -5,7 +5,7 @@ crate_anon/nlp_manager/regex_parser.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -133,7 +133,7 @@ Seen in CUH for
     HCT, POC
     alkaline phosphatase, POC
     alanine transferase, POC
-    
+
     HGB, POC
     WBC, POC
     PLT, POC

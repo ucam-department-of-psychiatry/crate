@@ -5,7 +5,7 @@ crate_anon/preprocess/preprocess_rio.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -904,7 +904,7 @@ def process_clindocs_table(table: Table, engine: Engine,
         UPDATE p1
         SET p1.{CRATE_COL_MAX_DOCVER} = subq.max_docver
         FROM {table.name} p1 JOIN (
-            SELECT {CRATE_COL_RIO_NUMBER}, SerialNumber, 
+            SELECT {CRATE_COL_RIO_NUMBER}, SerialNumber,
                    MAX(RevisionID) AS max_docver
             FROM {table.name} p2
             GROUP BY {CRATE_COL_RIO_NUMBER}, SerialNumber

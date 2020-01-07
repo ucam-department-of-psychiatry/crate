@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 """
-crate_anon/crateweb/research/migrations/0007_sitewidequery.py
+crate_anon/crateweb/research/migrations/0008_query_display.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -24,6 +24,7 @@ crate_anon/crateweb/research/migrations/0007_sitewidequery.py
 
 ===============================================================================
 
+crate_anon/crateweb/research/migrations/0007_sitewidequery.py
 **Research app, migration 0008.**
 
 """

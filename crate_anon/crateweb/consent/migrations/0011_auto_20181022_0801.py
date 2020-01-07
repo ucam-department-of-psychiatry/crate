@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 """
-crate_anon/crateweb/consent/migrations/0010_auto_20180629_1238.py
+crate_anon/crateweb/consent/migrations/0011_auto_20181022_0801.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -24,6 +24,7 @@ crate_anon/crateweb/consent/migrations/0010_auto_20180629_1238.py
 
 ===============================================================================
 
+crate_anon/crateweb/consent/migrations/0010_auto_20180629_1238.py
 **Consent app, migration 0011.**
 
 """

@@ -5,7 +5,7 @@ crate_anon/nlp_manager/output_user_config.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -74,12 +74,12 @@ class OutputUserConfig(object):
 
         Args:
             parser:
-                :class:`crate_anon.common.extendedconfigparser.ExtendedConfigParser` 
+                :class:`crate_anon.common.extendedconfigparser.ExtendedConfigParser`
             section:
                 config file section name -- this is the second of the pair of
-                strings in the ``outputtypemap`` part of the GATE NLP app 
+                strings in the ``outputtypemap`` part of the GATE NLP app
                 config section. See
-                
+
                 - :ref:`NLP config file <nlp_config>`
                 - :class:`crate_anon.nlp_manager.parse_gate.Gate`
            schema_required:
