@@ -56,7 +56,7 @@ from crate_anon.version import CRATE_VERSION
 
 project = 'CRATE'
 # noinspection PyShadowingBuiltins
-copyright = '2015-2019, Rudolf Cardinal'
+copyright = '2015-2020, Rudolf Cardinal'
 author = 'Rudolf Cardinal'
 
 # The short X.Y version

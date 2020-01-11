@@ -27,3 +27,7 @@ crate_anon/__init__.py
 The mere existence of this file makes Python treat the directory as a package.
 
 """
+
+# Create crate_anon.__version__:
+from crate_anon.version import CRATE_VERSION as __version__
+

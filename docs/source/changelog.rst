@@ -1,6 +1,6 @@
 .. crate_anon/docs/source/changelog.rst
 
-..  Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
     This file is part of CRATE.
     .
@@ -1221,7 +1221,7 @@ Changes
 - Bugfix to
   :func:`crate_anon.anonymise.anonymise.process_nonpatient_tables`.
 
-**v0.18.96, 2020-01-07 and in progress**
+**v0.18.96, 2020-01-07**
 
 - Security fixes for external dependencies:
 
@@ -1232,6 +1232,9 @@ Changes
   - django from 2.1.11 to 2.1.15
     (https://github.com/advisories/GHSA-hvmf-r92r-27hr)
 
+**v0.18.97, 2020-01-11 and in progress**
+
+- Create ``crate_anon.__version__``
 
 
 ===============================================================================
