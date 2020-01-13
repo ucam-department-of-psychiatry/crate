@@ -83,7 +83,7 @@ def main() -> None:
 
     gatejar = os.path.join(args.gatedir, 'bin', 'gate.jar')
     gatelibjars = os.path.join(args.gatedir, 'lib', '*')
-    classpath = os.pathsep.join([gatejar, gatelibjars])
+    classpath = os.pathsep.join([args.builddir, gatejar, gatelibjars])
     classpath_options = ['-classpath', classpath]
 
     if args.launch:

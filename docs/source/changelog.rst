@@ -1236,6 +1236,10 @@ Changes
 
 - Create ``crate_anon.__version__``
 
+- :ref:`crate_nlp_build_gate_java_interface
+  <crate_nlp_build_gate_java_interface>`: the ``--launch`` option now includes
+  the directory for the CRATE Java class as part of the Java classpath.
+
 
 ===============================================================================
 
