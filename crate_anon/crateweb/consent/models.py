@@ -242,6 +242,9 @@ class Study(models.Model):
             f"{self.lead_researcher.get_full_name()} / {self.title}"
         )
 
+    def __repr__(self) -> str:
+        return modelrepr(self)
+
     def get_lead_researcher_name_address(self) -> List[str]:
         """
         Returns name/address components (as lines you might use on a letter or
@@ -1675,6 +1678,9 @@ class ContactRequest(models.Model):
     def __str__(self) -> str:
         return f"[ContactRequest {self.id}] Study {self.study_id}"
 
+    def __repr__(self) -> str:
+        return modelrepr(self)
+
     @classmethod
     def create(cls,
                request: HttpRequest,
@@ -1757,6 +1763,29 @@ class ContactRequest(models.Model):
         self.processed_at = timezone.now()
         self.save()
 
+    def mockup(self):
+        """
+        Used to ensure test objects are OK.
+        """
+        self.store_clinician_details()
+
+    def store_clinician_details(self) -> None:
+        """
+        Ensure that if we have not got "override" details for the clinician,
+        that we copy them from the patient lookup.
+        """
+        # We may need to input clinician email manually, otherwise use default
+        if not self.patient_lookup:
+            return
+        if not self.clinician_email:
+            self.clinician_email = self.patient_lookup.clinician_email
+        if not self.clinician_signatory_name:
+            self.clinician_signatory_name = (
+                self.patient_lookup.clinician_title_forename_surname())
+        if not self.clinician_signatory_title:
+            self.clinician_signatory_title = (
+                self.patient_lookup.clinician_signatory_title)
+
     def process_request_main(self) -> None:
         """
         Act on a contact request and store the decisions made.
@@ -1781,15 +1810,8 @@ class ContactRequest(models.Model):
             raise ValueError("No NHS number, RID, or MRID supplied.")
         # Look up patient details (afresh)
         self.patient_lookup = lookup_patient(self.nhs_number, save=True)
-        # We may need to input clinician email manually, otherwise use default
-        if not self.clinician_email:
-            self.clinician_email = self.patient_lookup.clinician_email
-        if not self.clinician_signatory_name:
-            self.clinician_signatory_name = (
-                self.patient_lookup.clinician_title_forename_surname())
-        if not self.clinician_signatory_title:
-            self.clinician_signatory_title = (
-                self.patient_lookup.clinician_signatory_title)
+        # Ensure clinician details are OK
+        self.store_clinician_details()
         # Establish consent mode (always do this to avoid NULL problem)
         ConsentMode.refresh_from_primary_clinical_record(
             nhs_number=self.nhs_number,
@@ -3601,21 +3623,24 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         "An investigation of the change in blood-oxygen-level-"
         "dependent (BOLD) functional magnetic resonance imaging "
         "(fMRI) signals during the experience of quaint and "
-        "fanciful humorous activity.\n"
-        "\n"
-        "This is paragraph 2.\n"
-        "\n"
-        "For patients aged >18 and <65."
+        "fanciful humorous activity."
+        # "\n"
+        # "\n"
+        # "This is paragraph 2.\n"
+        # "\n"
+        # "For patients aged >18 and <65."
     )
     study_summary_html = """
         <p>An investigation of the change in <b>blood-oxygen-level-dependent
         (BOLD)</b> <i>functional magnetic resonance imaging (fMRI)</i> signals
         during the experience of quaint and fanciful humour activity.</p>
-
-        <p>Now with extra HTML.</p>
-
-        <p>For patients aged &gt;18 and &lt;65.</p>
     """
+    # """
+    #
+    #     <p>Now with extra HTML.</p>
+    #
+    #     <p>For patients aged &gt;18 and &lt;65.</p>
+    # """
     use_html = False
     study = Study(
         id=TEST_ID,

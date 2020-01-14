@@ -22,42 +22,44 @@
     {% include "patient_p.html" with patient_lookup=patient_lookup only %}
 
     <p>
-        <em>I’m writing to ask whether you’re interested in
-        finding out about a research study, and maybe taking part.</em>
+        <em>I’m writing to tell you about about a research study being carried
+        out within CPFT, to see whether you’d like to find out more, and maybe
+        take part.</em>
         {% if yellow %}
             I’m contacting you because you previously chose to receive
             information about research studies via your clinician.
         {% endif %}
     </p>
 
-    {% include "phrase_never_affect.html" %}
+    {% include "phrase_never_affect_personal.html" %}
 
     <p>
-        Research is vital to understand the causes and consequences of
-        mental health problems across the lifespan, and to find better
-        ways to treat mental health problems and improve the lives of
-        those affected. CPFT conducts research and works with partner
-        research organizations, such as the University of Cambridge.
-        Research from these organizations into brain function and
-        mental health problems is some of the best in the world.
-        We’re grateful for any help you could give us
-        by taking part in research.
+        Research into mental health problems is vital if we are to find better
+        treatments and ways of improving the lives of those affected. CPFT and
+        its partner research organizations, such as the University of
+        Cambridge, conduct research into brain function and mental health
+        problems that is some of the best in the world. We’d be extremely
+        grateful for any help you could give us by taking part in research.
     </p>
 
-    <p><em>One of our current studies is this one:</em></p>
+    <p><em>The study we want to tell you about is this one:</em></p>
 
     {% include "study_table.html" with study=study include_summary=True only %}
 
-    <p><em>This may be a study that you could take part in. The
-    researchers don’t know who you are, and we won’t tell them without
-    your permission.</em>
-    Receiving this invitation doesn’t mean that you have a particular problem
-    or symptom — our researchers study people with symptoms now, but
-    also people who’ve had a particular symptom in the past, and people who’ve
-    never had a particular symptom (for comparison to other people who have).
-    <em><b>Would you like more information about this study?</b></em></p>
+    <p>
+        <em>This may be a study that you could take part in. The researchers
+        don’t know who you are, and we won’t tell them without your
+        permission.</em>
+        Receiving this invitation doesn’t necessarily mean that you have a
+        particular problem or symptom — our researchers study people with
+        symptoms now, but also people who’ve had a particular symptom in the
+        past, and people who’ve never had a particular symptom (for comparison
+        to other people who have).
+    </p>
 
-    <p>Here’s what I’ve enclosed:</p>
+    <p>Here’s what I’ve enclosed to help you decide if you’d like to be
+    contacted by the researchers with a view to possibly taking part in the
+    study:</p>
 
     <ul>
         <li>Details of the study for you to have a look at.</li>

@@ -115,6 +115,7 @@ crate_anon/crateweb
     consent/templates/patient_table.html.rst
     consent/templates/phrase_green.html.rst
     consent/templates/phrase_never_affect.html.rst
+    consent/templates/phrase_never_affect_personal.html.rst
     consent/templates/phrase_red.html.rst
     consent/templates/phrase_yellow.html.rst
     consent/templates/signature_box_patient.html.rst

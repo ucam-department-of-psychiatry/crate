@@ -166,7 +166,9 @@ def get_contact_request(request: HttpRequest,
         :exc:`django.http.Http404` if not found
     """
     if contact_request_id == TEST_ID_STR:
-        return make_dummy_objects(request).contact_request
+        cr = make_dummy_objects(request).contact_request
+        cr.mockup()
+        return cr
     return get_object_or_404(
         ContactRequest, id=contact_request_id)  # type: ContactRequest
 
@@ -1000,6 +1002,7 @@ def draft_letter_clinician_to_pt_re_study(request: HttpRequest,
         viewtype: ``"pdf"`` or ``"html"``
     """
     contact_request = get_contact_request(request, contact_request_id)
+    # log.critical(repr(contact_request))
     html = contact_request.get_letter_clinician_to_pt_re_study()
     return serve_html_or_pdf(html, viewtype)
 
