@@ -163,6 +163,8 @@ in the environment variable `CRATE_CHERRYPY_ARGS` (e.g.
 ``C:\\somepath\\somefile.ext``).
 
 
+.. _faq_port_443_not_free
+
 Port 443 not free on ‘127.0.0.1’
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -196,6 +198,21 @@ that does all sorts of things) [#svchost]_? A possibility relates to VMWare
 If you have sufficient control over your machine to wrest port 443 away from
 whatever’s using it, fine. Otherwise, you may need to use an alternative port.
 A common choice might be 8443 [#port8443]_.
+
+
+OSError: No socket could be created... permission denied
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The error ``OSError: No socket could be created -- (('127.0.0.1', 443): [Errno
+13] Permission denied)`` may be seen on Linux and is similar to :ref:`port 443
+not free <faq_port_443_not_free>`.
+
+Under Linux, programs without root authority cannot, by default, open port
+numbers below 1024. The best thing to do under Linux is to run a privileged
+"main" web server like Apache (which becomes responsible for encryption and so
+forth), and configure CRATE to operate behind Apache. See :ref:`Configuring for
+Apache <config_apache>`. Alternative approaches are outlined at
+https://superuser.com/questions/710253/allow-non-root-process-to-bind-to-port-80-and-443.
 
 
 “Your connection is not private...” browser error

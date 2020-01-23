@@ -18,6 +18,8 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 
+.. _config_apache:
+
 Configuring for Apache
 ======================
 
@@ -25,8 +27,8 @@ Apache is a powerful but fairly complex web server. A suggested method of using
 it with CRATE under Windows is as follows:
 
 - Note that Windows configuration files for Apache are typically
-  `C:\Apache24\conf\httpd.conf` (the master configuration file) and
-  `C:\Apache24\conf\extra\httpd-ssl.conf` (included by the master file).
+  ``C:\Apache24\conf\httpd.conf`` (the master configuration file) and
+  ``C:\Apache24\conf\extra\httpd-ssl.conf`` (included by the master file).
 
 - Ensure you set up HTTPS correctly.
 

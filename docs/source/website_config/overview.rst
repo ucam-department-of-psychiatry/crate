@@ -47,10 +47,11 @@ browse to http://127.0.0.1:8088/. You’ll also need to run
 
     crate_django_manage createsuperuser
 
-You’ll also want to implement SSL (HTTPS) access. For Linux, instructions are
-in the `instructions.txt` file as above. For Windows, the quickest is to use
-the CherryPy server, launched with ``crate_launch_cherrypy_server``. For help,
-run
+You’ll also want to implement SSL (HTTPS) access. In general, a secured
+production web site is best implemented via a front-end web server such as
+Apache; see :ref:`Configuring for Apache <config_apache>`. You can also use the
+CherryPy server, launched with ``crate_launch_cherrypy_server``. For help on
+this, run
 
 .. code-block:: bat
 
