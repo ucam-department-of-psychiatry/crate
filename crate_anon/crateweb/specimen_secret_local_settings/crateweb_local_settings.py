@@ -81,6 +81,8 @@ SECRET_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  # CHANGE THIS
 DEBUG = False
 # ... when False, note that static files must be served properly
 
+CRATE_HTTPS = True  # require HTTPS and disallow plain HTTP
+
 
 # noinspection PyUnusedLocal
 def always_show_toolbar(request: "HttpRequest") -> bool:

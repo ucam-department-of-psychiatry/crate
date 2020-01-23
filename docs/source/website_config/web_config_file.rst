@@ -34,6 +34,10 @@ Web config file
 General
 -------
 
+Settings here are a combination of standard Django settings and settings custom
+to CRATE. Not all standard Django options are described here; see e.g.
+https://docs.djangoproject.com/en/3.0/topics/settings/.
+
 Defaults are in :mod:`crate_anon.crateweb.config.settings`, which are then
 overridden as required by your site's Python config file (in standard Django
 fashion). The "normal" settings to consider are described below.
@@ -104,6 +108,24 @@ Debug features by default include:
 
 **Note** that when you set ``DEBUG = False``, as you should, you must ensure
 that static files are served properly.
+
+
+CRATE_HTTPS
+###########
+
+``type: bool``
+
+*Default: True.*
+
+Require HTTPS, i.e. disallow unencrypted HTTP. This should be True for good
+security. If you then attempt to access the site via plain HTTP, you will get a
+"403 Forbidden: CSF verification failed" error.
+
+This is simply a shortcut to some Django settings. If True, the following
+Django settings are applied (and that's what has the real effect):
+
+- ``SESSION_COOKIE_SECURE = True`` (cookies only via HTTPS)
+- ``CSRF_COOKIE_SECURE = True`` (CSRF cookies only via HTTPS)
 
 
 ALLOWED_HOSTS

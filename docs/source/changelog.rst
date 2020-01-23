@@ -1240,6 +1240,9 @@ Changes
   <crate_nlp_build_gate_java_interface>`: the ``--launch`` option now includes
   the directory for the CRATE Java class as part of the Java classpath.
 
+- Document ``CRATE_HTTPS`` setting.
+
+
 
 ===============================================================================
 
