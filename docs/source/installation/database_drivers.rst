@@ -583,23 +583,33 @@ http://www.freetds.org/. (There is also a Java equivalent, `jTDS
 ``/etc/freetds/freetds.conf``; this contains server/database settings
 [http://www.freetds.org/userguide/freetdsconf.htm].
 
-**Testing.** Use the ``tsql`` command to test it. See ``man tsql``. For
-example, to connect to a server called ``wombatvmxp``, try: ``tsql -L -H
-wombatvmxp`` to list instances, and ``tsql -H wombatvmxp -p 1433 -U user -P
-password`` to connect. Once you have configured ``/etc/freetds/freetds.conf``,
-you can use the config section as the server name: ``tsql -S
-my_sqlserver_connection -U user -P password``, and you’ll need to get this
-version working before you can use SQLAlchemy with FreeTDS. A command likely to
-work at the TSQL command prompt is ``SELECT * FROM information_schema.tables``.
-Remember to type ``GO`` (the default batch separator) to execute a command
-(http://stackoverflow.com/questions/2299249). To specify a particular database
-on the server: add ``-D database`` to the ``tsql`` command (it should say
-“Default database being set to ...”). Note that though
-http://www.freetds.org/userguide/freetdsconf.htm specifies a ``database``
-parameter, ``man freetds.conf`` doesn’t (for ``tsql -C`` showing a version of
-0.91). Mind you, v0.91 is from 2011 (http://www.freetds.org/news.html). So for
-v0.91, ``freetds.conf`` is not the place to specify the database, it seems. But
-specifying the database in the SQLAlchemy URL works.
+**Testing.**
+
+- Use the ``tsql`` command to test it. See ``man tsql``.
+
+- For example, to connect to a server called ``wombatvmxp``, try: ``tsql -L -H
+  wombatvmxp`` to list instances, and ``tsql -H wombatvmxp -p 1433 -U user -P
+  password`` to connect.
+
+- Once you have configured ``/etc/freetds/freetds.conf``,
+  you can use the config section as the server name: ``tsql -S
+  my_sqlserver_connection -U user -P password``, and you’ll need to get this
+  version working before you can use SQLAlchemy with FreeTDS.
+
+- A command likely to work at the TSQL command prompt is
+  ``SELECT * FROM information_schema.tables``.
+
+- Remember to type ``GO`` (the default batch separator) to execute a command
+  (http://stackoverflow.com/questions/2299249). To specify a particular
+  database on the server: add ``-D database`` to the ``tsql`` command (it
+  should say “Default database being set to ...”).
+
+- Note that though http://www.freetds.org/userguide/freetdsconf.htm specifies a
+  ``database`` parameter, ``man freetds.conf`` doesn’t (for ``tsql -C`` showing
+  a version of 0.91). Mind you, v0.91 is from 2011
+  (http://www.freetds.org/news.html). So for v0.91, ``freetds.conf`` is not the
+  place to specify the database, it seems. But specifying the database in the
+  SQLAlchemy URL works.
 
 **WARNING.** FreeTDS prior to version 0.95 does not support MARS. Without this,
 CRATE will fail (stopping during/after the first patient). Furthermore,

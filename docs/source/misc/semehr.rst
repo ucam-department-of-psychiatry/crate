@@ -154,107 +154,31 @@ Prerequisites:
 - Docker and Docker Compose, as above.
 - A BioYODIE installation (see links in tutorial)
 
-.. code-block:: bash
+Set some environment variables:
 
-    # -------------------------------------------------------------------------
-    # Definitions
-    # -------------------------------------------------------------------------
-    # We will make this directory:
-    TUTORIALDIR=${HOME}/tmp/semehr_tutorial1
+..  literalinclude:: semehr_set_envvars.sh
+    :language: bash
 
-    # This should already exist and contain your Bio-YODIE installation:
-    BIOYODIEDIR=${HOME}/dev/yodie-pipeline-1-2-umls-only
+Make some amendments:
 
-    # Other directories and files we'll use:
-    # - Root directory of SemEHR Git repository
-    GITDIR=${TUTORIALDIR}/CogStack-SemEHR
-    # - Docker Compose tutorial directory within SemEHR tree
-    COMPOSEDIR=${GITDIR}/tutorials/tutorial1_compose_files
-    # - Docker Compose file to launch Elasticsearch
-    ELASTICSEARCH_COMPOSE=${COMPOSEDIR}/semehr-tutorial1-servers-compose.yml
-    # - Docker Compose file to launch SemEHR
-    SEMEHR_COMPOSE=${COMPOSEDIR}/semehr-tutorial-run-compose.yml
-    # - Data directory
-    DATADIR=${GITDIR}/tutorials/mtsamples-cohort
-    # - SemEHR config file
-    SEMEHR_CONFIG=${DATADIR}/semehr_settings.json
-    # - Docker network name
-    NETNAME=semehrnet
+..  literalinclude:: semehr_setup_demo.sh
+    :language: bash
 
-    # Other variables:
-    grep sse4_2 /proc/cpuinfo >/dev/null && HAS_SSE42=true || HAS_SSE42=false
+Now start Elasticsearch:
 
-    # -------------------------------------------------------------------------
-    # Setup actions
-    # -------------------------------------------------------------------------
-    # Make directory
-    mkdir -p ${TUTORIALDIR}
-    # Copy in UMLS
-    cp -R ${BIOYODIEDIR}/bio-yodie-resources ${TUTORIALDIR}
-    # Fetch SemEHR code
-    git clone https://github.com/CogStack/CogStack-SemEHR.git "${GITDIR}"
-
-    # Copy/edit Docker Compose files:
-    # - Point to our files, not some hard-coded root-based path:
-    sed -i "s,device: /semehr_tutorial1/,device: ${TUTORIALDIR}/,g" "${ELASTICSEARCH_COMPOSE}"
-    sed -i "s,device: /semehr_tutorial1/,device: ${TUTORIALDIR}/,g" "${SEMEHR_COMPOSE}"
-    # - Fix networking aspects of config files
-    #   (a) Create named network for Elasticsearch.
-    #       Cannot name network to be created in v2.2 of the Docker Compose
-    #       file format. Therefore, create it separately.
-    docker network create "${NETNAME}"
-    #       ... and declare it as external:
-    cat <<EOT >> "${ELASTICSEARCH_COMPOSE}"
-    networks:
-      default:
-        external:
-          name: ${NETNAME}
-    EOT
-    #   (b) Make SemEHR join that network.
-    cat <<EOT >> "${SEMEHR_COMPOSE}"
-    networks:
-      default:
-        external:
-          name: ${NETNAME}
-    EOT
-    #   (c) Make config file use internal net and names, not main net and IP addresses.
-    sed -i "s,http://172.17.0.1:8200/,http://es01:9200/,g" "${SEMEHR_CONFIG}"
-    # - Disable machine learning libraries if SSE4.2 not supported
-    if [ "${HAS_SSE42}" = false ] ; then
-        sed -i "s,environment:,environment:\n      - xpack.security.enabled=false\n      - xpack.monitoring.enabled=false\n      - xpack.ml.enabled=false\n      - xpack.graph.enabled=false\n      - xpack.watcher.enabled=false,g" "${ELASTICSEARCH_COMPOSE}"
-    fi
-    # - NB to revert files, use
-    #   cd "${GITDIR}"; git reset --hard origin/master
-
-    # -------------------------------------------------------------------------
-    # Start Elasticsearch
-    # -------------------------------------------------------------------------
-    # Start the containers (will fetch all necessary software the first time).
-    # Run in foreground mode, so we can see the log output.
-    docker-compose -f "${ELASTICSEARCH_COMPOSE}" up
+..  literalinclude:: semehr_start_elasticsearch.sh
+    :language: bash
 
 Now fire up another terminal, enter the same variable definitions as above, and
 fix an Elasticsearch problem:
 
-.. code-block:: bash
-
-    # Fix an Elasticsearch error (once only):
-    curl -X PUT "localhost:8200/_cluster/settings" -H 'Content-Type: application/json' -d'
-        {
-          "transient": {
-            "cluster.routing.allocation.disk.watermark.low": "2gb",
-            "cluster.routing.allocation.disk.watermark.high": "1gb",
-            "cluster.routing.allocation.disk.watermark.flood_stage": "500mb",
-            "cluster.info.update.interval": "1m"
-          }
-        }
-    '
+..  literalinclude:: semehr_fix_watermark.sh
+    :language: bash
 
 Now in that second terminal, run SemEHR:
 
-.. code-block:: bash
-
-    docker-compose -f "${SEMEHR_COMPOSE}" run semehr
+..  literalinclude:: semehr_run_semehr.sh
+    :language: bash
 
 Browse to http://127.0.0.1:8080/SemEHR.html and try searching for patient
 ``P001``. Try also http://127.0.0.1:8200/_cat/indices/, which should show
@@ -606,11 +530,8 @@ If the Elasticsearch containers fail to start and give the error message
 ``max virtual memory areas vm.max_map_count [65530] is too low, increase to
 at least [262144]``, then do this:
 
-.. code-block:: bash
-
-    sysctl vm.max_map_count  # read
-    sudo sysctl -w vm.max_map_count=262144  # write
-    sysctl vm.max_map_count  # re-read, should have changed
+..  literalinclude:: semehr_fix_vm_settings.sh
+    :language: bash
 
 
 Elasticsearch "high disk watermark..."
@@ -625,18 +546,8 @@ Elasticsearch, and ``ConnectionTimeout`` errors from SemEHR.
 Then, do:
 https://stackoverflow.com/questions/30289024/high-disk-watermark-exceeded-even-when-there-is-not-much-data-in-my-index:
 
-.. code-block:: bash
-
-    curl -X PUT "localhost:8200/_cluster/settings" -H 'Content-Type: application/json' -d'
-        {
-          "transient": {
-            "cluster.routing.allocation.disk.watermark.low": "2gb",
-            "cluster.routing.allocation.disk.watermark.high": "1gb",
-            "cluster.routing.allocation.disk.watermark.flood_stage": "500mb",
-            "cluster.info.update.interval": "1m"
-          }
-        }
-    '
+..  literalinclude:: semehr_fix_watermark.sh
+    :language: bash
 
 
 Elasticsearch complains about log files (but actually machine learning)
@@ -743,6 +654,7 @@ I had this from SemEHR:
 
 - 172.17.0.1 is a private IP address, and it's the address of the
   Elasticsearch engine.
+
 - Browsing to http://172.17.0.1:8200/ gives a happy Elasticsearch JSON
   answer:
 
