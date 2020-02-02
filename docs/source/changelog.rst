@@ -1242,6 +1242,7 @@ Changes
 
 - Document ``CRATE_HTTPS`` setting.
 
+- New ``crate_bulk_hash`` tool.
 
 
 ===============================================================================
