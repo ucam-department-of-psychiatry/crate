@@ -26,6 +26,30 @@ crate_anon/linkage/bulk_hash.py
 
 Tool to hash multiple IDs from the command line.
 
+Test code to look at different types of digest:
+
+.. code-block:: python
+
+    import hashlib
+    import hmac
+
+    msg = "This is an ex-parrot!"
+    key = "voom"
+
+    key_bytes = str(key).encode('utf-8')
+    msg_bytes = str(msg).encode('utf-8')
+    digestmod = hashlib.sha256
+    hmac_obj = hmac.new(key=key_bytes, msg=msg_bytes, digestmod=digestmod)
+
+    # These are the two default kinds of digest:
+    print(hmac_obj.digest())  # 8-bit binary
+    print(hmac_obj.hexdigest())  # hexadecimal
+
+    # Hex carries 4 bits per character. There are other possibilities,
+    # notably:
+    # - Base64 with 6 bits per character;
+    # - Base32 with 5 bits per character.
+
 """
 
 import argparse
@@ -63,14 +87,17 @@ def bulk_hash(input_filename: str,
         key:
             secret key for hasher
         keep_id:
-            produce CSV with ``id,hash`` pairs, rather than just lines with
+            produce CSV with ``hash,id`` pairs, rather than just lines with
             the hashes?
+
+    Note that the hash precedes the ID with the ``keep_id`` option, which
+    works best if the ID might contain commas.
     """
     log.info(f"Reading from: {input_filename}")
     log.info(f"Writing to: {output_filename}")
     log.info(f"Using hash method: {hash_method}")
     log.info(f"keep_id: {keep_id}")
-    # log.debug(f"Using key: {key!r}")
+    log.debug(f"Using key: {key!r}")  # NB security warning in help
     hasher = make_hasher(hash_method=hash_method, key=key)
     with smart_open(input_filename, "rt") as i:  # type: TextIO
         with smart_open(output_filename, "wt") as o:  # type: TextIO
@@ -79,7 +106,7 @@ def bulk_hash(input_filename: str,
                 line = line.rstrip()
                 line = line.lstrip()
                 hashed = hasher.hash(line) if line else ""
-                outline = f"{line},{hashed}" if keep_id else hashed
+                outline = f"{hashed},{line}" if keep_id else hashed
                 # log.debug(f"{line!r} -> {hashed!r}")
                 writeline_nl(o, outline)
 
@@ -89,7 +116,7 @@ def main() -> None:
     Command-line entry point.
     """
     parser = argparse.ArgumentParser(
-        description="Hash IDs in bulk.",
+        description="Hash IDs in bulk, using a cryptographic hash function.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--infile', type=str, default="-",
@@ -103,29 +130,46 @@ def main() -> None:
              "One line will be written for every input line. "
              "Blank lines will be written for commented or blank input.")
     parser.add_argument(
-        '--key', type=str, required=True,
-        help="Secret key for hasher")
+        '--key', type=str,
+        help="Secret key for hasher (warning: may be visible in process list; "
+             "see also --keyfile)")
+    parser.add_argument(
+        '--keyfile', type=str,
+        help="File whose first line contains the secret key for the hasher. "
+             "(It will be whitespace-stripped right and left.)")
     parser.add_argument(
         '--method', choices=[HashMethods.HMAC_MD5,
                              HashMethods.HMAC_SHA256,
                              HashMethods.HMAC_SHA512],
-        default=HashMethods.HMAC_SHA256,
+        default=HashMethods.HMAC_MD5,
         help="Hash method")
     parser.add_argument(
         '--keepid', action="store_true",
-        help="Produce CSV output with (id,hash) rather than just the hash")
+        help="Produce CSV output with (hash,id) rather than just the hash")
     parser.add_argument(
         '--verbose', '-v', action="store_true",
-        help="Be verbose")
+        help="Be verbose (NB will write key to stderr)")
 
     args = parser.parse_args()
     main_only_quicksetup_rootlogger(logging.DEBUG if args.verbose
                                     else logging.INFO)
+
+    assert bool(args.key) != bool(args.keyfile), (
+        "Specify either --key or --keyfile (and not both)."
+    )
+    if args.keyfile:
+        with open(args.keyfile) as kf:
+            key = kf.readline().strip()
+            assert key, (
+                f"No key present in first line of keyfile: {args.keyfile}")
+    else:
+        key = args.key
+
     bulk_hash(
         input_filename=args.infile,
         output_filename=args.outfile,
         hash_method=args.method,
-        key=args.key,
+        key=key,
         keep_id=args.keepid,
     )
 

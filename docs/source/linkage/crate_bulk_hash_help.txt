@@ -1,10 +1,27 @@
-usage: crate_bulk_hash [-h] [--method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}]
-                       [--verbose]
+usage: crate_bulk_hash [-h] [--infile INFILE] [--outfile OUTFILE] [--key KEY]
+                       [--keyfile KEYFILE]
+                       [--method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}]
+                       [--keepid] [--verbose]
 
-Hash IDs in bulk
+Hash IDs in bulk, using a cryptographic hash function.
 
 optional arguments:
   -h, --help            show this help message and exit
+  --infile INFILE       Input file, or '-' for stdin. Use one line per thing
+                        to be hashed. Lines beginning with the comment marker
+                        '#', and blank lines, are ignored. Lines have
+                        whitespace stripped left and right. (default: -)
+  --outfile OUTFILE     Output file, or '-' for stdout. One line will be
+                        written for every input line. Blank lines will be
+                        written for commented or blank input. (default: -)
+  --key KEY             Secret key for hasher (warning: may be visible in
+                        process list; see also --keyfile) (default: None)
+  --keyfile KEYFILE     File whose first line contains the secret key for the
+                        hasher. (It will be whitespace-stripped right and
+                        left.) (default: None)
   --method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}
-                        Hash method (default: HMAC_SHA256)
-  --verbose, -v         Be verbose (default: False)
+                        Hash method (default: HMAC_MD5)
+  --keepid              Produce CSV output with (hash,id) rather than just the
+                        hash (default: False)
+  --verbose, -v         Be verbose (NB will write key to stderr) (default:
+                        False)
