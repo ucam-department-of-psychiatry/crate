@@ -48,6 +48,7 @@ By Rudolf Cardinal <rudolf@pobox.com>.
     ancillary/ancillary_tools.rst
     faq_troubleshooting.rst
 
+    linkage/index.rst
     misc/index.rst
 
     autodoc/_index.rst

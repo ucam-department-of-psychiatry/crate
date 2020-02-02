@@ -5,6 +5,8 @@ usage: CrateGatePipeline -g GATEAPP [-a ANN [-a ANN [...]]]
                          [-wa FILESTEM] [-wg FILESTEM] [-wt FILESTEM]
                          [-s] [--show_contents_on_crash]
                          [-h] [-v [-v [-v]]]
+                         [--loglevel <debug|info|warn|error>]
+                         [--gateloglevel <debug|info|warn|error>
 
 Java front end to GATE natural language processor.
 
@@ -102,3 +104,9 @@ Optional arguments:
   --verbose
   -v
                    Verbose (use up to 3 times to be more verbose).
+  --loglevel LEVEL
+                   Main log level. Overrides verbose. Options are:
+                   debug, info, warn, error
+  --gateloglevel LEVEL
+                   GATE log level. Overrides verbose. Options are:
+                   debug, info, warn, error

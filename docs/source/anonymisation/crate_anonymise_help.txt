@@ -6,14 +6,14 @@ usage: crate_anonymise [-h] [--config CONFIG] [--verbose] [--version]
                        [--nonpatienttables] [--patienttables] [--index]
                        [--restrict RESTRICT] [--limits LIMITS LIMITS]
                        [--file FILE] [--list LIST [LIST ...]]
-                       [--filtertext FILTERTEXT] [--process [PROCESS]]
-                       [--nprocesses [NPROCESSES]]
+                       [--free_text_limit FREE_TEXT_LIMIT] [--excludescrubbed]
+                       [--process [PROCESS]] [--nprocesses [NPROCESSES]]
                        [--processcluster PROCESSCLUSTER] [--skip_dd_check]
                        [--seed SEED] [--chunksize [CHUNKSIZE]]
                        [--reportevery [REPORTEVERY]] [--debugscrubbers]
                        [--savescrubbers] [--echo]
 
-Database anonymiser. Version 0.18.93 (2019-11-17). By Rudolf Cardinal.
+Database anonymiser. Version 0.18.96 (2020-01-07). By Rudolf Cardinal.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -64,10 +64,14 @@ Restriction options:
   --list LIST [LIST ...]
                         Specify a list of values for the field specified in '
                         --restrict' (default: None)
-  --filtertext FILTERTEXT
-                        Filter out all free text over the specified length.
-                        Set this to 0 to filter out all free text. (default:
-                        None)
+  --free_text_limit FREE_TEXT_LIMIT
+                        Filter out all free text fields over the specified
+                        length. For example, if you specify 200, then
+                        VARCHAR(200) fields will be permitted, but
+                        VARCHAR(200), or VARCHAR(MAX), or TEXT (etc., etc.)
+                        fields will be excluded. (default: None)
+  --excludescrubbed     Exclude all text fields which are being scrubbed.
+                        (default: False)
 
 Processing options:
   --process [PROCESS]   For multiprocess mode: specify process number

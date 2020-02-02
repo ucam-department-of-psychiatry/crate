@@ -1,0 +1,10 @@
+usage: crate_bulk_hash [-h] [--method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}]
+                       [--verbose]
+
+Hash IDs in bulk
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}
+                        Hash method (default: HMAC_SHA256)
+  --verbose, -v         Be verbose (default: False)
