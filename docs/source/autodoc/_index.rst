@@ -33,6 +33,7 @@ Automatic documentation of source code
     anonymise/_index.rst
     common/_index.rst
     crateweb/_index.rst
+    linkage/_index.rst
     nlp_manager/_index.rst
     nlp_webserver/_index.rst
     preprocess/_index.rst

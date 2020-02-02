@@ -388,7 +388,10 @@ setup(
             "crate_postcodes=crate_anon.preprocess.postcodes:main",
             "crate_preprocess_pcmis=crate_anon.preprocess.preprocess_pcmis:main",  # noqa
             "crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main",
-            "crate_fuzzy_id_match=crate_anon.preprocess.fuzzy_id_match:main",
+
+            # Linkage
+            "crate_fuzzy_id_match=crate_anon.linkage.fuzzy_id_match:main",
+            "crate_bulk_hash=crate_anon.linkage.bulk_hash:main",
 
             # Anonymisation
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 r"""
-crate_anon/preprocess/fuzzy_id_match.py
+crate_anon/linkage/fuzzy_id_match.py
 
 ===============================================================================
 
@@ -673,6 +673,7 @@ from cardinal_pythonlib.stringfunc import mangle_unicode_to_ascii
 from fuzzy import DMetaphone
 
 from crate_anon.anonymise.anonregex import get_uk_postcode_regex_elements
+from crate_anon.common.constants import EXIT_FAILURE, EXIT_SUCCESS
 from crate_anon.version import CRATE_VERSION
 
 if TYPE_CHECKING:
@@ -690,8 +691,6 @@ dmeta = DMetaphone()
 
 DAYS_PER_YEAR = 365.25  # approximately!
 DEFAULT_HASH_KEY = "fuzzy_id_match_default_hash_key_DO_NOT_USE_FOR_LIVE_DATA"
-EXIT_FAILURE = 1
-EXIT_SUCCESS = 0
 HIGHDEBUG = 15  # in between logging.DEBUG (10) and logging.INFO (20)
 MINUS_INFINITY = -math.inf
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))

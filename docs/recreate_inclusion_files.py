@@ -47,6 +47,7 @@ THIS_DIR = dirname(realpath(__file__))
 DOCS_SOURCE_DIR = join(THIS_DIR, "source")
 ANCILLARY_DIR = join(DOCS_SOURCE_DIR, "ancillary")
 ANON_DIR = join(DOCS_SOURCE_DIR, "anonymisation")
+LINKAGE_DIR = join(DOCS_SOURCE_DIR, "linkage")
 NLP_DIR = join(DOCS_SOURCE_DIR, "nlp")
 PREPROC_DIR = join(DOCS_SOURCE_DIR, "preprocessing")
 WEB_DIR = join(DOCS_SOURCE_DIR, "website_config")
@@ -108,6 +109,12 @@ def main():
     run_cmd(["crate_anonymise", "--democonfig"],
             join(ANON_DIR, "specimen_anonymiser_config.ini"))
     log.info("Manually generated: minimal_anonymiser_config.ini")
+
+    # -------------------------------------------------------------------------
+    # linkage
+    # -------------------------------------------------------------------------
+    run_cmd(["crate_bulk_hash", "--help"],
+            join(LINKAGE_DIR, "crate_bulk_hash_help.txt"))
 
     # -------------------------------------------------------------------------
     # nlp

@@ -38,6 +38,8 @@ import os
 CRATE_DOCS_URL = "https://crateanon.readthedocs.io/"
 
 ENVVAR_RUN_WITHOUT_CONFIG = "CRATE_RUN_WITHOUT_LOCAL_SETTINGS"
+EXIT_FAILURE = 1
+EXIT_SUCCESS = 0
 
 JSON_SEPARATORS_COMPACT = (',', ':')
 # ... see https://docs.python.org/3/library/json.html

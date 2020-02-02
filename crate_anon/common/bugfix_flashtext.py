@@ -24,37 +24,29 @@ crate_anon/common/bugfix_flashtext.py
 
 ===============================================================================
 
+THIS FILE, however, is by another author: from
+https://github.com/vi3k6i5/flashtext/issues/44, by Ihor Bobak; added to
+Flashtext code; licensed under the MIT License as per
+https://github.com/vi3k6i5/flashtext/blob/master/LICENSE.
+
+Rationale:
+
 There is currently a bug in the method :meth:`replace_keywords` in the external
-module ``flashtext`` in which certain characters provoke an 'idex out of range'
-error when working in case-insensitive mode. This is because some non-ascii
-characters are larger in their lower-case form.
-Thanks to Ihor Bobak for this bugfix.
+module ``flashtext`` in which certain characters provoke an 'index out of
+range' error when working in case-insensitive mode. This is because some
+non-ascii characters are larger in their lower-case form. Thanks to Ihor Bobak
+for this bugfix.
+
+Edits for PyCharm linter.
 """
 
 from flashtext import KeywordProcessor
 
 
+# noinspection PyAbstractClass
 class KeywordProcessorFixed(KeywordProcessor):
+    # noinspection PyUnusedLocal
     def replace_keywords(self, a_sentence: str) -> str:
-        """Searches in the string for all keywords present in corpus.
-        Keywords present are replaced by the clean name and a new string is returned.
-
-        Args:
-            a_sentence (str): Line of text where we will replace keywords
-
-        Returns:
-            new_sentence (str): Line of text with replaced keywords
-
-        Examples:
-            >>> from flashtext import KeywordProcessor
-            >>> keyword_processor = KeywordProcessor2()
-            >>> keyword_processor.add_keyword('Big Apple', 'New York')
-            >>> keyword_processor.add_keyword('Bay Area')
-            >>> new_sentence = keyword_processor.replace_keywords('I love Big Apple and bay area.')
-            >>> new_sentence
-            >>> 'I love New York and Bay Area.'
-
-        """
         if not a_sentence:
             # if sentence is empty or none just return the same.
             return a_sentence
@@ -63,19 +55,19 @@ class KeywordProcessorFixed(KeywordProcessor):
         if not self.case_sensitive:
             sentence = a_sentence.lower()
             # by Ihor Bobak:
-            # some letters can expand in size when lower() is called, therefore we will preprocess
-            # a_sentense to find those letters which lower()-ed to 2 or more symbols.
-            # So, imagine that X is lowered as yz,  the rest are lowered as is:  A->a, B->b, C->c
+            # some letters can expand in size when lower() is called, therefore we will preprocess  # noqa
+            # a_sentense to find those letters which lower()-ed to 2 or more symbols.  # noqa
+            # So, imagine that X is lowered as yz,  the rest are lowered as is:  A->a, B->b, C->c  # noqa
             # then for the string ABCXABC we want to get
             # ['A', 'B', 'C', 'X', '',  'A', 'B', 'C'] which corresponds to
-            # ['a', 'b', 'c', 'y', 'z', 'a', 'b', 'c'] because when the code below will run by the indexes
-            # of the lowered string, it will "glue" the original string also by THE SAME indexes
+            # ['a', 'b', 'c', 'y', 'z', 'a', 'b', 'c'] because when the code below will run by the indexes  # noqa
+            # of the lowered string, it will "glue" the original string also by THE SAME indexes  # noqa
             orig_sentence = []
             for i in range(0, len(a_sentence)):
                 char = a_sentence[i]
                 len_char_lower = len(char.lower())
-                for j in range(0, len_char_lower):  # in most cases it will work just one iteration and will add the same char
-                    orig_sentence.append(char if j == 0 else '')  # but if it happens that X->yz, then for z it will add ''
+                for j in range(0, len_char_lower):  # in most cases it will work just one iteration and will add the same char  # noqa
+                    orig_sentence.append(char if j == 0 else '')  # but if it happens that X->yz, then for z it will add ''  # noqa
         else:
             sentence = a_sentence
             orig_sentence = a_sentence
@@ -111,14 +103,14 @@ class KeywordProcessorFixed(KeywordProcessor):
                         while idy < sentence_len:
                             inner_char = sentence[idy]
                             current_word_continued += orig_sentence[idy]
-                            if inner_char not in self.non_word_boundaries and self._keyword in current_dict_continued:
+                            if inner_char not in self.non_word_boundaries and self._keyword in current_dict_continued:  # noqa
                                 # update longest sequence found
                                 current_white_space = inner_char
-                                longest_sequence_found = current_dict_continued[self._keyword]
+                                longest_sequence_found = current_dict_continued[self._keyword]  # noqa
                                 sequence_end_pos = idy
                                 is_longer_seq_found = True
                             if inner_char in current_dict_continued:
-                                current_dict_continued = current_dict_continued[inner_char]
+                                current_dict_continued = current_dict_continued[inner_char]  # noqa
                             else:
                                 break
                             idy += 1
@@ -127,7 +119,7 @@ class KeywordProcessorFixed(KeywordProcessor):
                             if self._keyword in current_dict_continued:
                                 # update longest sequence found
                                 current_white_space = ''
-                                longest_sequence_found = current_dict_continued[self._keyword]
+                                longest_sequence_found = current_dict_continued[self._keyword]  # noqa
                                 sequence_end_pos = idy
                                 is_longer_seq_found = True
                         if is_longer_seq_found:
