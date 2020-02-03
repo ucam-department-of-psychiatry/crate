@@ -9,5 +9,6 @@ optional arguments:
   -h, --help            show this help message and exit
   --nlpdef NLPDEF       NLP processing name, from the config file
   --nproc [NPROC], -n [NPROC]
-                        Number of processes (default on this machine: 8)
+                        Number of processes (default is the number of CPUs on
+                        this machine)
   --verbose, -v         Be verbose

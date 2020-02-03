@@ -3825,10 +3825,6 @@ def pe_one_table(request: HttpRequest, pe_id: str,
     Returns:
         a :class:`django.http.response.HttpResponse`
 
-    Notes:
-
-    - ***
-
     .. todo:: pe_one_table
 
         Might it be better to feed the resulting query back into the main

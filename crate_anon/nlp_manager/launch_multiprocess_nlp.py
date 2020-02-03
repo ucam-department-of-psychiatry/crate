@@ -85,7 +85,8 @@ def main() -> None:
         help="NLP processing name, from the config file")
     parser.add_argument(
         "--nproc", "-n", nargs="?", type=int, default=CPUCOUNT,
-        help=f"Number of processes (default on this machine: {CPUCOUNT})")
+        help=f"Number of processes "
+             f"(default is the number of CPUs on this machine)")
     parser.add_argument(
         '--verbose', '-v', action='store_true',
         help="Be verbose")

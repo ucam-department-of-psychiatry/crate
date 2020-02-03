@@ -2,7 +2,7 @@ amqp==2.3.2
 appdirs==1.4.3
 arrow==0.12.1
 beautifulsoup4==4.6.0
-cardinal_pythonlib==1.0.82
+cardinal_pythonlib==1.0.85
 cairosvg==2.4.0
 celery==4.0.1
 chardet==3.0.4

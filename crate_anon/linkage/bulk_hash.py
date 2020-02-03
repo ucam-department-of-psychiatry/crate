@@ -54,9 +54,10 @@ Test code to look at different types of digest:
 
 import argparse
 import logging
-from typing import TextIO
+from typing import Optional, TextIO
 
 from cardinal_pythonlib.file_io import (
+    gen_noncomment_lines,
     smart_open,
     writeline_nl,
 )
@@ -67,6 +68,14 @@ from cardinal_pythonlib.hash import (
 )
 
 log = logging.getLogger(__name__)
+
+
+def get_first_noncomment_line(filename: str) -> Optional[str]:
+    try:
+        with open(filename) as f:
+            return next(gen_noncomment_lines(f))
+    except StopIteration:
+        return None
 
 
 def bulk_hash(input_filename: str,
@@ -101,10 +110,7 @@ def bulk_hash(input_filename: str,
     hasher = make_hasher(hash_method=hash_method, key=key)
     with smart_open(input_filename, "rt") as i:  # type: TextIO
         with smart_open(output_filename, "wt") as o:  # type: TextIO
-            for line in i:
-                line = line.partition('#')[0]  # the part before the first #
-                line = line.rstrip()
-                line = line.lstrip()
+            for line in gen_noncomment_lines(i):
                 hashed = hasher.hash(line) if line else ""
                 outline = f"{hashed},{line}" if keep_id else hashed
                 # log.debug(f"{line!r} -> {hashed!r}")
@@ -119,11 +125,11 @@ def main() -> None:
         description="Hash IDs in bulk, using a cryptographic hash function.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        '--infile', type=str, default="-",
+        'infile', type=str,
         help="Input file, or '-' for stdin. "
              "Use one line per thing to be hashed. "
-             "Lines beginning with the comment marker '#', and blank lines, "
-             "are ignored. Lines have whitespace stripped left and right.")
+             "Comments (marked with '#') and blank lines are ignored. "
+             "Lines have whitespace stripped left and right.")
     parser.add_argument(
         '--outfile', type=str, default="-",
         help="Output file, or '-' for stdout. "
@@ -135,8 +141,8 @@ def main() -> None:
              "see also --keyfile)")
     parser.add_argument(
         '--keyfile', type=str,
-        help="File whose first line contains the secret key for the hasher. "
-             "(It will be whitespace-stripped right and left.)")
+        help="File whose first noncomment line contains the secret key for "
+             "the hasher. (It will be whitespace-stripped right and left.)")
     parser.add_argument(
         '--method', choices=[HashMethods.HMAC_MD5,
                              HashMethods.HMAC_SHA256,
@@ -158,10 +164,8 @@ def main() -> None:
         "Specify either --key or --keyfile (and not both)."
     )
     if args.keyfile:
-        with open(args.keyfile) as kf:
-            key = kf.readline().strip()
-            assert key, (
-                f"No key present in first line of keyfile: {args.keyfile}")
+        key = get_first_noncomment_line(args.keyfile)
+        assert key, f"No key found in keyfile: {args.keyfile}"
     else:
         key = args.key
 
