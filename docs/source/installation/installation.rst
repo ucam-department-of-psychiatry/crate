@@ -55,13 +55,13 @@ tools. Here's a logical sequence.
 Python
 ~~~~~~
 
-Install Python 3.4 or higher. If it's not already installed:
+Install Python 3.6 or higher. If it's not already installed:
 
 **Linux**
 
 .. code-block:: bash
 
-    sudo apt-get install python3.4-dev
+    sudo apt-get install python3.6-dev
 
 **Windows**
 
@@ -79,7 +79,7 @@ Choose your own directory names.
 
 .. code-block:: bash
 
-    python3.4 -m venv ~/venvs/crate
+    python3.6 -m venv ~/venvs/crate
     source ~/venvs/crate/bin/activate
     python -m pip install --upgrade pip
     pip install crate-anon
@@ -88,9 +88,9 @@ Choose your own directory names.
 
 .. code-block:: bat
 
-    C:\Python34\python.exe -m ensurepip
-    C:\Python34\python.exe -m pip install --upgrade pip
-    C:\Python34\python.exe -m venv C:\venvs\crate
+    C:\Python36\python.exe -m ensurepip
+    C:\Python36\python.exe -m pip install --upgrade pip
+    C:\Python36\python.exe -m venv C:\venvs\crate
     C:\venvs\crate\Scripts\activate
     pip install crate-anon
 
@@ -221,7 +221,7 @@ C/C++ compiler
 
 .. note::
     This is optional. If you want to install C-based Python libraries, you’ll
-    need a C/C++ compiler for Python 3.4.
+    need a C/C++ compiler.
 
 **Linux**
 
@@ -235,6 +235,8 @@ Tricky as the official compiler for Python 3.4 is Visual Studio 2010 [#vs2010]_
 
 FUTURE PLANS: use Python 3.5, which supports Visual C++ 14.0 [#vs2015]_. At
 present the necessary dependencies do not work cleanly.
+
+.. todo:: fix these docs now we are using Python 3.6+
 
 
 Fast MurmurHash3

@@ -1248,6 +1248,9 @@ Changes
 
 - Bump ``waitress`` from 1.4.2 to 1.4.3 (security alert).
 
+- Bugfix to ``crate_postcodes`` (re nonexistent ``commit`` argument).
+
+
 
 ===============================================================================
 

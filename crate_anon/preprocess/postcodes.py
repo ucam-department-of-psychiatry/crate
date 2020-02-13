@@ -1997,7 +1997,7 @@ def main() -> None:
                 datadir=lookupdir,
                 session=session,
                 replace=args.replace,
-                commit=args.commit,
+                commit=True,
                 commitevery=args.commitevery
             )
     if not args.skippostcodes:
@@ -2007,7 +2007,7 @@ def main() -> None:
             replace=args.replace,
             startswith=args.startswith,
             reportevery=args.reportevery,
-            commit=args.commit,
+            commit=True,
             commitevery=args.commitevery
         )
 
