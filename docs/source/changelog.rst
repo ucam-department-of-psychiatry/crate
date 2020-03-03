@@ -1250,6 +1250,8 @@ Changes
 
 - Bugfix to ``crate_postcodes`` (re nonexistent ``commit`` argument).
 
+- Update ``crate_postcodes`` for ONSPD Nov 2019.
+
 
 
 ===============================================================================

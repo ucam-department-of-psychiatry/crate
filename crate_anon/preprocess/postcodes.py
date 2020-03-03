@@ -100,7 +100,8 @@ from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
 log = logging.getLogger(__name__)
 metadata = MetaData()
 
-DEFAULT_ONSPD_DIR = os.path.join(os.path.expanduser("~"), "dev", "onspd")
+DEFAULT_ONSPD_DIR = os.path.join(
+    os.path.expanduser("~"), "dev", "ons", "ONSPD_Nov2019")
 DEFAULT_REPORT_EVERY = 1000
 DEFAULT_COMMIT_EVERY = 10000
 YEAR_MONTH_FMT = "%Y%m"
@@ -316,11 +317,11 @@ class Postcode(Base):
         comment="Local authority district (LUA), unitary  authority "
                 "(UA), metropolitan district (MD), London borough (LB),"
                 " council area (CA), or district council area (DCA) "
-                "[FK to lad_local_authority_district_2016.lad_code]")
+                "[FK to lad_local_authority_district_2019.lad_code]")
     osward = Column(
         String(CODE_LEN),
         comment="Electoral ward/division "
-                "[FK e.g. to electoral_ward_2016.ward_code]")
+                "[FK e.g. to electoral_ward_2019.ward_code]")
     usertype = Column(
         Integer,
         comment="Small (0) or large (1) postcode user")
@@ -345,23 +346,14 @@ class Postcode(Base):
                 "hscb_health_social_care_board_n_ireland_2010.hscb_code; "
                 "lhb_local_health_board_wales_2014.lhb_code or "
                 "lhb_local_health_board_wales_2006.lhb_code]")
-    hro = Column(
-        String(CODE_LEN),
-        comment="Pan SHA [FK to "
-                "psha_pan_strategic_health_authority_aka_hro_england_2010"
-                ".psha_code]")
     ctry = Column(
         String(CODE_LEN),
         comment="Country of the UK [England, Scotland, Wales, "
                 "Northern Ireland] [FK to country_2012.country_code]")
-    gor = Column(
-        String(CODE_LEN),
-        comment="Region (former GOR) [GOR = Government Office Regions] "
-                "[FK to gor_govt_office_region_england_2010.gor_code]")
     streg = Column(
         Integer,
         comment="Standard (Statistical) Region (SSR) [FK to "
-                "ssr_standard_statistical_region_england_1995."
+                "ssr_standard_statistical_region_1995."
                 "ssr_code]")
     pcon = Column(
         String(CODE_LEN),
@@ -391,7 +383,7 @@ class Postcode(Base):
                 "Community Health Partnership (CHP) / "
                 "Local Commissioning Group (LCG) / "
                 "Primary Healthcare Directorate (PHD) [FK to one of: "
-                "pct_primary_care_trust_organization_england_2011.pct_code; "
+                "pct_primary_care_trust_2019.pct_code; "
                 "chp_community_health_partnership_scotland_2012.chp_code; "
                 "lcg_local_commissioning_group_n_ireland_2010.lcg_code; "
                 "lhb_local_health_board_wales_2014.lhb_code]")
@@ -400,49 +392,7 @@ class Postcode(Base):
         comment="LAU2 areas [European Union spatial regions; Local "
                 "Adminstrative Unit, level 2] / Nomenclature of Units "
                 "for Territorial Statistics (NUTS) [FK to "
-                "lau_eu_local_administrative_unit_2015.lau2_code]")
-    psed = Column(
-        String(8),
-        comment="1991 Census Enumeration District (ED) (as OGSS code) "
-                "[POSSIBLY FK to district_england_wales_1991."
-                "district_code_ogss]")
-    cened = Column(
-        String(8),
-        comment="1991 Census Enumeration District (ED) (as Census code)"
-                " [POSSIBLY FK to district_england_wales_1991."
-                "district_code_census]")
-    edind = Column(
-        Integer,
-        comment="ED positional quality indicator (PQI)")
-    oshaprev = Column(
-        String(3),
-        comment="Previous Strategic Health Authority (SHA) / Health Board "
-                "(HB) / Health Authority (HA) / Health and Social Services "
-                "Board (HSSB) [FK to one of: "
-                "sha_strategic_health_authority_england_2010.sha_code or "
-                "sha_strategic_health_authority_england_2004.sha_code]")
-    lea = Column(
-        String(3),
-        comment="Previous Local Education Authority (LEA) / Education "
-                "and Library Board (ELB) [PROBABLY FK to "
-                "lea_local_education_authority_2009.lea_code]")
-    oldha = Column(
-        String(3),
-        comment="Old-style health authority (prior to 2002 "
-                "England, 2003 Wales [FK to "
-                "ha_health_authority_2001.ha_code]")
-    wardc91 = Column(
-        String(6),
-        comment="1991 administrative and electoral area (as Census "
-                "code) [FK to electoral_ward_1991.ward_code_census]")
-    wardo91 = Column(
-        String(6),
-        comment="1991 administrative and electoral area (as OGSS "
-                "code) [FK to electoral_ward_1991.ward_code_ogss]")
-    ward98 = Column(
-        String(6),
-        comment="1998 administrative and electoral area [FK to "
-                "electoral_ward_1998.ward_code]")
+                "lau_eu_local_administrative_unit_2019.lau2_code]")
     statsward = Column(
         String(6),
         comment="2005 'statistical' ward [?FK to "
@@ -458,7 +408,7 @@ class Postcode(Base):
     park = Column(
         String(CODE_LEN),
         comment="National park [FK to "
-                "park_national_park_2010.park_code]")
+                "park_national_park_2016.park_code]")
     lsoa01 = Column(
         String(CODE_LEN),
         comment="2001 Census Lower Layer Super Output Area (LSOA) [England & "
@@ -482,11 +432,6 @@ class Postcode(Base):
         comment="2001 Census Output Area classification (OAC)"
                 "[POSSIBLY FK to output_area_classification_2011."
                 "subgroup_code]")
-    oldpct = Column(
-        String(5),
-        comment="Old (pre-Oct 2006) Primary Care Trust (PCT) / Local Health "
-                "Board (LHB) / Care Trust (CT) [FK to one of: "
-                "pct_primary_care_trust_organization_england_2005.pct_code]")
     oa11 = Column(
         String(CODE_LEN),
         comment="2011 Census Output Area (OA) [England, Wales, Scotland;"
@@ -495,21 +440,20 @@ class Postcode(Base):
         String(CODE_LEN),
         comment="2011 Census Lower Layer Super Output Area (LSOA) [England & "
                 "Wales, ~1,500 population] / Data Zone (DZ) [Scotland] / "
-                "Super Output Area (SOA) [FK to one of: "
-                "lsoa_lower_layer_super_output_area_england_wales_2011.lsoa_code; "  # noqa
-                "dz_datazone_scotland_2011.dz_code]")
+                "Super Output Area (SOA) [N. Ireland] [FK to one of: "
+                "lsoa_lower_layer_super_output_area_2011.lsoa_code; "  # noqa
+                " (defunct) dz_datazone_scotland_2011.dz_code]")
     msoa11 = Column(
         String(CODE_LEN),
         comment="2011 Census Middle Layer Super Output Area (MSOA) [England & "
                 "Wales, ~7,200 population] / "
                 "Intermediate Zone (IZ) [Scotland] [FK to one of: "
-                "msoa_middle_layer_super_output_area_england_wales_2011.msoa_code; "  # noqa
+                "msoa_middle_layer_super_output_area_2011.msoa_code; "  # noqa
                 "iz_intermediate_zone_scotland_2011.iz_code]")
     parish = Column(
         String(CODE_LEN),
         comment="Parish/community [FK to "
-                "parish_lad_england_wales_2014.parish_code; "
-                "ncp_non_civil_parish_2014.ncp_code]")
+                "parish_ncp_england_wales_2018.parish_code]")
     wz11 = Column(
         String(CODE_LEN),
         comment="2011 Census Workplace Zone (WZ)")
@@ -519,16 +463,16 @@ class Postcode(Base):
                 "(LHB) / Community Health Partnership (CHP) / Local "
                 "Commissioning Group (LCG) / Primary Healthcare Directorate "
                 "(PHD) [FK to one of: "
-                "ccg_clinical_commissioning_group_england_2015."
+                "ccg_clinical_commissioning_group_uk_2019."
                 "ccg_ons_code, lhb_local_health_board_wales_2014.lhb_code]")
     bua11 = Column(
         String(CODE_LEN),
         comment="Built-up Area (BUA) [FK to "
-                "bua_built_up_area_england_wales_2013.bua_code]")
+                "bua_built_up_area_uk_2013.bua_code]")
     buasd11 = Column(
         String(CODE_LEN),
         comment="Built-up Area Sub-division (BUASD) [FK to "
-                "buasd_built_up_area_subdivision_england_wales_2013.buas_code]")
+                "buasd_built_up_area_subdivision_uk_2013.buas_code]")
     ru11ind = Column(
         String(2),
         comment="2011 Census rural-urban classification")
@@ -545,11 +489,11 @@ class Postcode(Base):
     lep1 = Column(
         String(CODE_LEN),
         comment="Local Enterprise Partnership (LEP) - first instance [FK to "
-                "lep_local_enterprise_partnership_england_2013.lep1_code]")
+                "lep_local_enterprise_partnership_england_2017.lep1_code]")
     lep2 = Column(
         String(CODE_LEN),
         comment="Local Enterprise Partnership (LEP) - second instance [FK to "
-                "lep_local_enterprise_partnership_england_2013.lep1_code]")
+                "lep_local_enterprise_partnership_england_2017.lep1_code]")
     pfa = Column(
         String(CODE_LEN),
         comment="Police Force Area (PFA) [FK to "
@@ -562,6 +506,14 @@ class Postcode(Base):
                 "imd_index_multiple_deprivation_n_ireland_2010.imd_rank; "
                 "imd_index_multiple_deprivation_scotland_2012.imd_rank; "
                 "imd_index_multiple_deprivation_wales_2014.imd_rank]")
+
+    # New in Nov 2019 ONSPD, relative to 2016 ONSPD:
+    # ** Not yet implemented:
+    # calncv
+    # ced
+    # nhser
+    # rgn
+    # stp
 
     def __init__(self, **kwargs: Any) -> None:
         convert_date(kwargs, 'dointr')
@@ -589,20 +541,22 @@ class OAClassification(Base):
                    "UK.xlsx"
     __tablename__ = "output_area_classification_2011"
 
+    oac11 = Column(String(3), primary_key=True)
     supergroup_code = Column(String(1))
     supergroup_desc = Column(String(35))
-    group_desc = Column(String(40))
     group_code = Column(String(2))
+    group_desc = Column(String(40))
+    subgroup_code = Column(String(3))
     subgroup_desc = Column(String(60))
-    subgroup_code = Column(String(3), primary_key=True)
 
     def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, 'OAC11', 'oac11')
         rename_key(kwargs, 'Supergroup', 'supergroup_desc')
         rename_key(kwargs, 'Group', 'group_desc')
         rename_key(kwargs, 'Subgroup', 'subgroup_desc')
-        kwargs['supergroup_code'] = kwargs['supergroup_desc'][0:1]
-        kwargs['group_code'] = kwargs['group_desc'][0:2]
-        kwargs['subgroup_code'] = kwargs['subgroup_desc'][0:3]
+        kwargs['supergroup_code'] = kwargs['oac11'][0:1]
+        kwargs['group_code'] = kwargs['oac11'][0:2]
+        kwargs['subgroup_code'] = kwargs['oac11']
         super().__init__(**kwargs)
 
 
@@ -610,8 +564,8 @@ class BUA(Base):
     """
     Represents England & Wales 2013 build-up area (BUA) codes/names.
     """
-    __filename__ = "BUA_names and codes EW as at 12_13.xlsx"
-    __tablename__ = "bua_built_up_area_england_wales_2013"
+    __filename__ = "BUA_names and codes UK as at 12_13.xlsx"
+    __tablename__ = "bua_built_up_area_uk_2013"
 
     bua_code = Column(String(CODE_LEN), primary_key=True)
     bua_name = Column(String(NAME_LEN))
@@ -626,8 +580,8 @@ class BUASD(Base):
     """
     Represents built-up area subdivisions (BUASD) in England & Wales 2013.
     """
-    __filename__ = "BUASD_names and codes EW as at 12_13.xlsx"
-    __tablename__ = "buasd_built_up_area_subdivision_england_wales_2013"
+    __filename__ = "BUASD_names and codes UK as at 12_13.xlsx"
+    __tablename__ = "buasd_built_up_area_subdivision_uk_2013"
 
     buasd_code = Column(String(CODE_LEN), primary_key=True)
     buasd_name = Column(String(NAME_LEN))
@@ -658,35 +612,21 @@ class CASWard(Base):
 
 class CCG(Base):
     """
-    Represents clinical commissioning groups (CCGs), England 2015.
+    Represents clinical commissioning groups (CCGs), UK 2019.
     """
-    __filename__ = "CCG names and codes EN as at 07_15.xlsx"
-    __tablename__ = "ccg_clinical_commissioning_group_england_2015"
+    __filename__ = "CCG names and codes UK as at 04_19.xlsx"
+    __tablename__ = "ccg_clinical_commissioning_group_uk_2019"
 
     ccg_ons_code = Column(String(CODE_LEN), primary_key=True)
-    ccg_ccg_code = Column(String(3))
+    ccg_ccg_code = Column(String(9))
     ccg_name = Column(String(NAME_LEN))
+    ccg_name_welsh = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'CCG15CD', 'ccg_ons_code')
-        rename_key(kwargs, 'CCG15CDH', 'ccg_ccg_code')
-        rename_key(kwargs, 'CCG15NM', 'ccg_name')
-        super().__init__(**kwargs)
-
-
-class CHP(Base):
-    """
-    Represents community health partnerships (CHPs), Scotland 2012.
-    """
-    __filename__ = "CHP names and codes SC as at 04_12.xlsx"
-    __tablename__ = "chp_community_health_partnership_scotland_2012"
-
-    chp_code = Column(String(CODE_LEN), primary_key=True)
-    chp_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'CHP12CD', 'chp_code')
-        rename_key(kwargs, 'CHP12NM', 'chp_name')
+        rename_key(kwargs, 'CCG19CD', 'ccg_ons_code')
+        rename_key(kwargs, 'CCG19CDH', 'ccg_ccg_code')
+        rename_key(kwargs, 'CCG19NM', 'ccg_name')
+        rename_key(kwargs, 'CCG19NMW', 'ccg_name_welsh')
         super().__init__(**kwargs)
 
 
@@ -696,116 +636,35 @@ class Country(Base):
 
     This is not a long table.
     """
-    __filename__ = "Country names and codes UK as at 08_12.xls"
+    __filename__ = "Country names and codes UK as at 08_12.xlsx"
     __tablename__ = "country_2012"
 
     country_code = Column(String(CODE_LEN), primary_key=True)
+    country_code_old = Column(Integer)  # ?
     country_name = Column(String(NAME_LEN))
     country_name_welsh = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, 'CTRY12CD', 'country_code')
+        rename_key(kwargs, 'CTRY12CDO', 'country_code_old')
         rename_key(kwargs, 'CTRY12NM', 'country_name')
         rename_key(kwargs, 'CTRY12NMW', 'country_name_welsh')
         super().__init__(**kwargs)
 
 
-class County1991(Base):
+class County2019(Base):
     """
-    Represents counties of England & Wales 1991.
+    Represents counties, UK 2019.
     """
-    __filename__ = "County names and codes EW as at 21_04_91.xls"
-    __tablename__ = "county_england_wales_1991"
-    __headings__ = ["county_code_census", "county_code_ogss",
-                    "county_code_ons", "county_name"]
-    # __debug_content__ = True
-
-    county_code_census = Column(String(2))
-    county_code_ogss = Column(String(2))
-    county_code_ons = Column(String(2))
-    county_name = Column(String(NAME_LEN), primary_key=True)
-    # ... no code type is present for all counties
-
-    def __init__(self, **kwargs: Any) -> None:
-        # The "00" codes are stored in the spreadsheet as a numeric 0 with
-        # leading zero formatting.
-        def process_00(field: str) -> None:
-            value = kwargs[field]
-            if value == '':
-                kwargs[field] = None
-            else:
-                kwargs[field] = f"{int(value):0>2}"
-
-        process_00('county_code_census')
-        process_00('county_code_ogss')
-        process_00('county_code_ons')
-        super().__init__(**kwargs)
-
-
-class County2010(Base):
-    """
-    Represents counties, England 2010.
-    """
-    __filename__ = "County names and codes EN as at 12_10.xls"
+    __filename__ = "County names and codes UK as at 04_19.xlsx"
     __tablename__ = "county_england_2010"
 
     county_code = Column(String(CODE_LEN), primary_key=True)
     county_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'CTY10CD', 'county_code')
-        rename_key(kwargs, 'CTY10NM', 'county_name')
-        super().__init__(**kwargs)
-
-
-class Datazone(Base):
-    """
-    Represents datazones, Scotland 2011.
-    """
-    __filename__ = "Datazone (2011) names and codes SC as at 11_14.xlsx"
-    __tablename__ = "dz_datazone_scotland_2011"
-
-    dz_code = Column(String(CODE_LEN), primary_key=True)
-    dz_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'DZ11CD', 'dz_code')
-        rename_key(kwargs, 'DZ11NM', 'dz_name')
-        super().__init__(**kwargs)
-
-
-class DCELLS(Base):
-    """
-    Represents Department for Children, Education, Lifelong Learning and Skills
-    (DCELLS) names/codes, Wales 2010.
-    """
-    __filename__ = "DCELLS names and codes WA as at 12_10.xls"
-    __tablename__ = "dcells_dept_children_wales_2010"
-
-    dcells_code = Column(String(CODE_LEN), primary_key=True)
-    dcells_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'DCELL10CD', 'dcells_code')
-        rename_key(kwargs, 'DCELL10NM', 'dcells_name')
-        super().__init__(**kwargs)
-
-
-class District(Base):
-    """
-    Represents districts, England & Wales 1991.
-    """
-    __filename__ = "District names and codes EW as at 21_4_91.xls"
-    __headings__ = ["district_name", "district_code_census",
-                    "district_code_ogss", "district_code_ons"]
-    __tablename__ = "district_england_wales_1991"
-
-    district_name = Column(String(NAME_LEN))
-    district_code_census = Column(String(4))
-    district_code_ogss = Column(String(4))
-    district_code_ons = Column(String(4), primary_key=True)
-
-    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, 'CTY19CD', 'county_code')
+        rename_key(kwargs, 'CTY19NM', 'county_name')
         super().__init__(**kwargs)
 
 
@@ -813,101 +672,17 @@ class EER(Base):
     """
     Represents European electoral regions (EERs), UK 2010.
     """
-    __filename__ = "EER names and codes UK as at 12_10.xls"
+    __filename__ = "EER names and codes UK as at 12_10.xlsx"
     __tablename__ = "eer_european_electoral_region_2010"
 
     eer_code = Column(String(CODE_LEN), primary_key=True)
+    eer_code_old = Column(String(2))  # ?
     eer_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, 'EER10CD', 'eer_code')
+        rename_key(kwargs, 'EER10CDO', 'eer_code_old')
         rename_key(kwargs, 'EER10NM', 'eer_name')
-        super().__init__(**kwargs)
-
-
-class EnterpriseRegion(Base):
-    """
-    Represents Enterprise Region (ER) names/codes, Scotland 2010.
-    """
-    __filename__ = "Enterprise Region names and codes SC as at 12_10.xls"
-    __tablename__ = "er_enterprise_region_scotland_2010"
-
-    er_code = Column(String(CODE_LEN), primary_key=True)
-    er_code_old = Column(String(3))
-    er_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'ER10CD', 'er_code')
-        rename_key(kwargs, 'ER10CDO', 'er_code_old')
-        rename_key(kwargs, 'ER10NM', 'er_name')
-        super().__init__(**kwargs)
-
-
-class HealthAuthority(Base):
-    """
-    Represents health authorities and health boards, Great Britain 2001.
-    """
-    __filename__ = "Health Authority & Health Board names and codes GB as " \
-                   "at 12_01.xls"
-    __tablename__ = "ha_health_authority_2001"
-
-    ha_code = Column(String(3), primary_key=True)
-    ha_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'HA01CD', 'ha_code')
-        rename_key(kwargs, 'HA01NM', 'ha_name')
-        super().__init__(**kwargs)
-
-
-class HealthBoardNI(Base):
-    """
-    Represents health boards, Northern Ireland 2003.
-    """
-    __filename__ = "Health Board names and codes NI as at 2003.xls"
-    __tablename__ = "hb_health_board_n_ireland_2003"
-
-    hb_code = Column(String(CODE_LEN), primary_key=True)
-    hb_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'HA03CD', 'hb_code')
-        rename_key(kwargs, 'HA03NM', 'hb_name')
-        super().__init__(**kwargs)
-
-
-class HealthBoardSC(Base):
-    """
-    Represents health boards, Scotland 2014.
-    """
-    __filename__ = "Health Board names and codes SC as at 12_14.xlsx"
-    __tablename__ = "hb_health_board_scotland_2014"
-
-    hb_code = Column(String(CODE_LEN), primary_key=True)
-    hb_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'HB14CD', 'hb_code')
-        rename_key(kwargs, 'HB14NM', 'hb_name')
-        super().__init__(**kwargs)
-
-
-class HSCBNI(Base):
-    """
-    Represents Health and Social Care Board (HSCB) names/codes, Northern
-    Ireland 2010.
-    """
-    __filename__ = "HSCB name and code NI as at 12_10.xls"
-    __tablename__ = "hscb_health_social_care_board_n_ireland_2010"
-
-    hscb_code = Column(String(5), primary_key=True)
-    hscb_code_2 = Column(String(5))
-    hscb_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'HSCB10CDO', 'hscb_code')
-        rename_key(kwargs, 'HSCB10CD', 'hscb_code_2')
-        rename_key(kwargs, 'HSCB10NM', 'hscb_name')
         super().__init__(**kwargs)
 
 
@@ -933,36 +708,19 @@ class IMDLookupEN(Base):
         super().__init__(**kwargs)
 
 
-class IMDLookupNI(Base):
-    """
-    Represents the Index of Multiple Deprivation (IMD), Northern Ireland 2010.
-    """
-    __filename__ = "IMD lookup NI as at 12_10.xlsx"
-    __tablename__ = "imd_index_multiple_deprivation_n_ireland_2010"
-
-    oa_code = Column(String(10), primary_key=True)
-    imd_rank = Column(Integer)
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'OA01CD', 'oa_code')
-        rename_key(kwargs, 'IMD10', 'imd_rank')
-        convert_int(kwargs, 'imd_rank')
-        super().__init__(**kwargs)
-
-
 class IMDLookupSC(Base):
     """
-    Represents the Index of Multiple Deprivation (IMD), Scotland 2012.
+    Represents the Index of Multiple Deprivation (IMD), Scotland 2016.
     """
-    __filename__ = "IMD lookup SC as at 12_12.xlsx"
-    __tablename__ = "imd_index_multiple_deprivation_scotland_2012"
+    __filename__ = "IMD lookup SC as at 12_16.xlsx"
+    __tablename__ = "imd_index_multiple_deprivation_scotland_2016"
 
     dz_code = Column(String(CODE_LEN), primary_key=True)
     imd_rank = Column(Integer)
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'DZ01CD', 'dz_code')
-        rename_key(kwargs, 'IMD12', 'imd_rank')
+        rename_key(kwargs, 'DZ11CD', 'dz_code')
+        rename_key(kwargs, 'IMD16', 'imd_rank')
         convert_int(kwargs, 'imd_rank')
         super().__init__(**kwargs)
 
@@ -986,228 +744,66 @@ class IMDLookupWA(Base):
         super().__init__(**kwargs)
 
 
-class IZ2005(Base):
-    """
-    Represents Intermediate Zones (IZ), Scotland 2005.
-    """
-    __filename__ = "IZ (2001) names and codes SC as at 11_11.xls"
-    # definitely 2005, from metadata
-    __tablename__ = "iz_intermediate_zone_scotland_2005"
-
-    iz_code = Column(String(CODE_LEN), primary_key=True)
-    iz_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'IZ05CD', 'iz_code')
-        rename_key(kwargs, 'IZ05NM', 'iz_name')
-        super().__init__(**kwargs)
-
-
-class IZ2011(Base):
-    """
-    Represents Intermediate Zones (IZ), Scotland 2011.
-    """
-    __filename__ = "IZ (2011) names and codes SC as at 11_14.xlsx"
-    __tablename__ = "iz_intermediate_zone_scotland_2011"
-
-    iz_code = Column(String(CODE_LEN), primary_key=True)
-    iz_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'IZ11CD', 'iz_code')
-        rename_key(kwargs, 'IZ11NM', 'iz_name')
-        super().__init__(**kwargs)
-
-
 class LAU(Base):
     """
-    Represents European Union Local Administrative Units (LAUs), UK 2015.
+    Represents European Union Local Administrative Units (LAUs), UK 2019.
     """
-    __filename__ = "LAU215_LAU115_NUTS315_NUTS215_NUTS115_UK_LUv2.xlsx"
-    __tablename__ = "lau_eu_local_administrative_unit_2015"
+    __filename__ = "LAU2 names and codes UK as at 12_19 (NUTS).xlsx"
+    __tablename__ = "lau_eu_local_administrative_unit_2019"
 
     lau2_code = Column(String(10), primary_key=True)
     lau2_name = Column(String(NAME_LEN))
-    lau1_code = Column(String(CODE_LEN))
-    lau1_name = Column(String(NAME_LEN))
-    nuts3_code = Column(String(5))
-    nuts3_name = Column(String(NAME_LEN))
-    nuts2_code = Column(String(4))
-    nuts2_name = Column(String(NAME_LEN))
-    nuts1_code = Column(String(3))
-    nuts1_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'LAU215CD', 'lau2_code')
-        rename_key(kwargs, 'LAU215NM', 'lau2_name')
-        rename_key(kwargs, 'LAU115CD', 'lau1_code')
-        rename_key(kwargs, 'LAU115NM', 'lau1_name')
-        rename_key(kwargs, 'NUTS315CD', 'nuts3_code')
-        rename_key(kwargs, 'NUTS315NM', 'nuts3_name')
-        rename_key(kwargs, 'NUTS215CD', 'nuts2_code')
-        rename_key(kwargs, 'NUTS215NM', 'nuts2_name')
-        rename_key(kwargs, 'NUTS115CD', 'nuts1_code')
-        rename_key(kwargs, 'NUTS115NM', 'nuts1_name')
+        rename_key(kwargs, 'LAU219CD', 'lau2_code')
+        rename_key(kwargs, 'LAU219NM', 'lau2_name')
         super().__init__(**kwargs)
 
 
 class LAD(Base):
     """
-    Represents local authority districts (LADs), UK 2016.
+    Represents local authority districts (LADs), UK 2019.
     """
-    __filename__ = "LA_UA names and codes UK as at 02_16.xlsx"
-    __tablename__ = "lad_local_authority_district_2016"
+    __filename__ = "LA_UA names and codes UK as at 12_19.xlsx"
+    __tablename__ = "lad_local_authority_district_2019"
 
     lad_code = Column(String(CODE_LEN), primary_key=True)
     lad_name = Column(String(NAME_LEN))
+    lad_name_welsh = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'LAD16CD', 'lad_code')
-        rename_key(kwargs, 'LAD16NM', 'lad_name')
-        super().__init__(**kwargs)
-
-
-class LCG(Base):
-    """
-    Represents local commissioning groups (LCGs), Northern Ireland 2010.
-    """
-    __filename__ = "LCG names and codes NI as at 12_10.xls"
-    __tablename__ = "lcg_local_commissioning_group_n_ireland_2010"
-
-    lcg_code = Column(String(CODE_LEN))
-    lcg_code_old = Column(String(5), primary_key=True)
-    lcg_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'LCG10CD', 'lcg_code')
-        rename_key(kwargs, 'LCG10CDO', 'lcg_code_old')
-        rename_key(kwargs, 'LCG10NM', 'lcg_name')
-        super().__init__(**kwargs)
-
-
-class LEA(Base):
-    """
-    Represents Local Education Authorities (LEAs), UK 2009,
-    """
-    __filename__ = "LEA and ELB names and codes UK as at 04_09.xls"
-    __tablename__ = "lea_local_education_authority_2009"
-    # __debug_content__ = True
-
-    lea_code = Column(String(3), primary_key=True)
-    lea_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'EDUC09CD', 'lea_code')
-        rename_key(kwargs, 'EDUC09NM', 'lea_name')
+        rename_key(kwargs, 'LAD19CD', 'lad_code')
+        rename_key(kwargs, 'LAD19NM', 'lad_name')
+        rename_key(kwargs, 'LAD19NMW', 'lad_name_welsh')
         super().__init__(**kwargs)
 
 
 class LEP(Base):
     """
-    Represents Local Enterprise Partnerships (LEPs), England 2013.
+    Represents Local Enterprise Partnerships (LEPs), England 2017.
     """
-    __filename__ = "LEP names and codes EN as at 12_13.xlsx"
-    __tablename__ = "lep_local_enterprise_partnership_england_2013"
+    __filename__ = "LEP names and codes EN as at 04_17 v2.xlsx"
+    __tablename__ = "lep_local_enterprise_partnership_england_2017"
     # __debug_content__ = True
 
-    lep1_code = Column(String(CODE_LEN), primary_key=True)
-    lep1_name = Column(String(NAME_LEN))
+    lep_code = Column(String(CODE_LEN), primary_key=True)
+    lep_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'LEP13CD1', 'lep1_code')
-        rename_key(kwargs, 'LEP13NM1', 'lep1_name')
+        rename_key(kwargs, 'LEP17CD', 'lep_code')
+        rename_key(kwargs, 'LEP17NM', 'lep_name')
         super().__init__(**kwargs)
 
 
-class LHB2014(Base):
+class LSOA2011(Base):
     """
-    Represents Local Health Boards (LHBs), Wales 2014.
-    """
-    __filename__ = "LHB names and codes WA as at 12_14.xlsx"
-    __tablename__ = "lhb_local_health_board_wales_2014"
-    # __debug_content__ = True
-
-    lhb_code = Column(String(CODE_LEN), primary_key=True)
-    lhb_name = Column(String(NAME_LEN))
-    lhb_name_welsh = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'LHB14CD', 'lhb_code')
-        rename_key(kwargs, 'LHB14NM', 'lhb_name')
-        rename_key(kwargs, 'LHB14NMW', 'lhb_name_welsh')
-        super().__init__(**kwargs)
-
-
-class LHB2006(Base):
-    """
-    Represents Local Health Boards (LHBs), Wales 2006.
-    """
-    __filename__ = "Local Health Boards names and codes WA as at 06_06.xls"
-    __tablename__ = "lhb_local_health_board_wales_2006"
-
-    lhb_code = Column(String(3), primary_key=True)
-    lhb_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'LHB06CD', 'lhb_code')
-        rename_key(kwargs, 'LHB06NM', 'lhb_name')
-        super().__init__(**kwargs)
-
-
-class LLSC(Base):
-    """
-    Represents Local Learning [and?] Skills Councils (LLSCs), England 2010.
-    """
-    __filename__ = "LLSC names and codes EN as at 12_10.xls"
-    __tablename__ = "llsc_local_learning_skills_council_england_2010"
-
-    llsc_code = Column(String(CODE_LEN), primary_key=True)
-    llsc_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'LLSC10CD', 'llsc_code')
-        rename_key(kwargs, 'LLSC10NM', 'llsc_name')
-        super().__init__(**kwargs)
-
-
-class LSOAEW2004(Base):
-    """
-    Represents lower layer super output area (LSOAs), England & Wales 2004.
-    """
-    __filename__ = "LSOA (2001) names and codes EW as at 02_04.xls"
-    __tablename__ = "lsoa_lower_layer_super_output_area_england_wales_2004"
-
-    lsoa_code = Column(String(CODE_LEN), primary_key=True)
-    lsoa_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'LSOA04CD', 'lsoa_code')
-        rename_key(kwargs, 'LSOA04NM', 'lsoa_name')
-        super().__init__(**kwargs)
-
-
-class LSOANI2005(Base):
-    __filename__ = "LSOA (2001) names and codes NI as at 02_05.xls"
-    __tablename__ = "lsoa_lower_layer_super_output_area_n_ireland_2005"
-
-    lsoa_code = Column(String(8), primary_key=True)
-    lsoa_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'LSOAN05CD', 'lsoa_code')
-        rename_key(kwargs, 'LSOAN05NM', 'lsoa_name')
-        super().__init__(**kwargs)
-
-
-class LSOAEW2011(Base):
-    """
-    Represents lower layer super output area (LSOAs), England & Wales 2011.
+    Represents lower layer super output area (LSOAs), UK 2011.
 
     **This is quite an important one.** LSOAs map to IMDs; see
     :class:`IMDLookupEN`.
     """
-    __filename__ = "LSOA (2011) names and codes EW as at 12_12.xlsx"
-    __tablename__ = "lsoa_lower_layer_super_output_area_england_wales_2011"
+    __filename__ = "LSOA (2011) names and codes UK as at 12_12.xlsx"
+    __tablename__ = "lsoa_lower_layer_super_output_area_2011"
 
     lsoa_code = Column(String(CODE_LEN), primary_key=True)
     lsoa_name = Column(String(NAME_LEN))
@@ -1218,28 +814,12 @@ class LSOAEW2011(Base):
         super().__init__(**kwargs)
 
 
-class MSOAEW2004(Base):
+class MSOA2011(Base):
     """
-    Represents middle layer super output areas (MSOAs), England & Wales 2004.
+    Represents middle layer super output areas (MSOAs), UK 2011.
     """
-    __filename__ = "MSOA (2001) names and codes EW as at 08_04.xls"
-    __tablename__ = "msoa_middle_layer_super_output_area_england_wales_2004"
-
-    msoa_code = Column(String(CODE_LEN), primary_key=True)
-    msoa_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'MSOA04CD', 'msoa_code')
-        rename_key(kwargs, 'MSOA04NM', 'msoa_name')
-        super().__init__(**kwargs)
-
-
-class MSOAEW2011(Base):
-    """
-    Represents middle layer super output areas (MSOAs), England & Wales 2011.
-    """
-    __filename__ = "MSOA (2011) names and codes EW as at 12_12.xlsx"
-    __tablename__ = "msoa_middle_layer_super_output_area_england_wales_2011"
+    __filename__ = "MSOA (2011) names and codes UK as at 12_12.xlsx"
+    __tablename__ = "msoa_middle_layer_super_output_area_2011"
 
     msoa_code = Column(String(CODE_LEN), primary_key=True)
     msoa_name = Column(String(NAME_LEN))
@@ -1252,35 +832,17 @@ class MSOAEW2011(Base):
 
 class NationalPark(Base):
     """
-    Represents national parks, Great Britain 2010.
+    Represents national parks, Great Britain 2016.
     """
-    __filename__ = "National Park names and codes GB as at 10_10.xls"
-    __tablename__ = "park_national_park_2010"
+    __filename__ = "National Park names and codes GB as at 08_16.xlsx"
+    __tablename__ = "park_national_park_2016"
 
     park_code = Column(String(CODE_LEN), primary_key=True)
     park_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'NPARK10CD', 'park_code')
-        rename_key(kwargs, 'NPARK10NM', 'park_name')
-        super().__init__(**kwargs)
-
-
-class PanSHA(Base):
-    """
-    Represents pan-Strategic Health Authority names/codes, England 2010.
-    """
-    __filename__ = "Pan SHA names and codes EN as at 12_10.xls"
-    __tablename__ = "psha_pan_strategic_health_authority_aka_hro_england_2010"
-
-    psha_code = Column(String(CODE_LEN), primary_key=True)
-    psha_code_old = Column(String(3))
-    psha_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'PSHA10CD', 'psha_code')
-        rename_key(kwargs, 'PSHA10CDO', 'psha_code_old')
-        rename_key(kwargs, 'PSHA10NM', 'psha_name')
+        rename_key(kwargs, 'NPARK16CD', 'park_code')
+        rename_key(kwargs, 'NPARK16NM', 'park_name')
         super().__init__(**kwargs)
 
 
@@ -1288,55 +850,37 @@ class Parish(Base):
     """
     Represents parishes, England & Wales 2014.
     """
-    __filename__ = "Parish LAD names and codes EW as at 12_14.xlsx"
-    __tablename__ = "parish_lad_england_wales_2014"
+    __filename__ = "Parish_NCP names and codes EW as at 12_18.xlsx"
+    __tablename__ = "parish_ncp_england_wales_2018"
 
     parish_code = Column(String(CODE_LEN), primary_key=True)
     parish_name = Column(String(NAME_LEN))
-    district_code = Column(String(CODE_LEN))
-    district_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'PAR14CD', 'parish_code')
-        rename_key(kwargs, 'PAR14NM', 'parish_name')
-        rename_key(kwargs, 'LAD14CD', 'district_code')
-        rename_key(kwargs, 'LAD14NM', 'district_name')
+        rename_key(kwargs, 'PARNCP18CD', 'parish_code')
+        rename_key(kwargs, 'PARNCP18NM', 'parish_name')
         super().__init__(**kwargs)
 
 
-class PCT2011(Base):
+class PCT2019(Base):
     """
-    Represents Primary Care Trust (PCT) organizations, England 2011.
+    Represents Primary Care Trust (PCT) organizations, UK 2019.
 
     The forerunner of CCGs (q.v.).
     """
-    __filename__ = "PCO names and codes EN as at 04_11.xls"
-    __tablename__ = "pct_primary_care_trust_organization_england_2011"
+    __filename__ = "PCT names and codes UK as at 04_19.xlsx"
+    __tablename__ = "pct_primary_care_trust_2019"
 
     pct_code = Column(String(CODE_LEN), primary_key=True)
-    pct_code_old = Column(String(3))
+    pct_code_old = Column(String(5))
     pct_name = Column(String(NAME_LEN))
+    pct_name_welsh = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'PCO11CD', 'pct_code')
-        rename_key(kwargs, 'PCO11CDO', 'pct_code_old')
-        rename_key(kwargs, 'PCO11NM', 'pct_name')
-        super().__init__(**kwargs)
-
-
-class PCT2005(Base):
-    """
-    Represents Primary Care Trust (PCT) organizations, England 2005.
-    """
-    __filename__ = "PCO names and codes EN as at 10_05.xls"
-    __tablename__ = "pct_primary_care_trust_organization_england_2005"
-
-    pct_code = Column(String(3), primary_key=True)
-    pct_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'PCO05CD', 'pct_code')
-        rename_key(kwargs, 'PCO05NM', 'pct_name')
+        rename_key(kwargs, 'PCTCD', 'pct_code')
+        rename_key(kwargs, 'PCTCDO', 'pct_code_old')
+        rename_key(kwargs, 'PCTNM', 'pct_name')
+        rename_key(kwargs, 'PCTNMW', 'pct_name_welsh')
         super().__init__(**kwargs)
 
 
@@ -1360,58 +904,28 @@ class GOR(Base):
     """
     Represents Government Office Regions (GORs), England 2010.
     """
-    __filename__ = "Region (GOR) names and codes EN as at 12_10.xls"
+    __filename__ = "Region names and codes EN as at 12_10 (RGN).xlsx"
     __tablename__ = "gor_govt_office_region_england_2010"
 
     gor_code = Column(String(CODE_LEN), primary_key=True)
+    gor_code_old = Column(String(1))
     gor_name = Column(String(NAME_LEN))
     gor_name_welsh = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, 'GOR10CD', 'gor_code')
+        rename_key(kwargs, 'GOR10CDO', 'gor_code_old')
         rename_key(kwargs, 'GOR10NM', 'gor_name')
         rename_key(kwargs, 'GOR10NMW', 'gor_name')
         super().__init__(**kwargs)
 
 
-class SHA2004(Base):
-    """
-    Represents Strategic Health Authorities (SHAs), England 2004.
-    """
-    __filename__ = "SHA names and codes EN as at 09_02_04.xls"
-    __tablename__ = "sha_strategic_health_authority_england_2004"
-
-    sha_code = Column(String(3), primary_key=True)
-    sha_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'SHA04CD', 'sha_code')
-        rename_key(kwargs, 'SHA04NM', 'sha_name')
-        super().__init__(**kwargs)
-
-
-class SHA2010(Base):
-    """
-    Represents Strategic Health Authorities (SHAs), England 2010.
-    """
-    __filename__ = "SHA names and codes EN as at 12_10.xls"
-    __tablename__ = "sha_strategic_health_authority_england_2010"
-
-    sha_code = Column(String(CODE_LEN), primary_key=True)
-    sha_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'SHA10CD', 'sha_code')
-        rename_key(kwargs, 'SHA10NM', 'sha_name')
-        super().__init__(**kwargs)
-
-
 class SSR(Base):
     """
-    Represents Standard Statistical Regions (SSRs), England 1995.
+    Represents Standard Statistical Regions (SSRs), UK 2005.
     """
-    __filename__ = "SSR names and codes EN as at 12_05.xls"
-    __tablename__ = "ssr_standard_statistical_region_england_1995"
+    __filename__ = "SSR names and codes UK as at 12_05 (STREG).xlsx"
+    __tablename__ = "ssr_standard_statistical_region_1995"
 
     ssr_code = Column(Integer, primary_key=True)
     ssr_name = Column(String(NAME_LEN))
@@ -1423,47 +937,13 @@ class SSR(Base):
         super().__init__(**kwargs)
 
 
-class Ward1991(Base):
-    """
-    Represents electoral wards, UK 1991.
-    """
-    __filename__ = "Ward names and codes UK as at 21_04_91.xls"
-    __tablename__ = "electoral_ward_1991"
-
-    ward_code_ons = Column(String(6), primary_key=True)
-    ward_code_census = Column(String(6))
-    ward_code_ogss = Column(String(6))
-    ward_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'WD91CD', 'ward_code_ons')
-        rename_key(kwargs, 'WD91CDC', 'ward_code_census')
-        rename_key(kwargs, 'WD91CDO', 'ward_code_ogss')
-        rename_key(kwargs, 'WD91NM', 'ward_name')
-        super().__init__(**kwargs)
-
-
-class Ward1998(Base):
-    """
-    Represents electoral wards, UK 1998.
-    """
-    __filename__ = "Ward names and codes UK as at 12_98.xls"
-    __tablename__ = "electoral_ward_1998"
-
-    ward_code = Column(String(6), primary_key=True)
-    ward_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'WD98CD', 'ward_code')
-        rename_key(kwargs, 'WD98NM', 'ward_name')
-        super().__init__(**kwargs)
-
-
+_ = '''
+# NOT WORKING 2020-03-03: missing PK somewhere? Also: unimportant.
 class Ward2005(Base):
     """
     Represents electoral wards, UK 2005.
     """
-    __filename__ = "Statistical ward names and codes UK as at 2005.xls"
+    __filename__ = "Statistical ward names and codes UK as at 2005.xlsx"
     __tablename__ = "electoral_ward_2005"
 
     ward_code = Column(String(6), primary_key=True)
@@ -1473,21 +953,22 @@ class Ward2005(Base):
         rename_key(kwargs, 'WDSTL05CD', 'ward_code')
         rename_key(kwargs, 'WDSTL05NM', 'ward_name')
         super().__init__(**kwargs)
+'''
 
 
-class Ward2016(Base):
+class Ward2019(Base):
     """
     Represents electoral wards, UK 2016.
     """
-    __filename__ = "Ward names and codes UK as at 05_16.xlsx"
-    __tablename__ = "electoral_ward_2016"
+    __filename__ = "Ward names and codes UK as at 12_19.xlsx"
+    __tablename__ = "electoral_ward_2019"
 
     ward_code = Column(String(CODE_LEN), primary_key=True)
     ward_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'WD16CD', 'ward_code')
-        rename_key(kwargs, 'WD16NM', 'ward_name')
+        rename_key(kwargs, 'WD19CD', 'ward_code')
+        rename_key(kwargs, 'WD19NM', 'ward_name')
         super().__init__(**kwargs)
 
 
@@ -1504,22 +985,6 @@ class TTWA(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, 'TTWA11CD', 'ttwa_code')
         rename_key(kwargs, 'TTWA11NM', 'ttwa_name')
-        super().__init__(**kwargs)
-
-
-class NCP(Base):
-    """
-    Represents non-civil parish (NCP) area ("unparished areas"), England 2014.
-    """
-    __filename__ = "Unparished areas names and codes EN as at 12_14.xlsx"
-    __tablename__ = "ncp_non_civil_parish_2014"
-
-    ncp_code = Column(String(CODE_LEN), primary_key=True)
-    ncp_name = Column(String(NAME_LEN))
-
-    def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'NCP14CD', 'ncp_code')
-        rename_key(kwargs, 'NCP14NM', 'ncp_name')
         super().__init__(**kwargs)
 
 
@@ -1540,6 +1005,7 @@ class WestminsterConstituency(Base):
         super().__init__(**kwargs)
 
 
+_ = '''
 # =============================================================================
 # Models: centroids
 # =============================================================================
@@ -1594,6 +1060,7 @@ class PopWeightedCentroidsLsoa2011(Base):
         super().__init__(**kwargs)
         if not self.lsoa_code:
             raise ValueError("Can't have a blank lsoa_code")
+'''
 
 
 # =============================================================================
@@ -1906,57 +1373,30 @@ def main() -> None:
         BUASD,
         CASWard,
         CCG,
-        CHP,
         Country,
-        County2010,
-        County1991,
-        Datazone,
-        DCELLS,
-        District,
+        County2019,
         EER,
-        EnterpriseRegion,
-        HealthAuthority,
-        HealthBoardNI,
-        HealthBoardSC,
-        HSCBNI,
         IMDLookupEN,
-        IMDLookupNI,
         IMDLookupSC,
         IMDLookupWA,
-        IZ2005,
-        IZ2011,
         LAU,
         LAD,
-        LCG,
-        LEA,
         LEP,
-        LHB2006,
-        LLSC,
-        LHB2014,
-        LSOAEW2004,
-        LSOANI2005,
-        LSOAEW2011,
-        MSOAEW2004,
-        MSOAEW2011,
+        LSOA2011,
+        MSOA2011,
         NationalPark,
-        PanSHA,
         Parish,
-        PCT2011,
-        PCT2005,
+        PCT2019,
         PFA,
         GOR,
-        SHA2004,
-        SHA2010,
         SSR,
-        Ward2005,
+        # Ward2005,
         TTWA,
-        NCP,
-        Ward2016,
-        Ward1998,
-        Ward1991,
+        Ward2019,
         WestminsterConstituency,
+
         # Centroids:
-        PopWeightedCentroidsLsoa2011,
+        # PopWeightedCentroidsLsoa2011,
     ]
 
     if args.list_lookup_tables:
@@ -1988,10 +1428,10 @@ def main() -> None:
             if (args.specific_lookup_tables and
                     sa_class.__tablename__ not in args.specific_lookup_tables):
                 continue
-            if (sa_class.__tablename__ ==
-                    "ccg_clinical_commissioning_group_england_2015"):
-                log.warning("Ignore warning 'Discarded range with reserved "
-                            "name' below; it works regardless")
+            # if (sa_class.__tablename__ ==
+            #         "ccg_clinical_commissioning_group_uk_2019"):
+            #     log.warning("Ignore warning 'Discarded range with reserved "
+            #                 "name' below; it works regardless")
             populate_generic_lookup_table(
                 sa_class=sa_class,
                 datadir=lookupdir,
