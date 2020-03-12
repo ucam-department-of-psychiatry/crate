@@ -170,7 +170,7 @@ INSTALL_REQUIRES = [
     "pillow==6.2.0",  # image processing; import as PIL (Python Imaging Library)  # noqa
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==0.7.2",  # pretty formating of text-based tables
-    "psutil==5.4.6",  # process management
+    "psutil==5.6.6",  # process management
     "pygments==2.2.0",  # syntax highlighting
     "pyparsing==2.2.0",  # generic grammar parser
     "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]
