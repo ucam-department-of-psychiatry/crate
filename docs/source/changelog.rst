@@ -449,7 +449,7 @@ Changes
 **v0.18.18 to v0.18.23, 2017-04-28**
 
 - Paper published on 2017-04-26 as **Cardinal (2017), BMC Medical Informatics
-  and Decision Making 17:50; http://www.pubmed.com/28441940;
+  and Decision Making 17:50; http://www.pubmed.gov/28441940;
   https://doi.org/10.1186/s12911-017-0437-1.**
 
 - Support for configurable paths for finding on-disk documents (e.g. from a
