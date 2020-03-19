@@ -85,6 +85,7 @@ from crate_anon.nlprp.constants import (
     NlprpValues,
 )
 from crate_anon.nlp_webserver.server_processor import ServerProcessor
+from crate_anon.common.profiling import do_cprofile
 
 if TYPE_CHECKING:
     from crate_anon.nlp_manager.cloud_run_info import CloudRunInfo
@@ -373,6 +374,8 @@ class CloudRequestProcess(CloudRequest):
         self._commit = commit
         self._fetched = False
         self._client_job_id = client_job_id or ""
+        # How many records have been added to this particular request?
+        self.number_of_records = 0
 
         # Set up processing request
         self._request_process = make_nlprp_dict()
@@ -470,12 +473,13 @@ class CloudRequestProcess(CloudRequest):
         if not max_length:  # None or 0
             return False  # no maximum; not too long
         # Fast, apt to overestimate size a bit (as above)
-        length = getsize(self._request_process)
+        if self._cloudcfg.test_length_function_speed:
+            length = getsize(self._request_process)
 
-        if length <= max_length:  # test the Python length
-            # Because the Python length is an overestimate of the JSON, if that
-            # is not more than the max, we can stop.
-            return False  # not too long
+            if length <= max_length:  # test the Python length
+                # Because the Python length is an overestimate of the JSON, if
+                # that is not more than the max, we can stop.
+                return False  # not too long
 
         # The Python size is too long. So now we recalculate using the slow but
         # accurate way.
@@ -514,7 +518,8 @@ class CloudRequestProcess(CloudRequest):
 
         Tests the size of the request if the text and metadata was added, then
         adds it if it doesn't go over the size limit and there are word
-        characters in the text.
+        characters in the text. Also checks if we've reached the maximum records
+        per request.
 
         Args:
             text: the text
@@ -526,6 +531,11 @@ class CloudRequestProcess(CloudRequest):
         if not does_text_contain_word_chars(text):
             # log.warning(f"No word characters found in text: {text!r}")
             return False
+
+        if self.number_of_records >= self._cloudcfg.max_records_per_request - 1:
+            # Return False if we've reached the record limit for the request
+            return False
+        self.number_of_records += 1
 
         new_content = {
             NKeys.METADATA: other_values,
@@ -825,6 +835,7 @@ class CloudRequestProcess(CloudRequest):
                         # name
                         yield processor.tablename, res, processor
 
+    # @do_cprofile
     def process_all(self) -> None:
         """
         Puts the NLP data into the database. Very similar to
