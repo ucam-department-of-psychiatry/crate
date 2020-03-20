@@ -126,7 +126,7 @@ from crate_anon.nlp_manager.cloud_request import (
 from crate_anon.nlp_manager.cloud_run_info import CloudRunInfo
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
-from crate_anon.common.profiling import do_cprofile
+# from crate_anon.common.profiling import do_cprofile
 
 if TYPE_CHECKING:
     from http.cookiejar import CookieJar
@@ -876,7 +876,7 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
                  "command later to retrieve them.")
 
 
-@do_cprofile
+# @do_cprofile
 def process_cloud_now(
         crinfo: CloudRunInfo,
         incremental: bool = False,
@@ -948,8 +948,10 @@ def process_cloud_now(
                         )
                         with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
                             session.add(progrec)
+            session.commit()
 
-            nlpdef.commit_all()
+
+    nlpdef.commit_all()
 
 
 def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:

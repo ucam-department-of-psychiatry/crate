@@ -85,7 +85,7 @@ from crate_anon.nlprp.constants import (
     NlprpValues,
 )
 from crate_anon.nlp_webserver.server_processor import ServerProcessor
-from crate_anon.common.profiling import do_cprofile
+# from crate_anon.common.profiling import do_cprofile
 
 if TYPE_CHECKING:
     from crate_anon.nlp_manager.cloud_run_info import CloudRunInfo
@@ -844,9 +844,13 @@ class CloudRequestProcess(CloudRequest):
         """
         nlpname = self._nlpdef.get_name()
 
+        sessions = []
+
         for tablename, nlp_values, processor in self.get_nlp_values():
             nlp_values[FN_NLPDEF] = nlpname
             session = processor.get_session()
+            if session not in sessions:
+                sessions.append(session)
             sqla_table = processor.get_table(tablename)
             column_names = [c.name for c in sqla_table.columns]
             # Convert string datetime back into datetime, using UTC
@@ -863,6 +867,8 @@ class CloudRequestProcess(CloudRequest):
             self._nlpdef.notify_transaction(
                 session, n_rows=1, n_bytes=sys.getsizeof(final_values),
                 force_commit=self._commit)
+        for session in sessions:
+            session.commit()
 
 
 # =============================================================================
