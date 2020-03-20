@@ -406,10 +406,8 @@ class InputFieldConfig(object):
         return pk_is_integer
 
     def gen_text(self, tasknum: int = 0,
-                 ntasks: int = 1,
-                 start: int = None,
-                 how_many: int = None) -> Generator[Tuple[str, Dict[str, Any]],
-                                                    None, None]:
+                 ntasks: int = 1) -> Generator[Tuple[str, Dict[str, Any]],
+                                                     None, None]:
         """
         Generate text strings from the source database.
 
@@ -473,14 +471,6 @@ class InputFieldConfig(object):
                 query = query.where(pkcol % ntasks == tasknum)
             else:
                 distribute_by_hash = True
-
-        # ---------------------------------------------------------------------
-        # Get a block of records if specified
-        # ---------------------------------------------------------------------
-
-        if start is not None and how_many is not None:
-            query = query.order_by(pkcol)  # mssql needs this for below to work
-            query = query.offset(start).limit(how_many)
 
         # ---------------------------------------------------------------------
         # Execute the query

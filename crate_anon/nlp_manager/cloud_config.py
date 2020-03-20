@@ -119,6 +119,10 @@ class CloudConfig(object):
         self.rate_limit_hz = config.get_int_default_if_failure(
             section=sectionname, option=CloudNlpConfigKeys.RATE_LIMIT_HZ,
             default=DEFAULT_CLOUD_RATE_LIMIT_HZ)
+        self.test_length_function_speed = config.get_bool(
+            section=sectionname,
+            option=CloudNlpConfigKeys.TEST_LENGTH_FUNCTION_SPEED,
+            default=True)
         # self._destdbs_by_proc = {}
         self.remote_processors = {}  # type: Dict[Tuple[str, str], 'Cloud']
         for processor in self._nlpdef.get_processors():

@@ -69,7 +69,7 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, Generator, TYPE_CHECKING
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.exceptions import die
@@ -126,6 +126,7 @@ from crate_anon.nlp_manager.cloud_request import (
 from crate_anon.nlp_manager.cloud_run_info import CloudRunInfo
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
+# from crate_anon.common.profiling import do_cprofile
 
 if TYPE_CHECKING:
     from http.cookiejar import CookieJar
@@ -612,18 +613,17 @@ def process_nlp(nlpdef: NlpDefinition,
 # =============================================================================
 
 def send_cloud_requests(
+        generated_text: Generator[Tuple[str, Dict[str, Any]], None, None],
         crinfo: CloudRunInfo,
         ifconfig: InputFieldConfig,
-        start_record: int,
         global_recnum: int,
         report_every: int = DEFAULT_REPORT_EVERY_NLP,
         incremental: bool = False,
-        queue: bool = True) -> Tuple[List[CloudRequestProcess], int]:
+        queue: bool = True) -> Tuple[List[CloudRequestProcess], bool, int]:
     """
     Sends off a series of cloud requests and returns them as a list.
     'queue' determines whether these are queued requests or not. Also returns
-    whether the generator for the text is empty and the global record number
-    for keeping track.
+    whether the generator for the text is empty.
     """
     requests = []  # type: List[CloudRequestProcess]
     cookies = None  # type: Optional[CookieJar]
@@ -632,17 +632,18 @@ def send_cloud_requests(
     # Check processors are available
     available_procs = crinfo.get_remote_processors()
     if not available_procs:  # request failed, or no processors available
-        return [], global_recnum
+        return [], False, global_recnum
     cloudcfg = crinfo.cloudcfg
     cloud_request = CloudRequestProcess(crinfo=crinfo)
     empty_request = True
     number_of_records = cloudcfg.max_records_per_request
+    limit_before_commit = cloudcfg.limit_before_commit
+    recs = 0
     hasher = crinfo.nlpdef.hash
-    for text, other_values in ifconfig.gen_text(start=start_record,
-                                                how_many=number_of_records):
+    for text, other_values in generated_text:
+        global_recnum += 1
         pkval = other_values[FN_SRCPKVAL]
         pkstr = other_values[FN_SRCPKSTR]
-        global_recnum += 1
         if report_every and global_recnum % report_every == 0:
             log.info(
                 "Processing {db}.{t}.{c}, PK: {pkf}={pkv} "
@@ -652,7 +653,7 @@ def send_cloud_requests(
                     c=other_values[FN_SRCFIELD],
                     pkf=other_values[FN_SRCPKFIELD],
                     pkv=pkstr if pkstr else pkval,
-                    g_recnum=global_recnum + 1,
+                    g_recnum=global_recnum,
                     totalcount=totalcount
                 )
             )
@@ -671,6 +672,7 @@ def send_cloud_requests(
 
         # Add the text to the cloud request with the appropriate metadata
         success = cloud_request.add_text(text, other_values)
+        recs += 1
         if success:
             empty_request = False
         else:
@@ -702,6 +704,13 @@ def send_cloud_requests(
         # Add 'srchash' to 'other_values' so the metadata will contain it
         # and we can use it later on for updating the progress database
         other_values[FN_SRCHASH] = srchash
+
+        # If we've reached the limit of records before commit, return to
+        # outer function in order to process and commit (or write to file if
+        # it's a queued request)
+        if recs >= limit_before_commit - 1:
+            break
+
     if not empty_request:
         # Send last request
         cloud_request.send_process_request(
@@ -712,7 +721,9 @@ def send_cloud_requests(
         else:
             log.info(f"Sent request to be processed: #{i} of this block")
             requests.append(cloud_request)
-    return requests, global_recnum
+    # Return the cloud request objects, whether any records have
+    # been processed and the global record number
+    return requests, recs > 0, global_recnum
 
 
 def process_cloud_nlp(crinfo: CloudRunInfo,
@@ -730,14 +741,17 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
     # all data
     with open(filename, 'a') as request_data:
         for ifconfig in nlpdef.get_ifconfigs():
+            generated_text = ifconfig.gen_text()
             global_recnum = 0  # Global record number within this ifconfig
-            start = 0  # Start for first block
-            total = ifconfig.get_count()
-            while start <= total:
-                cloud_requests, global_recnum = send_cloud_requests(
+            # start = 0  # Start for first block
+            # total = ifconfig.get_count()
+            records_left = True
+            while records_left:
+                cloud_requests, records_left, global_recnum = send_cloud_requests(  # noqa
+                    generated_text=generated_text,
                     crinfo=crinfo,
                     ifconfig=ifconfig,
-                    start_record=start,
+                    # start_record=start,
                     global_recnum=global_recnum,
                     incremental=incremental,
                     report_every=report_every)
@@ -747,7 +761,7 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
                             f"{ifconfig.section},{cloud_request.queue_id}\n")
                     else:
                         log.warning("Sent request does not contain queue_id.")
-                start += crinfo.cloudcfg.limit_before_commit
+                # start += crinfo.cloudcfg.limit_before_commit
 
 
 def retrieve_nlp_data(crinfo: CloudRunInfo,
@@ -862,6 +876,7 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
                  "command later to retrieve them.")
 
 
+# @do_cprofile
 def process_cloud_now(
         crinfo: CloudRunInfo,
         incremental: bool = False,
@@ -873,13 +888,14 @@ def process_cloud_now(
     session = nlpdef.get_progdb_session()
     for ifconfig in nlpdef.get_ifconfigs():
         global_recnum = 0  # Global record number within this ifconfig
-        start = 0  # Start for first block
         seen_srchashs = []  # type: List[str]
-        total = ifconfig.get_count()
-        while start <= total:
-            cloud_requests, global_recnum = send_cloud_requests(
+        # total = ifconfig.get_count()
+        generated_text = ifconfig.gen_text()
+        records_left = True
+        while records_left:
+            cloud_requests,  records_left, global_recnum = send_cloud_requests(
+                generated_text=generated_text,
                 crinfo=crinfo,
-                start_record=start,
                 global_recnum=global_recnum,
                 ifconfig=ifconfig,
                 incremental=incremental,
@@ -932,9 +948,10 @@ def process_cloud_now(
                         )
                         with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
                             session.add(progrec)
+            session.commit()
 
-            nlpdef.commit_all()
-            start += crinfo.cloudcfg.limit_before_commit
+
+    nlpdef.commit_all()
 
 
 def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:

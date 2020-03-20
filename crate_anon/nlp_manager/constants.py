@@ -189,6 +189,7 @@ class CloudNlpConfigKeys(object):
     STOP_AT_FAILURE = "stop_at_failure"
     MAX_TRIES = "max_tries"
     RATE_LIMIT_HZ = "rate_limit_hz"
+    TEST_LENGTH_FUNCTION_SPEED = "test_length_function_speed"
 
 
 class GateApiKeys(object):
