@@ -150,7 +150,7 @@ INSTALL_REQUIRES = [
     "cherrypy==16.0.2",  # Cross-platform web server
     "colorlog==3.1.4",  # colour in logs
     "distro==1.3.0",  # replaces platform.linux_distribution
-    "django==3.0.3",
+    "django==3.0.4",
     "django-debug-toolbar==1.10.1",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==1.0.1",  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
     "django-extensions==2.0.7",  # for graph_models, show_urls etc.
@@ -171,7 +171,7 @@ INSTALL_REQUIRES = [
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==0.7.2",  # pretty formating of text-based tables
     "psutil==5.6.6",  # process management
-    "pygments==2.2.0",  # syntax highlighting
+    "pygments==2.6.1",  # syntax highlighting
     "pyparsing==2.2.0",  # generic grammar parser
     "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]
     "pytz==2018.5",  # timezones

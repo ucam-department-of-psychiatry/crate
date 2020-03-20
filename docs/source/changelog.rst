@@ -1232,7 +1232,7 @@ Changes
   - django from 2.1.11 to 2.1.15
     (https://github.com/advisories/GHSA-hvmf-r92r-27hr)
 
-**v0.18.97, 2020-01-11 and in progress**
+**v0.18.97, 2020-03-20**
 
 - Create ``crate_anon.__version__``
 
@@ -1251,6 +1251,9 @@ Changes
 - Bugfix to ``crate_postcodes`` (re nonexistent ``commit`` argument).
 
 - Update ``crate_postcodes`` for ONSPD Nov 2019.
+
+- Changes to :mod:`crate_anon.nlp_manager.nlp_manager` and
+  :mod:`crate_anon.nlp_manager.input_field_config` to go back to a single query.
 
 
 
