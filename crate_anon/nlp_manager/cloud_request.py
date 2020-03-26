@@ -474,7 +474,7 @@ class CloudRequestProcess(CloudRequest):
             return False  # no maximum; not too long
         # Fast, apt to overestimate size a bit (as above)
         if self._cloudcfg.test_length_function_speed:
-            length = getsize(self._request_process)
+            length = getsize(self._request_process, assume_no_blacklisted=True)
 
             if length <= max_length:  # test the Python length
                 # Because the Python length is an overestimate of the JSON, if
