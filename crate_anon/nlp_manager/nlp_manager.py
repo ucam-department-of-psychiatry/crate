@@ -887,7 +887,8 @@ def process_cloud_now(
     session = nlpdef.get_progdb_session()
     for ifconfig in nlpdef.get_ifconfigs():
         global_recnum = 0  # Global record number within this ifconfig
-        seen_srchashs = {}  # type: Dict[str, NlpRecord]
+        # seen_srchashs = {}  # type: Dict[str, NlpRecord]
+        seen_pks = {}
         # total = ifconfig.get_count()
         generated_text = ifconfig.gen_text()
         records_left = True
@@ -913,7 +914,9 @@ def process_cloud_now(
                     pkval = metadata[FN_SRCPKVAL]
                     pkstr = metadata[FN_SRCPKSTR]
                     srchash = metadata[FN_SRCHASH]
-                    progrec = seen_srchashs.get(srchash)
+                    pk = pkstr if pkstr else pkval
+                    # progrec = seen_srchashs.get(srchash)
+                    progrec = seen_pks.get(pk)
                     if incremental and not progrec:
                         crinfo.delete_dest_records(ifconfig, pkval, pkstr,
                                                    commit=True)
@@ -944,11 +947,10 @@ def process_cloud_now(
                             whenprocessedutc=nlpdef.get_now(),
                             srchash=srchash,
                         )
-                    seen_srchashs[srchash] = progrec
+                    # seen_srchashs[srchash] = progrec
+                    seen_pks[pk] = progrec
                     with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
                         session.add(progrec)
-            # with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-            #     session.bulk_save_objects(progrecs)
             session.commit()
 
     nlpdef.commit_all()
