@@ -136,6 +136,8 @@ log = logging.getLogger(__name__)
 TIMING_DROP_REMAKE = "drop_remake"
 TIMING_DELETE_WHERE_NO_SOURCE = "delete_where_no_source"
 TIMING_PROGRESS_DB_ADD = "progress_db_add"
+TIMING_PROGREC_TOTAL = "progrec_total"
+TIMING_PROGREC_CREATE = "create_progrec"
 
 
 # =============================================================================
@@ -888,8 +890,7 @@ def process_cloud_now(
     for ifconfig in nlpdef.get_ifconfigs():
         global_recnum = 0  # Global record number within this ifconfig
         # seen_srchashs = {}  # type: Dict[str, NlpRecord]
-        seen_pks = {}
-        # total = ifconfig.get_count()
+        # seen_pks = {}
         generated_text = ifconfig.gen_text()
         records_left = True
         while records_left:
@@ -902,10 +903,10 @@ def process_cloud_now(
                 report_every=report_every,
                 queue=False
             )
+            progrecs = set()
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
                     continue
-                # cloud_request.set_mirror_processors(mirror_procs)
                 cloud_request.process_all()
                 nlp_data = cloud_request.nlp_data
                 for result in nlp_data[NKeys.RESULTS]:
@@ -916,7 +917,8 @@ def process_cloud_now(
                     srchash = metadata[FN_SRCHASH]
                     pk = pkstr if pkstr else pkval
                     # progrec = seen_srchashs.get(srchash)
-                    progrec = seen_pks.get(pk)
+                    # progrec = seen_pks.get(pk)
+                    progrec = None
                     if incremental and not progrec:
                         crinfo.delete_dest_records(ifconfig, pkval, pkstr,
                                                    commit=True)
@@ -947,10 +949,14 @@ def process_cloud_now(
                             whenprocessedutc=nlpdef.get_now(),
                             srchash=srchash,
                         )
+                    progrecs.add(progrec)
                     # seen_srchashs[srchash] = progrec
-                    seen_pks[pk] = progrec
-                    with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-                        session.add(progrec)
+                    # seen_pks[pk] = progrec
+                    # with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+                    #     session.add(progrec)
+            with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+                log.info("Adding to database ...")
+                session.bulk_save_objects(progrecs)
             session.commit()
 
     nlpdef.commit_all()
