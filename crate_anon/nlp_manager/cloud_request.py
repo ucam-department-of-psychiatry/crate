@@ -529,8 +529,10 @@ class CloudRequestProcess(CloudRequest):
             bool: ``True`` if successfully added, ``False`` if not.
         """
         if not does_text_contain_word_chars(text):
-            # log.warning(f"No word characters found in text: {text!r}")
-            return False
+            # Note - we return True if there are no word characters because it
+            # hasn't technically failed. If we return False, it will think it
+            # needs to create a new CloudRequestProcess
+            return True
 
         if self.number_of_records >= self._cloudcfg.max_records_per_request - 1:
             # Return False if we've reached the record limit for the request
