@@ -63,6 +63,10 @@ def main() -> None:
         '--gatedir', default=DEFAULT_GATEDIR,
         help="Root directory of GATE installation")
     parser.add_argument(
+        '--gate_exec',
+        help="Path to GATE executable. Temporary."
+    )
+    parser.add_argument(
         '--java', default=DEFAULT_JAVA,
         help="Java executable")
     parser.add_argument(
@@ -81,7 +85,10 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel)
 
-    gatejar = os.path.join(args.gatedir, 'bin', 'gate.jar')
+    if not args.gate_exec:
+        gatejar = os.path.join(args.gatedir, 'bin', 'gate.jar')
+    else:
+        gatejar = args.gate_exec
     gatelibjars = os.path.join(args.gatedir, 'lib', '*')
     classpath = os.pathsep.join([args.builddir, gatejar, gatelibjars])
     classpath_options = ['-classpath', classpath]
