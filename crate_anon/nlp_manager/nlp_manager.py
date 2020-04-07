@@ -645,6 +645,10 @@ def send_cloud_requests(
         global_recnum += 1
         pkval = other_values[FN_SRCPKVAL]
         pkstr = other_values[FN_SRCPKSTR]
+        # 'ifconfig.get_progress_record' expects pkstr to be None if it's
+        # empty
+        if not pkstr:
+            pkstr = None
         if report_every and global_recnum % report_every == 0:
             log.info(
                 "Processing {db}.{t}.{c}, PK: {pkf}={pkv} "
@@ -672,11 +676,11 @@ def send_cloud_requests(
                 log.debug("Record is new")
 
         # Add the text to the cloud request with the appropriate metadata
-        success = cloud_request.add_text(text, other_values)
+        not_over_length, success = cloud_request.add_text(text, other_values)
         recs += 1
         if success:
             empty_request = False
-        else:
+        elif not not_over_length:
             if not empty_request:
                 cloud_request.send_process_request(
                     queue=queue,
@@ -697,10 +701,11 @@ def send_cloud_requests(
             cloud_request = CloudRequestProcess(crinfo=crinfo)
             # Is the text too big on its own? If so, don't send it. Otherwise
             # add it to the new request
-            text_too_big = not cloud_request.add_text(text, other_values)
-            if text_too_big:
+            text_not_too_big, success = cloud_request.add_text(
+                text, other_values)
+            if not text_not_too_big:
                 log.warning("Skipping text that's too long to send")
-            empty_request = text_too_big
+            empty_request = not success
 
         # Add 'srchash' to 'other_values' so the metadata will contain it
         # and we can use it later on for updating the progress database
@@ -889,8 +894,6 @@ def process_cloud_now(
     session = nlpdef.get_progdb_session()
     for ifconfig in nlpdef.get_ifconfigs():
         global_recnum = 0  # Global record number within this ifconfig
-        # seen_srchashs = {}  # type: Dict[str, NlpRecord]
-        # seen_pks = {}
         generated_text = ifconfig.gen_text()
         records_left = True
         while records_left:
@@ -903,7 +906,6 @@ def process_cloud_now(
                 report_every=report_every,
                 queue=False
             )
-            progrecs = set()
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
                     continue
@@ -916,10 +918,8 @@ def process_cloud_now(
                     pkstr = metadata[FN_SRCPKSTR]
                     srchash = metadata[FN_SRCHASH]
                     pk = pkstr if pkstr else pkval
-                    # progrec = seen_srchashs.get(srchash)
-                    # progrec = seen_pks.get(pk)
                     progrec = None
-                    if incremental and not progrec:
+                    if incremental:
                         crinfo.delete_dest_records(ifconfig, pkval, pkstr,
                                                    commit=True)
                         # Record progress in progress database
@@ -949,14 +949,8 @@ def process_cloud_now(
                             whenprocessedutc=nlpdef.get_now(),
                             srchash=srchash,
                         )
-                    progrecs.add(progrec)
-                    # seen_srchashs[srchash] = progrec
-                    # seen_pks[pk] = progrec
-                    # with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-                    #     session.add(progrec)
-            with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-                log.info("Adding to database ...")
-                session.bulk_save_objects(progrecs)
+                    with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+                        session.add(progrec)
             session.commit()
 
     nlpdef.commit_all()

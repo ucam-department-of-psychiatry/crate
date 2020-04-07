@@ -36,6 +36,7 @@ import logging
 import sys
 from typing import Any, Dict, List, Tuple, Generator, Optional, TYPE_CHECKING
 import time
+import traceback
 
 from cardinal_pythonlib.compression import gzip_string
 from cardinal_pythonlib.rate_limiting import rate_limited
@@ -512,7 +513,8 @@ class CloudRequestProcess(CloudRequest):
                 version = name_version[1]
                 self.add_processor_to_request(name, version)
 
-    def add_text(self, text: str, other_values: Dict[str, Any]) -> bool:
+    def add_text(self, text: str,
+                 other_values: Dict[str, Any]) -> Tuple[bool, bool]:
         """
         Adds text for analysis to the NLP request, with associated metadata.
 
@@ -521,22 +523,32 @@ class CloudRequestProcess(CloudRequest):
         characters in the text. Also checks if we've reached the maximum records
         per request.
 
+        Returns a bool stating whether the text is not too long and has not
+        exceeded the maxim um number of records, and another
+        stating whether it has been successful. These need to be in two
+        separate values because 'nlp_manager' needs to know why it's failed to
+        add.
+
         Args:
             text: the text
             other_values: the metadata
 
         Returns:
-            bool: ``True`` if successfully added, ``False`` if not.
+            Tuple[bool, bool]: First return values is ``False`` if the request
+                               is too long or has exceeded
+                               ``max_records_per_request``, and ``True`` if
+                               not. Second bool is ``True`` if successfully
+                               added, ``False`` if not.
         """
         if not does_text_contain_word_chars(text):
             # Note - we return True if there are no word characters because it
             # hasn't technically failed. If we return False, it will think it
             # needs to create a new CloudRequestProcess
-            return True
+            return True, False
 
         if self.number_of_records >= self._cloudcfg.max_records_per_request - 1:
             # Return False if we've reached the record limit for the request
-            return False
+            return False, False
         self.number_of_records += 1
 
         new_content = {
@@ -555,9 +567,9 @@ class CloudRequestProcess(CloudRequest):
             # log.warning("too long!")
             # Too long. Restore the previous state!
             args[content_key] = old_content
-            return False
+            return False, False
         # Success.
-        return True
+        return True, True
 
     def send_process_request(self, queue: bool,
                              cookies: CookieJar = None,
@@ -865,7 +877,10 @@ class CloudRequestProcess(CloudRequest):
                             if k in column_names}
             insertquery = sqla_table.insert().values(final_values)
             with MultiTimerContext(timer, TIMING_INSERT):
-                session.execute(insertquery)
+                try:
+                    session.execute(insertquery)
+                except Exception as e:
+                    log.error(e)
             self._nlpdef.notify_transaction(
                 session, n_rows=1, n_bytes=sys.getsizeof(final_values),
                 force_commit=self._commit)
