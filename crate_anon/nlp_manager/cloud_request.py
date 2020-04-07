@@ -36,7 +36,7 @@ import logging
 import sys
 from typing import Any, Dict, List, Tuple, Generator, Optional, TYPE_CHECKING
 import time
-import traceback
+from sqlalchemy.exc import DataError
 
 from cardinal_pythonlib.compression import gzip_string
 from cardinal_pythonlib.rate_limiting import rate_limited
@@ -45,7 +45,6 @@ from cardinal_pythonlib.json.typing_helpers import (
     JsonObjectType,
     JsonValueType,
 )
-from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.dicts import (
     rename_keys_in_dict,
     set_null_values_in_dict,
@@ -833,9 +832,9 @@ class CloudRequestProcess(CloudRequest):
                                       "was not requested.")
                             raise
                     else:
-                        raise err(f"Server returned processor {name} "
-                                   "version {version}, but this processor "
-                                   "was not requested.")
+                        raise KeyError(f"Server returned processor {name} "
+                                       "version {version}, but this processor "
+                                       "was not requested.")
                 if processor.format == NlpDefValues.FORMAT_GATE:
                     for t, r in self.get_nlp_values_gate(processor_data,
                                                          processor,
@@ -876,11 +875,11 @@ class CloudRequestProcess(CloudRequest):
             final_values = {k: v for k, v in nlp_values.items()
                             if k in column_names}
             insertquery = sqla_table.insert().values(final_values)
-            with MultiTimerContext(timer, TIMING_INSERT):
-                try:
+            try:
+                with MultiTimerContext(timer, TIMING_INSERT):
                     session.execute(insertquery)
-                except Exception as e:
-                    log.error(e)
+            except DataError as e:
+                log.error(e)
             self._nlpdef.notify_transaction(
                 session, n_rows=1, n_bytes=sys.getsizeof(final_values),
                 force_commit=self._commit)

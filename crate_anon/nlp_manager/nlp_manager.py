@@ -917,7 +917,6 @@ def process_cloud_now(
                     pkval = metadata[FN_SRCPKVAL]
                     pkstr = metadata[FN_SRCPKSTR]
                     srchash = metadata[FN_SRCHASH]
-                    pk = pkstr if pkstr else pkval
                     progrec = None
                     if incremental:
                         crinfo.delete_dest_records(ifconfig, pkval, pkstr,
