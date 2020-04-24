@@ -598,10 +598,10 @@ strategy for a large database would therefore be to:
 - pre-hash the sample with the agreed key (e.g. about 1.8 hours for 66m
   records);
 - for each hashed proband, restrict the comparison to those with a matching
-  hashed DOB, and either a partial or a full match on surname (e.g. for "SMITH",
-  with a frequency of about 0.01, this would give about 1800 records to check;
-  checking would take up to about 40 μs each (so up to 72 ms per proband) --
-  plus some query time;
+  hashed DOB, and either a partial or a full match on surname (e.g. for
+  "SMITH", with a frequency of about 0.01, this would give about 1800 records
+  to check; checking would take up to about 40 μs each (so up to 72 ms per
+  proband) -- plus some query time;
 - checking 1000 probands would therefore take about 72 seconds; checking
   200k probands about 4 hours.
 - So we'd be talking about a time of the order of 6 hours to compare an NHS
@@ -614,14 +614,18 @@ backwards and say :math:`h` is 100 μs, :math:`c` is 20 μs on average, and we
 want this achievable in 1 hour, then that gives a value for n of about 19,000,
 so let's say 20,000 (sample size 10,000, "other" size 10,000).
 
+Subsequent speedup 2020-04-24: see comments in timing tests; ``h`` now down
+from 100 to 71; ``c`` now down from 14-40 to 6-22 (6 for DOB mismatch, 22 for
+match). So realistically ``c = 10`` or thereabouts. 
+
 .. code-block:: r
 
-    h <- 100 / 1e6  # 100 microseconds, in seconds
-    c <- 20 / 1e6  # 20 microseconds
+    h <- 71 / 1e6  # microseconds to seconds
+    c <- 10 / 1e6  # 20 microseconds
     t <- function(n) { h * n + c * n^2 / 2 }  # function relating time to n
     target <- 60 * 60  # target time: 1 hour = 3600 seconds
     errfunc <- function(n) { (t(n) - target) ^ 2 }  # function giving error
-    result <- optim(par=50, fn=errfunc)  # minimize error, start n=50; gives 18967.5
+    result <- optim(par=50, fn=errfunc)  # minimize error, start n=50; gives 26825
 
 
 ===============================================================================
@@ -658,7 +662,10 @@ from typing import (
 )
 
 import appdirs
-from cardinal_pythonlib.argparse_func import ShowAllSubparserHelpAction
+from cardinal_pythonlib.argparse_func import (
+    RawDescriptionArgumentDefaultsHelpFormatter,
+    ShowAllSubparserHelpAction,
+)
 from cardinal_pythonlib.hash import HmacSHA256Hasher
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.maths_py import round_sf
@@ -669,6 +676,7 @@ from cardinal_pythonlib.probability import (
     log_probability_from_log_odds,
     probability_from_log_odds,
 )
+from cardinal_pythonlib.profile import do_cprofile
 from cardinal_pythonlib.stringfunc import mangle_unicode_to_ascii
 from fuzzy import DMetaphone
 
@@ -826,7 +834,7 @@ def get_metaphone(x: str) -> str:
     if first_part is None:
         log.warning(f"No metaphone for {x!r}; dmeta() returned {metaphones}")
         return ""
-    return dmeta(x)[0].decode("ascii")
+    return first_part.decode("ascii")
 
 
 def standardize_postcode(postcode_unit_or_sector: str) -> str:
@@ -1042,13 +1050,15 @@ class FullOrPartialComparison(Comparison):
 
 
 def bayes_compare(prior_log_odds: float,
-                  comparisons: Iterable[Optional[Comparison]]) -> float:
+                  comparisons: Iterable[Optional[Comparison]],
+                  verbose: bool = False) -> float:
     """
     Works through multiple comparisons and returns posterior log odds.
 
     Args:
         prior_log_odds: prior log odds
         comparisons: an iterable of :class:`Comparison` objects
+        verbose: be verbose?
 
     Returns:
         float: posterior log odds
@@ -1058,13 +1068,15 @@ def bayes_compare(prior_log_odds: float,
         if comparison is None:
             continue
         next_log_odds = comparison.posterior_log_odds(log_odds)
-        if next_log_odds > log_odds:
-            change = "more likely"
-        elif next_log_odds < log_odds:
-            change = "less likely"
-        else:
-            change = "no change"
-        log.debug(f"{comparison}: {log_odds} -> {next_log_odds} ({change})")
+        if verbose:
+            if next_log_odds > log_odds:
+                change = "more likely"
+            elif next_log_odds < log_odds:
+                change = "less likely"
+            else:
+                change = "no change"
+            log.debug(f"{comparison}: "
+                      f"{log_odds} -> {next_log_odds} ({change})")
         log_odds = next_log_odds
         if log_odds == MINUS_INFINITY:
             break
@@ -1328,7 +1340,8 @@ class MatchConfig(object):
             p_minor_surname_error: float,
             p_proband_middle_name_missing: float,
             p_sample_middle_name_missing: float,
-            p_minor_postcode_error: float) -> None:
+            p_minor_postcode_error: float,
+            verbose: bool = False) -> None:
         """
         Args:
             hasher_key:
@@ -1383,6 +1396,8 @@ class MatchConfig(object):
             p_minor_postcode_error:
                 Probability that a postcode fails a full match but passes a
                 partial match.
+            verbose:
+                Be verbose?
         """
         assert all(0 <= x <= 1 for x in p_middle_name_n_present)
         assert population_size > 0
@@ -1392,7 +1407,8 @@ class MatchConfig(object):
         assert 0 <= p_sample_middle_name_missing <= 1
         assert 0 <= p_minor_postcode_error <= 1
 
-        log.debug("Building MatchConfig...")
+        if verbose:
+            log.debug("Building MatchConfig...")
 
         self.hasher = Hasher(hasher_key)
         self.rounding_sf = rounding_sf
@@ -1408,6 +1424,7 @@ class MatchConfig(object):
         self.p_proband_middle_name_missing = p_proband_middle_name_missing
         self.p_sample_middle_name_missing = p_sample_middle_name_missing
         self.p_minor_postcode_error = p_minor_postcode_error
+        self.verbose = verbose
 
         self._forename_freq = NameFrequencyInfo(
             csv_filename=forename_csv_filename,
@@ -1422,7 +1439,8 @@ class MatchConfig(object):
             cache_filename=postcode_cache_filename,
             mean_oa_population=mean_oa_population)
 
-        log.debug("... MatchConfig built")
+        if verbose:
+            log.debug("... MatchConfig built")
 
     @property
     def baseline_log_odds_same_person(self) -> float:
@@ -1441,7 +1459,8 @@ class MatchConfig(object):
             prestandardized: was it pre-standardized?
         """
         freq = self._forename_freq.name_frequency(name, prestandardized)
-        log.debug(f"    Forename frequency for {name}: {freq}")
+        if self.verbose:
+            log.debug(f"    Forename frequency for {name}: {freq}")
         return freq
 
     def forename_metaphone_freq(self, metaphone: str) -> float:
@@ -1452,7 +1471,8 @@ class MatchConfig(object):
             metaphone: the metaphone to check
         """
         freq = self._forename_freq.metaphone_frequency(metaphone)
-        log.debug(f"    Forename metaphone frequency for {metaphone}: {freq}")
+        if self.verbose:
+            log.debug(f"    Forename metaphone frequency for {metaphone}: {freq}")
         return freq
 
     def surname_freq(self, name: str, prestandardized: bool = False) -> float:
@@ -1464,7 +1484,8 @@ class MatchConfig(object):
             prestandardized: was it pre-standardized?
         """
         freq = self._surname_freq.name_frequency(name, prestandardized)
-        log.debug(f"    Surname frequency for {name}: {freq}")
+        if self.verbose:
+            log.debug(f"    Surname frequency for {name}: {freq}")
         return freq
 
     def surname_metaphone_freq(self, metaphone: str) -> float:
@@ -1475,7 +1496,9 @@ class MatchConfig(object):
             metaphone: the metaphone to check
         """
         freq = self._surname_freq.metaphone_frequency(metaphone)
-        log.debug(f"    Surname metaphone frequency for {metaphone}: {freq}")
+        if self.verbose:
+            log.debug(f"    Surname metaphone frequency for {metaphone}: "
+                      f"{freq}")
         return freq
 
     def is_valid_postcode(self, postcode_unit: str) -> bool:
@@ -1492,7 +1515,8 @@ class MatchConfig(object):
         """
         freq = self._postcode_freq.postcode_unit_frequency(
             postcode_unit, prestandardized=prestandardized)
-        log.debug(f"Postcode unit frequency for {postcode_unit}: {freq}")
+        if self.verbose:
+            log.debug(f"Postcode unit frequency for {postcode_unit}: {freq}")
         return freq
 
     def postcode_unit_population(self, postcode_unit: str,
@@ -1515,7 +1539,9 @@ class MatchConfig(object):
         """
         freq = self._postcode_freq.postcode_sector_frequency(
             postcode_sector, prestandardized=prestandardized)
-        log.debug(f"Postcode sector frequency for {postcode_sector}: {freq}")
+        if self.verbose:
+            log.debug(f"Postcode sector frequency for {postcode_sector}: "
+                      f"{freq}")
         return freq
 
     def postcode_sector_population(self, postcode_sector: str,
@@ -1627,13 +1653,13 @@ class Person(object):
         "postcode_sector_frequencies",
     ]
     PLAINTEXT_CSV_FORMAT_HELP = (
-        f"(Header row. Columns: {PLAINTEXT_ATTRS}. "
-        f"Use semicolon-separated values for "
+        f"Header row present. Columns: {PLAINTEXT_ATTRS}. "
+        f"Semicolon-separated values may be within "
         f"{sorted(list(set(SEMICOLON_DELIMIT).intersection(PLAINTEXT_ATTRS)))}."
     )
     HASHED_CSV_FORMAT_HELP = (
-        f"(Header row. Columns: {HASHED_ATTRS}. "
-        f"Use semicolon-separated values for "
+        f"Header row present. Columns: {HASHED_ATTRS}. "
+        f"Semicolon-separated values may be within "
         f"{sorted(list(set(SEMICOLON_DELIMIT).intersection(HASHED_ATTRS)))}."
     )
 
@@ -1951,7 +1977,14 @@ class Person(object):
         Args:
             cfg: the master :class:`MatchConfig` object
         """
-        hasher = cfg.hasher
+        # Speeded up 2020-04-24, based on profiling.
+
+        # Functions that we may call several times:
+        _hash = cfg.hasher.hash
+        _postcode_unit_freq = cfg.postcode_unit_freq
+        _postcode_sector_freq = cfg.postcode_sector_freq
+        _forename_freq = cfg.forename_freq
+        _forename_metaphone_freq = cfg.forename_metaphone_freq
 
         def fr(f: float, sf: int = cfg.rounding_sf) -> float:
             """
@@ -1962,95 +1995,123 @@ class Person(object):
             """
             return round_sf(f, sf)
 
+        first_name = self.first_name
+        if first_name:
+            hashed_first_name = _hash(first_name)
+            first_name_frequency = fr(
+                _forename_freq(first_name, prestandardized=True))
+            fn_metaphone = get_metaphone(first_name)
+            hashed_first_name_metaphone = _hash(fn_metaphone)
+            first_name_metaphone_frequency = fr(
+                _forename_metaphone_freq(fn_metaphone))
+        else:
+            hashed_first_name = ""
+            first_name_frequency = None
+            hashed_first_name_metaphone = ""
+            first_name_metaphone_frequency = None
+
+        middle_names = self.middle_names
+        hashed_middle_names = []
+        middle_name_frequencies = []
+        hashed_middle_name_metaphones = []
+        middle_name_metaphone_frequencies = []
+        for x in middle_names:
+            if x:
+                mn_metaphone = get_metaphone(x)
+                hashed_middle_names.append(
+                    _hash(x)
+                )
+                middle_name_frequencies.append(
+                    fr(_forename_freq(x, prestandardized=True))
+                )
+                hashed_middle_name_metaphones.append(
+                    _hash(mn_metaphone)
+                )
+                middle_name_metaphone_frequencies.append(
+                    fr(_forename_metaphone_freq(mn_metaphone))
+                )
+
+        surname = self.surname
+        if surname:
+            hashed_surname = _hash(surname)
+            surname_frequency = fr(
+                cfg.surname_freq(surname, prestandardized=True))
+            sn_metaphone = get_metaphone(surname)
+            hashed_surname_metaphone = _hash(sn_metaphone)
+            surname_metaphone_frequency = fr(
+                cfg.surname_metaphone_freq(sn_metaphone))
+        else:
+            hashed_surname = ""
+            surname_frequency = None
+            hashed_surname_metaphone = ""
+            surname_metaphone_frequency = None
+
+        dob = self.dob
+        hashed_dob = _hash(dob) if dob else ""
+
+        postcodes = self.postcodes
+        hashed_postcode_units = []
+        postcode_unit_frequencies = []
+        hashed_postcode_sectors = []
+        postcode_sector_frequencies = []
+        for x in postcodes:
+            if x:
+                hashed_postcode_units.append(
+                    _hash(x)
+                )
+                postcode_unit_frequencies.append(
+                    fr(_postcode_unit_freq(x, prestandardized=True))
+                )
+                sector = get_postcode_sector(x)
+                hashed_postcode_sectors.append(
+                    _hash(sector)
+                )
+                postcode_sector_frequencies.append(
+                    fr(_postcode_sector_freq(sector))
+                )
+
         return Person(
             is_hashed=True,
             unique_id=self.unique_id,
             research_id=self.research_id,
-            hashed_first_name=(
-                hasher.hash(self.first_name)
-                if self.first_name else ""
-            ),
-            first_name_frequency=(
-                fr(cfg.forename_freq(self.first_name, prestandardized=True))
-                if self.first_name else None
-            ),
-            hashed_first_name_metaphone=(
-                hasher.hash(get_metaphone(self.first_name))
-                if self.first_name else ""
-            ),
-            first_name_metaphone_frequency=(
-                fr(cfg.forename_metaphone_freq(get_metaphone(self.first_name)))
-                if self.first_name else None
-            ),
-            hashed_middle_names=[
-                hasher.hash(x)
-                for x in self.middle_names if x
-            ],
-            middle_name_frequencies=[
-                fr(cfg.forename_freq(x, prestandardized=True))
-                for x in self.middle_names if x
-            ],
-            hashed_middle_name_metaphones=[
-                hasher.hash(get_metaphone(x))
-                for x in self.middle_names if x
-            ],
-            middle_name_metaphone_frequencies=[
-                fr(cfg.forename_metaphone_freq(get_metaphone(x)))
-                for x in self.middle_names if x
-            ],
-            hashed_surname=(
-                hasher.hash(self.surname)
-                if self.surname else ""
-            ),
-            surname_frequency=(
-                fr(cfg.surname_freq(self.surname, prestandardized=True))
-                if self.surname else None
-            ),
-            hashed_surname_metaphone=(
-                hasher.hash(get_metaphone(self.surname))
-                if self.surname else ""
-            ),
-            surname_metaphone_frequency=(
-                fr(cfg.surname_metaphone_freq(get_metaphone(self.surname)))
-                if self.surname else ""
-            ),
-            hashed_dob=(
-                hasher.hash(self.dob)
-                if self.dob else ""
-            ),
-            hashed_postcode_units=[
-                hasher.hash(x)
-                for x in self.postcodes if x
-            ],
-            postcode_unit_frequencies=[
-                fr(cfg.postcode_unit_freq(x, prestandardized=True))
-                for x in self.postcodes if x
-            ],
-            hashed_postcode_sectors=[
-                hasher.hash(get_postcode_sector(x))
-                for x in self.postcodes if x
-            ],
-            postcode_sector_frequencies=[
-                fr(cfg.postcode_sector_freq(get_postcode_sector(x)))
-                for x in self.postcodes if x
-            ]
+            hashed_first_name=hashed_first_name,
+            first_name_frequency=first_name_frequency,
+            hashed_first_name_metaphone=hashed_first_name_metaphone,
+            first_name_metaphone_frequency=first_name_metaphone_frequency,
+            hashed_middle_names=hashed_middle_names,
+            middle_name_frequencies=middle_name_frequencies,
+            hashed_middle_name_metaphones=hashed_middle_name_metaphones,
+            middle_name_metaphone_frequencies=middle_name_metaphone_frequencies,  # noqa
+            hashed_surname=hashed_surname,
+            surname_frequency=surname_frequency,
+            hashed_surname_metaphone=hashed_surname_metaphone,
+            surname_metaphone_frequency=surname_metaphone_frequency,
+            hashed_dob=hashed_dob,
+            hashed_postcode_units=hashed_postcode_units,
+            postcode_unit_frequencies=postcode_unit_frequencies,
+            hashed_postcode_sectors=hashed_postcode_sectors,
+            postcode_sector_frequencies=postcode_sector_frequencies,
         )
 
-    def log_odds_same(self, other: "Person", cfg: MatchConfig) -> float:
+    def log_odds_same(self, other: "Person", cfg: MatchConfig,
+                      verbose: bool = False) -> float:
         """
         Returns the log odds that this and ``other`` are the same person.
 
         Args:
             other: another :class:`Person` object
             cfg: the master :class:`MatchConfig` object
+            verbose: be verbose?
 
         Returns:
             float: the log odds they're the same person
         """
-        log.debug(f"Comparing self={self}; other={other}")
+        if verbose:
+            log.debug(f"Comparing self={self}; other={other}")
         return bayes_compare(
             prior_log_odds=cfg.baseline_log_odds_same_person,
-            comparisons=self._gen_comparisons(other, cfg)
+            comparisons=self._gen_comparisons(other, cfg),
+            verbose=verbose
         )
 
     # -------------------------------------------------------------------------
@@ -2589,7 +2650,7 @@ class People(object):
         if not candidates:
             return None, MINUS_INFINITY, None, None
         log_odds = [
-            p.log_odds_same(proband, cfg)
+            p.log_odds_same(proband, cfg, verbose=self.verbose)
             for p in candidates
         ]
         best_log_odds = max(log_odds)
@@ -2669,13 +2730,15 @@ class TestCondition(object):
                  cfg: MatchConfig,
                  person_a: Person,
                  person_b: Person,
-                 should_match: bool) -> None:
+                 should_match: bool,
+                 debug: bool = True) -> None:
         """
         Args:
             cfg: the master :class:`MatchConfig` object
             person_a: one representation of a person
             person_b: another representation of a person
             should_match: should they be treated as the same person?
+            debug: be verbose?
         """
         self.cfg = cfg
         self.person_a = person_a
@@ -2684,6 +2747,7 @@ class TestCondition(object):
         log.info("- Making hashed versions for later")
         self.hashed_a = self.person_a.hashed(self.cfg)
         self.hashed_b = self.person_b.hashed(self.cfg)
+        self.debug = debug
 
     def log_odds_same_plaintext(self) -> float:
         """
@@ -2692,7 +2756,8 @@ class TestCondition(object):
         Returns:
             float: the log odds that they are the same person
         """
-        return self.person_a.log_odds_same(self.person_b, self.cfg)
+        return self.person_a.log_odds_same(self.person_b, self.cfg,
+                                           verbose=self.debug)
 
     def log_odds_same_hashed(self) -> float:
         """
@@ -2701,7 +2766,8 @@ class TestCondition(object):
         Returns:
             float: the log odds that they are the same person
         """
-        return self.hashed_a.log_odds_same(self.hashed_b, self.cfg)
+        return self.hashed_a.log_odds_same(self.hashed_b, self.cfg,
+                                           verbose=self.debug)
 
     def matches_plaintext(self) -> Tuple[bool, float]:
         """
@@ -2946,6 +3012,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         ) / n_for_speedtest
         log.info(f"Plaintext full match: {t} μs per comparison")
         # On Wombat: 146 microseconds.
+        # On Wombat 2020-04-24: 64 microseconds.
 
         t = microsec_per_sec * timeit.timeit(
             "alice_bcd_unique_2000_add.hashed(cfg).log_odds_same(alice_bcd_unique_2000_add.hashed(cfg), cfg)",  # noqa
@@ -2954,6 +3021,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         ) / n_for_speedtest
         log.info(f"Hash two objects + full match: {t} μs per comparison")
         # On Wombat: 631 microseconds.
+        # On Wombat 2020-04-24: 407 microseconds.
 
         t = microsec_per_sec * timeit.timeit(
             "alice_smith_1930.log_odds_same(alice_smith_2000, cfg)",
@@ -2962,6 +3030,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         ) / n_for_speedtest
         log.info(f"Plaintext DOB mismatch: {t} μs per comparison")
         # On Wombat: 13.6 microseconds.
+        # On Wombat 2020-04-24: 6.1 microseconds.
 
         t = microsec_per_sec * timeit.timeit(
             "alice_smith_1930.hashed(cfg).log_odds_same(alice_smith_2000.hashed(cfg), cfg)",  # noqa
@@ -2970,6 +3039,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         ) / n_for_speedtest
         log.info(f"Hash two objects + DOB mismatch: {t} μs per comparison")
         # On Wombat: 240 microseconds.
+        # On Wombat 2020-04-24: 153 microseconds.
 
         t = microsec_per_sec * timeit.timeit(
             "alice_smith_1930.hashed(cfg)",
@@ -2978,6 +3048,26 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         ) / n_for_speedtest
         log.info(f"Hash one object: {t} μs per comparison")
         # On Wombat: 104 microseconds.
+        # On Wombat 2020-04-24: 71 microseconds.
+
+        hashed_alice_smith_1930 = alice_smith_1930.hashed(cfg)
+        hashed_alice_smith_2000 = alice_smith_2000.hashed(cfg)
+
+        t = microsec_per_sec * timeit.timeit(
+            "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_1930, cfg)",  # noqa
+            number=n_for_speedtest,
+            globals=locals()
+        ) / n_for_speedtest
+        log.info(f"Compare two identical hashed objects: {t} μs per comparison")  # noqa
+        # On Wombat 2020-04-024: 21.7 microseconds.
+
+        t = microsec_per_sec * timeit.timeit(
+            "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_2000, cfg)",  # noqa
+            number=n_for_speedtest,
+            globals=locals()
+        ) / n_for_speedtest
+        log.info(f"Compare two DOB-mismatched hashed objects: {t} μs per comparison")  # noqa
+        # On Wombat 2020-04-024: 6.4 microseconds.
 
         return  # timing tests only
 
@@ -3162,6 +3252,26 @@ def mutate_postcode(postcode: str, cfg: MatchConfig) -> str:
             return mutated
 
 
+VALIDATION_OUTPUT_COLNAMES = [
+    "collection_name",
+    "in_sample",
+    "deletions",
+    "typos",
+
+    "is_hashed",
+    "unique_id",
+    "winner_id",
+    "best_match_id",
+    "best_log_odds",
+    "next_best_log_odds",
+
+    "correct_if_winner",
+    "winner_advantage",
+]
+VALIDATION_OUTPUT_CSV_HELP = (
+    f"Header row present. Columns: {VALIDATION_OUTPUT_COLNAMES}.")
+
+
 def validate(cfg: MatchConfig,
              people_csv: str,
              cache_filename: str,
@@ -3242,22 +3352,7 @@ def validate(cfg: MatchConfig,
     ]  # type: List[Tuple[People, str, People, bool, bool, bool]]
     log.info(f"Writing to: {output_csv}")
     with open(output_csv, "wt") as f:
-        writer = csv.DictWriter(f, fieldnames=[
-            "collection_name",
-            "in_sample",
-            "deletions",
-            "typos",
-
-            "is_hashed",
-            "unique_id",
-            "winner_id",
-            "best_match_id",
-            "best_log_odds",
-            "next_best_log_odds",
-
-            "correct_if_winner",
-            "winner_advantage",
-        ])
+        writer = csv.DictWriter(f, fieldnames=VALIDATION_OUTPUT_COLNAMES)
         writer.writeheader()
         i = 1  # row 1 is the header
         for people, collection_name, sample, in_sample, deletions, typos in data:  # noqa
@@ -3350,6 +3445,19 @@ def hash_identity_file(cfg: MatchConfig,
 # Main comparisons
 # =============================================================================
 
+COMPARISON_OUTPUT_COLNAMES = [
+    "proband_unique_id",
+    "proband_research_id",
+    "matched",
+    "log_odds_match",
+    "p_match",
+    "log_p_match",
+    "sample_match_unique_id",
+    "sample_match_research_id",
+    "next_best_log_odds",
+]
+
+
 def compare_probands_to_sample(cfg: MatchConfig,
                                probands: People,
                                sample: People,
@@ -3367,17 +3475,7 @@ def compare_probands_to_sample(cfg: MatchConfig,
     """
     log.info("Comparing each proband to sample")
     with open(output_csv, "wt") as f:
-        writer = csv.DictWriter(f, fieldnames=[
-            "proband_unique_id",
-            "proband_research_id",
-            "matched",
-            "log_odds_match",
-            "p_match",
-            "log_p_match",
-            "sample_match_unique_id",
-            "sample_match_research_id",
-            "next_best_log_odds",
-        ])
+        writer = csv.DictWriter(f, fieldnames=COMPARISON_OUTPUT_COLNAMES)
         writer.writeheader()
         for rownum, proband in enumerate(probands.people, start=1):
             if rownum % report_every == 0:
@@ -3458,6 +3556,54 @@ def compare_probands_to_sample_from_csv(
 # =============================================================================
 # Main
 # =============================================================================
+
+HELP_COMPARISON = f"""
+    Comparison rules:
+
+    - People MUST match on DOB and surname (or surname metaphone), or hashed
+      equivalents, to be considered a plausible match.
+    - Only plausible matches proceed to the Bayesian comparison.
+    
+    Output file format:
+    
+    - CSV file with header.
+    - Columns: {COMPARISON_OUTPUT_COLNAMES}
+
+      - proband_unique_id
+        Unique (identifiable?) ID of the proband. Taken from the input.
+        Optional -- may be blank for de-identified comparisons.
+
+      - proband_research_id
+        Research ID (de-identified?) of the proband. Taken from the input.
+      
+      - matched
+        Boolean. Was a matching person (a "winner") found in the sample, who
+        is to be considered a match to the proband? To give a match requires
+        (a) that the log odds for the winner reaches a threshold, and (b) that
+        the log odds for the winner exceeds the log odds for the runner-up by
+        a certain amount (because a mismatch may be worse than a failed match).
+
+      - log_odds_match
+        Log (ln) odds that the winner in the sample is a match to the proband.
+
+      - p_match
+        Probability that the winner in the sample is a match.
+
+      - log_p_match
+        ln(p(match)) for the winner in the sample.
+
+      - sample_match_unique_id
+        Unique ID of the "winner" in the sample (the closest match to the
+        proband). Optional -- may be blank for de-identified comparisons.
+
+      - sample_match_research_id
+        Research ID of the winner in the sample.
+
+      - next_best_log_odds
+        Log odds of the runner up (the second-closest match) being the same
+        person as the proband.
+"""
+
 
 def main() -> None:
     """
@@ -3608,14 +3754,14 @@ def main() -> None:
     match_rule_group.add_argument(
         "--min_log_odds_for_match", type=float,
         default=default_log_odds_for_match,
-        help=f"Minimum probability of two people being the same, before a "
-             f"match will be considered. (Default is equivalent to "
+        help=f"Minimum natural log (ln) odds of two people being the same, "
+             f"before a match will be considered. (Default is equivalent to "
              f"p = {default_min_p_for_match}.)"
     )
     match_rule_group.add_argument(
         "--exceeds_next_best_log_odds", type=float, default=10,
-        help="Minimum log odds by which a best match must exceed the next-best "
-             "match to be considered a unique match."
+        help="Minimum log (ln) odds by which a best match must exceed the "
+             "next-best match to be considered a unique match."
     )
 
     # -------------------------------------------------------------------------
@@ -3636,16 +3782,30 @@ def main() -> None:
 
     subparsers.add_parser(
         "selftest",
-        help="Run self-tests and stop"
+        help="Run self-tests and stop",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="""
+        This will run a bunch of self-tests and crash out if one fails.
+        """
     )
 
     # -------------------------------------------------------------------------
     # speedtest command
     # -------------------------------------------------------------------------
 
-    subparsers.add_parser(
+    speedtest_parser = subparsers.add_parser(
         "speedtest",
-        help="Run speed tests and stop"
+        help="Run speed tests and stop",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="""
+        This will run several comparisons to test hashing and comparison
+        speed. Results are reported as microseconds per comparison.
+        """
+    )
+    speedtest_parser.add_argument(
+        "--profile", action="store_true",
+        help="Profile (makes things slower but shows you what's taking the "
+             "time)."
     )
 
     # -------------------------------------------------------------------------
@@ -3656,7 +3816,63 @@ def main() -> None:
         "validate1",
         help="Run validation test 1 and stop. In this test, a list of people "
              "is compared to a version of itself, at times with elements "
-             "deleted or with typos introduced."
+             "deleted or with typos introduced. ",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        description="""
+    Takes an identifiable list of people (typically a short list of imaginary
+    people!) and validates the matching process.
+
+    This is done by splitting the input list into two groups (alternating),
+    then comparing a list of probands either against itself (there should be
+    matches) or against the other group (there should generally not be).
+    The process is carried out in cleartext (plaintext) and hashed. At times
+    it's made harder by introducing deletions or mutations (typos) into one of
+    the groups.
+
+    Here's a specimen test CSV file to use, with entirely made-up people and
+    institutional (not personal) postcodes in Cambridge:
+
+unique_id,research_id,first_name,middle_names,surname,dob,postcodes
+1,r1,Alice,Zara,Smith,1931-01-01,CB2 0QQ
+2,r2,Bob,Yorick,Jones,1932-01-01,CB2 3EB
+3,r3,Celia,Xena,Wright,1933-01-01,CB2 1TP
+4,r4,David,William;Wallace,Cartwright,1934-01-01,CB2 8PH;CB2 1TP
+5,r5,Emily,Violet,Fisher,1935-01-01,CB3 9DF
+6,r6,Frank,Umberto,Williams,1936-01-01,CB2 1TQ
+7,r7,Greta,Tilly,Taylor,1937-01-01,CB2 1DQ
+8,r8,Harry,Samuel,Davies,1938-01-01,CB3 9ET
+9,r9,Iris,Ruth,Evans,1939-01-01,CB3 0DG
+10,r10,James,Quentin,Thomas,1940-01-01,CB2 0SZ
+11,r11,Alice,,Smith,1931-01-01,CB2 0QQ
+
+    Explanation of the output format:
+
+    - 'collection_name' is a human-readable name summarizing the next four;
+    - 'in_sample' (boolean) is whether the probands are in the sample;
+    - 'deletions' (boolean) is whether random items have been deleted from
+       the probands;
+    - 'typos' (boolean) is whether random typos have been made in the
+       probands;
+    - 'is_hashed' (boolean) is whether the proband and sample are hashed;
+    - 'unique_id' is the gold-standard ID of the proband;
+    - 'winner_id' is the ID of the best-matching person in the sample;
+    - 'best_log_odds' is the calculated log (ln) odds that the proband and the 
+      sample member identified by 'winner_id' are the sample person (ideally
+      high if there is a true match, low if not);
+    - 'next_best_log_odds' is the calculated log odds of the proband and the
+      runner-up being the same person (ideally low);
+    - 'correct_if_winner' is whether the proband and winner IDs are te same
+      (ideally true);
+    - 'winner_advantage' is the log odds by which the winner beats the
+      runner-up (ideally high indicating a strong preference for the winner
+      over the runner-up).
+
+    Clearly, if the probands are in the sample, then a match may occur; if not,
+    no match should occur. If hashing is in use, this tests de-identified
+    linkage; if not, this tests identifiable linkage. Deletions and typos
+    may reduce (but we hope not always eliminate) the likelihood of a match,
+    and we don't want to see mismatches.
+        """,
     )
     validate1_parser.add_argument(
         "--people_csv", type=str,
@@ -3674,7 +3890,7 @@ def main() -> None:
         "--output_csv", type=str,
         default=os.path.join(default_names_dir,
                              "fuzzy_validation1_output.csv"),
-        help="Output CSV file for validation"
+        help="Output CSV file for validation. " + VALIDATION_OUTPUT_CSV_HELP
     )
     validate1_parser.add_argument(
         "--seed", type=int, default=1234,
@@ -3683,37 +3899,16 @@ def main() -> None:
     )
 
     # -------------------------------------------------------------------------
-    # hash command
-    # -------------------------------------------------------------------------
-
-    hash_parser = subparsers.add_parser(
-        "hash",
-        help="Hash an identifiable CSV file into an encrypted one."
-    )
-    hash_parser.add_argument(
-        "--input", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_probands.csv"),
-        help="CSV filename for input (plaintext) data. " +
-             Person.PLAINTEXT_CSV_FORMAT_HELP
-    )
-    hash_parser.add_argument(
-        "--output", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_probands_hashed.csv"),
-        help="Output CSV file for hashed version. "
-    )
-    hash_parser.add_argument(
-        "--include_unique_id", action="store_true",
-        help="Include the (potentially identifying) 'unique_id' data? "
-             "Usually False; may be set to True for validation."
-    )
-
-    # -------------------------------------------------------------------------
     # compare_plaintext command
     # -------------------------------------------------------------------------
 
     compare_plaintext_parser = subparsers.add_parser(
         "compare_plaintext",
-        help="Compare a list of probands against a sample (both in plaintext)."
+        help="IDENTIFIABLE LINKAGE COMMAND. "
+             "Compare a list of probands against a sample (both in "
+             "plaintext). ",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        description=HELP_COMPARISON
     )
     compare_plaintext_parser.add_argument(
         "--probands", type=str,
@@ -3735,7 +3930,43 @@ def main() -> None:
     compare_plaintext_parser.add_argument(
         "--output", type=str,
         default=os.path.join(default_names_dir, "fuzzy_output_p2p.csv"),
-        help="Output CSV file for proband/sample comparison"
+        help="Output CSV file for proband/sample comparison."
+    )
+
+    # -------------------------------------------------------------------------
+    # hash command
+    # -------------------------------------------------------------------------
+
+    hash_parser = subparsers.add_parser(
+        "hash",
+        help="STEP 1 OF DE-IDENTIFIED LINKAGE. "
+             "Hash an identifiable CSV file into an encrypted one. ",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        description="""
+    Takes an identifiable list of people (with name, DOB, and postcode
+    information) and creates a hashed, de-identified equivalent.
+    
+    The research ID (presumed not to be a direct identifier) is preserved.
+    Optionally, the unique original ID (e.g. NHS number, presumed to be a 
+    direct identifier) is preserved, but you have to ask for that explicitly.
+        """
+    )
+    hash_parser.add_argument(
+        "--input", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_probands.csv"),
+        help="CSV filename for input (plaintext) data. " +
+             Person.PLAINTEXT_CSV_FORMAT_HELP
+    )
+    hash_parser.add_argument(
+        "--output", type=str,
+        default=os.path.join(default_names_dir, "fuzzy_probands_hashed.csv"),
+        help="Output CSV file for hashed version. " +
+             Person.HASHED_CSV_FORMAT_HELP
+    )
+    hash_parser.add_argument(
+        "--include_unique_id", action="store_true",
+        help="Include the (potentially identifying) 'unique_id' data? "
+             "Usually False; may be set to True for validation."
     )
 
     # -------------------------------------------------------------------------
@@ -3744,7 +3975,11 @@ def main() -> None:
 
     compare_h2h_parser = subparsers.add_parser(
         "compare_hashed_to_hashed",
-        help="Compare a list of probands against a sample (both hashed)."
+        help="STEP 2 OF DE-IDENTIFIED LINKAGE (for when you have de-identified "
+             "both sides in advance). "
+             "Compare a list of probands against a sample (both hashed).",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        description=HELP_COMPARISON
     )
     compare_h2h_parser.add_argument(
         "--probands", type=str,
@@ -3761,7 +3996,7 @@ def main() -> None:
     compare_h2h_parser.add_argument(
         "--output", type=str,
         default=os.path.join(default_names_dir, "fuzzy_output_h2h.csv"),
-        help="Output CSV file for proband/sample comparison"
+        help="Output CSV file for proband/sample comparison."
     )
 
     # -------------------------------------------------------------------------
@@ -3770,8 +4005,13 @@ def main() -> None:
 
     compare_h2p_parser = subparsers.add_parser(
         "compare_hashed_to_plaintext",
-        help="Compare a list of probands (hashed) against a sample "
-             "(plaintext)."
+        help="STEP 2 OF DE-IDENTIFIED LINKAGE (for when you have received "
+             "de-identified data and you want to link to your identifiable "
+             "data, producing a de-identified result). "
+             "Compare a list of probands (hashed) against a sample "
+             "(plaintext).",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        description=HELP_COMPARISON
     )
     compare_h2p_parser.add_argument(
         "--probands", type=str,
@@ -3793,7 +4033,7 @@ def main() -> None:
     compare_h2p_parser.add_argument(
         "--output", type=str,
         default=os.path.join(default_names_dir, "fuzzy_output_h2p.csv"),
-        help="Output CSV file for proband/sample comparison"
+        help="Output CSV file for proband/sample comparison."
     )
 
     # -------------------------------------------------------------------------
@@ -3833,6 +4073,7 @@ def main() -> None:
         p_proband_middle_name_missing=args.p_proband_middle_name_missing,
         p_sample_middle_name_missing=args.p_sample_middle_name_missing,
         p_minor_postcode_error=args.p_minor_postcode_error,
+        verbose=args.verbose,
     )
 
     def warn_if_default_key() -> None:
@@ -3859,7 +4100,8 @@ def main() -> None:
         selftest(cfg, speedtest=False)
 
     elif args.command == "speedtest":
-        selftest(cfg, speedtest=True)
+        fn = do_cprofile(selftest) if args.profile else selftest
+        fn(cfg, speedtest=True)
 
     elif args.command == "validate1":
         log.info("Running validation test 1.")

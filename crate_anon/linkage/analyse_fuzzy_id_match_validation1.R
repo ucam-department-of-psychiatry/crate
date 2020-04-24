@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
+# crate_anon/linkage/analyse_fuzzy_id_match_validation1.R
 
-# For testing fuzzy_id_match.py
+# For testing the output of "crate_fuzzy_id_match validate1"
 
 # =============================================================================
 # Libraries
@@ -30,6 +31,7 @@ FIGURE_FILENAME <- file.path(WORKING_DIR, "fuzzy_validation1_figure.pdf")
 # =============================================================================
 
 fuzzy <- data.table(read.csv(INPUT_CSV))
+
 
 # =============================================================================
 # ROC
