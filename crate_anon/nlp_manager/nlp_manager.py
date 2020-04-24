@@ -636,7 +636,6 @@ def send_cloud_requests(
     cloudcfg = crinfo.cloudcfg
     cloud_request = CloudRequestProcess(crinfo=crinfo)
     empty_request = True
-    number_of_records = cloudcfg.max_records_per_request
     limit_before_commit = cloudcfg.limit_before_commit
     recs = 0
     hasher = crinfo.nlpdef.hash
@@ -888,7 +887,8 @@ def process_cloud_now(
     session = nlpdef.get_progdb_session()
     for ifconfig in nlpdef.get_ifconfigs():
         global_recnum = 0  # Global record number within this ifconfig
-        seen_srchashs = []  # type: List[str]
+        # seen_srchashs = {}  # type: Dict[str, NlpRecord]
+        seen_pks = {}
         # total = ifconfig.get_count()
         generated_text = ifconfig.gen_text()
         records_left = True
@@ -914,8 +914,10 @@ def process_cloud_now(
                     pkval = metadata[FN_SRCPKVAL]
                     pkstr = metadata[FN_SRCPKSTR]
                     srchash = metadata[FN_SRCHASH]
-                    progrec = None
-                    if incremental:
+                    pk = pkstr if pkstr else pkval
+                    # progrec = seen_srchashs.get(srchash)
+                    progrec = seen_pks.get(pk)
+                    if incremental and not progrec:
                         crinfo.delete_dest_records(ifconfig, pkval, pkstr,
                                                    commit=True)
                         # Record progress in progress database
@@ -924,9 +926,8 @@ def process_cloud_now(
                     # record to avoid clashes - it's possible as each processor
                     # may contain results for each record and a set of results
                     # is a list of processors and their results
-                    if srchash in seen_srchashs:
-                        progrec = ifconfig.get_progress_record(pkval, pkstr)
-                    seen_srchashs.append(srchash)
+                    # if srchash in seen_srchashs:
+                        # progrec = ifconfig.get_progress_record(pkval, pkstr)
                     # Make a note in the progress database that we've processed
                     # a source record
                     if progrec:  # modifying an existing record
@@ -946,10 +947,11 @@ def process_cloud_now(
                             whenprocessedutc=nlpdef.get_now(),
                             srchash=srchash,
                         )
-                        with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-                            session.add(progrec)
+                    # seen_srchashs[srchash] = progrec
+                    seen_pks[pk] = progrec
+                    with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+                        session.add(progrec)
             session.commit()
-
 
     nlpdef.commit_all()
 

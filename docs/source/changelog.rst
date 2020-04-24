@@ -1255,6 +1255,10 @@ Changes
 - Changes to :mod:`crate_anon.nlp_manager.nlp_manager` and
   :mod:`crate_anon.nlp_manager.input_field_config` to go back to a single query.
 
+**v0.18.98, 2020-03-28**
+
+- Downgrade Django as most recent version was not compatible.
+
 
 
 ===============================================================================
