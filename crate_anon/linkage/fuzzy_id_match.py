@@ -401,6 +401,14 @@ Strategy for matching people
 
 - otherwise, there is no match.
 
+Note that there is no allowance in the current algorithm for allocations
+already made. For example, if both data sets contain Alice Mary SMITH
+("A.M.S.") and Alice SMITH ("A.S."), then one could reason that if A.M.S.
+[proband] matches A.M.S. [sample] as the higher-specificity match, then we know
+that A.S. [proband] cannot match against A.M.S. [sample], which may improve
+substantially the chances of matching correctly to A.S. [sample]. The algorithm
+does not do this.
+
 
 Specific implementations for names, DOB, and postcode
 -----------------------------------------------------
@@ -551,7 +559,7 @@ Validation strategy 1
 - Create a collection of people from a real data set with the following
   details:
 
-  - unique identifier (for internal checks only; not for comparison)
+  - original identifier (for internal checks only; not for comparison)
   - first name
   - any middle names (ordered)
   - surname
@@ -655,7 +663,7 @@ Strategy, then:
   and must be kept separate from de-identified research data, and secure.
 
 - From the CDL source material, extract name/DOB/postcode information, plus
-  NHS number as the identifiable "unique_id" (and a hashed version as
+  NHS number as the identifiable "original_id" (and a hashed version as
   "research_id") into ``people_cdl.csv``. Restrict to people with an NHS number
   present.
   
@@ -669,13 +677,18 @@ Strategy, then:
   
   - Hashed CDL to hashed RiO, similarly; this tests the hashed equivalent.
   
-  - Run all virtual comparisons with the ``--scan_everyone`` option, so that
-    the "runner-up" log odds is accurate (rather than efficient).
-    
+  - Always use the ``--extra_validation_output`` flag, as this allows us to
+    ask the question: if we'd set the probability thresholds differently, would
+    we have got the right answer?
+  
   - CDL as proband and RiO as sample, or vice versa, or both?
-  *** BIDIRECTIONAL COMPARISONS?
+    Both; may be very similar but we can see.
 
 - Comparisons of interest for validation:
+
+  - Establish accuracy (in ROC style) including by varying the two thresholds
+    of interest (minimum log odds to consider a match, and minimum advantage
+    over the runner-up).
 
   - Compare ROC (etc.) for the plaintext and the hashed comparison.
 
@@ -696,7 +709,7 @@ Strategy, then:
 """  # noqa
 
 import argparse
-import collections
+from collections import Counter, defaultdict
 import copy
 import csv
 import logging
@@ -710,7 +723,8 @@ import string
 import sys
 import timeit
 from typing import (
-    Any, Dict, Generator, Iterable, List, Optional, Set, Tuple, TYPE_CHECKING,
+    Any, Dict, Generator, Iterable, List, Optional, Set, Tuple,
+    TYPE_CHECKING,
 )
 
 import appdirs
@@ -725,7 +739,6 @@ from cardinal_pythonlib.probability import (
     log_odds_from_1_in_n,
     log_odds_from_probability,
     log_posterior_odds_from_pdh_pdnh,
-    log_probability_from_log_odds,
     probability_from_log_odds,
 )
 from cardinal_pythonlib.profile import do_cprofile
@@ -881,6 +894,8 @@ def get_metaphone(x: str) -> str:
         get_metaphone("de Clerambault")  # TKRM; won't do accents
 
     """
+    if not x:
+        return ""
     metaphones = dmeta(x)
     first_part = metaphones[0]  # the first part only
     if first_part is None:
@@ -1254,7 +1269,7 @@ class PostcodeFrequencyInfo(object):
              self._total_population) = cache_load(cache_filename)
         except FileNotFoundError:
             log.info(f"Reading file: {csv_filename}")
-            oa_unit_counter = collections.Counter()
+            oa_unit_counter = Counter()
             unit_to_oa = {}  # type: Dict[str, str]
             sector_to_oas = {}  # type: Dict[str, Set[str]]
 
@@ -1524,7 +1539,8 @@ class MatchConfig(object):
         """
         freq = self._forename_freq.metaphone_frequency(metaphone)
         if self.verbose:
-            log.debug(f"    Forename metaphone frequency for {metaphone}: {freq}")
+            log.debug(f"    Forename metaphone frequency for {metaphone}: "
+                      f"{freq}")
         return freq
 
     def surname_freq(self, name: str, prestandardized: bool = False) -> float:
@@ -1648,7 +1664,7 @@ class Person(object):
     """
     _COMMON_ATTRS = [
         # not: "is_hashed",
-        "unique_id",
+        "original_id",
         "research_id",
     ]
     PLAINTEXT_ATTRS = _COMMON_ATTRS + [
@@ -1678,7 +1694,7 @@ class Person(object):
         "postcode_sector_frequencies",
     ]
     INT_ATTRS = [
-        "unique_id",
+        "original_id",
     ]
     FLOAT_ATTRS = [
         "first_name_frequency",
@@ -1723,7 +1739,7 @@ class Person(object):
                  # State
                  is_hashed: bool = False,
                  # Reference codes
-                 unique_id: int = None,
+                 original_id: int = None,
                  research_id: str = "",
                  # Plaintext
                  first_name: str = "",
@@ -1755,7 +1771,7 @@ class Person(object):
                 Is this a hashed representation? If so, matching works
                 differently.
 
-            unique_id:
+            original_id:
                 Unique integer ID. Not used at all for comparison; simply used
                 to retrieve an identity after a match has been confirmed.
             research_id:
@@ -1808,7 +1824,7 @@ class Person(object):
                 Frequencies of each postcode sector.
         """
         self.is_hashed = is_hashed
-        self.unique_id = unique_id
+        self.original_id = original_id
         self.research_id = research_id
 
         self.first_name = standardize_name(first_name)
@@ -1902,6 +1918,15 @@ class Person(object):
             for postcode in self.postcodes:
                 assert POSTCODE_REGEX.match(postcode), f"Bad postcode: {postcode}"  # noqa
 
+        # Precalculate things, for speed
+        self._postcode_sectors = [get_postcode_sector(x)
+                                  for x in self.postcodes]
+        self._first_name_metaphone = get_metaphone(self.first_name)
+        self._middle_name_metaphones = [
+            get_metaphone(x) for x in self.middle_names
+        ]
+        self._surname_metaphone = get_metaphone(self.surname)
+
     def __repr__(self) -> str:
         """
         Returns a string representation that can be used for reconstruction.
@@ -1923,10 +1948,10 @@ class Person(object):
 
     def __str__(self) -> str:
         if self.is_hashed:
-            return f"ID#{self.unique_id}, RID {self.research_id} (hashed)"
+            return f"ID#{self.original_id}, RID {self.research_id} (hashed)"
         else:
             return ", ".join([
-                f"#{self.unique_id}",
+                f"#{self.original_id}",
                 f"RID {self.research_id}",
                 " ".join([self.first_name] +
                          self.middle_names +
@@ -1957,19 +1982,19 @@ class Person(object):
         return self._csv_dict(self.PLAINTEXT_ATTRS)
 
     def hashed_csv_dict(self,
-                        include_unique_id: bool = False) -> Dict[str, Any]:
+                        include_original_id: bool = False) -> Dict[str, Any]:
         """
         Returns a dictionary suitable for :class:`csv.DictWriter`.
 
         Args:
-            include_unique_id:
-                include the (potentially identifying) ``unique_id`` data?
+            include_original_id:
+                include the (potentially identifying) ``original_id`` data?
                 Usually ``False``; may be ``True`` for validation.
         """
         assert self.is_hashed
         attrs = self.HASHED_ATTRS.copy()
-        if not include_unique_id:
-            attrs.remove("unique_id")
+        if not include_original_id:
+            attrs.remove("original_id")
         return self._csv_dict(attrs)
 
     @classmethod
@@ -2052,7 +2077,7 @@ class Person(object):
             hashed_first_name = _hash(first_name)
             first_name_frequency = fr(
                 _forename_freq(first_name, prestandardized=True))
-            fn_metaphone = get_metaphone(first_name)
+            fn_metaphone = self._first_name_metaphone
             hashed_first_name_metaphone = _hash(fn_metaphone)
             first_name_metaphone_frequency = fr(
                 _forename_metaphone_freq(fn_metaphone))
@@ -2067,9 +2092,9 @@ class Person(object):
         middle_name_frequencies = []
         hashed_middle_name_metaphones = []
         middle_name_metaphone_frequencies = []
-        for x in middle_names:
+        for i, x in enumerate(middle_names):
             if x:
-                mn_metaphone = get_metaphone(x)
+                mn_metaphone = self._middle_name_metaphones[i]
                 hashed_middle_names.append(
                     _hash(x)
                 )
@@ -2088,7 +2113,7 @@ class Person(object):
             hashed_surname = _hash(surname)
             surname_frequency = fr(
                 cfg.surname_freq(surname, prestandardized=True))
-            sn_metaphone = get_metaphone(surname)
+            sn_metaphone = self._surname_metaphone
             hashed_surname_metaphone = _hash(sn_metaphone)
             surname_metaphone_frequency = fr(
                 cfg.surname_metaphone_freq(sn_metaphone))
@@ -2124,7 +2149,7 @@ class Person(object):
 
         return Person(
             is_hashed=True,
-            unique_id=self.unique_id,
+            original_id=self.original_id,
             research_id=self.research_id,
             hashed_first_name=hashed_first_name,
             first_name_frequency=first_name_frequency,
@@ -2148,7 +2173,7 @@ class Person(object):
     def log_odds_same(self, other: "Person", cfg: MatchConfig,
                       verbose: bool = False) -> float:
         """
-        Returns the log odds that this and ``other`` are the same person.
+        Returns the log odds that ``self`` and ``other`` are the same person.
 
         Args:
             other: another :class:`Person` object
@@ -2175,6 +2200,9 @@ class Person(object):
         """
         Generates all relevant comparisons.
 
+        Try to do the comparisons first that are most likely to eliminate a
+        person.
+
         Args:
             other: another :class:`Person` object
             cfg: the master :class:`MatchConfig` object
@@ -2182,9 +2210,9 @@ class Person(object):
         yield self._comparison_dob(other)
         yield self._comparison_surname(other, cfg)
         yield self._comparison_forename(other, cfg)
-        for c in self._comparisons_middle_names(other, cfg):
+        for c in self._comparisons_middle_names(other, cfg):  # slowest
             yield c
-        for c in self._comparisons_postcodes(other, cfg):
+        for c in self._comparisons_postcodes(other, cfg):  # doesn't eliminate
             yield c
 
     def _comparison_dob(self, other: "Person") -> Optional[Comparison]:
@@ -2199,16 +2227,20 @@ class Person(object):
             # -----------------------------------------------------------------
             # Hashed
             # -----------------------------------------------------------------
-            if not self.hashed_dob or not other.hashed_dob:
+            self_hashed_dob = self.hashed_dob
+            other_hashed_dob = other.hashed_dob
+            if not self_hashed_dob or not other_hashed_dob:
                 return None
-            matches = self.hashed_dob == other.hashed_dob
+            matches = self_hashed_dob == other_hashed_dob
         else:
             # -----------------------------------------------------------------
             # Plaintext
             # -----------------------------------------------------------------
-            if not self.dob or not other.dob:
+            self_dob = self.dob
+            other_dob = other.dob
+            if not self_dob or not other_dob:
                 return None
-            matches = self.dob == other.dob
+            matches = self_dob == other_dob
         return SimpleComparison(
             name="DOB",
             match=matches,
@@ -2225,26 +2257,32 @@ class Person(object):
             # -----------------------------------------------------------------
             # Hashed
             # -----------------------------------------------------------------
-            if (not self.hashed_surname or
-                    not other.hashed_surname or
-                    not self.hashed_surname_metaphone or
-                    not other.hashed_surname_metaphone):
+            self_hashed_surname = self.hashed_surname
+            other_hashed_surname = other.hashed_surname
+            self_hashed_surname_metaphone = self.hashed_surname_metaphone
+            other_hashed_surname_metaphone = other.hashed_surname_metaphone
+            if (not self_hashed_surname or
+                    not other_hashed_surname or
+                    not self_hashed_surname_metaphone or
+                    not other_hashed_surname_metaphone):
                 return None
-            full_match = self.hashed_surname == other.hashed_surname
+            full_match = self_hashed_surname == other_hashed_surname
             p_f = self.surname_frequency
-            partial_match = (self.hashed_surname_metaphone ==
-                             other.hashed_surname_metaphone)
+            partial_match = (self_hashed_surname_metaphone ==
+                             other_hashed_surname_metaphone)
             p_p = self.surname_metaphone_frequency
         else:
             # -----------------------------------------------------------------
             # Plaintext
             # -----------------------------------------------------------------
-            if not self.surname or not other.surname:
+            self_surname = self.surname
+            other_surname = other.surname
+            if not self_surname or not other_surname:
                 return None
-            self_metaphone = get_metaphone(self.surname)
-            other_metaphone = get_metaphone(other.surname)
-            full_match = self.surname == other.surname
-            p_f = cfg.surname_freq(self.surname, prestandardized=True)
+            self_metaphone = self._surname_metaphone
+            other_metaphone = other._surname_metaphone
+            full_match = self_surname == other_surname
+            p_f = cfg.surname_freq(self_surname, prestandardized=True)
             partial_match = self_metaphone == other_metaphone
             p_p = cfg.surname_metaphone_freq(self_metaphone)
         return FullOrPartialComparison(
@@ -2265,26 +2303,32 @@ class Person(object):
             # -----------------------------------------------------------------
             # Hashed
             # -----------------------------------------------------------------
-            if (not self.hashed_first_name or
-                    not other.hashed_first_name or
-                    not self.hashed_first_name_metaphone or
-                    not other.hashed_first_name_metaphone):
+            self_hashed_first_name = self.hashed_first_name
+            other_hashed_first_name = other.hashed_first_name
+            self_hashed_first_name_metaphone = self.hashed_first_name_metaphone
+            other_hashed_first_name_metaphone = other.hashed_first_name_metaphone  # noqa
+            if (not self_hashed_first_name or
+                    not other_hashed_first_name or
+                    not self_hashed_first_name_metaphone or
+                    not other_hashed_first_name_metaphone):
                 return None
-            full_match = self.hashed_first_name == other.hashed_first_name
+            full_match = self_hashed_first_name == other_hashed_first_name
             p_f = self.first_name_frequency
-            partial_match = (self.hashed_first_name_metaphone ==
-                             other.hashed_first_name_metaphone)
+            partial_match = (self_hashed_first_name_metaphone ==
+                             other_hashed_first_name_metaphone)
             p_p = self.first_name_metaphone_frequency
         else:
             # -----------------------------------------------------------------
             # Plaintext
             # -----------------------------------------------------------------
-            if not self.first_name or not other.first_name:
+            self_first_name = self.first_name
+            other_first_name = other.first_name
+            if not self_first_name or not other_first_name:
                 return None
-            self_metaphone = get_metaphone(self.first_name)
-            other_metaphone = get_metaphone(other.first_name)
-            full_match = self.first_name == other.first_name
-            p_f = cfg.forename_freq(self.first_name, prestandardized=True)
+            self_metaphone = self._first_name_metaphone
+            other_metaphone = other._first_name_metaphone
+            full_match = self_first_name == other_first_name
+            p_f = cfg.forename_freq(self_first_name, prestandardized=True)
             partial_match = self_metaphone == other_metaphone
             p_p = cfg.forename_metaphone_freq(self_metaphone)
         return FullOrPartialComparison(
@@ -2309,7 +2353,7 @@ class Person(object):
         else:
             n_proband_middle_names = len(self.middle_names)
             n_sample_middle_names = len(other.middle_names)
-        unused_proband_indexes = list(range(n_proband_middle_names))
+        unused_proband_indexes = set(range(n_proband_middle_names))
         unused_sample_indexes = list(range(n_sample_middle_names))
         if self.is_hashed:
             # -----------------------------------------------------------------
@@ -2358,11 +2402,11 @@ class Person(object):
                             mn, prestandardized=True)
                     )
             # Partial matches
-            other_metaphones = [get_metaphone(x) for x in other.middle_names]
+            other_metaphones = other._middle_name_metaphones
             for i, mn in enumerate(self.middle_names):
                 if i not in unused_proband_indexes:
                     continue  # this one already matched in full
-                metaphone = get_metaphone(mn)
+                metaphone = self._middle_name_metaphones[i]
                 if metaphone in other_metaphones:
                     unused_proband_indexes.remove(i)
                     unused_sample_indexes.append(
@@ -2415,24 +2459,26 @@ class Person(object):
         Generates comparisons for postcodes.
         """
         p_e = cfg.p_minor_postcode_error
-        indexes_of_full_matches = []  # type: List[int]
+        indexes_of_full_matches = set()  # type: Set[int]
         if self.is_hashed:
             # -----------------------------------------------------------------
             # Hashed
             # -----------------------------------------------------------------
+            other_hashed_postcode_units = other.hashed_postcode_units
             for i, pu in enumerate(self.hashed_postcode_units):
-                if pu in other.hashed_postcode_units:
-                    indexes_of_full_matches.append(i)
+                if pu in other_hashed_postcode_units:
+                    indexes_of_full_matches.add(i)
                     yield SimpleComparison(
                         name="postcode_exact",
                         match=True,
                         p_match_given_same_person=1 - p_e,
                         p_match_given_diff_person=self.postcode_unit_frequencies[i]  # noqa
                     )
+            other_hashed_postcode_sectors = other.hashed_postcode_sectors
             for i, ps in enumerate(self.hashed_postcode_sectors):
                 if i in indexes_of_full_matches:
                     continue  # this one already matched in full
-                if ps in other.hashed_postcode_sectors:
+                if ps in other_hashed_postcode_sectors:
                     yield SimpleComparison(
                         name="postcode_sector",
                         match=True,
@@ -2443,9 +2489,10 @@ class Person(object):
             # -----------------------------------------------------------------
             # Plaintext
             # -----------------------------------------------------------------
+            other_postcodes = other.postcodes
             for i, pu in enumerate(self.postcodes):
-                if pu in other.postcodes:
-                    indexes_of_full_matches.append(i)
+                if pu in other_postcodes:
+                    indexes_of_full_matches.add(i)
                     yield SimpleComparison(
                         name="postcode_exact",
                         match=True,
@@ -2453,11 +2500,10 @@ class Person(object):
                         p_match_given_diff_person=cfg.postcode_unit_freq(
                             pu, prestandardized=True)
                     )
-            other_ps_list = [get_postcode_sector(x) for x in other.postcodes]
-            for i, pu in enumerate(self.postcodes):
+            other_ps_list = other._postcode_sectors
+            for i, ps in enumerate(self._postcode_sectors):
                 if i in indexes_of_full_matches:
                     continue  # this one already matched in full
-                ps = get_postcode_sector(pu)
                 if ps in other_ps_list:
                     yield SimpleComparison(
                         name="postcode_sector",
@@ -2491,8 +2537,7 @@ class Person(object):
                     (self.hashed_surname and
                      self.hashed_surname == other.hashed_surname) or
                     (self.hashed_surname_metaphone and
-                     self.hashed_surname_metaphone ==
-                     other.hashed_surname_metaphone)
+                     self.hashed_surname_metaphone == other.hashed_surname_metaphone)  # noqa
                 )
             )
         else:
@@ -2501,10 +2546,10 @@ class Person(object):
                 self.dob == other.dob and
                 self.surname and
                 (self.surname == other.surname or
-                 get_metaphone(self.surname) == get_metaphone(other.surname))
+                 self._surname_metaphone == other._surname_metaphone)
             )
         # log.critical(f"{self} //\n{other} //\n{result!r}")
-        return result
+        return bool(result)
 
     # -------------------------------------------------------------------------
     # Info functions
@@ -2536,6 +2581,11 @@ class Person(object):
             return len(self.hashed_postcode_units)
         else:
             return len(self.postcodes)
+
+    def get_postcode_sectors(self) -> List[str]:
+        """
+        Gets postcode sectors (with caching).
+        """
 
     # -------------------------------------------------------------------------
     # Debugging functions to mutate this object
@@ -2615,6 +2665,9 @@ class People(object):
         """
         self.verbose = verbose
         self.people = []  # type: List[Person]
+        self.dob_to_people = defaultdict(list)  # type: Dict[str, List[Person]]
+        self.hashed_dob_to_people = defaultdict(list)  # type: Dict[str, List[Person]]  # noqa
+
         if person:
             self.add_person(person)
         if people:
@@ -2625,12 +2678,19 @@ class People(object):
         Adds a single person.
         """
         self.people.append(person)
+        dob = person.dob
+        if dob:
+            self.dob_to_people[dob].append(person)
+        hashed_dob = person.hashed_dob
+        if hashed_dob:
+            self.hashed_dob_to_people[hashed_dob].append(person)
 
     def add_people(self, people: List[Person]) -> None:
         """
         Adds multiple people.
         """
-        self.people.extend(people)
+        for person in people:
+            self.add_person(person)
 
     def size(self) -> int:
         """
@@ -2638,30 +2698,29 @@ class People(object):
         """
         return len(self.people)
 
-    def plausible_candidates(self, proband: Person) -> \
-            Tuple[List[Person], List[int]]:
+    def shortlist(self, proband: Person) -> List[Person]:
         """
-        Returns a list of plausible candidates.
+        Returns a shortlist of potential candidates.
 
         Args:
             proband: a :class:`Person`
-
-        Returns:
-            tuple: candidates, candidate_indexes
         """
-        candidates = []  # type: List[Person]
-        candidate_indexes = []  # type: List[int]
-        for i, p in enumerate(self.people):
-            if p.plausible_candidate(proband):
-                candidates.append(p)
-                candidate_indexes.append(i)
-        return candidates, candidate_indexes
+        if proband.is_hashed:
+            hashed_dob = proband.hashed_dob
+            if not hashed_dob:
+                return []
+            return self.hashed_dob_to_people[hashed_dob]
+        else:
+            dob = proband.dob
+            if not dob:
+                return []
+            return self.dob_to_people[dob]
 
     def get_unique_match_detailed(self,
                                   proband: Person,
-                                  cfg: MatchConfig,
-                                  scan_everyone: bool = False) \
-            -> Tuple[Optional[Person], float, Optional[int], Optional[float]]:
+                                  cfg: MatchConfig) \
+            -> Tuple[Optional[Person], float, float,
+                     Optional[Person], Optional[Person]]:
         """
         Returns a single person matching the proband, or ``None`` if there is
         no match (as defined by the probability settings in ``cfg``).
@@ -2669,74 +2728,92 @@ class People(object):
         Args:
             proband: a :class:`Person`
             cfg: the master :class:`MatchConfig` object
-            scan_everyone: be inefficient and return next-best log odds even
-                if failure has occurred; ONLY FOR VALIDATION
 
         Returns:
             tuple:
-                winner (:class:`Person`), best_log_odds (float),
-                first_best_index (int), next_best_log_odds (float)
+                winner (:class:`Person`),
+                best_log_odds (float),
+                second_best_log_odds (float),
+                best_person (:class:`Person`),
+                second_best_person (:class:`Person`)
 
         Note that:
 
         - ``winner`` will be ``None`` if there is no winner
         - ``best_log_odds`` is the log odds of the best candidate (the winner,
           if it passes a threshold test), or –∞ if there are no candidates
-        - ``first_best_index`` is the index of the first person whose log odds
-          are ``best_log_odds``, or –∞ if there are no candidates
-        - ``next_best_log_odds`` will be the log odds of the closest other
-          contender scanned (but, in the event of no match being declared, this
-          will only be the true second-place candidate if ``scan_everyone`` is
-          ``True``; if ``scan_everyone`` is ``False``, then it will be the
-          true second-place contender in the event of a match being declared,
-          but might be the third-place or worse also-ran if a match was not
-          declared).
+        - ``second_best_log_odds`` will be the log odds of the closest other
+          contender, which may be  –∞
         """
         verbose = self.verbose
         if verbose:
-            log.info(f"{len(self.people)} people to be considered")
-        # Stage 1: filter
-        candidates, candidate_indexes = self.plausible_candidates(proband)
+            log.info(f"{len(self.people)} in the sample to be considered")
+
+        # 2020-04-25: Do this in one pass.
+        # A bit like
+        # https://www.geeksforgeeks.org/python-program-to-find-second-largest-number-in-a-list/  # noqa
+        # ... but modified, as that fails to deal with joint winners
+        # ... and it's not a super algorithm anyway.
+
+        # Step 1. Scan everything in a single pass, establishing the winner
+        # and the runner-up.
+        best_idx = -1
+        second_best_idx = -1
+        best_log_odds = MINUS_INFINITY
+        second_best_log_odds = MINUS_INFINITY
+        shortlist = self.shortlist(proband)
         if verbose:
-            log.info(f"{len(candidates)} plausible candidates")
-        if not candidates:
-            return None, MINUS_INFINITY, None, None
-        log_odds = [
-            p.log_odds_same(proband, cfg, verbose=self.verbose)
-            for p in candidates
-        ]
-        best_log_odds = max(log_odds)
+            txt_shortlist = "; ".join(str(x) for x in shortlist)
+            log.warning(f"Proband: {proband}. Shortlist: {txt_shortlist}")
+        for idx, candidate in enumerate(shortlist):
+            if not candidate.plausible_candidate(proband):
+                continue
+            log_odds = candidate.log_odds_same(proband, cfg, verbose=verbose)
+            if log_odds > best_log_odds:
+                second_best_log_odds = best_log_odds
+                second_best_idx = best_idx
+                best_idx = idx
+                best_log_odds = log_odds
+            elif log_odds > second_best_log_odds:
+                second_best_idx = idx
+                second_best_log_odds = log_odds
         if verbose:
-            log.info(f"best_log_odds = {best_log_odds}")
-        first_best_idx_in_cand = log_odds.index(best_log_odds)  # candidate winner  # noqa
-        first_best_idx_overall = candidate_indexes[first_best_idx_in_cand]
-        if best_log_odds < cfg.min_log_odds_for_match:
+            log.info(f"max_log_odds = {best_log_odds}; "
+                     f"second_max_log_odds = {second_best_log_odds}")
+
+        best_person = shortlist[best_idx] if best_idx >= 0 else None
+        second_best_person = (
+            shortlist[second_best_idx] if second_best_idx >= 0 else None
+        )
+        winner = best_person
+
+        if not winner:
+            if verbose:
+                log.info("No candidates")
+
+        # Step 2: is the best good enough?
+        elif best_log_odds < cfg.min_log_odds_for_match:
             if verbose:
                 log.info("Best is not good enough")
-            return None, best_log_odds, None, None
-        all_others_must_be_le = best_log_odds - cfg.exceeds_next_best_log_odds
-        next_best_log_odds = MINUS_INFINITY
-        failed = False
-        for i, lo in enumerate(log_odds):
-            if i == first_best_idx_in_cand:  # ignore the candidate winner
-                continue
-            next_best_log_odds = max(next_best_log_odds, lo)
-            if lo > all_others_must_be_le:
-                # Another person has log-odds that are high enough to exclude
-                # a unique match.
-                failed = True
-                if verbose:
-                    log.info(f"Another is too similar, with log odds {lo}")
-                if not scan_everyone:
-                    return (None, best_log_odds, first_best_idx_overall,
-                            next_best_log_odds)
-        if verbose and not failed:
+            winner = None
+
+        # Step 3: is the runner-up too close, so we have >1 match and cannot
+        # decide with sufficient confidence (so must reject)?
+        elif best_log_odds < second_best_log_odds + cfg.exceeds_next_best_log_odds:  # noqa
+            if verbose:
+                log.info(f"Second-best is too close to best")
+            winner = None
+
+        # Step 4: clear-enough winner found.
+        elif verbose:
             log.info("Found a winner")
+
         return (
-            candidates[first_best_idx_in_cand] if not failed else None,
+            winner,
             best_log_odds,
-            first_best_idx_overall,
-            next_best_log_odds
+            second_best_log_odds,
+            best_person,
+            second_best_person
         )
 
     def get_unique_match(self,
@@ -2753,11 +2830,8 @@ class People(object):
         Returns:
             the winner (a :class:`Person`) or ``None``
         """
-        winner, _, _, _ = self.get_unique_match_detailed(
-            proband=proband,
-            cfg=cfg,
-            scan_everyone=False,
-        )
+        winner, _, _, _, _ = self.get_unique_match_detailed(proband=proband,
+                                                            cfg=cfg)
         return winner
 
     def hashed(self, cfg: MatchConfig) -> "People":
@@ -2920,7 +2994,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
     log.warning("Running tests...")
     log.warning("Building test conditions...")
     alice_bcd_unique_2000_add = Person(
-        unique_id=1,
+        original_id=1,
         first_name="Alice",
         middle_names=["Beatrice", "Celia", "Delilah"],
         surname="Rarename",
@@ -2928,7 +3002,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
     )
     alec_bcd_unique_2000_add = Person(
-        unique_id=2,
+        original_id=2,
         first_name="Alec",  # same metaphone as Alice
         middle_names=["Beatrice", "Celia", "Delilah"],
         surname="Rarename",
@@ -2936,7 +3010,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
     )
     bob_bcd_unique_2000_add = Person(
-        unique_id=3,
+        original_id=3,
         first_name="Bob",
         middle_names=["Beatrice", "Celia", "Delilah"],
         surname="Rarename",
@@ -2944,7 +3018,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
     )
     alice_bc_unique_2000_add = Person(
-        unique_id=4,
+        original_id=4,
         first_name="Alice",
         middle_names=["Beatrice", "Celia"],
         surname="Rarename",
@@ -2952,7 +3026,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
     )
     alice_b_unique_2000_add = Person(
-        unique_id=5,
+        original_id=5,
         first_name="Alice",
         middle_names=["Beatrice"],
         surname="Rarename",
@@ -2960,14 +3034,14 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
     )
     alice_jones_2000_add = Person(
-        unique_id=6,
+        original_id=6,
         first_name="Alice",
         surname="Jones",
         dob="2000-01-01",
         postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
     )
     bob_smith_1950_psych = Person(
-        unique_id=7,
+        original_id=7,
         first_name="Bob",
         surname="Smith",
         dob="1950-05-30",
@@ -2975,19 +3049,19 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         # postcodes=["AB12 3CD"]  # nonexistent postcode; will raise
     )
     alice_smith_1930 = Person(
-        unique_id=8,
+        original_id=8,
         first_name="Alice",
         surname="Smith",
         dob="1930-01-01",
     )
     alice_smith_2000 = Person(
-        unique_id=9,
+        original_id=9,
         first_name="Alice",
         surname="Smith",
         dob="2000-01-01",
     )
     alice_smith = Person(
-        unique_id=10,
+        original_id=10,
         first_name="Alice",
         surname="Smith",
     )
@@ -3222,7 +3296,7 @@ def read_people(csv_filename: str, plaintext: bool = True) -> People:
 
 
 # =============================================================================
-# Validation
+# Validation 1
 # =============================================================================
 
 def make_deletion_data(people: People) -> People:
@@ -3311,25 +3385,26 @@ VALIDATION_OUTPUT_COLNAMES = [
     "typos",
 
     "is_hashed",
-    "unique_id",
+    "original_id",
     "winner_id",
     "best_match_id",
     "best_log_odds",
-    "next_best_log_odds",
+    "second_best_log_odds",
+    "second_best_match_id",
 
     "correct_if_winner",
-    "winner_advantage",
+    "leader_advantage",
 ]
 VALIDATION_OUTPUT_CSV_HELP = (
     f"Header row present. Columns: {VALIDATION_OUTPUT_COLNAMES}.")
 
 
-def validate(cfg: MatchConfig,
-             people_csv: str,
-             cache_filename: str,
-             output_csv: str,
-             seed: int = 1234,
-             report_every: int = 100) -> None:
+def validate_1(cfg: MatchConfig,
+               people_csv: str,
+               output_csv: str,
+               cache_filename: str = None,
+               seed: int = 1234,
+               report_every: int = 100) -> None:
     """
     Read data and perform split-half validation.
 
@@ -3345,6 +3420,8 @@ def validate(cfg: MatchConfig,
     # Load and hash data
     # -------------------------------------------------------------------------
     try:
+        if not cache_filename:
+            raise FileNotFoundError
         (
             in_plaintext, out_plaintext,
             in_hashed, out_hashed,
@@ -3353,6 +3430,7 @@ def validate(cfg: MatchConfig,
             in_typos, out_typos,
             in_typos_hashed, out_typos_hashed,
         ) = cache_load(cache_filename)
+        log.info(f"Read from cache: {cache_filename}")
     except FileNotFoundError:
         in_plaintext, out_plaintext = read_people_2(
             people_csv, alternate_groups=True)
@@ -3374,14 +3452,15 @@ def validate(cfg: MatchConfig,
         out_typos_hashed = out_typos.hashed(cfg)
         log.info("... done")
 
-        cache_save(cache_filename, [
-            in_plaintext, out_plaintext,
-            in_hashed, out_hashed,
-            in_deletions, out_deletions,
-            in_deletions_hashed, out_deletions_hashed,
-            in_typos, out_typos,
-            in_typos_hashed, out_typos_hashed,
-        ])
+        if cache_filename:
+            cache_save(cache_filename, [
+                in_plaintext, out_plaintext,
+                in_hashed, out_hashed,
+                in_deletions, out_deletions,
+                in_deletions_hashed, out_deletions_hashed,
+                in_typos, out_typos,
+                in_typos_hashed, out_typos_hashed,
+            ])
     # -------------------------------------------------------------------------
     # Calculate validation data and save it
     # -------------------------------------------------------------------------
@@ -3414,26 +3493,25 @@ def validate(cfg: MatchConfig,
                     log.info(f"... creating CSV row {i}")
                 (winner,
                  best_log_odds,
-                 first_best_index,
-                 next_best_log_odds) = sample.get_unique_match_detailed(
-                    person, cfg, scan_everyone=True)
-                if (next_best_log_odds is not None and
-                        math.isfinite(next_best_log_odds)):
-                    winner_advantage = best_log_odds - next_best_log_odds
-                elif math.isfinite(best_log_odds):
-                    winner_advantage = best_log_odds
+                 second_best_log_odds,
+                 best_person,
+                 second_best_person) = sample.get_unique_match_detailed(person,
+                                                                        cfg)
+
+                if (math.isfinite(best_log_odds) and
+                        math.isfinite(second_best_log_odds)):
+                    leader_advantage = best_log_odds - second_best_log_odds
                 else:
-                    winner_advantage = None
-                best_match = (
-                     people.people[first_best_index]
-                     if first_best_index is not None else None
+                    leader_advantage = None
+
+                best_match_id = (
+                    best_person.original_id if best_person else None
                 )
-                best_match_id = best_match.unique_id if best_match else None
-                if best_match:
-                    correct_if_winner = int(best_match_id ==
-                                            person.unique_id)
-                else:
-                    correct_if_winner = None
+                correct_if_winner = (
+                    int(best_match_id == person.original_id) if winner
+                    else None
+                )
+
                 rowdata = dict(
                     # As of Python 3.6, keyword order is preserved:
                     # https://docs.python.org/3/library/collections.html#collections.OrderedDict  # noqa
@@ -3445,14 +3523,18 @@ def validate(cfg: MatchConfig,
                     typos=int(typos),
 
                     is_hashed=int(person.is_hashed),
-                    unique_id=person.unique_id,
-                    winner_id=winner.unique_id if winner else None,
+                    original_id=person.original_id,
+                    winner_id=winner.original_id if winner else None,
                     best_match_id=best_match_id,
                     best_log_odds=best_log_odds,
-                    next_best_log_odds=next_best_log_odds,
+                    second_best_log_odds=second_best_log_odds,
+                    second_best_match_id=(
+                        second_best_person.original_id if second_best_person
+                        else None
+                    ),
 
                     correct_if_winner=correct_if_winner,
-                    winner_advantage=winner_advantage,
+                    leader_advantage=leader_advantage,
                 )
                 writer.writerow(rowdata)
     log.info("... done")
@@ -3465,7 +3547,7 @@ def validate(cfg: MatchConfig,
 def hash_identity_file(cfg: MatchConfig,
                        input_csv: str,
                        output_csv: str,
-                       include_unique_id: bool = False) -> None:
+                       include_original_id: bool = False) -> None:
     """
     Hash a file of identifiable people to a hashed version.
 
@@ -3476,12 +3558,12 @@ def hash_identity_file(cfg: MatchConfig,
             input (plaintext) CSV filename to read
         output_csv:
             output (hashed) CSV filename to write
-        include_unique_id:
-            include the (potentially identifying) ``unique_id`` data? Usually
+        include_original_id:
+            include the (potentially identifying) ``original_id`` data? Usually
             ``False``; may be ``True`` for validation.
     """
-    if include_unique_id:
-        log.warning("include_unique_id is set -- use this for validation only")
+    if include_original_id:
+        log.warning("include_original_id is set; use this for validation only")
     with open(input_csv, "rt") as infile, open(output_csv, "wt") as outfile:
         reader = csv.DictReader(infile)
         writer = csv.DictWriter(outfile, fieldnames=Person.HASHED_ATTRS)
@@ -3490,7 +3572,7 @@ def hash_identity_file(cfg: MatchConfig,
             plaintext_person = Person.from_plaintext_csv(inputrow)
             hashed_person = plaintext_person.hashed(cfg)
             writer.writerow(hashed_person.hashed_csv_dict(
-                include_unique_id=include_unique_id))
+                include_original_id=include_original_id))
 
 
 # =============================================================================
@@ -3498,15 +3580,18 @@ def hash_identity_file(cfg: MatchConfig,
 # =============================================================================
 
 COMPARISON_OUTPUT_COLNAMES = [
-    "proband_unique_id",
+    "proband_original_id",
     "proband_research_id",
     "matched",
     "log_odds_match",
     "p_match",
-    "log_p_match",
-    "sample_match_unique_id",
+    "sample_match_original_id",
     "sample_match_research_id",
-    "next_best_log_odds",
+    "second_best_log_odds",
+]
+COMPARISON_EXTRA_COLNAMES = [
+    "best_person_original_id",
+    "best_person_research_id",
 ]
 
 
@@ -3515,39 +3600,71 @@ def compare_probands_to_sample(cfg: MatchConfig,
                                sample: People,
                                output_csv: str,
                                report_every: int = 100,
-                               scan_everyone: bool = False) -> None:
+                               extra_validation_output: bool = False) -> None:
     """
     Compares each proband to the sample. Writes to an output file.
 
     Args:
-        cfg: the master :class:`MatchConfig` object.
-        probands: :class:`People`
-        sample: :class:`People`
-        output_csv: output CSV filename
-        report_every: report progress every n probands
-        scan_everyone: ensure runner-details are accurate, not fast
+        cfg:
+            the master :class:`MatchConfig` object.
+        probands:
+            :class:`People`
+        sample:
+            :class:`People`
+        output_csv:
+            output CSV filename
+        report_every:
+            report progress every n probands
+        extra_validation_output:
+            Add extra columns to the output for validation purposes?
+
+    Profiling with 10,000 probands and the exact same people in the sample, on
+    Wombat:
+
+    - Start (2020-04-25, 11:52): 52 seconds for the first 1,000 probands.
+    - next: 50.99. Not much improvement!
+    - multiprocessing didn't help (overheads?)
+    - multithreading didn't help (GIL?)
+    - we remain at about 25.889 seconds per 400 probands within a
+      10k * 10k set
+    - down to 22.5 seconds with DOB shortlisting, and that is with a highly
+      self-similar sample, so that may improve dramatically.
     """
-    log.info("Comparing each proband to sample")
+    log.info(f"Comparing each proband to sample. There are "
+             f"{probands.size()} probands and {sample.size()} in the sample.")
+    colnames = COMPARISON_OUTPUT_COLNAMES
+    if extra_validation_output:
+        colnames += COMPARISON_EXTRA_COLNAMES
     with open(output_csv, "wt") as f:
-        writer = csv.DictWriter(f, fieldnames=COMPARISON_OUTPUT_COLNAMES)
+        writer = csv.DictWriter(f, fieldnames=colnames)
         writer.writeheader()
         for rownum, proband in enumerate(probands.people, start=1):
             if rownum % report_every == 0:
                 log.info(f"Processing proband row {rownum}")
-            match, log_odds, _, next_best_log_odds = \
-                sample.get_unique_match_detailed(proband, cfg,
-                                                 scan_everyone=scan_everyone)
+            # if rownum == 400:  # used during profiling!
+            #     sys.exit(1)
+            (winner,
+             log_odds,
+             second_best_log_odds,
+             best_person,
+             _) = sample.get_unique_match_detailed(proband, cfg)
             rowdata = dict(
-                proband_unique_id=proband.unique_id,
+                proband_original_id=proband.original_id,
                 proband_research_id=proband.research_id,
-                matched=int(bool(match)),
+                matched=int(bool(winner)),
                 log_odds_match=log_odds,
                 p_match=probability_from_log_odds(log_odds),
-                log_p_match=log_probability_from_log_odds(log_odds),
-                sample_match_unique_id=match.unique_id if match else None,
-                sample_match_research_id=match.research_id if match else None,
-                next_best_log_odds=next_best_log_odds,
+                sample_match_original_id=winner.original_id if winner else None,  # noqa
+                sample_match_research_id=winner.research_id if winner else None,  # noqa
+                second_best_log_odds=second_best_log_odds,
             )
+            if extra_validation_output:
+                rowdata["best_person_original_id"] = (
+                    best_person.original_id if best_person else None
+                )
+                rowdata["best_person_research_id"] = (
+                    best_person.research_id if best_person else None
+                )
             writer.writerow(rowdata)
     log.info("... comparisons done.")
 
@@ -3560,29 +3677,45 @@ def compare_probands_to_sample_from_csv(
         probands_plaintext: bool = True,
         sample_plaintext: bool = True,
         sample_cache_filename: str = "",
-        scan_everyone: bool = False) -> None:
+        extra_validation_output: bool = False,
+        profile: bool = False) -> None:
     """
     Compares each of the people in the probands file to the sample file.
 
     Args:
-        cfg: the master :class:`MatchConfig` object.
-        probands_csv: CSV of people (probands); see :func:`read_people`.
-        sample_csv: CSV of people (sample); see :func:`read_people`.
-        output_csv: output CSV filename
-        sample_cache_filename: file in which to cache sample, for speed
-        probands_plaintext: is the probands file plaintext (not hashed)?
-        sample_plaintext: is the sample file plaintext (not hashed)?
-        scan_everyone: ensure runner-details are accurate, not fast
+        cfg:
+            the master :class:`MatchConfig` object.
+        probands_csv:
+            CSV of people (probands); see :func:`read_people`.
+        sample_csv:
+            CSV of people (sample); see :func:`read_people`.
+        output_csv:
+            output CSV filename
+        sample_cache_filename:
+            file in which to cache sample, for speed
+        probands_plaintext:
+            is the probands file plaintext (not hashed)?
+        sample_plaintext:
+            is the sample file plaintext (not hashed)?
+        extra_validation_output:
+            Add extra columns to the output for validation purposes?
+        profile:
+            profile the code?
     """
     # Sample
     log.info("Loading (or caching) sample data")
     if sample_plaintext:
-        assert sample_cache_filename
-        try:
-            (sample, ) = cache_load(sample_cache_filename)
-        except FileNotFoundError:
+        if sample_cache_filename:
+            log.info(f"Using sample cache: {sample_cache_filename}")
+            try:
+                (sample, ) = cache_load(sample_cache_filename)
+            except FileNotFoundError:
+                sample = read_people(sample_csv)
+                cache_save(sample_cache_filename, [sample])
+        else:
+            # You may want to avoid a cache, for security.
+            log.info("No sample cache in use.")
             sample = read_people(sample_csv)
-            cache_save(sample_cache_filename, [sample])
     else:
         sample = read_people(sample_csv, plaintext=False)
 
@@ -3602,13 +3735,55 @@ def compare_probands_to_sample_from_csv(
         log.info("... done")
 
     # Compare
-    compare_probands_to_sample(
+    compare_fn = (do_cprofile(compare_probands_to_sample, sort="cumtime")
+                  if profile else compare_probands_to_sample)
+    compare_fn(
         cfg=cfg,
         probands=probands,
         sample=sample,
         output_csv=output_csv,
-        scan_everyone=scan_everyone,
+        extra_validation_output=extra_validation_output,
     )
+
+
+# =============================================================================
+# Validation 2
+# =============================================================================
+
+def validate_2_fetch_cdl(url: str) -> Generator[Person, None, None]:
+    sql = """
+    """
+
+
+def validate_2_fetch_rio(url: str) -> Generator[Person, None, None]:
+    sql = """
+    
+    SELECT
+        XXX AS original_id,
+        NULL AS research_id,
+        XXX AS first_name,
+        XXX as middle_names,
+    
+    """
+
+
+def save_people_from_db(people: Iterable[Person],
+                        output_csv: str) -> None:
+    """
+    Saves people (in plaintext) from a function that generates them from a
+    database.
+
+    Args:
+        people:
+            iterable of :class:`Person`
+        output_csv:
+            output filename
+    """
+    with open(output_csv, "wt") as f:
+        writer = csv.DictWriter(f, fieldnames=Person.PLAINTEXT_ATTRS)
+        writer.writeheader()
+        for p in people:
+            writer.writerow(p.plaintext_csv_dict())
 
 
 # =============================================================================
@@ -3627,8 +3802,8 @@ HELP_COMPARISON = f"""
     - CSV file with header.
     - Columns: {COMPARISON_OUTPUT_COLNAMES}
 
-      - proband_unique_id
-        Unique (identifiable?) ID of the proband. Taken from the input.
+      - proband_original_id
+        Original (identifiable?) ID of the proband. Taken from the input.
         Optional -- may be blank for de-identified comparisons.
 
       - proband_research_id
@@ -3647,26 +3822,27 @@ HELP_COMPARISON = f"""
       - p_match
         Probability that the winner in the sample is a match.
 
-      - log_p_match
-        ln(p(match)) for the winner in the sample.
-
-      - sample_match_unique_id
-        Unique ID of the "winner" in the sample (the closest match to the
+      - sample_match_original_id
+        Original ID of the "winner" in the sample (the closest match to the
         proband). Optional -- may be blank for de-identified comparisons.
 
       - sample_match_research_id
         Research ID of the winner in the sample.
 
-      - next_best_log_odds
+      - second_best_log_odds
         Log odds of the runner up (the second-closest match) being the same
         person as the proband.
+
+    - If '--extra_validation_output' is used, the following columns are added:
+
+      - best_person_original_id
+        Original ID of the closest-matching person in the sample, EVEN IF THEY
+        DID NOT WIN.
+
+      - best_person_research_id
+        Research ID of the closest-matching person in the sample, EVEN IF THEY
+        DID NOT WIN.
 """
-HELP_SCAN_EVERYONE = (
-    "Ensure the 'runner-up' log odds is accurate by scanning all people. "
-    "This is INEFFICIENT and is only to be used for validation. The default "
-    "is False; in this situation, as soon as a runner-up has been found that "
-    "means that the winner is not a clear winner, we abort, saving time."
-)
 
 
 def main() -> None:
@@ -3896,7 +4072,7 @@ def main() -> None:
     Here's a specimen test CSV file to use, with entirely made-up people and
     institutional (not personal) postcodes in Cambridge:
 
-unique_id,research_id,first_name,middle_names,surname,dob,postcodes
+original_id,research_id,first_name,middle_names,surname,dob,postcodes
 1,r1,Alice,Zara,Smith,1931-01-01,CB2 0QQ
 2,r2,Bob,Yorick,Jones,1932-01-01,CB2 3EB
 3,r3,Celia,Xena,Wright,1933-01-01,CB2 1TP
@@ -3917,17 +4093,23 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
        the probands;
     - 'typos' (boolean) is whether random typos have been made in the
        probands;
+
     - 'is_hashed' (boolean) is whether the proband and sample are hashed;
-    - 'unique_id' is the gold-standard ID of the proband;
-    - 'winner_id' is the ID of the best-matching person in the sample;
+    - 'original_id' is the gold-standard ID of the proband;
+    - 'winner_id' is the ID of the best-matching person in the sample if they
+      were a good enough match to win;
+    - 'best_match_id' is the ID of the best-matching person in the sample;
     - 'best_log_odds' is the calculated log (ln) odds that the proband and the 
       sample member identified by 'winner_id' are the sample person (ideally
       high if there is a true match, low if not);
-    - 'next_best_log_odds' is the calculated log odds of the proband and the
+    - 'second_best_log_odds' is the calculated log odds of the proband and the
       runner-up being the same person (ideally low);
+    - 'second_best_match_id' is the ID of the second-best matching person, if
+      there is one;
+
     - 'correct_if_winner' is whether the proband and winner IDs are te same
       (ideally true);
-    - 'winner_advantage' is the log odds by which the winner beats the
+    - 'leader_advantage' is the log odds by which the winner beats the
       runner-up (ideally high indicating a strong preference for the winner
       over the runner-up).
 
@@ -3939,19 +4121,13 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
         """,
     )
     validate1_parser.add_argument(
-        "--people_csv", type=str,
+        "--people", type=str,
         default=os.path.join(default_names_dir, "fuzzy_validation1_people.csv"),
         help="CSV filename for validation 1 data. " +
              Person.PLAINTEXT_CSV_FORMAT_HELP
     )
     validate1_parser.add_argument(
-        "--people_cache_filename", type=str,
-        default=os.path.join(default_cache_dir,
-                             "fuzzy_validation1_people_cache.pickle"),
-        help="File in which to store cached people info (to speed loading)"
-    )
-    validate1_parser.add_argument(
-        "--output_csv", type=str,
+        "--output", type=str,
         default=os.path.join(default_names_dir,
                              "fuzzy_validation1_output.csv"),
         help="Output CSV file for validation. " + VALIDATION_OUTPUT_CSV_HELP
@@ -3960,6 +4136,69 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
         "--seed", type=int, default=1234,
         help="Random number seed, for introducing deliberate errors in "
              "validation test 1"
+    )
+
+    # -------------------------------------------------------------------------
+    # validate2 and ancillary commands
+    # -------------------------------------------------------------------------
+
+    default_cdl_plaintext = "validate2_cdl_DANGER_IDENTIFIABLE.csv"
+    default_rio_plaintext = "validate2_rio_DANGER_IDENTIFIABLE.csv"
+    default_cdl_hashed = "validate2_cdl_hashed.csv"
+    default_rio_hashed = "validate2_rio_hashed.csv"
+
+    validate2_cdl_parser = subparsers.add_parser(
+        "validate2_fetch_cdl",
+        help="Validation 2A: fetch people from CPFT CDL database",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        description=f"""
+    Validation #2. Sequence:
+    
+    1. Fetch
+    
+    - crate_fuzzy_id_match validate2_fetch_cdl --output {default_cdl_plaintext} --url XXX
+    - crate_fuzzy_id_match validate2_fetch_rio --output {default_rio_plaintext} --url XXX
+
+    2. Hash
+
+    - crate_fuzzy_id_match hash --input {default_cdl_plaintext} --output {default_cdl_hashed} --include_original_id --allow_default_hash_key
+    - crate_fuzzy_id_match hash --input {default_rio_plaintext} --output {default_rio_hashed} --include_original_id --allow_default_hash_key
+
+    3. Compare
+
+    - crate_fuzzy_id_match compare_plaintext --probands {default_cdl_plaintext} --sample {default_rio_plaintext} --output cdl_to_rio_plaintext.csv --extra_validation_output
+    - crate_fuzzy_id_match compare_hashed_to_hashed --probands {default_cdl_hashed} --sample {default_rio_hashed} --output cdl_to_rio_hashed.csv --extra_validation_output
+    - crate_fuzzy_id_match compare_plaintext --probands {default_rio_plaintext} --sample {default_cdl_plaintext} --output rio_to_cdl_plaintext.csv --extra_validation_output
+    - crate_fuzzy_id_match compare_hashed_to_hashed --probands {default_rio_hashed} --sample {default_cdl_hashed} --output rio_to_cdl_hashed.csv --extra_validation_output
+
+        """  # noqa
+    )
+    validate2_cdl_parser.add_argument(
+        "--url", type=str, required=True,
+        help="SQLAlchemy URL for CPFT CDL source (IDENTIFIABLE) database"
+    )
+    validate2_cdl_parser.add_argument(
+        "--output", type=str,
+        default=os.path.join(default_names_dir, default_cdl_plaintext),
+        help="CSV filename for output (plaintext, IDENTIFIABLE) data. " +
+             Person.PLAINTEXT_CSV_FORMAT_HELP
+    )
+
+    validate2_rio_parser = subparsers.add_parser(
+        "validate2_fetch_rio",
+        help="Validation 2B: fetch people from CPFT RiO database",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        description="See validate2_fetch_cdl command."
+    )
+    validate2_rio_parser.add_argument(
+        "--url", type=str, required=True,
+        help="SQLAlchemy URL for CPFT RiO source (IDENTIFIABLE) database"
+    )
+    validate2_rio_parser.add_argument(
+        "--output", type=str,
+        default=os.path.join(default_names_dir, default_rio_plaintext),
+        help="CSV filename for output (plaintext, IDENTIFIABLE) data. " +
+             Person.PLAINTEXT_CSV_FORMAT_HELP
     )
 
     # -------------------------------------------------------------------------
@@ -3987,18 +4226,24 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
              Person.PLAINTEXT_CSV_FORMAT_HELP
     )
     compare_plaintext_parser.add_argument(
-        "--sample_cache", type=str,
-        default=os.path.join(default_cache_dir, "fuzzy_sample_cache.pickle"),
+        "--sample_cache", type=str, default=None,
+        # The cache might contain sensitive information; don't offer it by
+        # default.
         help="File in which to store cached sample info (to speed loading)"
     )
+    # noinspection PyUnresolvedReferences
     compare_plaintext_parser.add_argument(
         "--output", type=str,
         default=os.path.join(default_names_dir, "fuzzy_output_p2p.csv"),
         help="Output CSV file for proband/sample comparison."
     )
     compare_plaintext_parser.add_argument(
-        "--scan_everyone", action="store_true",
-        help=HELP_SCAN_EVERYONE
+        "--extra_validation_output", action="store_true",
+        help="Add extra outpu for validation purposes."
+    )
+    compare_plaintext_parser.add_argument(
+        "--profile", action="store_true",
+        help="Profile the code (for development only)."
     )
 
     # -------------------------------------------------------------------------
@@ -4032,8 +4277,8 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
              Person.HASHED_CSV_FORMAT_HELP
     )
     hash_parser.add_argument(
-        "--include_unique_id", action="store_true",
-        help="Include the (potentially identifying) 'unique_id' data? "
+        "--include_original_id", action="store_true",
+        help="Include the (potentially identifying) 'original_id' data? "
              "Usually False; may be set to True for validation."
     )
 
@@ -4067,8 +4312,12 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
         help="Output CSV file for proband/sample comparison."
     )
     compare_h2h_parser.add_argument(
-        "--scan_everyone", action="store_true",
-        help=HELP_SCAN_EVERYONE
+        "--extra_validation_output", action="store_true",
+        help="Add extra outpu for validation purposes."
+    )
+    compare_h2h_parser.add_argument(
+        "--profile", action="store_true",
+        help="Profile the code (for development only)."
     )
 
     # -------------------------------------------------------------------------
@@ -4098,18 +4347,24 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
              Person.PLAINTEXT_CSV_FORMAT_HELP
     )
     compare_h2p_parser.add_argument(
-        "--sample_cache", type=str,
-        default=os.path.join(default_cache_dir, "fuzzy_sample_cache.pickle"),
+        "--sample_cache", type=str, default=None,
+        # The cache might contain sensitive information; don't offer it by
+        # default.
         help="File in which to store cached sample info (to speed loading)"
     )
+    # noinspection PyUnresolvedReferences
     compare_h2p_parser.add_argument(
         "--output", type=str,
         default=os.path.join(default_names_dir, "fuzzy_output_h2p.csv"),
         help="Output CSV file for proband/sample comparison."
     )
     compare_h2p_parser.add_argument(
-        "--scan_everyone", action="store_true",
-        help=HELP_SCAN_EVERYONE
+        "--extra_validation_output", action="store_true",
+        help="Add extra outpu for validation purposes."
+    )
+    compare_h2p_parser.add_argument(
+        "--profile", action="store_true",
+        help="Profile the code (for development only)."
     )
 
     # -------------------------------------------------------------------------
@@ -4181,14 +4436,25 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
 
     elif args.command == "validate1":
         log.info("Running validation test 1.")
-        validate(
+        validate_1(
             cfg,
-            people_csv=args.people_csv,
-            cache_filename=args.people_cache_filename,
-            output_csv=args.output_csv,
+            people_csv=args.people,
+            output_csv=args.output,
             seed=args.seed,
         )
         log.warning("Validation test 1 complete.")
+
+    elif args.command == "validate2_fetch_cdl":
+        save_people_from_db(
+            people=validate_2_fetch_cdl(url=args.url),
+            output_csv=args.output,
+        )
+
+    elif args.command == "validate2_fetch_rio":
+        save_people_from_db(
+            people=validate_2_fetch_rio(url=args.url),
+            output_csv=args.output,
+        )
 
     elif args.command == "hash":
         warn_if_default_key()
@@ -4196,7 +4462,7 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
         hash_identity_file(cfg=cfg,
                            input_csv=args.input,
                            output_csv=args.output,
-                           include_unique_id=args.include_unique_id)
+                           include_original_id=args.include_original_id)
         log.info(f"... finished; written to {args.output}")
 
     elif args.command == "compare_plaintext":
@@ -4211,7 +4477,8 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
             probands_plaintext=True,
             sample_plaintext=True,
             sample_cache_filename=args.sample_cache,
-            scan_everyone=args.scan_everyone,
+            extra_validation_output=args.extra_validation_output,
+            profile=args.profile,
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
@@ -4226,7 +4493,8 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
             output_csv=args.output,
             probands_plaintext=False,
             sample_plaintext=False,
-            scan_everyone=args.scan_everyone,
+            extra_validation_output=args.extra_validation_output,
+            profile=args.profile,
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
@@ -4243,7 +4511,8 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
             probands_plaintext=False,
             sample_plaintext=True,
             sample_cache_filename=args.sample_cache,
-            scan_everyone=args.scan_everyone,
+            extra_validation_output=args.extra_validation_output,
+            profile=args.profile,
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
