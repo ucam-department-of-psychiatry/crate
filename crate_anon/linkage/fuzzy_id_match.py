@@ -192,9 +192,9 @@ proband is named Alice (is, in fact, the only Alice).
 +---------------+---------------------------+-------------------------------+
 | Sample member | Alice                     | Bob                           |
 +---------------+---------------------------+-------------------------------+
-| P(H)          | :math:`\frac{1}{2}`                                       |
+| P(H)          | :math:`\frac{1}{2}`       | :math:`\frac{1}{2}`           |
 +---------------+-----------------------------------------------------------+
-| odds(H)       | :math:`\frac{1}{1}`                                       |
+| odds(H)       | :math:`\frac{1}{1}`       | :math:`\frac{1}{1}`           |
 +---------------+---------------------------+-------------------------------+
 | P(D | H)      | 1                         | 0                             |
 +---------------+---------------------------+-------------------------------+
@@ -222,9 +222,9 @@ one of the Alices.
 +---------------+---------------------------+-------------------------------+
 | Sample member | Alice                     | Bob                           |
 +---------------+---------------------------+-------------------------------+
-| P(H)          | :math:`\frac{1}{100}`                                     |
+| P(H)          | :math:`\frac{1}{100}`     | :math:`\frac{1}{100}`         |
 +---------------+-----------------------------------------------------------+
-| odds(H)       | :math:`\frac{1}{99}`                                      |
+| odds(H)       | :math:`\frac{1}{99}`      | :math:`\frac{1}{99}`          |
 +---------------+---------------------------+-------------------------------+
 | P(D | H)      | 1                         | 0                             |
 +---------------+---------------------------+-------------------------------+
@@ -255,9 +255,9 @@ the Alices.
 +---------------+---------------------------+-------------------------------+
 | Sample member | Alice 1                   | Alice 2                       |
 +---------------+---------------------------+-------------------------------+
-| P(H)          | :math:`\frac{1}{100}`                                     |
+| P(H)          | :math:`\frac{1}{100}`     | :math:`\frac{1}{100}`         |
 +---------------+-----------------------------------------------------------+
-| odds(H)       | :math:`\frac{1}{99}`                                      |
+| odds(H)       | :math:`\frac{1}{99}`      | :math:`\frac{1}{99}`          |
 +---------------+---------------------------+-------------------------------+
 | P(D | H)      | 1                         | 1                             |
 +---------------+---------------------------+-------------------------------+
@@ -282,9 +282,9 @@ Alice, calling it **0.001** (rather than the correct value of approximately
 +---------------+---------------------------+-------------------------------+
 | Sample member | Alice 1                   | Alice 2                       |
 +---------------+---------------------------+-------------------------------+
-| P(H)          | :math:`\frac{1}{100}`                                     |
+| P(H)          | :math:`\frac{1}{100}`     | :math:`\frac{1}{100}`         |
 +---------------+-----------------------------------------------------------+
-| odds(H)       | :math:`\frac{1}{99}`                                      |
+| odds(H)       | :math:`\frac{1}{99}`      | :math:`\frac{1}{99}`          |
 +---------------+---------------------------+-------------------------------+
 | P(D | H)      | 1                         | 1                             |
 +---------------+---------------------------+-------------------------------+
@@ -545,8 +545,8 @@ postcode sector? Smaller, I think.
   that postcode sectors must be larger.
 
 
-Validation strategy
--------------------
+Validation strategy 1
+---------------------
 
 - Create a collection of people from a real data set with the following
   details:
@@ -582,7 +582,7 @@ Validation strategy
 - Then, repeat these with "typos" or "deletions".
 
   - No point in surname or DOB typo as our rule excludes that.
-
+  
 
 Speed
 -----
@@ -626,6 +626,58 @@ match). So realistically ``c = 10`` or thereabouts.
     target <- 60 * 60  # target time: 1 hour = 3600 seconds
     errfunc <- function(n) { (t(n) - target) ^ 2 }  # function giving error
     result <- optim(par=50, fn=errfunc)  # minimize error, start n=50; gives 26825
+
+
+Validation strategy 2
+---------------------
+
+CPFT provides a helpful natural experiment. The CRS/CDL database (2005-12) and
+the RiO database (approximately 2013-) both contain name, DOB, and address
+information, and for the vast majority of people, NHS numbers. NHS numbers,
+which are also checksummed (and matched to NHS Spine records) represent a
+ground truth. Names (etc.) might have some typographical errors in (we hope
+this is rare).
+
+Some may have been either auto-copied or manually copied when RiO launched;
+this was "active patients plus those seen in the preceding 6 months". Others
+will have been entered later; for those e.g. in CDL in 2007, discharged then,
+and re-assessed in 2015, they will have been re-entered manually. So there is
+potential for some typographical mismatch but NHS number match.
+
+Strategy, then:
+
+- Approvals -- via the CPFT Research Database Oversight Committee, to run this
+  process without a human seeing identifiable data.
+  
+- Security -- this is particularly sensitive; no medical data is involved but
+  it does involve direct patient identifiers, which must not be seen by a human
+  (unless that human has clinical administrative authority to handle such data)
+  and must be kept separate from de-identified research data, and secure.
+
+- From the CDL source material, extract name/DOB/postcode information, plus
+  NHS number as the identifiable "unique_id" (and a hashed version as
+  "research_id") into ``people_cdl.csv``. Restrict to people with an NHS number
+  present.
+  
+- Extract the same sort of information from RiO into ``people_rio.csv``.
+
+- Perform virtual linkages between CDL/RiO:
+
+  - Plaintext CDL to plaintext RiO. This tests the core matching algorithm.
+    How does the accuracy of matching on name/DOB/postcode compare to the gold
+    standard of matching on NHS number (or hashed equivalent)?
+  
+  - Hashed CDL to hashed RiO, similarly; this tests the hashed equivalent.
+  
+  - Run all virtual comparisons with the ``--scan_everyone`` option, so that
+    the "runner-up" log odds is accurate (rather than efficient).
+    
+  - CDL as proband and RiO as sample, or vice versa, or both?
+  *** BIDIRECTIONAL COMPARISONS?
+
+- Comparisons of interest for validation:
+
+  - Compare ROC (etc.) for the plaintext and the hashed comparison.
 
 
 ===============================================================================
@@ -3462,7 +3514,8 @@ def compare_probands_to_sample(cfg: MatchConfig,
                                probands: People,
                                sample: People,
                                output_csv: str,
-                               report_every: int = 100) -> None:
+                               report_every: int = 100,
+                               scan_everyone: bool = False) -> None:
     """
     Compares each proband to the sample. Writes to an output file.
 
@@ -3472,6 +3525,7 @@ def compare_probands_to_sample(cfg: MatchConfig,
         sample: :class:`People`
         output_csv: output CSV filename
         report_every: report progress every n probands
+        scan_everyone: ensure runner-details are accurate, not fast
     """
     log.info("Comparing each proband to sample")
     with open(output_csv, "wt") as f:
@@ -3481,7 +3535,8 @@ def compare_probands_to_sample(cfg: MatchConfig,
             if rownum % report_every == 0:
                 log.info(f"Processing proband row {rownum}")
             match, log_odds, _, next_best_log_odds = \
-                sample.get_unique_match_detailed(proband, cfg)
+                sample.get_unique_match_detailed(proband, cfg,
+                                                 scan_everyone=scan_everyone)
             rowdata = dict(
                 proband_unique_id=proband.unique_id,
                 proband_research_id=proband.research_id,
@@ -3504,7 +3559,8 @@ def compare_probands_to_sample_from_csv(
         output_csv: str,
         probands_plaintext: bool = True,
         sample_plaintext: bool = True,
-        sample_cache_filename: str = "") -> None:
+        sample_cache_filename: str = "",
+        scan_everyone: bool = False) -> None:
     """
     Compares each of the people in the probands file to the sample file.
 
@@ -3516,6 +3572,7 @@ def compare_probands_to_sample_from_csv(
         sample_cache_filename: file in which to cache sample, for speed
         probands_plaintext: is the probands file plaintext (not hashed)?
         sample_plaintext: is the sample file plaintext (not hashed)?
+        scan_everyone: ensure runner-details are accurate, not fast
     """
     # Sample
     log.info("Loading (or caching) sample data")
@@ -3549,7 +3606,8 @@ def compare_probands_to_sample_from_csv(
         cfg=cfg,
         probands=probands,
         sample=sample,
-        output_csv=output_csv
+        output_csv=output_csv,
+        scan_everyone=scan_everyone,
     )
 
 
@@ -3603,6 +3661,12 @@ HELP_COMPARISON = f"""
         Log odds of the runner up (the second-closest match) being the same
         person as the proband.
 """
+HELP_SCAN_EVERYONE = (
+    "Ensure the 'runner-up' log odds is accurate by scanning all people. "
+    "This is INEFFICIENT and is only to be used for validation. The default "
+    "is False; in this situation, as soon as a runner-up has been found that "
+    "means that the winner is not a clear winner, we abort, saving time."
+)
 
 
 def main() -> None:
@@ -3932,6 +3996,10 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
         default=os.path.join(default_names_dir, "fuzzy_output_p2p.csv"),
         help="Output CSV file for proband/sample comparison."
     )
+    compare_plaintext_parser.add_argument(
+        "--scan_everyone", action="store_true",
+        help=HELP_SCAN_EVERYONE
+    )
 
     # -------------------------------------------------------------------------
     # hash command
@@ -3998,6 +4066,10 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
         default=os.path.join(default_names_dir, "fuzzy_output_h2h.csv"),
         help="Output CSV file for proband/sample comparison."
     )
+    compare_h2h_parser.add_argument(
+        "--scan_everyone", action="store_true",
+        help=HELP_SCAN_EVERYONE
+    )
 
     # -------------------------------------------------------------------------
     # compare_hashed_to_plaintext command
@@ -4034,6 +4106,10 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
         "--output", type=str,
         default=os.path.join(default_names_dir, "fuzzy_output_h2p.csv"),
         help="Output CSV file for proband/sample comparison."
+    )
+    compare_h2p_parser.add_argument(
+        "--scan_everyone", action="store_true",
+        help=HELP_SCAN_EVERYONE
     )
 
     # -------------------------------------------------------------------------
@@ -4135,6 +4211,7 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
             probands_plaintext=True,
             sample_plaintext=True,
             sample_cache_filename=args.sample_cache,
+            scan_everyone=args.scan_everyone,
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
@@ -4149,6 +4226,7 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
             output_csv=args.output,
             probands_plaintext=False,
             sample_plaintext=False,
+            scan_everyone=args.scan_everyone,
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
@@ -4165,6 +4243,7 @@ unique_id,research_id,first_name,middle_names,surname,dob,postcodes
             probands_plaintext=False,
             sample_plaintext=True,
             sample_cache_filename=args.sample_cache,
+            scan_everyone=args.scan_everyone,
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
