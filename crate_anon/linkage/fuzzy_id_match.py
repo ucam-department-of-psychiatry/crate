@@ -712,8 +712,10 @@ import argparse
 from collections import Counter, defaultdict
 import copy
 import csv
+from itertools import cycle
 import logging
 import math
+from multiprocessing import cpu_count, Pool
 import os
 import pdb
 import pickle
@@ -721,6 +723,7 @@ import random
 import re
 import string
 import sys
+import time
 import timeit
 from typing import (
     Any, Dict, Generator, Iterable, List, Optional, Set, Tuple,
@@ -762,8 +765,10 @@ log = logging.getLogger(__name__)
 
 dmeta = DMetaphone()
 
+CPU_COUNT = cpu_count()
 DAYS_PER_YEAR = 365.25  # approximately!
 DEFAULT_HASH_KEY = "fuzzy_id_match_default_hash_key_DO_NOT_USE_FOR_LIVE_DATA"
+DEFAULT_MAX_CHUNKSIZE = 500
 HIGHDEBUG = 15  # in between logging.DEBUG (10) and logging.INFO (20)
 MINUS_INFINITY = -math.inf
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -1118,14 +1123,14 @@ class FullOrPartialComparison(Comparison):
 
 def bayes_compare(prior_log_odds: float,
                   comparisons: Iterable[Optional[Comparison]],
-                  verbose: bool = False) -> float:
+                  debug: bool = False) -> float:
     """
     Works through multiple comparisons and returns posterior log odds.
 
     Args:
         prior_log_odds: prior log odds
         comparisons: an iterable of :class:`Comparison` objects
-        verbose: be verbose?
+        debug: be verbose?
 
     Returns:
         float: posterior log odds
@@ -1135,7 +1140,7 @@ def bayes_compare(prior_log_odds: float,
         if comparison is None:
             continue
         next_log_odds = comparison.posterior_log_odds(log_odds)
-        if verbose:
+        if debug:
             if next_log_odds > log_odds:
                 change = "more likely"
             elif next_log_odds < log_odds:
@@ -1855,6 +1860,7 @@ class Person(object):
         self.postcode_sector_frequencies = postcode_sector_frequencies or []
 
         # Validation:
+        assert self.original_id or self.research_id
         if is_hashed:
             # hashed
             assert (
@@ -2171,24 +2177,24 @@ class Person(object):
         )
 
     def log_odds_same(self, other: "Person", cfg: MatchConfig,
-                      verbose: bool = False) -> float:
+                      debug: bool = False) -> float:
         """
         Returns the log odds that ``self`` and ``other`` are the same person.
 
         Args:
             other: another :class:`Person` object
             cfg: the master :class:`MatchConfig` object
-            verbose: be verbose?
+            debug: be verbose?
 
         Returns:
             float: the log odds they're the same person
         """
-        if verbose:
+        if debug:
             log.debug(f"Comparing self={self}; other={other}")
         return bayes_compare(
             prior_log_odds=cfg.baseline_log_odds_same_person,
             comparisons=self._gen_comparisons(other, cfg),
-            verbose=verbose
+            debug=debug
         )
 
     # -------------------------------------------------------------------------
@@ -2651,6 +2657,67 @@ class Person(object):
 
 
 # =============================================================================
+# Result of a match attempt
+# =============================================================================
+
+class MatchResult(object):
+    """
+    Result of a comparison between a proband (person) and a sample (group of
+    people).
+    """
+    def __init__(self,
+                 winner: Person = None,
+                 best_log_odds: float = MINUS_INFINITY,
+                 second_best_log_odds: float = MINUS_INFINITY,
+                 best_person: Person = None,
+                 second_best_person: Person = None,
+                 proband: Person = None):
+        """
+        Args:
+            winner:
+                The person in the sample who matches the proband, if there is
+                a winner by our rules; ``None`` if there is no winner.
+            best_log_odds:
+                Natural log odds of the best candidate being the same as the
+                proband, –∞ if there are no candidates
+            second_best_log_odds:
+                The log odds of the closest other contender, which may be  –∞.
+            best_person:
+                The person in the sample who is the closest match to the
+                proband. May be ``None``. If there is a winner, this is also
+                the best person -- but the best person may not be the winner
+                (if they are not likely enough, or if there is another close
+                contender).
+            second_best_person:
+                The runner-up (second-best) person, or ``None``.
+            proband:
+                The proband used for the comparison. (Helpful for parallel
+                processing.)
+        """
+        self.winner = winner
+        self.best_log_odds = best_log_odds
+        self.second_best_log_odds = second_best_log_odds
+        self.best_person = best_person
+        self.second_best_person = second_best_person
+        self.proband = proband
+
+    @property
+    def matched(self) -> bool:
+        return self.winner is not None
+
+    def __repr__(self) -> str:
+        attrs = [
+            f"winner={self.winner}",
+            f"best_log_odds={self.best_log_odds}",
+            f"second_best_log_odds={self.second_best_log_odds}",
+            f"best_person={self.best_person}",
+            f"second_best_person={self.second_best_person}",
+            f"proband={self.proband}",
+        ]
+        return f"MatchResult({', '.join(attrs)}"
+
+
+# =============================================================================
 # People: a collection of Person objects
 # =============================================================================
 # Try staring at the word "people" for a while and watch it look odd...
@@ -2718,9 +2785,7 @@ class People(object):
 
     def get_unique_match_detailed(self,
                                   proband: Person,
-                                  cfg: MatchConfig) \
-            -> Tuple[Optional[Person], float, float,
-                     Optional[Person], Optional[Person]]:
+                                  cfg: MatchConfig) -> MatchResult:
         """
         Returns a single person matching the proband, or ``None`` if there is
         no match (as defined by the probability settings in ``cfg``).
@@ -2728,26 +2793,8 @@ class People(object):
         Args:
             proband: a :class:`Person`
             cfg: the master :class:`MatchConfig` object
-
-        Returns:
-            tuple:
-                winner (:class:`Person`),
-                best_log_odds (float),
-                second_best_log_odds (float),
-                best_person (:class:`Person`),
-                second_best_person (:class:`Person`)
-
-        Note that:
-
-        - ``winner`` will be ``None`` if there is no winner
-        - ``best_log_odds`` is the log odds of the best candidate (the winner,
-          if it passes a threshold test), or –∞ if there are no candidates
-        - ``second_best_log_odds`` will be the log odds of the closest other
-          contender, which may be  –∞
         """
         verbose = self.verbose
-        if verbose:
-            log.info(f"{len(self.people)} in the sample to be considered")
 
         # 2020-04-25: Do this in one pass.
         # A bit like
@@ -2757,6 +2804,7 @@ class People(object):
 
         # Step 1. Scan everything in a single pass, establishing the winner
         # and the runner-up.
+        # log.info("hello")
         best_idx = -1
         second_best_idx = -1
         best_log_odds = MINUS_INFINITY
@@ -2764,11 +2812,12 @@ class People(object):
         shortlist = self.shortlist(proband)
         if verbose:
             txt_shortlist = "; ".join(str(x) for x in shortlist)
-            log.warning(f"Proband: {proband}. Shortlist: {txt_shortlist}")
+            log.debug(f"Proband: {proband}. Sample size: {len(self.people)}. "
+                      f"Shortlist ({len(shortlist)}): {txt_shortlist}")
         for idx, candidate in enumerate(shortlist):
             if not candidate.plausible_candidate(proband):
                 continue
-            log_odds = candidate.log_odds_same(proband, cfg, verbose=verbose)
+            log_odds = candidate.log_odds_same(proband, cfg)
             if log_odds > best_log_odds:
                 second_best_log_odds = best_log_odds
                 second_best_idx = best_idx
@@ -2777,44 +2826,48 @@ class People(object):
             elif log_odds > second_best_log_odds:
                 second_best_idx = idx
                 second_best_log_odds = log_odds
-        if verbose:
-            log.info(f"max_log_odds = {best_log_odds}; "
-                     f"second_max_log_odds = {second_best_log_odds}")
 
-        best_person = shortlist[best_idx] if best_idx >= 0 else None
-        second_best_person = (
-            shortlist[second_best_idx] if second_best_idx >= 0 else None
+        result = MatchResult(
+            best_log_odds=best_log_odds,
+            second_best_log_odds=second_best_log_odds,
+            best_person=shortlist[best_idx] if best_idx >= 0 else None,
+            second_best_person=(
+                shortlist[second_best_idx] if second_best_idx >= 0 else None
+            ),
+            proband=proband,
         )
-        winner = best_person
+        result.winner = result.best_person
 
-        if not winner:
+        if not result.winner:
             if verbose:
-                log.info("No candidates")
+                log.debug("No candidates")
 
         # Step 2: is the best good enough?
         elif best_log_odds < cfg.min_log_odds_for_match:
             if verbose:
-                log.info("Best is not good enough")
-            winner = None
+                log.debug("Best is not good enough")
+            result.winner = None
 
         # Step 3: is the runner-up too close, so we have >1 match and cannot
         # decide with sufficient confidence (so must reject)?
         elif best_log_odds < second_best_log_odds + cfg.exceeds_next_best_log_odds:  # noqa
             if verbose:
-                log.info(f"Second-best is too close to best")
-            winner = None
+                log.debug(f"Second-best is too close to best")
+            result.winner = None
 
         # Step 4: clear-enough winner found.
         elif verbose:
-            log.info("Found a winner")
+            log.debug("Found a winner")
 
-        return (
-            winner,
-            best_log_odds,
-            second_best_log_odds,
-            best_person,
-            second_best_person
-        )
+        if verbose:
+            log.debug(repr(result))
+        return result
+
+    def get_unique_match_detailed_single_param(
+            self,
+            proband_cfg: Tuple[Person, MatchConfig]) -> MatchResult:
+        proband, cfg = proband_cfg
+        return self.get_unique_match_detailed(proband, cfg)
 
     def get_unique_match(self,
                          proband: Person,
@@ -2830,9 +2883,8 @@ class People(object):
         Returns:
             the winner (a :class:`Person`) or ``None``
         """
-        winner, _, _, _, _ = self.get_unique_match_detailed(proband=proband,
-                                                            cfg=cfg)
-        return winner
+        result = self.get_unique_match_detailed(proband=proband, cfg=cfg)
+        return result.winner
 
     def hashed(self, cfg: MatchConfig) -> "People":
         """
@@ -2883,7 +2935,7 @@ class TestCondition(object):
             float: the log odds that they are the same person
         """
         return self.person_a.log_odds_same(self.person_b, self.cfg,
-                                           verbose=self.debug)
+                                           debug=self.debug)
 
     def log_odds_same_hashed(self) -> float:
         """
@@ -2893,7 +2945,7 @@ class TestCondition(object):
             float: the log odds that they are the same person
         """
         return self.hashed_a.log_odds_same(self.hashed_b, self.cfg,
-                                           verbose=self.debug)
+                                           debug=self.debug)
 
     def matches_plaintext(self) -> Tuple[bool, float]:
         """
@@ -2972,6 +3024,264 @@ class TestCondition(object):
             )
             log.critical(msg)
             raise AssertionError(msg)
+
+
+# =============================================================================
+# Comparing people
+# =============================================================================
+
+COMPARISON_OUTPUT_COLNAMES = [
+    "proband_original_id",
+    "proband_research_id",
+    "matched",
+    "log_odds_match",
+    "p_match",
+    "sample_match_original_id",
+    "sample_match_research_id",
+    "second_best_log_odds",
+]
+COMPARISON_EXTRA_COLNAMES = [
+    "best_person_original_id",
+    "best_person_research_id",
+]
+
+
+def compare_probands_to_sample(cfg: MatchConfig,
+                               probands: People,
+                               sample: People,
+                               output_csv: str,
+                               report_every: int = 100,
+                               extra_validation_output: bool = False,
+                               n_workers: int = CPU_COUNT,
+                               max_chunksize: int = 100) -> None:
+    """
+    Compares each proband to the sample. Writes to an output file.
+
+    Args:
+        cfg:
+            the master :class:`MatchConfig` object.
+        probands:
+            :class:`People`
+        sample:
+            :class:`People`
+        output_csv:
+            output CSV filename
+        report_every:
+            report progress every n probands
+        extra_validation_output:
+            Add extra columns to the output for validation purposes?
+        n_workers:
+            Number of parallel processes to use.
+        max_chunksize:
+            Maximum chunksize for parallel processing.
+
+    Profiling with 10,000 probands and the exact same people in the sample, on
+    Wombat:
+
+    - Start (2020-04-25, 11:52): 52 seconds for the first 1,000 probands.
+    - next: 50.99. Not much improvement!
+    - multiprocessing didn't help (overheads?)
+    - multithreading didn't help (GIL?)
+    - we remain at about 25.889 seconds per 400 probands within a
+      10k * 10k set (= 15 probands/sec).
+    - down to 22.5 seconds with DOB shortlisting, and that is with a highly
+      self-similar sample, so that may improve dramatically.
+    - retried multithreading with ThreadPoolExecutor: 20.9 seconds for 400,
+      compared to 23.58 with single-threading; pretty minimal difference.
+    - retried multiprocessing with ProcessPoolExecutor: maybe 2/8 cores at high
+      usage at any given time? Not properly profiled.
+    - then with multiprocessing.Pool...
+
+      - https://stackoverflow.com/questions/18671528/processpoolexecutor-from-concurrent-futures-way-slower-than-multiprocessing-pool
+      - https://helpful.knobs-dials.com/index.php/Python_usage_notes/Multiprocessing_notes
+      - slow, but then added ``chunksize = n_probands // n_workers`` (I think
+        it's the interprocess communication/setup that is slow)...
+        
+      - 147.168 seconds -- but for all 10k rows, so that is equivalent to
+        5.88 seconds for 400, and much better.
+      - Subsequently reached 111.8 s for 10k probands (and 10k sample),
+        for 89 probands/sec.
+
+    - This is an O(n^2) algorithm, in that its time grows linearly with the
+      number of probands to check, and with the number of sample members to
+      check against -- though on average at 1/365 the gradient for the 
+      latter, since we use birthday prefiltering.
+        
+    """  # noqa
+    def process_result(r: MatchResult) -> None:
+        # Uses "rownum" and "writer" from outer scope.
+        nonlocal rownum
+        rownum += 1
+        if rownum % report_every == 0:
+            log.info(f"Processing result {rownum}/{n_probands}")
+        p = r.proband
+        w = r.winner
+        matched = r.matched
+        rowdata = dict(
+            proband_original_id=p.original_id,
+            proband_research_id=p.research_id,
+            matched=int(matched),
+            log_odds_match=r.best_log_odds,
+            p_match=probability_from_log_odds(r.best_log_odds),
+            sample_match_original_id=w.original_id if matched else None,
+            sample_match_research_id=w.research_id if matched else None,
+            second_best_log_odds=r.second_best_log_odds,
+        )
+        if extra_validation_output:
+            best_person = r.best_person
+            rowdata["best_person_original_id"] = (
+                best_person.original_id if best_person else None
+            )
+            rowdata["best_person_research_id"] = (
+                best_person.research_id if best_person else None
+            )
+        writer.writerow(rowdata)
+
+    parallel = n_workers > 1
+    n_probands = probands.size()
+    log.info(f"Comparing each proband to sample. There are "
+             f"{n_probands} probands and {sample.size()} in the sample.")
+    colnames = COMPARISON_OUTPUT_COLNAMES
+    if extra_validation_output:
+        colnames += COMPARISON_EXTRA_COLNAMES
+    rownum = 0
+    time_start = time.time()
+    with open(output_csv, "wt") as f:
+        writer = csv.DictWriter(f, fieldnames=colnames)
+        writer.writeheader()
+
+        if parallel:
+            chunksize = min(n_probands // n_workers, max_chunksize)
+            log.info(f"Using parallel processing with {n_workers} workers and "
+                     f"maximum chunk size of {max_chunksize}.")
+
+            # This is slow:
+            #
+            # executor = ProcessPoolExecutor(max_workers=max_workers)
+            # for result in executor.map(sample.get_unique_match_detailed,
+            #                            probands.people,
+            #                            cycle([cfg])):
+            #     process_result(result)
+            #
+            # This doesn't work as you can't pickle a local function:
+            #
+            # with Pool(processes=n_workers) as pool:
+            #     for result in pool.imap_unordered(  # one arg per call
+            #             make_result,  # local function
+            #             probands.people,
+            #             chunksize=chunksize):
+            #         process_result(result)
+            #
+            # This is fine, though it only collects results at the end:
+            # with Pool(processes=n_workers) as pool:
+            #     for result in pool.starmap(  # many args
+            #             sample.get_unique_match_detailed,
+            #             zip(probands.people, cycle([cfg])),
+            #             chunksize=chunksize):
+            #         process_result(result)
+
+            with Pool(processes=n_workers) as pool:
+                for result in pool.imap_unordered(  # one arg per call
+                        sample.get_unique_match_detailed_single_param,
+                        zip(probands.people, cycle([cfg])),  # tuple arg
+                        chunksize=chunksize):
+                    process_result(result)
+
+        else:
+            log.info("Not using parallel processing.")
+            for rownum, proband in enumerate(probands.people, start=1):
+                result = sample.get_unique_match_detailed(proband, cfg)
+                process_result(result)
+
+    time_end = time.time()
+    total_dur = time_end - time_start
+
+    log.info(f"... comparisons done. Time taken: {total_dur} s")
+
+
+def compare_probands_to_sample_from_csv(
+        cfg: MatchConfig,
+        probands_csv: str,
+        sample_csv: str,
+        output_csv: str,
+        probands_plaintext: bool = True,
+        sample_plaintext: bool = True,
+        sample_cache_filename: str = "",
+        extra_validation_output: bool = False,
+        profile: bool = False,
+        n_workers: int = CPU_COUNT,
+        max_chunksize: int = DEFAULT_MAX_CHUNKSIZE) -> None:
+    """
+    Compares each of the people in the probands file to the sample file.
+
+    Args:
+        cfg:
+            the master :class:`MatchConfig` object.
+        probands_csv:
+            CSV of people (probands); see :func:`read_people`.
+        sample_csv:
+            CSV of people (sample); see :func:`read_people`.
+        output_csv:
+            output CSV filename
+        sample_cache_filename:
+            file in which to cache sample, for speed
+        probands_plaintext:
+            is the probands file plaintext (not hashed)?
+        sample_plaintext:
+            is the sample file plaintext (not hashed)?
+        extra_validation_output:
+            Add extra columns to the output for validation purposes?
+        profile:
+            profile the code?
+        n_workers:
+            Number of parallel processes to use.
+        max_chunksize:
+            Maximum chunksize for parallel processing.
+    """
+    # Sample
+    log.info("Loading (or caching) sample data")
+    if sample_plaintext:
+        if sample_cache_filename:
+            log.info(f"Using sample cache: {sample_cache_filename}")
+            try:
+                (sample, ) = cache_load(sample_cache_filename)
+            except FileNotFoundError:
+                sample = read_people(sample_csv)
+                cache_save(sample_cache_filename, [sample])
+        else:
+            # You may want to avoid a cache, for security.
+            log.info("No sample cache in use.")
+            sample = read_people(sample_csv)
+    else:
+        sample = read_people(sample_csv, plaintext=False)
+
+    # Probands
+    log.info("Loading proband data")
+    probands = read_people(probands_csv, plaintext=probands_plaintext)
+
+    # Ensure they are comparable
+    if sample_plaintext and not probands_plaintext:
+        log.info("Hashing sample...")
+        sample = sample.hashed(cfg)
+        log.info("... done")
+    elif probands_plaintext and not sample_plaintext:
+        log.warning("Odd: comparing plaintext probands to hashed sample!")
+        log.info("Hashing probands...")
+        probands = probands.hashed(cfg)
+        log.info("... done")
+
+    # Compare
+    compare_fn = (do_cprofile(compare_probands_to_sample, sort="cumtime")
+                  if profile else compare_probands_to_sample)
+    compare_fn(
+        cfg=cfg,
+        probands=probands,
+        sample=sample,
+        output_csv=output_csv,
+        extra_validation_output=extra_validation_output,
+        n_workers=n_workers,
+        max_chunksize=max_chunksize
+    )
 
 
 # =============================================================================
@@ -3491,24 +3801,21 @@ def validate_1(cfg: MatchConfig,
                 i += 1
                 if i % report_every == 0:
                     log.info(f"... creating CSV row {i}")
-                (winner,
-                 best_log_odds,
-                 second_best_log_odds,
-                 best_person,
-                 second_best_person) = sample.get_unique_match_detailed(person,
-                                                                        cfg)
+                result = sample.get_unique_match_detailed(person, cfg)
 
-                if (math.isfinite(best_log_odds) and
-                        math.isfinite(second_best_log_odds)):
-                    leader_advantage = best_log_odds - second_best_log_odds
+                if (math.isfinite(result.best_log_odds) and
+                        math.isfinite(result.second_best_log_odds)):
+                    leader_advantage = (
+                        result.best_log_odds - result.second_best_log_odds
+                    )
                 else:
                     leader_advantage = None
-
                 best_match_id = (
-                    best_person.original_id if best_person else None
+                    result.best_person.original_id if result.best_person
+                    else None
                 )
                 correct_if_winner = (
-                    int(best_match_id == person.original_id) if winner
+                    int(best_match_id == person.original_id) if result.winner
                     else None
                 )
 
@@ -3524,13 +3831,15 @@ def validate_1(cfg: MatchConfig,
 
                     is_hashed=int(person.is_hashed),
                     original_id=person.original_id,
-                    winner_id=winner.original_id if winner else None,
+                    winner_id=(
+                        result.winner.original_id if result.winner else None
+                    ),
                     best_match_id=best_match_id,
-                    best_log_odds=best_log_odds,
-                    second_best_log_odds=second_best_log_odds,
+                    best_log_odds=result.best_log_odds,
+                    second_best_log_odds=result.second_best_log_odds,
                     second_best_match_id=(
-                        second_best_person.original_id if second_best_person
-                        else None
+                        result.second_best_person.original_id
+                        if result.second_best_person else None
                     ),
 
                     correct_if_winner=correct_if_winner,
@@ -3573,177 +3882,6 @@ def hash_identity_file(cfg: MatchConfig,
             hashed_person = plaintext_person.hashed(cfg)
             writer.writerow(hashed_person.hashed_csv_dict(
                 include_original_id=include_original_id))
-
-
-# =============================================================================
-# Main comparisons
-# =============================================================================
-
-COMPARISON_OUTPUT_COLNAMES = [
-    "proband_original_id",
-    "proband_research_id",
-    "matched",
-    "log_odds_match",
-    "p_match",
-    "sample_match_original_id",
-    "sample_match_research_id",
-    "second_best_log_odds",
-]
-COMPARISON_EXTRA_COLNAMES = [
-    "best_person_original_id",
-    "best_person_research_id",
-]
-
-
-def compare_probands_to_sample(cfg: MatchConfig,
-                               probands: People,
-                               sample: People,
-                               output_csv: str,
-                               report_every: int = 100,
-                               extra_validation_output: bool = False) -> None:
-    """
-    Compares each proband to the sample. Writes to an output file.
-
-    Args:
-        cfg:
-            the master :class:`MatchConfig` object.
-        probands:
-            :class:`People`
-        sample:
-            :class:`People`
-        output_csv:
-            output CSV filename
-        report_every:
-            report progress every n probands
-        extra_validation_output:
-            Add extra columns to the output for validation purposes?
-
-    Profiling with 10,000 probands and the exact same people in the sample, on
-    Wombat:
-
-    - Start (2020-04-25, 11:52): 52 seconds for the first 1,000 probands.
-    - next: 50.99. Not much improvement!
-    - multiprocessing didn't help (overheads?)
-    - multithreading didn't help (GIL?)
-    - we remain at about 25.889 seconds per 400 probands within a
-      10k * 10k set
-    - down to 22.5 seconds with DOB shortlisting, and that is with a highly
-      self-similar sample, so that may improve dramatically.
-    """
-    log.info(f"Comparing each proband to sample. There are "
-             f"{probands.size()} probands and {sample.size()} in the sample.")
-    colnames = COMPARISON_OUTPUT_COLNAMES
-    if extra_validation_output:
-        colnames += COMPARISON_EXTRA_COLNAMES
-    with open(output_csv, "wt") as f:
-        writer = csv.DictWriter(f, fieldnames=colnames)
-        writer.writeheader()
-        for rownum, proband in enumerate(probands.people, start=1):
-            if rownum % report_every == 0:
-                log.info(f"Processing proband row {rownum}")
-            # if rownum == 400:  # used during profiling!
-            #     sys.exit(1)
-            (winner,
-             log_odds,
-             second_best_log_odds,
-             best_person,
-             _) = sample.get_unique_match_detailed(proband, cfg)
-            rowdata = dict(
-                proband_original_id=proband.original_id,
-                proband_research_id=proband.research_id,
-                matched=int(bool(winner)),
-                log_odds_match=log_odds,
-                p_match=probability_from_log_odds(log_odds),
-                sample_match_original_id=winner.original_id if winner else None,  # noqa
-                sample_match_research_id=winner.research_id if winner else None,  # noqa
-                second_best_log_odds=second_best_log_odds,
-            )
-            if extra_validation_output:
-                rowdata["best_person_original_id"] = (
-                    best_person.original_id if best_person else None
-                )
-                rowdata["best_person_research_id"] = (
-                    best_person.research_id if best_person else None
-                )
-            writer.writerow(rowdata)
-    log.info("... comparisons done.")
-
-
-def compare_probands_to_sample_from_csv(
-        cfg: MatchConfig,
-        probands_csv: str,
-        sample_csv: str,
-        output_csv: str,
-        probands_plaintext: bool = True,
-        sample_plaintext: bool = True,
-        sample_cache_filename: str = "",
-        extra_validation_output: bool = False,
-        profile: bool = False) -> None:
-    """
-    Compares each of the people in the probands file to the sample file.
-
-    Args:
-        cfg:
-            the master :class:`MatchConfig` object.
-        probands_csv:
-            CSV of people (probands); see :func:`read_people`.
-        sample_csv:
-            CSV of people (sample); see :func:`read_people`.
-        output_csv:
-            output CSV filename
-        sample_cache_filename:
-            file in which to cache sample, for speed
-        probands_plaintext:
-            is the probands file plaintext (not hashed)?
-        sample_plaintext:
-            is the sample file plaintext (not hashed)?
-        extra_validation_output:
-            Add extra columns to the output for validation purposes?
-        profile:
-            profile the code?
-    """
-    # Sample
-    log.info("Loading (or caching) sample data")
-    if sample_plaintext:
-        if sample_cache_filename:
-            log.info(f"Using sample cache: {sample_cache_filename}")
-            try:
-                (sample, ) = cache_load(sample_cache_filename)
-            except FileNotFoundError:
-                sample = read_people(sample_csv)
-                cache_save(sample_cache_filename, [sample])
-        else:
-            # You may want to avoid a cache, for security.
-            log.info("No sample cache in use.")
-            sample = read_people(sample_csv)
-    else:
-        sample = read_people(sample_csv, plaintext=False)
-
-    # Probands
-    log.info("Loading proband data")
-    probands = read_people(probands_csv, plaintext=probands_plaintext)
-
-    # Ensure they are comparable
-    if sample_plaintext and not probands_plaintext:
-        log.info("Hashing sample...")
-        sample = sample.hashed(cfg)
-        log.info("... done")
-    elif probands_plaintext and not sample_plaintext:
-        log.warning("Odd: comparing plaintext probands to hashed sample!")
-        log.info("Hashing probands...")
-        probands = probands.hashed(cfg)
-        log.info("... done")
-
-    # Compare
-    compare_fn = (do_cprofile(compare_probands_to_sample, sort="cumtime")
-                  if profile else compare_probands_to_sample)
-    compare_fn(
-        cfg=cfg,
-        probands=probands,
-        sample=sample,
-        output_csv=output_csv,
-        extra_validation_output=extra_validation_output,
-    )
 
 
 # =============================================================================
@@ -3842,6 +3980,10 @@ HELP_COMPARISON = f"""
       - best_person_research_id
         Research ID of the closest-matching person in the sample, EVEN IF THEY
         DID NOT WIN.
+
+    - The results file is NOT necessarily sorted as the input proband file was
+      (not sorting improves parallel processing efficiency).
+
 """
 
 
@@ -4202,51 +4344,6 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
     )
 
     # -------------------------------------------------------------------------
-    # compare_plaintext command
-    # -------------------------------------------------------------------------
-
-    compare_plaintext_parser = subparsers.add_parser(
-        "compare_plaintext",
-        help="IDENTIFIABLE LINKAGE COMMAND. "
-             "Compare a list of probands against a sample (both in "
-             "plaintext). ",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
-        description=HELP_COMPARISON
-    )
-    compare_plaintext_parser.add_argument(
-        "--probands", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_probands.csv"),
-        help="CSV filename for probands data. " +
-             Person.PLAINTEXT_CSV_FORMAT_HELP
-    )
-    compare_plaintext_parser.add_argument(
-        "--sample", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_sample.csv"),
-        help="CSV filename for sample data. " +
-             Person.PLAINTEXT_CSV_FORMAT_HELP
-    )
-    compare_plaintext_parser.add_argument(
-        "--sample_cache", type=str, default=None,
-        # The cache might contain sensitive information; don't offer it by
-        # default.
-        help="File in which to store cached sample info (to speed loading)"
-    )
-    # noinspection PyUnresolvedReferences
-    compare_plaintext_parser.add_argument(
-        "--output", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_output_p2p.csv"),
-        help="Output CSV file for proband/sample comparison."
-    )
-    compare_plaintext_parser.add_argument(
-        "--extra_validation_output", action="store_true",
-        help="Add extra outpu for validation purposes."
-    )
-    compare_plaintext_parser.add_argument(
-        "--profile", action="store_true",
-        help="Profile the code (for development only)."
-    )
-
-    # -------------------------------------------------------------------------
     # hash command
     # -------------------------------------------------------------------------
 
@@ -4283,6 +4380,75 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
     )
 
     # -------------------------------------------------------------------------
+    # Common options for comparison functions
+    # -------------------------------------------------------------------------
+
+    def add_comparison_options(
+            p: argparse.ArgumentParser,
+            proband_fn_default: str,
+            sample_fn_default: str,
+            output_fn_default: str) -> None:
+        p.add_argument(
+            "--probands", type=str,
+            default=os.path.join(default_names_dir, proband_fn_default),
+            help="CSV filename for probands data. " +
+                 Person.HASHED_CSV_FORMAT_HELP
+        )
+        p.add_argument(
+            "--sample", type=str,
+            default=os.path.join(default_names_dir, sample_fn_default),
+            help="CSV filename for sample data. " +
+                 Person.HASHED_CSV_FORMAT_HELP
+        )
+        p.add_argument(
+            "--sample_cache", type=str, default=None,
+            # The cache might contain sensitive information; don't offer it by
+            # default.
+            help="File in which to store cached sample info (to speed loading)"
+        )
+        p.add_argument(
+            "--output", type=str,
+            default=os.path.join(default_names_dir, output_fn_default),
+            help="Output CSV file for proband/sample comparison."
+        )
+        p.add_argument(
+            "--extra_validation_output", action="store_true",
+            help="Add extra output for validation purposes."
+        )
+        p.add_argument(
+            "--n_workers", type=int, default=CPU_COUNT,
+            help="Number of processes to use in parallel."
+        )
+        p.add_argument(
+            "--max_chunksize", type=int, default=DEFAULT_MAX_CHUNKSIZE,
+            help="Maximum chunk size (number of probands to pass to a "
+                 "subprocess each time)."
+        )
+        p.add_argument(
+            "--profile", action="store_true",
+            help="Profile the code (for development only)."
+        )
+
+    # -------------------------------------------------------------------------
+    # compare_plaintext command
+    # -------------------------------------------------------------------------
+
+    compare_plaintext_parser = subparsers.add_parser(
+        "compare_plaintext",
+        help="IDENTIFIABLE LINKAGE COMMAND. "
+             "Compare a list of probands against a sample (both in "
+             "plaintext). ",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        description=HELP_COMPARISON
+    )
+    add_comparison_options(
+        compare_plaintext_parser,
+        proband_fn_default="fuzzy_probands.csv",
+        sample_fn_default="fuzzy_sample.csv",
+        output_fn_default="fuzzy_output_p2p.csv",
+    )
+
+    # -------------------------------------------------------------------------
     # compare_hashed_to_hashed command
     # -------------------------------------------------------------------------
 
@@ -4294,30 +4460,11 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
         description=HELP_COMPARISON
     )
-    compare_h2h_parser.add_argument(
-        "--probands", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_probands_hashed.csv"),
-        help="CSV filename for probands data. " +
-             Person.HASHED_CSV_FORMAT_HELP
-    )
-    compare_h2h_parser.add_argument(
-        "--sample", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_sample_hashed.csv"),
-        help="CSV filename for sample data. " +
-             Person.HASHED_CSV_FORMAT_HELP
-    )
-    compare_h2h_parser.add_argument(
-        "--output", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_output_h2h.csv"),
-        help="Output CSV file for proband/sample comparison."
-    )
-    compare_h2h_parser.add_argument(
-        "--extra_validation_output", action="store_true",
-        help="Add extra outpu for validation purposes."
-    )
-    compare_h2h_parser.add_argument(
-        "--profile", action="store_true",
-        help="Profile the code (for development only)."
+    add_comparison_options(
+        compare_h2h_parser,
+        proband_fn_default="fuzzy_probands_hashed.csv",
+        sample_fn_default="fuzzy_sample_hashed.csv",
+        output_fn_default="fuzzy_output_h2h.csv",
     )
 
     # -------------------------------------------------------------------------
@@ -4334,37 +4481,11 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
         description=HELP_COMPARISON
     )
-    compare_h2p_parser.add_argument(
-        "--probands", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_probands_hashed.csv"),
-        help="CSV filename for probands data. " +
-             Person.HASHED_CSV_FORMAT_HELP
-    )
-    compare_h2p_parser.add_argument(
-        "--sample", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_sample.csv"),
-        help="CSV filename for sample data. " +
-             Person.PLAINTEXT_CSV_FORMAT_HELP
-    )
-    compare_h2p_parser.add_argument(
-        "--sample_cache", type=str, default=None,
-        # The cache might contain sensitive information; don't offer it by
-        # default.
-        help="File in which to store cached sample info (to speed loading)"
-    )
-    # noinspection PyUnresolvedReferences
-    compare_h2p_parser.add_argument(
-        "--output", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_output_h2p.csv"),
-        help="Output CSV file for proband/sample comparison."
-    )
-    compare_h2p_parser.add_argument(
-        "--extra_validation_output", action="store_true",
-        help="Add extra outpu for validation purposes."
-    )
-    compare_h2p_parser.add_argument(
-        "--profile", action="store_true",
-        help="Profile the code (for development only)."
+    add_comparison_options(
+        compare_h2p_parser,
+        proband_fn_default="fuzzy_probands_hashed.csv",
+        sample_fn_default="fuzzy_sample.csv",
+        output_fn_default="fuzzy_output_h2p.csv",
     )
 
     # -------------------------------------------------------------------------
@@ -4373,7 +4494,8 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
 
     args = parser.parse_args()
     main_only_quicksetup_rootlogger(
-        level=logging.DEBUG if args.verbose else logging.INFO)
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        with_process_id=True)
     log.debug(f"Ensuring default cache directory exists: {default_cache_dir}")
     os.makedirs(default_cache_dir, exist_ok=True)
 
@@ -4471,14 +4593,16 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
                  f"- plaintext sample: {args.sample}")
         compare_probands_to_sample_from_csv(
             cfg=cfg,
-            probands_csv=args.probands,
-            sample_csv=args.sample,
-            output_csv=args.output,
-            probands_plaintext=True,
-            sample_plaintext=True,
-            sample_cache_filename=args.sample_cache,
             extra_validation_output=args.extra_validation_output,
+            max_chunksize=args.max_chunksize,
+            n_workers=args.n_workers,
+            output_csv=args.output,
+            probands_csv=args.probands,
+            probands_plaintext=True,
             profile=args.profile,
+            sample_cache_filename=args.sample_cache,
+            sample_csv=args.sample,
+            sample_plaintext=True,
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
@@ -4488,13 +4612,15 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
                  f"- hashed sample: {args.sample}")
         compare_probands_to_sample_from_csv(
             cfg=cfg,
-            probands_csv=args.probands,
-            sample_csv=args.sample,
-            output_csv=args.output,
-            probands_plaintext=False,
-            sample_plaintext=False,
             extra_validation_output=args.extra_validation_output,
+            max_chunksize=args.max_chunksize,
+            n_workers=args.n_workers,
+            output_csv=args.output,
+            probands_csv=args.probands,
+            probands_plaintext=False,
             profile=args.profile,
+            sample_csv=args.sample,
+            sample_plaintext=False,
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
@@ -4505,14 +4631,16 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
                  f"- plaintext sample: {args.sample}")
         compare_probands_to_sample_from_csv(
             cfg=cfg,
-            probands_csv=args.probands,
-            sample_csv=args.sample,
-            output_csv=args.output,
-            probands_plaintext=False,
-            sample_plaintext=True,
-            sample_cache_filename=args.sample_cache,
             extra_validation_output=args.extra_validation_output,
+            max_chunksize=args.max_chunksize,
+            n_workers=args.n_workers,
+            output_csv=args.output,
+            probands_csv=args.probands,
+            probands_plaintext=False,
             profile=args.profile,
+            sample_cache_filename=args.sample_cache,
+            sample_csv=args.sample,
+            sample_plaintext=True,
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
