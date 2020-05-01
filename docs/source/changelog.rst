@@ -1259,6 +1259,12 @@ Changes
 
 - Downgrade Django as most recent version was not compatible.
 
+**0.18.99, ongoing 2020-04-28**
+
+- More efficient simple postcode regex in
+  :func:`crate_anon.anonymise.anonregex.get_uk_postcode_regex_elements`.
+
+- Fuzzy ID matching work.
 
 
 ===============================================================================

@@ -40,7 +40,7 @@ from typing import List, Optional, Pattern, Union
 import unittest
 
 from cardinal_pythonlib.lists import unique_list
-from cardinal_pythonlib.logs import configure_logger_for_colour
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 # https://pypi.python.org/pypi/regex/
 # https://bitbucket.org/mrabarnett/mrab-regex
@@ -355,6 +355,9 @@ def get_uk_postcode_regex_elements(
     """
     Get a list of regex strings for scrubbing UK postcodes. These have a
     well-defined format.
+    
+    Unless compiled with the ``re.IGNORECASE``, they will match upper-case
+    postcodes only.
 
     Args:
         at_word_boundaries_only:
@@ -364,22 +367,48 @@ def get_uk_postcode_regex_elements(
     Returns:
         a list of regular expression strings
 
+    See:
+    
+    - https://stackoverflow.com/questions/164979/regex-for-matching-uk-postcodes
+    """  # noqa
+    # -------------------------------------------------------------------------
+    # Old
+    # -------------------------------------------------------------------------
+
+    # e = [
+    #     "AN NAA",
+    #     "ANN NAA",
+    #     "AAN NAA",
+    #     "AANN NAA",
+    #     "ANA NAA",
+    #     "AANA NAA",
+    # ]  # type: List[str]
+    # for i in range(len(e)):
+    #     e[i] = e[i].replace("A", "[A-Z]")  # letter
+    #     e[i] = e[i].replace("N", "[0-9]")  # number
+    #     e[i] = e[i].replace(" ", OPTIONAL_WHITESPACE)
+    #     if at_word_boundaries_only:
+    #         e[i] = WB + e[i] + WB
+    # return e
+
+    # -------------------------------------------------------------------------
+    # New 2020-04-28: much more efficient
+    # -------------------------------------------------------------------------
+    e = r"[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}"
+    if at_word_boundaries_only:
+        e = WB + e + WB
+    return [e]
+
+
+def get_uk_postcode_regex_string(at_word_boundaries_only: bool = True) -> str:
     """
-    e = [
-        "AN NAA",
-        "ANN NAA",
-        "AAN NAA",
-        "AANN NAA",
-        "ANA NAA",
-        "AANA NAA",
-    ]  # type: List[str]
-    for i in range(len(e)):
-        e[i] = e[i].replace("A", "[A-Z]")  # letter
-        e[i] = e[i].replace("N", "[0-9]")  # number
-        e[i] = e[i].replace(" ", OPTIONAL_WHITESPACE)
-        if at_word_boundaries_only:
-            e[i] = WB + e[i] + WB
-    return e
+    Shortcut to retrieve a single regex string for UK postcodes (following the
+    changes above on 2020-04-28). See :func:`get_uk_postcode_regex_elements`.
+    """
+    postcode_regexes = get_uk_postcode_regex_elements(
+        at_word_boundaries_only=at_word_boundaries_only)
+    assert len(postcode_regexes) == 1  # as of 2020-04-28, this is true
+    return postcode_regexes[0]
 
 
 def get_string_regex_elements(
@@ -765,7 +794,6 @@ def examples_for_paper() -> None:
 
 
 if __name__ == '__main__':
-    rootlogger = logging.getLogger()
-    configure_logger_for_colour(rootlogger, level=logging.DEBUG)
-    # unittest.main()
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
+    unittest.main()
     examples_for_paper()

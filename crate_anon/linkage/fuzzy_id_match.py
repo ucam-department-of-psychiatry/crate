@@ -35,119 +35,7 @@ patient identifiers.**
 .. _ssdeep: https://ssdeep-project.github.io/ssdeep/index.html
 
 
-Terminology
------------
-
-A **proband** (index individual) is compared to a **sample** and a matching
-individual is sought in the sample. There may be a match or no match.
-
-It is assumed that both the proband and every person in the sample is drawn
-from a background population (e.g. "everyone in the UK"), and that every person
-in the sample is distinct.
-
-A prototypical example: suppose a research organization wants to (and is
-permitted to) send basic identifiers about a person to a government department
-to obtain additional information on them. This person is the "proband"; the
-government database is the "sample"; the whole population of that country is
-the "population".
-
-We'd like to ensure we can match people, in the absence of a helpful unique
-numerical identifier, and in the presence of potential "errors" in the
-information (e.g. alternative name spellings) -- directly (using plaintext
-information such as names), and if possible, without using plaintext
-information.
-
-The term **forename** refers to all names that precede a surname (i.e. first
-names and middle names).
-
-
-Probability of a match, given that both are from the same population
---------------------------------------------------------------------
-
-Given a description of a proband and a description of a specific member of the
-sample, what is the probability that they are the same person?
-
-The program takes the population size :math:`n_p` (e.g. UK population of ~66m)
-as a parameter. The baseline probability of two people being a match is taken
-as :math:`\frac{1}{n_p}`. Where information can be compared (e.g. if a date of
-birth is present in both records), it can alter the match probability via a
-Bayesian update process.
-
-This yields an estimate of P(match | both people in population).
-
-Specifically, if
-
-- the hypothesis :math:`H` is that the two records are from the same person;
-- the alternative hypothesis :math:`\neg H` is that they are from different
-  people;
-- :math:`D` indicates the data -- specifically (where it makes a difference)
-  the data from the proband;
-
-then we calculate
-
-.. math::
-
-    P(H | D) &= \frac{ P(D | H) \cdot P(H) }{ P(D) }  \\
-
-    \text{posterior} &= \frac{ \text{likelihood} \cdot \text{prior} }
-                             { \text{marginal likelihood} }
-
-It's more convenient to work with log odds:
-
-.. math::
-
-    P(H | D) &= \frac{ P(D | H) \cdot P(H) }{ P(D) }  \\
-
-    P(\neg H | D) &= \frac{ P(D | \neg H) \cdot P(\neg H) }{ P(D) }  \\
-
-    \frac{ P(H | D) }{ P(\neg H | D) } &=
-        \frac{ P(D | H) }{ P(D | \neg H) } \cdot
-        \frac{ P(H) }{ P(\neg H) }  \\
-
-    \text{posterior odds} &= \text{likelihood ratio} \cdot \text{prior odds}  \\
-
-    \log \text{posterior odds} &= \log \text{likelihood ratio} +
-                                  \log \text{prior odds}
-
-That way, the iterative process is to start with log odds for the prior, then
-add log likelihood ratios consecutively.
-
-
-Partial match of information
-----------------------------
-
-With plaintext information, a distance measure is possible to give a threshold
-for typographical errors. An alternative way that may be suitable for hashed
-information is to use an accurate (specific) and a blurry (fuzzy) match. Let's
-develop a method that could be generalized to hashed information.
-
-For a given single piece of information (e.g. surname), if
-
-- :math:`p_e` is the probability of there being a data error such that a
-  full match becomes a partial (fuzzy) match;
-- we will reject anything that is neither a full match nor a partial match;
-- the hypothesis :math:`H` is that the person is the same;
-- :math:`D` indicates the data (in this situation there are three
-  possibilities: a full match, a partial but not a full match, and no match);
-- :math:`p_f` is the probability of a randomly selected person giving a
-  full match to our proband (e.g. same first name, or same postcode unit);
-- :math:`p_p` is the probability of a randomly selected person giving a
-  partial (fuzzy) match to our proband (e.g. same fuzzy first name, or same
-  postcode district);
-
-then we have the following:
-
-+------------------------------+------------------+-----------------------+
-| :math:`D`                    | :math:`P(D | H)` | :math:`P(D | \neg H)` |
-+==============================+==================+=======================+
-| full match                   | :math:`1 - p_e`  | :math:`p_f`           |
-+------------------------------+------------------+-----------------------+
-| partial but not full match   | :math:`p_e`      | :math:`p_p - p_f`     |
-+------------------------------+------------------+-----------------------+
-| no match                     | :math:`0`        | :math:`1 - p_p`       |
-+------------------------------+------------------+-----------------------+
-| (sum of probabilities)       | 1                | 1                     |
-+------------------------------+------------------+-----------------------+
+**See draft paper.**
 
 
 Other approaches to fuzzy matching of reduced data
@@ -171,268 +59,10 @@ block, and then compare the sequence of mini-hashes for similarity.
     https://doi.org/10.1016/j.diin.2006.06.015.
 
 
-Role of the sampling fraction
------------------------------
-
-We move now from a comparison between the proband and a single individual in
-our database to a comparison between the proband and the whole database.
-
-The sampling fraction makes no difference, but the population size is
-important. Some illustrations follow, in which we assume there are no spelling
-mistakes and we match only on first name.
-
-
-**Situation A.**
-
-The population and sample are the same (n = 2) and are {Alice, Bob}. The
-proband is named Alice (is, in fact, the only Alice).
-
-+---------------+-----------------------------------------------------------+
-|               | Proband Alice versus:                                     |
-+---------------+---------------------------+-------------------------------+
-| Sample member | Alice                     | Bob                           |
-+---------------+---------------------------+-------------------------------+
-| P(H)          | :math:`\frac{1}{2}`       | :math:`\frac{1}{2}`           |
-+---------------+-----------------------------------------------------------+
-| odds(H)       | :math:`\frac{1}{1}`       | :math:`\frac{1}{1}`           |
-+---------------+---------------------------+-------------------------------+
-| P(D | H)      | 1                         | 0                             |
-+---------------+---------------------------+-------------------------------+
-| P(D | ¬H)     | 0 :sup:`*`                | 1                             |
-+---------------+---------------------------+-------------------------------+
-| LR            | :math:`\infty`            | 0                             |
-+---------------+---------------------------+-------------------------------+
-| odds(H | D)   | :math:`\infty`            | 0                             |
-+---------------+---------------------------+-------------------------------+
-| P(H | D)      | 1                         | 0                             |
-+---------------+---------------------------+-------------------------------+
-
-:sup:`*` In this situation, if the proband is not Alice, they're definitely not
-called Alice.
-
-
-**Situation B.**
-
-The sample remains {Alice, Bob}, but now the population (n = 100) has 50
-different people named Alice and 50 different people named Bob. The proband is
-one of the Alices.
-
-+---------------+-----------------------------------------------------------+
-|               | Proband Alice versus:                                     |
-+---------------+---------------------------+-------------------------------+
-| Sample member | Alice                     | Bob                           |
-+---------------+---------------------------+-------------------------------+
-| P(H)          | :math:`\frac{1}{100}`     | :math:`\frac{1}{100}`         |
-+---------------+-----------------------------------------------------------+
-| odds(H)       | :math:`\frac{1}{99}`      | :math:`\frac{1}{99}`          |
-+---------------+---------------------------+-------------------------------+
-| P(D | H)      | 1                         | 0                             |
-+---------------+---------------------------+-------------------------------+
-| P(D | ¬H)     | :math:`\frac{49}{99}`     | :math:`\frac{50}{100}`        |
-+---------------+---------------------------+-------------------------------+
-| LR            | :math:`\frac{99}{49}`     | 0                             |
-+---------------+---------------------------+-------------------------------+
-| odds(H | D)   | :math:`\frac{1}{49}`      | 0                             |
-+---------------+---------------------------+-------------------------------+
-| P(H | D)      | 0.02                      | 0                             |
-+---------------+---------------------------+-------------------------------+
-
-This demonstrates the role of the population size in the calculations.
-
-However, the numbers would be exactly the same if the sampling fraction were
-increased by adding another Bob, or another 50 Bobs, to the sample. This
-demonstrates the irrelevance of the sampling fraction.
-
-
-**Situation C: a tie.**
-
-There are two people named Alice, and they constitute the sample. The
-population (n = 100) is them plus 98 people called Bob. The proband is one of
-the Alices.
-
-+---------------+-----------------------------------------------------------+
-|               | Proband Alice versus:                                     |
-+---------------+---------------------------+-------------------------------+
-| Sample member | Alice 1                   | Alice 2                       |
-+---------------+---------------------------+-------------------------------+
-| P(H)          | :math:`\frac{1}{100}`     | :math:`\frac{1}{100}`         |
-+---------------+-----------------------------------------------------------+
-| odds(H)       | :math:`\frac{1}{99}`      | :math:`\frac{1}{99}`          |
-+---------------+---------------------------+-------------------------------+
-| P(D | H)      | 1                         | 1                             |
-+---------------+---------------------------+-------------------------------+
-| P(D | ¬H)     | :math:`\frac{1}{99}`      | :math:`\frac{1}{99}`          |
-+---------------+---------------------------+-------------------------------+
-| LR            | 99                        | 99                            |
-+---------------+---------------------------+-------------------------------+
-| odds(H | D)   | 1                         | 1                             |
-+---------------+---------------------------+-------------------------------+
-| P(H | D)      | 0.5                       | 0.5                           |
-+---------------+---------------------------+-------------------------------+
-
-
-**Situation D: a frequency error.**
-
-The situation is as in C -- but now we underestimate the frequency of the name
-Alice, calling it **0.001** (rather than the correct value of approximately
-0.01). Bold indicates the errors.
-
-+---------------+-----------------------------------------------------------+
-|               | Proband Alice versus:                                     |
-+---------------+---------------------------+-------------------------------+
-| Sample member | Alice 1                   | Alice 2                       |
-+---------------+---------------------------+-------------------------------+
-| P(H)          | :math:`\frac{1}{100}`     | :math:`\frac{1}{100}`         |
-+---------------+-----------------------------------------------------------+
-| odds(H)       | :math:`\frac{1}{99}`      | :math:`\frac{1}{99}`          |
-+---------------+---------------------------+-------------------------------+
-| P(D | H)      | 1                         | 1                             |
-+---------------+---------------------------+-------------------------------+
-| P(D | ¬H)     | **0.001**                 | **0.001**                     |
-+---------------+---------------------------+-------------------------------+
-| LR            | **1000**                  | **1000**                      |
-+---------------+---------------------------+-------------------------------+
-| odds(H | D)   | **10.1**                  | **10.1**                      |
-+---------------+---------------------------+-------------------------------+
-| P(H | D)      | **0.91**                  | **0.91**                      |
-+---------------+---------------------------+-------------------------------+
-
-The possibility of such errors is a real one. As a result, a probability
-threshold on the winner is not enough -- inaccuracies may mean that there is
-more than one "winner".
-
-However, we cannot pitch candidate winners against each other by their
-estimated probabilities. We show that as follows:
-
-  - Let :math:`n_s` be the sample size and :math:`n_p` be the population size.
-
-  - Let :math:`H_i` indicate the hypothesis that person :math:`i` in the sample
-    is the proband.
-
-  - So, we begin with a list of probabilities :math:`P(H_i | D, \text{both
-    people in population})`. Dropping our constant assumption that everyone is
-    in the population, this is :math:`P(H_i | D)`. It is always true that
-
-    .. math::
-
-        P(H_i | D) &= \frac{ P(D | H_i) P(H_i) }{ P(D) }  \\
-
-                   &= \frac{ \text{likelihood} \cdot \text{prior} }
-                           { \text{marginal likelihood} }
-
-    .. comment
-
-        The ampersand-equals (&=) and "\\" combinations indicates alignment
-        points. See
-        https://shimizukawa-sphinx.readthedocs.io/en/latest/ext/math.html.
-
-If it is the case that our proband *must* be in the sample, then we could
-proceed as follows.
-
-    .. math::
-
-        P(\text{proband in sample}) &= 1  \\
-
-        \sum_{j=1}^{n_s} P(H_j) &= 1  \\
-
-        P(H_i | D) &= \frac{ P(D | H_i) P(H_i) / P(D) }
-                           { \sum_{j=1}^{n_s} P(D | H_j) P(H_j) / P(D) }  \\
-
-                   &= \frac{ \frac{ 1 }{ p(D) } P(D | H_i) P(H_i) }
-                           { \frac{ 1 }{ p(D) } \sum_{j=1}^{n_s} P(D | H_j) P(H_j) }  \\
-
-                   &= \frac{ P(D | H_i) P(H_i) }
-                           { \sum_{j=1}^{n_s} P(D | H_j) P(H_j) }
-
-    Compare [#gronau2017]_.
-
-    With equal priors, :math:`H_i = H_j \forall i, j` and the expression above
-    reduces to:
-
-    .. math::
-
-        P(H_i | D) = \frac{ P(D | H_i) }
-                          { \sum_{j=1}^{n_s} P(D | H_j) }
-
-    In log form (with natural logarithms),
-
-    .. math::
-
-        \log P(H_i | D) &= \log P(D | H_i) -
-                           \log \sum_{j=1}^{n_s} e^{ log P(D | H_j) }
-
-    or in pseudocode:
-
-    .. code-block:: none
-
-        log_posterior_p_match[i] = log_likelihood[i] - logSumExp(log_likelihood)
-
-But the proband is not necessarily in the sample.
-
-The probability of the proband being in the sample is :math:`p_s =
-\frac{n_s}{n_p}`. But it is clearly not the case that we can multiple our
-per-item probabilities by :math:`p_s`:
-
-    .. math::
-
-        P(H_i | D) \neq p_s \frac{ P(D | H_i) }
-                                 { \sum_{j=1}^{n_s} P(D | H_j) }
-
-For example, if :math:`p_s = 0.02` as in situation C above, it would be wrong
-to cap the posterior probability at 0.02.
-
-We have already seen that changing the sampling fraction is irrelevant; thus
-:math:`p_s` is too.
-
-So, the correct posterior probability is given by :math:`P(H_i | D), \forall
-i`. All we have to do is add some sanity check for incorrect priors. We
-implement that by requiring that the winner exceed the runner up by a certain
-log odds.
-
-
-Strategy for matching people
-----------------------------
-
-- find all people whose probability (or log odds) of matching exceeds the
-  minimum probability (or log odds) required for a match;
-
-- declare the most likely a match if their log odds exceeds that of the
-  runner-up by a certain amount;
-
-- otherwise, there is no match.
-
-Note that there is no allowance in the current algorithm for allocations
-already made. For example, if both data sets contain Alice Mary SMITH
-("A.M.S.") and Alice SMITH ("A.S."), then one could reason that if A.M.S.
-[proband] matches A.M.S. [sample] as the higher-specificity match, then we know
-that A.S. [proband] cannot match against A.M.S. [sample], which may improve
-substantially the chances of matching correctly to A.S. [sample]. The algorithm
-does not do this.
-
-
 Specific implementations for names, DOB, and postcode
 -----------------------------------------------------
 
-Fairly easy: first name, surname, DOB (very unlikely to be absent).
-
-- First names are assumed to be fixed (not e.g. interchangeable with a middle
-  name). This may be too restrictive (leading to under-recognition of matches)
-  if e.g. someone is formally named Arthur Brian JONES but is always known as
-  Brian.
-
-- Surnames are assumed to be fixed (not e.g. interchangeable with a first
-  name). This assumption may be too restrictive (leading to under-recognition
-  of matches) with e.g. Chinese names (written and spoken in Chinese as:
-  SURNAME Firstname, sometimes Anglicized as Firstname SURNAME, and often
-  confused by English-speaking people).
-
-- Dates of birth are assumed to be error-free (which may be incorrect) (*).
-
-  - (*) Known real-world categories of DOB error include:
-
-    - day/month transposition
-    - plain numerical typographical errors
-    - entering today's date as a date of birth
+...
 
 Harder: middle names
 
@@ -515,12 +145,6 @@ relative to the metaphone frequency); "Bob" versus "Alice" is a mismatch and
 will take the probability to zero.
 
 
-Statistical assumptions include
--------------------------------
-
-- independence of first name, middle name(s), surname, DOB, postcode
-
-
 Geography
 ---------
 
@@ -553,47 +177,8 @@ postcode sector? Smaller, I think.
   that postcode sectors must be larger.
 
 
-Validation strategy 1
----------------------
-
-- Create a collection of people from a real data set with the following
-  details:
-
-  - original identifier (for internal checks only; not for comparison)
-  - first name
-  - any middle names (ordered)
-  - surname
-  - DOB
-  - a single specimen postcode
-
-- Split that data set into two (arbitrarily, 50:50). One half is the "sample",
-  one is the "others".
-
-- Establish P(unique plaintext match | proband in sample) -- should be close to
-  1.
-
-- Establish P(unique plaintext match | proband in others) -- should be close to
-  0.
-
-- Establish P(unique hashed match | proband in sample).
-
-- Establish P(unique hashed match | proband in others).
-
-- More broadly, for every individual (sample and others), treat that person as
-  a proband and establish P(match) and P(next best match), represented as log
-  odds. That allows generation of a ROC curve based on the "match" threshold
-  and the "better than the next one" threshold.
-
-- For a data set of size :math:`n`, this gives :math:`\frac{n^2}{2}`
-  comparisons.
-
-- Then, repeat these with "typos" or "deletions".
-
-  - No point in surname or DOB typo as our rule excludes that.
-  
-
-Speed
------
+Speed of "validate1" test
+-------------------------
 
 On a test 3 GHz desktop, this code takes approximately 100 μs to hash a person
 record, and 14-40 μs to compare two records (see timing tests).
@@ -636,62 +221,15 @@ match). So realistically ``c = 10`` or thereabouts.
     result <- optim(par=50, fn=errfunc)  # minimize error, start n=50; gives 26825
 
 
-Validation strategy 2
----------------------
+For Figure 3
+------------
 
-CPFT provides a helpful natural experiment. The CRS/CDL database (2005-12) and
-the RiO database (approximately 2013-) both contain name, DOB, and address
-information, and for the vast majority of people, NHS numbers. NHS numbers,
-which are also checksummed (and matched to NHS Spine records) represent a
-ground truth. Names (etc.) might have some typographical errors in (we hope
-this is rare).
+.. code-block:: none
 
-Some may have been either auto-copied or manually copied when RiO launched;
-this was "active patients plus those seen in the preceding 6 months". Others
-will have been entered later; for those e.g. in CDL in 2007, discharged then,
-and re-assessed in 2015, they will have been re-entered manually. So there is
-potential for some typographical mismatch but NHS number match.
-
-Strategy, then:
-
-- Approvals -- via the CPFT Research Database Oversight Committee, to run this
-  process without a human seeing identifiable data.
-  
-- Security -- this is particularly sensitive; no medical data is involved but
-  it does involve direct patient identifiers, which must not be seen by a human
-  (unless that human has clinical administrative authority to handle such data)
-  and must be kept separate from de-identified research data, and secure.
-
-- From the CDL source material, extract name/DOB/postcode information, plus
-  NHS number as the identifiable "original_id" (and a hashed version as
-  "research_id") into ``people_cdl.csv``. Restrict to people with an NHS number
-  present.
-  
-- Extract the same sort of information from RiO into ``people_rio.csv``.
-
-- Perform virtual linkages between CDL/RiO:
-
-  - Plaintext CDL to plaintext RiO. This tests the core matching algorithm.
-    How does the accuracy of matching on name/DOB/postcode compare to the gold
-    standard of matching on NHS number (or hashed equivalent)?
-  
-  - Hashed CDL to hashed RiO, similarly; this tests the hashed equivalent.
-  
-  - Always use the ``--extra_validation_output`` flag, as this allows us to
-    ask the question: if we'd set the probability thresholds differently, would
-    we have got the right answer?
-  
-  - CDL as proband and RiO as sample, or vice versa, or both?
-    Both; may be very similar but we can see.
-
-- Comparisons of interest for validation:
-
-  - Establish accuracy (in ROC style) including by varying the two thresholds
-    of interest (minimum log odds to consider a match, and minimum advantage
-    over the runner-up).
-
-  - Compare ROC (etc.) for the plaintext and the hashed comparison.
-
+    crate_fuzzy_id_match compare_plaintext \
+        --probands demo_fig3_probands.csv \
+        --sample demo_fig3_sample.csv \
+        --output demo_fig3_output.csv 
 
 ===============================================================================
 
@@ -747,8 +285,12 @@ from cardinal_pythonlib.probability import (
 from cardinal_pythonlib.profile import do_cprofile
 from cardinal_pythonlib.stringfunc import mangle_unicode_to_ascii
 from fuzzy import DMetaphone
+from sqlalchemy.engine import create_engine
+from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.result import ResultProxy
+from sqlalchemy.sql import text
 
-from crate_anon.anonymise.anonregex import get_uk_postcode_regex_elements
+from crate_anon.anonymise.anonregex import get_uk_postcode_regex_string
 from crate_anon.common.constants import EXIT_FAILURE, EXIT_SUCCESS
 from crate_anon.version import CRATE_VERSION
 
@@ -763,8 +305,11 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
+CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = False
+
 dmeta = DMetaphone()
 
+CRATE_FETCH_WORDLISTS = "crate_fetch_wordlists"
 CPU_COUNT = cpu_count()
 DAYS_PER_YEAR = 365.25  # approximately!
 DEFAULT_HASH_KEY = "fuzzy_id_match_default_hash_key_DO_NOT_USE_FOR_LIVE_DATA"
@@ -838,19 +383,11 @@ def cache_save(filename: str, data: Any) -> None:
 # String manipulation
 # =============================================================================
 
-def get_uk_postcode_regex() -> str:
-    """
-    Returns a regex strings for (exact) UK postcodes. These have a
-    well-defined format.
-    """
-    e = get_uk_postcode_regex_elements(at_word_boundaries_only=False)
-    return "|".join(f"(?:{x})" for x in e)
-
-
 ISO_DATE_REGEX = re.compile(
     r"[1-9][0-9][0-9][0-9]-(?:1[0-2]|0[1-9])-(?:3[01]|0[1-9]|[12][0-9])"
 )  # YYYY-MM-DD
-POSTCODE_REGEX = re.compile(get_uk_postcode_regex())
+POSTCODE_REGEX = re.compile(get_uk_postcode_regex_string(
+    at_word_boundaries_only=False))
 REMOVE_PUNCTUATION_SPACE_TABLE = str.maketrans("", "", string.punctuation)
 REMOVE_PUNCTUATION_SPACE_TABLE[ord(" ")] = None  # also remove spaces
 
@@ -946,8 +483,8 @@ class Comparison(object):
         """
         return (
             f"{self.name}: {self.d_description} "
-            f"[P(D|H)={self.p_d_given_h},"
-            f" P(D|¬H)={self.p_d_given_not_h}]"
+            f"[P(D|H)={self.p_d_given_h}, "
+            f"P(D|¬H)={self.p_d_given_not_h}]"
         )
 
     @property
@@ -980,13 +517,43 @@ class Comparison(object):
                 prior log odds that they're the same person
 
         Returns:
-            float: posterior log odds, as above
+            float: posterior log odds, O(H | D), as above
         """
+        p_d_given_h = self.p_d_given_h
+        if p_d_given_h == 0:
+            # Shortcut, since P(H | D) must be 0 (since likelihood ratio is 0):
+            return MINUS_INFINITY
         return log_posterior_odds_from_pdh_pdnh(
             log_prior_odds=prior_log_odds,
             p_d_given_h=self.p_d_given_h,
             p_d_given_not_h=self.p_d_given_not_h
         )
+
+
+class FailureComparison(Comparison):
+    """
+    Special comparison to denote failure, i.e. for when P(D | H) = 0, that
+    doesn't bother with all the calculations involved in calculating a
+    likelihood ratio of 0.
+
+    Currently unused.
+    """
+    @property
+    def d_description(self) -> str:
+        return "FailureComparison"
+
+    @property
+    def p_d_given_h(self) -> float:
+        return 0
+
+    @property
+    def p_d_given_not_h(self) -> float:
+        # Unimportant!
+        return 1  # makes things "in principle" calculable
+
+    def posterior_log_odds(self, prior_log_odds: float) -> float:
+        # Nice and quick:
+        return MINUS_INFINITY
 
 
 class DirectComparison(Comparison):
@@ -1000,12 +567,13 @@ class DirectComparison(Comparison):
                  **kwargs) -> None:
         """
         Args:
-            p_d_given_same_person: P(D | H)
-            p_d_given_diff_person: P(D | ¬H)
+            p_d_given_same_person: :math:`P(D | H)`
+            p_d_given_diff_person: :math:`P(D | \neg H)`
         """
         super().__init__(**kwargs)
-        assert 0 <= p_d_given_same_person <= 1
-        assert 0 <= p_d_given_diff_person <= 1
+        if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+            assert 0 <= p_d_given_same_person <= 1
+            assert 0 <= p_d_given_diff_person <= 1
         self._p_d_given_h = p_d_given_same_person
         self._p_d_given_not_h = p_d_given_diff_person
 
@@ -1022,9 +590,13 @@ class DirectComparison(Comparison):
         return self._p_d_given_not_h
 
 
-class SimpleComparison(Comparison):
+class MatchNoMatchComparison(Comparison):
     """
     Represents a comparison when there can be a match or not.
+
+    The purpose of this is to represent this choice CLEARLY. Code that produces
+    one of these could equally produce one of two :class:`DirectComparison`
+    objects, condition upon ``match``, but this is often clearer.
     """
     def __init__(self,
                  match: bool,
@@ -1033,13 +605,23 @@ class SimpleComparison(Comparison):
                  **kwargs) -> None:
         """
         Args:
-            match: data
-            p_d_given_h: P(D | H)
-            p_d_given_not_h: P(D | ¬H)
+            match:
+                D; is there a match?
+            p_match_given_same_person:
+                If match: :math:`P(D | H) = P(\text{match given same person})
+                 = 1 - p_e`.
+                If no match: :math:`P(D | H) = 1 - P(\text{match given same
+                person}) = p_e`.
+            p_match_given_diff_person:
+                If match: :math:`P(D | \neg H) = P(\text{match given different
+                person}) = p_f`.
+                If no match: :math:`P(D | \neg H) = 1 - P(\text{match given
+                different person}) = 1 - p_f`.
         """
         super().__init__(**kwargs)
-        assert 0 <= p_match_given_same_person <= 1
-        assert 0 <= p_match_given_diff_person <= 1
+        if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+            assert 0 <= p_match_given_same_person <= 1
+            assert 0 <= p_match_given_diff_person <= 1
         self.match = match
         self.p_match_given_same_person = p_match_given_same_person
         self.p_match_given_diff_person = p_match_given_diff_person
@@ -1051,21 +633,25 @@ class SimpleComparison(Comparison):
     @property
     def p_d_given_h(self) -> float:
         if self.match:
-            return self.p_match_given_same_person
+            return self.p_match_given_same_person  # 1 - p_e
         else:
-            return 1 - self.p_match_given_same_person
+            return 1 - self.p_match_given_same_person  # p_e
 
     @property
     def p_d_given_not_h(self) -> float:
         if self.match:
-            return self.p_match_given_diff_person
+            return self.p_match_given_diff_person  # p_f
         else:
-            return 1 - self.p_match_given_diff_person
+            return 1 - self.p_match_given_diff_person  # 1 - p_f
 
 
-class FullOrPartialComparison(Comparison):
+class FullPartialNoMatchComparison(Comparison):
     """
     Represents a comparison where there can be a full or a partial match.
+
+    Again, this is for clarity. Code that produces one of these could equally
+    produce one of three :class:`DirectComparison` objects, condition upon
+    ``full_match`` and ``partial_match``, but this is generally much clearer.
     """
     def __init__(self,
                  full_match: bool,
@@ -1076,17 +662,25 @@ class FullOrPartialComparison(Comparison):
                  **kwargs) -> None:
         r"""
         Args:
-            full_match: was there a full match?
-            p_f: :math:`p_f = P(\text{full match} | \neg H)`
-            p_e: :math:`p_e = P(\text{partial but not full match} | H)`
-            partial_match: was there a partial match?
-            p_p: :math:`p_p = P(\text{partial match} | \neg H)`
+            full_match:
+                was there a full match?
+            p_f:
+                :math:`p_f = P(\text{full match} | \neg H)`
+            p_e:
+                :math:`p_e = P(\text{partial but not full match} | H)`
+            partial_match:
+                was there a partial match?
+            p_p:
+                :math:`p_p = P(\text{partial match} | \neg H)`
         """
         super().__init__(**kwargs)
-        assert p_p >= p_f, f"p_p={p_p}, p_f={p_f}, but should have p_p >= p_f"
-        assert 0 <= p_f <= 1
-        assert 0 <= p_e <= 1
-        assert 0 <= p_p <= 1
+        if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+            assert p_p >= p_f, (
+                f"p_p={p_p}, p_f={p_f}, but should have p_p >= p_f"
+            )
+            assert 0 <= p_f <= 1
+            assert 0 <= p_e <= 1
+            assert 0 <= p_p <= 1
         self.full_match = full_match
         self.p_f = p_f
         self.p_e = p_e
@@ -1118,7 +712,14 @@ class FullOrPartialComparison(Comparison):
         elif self.partial_match:
             return self.p_p - self.p_f
         else:
-            return 1 - self.p_p
+            return 1 - self.p_p  # IRRELEVANT since p_d_given_h == 0
+
+    def posterior_log_odds(self, prior_log_odds: float) -> float:
+        if not self.full_match and not self.partial_match:
+            # No match.
+            # Shortcut, since p_d_given_h is 0 and therefore LR is 0:
+            return MINUS_INFINITY
+        return super().posterior_log_odds(prior_log_odds)
 
 
 def bayes_compare(prior_log_odds: float,
@@ -1209,7 +810,7 @@ class NameFrequencyInfo(object):
             # Save to cache
             cache_save(cache_filename, [name_freq, metaphone_freq])
 
-    def name_frequency(self, name: str, prestandardized: bool) -> float:
+    def name_frequency(self, name: str, prestandardized: bool = True) -> float:
         """
         Returns the frequency of a name.
 
@@ -1394,7 +995,7 @@ class MatchConfig(object):
     """
     def __init__(
             self,
-            hasher_key: str,
+            hash_key: str,
             rounding_sf: int,
             forename_csv_filename: str,
             forename_cache_filename: str,
@@ -1403,6 +1004,7 @@ class MatchConfig(object):
             min_name_frequency: float,
             p_middle_name_n_present: List[float],
             population_size: int,
+            birth_year_pseudo_range: float,
             postcode_csv_filename: str,
             postcode_cache_filename: str,
             mean_oa_population: float,
@@ -1413,10 +1015,13 @@ class MatchConfig(object):
             p_proband_middle_name_missing: float,
             p_sample_middle_name_missing: float,
             p_minor_postcode_error: float,
+            p_gender_error: float,
+            p_not_male_or_female: float,
+            p_female_given_male_or_female: float,
             verbose: bool = False) -> None:
         """
         Args:
-            hasher_key:
+            hash_key:
                 Key (passphrase) for hasher.
             rounding_sf:
                 Number of significant figures to use when rounding frequency
@@ -1440,6 +1045,8 @@ class MatchConfig(object):
             population_size:
                 The size of the entire population (not our sample). See
                 docstrings above.
+            birth_year_pseudo_range:
+                b, such that P(two people share a DOB) = 1/(365.25 * b).
             postcode_csv_filename:
                 Postcode mapping. CSV file. Special format; see
                 :class:`PostcodeFrequencyInfo`.
@@ -1468,27 +1075,44 @@ class MatchConfig(object):
             p_minor_postcode_error:
                 Probability that a postcode fails a full match but passes a
                 partial match.
+            p_gender_error:
+                Probability that a gender match fails because of a data
+                error.
+            p_not_male_or_female:
+                Probability that a person in the population has gender 'X'.
+            p_female_given_male_or_female:
+                Probability that a person in the population is female, given
+                that they are either male or female.
+
             verbose:
                 Be verbose?
         """
+        # Probabilities
         assert all(0 <= x <= 1 for x in p_middle_name_n_present)
-        assert population_size > 0
         assert 0 <= p_minor_forename_error <= 1
         assert 0 <= p_minor_surname_error <= 1
         assert 0 <= p_proband_middle_name_missing <= 1
         assert 0 <= p_sample_middle_name_missing <= 1
         assert 0 <= p_minor_postcode_error <= 1
+        assert 0 <= p_gender_error <= 1
+        assert 0 <= p_not_male_or_female <= 1
+        assert 0 <= p_female_given_male_or_female <= 1
+
+        # Other checks
+        assert population_size > 0
+        assert birth_year_pseudo_range > 0
 
         if verbose:
             log.debug("Building MatchConfig...")
 
-        self.hasher = Hasher(hasher_key)
+        self.hasher = Hasher(hash_key)
         self.rounding_sf = rounding_sf
         self.forename_csv_filename = forename_csv_filename
         self.surname_csv_filename = surname_csv_filename
         self.min_name_frequency = min_name_frequency
         self.p_middle_name_n_present = p_middle_name_n_present
         self.population_size = population_size
+        self.birth_year_pseudo_range = birth_year_pseudo_range
         self.min_log_odds_for_match = min_log_odds_for_match
         self.exceeds_next_best_log_odds = exceeds_next_best_log_odds
         self.p_minor_forename_error = p_minor_forename_error
@@ -1497,6 +1121,12 @@ class MatchConfig(object):
         self.p_sample_middle_name_missing = p_sample_middle_name_missing
         self.p_minor_postcode_error = p_minor_postcode_error
         self.verbose = verbose
+
+        self.p_gender_error = p_gender_error
+        self.p_not_male_or_female = p_not_male_or_female
+        p_male_or_female = 1 - p_not_male_or_female
+        self.p_female = p_female_given_male_or_female * p_male_or_female
+        self.p_male = p_male_or_female - self.p_female
 
         self._forename_freq = NameFrequencyInfo(
             csv_filename=forename_csv_filename,
@@ -1511,6 +1141,9 @@ class MatchConfig(object):
             cache_filename=postcode_cache_filename,
             mean_oa_population=mean_oa_population)
 
+        self.p_two_people_share_dob = 1 / (DAYS_PER_YEAR *
+                                           birth_year_pseudo_range)
+
         if verbose:
             log.debug("... MatchConfig built")
 
@@ -1518,7 +1151,7 @@ class MatchConfig(object):
     def baseline_log_odds_same_person(self) -> float:
         """
         Returns the log odds that a proband randomly selected from the
-        population matches someone in our sample.
+        population matches a SPECIFIC person in our sample.
         """
         return log_odds_from_1_in_n(self.population_size)
 
@@ -1651,7 +1284,8 @@ class MatchConfig(object):
         2 is the probability of having a second middle name, given that you
         have a first middle name.)
         """
-        assert n >= 1
+        if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+            assert n >= 1
         if not self.p_middle_name_n_present:
             return 0
         if n > len(self.p_middle_name_n_present):
@@ -1662,6 +1296,13 @@ class MatchConfig(object):
 # =============================================================================
 # Person
 # =============================================================================
+
+GENDER_MALE = "M"
+GENDER_FEMALE = "F"
+GENDER_OTHER = "X"
+VALID_GENDERS = ["", GENDER_MALE, GENDER_FEMALE, GENDER_OTHER]
+# ... standard three gender codes; "" = missing
+
 
 class Person(object):
     """
@@ -1676,6 +1317,7 @@ class Person(object):
         "first_name",
         "middle_names",
         "surname",
+        "gender",
         "dob",
         "postcodes",
     ]
@@ -1692,6 +1334,7 @@ class Person(object):
         "surname_frequency",
         "hashed_surname_metaphone",
         "surname_metaphone_frequency",
+        "gender",  # does not require hashing
         "hashed_dob",
         "hashed_postcode_units",
         "postcode_unit_frequencies",
@@ -1750,6 +1393,7 @@ class Person(object):
                  first_name: str = "",
                  middle_names: List[str] = None,
                  surname: str = "",
+                 gender: str = "",
                  dob: str = "",
                  postcodes: List[str] = None,
                  # Hashed
@@ -1794,7 +1438,7 @@ class Person(object):
                 Any UK postcodes for this person.
 
             hashed_first_name:
-                The forename, irreversibly hashed.
+                The first name, irreversibly hashed.
             first_name_frequency:
                 The first name's frequency in the population, range [0, 1].
             hashed_first_name_metaphone:
@@ -1837,6 +1481,7 @@ class Person(object):
             standardize_name(x) for x in middle_names if x
         ] if middle_names else []
         self.surname = standardize_name(surname)
+        self.gender = gender
         self.dob = dob
         self.postcodes = [standardize_postcode(x)
                           for x in postcodes if x] if postcodes else []
@@ -1889,8 +1534,6 @@ class Person(object):
                     self.hashed_surname_metaphone and
                     self.surname_metaphone_frequency is not None
                 )
-            if self.dob:
-                assert self.hashed_dob
             if self.hashed_postcode_units:
                 n_postcodes = len(self.hashed_postcode_units)
                 assert (
@@ -1919,10 +1562,13 @@ class Person(object):
                 not self.hashed_postcode_sectors and
                 not self.postcode_sector_frequencies
             ), "Don't supply hashed information for a plaintext Person"
-            if dob:
+            if self.dob:
                 assert ISO_DATE_REGEX.match(dob), f"Bad date: {dob}"
+            assert self.gender in VALID_GENDERS
             for postcode in self.postcodes:
-                assert POSTCODE_REGEX.match(postcode), f"Bad postcode: {postcode}"  # noqa
+                assert POSTCODE_REGEX.match(postcode), (
+                    f"Bad postcode: {postcode}"
+                )
 
         # Precalculate things, for speed
         self._postcode_sectors = [get_postcode_sector(x)
@@ -1932,6 +1578,27 @@ class Person(object):
             get_metaphone(x) for x in self.middle_names
         ]
         self._surname_metaphone = get_metaphone(self.surname)
+
+        self._middle_name_metaphone_pairs = [
+            (self.middle_names[i],
+             self._middle_name_metaphones[i])
+            for i in range(len(self.middle_names))
+        ]
+        self._hashed_middle_name_metaphone_pairs = [
+            (self.hashed_middle_names[i],
+             self.hashed_middle_name_metaphones[i])
+            for i in range(len(self.hashed_middle_names))
+        ]
+        self._hashed_middle_name_freq_dict = {
+            self.hashed_middle_names[i]:
+            self.middle_name_frequencies[i]
+            for i in range(len(self.hashed_middle_names))
+        }
+        self._hashed_middle_name_metaphone_freq_dict = {
+            self.hashed_middle_name_metaphones[i]:
+            self.middle_name_metaphone_frequencies[i]
+            for i in range(len(self.hashed_middle_name_metaphones))
+        }
 
     def __repr__(self) -> str:
         """
@@ -1954,17 +1621,25 @@ class Person(object):
 
     def __str__(self) -> str:
         if self.is_hashed:
-            return f"ID#{self.original_id}, RID {self.research_id} (hashed)"
+            return (
+                f"Person("
+                f"original_id={self.original_id}, "
+                f"research_id={self.research_id},"
+                f"gender={self.gender},"
+                f"hashed)"
+            )
         else:
-            return ", ".join([
-                f"#{self.original_id}",
-                f"RID {self.research_id}",
+            details = ", ".join([
+                f"original_id={self.original_id}",
+                f"research_id={self.research_id}",
                 " ".join([self.first_name] +
                          self.middle_names +
                          [self.surname]),
+                f"gender={self.gender}",
                 self.dob,
                 " - ".join(self.postcodes)
             ])
+            return f"Person({details}"
 
     def _csv_dict(self, attrs: List[str]) -> Dict[str, Any]:
         """
@@ -2052,7 +1727,7 @@ class Person(object):
     # Created hashed version
     # -------------------------------------------------------------------------
 
-    def hashed(self, cfg: MatchConfig) -> "Person":
+    def as_hashed(self, cfg: MatchConfig) -> "Person":
         """
         Returns a :class:`Person` object but with all the elements hashed (if
         they are not blank).
@@ -2063,7 +1738,7 @@ class Person(object):
         # Speeded up 2020-04-24, based on profiling.
 
         # Functions that we may call several times:
-        _hash = cfg.hasher.hash
+        _hash = cfg.hasher.hash  # hashing function
         _postcode_unit_freq = cfg.postcode_unit_freq
         _postcode_sector_freq = cfg.postcode_sector_freq
         _forename_freq = cfg.forename_freq
@@ -2169,6 +1844,7 @@ class Person(object):
             surname_frequency=surname_frequency,
             hashed_surname_metaphone=hashed_surname_metaphone,
             surname_metaphone_frequency=surname_metaphone_frequency,
+            gender=self.gender,  # doesn't require concealment
             hashed_dob=hashed_dob,
             hashed_postcode_units=hashed_postcode_units,
             postcode_unit_frequencies=postcode_unit_frequencies,
@@ -2176,13 +1852,13 @@ class Person(object):
             postcode_sector_frequencies=postcode_sector_frequencies,
         )
 
-    def log_odds_same(self, other: "Person", cfg: MatchConfig,
+    def log_odds_same(self, proband: "Person", cfg: MatchConfig,
                       debug: bool = False) -> float:
         """
         Returns the log odds that ``self`` and ``other`` are the same person.
 
         Args:
-            other: another :class:`Person` object
+            proband: another :class:`Person` object
             cfg: the master :class:`MatchConfig` object
             debug: be verbose?
 
@@ -2190,10 +1866,10 @@ class Person(object):
             float: the log odds they're the same person
         """
         if debug:
-            log.debug(f"Comparing self={self}; other={other}")
+            log.debug(f"Comparing self={self}; other={proband}")
         return bayes_compare(
             prior_log_odds=cfg.baseline_log_odds_same_person,
-            comparisons=self._gen_comparisons(other, cfg),
+            comparisons=self._gen_comparisons(proband, cfg),
             debug=debug
         )
 
@@ -2201,7 +1877,7 @@ class Person(object):
     # Bayesian comparison
     # -------------------------------------------------------------------------
 
-    def _gen_comparisons(self, other: "Person", cfg: MatchConfig) \
+    def _gen_comparisons(self, proband: "Person", cfg: MatchConfig) \
             -> Generator[Optional[Comparison], None, None]:
         """
         Generates all relevant comparisons.
@@ -2210,18 +1886,26 @@ class Person(object):
         person.
 
         Args:
-            other: another :class:`Person` object
+            proband: another :class:`Person` object
             cfg: the master :class:`MatchConfig` object
+
+        **Note**
+
+        Where these functions are symmetric, they refer to ``self`` and
+        ``other``. In the few cases that are directional, they refer to
+        ``cand_*`` (candidate, ``self``) and ``proband``.
         """
-        yield self._comparison_dob(other)
-        yield self._comparison_surname(other, cfg)
-        yield self._comparison_forename(other, cfg)
-        for c in self._comparisons_middle_names(other, cfg):  # slowest
+        yield self._comparison_dob(proband, cfg)
+        yield self._comparison_gender(proband, cfg)
+        yield self._comparison_surname(proband, cfg)
+        yield self._comparison_firstname(proband, cfg)
+        for c in self._comparisons_middle_names(proband, cfg):  # slowest
             yield c
-        for c in self._comparisons_postcodes(other, cfg):  # doesn't eliminate
+        for c in self._comparisons_postcodes(proband, cfg):  # doesn't eliminate
             yield c
 
-    def _comparison_dob(self, other: "Person") -> Optional[Comparison]:
+    def _comparison_dob(self, other: "Person",
+                        cfg: MatchConfig) -> Optional[Comparison]:
         """
         Returns a comparison for date of birth.
 
@@ -2247,11 +1931,39 @@ class Person(object):
             if not self_dob or not other_dob:
                 return None
             matches = self_dob == other_dob
-        return SimpleComparison(
+        return MatchNoMatchComparison(
             name="DOB",
             match=matches,
             p_match_given_same_person=1,  # no typos allows in dates of birth
-            p_match_given_diff_person=1 / DAYS_PER_YEAR
+            p_match_given_diff_person=cfg.p_two_people_share_dob
+        )
+
+    def _comparison_gender(self, proband: "Person",
+                           cfg: MatchConfig) -> Optional[Comparison]:
+        """
+        Returns a comparison for gender (sex).
+
+        We use values "F" (female), "M" (male), "X" (other), "" (unknown).
+        """
+        # No difference between hashed and plaintext, as gender is not required
+        # to be hashed.
+        candidate_gender = self.gender
+        proband_gender = proband.gender
+        if not candidate_gender or not proband_gender:
+            return None
+        matches = candidate_gender == proband_gender
+        p_match_given_same_person = 1 - cfg.p_gender_error
+        if proband_gender == GENDER_FEMALE:  # NB proband, not candidate
+            p_match_given_diff_person = cfg.p_female
+        elif proband_gender == GENDER_MALE:
+            p_match_given_diff_person = cfg.p_male
+        else:
+            p_match_given_diff_person = cfg.p_not_male_or_female
+        return MatchNoMatchComparison(
+            name="Gender",
+            match=matches,
+            p_match_given_same_person=p_match_given_same_person,
+            p_match_given_diff_person=p_match_given_diff_person
         )
 
     def _comparison_surname(self, other: "Person",
@@ -2291,7 +2003,7 @@ class Person(object):
             p_f = cfg.surname_freq(self_surname, prestandardized=True)
             partial_match = self_metaphone == other_metaphone
             p_p = cfg.surname_metaphone_freq(self_metaphone)
-        return FullOrPartialComparison(
+        return FullPartialNoMatchComparison(
             name="surname",
             full_match=full_match,
             p_f=p_f,
@@ -2300,10 +2012,10 @@ class Person(object):
             p_p=p_p,
         )
 
-    def _comparison_forename(self, other: "Person",
-                             cfg: MatchConfig) -> Optional[Comparison]:
+    def _comparison_firstname(self, other: "Person",
+                              cfg: MatchConfig) -> Optional[Comparison]:
         """
-        Returns a comparison for forename.
+        Returns a comparison for first name.
         """
         if self.is_hashed:
             # -----------------------------------------------------------------
@@ -2337,8 +2049,8 @@ class Person(object):
             p_f = cfg.forename_freq(self_first_name, prestandardized=True)
             partial_match = self_metaphone == other_metaphone
             p_p = cfg.forename_metaphone_freq(self_metaphone)
-        return FullOrPartialComparison(
-            name="forename",
+        return FullPartialNoMatchComparison(
+            name="first_name",
             full_match=full_match,
             p_f=p_f,
             p_e=cfg.p_minor_forename_error,
@@ -2346,117 +2058,81 @@ class Person(object):
             p_p=p_p,
         )
 
+    def _hashed_mn_freq(self, name: str) -> float:
+        return self._hashed_middle_name_freq_dict[name]
+
+    def _hashed_mn_metaphone_freq(self, metaphone: str) -> float:
+        return self._hashed_middle_name_metaphone_freq_dict[metaphone]
+
     def _comparisons_middle_names(
             self, other: "Person",
             cfg: MatchConfig) -> Generator[Comparison, None, None]:
         """
         Generates comparisons for middle names.
         """
-        p_e = cfg.p_minor_forename_error
+        # ---------------------------------------------------------------------
+        # Setup
+        # ---------------------------------------------------------------------
         if self.is_hashed:
-            n_proband_middle_names = len(self.hashed_middle_names)
-            n_sample_middle_names = len(other.hashed_middle_names)
-        else:
-            n_proband_middle_names = len(self.middle_names)
-            n_sample_middle_names = len(other.middle_names)
-        unused_proband_indexes = set(range(n_proband_middle_names))
-        unused_sample_indexes = list(range(n_sample_middle_names))
-        if self.is_hashed:
-            # -----------------------------------------------------------------
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Hashed
-            # -----------------------------------------------------------------
-            # Full matches
-            for i, mn in enumerate(self.hashed_middle_names):
-                if mn in other.hashed_middle_names:
-                    unused_proband_indexes.remove(i)
-                    unused_sample_indexes.remove(
-                        other.hashed_middle_names.index(mn))
-                    yield DirectComparison(
-                        name="middle_name_hash_exact_match",
-                        p_d_given_same_person=1 - p_e,
-                        p_d_given_diff_person=self.middle_name_frequencies[i]
-                    )
-            # Partial matches
-            for i, hmeta in enumerate(self.hashed_middle_name_metaphones):
-                if i not in unused_proband_indexes:
-                    continue  # this one already matched in full
-                if hmeta in other.hashed_middle_name_metaphones:
-                    unused_proband_indexes.remove(i)
-                    unused_sample_indexes.remove(
-                        other.hashed_middle_name_metaphones.index(hmeta))
-                    yield DirectComparison(
-                        name="middle_name_hash_metaphone_match",
-                        p_d_given_same_person=p_e,
-                        p_d_given_diff_person=(
-                            self.middle_name_metaphone_frequencies[i] -
-                            self.middle_name_frequencies[i]
-                        )
-                    )
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            n_self_middle_names = len(self.hashed_middle_names)
+            n_other_middle_names = len(other.hashed_middle_names)
+            self_name_metaphone_pairs = self._hashed_middle_name_metaphone_pairs  # noqa
+            other_name_metaphone_pairs = other._hashed_middle_name_metaphone_pairs  # noqa
+            forename_freq = self._hashed_mn_freq
+            metaphone_freq = self._hashed_mn_metaphone_freq
         else:
-            # -----------------------------------------------------------------
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Plaintext
-            # -----------------------------------------------------------------
-            # Full matches
-            for i, mn in enumerate(self.middle_names):
-                if mn in other.middle_names:
-                    unused_proband_indexes.remove(i)
-                    unused_sample_indexes.remove(other.middle_names.index(mn))
-                    yield DirectComparison(
-                        name="middle_name_exact_match",
-                        p_d_given_same_person=1 - p_e,
-                        p_d_given_diff_person=cfg.forename_freq(
-                            mn, prestandardized=True)
-                    )
-            # Partial matches
-            other_metaphones = other._middle_name_metaphones
-            for i, mn in enumerate(self.middle_names):
-                if i not in unused_proband_indexes:
-                    continue  # this one already matched in full
-                metaphone = self._middle_name_metaphones[i]
-                if metaphone in other_metaphones:
-                    unused_proband_indexes.remove(i)
-                    unused_sample_indexes.append(
-                        other_metaphones.index(metaphone))
-                    yield DirectComparison(
-                        name="middle_name_metaphone_match",
-                        p_d_given_same_person=p_e,
-                        p_d_given_diff_person=cfg.forename_metaphone_freq(metaphone)  # noqa
-                    )
-        # ---------------------------------------------------------------------
-        # Both hashed and plaintext
-        # ---------------------------------------------------------------------
-        # Mismatches
-        for i in unused_proband_indexes:
-            if not unused_sample_indexes:
-                break  # no "other" name left to mismatch against
-            yield DirectComparison(
-                name="middle_name_mismatch",
-                p_d_given_same_person=0,
-                p_d_given_diff_person=(
-                    1 - self.middle_name_metaphone_frequencies[i]
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            n_self_middle_names = len(self.middle_names)
+            n_other_middle_names = len(other.middle_names)
+            self_name_metaphone_pairs = self._middle_name_metaphone_pairs
+            other_name_metaphone_pairs = other._middle_name_metaphone_pairs
+            forename_freq = cfg.forename_freq
+            metaphone_freq = cfg.forename_metaphone_freq
+
+        max_n_middle_names = max(n_self_middle_names, n_other_middle_names)
+        min_n_middle_names = min(n_self_middle_names, n_other_middle_names)
+
+        for i in range(max_n_middle_names):
+            if i >= min_n_middle_names:
+                # -------------------------------------------------------------
+                # Name present in one but not the other. Surplus name.
+                # -------------------------------------------------------------
+                n = i + 1  # from zero-based to one-based
+                if n > n_self_middle_names:
+                    # ``self`` is the candidate, from the sample.
+                    p_d_given_same_person = cfg.p_sample_middle_name_missing
+                else:
+                    # Otherwise, n > n_other_middle_names.
+                    # ``other`` is the proband.
+                    p_d_given_same_person = cfg.p_proband_middle_name_missing
+                yield DirectComparison(
+                    name="middle_name_surplus",
+                    p_d_given_same_person=p_d_given_same_person,
+                    p_d_given_diff_person=cfg.p_middle_name_present(n),
                 )
-            )
-            # Faster to remove elements from the end than the start:
-            # https://stackoverflow.com/questions/33626623/the-most-efficient-way-to-remove-first-n-elements-in-a-list  # noqa
-            del unused_sample_indexes[-1]
-        # Proband names beyond length of sample
-        n = n_proband_middle_names + 1
-        for i in range(len(unused_proband_indexes)):
-            yield DirectComparison(
-                name="middle_name_proband_beyond_sample",
-                p_d_given_same_person=cfg.p_sample_middle_name_missing,
-                p_d_given_diff_person=cfg.p_middle_name_present(n),
-            )
-            n += 1
-        # Sample names beyond length of proband
-        n = n_sample_middle_names + 1
-        for i in range(len(unused_sample_indexes)):
-            yield DirectComparison(
-                name="middle_name_sample_beyond_proband",
-                p_d_given_same_person=cfg.p_proband_middle_name_missing,
-                p_d_given_diff_person=cfg.p_middle_name_present(n),
-            )
-            n += 1
+            else:
+                # -------------------------------------------------------------
+                # Name present in both. Exact and partial matches
+                # -------------------------------------------------------------
+                s_name, s_metaphone = self_name_metaphone_pairs[i]
+                o_name, o_metaphone = other_name_metaphone_pairs[i]
+                full_match = s_name == o_name
+                partial_match = s_metaphone == o_metaphone
+                p_f = forename_freq(s_name)
+                p_p = metaphone_freq(s_metaphone)
+                yield FullPartialNoMatchComparison(
+                    name="middle_name",
+                    full_match=full_match,
+                    p_f=p_f,
+                    p_e=cfg.p_minor_forename_error,
+                    partial_match=partial_match,
+                    p_p=p_p,
+                )
 
     def _comparisons_postcodes(
             self, other: "Person",
@@ -2474,7 +2150,7 @@ class Person(object):
             for i, pu in enumerate(self.hashed_postcode_units):
                 if pu in other_hashed_postcode_units:
                     indexes_of_full_matches.add(i)
-                    yield SimpleComparison(
+                    yield MatchNoMatchComparison(
                         name="postcode_exact",
                         match=True,
                         p_match_given_same_person=1 - p_e,
@@ -2485,7 +2161,7 @@ class Person(object):
                 if i in indexes_of_full_matches:
                     continue  # this one already matched in full
                 if ps in other_hashed_postcode_sectors:
-                    yield SimpleComparison(
+                    yield MatchNoMatchComparison(
                         name="postcode_sector",
                         match=True,
                         p_match_given_same_person=p_e,
@@ -2499,7 +2175,7 @@ class Person(object):
             for i, pu in enumerate(self.postcodes):
                 if pu in other_postcodes:
                     indexes_of_full_matches.add(i)
-                    yield SimpleComparison(
+                    yield MatchNoMatchComparison(
                         name="postcode_exact",
                         match=True,
                         p_match_given_same_person=1 - p_e,
@@ -2511,7 +2187,7 @@ class Person(object):
                 if i in indexes_of_full_matches:
                     continue  # this one already matched in full
                 if ps in other_ps_list:
-                    yield SimpleComparison(
+                    yield MatchNoMatchComparison(
                         name="postcode_sector",
                         match=True,
                         p_match_given_same_person=p_e,
@@ -2578,6 +2254,12 @@ class Person(object):
             return len(self.hashed_middle_names)
         else:
             return len(self.middle_names)
+
+    def has_dob(self) -> bool:
+        """
+        Do we have a DOB?
+        """
+        return bool(self.hashed_dob) if self.is_hashed else bool(self.dob)
 
     def n_postcodes(self) -> int:
         """
@@ -2765,6 +2447,12 @@ class People(object):
         """
         return len(self.people)
 
+    def all_have_dob(self) -> bool:
+        """
+        Do all our people have DOB information?
+        """
+        return all(p.has_dob() for p in self.people)
+
     def shortlist(self, proband: Person) -> List[Person]:
         """
         Returns a shortlist of potential candidates.
@@ -2893,7 +2581,7 @@ class People(object):
         Args:
             cfg: the master :class:`MatchConfig` object
         """
-        return People(people=[p.hashed(cfg) for p in self.people])
+        return People(people=[p.as_hashed(cfg) for p in self.people])
 
 
 # =============================================================================
@@ -2923,8 +2611,8 @@ class TestCondition(object):
         self.person_b = person_b
         self.should_match = should_match
         log.info("- Making hashed versions for later")
-        self.hashed_a = self.person_a.hashed(self.cfg)
-        self.hashed_b = self.person_b.hashed(self.cfg)
+        self.hashed_a = self.person_a.as_hashed(self.cfg)
+        self.hashed_b = self.person_b.as_hashed(self.cfg)
         self.debug = debug
 
     def log_odds_same_plaintext(self) -> float:
@@ -3054,7 +2742,7 @@ def compare_probands_to_sample(cfg: MatchConfig,
                                extra_validation_output: bool = False,
                                n_workers: int = CPU_COUNT,
                                max_chunksize: int = 100) -> None:
-    """
+    r"""
     Compares each proband to the sample. Writes to an output file.
 
     Args:
@@ -3104,8 +2792,21 @@ def compare_probands_to_sample(cfg: MatchConfig,
 
     - This is an O(n^2) algorithm, in that its time grows linearly with the
       number of probands to check, and with the number of sample members to
-      check against -- though on average at 1/365 the gradient for the 
-      latter, since we use birthday prefiltering.
+      check against -- though on average at 1/(365*b) = 1/32850 the gradient
+      for the latter, since we use birthday prefiltering.
+      
+    - Different DOB, middle name methods and gender check takes us to
+      150.15 s for 10k*10k (2020-05-02). The fake data has lots of DOB overlap
+      so real-world performance is likely to be much better.
+      
+    .. code-block:: none
+    
+        crate_fuzzy_id_match compare_plaintext \
+            --probands fuzzy_sample_10k.csv \
+            --sample fuzzy_sample_10k.csv \
+            --output fuzzy_output_10k.csv
+            
+        # to profile, add: --profile --n_workers 1
         
     """  # noqa
     def process_result(r: MatchResult) -> None:
@@ -3137,10 +2838,25 @@ def compare_probands_to_sample(cfg: MatchConfig,
             )
         writer.writerow(rowdata)
 
-    parallel = n_workers > 1
     n_probands = probands.size()
+    n_sample = sample.size()
     log.info(f"Comparing each proband to sample. There are "
-             f"{n_probands} probands and {sample.size()} in the sample.")
+             f"{n_probands} probands and {n_sample} in the sample.")
+    if n_sample > cfg.population_size:
+        log.critical(
+            f"Sample size exceeds population size of {cfg.population_size}; "
+            f"assumptions violated! In particular, the prior probability for "
+            f"each candidate is guaranteed to be wrong. Aborting."
+        )
+        sys.exit(EXIT_FAILURE)
+    if not probands.all_have_dob():
+        log.critical("Probands must all have DOB information")
+        sys.exit(EXIT_FAILURE)
+    if not sample.all_have_dob():
+        log.critical("Sample candidates must all have DOB information")
+        sys.exit(EXIT_FAILURE)
+
+    parallel = n_workers > 1 and n_probands > 1
     colnames = COMPARISON_OUTPUT_COLNAMES
     if extra_validation_output:
         colnames += COMPARISON_EXTRA_COLNAMES
@@ -3151,9 +2867,10 @@ def compare_probands_to_sample(cfg: MatchConfig,
         writer.writeheader()
 
         if parallel:
-            chunksize = min(n_probands // n_workers, max_chunksize)
+            chunksize = max(1, min(n_probands // n_workers, max_chunksize))
+            # ... chunksize must be >= 1
             log.info(f"Using parallel processing with {n_workers} workers and "
-                     f"maximum chunk size of {max_chunksize}.")
+                     f"chunksize of {chunksize}.")
 
             # This is slow:
             #
@@ -3375,6 +3092,18 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         first_name="Alice",
         surname="Smith",
     )
+    middle_test_1 = Person(
+        original_id=11,
+        first_name="Alice",
+        middle_names=["Betty", "Caroline"],
+        surname="Smith"
+    )
+    middle_test_2 = Person(
+        original_id=12,
+        first_name="Alice",
+        middle_names=["Betty", "Dorothy", "Elizabeth"],
+        surname="Smith"
+    )
     all_people = [
         alice_bcd_unique_2000_add,
         alec_bcd_unique_2000_add,
@@ -3386,8 +3115,10 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         alice_smith_1930,
         alice_smith_2000,
         alice_smith,
+        middle_test_1,
+        middle_test_2,
     ]
-    all_people_hashed = [p.hashed(cfg) for p in all_people]
+    all_people_hashed = [p.as_hashed(cfg) for p in all_people]
     test_values = [
         # Very easy match
         TestCondition(cfg=cfg,
@@ -3486,8 +3217,8 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         # On Wombat: 104 microseconds.
         # On Wombat 2020-04-24: 71 microseconds.
 
-        hashed_alice_smith_1930 = alice_smith_1930.hashed(cfg)
-        hashed_alice_smith_2000 = alice_smith_2000.hashed(cfg)
+        hashed_alice_smith_1930 = alice_smith_1930.as_hashed(cfg)
+        hashed_alice_smith_2000 = alice_smith_2000.as_hashed(cfg)
 
         t = microsec_per_sec * timeit.timeit(
             "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_1930, cfg)",  # noqa
@@ -3534,7 +3265,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         log.warning(f"Comparison {i}...")
         test.assert_correct()
 
-    log.warning("Testing proband-versus-sample")
+    log.warning("Testing proband-versus-sample...")
     for i in range(len(all_people)):
         proband_plaintext = all_people[i]
         log.warning(f"Plaintext search with proband: {proband_plaintext}")
@@ -3544,6 +3275,11 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         proband_hashed = all_people_hashed[i]  # same order
         hashed_winner = people_hashed.get_unique_match(proband_hashed, cfg)
         log.warning(f"... WINNER: {hashed_winner}")
+
+    log.warning("Testing middle name comparisons...")
+    # noinspection PyProtectedMember
+    for comp in middle_test_1._comparisons_middle_names(middle_test_2, cfg):
+        log.info(comp)
 
     log.warning("... tests complete.")
 
@@ -3879,7 +3615,7 @@ def hash_identity_file(cfg: MatchConfig,
         writer.writeheader()
         for inputrow in reader:
             plaintext_person = Person.from_plaintext_csv(inputrow)
-            hashed_person = plaintext_person.hashed(cfg)
+            hashed_person = plaintext_person.as_hashed(cfg)
             writer.writerow(hashed_person.hashed_csv_dict(
                 include_original_id=include_original_id))
 
@@ -3888,25 +3624,261 @@ def hash_identity_file(cfg: MatchConfig,
 # Validation 2
 # =============================================================================
 
-def validate_2_fetch_cdl(url: str) -> Generator[Person, None, None]:
-    sql = """
+# -----------------------------------------------------------------------------
+# CRS/CDL
+# -----------------------------------------------------------------------------
+
+def validate_2_fetch_cdl(url: str,
+                         hash_key: str,
+                         echo: bool = False) -> Generator[Person, None, None]:
     """
+    Generates IDENTIFIED people from CPFT's CRS/CRL source database.
+
+    See :func:`validate_2_fetch_rio` for notes.
+    """
+    sql = """
+
+        SELECT
+            CAST(ci.NHS_IDENTIFIER AS BIGINT) AS nhs_number,
+            mpi.FORENAME AS first_name,
+            mpi.SURNAME AS surname,
+            gender = CASE mpi.GENDER
+                WHEN 'Female' THEN 'F'
+                WHEN 'Male' THEN 'M'
+                WHEN 'Not Specified' THEN 'X'
+                ELSE ''  
+                -- 'Not Known' is the CRS/CDL "unknown" value
+            END AS gender,
+            CAST(mpi.DTTM_OF_BIRTH, DATE) AS dob
+        FROM
+            MPI as mpi
+
+    """
+    hasher = Hasher(hash_key)
+    _hash = hasher.hash  # hashing function
+    engine = create_engine(url, echo=echo)
+    result = engine.execute(sql)  # type: ResultProxy
+    for row in result:
+        cdl_client_id = row["cdl_client_id"]
+        middle_names = _get_cdl_middle_names(engine, cdl_client_id)
+        postcodes = _get_cdl_postcodes(engine, cdl_client_id)
+        nhs_number = row["nhs_number"]
+        research_id = _hash(nhs_number)
+        p = Person(
+            original_id=nhs_number,
+            research_id=research_id,
+            first_name=row["first_name"] or "",
+            middle_names=middle_names,
+            surname=row["surname"] or "",
+            gender=row["gender"] or "",
+            dob=row["dob"] or "",
+            postcodes=postcodes,
+        )
+        yield p
 
 
-def validate_2_fetch_rio(url: str) -> Generator[Person, None, None]:
+# -----------------------------------------------------------------------------
+# RiO
+# -----------------------------------------------------------------------------
+
+def _get_rio_postcodes(engine: Engine,
+                       rio_client_id: str) -> List[str]:
+    """
+    Fetches distinct valid postcodes for a given person, from RiO.
+
+    Args:
+        engine:
+            SQLAlchemy engine
+        rio_client_id:
+            RiO primary key (``ClientId``)
+
+    Returns:
+        list: of postcodes
+
+    """
+    sql = text("""
+        SELECT
+            DISTINCT UPPER(PostCode) AS upper_postcode
+        FROM
+            ClientAddress
+        WHERE
+            ClientID = :client_id
+            AND PostCode IS NOT NULL
+            AND LEN(PostCode) >= 6  -- minimum for valid postcode
+        ORDER BY
+            upper_postcode
+    """)
+    rows = engine.execute(sql, client_id=rio_client_id)
+    postcodes = [
+        row[0] for row in rows
+        if POSTCODE_REGEX.match(row[0])
+    ]
+    return postcodes
+
+
+def _get_rio_middle_names(engine: Engine,
+                          rio_client_id: str) -> List[str]:
+    """
+    Fetches distinct middle names for a given person, from RiO.
+    We do not care about order.
+
+    Args:
+        engine:
+            SQLAlchemy engine
+        rio_client_id:
+            RiO primary key (``ClientId``)
+
+    Returns:
+        list: of middle names
+
+    """
+    sql = text("""
+        SELECT
+            -- OK to use UPPER() with NULL values. Result is, of course, NULL.
+            -- GivenName1 should be the first name.
+            UPPER(GivenName2) AS middle_name_1,
+            UPPER(GivenName3) AS middle_name_2
+            UPPER(GivenName4) AS middle_name_3
+            UPPER(GivenName5) AS middle_name_4
+        FROM
+            ClientName
+        WHERE
+            ClientID = :client_id
+    """)
+    rows = engine.execute(sql, client_id=rio_client_id)
+    middle_names = set()  # type: Set[str]
+    for row in rows:
+        middle_names.update(name for name in row if name)
+    return sorted(middle_names)
+
+
+def validate_2_fetch_rio(url: str,
+                         hash_key: str,
+                         echo: bool = False) -> Generator[Person, None, None]:
+    """
+    Generates IDENTIFIED people from CPFT's RiO source database.
+
+    The connection to any such database is HIGHLY confidential; it sits on a
+    secure server within a secure network and access to this specific database
+    is very restricted -- to administrators only.
+
+    Args:
+        url:
+            SQLAlchemy URL
+        hash_key:
+            Key for hashing NHS number (original ID) to research ID.
+        echo:
+            Echo SQL?
+
+    Yields:
+        :class:`Person` objects
+        
+    Generating postcodes in SQL as semicolon-separated values: pretty hard.
+    The challenges are:
+
+    - String concatenation
+
+      - Prior to SQL Server 2017:
+        https://stackoverflow.com/questions/6899/how-to-create-a-sql-server-function-to-join-multiple-rows-from-a-subquery-into
+
+        .. code-block:: none
+
+            SELECT
+                CAST(ci.NNN AS BIGINT) AS original_id,  -- NHS number
+                -- ...
+
+                STUFF(
+                    (
+                        SELECT
+                            ';' + ca.PostCode
+                        FROM
+                            ClientAddress AS ca
+                        WHERE
+                            ca.ClientID = ci.ClientID
+                            AND ca.PostCode IS NOT NULL
+                            AND ca.PostCode != ''
+                        FOR XML PATH('')
+                    ),
+                    1, 1, ''
+                ) AS postcodes
+            FROM
+                ClientIndex AS ci
+
+      - From SQL Server 2017: the ``STRING_AGG(..., ';')`` construct.
+        Still tricky, though.
+
+    - We need to return people with no postcodes.
+
+    - We must deal with a profusion of invalid postcodes -- and SQL Server 
+      doesn't support proper regular expressions.
+
+    SQLAlchemy Core query to Python dict:
+    
+    - https://stackoverflow.com/questions/1958219/convert-sqlalchemy-row-object-to-python-dict
+
+    """  # noqa
     sql = """
     
-    SELECT
-        XXX AS original_id,
-        NULL AS research_id,
-        XXX AS first_name,
-        XXX as middle_names,
+        -- We use the original raw RiO database, not the CRATE-processed one.
+    
+        SELECT
+            ci.ClientID AS rio_client_id,
+            CAST(ci.NNN AS BIGINT) AS nhs_number,
+            ci.Firstname AS first_name,
+            ci.Surname AS surname,
+            gender = CASE ci.Gender
+                WHEN 'F' THEN 'F'
+                WHEN 'M' THEN 'M'
+                WHEN 'X' THEN 'X'
+                ELSE ''  
+                -- 'U' is the RiO "unknown" value
+            END AS gender,
+            CAST(ci.DateOfBirth AS DATE) AS dob
+        FROM
+            ClientIndex AS ci
+        WHERE
+            -- Restrict to patients with NHS numbers:
+            (ci.NNNStatus = 1 OR ci.NNNStatus = 2)
+            AND NOT (ci.NNN IS NULL OR ci.NNN = '') 
+            -- 2 = NHS number verified; see table NNNStatus
+            -- Most people have status 1 (about 119k people), compared to
+            -- about 80k for status 2 (on 2020-04-28). Then about 6k have
+            -- status 0 ("trace/verification required"), and about 800 have
+            -- status 3 ("no match found"). Other codes not present.
+            -- A very small number (~40) have a null NHS number despite an
+            -- OK-looking status flag; we'll skip them.
     
     """
+    hasher = Hasher(hash_key)
+    _hash = hasher.hash  # hashing function
+    engine = create_engine(url, echo=echo)
+    result = engine.execute(sql)  # type: ResultProxy
+    for row in result:
+        rio_client_id = row["rio_client_id"]
+        middle_names = _get_rio_middle_names(engine, rio_client_id)
+        postcodes = _get_rio_postcodes(engine, rio_client_id)
+        nhs_number = row["nhs_number"]
+        research_id = _hash(nhs_number)
+        p = Person(
+            original_id=nhs_number,
+            research_id=research_id,
+            first_name=row["first_name"] or "",
+            middle_names=middle_names,
+            surname=row["surname"] or "",
+            gender=row["gender"] or "",
+            dob=row["dob"] or "",
+            postcodes=postcodes,
+        )
+        yield p
 
+
+# -----------------------------------------------------------------------------
+# Comon functions
+# -----------------------------------------------------------------------------
 
 def save_people_from_db(people: Iterable[Person],
-                        output_csv: str) -> None:
+                        output_csv: str,
+                        report_every: int = 1000) -> None:
     """
     Saves people (in plaintext) from a function that generates them from a
     database.
@@ -3916,12 +3888,18 @@ def save_people_from_db(people: Iterable[Person],
             iterable of :class:`Person`
         output_csv:
             output filename
+        report_every:
+            report progress every n people
     """
+    rownum = 0
     with open(output_csv, "wt") as f:
         writer = csv.DictWriter(f, fieldnames=Person.PLAINTEXT_ATTRS)
         writer.writeheader()
         for p in people:
             writer.writerow(p.plaintext_csv_dict())
+            rownum += 1
+            if rownum % report_every == 0:
+                log.info(f"Processing person #{rownum}")
 
 
 # =============================================================================
@@ -4045,7 +4023,8 @@ def main() -> None:
     priors_group.add_argument(
         "--forename_freq_csv", type=str,
         default=os.path.join(default_names_dir, "us_forename_freq.csv"),
-        help='CSV file of "name, frequency" pairs for forenames'
+        help=f'CSV file of "name, frequency" pairs for forenames. '
+             f'You can generate one via {CRATE_FETCH_WORDLISTS}.'
     )
     priors_group.add_argument(
         "--forename_cache_filename", type=str,
@@ -4055,7 +4034,8 @@ def main() -> None:
     priors_group.add_argument(
         "--surname_freq_csv", type=str,
         default=os.path.join(default_names_dir, "us_surname_freq.csv"),
-        help='CSV file of "name, frequency" pairs for forenames'
+        help=f'CSV file of "name, frequency" pairs for forenames. '
+             f'You can generate one via {CRATE_FETCH_WORDLISTS}.'
     )
     priors_group.add_argument(
         "--surname_cache_filename", type=str,
@@ -4087,6 +4067,12 @@ def main() -> None:
              "replaced) from the population are the same person."
     )
     priors_group.add_argument(
+        "--birth_year_pseudo_range", type=float, default=90,
+        help=f"Birth year pseudo-range. The sole purpose is to calculate the "
+             f"probability of two random people sharing a DOB, which is taken "
+             f"as 1/({DAYS_PER_YEAR} * b). This option is b."
+    )
+    priors_group.add_argument(
         "--postcode_csv_filename", type=str, default=default_postcodes_csv,
         help='CSV file of postcode geography from UK Census/ONS data'
     )
@@ -4100,6 +4086,15 @@ def main() -> None:
         "--mean_oa_population", type=float, default=UK_MEAN_OA_POPULATION_2011,
         help="Mean population of a UK Census Output Area, from which we "
              "estimate the population of postcode-based units."
+    )
+    priors_group.add_argument(
+        "--p_not_male_or_female", type=float, default=0.004,
+        help=f"Probability that a person in the population has gender 'X'."
+    )
+    priors_group.add_argument(
+        "--p_female_given_male_or_female", type=float, default=0.51,
+        help="Probability that a person in the population is female, given "
+             "that they are either male or female."
     )
 
     error_p_group = parser.add_argument_group("error probabilities")
@@ -4128,6 +4123,11 @@ def main() -> None:
         help="Assumed probability that a postcode has an error in that means "
              "it fails a full (postcode unit) match but satisfies a partial "
              "(postcode sector) match."
+    )
+    error_p_group.add_argument(
+        "--p_gender_error", type=float, default=0.0001,
+        help="Assumed probability that a gender is wrong leading to a "
+             "proband/candidate mismatch."
     )
 
     match_rule_group = parser.add_argument_group("matching rules")
@@ -4214,18 +4214,18 @@ def main() -> None:
     Here's a specimen test CSV file to use, with entirely made-up people and
     institutional (not personal) postcodes in Cambridge:
 
-original_id,research_id,first_name,middle_names,surname,dob,postcodes
-1,r1,Alice,Zara,Smith,1931-01-01,CB2 0QQ
-2,r2,Bob,Yorick,Jones,1932-01-01,CB2 3EB
-3,r3,Celia,Xena,Wright,1933-01-01,CB2 1TP
-4,r4,David,William;Wallace,Cartwright,1934-01-01,CB2 8PH;CB2 1TP
-5,r5,Emily,Violet,Fisher,1935-01-01,CB3 9DF
-6,r6,Frank,Umberto,Williams,1936-01-01,CB2 1TQ
-7,r7,Greta,Tilly,Taylor,1937-01-01,CB2 1DQ
-8,r8,Harry,Samuel,Davies,1938-01-01,CB3 9ET
-9,r9,Iris,Ruth,Evans,1939-01-01,CB3 0DG
-10,r10,James,Quentin,Thomas,1940-01-01,CB2 0SZ
-11,r11,Alice,,Smith,1931-01-01,CB2 0QQ
+original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
+1,r1,Alice,Zara,Smith,1931-01-01,F,CB2 0QQ
+2,r2,Bob,Yorick,Jones,1932-01-01,M,CB2 3EB
+3,r3,Celia,Xena,Wright,1933-01-01,F,CB2 1TP
+4,r4,David,William;Wallace,Cartwright,1934-01-01,M,CB2 8PH;CB2 1TP
+5,r5,Emily,Violet,Fisher,1935-01-01,F,CB3 9DF
+6,r6,Frank,Umberto,Williams,1936-01-01,M,CB2 1TQ
+7,r7,Greta,Tilly,Taylor,1937-01-01,F,CB2 1DQ
+8,r8,Harry,Samuel,Davies,1938-01-01,M,CB3 9ET
+9,r9,Iris,Ruth,Evans,1939-01-01,F,CB3 0DG
+10,r10,James,Quentin,Thomas,1940-01-01,M,CB2 0SZ
+11,r11,Alice,,Smith,1931-01-01,F,CB2 0QQ
 
     Explanation of the output format:
 
@@ -4260,6 +4260,17 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
     linkage; if not, this tests identifiable linkage. Deletions and typos
     may reduce (but we hope not always eliminate) the likelihood of a match,
     and we don't want to see mismatches.
+    
+    For n input rows, each basic set test involves n^2/2 comparisons.
+    Then we repeat for typos and deletions. (There is no point in DOB typos
+    as our rules preclude that.)
+    
+    Examine:
+    - P(unique plaintext match | proband in sample) -- should be close to 1.
+    - P(unique plaintext match | proband in others) -- should be close to 0.
+    - P(unique hashed match | proband in sample) -- should be close to 1.
+    - P(unique hashed match | proband in others) -- should be close to 0.
+
         """,
     )
     validate1_parser.add_argument(
@@ -4288,6 +4299,7 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
     default_rio_plaintext = "validate2_rio_DANGER_IDENTIFIABLE.csv"
     default_cdl_hashed = "validate2_cdl_hashed.csv"
     default_rio_hashed = "validate2_rio_hashed.csv"
+    cambs_population = 852523  # 2018 estimate; https://cambridgeshireinsight.org.uk/population/  # noqa
 
     validate2_cdl_parser = subparsers.add_parser(
         "validate2_fetch_cdl",
@@ -4298,8 +4310,8 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
     
     1. Fetch
     
-    - crate_fuzzy_id_match validate2_fetch_cdl --output {default_cdl_plaintext} --url XXX
-    - crate_fuzzy_id_match validate2_fetch_rio --output {default_rio_plaintext} --url XXX
+    - crate_fuzzy_id_match validate2_fetch_cdl --output {default_cdl_plaintext} --url <SQLALCHEMY_URL_CDL>
+    - crate_fuzzy_id_match validate2_fetch_rio --output {default_rio_plaintext} --url <SQLALCHEMY_URL_RIO>
 
     2. Hash
 
@@ -4308,16 +4320,20 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
 
     3. Compare
 
-    - crate_fuzzy_id_match compare_plaintext --probands {default_cdl_plaintext} --sample {default_rio_plaintext} --output cdl_to_rio_plaintext.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_hashed_to_hashed --probands {default_cdl_hashed} --sample {default_rio_hashed} --output cdl_to_rio_hashed.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_plaintext --probands {default_rio_plaintext} --sample {default_cdl_plaintext} --output rio_to_cdl_plaintext.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_hashed_to_hashed --probands {default_rio_hashed} --sample {default_cdl_hashed} --output rio_to_cdl_hashed.csv --extra_validation_output
+    - crate_fuzzy_id_match compare_plaintext --population_size {cambs_population} --probands {default_cdl_plaintext} --sample {default_rio_plaintext} --output cdl_to_rio_plaintext.csv --extra_validation_output
+    - crate_fuzzy_id_match compare_hashed_to_hashed --population_size {cambs_population} --probands {default_cdl_hashed} --sample {default_rio_hashed} --output cdl_to_rio_hashed.csv --extra_validation_output
+    - crate_fuzzy_id_match compare_plaintext --population_size {cambs_population} --probands {default_rio_plaintext} --sample {default_cdl_plaintext} --output rio_to_cdl_plaintext.csv --extra_validation_output
+    - crate_fuzzy_id_match compare_hashed_to_hashed --population_size {cambs_population} --probands {default_rio_hashed} --sample {default_cdl_hashed} --output rio_to_cdl_hashed.csv --extra_validation_output
 
         """  # noqa
     )
     validate2_cdl_parser.add_argument(
         "--url", type=str, required=True,
         help="SQLAlchemy URL for CPFT CDL source (IDENTIFIABLE) database"
+    )
+    validate2_cdl_parser.add_argument(
+        "--echo", action="store_true",
+        help="Echo SQL?"
     )
     validate2_cdl_parser.add_argument(
         "--output", type=str,
@@ -4335,6 +4351,10 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
     validate2_rio_parser.add_argument(
         "--url", type=str, required=True,
         help="SQLAlchemy URL for CPFT RiO source (IDENTIFIABLE) database"
+    )
+    validate2_rio_parser.add_argument(
+        "--echo", action="store_true",
+        help="Echo SQL?"
     )
     validate2_rio_parser.add_argument(
         "--output", type=str,
@@ -4367,6 +4387,7 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
         help="CSV filename for input (plaintext) data. " +
              Person.PLAINTEXT_CSV_FORMAT_HELP
     )
+    # noinspection PyUnresolvedReferences
     hash_parser.add_argument(
         "--output", type=str,
         default=os.path.join(default_names_dir, "fuzzy_probands_hashed.csv"),
@@ -4507,7 +4528,7 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
     log.debug(f"Using min_log_odds_for_match: {args.min_log_odds_for_match} "
               f"(p = {min_p_for_match})")
     cfg = MatchConfig(
-        hasher_key=args.key,
+        hash_key=args.key,
         rounding_sf=args.rounding_sf,
         forename_csv_filename=args.forename_freq_csv,
         forename_cache_filename=args.forename_cache_filename,
@@ -4516,6 +4537,7 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
         min_name_frequency=args.name_min_frequency,
         p_middle_name_n_present=p_middle_name_n_present,
         population_size=args.population_size,
+        birth_year_pseudo_range=args.birth_year_pseudo_range,
         postcode_csv_filename=args.postcode_csv_filename,
         postcode_cache_filename=args.postcode_cache_filename,
         mean_oa_population=args.mean_oa_population,
@@ -4526,10 +4548,13 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
         p_proband_middle_name_missing=args.p_proband_middle_name_missing,
         p_sample_middle_name_missing=args.p_sample_middle_name_missing,
         p_minor_postcode_error=args.p_minor_postcode_error,
+        p_gender_error=args.p_gender_error,
+        p_not_male_or_female=args.p_not_male_or_female,
+        p_female_given_male_or_female=args.p_female_given_male_or_female,
         verbose=args.verbose,
     )
 
-    def warn_if_default_key() -> None:
+    def warn_or_fail_if_default_key() -> None:
         if args.key == DEFAULT_HASH_KEY:
             if args.allow_default_hash_key:
                 log.warning("Proceeding with default hash key at user's "
@@ -4567,19 +4592,25 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
         log.warning("Validation test 1 complete.")
 
     elif args.command == "validate2_fetch_cdl":
+        warn_or_fail_if_default_key()
         save_people_from_db(
-            people=validate_2_fetch_cdl(url=args.url),
+            people=validate_2_fetch_cdl(url=args.url,
+                                        hash_key=args.key,
+                                        echo=args.echo),
             output_csv=args.output,
         )
 
     elif args.command == "validate2_fetch_rio":
+        warn_or_fail_if_default_key()
         save_people_from_db(
-            people=validate_2_fetch_rio(url=args.url),
+            people=validate_2_fetch_rio(url=args.url,
+                                        hash_key=args.key,
+                                        echo=args.echo),
             output_csv=args.output,
         )
 
     elif args.command == "hash":
-        warn_if_default_key()
+        warn_or_fail_if_default_key()
         log.info(f"Hashing identity file: {args.input}")
         hash_identity_file(cfg=cfg,
                            input_csv=args.input,
@@ -4625,7 +4656,7 @@ original_id,research_id,first_name,middle_names,surname,dob,postcodes
         log.info(f"... comparison finished; results are in {args.output}")
 
     elif args.command == "compare_hashed_to_plaintext":
-        warn_if_default_key()
+        warn_or_fail_if_default_key()
         log.info(f"Comparing files:\n"
                  f"- hashed probands: {args.probands}\n"
                  f"- plaintext sample: {args.sample}")
