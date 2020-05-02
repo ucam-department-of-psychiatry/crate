@@ -250,7 +250,6 @@ import argparse
 from collections import Counter, defaultdict
 import copy
 import csv
-from itertools import cycle
 import logging
 import math
 from multiprocessing import cpu_count, Pool
@@ -1147,6 +1146,10 @@ class MatchConfig(object):
         if verbose:
             log.debug("... MatchConfig built")
 
+    # -------------------------------------------------------------------------
+    # Baseline priors
+    # -------------------------------------------------------------------------
+
     @property
     def baseline_log_odds_same_person(self) -> float:
         """
@@ -1154,6 +1157,10 @@ class MatchConfig(object):
         population matches a SPECIFIC person in our sample.
         """
         return log_odds_from_1_in_n(self.population_size)
+
+    # -------------------------------------------------------------------------
+    # Identifier frequency information
+    # -------------------------------------------------------------------------
 
     def forename_freq(self, name: str, prestandardized: bool = False) -> float:
         """
@@ -1181,6 +1188,23 @@ class MatchConfig(object):
                       f"{freq}")
         return freq
 
+    def p_middle_name_present(self, n: int) -> float:
+        """
+        Returns the probability (in the population) that someone has a middle
+        name n, given that they have middle name n - 1.
+
+        (For example, n = 1 gives the probability of having a middle name; n =
+        2 is the probability of having a second middle name, given that you
+        have a first middle name.)
+        """
+        if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+            assert n >= 1
+        if not self.p_middle_name_n_present:
+            return 0
+        if n > len(self.p_middle_name_n_present):
+            return self.p_middle_name_n_present[-1]
+        return self.p_middle_name_n_present[n - 1]
+
     def surname_freq(self, name: str, prestandardized: bool = False) -> float:
         """
         Returns the baseline frequency of a surname.
@@ -1206,6 +1230,16 @@ class MatchConfig(object):
             log.debug(f"    Surname metaphone frequency for {metaphone}: "
                       f"{freq}")
         return freq
+
+    def gender_freq(self, gender: str) -> float:
+        if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+            assert gender
+        if gender == GENDER_FEMALE:
+            return self.p_female
+        elif gender == GENDER_MALE:
+            return self.p_male
+        else:
+            return self.p_not_male_or_female
 
     def is_valid_postcode(self, postcode_unit: str) -> bool:
         """
@@ -1262,6 +1296,10 @@ class MatchConfig(object):
         return self._postcode_freq.postcode_sector_population(
             postcode_sector, prestandardized=prestandardized)
 
+    # -------------------------------------------------------------------------
+    # Comparisons
+    # -------------------------------------------------------------------------
+
     def person_matches(self, log_odds_match: float) -> bool:
         """
         Decides as to whether two :class:`Person` objects are a sufficient
@@ -1275,22 +1313,163 @@ class MatchConfig(object):
         """
         return log_odds_match >= self.min_log_odds_for_match
 
-    def p_middle_name_present(self, n: int) -> float:
-        """
-        Returns the probability (in the population) that someone has a middle
-        name n, given that they have middle name n - 1.
 
-        (For example, n = 1 gives the probability of having a middle name; n =
-        2 is the probability of having a second middle name, given that you
-        have a first middle name.)
+# =============================================================================
+# Pair objects for used with hashed comparisons
+# =============================================================================
+
+class IdFreq(object):
+    """
+    Represents a identifier (plaintext or hashed) and its accompanying
+    frequency.
+    """
+    def __init__(self,
+                 comparison_name: str,
+                 identifier: Optional[str],
+                 frequency: Optional[float],
+                 p_error: float) -> None:
         """
-        if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
-            assert n >= 1
-        if not self.p_middle_name_n_present:
-            return 0
-        if n > len(self.p_middle_name_n_present):
-            return self.p_middle_name_n_present[-1]
-        return self.p_middle_name_n_present[n - 1]
+        Args:
+            comparison_name:
+                Name for the comparison.
+            identifier:
+                The identifier (plaintext or hashed).
+            frequency:
+                Its population frequency.
+            p_error:
+                Probability of a data error transforming "match" to "no match";
+                :math:`p_e`.
+        """
+        assert 0 <= p_error <= 1
+
+        self.comparison_name = comparison_name
+        self.identifier = identifier
+        self.frequency = frequency
+        self.p_no_error = 1 - p_error
+
+        if identifier:
+            assert frequency
+            assert 0 <= frequency <= 1
+
+    def comparison(self, proband: "IdFreq") -> Optional[Comparison]:
+        """
+        Comparison against a proband's version.
+        """
+        candidate_id = self.identifier
+        proband_id = proband.identifier
+        if not candidate_id or not proband_id:
+            return None
+        matches = candidate_id == proband_id
+        return MatchNoMatchComparison(
+            name=self.comparison_name,
+            match=matches,
+            p_match_given_same_person=proband.p_no_error,
+            p_match_given_diff_person=proband.frequency
+        )
+
+    def matches(self, other: "IdFreq") -> bool:
+        """
+        Is there a match with ``other``?
+        """
+        self_id = self.identifier
+        other_id = other.identifier
+        if not (self_id and other_id):
+            return False
+        return self_id == other_id
+
+
+class FuzzyIdFreq(object):
+    """
+    Represents a hashed identifier with its frequency, and a hashed fuzzy
+    version, with its frequency.
+    """
+    def __init__(self,
+                 comparison_name: str,
+                 exact_identifier: Optional[str],
+                 exact_identifier_frequency: Optional[float],
+                 fuzzy_identifier: Optional[str],
+                 fuzzy_identifier_frequency: Optional[float],
+                 p_error: float) -> None:
+        """
+        Args:
+            comparison_name:
+                Name for the comparison.
+            exact_identifier:
+                The full identifier (plaintext or hashed).
+            exact_identifier_frequency:
+                Its population frequency.
+            fuzzy_identifier:
+                The fuzzy identifier (plaintext or hashed).
+            fuzzy_identifier_frequency:
+                Its population frequency.
+            p_error:
+                Probability of a data error transforming "full match" to
+                "partial match"; :math:`p_e`.
+        """
+        assert 0 <= p_error <= 1
+
+        self.comparison_name = comparison_name
+        self.exact_identifier = exact_identifier
+        self.exact_identifier_frequency = exact_identifier_frequency
+        self.fuzzy_identifier = fuzzy_identifier
+        self.fuzzy_identifier_frequency = fuzzy_identifier_frequency
+        self.p_error = p_error
+
+        if exact_identifier:
+            assert exact_identifier_frequency
+            assert 0 <= exact_identifier_frequency <= 1
+        if fuzzy_identifier:
+            assert fuzzy_identifier_frequency
+            assert 0 <= fuzzy_identifier_frequency <= 1
+
+    def comparison(self, proband: "FuzzyIdFreq") -> Optional[Comparison]:
+        """
+        Comparison against a proband's version.
+        """
+        candidate_exact = self.exact_identifier
+        proband_exact = proband.exact_identifier
+        if not (candidate_exact and proband_exact):
+            return None
+        candidate_fuzzy = self.fuzzy_identifier
+        proband_fuzzy = proband.fuzzy_identifier
+        if not (candidate_fuzzy and proband_fuzzy):
+            return None
+        full_match = candidate_exact == proband_exact
+        partial_match = candidate_fuzzy == proband_fuzzy
+        return FullPartialNoMatchComparison(
+            name=self.comparison_name,
+            full_match=full_match,
+            p_f=proband.exact_identifier_frequency,
+            p_e=self.p_error,
+            partial_match=partial_match,
+            p_p=proband.fuzzy_identifier_frequency,
+        )
+
+    def fully_matches(self, other: "FuzzyIdFreq") -> bool:
+        """
+        Is there a full match with ``other``?
+        """
+        self_exact = self.exact_identifier
+        other_exact = other.exact_identifier
+        if not (self_exact and other_exact):
+            return False
+        return self_exact == other_exact
+
+    def partially_matches(self, other: "FuzzyIdFreq") -> bool:
+        """
+        Is there a partial match with ``other``?
+        """
+        self_fuzzy = self.fuzzy_identifier
+        other_fuzzy = other.fuzzy_identifier
+        if not (self_fuzzy and other_fuzzy):
+            return False
+        return self_fuzzy == other_fuzzy
+
+    def fully_or_partially_matches(self, other: "FuzzyIdFreq") -> bool:
+        """
+        Is there a full or a partial match with ``other``?
+        """
+        return self.fully_matches(other) or self.partially_matches(other)
 
 
 # =============================================================================
@@ -1317,8 +1496,8 @@ class Person(object):
         "first_name",
         "middle_names",
         "surname",
-        "gender",
         "dob",
+        "gender",
         "postcodes",
     ]
     HASHED_ATTRS = _COMMON_ATTRS + [
@@ -1326,16 +1505,22 @@ class Person(object):
         "first_name_frequency",
         "hashed_first_name_metaphone",
         "first_name_metaphone_frequency",
+
         "hashed_middle_names",
         "middle_name_frequencies",
         "hashed_middle_name_metaphones",
         "middle_name_metaphone_frequencies",
+
         "hashed_surname",
         "surname_frequency",
         "hashed_surname_metaphone",
         "surname_metaphone_frequency",
-        "gender",  # does not require hashing
+
         "hashed_dob",
+
+        "hashed_gender",
+        "gender_frequency",
+
         "hashed_postcode_units",
         "postcode_unit_frequencies",
         "hashed_postcode_sectors",
@@ -1347,10 +1532,15 @@ class Person(object):
     FLOAT_ATTRS = [
         "first_name_frequency",
         "first_name_metaphone_frequency",
+
         "middle_name_frequencies",
         "middle_name_metaphone_frequencies",
+
         "surname_frequency",
         "surname_metaphone_frequency",
+
+        "gender_frequency",
+
         "postcode_unit_frequencies",
         "postcode_sector_frequencies",
     ]
@@ -1358,11 +1548,13 @@ class Person(object):
         # plaintext
         "middle_names",
         "postcodes",
+
         # hashed
         "hashed_middle_names",
         "middle_name_frequencies",
         "hashed_middle_name_metaphones",
         "middle_name_metaphone_frequencies",
+
         "hashed_postcode_units",
         "postcode_unit_frequencies",
         "hashed_postcode_sectors",
@@ -1384,38 +1576,54 @@ class Person(object):
     # -------------------------------------------------------------------------
 
     def __init__(self,
+                 cfg: MatchConfig,
+
                  # State
                  is_hashed: bool = False,
+
                  # Reference codes
                  original_id: int = None,
                  research_id: str = "",
+
                  # Plaintext
                  first_name: str = "",
                  middle_names: List[str] = None,
                  surname: str = "",
-                 gender: str = "",
                  dob: str = "",
+                 gender: str = "",
                  postcodes: List[str] = None,
+
                  # Hashed
                  hashed_first_name: str = "",
                  first_name_frequency: float = None,
                  hashed_first_name_metaphone: str = "",
                  first_name_metaphone_frequency: float = None,
+
                  hashed_middle_names: List[str] = None,
                  middle_name_frequencies: List[float] = None,
                  hashed_middle_name_metaphones: List[str] = None,
                  middle_name_metaphone_frequencies: List[float] = None,
+
                  hashed_surname: str = "",
                  surname_frequency: float = None,
                  hashed_surname_metaphone: str = "",
                  surname_metaphone_frequency: float = None,
+
                  hashed_dob: str = "",
+
+                 hashed_gender: str = "",
+                 gender_frequency: float = None,
+
                  hashed_postcode_units: List[str] = None,
                  postcode_unit_frequencies: List[float] = None,
                  hashed_postcode_sectors: List[str] = None,
                  postcode_sector_frequencies: List[float] = None) -> None:
         """
         Args:
+            cfg:
+                Configuration object. It is more efficient to use this while
+                creating a Person object; it saves lookup time later.
+
             is_hashed:
                 Is this a hashed representation? If so, matching works
                 differently.
@@ -1434,6 +1642,8 @@ class Person(object):
                 The person's surname.
             dob:
                 The date of birth in ISO-8061 "YYYY-MM-DD" string format.
+            gender:
+                The gender: 'M', 'F', 'X', or ''.
             postcodes:
                 Any UK postcodes for this person.
 
@@ -1445,6 +1655,7 @@ class Person(object):
                 The first name's metaphone ("sounds like"), irreversibly hashed.
             first_name_metaphone_frequency:
                 The first name metaphone's frequency in the population.
+
             hashed_middle_names:
                 Any middle names, hashed.
             middle_name_frequencies:
@@ -1453,6 +1664,7 @@ class Person(object):
                 Any middle names' metaphones, hashed.
             middle_name_metaphone_frequencies:
                 Any middle name metaphone frequencies.
+
             hashed_surname:
                 The surname, hashed.
             surname_frequency:
@@ -1461,8 +1673,15 @@ class Person(object):
                 The surname's metaphone.
             surname_metaphone_frequency:
                 The surname metaphone's frequency.
+
             hashed_dob:
                 The DOB, hashed.
+
+            hashed_gender:
+                The gender, hashed.
+            gender_frequency:
+                The gender's frequency.
+
             hashed_postcode_units:
                 Full postcodes (postcode units), hashed.
             postcode_unit_frequencies:
@@ -1472,6 +1691,7 @@ class Person(object):
             postcode_sector_frequencies:
                 Frequencies of each postcode sector.
         """
+        self.cfg = cfg
         self.is_hashed = is_hashed
         self.original_id = original_id
         self.research_id = research_id
@@ -1481,8 +1701,8 @@ class Person(object):
             standardize_name(x) for x in middle_names if x
         ] if middle_names else []
         self.surname = standardize_name(surname)
-        self.gender = gender
         self.dob = dob
+        self.gender = gender
         self.postcodes = [standardize_postcode(x)
                           for x in postcodes if x] if postcodes else []
 
@@ -1490,15 +1710,22 @@ class Person(object):
         self.first_name_frequency = first_name_frequency
         self.hashed_first_name_metaphone = hashed_first_name_metaphone
         self.first_name_metaphone_frequency = first_name_metaphone_frequency
+
         self.hashed_middle_names = hashed_middle_names or []
         self.middle_name_frequencies = middle_name_frequencies or []
         self.hashed_middle_name_metaphones = hashed_middle_name_metaphones or []  # noqa
         self.middle_name_metaphone_frequencies = middle_name_metaphone_frequencies or []  # noqa
+
         self.hashed_surname = hashed_surname
         self.surname_frequency = surname_frequency
         self.hashed_surname_metaphone = hashed_surname_metaphone
         self.surname_metaphone_frequency = surname_metaphone_frequency
+
         self.hashed_dob = hashed_dob
+
+        self.hashed_gender = hashed_gender
+        self.gender_frequency = gender_frequency
+
         self.hashed_postcode_units = hashed_postcode_units or []
         self.postcode_unit_frequencies = postcode_unit_frequencies or []
         self.hashed_postcode_sectors = hashed_postcode_sectors or []
@@ -1534,6 +1761,8 @@ class Person(object):
                     self.hashed_surname_metaphone and
                     self.surname_metaphone_frequency is not None
                 )
+            if self.hashed_gender:
+                assert self.gender_frequency is not None
             if self.hashed_postcode_units:
                 n_postcodes = len(self.hashed_postcode_units)
                 assert (
@@ -1548,15 +1777,22 @@ class Person(object):
                 self.first_name_frequency is None and
                 not self.hashed_first_name_metaphone and
                 self.first_name_metaphone_frequency is None and
+
                 not self.hashed_middle_names and
                 not self.middle_name_frequencies and
                 not self.hashed_middle_name_metaphones and
                 not self.middle_name_metaphone_frequencies and
+
                 not self.hashed_surname and
                 self.surname_frequency is None and
                 not self.hashed_surname_metaphone and
                 self.surname_metaphone_frequency is None and
+
                 not self.hashed_dob and
+
+                not self.hashed_gender and
+                self.gender_frequency is None and
+
                 not self.hashed_postcode_units and
                 not self.postcode_unit_frequencies and
                 not self.hashed_postcode_sectors and
@@ -1571,34 +1807,129 @@ class Person(object):
                 )
 
         # Precalculate things, for speed
-        self._postcode_sectors = [get_postcode_sector(x)
-                                  for x in self.postcodes]
-        self._first_name_metaphone = get_metaphone(self.first_name)
-        self._middle_name_metaphones = [
-            get_metaphone(x) for x in self.middle_names
-        ]
-        self._surname_metaphone = get_metaphone(self.surname)
 
-        self._middle_name_metaphone_pairs = [
-            (self.middle_names[i],
-             self._middle_name_metaphones[i])
-            for i in range(len(self.middle_names))
-        ]
-        self._hashed_middle_name_metaphone_pairs = [
-            (self.hashed_middle_names[i],
-             self.hashed_middle_name_metaphones[i])
-            for i in range(len(self.hashed_middle_names))
-        ]
-        self._hashed_middle_name_freq_dict = {
-            self.hashed_middle_names[i]:
-            self.middle_name_frequencies[i]
-            for i in range(len(self.hashed_middle_names))
-        }
-        self._hashed_middle_name_metaphone_freq_dict = {
-            self.hashed_middle_name_metaphones[i]:
-            self.middle_name_metaphone_frequencies[i]
-            for i in range(len(self.hashed_middle_name_metaphones))
-        }
+        self.middle_names_info = []  # type: List[FuzzyIdFreq]
+        self.postcodes_info = []  # type: List[FuzzyIdFreq]
+
+        if is_hashed:  # more efficient as an outer test
+            # -----------------------------------------------------------------
+            # Hashed info
+            # -----------------------------------------------------------------
+
+            self.first_name_info = FuzzyIdFreq(
+                comparison_name="first_name",
+                exact_identifier=self.hashed_first_name,
+                exact_identifier_frequency=self.first_name_frequency,
+                fuzzy_identifier=self.hashed_first_name_metaphone,
+                fuzzy_identifier_frequency=self.first_name_metaphone_frequency,
+                p_error=cfg.p_minor_forename_error
+            )
+            for i in range(len(self.hashed_middle_names)):
+                n = i + 1
+                self.middle_names_info.append(FuzzyIdFreq(
+                    comparison_name=f"middle_name_{n}",
+                    exact_identifier=self.hashed_middle_names[i],
+                    exact_identifier_frequency=self.middle_name_frequencies[i],
+                    fuzzy_identifier=self.hashed_middle_name_metaphones[i],
+                    fuzzy_identifier_frequency=self.middle_name_metaphone_frequencies[i],  # noqa
+                    p_error=cfg.p_minor_forename_error
+                ))
+            self.surname_info = FuzzyIdFreq(
+                comparison_name="surname",
+                exact_identifier=self.hashed_surname,
+                exact_identifier_frequency=self.surname_frequency,
+                fuzzy_identifier=self.hashed_surname_metaphone,
+                fuzzy_identifier_frequency=self.surname_metaphone_frequency,
+                p_error=cfg.p_minor_surname_error
+            )
+            self.dob_info = IdFreq(
+                comparison_name="DOB",
+                identifier=self.hashed_dob,
+                frequency=cfg.p_two_people_share_dob,
+                p_error=0  # no typos allowed in dates of birth
+            )
+            self.gender_info = IdFreq(
+                comparison_name="gender",
+                identifier=self.hashed_gender,
+                frequency=self.gender_frequency,
+                p_error=cfg.p_gender_error
+            )
+            for i in range(len(self.hashed_postcode_units)):
+                self.middle_names_info.append(FuzzyIdFreq(
+                    comparison_name=f"postcode",
+                    exact_identifier=self.hashed_postcode_units[i],
+                    exact_identifier_frequency=self.postcode_unit_frequencies[i],  # noqa
+                    fuzzy_identifier=self.hashed_postcode_sectors[i],
+                    fuzzy_identifier_frequency=self.postcode_sector_frequencies[i],  # noqa
+                    p_error=cfg.p_minor_postcode_error
+                ))
+
+        else:
+            # -----------------------------------------------------------------
+            # Plaintext info
+            # -----------------------------------------------------------------
+
+            first_name_metaphone = get_metaphone(self.first_name)
+            self.first_name_info = FuzzyIdFreq(
+                comparison_name="first_name",
+                exact_identifier=self.first_name,
+                exact_identifier_frequency=cfg.forename_freq(
+                    self.first_name, prestandardized=True),
+                fuzzy_identifier=first_name_metaphone,
+                fuzzy_identifier_frequency=cfg.forename_metaphone_freq(
+                    first_name_metaphone),
+                p_error=cfg.p_minor_forename_error
+            )
+            for i in range(len(self.middle_names)):
+                n = i + 1
+                middle_name = self.middle_names[i]
+                middle_name_metaphone = get_metaphone(middle_name)
+                self.middle_names_info.append(FuzzyIdFreq(
+                    comparison_name=f"middle_name_{n}",
+                    exact_identifier=middle_name,
+                    exact_identifier_frequency=cfg.forename_freq(
+                        middle_name, prestandardized=True),
+                    fuzzy_identifier=middle_name_metaphone,
+                    fuzzy_identifier_frequency=cfg.forename_metaphone_freq(
+                        middle_name_metaphone),
+                    p_error=cfg.p_minor_forename_error
+                ))
+            surname_metaphone = get_metaphone(self.surname)
+            self.surname_info = FuzzyIdFreq(
+                comparison_name="surname",
+                exact_identifier=self.surname,
+                exact_identifier_frequency=cfg.surname_freq(
+                    self.surname, prestandardized=True),
+                fuzzy_identifier=surname_metaphone,
+                fuzzy_identifier_frequency=cfg.surname_metaphone_freq(
+                    surname_metaphone),
+                p_error=cfg.p_minor_surname_error
+            )
+            self.dob_info = IdFreq(
+                comparison_name="DOB",
+                identifier=self.dob,
+                frequency=cfg.p_two_people_share_dob,
+                p_error=0  # no typos allowed in dates of birth
+            )
+            self.gender_info = IdFreq(
+                comparison_name="gender",
+                identifier=self.gender,
+                frequency=cfg.gender_freq(self.gender),
+                p_error=cfg.p_gender_error
+            )
+            for i in range(len(self.postcodes)):
+                postcode_unit = self.postcodes[i]
+                postcode_sector = get_postcode_sector(postcode_unit)
+                self.middle_names_info.append(FuzzyIdFreq(
+                    comparison_name=f"postcode",
+                    exact_identifier=postcode_unit,
+                    exact_identifier_frequency=cfg.postcode_unit_freq(
+                        postcode_unit, prestandardized=True),
+                    fuzzy_identifier=postcode_sector,
+                    fuzzy_identifier_frequency=cfg.postcode_sector_freq(
+                        postcode_sector, prestandardized=True),
+                    p_error=cfg.p_minor_postcode_error
+                ))
 
     def __repr__(self) -> str:
         """
@@ -1625,7 +1956,6 @@ class Person(object):
                 f"Person("
                 f"original_id={self.original_id}, "
                 f"research_id={self.research_id},"
-                f"gender={self.gender},"
                 f"hashed)"
             )
         else:
@@ -1679,12 +2009,16 @@ class Person(object):
         return self._csv_dict(attrs)
 
     @classmethod
-    def _from_csv(cls, rowdict: Dict[str, str], attrs: List[str],
+    def _from_csv(cls,
+                  cfg: MatchConfig,
+                  rowdict: Dict[str, str],
+                  attrs: List[str],
                   is_hashed: bool) -> "Person":
         """
         Returns a :class:`Person` object from a CSV row.
 
         Args:
+            cfg: a configuration object
             rowdict: a CSV row, read via :class:`csv.DictReader`.
         """
         kwargs = {}  # type: Dict[str, Any]
@@ -1701,43 +2035,47 @@ class Person(object):
             elif attr in cls.FLOAT_ATTRS:
                 v = float(v) if v else None
             kwargs[attr] = v
-        return Person(is_hashed=is_hashed, **kwargs)
+        return Person(cfg=cfg, is_hashed=is_hashed, **kwargs)
 
     @classmethod
-    def from_plaintext_csv(cls, rowdict: Dict[str, str]) -> "Person":
+    def from_plaintext_csv(cls, cfg: MatchConfig,
+                           rowdict: Dict[str, str]) -> "Person":
         """
         Returns a :class:`Person` object from a plaintext CSV row.
 
         Args:
+            cfg: a configuration object
             rowdict: a CSV row, read via :class:`csv.DictReader`.
         """
-        return cls._from_csv(rowdict, cls.PLAINTEXT_ATTRS, is_hashed=False)
+        return cls._from_csv(cfg, rowdict,
+                             cls.PLAINTEXT_ATTRS, is_hashed=False)
 
     @classmethod
-    def from_hashed_csv(cls, rowdict: Dict[str, str]) -> "Person":
+    def from_hashed_csv(cls, cfg: MatchConfig,
+                        rowdict: Dict[str, str]) -> "Person":
         """
         Returns a :class:`Person` object from a hashed CSV row.
 
         Args:
+            cfg: a configuration object
             rowdict: a CSV row, read via :class:`csv.DictReader`.
         """
-        return cls._from_csv(rowdict, cls.HASHED_ATTRS, is_hashed=True)
+        return cls._from_csv(cfg, rowdict,
+                             cls.HASHED_ATTRS, is_hashed=True)
 
     # -------------------------------------------------------------------------
     # Created hashed version
     # -------------------------------------------------------------------------
 
-    def as_hashed(self, cfg: MatchConfig) -> "Person":
+    def as_hashed(self) -> "Person":
         """
         Returns a :class:`Person` object but with all the elements hashed (if
         they are not blank).
-
-        Args:
-            cfg: the master :class:`MatchConfig` object
         """
         # Speeded up 2020-04-24, based on profiling.
 
         # Functions that we may call several times:
+        cfg = self.cfg
         _hash = cfg.hasher.hash  # hashing function
         _postcode_unit_freq = cfg.postcode_unit_freq
         _postcode_sector_freq = cfg.postcode_sector_freq
@@ -1758,7 +2096,7 @@ class Person(object):
             hashed_first_name = _hash(first_name)
             first_name_frequency = fr(
                 _forename_freq(first_name, prestandardized=True))
-            fn_metaphone = self._first_name_metaphone
+            fn_metaphone = get_metaphone(first_name)
             hashed_first_name_metaphone = _hash(fn_metaphone)
             first_name_metaphone_frequency = fr(
                 _forename_metaphone_freq(fn_metaphone))
@@ -1773,14 +2111,14 @@ class Person(object):
         middle_name_frequencies = []
         hashed_middle_name_metaphones = []
         middle_name_metaphone_frequencies = []
-        for i, x in enumerate(middle_names):
-            if x:
-                mn_metaphone = self._middle_name_metaphones[i]
+        for i, mn in enumerate(middle_names):
+            if mn:
+                mn_metaphone = get_metaphone(mn)
                 hashed_middle_names.append(
-                    _hash(x)
+                    _hash(mn)
                 )
                 middle_name_frequencies.append(
-                    fr(_forename_freq(x, prestandardized=True))
+                    fr(_forename_freq(mn, prestandardized=True))
                 )
                 hashed_middle_name_metaphones.append(
                     _hash(mn_metaphone)
@@ -1794,7 +2132,7 @@ class Person(object):
             hashed_surname = _hash(surname)
             surname_frequency = fr(
                 cfg.surname_freq(surname, prestandardized=True))
-            sn_metaphone = self._surname_metaphone
+            sn_metaphone = get_metaphone(surname)
             hashed_surname_metaphone = _hash(sn_metaphone)
             surname_metaphone_frequency = fr(
                 cfg.surname_metaphone_freq(sn_metaphone))
@@ -1804,23 +2142,30 @@ class Person(object):
             hashed_surname_metaphone = ""
             surname_metaphone_frequency = None
 
-        dob = self.dob
-        hashed_dob = _hash(dob) if dob else ""
+        hashed_dob = _hash(self.dob) if self.dob else ""
+
+        gender = self.gender
+        if gender:
+            hashed_gender = _hash(gender)
+            gender_frequency = cfg.gender_freq(gender)
+        else:
+            hashed_gender = ""
+            gender_frequency = None
 
         postcodes = self.postcodes
         hashed_postcode_units = []
         postcode_unit_frequencies = []
         hashed_postcode_sectors = []
         postcode_sector_frequencies = []
-        for x in postcodes:
-            if x:
+        for mn in postcodes:
+            if mn:
                 hashed_postcode_units.append(
-                    _hash(x)
+                    _hash(mn)
                 )
                 postcode_unit_frequencies.append(
-                    fr(_postcode_unit_freq(x, prestandardized=True))
+                    fr(_postcode_unit_freq(mn, prestandardized=True))
                 )
-                sector = get_postcode_sector(x)
+                sector = get_postcode_sector(mn)
                 hashed_postcode_sectors.append(
                     _hash(sector)
                 )
@@ -1829,37 +2174,44 @@ class Person(object):
                 )
 
         return Person(
+            cfg=cfg,
             is_hashed=True,
+
             original_id=self.original_id,
             research_id=self.research_id,
+
             hashed_first_name=hashed_first_name,
             first_name_frequency=first_name_frequency,
             hashed_first_name_metaphone=hashed_first_name_metaphone,
             first_name_metaphone_frequency=first_name_metaphone_frequency,
+
             hashed_middle_names=hashed_middle_names,
             middle_name_frequencies=middle_name_frequencies,
             hashed_middle_name_metaphones=hashed_middle_name_metaphones,
             middle_name_metaphone_frequencies=middle_name_metaphone_frequencies,  # noqa
+
             hashed_surname=hashed_surname,
             surname_frequency=surname_frequency,
             hashed_surname_metaphone=hashed_surname_metaphone,
             surname_metaphone_frequency=surname_metaphone_frequency,
-            gender=self.gender,  # doesn't require concealment
+
             hashed_dob=hashed_dob,
+
+            hashed_gender=hashed_gender,
+            gender_frequency=gender_frequency,
+
             hashed_postcode_units=hashed_postcode_units,
             postcode_unit_frequencies=postcode_unit_frequencies,
             hashed_postcode_sectors=hashed_postcode_sectors,
             postcode_sector_frequencies=postcode_sector_frequencies,
         )
 
-    def log_odds_same(self, proband: "Person", cfg: MatchConfig,
-                      debug: bool = False) -> float:
+    def log_odds_same(self, proband: "Person", debug: bool = False) -> float:
         """
         Returns the log odds that ``self`` and ``other`` are the same person.
 
         Args:
             proband: another :class:`Person` object
-            cfg: the master :class:`MatchConfig` object
             debug: be verbose?
 
         Returns:
@@ -1867,9 +2219,10 @@ class Person(object):
         """
         if debug:
             log.debug(f"Comparing self={self}; other={proband}")
+        cfg = self.cfg
         return bayes_compare(
             prior_log_odds=cfg.baseline_log_odds_same_person,
-            comparisons=self._gen_comparisons(proband, cfg),
+            comparisons=self._gen_comparisons(proband),
             debug=debug
         )
 
@@ -1877,7 +2230,7 @@ class Person(object):
     # Bayesian comparison
     # -------------------------------------------------------------------------
 
-    def _gen_comparisons(self, proband: "Person", cfg: MatchConfig) \
+    def _gen_comparisons(self, proband: "Person") \
             -> Generator[Optional[Comparison], None, None]:
         """
         Generates all relevant comparisons.
@@ -1887,7 +2240,6 @@ class Person(object):
 
         Args:
             proband: another :class:`Person` object
-            cfg: the master :class:`MatchConfig` object
 
         **Note**
 
@@ -1895,17 +2247,16 @@ class Person(object):
         ``other``. In the few cases that are directional, they refer to
         ``cand_*`` (candidate, ``self``) and ``proband``.
         """
-        yield self._comparison_dob(proband, cfg)
-        yield self._comparison_gender(proband, cfg)
-        yield self._comparison_surname(proband, cfg)
-        yield self._comparison_firstname(proband, cfg)
-        for c in self._comparisons_middle_names(proband, cfg):  # slowest
+        yield self._comparison_dob(proband)
+        yield self._comparison_gender(proband)
+        yield self._comparison_surname(proband)
+        yield self._comparison_firstname(proband)
+        for c in self._comparisons_middle_names(proband):  # slowest
             yield c
-        for c in self._comparisons_postcodes(proband, cfg):  # doesn't eliminate
+        for c in self._comparisons_postcodes(proband):  # doesn't eliminate
             yield c
 
-    def _comparison_dob(self, other: "Person",
-                        cfg: MatchConfig) -> Optional[Comparison]:
+    def _comparison_dob(self, other: "Person") -> Optional[Comparison]:
         """
         Returns a comparison for date of birth.
 
@@ -1913,286 +2264,86 @@ class Person(object):
         approximately 4 times less common than other birthdays, in principle it
         does merit special treatment, but we ignore that).
         """
-        if self.is_hashed:
-            # -----------------------------------------------------------------
-            # Hashed
-            # -----------------------------------------------------------------
-            self_hashed_dob = self.hashed_dob
-            other_hashed_dob = other.hashed_dob
-            if not self_hashed_dob or not other_hashed_dob:
-                return None
-            matches = self_hashed_dob == other_hashed_dob
-        else:
-            # -----------------------------------------------------------------
-            # Plaintext
-            # -----------------------------------------------------------------
-            self_dob = self.dob
-            other_dob = other.dob
-            if not self_dob or not other_dob:
-                return None
-            matches = self_dob == other_dob
-        return MatchNoMatchComparison(
-            name="DOB",
-            match=matches,
-            p_match_given_same_person=1,  # no typos allows in dates of birth
-            p_match_given_diff_person=cfg.p_two_people_share_dob
-        )
+        return self.dob_info.comparison(other.dob_info)
 
-    def _comparison_gender(self, proband: "Person",
-                           cfg: MatchConfig) -> Optional[Comparison]:
+    def _comparison_gender(self, proband: "Person") -> Optional[Comparison]:
         """
         Returns a comparison for gender (sex).
 
         We use values "F" (female), "M" (male), "X" (other), "" (unknown).
         """
-        # No difference between hashed and plaintext, as gender is not required
-        # to be hashed.
-        candidate_gender = self.gender
-        proband_gender = proband.gender
-        if not candidate_gender or not proband_gender:
-            return None
-        matches = candidate_gender == proband_gender
-        p_match_given_same_person = 1 - cfg.p_gender_error
-        if proband_gender == GENDER_FEMALE:  # NB proband, not candidate
-            p_match_given_diff_person = cfg.p_female
-        elif proband_gender == GENDER_MALE:
-            p_match_given_diff_person = cfg.p_male
-        else:
-            p_match_given_diff_person = cfg.p_not_male_or_female
-        return MatchNoMatchComparison(
-            name="Gender",
-            match=matches,
-            p_match_given_same_person=p_match_given_same_person,
-            p_match_given_diff_person=p_match_given_diff_person
-        )
+        return self.gender_info.comparison(proband.gender_info)
 
-    def _comparison_surname(self, other: "Person",
-                            cfg: MatchConfig) -> Optional[Comparison]:
+    def _comparison_surname(self, other: "Person") -> Optional[Comparison]:
         """
         Returns a comparison for surname.
         """
-        if self.is_hashed:
-            # -----------------------------------------------------------------
-            # Hashed
-            # -----------------------------------------------------------------
-            self_hashed_surname = self.hashed_surname
-            other_hashed_surname = other.hashed_surname
-            self_hashed_surname_metaphone = self.hashed_surname_metaphone
-            other_hashed_surname_metaphone = other.hashed_surname_metaphone
-            if (not self_hashed_surname or
-                    not other_hashed_surname or
-                    not self_hashed_surname_metaphone or
-                    not other_hashed_surname_metaphone):
-                return None
-            full_match = self_hashed_surname == other_hashed_surname
-            p_f = self.surname_frequency
-            partial_match = (self_hashed_surname_metaphone ==
-                             other_hashed_surname_metaphone)
-            p_p = self.surname_metaphone_frequency
-        else:
-            # -----------------------------------------------------------------
-            # Plaintext
-            # -----------------------------------------------------------------
-            self_surname = self.surname
-            other_surname = other.surname
-            if not self_surname or not other_surname:
-                return None
-            self_metaphone = self._surname_metaphone
-            other_metaphone = other._surname_metaphone
-            full_match = self_surname == other_surname
-            p_f = cfg.surname_freq(self_surname, prestandardized=True)
-            partial_match = self_metaphone == other_metaphone
-            p_p = cfg.surname_metaphone_freq(self_metaphone)
-        return FullPartialNoMatchComparison(
-            name="surname",
-            full_match=full_match,
-            p_f=p_f,
-            p_e=cfg.p_minor_surname_error,
-            partial_match=partial_match,
-            p_p=p_p,
-        )
+        return self.surname_info.comparison(other.surname_info)
 
-    def _comparison_firstname(self, other: "Person",
-                              cfg: MatchConfig) -> Optional[Comparison]:
+    def _comparison_firstname(self, other: "Person") -> Optional[Comparison]:
         """
         Returns a comparison for first name.
         """
-        if self.is_hashed:
-            # -----------------------------------------------------------------
-            # Hashed
-            # -----------------------------------------------------------------
-            self_hashed_first_name = self.hashed_first_name
-            other_hashed_first_name = other.hashed_first_name
-            self_hashed_first_name_metaphone = self.hashed_first_name_metaphone
-            other_hashed_first_name_metaphone = other.hashed_first_name_metaphone  # noqa
-            if (not self_hashed_first_name or
-                    not other_hashed_first_name or
-                    not self_hashed_first_name_metaphone or
-                    not other_hashed_first_name_metaphone):
-                return None
-            full_match = self_hashed_first_name == other_hashed_first_name
-            p_f = self.first_name_frequency
-            partial_match = (self_hashed_first_name_metaphone ==
-                             other_hashed_first_name_metaphone)
-            p_p = self.first_name_metaphone_frequency
-        else:
-            # -----------------------------------------------------------------
-            # Plaintext
-            # -----------------------------------------------------------------
-            self_first_name = self.first_name
-            other_first_name = other.first_name
-            if not self_first_name or not other_first_name:
-                return None
-            self_metaphone = self._first_name_metaphone
-            other_metaphone = other._first_name_metaphone
-            full_match = self_first_name == other_first_name
-            p_f = cfg.forename_freq(self_first_name, prestandardized=True)
-            partial_match = self_metaphone == other_metaphone
-            p_p = cfg.forename_metaphone_freq(self_metaphone)
-        return FullPartialNoMatchComparison(
-            name="first_name",
-            full_match=full_match,
-            p_f=p_f,
-            p_e=cfg.p_minor_forename_error,
-            partial_match=partial_match,
-            p_p=p_p,
-        )
-
-    def _hashed_mn_freq(self, name: str) -> float:
-        return self._hashed_middle_name_freq_dict[name]
-
-    def _hashed_mn_metaphone_freq(self, metaphone: str) -> float:
-        return self._hashed_middle_name_metaphone_freq_dict[metaphone]
+        return self.first_name_info.comparison(other.first_name_info)
 
     def _comparisons_middle_names(
-            self, other: "Person",
-            cfg: MatchConfig) -> Generator[Comparison, None, None]:
+            self, proband: "Person") -> Generator[Comparison, None, None]:
         """
         Generates comparisons for middle names.
         """
-        # ---------------------------------------------------------------------
-        # Setup
-        # ---------------------------------------------------------------------
-        if self.is_hashed:
-            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            # Hashed
-            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            n_self_middle_names = len(self.hashed_middle_names)
-            n_other_middle_names = len(other.hashed_middle_names)
-            self_name_metaphone_pairs = self._hashed_middle_name_metaphone_pairs  # noqa
-            other_name_metaphone_pairs = other._hashed_middle_name_metaphone_pairs  # noqa
-            forename_freq = self._hashed_mn_freq
-            metaphone_freq = self._hashed_mn_metaphone_freq
-        else:
-            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            # Plaintext
-            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            n_self_middle_names = len(self.middle_names)
-            n_other_middle_names = len(other.middle_names)
-            self_name_metaphone_pairs = self._middle_name_metaphone_pairs
-            other_name_metaphone_pairs = other._middle_name_metaphone_pairs
-            forename_freq = cfg.forename_freq
-            metaphone_freq = cfg.forename_metaphone_freq
-
-        max_n_middle_names = max(n_self_middle_names, n_other_middle_names)
-        min_n_middle_names = min(n_self_middle_names, n_other_middle_names)
+        cfg = self.cfg
+        n_candidate_middle_names = len(self.middle_names_info)
+        n_proband_middle_names = len(proband.middle_names_info)
+        max_n_middle_names = max(n_candidate_middle_names, n_proband_middle_names)  # noqa
+        min_n_middle_names = min(n_candidate_middle_names, n_proband_middle_names)  # noqa
 
         for i in range(max_n_middle_names):
-            if i >= min_n_middle_names:
+            if i < min_n_middle_names:
+                # -------------------------------------------------------------
+                # Name present in both. Exact and partial matches
+                # -------------------------------------------------------------
+                yield self.middle_names_info[i].comparison(
+                    proband.middle_names_info[i])
+            else:
                 # -------------------------------------------------------------
                 # Name present in one but not the other. Surplus name.
                 # -------------------------------------------------------------
                 n = i + 1  # from zero-based to one-based
-                if n > n_self_middle_names:
+                if n > n_candidate_middle_names:
                     # ``self`` is the candidate, from the sample.
                     p_d_given_same_person = cfg.p_sample_middle_name_missing
                 else:
-                    # Otherwise, n > n_other_middle_names.
-                    # ``other`` is the proband.
+                    # Otherwise, n > n_proband_middle_names.
                     p_d_given_same_person = cfg.p_proband_middle_name_missing
                 yield DirectComparison(
                     name="middle_name_surplus",
                     p_d_given_same_person=p_d_given_same_person,
                     p_d_given_diff_person=cfg.p_middle_name_present(n),
                 )
-            else:
-                # -------------------------------------------------------------
-                # Name present in both. Exact and partial matches
-                # -------------------------------------------------------------
-                s_name, s_metaphone = self_name_metaphone_pairs[i]
-                o_name, o_metaphone = other_name_metaphone_pairs[i]
-                full_match = s_name == o_name
-                partial_match = s_metaphone == o_metaphone
-                p_f = forename_freq(s_name)
-                p_p = metaphone_freq(s_metaphone)
-                yield FullPartialNoMatchComparison(
-                    name="middle_name",
-                    full_match=full_match,
-                    p_f=p_f,
-                    p_e=cfg.p_minor_forename_error,
-                    partial_match=partial_match,
-                    p_p=p_p,
-                )
 
-    def _comparisons_postcodes(
-            self, other: "Person",
-            cfg: MatchConfig) -> Generator[Comparison, None, None]:
+    def _comparisons_postcodes(self, other: "Person") -> \
+            Generator[Comparison, None, None]:
         """
         Generates comparisons for postcodes.
         """
-        p_e = cfg.p_minor_postcode_error
+        other_postcodes_info = other.postcodes_info
+        # We prefer full matches to partial matches, and we don't allow the
+        # same postcode to be used for both.
         indexes_of_full_matches = set()  # type: Set[int]
-        if self.is_hashed:
-            # -----------------------------------------------------------------
-            # Hashed
-            # -----------------------------------------------------------------
-            other_hashed_postcode_units = other.hashed_postcode_units
-            for i, pu in enumerate(self.hashed_postcode_units):
-                if pu in other_hashed_postcode_units:
+        for i, self_pi in enumerate(self.postcodes_info):
+            for other_pi in other_postcodes_info:
+                if self_pi.fully_matches(other_pi):
+                    yield self_pi.comparison(other_pi)
                     indexes_of_full_matches.add(i)
-                    yield MatchNoMatchComparison(
-                        name="postcode_exact",
-                        match=True,
-                        p_match_given_same_person=1 - p_e,
-                        p_match_given_diff_person=self.postcode_unit_frequencies[i]  # noqa
-                    )
-            other_hashed_postcode_sectors = other.hashed_postcode_sectors
-            for i, ps in enumerate(self.hashed_postcode_sectors):
-                if i in indexes_of_full_matches:
-                    continue  # this one already matched in full
-                if ps in other_hashed_postcode_sectors:
-                    yield MatchNoMatchComparison(
-                        name="postcode_sector",
-                        match=True,
-                        p_match_given_same_person=p_e,
-                        p_match_given_diff_person=self.postcode_sector_frequencies[i]  # noqa
-                    )
-        else:
-            # -----------------------------------------------------------------
-            # Plaintext
-            # -----------------------------------------------------------------
-            other_postcodes = other.postcodes
-            for i, pu in enumerate(self.postcodes):
-                if pu in other_postcodes:
-                    indexes_of_full_matches.add(i)
-                    yield MatchNoMatchComparison(
-                        name="postcode_exact",
-                        match=True,
-                        p_match_given_same_person=1 - p_e,
-                        p_match_given_diff_person=cfg.postcode_unit_freq(
-                            pu, prestandardized=True)
-                    )
-            other_ps_list = other._postcode_sectors
-            for i, ps in enumerate(self._postcode_sectors):
-                if i in indexes_of_full_matches:
-                    continue  # this one already matched in full
-                if ps in other_ps_list:
-                    yield MatchNoMatchComparison(
-                        name="postcode_sector",
-                        match=True,
-                        p_match_given_same_person=p_e,
-                        p_match_given_diff_person=cfg.postcode_sector_freq(ps)
-                    )
+                    break
+        # Try for any partial matches for postcodes not yet fully matched:
+        for i, self_pi in enumerate(self.postcodes_info):
+            if i in indexes_of_full_matches:
+                continue
+            for other_pi in other_postcodes_info:
+                if self_pi.partially_matches(other_pi):
+                    yield self_pi.comparison(other_pi)
+                    break
 
     def plausible_candidate(self, other: "Person") -> bool:
         """
@@ -2211,27 +2362,12 @@ class Person(object):
         Returns:
             bool: is ``self`` a plausible match? See above.
         """
-        if self.is_hashed:
-            result = bool(
-                self.hashed_dob and
-                self.hashed_dob == other.hashed_dob and
-                (
-                    (self.hashed_surname and
-                     self.hashed_surname == other.hashed_surname) or
-                    (self.hashed_surname_metaphone and
-                     self.hashed_surname_metaphone == other.hashed_surname_metaphone)  # noqa
-                )
-            )
-        else:
-            result = bool(
-                self.dob and
-                self.dob == other.dob and
-                self.surname and
-                (self.surname == other.surname or
-                 self._surname_metaphone == other._surname_metaphone)
-            )
+        result = (
+            self.dob_info.matches(other.dob_info) and
+            self.surname_info.fully_or_partially_matches(other.surname_info)
+        )
         # log.critical(f"{self} //\n{other} //\n{result!r}")
-        return bool(result)
+        return result
 
     # -------------------------------------------------------------------------
     # Info functions
@@ -2270,11 +2406,6 @@ class Person(object):
         else:
             return len(self.postcodes)
 
-    def get_postcode_sectors(self) -> List[str]:
-        """
-        Gets postcode sectors (with caching).
-        """
-
     # -------------------------------------------------------------------------
     # Debugging functions to mutate this object
     # -------------------------------------------------------------------------
@@ -2306,12 +2437,9 @@ class Person(object):
 
         del self.postcodes[which]
 
-    def debug_mutate_something(self, cfg: MatchConfig) -> None:
+    def debug_mutate_something(self) -> None:
         """
         Randomly mutate one of: first name, a middle name, or a postcode.
-
-        Args:
-            cfg: the master :class:`MatchConfig` object
         """
         assert not self.is_hashed
         has_first_name = self.has_first_name()
@@ -2335,7 +2463,7 @@ class Person(object):
         which -= n_middle_names
 
         self.postcodes[which] = mutate_postcode(self.postcodes[which],
-                                                cfg)
+                                                self.cfg)
 
 
 # =============================================================================
@@ -2406,12 +2534,14 @@ class MatchResult(object):
 
 class People(object):
     def __init__(self,
+                 cfg: MatchConfig,
                  verbose: bool = False,
                  person: Person = None,
                  people: List[Person] = None) -> None:
         """
         Creates a blank collection.
         """
+        self.cfg = cfg
         self.verbose = verbose
         self.people = []  # type: List[Person]
         self.dob_to_people = defaultdict(list)  # type: Dict[str, List[Person]]
@@ -2471,16 +2601,13 @@ class People(object):
                 return []
             return self.dob_to_people[dob]
 
-    def get_unique_match_detailed(self,
-                                  proband: Person,
-                                  cfg: MatchConfig) -> MatchResult:
+    def get_unique_match_detailed(self, proband: Person) -> MatchResult:
         """
         Returns a single person matching the proband, or ``None`` if there is
         no match (as defined by the probability settings in ``cfg``).
 
         Args:
             proband: a :class:`Person`
-            cfg: the master :class:`MatchConfig` object
         """
         verbose = self.verbose
 
@@ -2493,6 +2620,7 @@ class People(object):
         # Step 1. Scan everything in a single pass, establishing the winner
         # and the runner-up.
         # log.info("hello")
+        cfg = self.cfg
         best_idx = -1
         second_best_idx = -1
         best_log_odds = MINUS_INFINITY
@@ -2505,7 +2633,7 @@ class People(object):
         for idx, candidate in enumerate(shortlist):
             if not candidate.plausible_candidate(proband):
                 continue
-            log_odds = candidate.log_odds_same(proband, cfg)
+            log_odds = candidate.log_odds_same(proband)
             if log_odds > best_log_odds:
                 second_best_log_odds = best_log_odds
                 second_best_idx = best_idx
@@ -2551,37 +2679,26 @@ class People(object):
             log.debug(repr(result))
         return result
 
-    def get_unique_match_detailed_single_param(
-            self,
-            proband_cfg: Tuple[Person, MatchConfig]) -> MatchResult:
-        proband, cfg = proband_cfg
-        return self.get_unique_match_detailed(proband, cfg)
-
-    def get_unique_match(self,
-                         proband: Person,
-                         cfg: MatchConfig) -> Optional[Person]:
+    def get_unique_match(self, proband: Person) -> Optional[Person]:
         """
         Returns a single person matching the proband, or ``None`` if there is
         no match (as defined by the probability settings in ``cfg``).
 
         Args:
             proband: a :class:`Person`
-            cfg: the master :class:`MatchConfig` object
 
         Returns:
             the winner (a :class:`Person`) or ``None``
         """
-        result = self.get_unique_match_detailed(proband=proband, cfg=cfg)
+        result = self.get_unique_match_detailed(proband)
         return result.winner
 
-    def hashed(self, cfg: MatchConfig) -> "People":
+    def hashed(self) -> "People":
         """
         Returns a hashed version of itself.
-
-        Args:
-            cfg: the master :class:`MatchConfig` object
         """
-        return People(people=[p.as_hashed(cfg) for p in self.people])
+        return People(cfg=self.cfg,
+                      people=[p.as_hashed() for p in self.people])
 
 
 # =============================================================================
@@ -2611,8 +2728,8 @@ class TestCondition(object):
         self.person_b = person_b
         self.should_match = should_match
         log.info("- Making hashed versions for later")
-        self.hashed_a = self.person_a.as_hashed(self.cfg)
-        self.hashed_b = self.person_b.as_hashed(self.cfg)
+        self.hashed_a = self.person_a.as_hashed()
+        self.hashed_b = self.person_b.as_hashed()
         self.debug = debug
 
     def log_odds_same_plaintext(self) -> float:
@@ -2622,8 +2739,7 @@ class TestCondition(object):
         Returns:
             float: the log odds that they are the same person
         """
-        return self.person_a.log_odds_same(self.person_b, self.cfg,
-                                           debug=self.debug)
+        return self.person_a.log_odds_same(self.person_b, debug=self.debug)
 
     def log_odds_same_hashed(self) -> float:
         """
@@ -2632,8 +2748,7 @@ class TestCondition(object):
         Returns:
             float: the log odds that they are the same person
         """
-        return self.hashed_a.log_odds_same(self.hashed_b, self.cfg,
-                                           debug=self.debug)
+        return self.hashed_a.log_odds_same(self.hashed_b, debug=self.debug)
 
     def matches_plaintext(self) -> Tuple[bool, float]:
         """
@@ -2799,6 +2914,9 @@ def compare_probands_to_sample(cfg: MatchConfig,
       150.15 s for 10k*10k (2020-05-02). The fake data has lots of DOB overlap
       so real-world performance is likely to be much better.
       
+    - Using generic ID/frequency structures took this down to 130.5s
+      (2020-05-02).
+      
     .. code-block:: none
     
         crate_fuzzy_id_match compare_plaintext \
@@ -2899,15 +3017,15 @@ def compare_probands_to_sample(cfg: MatchConfig,
 
             with Pool(processes=n_workers) as pool:
                 for result in pool.imap_unordered(  # one arg per call
-                        sample.get_unique_match_detailed_single_param,
-                        zip(probands.people, cycle([cfg])),  # tuple arg
+                        sample.get_unique_match_detailed,
+                        probands.people,
                         chunksize=chunksize):
                     process_result(result)
 
         else:
             log.info("Not using parallel processing.")
             for rownum, proband in enumerate(probands.people, start=1):
-                result = sample.get_unique_match_detailed(proband, cfg)
+                result = sample.get_unique_match_detailed(proband)
                 process_result(result)
 
     time_end = time.time()
@@ -2963,28 +3081,28 @@ def compare_probands_to_sample_from_csv(
             try:
                 (sample, ) = cache_load(sample_cache_filename)
             except FileNotFoundError:
-                sample = read_people(sample_csv)
+                sample = read_people(cfg, sample_csv)
                 cache_save(sample_cache_filename, [sample])
         else:
             # You may want to avoid a cache, for security.
             log.info("No sample cache in use.")
-            sample = read_people(sample_csv)
+            sample = read_people(cfg, sample_csv)
     else:
-        sample = read_people(sample_csv, plaintext=False)
+        sample = read_people(cfg, sample_csv, plaintext=False)
 
     # Probands
     log.info("Loading proband data")
-    probands = read_people(probands_csv, plaintext=probands_plaintext)
+    probands = read_people(cfg, probands_csv, plaintext=probands_plaintext)
 
     # Ensure they are comparable
     if sample_plaintext and not probands_plaintext:
         log.info("Hashing sample...")
-        sample = sample.hashed(cfg)
+        sample = sample.hashed()
         log.info("... done")
     elif probands_plaintext and not sample_plaintext:
         log.warning("Odd: comparing plaintext probands to hashed sample!")
         log.info("Hashing probands...")
-        probands = probands.hashed(cfg)
+        probands = probands.hashed()
         log.info("... done")
 
     # Compare
@@ -3021,6 +3139,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
     log.warning("Running tests...")
     log.warning("Building test conditions...")
     alice_bcd_unique_2000_add = Person(
+        cfg=cfg,
         original_id=1,
         first_name="Alice",
         middle_names=["Beatrice", "Celia", "Delilah"],
@@ -3029,6 +3148,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
     )
     alec_bcd_unique_2000_add = Person(
+        cfg=cfg,
         original_id=2,
         first_name="Alec",  # same metaphone as Alice
         middle_names=["Beatrice", "Celia", "Delilah"],
@@ -3037,6 +3157,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
     )
     bob_bcd_unique_2000_add = Person(
+        cfg=cfg,
         original_id=3,
         first_name="Bob",
         middle_names=["Beatrice", "Celia", "Delilah"],
@@ -3045,6 +3166,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
     )
     alice_bc_unique_2000_add = Person(
+        cfg=cfg,
         original_id=4,
         first_name="Alice",
         middle_names=["Beatrice", "Celia"],
@@ -3053,6 +3175,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
     )
     alice_b_unique_2000_add = Person(
+        cfg=cfg,
         original_id=5,
         first_name="Alice",
         middle_names=["Beatrice"],
@@ -3061,6 +3184,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
     )
     alice_jones_2000_add = Person(
+        cfg=cfg,
         original_id=6,
         first_name="Alice",
         surname="Jones",
@@ -3068,6 +3192,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
     )
     bob_smith_1950_psych = Person(
+        cfg=cfg,
         original_id=7,
         first_name="Bob",
         surname="Smith",
@@ -3076,29 +3201,34 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         # postcodes=["AB12 3CD"]  # nonexistent postcode; will raise
     )
     alice_smith_1930 = Person(
+        cfg=cfg,
         original_id=8,
         first_name="Alice",
         surname="Smith",
         dob="1930-01-01",
     )
     alice_smith_2000 = Person(
+        cfg=cfg,
         original_id=9,
         first_name="Alice",
         surname="Smith",
         dob="2000-01-01",
     )
     alice_smith = Person(
+        cfg=cfg,
         original_id=10,
         first_name="Alice",
         surname="Smith",
     )
     middle_test_1 = Person(
+        cfg=cfg,
         original_id=11,
         first_name="Alice",
         middle_names=["Betty", "Caroline"],
         surname="Smith"
     )
     middle_test_2 = Person(
+        cfg=cfg,
         original_id=12,
         first_name="Alice",
         middle_names=["Betty", "Dorothy", "Elizabeth"],
@@ -3118,7 +3248,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         middle_test_1,
         middle_test_2,
     ]
-    all_people_hashed = [p.as_hashed(cfg) for p in all_people]
+    all_people_hashed = [p.as_hashed() for p in all_people]
     test_values = [
         # Very easy match
         TestCondition(cfg=cfg,
@@ -3154,9 +3284,9 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
                       person_b=bob_bcd_unique_2000_add,
                       should_match=False),
     ]  # type: List[TestCondition]
-    people_plaintext = People(verbose=True)
+    people_plaintext = People(cfg=cfg, verbose=True)
     people_plaintext.add_people(all_people)
-    people_hashed = People(verbose=True)
+    people_hashed = People(cfg=cfg, verbose=True)
     people_hashed.add_people(all_people_hashed)
 
     if set_breakpoint:
@@ -3173,7 +3303,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         n_for_speedtest = 10000
 
         t = microsec_per_sec * timeit.timeit(
-            "alice_bcd_unique_2000_add.log_odds_same(alice_bcd_unique_2000_add, cfg)",  # noqa
+            "alice_bcd_unique_2000_add.log_odds_same(alice_bcd_unique_2000_add)",  # noqa
             number=n_for_speedtest,
             globals=locals()
         ) / n_for_speedtest
@@ -3182,7 +3312,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         # On Wombat 2020-04-24: 64 microseconds.
 
         t = microsec_per_sec * timeit.timeit(
-            "alice_bcd_unique_2000_add.hashed(cfg).log_odds_same(alice_bcd_unique_2000_add.hashed(cfg), cfg)",  # noqa
+            "alice_bcd_unique_2000_add.hashed().log_odds_same(alice_bcd_unique_2000_add.hashed())",  # noqa
             number=n_for_speedtest,
             globals=locals()
         ) / n_for_speedtest
@@ -3191,7 +3321,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         # On Wombat 2020-04-24: 407 microseconds.
 
         t = microsec_per_sec * timeit.timeit(
-            "alice_smith_1930.log_odds_same(alice_smith_2000, cfg)",
+            "alice_smith_1930.log_odds_same(alice_smith_2000, )",
             number=n_for_speedtest,
             globals=locals()
         ) / n_for_speedtest
@@ -3200,7 +3330,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         # On Wombat 2020-04-24: 6.1 microseconds.
 
         t = microsec_per_sec * timeit.timeit(
-            "alice_smith_1930.hashed(cfg).log_odds_same(alice_smith_2000.hashed(cfg), cfg)",  # noqa
+            "alice_smith_1930.hashed().log_odds_same(alice_smith_2000.hashed())",  # noqa
             number=n_for_speedtest,
             globals=locals()
         ) / n_for_speedtest
@@ -3209,7 +3339,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         # On Wombat 2020-04-24: 153 microseconds.
 
         t = microsec_per_sec * timeit.timeit(
-            "alice_smith_1930.hashed(cfg)",
+            "alice_smith_1930.hashed()",
             number=n_for_speedtest,
             globals=locals()
         ) / n_for_speedtest
@@ -3217,11 +3347,11 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         # On Wombat: 104 microseconds.
         # On Wombat 2020-04-24: 71 microseconds.
 
-        hashed_alice_smith_1930 = alice_smith_1930.as_hashed(cfg)
-        hashed_alice_smith_2000 = alice_smith_2000.as_hashed(cfg)
+        hashed_alice_smith_1930 = alice_smith_1930.as_hashed()
+        hashed_alice_smith_2000 = alice_smith_2000.as_hashed()
 
         t = microsec_per_sec * timeit.timeit(
-            "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_1930, cfg)",  # noqa
+            "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_1930)",
             number=n_for_speedtest,
             globals=locals()
         ) / n_for_speedtest
@@ -3229,7 +3359,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         # On Wombat 2020-04-024: 21.7 microseconds.
 
         t = microsec_per_sec * timeit.timeit(
-            "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_2000, cfg)",  # noqa
+            "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_2000)",
             number=n_for_speedtest,
             globals=locals()
         ) / n_for_speedtest
@@ -3273,12 +3403,12 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         log.warning(f"... WINNER: {plaintext_winner}")
         log.warning(f"Hashed search with proband: {proband_plaintext}\n")
         proband_hashed = all_people_hashed[i]  # same order
-        hashed_winner = people_hashed.get_unique_match(proband_hashed, cfg)
+        hashed_winner = people_hashed.get_unique_match(proband_hashed)
         log.warning(f"... WINNER: {hashed_winner}")
 
     log.warning("Testing middle name comparisons...")
     # noinspection PyProtectedMember
-    for comp in middle_test_1._comparisons_middle_names(middle_test_2, cfg):
+    for comp in middle_test_1._comparisons_middle_names(middle_test_2):
         log.info(comp)
 
     log.warning("... tests complete.")
@@ -3288,7 +3418,8 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
 # Loading people data
 # =============================================================================
 
-def read_people_2(csv_filename: str,
+def read_people_2(cfg: MatchConfig,
+                  csv_filename: str,
                   plaintext: bool = True,
                   alternate_groups: bool = False) -> Tuple[People, People]:
     """
@@ -3296,6 +3427,8 @@ def read_people_2(csv_filename: str,
     column details.
 
     Args:
+        cfg:
+            Configuration object
         csv_filename:
             filename to read
         plaintext:
@@ -3310,15 +3443,15 @@ def read_people_2(csv_filename: str,
     """
     log.info(f"Reading file: {csv_filename}")
     assert csv_filename
-    a = People()
-    b = People()
+    a = People(cfg=cfg)
+    b = People(cfg=cfg)
     with open(csv_filename, "rt") as f:
         reader = csv.DictReader(f)
         for i, rowdict in enumerate(reader):
             if plaintext:
-                person = Person.from_plaintext_csv(rowdict)
+                person = Person.from_plaintext_csv(cfg, rowdict)
             else:
-                person = Person.from_hashed_csv(rowdict)
+                person = Person.from_hashed_csv(cfg, rowdict)
             if alternate_groups and i % 2 == 1:
                 b.add_person(person)
             else:
@@ -3327,7 +3460,9 @@ def read_people_2(csv_filename: str,
     return a, b
 
 
-def read_people(csv_filename: str, plaintext: bool = True) -> People:
+def read_people(cfg: MatchConfig,
+                csv_filename: str,
+                plaintext: bool = True) -> People:
     """
     Read a list of people from a CSV file.
 
@@ -3335,7 +3470,8 @@ def read_people(csv_filename: str, plaintext: bool = True) -> People:
     splitting into two groups, and returns only a single :class:`People`
     object.
     """
-    people, _ = read_people_2(csv_filename,
+    people, _ = read_people_2(cfg,
+                              csv_filename,
                               plaintext=plaintext,
                               alternate_groups=False)
     return people
@@ -3345,13 +3481,13 @@ def read_people(csv_filename: str, plaintext: bool = True) -> People:
 # Validation 1
 # =============================================================================
 
-def make_deletion_data(people: People) -> People:
+def make_deletion_data(people: People, cfg: MatchConfig) -> People:
     """
     Makes a copy of the supplied data set with deliberate deletions applied.
 
     Surnames and DOBs are excepted as we require exact matches for those.
     """
-    deletion_data = People()
+    deletion_data = People(cfg)
     for person in people.people:
         modified_person = person.copy()
         modified_person.debug_delete_something()
@@ -3366,10 +3502,10 @@ def make_typo_data(people: People, cfg: MatchConfig) -> People:
 
     Surnames and DOBs are excepted as we require exact matches for those.
     """
-    typo_data = People()
+    typo_data = People(cfg)
     for person in people.people:
         modified_person = person.copy()
-        modified_person.debug_mutate_something(cfg)
+        modified_person.debug_mutate_something()
         log.debug(f"Mutated:\nFROM: {person}\nTO  : {modified_person}")
         typo_data.add_person(modified_person)
     return typo_data
@@ -3479,23 +3615,23 @@ def validate_1(cfg: MatchConfig,
         log.info(f"Read from cache: {cache_filename}")
     except FileNotFoundError:
         in_plaintext, out_plaintext = read_people_2(
-            people_csv, alternate_groups=True)
+            cfg, people_csv, alternate_groups=True)
         log.info(f"Seeding random number generator with: {seed}")
         random.seed(seed)
         log.info("Making copies with deliberate deletions...")
-        in_deletions = make_deletion_data(in_plaintext)
-        out_deletions = make_deletion_data(out_plaintext)
+        in_deletions = make_deletion_data(in_plaintext, cfg)
+        out_deletions = make_deletion_data(out_plaintext, cfg)
         log.info("Making copies with deliberate typos...")
         in_typos = make_typo_data(in_plaintext, cfg)
         out_typos = make_typo_data(out_plaintext, cfg)
 
         log.info("Hashing...")
-        in_hashed = in_plaintext.hashed(cfg)
-        out_hashed = out_plaintext.hashed(cfg)
-        in_deletions_hashed = in_deletions.hashed(cfg)
-        out_deletions_hashed = out_deletions.hashed(cfg)
-        in_typos_hashed = in_typos.hashed(cfg)
-        out_typos_hashed = out_typos.hashed(cfg)
+        in_hashed = in_plaintext.hashed()
+        out_hashed = out_plaintext.hashed()
+        in_deletions_hashed = in_deletions.hashed()
+        out_deletions_hashed = out_deletions.hashed()
+        in_typos_hashed = in_typos.hashed()
+        out_typos_hashed = out_typos.hashed()
         log.info("... done")
 
         if cache_filename:
@@ -3537,7 +3673,7 @@ def validate_1(cfg: MatchConfig,
                 i += 1
                 if i % report_every == 0:
                     log.info(f"... creating CSV row {i}")
-                result = sample.get_unique_match_detailed(person, cfg)
+                result = sample.get_unique_match_detailed(person)
 
                 if (math.isfinite(result.best_log_odds) and
                         math.isfinite(result.second_best_log_odds)):
@@ -3614,8 +3750,8 @@ def hash_identity_file(cfg: MatchConfig,
         writer = csv.DictWriter(outfile, fieldnames=Person.HASHED_ATTRS)
         writer.writeheader()
         for inputrow in reader:
-            plaintext_person = Person.from_plaintext_csv(inputrow)
-            hashed_person = plaintext_person.as_hashed(cfg)
+            plaintext_person = Person.from_plaintext_csv(cfg, inputrow)
+            hashed_person = plaintext_person.as_hashed()
             writer.writerow(hashed_person.hashed_csv_dict(
                 include_original_id=include_original_id))
 
@@ -3628,7 +3764,8 @@ def hash_identity_file(cfg: MatchConfig,
 # CRS/CDL
 # -----------------------------------------------------------------------------
 
-def validate_2_fetch_cdl(url: str,
+def validate_2_fetch_cdl(cfg: MatchConfig,
+                         url: str,
                          hash_key: str,
                          echo: bool = False) -> Generator[Person, None, None]:
     """
@@ -3665,6 +3802,7 @@ def validate_2_fetch_cdl(url: str,
         nhs_number = row["nhs_number"]
         research_id = _hash(nhs_number)
         p = Person(
+            cfg=cfg,
             original_id=nhs_number,
             research_id=research_id,
             first_name=row["first_name"] or "",
@@ -3752,7 +3890,8 @@ def _get_rio_middle_names(engine: Engine,
     return sorted(middle_names)
 
 
-def validate_2_fetch_rio(url: str,
+def validate_2_fetch_rio(cfg: MatchConfig,
+                         url: str,
                          hash_key: str,
                          echo: bool = False) -> Generator[Person, None, None]:
     """
@@ -3763,8 +3902,10 @@ def validate_2_fetch_rio(url: str,
     is very restricted -- to administrators only.
 
     Args:
+        cfg:
+            Configuration object. 
         url:
-            SQLAlchemy URL
+            SQLAlchemy URL.
         hash_key:
             Key for hashing NHS number (original ID) to research ID.
         echo:
@@ -3860,6 +4001,7 @@ def validate_2_fetch_rio(url: str,
         nhs_number = row["nhs_number"]
         research_id = _hash(nhs_number)
         p = Person(
+            cfg=cfg,
             original_id=nhs_number,
             research_id=research_id,
             first_name=row["first_name"] or "",
@@ -3980,6 +4122,7 @@ def main() -> None:
     # Argument parser
     # -------------------------------------------------------------------------
 
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Identity matching via hashed fuzzy identifiers",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -4594,7 +4737,8 @@ original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
     elif args.command == "validate2_fetch_cdl":
         warn_or_fail_if_default_key()
         save_people_from_db(
-            people=validate_2_fetch_cdl(url=args.url,
+            people=validate_2_fetch_cdl(cfg=cfg,
+                                        url=args.url,
                                         hash_key=args.key,
                                         echo=args.echo),
             output_csv=args.output,
@@ -4603,7 +4747,8 @@ original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
     elif args.command == "validate2_fetch_rio":
         warn_or_fail_if_default_key()
         save_people_from_db(
-            people=validate_2_fetch_rio(url=args.url,
+            people=validate_2_fetch_rio(cfg=cfg,
+                                        url=args.url,
                                         hash_key=args.key,
                                         echo=args.echo),
             output_csv=args.output,
