@@ -3846,6 +3846,41 @@ def hash_identity_file(cfg: MatchConfig,
 # CRS/CDL
 # -----------------------------------------------------------------------------
 
+def _get_cdl_postcodes(engine: Engine,
+                       cdl_m_number: int) -> List[str]:
+    """
+    Fetches distinct valid postcodes for a given person, from CRS/CDL.
+
+    Args:
+        engine:
+            SQLAlchemy engine
+        cdl_m_number:
+            CRS/CDL primary key ("M number")
+
+    Returns:
+        list: of postcodes
+    """
+    raise NotImplementedError
+
+
+def _get_cdl_middle_names(engine: Engine,
+                          cdl_m_number: int) -> List[str]:
+    """
+    Fetches distinct middle names for a given person, from CRS/CDL.
+
+    Args:
+        engine:
+            SQLAlchemy engine
+        cdl_m_number:
+            CRS/CDL primary key ("M number")
+
+    Returns:
+        list: of middle names
+
+    """
+    raise NotImplementedError
+
+
 def validate_2_fetch_cdl(cfg: MatchConfig,
                          url: str,
                          hash_key: str,
@@ -3855,9 +3890,11 @@ def validate_2_fetch_cdl(cfg: MatchConfig,
 
     See :func:`validate_2_fetch_rio` for notes.
     """
-    sql = """
+    raise NotImplementedError("Fix SQL as below")
+    sql = text("""
 
         SELECT
+            XXX AS cdl_m_number  -- ***
             CAST(ci.NHS_IDENTIFIER AS BIGINT) AS nhs_number,
             mpi.FORENAME AS first_name,
             mpi.SURNAME AS surname,
@@ -3872,15 +3909,15 @@ def validate_2_fetch_cdl(cfg: MatchConfig,
         FROM
             MPI as mpi
 
-    """
+    """)
     hasher = Hasher(hash_key)
     _hash = hasher.hash  # hashing function
     engine = create_engine(url, echo=echo)
     result = engine.execute(sql)  # type: ResultProxy
     for row in result:
-        cdl_client_id = row["cdl_client_id"]
-        middle_names = _get_cdl_middle_names(engine, cdl_client_id)
-        postcodes = _get_cdl_postcodes(engine, cdl_client_id)
+        cdl_m_number = row["cdl_m_number"]
+        middle_names = _get_cdl_middle_names(engine, cdl_m_number)
+        postcodes = _get_cdl_postcodes(engine, cdl_m_number)
         nhs_number = row["nhs_number"]
         research_id = _hash(nhs_number)
         p = Person(
@@ -3917,6 +3954,7 @@ def _get_rio_postcodes(engine: Engine,
 
     """
     sql = text("""
+
         SELECT
             DISTINCT UPPER(PostCode) AS upper_postcode
         FROM
@@ -3927,6 +3965,7 @@ def _get_rio_postcodes(engine: Engine,
             AND LEN(PostCode) >= 6  -- minimum for valid postcode
         ORDER BY
             upper_postcode
+
     """)
     rows = engine.execute(sql, client_id=rio_client_id)
     postcodes = [
@@ -3940,7 +3979,6 @@ def _get_rio_middle_names(engine: Engine,
                           rio_client_id: str) -> List[str]:
     """
     Fetches distinct middle names for a given person, from RiO.
-    We do not care about order.
 
     Args:
         engine:
@@ -3953,6 +3991,7 @@ def _get_rio_middle_names(engine: Engine,
 
     """
     sql = text("""
+
         SELECT
             -- OK to use UPPER() with NULL values. Result is, of course, NULL.
             -- GivenName1 should be the first name.
@@ -3964,12 +4003,11 @@ def _get_rio_middle_names(engine: Engine,
             ClientName
         WHERE
             ClientID = :client_id
+
     """)
     rows = engine.execute(sql, client_id=rio_client_id)
-    middle_names = set()  # type: Set[str]
-    for row in rows:
-        middle_names.update(name for name in row if name)
-    return sorted(middle_names)
+    raise NotImplementedError("fetch only one row? Ensure names are ordered")
+    return middle_names
 
 
 def validate_2_fetch_rio(cfg: MatchConfig,
@@ -4040,7 +4078,7 @@ def validate_2_fetch_rio(cfg: MatchConfig,
     - https://stackoverflow.com/questions/1958219/convert-sqlalchemy-row-object-to-python-dict
 
     """  # noqa
-    sql = """
+    sql = text("""
     
         -- We use the original raw RiO database, not the CRATE-processed one.
     
@@ -4071,7 +4109,7 @@ def validate_2_fetch_rio(cfg: MatchConfig,
             -- A very small number (~40) have a null NHS number despite an
             -- OK-looking status flag; we'll skip them.
     
-    """
+    """)
     hasher = Hasher(hash_key)
     _hash = hasher.hash  # hashing function
     engine = create_engine(url, echo=echo)
