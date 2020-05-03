@@ -59,92 +59,6 @@ block, and then compare the sequence of mini-hashes for similarity.
     https://doi.org/10.1016/j.diin.2006.06.015.
 
 
-Specific implementations for names, DOB, and postcode
------------------------------------------------------
-
-...
-
-Harder: middle names
-
-- We could consider only "shared middle names". Then, the order of middle names
-  is ignored; the test is "sharing a middle name" (or more than one middle
-  names). So "A B C D" is just a good a match to "A B C D" as "A C B D" is.
-
-  However, with a proband "A D", that makes "A D" and "A B C D" equally good
-  matches; perhaps that is not so plausible (you might expect "A D" to be
-  slightly more likely).
-
-  We could extend this by considering (a) middle names present in the proband
-  but absent from the sample, and (b) middle names present in the proband but
-  absent in the sample.
-
-- We end up with a more full scheme:
-
-  .. code-block:: none
-
-    define global P(proband middle name omitted) (e.g. 0.1)
-    define global P(sample middle name omitted) (e.g. 0.1)
-
-    n_proband_middle_names = ...
-    n_sample_middle_names = ...
-    for mn in shared_exact_match_middle_names:
-        P(D | H) = 1 - p_e
-        P(D | ¬H) = name_frequency
-    for mn in shared_partial_but_not_exact_match_middle_names:
-        P(D | H) = p_e
-        P(D | ¬H) = metaphone_frequency - name_frequency
-    for mn in mismatched_middle_names:
-        P(D | H) = 0
-        P(D | ¬H) = 1 - metaphone_frequency
-    for i, mn in enumerate(proband_but_not_sample_middle_names, start=1):
-        P(D | H) = P(sample middle name omitted)
-        # ... rationale: they are the same person, but this middle name is
-        #     not present in the sample record
-        P(D | ¬H) = P(person has a "n_sample_middle_names + i"th middle name,
-                      given that they have "n_sample_middle_names + i - 1" of
-                      them)
-        # ... rationale: they are not the same person; the proband has an
-        #     additional middle name at position n (sort of -- exact order is
-        #     ignored!); how likely is that?
-    for i, mn in enumerate(sample_but_not_proband_middle_names, start=1):
-        P(D | H) = P(proband middle name omitted)
-        # ... rationale: they are the same person, but this middle name is
-        #     not present in the proband record
-        P(D | ¬H) = P(person has a "n_sample_middle_names + i"th middle name,
-                      given that they have "n_sample_middle_names + i - 1" of
-                      them)
-        # ... rationale: they are not the same person; the sample has an
-        #     additional middle name at position n (sort of -- exact order is
-        #     ignored!); how likely is that?
-
-    # Roughly 80% of UK children in ~2013 had a middle name [1].
-    # Roughly 11% of people have at least two. So P(two | one) = 0.1375.
-
-    # [1] Daily Mail, 29 Nov 2013:
-    # https://www.dailymail.co.uk/news/article-2515376/Middle-names-booming-80-children-given-parents-chosen-honour-lost-relatives.html
-
-Harder: postcodes
-
-- Postcodes are assumed to provide evidence if there is a match, but not to
-  weaken the case if they don't match. This is appropriate for historical
-  records; e.g. if they lived as postcode A when they went to school, so that's
-  their postcode in a national education database, but then live for more than
-  a decade at postcode B before first presenting to mental health NHS services,
-  that's all perfectly plausible -- the lack of match doesn't provide clear
-  evidence against a match, but an overlap would provide evidence for. A given
-  person may have a long series of postcodes where they've lived. So we just
-  pick the matches, if there are any.
-
-Note that partial matches can certainly make a match a bit *less* likely
-(relative to absence of information). For example, a first name of "Alice"
-matching "Alice" might substantially increase the probability; an absent first
-name in a record won't change the probability (i.e. will tend to leave it at a
-low level); "Alec" versus "Alice" might decrease the probability even though
-they have the same metaphone (because the "typo" error probability is low
-relative to the metaphone frequency); "Bob" versus "Alice" is a mismatch and
-will take the probability to zero.
-
-
 Geography
 ---------
 
@@ -259,7 +173,7 @@ For Figure 3
 """  # noqa
 
 import argparse
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict, OrderedDict
 import copy
 import csv
 import logging
@@ -276,7 +190,7 @@ import time
 import timeit
 from typing import (
     Any, Dict, Generator, Iterable, List, Optional, Set, Tuple,
-    TYPE_CHECKING,
+    TYPE_CHECKING, Union,
 )
 
 import appdirs
@@ -316,7 +230,7 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = False
+CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = True  # for debugging only
 
 dmeta = DMetaphone()
 
@@ -779,6 +693,7 @@ class NameFrequencyInfo(object):
     def __init__(self,
                  csv_filename: str,
                  cache_filename: str,
+                 by_gender: bool = False,
                  min_frequency: float = 5e-6) -> None:
         """
         Initializes the object from a CSV file.
@@ -788,6 +703,8 @@ class NameFrequencyInfo(object):
                 CSV file, with no header, of "name, frequency" pairs.
             cache_filename:
                 File in which to cache information, for faster loading.
+            by_gender:
+                read, split, and key by gender as well as name
             min_frequency:
                 minimum frequency to allow; see command-line help.
         """
@@ -795,8 +712,9 @@ class NameFrequencyInfo(object):
         self._csv_filename = csv_filename
         self._cache_filename = cache_filename
         self._min_frequency = min_frequency
-        self._name_freq = {}  # type: Dict[str, float]
-        self._metaphone_freq = {}  # type: Dict[str, float]
+        self._name_freq = {}  # type: Dict[Union[str, Tuple[str, str]], float]
+        self._metaphone_freq = {}  # type: Dict[Union[str, Tuple[str, str]], float]  # noqa
+        self._by_gender = by_gender
 
         try:
             self._name_freq, self._metaphone_freq = cache_load(cache_filename)
@@ -810,36 +728,52 @@ class NameFrequencyInfo(object):
                 csvreader = csv.reader(f)
                 for row in csvreader:
                     name = standardize_name(row[0])
-                    freq = max(float(row[1]), min_frequency)
+                    if by_gender:
+                        gender = row[1]
+                        freq_str = row[2]
+                    else:
+                        freq_str = row[1]
+                    freq = max(float(freq_str), min_frequency)
                     metaphone = get_metaphone(name)
-                    name_freq[name] = freq
+                    if by_gender:
+                        name_key = name, gender
+                        metaphone_key = metaphone, gender
+                    else:
+                        name_key = name
+                        metaphone_key = metaphone
+                    name_freq[name_key] = freq
                     # https://stackoverflow.com/questions/12992165/python-dictionary-increment  # noqa
-                    metaphone_freq[metaphone] = (
-                        metaphone_freq.get(metaphone, 0) + freq
+                    metaphone_freq[metaphone_key] = (
+                        metaphone_freq.get(metaphone_key, 0) + freq
                     )
             log.info("... done")
             # Save to cache
             cache_save(cache_filename, [name_freq, metaphone_freq])
 
-    def name_frequency(self, name: str, prestandardized: bool = True) -> float:
+    def name_frequency(self, name: str, gender: str = "",
+                       prestandardized: bool = True) -> float:
         """
         Returns the frequency of a name.
 
         Args:
             name: the name to check
+            gender: the gender, if created with ``by_gender=True``
             prestandardized: was the name pre-standardized in format?
 
         Returns:
             the name's frequency in the population
         """
-        stname = name if prestandardized else standardize_name(name)
-        return self._name_freq.get(stname, self._min_frequency)
+        if not prestandardized:
+            name = standardize_name(name)
+        key = name, gender if self._by_gender else name
+        return self._name_freq.get(key, self._min_frequency)
 
-    def metaphone_frequency(self, metaphone: str) -> float:
+    def metaphone_frequency(self, metaphone: str, gender: str = "") -> float:
         """
         Returns the frequency of a metaphone
         """
-        return self._metaphone_freq.get(metaphone, self._min_frequency)
+        key = metaphone, gender if self._by_gender else metaphone
+        return self._metaphone_freq.get(key, self._min_frequency)
 
 
 # =============================================================================
@@ -1008,7 +942,7 @@ class MatchConfig(object):
             self,
             hash_key: str,
             rounding_sf: int,
-            forename_csv_filename: str,
+            forename_sex_csv_filename: str,
             forename_cache_filename: str,
             surname_csv_filename: str,
             surname_cache_filename: str,
@@ -1037,7 +971,7 @@ class MatchConfig(object):
             rounding_sf:
                 Number of significant figures to use when rounding frequency
                 information in hashed copies.
-            forename_csv_filename:
+            forename_sex_csv_filename:
                 Forename frequencies. CSV file, with no header, of "name,
                 frequency" pairs.
             forename_cache_filename:
@@ -1118,7 +1052,7 @@ class MatchConfig(object):
 
         self.hasher = Hasher(hash_key)
         self.rounding_sf = rounding_sf
-        self.forename_csv_filename = forename_csv_filename
+        self.forename_csv_filename = forename_sex_csv_filename
         self.surname_csv_filename = surname_csv_filename
         self.min_name_frequency = min_name_frequency
         self.p_middle_name_n_present = p_middle_name_n_present
@@ -1140,9 +1074,10 @@ class MatchConfig(object):
         self.p_male = p_male_or_female - self.p_female
 
         self._forename_freq = NameFrequencyInfo(
-            csv_filename=forename_csv_filename,
+            csv_filename=forename_sex_csv_filename,
             cache_filename=forename_cache_filename,
-            min_frequency=min_name_frequency)
+            min_frequency=min_name_frequency,
+            by_gender=True)
         self._surname_freq = NameFrequencyInfo(
             csv_filename=surname_csv_filename,
             cache_filename=surname_cache_filename,
@@ -1174,30 +1109,63 @@ class MatchConfig(object):
     # Identifier frequency information
     # -------------------------------------------------------------------------
 
-    def forename_freq(self, name: str, prestandardized: bool = False) -> float:
+    def mean_across_genders(self, value_f: float, value_m: float) -> float:
+        """
+        Given frequencies for M and F, return the population mean.
+
+        Args:
+            value_f: female value
+            value_m: male value
+        """
+        return value_f * self.p_female + value_m * self.p_male
+
+    def forename_freq(self,
+                      name: str,
+                      gender: str,
+                      prestandardized: bool = False) -> float:
         """
         Returns the baseline frequency of a forename.
 
         Args:
             name: the name to check
-            prestandardized: was it pre-standardized?
+            gender: the gender to look up for
+            prestandardized: was the name pre-standardized?
         """
-        freq = self._forename_freq.name_frequency(name, prestandardized)
+        if not prestandardized:
+            name = standardize_name(name)
+        if gender in (GENDER_MALE, GENDER_FEMALE):
+            freq = self._forename_freq.name_frequency(name, gender,
+                                                      prestandardized=True)
+        else:
+            freq_f = self._forename_freq.name_frequency(name, GENDER_FEMALE,
+                                                        prestandardized=True)
+            freq_m = self._forename_freq.name_frequency(name, GENDER_MALE,
+                                                        prestandardized=True)
+            freq = self.mean_across_genders(freq_f, freq_m)
         if self.verbose:
-            log.debug(f"    Forename frequency for {name}: {freq}")
+            log.debug(f"    Forename frequency for {name}, gender {gender!r}: "
+                      f"{freq}")
         return freq
 
-    def forename_metaphone_freq(self, metaphone: str) -> float:
+    def forename_metaphone_freq(self, metaphone: str, gender: str) -> float:
         """
         Returns the baseline frequency of a forename's metaphone.
 
         Args:
             metaphone: the metaphone to check
+            gender: the gender to look up for
         """
-        freq = self._forename_freq.metaphone_frequency(metaphone)
+        if gender in (GENDER_MALE, GENDER_FEMALE):
+            freq = self._forename_freq.metaphone_frequency(metaphone, gender)
+        else:
+            freq_f = self._forename_freq.metaphone_frequency(
+                metaphone, GENDER_FEMALE)
+            freq_m = self._forename_freq.metaphone_frequency(
+                metaphone, GENDER_MALE)
+            freq = self.mean_across_genders(freq_f, freq_m)
         if self.verbose:
-            log.debug(f"    Forename metaphone frequency for {metaphone}: "
-                      f"{freq}")
+            log.debug(f"    Forename metaphone frequency for {metaphone}, "
+                      f"gender {gender!r}: {freq}")
         return freq
 
     def p_middle_name_present(self, n: int) -> float:
@@ -1225,7 +1193,8 @@ class MatchConfig(object):
             name: the name to check
             prestandardized: was it pre-standardized?
         """
-        freq = self._surname_freq.name_frequency(name, prestandardized)
+        freq = self._surname_freq.name_frequency(
+            name, prestandardized=prestandardized)
         if self.verbose:
             log.debug(f"    Surname frequency for {name}: {freq}")
         return freq
@@ -1243,10 +1212,10 @@ class MatchConfig(object):
                       f"{freq}")
         return freq
 
-    def gender_freq(self, gender: str) -> float:
-        if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
-            assert gender
-        if gender == GENDER_FEMALE:
+    def gender_freq(self, gender: str) -> Optional[float]:
+        if not gender:
+            return None
+        elif gender == GENDER_FEMALE:
             return self.p_female
         elif gender == GENDER_MALE:
             return self.p_male
@@ -1667,7 +1636,9 @@ class Person(object):
                  hashed_postcode_units: List[str] = None,
                  postcode_unit_frequencies: List[float] = None,
                  hashed_postcode_sectors: List[str] = None,
-                 postcode_sector_frequencies: List[float] = None) -> None:
+                 postcode_sector_frequencies: List[float] = None,
+
+                 other: Dict[str, Any] = None) -> None:
         """
         Args:
             cfg:
@@ -1740,6 +1711,10 @@ class Person(object):
                 Postcode sectors, hashed.
             postcode_sector_frequencies:
                 Frequencies of each postcode sector.
+
+            other:
+                Dictionary of other attributes (only used for validation
+                research, e.g. ensuring linkage is not biased by ethnicity).
         """
         # ---------------------------------------------------------------------
         # Store info
@@ -1793,6 +1768,8 @@ class Person(object):
         self.postcode_sector_frequencies = (
             postcode_sector_frequencies or [None] * n_hashed_postcodes
         )
+
+        self.other = other or {}  # type: Dict[str, Any]
 
         # ---------------------------------------------------------------------
         # Validation
@@ -1913,7 +1890,7 @@ class Person(object):
                 p_error=cfg.p_gender_error
             )
             for i in range(len(self.hashed_postcode_units)):
-                self.middle_names_info.append(FuzzyIdFreq(
+                self.postcodes_info.append(FuzzyIdFreq(
                     comparison_name=f"postcode",
                     exact_identifier=self.hashed_postcode_units[i],
                     exact_identifier_frequency=self.postcode_unit_frequencies[i],  # noqa
@@ -1932,10 +1909,15 @@ class Person(object):
                 comparison_name="first_name",
                 exact_identifier=self.first_name,
                 exact_identifier_frequency=cfg.forename_freq(
-                    self.first_name, prestandardized=True),
+                    self.first_name,
+                    self.gender,
+                    prestandardized=True
+                ),
                 fuzzy_identifier=first_name_metaphone,
                 fuzzy_identifier_frequency=cfg.forename_metaphone_freq(
-                    first_name_metaphone),
+                    first_name_metaphone,
+                    self.gender
+                ),
                 p_error=cfg.p_minor_forename_error
             )
             for i in range(len(self.middle_names)):
@@ -1946,10 +1928,15 @@ class Person(object):
                     comparison_name=f"middle_name_{n}",
                     exact_identifier=middle_name,
                     exact_identifier_frequency=cfg.forename_freq(
-                        middle_name, prestandardized=True),
+                        middle_name,
+                        self.gender,
+                        prestandardized=True
+                    ),
                     fuzzy_identifier=middle_name_metaphone,
                     fuzzy_identifier_frequency=cfg.forename_metaphone_freq(
-                        middle_name_metaphone),
+                        middle_name_metaphone,
+                        self.gender
+                    ),
                     p_error=cfg.p_minor_forename_error
                 ))
             surname_metaphone = get_metaphone(self.surname)
@@ -1978,7 +1965,7 @@ class Person(object):
             for i in range(len(self.postcodes)):
                 postcode_unit = self.postcodes[i]
                 postcode_sector = get_postcode_sector(postcode_unit)
-                self.middle_names_info.append(FuzzyIdFreq(
+                self.postcodes_info.append(FuzzyIdFreq(
                     comparison_name=f"postcode",
                     exact_identifier=postcode_unit,
                     exact_identifier_frequency=cfg.postcode_unit_freq(
@@ -2042,6 +2029,12 @@ class Person(object):
                 v = a
             d[k] = v
         return d
+
+    def plaintext_csv_columns(self) -> List[str]:
+        """
+        CSV column names -- including user-specified "other" information.
+        """
+        return self.PLAINTEXT_ATTRS + list(self.other.keys())
 
     def plaintext_csv_dict(self) -> Dict[str, Any]:
         """
@@ -2157,14 +2150,15 @@ class Person(object):
             return round_sf(f, sf)
 
         first_name = self.first_name
+        gender = self.gender
         if first_name:
             hashed_first_name = _hash(first_name)
-            first_name_frequency = fr(
-                _forename_freq(first_name, prestandardized=True))
+            first_name_frequency = fr(_forename_freq(
+                first_name, gender, prestandardized=True))
             fn_metaphone = get_metaphone(first_name)
             hashed_first_name_metaphone = _hash(fn_metaphone)
-            first_name_metaphone_frequency = fr(
-                _forename_metaphone_freq(fn_metaphone))
+            first_name_metaphone_frequency = fr(_forename_metaphone_freq(
+                fn_metaphone, gender))
         else:
             hashed_first_name = ""
             first_name_frequency = None
@@ -2183,13 +2177,13 @@ class Person(object):
                     _hash(mn)
                 )
                 middle_name_frequencies.append(
-                    fr(_forename_freq(mn, prestandardized=True))
+                    fr(_forename_freq(mn, gender, prestandardized=True))
                 )
                 hashed_middle_name_metaphones.append(
                     _hash(mn_metaphone)
                 )
                 middle_name_metaphone_frequencies.append(
-                    fr(_forename_metaphone_freq(mn_metaphone))
+                    fr(_forename_metaphone_freq(mn_metaphone, gender))
                 )
 
         surname = self.surname
@@ -2209,7 +2203,6 @@ class Person(object):
 
         hashed_dob = _hash(self.dob) if self.dob else ""
 
-        gender = self.gender
         if gender:
             hashed_gender = _hash(gender)
             gender_frequency = fr(cfg.gender_freq(gender))
@@ -3453,9 +3446,18 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         f = cfg.surname_freq(surname)
         log.info(f"Surname frequency for {surname}: {f}")
 
-    for forename in ["James", "Rachel", "Phoebe", "XYZ"]:
-        f = cfg.forename_freq(forename)
-        log.info(f"Forename frequency for {forename}: {f}")
+    for forename, gender in [("James", GENDER_MALE),
+                             ("Rachel", GENDER_FEMALE),
+                             ("Phoebe", GENDER_FEMALE),
+                             ("Elizabeth", GENDER_FEMALE),
+                             ("Elizabeth", GENDER_MALE),
+                             ("Elizabeth", ""),
+                             ("Rowan", GENDER_FEMALE),
+                             ("Rowan", GENDER_MALE),
+                             ("Rowan", ""),
+                             ("XYZ", "")]:
+        f = cfg.forename_freq(forename, gender)
+        log.info(f"Forename frequency for {forename}, gender {gender}: {f}")
 
     # Examples are hospitals and colleges in Cambridge (not residential) but
     # it gives a broad idea.
@@ -3476,14 +3478,16 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
     for i in range(len(all_people)):
         proband_plaintext = all_people[i]
         log.warning(f"Plaintext search with proband: {proband_plaintext}")
-        plaintext_winner = people_plaintext.get_unique_match(proband_plaintext, cfg)  # noqa
+        plaintext_winner = people_plaintext.get_unique_match(proband_plaintext)
         log.warning(f"... WINNER: {plaintext_winner}")
         log.warning(f"Hashed search with proband: {proband_plaintext}\n")
         proband_hashed = all_people_hashed[i]  # same order
         hashed_winner = people_hashed.get_unique_match(proband_hashed)
         log.warning(f"... WINNER: {hashed_winner}")
 
-    log.warning("Testing middle name comparisons...")
+    log.warning(f"Testing middle name comparisons between...\n"
+                f"{middle_test_1}\n"
+                f"{middle_test_2}")
     # noinspection PyProtectedMember
     for comp in middle_test_1._comparisons_middle_names(middle_test_2):
         log.info(comp)
@@ -3860,7 +3864,7 @@ def _get_cdl_postcodes(engine: Engine,
     Returns:
         list: of postcodes
     """
-    raise NotImplementedError
+    raise NotImplementedError("CDL postcodes: in chronological order")
 
 
 def _get_cdl_middle_names(engine: Engine,
@@ -3891,6 +3895,7 @@ def validate_2_fetch_cdl(cfg: MatchConfig,
     See :func:`validate_2_fetch_rio` for notes.
     """
     raise NotImplementedError("Fix SQL as below")
+    raise NotImplementedError("ethnicity, icd10_dx_present, age_at_first_referral")
     sql = text("""
 
         SELECT
@@ -3920,6 +3925,9 @@ def validate_2_fetch_cdl(cfg: MatchConfig,
         postcodes = _get_cdl_postcodes(engine, cdl_m_number)
         nhs_number = row["nhs_number"]
         research_id = _hash(nhs_number)
+        other["age_at_first_referral"] = XXX
+        other["ethnicity"] = XXX
+        other["icd10_dx_present"] = XXX
         p = Person(
             cfg=cfg,
             original_id=nhs_number,
@@ -3930,6 +3938,7 @@ def validate_2_fetch_cdl(cfg: MatchConfig,
             gender=row["gender"] or "",
             dob=row["dob"] or "",
             postcodes=postcodes,
+            other=other
         )
         yield p
 
@@ -3953,6 +3962,7 @@ def _get_rio_postcodes(engine: Engine,
         list: of postcodes
 
     """
+    raise NotImplementedError("RiO postcodes: change order to chronological")
     sql = text("""
 
         SELECT
@@ -4078,6 +4088,8 @@ def validate_2_fetch_rio(cfg: MatchConfig,
     - https://stackoverflow.com/questions/1958219/convert-sqlalchemy-row-object-to-python-dict
 
     """  # noqa
+
+    raise NotImplementedError("ethnicity, icd10_dx_present, age_at_first_referral")
     sql = text("""
     
         -- We use the original raw RiO database, not the CRATE-processed one.
@@ -4120,6 +4132,10 @@ def validate_2_fetch_rio(cfg: MatchConfig,
         postcodes = _get_rio_postcodes(engine, rio_client_id)
         nhs_number = row["nhs_number"]
         research_id = _hash(nhs_number)
+        other = OrderedDict()
+        other["age_at_first_referral"] = XXX
+        other["ethnicity"] = XXX
+        other["icd10_dx_present"] = XXX
         p = Person(
             cfg=cfg,
             original_id=nhs_number,
@@ -4130,6 +4146,7 @@ def validate_2_fetch_rio(cfg: MatchConfig,
             gender=row["gender"] or "",
             dob=row["dob"] or "",
             postcodes=postcodes,
+            other=other
         )
         yield p
 
@@ -4155,9 +4172,11 @@ def save_people_from_db(people: Iterable[Person],
     """
     rownum = 0
     with open(output_csv, "wt") as f:
-        writer = csv.DictWriter(f, fieldnames=Person.PLAINTEXT_ATTRS)
-        writer.writeheader()
-        for p in people:
+        for i, p in enumerate(people):
+            if i == 0:
+                # This allows us to do custom headers for "other" info
+                writer = csv.DictWriter(f, fieldnames=p.plaintext_csv_columns())  # noqa
+                writer.writeheader()
             writer.writerow(p.plaintext_csv_dict())
             rownum += 1
             if rownum % report_every == 0:
@@ -4165,7 +4184,7 @@ def save_people_from_db(people: Iterable[Person],
 
 
 # =============================================================================
-# Main
+# Long help strings
 # =============================================================================
 
 HELP_COMPARISON = f"""
@@ -4223,9 +4242,110 @@ HELP_COMPARISON = f"""
 
     - The results file is NOT necessarily sorted as the input proband file was
       (not sorting improves parallel processing efficiency).
-
 """
 
+HELP_VALIDATE_1 = """
+    Takes an identifiable list of people (typically a short list of imaginary
+    people!) and validates the matching process.
+
+    This is done by splitting the input list into two groups (alternating),
+    then comparing a list of probands either against itself (there should be
+    matches) or against the other group (there should generally not be).
+    The process is carried out in cleartext (plaintext) and hashed. At times
+    it's made harder by introducing deletions or mutations (typos) into one of
+    the groups.
+
+    Here's a specimen test CSV file to use, with entirely made-up people and
+    institutional (not personal) postcodes in Cambridge:
+
+original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
+1,r1,Alice,Zara,Smith,1931-01-01,F,CB2 0QQ
+2,r2,Bob,Yorick,Jones,1932-01-01,M,CB2 3EB
+3,r3,Celia,Xena,Wright,1933-01-01,F,CB2 1TP
+4,r4,David,William;Wallace,Cartwright,1934-01-01,M,CB2 8PH;CB2 1TP
+5,r5,Emily,Violet,Fisher,1935-01-01,F,CB3 9DF
+6,r6,Frank,Umberto,Williams,1936-01-01,M,CB2 1TQ
+7,r7,Greta,Tilly,Taylor,1937-01-01,F,CB2 1DQ
+8,r8,Harry,Samuel,Davies,1938-01-01,M,CB3 9ET
+9,r9,Iris,Ruth,Evans,1939-01-01,F,CB3 0DG
+10,r10,James,Quentin,Thomas,1940-01-01,M,CB2 0SZ
+11,r11,Alice,,Smith,1931-01-01,F,CB2 0QQ
+
+    Explanation of the output format:
+
+    - 'collection_name' is a human-readable name summarizing the next four;
+    - 'in_sample' (boolean) is whether the probands are in the sample;
+    - 'deletions' (boolean) is whether random items have been deleted from
+       the probands;
+    - 'typos' (boolean) is whether random typos have been made in the
+       probands;
+
+    - 'is_hashed' (boolean) is whether the proband and sample are hashed;
+    - 'original_id' is the gold-standard ID of the proband;
+    - 'winner_id' is the ID of the best-matching person in the sample if they
+      were a good enough match to win;
+    - 'best_match_id' is the ID of the best-matching person in the sample;
+    - 'best_log_odds' is the calculated log (ln) odds that the proband and the 
+      sample member identified by 'winner_id' are the sample person (ideally
+      high if there is a true match, low if not);
+    - 'second_best_log_odds' is the calculated log odds of the proband and the
+      runner-up being the same person (ideally low);
+    - 'second_best_match_id' is the ID of the second-best matching person, if
+      there is one;
+
+    - 'correct_if_winner' is whether the proband and winner IDs are te same
+      (ideally true);
+    - 'leader_advantage' is the log odds by which the winner beats the
+      runner-up (ideally high indicating a strong preference for the winner
+      over the runner-up).
+
+    Clearly, if the probands are in the sample, then a match may occur; if not,
+    no match should occur. If hashing is in use, this tests de-identified
+    linkage; if not, this tests identifiable linkage. Deletions and typos
+    may reduce (but we hope not always eliminate) the likelihood of a match,
+    and we don't want to see mismatches.
+
+    For n input rows, each basic set test involves n^2/2 comparisons.
+    Then we repeat for typos and deletions. (There is no point in DOB typos
+    as our rules preclude that.)
+
+    Examine:
+    - P(unique plaintext match | proband in sample) -- should be close to 1.
+    - P(unique plaintext match | proband in others) -- should be close to 0.
+    - P(unique hashed match | proband in sample) -- should be close to 1.
+    - P(unique hashed match | proband in others) -- should be close to 0.
+"""
+
+DEFAULT_CDL_PLAINTEXT = "validate2_cdl_DANGER_IDENTIFIABLE.csv"
+DEFAULT_RIO_PLAINTEXT = "validate2_rio_DANGER_IDENTIFIABLE.csv"
+DEFAULT_CDL_HASHED = "validate2_cdl_hashed.csv"
+DEFAULT_RIO_HASHED = "validate2_rio_hashed.csv"
+CAMBS_POPULATION = 852523  # 2018 estimate; https://cambridgeshireinsight.org.uk/population/  # noqa
+HELP_VALIDATE_2_CDL = f"""
+    Validation #2. Sequence:
+
+    1. Fetch
+
+    - crate_fuzzy_id_match validate2_fetch_cdl --output {DEFAULT_CDL_PLAINTEXT} --url <SQLALCHEMY_URL_CDL>
+    - crate_fuzzy_id_match validate2_fetch_rio --output {DEFAULT_RIO_PLAINTEXT} --url <SQLALCHEMY_URL_RIO>
+
+    2. Hash
+
+    - crate_fuzzy_id_match hash --input {DEFAULT_CDL_PLAINTEXT} --output {DEFAULT_CDL_HASHED} --include_original_id --allow_default_hash_key
+    - crate_fuzzy_id_match hash --input {DEFAULT_RIO_PLAINTEXT} --output {DEFAULT_RIO_HASHED} --include_original_id --allow_default_hash_key
+
+    3. Compare
+
+    - crate_fuzzy_id_match compare_plaintext --population_size {CAMBS_POPULATION} --probands {DEFAULT_CDL_PLAINTEXT} --sample {DEFAULT_RIO_PLAINTEXT} --output cdl_to_rio_plaintext.csv --extra_validation_output
+    - crate_fuzzy_id_match compare_hashed_to_hashed --population_size {CAMBS_POPULATION} --probands {DEFAULT_CDL_HASHED} --sample {DEFAULT_RIO_HASHED} --output cdl_to_rio_hashed.csv --extra_validation_output
+    - crate_fuzzy_id_match compare_plaintext --population_size {CAMBS_POPULATION} --probands {DEFAULT_RIO_PLAINTEXT} --sample {DEFAULT_CDL_PLAINTEXT} --output rio_to_cdl_plaintext.csv --extra_validation_output
+    - crate_fuzzy_id_match compare_hashed_to_hashed --population_size {CAMBS_POPULATION} --probands {DEFAULT_RIO_HASHED} --sample {DEFAULT_CDL_HASHED} --output rio_to_cdl_hashed.csv --extra_validation_output
+"""  # noqa
+
+
+# =============================================================================
+# Main
+# =============================================================================
 
 def main() -> None:
     """
@@ -4234,7 +4354,7 @@ def main() -> None:
     default_names_dir = os.path.abspath(os.path.join(
         THIS_DIR, "..", "..", "working"))
     default_postcodes_csv = os.path.abspath(os.path.expanduser(
-        "~/dev/onspd/Data/ONSPD_MAY_2016_UK.csv"))
+        "~/dev/ons/ONSPD_Nov2019/unzipped/Data/ONSPD_NOV_2019_UK.csv"))
     appname = "crate"
     default_cache_dir = os.path.join(appdirs.user_data_dir(appname=appname))
 
@@ -4287,9 +4407,9 @@ def main() -> None:
     priors_group = parser.add_argument_group(
         "frequency information for prior probabilities")
     priors_group.add_argument(
-        "--forename_freq_csv", type=str,
-        default=os.path.join(default_names_dir, "us_forename_freq.csv"),
-        help=f'CSV file of "name, frequency" pairs for forenames. '
+        "--forename_sex_freq_csv", type=str,
+        default=os.path.join(default_names_dir, "us_forename_sex_freq.csv"),
+        help=f'CSV file of "name, sex, frequency" pairs for forenames. '
              f'You can generate one via {CRATE_FETCH_WORDLISTS}.'
     )
     priors_group.add_argument(
@@ -4466,78 +4586,7 @@ def main() -> None:
              "is compared to a version of itself, at times with elements "
              "deleted or with typos introduced. ",
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
-        description="""
-    Takes an identifiable list of people (typically a short list of imaginary
-    people!) and validates the matching process.
-
-    This is done by splitting the input list into two groups (alternating),
-    then comparing a list of probands either against itself (there should be
-    matches) or against the other group (there should generally not be).
-    The process is carried out in cleartext (plaintext) and hashed. At times
-    it's made harder by introducing deletions or mutations (typos) into one of
-    the groups.
-
-    Here's a specimen test CSV file to use, with entirely made-up people and
-    institutional (not personal) postcodes in Cambridge:
-
-original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
-1,r1,Alice,Zara,Smith,1931-01-01,F,CB2 0QQ
-2,r2,Bob,Yorick,Jones,1932-01-01,M,CB2 3EB
-3,r3,Celia,Xena,Wright,1933-01-01,F,CB2 1TP
-4,r4,David,William;Wallace,Cartwright,1934-01-01,M,CB2 8PH;CB2 1TP
-5,r5,Emily,Violet,Fisher,1935-01-01,F,CB3 9DF
-6,r6,Frank,Umberto,Williams,1936-01-01,M,CB2 1TQ
-7,r7,Greta,Tilly,Taylor,1937-01-01,F,CB2 1DQ
-8,r8,Harry,Samuel,Davies,1938-01-01,M,CB3 9ET
-9,r9,Iris,Ruth,Evans,1939-01-01,F,CB3 0DG
-10,r10,James,Quentin,Thomas,1940-01-01,M,CB2 0SZ
-11,r11,Alice,,Smith,1931-01-01,F,CB2 0QQ
-
-    Explanation of the output format:
-
-    - 'collection_name' is a human-readable name summarizing the next four;
-    - 'in_sample' (boolean) is whether the probands are in the sample;
-    - 'deletions' (boolean) is whether random items have been deleted from
-       the probands;
-    - 'typos' (boolean) is whether random typos have been made in the
-       probands;
-
-    - 'is_hashed' (boolean) is whether the proband and sample are hashed;
-    - 'original_id' is the gold-standard ID of the proband;
-    - 'winner_id' is the ID of the best-matching person in the sample if they
-      were a good enough match to win;
-    - 'best_match_id' is the ID of the best-matching person in the sample;
-    - 'best_log_odds' is the calculated log (ln) odds that the proband and the 
-      sample member identified by 'winner_id' are the sample person (ideally
-      high if there is a true match, low if not);
-    - 'second_best_log_odds' is the calculated log odds of the proband and the
-      runner-up being the same person (ideally low);
-    - 'second_best_match_id' is the ID of the second-best matching person, if
-      there is one;
-
-    - 'correct_if_winner' is whether the proband and winner IDs are te same
-      (ideally true);
-    - 'leader_advantage' is the log odds by which the winner beats the
-      runner-up (ideally high indicating a strong preference for the winner
-      over the runner-up).
-
-    Clearly, if the probands are in the sample, then a match may occur; if not,
-    no match should occur. If hashing is in use, this tests de-identified
-    linkage; if not, this tests identifiable linkage. Deletions and typos
-    may reduce (but we hope not always eliminate) the likelihood of a match,
-    and we don't want to see mismatches.
-    
-    For n input rows, each basic set test involves n^2/2 comparisons.
-    Then we repeat for typos and deletions. (There is no point in DOB typos
-    as our rules preclude that.)
-    
-    Examine:
-    - P(unique plaintext match | proband in sample) -- should be close to 1.
-    - P(unique plaintext match | proband in others) -- should be close to 0.
-    - P(unique hashed match | proband in sample) -- should be close to 1.
-    - P(unique hashed match | proband in others) -- should be close to 0.
-
-        """,
+        description=HELP_VALIDATE_1,
     )
     validate1_parser.add_argument(
         "--people", type=str,
@@ -4561,37 +4610,11 @@ original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
     # validate2 and ancillary commands
     # -------------------------------------------------------------------------
 
-    default_cdl_plaintext = "validate2_cdl_DANGER_IDENTIFIABLE.csv"
-    default_rio_plaintext = "validate2_rio_DANGER_IDENTIFIABLE.csv"
-    default_cdl_hashed = "validate2_cdl_hashed.csv"
-    default_rio_hashed = "validate2_rio_hashed.csv"
-    cambs_population = 852523  # 2018 estimate; https://cambridgeshireinsight.org.uk/population/  # noqa
-
     validate2_cdl_parser = subparsers.add_parser(
         "validate2_fetch_cdl",
         help="Validation 2A: fetch people from CPFT CDL database",
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
-        description=f"""
-    Validation #2. Sequence:
-    
-    1. Fetch
-    
-    - crate_fuzzy_id_match validate2_fetch_cdl --output {default_cdl_plaintext} --url <SQLALCHEMY_URL_CDL>
-    - crate_fuzzy_id_match validate2_fetch_rio --output {default_rio_plaintext} --url <SQLALCHEMY_URL_RIO>
-
-    2. Hash
-
-    - crate_fuzzy_id_match hash --input {default_cdl_plaintext} --output {default_cdl_hashed} --include_original_id --allow_default_hash_key
-    - crate_fuzzy_id_match hash --input {default_rio_plaintext} --output {default_rio_hashed} --include_original_id --allow_default_hash_key
-
-    3. Compare
-
-    - crate_fuzzy_id_match compare_plaintext --population_size {cambs_population} --probands {default_cdl_plaintext} --sample {default_rio_plaintext} --output cdl_to_rio_plaintext.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_hashed_to_hashed --population_size {cambs_population} --probands {default_cdl_hashed} --sample {default_rio_hashed} --output cdl_to_rio_hashed.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_plaintext --population_size {cambs_population} --probands {default_rio_plaintext} --sample {default_cdl_plaintext} --output rio_to_cdl_plaintext.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_hashed_to_hashed --population_size {cambs_population} --probands {default_rio_hashed} --sample {default_cdl_hashed} --output rio_to_cdl_hashed.csv --extra_validation_output
-
-        """  # noqa
+        description=HELP_VALIDATE_2_CDL
     )
     validate2_cdl_parser.add_argument(
         "--url", type=str, required=True,
@@ -4603,7 +4626,7 @@ original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
     )
     validate2_cdl_parser.add_argument(
         "--output", type=str,
-        default=os.path.join(default_names_dir, default_cdl_plaintext),
+        default=os.path.join(default_names_dir, DEFAULT_CDL_PLAINTEXT),
         help="CSV filename for output (plaintext, IDENTIFIABLE) data. " +
              Person.PLAINTEXT_CSV_FORMAT_HELP
     )
@@ -4624,7 +4647,7 @@ original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
     )
     validate2_rio_parser.add_argument(
         "--output", type=str,
-        default=os.path.join(default_names_dir, default_rio_plaintext),
+        default=os.path.join(default_names_dir, DEFAULT_RIO_PLAINTEXT),
         help="CSV filename for output (plaintext, IDENTIFIABLE) data. " +
              Person.PLAINTEXT_CSV_FORMAT_HELP
     )
@@ -4855,7 +4878,7 @@ original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
     cfg = MatchConfig(
         hash_key=args.key,
         rounding_sf=args.rounding_sf,
-        forename_csv_filename=args.forename_freq_csv,
+        forename_sex_csv_filename=args.forename_sex_freq_csv,
         forename_cache_filename=args.forename_cache_filename,
         surname_csv_filename=args.surname_freq_csv,
         surname_cache_filename=args.surname_cache_filename,
@@ -5005,23 +5028,30 @@ original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
 
     elif args.command == "show_metaphone":
         for word in args.words:
-            log.info(f"{word}: {get_metaphone(word)}")
+            log.info(f"Metaphone for {word!r}: {get_metaphone(word)}")
 
     elif args.command == "show_forename_freq":
         for forename in args.forenames:
-            log.info(f"{forename}: {cfg.forename_freq(forename)}")
+            log.info(f"Forename {forename!r}: "
+                     f"F {cfg.forename_freq(forename, GENDER_FEMALE)}, "
+                     f"M {cfg.forename_freq(forename, GENDER_MALE)}, "
+                     f"overall {cfg.forename_freq(forename, '')}")
 
     elif args.command == "show_forename_metaphone_freq":
         for metaphone in args.metaphones:
-            log.info(f"{metaphone}: {cfg.forename_metaphone_freq(metaphone)}")
+            log.info(f"Forename metaphone {metaphone!r}: "
+                     f"F {cfg.forename_metaphone_freq(metaphone, GENDER_FEMALE)}, "  # noqa
+                     f"M {cfg.forename_metaphone_freq(metaphone, GENDER_MALE)}, "  # noqa
+                     f"overall {cfg.forename_metaphone_freq(metaphone, '')}")
 
     elif args.command == "show_surname_freq":
         for surname in args.surnames:
-            log.info(f"{surname}: {cfg.surname_freq(surname)}")
+            log.info(f"Surname {surname!r}: {cfg.surname_freq(surname)}")
 
     elif args.command == "show_surname_metaphone_freq":
         for metaphone in args.metaphones:
-            log.info(f"{metaphone}: {cfg.surname_metaphone_freq(metaphone)}")
+            log.info(f"Surname metaphone {metaphone!r}: "
+                     f"{cfg.surname_metaphone_freq(metaphone)}")
 
     elif args.command == "show_dob_freq":
         log.info(f"DOB frequency: {cfg.p_two_people_share_dob}")

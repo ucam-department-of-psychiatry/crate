@@ -51,7 +51,7 @@ import itertools
 import logging
 from operator import attrgetter
 import sys
-from typing import Dict, Generator, Iterable, List, Optional, Union
+from typing import Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 from cardinal_pythonlib.argparse_func import (
     percentage,
@@ -299,17 +299,17 @@ class UsForenameInfo(NameInfo):
     """
     Information about a forename in the United States of America.
     """
-    def __init__(self, name: str, sex: str, frequency: str) -> None:
+    def __init__(self, name: str, sex: str, count: str) -> None:
         """
         Args:
             name: the name
             sex: the sex, as ``"M"`` or ``"F"``
-            frequency: a string version of an integer giving the number of
+            count: a string version of an integer giving the number of
                 times the name appeared in a certain time period
         """
         super().__init__(name)
         self.sex = sex
-        self.frequency = int(frequency)
+        self.count = int(count)
 
 
 def gen_us_forename_info(lines: Iterable[str]) -> \
@@ -328,37 +328,108 @@ def gen_us_forename_info(lines: Iterable[str]) -> \
         lines: iterable of lines
 
     Yields:
-        :class:`UsForenameInfo` objects
+        :class:`UsForenameInfo` objects, one per name, with frequency
+        information added
 
     """
     # We need to calculate cumulative frequencies manually.
     # So this needs to accumulate all the instances before yielding any.
     seen = dict()  # type: Dict[str, UsForenameInfo]
-    total = 0
+    total = 0  # number of people seen
     for line in lines:
         # Each textfile has lines like "Mary,F,7065".
         parts = line.split(",")
         info = UsForenameInfo(*parts)
-        total += info.frequency
+        total += info.count
         if info.name in seen:
-            seen[info.name].frequency += info.frequency
+            seen[info.name].count += info.count
         else:
             seen[info.name] = info
     # Now sort in descending order of frequency
     log.info(f"Seen names for {total} people")
     infolist = list(seen.values())
-    infolist.sort(key=attrgetter('frequency'), reverse=True)
+    infolist.sort(key=attrgetter('count'), reverse=True)
     cumfreq_pct = 0.0
     for info in infolist:
-        info.freq_pct = 100.0 * info.frequency / total
+        info.freq_pct = 100.0 * info.count / total
         cumfreq_pct += info.freq_pct
         info.cumfreq_pct = cumfreq_pct
+        yield info
+
+
+def gen_us_forename_info_by_sex(lines: Iterable[str]) -> \
+        Generator[UsForenameInfo, None, None]:
+    """
+    Generate US forenames from an iterable of lines in a specific textfile
+    format, where each line looks like:
+
+    .. code-block:: none
+
+        Mary,F,7065
+
+    representing name, sex, frequency (count).
+
+    Args:
+        lines: iterable of lines
+
+    Yields:
+        :class:`UsForenameInfo` objects, one per name/sex combination present,
+        with frequency information added
+
+    """
+    # We need to calculate cumulative frequencies manually.
+    # So this needs to accumulate all the instances before yielding any.
+    male_seen = dict()  # type: Dict[str, UsForenameInfo]
+    female_seen = dict()  # type: Dict[str, UsForenameInfo]
+    male_total = 0  # number of males seen
+    female_total = 0  # number of females seen
+    for line in lines:
+        # Each textfile has lines like "Mary,F,7065".
+        parts = line.split(",")
+        info = UsForenameInfo(*parts)
+        name = info.name
+        sex = info.sex
+        if sex == "M":
+            male_total += info.count
+            if name in male_seen:
+                male_seen[name].count += info.count
+            else:
+                male_seen[name] = info
+        elif sex == "F":
+            female_total += info.count
+            if name in female_seen:
+                female_seen[name].count += info.count
+            else:
+                female_seen[name] = info
+        else:
+            raise ValueError(f"Unknown sex: {sex}")
+
+    # Now sort in descending order of frequency
+    log.info(f"Seen names for {male_total} males, {female_total} females")
+
+    male_infolist = list(male_seen.values())
+    male_infolist.sort(key=attrgetter('count'), reverse=True)
+    male_cumfreq_pct = 0.0
+    for info in male_infolist:
+        info.freq_pct = 100.0 * info.count / male_total
+        male_cumfreq_pct += info.freq_pct
+        info.cumfreq_pct = male_cumfreq_pct
+        yield info
+
+    female_infolist = list(female_seen.values())
+    female_infolist.sort(key=attrgetter('count'), reverse=True)
+    female_cumfreq_pct = 0.0
+    for info in female_infolist:
+        info.freq_pct = 100.0 * info.count / female_total
+        female_cumfreq_pct += info.freq_pct
+        info.cumfreq_pct = female_cumfreq_pct
         yield info
 
 
 def fetch_us_forenames(url: str,
                        filename: str,
                        freq_csv_filename: str = "",
+                       freq_sex_csv_filename: str = "",
                        min_cumfreq_pct: float = 0,
                        max_cumfreq_pct: float = 100,
                        min_name_length: int = 1,
@@ -373,6 +444,8 @@ def fetch_us_forenames(url: str,
             filename to write to
         freq_csv_filename:
             optional CSV to write "name, frequency" pairs to, one name per line
+        freq_sex_csv_filename:
+            optional CSV to write "name, gender, frequency" rows to
         min_cumfreq_pct:
             minimum cumulative frequency (%): 0 for no limit, or above 0 to
             exclude common names
@@ -405,13 +478,12 @@ def fetch_us_forenames(url: str,
             min_name_length=min_name_length,
         )
     )
-    # names = SortedSet(pipeline)
     names = SortedSet()
     freq = {}  # type: Dict[str, float]
     for nameinfo in pipeline:
         name = nameinfo.name
         if name not in names:
-            names.add(nameinfo.name)
+            names.add(name)
             freq[name] = nameinfo.freq_p
     write_words_to_file(filename, names)
     if freq_csv_filename:
@@ -421,6 +493,44 @@ def fetch_us_forenames(url: str,
             for name in names:
                 csvwriter.writerow([name, freq[name]])
         log.info(f"... finished writing to: {freq_csv_filename}")
+
+    if freq_sex_csv_filename:
+        pipeline_by_sex = (
+            # As above, but by sex
+            gen_name_info_via_min_length(
+                gen_sufficiently_frequent_names(
+                    gen_us_forename_info_by_sex(
+                        gen_lines_from_binary_files(
+                            gen_files_from_zipfiles(
+                                gen_binary_files_from_urls([url], on_disk=True),
+                                filespec="*.txt"
+                            )
+                        )
+                    ),
+                    min_cumfreq_pct=min_cumfreq_pct,
+                    max_cumfreq_pct=max_cumfreq_pct,
+                    show_rejects=show_rejects
+                ),
+                min_name_length=min_name_length,
+            )
+        )
+        name_sex_pairs = SortedSet()
+        sexfreq = {}  # type: Dict[Tuple[str, str], float]
+        for nameinfo in pipeline_by_sex:  # type: UsForenameInfo
+            name = nameinfo.name
+            sex = nameinfo.sex
+            name_sex = name, sex
+            if name_sex not in name_sex_pairs:
+                name_sex_pairs.add(name_sex)
+                sexfreq[name_sex] = nameinfo.freq_p
+        log.info(f"Writing to: {freq_sex_csv_filename}")
+        with open(freq_sex_csv_filename, "wt") as f:
+            csvwriter = csv.writer(f)
+            for name_sex in name_sex_pairs:
+                csvwriter.writerow([name_sex[0],
+                                    name_sex[1],
+                                    sexfreq[name_sex]])
+        log.info(f"... finished writing to: {freq_sex_csv_filename}")
 
 
 # =============================================================================
@@ -780,6 +890,7 @@ def main() -> None:
     """
     Command-line processor. See command-line help.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -833,6 +944,12 @@ def main() -> None:
         '--us_forenames_freq_output', type=str, default="us_forename_freq.csv",
         help="Output CSV file for US forename with frequencies (columns are: "
              "name, frequency)"
+    )
+    us_forename_group.add_argument(
+        '--us_forenames_sex_freq_output', type=str,
+        default="us_forename_sex_freq.csv",
+        help="Output CSV file for US forename with sex and frequencies "
+             "(columns are: name, gender, frequency)"
     )
     us_forename_group.add_argument(
         '--us_forenames_url', type=str,
@@ -950,6 +1067,7 @@ def main() -> None:
         fetch_us_forenames(url=args.us_forenames_url,
                            filename=args.us_forenames_output,
                            freq_csv_filename=args.us_forenames_freq_output,
+                           freq_sex_csv_filename=args.us_forenames_sex_freq_output,  # noqa
                            min_cumfreq_pct=args.us_forenames_min_cumfreq_pct,
                            max_cumfreq_pct=args.us_forenames_max_cumfreq_pct,
                            min_name_length=args.min_word_length,
