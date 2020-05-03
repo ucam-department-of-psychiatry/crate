@@ -229,7 +229,19 @@ For Figure 3
     crate_fuzzy_id_match compare_plaintext \
         --probands demo_fig3_probands.csv \
         --sample demo_fig3_sample.csv \
-        --output demo_fig3_output.csv 
+        --output demo_fig3_output.csv
+
+.. code-block:: R
+
+    odds_from_p <- function(p) p/(1-p)
+    log_odds_from_p <- function(p) log(odds_from_p(p))
+    p_from_odds <- function(odds) odds/(1 + odds)
+    p_from_log_odds <- function(log_odds) p_from_odds(exp(log_odds))
+    log_posterior_odds_1 <- function(log_prior_odds, log_lr) log_prior_odds + log_lr
+    log_posterior_odds_2 <- function(log_prior_odds, p_d_h, p_d_not_h) {
+        log_lr <- log(p_d_h / p_d_not_h)
+        return(log_prior_odds + log_lr)
+    }
 
 ===============================================================================
 
@@ -1347,8 +1359,7 @@ class IdFreq(object):
         self.frequency = frequency
         self.p_no_error = 1 - p_error
 
-        if identifier:
-            assert frequency
+        if identifier and frequency is not None:
             assert 0 <= frequency <= 1
 
     def comparison(self, proband: "IdFreq") -> Optional[Comparison]:
@@ -1376,6 +1387,16 @@ class IdFreq(object):
         if not (self_id and other_id):
             return False
         return self_id == other_id
+
+    def assert_has_frequency_info(self) -> None:
+        """
+        Ensures that frequency information is present, or raises
+        :exc:`AssertionError`.
+        """
+        if self.identifier:
+            assert self.frequency is not None, (
+                f"{self.comparison_name}: missing frequency"
+            )
 
 
 class FuzzyIdFreq(object):
@@ -1415,11 +1436,9 @@ class FuzzyIdFreq(object):
         self.fuzzy_identifier_frequency = fuzzy_identifier_frequency
         self.p_error = p_error
 
-        if exact_identifier:
-            assert exact_identifier_frequency
+        if exact_identifier and exact_identifier_frequency is not None:
             assert 0 <= exact_identifier_frequency <= 1
-        if fuzzy_identifier:
-            assert fuzzy_identifier_frequency
+        if fuzzy_identifier and fuzzy_identifier_frequency is not None:
             assert 0 <= fuzzy_identifier_frequency <= 1
 
     def comparison(self, proband: "FuzzyIdFreq") -> Optional[Comparison]:
@@ -1470,6 +1489,22 @@ class FuzzyIdFreq(object):
         Is there a full or a partial match with ``other``?
         """
         return self.fully_matches(other) or self.partially_matches(other)
+
+    def assert_has_frequency_info(self) -> None:
+        """
+        Ensures that frequency information is present, or raises
+        :exc:`AssertionError`.
+        """
+        if self.exact_identifier:
+            assert self.exact_identifier_frequency is not None, (
+                f"{self.comparison_name}: missing exact identifier frequency"
+            )
+            assert self.fuzzy_identifier, (
+                f"{self.comparison_name}: missing fuzzy identifier"
+            )
+            assert self.fuzzy_identifier_frequency is not None, (
+                f"{self.comparison_name}: missing fuzzy identifier frequency"
+            )
 
 
 # =============================================================================
@@ -1524,6 +1559,21 @@ class Person(object):
         "hashed_postcode_units",
         "postcode_unit_frequencies",
         "hashed_postcode_sectors",
+        "postcode_sector_frequencies",
+    ]
+    HASHED_FREQUENCY_ATTRS = [
+        "first_name_frequency",
+        "first_name_metaphone_frequency",
+
+        "middle_name_frequencies",
+        "middle_name_metaphone_frequencies",
+
+        "surname_frequency",
+        "surname_metaphone_frequency",
+
+        "gender_frequency",
+
+        "postcode_unit_frequencies",
         "postcode_sector_frequencies",
     ]
     INT_ATTRS = [
@@ -1691,6 +1741,9 @@ class Person(object):
             postcode_sector_frequencies:
                 Frequencies of each postcode sector.
         """
+        # ---------------------------------------------------------------------
+        # Store info
+        # ---------------------------------------------------------------------
         self.cfg = cfg
         self.is_hashed = is_hashed
         self.original_id = original_id
@@ -1712,9 +1765,14 @@ class Person(object):
         self.first_name_metaphone_frequency = first_name_metaphone_frequency
 
         self.hashed_middle_names = hashed_middle_names or []
-        self.middle_name_frequencies = middle_name_frequencies or []
+        n_hashed_middle_names = len(self.hashed_middle_names)
+        self.middle_name_frequencies = (
+            middle_name_frequencies or [None] * n_hashed_middle_names
+        )
         self.hashed_middle_name_metaphones = hashed_middle_name_metaphones or []  # noqa
-        self.middle_name_metaphone_frequencies = middle_name_metaphone_frequencies or []  # noqa
+        self.middle_name_metaphone_frequencies = (
+            middle_name_metaphone_frequencies or [None] * n_hashed_middle_names
+        )
 
         self.hashed_surname = hashed_surname
         self.surname_frequency = surname_frequency
@@ -1727,11 +1785,18 @@ class Person(object):
         self.gender_frequency = gender_frequency
 
         self.hashed_postcode_units = hashed_postcode_units or []
-        self.postcode_unit_frequencies = postcode_unit_frequencies or []
+        n_hashed_postcodes = len(self.hashed_postcode_units)
+        self.postcode_unit_frequencies = (
+            postcode_unit_frequencies or [None] * n_hashed_postcodes
+        )
         self.hashed_postcode_sectors = hashed_postcode_sectors or []
-        self.postcode_sector_frequencies = postcode_sector_frequencies or []
+        self.postcode_sector_frequencies = (
+            postcode_sector_frequencies or [None] * n_hashed_postcodes
+        )
 
-        # Validation:
+        # ---------------------------------------------------------------------
+        # Validation
+        # ---------------------------------------------------------------------
         assert self.original_id or self.research_id
         if is_hashed:
             # hashed
@@ -1742,33 +1807,24 @@ class Person(object):
                 not self.dob and
                 not self.postcodes
             ), "Don't supply plaintext information for a hashed Person"
+            # Note that frequency information can be absent for candidates from
+            # the sample; we check it's present for probands via
+            # assert_valid_as_proband().
             if self.hashed_first_name:
-                assert (
-                    self.first_name_frequency is not None and
-                    self.hashed_first_name_metaphone and
-                    self.first_name_metaphone_frequency is not None
-                )
+                assert self.hashed_first_name_metaphone
             if self.hashed_middle_names:
-                n_middle = len(hashed_middle_names)
                 assert (
-                    len(self.middle_name_frequencies) == n_middle and
-                    len(self.hashed_middle_name_metaphones) == n_middle and
-                    len(self.middle_name_metaphone_frequencies) == n_middle
+                    len(self.middle_name_frequencies) == n_hashed_middle_names and  # noqa
+                    len(self.hashed_middle_name_metaphones) == n_hashed_middle_names and  # noqa
+                    len(self.middle_name_metaphone_frequencies) == n_hashed_middle_names  # noqa
                 )
             if self.hashed_surname:
-                assert (
-                    self.surname_frequency is not None and
-                    self.hashed_surname_metaphone and
-                    self.surname_metaphone_frequency is not None
-                )
-            if self.hashed_gender:
-                assert self.gender_frequency is not None
+                assert self.hashed_surname_metaphone
             if self.hashed_postcode_units:
-                n_postcodes = len(self.hashed_postcode_units)
                 assert (
-                    len(self.postcode_unit_frequencies) == n_postcodes and
-                    len(self.hashed_postcode_sectors) == n_postcodes and
-                    len(self.postcode_sector_frequencies) == n_postcodes
+                    len(self.postcode_unit_frequencies) == n_hashed_postcodes and  # noqa
+                    len(self.hashed_postcode_sectors) == n_hashed_postcodes and
+                    len(self.postcode_sector_frequencies) == n_hashed_postcodes
                 )
         else:
             # Plain text
@@ -1806,15 +1862,17 @@ class Person(object):
                     f"Bad postcode: {postcode}"
                 )
 
+        # ---------------------------------------------------------------------
         # Precalculate things, for speed
+        # ---------------------------------------------------------------------
 
         self.middle_names_info = []  # type: List[FuzzyIdFreq]
         self.postcodes_info = []  # type: List[FuzzyIdFreq]
 
         if is_hashed:  # more efficient as an outer test
-            # -----------------------------------------------------------------
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Hashed info
-            # -----------------------------------------------------------------
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
             self.first_name_info = FuzzyIdFreq(
                 comparison_name="first_name",
@@ -1865,9 +1923,9 @@ class Person(object):
                 ))
 
         else:
-            # -----------------------------------------------------------------
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Plaintext info
-            # -----------------------------------------------------------------
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
             first_name_metaphone = get_metaphone(self.first_name)
             self.first_name_info = FuzzyIdFreq(
@@ -1993,17 +2051,24 @@ class Person(object):
         return self._csv_dict(self.PLAINTEXT_ATTRS)
 
     def hashed_csv_dict(self,
+                        without_frequencies: bool = False,
                         include_original_id: bool = False) -> Dict[str, Any]:
         """
         Returns a dictionary suitable for :class:`csv.DictWriter`.
 
         Args:
+            without_frequencies:
+                Do not include frequency information. This makes the resulting
+                file suitable for use as a sample, but not as a proband file.
             include_original_id:
                 include the (potentially identifying) ``original_id`` data?
                 Usually ``False``; may be ``True`` for validation.
         """
         assert self.is_hashed
         attrs = self.HASHED_ATTRS.copy()
+        if without_frequencies:
+            for a in self.HASHED_FREQUENCY_ATTRS:
+                attrs.remove(a)
         if not include_original_id:
             attrs.remove("original_id")
         return self._csv_dict(attrs)
@@ -2147,7 +2212,7 @@ class Person(object):
         gender = self.gender
         if gender:
             hashed_gender = _hash(gender)
-            gender_frequency = cfg.gender_freq(gender)
+            gender_frequency = fr(cfg.gender_freq(gender))
         else:
             hashed_gender = ""
             gender_frequency = None
@@ -2206,6 +2271,10 @@ class Person(object):
             postcode_sector_frequencies=postcode_sector_frequencies,
         )
 
+    # -------------------------------------------------------------------------
+    # Main comparison function
+    # -------------------------------------------------------------------------
+
     def log_odds_same(self, proband: "Person", debug: bool = False) -> float:
         """
         Returns the log odds that ``self`` and ``other`` are the same person.
@@ -2219,15 +2288,14 @@ class Person(object):
         """
         if debug:
             log.debug(f"Comparing self={self}; other={proband}")
-        cfg = self.cfg
         return bayes_compare(
-            prior_log_odds=cfg.baseline_log_odds_same_person,
+            prior_log_odds=self.cfg.baseline_log_odds_same_person,
             comparisons=self._gen_comparisons(proband),
             debug=debug
         )
 
     # -------------------------------------------------------------------------
-    # Bayesian comparison
+    # Comparison helper functions
     # -------------------------------------------------------------------------
 
     def _gen_comparisons(self, proband: "Person") \
@@ -2247,10 +2315,14 @@ class Person(object):
         ``other``. In the few cases that are directional, they refer to
         ``cand_*`` (candidate, ``self``) and ``proband``.
         """
-        yield self._comparison_dob(proband)
-        yield self._comparison_gender(proband)
-        yield self._comparison_surname(proband)
-        yield self._comparison_firstname(proband)
+        # The shortlisting process will already have ensured a DOB match.
+        # Therefore, while we need to process DOB to get the probabilities
+        # right for good candidates, we can do other things first to eliminate
+        # bad ones quicker.
+        yield self._comparison_surname(proband)  # might eliminate
+        yield self._comparison_firstname(proband)  # might eliminate
+        yield self._comparison_gender(proband)  # won't absolutely eliminate
+        yield self._comparison_dob(proband)  # see above
         for c in self._comparisons_middle_names(proband):  # slowest
             yield c
         for c in self._comparisons_postcodes(proband):  # doesn't eliminate
@@ -2345,30 +2417,6 @@ class Person(object):
                     yield self_pi.comparison(other_pi)
                     break
 
-    def plausible_candidate(self, other: "Person") -> bool:
-        """
-        Not all people are remotely plausible matches for each other. This
-        function can be used to filter down a large group of people to the
-        plausible candidates.
-
-        Plausible candidates are those that share:
-
-        - a DOB (since we require exact DOB matching); and
-        - a surname or surname metaphone
-
-        Args:
-            other: a :class:`Person` object
-
-        Returns:
-            bool: is ``self`` a plausible match? See above.
-        """
-        result = (
-            self.dob_info.matches(other.dob_info) and
-            self.surname_info.fully_or_partially_matches(other.surname_info)
-        )
-        # log.critical(f"{self} //\n{other} //\n{result!r}")
-        return result
-
     # -------------------------------------------------------------------------
     # Info functions
     # -------------------------------------------------------------------------
@@ -2405,6 +2453,28 @@ class Person(object):
             return len(self.hashed_postcode_units)
         else:
             return len(self.postcodes)
+
+    def assert_valid_as_proband(self) -> None:
+        """
+        Ensures this person has sufficient information to act as a proband, or
+        raises :exc:`AssertionError`.
+        """
+        assert self.has_dob(), "Proband: missing DOB"
+        self.first_name_info.assert_has_frequency_info()
+        for mni in self.middle_names_info:
+            mni.assert_has_frequency_info()
+        self.surname_info.assert_has_frequency_info()
+        self.dob_info.assert_has_frequency_info()
+        self.gender_info.assert_has_frequency_info()
+        for pi in self.postcodes_info:
+            pi.assert_has_frequency_info()
+
+    def assert_valid_as_candidate(self) -> None:
+        """
+        Ensures this person has sufficient information to act as a candidate,
+        or raises :exc:`AssertionError`.
+        """
+        assert self.has_dob(), "Candidate: missing DOB"
 
     # -------------------------------------------------------------------------
     # Debugging functions to mutate this object
@@ -2577,15 +2647,25 @@ class People(object):
         """
         return len(self.people)
 
-    def all_have_dob(self) -> bool:
+    def assert_valid_as_probands(self) -> None:
         """
-        Do all our people have DOB information?
+        Ensures all people have sufficient information to act as a proband,
+        or raises :exc:`AssertionError`.
         """
-        return all(p.has_dob() for p in self.people)
+        for p in self.people:
+            p.assert_valid_as_proband()
+
+    def assert_valid_as_sample(self) -> None:
+        """
+        Ensures all people have sufficient information to act as a candidate
+        from a sample, or raises :exc:`AssertionError`.
+        """
+        for p in self.people:
+            p.assert_valid_as_candidate()
 
     def shortlist(self, proband: Person) -> List[Person]:
         """
-        Returns a shortlist of potential candidates.
+        Returns a shortlist of potential candidates, by date of birth.
 
         Args:
             proband: a :class:`Person`
@@ -2631,8 +2711,6 @@ class People(object):
             log.debug(f"Proband: {proband}. Sample size: {len(self.people)}. "
                       f"Shortlist ({len(shortlist)}): {txt_shortlist}")
         for idx, candidate in enumerate(shortlist):
-            if not candidate.plausible_candidate(proband):
-                continue
             log_odds = candidate.log_odds_same(proband)
             if log_odds > best_log_odds:
                 second_best_log_odds = best_log_odds
@@ -2915,8 +2993,8 @@ def compare_probands_to_sample(cfg: MatchConfig,
       so real-world performance is likely to be much better.
       
     - Using generic ID/frequency structures took this down to 130.5s
-      (2020-05-02).
-      
+      (2020-05-02), and some simplification to 124.76s, for 10k*10k.
+
     .. code-block:: none
     
         crate_fuzzy_id_match compare_plaintext \
@@ -2956,10 +3034,12 @@ def compare_probands_to_sample(cfg: MatchConfig,
             )
         writer.writerow(rowdata)
 
+    log.info("Validating probands...")
     n_probands = probands.size()
+    probands.assert_valid_as_probands()
+
+    log.info("Validating sample...")
     n_sample = sample.size()
-    log.info(f"Comparing each proband to sample. There are "
-             f"{n_probands} probands and {n_sample} in the sample.")
     if n_sample > cfg.population_size:
         log.critical(
             f"Sample size exceeds population size of {cfg.population_size}; "
@@ -2967,13 +3047,10 @@ def compare_probands_to_sample(cfg: MatchConfig,
             f"each candidate is guaranteed to be wrong. Aborting."
         )
         sys.exit(EXIT_FAILURE)
-    if not probands.all_have_dob():
-        log.critical("Probands must all have DOB information")
-        sys.exit(EXIT_FAILURE)
-    if not sample.all_have_dob():
-        log.critical("Sample candidates must all have DOB information")
-        sys.exit(EXIT_FAILURE)
+    sample.assert_valid_as_sample()
 
+    log.info(f"Comparing each proband to sample. There are "
+             f"{n_probands} probands and {n_sample} in the sample.")
     parallel = n_workers > 1 and n_probands > 1
     colnames = COMPARISON_OUTPUT_COLNAMES
     if extra_validation_output:
@@ -3728,19 +3805,23 @@ def validate_1(cfg: MatchConfig,
 def hash_identity_file(cfg: MatchConfig,
                        input_csv: str,
                        output_csv: str,
+                       without_frequencies: bool = False,
                        include_original_id: bool = False) -> None:
     """
     Hash a file of identifiable people to a hashed version.
 
     Args:
         cfg:
-            the master :class:`MatchConfig` object
+            The master :class:`MatchConfig` object.
         input_csv:
-            input (plaintext) CSV filename to read
+            Input (plaintext) CSV filename to read.
         output_csv:
-            output (hashed) CSV filename to write
+            Iutput (hashed) CSV filename to write.
+        without_frequencies:
+            Do not include frequency information. This makes the resulting file
+            suitable for use as a sample, but not as a proband file.
         include_original_id:
-            include the (potentially identifying) ``original_id`` data? Usually
+            Include the (potentially identifying) ``original_id`` data? Usually
             ``False``; may be ``True`` for validation.
     """
     if include_original_id:
@@ -3753,6 +3834,7 @@ def hash_identity_file(cfg: MatchConfig,
             plaintext_person = Person.from_plaintext_csv(cfg, inputrow)
             hashed_person = plaintext_person.as_hashed()
             writer.writerow(hashed_person.hashed_csv_dict(
+                without_frequencies=without_frequencies,
                 include_original_id=include_original_id))
 
 
@@ -4156,9 +4238,12 @@ def main() -> None:
         help="Allow the default hash key to be used beyond tests. INADVISABLE!"
     )
     hasher_group.add_argument(
-        "--rounding_sf", type=int, default=3,
+        "--rounding_sf", type=int, default=5,
         help="Number of significant figures to use when rounding frequencies "
              "in hashed version"
+        # 3 may be too small, e.g.
+        # surname Smith 0.01006, metaphone SM0 0.010129999999999998
+        # ... would be the same at 3sf.
     )
 
     priors_group = parser.add_argument_group(
@@ -4538,6 +4623,11 @@ original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
              Person.HASHED_CSV_FORMAT_HELP
     )
     hash_parser.add_argument(
+        "--without_frequencies", action="store_true",
+        help="Do not include frequency information. This makes the result "
+             "suitable for use as a sample file, but not a proband file."
+    )
+    hash_parser.add_argument(
         "--include_original_id", action="store_true",
         help="Include the (potentially identifying) 'original_id' data? "
              "Usually False; may be set to True for validation."
@@ -4653,6 +4743,60 @@ original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
     )
 
     # -------------------------------------------------------------------------
+    # Debugging commands
+    # -------------------------------------------------------------------------
+
+    show_metaphone_parser = subparsers.add_parser(
+        "show_metaphone",
+        help="Show metaphones of words"
+    )
+    show_metaphone_parser.add_argument(
+        "words", nargs="+",
+        help="Words to check"
+    )
+
+    show_forename_freq_parser = subparsers.add_parser(
+        "show_forename_freq",
+        help="Show frequencies of forenames"
+    )
+    show_forename_freq_parser.add_argument(
+        "forenames", nargs="+",
+        help="Forenames to check"
+    )
+
+    show_forename_metaphone_freq_parser = subparsers.add_parser(
+        "show_forename_metaphone_freq",
+        help="Show frequencies of forename metaphones"
+    )
+    show_forename_metaphone_freq_parser.add_argument(
+        "metaphones", nargs="+",
+        help="Forenames to check"
+    )
+
+    show_surname_freq_parser = subparsers.add_parser(
+        "show_surname_freq",
+        help="Show frequencies of surnames"
+    )
+    show_surname_freq_parser.add_argument(
+        "surnames", nargs="+",
+        help="surnames to check"
+    )
+
+    show_surname_metaphone_freq_parser = subparsers.add_parser(
+        "show_surname_metaphone_freq",
+        help="Show frequencies of surname metaphones"
+    )
+    show_surname_metaphone_freq_parser.add_argument(
+        "metaphones", nargs="+",
+        help="surnames to check"
+    )
+
+    _ = subparsers.add_parser(
+        "show_dob_freq",
+        help="Show the frequency of any DOB"
+    )
+
+    # -------------------------------------------------------------------------
     # Parse arguments and set up
     # -------------------------------------------------------------------------
 
@@ -4760,6 +4904,7 @@ original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
         hash_identity_file(cfg=cfg,
                            input_csv=args.input,
                            output_csv=args.output,
+                           without_frequencies=args.without_frequencies,
                            include_original_id=args.include_original_id)
         log.info(f"... finished; written to {args.output}")
 
@@ -4819,6 +4964,29 @@ original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
             sample_plaintext=True,
         )
         log.info(f"... comparison finished; results are in {args.output}")
+
+    elif args.command == "show_metaphone":
+        for word in args.words:
+            log.info(f"{word}: {get_metaphone(word)}")
+
+    elif args.command == "show_forename_freq":
+        for forename in args.forenames:
+            log.info(f"{forename}: {cfg.forename_freq(forename)}")
+
+    elif args.command == "show_forename_metaphone_freq":
+        for metaphone in args.metaphones:
+            log.info(f"{metaphone}: {cfg.forename_metaphone_freq(metaphone)}")
+
+    elif args.command == "show_surname_freq":
+        for surname in args.surnames:
+            log.info(f"{surname}: {cfg.surname_freq(surname)}")
+
+    elif args.command == "show_surname_metaphone_freq":
+        for metaphone in args.metaphones:
+            log.info(f"{metaphone}: {cfg.surname_metaphone_freq(metaphone)}")
+
+    elif args.command == "show_dob_freq":
+        log.info(f"DOB frequency: {cfg.p_two_people_share_dob}")
 
     else:
         # Shouldn't get here.
