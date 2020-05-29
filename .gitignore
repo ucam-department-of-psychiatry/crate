@@ -17,6 +17,9 @@ dist/
 # PyCharm
 .idea/*
 
+# Temporary files
+*~
+
 # =============================================================================
 # Specific
 # =============================================================================
@@ -26,3 +29,5 @@ MANIFEST.in
 celerybeat-schedule
 celerybeat.pid
 
+# Silver searcher
+.ignore
