@@ -50,3 +50,27 @@ def do_cprofile(func: FuncType) -> FuncType:
         finally:
             profile.print_stats()
     return profiled_func
+
+
+def do_cprofile_raw(func):
+    """
+    Decorator to generate profiler output for slow code
+
+    from crate_anon.common.profiling import do_cprofile_raw
+
+    Add @do_cprofile_raw to the function you want to profile.
+    Will generate a file called <function name>.profile.
+
+    Can be visualised with e.g. SnakeViz (pip install snakeviz)
+    """
+
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        retval = profile.runcall(func, *args, **kwargs)
+
+        filename = func.__name__ + ".profile"
+        profile.dump_stats(filename)
+
+        return retval
+
+    return profiled_func
