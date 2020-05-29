@@ -906,6 +906,7 @@ def process_cloud_now(
                 report_every=report_every,
                 queue=False
             )
+            progrecs = set()
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
                     continue
@@ -948,8 +949,10 @@ def process_cloud_now(
                             whenprocessedutc=nlpdef.get_now(),
                             srchash=srchash,
                         )
-                    with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-                        session.add(progrec)
+                    progrecs.add(progrec)
+            with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+                log.info("Adding to database...")
+                session.bulk_save_objects(progrecs)
             session.commit()
 
     nlpdef.commit_all()
