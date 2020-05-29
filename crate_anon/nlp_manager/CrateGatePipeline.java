@@ -78,6 +78,7 @@ FIELDS THAT ARE USED AS STANDARD: see processAnnotation()
 // no "package" command required
 
 import java.io.*;
+import java.net.URISyntaxException;
 import java.lang.Throwable;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -97,8 +98,11 @@ import gate.FeatureMap;
 import gate.Gate;
 
 import gate.corpora.RepositioningInfo;
+import gate.creole.ANNIEConstants;
 import gate.creole.ExecutionException;
+import gate.creole.Plugin;
 import gate.creole.ResourceInstantiationException;
+import gate.creole.ResourceReference;
 import gate.util.GateException;
 import gate.util.InvalidOffsetException;
 import gate.util.persistence.PersistenceManager;
@@ -389,7 +393,7 @@ public class CrateGatePipeline {
      * results to stdout.
      */
 
-    private void runPipeline() throws GateException, IOException {
+     private void runPipeline() throws GateException, IOException, URISyntaxException {
         setupGate();
         m_log.info("Ready for input");
 
@@ -614,11 +618,11 @@ public class CrateGatePipeline {
                     m_file_encoding = m_args[i++];
                     break;
 
-                case "-g":
-                case "--gate_app":
-                    if (nleft < 1) argfail(insufficient + arg);
-                    m_gapp_file = new File(m_args[i++]);
-                    break;
+                // case "-g":
+                // case "--gate_app":
+                //     if (nleft < 1) argfail(insufficient + arg);
+                //     m_gapp_file = new File(m_args[i++]);
+                //     break;
 
                 case "-h":
                 case "--help":
@@ -709,11 +713,11 @@ public class CrateGatePipeline {
             }
         }
         // Validate
-        if (m_gapp_file == null) {
-            argfail("Missing -g parameter (no .gapp file specified); " +
-                    "use -h for help");
-            abort();
-        }
+        // if (m_gapp_file == null) {
+        //     argfail("Missing -g parameter (no .gapp file specified); " +
+        //             "use -h for help");
+        //     abort();
+        // }
         if (!m_target_annotations.isEmpty() && !m_set_annotation_combos.isEmpty()) {
             argfail("Use either --annotation or --set_annotation, not both.");
             abort();
@@ -918,15 +922,23 @@ public class CrateGatePipeline {
 
     /** Initialize GATE. */
 
-    private void setupGate() throws GateException, IOException {
+     private void setupGate() throws GateException, IOException, URISyntaxException {
         m_log.info("Initializing GATE...");
         Gate.init();
         m_log.info("... GATE initialized");
 
         m_log.info("Initializing app...");
         // load the saved application
+        Plugin anniePlugin = new Plugin.Maven(
+             "uk.ac.gate.plugins", "annie", "8.6"
+        );
+
+        Gate.getCreoleRegister().registerPlugin(anniePlugin);
+
         m_controller = (CorpusController)
-            PersistenceManager.loadObjectFromFile(m_gapp_file);
+             PersistenceManager.loadObjectFromUrl(new ResourceReference(
+                 anniePlugin, "resources/" + ANNIEConstants.DEFAULT_FILE)
+                     .toURL());
         m_log.info("... app initialized");
 
         m_log.info("Initializing corpus...");
