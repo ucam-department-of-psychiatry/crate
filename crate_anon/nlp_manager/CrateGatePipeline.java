@@ -83,6 +83,8 @@ import java.lang.Throwable;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+//import org.json.*;
+
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -145,6 +147,8 @@ public class CrateGatePipeline {
     private ArrayList<String> m_set_exclusion_list = new ArrayList<String>();
     private Map<String, ArrayList<String>> m_set_annotation_combos =
         new HashMap<String, ArrayList<String>>();
+    private String m_plugin_filename = null;
+    private boolean m_demo = false;
     // Text
     private static final String m_sep1 = ">>>>>>>>>>>>>>>>> ";
     private static final String m_sep2 = "<<<<<<<<<<<<<<<<<";
@@ -456,7 +460,9 @@ public class CrateGatePipeline {
 "                         [-s] [--show_contents_on_crash]\n" +
 "                         [-h] [-v [-v [-v]]]\n" +
 "                         [--loglevel <debug|info|warn|error>]\n" +
-"                         [--gateloglevel <debug|info|warn|error>\n" +
+"                         [--gateloglevel <debug|info|warn|error>]\n" +
+"                         [--pluginfile PLUGINFILE]\n" +
+"                         [--demo]\n" +
 "\n" +
 "Java front end to GATE natural language processor.\n" +
 "\n" +
@@ -468,14 +474,12 @@ public class CrateGatePipeline {
 "  annotations, may be present sometimes and absent sometimes, depending on the\n" +
 "  input text.\n" +
 "\n" +
-"Required arguments:\n" +
+"Optional arguments:\n" +
 "\n" +
 "  --gate_app GATEAPP\n" +
 "  -g GATEAPP\n" +
 "                   Specifies the GATE app (.gapp/.xgapp) file to use.\n" +
-"\n" +
-"Optional arguments:\n" +
-"\n" +
+"                   REQUIRED unless specifying --demo.\n" +
 "  --include_set SET\n" +
 "  --exclude_set SET\n" +
 "                   Includes or excludes the specified GATE set, by name.\n" +
@@ -559,7 +563,12 @@ public class CrateGatePipeline {
 "                   debug, info, warn, error\n" +
 "  --gateloglevel LEVEL\n" +
 "                   GATE log level. Overrides verbose. Options are:\n" +
-"                   debug, info, warn, error\n"
+"                   debug, info, warn, error\n" +
+"  --pluginfile PLUGINFILE\n" +
+"                   JSON file specifying GATE plugins, including name,\n" +
+"                   location and version.\n" +
+"  --demo\n" +
+"                   Use the demo gapp file."
         );
     }
 
@@ -618,11 +627,11 @@ public class CrateGatePipeline {
                     m_file_encoding = m_args[i++];
                     break;
 
-                // case "-g":
-                // case "--gate_app":
-                //     if (nleft < 1) argfail(insufficient + arg);
-                //     m_gapp_file = new File(m_args[i++]);
-                //     break;
+                case "-g":
+                case "--gate_app":
+                    if (nleft < 1) argfail(insufficient + arg);
+                    m_gapp_file = new File(m_args[i++]);
+                    break;
 
                 case "-h":
                 case "--help":
@@ -706,6 +715,15 @@ public class CrateGatePipeline {
                     m_continue_on_crash = true;
                     break;
 
+               case "--pluginfile":
+                    if (nleft < 1) argfail(insufficient + arg);
+                    m_plugin_filename = m_args[i++];
+                    break;
+
+                case "--demo":
+                    m_demo = true;
+                    break;
+
                 default:
                     usage();
                     abort();
@@ -713,11 +731,11 @@ public class CrateGatePipeline {
             }
         }
         // Validate
-        // if (m_gapp_file == null) {
-        //     argfail("Missing -g parameter (no .gapp file specified); " +
-        //             "use -h for help");
-        //     abort();
-        // }
+        if (m_gapp_file == null && m_demo == false) {
+            argfail("Missing -g parameter (no .gapp file specified); " +
+                    "and --demo not specified. use -h for help");
+            abort();
+        }
         if (!m_target_annotations.isEmpty() && !m_set_annotation_combos.isEmpty()) {
             argfail("Use either --annotation or --set_annotation, not both.");
             abort();
@@ -917,6 +935,53 @@ public class CrateGatePipeline {
     }
 
     // ========================================================================
+    // PluginsConfig class
+    // ========================================================================
+
+    private final class SinglePluginConfig {
+        String name;
+        String location;
+        String version;
+    }
+
+    private final class PluginsConfig {
+        List<SinglePluginConfig> plugins = new ArrayList<SinglePluginConfig>();
+
+        public PluginsConfig(String filename) throws FileNotFoundException {
+            File plugin_file = new File(filename);
+            Scanner plugin_reader = new Scanner(plugin_file);
+            while (plugin_reader.hasNextLine()) {
+                String line = plugin_reader.nextLine().trim();
+                if (line.startsWith("[") && line.endsWith("]")) {
+                    plugins.add(new SinglePluginConfig());
+                } else if (plugins.size() != 0) {
+                    String[] parts = line.split("=");
+                    if (parts.length != 2) {
+                        // Line not formatted correctly - ignore
+                        continue;
+                    }
+                    String key = parts[0].trim();
+                    String value = parts[1].trim();
+                    SinglePluginConfig p = plugins.get(plugins.size() - 1);
+                    if (key.equals("name")) {
+                        p.name = value;
+                    } else if (key.equals("location")) {
+                        p.location = value;
+                    } else if (key.equals("version")) {
+                        p.version = value;
+                    } // else we don't care
+                }
+            }
+            plugin_reader.close();
+            for (SinglePluginConfig p : plugins) {
+                if (p.name == null || p.location == null || p.version == null) {
+                    m_log.error("WRONG!");
+                }
+            }
+        }
+    }
+
+    // ========================================================================
     // GATE input processing
     // ========================================================================
 
@@ -928,17 +993,41 @@ public class CrateGatePipeline {
         m_log.info("... GATE initialized");
 
         m_log.info("Initializing app...");
-        // load the saved application
-        Plugin anniePlugin = new Plugin.Maven(
-             "uk.ac.gate.plugins", "annie", "8.6"
-        );
 
-        Gate.getCreoleRegister().registerPlugin(anniePlugin);
+        if (m_plugin_filename != null) {
+            PluginsConfig plugins_config = new PluginsConfig(m_plugin_filename);
+            for (SinglePluginConfig p : plugins_config.plugins) {
+                // Doesn't fetch plugin again if already downloaded
+                m_log.info("Getting plugin:");
+                m_log.info(p.name);
+                m_log.info(p.location);
+                m_log.info(p.version);
+                Plugin newPlugin = new Plugin.Maven(
+                    p.location, p.name, p.version
+                );
+                Gate.getCreoleRegister().registerPlugin(newPlugin);
+            }
+        }
 
-        m_controller = (CorpusController)
-             PersistenceManager.loadObjectFromUrl(new ResourceReference(
-                 anniePlugin, "resources/" + ANNIEConstants.DEFAULT_FILE)
-                     .toURL());
+        if (m_demo) {
+            // Get ANNIE plugin
+            Plugin anniePlugin = new Plugin.Maven(
+                 "uk.ac.gate.plugins", "annie", "8.6"
+            );
+            Gate.getCreoleRegister().registerPlugin(anniePlugin);
+
+            m_log.info("Loading the demo gapp file");
+            // Load the demo gapp file
+            m_controller = (CorpusController)
+                 PersistenceManager.loadObjectFromUrl(new ResourceReference(
+                     anniePlugin, "resources/" + ANNIEConstants.DEFAULT_FILE)
+                         .toURL());
+        } else {
+            // load the saved application
+            m_controller = (CorpusController)
+                PersistenceManager.loadObjectFromFile(m_gapp_file);
+       }
+
         m_log.info("... app initialized");
 
         m_log.info("Initializing corpus...");
