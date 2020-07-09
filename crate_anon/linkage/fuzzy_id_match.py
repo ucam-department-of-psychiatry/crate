@@ -4445,9 +4445,12 @@ HELP_VALIDATE_2_CDL = f"""
 # Main
 # =============================================================================
 
-def main() -> None:
+def main() -> int:
     """
     Command-line entry point.
+
+    Returns:
+        program exit status code
     """
     default_names_dir = os.path.abspath(os.path.join(
         THIS_DIR, "..", "..", "working"))
@@ -5011,7 +5014,7 @@ def main() -> None:
                     "default! Stopping, because this is a very bad idea for "
                     "real data. Specify --allow_default_hash_key to use the "
                     "default for testing purposes.")
-                sys.exit(EXIT_FAILURE)
+                return EXIT_FAILURE
 
     # pdb.set_trace()
 
@@ -5157,9 +5160,10 @@ def main() -> None:
     else:
         # Shouldn't get here.
         log.error(f"Unknown command: {args.command}")
-        sys.exit(EXIT_FAILURE)
+        return EXIT_FAILURE
+
+    return EXIT_SUCCESS
 
 
 if __name__ == "__main__":
-    main()
-    sys.exit(EXIT_SUCCESS)
+    sys.exit(main())
