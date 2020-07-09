@@ -83,8 +83,6 @@ import java.lang.Throwable;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-//import org.json.*;
-
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
