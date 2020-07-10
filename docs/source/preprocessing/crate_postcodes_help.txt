@@ -37,7 +37,7 @@ usage: crate_postcodes [-h] [--dir DIR] [--url URL] [--echo]
 optional arguments:
   -h, --help            show this help message and exit
   --dir DIR             Root directory of unzipped ONSPD download (default:
-                        /home/rudolf/dev/onspd)
+                        /path/to/unzipped/ONSPD/download)
   --url URL             SQLAlchemy database URL (default: None)
   --echo                Echo SQL (default: False)
   --reportevery REPORTEVERY

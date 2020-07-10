@@ -100,8 +100,12 @@ from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
 log = logging.getLogger(__name__)
 metadata = MetaData()
 
-DEFAULT_ONSPD_DIR = os.path.join(
-    os.path.expanduser("~"), "dev", "ons", "ONSPD_Nov2019")
+if "GENERATING_CRATE_DOCS" in os.environ:
+    DEFAULT_ONSPD_DIR = "/path/to/unzipped/ONSPD/download"
+else:
+    DEFAULT_ONSPD_DIR = os.path.join(
+        os.path.expanduser("~"), "dev", "ons", "ONSPD_Nov2019"
+    )
 DEFAULT_REPORT_EVERY = 1000
 DEFAULT_COMMIT_EVERY = 10000
 YEAR_MONTH_FMT = "%Y%m"
