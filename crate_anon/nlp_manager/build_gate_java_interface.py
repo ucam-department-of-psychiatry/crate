@@ -32,6 +32,7 @@ import argparse
 import logging
 import os
 import subprocess
+import sys
 
 from cardinal_pythonlib.logs import configure_logger_for_colour
 
@@ -40,11 +41,12 @@ from crate_anon.nlp_manager.constants import GATE_PIPELINE_CLASSNAME
 
 log = logging.getLogger(__name__)
 
+EXIT_FAILURE = 1
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, 'compiled_nlp_classes')
 SOURCE_FILE = os.path.join(THIS_DIR, GATE_PIPELINE_CLASSNAME + '.java')
 DEFAULT_GATEDIR = os.path.join(os.path.expanduser('~'), 'dev',
-                               'GATE_Developer_8.0')
+                               'GATE_Developer_8.6.1')
 DEFAULT_JAVA = 'java'
 DEFAULT_JAVAC = 'javac'
 
@@ -80,6 +82,11 @@ def main() -> None:
     loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel)
+
+    if not os.path.exists(args.gatedir):
+        log.error(f"Could not find GATE installation at {args.gatedir}. "
+                  f"Is GATE installed? Have you set --gatedir correctly?")
+        sys.exit(EXIT_FAILURE)
 
     gatejar = os.path.join(args.gatedir, 'bin', 'gate.jar')
     gatelibjars = os.path.join(args.gatedir, 'lib', '*')
