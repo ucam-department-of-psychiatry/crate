@@ -8,10 +8,10 @@ java \
     -classpath "${CRATE_NLP_JAVA_CLASS_DIR}":"${GATE_DIR}/bin/gate.jar":"${GATE_DIR}/lib/*" \
     -Dgate.home="${GATE_DIR}" \
     CrateGatePipeline \
-    -g "${GATE_DIR}/plugins/ANNIE/ANNIE_with_defaults.gapp" \
     -a Person \
     -a Location \
     -it STOP \
     -ot END_OF_NLP_OUTPUT_RECORD \
     -lt . \
-    -v -v
+    -v -v \
+    --demo
