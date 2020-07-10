@@ -29,6 +29,7 @@ crate_anon/nlp_manager/build_medex_itself.py
 """
 
 import argparse
+import glob
 import logging
 import os
 import subprocess
@@ -432,6 +433,10 @@ def main() -> None:
     # -------------------------------------------------------------------------
     # Fix bugs! Argh.
     # -------------------------------------------------------------------------
+
+    # MB 2020-07-10
+    # These lines no longer match in MedEx 1.3.8. It looks like at least the
+    # first bug is fixed.
     bugfixes = [
         {
             "filename": os.path.join(args.medexdir, 'src', 'org', 'apache',
@@ -537,6 +542,10 @@ on.
     # -------------------------------------------------------------------------
     if args.deletefirst:
         purge(args.medexdir, '*.class')
+
+    # Remove garbage Apple backup files
+    for hidden_jar in glob.glob(os.path.join(args.medexdir, 'lib', '._*.jar')):
+        os.remove(hidden_jar)
 
     # -------------------------------------------------------------------------
     # Compile
