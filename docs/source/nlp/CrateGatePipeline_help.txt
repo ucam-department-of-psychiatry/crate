@@ -6,7 +6,9 @@ usage: CrateGatePipeline -g GATEAPP [-a ANN [-a ANN [...]]]
                          [-s] [--show_contents_on_crash]
                          [-h] [-v [-v [-v]]]
                          [--loglevel <debug|info|warn|error>]
-                         [--gateloglevel <debug|info|warn|error>
+                         [--gateloglevel <debug|info|warn|error>]
+                         [--pluginfile PLUGINFILE]
+                         [--demo]
 
 Java front end to GATE natural language processor.
 
@@ -18,14 +20,12 @@ Java front end to GATE natural language processor.
   annotations, may be present sometimes and absent sometimes, depending on the
   input text.
 
-Required arguments:
+Optional arguments:
 
   --gate_app GATEAPP
   -g GATEAPP
                    Specifies the GATE app (.gapp/.xgapp) file to use.
-
-Optional arguments:
-
+                   REQUIRED unless specifying --demo.
   --include_set SET
   --exclude_set SET
                    Includes or excludes the specified GATE set, by name.
@@ -110,3 +110,8 @@ Optional arguments:
   --gateloglevel LEVEL
                    GATE log level. Overrides verbose. Options are:
                    debug, info, warn, error
+  --pluginfile PLUGINFILE
+                   JSON file specifying GATE plugins, including name,
+                   location and version.
+  --demo
+                   Use the demo gapp file.
