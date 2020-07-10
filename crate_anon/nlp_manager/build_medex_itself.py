@@ -36,6 +36,7 @@ from typing import Dict, List, Tuple, Union
 
 from cardinal_pythonlib.fileops import purge
 from cardinal_pythonlib.logs import configure_logger_for_colour
+import chardet
 
 log = logging.getLogger(__name__)
 
@@ -240,7 +241,17 @@ def add_lines_if_not_in(filename: str, lines: List[str]) -> None:
 
     Elements of lines should not have their own ``\n`` characters.
     """
-    with open(filename, 'r') as f:
+
+    # MB 2020-07-14
+    # In MedEx 1.3.8 lexicon.cfg contains invalid UTF-8
+    # chardet detects Windows-1252
+    rawdata = open(filename, "rb").read()
+    log.info(f"Detecting encoding for: {filename}")
+    encoding = chardet.detect(rawdata)["encoding"]
+
+    log.info(f"Detected: {encoding}")
+
+    with open(filename, 'r', encoding=encoding) as f:
         existing = f.readlines()  # will have trailing newlines
     log.info(f"Read {len(existing)} lines from {filename}")
     # print(existing[-5:])
