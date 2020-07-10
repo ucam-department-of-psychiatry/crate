@@ -461,7 +461,9 @@ else:
     set {CRATEWEB_CONFIG_ENV_VAR}=C:/some/path/my_secret_crate_settings.py
         """)
     filename = os.environ[CRATEWEB_CONFIG_ENV_VAR]
-    print(f"Loading local settings from: {filename}")
+
+    if "GENERATING_CRATE_DOCS" not in os.environ:
+        print(f"Loading local settings from: {filename}")
     # ... NB logger not yet set to a reasonable priority; use warning level
     # ... no, logger not even configured, and this is loaded via Django;
     #     use print()!

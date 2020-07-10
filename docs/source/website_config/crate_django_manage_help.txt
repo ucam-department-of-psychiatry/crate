@@ -1,4 +1,3 @@
-Loading local settings from: /home/rudolf/Documents/code/crate/working/crateweb_rudolf_config.py
 
 Type 'crate_django_manage help <subcommand>' for help on a specific subcommand.
 

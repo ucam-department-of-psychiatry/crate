@@ -1,9 +1,9 @@
-Loading local settings from: /home/rudolf/Documents/code/crate/working/crateweb_rudolf_config.py
 usage: crate_django_manage lookup_patient [-h] --nhs_numbers NHS_NUMBERS
                                           [NHS_NUMBERS ...] [--version]
                                           [-v {0,1,2,3}] [--settings SETTINGS]
                                           [--pythonpath PYTHONPATH]
                                           [--traceback] [--no-color]
+                                          [--force-color]
 
 Tests lookup of patient details from the relevant CLINICAL database.
 
@@ -24,3 +24,4 @@ optional arguments:
                         "/home/djangoprojects/myproject".
   --traceback           Raise on CommandError exceptions
   --no-color            Don't colorize the command output.
+  --force-color         Force colorization of the command output.
