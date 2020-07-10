@@ -89,7 +89,7 @@ def main() -> None:
     if args.launch:
         features = ['-a', 'Person', '-a', 'Location']
         eol_options = ['-it', 'END', '-ot', 'END']
-        prog_args = features + eol_options + ['--demo',]
+        prog_args = features + eol_options + ['--demo']
         if args.verbose > 0:
             prog_args += ['-v', '-v']
         if args.verbose > 1:
