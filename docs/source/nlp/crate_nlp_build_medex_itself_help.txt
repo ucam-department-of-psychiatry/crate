@@ -6,7 +6,7 @@ Compile MedEx-UIMA itself (in Java)
 optional arguments:
   -h, --help           show this help message and exit
   --medexdir MEDEXDIR  Root directory of MedEx installation (default:
-                       /home/rudolf/dev/Medex_UIMA_1.3.6)
+                       /path/to/Medex/installation)
   --javac JAVAC        Java compiler (default: javac)
   --deletefirst        Delete existing .class files first (optional) (default:
                        False)

@@ -44,8 +44,12 @@ log = logging.getLogger(__name__)
 
 EXIT_FAILURE = 1
 
-DEFAULT_MEDEX_DIR = os.path.join(os.path.expanduser('~'), 'dev',
-                                 'Medex_UIMA_1.3.6')
+if "GENERATING_CRATE_DOCS" in os.environ:
+    DEFAULT_MEDEX_DIR = "/path/to/Medex/installation"
+else:
+    DEFAULT_MEDEX_DIR = os.path.join(os.path.expanduser('~'), 'dev',
+                                     'Medex_UIMA_1.3.6')
+
 DEFAULT_JAVA = 'java'
 DEFAULT_JAVAC = 'javac'
 
