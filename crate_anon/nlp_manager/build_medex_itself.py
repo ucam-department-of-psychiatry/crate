@@ -33,6 +33,7 @@ import glob
 import logging
 import os
 import subprocess
+import sys
 from typing import Dict, List, Tuple, Union
 
 from cardinal_pythonlib.fileops import purge
@@ -40,6 +41,8 @@ from cardinal_pythonlib.logs import configure_logger_for_colour
 import chardet
 
 log = logging.getLogger(__name__)
+
+EXIT_FAILURE = 1
 
 DEFAULT_MEDEX_DIR = os.path.join(os.path.expanduser('~'), 'dev',
                                  'Medex_UIMA_1.3.6')
@@ -391,6 +394,17 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel)
 
+    if not os.path.exists(args.medexdir):
+        log.error(f"Could not find Medex installation at {args.medexdir}. "
+                  f"Is Medex installed? Have you set --medexdir correctly?")
+        sys.exit(EXIT_FAILURE)
+
+    # Remove garbage Apple backup files
+    hidden_pattern = os.path.join(args.medexdir, '**', '._*')
+    for hidden in glob.glob(hidden_pattern, recursive=True):
+        log.info(f"Removing file {hidden}")
+        os.remove(hidden)
+
     # -------------------------------------------------------------------------
     # Add lexicon entries
     # -------------------------------------------------------------------------
@@ -542,10 +556,6 @@ on.
     # -------------------------------------------------------------------------
     if args.deletefirst:
         purge(args.medexdir, '*.class')
-
-    # Remove garbage Apple backup files
-    for hidden_jar in glob.glob(os.path.join(args.medexdir, 'lib', '._*.jar')):
-        os.remove(hidden_jar)
 
     # -------------------------------------------------------------------------
     # Compile
