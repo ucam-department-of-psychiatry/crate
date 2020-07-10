@@ -119,8 +119,14 @@ DT_FORMATS = [
 ]
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_DOCDIR = os.path.abspath(os.path.join(
-    CURRENT_DIR, os.pardir, "testdocs_for_text_extraction"))
+
+if "GENERATING_CRATE_DOCS" in os.environ:
+    DEFAULT_DOCDIR = "/path/to/test_docs"
+else:
+    DEFAULT_DOCDIR = os.path.abspath(
+        os.path.join(CURRENT_DIR, os.pardir, "testdocs_for_text_extraction")
+    )
+
 DEFAULT_DOCTEST_DOC = os.path.join(DEFAULT_DOCDIR, 'doctest.doc')
 DEFAULT_DOCTEST_DOCX = os.path.join(DEFAULT_DOCDIR, 'doctest.docx')
 DEFAULT_DOCTEST_ODT = os.path.join(DEFAULT_DOCDIR, 'doctest.odt')
