@@ -48,11 +48,16 @@ log = logging.getLogger(__name__)
 
 EXIT_FAILURE = 1
 
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+if "GENERATING_CRATE_DOCS" in os.environ:
+    THIS_DIR = "/path/to/crate/crate_anon/nlp_manager"
+    DEFAULT_MEDEX_DIR = "/path/to/Medex/installation"
+else:
+    THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+    DEFAULT_MEDEX_DIR = os.path.join(os.path.expanduser('~'), 'dev',
+                                     'Medex_UIMA_1.3.6')
+
 DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, 'compiled_nlp_classes')
 SOURCE_FILE = os.path.join(THIS_DIR, MEDEX_PIPELINE_CLASSNAME + '.java')
-DEFAULT_MEDEX_DIR = os.path.join(os.path.expanduser('~'), 'dev',
-                                 'Medex_UIMA_1.3.6')
 DEFAULT_JAVA = 'java'
 DEFAULT_JAVAC = 'javac'
 
