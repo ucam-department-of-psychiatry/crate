@@ -111,7 +111,18 @@ Optional arguments:
                    GATE log level. Overrides verbose. Options are:
                    debug, info, warn, error
   --pluginfile PLUGINFILE
-                   JSON file specifying GATE plugins, including name,
-                   location and version.
+                   INI file specifying GATE plugins, including name,
+                   location of Maven repository and version. For example:
+
+                   [ANNIE]
+                   name = annie
+                   location = uk.ac.gate.plugins
+                   version = 8.6
+
+                   [Tools]
+                   name = tools
+                   location = uk.ac.gate.plugins
+                   version = 8.6
+
   --demo
                    Use the demo gapp file.

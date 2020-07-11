@@ -579,8 +579,16 @@ public class CrateGatePipeline {
 "                   GATE log level. Overrides verbose. Options are:\n" +
 "                   debug, info, warn, error\n" +
 "  --pluginfile PLUGINFILE\n" +
-"                   JSON file specifying GATE plugins, including name,\n" +
-"                   location and version.\n" +
+"                   INI file specifying GATE plugins, including name,\n" +
+"                   location of Maven repository and version. For example:\n\n" +
+"                   [ANNIE]\n" +
+"                   name = annie\n" +
+"                   location = uk.ac.gate.plugins\n" +
+"                   version = 8.6\n\n" +
+"                   [Tools]\n" +
+"                   name = tools\n" +
+"                   location = uk.ac.gate.plugins\n" +
+"                   version = 8.6\n\n" +
 "  --demo\n" +
 "                   Use the demo gapp file."
         );
