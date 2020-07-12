@@ -466,12 +466,20 @@ public class CrateGatePipeline {
 
     private void usage() {
         System.out.print(
-"usage: CrateGatePipeline -g GATEAPP [-a ANN [-a ANN [...]]]\n" +
+"usage: CrateGatePipeline --gate_app GATEAPP\n" +
 "                         [--include_set SET [--include_set SET [...]]]\n" +
 "                         [--exclude_set SET [--exclude_set SET [...]]]\n" +
-"                         [-e ENCODING] [-it TERM] [-ot TERM] [-lt LOGTAG]\n" +
-"                         [-wa FILESTEM] [-wg FILESTEM] [-wt FILESTEM]\n" +
-"                         [-s] [--show_contents_on_crash]\n" +
+"                         [--annotation ANNOT [--annotation ANNOT [...]]]\n" +
+"                         [--set_annotation SET ANNOT [...]]\n" +
+"                         [--encoding ENCODING]\n" +
+"                         [--input_terminator TERM]\n" +
+"                         [--output_terminator TERM]\n" +
+"                         [--log_tag LOGTAG]\n" +
+"                         [--write_annotated_xml FILESTEM]\n" +
+"                         [--write_gate_xml FILESTEM]\n" +
+"                         [--write_tsv FILESTEM]\n" +
+"                         [--suppress_gate_stdout]\n" +
+"                         [--show_contents_on_crash]\n" +
 "                         [-h] [-v [-v [-v]]]\n" +
 "                         [--loglevel <debug|info|warn|error>]\n" +
 "                         [--gateloglevel <debug|info|warn|error>]\n" +
@@ -494,6 +502,7 @@ public class CrateGatePipeline {
 "  -g GATEAPP\n" +
 "                   Specifies the GATE app (.gapp/.xgapp) file to use.\n" +
 "                   REQUIRED unless specifying --demo.\n" +
+"\n" +
 "  --include_set SET\n" +
 "  --exclude_set SET\n" +
 "                   Includes or excludes the specified GATE set, by name.\n" +
@@ -572,25 +581,31 @@ public class CrateGatePipeline {
 "  --verbose\n" +
 "  -v\n" +
 "                   Verbose (use up to 3 times to be more verbose).\n" +
+"\n" +
 "  --loglevel LEVEL\n" +
 "                   Main log level. Overrides verbose. Options are:\n" +
 "                   debug, info, warn, error\n" +
+"\n" +
 "  --gateloglevel LEVEL\n" +
 "                   GATE log level. Overrides verbose. Options are:\n" +
 "                   debug, info, warn, error\n" +
+"\n" +
 "  --pluginfile PLUGINFILE\n" +
 "                   INI file specifying GATE plugins, including name,\n" +
-"                   location of Maven repository and version. For example:\n\n" +
+"                   location of Maven repository and version. For example:\n" +
+"\n" +
 "                   [ANNIE]\n" +
 "                   name = annie\n" +
 "                   location = uk.ac.gate.plugins\n" +
-"                   version = 8.6\n\n" +
+"                   version = 8.6\n" +
+"\n" +
 "                   [Tools]\n" +
 "                   name = tools\n" +
 "                   location = uk.ac.gate.plugins\n" +
-"                   version = 8.6\n\n" +
+"                   version = 8.6\n" +
+"\n" +
 "  --demo\n" +
-"                   Use the demo gapp file."
+"                   Use the demo gapp file.\n"
         );
     }
 

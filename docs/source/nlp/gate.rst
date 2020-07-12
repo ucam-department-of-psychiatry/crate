@@ -119,6 +119,15 @@ Asking `CrateGatePipeline` to run the GATE “ANNIE” demonstration:
     :language: bash
 
 
+.. note::
+    For the demonstrations that follow, we presuppose that you have also set
+    the environment variable ``CRATE_GATE_PLUGIN_FILE`` to be the filename of
+    a GATE plugin INI file like this:
+
+.. literalinclude:: specimen_gate_plugin_file.ini
+    :language: ini
+
+
 KConnect (Bio-YODIE)
 ~~~~~~~~~~~~~~~~~~~~
 

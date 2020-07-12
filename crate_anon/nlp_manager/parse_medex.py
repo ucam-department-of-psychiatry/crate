@@ -147,11 +147,11 @@ PROBLEMS:
 
   .. code-block:; bash
 
-    export MEDEX_HOME=~/dev/MedEx_UIMA_1.3.6  # or similar
-    cd ${MEDEX_HOME}
+    export MEDEX_DIR=~/dev/MedEx_UIMA_1.3.6  # or similar
+    cd ${MEDEX_DIR}
     # OPTIONAL # find . -name "*.class" -exec rm {} \;  # remove old compiled files
     javac \
-        -classpath "${MEDEX_HOME}/src:${MEDEX_HOME}/lib/*" \
+        -classpath "${MEDEX_DIR}/src:${MEDEX_DIR}/lib/*" \
         src/org/apache/medex/Main.java \
         -d bin
 

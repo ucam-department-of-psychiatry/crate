@@ -254,20 +254,6 @@ For Figure 3
     show_sequence(proband, candidate4)
     show_sequence(proband, candidate5)
 
-
-===============================================================================
-
-.. rubric:: Footnotes
-
-.. [#gronau2017]
-
-    Gronau QF, Sarafoglou A, Matzke D, Ly A, Boehm U, Marsman M, Leslie DS,
-    Forster JJ, Wagenmakers E, Steingroever H (2017).
-    A tutorial on bridge sampling.
-    *Journal of Mathematical Psychology* 81: 80–97.
-    https://doi.org/10.1016/j.jmp.2017.09.005.
-
-
 """  # noqa
 
 import argparse
@@ -580,15 +566,15 @@ class FailureComparison(Comparison):
 
 
 class DirectComparison(Comparison):
-    """
-    Represents a comparison where the user supplies P(D | H) and P(D | ¬H)
-    directly.
+    r"""
+    Represents a comparison where the user supplies :math:`P(D | H)` and
+    :math:`P(D | \neg H)` directly.
     """
     def __init__(self,
                  p_d_given_same_person: float,
                  p_d_given_diff_person: float,
                  **kwargs) -> None:
-        """
+        r"""
         Args:
             p_d_given_same_person: :math:`P(D | H)`
             p_d_given_diff_person: :math:`P(D | \neg H)`
@@ -619,28 +605,28 @@ class MatchNoMatchComparison(Comparison):
 
     The purpose of this is to represent this choice CLEARLY. Code that produces
     one of these could equally produce one of two :class:`DirectComparison`
-    objects, condition upon ``match``, but this is often clearer.
+    objects, conditional upon ``match``, but this is often clearer.
     """
     def __init__(self,
                  match: bool,
                  p_match_given_same_person: float,
                  p_match_given_diff_person: float,
                  **kwargs) -> None:
-        """
+        r"""
         Args:
             match:
                 D; is there a match?
             p_match_given_same_person:
-                If match: :math:`P(D | H) = P(\text{match given same person})
-                 = 1 - p_e`.
-                If no match: :math:`P(D | H) = 1 - P(\text{match given same
-                person}) = p_e`.
+                If match:
+                :math:`P(D | H) = P(\text{match given same person}) = 1 - p_e`.
+                If no match:
+                :math:`P(D | H) = 1 - P(\text{match given same person}) = p_e`.
             p_match_given_diff_person:
-                If match: :math:`P(D | \neg H) = P(\text{match given different
-                person}) = p_f`.
-                If no match: :math:`P(D | \neg H) = 1 - P(\text{match given
-                different person}) = 1 - p_f`.
-        """
+                If match:
+                :math:`P(D | \neg H) = P(\text{match given different person}) = p_f`.
+                If no match:
+                :math:`P(D | \neg H) = 1 - P(\text{match given different person}) = 1 - p_f`.
+        """  # noqa
         super().__init__(**kwargs)
         if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
             assert 0 <= p_match_given_same_person <= 1
@@ -673,7 +659,7 @@ class FullPartialNoMatchComparison(Comparison):
     Represents a comparison where there can be a full or a partial match.
 
     Again, this is for clarity. Code that produces one of these could equally
-    produce one of three :class:`DirectComparison` objects, condition upon
+    produce one of three :class:`DirectComparison` objects, conditional upon
     ``full_match`` and ``partial_match``, but this is generally much clearer.
     """
     def __init__(self,
