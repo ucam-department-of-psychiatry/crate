@@ -7,15 +7,13 @@ Compile Java classes for CRATE's interface to GATE
 
 optional arguments:
   -h, --help           show this help message and exit
-  --builddir BUILDDIR  Output directory for compiled .class files (default: /h
-                       ome/rudolf/Documents/code/crate/crate_anon/nlp_manager/
-                       compiled_nlp_classes)
+  --builddir BUILDDIR  Output directory for compiled .class files (default: /p
+                       ath/to/crate/crate_anon/nlp_manager/compiled_nlp_classe
+                       s)
   --gatedir GATEDIR    Root directory of GATE installation (default:
-                       /home/rudolf/dev/GATE_Developer_8.0)
+                       /path/to/GATE/installation)
   --java JAVA          Java executable (default: java)
   --javac JAVAC        Java compiler (default: javac)
   --verbose, -v        Be verbose (use twice for extra verbosity) (default: 0)
   --launch             Launch script in demonstration mode (having previously
                        compiled it) (default: False)
-
-# Generated at 2019-08-08 17:03:59

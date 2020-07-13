@@ -29,18 +29,27 @@ crate_anon/nlp_manager/build_medex_itself.py
 """
 
 import argparse
+import glob
 import logging
 import os
 import subprocess
+import sys
 from typing import Dict, List, Tuple, Union
 
 from cardinal_pythonlib.fileops import purge
 from cardinal_pythonlib.logs import configure_logger_for_colour
+import chardet
 
 log = logging.getLogger(__name__)
 
-DEFAULT_MEDEX_DIR = os.path.join(os.path.expanduser('~'), 'dev',
-                                 'Medex_UIMA_1.3.6')
+EXIT_FAILURE = 1
+
+if "GENERATING_CRATE_DOCS" in os.environ:
+    DEFAULT_MEDEX_DIR = "/path/to/Medex/installation"
+else:
+    DEFAULT_MEDEX_DIR = os.path.join(os.path.expanduser('~'), 'dev',
+                                     'Medex_UIMA_1.3.6')
+
 DEFAULT_JAVA = 'java'
 DEFAULT_JAVAC = 'javac'
 
@@ -240,7 +249,17 @@ def add_lines_if_not_in(filename: str, lines: List[str]) -> None:
 
     Elements of lines should not have their own ``\n`` characters.
     """
-    with open(filename, 'r') as f:
+
+    # MB 2020-07-14
+    # In MedEx 1.3.8 lexicon.cfg contains invalid UTF-8
+    # chardet detects Windows-1252
+    rawdata = open(filename, "rb").read()
+    log.info(f"Detecting encoding for: {filename}")
+    encoding = chardet.detect(rawdata)["encoding"]
+
+    log.info(f"Detected: {encoding}")
+
+    with open(filename, 'r', encoding=encoding) as f:
         existing = f.readlines()  # will have trailing newlines
     log.info(f"Read {len(existing)} lines from {filename}")
     # print(existing[-5:])
@@ -379,6 +398,17 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel)
 
+    if not os.path.exists(args.medexdir):
+        log.error(f"Could not find Medex installation at {args.medexdir}. "
+                  f"Is Medex installed? Have you set --medexdir correctly?")
+        sys.exit(EXIT_FAILURE)
+
+    # Remove garbage Apple backup files
+    hidden_pattern = os.path.join(args.medexdir, '**', '._*')
+    for hidden in glob.glob(hidden_pattern, recursive=True):
+        log.info(f"Removing file {hidden}")
+        os.remove(hidden)
+
     # -------------------------------------------------------------------------
     # Add lexicon entries
     # -------------------------------------------------------------------------
@@ -421,6 +451,10 @@ def main() -> None:
     # -------------------------------------------------------------------------
     # Fix bugs! Argh.
     # -------------------------------------------------------------------------
+
+    # MB 2020-07-10
+    # These lines no longer match in MedEx 1.3.8. It looks like at least the
+    # first bug is fixed.
     bugfixes = [
         {
             "filename": os.path.join(args.medexdir, 'src', 'org', 'apache',

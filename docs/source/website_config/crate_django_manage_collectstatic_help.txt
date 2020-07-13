@@ -1,10 +1,10 @@
-Loading local settings from: /home/rudolf/Documents/code/crate/working/crateweb_rudolf_config.py
 usage: crate_django_manage collectstatic [-h] [--noinput] [--no-post-process]
                                          [-i PATTERN] [-n] [-c] [-l]
                                          [--no-default-ignore] [--version]
                                          [-v {0,1,2,3}] [--settings SETTINGS]
                                          [--pythonpath PYTHONPATH]
                                          [--traceback] [--no-color]
+                                         [--force-color]
 
 Collect static files in a single location.
 
@@ -36,3 +36,4 @@ optional arguments:
                         "/home/djangoprojects/myproject".
   --traceback           Raise on CommandError exceptions
   --no-color            Don't colorize the command output.
+  --force-color         Force colorization of the command output.

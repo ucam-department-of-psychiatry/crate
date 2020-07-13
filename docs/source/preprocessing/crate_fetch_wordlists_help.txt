@@ -6,6 +6,7 @@ usage: crate_fetch_wordlists [-h] [--verbose]
                              [--valid_word_regex VALID_WORD_REGEX]
                              [--us_forenames]
                              [--us_forenames_freq_output US_FORENAMES_FREQ_OUTPUT]
+                             [--us_forenames_sex_freq_output US_FORENAMES_SEX_FREQ_OUTPUT]
                              [--us_forenames_url US_FORENAMES_URL]
                              [--us_forenames_min_cumfreq_pct US_FORENAMES_MIN_CUMFREQ_PCT]
                              [--us_forenames_max_cumfreq_pct US_FORENAMES_MAX_CUMFREQ_PCT]
@@ -52,6 +53,10 @@ US forenames:
                         Output CSV file for US forename with frequencies
                         (columns are: name, frequency) (default:
                         us_forename_freq.csv)
+  --us_forenames_sex_freq_output US_FORENAMES_SEX_FREQ_OUTPUT
+                        Output CSV file for US forename with sex and
+                        frequencies (columns are: name, gender, frequency)
+                        (default: us_forename_sex_freq.csv)
   --us_forenames_url US_FORENAMES_URL
                         URL to Zip file of US Census-derived forenames lists
                         (excludes names with national frequency <5; see

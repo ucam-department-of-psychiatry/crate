@@ -239,7 +239,7 @@ todo_include_todos = True
 # https://stackoverflow.com/questions/23462494/how-to-add-a-custom-css-file-to-sphinx
 
 def setup(app: Sphinx) -> None:
-    app.add_stylesheet('css/crate_docs.css')  # may also be an URL
+    app.add_css_file('css/crate_docs.css')  # may also be an URL
 
 
 # -----------------------------------------------------------------------------

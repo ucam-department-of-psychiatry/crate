@@ -139,18 +139,18 @@ with open(os.path.join(THIS_DIR, "README.rst"), encoding="utf-8") as f:
 
 # Package dependencies
 INSTALL_REQUIRES = [
-    "amqp==2.3.2",  # amqp is used by Celery
+    "amqp==2.6.0",  # amqp is used by Celery
     "appdirs==1.4.3",  # where to store some temporary data
     "arrow==0.12.1",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.6.0",  # [pin exact version from cardinal_pythonlib]
     "cardinal_pythonlib==1.0.88",  # RNC libraries
     "cairosvg==2.4.0",  # work with SVG files
-    "celery==4.0.1",  # 4.0.1 is the highest that"ll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
+    "celery==4.4.6",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
     "cherrypy==16.0.2",  # Cross-platform web server
     "colorlog==3.1.4",  # colour in logs
     "distro==1.3.0",  # replaces platform.linux_distribution
-    "django==2.2.11",
+    "django==2.2.11",  # for main CRATE research database web server
     "django-debug-toolbar==1.10.1",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==1.0.1",  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
     "django-extensions==2.0.7",  # for graph_models, show_urls etc.
@@ -161,7 +161,7 @@ INSTALL_REQUIRES = [
     "flower==0.9.2",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==19.8.1",  # UNIX only, though will install under Windows
-    "kombu==4.1.0",  # AMQP library for Celery; requires VC++ under Windows
+    "kombu==4.6.11",  # AMQP library for Celery; requires VC++ under Windows
     "mako==1.0.7",  # templates with Python in
     "MarkupSafe==1.0",  # for HTML escaping
     # "mmh3==2.2"  # MurmurHash, for fast non-cryptographic hashing
@@ -201,6 +201,10 @@ INSTALL_REQUIRES = [
     "waitress==1.4.3",  # pure-Python WSGI server
     "zope.sqlalchemy==1.1",  # Zope/SQLAlchemy transaction integration
 
+    # For development only:
+    "sphinx==3.1.2",  # documentation
+    "sphinx_rtd_theme==0.5.0",  # documentation
+
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------
@@ -225,10 +229,6 @@ if RUNNING_WINDOWS:
         # Windows-specific stuff
         "pypiwin32==223",
     ]
-
-DEVELOPMENT_ONLY_REQUIRES = [
-    "sphinx==1.7.5",  # documentation
-]
 
 
 # =============================================================================

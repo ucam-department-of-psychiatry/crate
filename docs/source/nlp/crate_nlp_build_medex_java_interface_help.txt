@@ -7,11 +7,11 @@ Compile Java classes for CRATE's interface to MedEx-UIMA
 
 optional arguments:
   -h, --help           show this help message and exit
-  --builddir BUILDDIR  Output directory for compiled .class files (default: /h
-                       ome/rudolf/Documents/code/crate/crate_anon/nlp_manager/
-                       compiled_nlp_classes)
+  --builddir BUILDDIR  Output directory for compiled .class files (default: /p
+                       ath/to/crate/crate_anon/nlp_manager/compiled_nlp_classe
+                       s)
   --medexdir MEDEXDIR  Root directory of MedEx installation (default:
-                       /home/rudolf/dev/Medex_UIMA_1.3.6)
+                       /path/to/Medex/installation)
   --java JAVA          Java executable (default: java)
   --javac JAVAC        Java compiler (default: javac)
   --verbose, -v        Be verbose (use twice for extra verbosity) (default: 0)

@@ -77,10 +77,29 @@ FIELDS THAT ARE USED AS STANDARD: see processAnnotation()
 
 // no "package" command required
 
-import java.io.*;
-import java.lang.Throwable;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
@@ -95,10 +114,11 @@ import gate.Document;
 import gate.Factory;
 import gate.FeatureMap;
 import gate.Gate;
-
-import gate.corpora.RepositioningInfo;
+import gate.creole.ANNIEConstants;
 import gate.creole.ExecutionException;
+import gate.creole.Plugin;
 import gate.creole.ResourceInstantiationException;
+import gate.creole.ResourceReference;
 import gate.util.GateException;
 import gate.util.InvalidOffsetException;
 import gate.util.persistence.PersistenceManager;
@@ -141,6 +161,8 @@ public class CrateGatePipeline {
     private ArrayList<String> m_set_exclusion_list = new ArrayList<String>();
     private Map<String, ArrayList<String>> m_set_annotation_combos =
         new HashMap<String, ArrayList<String>>();
+    private String m_plugin_filename = null;
+    private boolean m_demo = false;
     // Text
     private static final String m_sep1 = ">>>>>>>>>>>>>>>>> ";
     private static final String m_sep2 = "<<<<<<<<<<<<<<<<<";
@@ -389,7 +411,7 @@ public class CrateGatePipeline {
      * results to stdout.
      */
 
-    private void runPipeline() throws GateException, IOException {
+     private void runPipeline() throws GateException, IOException, URISyntaxException {
         setupGate();
         m_log.info("Ready for input");
 
@@ -444,15 +466,25 @@ public class CrateGatePipeline {
 
     private void usage() {
         System.out.print(
-"usage: CrateGatePipeline -g GATEAPP [-a ANN [-a ANN [...]]]\n" +
+"usage: CrateGatePipeline --gate_app GATEAPP\n" +
 "                         [--include_set SET [--include_set SET [...]]]\n" +
 "                         [--exclude_set SET [--exclude_set SET [...]]]\n" +
-"                         [-e ENCODING] [-it TERM] [-ot TERM] [-lt LOGTAG]\n" +
-"                         [-wa FILESTEM] [-wg FILESTEM] [-wt FILESTEM]\n" +
-"                         [-s] [--show_contents_on_crash]\n" +
+"                         [--annotation ANNOT [--annotation ANNOT [...]]]\n" +
+"                         [--set_annotation SET ANNOT [...]]\n" +
+"                         [--encoding ENCODING]\n" +
+"                         [--input_terminator TERM]\n" +
+"                         [--output_terminator TERM]\n" +
+"                         [--log_tag LOGTAG]\n" +
+"                         [--write_annotated_xml FILESTEM]\n" +
+"                         [--write_gate_xml FILESTEM]\n" +
+"                         [--write_tsv FILESTEM]\n" +
+"                         [--suppress_gate_stdout]\n" +
+"                         [--show_contents_on_crash]\n" +
 "                         [-h] [-v [-v [-v]]]\n" +
 "                         [--loglevel <debug|info|warn|error>]\n" +
-"                         [--gateloglevel <debug|info|warn|error>\n" +
+"                         [--gateloglevel <debug|info|warn|error>]\n" +
+"                         [--pluginfile PLUGINFILE]\n" +
+"                         [--demo]\n" +
 "\n" +
 "Java front end to GATE natural language processor.\n" +
 "\n" +
@@ -464,13 +496,12 @@ public class CrateGatePipeline {
 "  annotations, may be present sometimes and absent sometimes, depending on the\n" +
 "  input text.\n" +
 "\n" +
-"Required arguments:\n" +
+"Optional arguments:\n" +
 "\n" +
 "  --gate_app GATEAPP\n" +
 "  -g GATEAPP\n" +
 "                   Specifies the GATE app (.gapp/.xgapp) file to use.\n" +
-"\n" +
-"Optional arguments:\n" +
+"                   REQUIRED unless specifying --demo.\n" +
 "\n" +
 "  --include_set SET\n" +
 "  --exclude_set SET\n" +
@@ -550,12 +581,31 @@ public class CrateGatePipeline {
 "  --verbose\n" +
 "  -v\n" +
 "                   Verbose (use up to 3 times to be more verbose).\n" +
+"\n" +
 "  --loglevel LEVEL\n" +
 "                   Main log level. Overrides verbose. Options are:\n" +
 "                   debug, info, warn, error\n" +
+"\n" +
 "  --gateloglevel LEVEL\n" +
 "                   GATE log level. Overrides verbose. Options are:\n" +
-"                   debug, info, warn, error\n"
+"                   debug, info, warn, error\n" +
+"\n" +
+"  --pluginfile PLUGINFILE\n" +
+"                   INI file specifying GATE plugins, including name,\n" +
+"                   location of Maven repository and version. For example:\n" +
+"\n" +
+"                   [ANNIE]\n" +
+"                   name = annie\n" +
+"                   location = uk.ac.gate.plugins\n" +
+"                   version = 8.6\n" +
+"\n" +
+"                   [Tools]\n" +
+"                   name = tools\n" +
+"                   location = uk.ac.gate.plugins\n" +
+"                   version = 8.6\n" +
+"\n" +
+"  --demo\n" +
+"                   Use the demo gapp file.\n"
         );
     }
 
@@ -702,6 +752,15 @@ public class CrateGatePipeline {
                     m_continue_on_crash = true;
                     break;
 
+               case "--pluginfile":
+                    if (nleft < 1) argfail(insufficient + arg);
+                    m_plugin_filename = m_args[i++];
+                    break;
+
+                case "--demo":
+                    m_demo = true;
+                    break;
+
                 default:
                     usage();
                     abort();
@@ -709,9 +768,9 @@ public class CrateGatePipeline {
             }
         }
         // Validate
-        if (m_gapp_file == null) {
+        if (m_gapp_file == null && m_demo == false) {
             argfail("Missing -g parameter (no .gapp file specified); " +
-                    "use -h for help");
+                    "and --demo not specified. use -h for help");
             abort();
         }
         if (!m_target_annotations.isEmpty() && !m_set_annotation_combos.isEmpty()) {
@@ -913,20 +972,99 @@ public class CrateGatePipeline {
     }
 
     // ========================================================================
+    // PluginsConfig class
+    // ========================================================================
+
+    private final class SinglePluginConfig {
+        String name;
+        String location;
+        String version;
+    }
+
+    private final class PluginsConfig {
+        List<SinglePluginConfig> plugins = new ArrayList<SinglePluginConfig>();
+
+        public PluginsConfig(String filename) throws FileNotFoundException {
+            File plugin_file = new File(filename);
+            Scanner plugin_reader = new Scanner(plugin_file);
+            while (plugin_reader.hasNextLine()) {
+                String line = plugin_reader.nextLine().trim();
+                if (line.startsWith("[") && line.endsWith("]")) {
+                    plugins.add(new SinglePluginConfig());
+                } else if (plugins.size() != 0) {
+                    String[] parts = line.split("=");
+                    if (parts.length != 2) {
+                        // Line not formatted correctly - ignore
+                        continue;
+                    }
+                    String key = parts[0].trim();
+                    String value = parts[1].trim();
+                    SinglePluginConfig p = plugins.get(plugins.size() - 1);
+                    if (key.equals("name")) {
+                        p.name = value;
+                    } else if (key.equals("location")) {
+                        p.location = value;
+                    } else if (key.equals("version")) {
+                        p.version = value;
+                    } // else we don't care
+                }
+            }
+            plugin_reader.close();
+            for (SinglePluginConfig p : plugins) {
+                if (p.name == null || p.location == null || p.version == null) {
+                    m_log.error("WRONG!");
+                }
+            }
+        }
+    }
+
+    // ========================================================================
     // GATE input processing
     // ========================================================================
 
     /** Initialize GATE. */
 
-    private void setupGate() throws GateException, IOException {
+     private void setupGate() throws GateException, IOException, URISyntaxException {
         m_log.info("Initializing GATE...");
         Gate.init();
         m_log.info("... GATE initialized");
 
         m_log.info("Initializing app...");
-        // load the saved application
-        m_controller = (CorpusController)
-            PersistenceManager.loadObjectFromFile(m_gapp_file);
+
+        if (m_plugin_filename != null) {
+            PluginsConfig plugins_config = new PluginsConfig(m_plugin_filename);
+            for (SinglePluginConfig p : plugins_config.plugins) {
+                // Doesn't fetch plugin again if already downloaded
+                m_log.info("Getting plugin:");
+                m_log.info(p.name);
+                m_log.info(p.location);
+                m_log.info(p.version);
+                Plugin newPlugin = new Plugin.Maven(
+                    p.location, p.name, p.version
+                );
+                Gate.getCreoleRegister().registerPlugin(newPlugin);
+            }
+        }
+
+        if (m_demo) {
+            // Get ANNIE plugin
+            Plugin anniePlugin = new Plugin.Maven(
+                 "uk.ac.gate.plugins", "annie", "8.6"
+            );
+            Gate.getCreoleRegister().registerPlugin(anniePlugin);
+
+            m_log.info("Loading the demo gapp file");
+            // Load the demo gapp file
+            m_controller = (CorpusController)
+                 PersistenceManager.loadObjectFromUrl(new ResourceReference(
+                     anniePlugin, "resources/" + ANNIEConstants.DEFAULT_FILE)
+                         .toURL());
+        } else {
+            // load the saved application
+            m_controller = (CorpusController)
+                PersistenceManager.loadObjectFromFile(m_gapp_file);
+       }
+
         m_log.info("... app initialized");
 
         m_log.info("Initializing corpus...");

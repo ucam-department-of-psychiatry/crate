@@ -123,7 +123,7 @@ so let's say 20,000 (sample size 10,000, "other" size 10,000).
 
 Subsequent speedup 2020-04-24: see comments in timing tests; ``h`` now down
 from 100 to 71; ``c`` now down from 14-40 to 6-22 (6 for DOB mismatch, 22 for
-match). So realistically ``c = 10`` or thereabouts. 
+match). So realistically ``c = 10`` or thereabouts.
 
 .. code-block:: r
 
@@ -253,20 +253,6 @@ For Figure 3
     show_sequence(proband, candidate3)
     show_sequence(proband, candidate4)
     show_sequence(proband, candidate5)
-
-
-===============================================================================
-
-.. rubric:: Footnotes
-
-.. [#gronau2017]
-
-    Gronau QF, Sarafoglou A, Matzke D, Ly A, Boehm U, Marsman M, Leslie DS,
-    Forster JJ, Wagenmakers E, Steingroever H (2017).
-    A tutorial on bridge sampling.
-    *Journal of Mathematical Psychology* 81: 80–97.
-    https://doi.org/10.1016/j.jmp.2017.09.005.
-
 
 """  # noqa
 
@@ -580,15 +566,15 @@ class FailureComparison(Comparison):
 
 
 class DirectComparison(Comparison):
-    """
-    Represents a comparison where the user supplies P(D | H) and P(D | ¬H)
-    directly.
+    r"""
+    Represents a comparison where the user supplies :math:`P(D | H)` and
+    :math:`P(D | \neg H)` directly.
     """
     def __init__(self,
                  p_d_given_same_person: float,
                  p_d_given_diff_person: float,
                  **kwargs) -> None:
-        """
+        r"""
         Args:
             p_d_given_same_person: :math:`P(D | H)`
             p_d_given_diff_person: :math:`P(D | \neg H)`
@@ -619,28 +605,28 @@ class MatchNoMatchComparison(Comparison):
 
     The purpose of this is to represent this choice CLEARLY. Code that produces
     one of these could equally produce one of two :class:`DirectComparison`
-    objects, condition upon ``match``, but this is often clearer.
+    objects, conditional upon ``match``, but this is often clearer.
     """
     def __init__(self,
                  match: bool,
                  p_match_given_same_person: float,
                  p_match_given_diff_person: float,
                  **kwargs) -> None:
-        """
+        r"""
         Args:
             match:
                 D; is there a match?
             p_match_given_same_person:
-                If match: :math:`P(D | H) = P(\text{match given same person})
-                 = 1 - p_e`.
-                If no match: :math:`P(D | H) = 1 - P(\text{match given same
-                person}) = p_e`.
+                If match:
+                :math:`P(D | H) = P(\text{match given same person}) = 1 - p_e`.
+                If no match:
+                :math:`P(D | H) = 1 - P(\text{match given same person}) = p_e`.
             p_match_given_diff_person:
-                If match: :math:`P(D | \neg H) = P(\text{match given different
-                person}) = p_f`.
-                If no match: :math:`P(D | \neg H) = 1 - P(\text{match given
-                different person}) = 1 - p_f`.
-        """
+                If match:
+                :math:`P(D | \neg H) = P(\text{match given different person}) = p_f`.
+                If no match:
+                :math:`P(D | \neg H) = 1 - P(\text{match given different person}) = 1 - p_f`.
+        """  # noqa
         super().__init__(**kwargs)
         if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
             assert 0 <= p_match_given_same_person <= 1
@@ -673,7 +659,7 @@ class FullPartialNoMatchComparison(Comparison):
     Represents a comparison where there can be a full or a partial match.
 
     Again, this is for clarity. Code that produces one of these could equally
-    produce one of three :class:`DirectComparison` objects, condition upon
+    produce one of three :class:`DirectComparison` objects, conditional upon
     ``full_match`` and ``partial_match``, but this is generally much clearer.
     """
     def __init__(self,
@@ -3068,7 +3054,7 @@ def compare_probands_to_sample(cfg: MatchConfig,
       - https://helpful.knobs-dials.com/index.php/Python_usage_notes/Multiprocessing_notes
       - slow, but then added ``chunksize = n_probands // n_workers`` (I think
         it's the interprocess communication/setup that is slow)...
-        
+
       - 147.168 seconds -- but for all 10k rows, so that is equivalent to
         5.88 seconds for 400, and much better.
       - Subsequently reached 111.8 s for 10k probands (and 10k sample),
@@ -3078,23 +3064,23 @@ def compare_probands_to_sample(cfg: MatchConfig,
       number of probands to check, and with the number of sample members to
       check against -- though on average at 1/(365*b) = 1/32850 the gradient
       for the latter, since we use birthday prefiltering.
-      
+
     - Different DOB, middle name methods and gender check takes us to
       150.15 s for 10k*10k (2020-05-02). The fake data has lots of DOB overlap
       so real-world performance is likely to be much better.
-      
+
     - Using generic ID/frequency structures took this down to 130.5s
       (2020-05-02), and some simplification to 124.76s, for 10k*10k.
 
     .. code-block:: none
-    
+
         crate_fuzzy_id_match compare_plaintext \
             --probands fuzzy_sample_10k.csv \
             --sample fuzzy_sample_10k.csv \
             --output fuzzy_output_10k.csv
-            
+
         # to profile, add: --profile --n_workers 1
-        
+
     """  # noqa
     def process_result(r: MatchResult) -> None:
         # Uses "rownum" and "writer" from outer scope.
@@ -4005,7 +3991,7 @@ def validate_2_fetch_cdl(cfg: MatchConfig,
                 WHEN 'Female' THEN 'F'
                 WHEN 'Male' THEN 'M'
                 WHEN 'Not Specified' THEN 'X'
-                ELSE ''  
+                ELSE ''
                 -- 'Not Known' is the CRS/CDL "unknown" value
             END AS gender,
             CAST(mpi.DTTM_OF_BIRTH, DATE) AS dob
@@ -4131,7 +4117,7 @@ def validate_2_fetch_rio(cfg: MatchConfig,
 
     Args:
         cfg:
-            Configuration object. 
+            Configuration object.
         url:
             SQLAlchemy URL.
         hash_key:
@@ -4141,7 +4127,7 @@ def validate_2_fetch_rio(cfg: MatchConfig,
 
     Yields:
         :class:`Person` objects
-        
+
     Generating postcodes in SQL as semicolon-separated values: pretty hard.
     The challenges are:
 
@@ -4178,20 +4164,20 @@ def validate_2_fetch_rio(cfg: MatchConfig,
 
     - We need to return people with no postcodes.
 
-    - We must deal with a profusion of invalid postcodes -- and SQL Server 
+    - We must deal with a profusion of invalid postcodes -- and SQL Server
       doesn't support proper regular expressions.
 
     SQLAlchemy Core query to Python dict:
-    
+
     - https://stackoverflow.com/questions/1958219/convert-sqlalchemy-row-object-to-python-dict
 
     """  # noqa
 
     raise NotImplementedError("ethnicity, icd10_dx_present, age_at_first_referral")
     sql = text("""
-    
+
         -- We use the original raw RiO database, not the CRATE-processed one.
-    
+
         SELECT
             ci.ClientID AS rio_client_id,
             CAST(ci.NNN AS BIGINT) AS nhs_number,
@@ -4201,7 +4187,7 @@ def validate_2_fetch_rio(cfg: MatchConfig,
                 WHEN 'F' THEN 'F'
                 WHEN 'M' THEN 'M'
                 WHEN 'X' THEN 'X'
-                ELSE ''  
+                ELSE ''
                 -- 'U' is the RiO "unknown" value
             END AS gender,
             CAST(ci.DateOfBirth AS DATE) AS dob
@@ -4210,7 +4196,7 @@ def validate_2_fetch_rio(cfg: MatchConfig,
         WHERE
             -- Restrict to patients with NHS numbers:
             (ci.NNNStatus = 1 OR ci.NNNStatus = 2)
-            AND NOT (ci.NNN IS NULL OR ci.NNN = '') 
+            AND NOT (ci.NNN IS NULL OR ci.NNN = '')
             -- 2 = NHS number verified; see table NNNStatus
             -- Most people have status 1 (about 119k people), compared to
             -- about 80k for status 2 (on 2020-04-28). Then about 6k have
@@ -4218,7 +4204,7 @@ def validate_2_fetch_rio(cfg: MatchConfig,
             -- status 3 ("no match found"). Other codes not present.
             -- A very small number (~40) have a null NHS number despite an
             -- OK-looking status flag; we'll skip them.
-    
+
     """)
     hasher = Hasher(hash_key)
     _hash = hasher.hash  # hashing function
@@ -4291,9 +4277,9 @@ HELP_COMPARISON = f"""
     - People MUST match on DOB and surname (or surname metaphone), or hashed
       equivalents, to be considered a plausible match.
     - Only plausible matches proceed to the Bayesian comparison.
-    
+
     Output file format:
-    
+
     - CSV file with header.
     - Columns: {COMPARISON_OUTPUT_COLNAMES}
 
@@ -4303,7 +4289,7 @@ HELP_COMPARISON = f"""
 
       - proband_research_id
         Research ID (de-identified?) of the proband. Taken from the input.
-      
+
       - matched
         Boolean. Was a matching person (a "winner") found in the sample, who
         is to be considered a match to the proband? To give a match requires
@@ -4383,7 +4369,7 @@ original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
     - 'winner_id' is the ID of the best-matching person in the sample if they
       were a good enough match to win;
     - 'best_match_id' is the ID of the best-matching person in the sample;
-    - 'best_log_odds' is the calculated log (ln) odds that the proband and the 
+    - 'best_log_odds' is the calculated log (ln) odds that the proband and the
       sample member identified by 'winner_id' are the sample person (ideally
       high if there is a true match, low if not);
     - 'second_best_log_odds' is the calculated log odds of the proband and the
@@ -4452,12 +4438,20 @@ def main() -> int:
     Returns:
         program exit status code
     """
-    default_names_dir = os.path.abspath(os.path.join(
-        THIS_DIR, "..", "..", "working"))
-    default_postcodes_csv = os.path.abspath(os.path.expanduser(
-        "~/dev/ons/ONSPD_Nov2019/unzipped/Data/ONSPD_NOV_2019_UK.csv"))
+
     appname = "crate"
-    default_cache_dir = os.path.join(appdirs.user_data_dir(appname=appname))
+    if "GENERATING_CRATE_DOCS" in os.environ:
+        default_names_dir = "/path/to/names/directory"
+        default_postcodes_csv = "/path/to/postcodes/file"
+        default_cache_dir = "/path/to/crate/user/data"
+    else:
+        default_names_dir = os.path.abspath(os.path.join(
+            THIS_DIR, "..", "..", "working"))
+        default_postcodes_csv = os.path.abspath(os.path.expanduser(
+            "~/dev/ons/ONSPD_Nov2019/unzipped/Data/ONSPD_NOV_2019_UK.csv"))
+        default_cache_dir = os.path.join(
+            appdirs.user_data_dir(appname=appname)
+        )
 
     # -------------------------------------------------------------------------
     # Argument parser
@@ -4765,9 +4759,9 @@ def main() -> int:
         description="""
     Takes an identifiable list of people (with name, DOB, and postcode
     information) and creates a hashed, de-identified equivalent.
-    
+
     The research ID (presumed not to be a direct identifier) is preserved.
-    Optionally, the unique original ID (e.g. NHS number, presumed to be a 
+    Optionally, the unique original ID (e.g. NHS number, presumed to be a
     direct identifier) is preserved, but you have to ask for that explicitly.
         """
     )

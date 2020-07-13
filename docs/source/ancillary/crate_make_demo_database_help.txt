@@ -19,18 +19,14 @@ optional arguments:
   --verbose, -v         Be verbose (default: False)
   --echo                Echo SQL (default: False)
   --doctest_doc DOCTEST_DOC
-                        Test file for .DOC (default: /home/rudolf/Documents/co
-                        de/crate/crate_anon/testdocs_for_text_extraction/docte
-                        st.doc)
+                        Test file for .DOC (default:
+                        /path/to/test_docs/doctest.doc)
   --doctest_docx DOCTEST_DOCX
-                        Test file for .DOCX (default: /home/rudolf/Documents/c
-                        ode/crate/crate_anon/testdocs_for_text_extraction/doct
-                        est.docx)
+                        Test file for .DOCX (default:
+                        /path/to/test_docs/doctest.docx)
   --doctest_odt DOCTEST_ODT
-                        Test file for .ODT (default: /home/rudolf/Documents/co
-                        de/crate/crate_anon/testdocs_for_text_extraction/docte
-                        st.odt)
+                        Test file for .ODT (default:
+                        /path/to/test_docs/doctest.odt)
   --doctest_pdf DOCTEST_PDF
-                        Test file for .PDF (default: /home/rudolf/Documents/co
-                        de/crate/crate_anon/testdocs_for_text_extraction/docte
-                        st.pdf)
+                        Test file for .PDF (default:
+                        /path/to/test_docs/doctest.pdf)

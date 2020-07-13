@@ -32,6 +32,7 @@ import argparse
 import logging
 import os
 import subprocess
+import sys
 
 from cardinal_pythonlib.logs import configure_logger_for_colour
 
@@ -40,11 +41,19 @@ from crate_anon.nlp_manager.constants import GATE_PIPELINE_CLASSNAME
 
 log = logging.getLogger(__name__)
 
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+EXIT_FAILURE = 1
+
+if "GENERATING_CRATE_DOCS" in os.environ:
+    THIS_DIR = "/path/to/crate/crate_anon/nlp_manager"
+    DEFAULT_GATEDIR = "/path/to/GATE/installation"
+else:
+    THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+    DEFAULT_GATEDIR = os.path.join(os.path.expanduser('~'), 'dev',
+                                   'GATE_Developer_8.6.1')
+
 DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, 'compiled_nlp_classes')
 SOURCE_FILE = os.path.join(THIS_DIR, GATE_PIPELINE_CLASSNAME + '.java')
-DEFAULT_GATEDIR = os.path.join(os.path.expanduser('~'), 'dev',
-                               'GATE_Developer_8.0')
+
 DEFAULT_JAVA = 'java'
 DEFAULT_JAVAC = 'javac'
 
@@ -81,17 +90,20 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel)
 
+    if not os.path.exists(args.gatedir):
+        log.error(f"Could not find GATE installation at {args.gatedir}. "
+                  f"Is GATE installed? Have you set --gatedir correctly?")
+        sys.exit(EXIT_FAILURE)
+
     gatejar = os.path.join(args.gatedir, 'bin', 'gate.jar')
     gatelibjars = os.path.join(args.gatedir, 'lib', '*')
     classpath = os.pathsep.join([args.builddir, gatejar, gatelibjars])
     classpath_options = ['-classpath', classpath]
 
     if args.launch:
-        appfile = os.path.join(args.gatedir,
-                               'plugins', 'ANNIE', 'ANNIE_with_defaults.gapp')
         features = ['-a', 'Person', '-a', 'Location']
         eol_options = ['-it', 'END', '-ot', 'END']
-        prog_args = ['-g', appfile] + features + eol_options
+        prog_args = features + eol_options + ['--demo']
         if args.verbose > 0:
             prog_args += ['-v', '-v']
         if args.verbose > 1:
