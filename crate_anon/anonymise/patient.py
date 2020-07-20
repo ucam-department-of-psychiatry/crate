@@ -138,7 +138,7 @@ class Patient(object):
             replacement_text_third_party=config.replace_third_party_info_with,
             scrub_string_suffixes=config.scrub_string_suffixes,
             string_max_regex_errors=config.string_max_regex_errors,
-            whitelist=config.whitelist,
+            allowlist=config.allowlist,
             alternatives=config.phrase_alternative_words,
         )
         # Database

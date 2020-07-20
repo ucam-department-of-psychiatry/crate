@@ -701,7 +701,7 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
                 else:
                     lookups = PidLookup.objects.using(
                         dbinfo.secret_lookup_db).filter(Q(pid__in=values))
-                rids = [l.rid for l in lookups]
+                rids = [lk.rid for lk in lookups]
                 if rids:
                     rids = [f"'{rid}'" for rid in rids]
                     extra_sql = ','.join(rids)
@@ -3639,7 +3639,7 @@ def pe_data_finder_results(request: HttpRequest, pe_id: str) -> HttpResponse:
                     rows = cursor.fetchall()
                     query_html += element_counter.visibility_div_with_divbutton(  # noqa
                         contents=prettify_sql_and_args(sql, args),
-                        title_html="SQL for " + table_identifier)
+                        title_html=f"SQL for {table_identifier}")
             results_table_html = resultset_html_table(
                 fieldnames=fieldnames,
                 rows=rows,

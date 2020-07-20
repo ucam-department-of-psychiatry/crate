@@ -121,6 +121,7 @@ def main() -> None:
     """
     Command-line entry point.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Hash IDs in bulk, using a cryptographic hash function.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)

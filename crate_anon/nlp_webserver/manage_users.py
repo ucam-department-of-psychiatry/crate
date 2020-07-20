@@ -139,6 +139,7 @@ def main() -> None:
     """
     description = "Manage users for the CRATE nlp_web server."
 
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)

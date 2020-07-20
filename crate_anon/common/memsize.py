@@ -38,16 +38,16 @@ from typing import Any, List, Set
 # Custom objects know their class.
 # Function objects seem to know way too much, including modules.
 # Exclude modules as well.
-BLACKLIST = type, ModuleType, FunctionType
+DENYLIST = type, ModuleType, FunctionType
 
 
-def getsize(obj: Any, assume_no_blacklisted: bool = False) -> int:
+def getsize(obj: Any, assume_none_denied: bool = False) -> int:
     """
     Return the total size (in bytes) of the object and its members.
     From https://stackoverflow.com/questions/449560/how-do-i-determine-the-size-of-an-object-in-python
     """  # noqa
-    if not assume_no_blacklisted:
-        if isinstance(obj, BLACKLIST):
+    if not assume_none_denied:
+        if isinstance(obj, DENYLIST):
             raise TypeError(f"getsize() does not take argument of type: "
                             f"{type(obj)}")
     seen_ids = set()  # type: Set[int]
@@ -56,7 +56,7 @@ def getsize(obj: Any, assume_no_blacklisted: bool = False) -> int:
     while objects:
         need_referents = []  # type: List[Any]
         for obj in objects:
-            if assume_no_blacklisted or not isinstance(obj, BLACKLIST):
+            if assume_none_denied or not isinstance(obj, DENYLIST):
                 obj_id = id(obj)
                 if obj_id not in seen_ids:
                     seen_ids.add(obj_id)

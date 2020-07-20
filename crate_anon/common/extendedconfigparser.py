@@ -31,13 +31,14 @@ crate_anon/common/extendedconfigparser.py
 import ast
 import configparser
 import logging
-from typing import Any, Dict, Iterable, Generator, List, Optional
-# http://mypy-lang.org/examples.html
-# https://www.python.org/dev/peps/pep-0484/
-# https://docs.python.org/3/library/typing.html
+from typing import (Any, Dict, Iterable, Generator, List, Optional, TextIO,
+                    TYPE_CHECKING)
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.nlp_manager.constants import DatabaseConfigKeys
+
+if TYPE_CHECKING:
+    from crate_anon.anonymise.config import DatabaseSafeConfig
 
 log = logging.getLogger(__name__)
 
@@ -111,40 +112,28 @@ def gen_ints(words: Iterable[str],
                 raise
 
 
-DB_SAFE_CONFIG_FWD_REF = "DatabaseSafeConfig"
-
-
 class ExtendedConfigParser(configparser.ConfigParser):
     """
     A version of ``configparser.ConfigParser`` with assistance functions for
     reading parameters.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, case_sensitive: bool = False, **kwargs) -> None:
+        """
+        Args:
+            case_sensitive:
+                Make the parser case-sensitive for option names?
+        """
         kwargs['interpolation'] = None
         kwargs['inline_comment_prefixes'] = ('#', ';')
         # 'converters': Python 3.5 and up
         super().__init__(*args, **kwargs)
+        if case_sensitive:
+            # https://stackoverflow.com/questions/1611799/preserve-case-in-configparser  # noqa
+            self.optionxform = str
 
     # Use the underlying ConfigParser class for e.g.
     #       getboolean(section, option)
-
-    # UNNECESSARY: USE inline_comment_prefixes
-    #
-    # @staticmethod
-    # def strip_inline_comment(text, comment_chars=None):
-    #     if comment_chars is None:
-    #         comment_chars = ['#', ';']  # standard for ConfigParser
-    #     absent = -1
-    #     commentpos = absent
-    #     for cc in comment_chars:
-    #         pos = text.find(cc)
-    #         if pos != absent:
-    #             commentpos = min(commentpos,
-    #                              pos) if commentpos != absent else pos
-    #     if commentpos == absent:
-    #         return text.strip()
-    #     return text[:commentpos].strip()
 
     @staticmethod
     def raise_missing(section: str,
@@ -157,6 +146,27 @@ class ExtendedConfigParser(configparser.ConfigParser):
             option: parameter name
         """
         configfail(f"Config section [{section}]: missing parameter: {option}")
+
+    def require_section(self, section: str) -> None:
+        """
+        Requires that a section be present, or raises :exc:`ValueError`.
+
+        Args:
+            section: section name
+        """
+        if not self.has_section(section):
+            log.warning(f"Sections: {list(self.keys())!r}")
+            configfail(f"Config missing section: {section}")
+
+    def require_option_to_be_absent(self, section: str, option: str,
+                                    msg: str) -> None:
+        """
+        Require that an option be absent in the specified section, or print
+        a message and raise :exc:`ValueError`.
+        """
+        if not self.has_option(section, option):
+            return
+        configfail(msg)
 
     def get_str(self,
                 section: str,
@@ -233,6 +243,35 @@ class ExtendedConfigParser(configparser.ConfigParser):
         except ValueError:  # e.g. invalid literal for int() with base 10
             return default
 
+    def get_int_raise_if_no_default(self,
+                                    section: str,
+                                    option: str,
+                                    default: int = None) -> int:
+        """
+        Like :meth:`get_int_default_if_failure`, but if the default is given
+        as ``None`` and no value is found, raises an exception.
+        """
+        result = self.get_int_default_if_failure(
+            section=section, option=option, default=default)
+        if result is None:
+            self.raise_missing(section, option)
+        return result
+
+    def get_int_positive_raise_if_no_default(self,
+                                             section: str,
+                                             option: str,
+                                             default: int = None) -> int:
+        """
+        Like :meth:`get_int_default_if_failure`, but also requires
+        that the result be greater than or equal to 0.
+        """
+        result = self.get_int_raise_if_no_default(
+            section=section, option=option, default=default)
+        if result < 0:
+            configfail(f"Config section [{section}]: option {option!r} "
+                       f"must not be negative")
+        return result
+
     def get_int_list(self,
                      section: str,
                      option: str,
@@ -263,23 +302,33 @@ class ExtendedConfigParser(configparser.ConfigParser):
     def get_bool(self,
                  section: str,
                  option: str,
-                 default: bool = None) -> Optional[bool]:
+                 default: bool = None) -> bool:
         """
         Retrieves a boolean value from a parser.
 
+
         Args:
-            section: section name within config file
-            option: option (variable) name within that section
-            default: value to return if option is absent
+            section:
+                section name within config file
+            option:
+                option (parameter) name within that section
+            default:
+                Value to return if option is absent and not required. If the
+                default if not specified, and the option is missing, raise an
+                error.
 
         Returns:
             Boolean value
 
         Raises:
-            ValueError: if the section is absent
+            NoSectionError: if the section is absent
+            NoOptionError: if the parameter is absent and required
 
         """
-        return self.getboolean(section, option, fallback=default)
+        result = self.getboolean(section, option, fallback=default)
+        if result is None:
+            self.raise_missing(section, option)
+        return result
 
     def get_pyvalue_list(self,
                          section: str,
@@ -318,7 +367,7 @@ class ExtendedConfigParser(configparser.ConfigParser):
     def get_database(self,
                      section: str,
                      dbname: str = None,
-                     srccfg: DB_SAFE_CONFIG_FWD_REF = None,
+                     srccfg: "DatabaseSafeConfig" = None,
                      with_session: bool = False,
                      with_conn: bool = False,
                      reflect: bool = False) -> DatabaseHolder:
@@ -373,3 +422,202 @@ class ExtendedConfigParser(configparser.ConfigParser):
         # items() returns a list of (name, value) tuples
         env.update(newitems)
         return env
+
+
+class ConfigSection(object):
+    """
+    Represents a section within a config file.
+    """
+    def __init__(self,
+                 section: str,
+                 parser: ExtendedConfigParser = None,
+                 filename: str = None,
+                 fileobj: TextIO = None,
+                 case_sensitive: bool = False,
+                 encoding: str = "utf8") -> None:
+        """
+        You must specify exactly one of ``parser``, ``filename``, or
+        ``fileobj``.
+
+        Args:
+            section:
+                The name of the section within the config file, e.g.
+                ``main`` for the section marked by ``[main]``.
+            parser:
+                Specify this, a :class:`ExtendedConfigParser`, if you
+                have already loaded the file into a parser.
+            filename:
+                The name of a file to option. Specify also the encoding.
+            fileobj:
+                A file-like object to open.
+            case_sensitive:
+                If ``parser`` is used, make it case-sensitive for options?
+            encoding:
+                If ``filename`` is used, the character encoding.
+        """
+        self.section = section
+
+        # Check paramers
+        if bool(parser) + bool(filename) + bool(fileobj) != 1:
+            raise ValueError("Specify exactly one of: "
+                             "parser, filename, fileobj")
+
+        # Record or create parser
+        if parser:
+            assert isinstance(parser, ExtendedConfigParser)
+            self.parser = parser
+        elif filename:
+            self.parser = ExtendedConfigParser(case_sensitive=case_sensitive)
+            log.info(f"Reading config file: {filename}")
+            self.parser.read(filename, encoding=encoding)
+        else:
+            self.parser.read_file(fileobj)
+
+        # Check section exists
+        self.parser.require_section(self.section)
+
+    def opt_str(self,
+                option: str,
+                default: str = None,
+                required: bool = False) -> str:
+        """
+        Reads a string option.
+
+        Args:
+            option: parameter (option) name
+            default: default if not found and not required
+            required: is the parameter required?
+        """
+        return self.parser.get_str(self.section, option, default=default,
+                                   required=required)
+
+    def opt_multiline(self,
+                      option: str,
+                      required: bool = False,
+                      lower: bool = False,
+                      as_words: bool = True) -> List[str]:
+        """
+        Reads a multiline string, returning a list of words or lines.
+        Similar to :meth:`opt_strlist`, but different defaults.
+
+        Args:
+            option: parameter (option) name
+            required: is the parameter required?
+            lower: convert to lower case?
+            as_words: split as words, rather than as lines?
+        """
+        return self.parser.get_str_list(
+            self.section,
+            option,
+            as_words=as_words,
+            lower=lower,
+            required=required
+        )
+
+    def opt_strlist(self,
+                    option: str,
+                    required: bool = False,
+                    lower: bool = False,
+                    as_words: bool = True) -> List[str]:
+        """
+        Returns a list of strings from the config file.
+        Similar to :meth:`opt_multiline`, but different defaults.
+
+        Args:
+            option: parameter (option) name
+            required: is the parameter required?
+            lower: convert to lower case?
+            as_words: split as words, rather than as lines?
+        """
+        return self.parser.get_str_list(
+            self.section,
+            option,
+            as_words=as_words,
+            lower=lower,
+            required=required
+        )
+
+    def opt_bool(self,
+                 option: str,
+                 default: bool = None) -> bool:
+        """
+        Reads a boolean option.
+
+        Args:
+            option: parameter (option) name
+            default: default if not found (if None, the parameter is required)
+        """
+        return self.parser.get_bool(self.section, option, default=default)
+
+    def opt_int(self,
+                option: str,
+                default: int = None) -> Optional[int]:
+        """
+        Reads an integer option.
+
+        Args:
+            option: parameter (option) name
+            default: default if not found (if None, the parameter is required)
+        """
+        return self.parser.get_int_raise_if_no_default(
+            self.section, option, default=default)
+
+    def opt_int_positive(self,
+                         option: str,
+                         default: int = None) -> Optional[int]:
+        """
+        Reads an integer option that must be greater than or equal to 0.
+
+        Args:
+            option: parameter (option) name
+            default: default if not found (if None, the parameter is required)
+        """
+        return self.parser.get_int_positive_raise_if_no_default(
+            self.section, option, default=default)
+
+    def opt_multiline_int(self,
+                          option: str,
+                          minimum: int = None,
+                          maximum: int = None) -> List[int]:
+        """
+        Returns a list of integers within the specified range.
+        """
+        return self.parser.get_int_list(
+            self.section,
+            option,
+            minimum=minimum,
+            maximum=maximum,
+            suppress_errors=False
+        )
+
+    def opt_multiline_csv_pairs(self, option: str) -> Dict[str, str]:
+        """
+        Reads a dictionary of key-value pairs, specified as lines each of
+        the format ``key, value``.
+
+        Args:
+            option: name of the config file option
+        """
+        d = {}  # type: Dict[str, str]
+        lines = self.opt_multiline(option, as_words=False)
+        for line in lines:
+            pair = [item.strip() for item in line.split(",")]
+            if len(pair) != 2:
+                raise ValueError(f"For option {option}: specify items as "
+                                 f"a list of comma-separated pairs")
+            d[pair[0]] = pair[1]
+        return d
+
+    def opt_pyvalue_list(self, option: str, default: Any = None) -> Any:
+        """
+        Returns a list of evaluated Python values.
+        """
+        return self.parser.get_pyvalue_list(
+            self.section, option, default=default)
+
+    def require_absent(self, option: str, msg: str) -> None:
+        """
+        If an option is present, print the message and raise an exception.
+        Use this for deprecated option names.
+        """
+        self.parser.require_option_to_be_absent(self.section, option, msg)

@@ -54,6 +54,7 @@ def main() -> int:
     """
     Command-line entry point. See command-line help.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=f"""
 Test CRATE text extraction and/or detect text in files.

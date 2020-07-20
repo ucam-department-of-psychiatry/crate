@@ -1238,6 +1238,7 @@ def populate_generic_lookup_table(
             log.critical(f"{n}: {datadict}")
         # filter out blanks:
         datadict = {k: v for k, v in datadict.items() if k}
+        # noinspection PyNoneFunctionAssignment
         obj = sa_class(**datadict)
         session.add(obj)
         if commit and n % commitevery == 0:
@@ -1288,6 +1289,7 @@ def main() -> None:
     """
     Command-line entry point. See command-line help.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
         description=

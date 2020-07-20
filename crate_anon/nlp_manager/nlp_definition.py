@@ -53,7 +53,10 @@ from crate_anon.anonymise.constants import (
     DEFAULT_MAX_ROWS_BEFORE_COMMIT,
 )
 from crate_anon.anonymise.dbholder import DatabaseHolder
-from crate_anon.common.extendedconfigparser import ExtendedConfigParser
+from crate_anon.common.extendedconfigparser import (
+    ConfigSection,
+    ExtendedConfigParser,
+)
 from crate_anon.common.sql import TransactionSizeLimiter
 from crate_anon.nlp_manager.cloud_config import CloudConfig
 from crate_anon.nlp_manager.constants import (
@@ -766,7 +769,6 @@ class NlpDefinition(object):
 
         self._nlpname = nlpname
         self._logtag = logtag
-        nlpsection = full_sectionname(NlpConfigPrefixes.NLPDEF, nlpname)
 
         log.info(f"Loading config for section: {nlpname}")
         # Get filename
@@ -781,53 +783,50 @@ class NlpDefinition(object):
             sys.exit(1)
 
         # Read config from file.
-        self._parser = ExtendedConfigParser()
-        self._parser.optionxform = str  # make it case-sensitive
-        log.info(f"Reading config file: {self._config_filename}")
-        self._parser.read_file(codecs.open(self._config_filename, "r", "utf8"))
-
-        if not self._parser.has_section(nlpsection):
-            raise ValueError(f"No section named {nlpsection} present")
+        self._cfg = ConfigSection(
+            section=full_sectionname(NlpConfigPrefixes.NLPDEF, nlpname),
+            filename=self._config_filename,
+            case_sensitive=True
+        )
 
         # ---------------------------------------------------------------------
         # Our own stuff
         # ---------------------------------------------------------------------
         self._databases = {}  # type: Dict[str, DatabaseHolder]
-        self._progressdb_name = self.opt_str(
-            nlpsection, NlpDefConfigKeys.PROGRESSDB,
+        self._progressdb_name = self._cfg.opt_str(
+            NlpDefConfigKeys.PROGRESSDB,
             required=True)
         self._progdb = self.get_database(self._progressdb_name)
-        self._temporary_tablename = self.opt_str(
-            nlpsection, NlpDefConfigKeys.TEMPORARY_TABLENAME,
+        self._temporary_tablename = self._cfg.opt_str(
+            NlpDefConfigKeys.TEMPORARY_TABLENAME,
             default=DEFAULT_TEMPORARY_TABLENAME)
-        self._hashphrase = self.opt_str(
-            nlpsection, NlpDefConfigKeys.HASHPHRASE,
+        self._hashphrase = self._cfg.opt_str(
+            NlpDefConfigKeys.HASHPHRASE,
             required=True)
         self._hasher = HashClass(self._hashphrase)
-        self._max_rows_before_commit = self.opt_int(
-            nlpsection, NlpDefConfigKeys.MAX_ROWS_BEFORE_COMMIT,
+        self._max_rows_before_commit = self._cfg.opt_int_positive(
+            NlpDefConfigKeys.MAX_ROWS_BEFORE_COMMIT,
             DEFAULT_MAX_ROWS_BEFORE_COMMIT)
-        self._max_bytes_before_commit = self.opt_int(
-            nlpsection, NlpDefConfigKeys.MAX_BYTES_BEFORE_COMMIT,
+        self._max_bytes_before_commit = self._cfg.opt_int_positive(
+            NlpDefConfigKeys.MAX_BYTES_BEFORE_COMMIT,
             DEFAULT_MAX_BYTES_BEFORE_COMMIT)
         self._now = get_now_utc_notz_datetime()
-        self.truncate_text_at = self.opt_int(
-            nlpsection, NlpDefConfigKeys.TRUNCATE_TEXT_AT,
+        self.truncate_text_at = self._cfg.opt_int_positive(
+            NlpDefConfigKeys.TRUNCATE_TEXT_AT,
             default=0)
-        assert self.truncate_text_at >= 0
-        self.record_truncated_values = self.opt_bool(
-            nlpsection, NlpDefConfigKeys.RECORD_TRUNCATED_VALUES,
+        self.record_truncated_values = self._cfg.opt_bool(
+            NlpDefConfigKeys.RECORD_TRUNCATED_VALUES,
             default=False)
-        self._cloud_config_name = self.opt_str(
-            nlpsection, NlpDefConfigKeys.CLOUD_CONFIG)
-        self._cloud_request_data_dir = self.opt_str(
-            nlpsection, NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR)
+        self._cloud_config_name = self._cfg.opt_str(
+            NlpDefConfigKeys.CLOUD_CONFIG)
+        self._cloud_request_data_dir = self._cfg.opt_str(
+             NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR)
 
         # ---------------------------------------------------------------------
         # Input field definitions
         # ---------------------------------------------------------------------
-        self._inputfielddefs = self.opt_strlist(
-            nlpsection, NlpDefConfigKeys.INPUTFIELDDEFS,
+        self._inputfielddefs = self._cfg.opt_strlist(
+            NlpDefConfigKeys.INPUTFIELDDEFS,
             required=True, lower=False)
         self._inputfieldmap = {}  # type: Dict[str, InputFieldConfig]
         for x in self._inputfielddefs:
@@ -839,8 +838,8 @@ class NlpDefinition(object):
         # NLP processors
         # ---------------------------------------------------------------------
         self._processors = []  # type: List[TableMaker]
-        processorpairs = self.opt_strlist(
-            nlpsection, NlpDefConfigKeys.PROCESSORS,
+        processorpairs = self._cfg.opt_strlist(
+            NlpDefConfigKeys.PROCESSORS,
             required=True, lower=False)
         # self._procstmp = {}
         try:
@@ -848,7 +847,9 @@ class NlpDefinition(object):
                 self.require_section(
                     full_sectionname(NlpConfigPrefixes.PROCESSOR, procname))
                 processor = make_nlp_parser(
-                    classname=proctype, nlpdef=self, cfgsection=procname)
+                    classname=proctype,
+                    nlpdef=self,
+                    cfg_processor_name=procname)
                 # self._procstmp[proctype] = procname
                 self._processors.append(processor)
         except ValueError:
@@ -866,26 +867,29 @@ class NlpDefinition(object):
         # ---------------------------------------------------------------------
         self._cloudcfg = None  # type: Optional[CloudConfig]
 
-    def get_name(self) -> str:
+    @property
+    def name(self) -> str:
         """
         Returns the name of the NLP definition.
         """
         return self._nlpname
 
-    def get_logtag(self) -> str:
+    @property
+    def logtag(self) -> str:
         """
         Returns the log tag of the NLP definition (may be used by child
         processes to provide more information for logs).
         """
         return self._logtag
 
-    def get_parser(self) -> ExtendedConfigParser:
+    @property
+    def parser(self) -> ExtendedConfigParser:
         """
         Returns the
         :class:`crate_anon.common.extendedconfigparser.ExtendedConfigParser` in
         use.
         """
-        return self._parser
+        return self._cfg.parser
 
     def hash(self, text: str) -> str:
         """
@@ -929,62 +933,7 @@ class NlpDefinition(object):
         Require that the config file has a section with the specified name, or
         raise :exc:`ValueError`.
         """
-        if not self._parser.has_section(section):
-            msg = f"Missing config section: {section}"
-            log.critical(msg)
-            raise ValueError(msg)
-
-    def opt_str(self, section: str, option: str, required: bool = False,
-                default: str = None) -> str:
-        """
-        Returns a string option from the config file.
-
-        Args:
-            section: config section name
-            option: parameter (option) name
-            required: is the parameter required?
-            default: default if not found and not required
-        """
-        return self._parser.get_str(section, option, default=default,
-                                    required=required)
-
-    def opt_strlist(self, section: str, option: str, required: bool = False,
-                    lower: bool = True, as_words: bool = True) -> List[str]:
-        """
-        Returns a list of strings from the config file.
-
-        Args:
-            section: config section name
-            option: parameter (option) name
-            required: is the parameter required?
-            lower: convert to lower case?
-            as_words: split as words, rather than as lines?
-        """
-        return self._parser.get_str_list(section, option, as_words=as_words,
-                                         lower=lower, required=required)
-
-    def opt_int(self, section: str, option: str,
-                default: Optional[int]) -> Optional[int]:
-        """
-        Returns an integer parameter from the config file.
-
-        Args:
-            section: config section name
-            option: parameter (option) name
-            default: default if not found and not required
-        """
-        return self._parser.getint(section, option, fallback=default)
-
-    def opt_bool(self, section: str, option: str, default: bool) -> bool:
-        """
-        Returns a Boolean parameter from the config file.
-
-        Args:
-            section: config section name
-            option: parameter (option) name
-            default: default if not found and not required
-        """
-        return self._parser.getboolean(section, option, fallback=default)
+        self.parser.require_section(section)
 
     def get_database(self, name_and_cfg_section: str,
                      with_session: bool = True,
@@ -1007,10 +956,10 @@ class NlpDefinition(object):
         dbsection = full_sectionname(NlpConfigPrefixes.DATABASE,
                                      name_and_cfg_section)
         assert len(name_and_cfg_section) <= MAX_SQL_FIELD_LEN
-        db = self._parser.get_database(dbsection,
-                                       with_session=with_session,
-                                       with_conn=with_conn,
-                                       reflect=reflect)
+        db = self.parser.get_database(dbsection,
+                                      with_session=with_session,
+                                      with_conn=with_conn,
+                                      reflect=reflect)
         self._databases[name_and_cfg_section] = db
         return db
 
@@ -1030,7 +979,7 @@ class NlpDefinition(object):
             a dictionary suitable for use as an OS environment
 
         """
-        return self._parser.get_env_dict(section, parent_env=parent_env)
+        return self.get_parser().get_env_dict(section, parent_env=parent_env)
 
     def get_progdb_session(self) -> Session:
         """
@@ -1202,7 +1151,7 @@ class NlpDefinition(object):
         object associated with this NLP definition, or ``None`` if there isn't
         one.
         """
-        our_name = self.get_name()
+        our_name = self.name
         if self._cloudcfg is None:
             if not self._cloud_config_name:
                 raise ValueError(
@@ -1234,8 +1183,8 @@ class NlpDefinition(object):
         cloudcfg = self.get_cloud_config()
         if cloudcfg is None:
             raise ValueError(f"No cloud NLP configuration for NLP definition "
-                             f"{self.get_name()!r}")
+                             f"{self.name!r}")
         if not cloudcfg.remote_processors:
             raise ValueError(f"No remote (cloud) processors configured for "
-                             f"NLP definition {self.get_name()!r}")
+                             f"NLP definition {self.name!r}")
         return cloudcfg

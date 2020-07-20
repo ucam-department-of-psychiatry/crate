@@ -48,6 +48,7 @@ def main() -> None:
     """
     Command-line parser. See command-line help.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Launch CRATE NLP web server Celery processes. "
                     "(Any leftover arguments will be passed to Celery.)",

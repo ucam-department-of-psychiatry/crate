@@ -148,8 +148,8 @@ class DataDictionary(object):
                 is_patient_table = False
 
                 # Skip table?
-                if cfg.is_table_blacklisted(tablename):
-                    log.debug(f"Skipping blacklisted table: {tablename}")
+                if cfg.is_table_denied(tablename):
+                    log.debug(f"Skipping denied table: {tablename}")
                     continue
                 all_col_names = [c.name for c in t.columns]
                 if cfg.does_table_fail_minimum_fields(all_col_names):
@@ -175,8 +175,8 @@ class DataDictionary(object):
                     # If you do, they can fail to match the SQLAlchemy
                     # introspection and cause a crash.
                     # Changed to be a destination manipulation (2016-06-04).
-                    if cfg.is_field_blacklisted(columnname):
-                        log.debug(f"Skipping blacklisted column: "
+                    if cfg.is_field_denied(columnname):
+                        log.debug(f"Skipping denied column: "
                                   f"{tablename}.{columnname}")
                         continue
                     comment = ''  # currently unsupported by SQLAlchemy

@@ -81,7 +81,7 @@ class CloudConfig(object):
         self.req_data_dir = req_data_dir
 
         sectionname = full_sectionname(NlpConfigPrefixes.CLOUD, name)
-        config = nlpdef.get_parser()
+        config = nlpdef.parser
         self.url = config.get_str(
             section=sectionname, option=CloudNlpConfigKeys.CLOUD_URL,
             required=True)
@@ -130,7 +130,7 @@ class CloudConfig(object):
                 # ... only add 'Cloud' processors
                 log.warning(
                     f"Skipping NLP processor of non-cloud (e.g. local) "
-                    f"type: {processor.get_parser_name()}")
+                    f"type: {processor.friendly_name}")
                 continue
             self.remote_processors[(
                 processor.procname, processor.procversion)] = processor
@@ -146,6 +146,6 @@ class CloudConfig(object):
         """
         Returns the filename to be used for storing data.
         """
-        nlpname = self._nlpdef.get_name()
+        nlpname = self._nlpdef.name
         return os.path.abspath(os.path.join(
             self.req_data_dir, f"request_data_{nlpname}.csv"))

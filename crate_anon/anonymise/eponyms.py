@@ -115,13 +115,17 @@ SIMPLE_EPONYM_LIST = [
     # -------------------------------------------------------------------------
     # A
     # -------------------------------------------------------------------------
-    # Aarskog–Scott syndrome (a.k.a. Aarskog syndrome) – Dagfinn Aarskog, Charles I. Scott, Jr.
+    # Aarskog–Scott syndrome (a.k.a. Aarskog syndrome)
+    # – Dagfinn Aarskog, Charles I. Scott, Jr.
     "Aarskog–Scott",
-    # Aase–Smith syndrome (a.k.a. Aase syndrome) – Jon Morton Aase, David Weyhe Smith
+    # Aase–Smith syndrome (a.k.a. Aase syndrome)
+    # – Jon Morton Aase, David Weyhe Smith
     "Aase–Smith",
-    # Abdallat–Davis–Farrage syndrome – Adnan Al Abdallat, S.M. Davis, James Robert Farrage
+    # Abdallat–Davis–Farrage syndrome
+    # – Adnan Al Abdallat, S.M. Davis, James Robert Farrage
     "Abdallat–Davis–Farrage",
-    # Abderhalden–Kaufmann–Lignac syndrome (a.k.a. Abderhalden–Lignac–Kaufmann disease) – Emil Abderhalden, Eduard Kauffman, George Lignac
+    # Abderhalden–Kaufmann–Lignac syndrome (a.k.a. Abderhalden–Lignac–Kaufmann
+    # disease) – Emil Abderhalden, Eduard Kauffman, George Lignac
     "Abderhalden–Kaufmann–Lignac",
     # Abercrombie disease (a.k.a. Abercrombie syndrome) – John Abercrombie
     "Abercrombie",
@@ -131,13 +135,16 @@ SIMPLE_EPONYM_LIST = [
     "Ackerman",
     # Adams–Oliver syndrome – Robert Adams, William Oliver
     "Adams–Oliver",
-    # Adams–Stokes syndrome (a.k.a. Gerbec–Morgagni–Adams–Stokes syndrome, Gerbezius–Morgagni–Adams–Stokes syndrome, Stokes–Adams syndrome) – Robert Adams, William Stokes
+    # Adams–Stokes syndrome (a.k.a. Gerbec–Morgagni–Adams–Stokes syndrome,
+    # Gerbezius–Morgagni–Adams–Stokes syndrome, Stokes–Adams syndrome)
+    # – Robert Adams, William Stokes
     "Adams–Stokes",
     # Addison disease – Thomas Addison
     "Addison",
     # Adson–Caffey syndrome – Alfred Washington Adson, I. R. Caffey
     "Adson–Caffey",
-    # Ahumada–Del Castillo syndrome – Juan Carlos Ahumada Sotomayor, Enrique Benjamin Del Castillo
+    # Ahumada–Del Castillo syndrome
+    # – Juan Carlos Ahumada Sotomayor, Enrique Benjamin Del Castillo
     "Ahumada–Del Castillo",
     # Aicardi syndrome – Jean Aicardi
     "Aicardi",
@@ -147,9 +154,11 @@ SIMPLE_EPONYM_LIST = [
     "Alagille",
     # Albers-Schönberg disease – Heinrich Albers-Schönberg
     "Albers-Schönberg",
-    # Albright disease (a.k.a. Albright hereditary osteodystrophy, Albright syndrome, McCune–Albight syndrome) – Fuller Albright
+    # Albright disease (a.k.a. Albright hereditary osteodystrophy, Albright
+    # syndrome, McCune–Albight syndrome) – Fuller Albright
     "Albright",
-    # Albright–Butler–Bloomberg disease – Fuller Albright, Allan Macy Butler, Esther Bloomberg
+    # Albright–Butler–Bloomberg disease – Fuller Albright, Allan Macy Butler,
+    # Esther Bloomberg
     "Albright–Butler–Bloomberg",
     # Albright–Hadorn syndrome – Fuller Albright, Walter Hadorn
     "Albright–Hadorn",
@@ -157,9 +166,11 @@ SIMPLE_EPONYM_LIST = [
     "Albright",
     # Alexander disease – William Stuart Alexander
     "Alexander",
-    # Alibert–Bazin syndrome – Jean-Louis-Marc Alibert, Pierre-Antoine-Ernest Bazin
+    # Alibert–Bazin syndrome
+    # – Jean-Louis-Marc Alibert, Pierre-Antoine-Ernest Bazin
     "Alibert–Bazin",
-    # Alpers–Huttenlocher syndrome (a.k.a. Alpers disease, Alpers syndrome) – Bernard Jacob Alpers, Peter Huttenlocher
+    # Alpers–Huttenlocher syndrome (a.k.a. Alpers disease, Alpers syndrome)
+    # – Bernard Jacob Alpers, Peter Huttenlocher
     "Alpers–Huttenlocher",
     # Alport syndrome – Arthur Cecil Alport
     "Alport",
@@ -173,7 +184,8 @@ SIMPLE_EPONYM_LIST = [
     "Anders",
     # Andersen disease – Dorothy Andersen
     "Andersen",
-    # Andersen–Tawil syndrome (a.k.a. Andersen syndrome) – Ellen Andersen, Al-Rabi Tawil
+    # Andersen–Tawil syndrome (a.k.a. Andersen syndrome)
+    # – Ellen Andersen, Al-Rabi Tawil
     "Andersen–Tawil",
     # Anderson–Fabry disease – William Anderson, Johannes Fabry
     "Anderson–Fabry",
@@ -181,11 +193,13 @@ SIMPLE_EPONYM_LIST = [
     "Angelman",
     # Angelucci syndrome – Arnaldo Angelucci
     "Angelucci",
-    # Anton–Babinski syndrome (a.k.a. Anton syndrome) – Gabriel Anton, Joseph Babinski
+    # Anton–Babinski syndrome (a.k.a. Anton syndrome)
+    # – Gabriel Anton, Joseph Babinski
     "Anton–Babinski",
     # Apert syndrome – Eugène Apert
     "Apert",
-    # Aran–Duchenne disease (a.k.a. Aran–Duchenne spinal muscular atrophy) – François-Amilcar Aran, Guillaume Duchenne
+    # Aran–Duchenne disease (a.k.a. Aran–Duchenne spinal muscular atrophy)
+    # – François-Amilcar Aran, Guillaume Duchenne
     "Aran–Duchenne",
     # Armanni–Ebstein nephropathic change – Luciano Armanni, Wilhelm Ebstein
     "Armanni–Ebstein",
@@ -199,7 +213,8 @@ SIMPLE_EPONYM_LIST = [
     "Asperger",
     # Avellis syndrome – Georg Avellis
     "Avellis",
-    # Ayerza–Arrillaga syndrome (a.k.a. Ayerza–Arrillaga disease, Ayerza syndrome, Ayerza disease) – Abel Ayerza, Francisco Arrillaga
+    # Ayerza–Arrillaga syndrome (a.k.a. Ayerza–Arrillaga disease, Ayerza
+    # syndrome, Ayerza disease) – Abel Ayerza, Francisco Arrillaga
     "Ayerza–Arrillaga",
 
     # -------------------------------------------------------------------------
@@ -233,7 +248,8 @@ SIMPLE_EPONYM_LIST = [
     "Bang",
     # Bankart lesion – Arthur Bankart
     "Bankart",
-    # Bannayan–Riley–Ruvalcaba syndrome – George A. Bannayan, Harris D. Riley, Jr., Rogelio H. A. Ruvalcaba
+    # Bannayan–Riley–Ruvalcaba syndrome
+    # – George A. Bannayan, Harris D. Riley, Jr., Rogelio H. A. Ruvalcaba
     "Bannayan–Riley–Ruvalcaba",
     # Bannayan–Zonana syndrome – George A. Bannayan, Jonathan X. Zonana
     "Bannayan–Zonana",
@@ -241,7 +257,8 @@ SIMPLE_EPONYM_LIST = [
     "Banti",
     # Bárány syndrome – Robert Bárány
     "Bárány",
-    # Bardet–Biedl syndrome (formerly, a.k.a. Laurence–Moon–Bardet–Biedl syndrome, now deemed an invalid synonym) – Georges Bardet, Arthur Biedl
+    # Bardet–Biedl syndrome (formerly, a.k.a. Laurence–Moon–Bardet–Biedl
+    # syndrome, now deemed an invalid synonym) – Georges Bardet, Arthur Biedl
     "Bardet–Biedl",  # other names e.g. under Laurence
     # Barlow disease – Thomas Barlow
     "Barlow",
@@ -303,7 +320,8 @@ SIMPLE_EPONYM_LIST = [
     "Bernheim",
     # Besnier prurigo – Ernest Henri Besnier
     "Besnier",
-    # Besnier–Boeck–Schaumann disease – Ernest Henri Besnier, Cæsar Peter Møller Boeck, Jörgen Nilsen Schaumann
+    # Besnier–Boeck–Schaumann disease
+    # – Ernest Henri Besnier, Cæsar Peter Møller Boeck, Jörgen Nilsen Schaumann
     "Besnier–Boeck–Schaumann",
     # Biermer anaemia – Michael Anton Biermer
     "Biermer",
@@ -323,7 +341,8 @@ SIMPLE_EPONYM_LIST = [
     "Binswanger",
     # Birt–Hogg–Dubé syndrome – Arthur Birt, Georgina Hogg, William Dubé
     "Birt–Hogg–Dubé",
-    # Bland–White–Garland syndrome – Edward Franklin Bland, Paul Dudley White, Joseph Garland
+    # Bland–White–Garland syndrome
+    # – Edward Franklin Bland, Paul Dudley White, Joseph Garland
     "Bland–White–Garland",
     # Bloch–Sulzberger syndrome – Bruno Bloch, Marion Baldur Sulzberger
     "Bloch–Sulzberger",
@@ -337,11 +356,13 @@ SIMPLE_EPONYM_LIST = [
     "Bogorad",
     # Bonnevie–Ullrich syndrome – Kristine Bonnevie, Otto Ullrich
     "Bonnevie–Ullrich",
-    # Bourneville–Pringle disease – Désiré-Magloire Bourneville, John James Pringle
+    # Bourneville–Pringle disease
+    # – Désiré-Magloire Bourneville, John James Pringle
     "Bourneville–Pringle",
     # Bowen disease – John T. Bowen
     "Bowen",
-    # Brachman de Lange syndrome – Winfried Robert Clemens Brachmann, Cornelia Catharina de Lange
+    # Brachman de Lange syndrome
+    # – Winfried Robert Clemens Brachmann, Cornelia Catharina de Lange
     "Brachman–de Lange",
     # Brailsford–Morquio syndrome – James Frederick Brailsford, Luís Morquio
     "Brailsford–Morquio",
@@ -407,7 +428,8 @@ SIMPLE_EPONYM_LIST = [
     "Caffey–Silverman",
     # Calvé disease – Jacques Calvé
     "Calvé",
-    # Camurati–Engelmann disease (a.k.a. Camurati–Engelmann syndrome, Engelmann disease, Engelmann syndrome) – M. Camurati, G. Engelmann
+    # Camurati–Engelmann disease (a.k.a. Camurati–Engelmann syndrome, Engelmann
+    # disease, Engelmann syndrome) – M. Camurati, G. Engelmann
     "Camurati–Engelmann",
     # Canavan disease – Myrtelle Canavan
     "Canavan",
@@ -431,13 +453,15 @@ SIMPLE_EPONYM_LIST = [
     "Carrión",
     # Castleman disease – Benjamin Castleman
     "Castleman",
-    # Céstan–Chenais syndrome – Étienne Jacques Marie Raymond Céstan, Louis Jean Chennais
+    # Céstan–Chenais syndrome
+    # – Étienne Jacques Marie Raymond Céstan, Louis Jean Chennais
     "Céstan–Chenais",
     # Chagas disease – Carlos Chagas
     "Chagas",
     # Charcot's disease – Jean-Martin Charcot
     "Charcot",
-    # Charcot–Marie–Tooth disease – Jean-Martin Charcot, Pierre Marie, Howard Henry Tooth
+    # Charcot–Marie–Tooth disease
+    # – Jean-Martin Charcot, Pierre Marie, Howard Henry Tooth
     "Charcot–Marie–Tooth",
     # Charles Bonnet syndrome – Charles Bonnet
     "Charles Bonnet"
@@ -451,7 +475,8 @@ SIMPLE_EPONYM_LIST = [
     "Chiari–Frommel",
     # Chilaiditi syndrome – Demetrius Chilaiditi
     "Chilaiditi",
-    # Christ–Siemens–Touraine syndrome – Josef Christ, Hermann Werner Siemens, Albert Touraine
+    # Christ–Siemens–Touraine syndrome
+    # – Josef Christ, Hermann Werner Siemens, Albert Touraine
     "Christ–Siemens–Touraine",
     # Christensen–Krabbe disease – Erna Christensen, Knud Krabbe
     "Christensen–Krabbe",
@@ -465,7 +490,8 @@ SIMPLE_EPONYM_LIST = [
     "Claude Bernard–Horner",
     # Clerambault syndrome – Gaëtan Gatian de Clerambault
     "Clerambault",
-    # Clerambault–Kandinsky syndrome – Gaëtan Gatian de Clerambault, Victor Khrisanfovich Kandinsky
+    # Clerambault–Kandinsky syndrome
+    # – Gaëtan Gatian de Clerambault, Victor Khrisanfovich Kandinsky
     "Clerambault–Kandinsky",
     # Coats' disease – George Coats
     "Coats",
@@ -513,13 +539,15 @@ SIMPLE_EPONYM_LIST = [
     "Cronkhite–Canada",
     # Crouzon syndrome – Octave Crouzon
     "Crouzon",
-    # Cruveilhier–Baumgarten disease – Jean Cruveilhier, Paul Clemens von Baumgarten
+    # Cruveilhier–Baumgarten disease
+    # – Jean Cruveilhier, Paul Clemens von Baumgarten
     "Cruveilhier–Baumgarten",
     # Cruz disease – Osvaldo Gonçalves Cruz
     "Cruz",
     # Curling's ulcer – Thomas Blizard Curling
     "Curling",
-    # Curschmann–Batten–Steinert syndrome – Hans Curschmann, Frederick Batten, Hans Gustav Steinert
+    # Curschmann–Batten–Steinert syndrome
+    # – Hans Curschmann, Frederick Batten, Hans Gustav Steinert
     "Curschmann–Batten–Steinert",
     # Cushing's disease – Harvey Cushing
     "Cushing",
@@ -533,7 +561,8 @@ SIMPLE_EPONYM_LIST = [
     "Da Costa",
     # Dalrymple disease – John Dalrymple
     "Dalrymple",
-    # Danbolt–Closs syndrome – Niels Christian Gauslaa Danbolt, Karl Philipp Closs
+    # Danbolt–Closs syndrome
+    # – Niels Christian Gauslaa Danbolt, Karl Philipp Closs
     "Danbolt–Closs",
     # Dandy–Walker syndrome – Walter Dandy, Arthur Earl Walker
     "Dandy–Walker",
@@ -561,7 +590,9 @@ SIMPLE_EPONYM_LIST = [
     "DiGeorge",
     # Di Guglielmo disease – Giovanni di Gugliemo
     "Di Guglielmo",
-    # Diogenes syndrome (a.k.a. Havisham syndrome, Miss Havisham syndrome, Plyushkin syndrome)– Diogenes of Sinope (the particular usage, Diogenes syndrome, is deemed to be a misnomer)
+    # Diogenes syndrome (a.k.a. Havisham syndrome, Miss Havisham syndrome,
+    # Plyushkin syndrome)– Diogenes of Sinope (the particular usage, Diogenes
+    # syndrome, is deemed to be a misnomer)
     "Diogenes",
     # Doege–Potter syndrome – Karl W. Doege, Roy P. Potter
     "Doege–Potter",
@@ -579,15 +610,19 @@ SIMPLE_EPONYM_LIST = [
     "Duane",
     # Dubin–Johnson syndrome
     "Dubin–Johnson",
-    # Duchenne–Aran disease – Guillaume-Benjamin-Amand Duchenne de Boulogne, François-Amilcar Aran
+    # Duchenne–Aran disease
+    # – Guillaume-Benjamin-Amand Duchenne de Boulogne, François-Amilcar Aran
     "Duchenne–Aran",
-    # Duchenne muscular dystrophy – Guillaume-Benjamin-Amand Duchenne de Boulogne
+    # Duchenne muscular dystrophy
+    # – Guillaume-Benjamin-Amand Duchenne de Boulogne
     "Duchenne",
     # Dukes disease – Clement Dukes
     "Dukes",
-    # Duncan disease (a.k.a. Duncan syndrome, Purtilo syndrome) – David Theodore Purtilo
+    # Duncan disease (a.k.a. Duncan syndrome, Purtilo syndrome)
+    # – David Theodore Purtilo
     "Duncan",
-    # Dupuytren contracture (a.k.a. Dupuytren disease) – Baron Guillaume Dupuytren
+    # Dupuytren contracture (a.k.a. Dupuytren disease)
+    # – Baron Guillaume Dupuytren
     "Dupuytren",
     # Duroziez disease – Paul Louis Duroziez
     "Duroziez",
@@ -613,9 +648,11 @@ SIMPLE_EPONYM_LIST = [
     "Ekbom",
     # Emanuel syndrome – Beverly Emanuel
     "Emanuel",
-    # Emery–Dreifuss muscular dystrophy – Alan Eglin H. Emery, Fritz E. Dreifuss
+    # Emery–Dreifuss muscular dystrophy
+    # – Alan Eglin H. Emery, Fritz E. Dreifuss
     "Emery–Dreifuss",
-    # Erb–Duchenne palsy (a.k.a. Erb palsy) – Wilhelm Heinrich Erb, Guillaume-Benjamin-Amand Duchenne de Boulogne
+    # Erb–Duchenne palsy (a.k.a. Erb palsy)
+    # – Wilhelm Heinrich Erb, Guillaume-Benjamin-Amand Duchenne de Boulogne
     "Erb–Duchenne",
     # Erdheim–Chester disease – Jakob Erdheim, William Chester
     "Erdheim–Chester",
@@ -655,7 +692,8 @@ SIMPLE_EPONYM_LIST = [
     "Frey",
     # Friedreich's ataxia – Nikolaus Friedreich
     "Friedreich",
-    # Fritsch–Asherman syndrome (a.k.a. Fritsch syndrome) – Heinrich Fritsch, Joseph Asherman
+    # Fritsch–Asherman syndrome (a.k.a. Fritsch syndrome)
+    # – Heinrich Fritsch, Joseph Asherman
     "Fritsch–Asherman",
     # Fuchs' dystrophy – Ernst Fuchs
     "Fuchs",
@@ -667,9 +705,14 @@ SIMPLE_EPONYM_LIST = [
     "Ganser",
     # Gaucher's disease – Philippe Gaucher
     "Gaucher",
-    # Gerbec–Morgagni–Adams–Stokes syndrome (a.k.a. Adams–Stokes syndrome, Gerbezius–Morgagni–Adams–Stokes syndrome, Stokes–Adams syndrome) – Marko Gerbec, Giovanni Battista Morgagni, Robert Adams, William Stokes
+    # Gerbec–Morgagni–Adams–Stokes syndrome (a.k.a. Adams–Stokes syndrome,
+    # Gerbezius–Morgagni–Adams–Stokes syndrome, Stokes–Adams syndrome)
+    # – Marko Gerbec, Giovanni Battista Morgagni, Robert Adams, William Stokes
     "Gerbec–Morgagni–Adams–Stokes",
-    # Gerbezius–Morgagni–Adams–Stokes syndrome (a.k.a. Adams–Stokes syndrome, Gerbec–Morgagni–Adams–Stokes syndrome, Stokes–Adams syndrome) – Marko Gerbec (Latinized as Gerbezius), Giovanni Battista Morgagni, Robert Adams, William Stokes
+    # Gerbezius–Morgagni–Adams–Stokes syndrome (a.k.a. Adams–Stokes syndrome,
+    # Gerbec–Morgagni–Adams–Stokes syndrome, Stokes–Adams syndrome)
+    # – Marko Gerbec (Latinized as Gerbezius), Giovanni Battista Morgagni,
+    # Robert Adams, William Stokes
     "Gerbezius–Morgagni–Adams–Stokes",
     # Ghon's complex – Anton Ghon
     "Ghon",
@@ -711,7 +754,8 @@ SIMPLE_EPONYM_LIST = [
     "Hailey–Hailey",
     # Hallervorden–Spatz disease – Julius Hallervorden, Hugo Spatz
     "Hallervorden–Spatz",
-    # Hand–Schüller–Christian disease – Alfred Hand, Artur Schüller, Henry Asbury Christian
+    # Hand–Schüller–Christian disease
+    # – Alfred Hand, Artur Schüller, Henry Asbury Christian
     "Hand–Schüller–Christian",
     # Hansen's disease – Gerhard Armauer Hansen
     "Hansen",
@@ -721,7 +765,10 @@ SIMPLE_EPONYM_LIST = [
     "Hartnup",
     # Hashimoto thyroiditis – Hakaru Hashimoto
     "Hashimoto",
-    # Havisham syndrome (a.k.a. Diogenes syndrome, Miss Havisham syndrome, and Plyushkin syndrome) – Miss Havisham, a fictional character in Charles Dickens' Great Expectations
+    # Havisham syndrome (a.k.a. Diogenes syndrome, Miss Havisham syndrome, and
+    # Plyushkin syndrome)
+    # – Miss Havisham, a fictional character in Charles Dickens' Great
+    # Expectations
     "Havisham",
     # Hecht–Scott syndrome – Jacqueline T. Hecht, Charles I. Scott, Jr
     "Hecht–Scott",
@@ -745,7 +792,8 @@ SIMPLE_EPONYM_LIST = [
     "Hurler",
     # Hurler–Scheie syndrome – Gertrud Hurler, Harold Glendon Scheie
     "Hurler–Scheie",
-    # Hutchinson–Gilford progeria syndrome – Jonathan Hutchinson, Hastings Gilford
+    # Hutchinson–Gilford progeria syndrome
+    # – Jonathan Hutchinson, Hastings Gilford
     "Hutchinson–Gilford",
 
     # -------------------------------------------------------------------------
@@ -783,7 +831,8 @@ SIMPLE_EPONYM_LIST = [
     "Kaposi",
     # Kartagener syndrome – Manes Kartagener
     "Kartagener",
-    # Kasabach–Merritt syndrome – Haig Haigouni Kasabach, Katharine Krom Merritt
+    # Kasabach–Merritt syndrome
+    # – Haig Haigouni Kasabach, Katharine Krom Merritt
     "Kasabach–Merritt",
     # Kashin–Beck disease – Nicolai Ivanowich Kashin, Evgeny Vladimirovich Bek
     "Kashin–Beck",
@@ -841,7 +890,11 @@ SIMPLE_EPONYM_LIST = [
     "Laron",
     # Laurence–Moon syndrome – John Zachariah Laurence, Robert Charles Moon
     "Laurence–Moon",
-    # Laurence–Moon–Bardet–Biedl syndrome (a.k.a. Laurence–Moon–Biedl–Bardet syndrome, a.k.a. Laurence–Moon–Biedl syndrome) – John Zachariah Laurence, Robert Charles Moon, Georges Bardet, Arthur Biedl – all now deemed invalid constructs, see instead Bardet–Biedl syndrome
+    # Laurence–Moon–Bardet–Biedl syndrome (a.k.a. Laurence–Moon–Biedl–Bardet
+    # syndrome, a.k.a. Laurence–Moon–Biedl syndrome)
+    # – John Zachariah Laurence, Robert Charles Moon, Georges Bardet,
+    # Arthur Biedl – all now deemed invalid constructs, see instead
+    # Bardet–Biedl syndrome
     "Laurence–Moon–Bardet–Biedl",
     # Legg–Calvé–Perthes syndrome – Arthur Legg, Jacques Calvé, Georg Perthes
     "Legg–Calvé–Perthes",
@@ -871,7 +924,8 @@ SIMPLE_EPONYM_LIST = [
     "Libman–Sacks",
     # Liddle's syndrome – Grant Liddle
     "Liddle",
-    # Lisfranc injury (a.k.a. Lisfranc dislocation, a.k.a. Lisfranc fracture) – Jacques Lisfranc de St. Martin
+    # Lisfranc injury (a.k.a. Lisfranc dislocation, a.k.a. Lisfranc fracture)
+    # – Jacques Lisfranc de St. Martin
     "Lisfranc",
     # Listeriosis – Joseph Lister
     # ... noun, not name
@@ -893,9 +947,12 @@ SIMPLE_EPONYM_LIST = [
     # -------------------------------------------------------------------------
     # M
     # -------------------------------------------------------------------------
-    # Machado–Joseph disease (a.k.a. Machado–Joseph Azorean disease, Machado disease, Joseph's disease) – named for William Machado and Antone Joseph, patriarchs of families in which it was first identified
+    # Machado–Joseph disease (a.k.a. Machado–Joseph Azorean disease, Machado
+    # disease, Joseph's disease) – named for William Machado and Antone Joseph,
+    # patriarchs of families in which it was first identified
     "Machado–Joseph",
-    # Marie–Foix–Alajouanine syndrome – Pierre Marie, Charles Foix, Théophile Alajouanine
+    # Marie–Foix–Alajouanine syndrome
+    # – Pierre Marie, Charles Foix, Théophile Alajouanine
     "Marie–Foix–Alajouanine",
     # Maladie de Charcot – Jean-Martin Charcot
     "Charcot",
@@ -909,10 +966,13 @@ SIMPLE_EPONYM_LIST = [
     "Marfan",
     # Marshall syndrome – Richard E. Marshall
     "Marshall",
-    # Marshall–Smith–Weaver syndrome (a.k.a. Marshall–Smith syndrome, Greig syndrome) – Richard E. Marshall, David Weyhe Smith
+    # Marshall–Smith–Weaver syndrome (a.k.a. Marshall–Smith syndrome, Greig
+    # syndrome) – Richard E. Marshall, David Weyhe Smith
     "Marshall–Smith–Weaver",
-    "Greig",  # not otherwise listed; it is a person; https://www.omim.org/entry/175700
-    # Martin–Albright syndrome (a.k.a. Albright IV syndrome) – August E. Martin, Fuller Albright
+    # Not otherwise listed; it is a person; https://www.omim.org/entry/175700
+    "Greig",
+    # Martin–Albright syndrome (a.k.a. Albright IV syndrome)
+    # – August E. Martin, Fuller Albright
     "Martin–Albright",
     # May–Hegglin anomaly – Richard May, Robert Hegglin
     "May–Hegglin",
@@ -924,7 +984,8 @@ SIMPLE_EPONYM_LIST = [
     "McArdle",
     # McCune–Albright syndrome – Donovan James McCune, Fuller Albright
     "McCune–Albright",
-    # Meckel–Gruber syndrome (a.k.a. Meckel syndrome) – Johann Meckel, Georg Gruber
+    # Meckel–Gruber syndrome (a.k.a. Meckel syndrome)
+    # – Johann Meckel, Georg Gruber
     "Meckel–Gruber",
     # Meigs' syndrome – Joe Vincent Meigs
     "Meigs",
@@ -938,13 +999,17 @@ SIMPLE_EPONYM_LIST = [
     "Middleton",
     # Mikulicz's disease – Jan Mikulicz-Radecki
     "Mikulicz",
-    # Miss Havisham syndrome (a.k.a. Diogenes syndrome, Havisham syndrome, and Plyushkin syndrome) – Miss Havisham, a fictional character in Charles Dickens' Great Expectations
+    # Miss Havisham syndrome (a.k.a. Diogenes syndrome, Havisham syndrome, and
+    # Plyushkin syndrome)
+    # – Miss Havisham, a fictional character in Charles Dickens' Great
+    # Expectations
     "Havisham",
     # Mondor's disease – Henri Mondor
     "Mondor",
     # Monge's disease – Carlos Monge
     "Monge",
-    # Mortimer's disease – First documented by Jonathan Hutchinson, named for his patient Mrs. Mortimer
+    # Mortimer's disease – First documented by Jonathan Hutchinson, named for
+    # his patient Mrs. Mortimer
     "Mortimer",
     # Moschcowitz syndrome – Eli Moschcowitz
     "Moschcowitz",
@@ -977,18 +1042,21 @@ SIMPLE_EPONYM_LIST = [
     "Ormond",
     # Osgood–Schlatter disease – Robert Bayley Osgood, Carl B. Schlatter
     "Osgood–Schlatter",
-    # Osler–Weber–Rendu syndrome – William Osler, Frederick Parkes Weber, Henri Jules Louis Marie Rendu
+    # Osler–Weber–Rendu syndrome
+    # – William Osler, Frederick Parkes Weber, Henri Jules Louis Marie Rendu
     "Osler–Weber–Rendu",
 
     # -------------------------------------------------------------------------
     # P
     # -------------------------------------------------------------------------
     # Paget's disease of bone (a.k.a. Paget's disease) – James Paget
-    # Paget's disease of the breast (a.k.a. Paget's disease of the nipple) – James Paget
+    # Paget's disease of the breast (a.k.a. Paget's disease of the nipple)
+    # – James Paget
     # Paget's disease of the penis – James Paget
     # Paget's disease of the vulva – James Paget
     "Paget",
-    # Paget–Schroetter disease (a.k.a. Paget–Schroetter syndrome and Paget–von Schrötter disease) – James Paget, Leopold von Schrötter
+    # Paget–Schroetter disease (a.k.a. Paget–Schroetter syndrome and Paget–von
+    # Schrötter disease) – James Paget, Leopold von Schrötter
     "Paget–Schroetter",
     # Parkinson's disease – James Parkinson
     "Parkinson",
@@ -996,7 +1064,8 @@ SIMPLE_EPONYM_LIST = [
     "Patau",
     # Pearson syndrome – Howard Pearson
     "Pearson",
-    # Pelizaeus–Merzbacher disease – Friedrich Christoph Pelizaeus, Ludwig Merzbacher
+    # Pelizaeus–Merzbacher disease
+    # – Friedrich Christoph Pelizaeus, Ludwig Merzbacher
     "Pelizaeus–Merzbacher",
     # Perthes syndrome – Arthur Legg, Jacques Calvé, Georg Perthes
     "Perthes",
@@ -1012,9 +1081,13 @@ SIMPLE_EPONYM_LIST = [
     "Pickardt",
     # Plummer's disease – Henry Stanley Plummer
     "Plummer",
-    # Plummer–Vinson syndrome (a.k.a. Kelly–Patterson syndrome, Paterson–Brown–Kelly syndrome, and Waldenstrom–Kjellberg syndrome) – Henry Stanley Plummer and Porter Paisley Vinson
+    # Plummer–Vinson syndrome (a.k.a. Kelly–Patterson syndrome,
+    # Paterson–Brown–Kelly syndrome, and Waldenstrom–Kjellberg syndrome)
+    # – Henry Stanley Plummer and Porter Paisley Vinson
     "Plummer–Vinson",
-    # Plyushkin syndrome (a.k.a. Diogenes syndrome, Havisham syndrome, and Miss Havisham syndrome)– Stepan Plyushkin, a fictional character in Nikolai Gogol's Dead Souls
+    # Plyushkin syndrome (a.k.a. Diogenes syndrome, Havisham syndrome, and Miss
+    # Havisham syndrome)– Stepan Plyushkin, a fictional character in Nikolai
+    # Gogol's Dead Souls
     "Plyushkin",
     # Poland's syndrome – Alfred Poland
     "Poland",
@@ -1059,7 +1132,9 @@ SIMPLE_EPONYM_LIST = [
     "Raynaud",
     # Refsum's disease – Sigvald Bernhard Refsum
     "Refsum",
-    # Reiter's syndrome – Hans Conrad Julius Reiter (This is now a discouraged eponym due to Dr. Reiter's Nazi party ties. The disease is now known as reactive arthritis.)
+    # Reiter's syndrome – Hans Conrad Julius Reiter (This is now a discouraged
+    # eponym due to Dr. Reiter's Nazi party ties. The disease is now known as
+    # reactive arthritis.)
     "Reiter",
     # Rett Syndrome – Andreas Rett
     "Rett",
@@ -1091,7 +1166,8 @@ SIMPLE_EPONYM_LIST = [
     "Russell–Silver",
     # Ruvalcaba–Myhre syndrome – Rogelio H. A. Ruvalcaba, S. Myhre
     "Ruvalcaba–Myhre",
-    # Ruvalcaba–Myhre–Smith syndrome – Rogelio H. A. Ruvalcaba, S. Myhre, David Weyhe Smith
+    # Ruvalcaba–Myhre–Smith syndrome
+    # – Rogelio H. A. Ruvalcaba, S. Myhre, David Weyhe Smith
     "Ruvalcaba–Myhre–Smith",
     # Ruzicka–Goerz–Anton syndrome – T. Ruzicka, G. Goerz, I. Anton-Lamprecht
     "Ruzicka–Goerz–Anton",
@@ -1129,9 +1205,11 @@ SIMPLE_EPONYM_LIST = [
     "Sheehan",
     # Shprintzen's syndrome – Robert Shprintzen
     "Shprintzen",
-    # Shwachman–Bodian–Diamond syndrome – Harry Shwachman, Martin Bodian, Louis Klein Diamond
+    # Shwachman–Bodian–Diamond syndrome
+    # – Harry Shwachman, Martin Bodian, Louis Klein Diamond
     "Shwachman–Bodian–Diamond",
-    # Silver–Russell syndrome (a.k.a. Silver–Russell dwarfism) – Henry Silver, Alexander Russell
+    # Silver–Russell syndrome (a.k.a. Silver–Russell dwarfism)
+    # – Henry Silver, Alexander Russell
     "Silver–Russell",
     # Simmonds' syndrome – Moritz Simmonds
     "Simmonds",
@@ -1188,7 +1266,8 @@ SIMPLE_EPONYM_LIST = [
     # -------------------------------------------------------------------------
     # U
     # -------------------------------------------------------------------------
-    # Unverricht–Lundborg disease – Heinrich Unverricht, Herman Bernhard Lundborg
+    # Unverricht–Lundborg disease
+    # – Heinrich Unverricht, Herman Bernhard Lundborg
     "Unverricht–Lundborg",
     # Usher syndrome – Charles Usher
     "Usher",
@@ -1234,7 +1313,10 @@ SIMPLE_EPONYM_LIST = [
     "Watson",
     # Weber–Christian disease – Frederick Parkes Weber, Henry Asbury Christian
     "Weber–Christian",
-    # Wegener's granulomatosis – Friedrich Wegener (This usage is now formally discouraged by professional medical societies due to the Nazi associations of the eponymous physician. The disease is now known as granulomatosis with polyangiitis.)
+    # Wegener's granulomatosis – Friedrich Wegener (This usage is now formally
+    # discouraged by professional medical societies due to the Nazi
+    # associations of the eponymous physician. The disease is now known as
+    # granulomatosis with polyangiitis.)
     "Wegener",
     # Weil's disease – Adolf Weil
     "Weil",
@@ -1252,7 +1334,8 @@ SIMPLE_EPONYM_LIST = [
     "Wernicke",
     # Westerhof syndrome – Wiete Westerhof
     "Westerhof",
-    # Westerhof–Beemer–Cormane syndrome – Wiete Westerhof, Frederikus Antonius Beemer, R. H.Cormane
+    # Westerhof–Beemer–Cormane syndrome
+    # – Wiete Westerhof, Frederikus Antonius Beemer, R. H.Cormane
     "Westerhof–Beemer–Cormane",
     # Whipple's disease – George Hoyt Whipple
     "Whipple",
@@ -1268,9 +1351,11 @@ SIMPLE_EPONYM_LIST = [
     "Wiskott–Aldrich",
     # Wittmaack–Ekbom syndrome – Theodur Wittmaack, Karl-Axel Ekbom
     "Wittmaack–Ekbom",
-    # Wohlfart–Kugelberg–Welander disease – Karl Gunnar Vilhelm Wohlfart, Erik Klas Henrik Kugelberg, Lisa Welander
+    # Wohlfart–Kugelberg–Welander disease
+    # – Karl Gunnar Vilhelm Wohlfart, Erik Klas Henrik Kugelberg, Lisa Welander
     "Wohlfart–Kugelberg–Welander",
-    # Wolff–Parkinson–White syndrome – Louis Wolff, John Parkinson, Paul Dudley White
+    # Wolff–Parkinson–White syndrome
+    # – Louis Wolff, John Parkinson, Paul Dudley White
     "Wolff–Parkinson–White",
     # Wolman disease – Moshe Wolman
     "Wolman",
@@ -1286,7 +1371,9 @@ SIMPLE_EPONYM_LIST = [
     # -------------------------------------------------------------------------
     # Zahorsky syndrome I – John Zahorsky (a.k.a. John Von Zahorsky)
     "Zahorsky",
-    # Zahorsky syndrome II (a.k.a. Mikulicz' Aphthae, Mikulicz' Disease, Sutton disease 2, Von Mikulicz' Aphthae, Von Zahorsky disease) – John Zahorsky (a.k.a. John Von Zahorsky)
+    # Zahorsky syndrome II (a.k.a. Mikulicz' Aphthae, Mikulicz' Disease, Sutton
+    # disease 2, Von Mikulicz' Aphthae, Von Zahorsky disease)
+    # – John Zahorsky (a.k.a. John Von Zahorsky)
     "Zahorsky",
     # Zellweger syndrome – Hans Ulrich Zellweger
     "Zellweger",
@@ -1296,21 +1383,25 @@ SIMPLE_EPONYM_LIST = [
     "Zenker",
     # Zieve syndrome – Leslie Zieve
     "Zieve",
-    # Zimmermann–Laband syndrome (a.k.a. Laband syndrome, Laband–Zimmermann syndrome) – Karl Wilhelm Zimmermann
+    # Zimmermann–Laband syndrome (a.k.a. Laband syndrome, Laband–Zimmermann
+    # syndrome) – Karl Wilhelm Zimmermann
     "Zimmermann–Laband",
     # Zollinger–Ellison syndrome – Robert Zollinger, Edwin Ellison
     "Zollinger–Ellison",
-    # Zondek–Bromberg–Rozin syndrome (a.k.a. Zondek syndrome) – Bernhard Zondek, Yehuda M. Bromberg, R.Rozin
+    # Zondek–Bromberg–Rozin syndrome (a.k.a. Zondek syndrome)
+    # – Bernhard Zondek, Yehuda M. Bromberg, R.Rozin
     "Zondek–Bromberg–Rozin",
     # Zuelzer syndrome – Wolf William Zuelzer
     "Zuelzer",
-    # Zuelzer–Kaplan syndrome II (a.k.a. Crosby syndrome) – Wolf William Zuelzer, E. Kaplan
+    # Zuelzer–Kaplan syndrome II (a.k.a. Crosby syndrome)
+    # – Wolf William Zuelzer, E. Kaplan
     "Zuelzer–Kaplan",
     # Zuelzer–Ogden syndrome – Wolf William Zuelzer, Frank Nevin Ogden
     "Zuelzer–Ogden",
     # Zumbusch psoriasis – Leo Ritter von Zumbusch
     "Zumbusch",
-    # Zumbusch syndrome (a.k.a. Csillag disease, Csillag syndrome, Hallopeau disease, von Zumbusch syndrome) – Leo Ritter von Zumbusch
+    # Zumbusch syndrome (a.k.a. Csillag disease, Csillag syndrome, Hallopeau
+    # disease, von Zumbusch syndrome) – Leo Ritter von Zumbusch
     "Zumbusch",
 
 ]

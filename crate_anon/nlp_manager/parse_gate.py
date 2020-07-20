@@ -112,23 +112,27 @@ class Gate(BaseNlpParser):
     """
     def __init__(self,
                  nlpdef: NlpDefinition,
-                 cfgsection: str,
+                 cfg_processor_name: str,
                  commit: bool = False) -> None:
         """
         Args:
             nlpdef:
                 a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            cfgsection:
+            cfg_processor_name:
                 the name of a CRATE NLP config file section (from which we may
                 choose to get extra config information)
             commit:
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit,
-                         name="GATE")
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            friendly_name="GATE"
+        )
 
-        if not nlpdef and not cfgsection:
+        if not nlpdef and not cfg_processor_name:
             # Debugging only
             self._debug_mode = True
             self._max_external_prog_uses = 0
@@ -140,24 +144,24 @@ class Gate(BaseNlpParser):
             logtag = ''
         else:
             self._debug_mode = False
-            self._max_external_prog_uses = nlpdef.opt_int(
-                self._sectionname, ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
+            self._max_external_prog_uses = self._cfgsection.opt_int_positive(
+                ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
                 default=0)
-            self._input_terminator = nlpdef.opt_str(
+            self._input_terminator = self._cfgsection.opt_str(
                 self._sectionname, ProcessorConfigKeys.INPUT_TERMINATOR,
                 required=True)
-            self._output_terminator = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.OUTPUT_TERMINATOR,
+            self._output_terminator = self._cfgsection.opt_str(
+                ProcessorConfigKeys.OUTPUT_TERMINATOR,
                 required=True)
-            typepairs = nlpdef.opt_strlist(
-                self._sectionname, ProcessorConfigKeys.OUTPUTTYPEMAP,
+            typepairs = self._cfgsection.opt_strlist(
+                ProcessorConfigKeys.OUTPUTTYPEMAP,
                 required=True, lower=False)
-            self._progenvsection = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.PROGENVSECTION)
-            progargs = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.PROGARGS,
+            self._progenvsection = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROGENVSECTION)
+            progargs = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROGARGS,
                 required=True)
-            logtag = nlpdef.get_logtag() or '.'
+            logtag = nlpdef.logtag or '.'
 
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
         self._type_to_tablename = {}  # type: Dict[str, str]
@@ -175,7 +179,7 @@ class Gate(BaseNlpParser):
             # and add this:
             annottype = annottype.lower()
             # log.critical(outputsection)
-            c = OutputUserConfig(nlpdef.get_parser(), outputsection)
+            c = OutputUserConfig(nlpdef.parser, outputsection)
             self._outputtypemap[annottype] = c
             self._type_to_tablename[annottype] = c.get_tablename()
 
@@ -383,7 +387,7 @@ class Gate(BaseNlpParser):
         if self._debug_mode:
             return super().nlprp_name()
         else:
-            return self._nlpdef.get_name()
+            return self._nlpdef.name
 
     def nlprp_schema_info(self, sql_dialect: str = None) -> Dict[str, Any]:
         # We do not absolutely need to override nlprp_schema_info(). Although

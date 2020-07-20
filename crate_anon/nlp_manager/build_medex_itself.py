@@ -375,6 +375,7 @@ def main() -> None:
     # -------------------------------------------------------------------------
     # Arguments
     # -------------------------------------------------------------------------
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Compile MedEx-UIMA itself (in Java)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)

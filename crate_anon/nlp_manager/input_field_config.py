@@ -51,6 +51,8 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import and_, column, exists, null, or_, select, table
 from sqlalchemy.sql.schema import MetaData
 
+from crate_anon.common.extendedconfigparser import ConfigSection
+from crate_anon.common.parallel import is_my_job_by_hash_prehashed
 from crate_anon.nlp_manager.constants import (
     FN_CRATE_VERSION_FIELD,
     FN_WHEN_FETCHED,
@@ -69,7 +71,6 @@ from crate_anon.nlp_manager.constants import (
     MAX_SEMANTIC_VERSION_STRING_LENGTH,
     MAX_STRING_PK_LENGTH,
 )
-from crate_anon.common.parallel import is_my_job_by_hash_prehashed
 from crate_anon.nlp_manager.constants import (
     full_sectionname,
     SqlTypeDbIdentifier,
@@ -102,7 +103,8 @@ class InputFieldConfig(object):
     See the documentation for the :ref:`NLP config file <nlp_config>`.
     """
 
-    def __init__(self, nlpdef: NlpDefinition, section: str) -> None:
+    def __init__(self, nlpdef: NlpDefinition,
+                 cfg_input_name: str) -> None:
         """
         Read config from a configparser section, and also associate with a
         specific NLP definition.
@@ -112,47 +114,33 @@ class InputFieldConfig(object):
                 :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`,
                 the master NLP definition, referring to the master config file
                 etc.
-            section:
+            cfg_input_name:
                 config section name for the input field definition
         """
-        sectionname = full_sectionname(NlpConfigPrefixes.INPUT, section)
-
-        def opt_str(option: str, required: bool = True) -> str:
-            return nlpdef.opt_str(sectionname, option, required=required)
-
-        def opt_strlist(option: str,
-                        required: bool = False,
-                        lower: bool = True) -> List[str]:
-            return nlpdef.opt_strlist(sectionname, option, as_words=False,
-                                      lower=lower, required=required)
-
-        def opt_int(option: str, default: Optional[int]) -> Optional[int]:
-            return nlpdef.opt_int(sectionname, option, default=default)
-
-        # def opt_bool(option: str, default: bool) -> bool:
-        #     return nlpdef.opt_bool(section, option, default=default)
+        self.name = cfg_input_name
+        cfg = ConfigSection(
+            section=full_sectionname(NlpConfigPrefixes.INPUT, cfg_input_name),
+            parser=nlpdef.parser
+        )
 
         self._nlpdef = nlpdef
 
-        self._srcdb = opt_str(InputFieldConfigKeys.SRCDB)
-        self._srctable = opt_str(InputFieldConfigKeys.SRCTABLE)
-        self._srcpkfield = opt_str(InputFieldConfigKeys.SRCPKFIELD)
-        self._srcfield = opt_str(InputFieldConfigKeys.SRCFIELD)
-        self._srcdatetimefield = opt_str(InputFieldConfigKeys.SRCDATETIMEFIELD,
-                                         required=False)  # new in v0.18.52
+        self._srcdb = cfg.opt_str(InputFieldConfigKeys.SRCDB)
+        self._srctable = cfg.opt_str(InputFieldConfigKeys.SRCTABLE)
+        self._srcpkfield = cfg.opt_str(InputFieldConfigKeys.SRCPKFIELD)
+        self._srcfield = cfg.opt_str(InputFieldConfigKeys.SRCFIELD)
+        self._srcdatetimefield = cfg.opt_str(
+            InputFieldConfigKeys.SRCDATETIMEFIELD, required=False)
+        # ... new in v0.18.52
         # Make these case-sensitive to avoid our failure in renaming SQLA
         # Column objects to be lower-case:
-        self._copyfields = opt_strlist(
-            InputFieldConfigKeys.COPYFIELDS, lower=False)  # fieldnames
-        self._indexed_copyfields = opt_strlist(
-            InputFieldConfigKeys.INDEXED_COPYFIELDS, lower=False)
-        self._debug_row_limit = opt_int(
+        self._copyfields = cfg.opt_multiline(
+            InputFieldConfigKeys.COPYFIELDS)  # fieldnames
+        self._indexed_copyfields = cfg.opt_multiline(
+            InputFieldConfigKeys.INDEXED_COPYFIELDS)
+        self._debug_row_limit = cfg.opt_int(
             InputFieldConfigKeys.DEBUG_ROW_LIMIT, default=0)
         # self._fetch_sorted = opt_bool('fetch_sorted', default=True)
-
-        # In case we want to store this value after running
-        # 'nlpdef.get_ifconfigs()' so that we can later re-create the ifconfig
-        self.section = section
 
         ensure_valid_table_name(self._srctable)
         ensure_valid_field_name(self._srcpkfield)
@@ -406,8 +394,8 @@ class InputFieldConfig(object):
         return pk_is_integer
 
     def gen_text(self, tasknum: int = 0,
-                 ntasks: int = 1) -> Generator[Tuple[str, Dict[str, Any]],
-                                                     None, None]:
+                 ntasks: int = 1) -> \
+            Generator[Tuple[str, Dict[str, Any]], None, None]:
         """
         Generate text strings from the source database.
 
@@ -557,7 +545,7 @@ class InputFieldConfig(object):
             filter(NlpRecord.srctable == self._srctable).
             filter(NlpRecord.srcpkval == srcpkval).
             filter(NlpRecord.srcfield == self._srcfield).
-            filter(NlpRecord.nlpdef == self._nlpdef.get_name())
+            filter(NlpRecord.nlpdef == self._nlpdef.name)
             # Order not important (though the order of the index certainly
             # is; see NlpRecord.__table_args__).
             # http://stackoverflow.com/questions/11436469/does-order-of-where-clauses-matter-in-sql  # noqa
@@ -615,7 +603,7 @@ class InputFieldConfig(object):
             filter(NlpRecord.srcdb == self._srcdb).
             filter(NlpRecord.srctable == self._srctable).
             # unnecessary # filter(NlpRecord.srcpkfield == self._srcpkfield).
-            filter(NlpRecord.nlpdef == self._nlpdef.get_name())
+            filter(NlpRecord.nlpdef == self._nlpdef.name)
         )
         if temptable is not None:
             log.debug("... deleting selectively")
@@ -650,10 +638,10 @@ class InputFieldConfig(object):
         progsession = self._get_progress_session()
         prog_deletion_query = (
             progsession.query(NlpRecord).
-            filter(NlpRecord.nlpdef == self._nlpdef.get_name())
+            filter(NlpRecord.nlpdef == self._nlpdef.name)
         )
         log.debug(f"delete_all_progress_records for NLP definition: "
-                  f"{self._nlpdef.get_name()}")
+                  f"{self._nlpdef.name}")
         with MultiTimerContext(timer, TIMING_PROGRESS_DB_DELETE):
             prog_deletion_query.delete(synchronize_session=False)
         self._nlpdef.commit(progsession)

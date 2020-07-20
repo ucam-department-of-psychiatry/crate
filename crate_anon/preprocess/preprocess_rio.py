@@ -1218,6 +1218,7 @@ def main() -> None:
     """
     Command-line parser. See command-line help.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,

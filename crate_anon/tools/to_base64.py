@@ -41,6 +41,7 @@ RE_WHITESPACE = re.compile(r"[ \n\t]+")
 
 
 def main() -> None:
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )

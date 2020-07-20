@@ -361,12 +361,12 @@ through, and therefore prevent e.g. 'A' from being scrubbed from the
 destination. Note that this applies to scrub-source data.
 
 
-whitelist_filenames
+allowlist_filenames
 ###################
 
 *Multiline string.*
 
-Whitelist.
+Allowlist.
 
 Are there any words not to scrub? For example, "the", "road", "street" often
 appear in addresses, but you might not want them removed. Be careful in case
@@ -376,7 +376,7 @@ Specify these as a list of *filenames*, where the files contain words; e.g.
 
 .. code-block:: ini
 
-    whitelist_filenames = /some/path/short_english_words.txt
+    allowlist_filenames = /some/path/short_english_words.txt
 
 Here's a suggestion for some of the sorts of words you might include:
 
@@ -412,13 +412,17 @@ Here's a suggestion for some of the sorts of words you might include:
     road
     street
 
+.. note::
+    Formerly ``whitelist_filenames``; changed 2020-07-20 as part of neutral
+    language review.
 
-blacklist_filenames
-###################
+
+denylist_filenames
+##################
 
 *Multiline string.*
 
-Blacklist.
+Denylist.
 
 Are there any words you always want to remove?
 
@@ -426,10 +430,14 @@ Specify these as a list of filenames, e.g
 
 .. code-block:: ini
 
-    blacklist_filenames =
+    denylist_filenames =
         /some/path/boy_names.txt
         /some/path/girl_names.txt
         /some/path/common_surnames.txt
+
+.. note::
+    Formerly ``blacklist_filenames``; changed 2020-07-20 as part of neutral
+    language review.
 
 
 phrase_alternative_word_filenames
@@ -959,23 +967,31 @@ Master patient ID fieldname. Used for e.g. NHS numbers. This information will
 be replaced by the MRID in the destination database.
 
 
-ddgen_table_blacklist
-#####################
+ddgen_table_denylist
+####################
 
 *Multiline string.*
 
-Blacklist any tables when creating new data dictionaries?
+Denylist any tables when creating new data dictionaries?
 
 This is case-insensitive, and you can use ``*`` and ``?`` wildcards (as per
 Python's fnmatch_ module).
 
+.. note::
+    Formerly ``ddgen_table_blacklist``; changed 2020-07-20 as part of neutral
+    language review.
 
-ddgen_table_whitelist
+
+ddgen_table_allowlist
 #####################
 
 *Multiline string.*
 
-Whitelist any tables? (Whitelists override blacklists.)
+Allowlist any tables? (Allowlists override denylists.)
+
+.. note::
+    Formerly ``ddgen_table_whitelist``; changed 2020-07-20 as part of neutral
+    language review.
 
 
 ddgen_table_require_field_absolute
@@ -997,21 +1013,29 @@ or more pairs: ``A, B`` where B is required if A is present (or the table will
 be skipped).
 
 
-ddgen_field_blacklist
-#####################
+ddgen_field_denylist
+####################
 
 *Multiline string.*
 
-Blacklist any fields (regardless of their table) when creating new data
+Denylist any fields (regardless of their table) when creating new data
 dictionaries? Wildcards of ``*`` and ``?`` operate as above.
 
+.. note::
+    Formerly ``ddgen_field_blacklist``; changed 2020-07-20 as part of neutral
+    language review.
 
-ddgen_field_whitelist
+
+ddgen_field_allowlist
 #####################
 
 *Multiline string.*
 
-Whitelist any fields? (Whitelists override blacklists.)
+Allowlist any fields? (Allowlists override denylists.)
+
+.. note::
+    Formerly ``ddgen_field_whitelist``; changed 2020-07-20 as part of neutral
+    language review.
 
 
 ddgen_pk_fields

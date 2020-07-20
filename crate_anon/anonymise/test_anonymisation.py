@@ -449,6 +449,7 @@ def main() -> None:
     """
     Command-line entry point. See command-line help.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description='Test anonymisation',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)

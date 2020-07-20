@@ -72,31 +72,30 @@ class Cloud(TableMaker):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         """
         Args:
             nlpdef:
                 :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            cfgsection:
+            cfg_processor_name:
                 the config section for the processor
             commit:
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        super().__init__(nlpdef, cfgsection, commit, name="Cloud")
+        assert nlpdef is not None  # not yet supported (does it need to be?)
+        super().__init__(nlpdef, cfg_processor_name, commit,
+                         friendly_name="Cloud")
         self.remote_processor_info = None  # type: Optional[ServerProcessor]
-        sectionname = full_sectionname(NlpConfigPrefixes.PROCESSOR,
-                                       cfgsection)
-        self.procname = nlpdef.opt_str(
-            sectionname, ProcessorConfigKeys.PROCESSOR_NAME,
+        self.procname = self._cfgsection.opt_str(
+            ProcessorConfigKeys.PROCESSOR_NAME,
             required=True)
-        self.procversion = nlpdef.opt_str(
-            sectionname, ProcessorConfigKeys.PROCESSOR_VERSION,
+        self.procversion = self._cfgsection.opt_str(
+            ProcessorConfigKeys.PROCESSOR_VERSION,
             default=None)
         # Made format required so people are less likely to make mistakes
-        self.format = nlpdef.opt_str(
-            sectionname,
+        self.format = self._cfgsection.opt_str(
             ProcessorConfigKeys.PROCESSOR_FORMAT,
             required=True)
         self.schema_type = None
@@ -105,8 +104,8 @@ class Cloud(TableMaker):
         self.available_remotely = False  # update later if available
 
         # Output section - bit of repetition from the 'Gate' parser
-        typepairs = nlpdef.opt_strlist(
-            sectionname, ProcessorConfigKeys.OUTPUTTYPEMAP,
+        typepairs = self._cfgsection.opt_strlist(
+            ProcessorConfigKeys.OUTPUTTYPEMAP,
             required=True, lower=False)
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
         self._type_to_tablename = {}  # type: Dict[str, str]
@@ -116,7 +115,7 @@ class Cloud(TableMaker):
             output_type = c[0]
             outputsection = c[1]
             output_type = output_type.lower()
-            c = OutputUserConfig(nlpdef.get_parser(), outputsection,
+            c = OutputUserConfig(nlpdef.parser, outputsection,
                                  schema_required=False)
             self._outputtypemap[output_type] = c
             self._type_to_tablename[output_type] = c.get_tablename()

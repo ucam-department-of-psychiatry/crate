@@ -17,6 +17,10 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
+.. include:: <isonum.txt>
+.. https://docutils.sourceforge.io/docs/ref/rst/definitions.html
+.. but see also site-packages/docutils/parsers/rst/include
+
 
 Change log/history
 ==================
@@ -543,8 +547,8 @@ Changes
 
 **v0.18.49, 2018-01-07, 2018-03-21, 2018-03-27, published 2018-04-20**
 
-- Use ``flashtext`` (rather than ``regex``) for blacklisting words; this is
-  much faster and allows large blacklists (e.g. a long list of all known
+- Use ``flashtext`` (rather than ``regex``) for denylisting words; this is
+  much faster and allows large denylists (e.g. a long list of all known
   forenames/surnames).
 
 - Provides the ``crate_fetch_wordlists`` tool to fetch names and English words
@@ -1265,6 +1269,19 @@ Changes
   :func:`crate_anon.anonymise.anonregex.get_uk_postcode_regex_elements`.
 
 - Fuzzy ID matching work.
+
+- Neutral language review, as per https://lkml.org/lkml/2020/7/4/229:
+
+  - ``blacklist`` |rarr| ``denylist``, verb "deny", noun "denial",
+    jargon verb "denylist", jargon adjective "denylisted".
+  - ``whitelist`` |rarr| ``allowlist``, verb "allow", noun "allowing" (not
+    "allowance"; that sense only in the late 15th century, according to the
+    OED; "allowing" as a noun is a gerund or verbal noun; example in UK
+    legislation at
+    https://www.legislation.gov.uk/ukpga/1955/26/pdfs/ukpga_19550026_en.pdf);
+    jargon verb "allowlist", jargon adjective "allowlisted".
+
+  - Tidy up config file processing as part of this work.
 
 
 ===============================================================================

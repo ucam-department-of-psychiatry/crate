@@ -57,6 +57,7 @@ from sqlalchemy.sql.schema import MetaData
 from sqlalchemy.types import Integer, Text
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.common.extendedconfigparser import ConfigSection
 from crate_anon.common.stringfunc import does_text_contain_word_chars
 from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
@@ -115,39 +116,44 @@ class TableMaker(ABC):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False,
-                 name: str = "?") -> None:
+                 friendly_name: str = "?") -> None:
         """
         Args:
             nlpdef:
                 a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            cfgsection:
+            cfg_processor_name:
                 the name of a CRATE NLP config file section, TO WHICH we will
                 add a "processor:" prefix (from which section we may choose to
                 get extra config information)
             commit:
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
-            name:
+            friendly_name:
                 friendly name for the parser
         """
         self._nlpdef = nlpdef
-        self._cfgsection = cfgsection
+        self._cfgsection = cfg_processor_name
         self._commit = commit
-        self._name = name
+        self._friendly_name = friendly_name
         self._destdb_name = None  # type: Optional[str]
         self._destdb = None  # type: Optional[DatabaseHolder]
-        if nlpdef is not None:
-            self._sectionname = full_sectionname(
-                NlpConfigPrefixes.PROCESSOR, cfgsection)
-            self._destdb_name = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.DESTDB, required=True)
-            self._destdb = nlpdef.get_database(self._destdb_name)
-        else:
+        if nlpdef is None:
             self._sectionname = ""
+            self._cfgsection = None  # type: Optional[ConfigSection]
             self._destdb_name = ""
             self._destdb = None  # type: Optional[DatabaseHolder]
+        else:
+            self._sectionname = full_sectionname(
+                NlpConfigPrefixes.PROCESSOR, cfg_processor_name)
+            self._cfgsection = ConfigSection(
+                section=self._sectionname,
+                parser=nlpdef.parser
+            )
+            self._destdb_name = self._cfgsection.opt_str(
+                ProcessorConfigKeys.DESTDB, required=True)
+            self._destdb = nlpdef.get_database(self._destdb_name)
 
     def __str__(self) -> str:
         return self.classname()
@@ -236,13 +242,14 @@ class TableMaker(ABC):
         """
         if self._nlpdef is None:
             return None
-        return self._nlpdef.get_name()
+        return self._nlpdef.name
 
-    def get_parser_name(self) -> str:
+    @property
+    def friendly_name(self) -> str:
         """
         Returns the NLP parser's friendly name
         """
-        return self._name
+        return self._friendly_name
 
     def get_dbname(self) -> str:
         """
@@ -250,12 +257,6 @@ class TableMaker(ABC):
         processor was told about at construction).
         """
         return self._destdb_name
-
-    def get_cfgsection(self) -> str:
-        """
-        Returns the cfgsection the class was created with.
-        """
-        return self._cfgsection
 
     @staticmethod
     def _assert_no_overlap(description1: str, cols1: List[Column],
@@ -513,7 +514,7 @@ class TableMaker(ABC):
         srctable = ifconfig.get_srctable()
         srcfield = ifconfig.get_srcfield()
         destdb_name = self._destdb.name
-        nlpdef_name = self._nlpdef.get_name()
+        nlpdef_name = self._nlpdef.name
         for tablename, desttable in self.tables().items():
             log.debug(f"delete_from_dest_dbs... {srcdb}.{srctable} -> "
                       f"{destdb_name}.{tablename}")
@@ -567,7 +568,7 @@ class TableMaker(ABC):
                 where(desttable.c._srcdb == srcdb).
                 where(desttable.c._srctable == srctable).
                 where(desttable.c._srcfield == srcfield).
-                where(desttable.c._nlpdef == self._nlpdef.get_name())
+                where(desttable.c._nlpdef == self._nlpdef.name)
             )
             if temptable is not None:
                 log.debug("... deleting selectively")
@@ -615,10 +616,11 @@ class TableMaker(ABC):
 class BaseNlpParser(TableMaker):
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False,
-                 name: str = "?") -> None:
-        super().__init__(nlpdef, cfgsection, commit, name=name)
+                 friendly_name: str = "?") -> None:
+        super().__init__(nlpdef, cfg_processor_name, commit,
+                         friendly_name=friendly_name)
 
     # -------------------------------------------------------------------------
     # NLP processing
@@ -674,7 +676,7 @@ class BaseNlpParser(TableMaker):
             # log.warning(f"No word characters found in {text}")
             # ... the warning occurs frequently so slows down processing
             return
-        starting_fields_values[FN_NLPDEF] = self._nlpdef.get_name()
+        starting_fields_values[FN_NLPDEF] = self._nlpdef.name
         session = self.get_session()
         n_values = 0
         with MultiTimerContext(timer, TIMING_PARSE):
@@ -708,7 +710,7 @@ class BaseNlpParser(TableMaker):
                     )
                     n_values += 1
         log.debug(
-            f"NLP processor {self.get_nlpdef_name()}/{self.get_parser_name()}:"
+            f"NLP processor {self.get_nlpdef_name()}/{self.friendly_name}:"
             f" found {n_values} values")
 
     @abstractmethod

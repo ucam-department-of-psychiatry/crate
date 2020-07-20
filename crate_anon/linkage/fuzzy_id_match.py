@@ -3979,7 +3979,8 @@ def validate_2_fetch_cdl(cfg: MatchConfig,
     See :func:`validate_2_fetch_rio` for notes.
     """
     raise NotImplementedError("Fix SQL as below")
-    raise NotImplementedError("ethnicity, icd10_dx_present, age_at_first_referral")
+    raise NotImplementedError(
+        "ethnicity, icd10_dx_present, age_at_first_referral")
     sql = text("""
 
         SELECT
@@ -4173,7 +4174,8 @@ def validate_2_fetch_rio(cfg: MatchConfig,
 
     """  # noqa
 
-    raise NotImplementedError("ethnicity, icd10_dx_present, age_at_first_referral")
+    raise NotImplementedError(
+        "ethnicity, icd10_dx_present, age_at_first_referral")
     sql = text("""
 
         -- We use the original raw RiO database, not the CRATE-processed one.

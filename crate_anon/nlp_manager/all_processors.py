@@ -180,7 +180,7 @@ def get_nlp_parser_class(classname: str) -> Optional[Type[TableMaker]]:
 
 def make_nlp_parser(classname: str,
                     nlpdef: NlpDefinition,
-                    cfgsection: str) -> TableMaker:
+                    cfg_processor_name: str) -> TableMaker:
     """
     Fetch an NLP processor instance by name.
 
@@ -189,10 +189,10 @@ def make_nlp_parser(classname: str,
             the name of the processor
         nlpdef:
             a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-        cfgsection:
-            the name of a CRATE NLP config file section, passed to the NLP
-            parser as we create it (for it to get extra config information if
-            it wishes)
+        cfg_processor_name:
+            the name (suffix) of a CRATE NLP config file section, passed to the
+            NLP parser as we create it (for it to get extra config information
+            if it wishes)
 
     Returns:
         an NLP processor instance whose class name matches (in case-insensitive
@@ -204,7 +204,10 @@ def make_nlp_parser(classname: str,
     """
     cls = get_nlp_parser_class(classname)
     if cls:
-        return cls(nlpdef=nlpdef, cfgsection=cfgsection)
+        return cls(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name
+        )
     raise ValueError(f"Unknown NLP processor type: {classname!r}")
 
 
@@ -224,7 +227,7 @@ def make_nlp_parser_unconfigured(classname: str,
     """
     cls = get_nlp_parser_class(classname)
     if cls:
-        return cls(nlpdef=None, cfgsection=None)
+        return cls(nlpdef=None, cfg_processor_name=None)
     if raise_if_absent:
         raise ValueError(f"Unknown NLP processor type: {classname!r}")
     return None

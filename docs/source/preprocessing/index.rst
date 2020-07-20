@@ -103,9 +103,9 @@ crate_fetch_wordlists
 ~~~~~~~~~~~~~~~~~~~~~
 
 This tool assists in fetching common word lists, such as name lists for global
-blacklisting, and words to exclude from such lists (such as English words or
-medical eponyms). It also provides an exclusion filter system, to find lines in
-some files that are absent from others.
+denial, and words to exclude from such lists (such as English words or medical
+eponyms). It also provides an exclusion filter system, to find lines in some
+files that are absent from others.
 
 Options:
 

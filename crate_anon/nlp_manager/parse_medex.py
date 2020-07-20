@@ -402,6 +402,7 @@ from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 from cardinal_pythonlib.fileops import mkdir_p
 from sqlalchemy import Column, Index, Integer, String, Text
 
+from crate_anon.common.extendedconfigparser import ConfigSection
 from crate_anon.nlp_manager.base_nlp_parser import (
     BaseNlpParser,
     TextProcessingFailed,
@@ -496,21 +497,25 @@ class Medex(BaseNlpParser):
 
     def __init__(self,
                  nlpdef: NlpDefinition,
-                 cfgsection: str,
+                 cfg_processor_name: str,
                  commit: bool = False) -> None:
         """
         Args:
             nlpdef:
                 a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            cfgsection:
+            cfg_processor_name:
                 the name of a CRATE NLP config file section (from which we may
                 choose to get extra config information)
             commit:
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit,
-                         name="MedEx")
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            friendly_name="MedEx"
+        )
 
         if nlpdef is None:  # only None for debugging!
             self._debug_mode = True
@@ -521,16 +526,17 @@ class Medex(BaseNlpParser):
             progargs = ""
         else:
             self._debug_mode = False
-            self._tablename = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.DESTTABLE,
+
+            self._tablename = self._cfgsection.opt_str(
+                ProcessorConfigKeys.DESTTABLE,
                 required=True)
 
-            self._max_external_prog_uses = nlpdef.opt_int(
-                self._sectionname, ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
+            self._max_external_prog_uses = self._cfgsection.opt_int_positive(
+                ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
                 default=0)
 
-            self._progenvsection = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.PROGENVSECTION)
+            self._progenvsection = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROGENVSECTION)
 
             if self._progenvsection:
                 self._env = nlpdef.get_env_dict(
@@ -539,12 +545,12 @@ class Medex(BaseNlpParser):
                     os.environ)
             else:
                 self._env = os.environ.copy()
-            self._env["NLPLOGTAG"] = nlpdef.get_logtag() or '.'
+            self._env["NLPLOGTAG"] = nlpdef.logtag or '.'
             # ... because passing a "-lt" switch with no parameter will make
             # CrateGatePipeline.java complain and stop
 
-            progargs = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.PROGARGS,
+            progargs = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROGARGS,
                 required=True)
 
         if USE_TEMP_DIRS:

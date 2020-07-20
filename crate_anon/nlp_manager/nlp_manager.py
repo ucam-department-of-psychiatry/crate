@@ -470,7 +470,7 @@ def process_nlp(nlpdef: NlpDefinition,
     session = nlpdef.get_progdb_session()
     if not nlpdef.get_noncloud_processors():
         errmsg = (
-            f"Can't use NLP definition {nlpdef.get_name()!r} as it has no "
+            f"Can't use NLP definition {nlpdef.name!r} as it has no "
             f"local processors (e.g. only has cloud processors). Specify the "
             f"cloud option to process via the cloud."
         )
@@ -567,7 +567,7 @@ def process_nlp(nlpdef: NlpDefinition,
                         srcpkval=pkval,
                         srcpkstr=pkstr,
                         srcfield=ifconfig.get_srcfield(),
-                        nlpdef=nlpdef.get_name(),
+                        nlpdef=nlpdef.name,
                         # Other fields:
                         srcpkfield=ifconfig.get_srcpkfield(),
                         whenprocessedutc=nlpdef.get_now(),
@@ -757,7 +757,7 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
                 for cloud_request in cloud_requests:
                     if cloud_request.queue_id:
                         request_data.write(
-                            f"{ifconfig.section},{cloud_request.queue_id}\n")
+                            f"{ifconfig.name},{cloud_request.queue_id}\n")
                     else:
                         log.warning("Sent request does not contain queue_id.")
                 # start += crinfo.cloudcfg.limit_before_commit
@@ -794,7 +794,8 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
         if if_section in ifconfig_cache:
             ifconfig = ifconfig_cache[if_section]
         else:
-            ifconfig = InputFieldConfig(nlpdef=nlpdef, section=if_section)
+            ifconfig = InputFieldConfig(nlpdef=nlpdef,
+                                        cfg_input_name=if_section)
             ifconfig_cache[if_section] = ifconfig
         seen_srchashs = []  # type: List[str]
         cloud_request = CloudRequestProcess(crinfo=crinfo)
@@ -844,7 +845,7 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
                         srcpkval=pkval,
                         srcpkstr=pkstr,
                         srcfield=ifconfig.get_srcfield(),
-                        nlpdef=nlpdef.get_name(),
+                        nlpdef=nlpdef.name,
                         # Other fields:
                         srcpkfield=ifconfig.get_srcpkfield(),
                         whenprocessedutc=nlpdef.get_now(),
@@ -941,7 +942,7 @@ def process_cloud_now(
                             srcpkval=pkval,
                             srcpkstr=pkstr,
                             srcfield=ifconfig.get_srcfield(),
-                            nlpdef=nlpdef.get_name(),
+                            nlpdef=nlpdef.name,
                             # Other fields:
                             srcpkfield=ifconfig.get_srcpkfield(),
                             whenprocessedutc=nlpdef.get_now(),
@@ -960,7 +961,7 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
     """
     Delete pending requests from the server's queue.
     """
-    nlpname = nlpdef.get_name()
+    nlpname = nlpdef.name
     cloudcfg = nlpdef.get_cloud_config_or_raise()
     cloud_request = CloudRequestQueueManagement(nlpdef=nlpdef)
 
@@ -1077,6 +1078,7 @@ def main() -> None:
 
     # todo: better with a subcommand parser?
 
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)

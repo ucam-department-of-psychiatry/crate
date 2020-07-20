@@ -34,7 +34,6 @@ crate_anon/crateweb/research/migrations/0007_sitewidequery.py
 from django.db import migrations, models
 
 
-# noinspection PyPep8
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -45,6 +44,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='query',
             name='display',
-            field=models.TextField(default='[]', verbose_name='Subset of output columns to be displayed'),
+            field=models.TextField(default='[]', verbose_name='Subset of output columns to be displayed'),  # nopep8
         ),
     ]

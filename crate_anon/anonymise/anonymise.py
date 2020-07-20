@@ -136,10 +136,10 @@ def wipe_and_recreate_destination_db(incremental: bool = False) -> None:
             tablename, config.timefield, config.add_mrid_wherever_rid_added)
         # Drop
         if not incremental:
-            log.info(f"dropping table {tablename}")
+            log.info(f"Dropping table: {tablename}")
             sqla_table.drop(engine, checkfirst=True)
         # Create
-        log.info(f"creating table {tablename}")
+        log.info(f"Creating table: {tablename}")
         log.debug(repr(sqla_table))
         sqla_table.create(engine, checkfirst=True)
         # Check
@@ -490,15 +490,20 @@ def get_pid_subset_from_field(field: str,
     txt_elements = ", ".join(values_to_find)
     txt_elements = "(" + txt_elements + ")"
 
-    txt = f"SELECT {source_table}.{source_field} FROM {source_table} "
-    txt += f"JOIN {tablename} ON {source_table}.{source_field}={tablename}.{fieldname} "  # noqa
-    txt += f"WHERE {tablename}.{fieldname} IN {txt_elements}"
-    txt += f"AND {source_table}.{source_field} IS NOT NULL"
-    sql = text(txt)
-
+    sql = text(f"""
+        SELECT {source_table}.{source_field}
+        FROM {source_table}
+        JOIN {tablename}
+            ON {source_table}.{source_field} = {tablename}.{fieldname}
+        WHERE {tablename}.{fieldname} IN {txt_elements}
+        AND {source_table}.{source_field} IS NOT NULL
+    """)
     result = session.execute(sql)
-    pids.extend([x[0] for x in result])
 
+    # todo:: fix this raw SQL to SQLAlchemy; should be possible.
+    # Is the proble the "&"?
+
+    pids.extend([x[0] for x in result])
     return pids
 
 
@@ -609,10 +614,10 @@ def get_pids_from_limits(low: int, high: int) -> List[Any]:
         pidcol = column(ddr.src_field)
         session = config.sources[ddr.src_db].session
         query = (
-            select([pidcol]).
-            select_from(table(ddr.src_table)).
-            where((pidcol.between(low, high)) & (pidcol is not None)).
-            distinct()
+            select([pidcol])
+            .select_from(table(ddr.src_table))
+            .where((pidcol.between(low, high)) & (pidcol is not None))
+            .distinct()
         )
         result = session.execute(query)
         pids.extend([x[0] for x in result])
@@ -702,13 +707,18 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[Any]:
     # with the primary pid
     source_field = row.src_field
     source_table = row.src_table
-    txt = f"SELECT {source_table}.{source_field} FROM {source_table} "
-    txt += f"JOIN {tablename} ON {source_table}.{source_field}={tablename}.{fieldname} "  # noqa
-    txt += f"WHERE ({tablename}.{fieldname} BETWEEN {low} AND {high}) "
-    txt += f"AND {source_table}.{source_field} IS NOT NULL"
-    sql = text(txt)
-
+    sql = text(f"""
+        SELECT {source_table}.{source_field}
+        FROM {source_table}
+        JOIN {tablename}
+            ON {source_table}.{source_field} = {tablename}.{fieldname}"
+        WHERE ({tablename}.{fieldname} BETWEEN {low} AND {high})
+        AND {source_table}.{source_field} IS NOT NULL"
+    """)
     result = session.execute(sql)
+
+    # todo:: fix raw SQL as above
+
     pids.extend([x[0] for x in result])
 
     return pids
@@ -1004,7 +1014,7 @@ def gen_index_row_sets_by_table(
         if i % ntasks != tasknum:
             continue
         tablerows = [r for r in indexrows if r.dest_table == t]
-        yield (t, tablerows)
+        yield t, tablerows
 
 
 def gen_nonpatient_tables_without_int_pk(
@@ -1046,7 +1056,7 @@ def gen_nonpatient_tables_with_int_pk() -> Generator[Tuple[str, str, str],
         db = pair[0]
         tablename = pair[1]
         pkname = config.dd.get_int_pk_name(db, tablename)
-        yield (db, tablename, pkname)
+        yield db, tablename, pkname
 
 
 def gen_pks(srcdbname: str,
@@ -1113,9 +1123,9 @@ def process_table(sourcedbname: str,
         exclude_scrubbed_fields:
             Exclude all text fields which are being scrubbed.
     """
-    start = f"process_table: {sourcedbname}.{sourcetable}: "
+    start = f"process_table: {sourcedbname}.{sourcetable}:"
     pid = None if patient is None else patient.get_pid()
-    log.debug(start + f"pid={pid}, incremental={incremental}")
+    log.debug(f"{start} pid={pid}, incremental={incremental}")
 
     # Limit the data quantity for debugging?
     srccfg = config.sources[sourcedbname].srccfg
@@ -1186,8 +1196,7 @@ def process_table(sourcedbname: str,
         n += 1
         if n % config.report_every_n_rows == 0:
             log.info(
-                start +
-                f"processing record {recnum + 1}/{count}"
+                f"{start} processing record {recnum + 1}/{count}"
                 f"{' for this patient' if pid is not None else ''} "
                 f"({config.overall_progress()})")
         recnum += ntasks or 1
@@ -1263,7 +1272,7 @@ def process_table(sourcedbname: str,
             n_rows=1, n_bytes=sys.getsizeof(destvalues))  # ... approximate!
         # ... quicker than e.g. len(repr(...)), as judged by a timeit() call.
 
-    log.debug(start + f"finished: pid={pid}")
+    log.debug(f"{start} finished: pid={pid}")
     commit_destdb()
 
 

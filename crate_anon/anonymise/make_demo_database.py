@@ -308,6 +308,7 @@ def main() -> None:
     Command-line processor. See command-line help.
     """
     default_size = 0
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
