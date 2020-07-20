@@ -185,8 +185,8 @@ List of input fields to parse. Each is the name of an :ref:`input field
 definition <nlp_config_section_input>` in the config file.
 
 Input to the NLP processor(s) comes from one or more source fields (columns),
-each within a table within a database. This list refers to config sections that
-define those fields in more detail.
+each within a table within a database. Each item in this list refers to a
+config section that define that field in more detail.
 
 
 .. _nlp_config_nlpdef_processors:

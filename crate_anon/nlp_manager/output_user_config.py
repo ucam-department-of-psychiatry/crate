@@ -45,7 +45,10 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.schema import Column, Index
 
-from crate_anon.common.extendedconfigparser import ExtendedConfigParser
+from crate_anon.common.extendedconfigparser import (
+    ConfigSection,
+    ExtendedConfigParser,
+)
 from crate_anon.nlp_manager.constants import (
     full_sectionname,
     NlpOutputConfigKeys,
@@ -67,21 +70,24 @@ class OutputUserConfig(object):
     See the documentation for the :ref:`NLP config file <nlp_config>`.
     """
 
-    def __init__(self, parser: ExtendedConfigParser,
-                 section: str, schema_required: bool = True) -> None:
+    def __init__(self,
+                 parser: ExtendedConfigParser,
+                 cfg_output_name: str,
+                 schema_required: bool = True) -> None:
         """
         Read config from a configparser section.
 
         Args:
             parser:
                 :class:`crate_anon.common.extendedconfigparser.ExtendedConfigParser`
-            section:
-                config file section name -- this is the second of the pair of
-                strings in the ``outputtypemap`` part of the GATE NLP app
-                config section. See
+            cfg_output_name:
+                config file section name suffix -- this is the second of the
+                pair of strings in the ``outputtypemap`` part of the GATE NLP
+                app config section. See
 
                 - :ref:`NLP config file <nlp_config>`
                 - :class:`crate_anon.nlp_manager.parse_gate.Gate`
+
            schema_required:
                is it required that the user has specified a schema, i.e.
                destfields and a desttable? - Should be true for Gate, False
@@ -89,26 +95,18 @@ class OutputUserConfig(object):
                definition.
         """  # noqa
 
-        sectionname = full_sectionname(NlpConfigPrefixes.OUTPUT, section)
-
-        def opt_str(option: str, required: bool = False) -> str:
-            return parser.get_str(sectionname, option, required=required)
-
-        def opt_strlist(option: str,
-                        required: bool = False,
-                        as_words: bool = True) -> List[str]:
-            return parser.get_str_list(sectionname, option, required=required,
-                                       lower=False, as_words=as_words)
-            # We do NOT change the case.
-
-        if not parser.has_section(sectionname):
-            raise ValueError("config missing section: " + sectionname)
+        sectionname = full_sectionname(NlpConfigPrefixes.OUTPUT,
+                                       cfg_output_name)
+        cfg = ConfigSection(
+            section=sectionname,
+            parser=parser
+        )
 
         # ---------------------------------------------------------------------
         # desttable
         # ---------------------------------------------------------------------
 
-        self._desttable = opt_str(
+        self._desttable = cfg.opt_str(
             NlpOutputConfigKeys.DESTTABLE, required=True)
         ensure_valid_table_name(self._desttable)
 
@@ -117,7 +115,7 @@ class OutputUserConfig(object):
         # ---------------------------------------------------------------------
 
         self._renames = {}  # type: Dict[str, str]
-        rename_lines = opt_strlist(
+        rename_lines = cfg.opt_strlist(
             NlpOutputConfigKeys.RENAMES, required=False, as_words=False)
         for line in rename_lines:
             if not line.strip():
@@ -137,7 +135,7 @@ class OutputUserConfig(object):
         # null_literals
         # ---------------------------------------------------------------------
 
-        null_literal_lines = opt_strlist(
+        null_literal_lines = cfg.opt_strlist(
             NlpOutputConfigKeys.NULL_LITERALS,
             required=False, as_words=False)
         self._null_literals = []  # type: List[str]
@@ -151,7 +149,7 @@ class OutputUserConfig(object):
         self._destfields = []  # type: List[str]
         self._dest_datatypes = []  # type: List[str]
         self._dest_comments = []  # type: List[str]
-        dest_field_lines = opt_strlist(
+        dest_field_lines = cfg.opt_strlist(
             NlpOutputConfigKeys.DESTFIELDS,
             required=schema_required, as_words=False)
         # ... comments will be removed during that process.
@@ -191,7 +189,7 @@ class OutputUserConfig(object):
 
         self._indexfields = []  # type: List[str]
         self._indexlengths = []  # type: List[int]
-        indexdefs = opt_strlist(NlpOutputConfigKeys.INDEXDEFS)
+        indexdefs = cfg.opt_strlist(NlpOutputConfigKeys.INDEXDEFS)
         if indexdefs:
             for c in chunks(indexdefs, 2):  # pairs: field, length
                 indexfieldname = c[0]
@@ -210,13 +208,15 @@ class OutputUserConfig(object):
                 self._indexfields.append(indexfieldname)
                 self._indexlengths.append(length)
 
-    def get_tablename(self) -> str:
+    @property
+    def dest_tablename(self) -> str:
         """
         Returns the name of the destination table.
         """
         return self._desttable
 
-    def get_destfields(self) -> List[str]:
+    @property
+    def destfields(self) -> List[str]:
         """
         Returns the list of destination fields.
         """
@@ -245,7 +245,8 @@ class OutputUserConfig(object):
             ))
         return columns
 
-    def get_indexes(self) -> List[Index]:
+    @property
+    def indexes(self) -> List[Index]:
         """
         Return all SQLAlchemy :class:`Index` definitions for the destination
         table.
@@ -262,6 +263,7 @@ class OutputUserConfig(object):
             indexes.append(Index(index_name, field, **kwargs))
         return indexes
 
+    @property
     def renames(self) -> Dict[str, str]:
         """
         Return the "rename dictionary": a dictionary mapping GATE annotation
@@ -274,6 +276,7 @@ class OutputUserConfig(object):
         """
         return self._renames
 
+    @property
     def null_literals(self) -> List[str]:
         """
         Returns string values from the GATE output that will be interpreted as

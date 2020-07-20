@@ -278,13 +278,13 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     # large databases.
 
     log.info(f"delete_where_no_source: examining source table "
-             f"{ifconfig.get_srcdb()}.{ifconfig.get_srctable()}; MAY BE SLOW")
+             f"{ifconfig.srcdb}.{ifconfig.srctable}; MAY BE SLOW")
 
     # Start our list with the progress database
     databases = [DbInfo(
-        session=nlpdef.get_progdb_session(),
-        engine=nlpdef.get_progdb_engine(),
-        metadata=nlpdef.get_progdb_metadata(),
+        session=nlpdef.progressdb_session,
+        engine=nlpdef.progressdb_engine,
+        metadata=nlpdef.progressdb_metadata,
         db=nlpdef.get_progdb(),
         temptable=None
     )]
@@ -293,14 +293,14 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     for processor in nlpdef.get_processors():  # of type TableMaker
         if isinstance(processor, Cloud) and not processor.available_remotely:
             continue
-        session = processor.get_session()
+        session = processor.dest_session
         if any(x.session == session for x in databases):
             continue  # already exists
         databases.append(DbInfo(
             session=session,
-            engine=processor.get_engine(),
-            metadata=processor.get_metadata(),
-            db=processor.get_destdb(),
+            engine=processor.dest_engine,
+            metadata=processor.dest_metadata,
+            db=processor.destdb,
         ))
 
     # Make a temporary table in each database (note: the Table objects become
@@ -321,7 +321,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
 
     # Insert PKs into temporary tables
 
-    n = count_star(ifconfig.get_source_session(), ifconfig.get_srctable())
+    n = count_star(ifconfig.source_session, ifconfig.srctable)
     log.info(f"... populating temporary table(s): {n} records to go; "
              f"working in chunks of {chunksize}")
     i = 0
@@ -360,7 +360,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
         if isinstance(processor, Cloud) and not processor.available_remotely:
             continue
         database = [x for x in databases
-                    if x.session == processor.get_session()][0]
+                    if x.session == processor.dest_session][0]
         temptable = database.temptable
         processor.delete_where_srcpk_not(ifconfig, temptable)
 
@@ -400,7 +400,7 @@ def drop_remake(nlpdef: NlpDefinition,
     # -------------------------------------------------------------------------
     # 1. Progress database
     # -------------------------------------------------------------------------
-    progengine = nlpdef.get_progdb_engine()
+    progengine = nlpdef.progressdb_engine
     if not incremental:
         log.debug("Dropping progress tables")
         # noinspection PyUnresolvedReferences
@@ -467,10 +467,10 @@ def process_nlp(nlpdef: NlpDefinition,
         ntasks: how many tasks are there in total?
     """
     log.info(SEP + "NLP")
-    session = nlpdef.get_progdb_session()
+    session = nlpdef.progressdb_session
     if not nlpdef.get_noncloud_processors():
         errmsg = (
-            f"Can't use NLP definition {nlpdef.get_name()!r} as it has no "
+            f"Can't use NLP definition {nlpdef.name!r} as it has no "
             f"local processors (e.g. only has cloud processors). Specify the "
             f"cloud option to process via the cloud."
         )
@@ -546,8 +546,8 @@ def process_nlp(nlpdef: NlpDefinition,
             if processor_failure:
                 log.error(
                     f"At least one processor failed for this record "
-                    f"(srctable={ifconfig.get_srctable()!r}, "
-                    f"pkfield={ifconfig.get_srcpkfield()!r}, "
+                    f"(srctable={ifconfig.srctable!r}, "
+                    f"pkfield={ifconfig.srcpkfield!r}, "
                     f"pkval={pkval!r}, pkstr={pkstr!r}); "
                     f"not marking it as processed.")
                 continue
@@ -562,14 +562,14 @@ def process_nlp(nlpdef: NlpDefinition,
                 else:  # creating a new record
                     progrec = NlpRecord(
                         # Quasi-key fields:
-                        srcdb=ifconfig.get_srcdb(),
-                        srctable=ifconfig.get_srctable(),
+                        srcdb=ifconfig.srcdb,
+                        srctable=ifconfig.srctable,
                         srcpkval=pkval,
                         srcpkstr=pkstr,
-                        srcfield=ifconfig.get_srcfield(),
-                        nlpdef=nlpdef.get_name(),
+                        srcfield=ifconfig.srcfield,
+                        nlpdef=nlpdef.name,
                         # Other fields:
-                        srcpkfield=ifconfig.get_srcpkfield(),
+                        srcpkfield=ifconfig.srcpkfield,
                         whenprocessedutc=nlpdef.get_now(),
                         srchash=srchash,
                     )
@@ -757,7 +757,7 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
                 for cloud_request in cloud_requests:
                     if cloud_request.queue_id:
                         request_data.write(
-                            f"{ifconfig.section},{cloud_request.queue_id}\n")
+                            f"{ifconfig.name},{cloud_request.queue_id}\n")
                     else:
                         log.warning("Sent request does not contain queue_id.")
                 # start += crinfo.cloudcfg.limit_before_commit
@@ -769,7 +769,7 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
     Try to retrieve the data from the cloud processors.
     """
     nlpdef = crinfo.nlpdef
-    session = nlpdef.get_progdb_session()
+    session = nlpdef.progressdb_session
     cloudcfg = crinfo.cloudcfg
     filename = cloudcfg.data_filename()
     if not os.path.exists(filename):
@@ -794,7 +794,8 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
         if if_section in ifconfig_cache:
             ifconfig = ifconfig_cache[if_section]
         else:
-            ifconfig = InputFieldConfig(nlpdef=nlpdef, section=if_section)
+            ifconfig = InputFieldConfig(nlpdef=nlpdef,
+                                        cfg_input_name=if_section)
             ifconfig_cache[if_section] = ifconfig
         seen_srchashs = []  # type: List[str]
         cloud_request = CloudRequestProcess(crinfo=crinfo)
@@ -839,14 +840,14 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
                 else:  # creating a new record
                     progrec = NlpRecord(
                         # Quasi-key fields:
-                        srcdb=ifconfig.get_srcdb(),
-                        srctable=ifconfig.get_srctable(),
+                        srcdb=ifconfig.srcdb,
+                        srctable=ifconfig.srctable,
                         srcpkval=pkval,
                         srcpkstr=pkstr,
-                        srcfield=ifconfig.get_srcfield(),
-                        nlpdef=nlpdef.get_name(),
+                        srcfield=ifconfig.srcfield,
+                        nlpdef=nlpdef.name,
                         # Other fields:
-                        srcpkfield=ifconfig.get_srcpkfield(),
+                        srcpkfield=ifconfig.srcpkfield,
                         whenprocessedutc=nlpdef.get_now(),
                         srchash=srchash,
                     )
@@ -884,7 +885,7 @@ def process_cloud_now(
     Process text by sending it off to the cloud processors in non-queued mode.
     """
     nlpdef = crinfo.nlpdef
-    session = nlpdef.get_progdb_session()
+    session = nlpdef.progressdb_session
     for ifconfig in nlpdef.get_ifconfigs():
         global_recnum = 0  # Global record number within this ifconfig
         # seen_srchashs = {}  # type: Dict[str, NlpRecord]
@@ -936,14 +937,14 @@ def process_cloud_now(
                     else:  # creating a new record
                         progrec = NlpRecord(
                             # Quasi-key fields:
-                            srcdb=ifconfig.get_srcdb(),
-                            srctable=ifconfig.get_srctable(),
+                            srcdb=ifconfig.srcdb,
+                            srctable=ifconfig.srctable,
                             srcpkval=pkval,
                             srcpkstr=pkstr,
-                            srcfield=ifconfig.get_srcfield(),
-                            nlpdef=nlpdef.get_name(),
+                            srcfield=ifconfig.srcfield,
+                            nlpdef=nlpdef.name,
                             # Other fields:
-                            srcpkfield=ifconfig.get_srcpkfield(),
+                            srcpkfield=ifconfig.srcpkfield,
                             whenprocessedutc=nlpdef.get_now(),
                             srchash=srchash,
                         )
@@ -960,7 +961,7 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
     """
     Delete pending requests from the server's queue.
     """
-    nlpname = nlpdef.get_name()
+    nlpname = nlpdef.name
     cloudcfg = nlpdef.get_cloud_config_or_raise()
     cloud_request = CloudRequestQueueManagement(nlpdef=nlpdef)
 
@@ -1037,9 +1038,9 @@ def show_source_counts(nlpdef: NlpDefinition) -> None:
     print("SOURCE TABLE RECORD COUNTS:")
     counts = []  # type: List[Tuple[str, int]]
     for ifconfig in nlpdef.get_ifconfigs():
-        session = ifconfig.get_source_session()
-        dbname = ifconfig.get_srcdb()
-        tablename = ifconfig.get_srctable()
+        session = ifconfig.source_session
+        dbname = ifconfig.srcdb
+        tablename = ifconfig.srctable
         n = count_star(session, tablename)
         counts.append((f"{dbname}.{tablename}", n))
     print_record_counts(counts)
@@ -1056,8 +1057,8 @@ def show_dest_counts(nlpdef: NlpDefinition) -> None:
     print("DESTINATION TABLE RECORD COUNTS:")
     counts = []  # type: List[Tuple[str, int]]
     for processor in nlpdef.get_processors():
-        session = processor.get_session()
-        dbname = processor.get_dbname()
+        session = processor.dest_session
+        dbname = processor.dest_dbname
         for tablename in processor.get_tablenames():
             n = count_star(session, tablename)
             counts.append((f"DESTINATION: {dbname}.{tablename}", n))
@@ -1077,6 +1078,7 @@ def main() -> None:
 
     # todo: better with a subcommand parser?
 
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)

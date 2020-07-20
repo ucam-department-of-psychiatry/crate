@@ -29,13 +29,16 @@ crate_anon/anonymise/dbholder.py
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.schema import MetaData
+
+if TYPE_CHECKING:
+    from crate_anon.anonymise.config import DatabaseSafeConfig
 
 log = logging.getLogger(__name__)
 
@@ -44,9 +47,6 @@ log = logging.getLogger(__name__)
 # Convenience object
 # =============================================================================
 
-DB_SAFE_CONFIG_FWD_REF = "DatabaseSafeConfig"
-
-
 class DatabaseHolder(object):
     """
     Object to represent a connection to a database.
@@ -54,7 +54,7 @@ class DatabaseHolder(object):
     def __init__(self,
                  name: str,
                  url: str,
-                 srccfg: DB_SAFE_CONFIG_FWD_REF = None,
+                 srccfg: "DatabaseSafeConfig" = None,
                  with_session: bool = False,
                  with_conn: bool = True,
                  reflect: bool = True,

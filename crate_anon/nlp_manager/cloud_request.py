@@ -144,7 +144,7 @@ class CloudRequest(object):
         self._nlpdef = nlpdef
         self._cloudcfg = nlpdef.get_cloud_config_or_raise()
         self._nlpdef_sectionname = full_sectionname(NlpConfigPrefixes.NLPDEF,
-                                                    self._nlpdef.get_name())
+                                                    self._nlpdef.name)
         self._auth = (self._cloudcfg.username, self._cloudcfg.password)
         self._post = self._internal_post
 
@@ -474,7 +474,7 @@ class CloudRequestProcess(CloudRequest):
             return False  # no maximum; not too long
         # Fast, apt to overestimate size a bit (as above)
         if self._cloudcfg.test_length_function_speed:
-            length = getsize(self._request_process, assume_no_blacklisted=True)
+            length = getsize(self._request_process, assume_none_denied=True)
 
             if length <= max_length:  # test the Python length
                 # Because the Python length is an overestimate of the JSON, if
@@ -665,42 +665,6 @@ class CloudRequestProcess(CloudRequest):
     # Results handling
     # -------------------------------------------------------------------------
 
-    # Don't think we need this anymore?
-    # def get_tablename_map(self, processor: str) \
-    #         -> Tuple[Dict[str, str], Dict[str, OutputUserConfig]]:
-    #     """
-    #     For GATE remote processors, get a map from annotation types to
-    #     tablenames and also annotation type returned to what the user wants
-    #     to call it in the database.
-    #
-    #     Args:
-    #         processor: which GATE processor to find the mapping for?
-    #
-    #     Returns:
-    #         a dictionary mapping annotation types to tableanmes, and
-    #         a dictionary mapping annotaion types to
-    #         :class:`crate_anon.nlp_manager.output_user_config.OutputUserConfig`
-    #         for the purpose of renaming keys
-    #
-    #     """
-    #     proc_section = full_sectionname(NlpConfigPrefixes.PROCESSOR, processor)
-    #     typepairs = self._nlpdef.opt_strlist(
-    #         proc_section, ProcessorConfigKeys.OUTPUTTYPEMAP,
-    #         required=True, lower=False)
-    #
-    #     outputtypemap = {}  # type: Dict[str, OutputUserConfig]
-    #     type_to_tablename = {}  # type: Dict[str, str]
-    #     for c in chunks(typepairs, 2):
-    #         annottype = c[0]
-    #         outputsection = c[1]
-    #         # annottype = annottype.lower()
-    #         otconfig = OutputUserConfig(self._nlpdef.get_parser(),
-    #                                     outputsection)
-    #         outputtypemap[annottype] = otconfig
-    #         type_to_tablename[annottype] = otconfig.get_tablename()
-    #
-    #     return type_to_tablename, outputtypemap
-
     @staticmethod
     def get_nlp_values_internal(
             processor_data: Dict[str, Any],
@@ -784,8 +748,8 @@ class CloudRequestProcess(CloudRequest):
 
             formatted_result.update(features)
             c = processor.get_otconf_from_type(annottype)
-            rename_keys_in_dict(formatted_result, c.renames())
-            set_null_values_in_dict(formatted_result, c.null_literals())
+            rename_keys_in_dict(formatted_result, c.renames)
+            set_null_values_in_dict(formatted_result, c.null_literals)
             formatted_result.update(metadata)
             tablename = processor.get_tablename_from_type(annottype)
             yield tablename, formatted_result
@@ -809,19 +773,20 @@ class CloudRequestProcess(CloudRequest):
                 try:
                     processor = self.requested_processors[(name, version)]
                 except KeyError:
+                    failmsg = (
+                        f"Server returned processor {name} version {version}, "
+                        f"but this processor was not requested."
+                    )  # we may use this message
                     if is_default_version:
                         try:
                             processor = self.requested_processors.get(
                                 (name, None))
                         except KeyError:
-                            log.error(f"Server returned processor {name} "
-                                      "version {version}, but this processor "
-                                      "was not requested.")
+                            log.error(failmsg)
                             raise
                     else:
-                        raise err(f"Server returned processor {name} "
-                                   "version {version}, but this processor "
-                                   "was not requested.")
+                        log.error(failmsg)
+                        raise
                 if processor.format == NlpDefValues.FORMAT_GATE:
                     for t, r in self.get_nlp_values_gate(processor_data,
                                                          processor,
@@ -842,13 +807,13 @@ class CloudRequestProcess(CloudRequest):
         :meth:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser.process`,
         but deals with all relevant processors at once.
         """
-        nlpname = self._nlpdef.get_name()
+        nlpname = self._nlpdef.name
 
         sessions = []
 
         for tablename, nlp_values, processor in self.get_nlp_values():
             nlp_values[FN_NLPDEF] = nlpname
-            session = processor.get_session()
+            session = processor.dest_session
             if session not in sessions:
                 sessions.append(session)
             sqla_table = processor.get_table(tablename)

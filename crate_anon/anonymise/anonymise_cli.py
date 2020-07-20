@@ -73,6 +73,7 @@ def main() -> None:
     version = f"Version {CRATE_VERSION} ({CRATE_VERSION_DATE})"
     description = f"Database anonymiser. {version}. By Rudolf Cardinal."
 
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)

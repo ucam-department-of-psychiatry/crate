@@ -66,6 +66,7 @@ def main() -> None:
     """
     Command-line processor. See command-line help.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Compile Java classes for CRATE's interface to MedEx-UIMA",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)

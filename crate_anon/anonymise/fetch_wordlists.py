@@ -910,8 +910,8 @@ def main() -> None:
     english_group = parser.add_argument_group("English words")
     english_group.add_argument(
         '--english_words', action='store_true',
-        help="Fetch English words (for reducing nonspecific blacklist, not as "
-             "whitelist; consider words like smith)")
+        help="Fetch English words (to remove from the nonspecific denylist, "
+             "not to add to an allowlist; consider words like smith)")
     english_group.add_argument(
         '--english_words_output', type=str, default="english_words.txt",
         help="Output file for English words")
@@ -938,7 +938,7 @@ def main() -> None:
     us_forename_group = parser.add_argument_group("US forenames")
     us_forename_group.add_argument(
         '--us_forenames', action='store_true',
-        help="Fetch US forenames (for blacklist)"
+        help="Fetch US forenames (for denylist)"
     )
     us_forename_group.add_argument(
         '--us_forenames_freq_output', type=str, default="us_forename_freq.csv",
@@ -975,7 +975,7 @@ def main() -> None:
     us_surname_group = parser.add_argument_group("US surnames")
     us_surname_group.add_argument(
         '--us_surnames', action='store_true',
-        help="Fetch US surnames (for blacklist)"
+        help="Fetch US surnames (for denylist)"
     )
     us_surname_group.add_argument(
         '--us_surnames_output', type=str, default="us_surnames.txt",
@@ -1008,7 +1008,7 @@ def main() -> None:
     eponyms_group = parser.add_argument_group("Medical eponyms")
     eponyms_group.add_argument(
         '--eponyms', action='store_true',
-        help="Write medical eponyms (to remove from blacklist)"
+        help="Write medical eponyms (to remove from denylist)"
     )
     eponyms_group.add_argument(
         '--eponyms_output', type=str, default="medical_eponyms.txt",

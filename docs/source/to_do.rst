@@ -25,7 +25,7 @@ Things to do
 - fix bug (reported by JL 6/11/2018) where the RiO preprocessor tries to put
   the same column into the same index more than once (see RNC email 6/11/2018)
 
-- BENCHMARK name blacklisting (with forenames + surnames – English words –
+- BENCHMARK name denial (with forenames + surnames – English words –
   eponyms): speed, precision, recall. Share results with MB.
 
 - Personal configurable highlight colours (with default set if none

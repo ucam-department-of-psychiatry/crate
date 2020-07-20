@@ -219,7 +219,8 @@ class AlterMethod(object):
         else:
             raise ValueError(f"Bad alter_method part: {value}")
 
-    def get_text(self) -> str:
+    @property
+    def as_text(self) -> str:
         """
         Return the ``alter_method`` fragment from the working fields;
         effectively the reverse of :func:`set_from_text`.
@@ -304,7 +305,7 @@ class AlterMethod(object):
 
         if self.extract_text:
             value, extracted = self._extract_text_func(value, row, ddrows)
-            if not extracted and ddr.skip_row_if_extract_text_fails():
+            if not extracted and ddr.skip_row_if_extract_text_fails:
                 log.debug("Skipping row as text extraction failed")
                 return None, True
             return value, False
@@ -448,7 +449,7 @@ class AlterMethod(object):
                 # Configuration error
                 raise ValueError(
                     f"Bug: missing extension field for "
-                    f"alter_method={self.get_text()}")
+                    f"alter_method={self.as_text}")
             extension = row[extindex]
             log.info(f"extract_text: database BLOB, extension={extension}")
 

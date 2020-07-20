@@ -119,7 +119,10 @@ from crate_anon.anonymise.scrub import (
     WordList,
 )
 from crate_anon.common.constants import RUNNING_WITHOUT_CONFIG
-from crate_anon.common.extendedconfigparser import ExtendedConfigParser
+from crate_anon.common.extendedconfigparser import (
+    ConfigSection,
+    ExtendedConfigParser,
+)
 from crate_anon.common.sql import TransactionSizeLimiter
 
 if TYPE_CHECKING:
@@ -151,115 +154,117 @@ class DatabaseSafeConfig(object):
             parser: configparser object
             section: section name
         """
-        if not parser.has_section(section):
-            raise ValueError("config missing section: " + section)
+        cfg = ConfigSection(section=section, parser=parser)
 
-        def opt_str(option: str) -> str:
-            return parser.get(section, option, fallback=None)
-
-        def opt_multiline(option: str, as_words: bool = True) -> List[str]:
-            return parser.get_str_list(section, option, as_words=as_words)
-
-        def opt_bool(option: str, default: bool) -> bool:
-            return parser.getboolean(section, option, fallback=default)
-
-        def opt_int(option: str, default: Optional[int]) -> Optional[int]:
-            return parser.get_int_default_if_failure(section, option, default)
-
-        def opt_multiline_csv_pairs(option: str) -> Dict[str, str]:
-            d = {}  # type: Dict[str, str]
-            lines = opt_multiline(option, as_words=False)
-            for line in lines:
-                pair = [item.strip() for item in line.split(",")]
-                if len(pair) != 2:
-                    raise ValueError(f"For option {option}: specify items as "
-                                     f"a list of comma-separated pairs")
-                d[pair[0]] = pair[1]
-            return d
-
-        self.ddgen_omit_by_default = opt_bool(
+        self.ddgen_omit_by_default = cfg.opt_bool(
             'ddgen_omit_by_default', True)
-        self.ddgen_omit_fields = opt_multiline('ddgen_omit_fields')
-        self.ddgen_include_fields = opt_multiline('ddgen_include_fields')
+        self.ddgen_omit_fields = cfg.opt_multiline('ddgen_omit_fields')
+        self.ddgen_include_fields = cfg.opt_multiline('ddgen_include_fields')
 
-        self.ddgen_allow_no_patient_info = opt_bool(
+        self.ddgen_allow_no_patient_info = cfg.opt_bool(
             'ddgen_allow_no_patient_info', False)
-        self.ddgen_per_table_pid_field = opt_str('ddgen_per_table_pid_field')
-        self.ddgen_table_defines_pids = opt_str('ddgen_table_defines_pids')
-        self.ddgen_add_per_table_pids_to_scrubber = opt_bool(
+        self.ddgen_per_table_pid_field = cfg.opt_str(
+            'ddgen_per_table_pid_field')
+        self.ddgen_table_defines_pids = cfg.opt_str(
+            'ddgen_table_defines_pids')
+        self.ddgen_add_per_table_pids_to_scrubber = cfg.opt_bool(
             'ddgen_add_per_table_pids_to_scrubber', False)
-        self.ddgen_master_pid_fieldname = opt_str('ddgen_master_pid_fieldname')
-        self.ddgen_table_blacklist = opt_multiline('ddgen_table_blacklist')
-        self.ddgen_table_whitelist = opt_multiline('ddgen_table_whitelist')
-        self.ddgen_table_require_field_absolute = opt_multiline(
+        self.ddgen_master_pid_fieldname = cfg.opt_str(
+            'ddgen_master_pid_fieldname')
+        cfg.require_absent(
+            "ddgen_table_blacklist",
+            "Replace 'ddgen_table_blacklist' with 'ddgen_table_denylist'"
+        )
+        self.ddgen_table_denylist = cfg.opt_multiline(
+            'ddgen_table_denylist')
+        cfg.require_absent(
+            "ddgen_table_whitelist",
+            "Replace 'ddgen_table_whitelist' with 'ddgen_table_allowlist'"
+        )
+        self.ddgen_table_allowlist = cfg.opt_multiline(
+            'ddgen_table_allowlist')
+        self.ddgen_table_require_field_absolute = cfg.opt_multiline(
             'ddgen_table_require_field_absolute')
-        self.ddgen_table_require_field_conditional = opt_multiline_csv_pairs(
-            'ddgen_table_require_field_conditional')
-        self.ddgen_field_blacklist = opt_multiline('ddgen_field_blacklist')
-        self.ddgen_field_whitelist = opt_multiline('ddgen_field_whitelist')
-        self.ddgen_pk_fields = opt_multiline('ddgen_pk_fields')
+        self.ddgen_table_require_field_conditional = \
+            cfg.opt_multiline_csv_pairs(
+                'ddgen_table_require_field_conditional')
+        cfg.require_absent(
+            "ddgen_field_blacklist",
+            "Replace 'ddgen_field_blacklist' with 'ddgen_field_denylist'"
+        )
+        self.ddgen_field_denylist = cfg.opt_multiline(
+            'ddgen_field_denylist')
+        cfg.require_absent(
+            "ddgen_field_whitelist",
+            "Replace 'ddgen_field_whitelist' with 'ddgen_field_allowlist'"
+        )
+        self.ddgen_field_allowlist = cfg.opt_multiline(
+            'ddgen_field_allowlist')
+        self.ddgen_pk_fields = cfg.opt_multiline('ddgen_pk_fields')
 
-        self.ddgen_constant_content = opt_bool(
+        self.ddgen_constant_content = cfg.opt_bool(
             'ddgen_constant_content', False)
-        self.ddgen_constant_content_tables = opt_str(
+        self.ddgen_constant_content_tables = cfg.opt_str(
             'ddgen_constant_content_tables')
-        self.ddgen_nonconstant_content_tables = opt_str(
+        self.ddgen_nonconstant_content_tables = cfg.opt_str(
             'ddgen_nonconstant_content_tables')
-        self.ddgen_addition_only = opt_bool('ddgen_addition_only', False)
-        self.ddgen_addition_only_tables = opt_str('ddgen_addition_only_tables')
-        self.ddgen_deletion_possible_tables = opt_str(
+        self.ddgen_addition_only = cfg.opt_bool('ddgen_addition_only', False)
+        self.ddgen_addition_only_tables = cfg.opt_str(
+            'ddgen_addition_only_tables')
+        self.ddgen_deletion_possible_tables = cfg.opt_str(
             'ddgen_deletion_possible_tables')
 
-        self.ddgen_pid_defining_fieldnames = opt_multiline(
+        self.ddgen_pid_defining_fieldnames = cfg.opt_multiline(
             'ddgen_pid_defining_fieldnames')
-        self.ddgen_scrubsrc_patient_fields = opt_multiline(
+        self.ddgen_scrubsrc_patient_fields = cfg.opt_multiline(
             'ddgen_scrubsrc_patient_fields')
-        self.ddgen_scrubsrc_thirdparty_fields = opt_multiline(
+        self.ddgen_scrubsrc_thirdparty_fields = cfg.opt_multiline(
             'ddgen_scrubsrc_thirdparty_fields')
-        self.ddgen_scrubsrc_thirdparty_xref_pid_fields = opt_multiline(
+        self.ddgen_scrubsrc_thirdparty_xref_pid_fields = cfg.opt_multiline(
             'ddgen_scrubsrc_thirdparty_xref_pid_fields')
-        self.ddgen_required_scrubsrc_fields = opt_multiline(
+        self.ddgen_required_scrubsrc_fields = cfg.opt_multiline(
             'ddgen_required_scrubsrc_fields')
-        self.ddgen_scrubmethod_code_fields = opt_multiline(
+        self.ddgen_scrubmethod_code_fields = cfg.opt_multiline(
             'ddgen_scrubmethod_code_fields')
-        self.ddgen_scrubmethod_date_fields = opt_multiline(
+        self.ddgen_scrubmethod_date_fields = cfg.opt_multiline(
             'ddgen_scrubmethod_date_fields')
-        self.ddgen_scrubmethod_number_fields = opt_multiline(
+        self.ddgen_scrubmethod_number_fields = cfg.opt_multiline(
             'ddgen_scrubmethod_number_fields')
-        self.ddgen_scrubmethod_phrase_fields = opt_multiline(
+        self.ddgen_scrubmethod_phrase_fields = cfg.opt_multiline(
             'ddgen_scrubmethod_phrase_fields')
-        self.ddgen_safe_fields_exempt_from_scrubbing = opt_multiline(
+        self.ddgen_safe_fields_exempt_from_scrubbing = cfg.opt_multiline(
             'ddgen_safe_fields_exempt_from_scrubbing')
-        self.ddgen_min_length_for_scrubbing = opt_int(
+        self.ddgen_min_length_for_scrubbing = cfg.opt_int(
             'ddgen_min_length_for_scrubbing', 0)
 
-        self.ddgen_truncate_date_fields = opt_multiline(
+        self.ddgen_truncate_date_fields = cfg.opt_multiline(
             'ddgen_truncate_date_fields')
-        self.ddgen_filename_to_text_fields = opt_multiline(
+        self.ddgen_filename_to_text_fields = cfg.opt_multiline(
             'ddgen_filename_to_text_fields')
 
-        self.bin2text_dict = opt_multiline_csv_pairs(
+        self.bin2text_dict = cfg.opt_multiline_csv_pairs(
             'ddgen_binary_to_text_field_pairs')
-        self.ddgen_skip_row_if_extract_text_fails_fields = opt_multiline(
+        self.ddgen_skip_row_if_extract_text_fails_fields = cfg.opt_multiline(
             'ddgen_skip_row_if_extract_text_fails_fields')
-        self.ddgen_rename_tables_remove_suffixes = opt_multiline(
+        self.ddgen_rename_tables_remove_suffixes = cfg.opt_multiline(
             'ddgen_rename_tables_remove_suffixes', as_words=True)
 
-        self.ddgen_index_fields = opt_multiline('ddgen_index_fields')
-        self.ddgen_allow_fulltext_indexing = opt_bool(
+        self.ddgen_index_fields = cfg.opt_multiline('ddgen_index_fields')
+        self.ddgen_allow_fulltext_indexing = cfg.opt_bool(
             'ddgen_allow_fulltext_indexing', True)
 
-        self.ddgen_force_lower_case = opt_bool('ddgen_force_lower_case', True)
-        self.ddgen_convert_odd_chars_to_underscore = opt_bool(
+        self.ddgen_force_lower_case = cfg.opt_bool(
+            'ddgen_force_lower_case', True)
+        self.ddgen_convert_odd_chars_to_underscore = cfg.opt_bool(
             'ddgen_convert_odd_chars_to_underscore', True)
 
-        self.debug_row_limit = opt_int('debug_row_limit', 0)
-        self.debug_limited_tables = opt_multiline('debug_limited_tables')
+        self.debug_row_limit = cfg.opt_int('debug_row_limit', 0)
+        self.debug_limited_tables = cfg.opt_multiline('debug_limited_tables')
 
-        self.ddgen_patient_opt_out_fields = opt_multiline(
+        self.ddgen_patient_opt_out_fields = cfg.opt_multiline(
             'ddgen_patient_opt_out_fields')
 
-        self.ddgen_extra_hash_fields = opt_multiline_csv_pairs(
+        self.ddgen_extra_hash_fields = cfg.opt_multiline_csv_pairs(
             'ddgen_extra_hash_fields')
         # ... key: fieldspec
         # ... value: hash_config_section_name
@@ -267,30 +272,30 @@ class DatabaseSafeConfig(object):
         self.pidtype = BigInteger()
         self.mpidtype = BigInteger()
 
-    def is_table_blacklisted(self, table: str) -> bool:
+    def is_table_denied(self, table: str) -> bool:
         """
-        Is the table name blacklisted (and not also whitelisted)?
+        Is the table name denylisted (and not also allowlisted)?
         """
-        for white in self.ddgen_table_whitelist:
-            r = regex.compile(fnmatch.translate(white), regex.IGNORECASE)
+        for allow in self.ddgen_table_allowlist:
+            r = regex.compile(fnmatch.translate(allow), regex.IGNORECASE)
             if r.match(table):
                 return False
-        for black in self.ddgen_table_blacklist:
-            r = regex.compile(fnmatch.translate(black), regex.IGNORECASE)
+        for deny in self.ddgen_table_denylist:
+            r = regex.compile(fnmatch.translate(deny), regex.IGNORECASE)
             if r.match(table):
                 return True
         return False
 
-    def is_field_blacklisted(self, field: str) -> bool:
+    def is_field_denied(self, field: str) -> bool:
         """
-        Is the field name blacklisted (and not also whitelisted)?
+        Is the field name denylisted (and not also allowlisted)?
         """
-        for white in self.ddgen_field_whitelist:
-            r = regex.compile(fnmatch.translate(white), regex.IGNORECASE)
+        for allow in self.ddgen_field_allowlist:
+            r = regex.compile(fnmatch.translate(allow), regex.IGNORECASE)
             if r.match(field):
                 return True
-        for black in self.ddgen_field_blacklist:
-            r = regex.compile(fnmatch.translate(black), regex.IGNORECASE)
+        for deny in self.ddgen_field_denylist:
+            r = regex.compile(fnmatch.translate(deny), regex.IGNORECASE)
             if r.match(field):
                 return True
         return False
@@ -341,14 +346,9 @@ def get_extra_hasher(parser: ExtendedConfigParser,
     Returns:
         the hasher
     """
-    if not parser.has_section(section):
-        raise ValueError("config missing section: " + section)
-
-    def opt_str(option: str) -> str:
-        return parser.get(section, option, fallback=None)
-
-    hash_method = opt_str("hash_method")
-    secret_key = opt_str("secret_key")
+    cfg = ConfigSection(section=section, parser=parser)
+    hash_method = cfg.opt_str("hash_method", required=True)
+    secret_key = cfg.opt_str("secret_key", required=True)
     return make_hasher(hash_method, secret_key)
 
 
@@ -411,6 +411,31 @@ def get_word_alternatives(filenames: List[str]) -> List[List[str]]:
 
 
 # =============================================================================
+# get_sqlatype
+# =============================================================================
+
+def get_sqlatype(sqlatype: str, default: TypeEngine) -> TypeEngine:
+    """
+    Converts a string, like "VARCHAR(10)", to an SQLAlchemy type.
+
+    Since we might have to return String(length=...), we have to return
+    an instance, not a class.
+    """
+    if not sqlatype:
+        return default
+    if sqlatype == "BigInteger":
+        return BigInteger()
+    r = regex.compile(r"String\((\d+)\)")  # e.g. String(50)
+    try:
+        m = r.match(sqlatype)
+        length = int(m.group(1))
+        return String(length)
+    except (AttributeError, ValueError):
+        raise ValueError(f"Bad SQLAlchemy type specification for "
+                         f"PID/MPID columns: {sqlatype!r}")
+
+
+# =============================================================================
 # Config
 # =============================================================================
 
@@ -427,50 +452,31 @@ class Config(object):
         Args:
             open_databases: open SQLAlchemy connections to the databases?
         """
-        parser = ExtendedConfigParser()
-        section = "main"
 
         # Get filename
         try:
-            self.config_filename = os.environ[CONFIG_ENV_VAR]
-            assert self.config_filename
-            # Read config from file.
-            log.info(f"Reading config file: {self.config_filename}")
-            fileobj = codecs.open(self.config_filename, "r", "utf8")
+            self.config_filename = os.environ[CONFIG_ENV_VAR]  # may raise
+            assert self.config_filename  # may raise
+            filename = self.config_filename
+            fileobj = None
         except (KeyError, AssertionError):
             if RUNNING_WITHOUT_CONFIG:
                 # Running in a mock environment; no config required
+                filename = None
                 fileobj = StringIO(DEMO_CONFIG)
             else:
                 print(
                     f"You must set the {CONFIG_ENV_VAR} environment variable "
                     f"to point to a CRATE anonymisation config file, or "
-                    f"specify it on the command line. Run "
-                    f"crate_print_demo_anon_config to see a specimen config.")
+                    f"specify it on the command line.")
                 sys.exit(1)
 
-        parser.read_file(fileobj)
-
-        def opt_str(option: str) -> str:
-            return parser.get(section, option, fallback=None)
-
-        def opt_multiline(option: str) -> List[str]:
-            return parser.get_str_list(section, option)
-
-        def opt_multiline_int(option: str,
-                              minimum: int = None,
-                              maximum: int = None) -> List[int]:
-            return parser.get_int_list(section, option, minimum=minimum,
-                                       maximum=maximum, suppress_errors=False)
-
-        def opt_bool(option: str, default: bool) -> bool:
-            return parser.getboolean(section, option, fallback=default)
-
-        def opt_int(option: str, default: Optional[int]) -> Optional[int]:
-            return parser.get_int_default_if_failure(section, option, default)
-
-        def opt_pyvalue_list(option: str, default: Any = None) -> Any:
-            return parser.get_pyvalue_list(section, option, default=default)
+        cfg = ConfigSection(
+            section="main",
+            filename=filename,
+            fileobj=fileobj
+        )
+        parser = cfg.parser
 
         def get_database(section_: str,
                          name: str,
@@ -485,52 +491,34 @@ class Config(object):
                                        with_conn=with_conn,
                                        reflect=reflect)
 
-        def get_sqlatype(sqlatype: str, default: TypeEngine) -> TypeEngine:
-
-            """
-            Since we might have to return String(length=...), we have to return
-            an instance, not a class.
-            """
-            if not sqlatype:
-                return default
-            if sqlatype == "BigInteger":
-                return BigInteger()
-            r = regex.compile(r"String\((\d+)\)")  # e.g. String(50)
-            try:
-                m = r.match(sqlatype)
-                length = int(m.group(1))
-                return String(length)
-            except (AttributeError, ValueError):
-                raise ValueError(f"Bad SQLAlchemy type specification for "
-                                 f"PID/MPID columns: {sqlatype!r}")
-
         # ---------------------------------------------------------------------
         # Data dictionary
         # ---------------------------------------------------------------------
 
-        self.data_dictionary_filename = opt_str('data_dictionary_filename')
+        self.data_dictionary_filename = cfg.opt_str('data_dictionary_filename')
 
         # ---------------------------------------------------------------------
         # Critical field types
         # ---------------------------------------------------------------------
 
-        self.pidtype = get_sqlatype(opt_str('sqlatype_pid'), BigInteger())
+        self.pidtype = get_sqlatype(cfg.opt_str('sqlatype_pid'), BigInteger())
         self.pidtype_is_integer = is_sqlatype_integer(self.pidtype)
-        self.mpidtype = get_sqlatype(opt_str('sqlatype_mpid'), BigInteger())
+        self.mpidtype = get_sqlatype(cfg.opt_str('sqlatype_mpid'),
+                                     BigInteger())
         self.mpidtype_is_integer = is_sqlatype_integer(self.mpidtype)
 
         # ---------------------------------------------------------------------
         # Encryption phrases/passwords
         # ---------------------------------------------------------------------
 
-        self.hash_method = opt_str('hash_method')
-        self.per_table_patient_id_encryption_phrase = opt_str(
+        self.hash_method = cfg.opt_str('hash_method')
+        self.per_table_patient_id_encryption_phrase = cfg.opt_str(
             'per_table_patient_id_encryption_phrase')
-        self.master_patient_id_encryption_phrase = opt_str(
+        self.master_patient_id_encryption_phrase = cfg.opt_str(
             'master_patient_id_encryption_phrase')
-        self.change_detection_encryption_phrase = opt_str(
+        self.change_detection_encryption_phrase = cfg.opt_str(
             'change_detection_encryption_phrase')
-        _extra_hash_config_section_names = opt_multiline(
+        _extra_hash_config_section_names = cfg.opt_multiline(
             "extra_hash_config_sections")
 
         self.extra_hashers = {}  # type: Dict[str, GenericHasher]
@@ -565,55 +553,68 @@ class Config(object):
         # Text extraction
         # ---------------------------------------------------------------------
 
-        self.extract_text_extensions_case_sensitive = opt_bool(
+        self.extract_text_extensions_case_sensitive = cfg.opt_bool(
             'extract_text_extensions_case_sensitive', False)
-        self.extract_text_extensions_permitted = opt_multiline(
+        self.extract_text_extensions_permitted = cfg.opt_multiline(
             'extract_text_extensions_permitted')
-        self.extract_text_extensions_prohibited = opt_multiline(
+        self.extract_text_extensions_prohibited = cfg.opt_multiline(
             'extract_text_extensions_prohibited')
-        self.extract_text_plain = opt_bool('extract_text_plain', True)
-        self.extract_text_width = opt_int('extract_text_width', 80)
+        self.extract_text_plain = cfg.opt_bool('extract_text_plain', True)
+        self.extract_text_width = cfg.opt_int('extract_text_width', 80)
 
         # ---------------------------------------------------------------------
         # Anonymisation
         # ---------------------------------------------------------------------
 
-        self.replace_patient_info_with = opt_str('replace_patient_info_with')
-        self.replace_third_party_info_with = opt_str(
+        self.replace_patient_info_with = cfg.opt_str(
+            'replace_patient_info_with')
+        self.replace_third_party_info_with = cfg.opt_str(
             'replace_third_party_info_with')
-        self.replace_nonspecific_info_with = opt_str(
+        self.replace_nonspecific_info_with = cfg.opt_str(
             'replace_nonspecific_info_with')
-        self.thirdparty_xref_max_depth = opt_int('thirdparty_xref_max_depth',
-                                                 1)
-        self.string_max_regex_errors = opt_int('string_max_regex_errors', 0)
-        self.min_string_length_for_errors = opt_int(
+        self.thirdparty_xref_max_depth = cfg.opt_int(
+            'thirdparty_xref_max_depth', 1)
+        self.string_max_regex_errors = cfg.opt_int(
+            'string_max_regex_errors', 0)
+        self.min_string_length_for_errors = cfg.opt_int(
             'min_string_length_for_errors', 1)
-        self.min_string_length_to_scrub_with = opt_int(
+        self.min_string_length_to_scrub_with = cfg.opt_int(
             'min_string_length_to_scrub_with', 2)
-        self.scrub_all_uk_postcodes = opt_bool('scrub_all_uk_postcodes', False)
-        self.anonymise_codes_at_word_boundaries_only = opt_bool(
+        self.scrub_all_uk_postcodes = cfg.opt_bool(
+            'scrub_all_uk_postcodes', False)
+        self.anonymise_codes_at_word_boundaries_only = cfg.opt_bool(
             'anonymise_codes_at_word_boundaries_only', True)
-        self.anonymise_dates_at_word_boundaries_only = opt_bool(
+        self.anonymise_dates_at_word_boundaries_only = cfg.opt_bool(
             'anonymise_dates_at_word_boundaries_only', True)
-        self.anonymise_numbers_at_word_boundaries_only = opt_bool(
+        self.anonymise_numbers_at_word_boundaries_only = cfg.opt_bool(
             'anonymise_numbers_at_word_boundaries_only', False)
-        self.anonymise_numbers_at_numeric_boundaries_only = opt_bool(
+        self.anonymise_numbers_at_numeric_boundaries_only = cfg.opt_bool(
             'anonymise_numbers_at_numeric_boundaries_only', True)
-        self.anonymise_strings_at_word_boundaries_only = opt_bool(
+        self.anonymise_strings_at_word_boundaries_only = cfg.opt_bool(
             'anonymise_strings_at_word_boundaries_only', True)
 
-        self.scrub_string_suffixes = opt_multiline('scrub_string_suffixes')
-        self.whitelist_filenames = opt_multiline('whitelist_filenames')
-        self.blacklist_filenames = opt_multiline('blacklist_filenames')
-        self.phrase_alternative_word_filenames = opt_multiline(
+        self.scrub_string_suffixes = cfg.opt_multiline('scrub_string_suffixes')
+        cfg.require_absent(
+            "whitelist_filenames",
+            "Replace 'whitelist_filenames' with 'allowlist_filenames'"
+        )
+        self.allowlist_filenames = cfg.opt_multiline('allowlist_filenames')
+        cfg.require_absent(
+            "blacklist_filenames",
+            "Replace 'blacklist_filenames' with 'denylist_filenames'"
+        )
+        self.denylist_filenames = cfg.opt_multiline('denylist_filenames')
+        self.phrase_alternative_word_filenames = cfg.opt_multiline(
             'phrase_alternative_word_filenames')
-        self.scrub_all_numbers_of_n_digits = opt_multiline_int(
+        self.scrub_all_numbers_of_n_digits = cfg.opt_multiline_int(
             'scrub_all_numbers_of_n_digits', minimum=1)
-        self.timefield = opt_str('timefield_name')
+        self.timefield = cfg.opt_str('timefield_name')
 
         # Get all extra regexes
         if parser.has_section('extra_regexes'):
-            self.extra_regexes = [x[1] for x in parser.items('extra_regexes')]
+            self.extra_regexes = [
+                x[1] for x in parser.items('extra_regexes')
+            ]
         else:
             self.extra_regexes = []  # type: List[str]
 
@@ -623,13 +624,13 @@ class Config(object):
             self.extract_text_extensions_permitted = [
                 x.upper() for x in self.extract_text_extensions_permitted]
 
-        # Whitelist, blacklist, nonspecific scrubber, alternative words
-        self.whitelist = WordList(
-            filenames=self.whitelist_filenames,
+        # allowlist, denylist, nonspecific scrubber, alternative words
+        self.allowlist = WordList(
+            filenames=self.allowlist_filenames,
             hasher=self.change_detection_hasher,
         )
-        self.blacklist = WordList(
-            filenames=self.blacklist_filenames,
+        self.denylist = WordList(
+            filenames=self.denylist_filenames,
             replacement_text=self.replace_nonspecific_info_with,
             hasher=self.change_detection_hasher,
             at_word_boundaries_only=(
@@ -643,7 +644,7 @@ class Config(object):
                 self.anonymise_codes_at_word_boundaries_only),
             anonymise_numbers_at_word_boundaries_only=(
                 self.anonymise_numbers_at_word_boundaries_only),
-            blacklist=self.blacklist,
+            denylist=self.denylist,
             scrub_all_numbers_of_n_digits=self.scrub_all_numbers_of_n_digits,
             scrub_all_uk_postcodes=self.scrub_all_uk_postcodes,
             extra_regexes=self.extra_regexes,
@@ -655,39 +656,40 @@ class Config(object):
         # Output fields and formatting
         # ---------------------------------------------------------------------
 
-        self.research_id_fieldname = opt_str('research_id_fieldname')
-        self.trid_fieldname = opt_str('trid_fieldname')
-        self.master_research_id_fieldname = opt_str(
+        self.research_id_fieldname = cfg.opt_str('research_id_fieldname')
+        self.trid_fieldname = cfg.opt_str('trid_fieldname')
+        self.master_research_id_fieldname = cfg.opt_str(
             'master_research_id_fieldname')
-        self.add_mrid_wherever_rid_added = opt_bool(
+        self.add_mrid_wherever_rid_added = cfg.opt_bool(
             'add_mrid_wherever_rid_added', True)
-        self.source_hash_fieldname = opt_str('source_hash_fieldname')
-        self.ddgen_append_source_info_to_comment = opt_bool(
+        self.source_hash_fieldname = cfg.opt_str('source_hash_fieldname')
+        self.ddgen_append_source_info_to_comment = cfg.opt_bool(
             'ddgen_append_source_info_to_comment', True)
 
         # ---------------------------------------------------------------------
         # Destination database configuration
         # ---------------------------------------------------------------------
 
-        self.max_rows_before_commit = opt_int('max_rows_before_commit',
-                                              DEFAULT_MAX_ROWS_BEFORE_COMMIT)
-        self.max_bytes_before_commit = opt_int('max_bytes_before_commit',
-                                               DEFAULT_MAX_BYTES_BEFORE_COMMIT)
-        self.temporary_tablename = opt_str('temporary_tablename')
+        self.max_rows_before_commit = cfg.opt_int(
+            'max_rows_before_commit', DEFAULT_MAX_ROWS_BEFORE_COMMIT)
+        self.max_bytes_before_commit = cfg.opt_int(
+            'max_bytes_before_commit', DEFAULT_MAX_BYTES_BEFORE_COMMIT)
+        self.temporary_tablename = cfg.opt_str(
+            'temporary_tablename')
 
         # ---------------------------------------------------------------------
         # Databases
         # ---------------------------------------------------------------------
 
-        destination_database_cfg_section = opt_str('destination_database')
+        destination_database_cfg_section = cfg.opt_str('destination_database')
         self._destination_database_url = parser.get_str(
             destination_database_cfg_section, 'url', required=True)
-        admin_database_cfg_section = opt_str('admin_database')
+        admin_database_cfg_section = cfg.opt_str('admin_database')
         if destination_database_cfg_section == admin_database_cfg_section:
             raise ValueError(
                 "Destination and admin databases mustn't be the same")
-        source_database_cfg_sections = opt_multiline('source_databases')
-        self.source_db_names = source_database_cfg_sections
+        source_database_cfg_sections = cfg.opt_multiline('source_databases')
+        self._source_db_names = source_database_cfg_sections
         if destination_database_cfg_section in source_database_cfg_sections:
             raise ValueError("Destination database mustn't be listed as a "
                              "source database")
@@ -697,7 +699,7 @@ class Config(object):
 
         if RUNNING_WITHOUT_CONFIG:
             self.destdb = None  # type: Optional[DatabaseHolder]
-            self.dest_dialect = mysql_dialect
+            self._dest_dialect = mysql_dialect
         else:
             self.destdb = get_database(destination_database_cfg_section,
                                        name=destination_database_cfg_section,
@@ -707,9 +709,9 @@ class Config(object):
             if not self.destdb:
                 raise ValueError("Destination database misconfigured")
             if open_databases:
-                self.dest_dialect = self.destdb.engine.dialect
+                self._dest_dialect = self.destdb.engine.dialect
             else:  # in context of web framework, some sort of default
-                self.dest_dialect = mysql_dialect
+                self._dest_dialect = mysql_dialect
             self._destdb_transaction_limiter = TransactionSizeLimiter(
                 session=self.destdb.session,
                 max_bytes_before_commit=self.max_bytes_before_commit,
@@ -753,16 +755,16 @@ class Config(object):
         # Processing options
         # ---------------------------------------------------------------------
 
-        self.debug_max_n_patients = opt_int('debug_max_n_patients', 0)
-        self.debug_pid_list = opt_multiline('debug_pid_list')
+        self.debug_max_n_patients = cfg.opt_int('debug_max_n_patients', 0)
+        self.debug_pid_list = cfg.opt_multiline('debug_pid_list')
 
         # ---------------------------------------------------------------------
         # Opting out entirely
         # ---------------------------------------------------------------------
 
-        self.optout_pid_filenames = opt_multiline('optout_pid_filenames')
-        self.optout_mpid_filenames = opt_multiline('optout_mpid_filenames')
-        self.optout_col_values = opt_pyvalue_list('optout_col_values')
+        self.optout_pid_filenames = cfg.opt_multiline('optout_pid_filenames')
+        self.optout_mpid_filenames = cfg.opt_multiline('optout_mpid_filenames')
+        self.optout_col_values = cfg.opt_pyvalue_list('optout_col_values')
 
         # ---------------------------------------------------------------------
         # Rest of initialization
@@ -951,7 +953,7 @@ class Config(object):
             # be equated on the hash (e.g. hash(None) -> hash("None") -> ...)!
         return self.master_pid_hasher.hash(mpid)
 
-    def hash_object(self, l: Any) -> str:
+    def hash_object(self, x: Any) -> str:
         """
         Hashes an object using our ``change_detection_hasher``.
 
@@ -961,7 +963,7 @@ class Config(object):
         therefore that this is vulnerable to content discovery via a dictionary
         attack. Thus, we should use a better version.
         """
-        return self.change_detection_hasher.hash(repr(l))
+        return self.change_detection_hasher.hash(repr(x))
 
     def get_extra_hasher(self, hasher_name: str) -> GenericHasher:
         """
@@ -983,11 +985,12 @@ class Config(object):
                 f"the config file")
         return self.extra_hashers[hasher_name]
 
-    def get_source_db_names(self) -> List[str]:
+    @property
+    def source_db_names(self) -> List[str]:
         """
         Get all source database names.
         """
-        return self.source_db_names
+        return self._source_db_names
 
     def set_echo(self, echo: bool) -> None:
         """
@@ -1016,12 +1019,13 @@ class Config(object):
         """
         return self.src_dialects[src_db]
 
-    def get_dest_dialect(self) -> Dialect:
+    @property
+    def dest_dialect(self) -> Dialect:
         """
         Returns the SQLAlchemy :class:`Dialect` (e.g. MySQL, SQL Server...) for
         the destination database.
         """
-        return self.dest_dialect
+        return self._dest_dialect
 
     def commit_dest_db(self) -> None:
         """

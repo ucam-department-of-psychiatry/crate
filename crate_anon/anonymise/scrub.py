@@ -134,8 +134,8 @@ class WordList(ScrubberBase):
     A scrubber that removes all words in a wordlist, in case-insensitive
     fashion.
 
-    This serves a dual function as a whitelist (is a word in the list?) and a
-    blacklist (scrub text using the wordlist).
+    This serves a dual function as an allowlist (is a word in the list?) and a
+    denylist (scrub text using the wordlist).
     """
     def __init__(self,
                  filenames: Iterable[str] = None,
@@ -309,7 +309,7 @@ class NonspecificScrubber(ScrubberBase):
                  hasher: GenericHasher,
                  anonymise_codes_at_word_boundaries_only: bool = True,
                  anonymise_numbers_at_word_boundaries_only: bool = True,
-                 blacklist: WordList = None,
+                 denylist: WordList = None,
                  scrub_all_numbers_of_n_digits: List[int] = None,
                  scrub_all_uk_postcodes: bool = False,
                  extra_regexes: Optional[List[str]] = None) -> None:
@@ -328,7 +328,7 @@ class NonspecificScrubber(ScrubberBase):
                ends with a word boundary requirement. If not set, the regex
                must be surrounded by non-digits. (If it were surrounded by more
                digits, it wouldn't be an n-digit number!)
-            blacklist:
+            denylist:
                 words to scrub
             scrub_all_numbers_of_n_digits:
                 list of values of n; number lengths to scrub
@@ -345,7 +345,7 @@ class NonspecificScrubber(ScrubberBase):
             anonymise_codes_at_word_boundaries_only)
         self.anonymise_numbers_at_word_boundaries_only = (
             anonymise_numbers_at_word_boundaries_only)
-        self.blacklist = blacklist
+        self.denylist = denylist
         self.scrub_all_numbers_of_n_digits = scrub_all_numbers_of_n_digits
         self.scrub_all_uk_postcodes = scrub_all_uk_postcodes
         self.extra_regexes = extra_regexes
@@ -362,7 +362,7 @@ class NonspecificScrubber(ScrubberBase):
                 # signature, used for hashing:
                 self.anonymise_codes_at_word_boundaries_only,
                 self.anonymise_numbers_at_word_boundaries_only,
-                self.blacklist.get_hash() if self.blacklist else None,
+                self.denylist.get_hash() if self.denylist else None,
                 self.scrub_all_numbers_of_n_digits,
                 self.scrub_all_uk_postcodes,
             ])
@@ -372,8 +372,8 @@ class NonspecificScrubber(ScrubberBase):
         # docstring in parent class
         if not self._regex_built:
             self.build_regex()
-        if self.blacklist:
-            text = self.blacklist.scrub(text)
+        if self.denylist:
+            text = self.denylist.scrub(text)
         if not self._regex:  # possible; may be blank
             return text
         return self._regex.sub(self.replacement_text, text)
@@ -423,7 +423,7 @@ class PersonalizedScrubber(ScrubberBase):
                  min_string_length_to_scrub_with: int = 3,
                  scrub_string_suffixes: List[str] = None,
                  string_max_regex_errors: int = 0,
-                 whitelist: WordList = None,
+                 allowlist: WordList = None,
                  alternatives: List[List[str]] = None,
                  nonspecific_scrubber: NonspecificScrubber = None,
                  debug: bool = False) -> None:
@@ -465,8 +465,8 @@ class PersonalizedScrubber(ScrubberBase):
             string_max_regex_errors:
                 the maximum number of typographical insertion / deletion /
                 substitution errors to permit
-            whitelist:
-                :class:`WordList` of words to whitelist (not to scrub)
+            allowlist:
+                :class:`WordList` of words to allow (not to scrub)
             alternatives:
                 This allows words to be substituted by equivalents; such as
                 ``St`` for ``Street`` or ``Rd`` for ``Road``. The parameter is
@@ -497,7 +497,7 @@ class PersonalizedScrubber(ScrubberBase):
         self.min_string_length_to_scrub_with = min_string_length_to_scrub_with
         self.scrub_string_suffixes = scrub_string_suffixes
         self.string_max_regex_errors = string_max_regex_errors
-        self.whitelist = whitelist
+        self.allowlist = allowlist
         self.alternatives = alternatives
         self.nonspecific_scrubber = nonspecific_scrubber
         self.debug = debug
@@ -626,7 +626,7 @@ class PersonalizedScrubber(ScrubberBase):
                 # [___]-5 years". So let's apply the length limit
                 # consistently.
                 continue
-            if self.whitelist and self.whitelist.contains(s):
+            if self.allowlist and self.allowlist.contains(s):
                 continue
             if length >= self.min_string_length_for_errors:
                 max_errors = self.string_max_regex_errors
@@ -651,7 +651,7 @@ class PersonalizedScrubber(ScrubberBase):
         length = len(value)
         if length < self.min_string_length_to_scrub_with:
             return []
-        if self.whitelist and self.whitelist.contains(value):
+        if self.allowlist and self.allowlist.contains(value):
             return []
         if length >= self.min_string_length_for_errors:
             max_errors = self.string_max_regex_errors
@@ -777,8 +777,8 @@ class PersonalizedScrubber(ScrubberBase):
              self.min_string_length_to_scrub_with),
             ('scrub_string_suffixes', sorted(self.scrub_string_suffixes)),
             ('string_max_regex_errors', self.string_max_regex_errors),
-            ('whitelist_hash',
-             self.whitelist.get_hash() if self.whitelist else None),
+            ('allowlist_hash',
+             self.allowlist.get_hash() if self.allowlist else None),
             ('nonspecific_scrubber_hash',
              self.nonspecific_scrubber.get_hash() if self.nonspecific_scrubber
              else None),

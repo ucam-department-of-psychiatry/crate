@@ -109,9 +109,9 @@ ddgen_add_per_table_pids_to_scrubber = False
 ddgen_master_pid_fieldname = crate_nhs_number_int
     # ... is in Client_Demographic_Details view
 
-ddgen_table_blacklist = #
+ddgen_table_denylist = #
     # -------------------------------------------------------------------------
-    # Blacklist: Prefixes: groups of tables; individual tables
+    # Denylist: Prefixes: groups of tables; individual tables
     # -------------------------------------------------------------------------
     Agresso*  # Agresso [sic] module (comms to social worker systems)
     ADT*  # ?admit/discharge/transfer messages (see codes in ADTMessage)
@@ -136,7 +136,7 @@ ddgen_table_blacklist = #
     dtoElectoralWardPCLookup  # we do our own geography; 2.5m records
     EP*  # E-Prescribing (EP) module, which we don't have
     #   ... mostly we don't have it, but we may have EPClientAllergies etc.
-    #   ... so see whitelist too
+    #   ... so see allowlist too
     ESRImport  # user-to-?role map? Small and system.
     ExternalSystem*  # system
     GenChd*  # lookup codes for Chd*
@@ -176,7 +176,7 @@ ddgen_table_blacklist = #
     WL*  # Waiting lists (WL) module
     view_AuditTrailPurge  # system; e.g. 96m records
     # -------------------------------------------------------------------------
-    # Blacklist: Middle bits, suffixes
+    # Denylist: Middle bits, suffixes
     # -------------------------------------------------------------------------
     *Access*  # system access controls
     *Backup  # I'm guessing backups...
@@ -184,11 +184,11 @@ ddgen_table_blacklist = #
     *Lock*  # system
     *Timeout*  # system
     # -------------------------------------------------------------------------
-    # Blacklist: CPFT custom
+    # Denylist: CPFT custom
     # -------------------------------------------------------------------------
     CDL_OUTDATEDPATIENTS_TWI  # RiO to CPFT 'M' number mapping, but we will use NHS number
     # -------------------------------------------------------------------------
-    # Blacklist: Views supersede
+    # Denylist: Views supersede
     # Below here, we have other tables suppressed because CRATE's views offer
     # more comprehensive alternatives
     # -------------------------------------------------------------------------
@@ -201,17 +201,17 @@ ddgen_table_blacklist = #
 # UserAssess* = non-core assessments themselves
 # UserMaster* = lookup tables for non-core assessments
 
-ddgen_table_whitelist = #
+ddgen_table_allowlist = #
     # -------------------------------------------------------------------------
-    # Whitelist: Prefixes: groups of tables
+    # Allowlist: Prefixes: groups of tables
     # -------------------------------------------------------------------------
     EPClientAllergy*  # Allergy details within EP module
     # -------------------------------------------------------------------------
-    # Whitelist: Suffixes
+    # Allowlist: Suffixes
     # -------------------------------------------------------------------------
     *_crate  # Views added by CRATE
     # -------------------------------------------------------------------------
-    # Whitelist: Individual tables
+    # Allowlist: Individual tables
     # -------------------------------------------------------------------------
     EPReactionType  # Allergy reaction type details within EP module
 
@@ -223,12 +223,12 @@ ddgen_table_require_field_conditional = #
     # If a table/view has ClientID, it must have crate_rio_number
     {RIO_COL_PATIENT_ID}, {CRATE_COL_RIO_NUMBER}
 
-ddgen_field_blacklist = #
+ddgen_field_denylist = #
     {RIO_COL_PATIENT_ID}  # replaced by crate_rio_number (which is then pseudonymised)
     *Soundex  # identifying 4-character code; https://msdn.microsoft.com/en-us/library/ms187384.aspx
     Spine*  # NHS Spine identifying codes
 
-ddgen_field_whitelist =
+ddgen_field_allowlist =
 
 ddgen_pk_fields = crate_pk
 
@@ -250,7 +250,7 @@ ddgen_pid_defining_fieldnames = Client_Demographic_Details.crate_rio_number
 ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
     # Original RiO tables (some may be superseded by views; list both here;
-    # if the table is blacklisted anyway, it doesn't matter).
+    # if the table is denylisted anyway, it doesn't matter).
     # ----------------------------------------------------------------------
     AmsReferral.DischargeAddressLine*  # superseded by view Referral
     AmsReferral.DischargePostCode  # superseded by view Referral

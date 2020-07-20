@@ -321,9 +321,9 @@ ddgen_add_per_table_pids_to_scrubber = False
 
 ddgen_master_pid_fieldname = {PCMIS_COL_NHS_NUMBER}
 
-ddgen_table_blacklist = #
+ddgen_table_denylist = #
     # -------------------------------------------------------------------------
-    # Blacklist: Prefixes: groups of tables; individual tables
+    # Denylist: Prefixes: groups of tables; individual tables
     # -------------------------------------------------------------------------
     aspnet_*  # admin tables
     CaseCarer*  # details of carers
@@ -339,24 +339,24 @@ ddgen_table_blacklist = #
     PatientEmployer*  # employer details
     pcmis_*  # admin tables
     # -------------------------------------------------------------------------
-    # Blacklist: CPFT custom
+    # Denylist: CPFT custom
     # -------------------------------------------------------------------------
     # -------------------------------------------------------------------------
-    # Blacklist: Views supersede
+    # Denylist: Views supersede
     # Below here, we have other tables suppressed because CRATE's views offer
     # more comprehensive alternatives
     # -------------------------------------------------------------------------
     {suppress_tables}
 
-ddgen_table_whitelist =
+ddgen_table_allowlist =
 
 ddgen_table_require_field_absolute = #
     # All tables/fields must have crate_pk
     {CRATE_COL_PK}
 
 ddgen_table_require_field_conditional =
-ddgen_field_blacklist =
-ddgen_field_whitelist =
+ddgen_field_denylist =
+ddgen_field_allowlist =
 ddgen_pk_fields = {CRATE_COL_PK}
 ddgen_constant_content = False
 ddgen_constant_content_tables =
@@ -370,7 +370,7 @@ ddgen_pid_defining_fieldnames = {VIEW_PT_DETAIL_W_GEOG}.{PCMIS_COL_PATIENT_ID}
 ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
     # Original PCMIS tables (some may be superseded by views; list both here;
-    # if the table is blacklisted anyway, it doesn't matter).
+    # if the table is denylisted anyway, it doesn't matter).
     # We achieve "list both" by using *.
     # ----------------------------------------------------------------------
     CaseContactDetails*.CaseNumber
@@ -862,6 +862,7 @@ def main() -> None:
     """
     Command-line parser. See command-line help.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
         description="Alters a PCMIS database to be suitable for CRATE.")

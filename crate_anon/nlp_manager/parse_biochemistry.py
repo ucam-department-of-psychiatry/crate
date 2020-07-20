@@ -136,12 +136,12 @@ class Crp(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -234,12 +234,12 @@ class Sodium(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -319,12 +319,12 @@ class Potassium(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -404,12 +404,12 @@ class Urea(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -495,12 +495,12 @@ class Creatinine(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -586,12 +586,12 @@ class Lithium(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -671,12 +671,12 @@ class Tsh(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -755,12 +755,12 @@ class Glucose(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -854,12 +854,12 @@ class LDLCholesterol(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -956,12 +956,12 @@ class HDLCholesterol(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -1059,12 +1059,12 @@ class TotalCholesterol(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -1162,12 +1162,12 @@ class Triglycerides(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -1310,12 +1310,12 @@ class HbA1c(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,

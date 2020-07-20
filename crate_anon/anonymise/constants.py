@@ -35,6 +35,7 @@ from cardinal_pythonlib.enumlike import StrEnum
 
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
+
 # =============================================================================
 # Logging
 # =============================================================================
@@ -49,12 +50,14 @@ LOG_COLORS = {
     'CRITICAL': 'red,bg_white',
 }
 
+
 # =============================================================================
 # Cosmetic
 # =============================================================================
 
 BIGSEP = "=" * 20 + " "
 SEP = "-" * 20 + " "
+
 
 # =============================================================================
 # Defaults for command-line options
@@ -63,11 +66,13 @@ SEP = "-" * 20 + " "
 DEFAULT_REPORT_EVERY = 100000  # 100k
 DEFAULT_CHUNKSIZE = 100000  # 100k
 
+
 # =============================================================================
 # Environment
 # =============================================================================
 
 CONFIG_ENV_VAR = 'CRATE_ANON_CONFIG'
+
 
 # =============================================================================
 # Data dictionary
@@ -174,6 +179,7 @@ TABLE_KWARGS = {
 MAX_IDENTIFIER_LENGTH = 64
 # MySQL: 64 -- http://dev.mysql.com/doc/refman/5.7/en/identifiers.html
 
+
 # =============================================================================
 # Demo config
 # =============================================================================
@@ -250,9 +256,9 @@ min_string_length_for_errors = 4
 
 min_string_length_to_scrub_with = 2
 
-whitelist_filenames =
+allowlist_filenames =
 
-blacklist_filenames =
+denylist_filenames =
 
 phrase_alternative_word_filenames =
 
@@ -379,14 +385,14 @@ ddgen_add_per_table_pids_to_scrubber = False
 
 ddgen_master_pid_fieldname = nhsnum
 
-ddgen_table_blacklist =
-ddgen_table_whitelist =
+ddgen_table_denylist =
+ddgen_table_allowlist =
 
 ddgen_table_require_field_absolute =
 ddgen_table_require_field_conditional =
 
-ddgen_field_blacklist =
-ddgen_field_whitelist =
+ddgen_field_denylist =
+ddgen_field_allowlist =
 
 ddgen_pk_fields =
 
@@ -459,8 +465,8 @@ url = mysql+mysqldb://username:password@127.0.0.1:3306/source2_databasename?char
 ddgen_force_lower_case = True
 ddgen_per_table_pid_field = patient_id
 ddgen_master_pid_fieldname = nhsnum
-ddgen_table_blacklist =
-ddgen_field_blacklist =
+ddgen_table_denylist =
+ddgen_field_denylist =
 ddgen_table_require_field_absolute =
 ddgen_table_require_field_conditional =
 ddgen_pk_fields =
@@ -492,9 +498,9 @@ ddgen_per_table_pid_field = _patient_idnum1
 ddgen_pid_defining_fieldnames = _patient_idnum1
 ddgen_master_pid_fieldname = _patient_idnum2
 
-ddgen_table_blacklist =
+ddgen_table_denylist =
 
-ddgen_field_blacklist = _patient_iddesc1
+ddgen_field_denylist = _patient_iddesc1
     _patient_idshortdesc1
     _patient_iddesc2
     _patient_idshortdesc2
