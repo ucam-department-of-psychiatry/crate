@@ -478,12 +478,13 @@ class ConfigSection(object):
         if parser:
             assert isinstance(parser, ExtendedConfigParser)
             self.parser = parser
-        elif filename:
-            self.parser = ExtendedConfigParser(case_sensitive=case_sensitive)
-            log.info(f"Reading config file: {filename}")
-            self.parser.read(filename, encoding=encoding)
         else:
-            self.parser.read_file(fileobj)
+            self.parser = ExtendedConfigParser(case_sensitive=case_sensitive)
+            if filename:
+                log.info(f"Reading config file: {filename}")
+                self.parser.read(filename, encoding=encoding)
+            else:
+                self.parser.read_file(fileobj)
 
         # Check section exists
         self.parser.require_section(self.section)

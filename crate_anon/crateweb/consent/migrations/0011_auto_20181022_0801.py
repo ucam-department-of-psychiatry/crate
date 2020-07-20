@@ -41,6 +41,7 @@ class Migration(migrations.Migration):
         ('consent', '0010_auto_20180629_1238'),
     ]
 
+    # noinspection PyProtectedMember
     operations = [
         migrations.AddField(
             model_name='study',

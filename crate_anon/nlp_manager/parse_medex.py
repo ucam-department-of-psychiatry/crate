@@ -402,16 +402,13 @@ from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 from cardinal_pythonlib.fileops import mkdir_p
 from sqlalchemy import Column, Index, Integer, String, Text
 
-from crate_anon.common.extendedconfigparser import ConfigSection
 from crate_anon.nlp_manager.base_nlp_parser import (
     BaseNlpParser,
     TextProcessingFailed,
 )
 from crate_anon.nlp_manager.constants import (
-    full_sectionname,
     MEDEX_DATA_READY_SIGNAL,
     MEDEX_RESULTS_READY_SIGNAL,
-    NlpConfigPrefixes,
     ProcessorConfigKeys,
 )
 from crate_anon.nlp_manager.nlp_definition import (
@@ -539,6 +536,7 @@ class Medex(BaseNlpParser):
                 ProcessorConfigKeys.PROGENVSECTION)
 
             if self._progenvsection:
+                # noinspection PyTypeChecker
                 self._env = nlpdef.get_env_dict(self._progenvsection,
                                                 os.environ)
             else:

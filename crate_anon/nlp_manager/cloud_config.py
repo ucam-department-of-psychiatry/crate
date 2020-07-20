@@ -86,50 +86,31 @@ class CloudConfig(object):
             parser=nlpdef.parser
         )
 
-        sectionname = full_sectionname(NlpConfigPrefixes.CLOUD, name)
-        config = nlpdef.parser
-        self.url = config.get_str(
-            section=sectionname, option=CloudNlpConfigKeys.CLOUD_URL,
-            required=True)
-        self.verify_ssl = config.get_bool(
-            section=sectionname, option=CloudNlpConfigKeys.VERIFY_SSL,
-            default=True)
-        self.compress = config.get_bool(
-            section=sectionname, option=CloudNlpConfigKeys.COMPRESS,
-            default=True)
-        self.username = config.get_str(
-            section=sectionname, option=CloudNlpConfigKeys.USERNAME,
-            default="")
-        self.password = config.get_str(
-            section=sectionname, option=CloudNlpConfigKeys.PASSWORD,
-            default="")
-        self.max_content_length = config.get_int_default_if_failure(
-            section=sectionname, option=CloudNlpConfigKeys.MAX_CONTENT_LENGTH,
-            default=DEFAULT_CLOUD_MAX_CONTENT_LENGTH)
-        self.limit_before_commit = config.get_int_default_if_failure(
-            section=sectionname, option=CloudNlpConfigKeys.LIMIT_BEFORE_COMMIT,
-            default=DEFAULT_CLOUD_LIMIT_BEFORE_COMMIT)
-        self.max_records_per_request = config.get_int_default_if_failure(
-            section=sectionname,
-            option=CloudNlpConfigKeys.MAX_RECORDS_PER_REQUEST,
-            default=DEFAULT_CLOUD_MAX_RECORDS_PER_REQUEST)
-        self.stop_at_failure = config.get_bool(
-            section=sectionname, option=CloudNlpConfigKeys.STOP_AT_FAILURE,
-            default=True)
-        self.wait_on_conn_err = config.get_int_default_if_failure(
-            section=sectionname, option=CloudNlpConfigKeys.WAIT_ON_CONN_ERR,
-            default=DEFAULT_CLOUD_WAIT_ON_CONN_ERR_S)
-        self.max_tries = config.get_int_default_if_failure(
-            section=sectionname, option=CloudNlpConfigKeys.MAX_TRIES,
-            default=DEFAULT_CLOUD_MAX_TRIES)
-        self.rate_limit_hz = config.get_int_default_if_failure(
-            section=sectionname, option=CloudNlpConfigKeys.RATE_LIMIT_HZ,
-            default=DEFAULT_CLOUD_RATE_LIMIT_HZ)
-        self.test_length_function_speed = config.get_bool(
-            section=sectionname,
-            option=CloudNlpConfigKeys.TEST_LENGTH_FUNCTION_SPEED,
-            default=True)
-        # self._destdbs_by_proc = {}
+        self.url = cfg.opt_str(CloudNlpConfigKeys.CLOUD_URL, required=True)
+        self.verify_ssl = cfg.opt_bool(CloudNlpConfigKeys.VERIFY_SSL, True)
+        self.compress = cfg.opt_bool(CloudNlpConfigKeys.COMPRESS, True)
+        self.username = cfg.opt_str(CloudNlpConfigKeys.USERNAME, default="")
+        self.password = cfg.opt_str(CloudNlpConfigKeys.PASSWORD, default="")
+        self.max_content_length = cfg.opt_int(
+            CloudNlpConfigKeys.MAX_CONTENT_LENGTH,
+            DEFAULT_CLOUD_MAX_CONTENT_LENGTH)
+        self.limit_before_commit = cfg.opt_int(
+            CloudNlpConfigKeys.LIMIT_BEFORE_COMMIT,
+            DEFAULT_CLOUD_LIMIT_BEFORE_COMMIT)
+        self.max_records_per_request = cfg.opt_int(
+            CloudNlpConfigKeys.MAX_RECORDS_PER_REQUEST,
+            DEFAULT_CLOUD_MAX_RECORDS_PER_REQUEST)
+        self.stop_at_failure = cfg.opt_bool(
+            CloudNlpConfigKeys.STOP_AT_FAILURE, True)
+        self.wait_on_conn_err = cfg.opt_int(
+            CloudNlpConfigKeys.WAIT_ON_CONN_ERR,
+            DEFAULT_CLOUD_WAIT_ON_CONN_ERR_S)
+        self.max_tries = cfg.opt_int(
+            CloudNlpConfigKeys.MAX_TRIES, DEFAULT_CLOUD_MAX_TRIES)
+        self.rate_limit_hz = cfg.opt_int(
+            CloudNlpConfigKeys.RATE_LIMIT_HZ, DEFAULT_CLOUD_RATE_LIMIT_HZ)
+        self.test_length_function_speed = cfg.opt_bool(
+            CloudNlpConfigKeys.TEST_LENGTH_FUNCTION_SPEED, True)
         self.remote_processors = {}  # type: Dict[Tuple[str, str], 'Cloud']
         for processor in self._nlpdef.get_processors():
             if not isinstance(processor, Cloud):
@@ -148,6 +129,7 @@ class CloudConfig(object):
             (x.format == NlpDefValues.FORMAT_GATE)
             for x in self.remote_processors.values())
 
+    @property
     def data_filename(self) -> str:
         """
         Returns the filename to be used for storing data.

@@ -733,7 +733,7 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
     """
     log.info(SEP + "NLP")
     nlpdef = crinfo.nlpdef
-    filename = crinfo.cloudcfg.data_filename()
+    filename = crinfo.cloudcfg.data_filename
     # Start with blank file
     open(filename, 'w').close()
     # Use append so that, if there's a problem part-way through, we don't lose
@@ -771,7 +771,7 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
     nlpdef = crinfo.nlpdef
     session = nlpdef.progressdb_session
     cloudcfg = crinfo.cloudcfg
-    filename = cloudcfg.data_filename()
+    filename = cloudcfg.data_filename
     if not os.path.exists(filename):
         log.error(f"File {filename!r} does not exist. "
                   f"Request may not have been sent.")
@@ -976,7 +976,7 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
         return
     # Otherwise:
 
-    filename = cloudcfg.data_filename()
+    filename = cloudcfg.data_filename
     if not os.path.exists(filename):
         log.error(f"File {filename!r} does not exist. "
                   f"Request may not have been sent.")

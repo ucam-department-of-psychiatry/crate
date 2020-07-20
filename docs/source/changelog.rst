@@ -38,6 +38,7 @@ Quick links:
 - :ref:`2017 <changelog_2017>`
 - :ref:`2018 <changelog_2018>`
 - :ref:`2019 <changelog_2019>`
+- :ref:`2020 <changelog_2020>`
 
 
 Changes
@@ -1224,6 +1225,12 @@ Changes
 
 - Bugfix to
   :func:`crate_anon.anonymise.anonymise.process_nonpatient_tables`.
+
+
+.. _changelog_2019:
+
+2020
+~~~~
 
 **v0.18.96, 2020-01-07**
 

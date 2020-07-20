@@ -151,7 +151,7 @@ class AddOnlyModelAdmin(ModelAdmin):
         if obj:  # obj is not None, so this is an edit
             # self.__class__ is the derived class
             if hasattr(self.__class__, 'fields_for_viewing'):
-                # noinspection PyUnresolvedReferences
+                # noinspection PyUnresolvedReferences,PyTypeChecker
                 return self.__class__.fields_for_viewing
             elif hasattr(self.__class__, 'readonly_fields'):
                 return self.__class__.readonly_fields
@@ -163,7 +163,7 @@ class AddOnlyModelAdmin(ModelAdmin):
     def get_fields(self, request: HttpRequest, obj=None) -> List[str]:
         if obj:  # edit (view)
             if hasattr(self.__class__, 'fields_for_viewing'):
-                # noinspection PyUnresolvedReferences
+                # noinspection PyUnresolvedReferences,PyTypeChecker
                 return self.__class__.fields_for_viewing
         return self.__class__.fields
 

@@ -32,7 +32,6 @@ crate_anon/nlp_manager/nlp_definition.py
 # Imports
 # =============================================================================
 
-import codecs
 import datetime
 import json
 import logging
@@ -1134,7 +1133,7 @@ class NlpDefinition(object):
     def nlprp_local_processors_json(self,
                                     indent: int = 4,
                                     sort_keys: bool = True,
-                                    sql_dialect: str = None) -> Dict[str, Any]:
+                                    sql_dialect: str = None) -> str:
         """
         Returns a formatted JSON string from :func:`nlprp_list_processors`.
         This is primarily for debugging.

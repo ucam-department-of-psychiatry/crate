@@ -37,16 +37,8 @@ from cardinal_pythonlib.lists import chunks
 from sqlalchemy.schema import Column, Index
 from sqlalchemy import types as sqlatypes
 
-from crate_anon.common.extendedconfigparser import configfail
-from crate_anon.nlp_manager.nlp_definition import (
-    NlpDefinition,
-)
-from crate_anon.nlp_manager.constants import (
-    full_sectionname,
-    NlpConfigPrefixes,
-    ProcessorConfigKeys,
-    NlpDefValues,
-)
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.nlp_manager.constants import ProcessorConfigKeys, NlpDefValues
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 from crate_anon.nlprp.constants import (
     NlprpKeys as NKeys,

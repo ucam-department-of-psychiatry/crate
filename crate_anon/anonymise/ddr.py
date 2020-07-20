@@ -553,6 +553,7 @@ class DataDictionaryRow(object):
         if self.src_is_textual:
             dialect = self.config.get_src_dialect(self.src_db)
             # Get length of field if text field (otherwise this remains 'None')
+            # noinspection PyUnresolvedReferences
             self.src_textlength = crate_anon.common.sql.coltype_length_if_text(
                 self.src_datatype, dialect.name)
         # noinspection PyAttributeOutsideInit

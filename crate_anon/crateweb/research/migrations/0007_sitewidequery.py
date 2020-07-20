@@ -48,13 +48,13 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
                 ('sql', models.TextField(verbose_name='SQL query')),
-                ('sql_hash', models.BigIntegerField(verbose_name='64-bit non-cryptographic hash of SQL query')),
-                ('args', cardinal_pythonlib.django.fields.jsonclassfield.JsonClassField(null=True, verbose_name='SQL arguments (as JSON)')),
-                ('raw', models.BooleanField(default=False, verbose_name='SQL is raw, not parameter-substituted')),
-                ('qmark', models.BooleanField(default=True, verbose_name='Parameter-substituted SQL uses ?, not %s, as placeholders')),
+                ('sql_hash', models.BigIntegerField(verbose_name='64-bit non-cryptographic hash of SQL query')),  # nopep8
+                ('args', cardinal_pythonlib.django.fields.jsonclassfield.JsonClassField(null=True, verbose_name='SQL arguments (as JSON)')),  # nopep8
+                ('raw', models.BooleanField(default=False, verbose_name='SQL is raw, not parameter-substituted')),  # nopep8
+                ('qmark', models.BooleanField(default=True, verbose_name='Parameter-substituted SQL uses ?, not %s, as placeholders')),  # nopep8
                 ('created', models.DateTimeField(auto_now_add=True)),
-                ('deleted', models.BooleanField(default=False, verbose_name="Deleted from the user's perspective. Audited queries are never properly deleted.")),
-                ('description', models.TextField(default='', verbose_name='query description')),
+                ('deleted', models.BooleanField(default=False, verbose_name="Deleted from the user's perspective. Audited queries are never properly deleted.")),  # nopep8
+                ('description', models.TextField(default='', verbose_name='query description')),  # nopep8
             ],
             options={
                 'abstract': False,

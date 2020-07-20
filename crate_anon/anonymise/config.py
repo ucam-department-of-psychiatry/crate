@@ -74,7 +74,6 @@ Thoughts on configuration method
 # Imports
 # =============================================================================
 
-import codecs
 import fnmatch
 from io import StringIO
 import logging

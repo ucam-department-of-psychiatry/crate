@@ -51,9 +51,7 @@ from crate_anon.nlp_manager.base_nlp_parser import (
     TextProcessingFailed,
 )
 from crate_anon.nlp_manager.constants import (
-    full_sectionname,
     MAX_SQL_FIELD_LEN,
-    NlpConfigPrefixes,
     ProcessorConfigKeys,
     GateFieldNames as GateFN,
 )
@@ -184,6 +182,7 @@ class Gate(BaseNlpParser):
             self._type_to_tablename[annottype] = c.dest_tablename
 
         if self._progenvsection:
+            # noinspection PyTypeChecker
             self._env = nlpdef.get_env_dict(self._progenvsection, os.environ)
         else:
             self._env = os.environ.copy()
