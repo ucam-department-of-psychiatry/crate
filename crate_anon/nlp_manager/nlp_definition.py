@@ -844,13 +844,10 @@ class NlpDefinition(object):
         # self._procstmp = {}
         try:
             for proctype, procname in chunks(processorpairs, 2):
-                self.require_section(
-                    full_sectionname(NlpConfigPrefixes.PROCESSOR, procname))
                 processor = make_nlp_parser(
                     classname=proctype,
                     nlpdef=self,
                     cfg_processor_name=procname)
-                # self._procstmp[proctype] = procname
                 self._processors.append(processor)
         except ValueError:
             log.critical(f"Bad {NlpDefConfigKeys.PROCESSORS} specification")
@@ -905,7 +902,8 @@ class NlpDefinition(object):
         """
         return self._hasher.hash(text)
 
-    def get_temporary_tablename(self) -> str:
+    @property
+    def temporary_tablename(self) -> str:
         """
         Temporary tablename to use.
 
@@ -927,13 +925,6 @@ class NlpDefinition(object):
                         'sqlalchemy.engine.base.OptionEngine'):
             logger = logging.getLogger(logname)
             logger.handlers = []  # ... of type: List[logging.Handler]
-
-    def require_section(self, section: str) -> None:
-        """
-        Require that the config file has a section with the specified name, or
-        raise :exc:`ValueError`.
-        """
-        self.parser.require_section(section)
 
     def get_database(self, name_and_cfg_section: str,
                      with_session: bool = True,
@@ -1060,8 +1051,8 @@ class NlpDefinition(object):
         tl = self.get_transation_limiter(session)
         tl.commit()
 
-    # noinspection PyUnresolvedReferences
-    def get_noncloud_processors(self) -> List['BaseNlpParser']:
+    @property
+    def noncloud_processors(self) -> List['BaseNlpParser']:
         """
         Returns all local (non-cloud) NLP processors used by this NLP
         definition.
@@ -1075,8 +1066,8 @@ class NlpDefinition(object):
         return [x for x in self._processors if
                 x.classname() != NlpDefValues.PROCTYPE_CLOUD]
 
-    # noinspection PyUnresolvedReferences
-    def get_processors(self) -> List['TableMaker']:
+    @property
+    def processors(self) -> List['TableMaker']:
         """
         Returns all NLP processors used by this NLP definition.
 
@@ -1087,8 +1078,8 @@ class NlpDefinition(object):
         """
         return self._processors
 
-    # noinspection PyUnresolvedReferences
-    def get_ifconfigs(self) -> Iterable['InputFieldConfig']:
+    @property
+    def inputfieldconfigs(self) -> Iterable['InputFieldConfig']:
         """
         Returns all input field configurations used by this NLP definition.
 
@@ -1100,14 +1091,16 @@ class NlpDefinition(object):
         """
         return self._inputfieldmap.values()
 
-    def get_now(self) -> datetime.datetime:
+    @property
+    def now(self) -> datetime.datetime:
         """
         Returns the time this NLP definition was created (in UTC). Used to
         time-stamp NLP runs.
         """
         return self._now
 
-    def get_progdb(self) -> DatabaseHolder:
+    @property
+    def progdb(self) -> DatabaseHolder:
         """
         Returns the progress database.
         """
@@ -1124,7 +1117,7 @@ class NlpDefinition(object):
         :ref:`list_processors <nlprp_list_processors>` command.
         """
         processors = []  # type: List[Dict, str, Any]
-        for proc in self.get_noncloud_processors():
+        for proc in self.noncloud_processors:
             processors.append(proc.nlprp_processor_info(sql_dialect))
         return {
             NlprpKeys.PROCESSORS: processors,

@@ -103,9 +103,7 @@ class Cloud(TableMaker):
         self._type_to_tablename = {}  # type: Dict[str, str]
         self.tablename = None
         # If typepairs is empty the following block won't execute
-        for c in chunks(typepairs, 2):
-            output_type = c[0]
-            outputsection = c[1]
+        for output_type, outputsection in chunks(typepairs, 2):
             output_type = output_type.lower()
             c = OutputUserConfig(nlpdef.parser, outputsection,
                                  schema_required=False)
@@ -113,13 +111,6 @@ class Cloud(TableMaker):
             self._type_to_tablename[output_type] = c.dest_tablename
             if output_type == '""':
                 self.tablename = c.dest_tablename
-        # Checks are now taken care of elsewhere
-        # if not self._outputtypemap and not self.tablename:
-        #     configfail(
-        #         f"In section [{sectionname}], neither "
-        #         f"{ProcessorConfigKeys.OUTPUTTYPEMAP!r} nor "
-        #         f"{ProcessorConfigKeys.DESTTABLE!r} is specified. The cloud "
-        #         f"processor won't know where to store its results.")
 
     @staticmethod
     def get_coltype_parts(coltype_str: str) -> List[str]:

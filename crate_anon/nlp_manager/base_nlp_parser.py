@@ -393,7 +393,7 @@ class TableMaker(ABC):
         processor.
         """
         # Obtain a single set of copy columns
-        ifconfigs = self._nlpdef.get_ifconfigs()
+        ifconfigs = self._nlpdef.inputfieldconfigs
         assert ifconfigs, "Must specify a list of InputFieldConfigs"
         assert self._destdb, "Cannot use tables() call without a database"
 

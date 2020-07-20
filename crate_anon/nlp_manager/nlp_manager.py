@@ -285,12 +285,12 @@ def delete_where_no_source(nlpdef: NlpDefinition,
         session=nlpdef.progressdb_session,
         engine=nlpdef.progressdb_engine,
         metadata=nlpdef.progressdb_metadata,
-        db=nlpdef.get_progdb(),
+        db=nlpdef.progdb,
         temptable=None
     )]
 
     # Add the processors' destination databases
-    for processor in nlpdef.get_processors():  # of type TableMaker
+    for processor in nlpdef.processors:  # of type TableMaker
         if isinstance(processor, Cloud) and not processor.available_remotely:
             continue
         session = processor.dest_session
@@ -309,7 +309,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     log.info("... dropping (if exists) and creating temporary table(s)")
     for database in databases:
         temptable = Table(
-            nlpdef.get_temporary_tablename(),
+            nlpdef.temporary_tablename,
             database.metadata,
             Column(FN_SRCPKVAL, BigInteger),  # not PK, as may be a hash
             Column(FN_SRCPKSTR, String(MAX_STRING_PK_LENGTH)),
@@ -356,7 +356,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     ifconfig.delete_progress_records_where_srcpk_not(prog_temptable)
 
     # Delete from others
-    for processor in nlpdef.get_processors():
+    for processor in nlpdef.processors:
         if isinstance(processor, Cloud) and not processor.available_remotely:
             continue
         database = [x for x in databases
@@ -414,7 +414,7 @@ def drop_remake(nlpdef: NlpDefinition,
     # -------------------------------------------------------------------------
 
     pretty_names = []  # type: List[str]
-    for processor in nlpdef.get_processors():
+    for processor in nlpdef.processors:
         if isinstance(processor, Cloud) and not processor.available_remotely:
             continue
         new_pretty_names = processor.make_tables(drop_first=not incremental)
@@ -427,7 +427,7 @@ def drop_remake(nlpdef: NlpDefinition,
     # -------------------------------------------------------------------------
     # 3. Delete WHERE NOT IN for incremental
     # -------------------------------------------------------------------------
-    for ifconfig in nlpdef.get_ifconfigs():
+    for ifconfig in nlpdef.inputfieldconfigs:
         with MultiTimerContext(timer, TIMING_DELETE_WHERE_NO_SOURCE):
             if incremental:
                 if not skipdelete:
@@ -468,7 +468,7 @@ def process_nlp(nlpdef: NlpDefinition,
     """
     log.info(SEP + "NLP")
     session = nlpdef.progressdb_session
-    if not nlpdef.get_noncloud_processors():
+    if not nlpdef.noncloud_processors:
         errmsg = (
             f"Can't use NLP definition {nlpdef.name!r} as it has no "
             f"local processors (e.g. only has cloud processors). Specify the "
@@ -477,7 +477,7 @@ def process_nlp(nlpdef: NlpDefinition,
         log.critical(errmsg)
         raise ValueError(errmsg)
 
-    for ifconfig in nlpdef.get_ifconfigs():
+    for ifconfig in nlpdef.inputfieldconfigs:
         i = 0  # record count within this process
         recnum = tasknum  # record count overall
         totalcount = ifconfig.get_count()  # total number of records in table
@@ -528,7 +528,7 @@ def process_nlp(nlpdef: NlpDefinition,
                     log.debug("Record is new")
 
             processor_failure = False
-            for processor in nlpdef.get_noncloud_processors():
+            for processor in nlpdef.noncloud_processors:
                 if incremental:
                     processor.delete_dest_record(ifconfig, pkval, pkstr,
                                                  commit=incremental)
@@ -557,7 +557,7 @@ def process_nlp(nlpdef: NlpDefinition,
             truncated = other_values[TRUNCATED_FLAG]
             if not truncated or nlpdef.record_truncated_values:
                 if progrec:  # modifying an existing record
-                    progrec.whenprocessedutc = nlpdef.get_now()
+                    progrec.whenprocessedutc = nlpdef.now
                     progrec.srchash = srchash
                 else:  # creating a new record
                     progrec = NlpRecord(
@@ -570,7 +570,7 @@ def process_nlp(nlpdef: NlpDefinition,
                         nlpdef=nlpdef.name,
                         # Other fields:
                         srcpkfield=ifconfig.srcpkfield,
-                        whenprocessedutc=nlpdef.get_now(),
+                        whenprocessedutc=nlpdef.now,
                         srchash=srchash,
                     )
                     with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
@@ -739,7 +739,7 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
     # Use append so that, if there's a problem part-way through, we don't lose
     # all data
     with open(filename, 'a') as request_data:
-        for ifconfig in nlpdef.get_ifconfigs():
+        for ifconfig in nlpdef.inputfieldconfigs:
             generated_text = ifconfig.gen_text()
             global_recnum = 0  # Global record number within this ifconfig
             # start = 0  # Start for first block
@@ -835,7 +835,7 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
                 # Make a note in the progress database that we've processed
                 # a source record
                 if progrec:  # modifying an existing record
-                    progrec.whenprocessedutc = nlpdef.get_now()
+                    progrec.whenprocessedutc = nlpdef.now
                     progrec.srchash = srchash
                 else:  # creating a new record
                     progrec = NlpRecord(
@@ -848,7 +848,7 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
                         nlpdef=nlpdef.name,
                         # Other fields:
                         srcpkfield=ifconfig.srcpkfield,
-                        whenprocessedutc=nlpdef.get_now(),
+                        whenprocessedutc=nlpdef.now,
                         srchash=srchash,
                     )
                     with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
@@ -886,7 +886,7 @@ def process_cloud_now(
     """
     nlpdef = crinfo.nlpdef
     session = nlpdef.progressdb_session
-    for ifconfig in nlpdef.get_ifconfigs():
+    for ifconfig in nlpdef.inputfieldconfigs:
         global_recnum = 0  # Global record number within this ifconfig
         # seen_srchashs = {}  # type: Dict[str, NlpRecord]
         seen_pks = {}
@@ -932,7 +932,7 @@ def process_cloud_now(
                     # Make a note in the progress database that we've processed
                     # a source record
                     if progrec:  # modifying an existing record
-                        progrec.whenprocessedutc = nlpdef.get_now()
+                        progrec.whenprocessedutc = nlpdef.now
                         progrec.srchash = srchash
                     else:  # creating a new record
                         progrec = NlpRecord(
@@ -945,7 +945,7 @@ def process_cloud_now(
                             nlpdef=nlpdef.name,
                             # Other fields:
                             srcpkfield=ifconfig.srcpkfield,
-                            whenprocessedutc=nlpdef.get_now(),
+                            whenprocessedutc=nlpdef.now,
                             srchash=srchash,
                         )
                     # seen_srchashs[srchash] = progrec
@@ -1037,7 +1037,7 @@ def show_source_counts(nlpdef: NlpDefinition) -> None:
     """
     print("SOURCE TABLE RECORD COUNTS:")
     counts = []  # type: List[Tuple[str, int]]
-    for ifconfig in nlpdef.get_ifconfigs():
+    for ifconfig in nlpdef.inputfieldconfigs:
         session = ifconfig.source_session
         dbname = ifconfig.srcdb
         tablename = ifconfig.srctable
@@ -1056,7 +1056,7 @@ def show_dest_counts(nlpdef: NlpDefinition) -> None:
     """
     print("DESTINATION TABLE RECORD COUNTS:")
     counts = []  # type: List[Tuple[str, int]]
-    for processor in nlpdef.get_processors():
+    for processor in nlpdef.processors:
         session = processor.dest_session
         dbname = processor.dest_dbname
         for tablename in processor.get_tablenames():

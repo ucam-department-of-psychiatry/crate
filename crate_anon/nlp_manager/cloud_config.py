@@ -112,7 +112,7 @@ class CloudConfig(object):
         self.test_length_function_speed = cfg.opt_bool(
             CloudNlpConfigKeys.TEST_LENGTH_FUNCTION_SPEED, True)
         self.remote_processors = {}  # type: Dict[Tuple[str, str], 'Cloud']
-        for processor in self._nlpdef.get_processors():
+        for processor in self._nlpdef.processors:
             if not isinstance(processor, Cloud):
                 # ... only add 'Cloud' processors
                 log.warning(
