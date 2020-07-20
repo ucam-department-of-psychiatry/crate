@@ -1283,6 +1283,8 @@ Changes
 
   - Tidy up config file processing as part of this work.
 
+- Bump Pillow from 6.2.0 to 7.2.0. Bump Django from 2.2.11 to 2.2.14.
+
 
 ===============================================================================
 
