@@ -689,7 +689,7 @@ class Config(object):
             raise ValueError(
                 "Destination and admin databases mustn't be the same")
         source_database_cfg_sections = cfg.opt_multiline('source_databases')
-        self.source_db_names = source_database_cfg_sections
+        self._source_db_names = source_database_cfg_sections
         if destination_database_cfg_section in source_database_cfg_sections:
             raise ValueError("Destination database mustn't be listed as a "
                              "source database")
@@ -699,7 +699,7 @@ class Config(object):
 
         if RUNNING_WITHOUT_CONFIG:
             self.destdb = None  # type: Optional[DatabaseHolder]
-            self.dest_dialect = mysql_dialect
+            self._dest_dialect = mysql_dialect
         else:
             self.destdb = get_database(destination_database_cfg_section,
                                        name=destination_database_cfg_section,
@@ -709,9 +709,9 @@ class Config(object):
             if not self.destdb:
                 raise ValueError("Destination database misconfigured")
             if open_databases:
-                self.dest_dialect = self.destdb.engine.dialect
+                self._dest_dialect = self.destdb.engine.dialect
             else:  # in context of web framework, some sort of default
-                self.dest_dialect = mysql_dialect
+                self._dest_dialect = mysql_dialect
             self._destdb_transaction_limiter = TransactionSizeLimiter(
                 session=self.destdb.session,
                 max_bytes_before_commit=self.max_bytes_before_commit,
@@ -985,11 +985,12 @@ class Config(object):
                 f"the config file")
         return self.extra_hashers[hasher_name]
 
-    def get_source_db_names(self) -> List[str]:
+    @property
+    def source_db_names(self) -> List[str]:
         """
         Get all source database names.
         """
-        return self.source_db_names
+        return self._source_db_names
 
     def set_echo(self, echo: bool) -> None:
         """
@@ -1018,12 +1019,13 @@ class Config(object):
         """
         return self.src_dialects[src_db]
 
-    def get_dest_dialect(self) -> Dialect:
+    @property
+    def dest_dialect(self) -> Dialect:
         """
         Returns the SQLAlchemy :class:`Dialect` (e.g. MySQL, SQL Server...) for
         the destination database.
         """
-        return self.dest_dialect
+        return self._dest_dialect
 
     def commit_dest_db(self) -> None:
         """

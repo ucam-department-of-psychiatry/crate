@@ -748,8 +748,8 @@ class CloudRequestProcess(CloudRequest):
 
             formatted_result.update(features)
             c = processor.get_otconf_from_type(annottype)
-            rename_keys_in_dict(formatted_result, c.renames())
-            set_null_values_in_dict(formatted_result, c.null_literals())
+            rename_keys_in_dict(formatted_result, c.renames)
+            set_null_values_in_dict(formatted_result, c.null_literals)
             formatted_result.update(metadata)
             tablename = processor.get_tablename_from_type(annottype)
             yield tablename, formatted_result
@@ -813,7 +813,7 @@ class CloudRequestProcess(CloudRequest):
 
         for tablename, nlp_values, processor in self.get_nlp_values():
             nlp_values[FN_NLPDEF] = nlpname
-            session = processor.get_session()
+            session = processor.dest_session
             if session not in sessions:
                 sessions.append(session)
             sqla_table = processor.get_table(tablename)

@@ -181,13 +181,10 @@ class Gate(BaseNlpParser):
             # log.critical(outputsection)
             c = OutputUserConfig(nlpdef.parser, outputsection)
             self._outputtypemap[annottype] = c
-            self._type_to_tablename[annottype] = c.get_tablename()
+            self._type_to_tablename[annottype] = c.dest_tablename
 
         if self._progenvsection:
-            self._env = nlpdef.get_env_dict(
-                full_sectionname(NlpConfigPrefixes.ENV,
-                                 self._progenvsection),
-                os.environ)
+            self._env = nlpdef.get_env_dict(self._progenvsection, os.environ)
         else:
             self._env = os.environ.copy()
         self._env["NLPLOGTAG"] = logtag
@@ -328,8 +325,8 @@ class Gate(BaseNlpParser):
                         f"Unknown annotation type, skipping: {annottype}")
                     continue
                 c = self._outputtypemap[annottype]
-                rename_keys_in_dict(d, c.renames())
-                set_null_values_in_dict(d, c.null_literals())
+                rename_keys_in_dict(d, c.renames)
+                set_null_values_in_dict(d, c.null_literals)
                 yield self._type_to_tablename[annottype], d
 
             self._n_uses += 1
@@ -366,9 +363,9 @@ class Gate(BaseNlpParser):
         # docstring in superclass
         tables = {}  # type: Dict[str, List[Column]]
         for anottype, otconfig in self._outputtypemap.items():
-            tables[otconfig.get_tablename()] = (
+            tables[otconfig.dest_tablename] = (
                 self._standard_gate_columns() +
-                otconfig.get_columns(self.get_engine())
+                otconfig.get_columns(self.dest_engine)
             )
         return tables
 
@@ -376,9 +373,9 @@ class Gate(BaseNlpParser):
         # docstring in superclass
         tables = {}  # type: Dict[str, List[Index]]
         for anottype, otconfig in self._outputtypemap.items():
-            tables[otconfig.get_tablename()] = (
+            tables[otconfig.dest_tablename] = (
                 self._standard_gate_indexes() +
-                otconfig.get_indexes()
+                otconfig.indexes
             )
         return tables
 

@@ -45,6 +45,14 @@ def getsize(obj: Any, assume_none_denied: bool = False) -> int:
     """
     Return the total size (in bytes) of the object and its members.
     From https://stackoverflow.com/questions/449560/how-do-i-determine-the-size-of-an-object-in-python
+    
+    Args:
+        obj:
+            Object to check.
+        assume_none_denied:
+            Skip checks for classes/modules/functions. Assume that all objects
+            should be checked (typically, meaning that the caller guarantees
+            not to pass stuff that doesn't need checking).
     """  # noqa
     if not assume_none_denied:
         if isinstance(obj, DENYLIST):

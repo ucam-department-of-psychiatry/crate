@@ -170,62 +170,71 @@ class InputFieldConfig(object):
 
         self._db = nlpdef.get_database(self._srcdb)
 
-    def get_srcdb(self) -> str:
+    @property
+    def srcdb(self) -> str:
         """
         Returns the name of the source database.
         """
         return self._srcdb
 
-    def get_srctable(self) -> str:
+    @property
+    def srctable(self) -> str:
         """
         Returns the name of the source table.
         """
         return self._srctable
 
-    def get_srcpkfield(self) -> str:
+    @property
+    def srcpkfield(self) -> str:
         """
         Returns the name of the primary key (PK) field (column) in the source
         table.
         """
         return self._srcpkfield
 
-    def get_srcfield(self) -> str:
+    @property
+    def srcfield(self) -> str:
         """
         Returns the name of the text field (column) in the source table.
         """
         return self._srcfield
 
-    def get_srcdatetimefield(self) -> str:  # new in v0.18.52
+    @property
+    def srcdatetimefield(self) -> str:  # new in v0.18.52
         """
         Returns the name of the field (column) in the source table that defines
         the date/time of the source text.
         """
         return self._srcdatetimefield
 
-    def get_source_session(self) -> Session:
+    @property
+    def source_session(self) -> Session:
         """
         Returns the SQLAlchemy ORM :class:`Session` for the source database.
         """
         return self._db.session
 
-    def _get_source_metadata(self) -> MetaData:
+    @property
+    def _source_metadata(self) -> MetaData:
         """
         Returns the SQLAlchemy :class:`MetaData` for the source database,
         used for reflection (inspection) of the source database structure.
         """
         return self._db.metadata
 
-    def _get_source_engine(self) -> Engine:
+    @property
+    def _source_engine(self) -> Engine:
         """
         Returns the SQLAlchemy Core :class:`Engine` for the source database.
         """
         return self._db.engine
 
-    def _get_progress_session(self) -> Session:
+    @property
+    def _progress_session(self) -> Session:
         """
         Returns the SQLAlchemy ORM :class:`Session` for the progress database.
         """
-        return self._nlpdef.get_progdb_session()
+        return self._nlpdef.progressdb_session
 
     @staticmethod
     def get_core_columns_for_dest() -> List[Column]:
@@ -308,7 +317,7 @@ class InputFieldConfig(object):
         """
         Ensure that the source table exists, or raise :exc:`RuntimeError`.
         """
-        if not table_or_view_exists(self._get_source_engine(), self._srctable):
+        if not table_or_view_exists(self._source_engine, self._srctable):
             msg = f"Missing source table: {self._srcdb}.{self._srctable}"
             log.critical(msg)
             raise RuntimeError(msg)
@@ -324,7 +333,7 @@ class InputFieldConfig(object):
         """
         # We read the column type from the source database.
         self._require_table_or_view_exists()
-        meta = self._get_source_metadata()
+        meta = self._source_metadata
         t = Table(self._srctable, meta, autoload=True)
         copy_columns = []  # type: List[Column]
         processed_copy_column_names = []  # type: List[str]
@@ -360,7 +369,7 @@ class InputFieldConfig(object):
 
         """
         self._require_table_or_view_exists()
-        meta = self._get_source_metadata()
+        meta = self._source_metadata
         t = Table(self._srctable, meta, autoload=True)
         copy_indexes = []  # type: List[Index]
         processed_copy_index_col_names = []  # type: List[str]
@@ -384,7 +393,7 @@ class InputFieldConfig(object):
         """
         Is the primary key (PK) of the source table an integer?
         """
-        pkcoltype = get_column_type(self._get_source_engine(), self._srctable,
+        pkcoltype = get_column_type(self._source_engine, self._srctable,
                                     self._srcpkfield)
         if not pkcoltype:
             raise ValueError(f"Unable to get column type for column "
@@ -423,7 +432,7 @@ class InputFieldConfig(object):
         # ---------------------------------------------------------------------
         # Build a query
         # ---------------------------------------------------------------------
-        session = self.get_source_session()
+        session = self.source_session
         pkcol = column(self._srcpkfield)
         # ... don't use is_sqlatype_integer with this; it's a column clause,
         # not a full column definition.
@@ -526,7 +535,7 @@ class InputFieldConfig(object):
 
         Used for progress monitoring.
         """
-        return count_star(session=self.get_source_session(),
+        return count_star(session=self.source_session,
                           tablename=self._srctable)
 
     def get_progress_record(self,
@@ -538,7 +547,7 @@ class InputFieldConfig(object):
         Returns:
             :class:`crate_anon.nlp_manager.models.NlpRecord`, or ``None``
         """
-        session = self._get_progress_session()
+        session = self._progress_session
         query = (
             session.query(NlpRecord).
             filter(NlpRecord.srcdb == self._srcdb).
@@ -568,7 +577,7 @@ class InputFieldConfig(object):
         - Timing is subsumed under the timer named
           ``TIMING_DELETE_WHERE_NO_SOURCE``.
         """
-        session = self.get_source_session()
+        session = self.source_session
         query = (
             select([column(self._srcpkfield)]).
             select_from(table(self._srctable))
@@ -595,7 +604,7 @@ class InputFieldConfig(object):
         subsequently been deleted.)
 
         """
-        progsession = self._get_progress_session()
+        progsession = self._progress_session
         log.debug(f"delete_progress_records_where_srcpk_not... "
                   f"{self._srcdb}.{self._srctable} -> progressdb")
         prog_deletion_query = (
@@ -635,7 +644,7 @@ class InputFieldConfig(object):
         Deletes **all** records from the progress database for this NLP
         definition (across all source tables/columns).
         """
-        progsession = self._get_progress_session()
+        progsession = self._progress_session
         prog_deletion_query = (
             progsession.query(NlpRecord).
             filter(NlpRecord.nlpdef == self._nlpdef.name)

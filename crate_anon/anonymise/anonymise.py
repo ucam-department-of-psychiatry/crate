@@ -213,7 +213,7 @@ def delete_dest_rows_with_no_src_row(
     temptable = Table(
         config.temporary_tablename,
         metadata,
-        Column(pkfield, pkddr.get_dest_sqla_coltype(), primary_key=True),
+        Column(pkfield, pkddr.dest_sqla_coltype, primary_key=True),
         **TABLE_KWARGS
     )
     # THIS (ABOVE) IS WHAT CONSTRAINS A USER-DEFINED PK TO BE UNIQUE WITHIN ITS
@@ -518,7 +518,7 @@ def fieldname_is_pid(field: str) -> bool:
         return True
     for ddr in config.dd.rows:
         if ddr.defines_primary_pids:
-            if field == ddr.get_signature():
+            if field == ddr.src_signature:
                 return True
     return False
 
@@ -1124,7 +1124,7 @@ def process_table(sourcedbname: str,
             Exclude all text fields which are being scrubbed.
     """
     start = f"process_table: {sourcedbname}.{sourcetable}:"
-    pid = None if patient is None else patient.get_pid()
+    pid = None if patient is None else patient.pid
     log.debug(f"{start} pid={pid}, incremental={incremental}")
 
     # Limit the data quantity for debugging?
@@ -1160,7 +1160,7 @@ def process_table(sourcedbname: str,
     # Exclude all scrubbed fields if requested
     if exclude_scrubbed_fields:
         ddrows = [ddr for ddr in ddrows
-                  if (not ddr.src_is_textual) or (not ddr.being_scrubbed())]
+                  if (not ddr.src_is_textual) or (not ddr.being_scrubbed)]
     if not ddrows:
         # No columns to process at all.
         return
@@ -1234,12 +1234,12 @@ def process_table(sourcedbname: str,
                 continue  # skip column
 
             if ddr.primary_pid:
-                assert(value == patient.get_pid())
-                value = patient.get_rid()
+                assert(value == patient.pid)
+                value = patient.rid
             elif ddr.master_pid:
                 value = config.encrypt_master_pid(value)
 
-            for alter_method in ddr.get_alter_methods():
+            for alter_method in ddr.alter_methods:
                 value, skiprow = alter_method.alter(
                     value=value, ddr=ddr, row=row,
                     ddrows=ddrows, patient=patient)
@@ -1260,9 +1260,9 @@ def process_table(sourcedbname: str,
         if addhash:
             destvalues[config.source_hash_fieldname] = srchash
         if addtrid:
-            destvalues[config.trid_fieldname] = patient.get_trid()
+            destvalues[config.trid_fieldname] = patient.trid
             if add_mrid_wherever_rid_added:
-                destvalues[mrid_fieldname] = patient.get_mrid()
+                destvalues[mrid_fieldname] = patient.mrid
 
         q = sqla_table.insert_on_duplicate().values(destvalues)
         session.execute(q)
@@ -1378,11 +1378,11 @@ def patient_processing_fn(tasknum: int = 0,
             continue
 
         # Opt out based on MPID?
-        if opting_out_mpid(patient.get_mpid()):
+        if opting_out_mpid(patient.mpid):
             log.info("... opt out based on MPID")
             continue
 
-        patient_unchanged = patient.unchanged()
+        patient_unchanged = patient.is_unchanged()
         if incremental:
             if patient_unchanged:
                 log.debug("Scrubber unchanged; may save some time")

@@ -829,10 +829,11 @@ class NlpDefinition(object):
             NlpDefConfigKeys.INPUTFIELDDEFS,
             required=True, lower=False)
         self._inputfieldmap = {}  # type: Dict[str, InputFieldConfig]
-        for x in self._inputfielddefs:
-            if x in self._inputfieldmap:
+        for cfg_input_name in self._inputfielddefs:
+            if cfg_input_name in self._inputfieldmap:
                 continue
-            self._inputfieldmap[x] = InputFieldConfig(self, x)
+            self._inputfieldmap[cfg_input_name] = InputFieldConfig(
+                self, cfg_input_name)
 
         # ---------------------------------------------------------------------
         # NLP processors
@@ -965,35 +966,41 @@ class NlpDefinition(object):
 
     def get_env_dict(
             self,
-            section: str,
+            env_section_name: str,
             parent_env: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         """
         Gets an operating system environment variable dictionary (``variable:
         value`` mapping) from the config file.
 
         Args:
-            section: config section name
+            env_section_name: config section name, without its "env:" prefix
             parent_env: optional starting point (e.g. parent OS environment)
 
         Returns:
             a dictionary suitable for use as an OS environment
 
         """
-        return self.get_parser().get_env_dict(section, parent_env=parent_env)
+        return self._cfg.parser.get_env_dict(
+            full_sectionname(NlpConfigPrefixes.ENV, env_section_name),
+            parent_env=parent_env
+        )
 
-    def get_progdb_session(self) -> Session:
+    @property
+    def progressdb_session(self) -> Session:
         """
         Returns an SQLAlchemy ORM :class:`Session` for the progress database.
         """
         return self._progdb.session
 
-    def get_progdb_engine(self) -> Engine:
+    @property
+    def progressdb_engine(self) -> Engine:
         """
         Returns an SQLAlchemy Core :class:`Engine` for the progress database.
         """
         return self._progdb.engine
 
-    def get_progdb_metadata(self) -> MetaData:
+    @property
+    def progressdb_metadata(self) -> MetaData:
         """
         Returns the SQLAlchemy :class:`MetaData` for the progress database.
         """
@@ -1004,7 +1011,7 @@ class NlpDefinition(object):
         Execute a COMMIT on all databases (all destination database and the
         progress database).
         """
-        self.commit(self.get_progdb_session())
+        self.commit(self.progressdb_session)
         for db in self._databases.values():
             self.commit(db.session)
 

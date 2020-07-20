@@ -133,10 +133,11 @@ class FieldInfo(object):
         self.pk_ddrow = pkrow
         self.pid_ddrow = pidrow
         self.text_ddrow = textrow
-        log.info("Using fields: pk={}, pid={}, text={}".format(
-            self.pk_ddrow.get_dest_signature(),
-            self.pid_ddrow.get_dest_signature(),
-            self.text_ddrow.get_dest_signature()))
+        log.info(
+            f"Using fields: pk={self.pk_ddrow.dest_signature}, "
+            f"pid={self.pid_ddrow.dest_signature}, "
+            f"text={self.text_ddrow.dest_signature}"
+        )
 
 
 def get_patientnum_rawtext(docid: int,
@@ -188,7 +189,7 @@ def get_patientnum_rawtext(docid: int,
     pid = row[idx_pidfield]
     text = row[idx_textfield]
     ddr = src_ddrows[idx_textfield]
-    for altermethod in fieldinfo.text_ddrow.get_extracting_text_altermethods():
+    for altermethod in fieldinfo.text_ddrow.extracting_text_altermethods:
         text, _ = altermethod.alter(config, text, ddr, row, src_ddrows)
     return pid, text
 

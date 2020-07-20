@@ -539,10 +539,8 @@ class Medex(BaseNlpParser):
                 ProcessorConfigKeys.PROGENVSECTION)
 
             if self._progenvsection:
-                self._env = nlpdef.get_env_dict(
-                    full_sectionname(NlpConfigPrefixes.ENV,
-                                     self._progenvsection),
-                    os.environ)
+                self._env = nlpdef.get_env_dict(self._progenvsection,
+                                                os.environ)
             else:
                 self._env = os.environ.copy()
             self._env["NLPLOGTAG"] = nlpdef.logtag or '.'

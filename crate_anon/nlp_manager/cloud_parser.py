@@ -118,9 +118,9 @@ class Cloud(TableMaker):
             c = OutputUserConfig(nlpdef.parser, outputsection,
                                  schema_required=False)
             self._outputtypemap[output_type] = c
-            self._type_to_tablename[output_type] = c.get_tablename()
+            self._type_to_tablename[output_type] = c.dest_tablename
             if output_type == '""':
-                self.tablename = c.get_tablename()
+                self.tablename = c.dest_tablename
         # Checks are now taken care of elsewhere
         # if not self._outputtypemap and not self.tablename:
         #     configfail(
@@ -241,10 +241,10 @@ class Cloud(TableMaker):
         if self.is_tabular():
             self.schema = remote_processor.tabular_schema
             self.sql_dialect = remote_processor.sql_dialect
-        # Check that, by this stage, we either have a tabular shcema from
+        # Check that, by this stage, we either have a tabular schema from
         # the processor, or we have user-specified destfields
-        assert self.is_tabular or all([x.get_destfields() for
-                                      x in self._outputtypemap.values()]), (
+        assert self.is_tabular or all(x.destfields for
+                                      x in self._outputtypemap.values()), (
             "You haven't specified a table structure and the processor hasn't "
             "provided one.")
 
@@ -272,18 +272,18 @@ class Cloud(TableMaker):
         tables = {}  # type: Dict[str, List[Column]]
 
         for output_type, otconfig in self._outputtypemap.items():
-            tables[otconfig.get_tablename()] = (
+            tables[otconfig.dest_tablename] = (
                 self._standard_columns_if_gate() +
-                otconfig.get_columns(self.get_engine())
+                otconfig.get_columns(self.dest_engine)
             )
         return tables
 
     def _dest_tables_indexes_user(self) -> Dict[str, List[Index]]:
         tables = {}  # type: Dict[str, List[Index]]
         for output_type, otconfig in self._outputtypemap.items():
-            tables[otconfig.get_tablename()] = (
+            tables[otconfig.dest_tablename] = (
                 self._standard_indexes_if_gate() +
-                otconfig.get_indexes()
+                otconfig.indexes
             )
         return tables
 
@@ -326,8 +326,8 @@ class Cloud(TableMaker):
 
     def dest_tables_indexes(self) -> Dict[str, List[Index]]:
         # Docstring in superclass
-        if self._outputtypemap and all([x.get_destfields() for
-                                        x in self._outputtypemap.values()]):
+        if self._outputtypemap and all(x.destfields for
+                                       x in self._outputtypemap.values()):
             return self._dest_tables_indexes_user()
         elif self.is_tabular():
             return self._dest_tables_indexes_auto()
@@ -337,8 +337,8 @@ class Cloud(TableMaker):
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # Docstring in superclass
-        if self._outputtypemap and all([x.get_destfields() for
-                                        x in self._outputtypemap.values()]):
+        if self._outputtypemap and all(x.destfields for
+                                       x in self._outputtypemap.values()):
             return self._dest_tables_columns_user()
         elif self.is_tabular():
             # Must have processor-defined schema because we already checked
@@ -347,5 +347,3 @@ class Cloud(TableMaker):
         else:
             raise ValueError("You haven't specified a table structure and "
                              "the processor hasn't provided one.")
-
-

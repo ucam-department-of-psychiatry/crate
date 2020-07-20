@@ -43,6 +43,10 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+# =============================================================================
+# Helper functions
+# =============================================================================
+
 def configfail(errmsg) -> None:
     """
     Args:
@@ -111,6 +115,10 @@ def gen_ints(words: Iterable[str],
             if not suppress_errors:
                 raise
 
+
+# =============================================================================
+# ExtendedConfigParser
+# =============================================================================
 
 class ExtendedConfigParser(configparser.ConfigParser):
     """
@@ -423,6 +431,10 @@ class ExtendedConfigParser(configparser.ConfigParser):
         env.update(newitems)
         return env
 
+
+# =============================================================================
+# ConfigSection
+# =============================================================================
 
 class ConfigSection(object):
     """

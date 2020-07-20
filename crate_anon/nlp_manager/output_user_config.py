@@ -208,13 +208,15 @@ class OutputUserConfig(object):
                 self._indexfields.append(indexfieldname)
                 self._indexlengths.append(length)
 
-    def get_tablename(self) -> str:
+    @property
+    def dest_tablename(self) -> str:
         """
         Returns the name of the destination table.
         """
         return self._desttable
 
-    def get_destfields(self) -> List[str]:
+    @property
+    def destfields(self) -> List[str]:
         """
         Returns the list of destination fields.
         """
@@ -243,7 +245,8 @@ class OutputUserConfig(object):
             ))
         return columns
 
-    def get_indexes(self) -> List[Index]:
+    @property
+    def indexes(self) -> List[Index]:
         """
         Return all SQLAlchemy :class:`Index` definitions for the destination
         table.
@@ -260,6 +263,7 @@ class OutputUserConfig(object):
             indexes.append(Index(index_name, field, **kwargs))
         return indexes
 
+    @property
     def renames(self) -> Dict[str, str]:
         """
         Return the "rename dictionary": a dictionary mapping GATE annotation
@@ -272,6 +276,7 @@ class OutputUserConfig(object):
         """
         return self._renames
 
+    @property
     def null_literals(self) -> List[str]:
         """
         Returns string values from the GATE output that will be interpreted as

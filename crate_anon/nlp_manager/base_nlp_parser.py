@@ -213,28 +213,32 @@ class TableMaker(ABC):
         """
         return {}
 
-    def get_metadata(self) -> MetaData:
+    @property
+    def dest_metadata(self) -> MetaData:
         """
         Returns the SQLAlchemy metadata for the destination database (which this
         NLP processor was told about at construction).
         """
         return self._destdb.metadata
 
-    def get_session(self) -> Session:
+    @property
+    def dest_session(self) -> Session:
         """
         Returns the SQLAlchemy ORM Session for the destination database (which
         this NLP processor was told about at construction).
         """
         return self._destdb.session
 
-    def get_engine(self) -> Engine:
+    @property
+    def dest_engine(self) -> Engine:
         """
         Returns the SQLAlchemy database Engine for the destination database
         (which this NLP processor was told about at construction).
         """
         return self._destdb.engine
 
-    def get_nlpdef_name(self) -> Optional[str]:
+    @property
+    def nlpdef_name(self) -> Optional[str]:
         """
         Returns the name of our
         :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`, if we
@@ -251,10 +255,11 @@ class TableMaker(ABC):
         """
         return self._friendly_name
 
-    def get_dbname(self) -> str:
+    @property
+    def dest_dbname(self) -> str:
         """
-        Returns the friendly name for the destination database (which this NLP
-        processor was told about at construction).
+        Returns the friendly (config file) name for the destination database
+        (which this NLP processor was told about at construction).
         """
         return self._destdb_name
 
@@ -401,7 +406,7 @@ class TableMaker(ABC):
                                 "source", core_columns)
 
         # Create one or more tables
-        meta = self.get_metadata()
+        meta = self.dest_metadata
         tables = {}  # Dict[str, Table]
         t_columns = self.dest_tables_columns()
         for tablename, extra_dest_cols in t_columns.items():
@@ -470,7 +475,7 @@ class TableMaker(ABC):
             drop_first: drop the tables first?
         """
         assert self._destdb, "No database specified!"
-        engine = self.get_engine()
+        engine = self.dest_engine
         tables = self.tables()
         pretty_names = []  # type: List[str]
         for t in tables.values():
@@ -509,10 +514,10 @@ class TableMaker(ABC):
                 See e.g.
                 http://dev.mysql.com/doc/refman/5.5/en/innodb-deadlocks.html
         """  # noqa
-        session = self.get_session()
-        srcdb = ifconfig.get_srcdb()
-        srctable = ifconfig.get_srctable()
-        srcfield = ifconfig.get_srcfield()
+        session = self.dest_session
+        srcdb = ifconfig.srcdb
+        srctable = ifconfig.srctable
+        srcfield = ifconfig.srcfield
         destdb_name = self._destdb.name
         nlpdef_name = self._nlpdef.name
         for tablename, desttable in self.tables().items():
@@ -554,10 +559,10 @@ class TableMaker(ABC):
                 this table. Otherwise, we delete *all* NLP destination records
                 from the source column.
         """
-        destsession = self.get_session()
-        srcdb = ifconfig.get_srcdb()
-        srctable = ifconfig.get_srctable()
-        srcfield = ifconfig.get_srcfield()
+        destsession = self.dest_session
+        srcdb = ifconfig.srcdb
+        srctable = ifconfig.srctable
+        srcfield = ifconfig.srcfield
         for desttable_name, desttable in self.tables().items():
             log.debug(f"delete_where_srcpk_not... {srcdb}.{srctable} -> "
                       f"{self._destdb_name}.{desttable_name}")
@@ -602,7 +607,8 @@ class TableMaker(ABC):
             destsession.execute(dest_deletion_query)
             self._nlpdef.commit(destsession)
 
-    def get_destdb(self) -> DatabaseHolder:
+    @property
+    def destdb(self) -> DatabaseHolder:
         """
         Returns the destination database.
         """
@@ -677,7 +683,7 @@ class BaseNlpParser(TableMaker):
             # ... the warning occurs frequently so slows down processing
             return
         starting_fields_values[FN_NLPDEF] = self._nlpdef.name
-        session = self.get_session()
+        session = self.dest_session
         n_values = 0
         with MultiTimerContext(timer, TIMING_PARSE):
             for tablename, nlp_values in self.parse(text):
@@ -710,7 +716,7 @@ class BaseNlpParser(TableMaker):
                     )
                     n_values += 1
         log.debug(
-            f"NLP processor {self.get_nlpdef_name()}/{self.friendly_name}:"
+            f"NLP processor {self.nlpdef_name}/{self.friendly_name}:"
             f" found {n_values} values")
 
     @abstractmethod
