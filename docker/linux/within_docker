@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# server/docker/linux/within_docker
+#
+# Launches a command within one of the Docker containers running the CRATE
+# image.
+
+set -e
+
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+DOCKER_COMPOSE_DIR="${THIS_DIR}/../dockerfiles"
+SERVICE="crate_workers"
+
+# Don't echo things to stdout. People may want to redirect the output.
+# On the other hand, docker-compose splurges stuff to stderr and you can't stop
+# it, so we may as well too.
+
+1>&2 echo "Executing command within the '${SERVICE}' Docker Compose service..."
+
+# We must change directory to pick up ".env" etc.
+
+cd "${DOCKER_COMPOSE_DIR}"
+
+# Having done so, the default Docker Compose filenames include
+# docker-compose.yaml, so we don't need to specify that.
+
+docker-compose run --rm "${SERVICE}" "$@"
+#                  ^    ^^^^^^^^^^^^ ^
+#                  |    |            |
+#                  |    |            +-- command
+#                  |    +-- service (container)
+#                  +-- remove container after run
+#
+# We could use any service with the same image; all should have equivalent
+# volumes mounted and the same environment. The "camcops_workers" service is
+# started first (with the fewest dependencies) so will be fastest.

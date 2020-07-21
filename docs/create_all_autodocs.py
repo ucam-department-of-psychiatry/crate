@@ -29,14 +29,11 @@ docs/create_all_autodocs.py
 import argparse
 import logging
 import os
-import sys
 
 from cardinal_pythonlib.fileops import rmtree
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.sphinxtools import AutodocIndex
 
-if sys.version_info[0] < 3:
-    raise AssertionError("Need Python 3")
 log = logging.getLogger(__name__)
 
 # Work out directories

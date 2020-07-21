@@ -34,6 +34,7 @@ import platform
 
 from cardinal_pythonlib.process import nice_call
 
+from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.crateweb.config.constants import CRATEWEB_CELERY_APP_NAME
 
 
@@ -46,7 +47,7 @@ WINDOWS = platform.system() == 'Windows'
 # HOWEVER: autoreload appears (a) not to work, and (b) to prevent processing!
 
 
-def main() -> None:
+def inner_main() -> None:
     """
     Command-line parser. See command-line help.
     """
@@ -107,6 +108,13 @@ def main() -> None:
     cmdargs += leftovers
     print(f"Launching Celery: {cmdargs}")
     nice_call(cmdargs, cleanup_timeout=args.cleanup_timeout_s)
+
+
+def main() -> None:
+    """
+    Command-line entry point.
+    """
+    call_main_with_exception_reporting(inner_main)
 
 
 if __name__ == '__main__':

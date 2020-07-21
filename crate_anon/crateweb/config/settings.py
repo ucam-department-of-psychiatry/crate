@@ -43,7 +43,12 @@ import importlib.machinery
 import logging
 import os
 
-from crate_anon.common.constants import RUNNING_WITHOUT_CONFIG
+from cardinal_pythonlib.docker import running_under_docker
+
+from crate_anon.common.constants import (
+    ENVVAR_GENERATING_CRATE_DOCS,
+    RUNNING_WITHOUT_CONFIG,
+)
 from crate_anon.crateweb.config.constants import (
     CRATEWEB_CONFIG_ENV_VAR,
     UrlNames,
@@ -57,6 +62,15 @@ except ImportError:
     pymysql = None
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Docker
+# =============================================================================
+
+RUNNING_UNDER_DOCKER = running_under_docker()
+if RUNNING_UNDER_DOCKER:
+    log.info("Running under Docker")
 
 
 # =============================================================================
@@ -483,13 +497,14 @@ if RUNNING_WITHOUT_CONFIG:
     SECRET_KEY = 'dummy'  # A Django setting.
 else:
     if CRATEWEB_CONFIG_ENV_VAR not in os.environ:
+        _linuxpath = "/crate/cfg" if RUNNING_UNDER_DOCKER else "/etc/crate"
         raise ValueError(f"""
     You must set the {CRATEWEB_CONFIG_ENV_VAR} environment variable first.
     Aim it at your settings file, like this:
 
     (For Linux:)
 
-    export {CRATEWEB_CONFIG_ENV_VAR}=/etc/crate/my_secret_crate_settings.py
+    export {CRATEWEB_CONFIG_ENV_VAR}={_linuxpath}/my_secret_crate_settings.py
 
     (For Windows:)
 
@@ -497,7 +512,7 @@ else:
         """)
     filename = os.environ[CRATEWEB_CONFIG_ENV_VAR]
 
-    if "GENERATING_CRATE_DOCS" not in os.environ:
+    if ENVVAR_GENERATING_CRATE_DOCS not in os.environ:
         print(f"Loading local settings from: {filename}")
     # ... NB logger not yet set to a reasonable priority; use warning level
     # ... no, logger not even configured, and this is loaded via Django;

@@ -49,6 +49,9 @@ LOWER_CASE_STRINGS_MEANING_TRUE = ['true', '1', 't', 'y', 'yes']
 # Is this program running on readthedocs.org?
 ON_READTHEDOCS = os.environ.get('READTHEDOCS') == 'True'
 
+# Environment variable whose presence indicates that we are generating docs.
+ENVVAR_GENERATING_CRATE_DOCS = "GENERATING_CRATE_DOCS"
+
 # Will we run without a config file?
 RUNNING_WITHOUT_CONFIG = (
     ON_READTHEDOCS or

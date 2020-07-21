@@ -300,7 +300,11 @@ from sqlalchemy.engine.result import ResultProxy
 from sqlalchemy.sql import text
 
 from crate_anon.anonymise.anonregex import get_uk_postcode_regex_string
-from crate_anon.common.constants import EXIT_FAILURE, EXIT_SUCCESS
+from crate_anon.common.constants import (
+    ENVVAR_GENERATING_CRATE_DOCS,
+    EXIT_FAILURE,
+    EXIT_SUCCESS,
+)
 from crate_anon.version import CRATE_VERSION
 
 if TYPE_CHECKING:
@@ -2943,7 +2947,7 @@ class TestCondition(object):
                 log.info(f"... should not and does not match: {p_plain_str}")
         else:
             log_odds = log_odds_plaintext
-            msg = (
+            raise AssertionError(
                 f"Match failure: "
                 f"matches_raw = {matches_raw}, "
                 f"should_match = {self.should_match}, "
@@ -2953,8 +2957,6 @@ class TestCondition(object):
                 f"person_a = {self.person_a}, "
                 f"person_b = {self.person_b}"
             )
-            log.critical(msg)
-            raise AssertionError(msg)
 
         log.info(f"(2) Comparing hashed:\n- {self.hashed_a}\n- {self.hashed_b}")  # noqa
         matches_hashed, log_odds_hashed = self.matches_hashed()
@@ -2967,7 +2969,7 @@ class TestCondition(object):
                 log.info(f"... should not and does not match: {p_hashed_str}")
         else:
             log_odds = log_odds_hashed
-            msg = (
+            raise AssertionError(
                 f"Match failure: "
                 f"matches_hashed = {matches_hashed}, "
                 f"should_match = {self.should_match}, "
@@ -2980,8 +2982,6 @@ class TestCondition(object):
                 f"hashed_a = {self.hashed_a}, "
                 f"hashed_b = {self.hashed_b}"
             )
-            log.critical(msg)
-            raise AssertionError(msg)
 
 
 # =============================================================================
@@ -4442,7 +4442,7 @@ def main() -> int:
     """
 
     appname = "crate"
-    if "GENERATING_CRATE_DOCS" in os.environ:
+    if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
         default_names_dir = "/path/to/names/directory"
         default_postcodes_csv = "/path/to/postcodes/file"
         default_cache_dir = "/path/to/crate/user/data"

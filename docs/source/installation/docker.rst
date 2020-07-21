@@ -18,6 +18,7 @@
     along with CamCOPS. If not, see <http://www.gnu.org/licenses/>.
 
 .. _AMQP: https://en.wikipedia.org/wiki/Advanced_Message_Queuing_Protocol
+.. _CherryPy: https://cherrypy.org/
 .. _Docker: https://www.docker.com/
 .. _Docker Compose: https://docs.docker.com/compose/
 .. _Flower: https://flower.readthedocs.io/
@@ -56,11 +57,10 @@ Compose to set up several containers, specifically:
 
 - a database system, via MySQL_ on Linux (internal container name ``mysql``);
 - a message queue, via RabbitMQ_ on Linux (``rabbitmq``);
-- the CamCOPS web server itself, offering SSL directly via Gunicorn_ on Linux
-  (``camcops_server``);
-- the CamCOPS scheduler (``camcops_scheduler``);
-- CamCOPS workers, to perform background tasks (``camcops_workers``);
-- a background task monitor, using Flower_ (``camcops_monitor``).
+- the CRATE web server itself, offering SSL directly via CherryPy_ on Linux
+  (``crate_server``);
+- the CRATE web site back-end (``crate_workers``);
+- a background task monitor, using Flower_ (``crate_monitor``).
 
 
 Quick start
@@ -69,10 +69,10 @@ Quick start
 #.  Ensure you have Docker and Docker Compose installed (see
     :ref:`prerequisites <docker_prerequisites>`).
 
-#.  Obtain the CamCOPS source code.
+#.  Obtain the CRATE source code.
 
     .. todo::
-        Docker/CamCOPS source: (a) is that the right method? Or should we be
+        Docker/CRATE source: (a) is that the right method? Or should we be
         using ``docker-app``? (Is that experimental?) (b) Document.
 
 #.  Set the :ref:`environment variables <docker_environment_variables>`
@@ -91,7 +91,7 @@ Quick start
 
     .. code-block:: bash
 
-        ./start_camcops_docker_interactive
+        ./start_crate_docker_interactive
 
     This gives you an interactive view. As this is the first run, it will also
     create containers, volumes, the database, and so on. It will then encounter
@@ -101,6 +101,8 @@ Quick start
 #.  Run this command to create a demonstration config file with the standard
     name:
 
+    .. todo:: fixme
+
     .. code-block:: bash
 
         ./print_demo_camcops_config > "${CAMCOPS_DOCKER_CONFIG_HOST_DIR}/camcops.conf"
@@ -109,23 +111,25 @@ Quick start
     description and :ref:`here <camcops_config_file_docker>` for special Docker
     requirements.
 
+    .. todo:: fixme
+
 #.  Create the database structure (tables):
 
     .. code-block:: bash
 
-        ./upgrade_db
+        ./crate_django_manage migrate
 
 #.  Create a superuser:
 
     .. code-block:: bash
 
-        ./camcops_server make_superuser
+        ./crate_django_manage createsuperuser
 
 #.  Time to test! Restart with
 
     .. code-block:: bash
 
-        ./start_camcops_docker_interactive
+        ./start_crate_docker_interactive
 
     Everything should now be operational. Using any web browser, you should be
     able to browse to the CamCOPS site at your chosen host port and protocol,
@@ -136,17 +140,17 @@ Quick start
 
     .. code-block:: bash
 
-        ./start_camcops_docker_detached
+        ./start_crate_docker_detached
 
     which will fire up the containers in the background. To take them down
     again, use
 
     .. code-block:: bash
 
-        ./stop_camcops_docker
+        ./stop_crate_docker
 
 You should now be operational! If Docker is running as a service on your
-machine, CamCOPS should also be automatically restarted by Docker on reboot.
+machine, CRATE should also be automatically restarted by Docker on reboot.
 
 
 .. _docker_prerequisites:
@@ -171,7 +175,7 @@ Linux-under-Docker-under-Windows).
 Environment variables
 ---------------------
 
-Docker control files are in the ``server/docker`` directory of the CamCOPS
+Docker control files are in the ``server/docker`` directory of the CRATE
 source tree. Setup is controlled by the ``docker-compose`` application.
 
 .. note::
@@ -181,10 +185,12 @@ source tree. Setup is controlled by the ``docker-compose`` application.
     are any files starting with ``.``).
 
 
-.. _CAMCOPS_DOCKER_CONFIG_HOST_DIR:
+.. todo:: still going below here
 
-CAMCOPS_DOCKER_CONFIG_HOST_DIR
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _CRATE_DOCKER_CONFIG_HOST_DIR:
+
+CRATE_DOCKER_CONFIG_HOST_DIR
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **No default. Must be set.**
 
@@ -212,74 +218,78 @@ CAMCOPS_DOCKER_CAMCOPS_CONFIG_FILENAME
 Base name of the CamCOPS config file (see CAMCOPS_DOCKER_CONFIG_HOST_DIR_).
 
 
-CAMCOPS_DOCKER_FLOWER_HOST_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_FLOWER_HOST_PORT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 *Default: 5555*
 
 Host port on which to launch the Flower_ monitor.
 
 
-CAMCOPS_DOCKER_CAMCOPS_HOST_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_CRATE_HOST_PORT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 *Default: 443*
 
-The TCP/IP port number on the host computer that CamCOPS should provide an
+The TCP/IP port number on the host computer that CRATE should provide an
 HTTP or HTTPS (SSL) connection on.
 
-It is strongly recommended that you run CamCOPS over HTTPS. The two ways of
+It is strongly recommended that you run CRATE over HTTPS. The two ways of
 doing this are:
 
-- Have CamCOPS run plain HTTP, and connect it to another web server (e.g.
+- Have CRATE run plain HTTP, and connect it to another web server (e.g.
   Apache) that provides the HTTPS component.
 
   - If you do this, you should **not** expose this port to the "world", since
     it offers insecure HTTP.
 
   - The motivation for this method is usually that you are running multiple web
-    services, of which CamCOPS is one.
+    services, of which CRATE is one.
 
   - We don't provide Apache within Docker, because the Apache-inside-Docker
-    would only see CamCOPS, so there's not much point -- you might as well
+    would only see CRATE, so there's not much point -- you might as well
     use the next option...
 
-- Have CamCOPS run HTTPS directly, by specifying the :ref:`SSL_CERTIFICATE
+.. todo:: fix text below
+
+- Have CRATE run HTTPS directly, by specifying the :ref:`SSL_CERTIFICATE
   <SSL_CERTIFICATE>` and :ref:`SSL_PRIVATE_KEY <SSL_PRIVATE_KEY>` options.
 
-  - This is simpler if CamCOPS is the only web service you are running on this
+  - This is simpler if CRATE is the only web service you are running on this
     machine. Use the standard HTTPS port, 443, and expose it to the outside
     through your server's firewall. (You are running a firewall, right?)
 
 
-CAMCOPS_DOCKER_CAMCOPS_INTERNAL_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_CRATE_INTERNAL_PORT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 *Default: 8000*
+
+.. todo:: fix text
 
 The TCP/IP port number used by CamCOPS internally. Must match the :ref:`PORT
 <PORT>` option in the CamCOPS config file.
 
 
-.. _CAMCOPS_DOCKER_MYSQL_CAMCOPS_DATABASE_NAME:
+.. _CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME:
 
-CAMCOPS_DOCKER_MYSQL_CAMCOPS_DATABASE_NAME
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*Default: camcops*
+*Default: crate_web_db*
 
-Name of the MySQL database to be used for CamCOPS data.
+Name of the MySQL database to be used for CRATE web site data.
 
 
-.. _CAMCOPS_DOCKER_MYSQL_CAMCOPS_USER_PASSWORD:
+.. _CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD:
 
-CAMCOPS_DOCKER_MYSQL_CAMCOPS_USER_PASSWORD
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **No default. Must be set during MySQL container creation.**
 
 MySQL password for the CamCOPS database user (whose name is set by
-CAMCOPS_DOCKER_MYSQL_CAMCOPS_USER_NAME_).
+CRATE_DOCKER_MYSQL_CRATE_USER_NAME_).
 
 .. note::
     This only needs to be set when Docker Compose is creating the MySQL
@@ -287,25 +297,25 @@ CAMCOPS_DOCKER_MYSQL_CAMCOPS_USER_NAME_).
     probably best not set for security reasons!).
 
 
-.. _CAMCOPS_DOCKER_MYSQL_CAMCOPS_USER_NAME:
+.. _CRATE_DOCKER_MYSQL_CRATE_USER_NAME:
 
-CAMCOPS_DOCKER_MYSQL_CAMCOPS_USER_NAME
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_MYSQL_CRATE_USER_NAME
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*Default: camcops*
+*Default: crate_web_user*
 
-MySQL username for the main CamCOPS user. This user is given full control over
-the database named in CAMCOPS_DOCKER_MYSQL_CAMCOPS_DATABASE_NAME_. See also
-CAMCOPS_DOCKER_MYSQL_CAMCOPS_USER_PASSWORD_.
+MySQL username for the main CRATE web user. This user is given full control over
+the database named in CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME_. See also
+CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD_.
 
 
-CAMCOPS_DOCKER_MYSQL_HOST_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_MYSQL_HOST_PORT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 *Default: 3306*
 
-Port published to the host, giving access to the CamCOPS MySQL installation.
-You can use this to allow other software to connect to the CamCOPS database
+Port published to the host, giving access to the CRATE MySQL installation.
+You can use this to allow other software to connect to the CRATE database
 directly.
 
 This might include using MySQL tools from the host to perform database backups
@@ -318,10 +328,10 @@ else.
 You should **not** expose this port to the "outside", beyond your host.
 
 
-.. _CAMCOPS_DOCKER_MYSQL_ROOT_PASSWORD:
+.. _CRATE_DOCKER_MYSQL_ROOT_PASSWORD:
 
-CAMCOPS_DOCKER_MYSQL_ROOT_PASSWORD
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_MYSQL_ROOT_PASSWORD
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **No default. Must be set during MySQL container creation.**
 
@@ -336,11 +346,13 @@ MySQL password for the ``root`` user.
 COMPOSE_PROJECT_NAME
 ~~~~~~~~~~~~~~~~~~~~
 
-*Default: camcops*
+*Default: crate*
 
 This is the Docker Compose project name. It's used as a prefix for all the
 containers in this project.
 
+
+.. todo:: fix below here
 
 .. _camcops_config_file_docker:
 

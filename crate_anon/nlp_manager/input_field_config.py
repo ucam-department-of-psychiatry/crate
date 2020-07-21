@@ -75,8 +75,6 @@ from crate_anon.nlp_manager.constants import (
     SqlTypeDbIdentifier,
 )
 from crate_anon.nlp_manager.models import NlpRecord
-# if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
-#     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
 from crate_anon.nlp_manager.nlp_definition import (
     NlpConfigPrefixes,
     NlpDefinition,
@@ -316,9 +314,8 @@ class InputFieldConfig(object):
         Ensure that the source table exists, or raise :exc:`RuntimeError`.
         """
         if not table_or_view_exists(self._source_engine, self._srctable):
-            msg = f"Missing source table: {self._srcdb}.{self._srctable}"
-            log.critical(msg)
-            raise RuntimeError(msg)
+            raise RuntimeError(
+                f"Missing source table: {self._srcdb}.{self._srctable}")
 
     def get_copy_columns(self) -> List[Column]:
         """
@@ -412,7 +409,7 @@ class InputFieldConfig(object):
             reference fields, copy fields).
         """
         if 1 < ntasks <= tasknum:
-            raise Exception(f"Invalid tasknum {tasknum}; must be <{ntasks}")
+            raise RuntimeError(f"Invalid tasknum {tasknum}; must be <{ntasks}")
 
         # ---------------------------------------------------------------------
         # Values that are constant to all items we will generate

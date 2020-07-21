@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# server/docker/linux/bash_within_camcops_docker
+#
+# Launches the "bash" command within one of the Docker containers running the
+# CRATE image.
+
+set -e
+
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+WITHIN_DOCKER="${THIS_DIR}/within_docker"
+
+# https://serverfault.com/questions/368054/run-an-interactive-bash-subshell-with-initial-commands-without-returning-to-the
+# https://stackoverflow.com/questions/59814742/docker-run-bash-init-file
+"${WITHIN_DOCKER}" /bin/bash -c "source /crate/venv/bin/activate; exec /bin/bash"

@@ -72,7 +72,6 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple, Generator, TYPE_CHECKING
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
-from cardinal_pythonlib.exceptions import die
 from cardinal_pythonlib.fileops import purge
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.sqlalchemy.core_query import count_star
@@ -89,6 +88,7 @@ from crate_anon.anonymise.constants import (
     SEP,
 )
 from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.nlp_manager.all_processors import (
     make_nlp_parser_unconfigured,
@@ -1069,9 +1069,9 @@ def show_dest_counts(nlpdef: NlpDefinition) -> None:
 # Main
 # =============================================================================
 
-def main() -> None:
+def inner_main() -> None:
     """
-    Command-line entry point. See command-line help.
+    Indirect command-line entry point. See command-line help.
     """
     version = f"Version {CRATE_VERSION} ({CRATE_VERSION_DATE})"
     description = f"NLP manager. {version}. By Rudolf Cardinal."
@@ -1310,29 +1310,25 @@ def main() -> None:
 
     # 2. NLP
     if args.nlp or everything:
-        try:
-            if args.cloud:
-                if args.immediate:
-                    process_cloud_now(
-                        crinfo,
-                        incremental=args.incremental,
-                        report_every=args.report_every_nlp)
-                else:
-                    process_cloud_nlp(crinfo,
-                                      incremental=args.incremental,
-                                      report_every=args.report_every_nlp)
-            elif args.retrieve:
-                retrieve_nlp_data(crinfo,
-                                  incremental=args.incremental)
+        if args.cloud:
+            if args.immediate:
+                process_cloud_now(
+                    crinfo,
+                    incremental=args.incremental,
+                    report_every=args.report_every_nlp)
             else:
-                process_nlp(nlpdef,
-                            incremental=args.incremental,
-                            report_every=args.report_every_nlp,
-                            tasknum=args.process,
-                            ntasks=args.nprocesses)
-        except Exception as exc:
-            log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
-            die(exc)
+                process_cloud_nlp(crinfo,
+                                  incremental=args.incremental,
+                                  report_every=args.report_every_nlp)
+        elif args.retrieve:
+            retrieve_nlp_data(crinfo,
+                              incremental=args.incremental)
+        else:
+            process_nlp(nlpdef,
+                        incremental=args.incremental,
+                        report_every=args.report_every_nlp,
+                        tasknum=args.process,
+                        ntasks=args.nprocesses)
 
     log.info("Finished")
     end = get_now_utc_pendulum()
@@ -1341,6 +1337,13 @@ def main() -> None:
 
     if args.timing:
         timer.report()
+
+
+def main() -> None:
+    """
+    Command-line entry point.
+    """
+    call_main_with_exception_reporting(inner_main)
 
 
 # =============================================================================

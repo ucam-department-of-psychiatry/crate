@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# server/docker/linux/bash_within_camcops_docker
+#
+# Launches the "bash" command within one of the Docker containers
+# running the CRATE image.
+
+set -e
+
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+WITHIN_DOCKER="${THIS_DIR}/within_docker"
+
+"${WITHIN_DOCKER}" /bin/bash
