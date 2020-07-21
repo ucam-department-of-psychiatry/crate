@@ -229,26 +229,9 @@ Built in.
 
 **Windows**
 
-Tricky as the official compiler for Python 3.4 is Visual Studio 2010 [#vs2010]_
-[#python34vstudio]_ [#vstudiogeneral]_. Essentially, this can be hard (e.g. on
-64-bit Windows or with later compilers).
-
-FUTURE PLANS: use Python 3.5, which supports Visual C++ 14.0 [#vs2015]_. At
-present the necessary dependencies do not work cleanly.
-
-.. todo:: fix these docs now we are using Python 3.6+
-
-
-Fast MurmurHash3
-~~~~~~~~~~~~~~~~
-
-.. note::
-    This is optional (CRATE contains a pure-Python version), but it makes
-    hashing faster.
-
-.. code-block:: bash
-
-    pip install mmh3  # C version of MurmurHash3
+Install Visual C++ 14.x [#vs2015]_ (or later?), the official compiler for
+Python 3.5-3.8 under Windows [#python36vstudio]_. Visual Studio Community is
+free [#vscommunity]_.
 
 
 Database and database drivers
@@ -469,9 +452,14 @@ go wrong, so retest that the web server and the e-mail transmission task work.
 .. [#python34vstudio]
     See http://stackoverflow.com/questions/29909330
 
+.. [#python36vstudio]
+    See https://wiki.python.org/moin/WindowsCompilers
+
 .. [#vstudiogeneral]
     To map Visual C++/Studio versions to compiler numbers, see
     http://stackoverflow.com/questions/2676763. For more detail see
     http://stackoverflow.com/questions/2817869.
 
 
+.. [#vscommunity]
+    https://visualstudio.microsoft.com/vs/community/

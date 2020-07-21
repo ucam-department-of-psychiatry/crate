@@ -434,6 +434,9 @@ SQLAlchemy URL      –
 Licence             BSD License
 ==================  ===========================================================
 
+Subsequently replaced (e.g. for Django 3) by :ref:`django-mssql-backend
+<django_mssql_backend>` (q.v.).
+
 Under Linux, you can use the FreeTDS_ ODBC driver, in which case read the
 ``'OPTIONS': {'host_is_server': ...}`` option carefully in the docs.
 
@@ -489,6 +492,27 @@ since the program will be running as a system account.
     Check if ``DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET`` with
     more recent of ``django-pyodbc-azure`` (and if not necessary, document
     successful version).
+
+
+.. _django_mssql_backend:
+
+django-mssql-backend
+~~~~~~~~~~~~~~~~~~~~
+
+A replacement for :ref:`django-pyodbc-azure <django_pyodbc_azure>` (q.v.)
+
+==================  ===========================================================
+Driver              django-mssql-backend
+Home page           | https://pypi.org/project/django-mssql-backend/
+                    | https://github.com/ESSolutions/django-mssql-backend
+Database            Any with an :ref:`ODBC <odbc>` connection
+Installation        ``pip install django-mssql-backend`` and also needs :ref:`PyODBC <pyodbc>`
+Import              –
+Django ``ENGINE``   ``sql_server.pyodbc``
+SQLAlchemy URL      –
+Licence             BSD License
+==================  ===========================================================
+
 
 
 .. _psycopg2:

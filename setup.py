@@ -163,6 +163,7 @@ INSTALL_REQUIRES = [
     "kombu==4.6.11",  # AMQP library for Celery; requires VC++ under Windows
     "mako==1.1.3",  # templates with Python in
     "MarkupSafe==1.1.1",  # for HTML escaping
+    # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa
     "openpyxl==3.0.4",  # read Excel
     "pendulum==2.1.1",  # dates/times
