@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/website_config/web_config_file.rst
+..  crate_anon/docs/source/website_config/web_config_file.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .

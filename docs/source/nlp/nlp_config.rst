@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/nlp/nlp_config.rst
+..  crate_anon/docs/source/nlp/nlp_config.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .

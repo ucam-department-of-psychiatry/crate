@@ -1,4 +1,4 @@
-// clinician_response.js
+// crate_anon/crateweb/consent/templates/clinician_response.js
 /*
     template parameters:
         option_c_available: Python Boolean as "True" or something else

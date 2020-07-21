@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/misc/ancillary_tools.rst
+..  crate_anon/docs/source/misc/ancillary_tools.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .

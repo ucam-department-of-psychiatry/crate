@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/nlp/crate_python_regex.rst
+..  crate_anon/docs/source/nlp/crate_python_regex.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .

@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/introduction/package_elements.rst
+..  crate_anon/docs/source/introduction/package_elements.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .

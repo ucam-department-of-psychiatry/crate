@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/linkage/crate_bulk_hash.rst
+..  crate_anon/docs/source/linkage/crate_bulk_hash.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
