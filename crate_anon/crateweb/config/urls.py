@@ -48,15 +48,13 @@ Including another URLconf
 
 """
 
+import logging
+
+import debug_toolbar
 from django.conf import settings
 from django.conf.urls import include, url
-# import django.contrib.auth.views
-# from django.contrib import admin
-# import django.views.defaults
-# import admin_honeypot
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
-# noinspection PyPackageRequirements
-import debug_toolbar
 from crate_anon.crateweb.config.constants import (
     DOWNLOAD_PRIVATESTORAGE_URL_STEM,
     UrlNames,
@@ -78,6 +76,8 @@ import crate_anon.crateweb.userprofile.views as userprofile_views
 from crate_anon.crateweb.research.research_db_info import research_database_info  # noqa
 
 research_database_info.get_colinfolist()
+
+log = logging.getLogger(__name__)
 
 
 urlpatterns = [
@@ -361,16 +361,21 @@ urlpatterns = [
     # Other test views
     # -------------------------------------------------------------------------
     # url(r'^404/$', django.views.defaults.page_not_found, ),
-
 ]
-
-# urlpatterns += patterns('', url(r'^silk/',
-#                                 include('silk.urls', namespace='silk')))
 
 
 if settings.DEBUG:
-    # https://github.com/jazzband/django-debug-toolbar/issues/529
-    # http://stackoverflow.com/questions/32111203/what-is-the-benefit-of-using-django-conf-urls-patterns-versus-a-list-of-url-in-d  # noqa
+    # Debug toolbar
+    # - https://github.com/jazzband/django-debug-toolbar/issues/529
+    # - http://stackoverflow.com/questions/32111203/what-is-the-benefit-of-using-django-conf-urls-patterns-versus-a-list-of-url-in-d  # noqa
     urlpatterns += [
         url(r'^__debug__/', include(debug_toolbar.urls)),
     ]
+
+    # Silk
+    #
+    # urlpatterns += patterns('', url(r'^silk/',
+    #                                 include('silk.urls', namespace='silk')))
+
+    # Serve static files for development
+    urlpatterns += staticfiles_urlpatterns()

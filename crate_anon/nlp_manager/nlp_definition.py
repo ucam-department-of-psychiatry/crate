@@ -749,7 +749,6 @@ class NlpDefinition(object):
     See the documentation for the :ref:`NLP config file <nlp_config>`.
     """
 
-    # noinspection PyUnresolvedReferences
     def __init__(self, nlpname: str, logtag: str = "") -> None:
         """
         Read config from file.

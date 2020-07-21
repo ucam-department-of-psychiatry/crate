@@ -35,9 +35,8 @@ import textwrap
 from typing import Any, Dict, Iterable, List, Optional, Pattern
 
 from cardinal_pythonlib.django.function_cache import django_cache_function
-from django.contrib.staticfiles.templatetags.staticfiles import static
+from django.templatetags.static import static
 from django.utils.html import escape
-# from django.template import loader
 from django.template.defaultfilters import linebreaksbr
 from pygments import highlight
 from pygments.lexers.sql import SqlLexer

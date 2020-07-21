@@ -65,7 +65,6 @@ install manually are marked with ``# MANUAL``; CRATE installs the others.
 .. code-block:: none
 
     django-pyodbc-azure==1.10.4.0  # MANUAL: for Django to talk to SQL Server
-    mmh3==2.3.1  # MANUAL: to speed up hashing
     pyodbc==4.0.3  # MANUAL: for ODBC database connections
 
 
