@@ -634,3 +634,14 @@ class ConfigSection(object):
         Use this for deprecated option names.
         """
         self.parser.require_option_to_be_absent(self.section, option, msg)
+
+    def other_section(self, section: str) -> "ConfigSection":
+        """
+        Returns a :class:`ConfigSection` attached to a different section of
+        the same parser.
+
+        Args:
+            section:
+                The new section name.
+        """
+        return ConfigSection(section=section, parser=self.parser)

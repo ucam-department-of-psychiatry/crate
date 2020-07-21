@@ -57,7 +57,6 @@ from sqlalchemy.sql.schema import MetaData
 from sqlalchemy.types import Integer, Text
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
-from crate_anon.common.extendedconfigparser import ConfigSection
 from crate_anon.common.stringfunc import does_text_contain_word_chars
 from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
@@ -85,6 +84,7 @@ from crate_anon.version import CRATE_VERSION
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.interfaces import Dialect
+    from crate_anon.common.extendedconfigparser import ConfigSection
 
 log = logging.getLogger(__name__)
 
@@ -147,10 +147,7 @@ class TableMaker(ABC):
         else:
             self._sectionname = full_sectionname(
                 NlpConfigPrefixes.PROCESSOR, cfg_processor_name)
-            self._cfgsection = ConfigSection(
-                section=self._sectionname,
-                parser=nlpdef.parser
-            )
+            self._cfgsection = nlpdef.get_config_section(self._sectionname)
             self._destdb_name = self._cfgsection.opt_str(
                 ProcessorConfigKeys.DESTDB, required=True)
             self._destdb = nlpdef.get_database(self._destdb_name)

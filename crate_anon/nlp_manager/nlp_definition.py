@@ -788,9 +788,9 @@ class NlpDefinition(object):
             case_sensitive=True
         )
 
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Our own stuff
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self._databases = {}  # type: Dict[str, DatabaseHolder]
         self._progressdb_name = self._cfg.opt_str(
             NlpDefConfigKeys.PROGRESSDB,
@@ -821,9 +821,9 @@ class NlpDefinition(object):
         self._cloud_request_data_dir = self._cfg.opt_str(
              NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR)
 
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Input field definitions
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self._inputfielddefs = self._cfg.opt_strlist(
             NlpDefConfigKeys.INPUTFIELDDEFS,
             required=True, lower=False)
@@ -834,9 +834,9 @@ class NlpDefinition(object):
             self._inputfieldmap[cfg_input_name] = InputFieldConfig(
                 self, cfg_input_name)
 
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # NLP processors
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self._processors = []  # type: List[TableMaker]
         processorpairs = self._cfg.opt_strlist(
             NlpDefConfigKeys.PROCESSORS,
@@ -853,16 +853,20 @@ class NlpDefinition(object):
             log.critical(f"Bad {NlpDefConfigKeys.PROCESSORS} specification")
             raise
 
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Transaction sizes, for early commit
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self._transaction_limiters = {}  # type: Dict[Session, TransactionSizeLimiter]  # noqa
         # dictionary of session -> TransactionSizeLimiter
 
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Cloud config (loaded on request, then cached)
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self._cloudcfg = None  # type: Optional[CloudConfig]
+
+    # -------------------------------------------------------------------------
+    # Basic info
+    # -------------------------------------------------------------------------
 
     @property
     def name(self) -> str:
@@ -880,6 +884,18 @@ class NlpDefinition(object):
         return self._logtag
 
     @property
+    def now(self) -> datetime.datetime:
+        """
+        Returns the time this NLP definition was created (in UTC). Used to
+        time-stamp NLP runs.
+        """
+        return self._now
+
+    # -------------------------------------------------------------------------
+    # Config file
+    # -------------------------------------------------------------------------
+
+    @property
     def parser(self) -> ExtendedConfigParser:
         """
         Returns the
@@ -888,43 +904,37 @@ class NlpDefinition(object):
         """
         return self._cfg.parser
 
-    def hash(self, text: str) -> str:
+    def get_config_section(self, section: str) -> ConfigSection:
         """
-        Hash text via this NLP definition's hasher. The hash will be stored in
-        a secret progress database and to detect later changes in the source
-        records.
+        Returns a :class:`crate_anon.common.extendedconfigparser.ConfigSection`
+        referring to a (potentially different) section.
 
         Args:
-            text: text (typically from the source database) to be hashed
+            section:
+                New section name.
+        """
+        return self._cfg.other_section(section)
+
+    def get_env_dict(
+            self,
+            env_section_name: str,
+            parent_env: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+        """
+        Gets an operating system environment variable dictionary (``variable:
+        value`` mapping) from the config file.
+
+        Args:
+            env_section_name: config section name, without its "env:" prefix
+            parent_env: optional starting point (e.g. parent OS environment)
 
         Returns:
-            the hashed value
-        """
-        return self._hasher.hash(text)
+            a dictionary suitable for use as an OS environment
 
-    @property
-    def temporary_tablename(self) -> str:
         """
-        Temporary tablename to use.
-
-        See the documentation for the :ref:`NLP config file <nlp_config>`.
-        """
-        return self._temporary_tablename
-
-    def set_echo(self, echo: bool) -> None:
-        """
-        Set the SQLAlchemy ``echo`` parameter (to echo SQL) for all our
-        source databases.
-        """
-        self._progdb.engine.echo = echo
-        for db in self._databases.values():
-            db.engine.echo = echo
-        # Now, SQLAlchemy will mess things up by adding an additional handler.
-        # So, bye-bye:
-        for logname in ('sqlalchemy.engine.base.Engine',
-                        'sqlalchemy.engine.base.OptionEngine'):
-            logger = logging.getLogger(logname)
-            logger.handlers = []  # ... of type: List[logging.Handler]
+        return self._cfg.parser.get_env_dict(
+            full_sectionname(NlpConfigPrefixes.ENV, env_section_name),
+            parent_env=parent_env
+        )
 
     def get_database(self, name_and_cfg_section: str,
                      with_session: bool = True,
@@ -954,26 +964,51 @@ class NlpDefinition(object):
         self._databases[name_and_cfg_section] = db
         return db
 
-    def get_env_dict(
-            self,
-            env_section_name: str,
-            parent_env: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    # -------------------------------------------------------------------------
+    # Hashing
+    # -------------------------------------------------------------------------
+
+    def hash(self, text: str) -> str:
         """
-        Gets an operating system environment variable dictionary (``variable:
-        value`` mapping) from the config file.
+        Hash text via this NLP definition's hasher. The hash will be stored in
+        a secret progress database and to detect later changes in the source
+        records.
 
         Args:
-            env_section_name: config section name, without its "env:" prefix
-            parent_env: optional starting point (e.g. parent OS environment)
+            text: text (typically from the source database) to be hashed
 
         Returns:
-            a dictionary suitable for use as an OS environment
-
+            the hashed value
         """
-        return self._cfg.parser.get_env_dict(
-            full_sectionname(NlpConfigPrefixes.ENV, env_section_name),
-            parent_env=parent_env
-        )
+        return self._hasher.hash(text)
+
+    # -------------------------------------------------------------------------
+    # Database
+    # -------------------------------------------------------------------------
+
+    @property
+    def temporary_tablename(self) -> str:
+        """
+        Temporary tablename to use.
+
+        See the documentation for the :ref:`NLP config file <nlp_config>`.
+        """
+        return self._temporary_tablename
+
+    def set_echo(self, echo: bool) -> None:
+        """
+        Set the SQLAlchemy ``echo`` parameter (to echo SQL) for all our
+        source databases.
+        """
+        self._progdb.engine.echo = echo
+        for db in self._databases.values():
+            db.engine.echo = echo
+        # Now, SQLAlchemy will mess things up by adding an additional handler.
+        # So, bye-bye:
+        for logname in ('sqlalchemy.engine.base.Engine',
+                        'sqlalchemy.engine.base.OptionEngine'):
+            logger = logging.getLogger(logname)
+            logger.handlers = []  # ... of type: List[logging.Handler]
 
     @property
     def progressdb_session(self) -> Session:
@@ -995,6 +1030,13 @@ class NlpDefinition(object):
         Returns the SQLAlchemy :class:`MetaData` for the progress database.
         """
         return self._progdb.metadata
+
+    @property
+    def progdb(self) -> DatabaseHolder:
+        """
+        Returns the progress database.
+        """
+        return self._progdb
 
     def commit_all(self) -> None:
         """
@@ -1051,32 +1093,9 @@ class NlpDefinition(object):
         tl = self.get_transation_limiter(session)
         tl.commit()
 
-    @property
-    def noncloud_processors(self) -> List['BaseNlpParser']:
-        """
-        Returns all local (non-cloud) NLP processors used by this NLP
-        definition.
-
-        Returns:
-            list of objects derived from
-            :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
-
-        """
-        # noinspection PyTypeChecker
-        return [x for x in self._processors if
-                x.classname() != NlpDefValues.PROCTYPE_CLOUD]
-
-    @property
-    def processors(self) -> List['TableMaker']:
-        """
-        Returns all NLP processors used by this NLP definition.
-
-        Returns:
-            list of objects derived from
-            :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
-
-        """
-        return self._processors
+    # -------------------------------------------------------------------------
+    # Input fields
+    # -------------------------------------------------------------------------
 
     @property
     def inputfieldconfigs(self) -> Iterable['InputFieldConfig']:
@@ -1091,20 +1110,36 @@ class NlpDefinition(object):
         """
         return self._inputfieldmap.values()
 
-    @property
-    def now(self) -> datetime.datetime:
-        """
-        Returns the time this NLP definition was created (in UTC). Used to
-        time-stamp NLP runs.
-        """
-        return self._now
+    # -------------------------------------------------------------------------
+    # NLP processors
+    # -------------------------------------------------------------------------
 
     @property
-    def progdb(self) -> DatabaseHolder:
+    def processors(self) -> List['TableMaker']:
         """
-        Returns the progress database.
+        Returns all NLP processors used by this NLP definition.
+
+        Returns:
+            list of objects derived from
+            :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
+
         """
-        return self._progdb
+        return self._processors
+
+    @property
+    def noncloud_processors(self) -> List['BaseNlpParser']:
+        """
+        Returns all local (non-cloud) NLP processors used by this NLP
+        definition.
+
+        Returns:
+            list of objects derived from
+            :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
+
+        """
+        # noinspection PyTypeChecker
+        return [x for x in self._processors if
+                x.classname() != NlpDefValues.PROCTYPE_CLOUD]
 
     # -------------------------------------------------------------------------
     # NLPRP info

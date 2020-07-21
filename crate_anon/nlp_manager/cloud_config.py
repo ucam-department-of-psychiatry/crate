@@ -32,7 +32,6 @@ import logging
 import os
 from typing import TYPE_CHECKING, Dict, Tuple
 
-from crate_anon.common.extendedconfigparser import ConfigSection
 from crate_anon.nlp_manager.constants import (
     CloudNlpConfigKeys,
     NlpDefValues,
@@ -81,9 +80,8 @@ class CloudConfig(object):
         self._nlpdef = nlpdef
         self.req_data_dir = req_data_dir
 
-        cfg = ConfigSection(
-            section=full_sectionname(NlpConfigPrefixes.CLOUD, name),
-            parser=nlpdef.parser
+        cfg = nlpdef.get_config_section(
+            full_sectionname(NlpConfigPrefixes.CLOUD, name)
         )
 
         self.url = cfg.opt_str(CloudNlpConfigKeys.CLOUD_URL, required=True)

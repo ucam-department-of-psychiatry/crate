@@ -51,7 +51,6 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import and_, column, exists, null, or_, select, table
 from sqlalchemy.sql.schema import MetaData
 
-from crate_anon.common.extendedconfigparser import ConfigSection
 from crate_anon.common.parallel import is_my_job_by_hash_prehashed
 from crate_anon.nlp_manager.constants import (
     FN_CRATE_VERSION_FIELD,
@@ -118,9 +117,8 @@ class InputFieldConfig(object):
                 config section name for the input field definition
         """
         self.name = cfg_input_name
-        cfg = ConfigSection(
-            section=full_sectionname(NlpConfigPrefixes.INPUT, cfg_input_name),
-            parser=nlpdef.parser
+        cfg = nlpdef.get_config_section(
+            full_sectionname(NlpConfigPrefixes.INPUT, cfg_input_name)
         )
 
         self._nlpdef = nlpdef
