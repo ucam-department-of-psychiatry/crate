@@ -105,13 +105,13 @@ RUN echo "- Updating package information..." \
     && rm /tmp/wkhtmltopdf.deb \
     \
     && echo "- GATE: fetching (~54 Mb)..." \
-    && wget -O /tmp/gate-developer-8.6.1-installer.jar \
+    && wget -O /tmp/gate-installer.jar \
         https://github.com/GateNLP/gate-core/releases/download/v8.6.1/gate-developer-8.6.1-installer.jar \
     && echo "- GATE: installing..." \
-    && java -jar /tmp/gate-developer-8.6.1-installer.jar \
+    && java -jar /tmp/gate-installer.jar \
         /crate/src/docker/dockerfiles/gate_auto_install.xml \
     && echo "- GATE: cleaning up..." \
-    && rm /tmp/gate-developer-8.6.1-installer.jar \
+    && rm /tmp/gate-installer.jar \
     \
     && echo "- Creating Python 3 virtual environment..." \
     && python3 -m venv /crate/venv \
