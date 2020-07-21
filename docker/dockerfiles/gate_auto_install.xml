@@ -8,7 +8,7 @@
         java -jar gate-developer-8.6.1-installer.jar -console
 
     and then saying yes to "Generate an automatic installation script".
-    Then editing.
+    Then editing that script.
 
     To use it, we do:
 
