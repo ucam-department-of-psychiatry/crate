@@ -23,6 +23,7 @@ Installing CRATE
 ..  toctree::
     :maxdepth: 2
 
+    docker.rst
     installation.rst
     database_drivers.rst
     upgrading.rst

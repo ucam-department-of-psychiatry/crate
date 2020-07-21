@@ -5,6 +5,7 @@ usage: crate_django_manage resubmit_unprocessed_tasks [-h] [--version]
                                                       [--traceback]
                                                       [--no-color]
                                                       [--force-color]
+                                                      [--skip-checks]
 
 Resubmit unprocessed tasks (in case Celery jobs have been lost)
 
@@ -24,3 +25,4 @@ optional arguments:
   --traceback           Raise on CommandError exceptions
   --no-color            Don't colorize the command output.
   --force-color         Force colorization of the command output.
+  --skip-checks         Skip system checks.

@@ -9,6 +9,7 @@ usage: crate_django_manage runcpserver [-h] [--host HOST] [--port PORT]
                                        [-v {0,1,2,3}] [--settings SETTINGS]
                                        [--pythonpath PYTHONPATH] [--traceback]
                                        [--no-color] [--force-color]
+                                       [--skip-checks]
 
 Run this project in a CherryPy webserver. To do this, CherryPy is required
 (pip install cherrypy).
@@ -31,7 +32,7 @@ optional arguments:
   --no_log_screen       don't log access requests etc. to terminal
   --debug_static        show debug info for static file requests
   --root_path ROOT_PATH
-                        Root path to serve CRATE at. Default: /crate
+                        Root path to serve CRATE at. Default:
   --version             show program's version number and exit
   -v {0,1,2,3}, --verbosity {0,1,2,3}
                         Verbosity level; 0=minimal output, 1=normal output,
@@ -46,3 +47,4 @@ optional arguments:
   --traceback           Raise on CommandError exceptions
   --no-color            Don't colorize the command output.
   --force-color         Force colorization of the command output.
+  --skip-checks         Skip system checks.

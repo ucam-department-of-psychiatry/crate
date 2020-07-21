@@ -29,16 +29,13 @@
 
 .. _server_docker:
 
-Installing and running the CamCOPS server via Docker
-====================================================
+Installing and running CRATE via Docker
+=======================================
 
 ..  contents::
     :local:
     :depth: 3
 
-
-.. todo::
-    Docker: User download system not working properly?
 
 
 Overview
@@ -54,7 +51,7 @@ The core of Docker is called Docker Engine. The `Docker Compose`_ tool allows
 multiple containers to be created, started, and connected together
 automatically.
 
-CamCOPS provides a Docker setup to make installation easy. This uses Docker
+CRATE provides a Docker setup to make installation easy. This uses Docker
 Compose to set up several containers, specifically:
 
 - a database system, via MySQL_ on Linux (internal container name ``mysql``);
