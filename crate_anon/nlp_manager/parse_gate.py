@@ -146,7 +146,7 @@ class Gate(BaseNlpParser):
                 ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
                 default=0)
             self._input_terminator = self._cfgsection.opt_str(
-                self._sectionname, ProcessorConfigKeys.INPUT_TERMINATOR,
+                ProcessorConfigKeys.INPUT_TERMINATOR,
                 required=True)
             self._output_terminator = self._cfgsection.opt_str(
                 ProcessorConfigKeys.OUTPUT_TERMINATOR,
