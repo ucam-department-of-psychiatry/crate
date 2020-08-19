@@ -1,7 +1,7 @@
 # server/docker/dockerfiles/docker-compose.yaml
 #
 # See the help!
-# https://camcops.readthedocs.io/en/latest/administrator/docker.html
+# https://crateanon.readthedocs.io/en/latest/installation/docker.html
 
 # =============================================================================
 # docker-compose file syntax version
@@ -179,10 +179,6 @@ services:
             - crate_config_volume:/crate/cfg
             - crate_tmp_volume:/crate/tmp
 
-        # Environment variables
-        #environment:
-        #    XXX_CAMCOPS_CONFIG_FILE: "/crate/cfg/${XXX_CAMCOPS_DOCKER_CAMCOPS_CONFIG_FILENAME}"
-
         # Command to execute
         command: [
             "wait-for-it", "--host=mysql", "--port=3306", "--timeout=0", "--strict", "--",
@@ -192,7 +188,7 @@ services:
 
 
     # -------------------------------------------------------------------------
-    # Re-use the CamCOPS image, but run the CamCOPS web server.
+    # Re-use the CRATE image, but run the CRATE web server.
     # -------------------------------------------------------------------------
 
     crate_server:
@@ -214,10 +210,6 @@ services:
         volumes:
             - crate_config_volume:/crate/cfg
             - crate_tmp_volume:/crate/tmp
-
-        # Environment variables
-        #environment:
-        #    XXX_CAMCOPS_CONFIG_FILE: "/crate/cfg/${XXX_CAMCOPS_DOCKER_CAMCOPS_CONFIG_FILENAME}"
 
         # Command to execute
         # Can use shell-style or list-style syntax.
@@ -252,10 +244,6 @@ services:
         volumes:
             - crate_config_volume:/crate/cfg
             - crate_tmp_volume:/crate/tmp
-
-        # Environment variables
-        #environment:
-        #    XXX_CAMCOPS_CONFIG_FILE: "/crate/cfg/${XXX_CAMCOPS_DOCKER_CAMCOPS_CONFIG_FILENAME}"
 
         command: [
             "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",

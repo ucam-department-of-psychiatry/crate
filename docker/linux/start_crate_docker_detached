@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# server/docker/linux/start_camcops_docker_detached
+# docker/linux/start_crate_docker_detached
 #
 # Launches the Docker Compose application in detached (daemon) mode.
 

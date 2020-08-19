@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# server/docker/linux/within_docker
+# docker/linux/within_docker
 #
-# Launches a command within one of the Docker containers running the CRATE
-# image.
+# Starts a container with the CRATE image and runs a command in it.
 
 set -e
 

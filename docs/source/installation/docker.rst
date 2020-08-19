@@ -1,21 +1,23 @@
 ..  docs/source/administrator/docker.rst
 
-..  Copyright (C) 2012-2020 Rudolf Cardinal (rudolf@pobox.com).
+..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
-    This file is part of CamCOPS.
+    This file is part of CRATE.
     .
-    CamCOPS is free software: you can redistribute it and/or modify
+    CRATE is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
     .
-    CamCOPS is distributed in the hope that it will be useful,
+    CRATE is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
     GNU General Public License for more details.
     .
     You should have received a copy of the GNU General Public License
-    along with CamCOPS. If not, see <http://www.gnu.org/licenses/>.
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
+.. todo:: IN PROGRESS! ***
 
 .. _AMQP: https://en.wikipedia.org/wiki/Advanced_Message_Queuing_Protocol
 .. _CherryPy: https://cherrypy.org/

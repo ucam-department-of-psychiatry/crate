@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# server/docker/linux/bash_within_camcops_docker
+# docker/linux/bash_within_docker
 #
-# Launches the "bash" command within one of the Docker containers
-# running the CRATE image.
+# Starts a container with the CRATE image and runs "bash" in it.
 
 set -e
 

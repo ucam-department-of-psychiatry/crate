@@ -1,5 +1,5 @@
 @echo off
-REM server/docker/windows/stop_camcops_docker.bat
+REM docker/windows/stop_crate_docker.bat
 REM
 REM Takes down the Docker Compose application.
 

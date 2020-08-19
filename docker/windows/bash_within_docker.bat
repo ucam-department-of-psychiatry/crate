@@ -1,8 +1,7 @@
 @echo off
-REM server/docker/windows/bash_within_camcops_docker.bat
+REM docker/windows/bash_within_docker.bat
 REM
-REM Launches the "bash" command within one of the Docker containers
-REM running the CRATE image.
+REM Starts a container with the CRATE image and runs "bash" in it.
 
 setlocal
 

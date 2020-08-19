@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# server/docker/linux/stop_camcops_docker
+# docker/linux/stop_crate_docker
 #
 # Takes down the Docker Compose application.
 

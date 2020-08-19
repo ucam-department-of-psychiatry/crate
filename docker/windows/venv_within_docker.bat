@@ -1,8 +1,8 @@
 @echo off
-REM server/docker/windows/bash_within_camcops_docker.bat
+REM docker/windows/venv_within_docker.bat
 REM
-REM Launches the "bash" command within one of the Docker containers running the
-REM CRATE image.
+REM Launches the "bash" command within the CRATE Python virtual environment
+REM within a new Docker container running the CRATE image.
 
 setlocal
 

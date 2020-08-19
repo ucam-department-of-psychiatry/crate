@@ -1,8 +1,7 @@
 @echo off
-REM server/docker/windows/within_docker.bat
+REM docker/windows/within_docker.bat
 REM
-REM Launches a command within one of the Docker containers running the CRATE
-REM image.
+REM Starts a container with the CRATE image and runs a command in it.
 
 setlocal
 

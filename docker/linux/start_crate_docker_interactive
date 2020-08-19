@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# server/docker/linux/start_camcops_docker_interactive
+# docker/linux/start_crate_docker_interactive
 #
 # Launches the Docker Compose application in interactive mode.
 

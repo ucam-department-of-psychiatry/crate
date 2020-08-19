@@ -1,5 +1,5 @@
 @echo off
-REM server/docker/windows/start_camcops_docker_interactive.bat
+REM docker/windows/start_crate_docker_interactive.bat
 REM
 REM Launches the Docker Compose application in interactive mode.
 
