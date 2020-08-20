@@ -65,17 +65,6 @@ Options:
     :language: none
 
 
-.. _crate_estimate_mysql_memory_usage:
-
-crate_estimate_mysql_memory_usage
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Options:
-
-..  literalinclude:: crate_estimate_mysql_memory_usage_help.txt
-    :language: none
-
-
 .. _crate_email_rdbm:
 
 crate_email_rdbm

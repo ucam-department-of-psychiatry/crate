@@ -97,8 +97,6 @@ def main():
     # -------------------------------------------------------------------------
     # ancillary
     # -------------------------------------------------------------------------
-    run_cmd(["crate_estimate_mysql_memory_usage", "--help"],
-            join(ANCILLARY_DIR, "crate_estimate_mysql_memory_usage_help.txt"))
     run_cmd(["crate_make_demo_database", "--help"],
             join(ANCILLARY_DIR, "crate_make_demo_database_help.txt"))
     run_cmd(["crate_test_anonymisation", "--help"],

@@ -429,12 +429,6 @@ setup(
             # deal with the CherryPy special environment variable
             "crate_launch_django_server=crate_anon.crateweb.manage:runserver",
 
-            # Miscellaneous, from cardinal_pythonlib
-
-            "crate_estimate_mysql_memory_usage=cardinal_pythonlib.tools.estimate_mysql_memory_usage:main",  # noqa
-            "crate_list_all_extensions=cardinal_pythonlib.tools.list_all_extensions:main",  # noqa
-            "crate_merge_csv=cardinal_pythonlib.tools.merge_csv:main",
-
             # NLP web server
 
             "crate_nlp_webserver_initialize_db=crate_anon.nlp_webserver.initialize_db:main",  # noqa

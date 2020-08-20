@@ -4,10 +4,33 @@
 # https://crateanon.readthedocs.io/en/latest/installation/docker.html
 
 # =============================================================================
+# Environment variables used (see help)
+# =============================================================================
+#
+# Those with defaults in the .env file in this directory:
+#
+#   CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME
+#   CRATE_DOCKER_CRATEWEB_HOST_PORT
+#   CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
+#   CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY
+#   CRATE_DOCKER_FLOWER_HOST_PORT
+#   CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
+#   CRATE_DOCKER_MYSQL_CRATE_USER_NAME
+#   CRATE_DOCKER_MYSQL_HOST_PORT
+#   COMPOSE_PROJECT_NAME -- used by Docker Compose itself
+#
+# Those without defaults:
+#
+#   CRATE_DOCKER_CONFIG_HOST_DIR
+#   CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
+#   CRATE_DOCKER_MYSQL_ROOT_PASSWORD
+
+
+# =============================================================================
 # docker-compose file syntax version
 # =============================================================================
 
-version: "3.7"
+version: "3.5"
 
 
 # =============================================================================
@@ -179,11 +202,17 @@ services:
             - crate_config_volume:/crate/cfg
             - crate_tmp_volume:/crate/tmp
 
+        environment:
+            CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+
         # Command to execute
         command: [
             "wait-for-it", "--host=mysql", "--port=3306", "--timeout=0", "--strict", "--",
             "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
-            "/crate/venv/bin/crate_launch_celery",
+            "bash", "-c", "
+                source /crate/venv/bin/activate &&
+                crate_launch_celery
+            ",
         ]
 
 
@@ -204,19 +233,31 @@ services:
         
         # Publish port to host.
         ports:
-            - "${CRATE_DOCKER_CRATE_HOST_PORT}:${CRATE_DOCKER_CRATE_INTERNAL_PORT}"
+            - "${CRATE_DOCKER_CRATEWEB_HOST_PORT}:8000"
 
         # Mount config file directory
         volumes:
             - crate_config_volume:/crate/cfg
             - crate_tmp_volume:/crate/tmp
 
+        environment:
+            CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+
         # Command to execute
         # Can use shell-style or list-style syntax.
         command: [
             "wait-for-it", "--host=mysql", "--port=3306", "--timeout=0", "--strict", "--",
             "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
-            "/crate/venv/bin/crate_launch_cherrypy_server",
+            "bash", "-c", "
+                source /crate/venv/bin/activate &&
+                crate_launch_cherrypy_server
+                    --host 0.0.0.0
+                    --port 8000
+                    --ssl_certificate ${CRATE_DOCKER_SSL_CERTIFICATE}
+                    --ssl_private_key ${CRATE_DOCKER_SSL_PRIVATE_KEY}
+            ",
+            # - Re host 0.0.0.0:
+            #   https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors
         ]
 
 
@@ -245,7 +286,13 @@ services:
             - crate_config_volume:/crate/cfg
             - crate_tmp_volume:/crate/tmp
 
+        environment:
+            CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+
         command: [
             "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
-            "/crate/venv/bin/crate_launch_flower",
+            "bash", "-c", "
+                source /crate/venv/bin/activate &&
+                crate_launch_flower
+            ",
         ]

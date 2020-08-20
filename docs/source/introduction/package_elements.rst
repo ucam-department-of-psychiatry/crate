@@ -209,9 +209,6 @@ Other tools include:
   anonymised data (from a source and a destination database), for a human to
   compare with a tool like Meld_ to verify the accuracy of anonymisation.
 
-- :ref:`crate_estimate_mysql_memory_usage <crate_estimate_mysql_memory_usage>`:
-  estimates the memory footprint of MySQL_.
-
 
 ===============================================================================
 

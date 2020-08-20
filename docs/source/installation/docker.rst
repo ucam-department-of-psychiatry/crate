@@ -17,20 +17,19 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
-.. todo:: IN PROGRESS! ***
-
 .. _AMQP: https://en.wikipedia.org/wiki/Advanced_Message_Queuing_Protocol
 .. _CherryPy: https://cherrypy.org/
 .. _Docker: https://www.docker.com/
 .. _Docker Compose: https://docs.docker.com/compose/
 .. _Flower: https://flower.readthedocs.io/
+.. _GATE: https://gate.ac.uk/
 .. _Gunicorn: https://gunicorn.org/
 .. _MySQL: https://www.mysql.com/
 .. _mysqlclient: https://pypi.org/project/mysqlclient/
 .. _RabbitMQ: https://www.rabbitmq.com/
 
 
-.. _server_docker:
+.. _crate_docker:
 
 Installing and running CRATE via Docker
 =======================================
@@ -64,6 +63,18 @@ Compose to set up several containers, specifically:
 - the CRATE web site back-end (``crate_workers``);
 - a background task monitor, using Flower_ (``crate_monitor``).
 
+Additionally, you can run a number of important one-off command using the
+``crate`` Docker image. This image also includes, automatically:
+
+- Database drivers:
+
+  - MySQL [:ref:`mysqlclient <mysqlclient>`]
+  - PostgreSQL [:ref:`psycopg2 <psycopg2>`]
+  - SQL Server [:ref:`django-mssql-backend <django_mssql_backend>`,
+    :ref:`pyodbc <pyodbc>`, Microsoft ODBC Driver for SQL Server (Linux)]
+
+- GATE_ (for :ref:`GATE NLP applications <gate_nlp>`)
+
 
 Quick start
 -----------
@@ -81,11 +92,10 @@ Quick start
     required for Docker operation. (You probably want to automate this with a
     script.)
 
-#.  Change to the ``server/docker/linux`` directory within the CamCOPS source
-    tree.
+#.  Change to the ``docker/linux`` directory within the CRATE source tree.
 
     .. note::
-        If you are using a Windows host, change to ``server/docker/windows``
+        If you are using a Windows host, change to ``docker/windows``
         instead, and for all the commands below, instead of ``./some_command``,
         run ``some_command.bat``.
 
@@ -107,25 +117,23 @@ Quick start
 
     .. code-block:: bash
 
-        ./print_demo_camcops_config > "${CAMCOPS_DOCKER_CONFIG_HOST_DIR}/camcops.conf"
+        ./within_docker_venv crate_print_demo_crateweb_config > "${CRATE_DOCKER_CONFIG_HOST_DIR}/crateweb_local_settings.py"
 
-#.  Edit that config file. See :ref:`here <server_config_file>` for a full
-    description and :ref:`here <camcops_config_file_docker>` for special Docker
+#.  Edit that config file. See :ref:`here <web_config_file>` for a full
+    description and :ref:`here <web_config_file_docker>` for special Docker
     requirements.
-
-    .. todo:: fixme
 
 #.  Create the database structure (tables):
 
     .. code-block:: bash
 
-        ./crate_django_manage migrate
+        ./within_docker_venv crate_django_manage migrate
 
 #.  Create a superuser:
 
     .. code-block:: bash
 
-        ./crate_django_manage createsuperuser
+        ./within_docker_venv crate_django_manage createsuperuser
 
 #.  Time to test! Restart with
 
@@ -134,7 +142,7 @@ Quick start
         ./start_crate_docker_interactive
 
     Everything should now be operational. Using any web browser, you should be
-    able to browse to the CamCOPS site at your chosen host port and protocol,
+    able to browse to the CRATE site at your chosen host port and protocol,
     and log in using the account you have just created.
 
 #.  When you're satisfied everything is working well, you can stop interactive
@@ -161,8 +169,8 @@ Prerequisites
 -------------
 
 You can run Docker on several operating systems. For example, you can run
-Docker under Linux (and CamCOPS will run in Linux-under-Docker-under-Linux).
-You can similarly run Docker under Windows (and CamCOPS will run in
+Docker under Linux (and CRATE will run in Linux-under-Docker-under-Linux).
+You can similarly run Docker under Windows (and CRATE will run in
 Linux-under-Docker-under-Windows).
 
 - You need Docker Engine installed. See
@@ -177,17 +185,15 @@ Linux-under-Docker-under-Windows).
 Environment variables
 ---------------------
 
-Docker control files are in the ``server/docker`` directory of the CRATE
+Docker control files are in the ``docker`` directory of the CRATE
 source tree. Setup is controlled by the ``docker-compose`` application.
 
 .. note::
 
-    Default values are taken from ``server/docker/.env``. Unfortunately, this
+    Default values are taken from ``docker/.env``. Unfortunately, this
     name is fixed by Docker Compose, and this file is hidden under Linux (as
     are any files starting with ``.``).
 
-
-.. todo:: still going below here
 
 .. _CRATE_DOCKER_CONFIG_HOST_DIR:
 
@@ -199,37 +205,30 @@ CRATE_DOCKER_CONFIG_HOST_DIR
 Path to a directory on the host that contains key configuration files. Don't
 use a trailing slash.
 
-In this directory, there should be a file called ``camcops.conf``, the config
-file (or, if you have set CAMCOPS_DOCKER_CAMCOPS_CONFIG_FILENAME_, that
-filename!).
+In this directory, there should be a file called
+``crateweb_local_settings.py``, the config file (or, if you have set
+CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME_, that filename!).
 
 .. note::
     **Under Windows,** don't use Windows paths like
-    ``C:\Users\myuser\my_camcops_dir``. Translate this to Docker notation as
-    ``/host_mnt/c/Users/myuser/my_camcops_dir``. As of 2020-07-21, this doesn't
+    ``C:\Users\myuser\my_crate_dir``. Translate this to Docker notation as
+    ``/host_mnt/c/Users/myuser/my_crate_dir``. As of 2020-07-21, this doesn't
     seem easy to find in the Docker docs!
 
 
-.. _CAMCOPS_DOCKER_CAMCOPS_CONFIG_FILENAME:
+.. _CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME:
 
-CAMCOPS_DOCKER_CAMCOPS_CONFIG_FILENAME
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*Default: camcops.conf*
+*Default: crateweb_local_settings.py*
 
-Base name of the CamCOPS config file (see CAMCOPS_DOCKER_CONFIG_HOST_DIR_).
-
-
-CRATE_DOCKER_FLOWER_HOST_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-*Default: 5555*
-
-Host port on which to launch the Flower_ monitor.
+Base name of the CRATE web server config file (see
+CRATE_DOCKER_CONFIG_HOST_DIR_).
 
 
-CRATE_DOCKER_CRATE_HOST_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_CRATEWEB_HOST_PORT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 *Default: 443*
 
@@ -252,25 +251,39 @@ doing this are:
     would only see CRATE, so there's not much point -- you might as well
     use the next option...
 
-.. todo:: fix text below
-
-- Have CRATE run HTTPS directly, by specifying the :ref:`SSL_CERTIFICATE
-  <SSL_CERTIFICATE>` and :ref:`SSL_PRIVATE_KEY <SSL_PRIVATE_KEY>` options.
+- Have CRATE run HTTPS directly, by specifying the
+  :ref:`CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
+  <CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE>` and
+  :ref:`CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY
+  <CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY>` options.
 
   - This is simpler if CRATE is the only web service you are running on this
     machine. Use the standard HTTPS port, 443, and expose it to the outside
     through your server's firewall. (You are running a firewall, right?)
 
 
-CRATE_DOCKER_CRATE_INTERNAL_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE:
 
-*Default: 8000*
+CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. todo:: fix text
+*Default is blank.*
 
-The TCP/IP port number used by CamCOPS internally. Must match the :ref:`PORT
-<PORT>` option in the CamCOPS config file.
+
+.. _CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY:
+
+CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*Default is blank.*
+
+
+CRATE_DOCKER_FLOWER_HOST_PORT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*Default: 5555*
+
+Host port on which to launch the Flower_ monitor.
 
 
 .. _CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME:
@@ -290,7 +303,7 @@ CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
 
 **No default. Must be set during MySQL container creation.**
 
-MySQL password for the CamCOPS database user (whose name is set by
+MySQL password for the CRATE database user (whose name is set by
 CRATE_DOCKER_MYSQL_CRATE_USER_NAME_).
 
 .. note::
@@ -356,7 +369,7 @@ containers in this project.
 
 .. todo:: fix below here
 
-.. _camcops_config_file_docker:
+.. _web_config_file_docker:
 
 The CamCOPS configuration file for Docker
 -----------------------------------------
@@ -476,48 +489,28 @@ point where you want.
 Tools
 -----
 
-All live in the ``server/docker`` directory.
+All live in the ``docker`` directory.
 
 
 bash_within_docker
 ~~~~~~~~~~~~~~~~~~
 
-Runs a Bash shell within the ``camcops_workers`` container.
+Starts a container with the CRATE image and runs a Bash shell within it.
 
 .. warning::
 
     Running a shell within a container allows you to break things! Be careful.
 
 
-camcops_server
-~~~~~~~~~~~~~~
-
-This script runs the ``camcops_server`` command within the Docker container.
-For example:
-
-    .. code-block:: bash
-
-        ./camcops_server --help
-
-
-.. _docker_print_demo_camcops_config:
-
-print_demo_camcops_config
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Prints a demonstration CamCOPS config file with Docker options set. Save the
-output as demonstrated above.
-
-
-start_camcops_docker_detached
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+start_crate_docker_detached
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Shortcut for ``docker-compose up -d``. The ``-d`` switch is short for
 ``--detach`` (or daemon mode).
 
 
-start_camcops_docker_interactive
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+start_crate_docker_interactive
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Shortcut for ``docker-compose up --abort-on-container-exit``.
 
@@ -527,39 +520,18 @@ Shortcut for ``docker-compose up --abort-on-container-exit``.
     provided.
 
 
-stop_camcops_docker
-~~~~~~~~~~~~~~~~~~~
+stop_crate_docker
+~~~~~~~~~~~~~~~~~
 
 Shortcut for ``docker-compose down``.
-
-
-.. _server_docker_upgrade_db:
-
-upgrade_db
-~~~~~~~~~~
-
-This script upgrades the CamCOPS database to the current version.
-
-- The database is specified by the DB_URL parameter in the CamCOPS config file.
-  See :ref:`above <camcops_config_file_docker>`.
-
-- The config file is found by Docker according to the
-  CAMCOPS_DOCKER_CONFIG_HOST_DIR_ and CAMCOPS_DOCKER_CAMCOPS_CONFIG_FILENAME_
-  environment variables (q.v.).
-
-
-venv_within_docker
-~~~~~~~~~~~~~~~~~~
-
-Launches a shell within the ``camcops_workers`` container, and activates the
-CamCOPS Python virtual environment too.
 
 
 within_docker
 ~~~~~~~~~~~~~
 
-This script runs a command within the ``camcops_workers`` container. For
-example, to explore this container, you can do
+This script starts a container with the CRATE image, activates the CRATE
+virtual environment, and runs a command within it. For example, to explore this
+container, you can do
 
     .. code-block:: bash
 
@@ -572,51 +544,4 @@ note the warning).
 Development notes
 -----------------
 
-- **Config information.**
-  There are several ways, but mounting a host directory containing a config
-  file is perfectly reasonable. See
-  https://dantehranian.wordpress.com/2015/03/25/how-should-i-get-application-configuration-into-my-docker-containers/.
-
-- **Secrets, such as passwords.**
-  This is a little tricky. Environment variables and config files are both
-  reasonable options; see e.g.
-  https://stackoverflow.com/questions/22651647/docker-and-securing-passwords.
-  Environment variables are visible externally (e.g. ``docker exec CONTAINER
-  env``) but you have to have Docker privileges (be in the ``docker`` group) to
-  do that. Docker "secrets" require Docker Swarm (not just plain Docker
-  Compose). We are using a config file for CamCOPS, and environment variables
-  for the MySQL container.
-
-- **Data storage.**
-  Should data (e.g. MySQL databases) be stored on the host (via a "bind mount"
-  of a directory), or in Docker volumes? Docker says clearly: volumes. See
-  https://docs.docker.com/storage/volumes/.
-
-- **TCP versus UDS.**
-  Currently the connection between CamCOPS and MySQL is via TCP/IP. It would be
-  possible to use Unix domain sockets instead. This would be a bit trickier.
-  Ordinarily, it would bring some speed advantages; I'm not sure if that
-  remains the case between Docker containers. The method is to mount a host
-  directory; see
-  https://superuser.com/questions/1411402/how-to-expose-linux-socket-file-from-docker-container-mysql-mariadb-etc-to.
-  It would add complexity. The other advantage of using TCP is that we can
-  expose the MySQL port to the host for administrative use.
-
-- **Database creation.**
-  It might be nice to upgrade the database a little more automatically, but
-  this is certainly not part of Docker *image* creation (the image is static
-  and the data is dynamic) and shouldn't be part of routine container startup,
-  so perhaps it's as good as is reasonable.
-
-- **Scaling up.**
-  At present we use a fixed number of containers, some with several processes
-  running within. There are other load distribution mechanisms possible with
-  Docker Compose.
-
-
-===============================================================================
-
-.. rubric:: Footnotes
-
-.. [#host]
-    https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors
+- See https://camcops.readthedocs.io/en/latest/administrator/docker.html.

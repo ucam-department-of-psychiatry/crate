@@ -79,6 +79,7 @@ from io import StringIO
 import logging
 import os
 import sys
+import traceback
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union, Set
 
 from cardinal_pythonlib.hash import GenericHasher, make_hasher
@@ -468,6 +469,7 @@ class Config(object):
                     f"You must set the {CONFIG_ENV_VAR} environment variable "
                     f"to point to a CRATE anonymisation config file, or "
                     f"specify it on the command line.")
+                traceback.print_stack()
                 sys.exit(1)
 
         cfg = ConfigSection(

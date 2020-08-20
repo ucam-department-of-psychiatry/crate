@@ -62,6 +62,25 @@ RUNNING_WITHOUT_CONFIG = (
 
 
 # =============================================================================
+# DockerConstants
+# =============================================================================
+
+class DockerConstants(object):
+    """
+    Constants for the Docker environment.
+    """
+    # Directories
+    DOCKER_CRATE_ROOT_DIR = "/crate"
+    CONFIG_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "cfg")
+    TMP_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "tmp")
+    VENV_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "venv")
+
+    HOST = "0.0.0.0"
+    # ... not "localhost" or "127.0.0.1"; see
+    # https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors  # noqa
+
+
+# =============================================================================
 # HelpUrl
 # =============================================================================
 

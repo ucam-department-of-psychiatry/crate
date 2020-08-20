@@ -22,7 +22,7 @@ cd "%DOCKER_COMPOSE_DIR%"
 REM Having done so, the default Docker Compose filenames include
 REM docker-compose.yaml, so we don't need to specify that.
 
-docker-compose run --rm "%SERVICE%" %*
+docker-compose run --rm "%SERVICE%" /bin/bash -c "source /crate/venv/bin/activate; %*"
 REM                ^    ^^^^^^^^^^^ ^
 REM                |    |           |
 REM                |    |           +-- command

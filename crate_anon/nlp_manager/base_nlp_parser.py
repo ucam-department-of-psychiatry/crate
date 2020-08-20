@@ -109,9 +109,9 @@ class TextProcessingFailed(Exception):
 
 class TableMaker(ABC):
     """
-    Base class for all CRATE NLP processors, including those that talk to
-    third-party software. Manages the interface to databases for results
-    storage, etc.
+    Base class for all CRATE NLP processors, local and cloud, including those
+    that talk to third-party software. Manages the interface to databases for
+    results storage, etc.
     """
 
     def __init__(self,
@@ -122,16 +122,16 @@ class TableMaker(ABC):
         """
         Args:
             nlpdef:
-                a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+                A :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`.
             cfg_processor_name:
-                the name of a CRATE NLP config file section, TO WHICH we will
+                The name of a CRATE NLP config file section, TO WHICH we will
                 add a "processor:" prefix (from which section we may choose to
-                get extra config information)
+                get extra config information).
             commit:
-                force a COMMIT whenever we insert data? You should specify this
+                Force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
             friendly_name:
-                friendly name for the parser
+                Friendly name for the parser.
         """
         self._nlpdef = nlpdef
         self._cfgsection = cfg_processor_name
@@ -617,6 +617,9 @@ class TableMaker(ABC):
 # =============================================================================
 
 class BaseNlpParser(TableMaker):
+    """
+    Base class for all local CRATE NLP parsers.
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfg_processor_name: Optional[str],
@@ -636,7 +639,8 @@ class BaseNlpParser(TableMaker):
         Main parsing function.
 
         Args:
-            text: the raw text to parse
+            text:
+                the raw text to parse
 
         Yields:
             tuple: ``tablename, valuedict``, where ``valuedict`` is
@@ -722,7 +726,8 @@ class BaseNlpParser(TableMaker):
         Performs a self-test on the NLP processor.
 
         Args:
-            verbose: be verbose?
+            verbose:
+                be verbose?
         """
         raise NotImplementedError(f"No test function for regex class: "
                                   f"{self.classname()}")
@@ -748,9 +753,10 @@ class BaseNlpParser(TableMaker):
         <nlprp>` format, which follows ``INFORMATION_SCHEMA.COLUMNS`` closely.
 
         Args:
-            column: the :class:`Column`
-            sql_dialect: preferred SQL dialect for response, or ``None`` for
-                a default
+            column:
+                the :class:`Column`
+            sql_dialect:
+                preferred SQL dialect for response, or ``None`` for a default
         """
         sql_dialect = sql_dialect or DEFAULT_NLPRP_SQL_DIALECT
         assert sql_dialect in ALL_SQL_DIALECTS, (
@@ -781,7 +787,8 @@ class BaseNlpParser(TableMaker):
         external schema information (e.g. GATE processors).
 
         Args:
-            sql_dialect: preferred SQL dialect for ``tabular_schema``
+            sql_dialect:
+                preferred SQL dialect for ``tabular_schema``
         """
         sql_dialect = sql_dialect or DEFAULT_NLPRP_SQL_DIALECT
         tabular_schema = {}  # type: Dict[str, List[Dict[str, Any]]]
@@ -877,7 +884,8 @@ class BaseNlpParser(TableMaker):
         external schema information (e.g. GATE processors).
 
         Args:
-            sql_dialect: preferred SQL dialect for ``tabular_schema``
+            sql_dialect:
+                preferred SQL dialect for ``tabular_schema``
         """
         return self.nlprp_server_processor(sql_dialect).infodict
 
@@ -890,11 +898,13 @@ class BaseNlpParser(TableMaker):
         This is primarily for debugging.
 
         Args:
-            indent: number of spaces for indentation
-            sort_keys: sort keys?
-            sql_dialect: preferred SQL dialect for ``tabular_schema``, or
-                ``None`` for default
+            indent:
+                number of spaces for indentation
+            sort_keys:
+                sort keys?
+            sql_dialect:
+                preferred SQL dialect for ``tabular_schema``, or ``None`` for
+                default
         """
         json_structure = self.nlprp_processor_info(sql_dialect=sql_dialect)
         return json.dumps(json_structure, indent=indent, sort_keys=sort_keys)
-
