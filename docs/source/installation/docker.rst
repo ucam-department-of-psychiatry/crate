@@ -64,7 +64,7 @@ Compose to set up several containers, specifically:
 - a background task monitor, using Flower_ (``crate_monitor``).
 
 Additionally, you can run a number of important one-off command using the
-``crate`` Docker image. This image also includes, automatically:
+``crate`` Docker image. Apart from CRATE itself, this image also includes:
 
 - Database drivers:
 
@@ -73,7 +73,10 @@ Additionally, you can run a number of important one-off command using the
   - SQL Server [:ref:`django-mssql-backend <django_mssql_backend>`,
     :ref:`pyodbc <pyodbc>`, Microsoft ODBC Driver for SQL Server (Linux)]
 
-- GATE_ (for :ref:`GATE NLP applications <gate_nlp>`)
+- External NLP tools:
+
+  - GATE_ (for :ref:`GATE NLP applications <gate_nlp>`)
+  - :ref:`KCL BRC Pharmacotherapy <kcl_pharmacotherapy>` tool
 
 
 Quick start

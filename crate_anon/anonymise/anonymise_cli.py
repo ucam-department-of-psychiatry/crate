@@ -42,7 +42,7 @@ from cardinal_pythonlib.extract_text import is_text_extractor_available
 from cardinal_pythonlib.logs import configure_logger_for_colour
 
 from crate_anon.anonymise.constants import (
-    CONFIG_ENV_VAR,
+    ANON_CONFIG_ENV_VAR,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
     DEMO_CONFIG,
@@ -80,7 +80,8 @@ def inner_main() -> None:
 
     parser.add_argument(
         "--config",
-        help=f"Config file (overriding environment variable {CONFIG_ENV_VAR})")
+        help=f"Config file (overriding environment variable "
+             f"{ANON_CONFIG_ENV_VAR})")
     parser.add_argument(
         '--verbose', '-v', action="store_true",
         help="Be verbose")
@@ -260,7 +261,7 @@ def inner_main() -> None:
     # -------------------------------------------------------------------------
 
     if args.config:
-        os.environ[CONFIG_ENV_VAR] = args.config
+        os.environ[ANON_CONFIG_ENV_VAR] = args.config
 
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import

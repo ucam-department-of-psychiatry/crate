@@ -162,10 +162,12 @@ public class CrateGatePipeline {
     private Map<String, ArrayList<String>> m_set_annotation_combos =
         new HashMap<String, ArrayList<String>>();
     private String m_plugin_filename = null;
+    private boolean m_launch_then_stop = false;
     private boolean m_demo = false;
     // Text
     private static final String m_sep1 = ">>>>>>>>>>>>>>>>> ";
     private static final String m_sep2 = "<<<<<<<<<<<<<<<<<";
+    private static final String cg_pipeline_prefix = "CrateGatePipeline: ";
     // Internal
     private String m_extra_log_prefix = "";
     private int m_count = 0;
@@ -413,6 +415,10 @@ public class CrateGatePipeline {
 
      private void runPipeline() throws GateException, IOException, URISyntaxException {
         setupGate();
+        if (m_launch_then_stop) {
+            m_log.info("GATE launched; now stopping immediately as requested.");
+            return;
+        }
         m_log.info("Ready for input");
 
         // Read from stdin, using end-of-text markers to split stdin into
@@ -458,6 +464,7 @@ public class CrateGatePipeline {
     private void argfail(String msg) {
         // Don't use the log; it's not configured yet.
         writeStderr(msg);
+        writeStderr(cg_pipeline_prefix + "Use -h or --help for help.");
         reportArgs(false);
         abort();
     }
@@ -484,6 +491,7 @@ public class CrateGatePipeline {
 "                         [--loglevel <debug|info|warn|error>]\n" +
 "                         [--gateloglevel <debug|info|warn|error>]\n" +
 "                         [--pluginfile PLUGINFILE]\n" +
+"                         [--launch_then_stop]\n" +
 "                         [--demo]\n" +
 "\n" +
 "Java front end to GATE natural language processor.\n" +
@@ -592,7 +600,8 @@ public class CrateGatePipeline {
 "\n" +
 "  --pluginfile PLUGINFILE\n" +
 "                   INI file specifying GATE plugins, including name,\n" +
-"                   location of Maven repository and version. For example:\n" +
+"                   location of Maven repository and version. See\n" +
+"                   specimen_gate_plugin_file.ini. A simple example:\n" +
 "\n" +
 "                   [ANNIE]\n" +
 "                   name = annie\n" +
@@ -603,6 +612,10 @@ public class CrateGatePipeline {
 "                   name = tools\n" +
 "                   location = uk.ac.gate.plugins\n" +
 "                   version = 8.6\n" +
+"\n" +
+" --launch_then_stop\n" +
+"                   Launch the GATE program, then stop immediately. (Used \n" +
+"                   to pre-download plugins.)\n" +
 "\n" +
 "  --demo\n" +
 "                   Use the demo gapp file.\n"
@@ -617,11 +630,13 @@ public class CrateGatePipeline {
         int i = 0;
         int nleft;
         String arg;
-        String insufficient = "CrateGatePipeline: Insufficient arguments while processing ";
+        String insufficient = cg_pipeline_prefix + "Insufficient arguments while processing ";
+        String bad_arg = cg_pipeline_prefix + "Unknown argument: ";
         // Process
         while (i < m_args.length) {
             arg = m_args[i++].toLowerCase();
             nleft = m_args.length - i;
+            // writeStderr("PROCESSING ARG: " + arg);
             switch (arg) {
                 case "--include_set":
                     if (nleft < 1) argfail(insufficient + arg);
@@ -752,9 +767,13 @@ public class CrateGatePipeline {
                     m_continue_on_crash = true;
                     break;
 
-               case "--pluginfile":
+                case "--pluginfile":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_plugin_filename = m_args[i++];
+                    break;
+
+                case "--launch_then_stop":
+                    m_launch_then_stop = true;
                     break;
 
                 case "--demo":
@@ -762,7 +781,7 @@ public class CrateGatePipeline {
                     break;
 
                 default:
-                    usage();
+                    argfail(bad_arg + arg);
                     abort();
                     break;
             }

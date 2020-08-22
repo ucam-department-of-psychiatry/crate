@@ -142,7 +142,7 @@ def all_parser_classes() -> List[Type[BaseNlpParser]]:
                 f"with the same lower-case name already exists")
         lower_case_short_names.add(lc_sname)
 
-        lc_fname = cls.fully_qualified_name().lower()
+        lc_fname = cls.fully_qualified_classname().lower()
         if lc_fname in lower_case_full_names:
             raise ValueError(
                 f"Trying to add NLP processor {lc_fname!r} but a processor "
@@ -177,7 +177,7 @@ def get_nlp_parser_class(classname: str) -> Optional[Type[TableMaker]]:
     classes = all_tablemaker_classes()
     for cls in classes:
         if (cls.classname().lower() == classname or
-                cls.fully_qualified_name().lower() == classname):
+                cls.fully_qualified_classname().lower() == classname):
             return cls
     return None
 

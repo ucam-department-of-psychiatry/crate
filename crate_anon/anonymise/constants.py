@@ -71,7 +71,7 @@ DEFAULT_CHUNKSIZE = 100000  # 100k
 # Environment
 # =============================================================================
 
-CONFIG_ENV_VAR = 'CRATE_ANON_CONFIG'
+ANON_CONFIG_ENV_VAR = 'CRATE_ANON_CONFIG'
 
 
 # =============================================================================
@@ -183,6 +183,7 @@ MAX_IDENTIFIER_LENGTH = 64
 # =============================================================================
 # Demo config
 # =============================================================================
+# This does not need to vary with Docker status.
 
 # noinspection PyPep8
 DEMO_CONFIG = r"""# Configuration file for CRATE anonymiser (crate_anonymise).

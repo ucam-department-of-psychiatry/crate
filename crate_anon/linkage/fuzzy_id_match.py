@@ -308,7 +308,7 @@ from crate_anon.common.constants import (
 from crate_anon.version import CRATE_VERSION
 
 if TYPE_CHECKING:
-    # noinspection PyProtectedMember
+    # noinspection PyProtectedMember,PyUnresolvedReferences
     from argparse import _SubParsersAction
 
 log = logging.getLogger(__name__)

@@ -134,7 +134,7 @@ class TableMaker(ABC):
                 Friendly name for the parser.
         """
         self._nlpdef = nlpdef
-        self._cfgsection = cfg_processor_name
+        self._cfg_processor_name = cfg_processor_name
         self._commit = commit
         self._friendly_name = friendly_name
         self._destdb_name = None  # type: Optional[str]
@@ -166,7 +166,7 @@ class TableMaker(ABC):
         return cls.__name__
 
     @classmethod
-    def fully_qualified_name(cls) -> str:
+    def fully_qualified_classname(cls) -> str:
         """
         Returns the class's fully qualified name.
         """
@@ -251,6 +251,13 @@ class TableMaker(ABC):
         Returns the NLP parser's friendly name
         """
         return self._friendly_name
+
+    @property
+    def friendly_name_with_section(self) -> str:
+        """
+        Returns the NLP parser's friendly name and config section.
+        """
+        return f"{self._friendly_name} [{self._sectionname}]"
 
     @property
     def dest_dbname(self) -> str:
@@ -814,7 +821,7 @@ class BaseNlpParser(TableMaker):
         highly unlikely to clash with any other NLP processors on a given
         server.
         """
-        return cls.fully_qualified_name()
+        return cls.fully_qualified_classname()
 
     @classmethod
     def nlprp_title(cls) -> str:

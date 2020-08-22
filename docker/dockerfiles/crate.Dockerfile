@@ -88,8 +88,8 @@ RUN echo "- Updating package information..." \
         gdebi \
         git \
         gnupg2 \
+        unzip \
         wget \
-        zip \
         \
         wait-for-it \
         \
@@ -125,7 +125,9 @@ RUN echo "- Updating package information..." \
     && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc \
     \
     && echo "- wkhtmltopdf: Fetching wkhtmltopdf with patched Qt (~14 Mb)..." \
-    && wget -O /tmp/wkhtmltopdf.deb \
+    && wget \
+        --progress=dot:giga \
+        -O /tmp/wkhtmltopdf.deb \
         https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb \
     && echo "- wkhtmltopdf: Installing wkhtmltopdf..." \
     && gdebi --non-interactive /tmp/wkhtmltopdf.deb \
@@ -133,7 +135,9 @@ RUN echo "- Updating package information..." \
     && rm /tmp/wkhtmltopdf.deb \
     \
     && echo "- GATE: fetching (~54 Mb)..." \
-    && wget -O /tmp/gate-installer.jar \
+    && wget \
+        --progress=dot:giga \
+        -O /tmp/gate-installer.jar \
         https://github.com/GateNLP/gate-core/releases/download/v8.6.1/gate-developer-8.6.1-installer.jar \
     && echo "- GATE: installing..." \
     && java -jar /tmp/gate-installer.jar \
@@ -142,7 +146,9 @@ RUN echo "- Updating package information..." \
     && rm /tmp/gate-installer.jar \
     \
     && echo "- KCL BRC GATE Pharmacotherapy app..." \
-    && wget -O /tmp/brc-gate-pharmacotherapy.zip \
+    && wget \
+        --progress=dot:giga \
+        -O /tmp/brc-gate-pharmacotherapy.zip \
         https://github.com/KHP-Informatics/brc-gate-pharmacotherapy/releases/download/1.1/brc-gate-pharmacotherapy.zip \
     && unzip /tmp/brc-gate-pharmacotherapy.zip -d /crate \
     && rm /tmp/brc-gate-pharmacotherapy.zip \
@@ -165,6 +171,17 @@ RUN echo "- Updating package information..." \
     && /crate/venv/bin/crate_nlp_build_gate_java_interface \
         --gatedir /crate/gate \
     \
+    && echo "- Running a GATE application to pre-download plugins..." \
+    && java \
+        -classpath /crate/venv/lib/python3.6/site-packages/crate_anon/nlp_manager/compiled_nlp_classes:/crate/gate/lib/* \
+        -Dgate.home=/crate/gate \
+        CrateGatePipeline \
+        --gate_app /crate/brc-gate-pharmacotherapy/application.xgapp \
+        --pluginfile /crate/src/docs/source/nlp/specimen_gate_plugin_file.ini \
+        --suppress_gate_stdout \
+        --verbose \
+        --launch_then_stop \
+    \
     && echo "- Removing OS packages used only for the installation..." \
     && apt-get purge -y \
         curl \
@@ -173,8 +190,8 @@ RUN echo "- Updating package information..." \
         gdebi \
         git \
         gnupg2 \
+        unzip \
         wget \
-        zip \
     && apt-get autoremove -y \
     && echo "- Cleaning up..." \
     && rm -rf /var/lib/apt/lists/* \

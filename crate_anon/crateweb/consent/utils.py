@@ -79,7 +79,7 @@ def pdf_css(patient: bool = True) -> str:
     return contents
 
 
-@django_cache_function(timeout=None)
+@django_cache_function(timeout=None)  # noqa
 # @lru_cache(maxsize=None)
 def pdf_template_dict(patient: bool = True) -> Dict[str, str]:
     """

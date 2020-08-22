@@ -34,6 +34,7 @@ import os
 import subprocess
 import sys
 
+from cardinal_pythonlib.cmdline import cmdline_quote
 from cardinal_pythonlib.logs import configure_logger_for_colour
 
 from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
@@ -116,7 +117,7 @@ def main() -> None:
             [GATE_PIPELINE_CLASSNAME] +
             prog_args
         )
-        log.info(f"Executing command: {cmdargs}")
+        log.info(f"Executing command: {cmdline_quote(cmdargs)}")
         subprocess.check_call(cmdargs)
     else:
         os.makedirs(args.builddir, exist_ok=True)
@@ -127,7 +128,7 @@ def main() -> None:
             ['-d', args.builddir] +
             [SOURCE_FILE]
         )
-        log.info(f"Executing command: {cmdargs}")
+        log.info(f"Executing command: {cmdline_quote(cmdargs)}")
         subprocess.check_call(cmdargs)
         log.info(f"Output *.class files are in {args.builddir}")
 

@@ -534,6 +534,7 @@ else:
     #     use print()!
     _loader = importlib.machinery.SourceFileLoader('local_settings',
                                                    filename)
+    # noinspection PyArgumentList
     _local_module = _loader.load_module()
     # noinspection PyUnresolvedReferences
     from local_settings import *  # noqa
