@@ -1296,6 +1296,8 @@ Changes
 
 - Django 3 and multiple other internal package upgrades.
 
+- Basic Docker operation.
+
 
 ===============================================================================
 
