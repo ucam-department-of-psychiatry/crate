@@ -1227,7 +1227,7 @@ Changes
   :func:`crate_anon.anonymise.anonymise.process_nonpatient_tables`.
 
 
-.. _changelog_2019:
+.. _changelog_2020:
 
 2020
 ~~~~
@@ -1270,7 +1270,7 @@ Changes
 
 - Downgrade Django as most recent version was not compatible.
 
-**0.18.99, ongoing 2020-04-28**
+**0.18.99, 2020-04-28 to 2020-07-20**
 
 - More efficient simple postcode regex in
   :func:`crate_anon.anonymise.anonregex.get_uk_postcode_regex_elements`.
@@ -1291,6 +1291,10 @@ Changes
   - Tidy up config file processing as part of this work.
 
 - Bump Pillow from 6.2.0 to 7.2.0. Bump Django from 2.2.11 to 2.2.14.
+
+**0.19.0, 2020-07-21**
+
+- Django 3 and multiple other internal package upgrades.
 
 
 ===============================================================================

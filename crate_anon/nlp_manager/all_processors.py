@@ -28,6 +28,10 @@ crate_anon/nlp_manager/all_processors.py
 
 """
 
+# I don't know why the PyCharm inspector goes haywire and thinks that a bunch
+# of these imports are unused. But that's the reason for all the
+# "noinspection PyUnresolvedReferences" comments.
+
 from inspect import isabstract
 # noinspection PyUnresolvedReferences
 import logging

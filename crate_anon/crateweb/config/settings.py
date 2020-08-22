@@ -35,6 +35,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.8/ref/settings/
 """
 
+# =============================================================================
+# Imports
+# =============================================================================
+
 import importlib.machinery
 import logging
 import os
@@ -54,6 +58,11 @@ except ImportError:
 
 log = logging.getLogger(__name__)
 
+
+# =============================================================================
+# Directories
+# =============================================================================
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # This is the path of the file FROM WHICH THE MODULE WAS LOADED, NOT THE
@@ -64,10 +73,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # log.warning(f"BASE_DIR: {BASE_DIR}")
 
-DEBUG_TOOLBAR_PATCH_SETTINGS = False
+
+# =============================================================================
+# Django core settings
+# =============================================================================
 
 # Application definition
-
 INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
@@ -119,18 +130,6 @@ MIDDLEWARE = (
 
 )
 
-# Celery things
-# BROKER_URL = 'django://'  # for Celery with Django database as broker
-BROKER_URL = 'amqp://'  # for Celery with RabbitMQ as broker
-CELERY_ACCEPT_CONTENT = ['json']  # avoids potential pickle security problem
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TASK_SERIALIZER = 'json'
-# Results are OPTIONAL. The CRATE web service doesn't use them.
-# But may be helpful for Celery testing.
-# See http://docs.celeryproject.org/en/latest/configuration.html#std:setting-CELERY_RESULT_BACKEND  # noqa
-CELERY_RESULT_BACKEND = "rpc://"  # uses AMQP
-CELERY_RESULT_PERSISTENT = False
-
 LOGIN_URL = '/login/'  # for LoginRequiredMiddleware
 LOGIN_VIEW_NAME = UrlNames.LOGIN  # for LoginRequiredMiddleware
 LOGIN_EXEMPT_URLS = []  # for LoginRequiredMiddleware
@@ -163,6 +162,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'crate_anon.crateweb.config.wsgi.application'
 
+
+# =============================================================================
+# Debug Toolbar
+# =============================================================================
+
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
+
 DEBUG_TOOLBAR_PANELS = [
     # Standard:
     'debug_toolbar.panels.versions.VersionsPanel',
@@ -183,7 +189,26 @@ DEBUG_TOOLBAR_PANELS = [
     # 'template_profiler_panel.panels.template.TemplateProfilerPanel',  # removed 2017-01-31; division by zero error  # noqa
 ]
 
-# Internationalization
+
+# =============================================================================
+# Celery
+# =============================================================================
+
+# BROKER_URL = 'django://'  # for Celery with Django database as broker
+BROKER_URL = 'amqp://'  # for Celery with RabbitMQ as broker
+CELERY_ACCEPT_CONTENT = ['json']  # avoids potential pickle security problem
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'json'
+# Results are OPTIONAL. The CRATE web service doesn't use them.
+# But may be helpful for Celery testing.
+# See http://docs.celeryproject.org/en/latest/configuration.html#std:setting-CELERY_RESULT_BACKEND  # noqa
+CELERY_RESULT_BACKEND = "rpc://"  # uses AMQP
+CELERY_RESULT_PERSISTENT = False
+
+
+# =============================================================================
+# Internationalization including date/time formats
+# =============================================================================
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
@@ -206,6 +231,7 @@ DATETIME_FORMAT = "d M Y, H:i:s"
 SHORT_DATE_FORMAT = "d/m/Y"
 SHORT_TIME_FORMAT = "H:i"
 SHORT_DATETIME_FORMAT = "d/m/Y, H:i:s"
+
 
 # =============================================================================
 # Static files (CSS, JavaScript, Images)
@@ -237,6 +263,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
 # relevant here.
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/
 
+
 # =============================================================================
 # Some managed database access goes to the secret mapping database.
 # =============================================================================
@@ -252,6 +279,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
 #       https://code.djangoproject.com/ticket/27054
 #   ... fixed by adding allow_migrate() to PidLookupRouter
 
+
 # =============================================================================
 # Security; https://docs.djangoproject.com/en/1.8/topics/security/
 # =============================================================================
@@ -259,6 +287,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
 CRATE_HTTPS = True  # may be overridden in local settings
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+X_FRAME_OPTIONS = "SAMEORIGIN"
+# ... we need this for the Archive frame views. See
+# https://docs.djangoproject.com/en/3.0/ref/clickjacking/
+
 
 # =============================================================================
 # Logging; https://docs.djangoproject.com/en/1.8/topics/logging/
@@ -392,6 +425,7 @@ LOGGING = {
     },
 }
 
+
 # =============================================================================
 # PDF generation
 # =============================================================================
@@ -426,6 +460,7 @@ _ = """
     See https://github.com/wkhtmltopdf/wkhtmltopdf/issues/2505
 """
 RESEARCHER_FONTSIZE = "10pt"
+
 
 # =============================================================================
 # Import from a site-specific file
@@ -472,6 +507,7 @@ else:
     _local_module = _loader.load_module()
     # noinspection PyUnresolvedReferences
     from local_settings import *  # noqa
+
 
 # =============================================================================
 # Extra actions from the site-specific file
