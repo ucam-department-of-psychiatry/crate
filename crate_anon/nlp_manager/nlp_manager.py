@@ -1132,7 +1132,7 @@ def inner_main() -> None:
         help=f"Config file (overriding environment variable "
              f"{NLP_CONFIG_ENV_VAR})")
     config_options.add_argument(
-        "--nlpdef", nargs="?", default=None,
+        "--nlpdef",
         help="NLP definition name (from config file)")
 
     mode_group = config_options.add_mutually_exclusive_group()
@@ -1157,8 +1157,7 @@ def inner_main() -> None:
         help="Perform NLP processing only")
 
     config_options.add_argument(
-        '--chunksize', nargs="?", type=int,
-        default=DEFAULT_CHUNKSIZE,
+        '--chunksize', type=int, default=DEFAULT_CHUNKSIZE,
         help=f"Number of records copied in a chunk when copying PKs from one "
              f"database to another (default {DEFAULT_CHUNKSIZE})")
 
@@ -1167,13 +1166,11 @@ def inner_main() -> None:
         '--verbose', '-v', action='store_true',
         help="Be verbose (use twice for extra verbosity)")
     reporting_options.add_argument(
-        '--report_every_fast', nargs="?", type=int,
-        default=DEFAULT_REPORT_EVERY,
+        '--report_every_fast', type=int, default=DEFAULT_REPORT_EVERY,
         help=f"Report insert progress (for fast operations) every n rows in "
              f"verbose mode (default {DEFAULT_REPORT_EVERY})")
     reporting_options.add_argument(
-        '--report_every_nlp', nargs="?", type=int,
-        default=DEFAULT_REPORT_EVERY_NLP,
+        '--report_every_nlp', type=int, default=DEFAULT_REPORT_EVERY_NLP,
         help=f"Report progress for NLP every n rows in verbose mode "
              f"(default {DEFAULT_REPORT_EVERY_NLP})")
     reporting_options.add_argument(
@@ -1185,10 +1182,10 @@ def inner_main() -> None:
 
     multiproc_options = parser.add_argument_group("Multiprocessing options")
     multiproc_options.add_argument(
-        "--process", nargs="?", type=int, default=0,
+        "--process", type=int, default=0,
         help="For multiprocess mode: specify process number")
     multiproc_options.add_argument(
-        "--nprocesses", nargs="?", type=int, default=1,
+        "--nprocesses", type=int, default=1,
         help="For multiprocess mode: specify total number of processes "
              "(launched somehow, of which this is to be one)")
     multiproc_options.add_argument(
@@ -1221,8 +1218,7 @@ def inner_main() -> None:
         help="Show NLPRP JSON for cloud (remote) processors that are part of "
              "the chosen NLP definition, then stop")
     info_actions.add_argument(
-        "--showinfo", required=False, nargs='?',
-        metavar="NLP_CLASS_NAME",
+        "--showinfo", metavar="NLP_CLASS_NAME",
         help="Show detailed information for a parser")
     info_actions.add_argument(
         "--count", action="store_true",

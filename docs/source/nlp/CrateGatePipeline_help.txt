@@ -16,6 +16,7 @@ usage: CrateGatePipeline --gate_app GATEAPP
                          [--loglevel <debug|info|warn|error>]
                          [--gateloglevel <debug|info|warn|error>]
                          [--pluginfile PLUGINFILE]
+                         [--launch_then_stop]
                          [--demo]
 
 Java front end to GATE natural language processor.
@@ -124,7 +125,8 @@ Optional arguments:
 
   --pluginfile PLUGINFILE
                    INI file specifying GATE plugins, including name,
-                   location of Maven repository and version. For example:
+                   location of Maven repository and version. See
+                   specimen_gate_plugin_file.ini. A simple example:
 
                    [ANNIE]
                    name = annie
@@ -135,6 +137,10 @@ Optional arguments:
                    name = tools
                    location = uk.ac.gate.plugins
                    version = 8.6
+
+ --launch_then_stop
+                   Launch the GATE program, then stop immediately. (Used 
+                   to pre-download plugins.)
 
   --demo
                    Use the demo gapp file.

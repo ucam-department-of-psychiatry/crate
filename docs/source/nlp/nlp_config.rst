@@ -135,6 +135,21 @@ itself. (That integer is not guaranteed to be unique, because of *hash
 collisions* [#hashcollisions]_, but it allows some efficiency to be added.)
 
 
+Testing your NLP definitions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can use the command
+
+.. code-block:: bash
+    crate_nlp [--config CONFIGFILE] --test_nlp --nlpdef NLPDEF
+
+to test an NLP definition. When you do this, you are asked to type text line by
+line, it's passed to one or more NLP processors (as determined by the NLP
+definition), and you see the results.
+
+The test does not use any databases.
+
+
 Format of the configuration file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

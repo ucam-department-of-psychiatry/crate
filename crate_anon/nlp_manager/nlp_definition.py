@@ -53,6 +53,7 @@ from crate_anon.anonymise.constants import (
     DEFAULT_MAX_ROWS_BEFORE_COMMIT,
 )
 from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
 from crate_anon.common.extendedconfigparser import (
     ConfigSection,
     ExtendedConfigParser,
@@ -117,11 +118,11 @@ def demo_nlp_config() -> str:
 
     def _make_procdef_pair(name: str) -> str:
         return (f"""[{NlpConfigPrefixes.PROCESSOR}:procdef_{name}]
-    {ProcessorConfigKeys.DESTDB} = {destdb}
-    {ProcessorConfigKeys.DESTTABLE} = {name}
-    [{NlpConfigPrefixes.PROCESSOR}:procdef_validate_{name}]
-    {ProcessorConfigKeys.DESTDB} = {destdb}
-    {ProcessorConfigKeys.DESTTABLE} = validate_{name}""")
+{ProcessorConfigKeys.DESTDB} = {destdb}
+{ProcessorConfigKeys.DESTTABLE} = {name}
+[{NlpConfigPrefixes.PROCESSOR}:procdef_validate_{name}]
+{ProcessorConfigKeys.DESTDB} = {destdb}
+{ProcessorConfigKeys.DESTTABLE} = validate_{name}""")
 
     def _make_module_procdef_block(
             nlp_and_validators: List[Tuple[Type["BaseNlpParser"],
@@ -177,8 +178,11 @@ def demo_nlp_config() -> str:
     proclist_cognitive = _make_proclist(ALL_COGNITIVE_NLP_AND_VALIDATORS)
     proclist_haematology = _make_proclist(ALL_HAEMATOLOGY_NLP_AND_VALIDATORS)
 
-    this_dir = os.path.abspath(os.path.dirname(__file__))  # crate_anon/nlp_manager  # noqa
-    nlp_prog_dir = os.path.join(this_dir, "compiled_nlp_classes")
+    if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
+        nlp_prog_dir = "/path/to/crate_anon/nlp_manager/compiled_nlp_classes"
+    else:
+        this_dir = os.path.abspath(os.path.dirname(__file__))  # crate_anon/nlp_manager  # noqa
+        nlp_prog_dir = os.path.join(this_dir, "compiled_nlp_classes")
 
     if for_docker:
         # See crate.Dockerfile
@@ -688,9 +692,9 @@ def demo_nlp_config() -> str:
 GATEDIR = {gate_dir}
 GATE_PHARMACOTHERAPY_DIR = {kcl_pharmacotherapy_dir}
 GATE_PLUGIN_FILE = {gate_plugin_file}
-KCL_LBDA_DIR = /home/myuser/dev/brc-gate-LBD/Lewy_Body_Diagnosis
-KCONNECTDIR = /home/myuser/dev/yodie-pipeline-1-2-umls-only
-MEDEXDIR = /home/myuser/dev/Medex_UIMA_1.3.6
+KCL_LBDA_DIR = /path/to/brc-gate-LBD/Lewy_Body_Diagnosis
+KCONNECTDIR = /path/to/yodie-pipeline-1-2-umls-only
+MEDEXDIR = /path/to/Medex_UIMA_1.3.6
 NLPPROGDIR = {nlp_prog_dir}
 OS_PATHSEP = {os.pathsep}
 
