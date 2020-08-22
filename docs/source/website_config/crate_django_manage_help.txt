@@ -55,7 +55,6 @@ Available subcommands:
     clean_pyc
     clear_cache
     compile_pyc
-    create_app
     create_command
     create_jobs
     create_template_tags
@@ -68,10 +67,11 @@ Available subcommands:
     generate_password
     generate_secret_key
     graph_models
+    list_model_info
+    list_signals
     mail_debug
     merge_model_instances
     notes
-    passwd
     pipchecker
     print_settings
     print_user_for_session
@@ -87,7 +87,6 @@ Available subcommands:
     set_fake_passwords
     shell_plus
     show_template_tags
-    show_templatetags
     show_urls
     sqlcreate
     sqldiff

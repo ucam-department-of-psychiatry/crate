@@ -5,7 +5,7 @@ usage: crate_django_manage createsuperuser [-h] [--username USERNAME]
                                            [--settings SETTINGS]
                                            [--pythonpath PYTHONPATH]
                                            [--traceback] [--no-color]
-                                           [--force-color]
+                                           [--force-color] [--skip-checks]
 
 Used to create a superuser.
 
@@ -34,3 +34,4 @@ optional arguments:
   --traceback           Raise on CommandError exceptions
   --no-color            Don't colorize the command output.
   --force-color         Force colorization of the command output.
+  --skip-checks         Skip system checks.

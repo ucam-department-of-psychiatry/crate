@@ -47,6 +47,7 @@ proc_file = SETTINGS[NlpServerConfigKeys.PROCESSORS_PATH]
 # Import the processors module using the full path as it is configurable
 spec = importlib.util.spec_from_file_location("processors", proc_file)
 processors = importlib.util.module_from_spec(spec)
+# noinspection PyUnresolvedReferences
 spec.loader.exec_module(processors)
 
 

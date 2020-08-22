@@ -65,6 +65,7 @@ Speed testing:
 
 import argparse
 import csv
+import fileinput
 import json
 import logging
 import os
@@ -72,7 +73,6 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple, Generator, TYPE_CHECKING
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
-from cardinal_pythonlib.exceptions import die
 from cardinal_pythonlib.fileops import purge
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.sqlalchemy.core_query import count_star
@@ -89,13 +89,17 @@ from crate_anon.anonymise.constants import (
     SEP,
 )
 from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.nlp_manager.all_processors import (
     make_nlp_parser_unconfigured,
     possible_processor_names,
     possible_processor_table,
 )
-from crate_anon.nlp_manager.base_nlp_parser import TextProcessingFailed
+from crate_anon.nlp_manager.base_nlp_parser import (
+    BaseNlpParser,
+    TextProcessingFailed,
+)
 from crate_anon.nlp_manager.constants import (
     DEFAULT_REPORT_EVERY_NLP,
     MAX_STRING_PK_LENGTH,
@@ -1066,12 +1070,51 @@ def show_dest_counts(nlpdef: NlpDefinition) -> None:
 
 
 # =============================================================================
+# NLP testing
+# =============================================================================
+
+def test_nlp_stdin(nlpdef: NlpDefinition) -> None:
+    """
+    Tests NLP processor(s) by sending stdin to it/them.
+
+    Args:
+        nlpdef:
+            :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+    """
+    processors = nlpdef.processors
+    processor_names = ", ".join(
+        p.friendly_name_with_section for p in processors)
+    log.info(f"Testing NLP processors: {processor_names}")
+    for p in processors:
+        assert isinstance(p, BaseNlpParser), (
+            "Testing only supported for local (non-cloud) NLP processors "
+            "for now."
+        )
+    prompt = "Please type a line of text to be processed."
+    log.warning(prompt)
+    for text in fileinput.input(files=["-"]):
+        text = text.strip()
+        if text:
+            log.info(f"INPUT: {text!r}")
+            result_found = False
+            for p in processors:  # type: BaseNlpParser
+                for tablename, valuedict in p.parse(text):
+                    result_found = True
+                    log.info(f"RESULT: {tablename}: {valuedict}")
+            if not result_found:
+                log.info("[No results.]")
+        else:
+            log.info("Ignoring blank line.")
+        log.warning(prompt)
+
+
+# =============================================================================
 # Main
 # =============================================================================
 
-def main() -> None:
+def inner_main() -> None:
     """
-    Command-line entry point. See command-line help.
+    Indirect command-line entry point. See command-line help.
     """
     version = f"Version {CRATE_VERSION} ({CRATE_VERSION_DATE})"
     description = f"NLP manager. {version}. By Rudolf Cardinal."
@@ -1082,69 +1125,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument(
-        "--version", action="version", version=version)
-    parser.add_argument(
+
+    config_options = parser.add_argument_group("Config options")
+    config_options.add_argument(
         "--config",
         help=f"Config file (overriding environment variable "
              f"{NLP_CONFIG_ENV_VAR})")
-    parser.add_argument(
-        '--verbose', '-v', action='store_true',
-        help="Be verbose (use twice for extra verbosity)")
-    parser.add_argument(
+    config_options.add_argument(
         "--nlpdef", nargs="?", default=None,
         help="NLP definition name (from config file)")
-    parser.add_argument(
-        '--report_every_fast', nargs="?", type=int,
-        default=DEFAULT_REPORT_EVERY,
-        help=f"Report insert progress (for fast operations) every n rows in "
-             f"verbose mode (default {DEFAULT_REPORT_EVERY})")
-    parser.add_argument(
-        '--report_every_nlp', nargs="?", type=int,
-        default=DEFAULT_REPORT_EVERY_NLP,
-        help=f"Report progress for NLP every n rows in verbose mode "
-             f"(default {DEFAULT_REPORT_EVERY_NLP})")
-    parser.add_argument(
-        '--chunksize', nargs="?", type=int,
-        default=DEFAULT_CHUNKSIZE,
-        help=f"Number of records copied in a chunk when copying PKs from one "
-             f"database to another (default {DEFAULT_CHUNKSIZE})")
-    parser.add_argument(
-        "--process", nargs="?", type=int, default=0,
-        help="For multiprocess mode: specify process number")
-    parser.add_argument(
-        "--nprocesses", nargs="?", type=int, default=1,
-        help="For multiprocess mode: specify total number of processes "
-             "(launched somehow, of which this is to be one)")
-    parser.add_argument(
-        "--processcluster", default="",
-        help="Process cluster name")
-    parser.add_argument(
-        "--democonfig", action="store_true",
-        help="Print a demo config file")
-    parser.add_argument(
-        "--listprocessors", action="store_true",
-        help="Show possible built-in NLP processor names")
-    parser.add_argument(
-        "--describeprocessors", action="store_true",
-        help="Show details of built-in NLP processors")
-    parser.add_argument(
-        "--print_local_processors", action="store_true",
-        help="Show NLPRP JSON for local processors that are part of the "
-             "chosen NLP definition, then stop")
-    parser.add_argument(
-        "--print_cloud_processors", action="store_true",
-        help="Show NLPRP JSON for cloud (remote) processors that are part of "
-             "the chosen NLP definition, then stop")
-    parser.add_argument(
-        "--showinfo", required=False, nargs='?',
-        metavar="NLP_CLASS_NAME",
-        help="Show detailed information for a parser")
-    parser.add_argument(
-        "--count", action="store_true",
-        help="Count records in source/destination databases, then stop")
 
-    mode_group = parser.add_mutually_exclusive_group()
+    mode_group = config_options.add_mutually_exclusive_group()
     mode_group.add_argument(
         "-i", "--incremental", dest="incremental", action="store_true",
         help="Process only new/changed information, where possible "
@@ -1152,44 +1143,113 @@ def main() -> None:
     mode_group.add_argument(
         "-f", "--full", dest="incremental", action="store_false",
         help="Drop and remake everything")
-    parser.set_defaults(incremental=True)
+    config_options.set_defaults(incremental=True)
 
-    parser.add_argument(
+    config_options.add_argument(
         "--dropremake", action="store_true",
         help="Drop/remake destination tables only")
-    parser.add_argument(
+    config_options.add_argument(
         "--skipdelete", dest="skipdelete", action="store_true",
         help="For incremental updates, skip deletion of rows "
              "present in the destination but not the source")
-    parser.add_argument(
+    config_options.add_argument(
         "--nlp", action="store_true",
         help="Perform NLP processing only")
-    parser.add_argument(
+
+    config_options.add_argument(
+        '--chunksize', nargs="?", type=int,
+        default=DEFAULT_CHUNKSIZE,
+        help=f"Number of records copied in a chunk when copying PKs from one "
+             f"database to another (default {DEFAULT_CHUNKSIZE})")
+
+    reporting_options = parser.add_argument_group("Reporting options")
+    reporting_options.add_argument(
+        '--verbose', '-v', action='store_true',
+        help="Be verbose (use twice for extra verbosity)")
+    reporting_options.add_argument(
+        '--report_every_fast', nargs="?", type=int,
+        default=DEFAULT_REPORT_EVERY,
+        help=f"Report insert progress (for fast operations) every n rows in "
+             f"verbose mode (default {DEFAULT_REPORT_EVERY})")
+    reporting_options.add_argument(
+        '--report_every_nlp', nargs="?", type=int,
+        default=DEFAULT_REPORT_EVERY_NLP,
+        help=f"Report progress for NLP every n rows in verbose mode "
+             f"(default {DEFAULT_REPORT_EVERY_NLP})")
+    reporting_options.add_argument(
         "--echo", action="store_true",
         help="Echo SQL")
-    parser.add_argument(
+    reporting_options.add_argument(
         "--timing", action="store_true",
         help="Show detailed timing breakdown")
-    parser.add_argument(
+
+    multiproc_options = parser.add_argument_group("Multiprocessing options")
+    multiproc_options.add_argument(
+        "--process", nargs="?", type=int, default=0,
+        help="For multiprocess mode: specify process number")
+    multiproc_options.add_argument(
+        "--nprocesses", nargs="?", type=int, default=1,
+        help="For multiprocess mode: specify total number of processes "
+             "(launched somehow, of which this is to be one)")
+    multiproc_options.add_argument(
+        "--processcluster", default="",
+        help="Process cluster name")
+
+    info_actions = parser.add_argument_group("Info actions")
+    info_actions.add_argument(
+        "--version", action="version", version=version)
+    info_actions.add_argument(
+        "--democonfig", action="store_true",
+        help="Print a demo config file")
+    info_actions.add_argument(
+        "--listprocessors", action="store_true",
+        help="Show possible built-in NLP processor names")
+    info_actions.add_argument(
+        "--describeprocessors", action="store_true",
+        help="Show details of built-in NLP processors")
+    info_actions.add_argument(
+        "--test_nlp", action="store_true",
+        help="Test the NLP processor(s) for the selected definition, "
+             "by sending text from stdin to them"
+    )
+    info_actions.add_argument(
+        "--print_local_processors", action="store_true",
+        help="Show NLPRP JSON for local processors that are part of the "
+             "chosen NLP definition, then stop")
+    info_actions.add_argument(
+        "--print_cloud_processors", action="store_true",
+        help="Show NLPRP JSON for cloud (remote) processors that are part of "
+             "the chosen NLP definition, then stop")
+    info_actions.add_argument(
+        "--showinfo", required=False, nargs='?',
+        metavar="NLP_CLASS_NAME",
+        help="Show detailed information for a parser")
+    info_actions.add_argument(
+        "--count", action="store_true",
+        help="Count records in source/destination databases, then stop")
+
+    cloud_options = parser.add_argument_group("Cloud options")
+    cloud_options.add_argument(
         "--cloud", action="store_true",
         help="Use cloud-based NLP processing tools. Queued mode by default.")
-    parser.add_argument(
+    cloud_options.add_argument(
         "--immediate", action="store_true",
         help="To be used with 'cloud'. Process immediately.")
-    parser.add_argument(
+    cloud_options.add_argument(
         "--retrieve", action="store_true",
         help="Retrieve NLP data from cloud")
-    parser.add_argument(
+    cloud_options.add_argument(
         "--cancelrequest", action="store_true",
         help="Cancel pending requests for the nlpdef specified")
-    parser.add_argument(
+    cloud_options.add_argument(
         "--cancelall", action="store_true",
         help="Cancel all pending cloud requests. WARNING: this option "
              "cancels all pending requests - not just those for the nlp "
              "definition specified")
-    parser.add_argument(
+    cloud_options.add_argument(
         "--showqueue", action="store_true",
         help="Shows all pending cloud requests.")
+
     args = parser.parse_args()
 
     # Validate args
@@ -1214,6 +1274,8 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel, extranames=mynames)
 
+    # -------------------------------------------------------------------------
+    # Information/test options
     # -------------------------------------------------------------------------
 
     # Demo config?
@@ -1268,6 +1330,13 @@ def main() -> None:
         print_cloud_processors(nlpdef)
         return
 
+    # Test NLP processor via stdin?
+    if args.test_nlp:
+        test_nlp_stdin(nlpdef)
+        return
+
+    # -------------------------------------------------------------------------
+    # Cloud queue manipulation options
     # -------------------------------------------------------------------------
 
     # Delete from queue - do this before Drop/Remake and return so we don't
@@ -1282,6 +1351,10 @@ def main() -> None:
     if args.showqueue:
         show_cloud_queue(nlpdef)
         return
+
+    # -------------------------------------------------------------------------
+    # Main NLP options
+    # -------------------------------------------------------------------------
 
     crinfo = None  # type: Optional[CloudRunInfo]  # for type checker!
     if args.cloud or args.retrieve:
@@ -1310,29 +1383,25 @@ def main() -> None:
 
     # 2. NLP
     if args.nlp or everything:
-        try:
-            if args.cloud:
-                if args.immediate:
-                    process_cloud_now(
-                        crinfo,
-                        incremental=args.incremental,
-                        report_every=args.report_every_nlp)
-                else:
-                    process_cloud_nlp(crinfo,
-                                      incremental=args.incremental,
-                                      report_every=args.report_every_nlp)
-            elif args.retrieve:
-                retrieve_nlp_data(crinfo,
-                                  incremental=args.incremental)
+        if args.cloud:
+            if args.immediate:
+                process_cloud_now(
+                    crinfo,
+                    incremental=args.incremental,
+                    report_every=args.report_every_nlp)
             else:
-                process_nlp(nlpdef,
-                            incremental=args.incremental,
-                            report_every=args.report_every_nlp,
-                            tasknum=args.process,
-                            ntasks=args.nprocesses)
-        except Exception as exc:
-            log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
-            die(exc)
+                process_cloud_nlp(crinfo,
+                                  incremental=args.incremental,
+                                  report_every=args.report_every_nlp)
+        elif args.retrieve:
+            retrieve_nlp_data(crinfo,
+                              incremental=args.incremental)
+        else:
+            process_nlp(nlpdef,
+                        incremental=args.incremental,
+                        report_every=args.report_every_nlp,
+                        tasknum=args.process,
+                        ntasks=args.nprocesses)
 
     log.info("Finished")
     end = get_now_utc_pendulum()
@@ -1341,6 +1410,13 @@ def main() -> None:
 
     if args.timing:
         timer.report()
+
+
+def main() -> None:
+    """
+    Command-line entry point.
+    """
+    call_main_with_exception_reporting(inner_main)
 
 
 # =============================================================================

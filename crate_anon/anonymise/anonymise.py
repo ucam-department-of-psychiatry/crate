@@ -149,7 +149,7 @@ def wipe_and_recreate_destination_db(incremental: bool = False) -> None:
         missing = list(target_set - outcome_set)
         extra = list(outcome_set - target_set)
         if missing:
-            raise Exception(
+            raise RuntimeError(
                 f"Missing fields in destination table {tablename}: {missing}")
         if extra:
             log.warning(

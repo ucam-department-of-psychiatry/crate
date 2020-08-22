@@ -163,6 +163,7 @@ INSTALL_REQUIRES = [
     "kombu==4.6.11",  # AMQP library for Celery; requires VC++ under Windows
     "mako==1.1.3",  # templates with Python in
     "MarkupSafe==1.1.1",  # for HTML escaping
+    # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa
     "openpyxl==3.0.4",  # read Excel
     "pendulum==2.1.1",  # dates/times
@@ -427,12 +428,6 @@ setup(
             # the "runcpserver" function from our Windows service, and have it
             # deal with the CherryPy special environment variable
             "crate_launch_django_server=crate_anon.crateweb.manage:runserver",
-
-            # Miscellaneous, from cardinal_pythonlib
-
-            "crate_estimate_mysql_memory_usage=cardinal_pythonlib.tools.estimate_mysql_memory_usage:main",  # noqa
-            "crate_list_all_extensions=cardinal_pythonlib.tools.list_all_extensions:main",  # noqa
-            "crate_merge_csv=cardinal_pythonlib.tools.merge_csv:main",
 
             # NLP web server
 

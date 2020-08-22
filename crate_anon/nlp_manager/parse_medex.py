@@ -399,6 +399,7 @@ import sys
 import tempfile
 from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 
+from cardinal_pythonlib.cmdline import cmdline_quote
 from cardinal_pythonlib.fileops import mkdir_p
 from sqlalchemy import Column, Index, Integer, String, Text
 
@@ -604,17 +605,17 @@ class Medex(BaseNlpParser):
 
         # Nasty MedEx hacks
         cwd = os.getcwd()
-        log.info(f"for MedEx's benefit, changing to directory: "
+        log.info(f"For MedEx's benefit, changing to directory: "
                  f"{self._workingdir.name}")
         os.chdir(self._workingdir.name)
         sentsdir = os.path.join(self._workingdir.name, "sents")
-        log.info(f"making temporary sentences directory: {sentsdir}")
+        log.info(f"Making temporary sentences directory: {sentsdir}")
         mkdir_p(sentsdir)
         logdir = os.path.join(self._workingdir.name, "log")
-        log.info(f"making temporary log directory: {logdir}")
+        log.info(f"Making temporary log directory: {logdir}")
         mkdir_p(logdir)
 
-        log.info(f"launching command: {args}")
+        log.info(f"Launching command: {cmdline_quote(args)}")
         self._p = subprocess.Popen(args,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
@@ -626,7 +627,7 @@ class Medex(BaseNlpParser):
         # secondly if you don't consume it, you see it on the console, which is
         # helpful.
         self._started = True
-        log.info(f"returning to working directory {cwd}")
+        log.info(f"Returning to working directory {cwd}")
         os.chdir(cwd)
 
     def _encode_to_subproc_stdin(self, text: str) -> None:

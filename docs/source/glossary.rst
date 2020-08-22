@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/glossary.rst
+..  crate_anon/docs/source/glossary.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .

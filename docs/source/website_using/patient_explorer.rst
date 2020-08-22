@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/website_using/patient_explorer.rst
+..  crate_anon/docs/source/website_using/patient_explorer.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .

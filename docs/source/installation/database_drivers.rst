@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/installation/database_drivers.rst
+..  crate_anon/docs/source/installation/database_drivers.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -19,7 +19,9 @@
 
 .. _ADO: https://en.wikipedia.org/wiki/ActiveX_Data_Objects
 .. _Django: https://www.djangoproject.com/
-.. _MARS: https://docs.microsoft.com/en-us/sql/relational-databases/native-client/features/using-multiple-active-result-sets-mars?view=sql-server-2017
+.. _MARS: https://docs.microsoft.com/en-us/sql/relational-databases/native-client/features/using-multiple-active-result-sets-mars
+.. _Microsoft ODBC Driver for SQL Server: https://docs.microsoft.com/en-us/sql/connect/odbc/microsoft-odbc-driver-for-sql-server
+.. _Microsoft ODBC Driver for SQL Server (Linux): https://docs.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server
 .. _MySQL: https://www.mysql.com/
 .. _MySQL C API: https://dev.mysql.com/doc/refman/5.7/en/c-api.html
 .. _MySQL Workbench: https://www.mysql.com/products/workbench/
@@ -70,16 +72,21 @@ Summarizing the discussion below:
   want to avoid dependencies, use :ref:`MySQL Connector/Python
   <mysqlconnector>` or :ref:`PyMySQL <pymysql>`.
 
-- For `SQL Server`_: for Django use :ref:`django-pyodbc-azure
-  <django_pyodbc_azure>` and for SQLAlchemy use pyodbc_, both via Windows ODBC.
-  For the ODBC drivers, use native drivers under Windows or FreeTDS_ under
-  Linux (in a version that supports MARS_).
+- For `SQL Server`_: with Django use :ref:`django-mssql-backend
+  <django_mssql_backend>`, and with SQLAlchemy use pyodbc_, both via ODBC. For
+  the ODBC drivers:
+
+  - under Windows, use native drivers (`Microsoft ODBC Driver for SQL Server`_);
+  - under Linux, use the `Microsoft ODBC Driver for SQL Server (Linux)`_ (and
+    if you don't want to use that, use FreeTDS_ in a version that supports
+    MARS_).
 
 - For PostgreSQL_: use psycopg2_, though you may have to install prerequisites
   (e.g. PostgreSQL itself).
 
 CRATE doesn’t bundle in database drivers, since they are OS-specific in many
-instances, and can be installed as required by the user.
+instances, and can be installed as required by the user. The exception is the
+:ref:`Docker setup <crate_docker>`, which does bundle recommended drivers.
 
 
 More detail
@@ -174,6 +181,19 @@ Licence             GPL
     It's quick, because it's C-based [#mysqlcfast]_.
 
 .. include:: include_needs_compiler.rst
+
+.. note::
+    Under Linux, you might see the error ``NameError: name '_mysql' is not
+    defined``, despite installing the relevant MySQL libraries in the operating
+    system (e.g. via ``sudo apt install mysql-client``). Higher up in the error
+    trace, you may see this error: ``ImportError: libmysqlclient.so.21: cannot
+    open shared object file: No such file or directory``. (It may be buried in
+    lots of other error messages; to see it by itself, just run Python and try
+    ``import MySQLdb``.) The MySQL libraries live somewhere within
+    ``/usr/lib``. This error can occur if mysqlclient was installed under a
+    different operating system version to the one you're using. You can fix it
+    by reinstalling the Python library with ``pip uninstall mysqlclient && pip
+    install --no-binary mysqlclient mysqlclient``.
 
 Under Windows, there can be additional compilation problems; see
 https://github.com/PyMySQL/mysqlclient-python/issues/54.
@@ -368,59 +388,14 @@ with SQL Server. Under Ubuntu, there are prerequisites: ``sudo apt-get install
 freetds-dev`` first.
 
 
-.. _pyodbc:
-
-Any ODBC connection + PyODBC
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A Python interface to any database via :ref:`ODBC <odbc>`.
-
-==================  ===========================================================
-Driver              PyODBC
-Home page           | http://mkleehammer.github.io/pyodbc/
-                    | https://github.com/mkleehammer/pyodbc/wiki
-Database            Any with an :ref:`ODBC <odbc>` connection
-Installation        ``pip install pyodbc``
-Import              ``import pyodbc``
-Django ``ENGINE``   –
-SQLAlchemy URL      | mssql+pyodbc://username:password@MY_DATABASE
-                    | mssql+pyodbc://@MY_DATABASE [for e.g. Windows authentication]
-==================  ===========================================================
-
-In the SQLAlchemy URL examples, ``MY_DATABASE`` is an example ODBC data source
-name (DSN).
-
-SQLAlchemy **deprecates** MySQL via this route:
-http://docs.sqlalchemy.org/en/rel_1_0/dialects/mysql.html.
-
-- Install an ODBC driver.
-
-- On Windows systems with SQL Server installed, you get driver choices like
-  “SQL Server”, “SQL Server Native Client 10.0”, “SQL Server Native Client
-  10.0”. I tested with “SQL Server Native Client 11.0” talking to SQL Server
-  10.50.6000 [= SQL Server 2008 R2 SP3]. See
-  https://support.microsoft.com/en-us/kb/321185
-
-- In creating the ODBC data source, you choose whether you want
-  username/password authentication or Integrated Windows authentication, and
-  you give the data source a name (DSN), e.g. MY_DATABASE. The SQLAlchemy URL
-  is then ``mssql+pyodbc://@MY_DATABASE`` (for Windows authentication), or
-  ``mssql+pyodbc://username:password@MY_DATABASE`` for
-  username/password authentication.
-
-- Addendum 2017-01-16: Microsoft have deprecated the SQL Server Native Client;
-  use the Microsoft ODBC Driver for SQL Server instead. (See
-  https://msdn.microsoft.com/en-us/library/ms130828.aspx;
-  https://blogs.msdn.microsoft.com/sqlnativeclient/2013/01/23/introducing-the-new-microsoft-odbc-drivers-for-sql-server/)
-  This typically appears as “ODBC Driver 11 for SQL Server”.
-
-
 .. _django_pyodbc_azure:
 
-django-pyodbc-azure
-~~~~~~~~~~~~~~~~~~~
+SQL Server (or other) + django-pyodbc-azure
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A Django interface to any database via :ref:`PyODBC <pyodbc>`.
+``django-pyodbc-azure`` is a Django interface to any database via :ref:`PyODBC
+<pyodbc>`. It was subsequently replaced (e.g. for Django 3) by
+:ref:`django-mssql-backend <django_mssql_backend>` (q.v.).
 
 ==================  ===========================================================
 Driver              django-pyodbc-azure
@@ -491,10 +466,31 @@ since the program will be running as a system account.
     successful version).
 
 
+.. _django_mssql_backend:
+
+SQL Server + django-mssql-backend
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A replacement for :ref:`django-pyodbc-azure <django_pyodbc_azure>` (q.v.)
+
+==================  ===========================================================
+Driver              django-mssql-backend
+Home page           | https://pypi.org/project/django-mssql-backend/
+                    | https://github.com/ESSolutions/django-mssql-backend
+Database            Any with an :ref:`ODBC <odbc>` connection
+Installation        ``pip install django-mssql-backend`` and also needs
+                    :ref:`PyODBC <pyodbc>`
+Import              –
+Django ``ENGINE``   ``sql_server.pyodbc``
+SQLAlchemy URL      –
+Licence             BSD License
+==================  ===========================================================
+
+
 .. _psycopg2:
 
-psycopg2
-~~~~~~~~
+PostgreSQL + psycopg2
+~~~~~~~~~~~~~~~~~~~~~
 
 Python interface to PostgreSQL_.
 
@@ -510,6 +506,58 @@ Licence             LGPL
 ==================  ===========================================================
 
 .. include:: include_needs_compiler.rst
+
+
+.. _pyodbc:
+
+Any database + PyODBC
+~~~~~~~~~~~~~~~~~~~~~
+
+A Python interface to any database via :ref:`ODBC <odbc>`.
+
+==================  ===========================================================
+Driver              PyODBC
+Home page           | http://mkleehammer.github.io/pyodbc/
+                    | https://github.com/mkleehammer/pyodbc/wiki
+Database            Any with an :ref:`ODBC <odbc>` connection
+Installation        ``pip install pyodbc``
+Import              ``import pyodbc``
+Django ``ENGINE``   –
+SQLAlchemy URL      | mssql+pyodbc://username:password@MY_DATABASE
+                    | mssql+pyodbc://@MY_DATABASE [for e.g. Windows authentication]
+==================  ===========================================================
+
+In the SQLAlchemy URL examples, ``MY_DATABASE`` is an example ODBC data source
+name (DSN).
+
+When talking to SQL Server databases via SQLAlchemy, you can also specify the
+host/port directly in the connection string (rather than having to set up a
+DSN); see `Hostname connections
+<https://docs.sqlalchemy.org/en/13/dialects/mssql.html#module-sqlalchemy.dialects.mssql.pyodbc>`_.
+
+SQLAlchemy **deprecates** MySQL via this route:
+http://docs.sqlalchemy.org/en/rel_1_0/dialects/mysql.html.
+
+- Install an ODBC driver.
+
+- On Windows systems with SQL Server installed, you get driver choices like
+  “SQL Server”, “SQL Server Native Client 10.0”, “SQL Server Native Client
+  10.0”. I tested with “SQL Server Native Client 11.0” talking to SQL Server
+  10.50.6000 [= SQL Server 2008 R2 SP3]. See
+  https://support.microsoft.com/en-us/kb/321185
+
+- In creating the ODBC data source, you choose whether you want
+  username/password authentication or Integrated Windows authentication, and
+  you give the data source a name (DSN), e.g. MY_DATABASE. The SQLAlchemy URL
+  is then ``mssql+pyodbc://@MY_DATABASE`` (for Windows authentication), or
+  ``mssql+pyodbc://username:password@MY_DATABASE`` for
+  username/password authentication.
+
+- Addendum 2017-01-16: Microsoft have deprecated the SQL Server Native Client;
+  use the Microsoft ODBC Driver for SQL Server instead. (See
+  https://msdn.microsoft.com/en-us/library/ms130828.aspx;
+  https://blogs.msdn.microsoft.com/sqlnativeclient/2013/01/23/introducing-the-new-microsoft-odbc-drivers-for-sql-server/)
+  This typically appears as “ODBC Driver 11 for SQL Server”.
 
 
 Others to ignore

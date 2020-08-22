@@ -49,6 +49,9 @@ LOWER_CASE_STRINGS_MEANING_TRUE = ['true', '1', 't', 'y', 'yes']
 # Is this program running on readthedocs.org?
 ON_READTHEDOCS = os.environ.get('READTHEDOCS') == 'True'
 
+# Environment variable whose presence indicates that we are generating docs.
+ENVVAR_GENERATING_CRATE_DOCS = "GENERATING_CRATE_DOCS"
+
 # Will we run without a config file?
 RUNNING_WITHOUT_CONFIG = (
     ON_READTHEDOCS or
@@ -56,6 +59,25 @@ RUNNING_WITHOUT_CONFIG = (
      os.environ[ENVVAR_RUN_WITHOUT_CONFIG].lower() in
      LOWER_CASE_STRINGS_MEANING_TRUE)
 )
+
+
+# =============================================================================
+# DockerConstants
+# =============================================================================
+
+class DockerConstants(object):
+    """
+    Constants for the Docker environment.
+    """
+    # Directories
+    DOCKER_CRATE_ROOT_DIR = "/crate"
+    CONFIG_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "cfg")
+    TMP_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "tmp")
+    VENV_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "venv")
+
+    HOST = "0.0.0.0"
+    # ... not "localhost" or "127.0.0.1"; see
+    # https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors  # noqa
 
 
 # =============================================================================

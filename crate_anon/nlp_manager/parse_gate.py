@@ -38,6 +38,7 @@ import subprocess
 import sys
 from typing import Any, Dict, Generator, List, TextIO, Tuple
 
+from cardinal_pythonlib.cmdline import cmdline_quote
 from cardinal_pythonlib.dicts import (
     rename_keys_in_dict,
     set_null_values_in_dict,
@@ -163,20 +164,8 @@ class Gate(BaseNlpParser):
 
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
         self._type_to_tablename = {}  # type: Dict[str, str]
-        for c in chunks(typepairs, 2):
-            annottype = c[0]
-            outputsection = c[1]
-            # 2018-03-27: not clear why we need to force the user to specify
-            # in lower case! We just said it's case-insensitive. So ditch this:
-            #
-            # if annottype != annottype.lower():
-            #     raise Exception(
-            #         "Section {}: annotation types in outputtypemap must be in "  # noqa
-            #         "lower case: change {}".format(cfgsection, annottype))
-            #
-            # and add this:
+        for annottype, outputsection in chunks(typepairs, 2):
             annottype = annottype.lower()
-            # log.critical(outputsection)
             c = OutputUserConfig(nlpdef.parser, outputsection)
             self._outputtypemap[annottype] = c
             self._type_to_tablename[annottype] = c.dest_tablename
@@ -222,7 +211,7 @@ class Gate(BaseNlpParser):
         if self._started:
             return
         args = self._progargs
-        log.info(f"launching command: {args}")
+        log.info(f"Launching command: {cmdline_quote(args)}")
         self._p = subprocess.Popen(args,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,

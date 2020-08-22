@@ -1,9 +1,0 @@
-usage: crate_estimate_mysql_memory_usage [-h] [--mysql MYSQL] [--host HOST]
-                                         [--port PORT] [--user USER]
-
-optional arguments:
-  -h, --help     show this help message and exit
-  --mysql MYSQL  MySQL program (default=mysql)
-  --host HOST    MySQL server/host (prefer '127.0.0.1' to 'localhost')
-  --port PORT    MySQL port (default=3306)
-  --user USER    MySQL user (default=root)

@@ -1,0 +1,298 @@
+# server/docker/dockerfiles/docker-compose.yaml
+#
+# See the help!
+# https://crateanon.readthedocs.io/en/latest/installation/docker.html
+
+# =============================================================================
+# Environment variables used (see help)
+# =============================================================================
+#
+# Those with defaults in the .env file in this directory:
+#
+#   CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME
+#   CRATE_DOCKER_CRATEWEB_HOST_PORT
+#   CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
+#   CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY
+#   CRATE_DOCKER_FLOWER_HOST_PORT
+#   CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
+#   CRATE_DOCKER_MYSQL_CRATE_USER_NAME
+#   CRATE_DOCKER_MYSQL_HOST_PORT
+#   COMPOSE_PROJECT_NAME -- used by Docker Compose itself
+#
+# Those without defaults:
+#
+#   CRATE_DOCKER_CONFIG_HOST_DIR
+#   CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
+#   CRATE_DOCKER_MYSQL_ROOT_PASSWORD
+
+
+# =============================================================================
+# docker-compose file syntax version
+# =============================================================================
+
+version: "3.5"
+
+
+# =============================================================================
+# Data volumes
+# =============================================================================
+
+volumes:
+    # See Docker Compose "Volume configuration reference". Note that the syntax
+    # here is not the same as for "volumes:" within a service (container).
+
+    db_data_volume:
+        # Without any options, the default driver (usually "local") is used.
+        # This will probably create a volume at
+        # /var/lib/docker/volumes/VOLUME/_data on the host.
+
+    rabbitmq_volume:
+        # Again, we make it explicit (or we get Docker gibberish names).
+        
+    crate_config_volume:
+        # Holds CRATE config files.
+        #
+        # The alternative to mounting a directory is Docker "configs" but these
+        # are a bit different and don't allow single-file bind-mounting under
+        # Windows. See https://docs.docker.com/engine/swarm/configs/
+        
+        driver: local
+        driver_opts:
+            o: bind
+            type: none
+            # We use environment variable substitution.
+            # https://docs.docker.com/compose/compose-file/#variable-substitution
+            device: "${CRATE_DOCKER_CONFIG_HOST_DIR}"
+
+    crate_tmp_volume:
+        # Space to put lock files, user downloads, etc., that need to be shared
+        # between containers, but which are expected to be temporary.
+
+
+# =============================================================================
+# Containers (services)
+# =============================================================================
+
+services:
+
+    # -------------------------------------------------------------------------
+    # MySQL container, providing database services
+    # -------------------------------------------------------------------------
+
+    mysql:
+
+        # Base Docker image. We use a standard MySQL image; see
+        # https://hub.docker.com/_/mysql
+        image: mysql:5.7
+
+        # Restart policy.
+        # - I am slightly confused between "when the computer reboots" and
+        #   "if the container crashes".
+        # - See Docker Compose docs, but also
+        #   https://stackoverflow.com/questions/30449313/how-do-i-make-a-docker-container-start-automatically-on-system-boot
+        # - Empirically:
+        #   - "no" means "neither on reboot nor container crash".
+        #   - "always" includes reboots and crashes.
+        #   - The other options are "on-failure" and "unless-stopped".
+        #   - There doesn't appear to be an option for "restart on reboot, but
+        #     leave stopped if it crashed".
+        # - So: always.
+        restart: "always"
+
+        # Environment variables.
+        # See https://hub.docker.com/_/mysql
+        environment:
+            # Create database with this name at first container startup.
+            MYSQL_DATABASE: "${CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME}"
+
+            # Create user with this name at first container startup, with
+            # GRANT ALL access to the database named in MYSQL_DATABASE.
+            MYSQL_USER: "${CRATE_DOCKER_MYSQL_CRATE_USER_NAME}"
+
+            # Password for MYSQL_USER (set at first container startup).
+            MYSQL_PASSWORD: "${CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD}"
+
+            # Password for user "root" (set at first container startup).
+            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_MYSQL_ROOT_PASSWORD}"
+            
+        # Expose ports from the container, "publishing" them to the host.
+        # For example, if you offer a MySQL server via "9999:3306", you should
+        # be able to run
+        #
+        #   $ mysql --host=127.0.0.1 --port=9999 --user=root --password
+        #
+        # on the host, and connect to the server.
+        ports:
+            # Short format is: "HOST_PORT:CONTAINER_PORT".
+            # Should always use explicit string format here.
+            # MySQL offers port 3306 by default.
+            - "${CRATE_DOCKER_MYSQL_HOST_PORT}:3306"
+
+        # Expose ports to linked services without publishing them to the host.
+        # Specify the container (internal) port.
+        expose:
+            - "3306"
+
+        # Note that if you do not specify mount points, some are created
+        # anyway; for example, the MySQL image wants something at
+        # /var/lib/mysql (internally) and on the hose this might actually be
+        # e.g. /var/lib/docker/volumes/<gibberish>/_data
+        volumes:
+            # Format is "[SOURCE:]TARGET[:MODE]", such as
+            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
+            - db_data_volume:/var/lib/mysql
+
+
+    # -------------------------------------------------------------------------
+    # RabbitMQ container, providing a message queue.
+    # -------------------------------------------------------------------------
+    # AMQP security is not a concern because this is only used internally to
+    # the Docker container group.
+
+    rabbitmq:
+
+        # Base Docker image.
+        image: rabbitmq:3.8.5
+
+        # Restart policy
+        restart: "always"
+
+        # Expose ports to linked services without publishing them to the host.
+        # Specify the container (internal) port.
+        expose:
+            # The default RabbitMQ port is 5672.
+            - "5672"
+
+        # Specify volumes by name, having explored the default container to
+        # find out what it creates (and where it mounts it) otherwise.
+        # (You can't have no volume.)
+        volumes:
+            - rabbitmq_volume:/var/lib/rabbitmq
+
+
+    # -------------------------------------------------------------------------
+    # CRATE image, with build commands (to create from the Dockerfile),
+    # running the workers.
+    # -------------------------------------------------------------------------
+
+    crate_workers:
+        # Build a container from a Dockerfile.
+        build:
+            # Context for Docker to build the image (relative to this file).
+            context: ../../
+            
+            # Filename of the Dockerfile to use, relative to the context.
+            dockerfile: docker/dockerfiles/crate.Dockerfile
+        
+        # If you specify "image" as well as "build", Compose names the built
+        # image. Syntax is "IMAGE[:TAG]".
+        image: crate
+
+        # Start order. See docs -- note that this is "order to start", not
+        # "wait for startup to complete".
+        depends_on:
+            - mysql
+            - rabbitmq
+
+        # Restart policy
+        restart: "always"
+
+        # Mount config file directory
+        volumes:
+            - crate_config_volume:/crate/cfg
+            - crate_tmp_volume:/crate/tmp
+
+        environment:
+            CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+
+        # Command to execute
+        command: [
+            "wait-for-it", "--host=mysql", "--port=3306", "--timeout=0", "--strict", "--",
+            "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
+            "bash", "-c", "
+                source /crate/venv/bin/activate &&
+                crate_launch_celery
+            ",
+        ]
+
+
+    # -------------------------------------------------------------------------
+    # Re-use the CRATE image, but run the CRATE web server.
+    # -------------------------------------------------------------------------
+
+    crate_server:
+        # Re-use the image built above.
+        image: crate
+
+        # Start order.
+        depends_on:
+            - crate_workers
+
+        # Restart policy
+        restart: "always"
+        
+        # Publish port to host.
+        ports:
+            - "${CRATE_DOCKER_CRATEWEB_HOST_PORT}:8000"
+
+        # Mount config file directory
+        volumes:
+            - crate_config_volume:/crate/cfg
+            - crate_tmp_volume:/crate/tmp
+
+        environment:
+            CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+
+        # Command to execute
+        # Can use shell-style or list-style syntax.
+        command: [
+            "wait-for-it", "--host=mysql", "--port=3306", "--timeout=0", "--strict", "--",
+            "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
+            "bash", "-c", "
+                source /crate/venv/bin/activate &&
+                crate_launch_cherrypy_server
+                    --host 0.0.0.0
+                    --port 8000
+                    --ssl_certificate ${CRATE_DOCKER_SSL_CERTIFICATE}
+                    --ssl_private_key ${CRATE_DOCKER_SSL_PRIVATE_KEY}
+            ",
+            # - Re host 0.0.0.0:
+            #   https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors
+        ]
+
+
+    # -------------------------------------------------------------------------
+    # CRATE background monitor, using Flower
+    # -------------------------------------------------------------------------
+
+    flower:
+        # Re-use the image built above.
+        image: crate
+
+        # Start order.
+        depends_on:
+            - crate_workers
+
+        # Restart policy
+        restart: "always"
+
+        # Publish port to host.
+        ports:
+            # Default internal Flower port is 5555.
+            - "${CRATE_DOCKER_FLOWER_HOST_PORT}:5555"
+
+        # Mount config file directory
+        volumes:
+            - crate_config_volume:/crate/cfg
+            - crate_tmp_volume:/crate/tmp
+
+        environment:
+            CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+
+        command: [
+            "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
+            "bash", "-c", "
+                source /crate/venv/bin/activate &&
+                crate_launch_flower
+            ",
+        ]

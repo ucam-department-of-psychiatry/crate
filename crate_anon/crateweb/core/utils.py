@@ -43,6 +43,7 @@ from django.db.models import QuerySet
 from django.http import QueryDict
 from django.http.request import HttpRequest
 from django.utils import timezone
+
 from crate_anon.crateweb.userprofile.models import get_per_page
 
 log = logging.getLogger(__name__)

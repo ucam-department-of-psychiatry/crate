@@ -79,6 +79,7 @@ from io import StringIO
 import logging
 import os
 import sys
+import traceback
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union, Set
 
 from cardinal_pythonlib.hash import GenericHasher, make_hasher
@@ -104,7 +105,7 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.sqltypes import TypeEngine
 
 from crate_anon.anonymise.constants import (
-    CONFIG_ENV_VAR,
+    ANON_CONFIG_ENV_VAR,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
     DEFAULT_MAX_ROWS_BEFORE_COMMIT,
@@ -454,7 +455,7 @@ class Config(object):
 
         # Get filename
         try:
-            self.config_filename = os.environ[CONFIG_ENV_VAR]  # may raise
+            self.config_filename = os.environ[ANON_CONFIG_ENV_VAR]  # may raise
             assert self.config_filename  # may raise
             filename = self.config_filename
             fileobj = None
@@ -465,9 +466,10 @@ class Config(object):
                 fileobj = StringIO(DEMO_CONFIG)
             else:
                 print(
-                    f"You must set the {CONFIG_ENV_VAR} environment variable "
-                    f"to point to a CRATE anonymisation config file, or "
-                    f"specify it on the command line.")
+                    f"You must set the {ANON_CONFIG_ENV_VAR} environment "
+                    f"variable to point to a CRATE anonymisation config file, "
+                    f"or specify it on the command line.")
+                traceback.print_stack()
                 sys.exit(1)
 
         cfg = ConfigSection(

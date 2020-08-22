@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/introduction/package_elements.rst
+..  crate_anon/docs/source/introduction/package_elements.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -208,9 +208,6 @@ Other tools include:
 - :ref:`crate_test_anonymisation <crate_test_anonymisation>`: fetches raw and
   anonymised data (from a source and a destination database), for a human to
   compare with a tool like Meld_ to verify the accuracy of anonymisation.
-
-- :ref:`crate_estimate_mysql_memory_usage <crate_estimate_mysql_memory_usage>`:
-  estimates the memory footprint of MySQL_.
 
 
 ===============================================================================

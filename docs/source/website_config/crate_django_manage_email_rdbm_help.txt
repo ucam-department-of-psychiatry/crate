@@ -3,6 +3,7 @@ usage: crate_django_manage email_rdbm [-h] [--subject SUBJECT] [--text TEXT]
                                       [--settings SETTINGS]
                                       [--pythonpath PYTHONPATH] [--traceback]
                                       [--no-color] [--force-color]
+                                      [--skip-checks]
 
 Email the RDBM
 
@@ -26,3 +27,4 @@ optional arguments:
   --traceback           Raise on CommandError exceptions
   --no-color            Don't colorize the command output.
   --force-color         Force colorization of the command output.
+  --skip-checks         Skip system checks.

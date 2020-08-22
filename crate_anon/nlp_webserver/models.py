@@ -50,6 +50,7 @@ from sqlalchemy.orm import (
     sessionmaker,
 )
 from sqlalchemy.sql.schema import ForeignKey
+# noinspection PyPackageRequirements
 from zope.sqlalchemy import register
 
 

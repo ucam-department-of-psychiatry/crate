@@ -40,11 +40,13 @@ from cardinal_pythonlib.fileops import purge
 from cardinal_pythonlib.logs import configure_logger_for_colour
 import chardet
 
+from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
+
 log = logging.getLogger(__name__)
 
 EXIT_FAILURE = 1
 
-if "GENERATING_CRATE_DOCS" in os.environ:
+if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
     DEFAULT_MEDEX_DIR = "/path/to/Medex/installation"
 else:
     DEFAULT_MEDEX_DIR = os.path.join(os.path.expanduser('~'), 'dev',

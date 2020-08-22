@@ -28,6 +28,7 @@ crate_anon/tools/launch_cherrypy_server.py
 
 """
 
+from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.crateweb.manage import runcpserver
 
 
@@ -35,7 +36,7 @@ def main() -> None:
     """
     Command-line entry point.
     """
-    runcpserver()
+    call_main_with_exception_reporting(runcpserver)
 
 
 if __name__ == '__main__':

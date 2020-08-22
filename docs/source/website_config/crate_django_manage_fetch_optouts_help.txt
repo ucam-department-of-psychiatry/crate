@@ -3,7 +3,7 @@ usage: crate_django_manage fetch_optouts [-h] --pidfile PIDFILE --mpidfile
                                          [--settings SETTINGS]
                                          [--pythonpath PYTHONPATH]
                                          [--traceback] [--no-color]
-                                         [--force-color]
+                                         [--force-color] [--skip-checks]
 
 Fetch patient IDs (PIDs) and master patient IDs (MPIDs, e.g. NHS numbers) from
 the clinical consent-mode lookup database, and store them in a file (e.g. for
@@ -27,3 +27,4 @@ optional arguments:
   --traceback           Raise on CommandError exceptions
   --no-color            Don't colorize the command output.
   --force-color         Force colorization of the command output.
+  --skip-checks         Skip system checks.

@@ -165,8 +165,7 @@ class OutputUserConfig(object):
             comment = parts[2] if len(parts) > 2 else None
             ensure_valid_field_name(field)
             if not is_sqltype_valid(datatype):
-                raise Exception(
-                    f"Invalid datatype for {field}: {datatype}")
+                raise ValueError(f"Invalid datatype for {field}: {datatype}")
             self._destfields.append(field)
             self._dest_datatypes.append(datatype)
             self._dest_comments.append(comment)
@@ -175,7 +174,7 @@ class OutputUserConfig(object):
                       InputFieldConfig.get_core_columns_for_dest()]
         for sf in src_fields:
             if sf in self._destfields:
-                raise Exception(
+                raise ValueError(
                     f"For section {sectionname}, destination field {sf} is "
                     f"auto-supplied; do not add it manually")
 

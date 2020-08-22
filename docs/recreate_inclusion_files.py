@@ -41,6 +41,8 @@ from typing import List
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
+from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
+
 log = logging.getLogger(__name__)
 
 THIS_DIR = dirname(realpath(__file__))
@@ -77,7 +79,7 @@ def run_cmd(cmdargs: List[str],
     log.info(f"Running: {cmdargs}")
 
     modified_env = os.environ.copy()
-    modified_env["GENERATING_CRATE_DOCS"] = "True"
+    modified_env[ENVVAR_GENERATING_CRATE_DOCS] = "True"
     output = subprocess.check_output(
         cmdargs, env=modified_env
     ).decode(encoding)
@@ -95,8 +97,6 @@ def main():
     # -------------------------------------------------------------------------
     # ancillary
     # -------------------------------------------------------------------------
-    run_cmd(["crate_estimate_mysql_memory_usage", "--help"],
-            join(ANCILLARY_DIR, "crate_estimate_mysql_memory_usage_help.txt"))
     run_cmd(["crate_make_demo_database", "--help"],
             join(ANCILLARY_DIR, "crate_make_demo_database_help.txt"))
     run_cmd(["crate_test_anonymisation", "--help"],

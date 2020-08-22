@@ -194,7 +194,10 @@ class ExtendedConfigParser(configparser.ConfigParser):
             string parameter value, or ``default``
         """
         if required and default is not None:
-            raise AssertionError("required and default are incompatible")
+            raise AssertionError(
+                f"required and default are incompatible "
+                f"(section={section!r}, option={option!r}, "
+                f"required={required!r}; default={default!r}")
         s = self.get(section, option, fallback=default)
         if required and not s:
             self.raise_missing(section, option)

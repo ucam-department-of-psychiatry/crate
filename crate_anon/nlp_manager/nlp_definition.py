@@ -42,6 +42,7 @@ from typing import (
 )
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_notz_datetime
+from cardinal_pythonlib.docker import running_under_docker
 from cardinal_pythonlib.lists import chunks
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
@@ -101,35 +102,26 @@ def demo_nlp_config() -> str:
     """
     Returns a demo NLP config file for CRATE.
     """
+    # -------------------------------------------------------------------------
+    # Imports
+    # -------------------------------------------------------------------------
+
     from crate_anon.nlp_manager.parse_biochemistry import ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS  # delayed import  # noqa
     from crate_anon.nlp_manager.parse_clinical import ALL_CLINICAL_NLP_AND_VALIDATORS  # delayed import  # noqa
     from crate_anon.nlp_manager.parse_cognitive import ALL_COGNITIVE_NLP_AND_VALIDATORS  # delayed import  # noqa
     from crate_anon.nlp_manager.parse_haematology import ALL_HAEMATOLOGY_NLP_AND_VALIDATORS  # delayed import  # noqa
 
-    destdb = "DESTINATION_DATABASE"
-    hashphrase = "doesnotmatter"
-    if_clin_docs = "INPUT_FIELD_CLINICAL_DOCUMENTS"
-    if_prog_notes = "INPUT_FIELD_PROGRESS_NOTES"
-    inputfields = (
-        f"{if_clin_docs}\n"
-        f"    {if_prog_notes}"
-    )
-    truncate_text_at = "32766"
-    my_env = "MY_ENV_SECTION"
-    my_src_db = "SOURCE_DATABASE"
-    my_cloud = "my_uk_cloud_service"
-    ridfield = "RID_FIELD"
-    tridfield = "TRID_FIELD"
-    nlp_input_terminator = "END_OF_TEXT_FOR_NLP"
-    nlp_output_terminator = "END_OF_NLP_OUTPUT_RECORD"
+    # -------------------------------------------------------------------------
+    # Helper functions
+    # -------------------------------------------------------------------------
 
     def _make_procdef_pair(name: str) -> str:
         return (f"""[{NlpConfigPrefixes.PROCESSOR}:procdef_{name}]
-{ProcessorConfigKeys.DESTDB} = {destdb}
-{ProcessorConfigKeys.DESTTABLE} = {name}
-[{NlpConfigPrefixes.PROCESSOR}:procdef_validate_{name}]
-{ProcessorConfigKeys.DESTDB} = {destdb}
-{ProcessorConfigKeys.DESTTABLE} = validate_{name}""")
+    {ProcessorConfigKeys.DESTDB} = {destdb}
+    {ProcessorConfigKeys.DESTTABLE} = {name}
+    [{NlpConfigPrefixes.PROCESSOR}:procdef_validate_{name}]
+    {ProcessorConfigKeys.DESTDB} = {destdb}
+    {ProcessorConfigKeys.DESTTABLE} = validate_{name}""")
 
     def _make_module_procdef_block(
             nlp_and_validators: List[Tuple[Type["BaseNlpParser"],
@@ -152,6 +144,29 @@ def demo_nlp_config() -> str:
             )
         return "\n".join(_proclist)
 
+    # -------------------------------------------------------------------------
+    # Quasi-constants
+    # -------------------------------------------------------------------------
+
+    for_docker = running_under_docker()
+
+    destdb = "DESTINATION_DATABASE"
+    hashphrase = "doesnotmatter"
+    if_clin_docs = "INPUT_FIELD_CLINICAL_DOCUMENTS"
+    if_prog_notes = "INPUT_FIELD_PROGRESS_NOTES"
+    inputfields = (
+        f"{if_clin_docs}\n"
+        f"    {if_prog_notes}"
+    )
+    truncate_text_at = "32766"
+    my_env = "MY_ENV_SECTION"
+    my_src_db = "SOURCE_DATABASE"
+    my_cloud = "my_uk_cloud_service"
+    ridfield = "RID_FIELD"
+    tridfield = "TRID_FIELD"
+    nlp_input_terminator = "END_OF_TEXT_FOR_NLP"
+    nlp_output_terminator = "END_OF_NLP_OUTPUT_RECORD"
+
     procdefs_biochemistry = _make_module_procdef_block(ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS)  # noqa
     procdefs_clinical = _make_module_procdef_block(ALL_CLINICAL_NLP_AND_VALIDATORS)  # noqa
     procdefs_cognitive = _make_module_procdef_block(ALL_COGNITIVE_NLP_AND_VALIDATORS)  # noqa
@@ -162,11 +177,31 @@ def demo_nlp_config() -> str:
     proclist_cognitive = _make_proclist(ALL_COGNITIVE_NLP_AND_VALIDATORS)
     proclist_haematology = _make_proclist(ALL_HAEMATOLOGY_NLP_AND_VALIDATORS)
 
+    this_dir = os.path.abspath(os.path.dirname(__file__))  # crate_anon/nlp_manager  # noqa
+    nlp_prog_dir = os.path.join(this_dir, "compiled_nlp_classes")
+
+    if for_docker:
+        # See crate.Dockerfile
+        gate_dir = "/crate/gate"
+        kcl_pharmacotherapy_dir = "/crate/brc-gate-pharmacotherapy"
+        cloud_request_data_dir = "/crate/tmp/clouddata"
+        gate_plugin_file = "/crate/src/docs/source/nlp/specimen_gate_plugin_file.ini"  # noqa
+    else:
+        gate_dir = "/path/to/GATE_Developer_8.6.1"
+        kcl_pharmacotherapy_dir = "/path/to/brc-gate-pharmacotherapy"
+        cloud_request_data_dir = "/srv/crate/clouddata"
+        gate_plugin_file = "/path/to/specimen_gate_plugin_file.ini"
+
+    # -------------------------------------------------------------------------
+    # The demo config itself
+    # -------------------------------------------------------------------------
+
     return (
         f"""# Configuration file for CRATE NLP manager (crate_nlp).
 # Version {CRATE_VERSION} ({CRATE_VERSION_DATE}).
 #
-# PLEASE SEE THE HELP.
+# PLEASE SEE THE HELP at https://crateanon.readthedocs.io/
+# Using defaults for Docker environment: {for_docker}
 
 # =============================================================================
 # A. Individual NLP definitions
@@ -291,7 +326,7 @@ def demo_nlp_config() -> str:
 {NlpDefConfigKeys.PROGRESSDB} = {destdb}
 {NlpDefConfigKeys.HASHPHRASE} = {hashphrase}
 {NlpDefConfigKeys.CLOUD_CONFIG} = {my_cloud}
-{NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR} = /srv/crate/clouddata
+{NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR} = {cloud_request_data_dir}
 
 
 # =============================================================================
@@ -341,10 +376,11 @@ def demo_nlp_config() -> str:
     Location output_location
 {ProcessorConfigKeys.PROGARGS} =
     java
-    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     {GATE_PIPELINE_CLASSNAME}
     --gate_app "{{GATEDIR}}/plugins/ANNIE/ANNIE_with_defaults.gapp"
+    --pluginfile "{{GATE_PLUGIN_FILE}}"
     --annotation Person
     --annotation Location
     --input_terminator {nlp_input_terminator}
@@ -405,10 +441,11 @@ def demo_nlp_config() -> str:
     Disease_or_Syndrome output_disease_or_syndrome
 {ProcessorConfigKeys.PROGARGS} =
     java
-    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     CrateGatePipeline
     --gate_app "{{KCONNECTDIR}}/main-bio/main-bio.xgapp"
+    --pluginfile "{{GATE_PLUGIN_FILE}}"
     --annotation Disease_or_Syndrome
     --input_terminator {nlp_input_terminator}
     --output_terminator {nlp_output_terminator}
@@ -471,10 +508,11 @@ def demo_nlp_config() -> str:
     Prescription output_prescription
 {ProcessorConfigKeys.PROGARGS} =
     java
-    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     CrateGatePipeline
     --gate_app "{{GATE_PHARMACOTHERAPY_DIR}}/application.xgapp"
+    --pluginfile "{{GATE_PLUGIN_FILE}}"
     --include_set Output
     --annotation Prescription
     --input_terminator {nlp_input_terminator}
@@ -571,10 +609,11 @@ def demo_nlp_config() -> str:
     DiagnosisAlmost output_lbd_diagnosis
 {ProcessorConfigKeys.PROGARGS} =
     java
-    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     CrateGatePipeline
     --gate_app "{{KCL_LBDA_DIR}}/application.xgapp"
+    --pluginfile "{{GATE_PLUGIN_FILE}}"
     --set_annotation "" DiagnosisAlmost
     --set_annotation Automatic cDiagnosis
     --input_terminator {nlp_input_terminator}
@@ -646,13 +685,14 @@ def demo_nlp_config() -> str:
 
 [{NlpConfigPrefixes.ENV}:{my_env}]
 
-GATEDIR = /home/myuser/dev/GATE_Developer_8.0
-GATE_PHARMACOTHERAPY_DIR = /home/myuser/dev/brc-gate-pharmacotherapy
+GATEDIR = {gate_dir}
+GATE_PHARMACOTHERAPY_DIR = {kcl_pharmacotherapy_dir}
+GATE_PLUGIN_FILE = {gate_plugin_file}
 KCL_LBDA_DIR = /home/myuser/dev/brc-gate-LBD/Lewy_Body_Diagnosis
 KCONNECTDIR = /home/myuser/dev/yodie-pipeline-1-2-umls-only
 MEDEXDIR = /home/myuser/dev/Medex_UIMA_1.3.6
-NLPPROGDIR = /home/myuser/dev/crate_anon/nlp_manager/compiled_nlp_classes
-OS_PATHSEP = :
+NLPPROGDIR = {nlp_prog_dir}
+OS_PATHSEP = {os.pathsep}
 
 
 # =============================================================================
@@ -731,6 +771,28 @@ OS_PATHSEP = :
 
 
 # =============================================================================
+# Get config filename (from environment variable)
+# =============================================================================
+
+def get_nlp_config_filename_or_exit() -> str:
+    """
+    Returns the config filename, from our environment variable.
+    If we can't retrieve it, perform a hard exit.
+    """
+    # Get filename
+    try:
+        config_filename = os.environ[NLP_CONFIG_ENV_VAR]
+        assert config_filename
+    except (KeyError, AssertionError):
+        print(
+            f"You must set the {NLP_CONFIG_ENV_VAR} environment variable "
+            f"to point to a CRATE NLP config file, or specify it on the "
+            f"command line.")
+        sys.exit(1)
+    return config_filename
+
+
+# =============================================================================
 # Config class
 # =============================================================================
 
@@ -769,16 +831,7 @@ class NlpDefinition(object):
         self._logtag = logtag
 
         log.info(f"Loading config for section: {nlpname}")
-        # Get filename
-        try:
-            self._config_filename = os.environ[NLP_CONFIG_ENV_VAR]
-            assert self._config_filename
-        except (KeyError, AssertionError):
-            print(
-                f"You must set the {NLP_CONFIG_ENV_VAR} environment variable "
-                f"to point to a CRATE anonymisation config file. Run "
-                f"crate_print_demo_anon_config to see a specimen config.")
-            sys.exit(1)
+        self._config_filename = get_nlp_config_filename_or_exit()
 
         # Read config from file.
         self._cfg = ConfigSection(

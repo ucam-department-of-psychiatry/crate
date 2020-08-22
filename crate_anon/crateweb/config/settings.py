@@ -42,8 +42,17 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import importlib.machinery
 import logging
 import os
+from typing import List
 
-from crate_anon.common.constants import RUNNING_WITHOUT_CONFIG
+from cardinal_pythonlib.docker import running_under_docker
+from cardinal_pythonlib.fileops import relative_filename_within_dir
+
+from crate_anon.common.constants import (
+    DockerConstants,
+    ENVVAR_GENERATING_CRATE_DOCS,
+    RUNNING_WITHOUT_CONFIG,
+)
+from crate_anon.common.dockerfunc import warn_if_not_within_docker_dir
 from crate_anon.crateweb.config.constants import (
     CRATEWEB_CONFIG_ENV_VAR,
     UrlNames,
@@ -57,6 +66,15 @@ except ImportError:
     pymysql = None
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Docker
+# =============================================================================
+
+RUNNING_UNDER_DOCKER = running_under_docker()
+if RUNNING_UNDER_DOCKER:
+    log.info("Running under Docker")
 
 
 # =============================================================================
@@ -483,30 +501,117 @@ if RUNNING_WITHOUT_CONFIG:
     SECRET_KEY = 'dummy'  # A Django setting.
 else:
     if CRATEWEB_CONFIG_ENV_VAR not in os.environ:
+        _linuxpath = (
+            DockerConstants.CONFIG_DIR if RUNNING_UNDER_DOCKER
+            else "/etc/crate"
+        )
         raise ValueError(f"""
     You must set the {CRATEWEB_CONFIG_ENV_VAR} environment variable first.
     Aim it at your settings file, like this:
 
     (For Linux:)
 
-    export {CRATEWEB_CONFIG_ENV_VAR}=/etc/crate/my_secret_crate_settings.py
+    export {CRATEWEB_CONFIG_ENV_VAR}={_linuxpath}/my_secret_crate_settings.py
 
     (For Windows:)
 
     set {CRATEWEB_CONFIG_ENV_VAR}=C:/some/path/my_secret_crate_settings.py
         """)
-    filename = os.environ[CRATEWEB_CONFIG_ENV_VAR]
 
-    if "GENERATING_CRATE_DOCS" not in os.environ:
+    filename = os.environ[CRATEWEB_CONFIG_ENV_VAR]
+    if RUNNING_UNDER_DOCKER:
+        warn_if_not_within_docker_dir(
+            param_name=CRATEWEB_CONFIG_ENV_VAR,
+            filespec=filename,
+            permit_cfg=True,
+            is_env_var=True
+        )
+
+    if ENVVAR_GENERATING_CRATE_DOCS not in os.environ:
         print(f"Loading local settings from: {filename}")
     # ... NB logger not yet set to a reasonable priority; use warning level
     # ... no, logger not even configured, and this is loaded via Django;
     #     use print()!
     _loader = importlib.machinery.SourceFileLoader('local_settings',
                                                    filename)
+    # noinspection PyArgumentList
     _local_module = _loader.load_module()
     # noinspection PyUnresolvedReferences
     from local_settings import *  # noqa
+    # noinspection PyUnresolvedReferences
+    from local_settings import (
+        ARCHIVE_TEMPLATE_DIR,
+        ARCHIVE_STATIC_DIR,
+        ARCHIVE_ATTACHMENT_DIR,
+        ARCHIVE_TEMPLATE_CACHE_DIR,
+        DATABASE_HELP_HTML_FILENAME,
+        PRIVATE_FILE_STORAGE_ROOT,
+        PDF_LOGO_ABS_URL,
+        TRAFFIC_LIGHT_RED_ABS_URL,
+        TRAFFIC_LIGHT_YELLOW_ABS_URL,
+        TRAFFIC_LIGHT_GREEN_ABS_URL,
+    )  # noqa
+
+    if RUNNING_UNDER_DOCKER:
+        # /crate/cfg or /crate/venv
+        paramname_filespec_pairs = [
+            ("ARCHIVE_TEMPLATE_DIR", ARCHIVE_TEMPLATE_DIR),
+            ("ARCHIVE_STATIC_DIR", ARCHIVE_STATIC_DIR),
+            ("DATABASE_HELP_HTML_FILENAME", DATABASE_HELP_HTML_FILENAME),
+        ]
+        for param_name, filespec in paramname_filespec_pairs:
+            warn_if_not_within_docker_dir(
+                param_name=param_name,
+                filespec=filespec,
+                permit_cfg=True,
+                permit_venv=True
+            )
+        # /crate/cfg
+        paramname_filespec_pairs = [
+            ("ARCHIVE_ATTACHMENT_DIR", ARCHIVE_ATTACHMENT_DIR),
+        ]
+        for param_name, filespec in paramname_filespec_pairs:
+            warn_if_not_within_docker_dir(
+                param_name=param_name,
+                filespec=filespec,
+                permit_cfg=True,
+            )
+        # /crate/cfg or /crate/tmp
+        paramname_filespec_pairs = [
+            ("PRIVATE_FILE_STORAGE_ROOT", PRIVATE_FILE_STORAGE_ROOT),
+        ]
+        for param_name, filespec in paramname_filespec_pairs:
+            warn_if_not_within_docker_dir(
+                param_name=param_name,
+                filespec=filespec,
+                permit_cfg=True,
+                permit_tmp=True,
+            )
+        # /crate/tmp
+        paramname_filespec_pairs = [
+            ("ARCHIVE_TEMPLATE_CACHE_DIR", ARCHIVE_TEMPLATE_CACHE_DIR),
+        ]
+        for param_name, filespec in paramname_filespec_pairs:
+            warn_if_not_within_docker_dir(
+                param_name=param_name,
+                filespec=filespec,
+                permit_tmp=True,
+            )
+        # /crate/cfg or /crate/venv, as file: URLs
+        paramname_filespec_pairs = [
+            ("PDF_LOGO_ABS_URL", PDF_LOGO_ABS_URL),
+            ("TRAFFIC_LIGHT_RED_ABS_URL", TRAFFIC_LIGHT_RED_ABS_URL),
+            ("TRAFFIC_LIGHT_YELLOW_ABS_URL", TRAFFIC_LIGHT_YELLOW_ABS_URL),
+            ("TRAFFIC_LIGHT_GREEN_ABS_URL", TRAFFIC_LIGHT_GREEN_ABS_URL),
+        ]
+        for param_name, filespec in paramname_filespec_pairs:
+            warn_if_not_within_docker_dir(
+                param_name=param_name,
+                filespec=filespec,
+                permit_cfg=True,
+                permit_venv=True,
+                as_file_url=True
+            )
 
 
 # =============================================================================
