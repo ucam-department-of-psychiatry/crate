@@ -134,126 +134,6 @@ match). So realistically ``c = 10`` or thereabouts.
     errfunc <- function(n) { (t(n) - target) ^ 2 }  # function giving error
     result <- optim(par=50, fn=errfunc)  # minimize error, start n=50; gives 26825
 
-
-For Figure 3
-------------
-
-.. code-block:: none
-
-    crate_fuzzy_id_match compare_plaintext \
-        --probands demo_fig3_probands.csv \
-        --sample demo_fig3_sample.csv \
-        --output demo_fig3_output.csv
-
-.. code-block:: R
-
-    # Not exactly the way the Python optimized code does it, but an
-    # illustration for Figure 3.
-
-    odds_from_p <- function(p) p/(1-p)
-    log_odds_from_p <- function(p) log(odds_from_p(p))
-    p_from_odds <- function(odds) odds/(1 + odds)
-    p_from_log_odds <- function(log_odds) p_from_odds(exp(log_odds))
-    log_posterior_odds_1 <- function(log_prior_odds, log_lr) log_prior_odds + log_lr
-    log_posterior_odds_2 <- function(log_prior_odds, p_d_h, p_d_not_h) {
-        log_lr <- log(p_d_h / p_d_not_h)
-        return(log_prior_odds + log_lr)
-    }
-
-    prior <- log_odds_from_p(1e-6)
-    dob_freq <- 3.04e-5
-    p_e_forename <- 0.001
-    p_e_surname <- 0.001
-    p_e_gender <- 0.0001
-
-    p_female <- 0.51
-
-    f_sname_smith <- 0.01006
-    f_smeta_sm0 <- 0.01013
-    f_fname_elizabeth_female <- 0.00949
-    f_fmeta_alsp_female <- 0.01007
-
-    compare <- function(log_prior_odds, p_d_h, p_d_not_h) {
-        log_posterior_odds <- log_posterior_odds_2(log_prior_odds, p_d_h, p_d_not_h)
-        cat(paste0(log_prior_odds,
-                   " -> P(D|H)=", p_d_h, " / P(D|¬H)=", p_d_not_h,
-                   " -> ", log_posterior_odds, "\n"))
-        return(log_posterior_odds)
-    }
-
-    proband <- list(surname = "SMITH", f_surname = 0.01006,
-                    smeta = "SM0", f_smeta = 0.01013,
-                    firstname = "Elizabeth", f_firstname_given_gender = 0.00949,
-                    fmeta = "ALSP", f_fmeta_given_gender = 0.01007,
-                    dob = "1950-01-01",
-                    gender = "F", f_gender = 0.51)
-
-    show_sequence <- function(proband, candidate) {
-        log_odds <- prior
-        cat(paste0("Start at: ", log_odds, "\n"))
-
-        if (proband$surname == candidate$surname) {
-            cat("Surname matches\n")
-            log_odds <- compare(log_odds, 1 - p_e_surname, proband$f_surname)
-        } else if (proband$smeta == candidate$smeta) {
-            cat("Surname metaphone matches\n")
-            log_odds <- compare(log_odds, p_e_surname, proband$f_smeta - proband$f_surname)
-        } else {
-            cat("Surname mismatch; fail at -inf\n")
-            return()
-        }
-
-        if (proband$firstname == candidate$firstname) {
-            cat("Forename matches\n")
-            log_odds <- compare(log_odds, 1 - p_e_forename, proband$f_firstname_given_gender)
-        } else if (proband$fmeta == candidate$fmeta) {
-            cat("Forename metaphone matches\n")
-            log_odds <- compare(log_odds, p_e_forename, proband$f_fmeta_given_gender - proband$f_firstname_given_gender)
-        } else {
-            cat("Forename mismatch; fail at -inf\n")
-            return()
-        }
-
-        if (proband$dob == candidate$dob) {
-            cat("DOB matches\n")
-            log_odds <- compare(log_odds, 1, dob_freq)
-        } else {
-            cat("DOB mismatch; fail at -inf\n")
-            return()
-        }
-
-        if (proband$gender == candidate$gender) {
-            cat("Gender matches\n")
-            log_odds <- compare(log_odds, 1 - p_e_gender, proband$f_gender)
-        } else {
-            cat("Gender mismatch\n")
-            log_odds <- compare(log_odds, p_e_gender, 1 - proband$f_gender)
-        }
-
-        cat(paste0("Finished at: ", log_odds, "\n"))
-    }
-
-    candidate1 <- list(surname = "JONES", smeta = "JNS",
-                       firstname = "Elizabeth", fmeta = "ALSP",
-                       dob = "1950-01-01", gender = "F")
-    candidate2 <- list(surname = "SMITH", smeta = "SM0",
-                       firstname = "Elizabeth", fmeta = "ALSP",
-                       dob = "1984-07-29", gender = "F")
-    candidate3 <- list(surname = "SMITH", smeta = "SM0",
-                       firstname = "Elizabeth", fmeta = "ALSP",
-                       dob = "1950-01-01", gender = "F")
-    candidate4 <- list(surname = "SMITH", smeta = "SM0",
-                       firstname = "Elisabeth", fmeta = "ALSP",
-                       dob = "1950-01-01", gender = "F")
-    candidate5 <- list(surname = "SMYTHE", smeta = "SM0",
-                       firstname = "Elisabeth", fmeta = "ALSP",
-                       dob = "1950-01-01", gender = "F")
-    show_sequence(proband, candidate1)
-    show_sequence(proband, candidate2)
-    show_sequence(proband, candidate3)
-    show_sequence(proband, candidate4)
-    show_sequence(proband, candidate5)
-
 """  # noqa
 
 import argparse
@@ -276,6 +156,7 @@ from typing import (
     Any, Dict, Generator, Iterable, List, Optional, Set, Tuple,
     TYPE_CHECKING, Union,
 )
+import unittest
 
 import appdirs
 from cardinal_pythonlib.argparse_func import (
@@ -292,8 +173,12 @@ from cardinal_pythonlib.probability import (
     probability_from_log_odds,
 )
 from cardinal_pythonlib.profile import do_cprofile
+from cardinal_pythonlib.reprfunc import auto_repr
 from cardinal_pythonlib.stringfunc import mangle_unicode_to_ascii
 from fuzzy import DMetaphone
+import pendulum
+from pendulum.parsing.exceptions import ParserError
+from pendulum import Date
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.result import ResultProxy
@@ -318,7 +203,7 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = True  # for debugging only
+CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = False  # for debugging only
 
 dmeta = DMetaphone()
 
@@ -327,6 +212,12 @@ CPU_COUNT = cpu_count()
 DAYS_PER_YEAR = 365.25  # approximately!
 DEFAULT_HASH_KEY = "fuzzy_id_match_default_hash_key_DO_NOT_USE_FOR_LIVE_DATA"
 DEFAULT_MAX_CHUNKSIZE = 500
+DEFAULT_MIN_PROBANDS_FOR_PARALLEL = 100
+# ... a machine that takes ~30s to set up a basic parallel run (and 107.9s for
+# a 10k-to-10k comparison) processes single results at about 37/s... so the
+# break-even point is probably around 1000. But that does depend on the sample
+# size too. Call it 100 just to speed up short tests.
+
 HIGHDEBUG = 15  # in between logging.DEBUG (10) and logging.INFO (20)
 MINUS_INFINITY = -math.inf
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -475,6 +366,261 @@ def get_postcode_sector(postcode_unit: str) -> str:
 
 
 # =============================================================================
+# Identifier with associated temporal information
+# =============================================================================
+
+class TemporalIdentifier(object):
+    """
+    Represents an identifier (typically a postcode, postcode fragment, or
+    hashed equivalent) along with start and end dates (which may be ``None``).
+
+    Test code:
+
+    .. code-block:: python
+
+        from crate_anon.linkage.fuzzy_id_match import *
+
+        # Basics, using a postcode example
+        tp1 = TemporalIdentifier("CB2 0QQ", None, None)
+        print(repr(tp1))
+        s1 = str(tp1)
+        print(s1)
+
+        # Recovery from string representation
+        tp2 = TemporalIdentifier.from_str(s1)
+        print(repr(tp2))
+
+    """
+    SEP = "/"  # separator
+    NULL_VALUES_LOWERCASE = ["none", "null", "?"]  # must include "none"
+    FORMAT_HELP = (
+        f"TemporalIdentifier format: IDENTIFIER{SEP}STARTDATE{SEP}ENDDATE, "
+        f"where dates are in YYYY-MM-DD format or one of "
+        f"{NULL_VALUES_LOWERCASE} (case-insensitive)."
+    )
+
+    def __init__(self,
+                 identifier: str,
+                 start_date: Date = None,
+                 end_date: Date = None) -> None:
+        """
+        Args:
+            identifier:
+                The identifier (plaintext or hashed).
+            start_date:
+                The start date (first valid date), or ``None``.
+            end_date:
+                The end date (last valid date), or ``None``.
+        """
+        self.identifier = identifier
+        self.start_date = start_date
+        self.end_date = end_date
+        if start_date and end_date:
+            assert start_date <= end_date
+
+    # -------------------------------------------------------------------------
+    # Representation
+    # -------------------------------------------------------------------------
+
+    def __repr__(self) -> str:
+        """
+        Standardized Python representation.
+        """
+        return auto_repr(self, sort_attrs=False)
+
+    def __str__(self) -> str:
+        """
+        Standardized string representation. See also :meth:`from_str`.
+
+        - We'll use standard ISO-8601 notation for dates.
+        - Avoid semicolons and commas, which are used elsewhere.
+        - These and underscores cannot emerge from the hash function, which
+          produces hash digests.
+        - Postcodes can't contain underscores either.
+        """
+        assert self.SEP not in self.identifier, (
+            f"Class not suitable for identifiers containing {self.SEP!r}"
+        )
+        return self.SEP.join([
+            self.identifier,
+            str(self.start_date),
+            str(self.end_date)
+        ])
+
+    @classmethod
+    def from_str(cls, x: str) -> "TemporalIdentifier":
+        """
+        Takes the string representation (see :meth:`__str__`) and returns a
+        :class:`TemporalIdentifier` object.
+
+        Args:
+            x:
+                String to parse.
+
+        Returns:
+            a :class:`TemporalIdentifier` object
+
+        Raises:
+            :exc:`ValueError` if the string is bad.
+        """
+        # Extract components of the string
+        components = x.split(cls.SEP)
+        if len(components) != 3:
+            raise ValueError(
+                f"Need 3 components separated by {cls.SEP!r}; got {x!r}")
+        i, s, e = components
+        # Start date
+        if s.lower() in cls.NULL_VALUES_LOWERCASE:
+            s = None
+        else:
+            try:
+                s = pendulum.parse(s).date()
+            except ParserError:
+                raise ValueError(f"Bad date: {s!r}")
+        # End date
+        if e.lower() in cls.NULL_VALUES_LOWERCASE:
+            e = None
+        else:
+            try:
+                e = pendulum.parse(e).date()
+            except ParserError:
+                raise ValueError(f"Bad date: {e!r}")
+        # Return object
+        return TemporalIdentifier(
+            identifier=i,
+            start_date=s,
+            end_date=e
+        )
+
+    # -------------------------------------------------------------------------
+    # Comparison
+    # -------------------------------------------------------------------------
+
+    def overlaps(self, other: "TemporalIdentifier") -> bool:
+        """
+        Do ``self`` and ``other`` overlap in time?
+
+        Args:
+            other:
+                the other :class:`TemporalIdentifier`
+
+        For similar logic, see
+        :meth:`cardinal_pythonlib.interval.Interval.overlaps`.
+        """
+        return not(
+            # This inner test is for non-overlap.
+            # (a) self ends before other starts
+            (self.end_date and other.start_date and
+             self.end_date < other.start_date) or
+            # (b) other ends before self starts
+            (other.end_date and self.start_date and
+             other.end_date < self.start_date)
+        )
+
+    def matches(self, other: "TemporalIdentifier") -> bool:
+        """
+        Does the postcode (or other string entity) match, and also the dates
+        overlap?
+
+        Args:
+            other:
+                the other :class:`TemporalIdentifier`
+        """
+        return (
+            self.identifier == other.identifier and
+            self.overlaps(other)
+        )
+
+    def __eq__(self, other: "TemporalIdentifier") -> bool:
+        """
+        Equality means a match.
+
+        Args:
+            other:
+                the other :class:`TemporalIdentifier`
+        """
+        return self.matches(other)
+
+    def __bool__(self) -> bool:
+        """
+        Used in e.g. ``if x`` constructs.
+        """
+        return bool(self.identifier)
+
+    # -------------------------------------------------------------------------
+    # Hashing and copying
+    # -------------------------------------------------------------------------
+
+    def with_new_identifier(self, identifier: str) -> "TemporalIdentifier":
+        """
+        Returns a new :class:`TemporalIdentifier` with the same dates, but a
+        new identifier.
+
+        Args:
+            identifier:
+                The new identifier to use.
+
+        Returns:
+            a new :class:`TemporalIdentifier`
+        """
+        return TemporalIdentifier(
+            identifier=identifier,
+            start_date=self.start_date,
+            end_date=self.end_date
+        )
+
+
+class TestTemporalIdentifier(unittest.TestCase):
+    """
+    Unit tests for :class:`TemporalIdentifier`.
+    """
+
+    def test_overlap(self) -> None:
+        d1 = Date(2000, 1, 1)
+        d2 = Date(2000, 1, 2)
+        d3 = Date(2000, 1, 3)
+        d4 = Date(2000, 1, 4)
+        p = "dummypostcode"
+        # Overlaps
+        self.assertEqual(
+            TemporalIdentifier(p, d1, d2).overlaps(
+                TemporalIdentifier(p, d2, d3)),
+            True
+        )
+        self.assertEqual(
+            TemporalIdentifier(p, d2, d3).overlaps(
+                TemporalIdentifier(p, d1, d2)),
+            True
+        )
+        self.assertEqual(
+            TemporalIdentifier(p, d1, d4).overlaps(
+                TemporalIdentifier(p, d2, d3)),
+            True
+        )
+        self.assertEqual(
+            TemporalIdentifier(p, d1, None).overlaps(
+                TemporalIdentifier(p, None, d4)),
+            True
+        )
+        self.assertEqual(
+            TemporalIdentifier(p, None, None).overlaps(
+                TemporalIdentifier(p, None, None)),
+            True
+        )
+        # Non-overlaps
+        self.assertEqual(
+            TemporalIdentifier(p, d1, d2).overlaps(
+                TemporalIdentifier(p, d3, d4)),
+            False
+        )
+        self.assertEqual(
+            TemporalIdentifier(p, None, d1).overlaps(
+                TemporalIdentifier(p, d2, None)),
+            False
+        )
+
+
+# =============================================================================
 # Simple person-related probability calculations
 # =============================================================================
 
@@ -505,7 +651,7 @@ class Comparison(object):
         """
         A description of D, the data (e.g. "match" or "mismatch").
         """
-        raise NotImplementedError
+        raise NotImplementedError("Implement in derived class!")
 
     @property
     def p_d_given_h(self) -> float:
@@ -513,7 +659,7 @@ class Comparison(object):
         Returns :math:`P(D | H)`, the probability of the observed data given
         the hypothesis of a match.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Implement in derived class!")
 
     @property
     def p_d_given_not_h(self) -> float:
@@ -521,7 +667,7 @@ class Comparison(object):
         Returns :math:`P(D | H)`, the probability of the observed data given
         the hypothesis of a match.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Implement in derived class!")
 
     def posterior_log_odds(self, prior_log_odds: float) -> float:
         """
@@ -806,6 +952,14 @@ class NameFrequencyInfo(object):
 
         try:
             self._name_freq, self._metaphone_freq = cache_load(cache_filename)
+            for d in [self._name_freq, self._metaphone_freq]:
+                keytype = tuple if by_gender else str
+                for k in d.keys():
+                    assert isinstance(k, keytype), (
+                        f"Cache file {cache_filename!r} has the wrong key "
+                        f"type (is {type(k)}, should be {keytype}. "
+                        f"Please delete this file and try again."
+                    )
         except FileNotFoundError:
             log.info(f"Reading file: {csv_filename}")
             # For extra speed:
@@ -853,14 +1007,17 @@ class NameFrequencyInfo(object):
         """
         if not prestandardized:
             name = standardize_name(name)
-        key = name, gender if self._by_gender else name
+        key = (name, gender) if self._by_gender else name
+        # Note operator precedence! Do NOT do this:
+        # key = name, gender if self._by_gender else name
         return self._name_freq.get(key, self._min_frequency)
 
     def metaphone_frequency(self, metaphone: str, gender: str = "") -> float:
         """
         Returns the frequency of a metaphone
         """
-        key = metaphone, gender if self._by_gender else metaphone
+        key = (metaphone, gender) if self._by_gender else metaphone
+        # ... as above!
         return self._metaphone_freq.get(key, self._min_frequency)
 
 
@@ -1169,7 +1326,8 @@ class MatchConfig(object):
         self._surname_freq = NameFrequencyInfo(
             csv_filename=surname_csv_filename,
             cache_filename=surname_cache_filename,
-            min_frequency=min_name_frequency)
+            min_frequency=min_name_frequency,
+            by_gender=False)
         self._postcode_freq = PostcodeFrequencyInfo(
             csv_filename=postcode_csv_filename,
             cache_filename=postcode_cache_filename,
@@ -1394,7 +1552,7 @@ class IdFreq(object):
     """
     def __init__(self,
                  comparison_name: str,
-                 identifier: Optional[str],
+                 identifier: Union[str, TemporalIdentifier, None],
                  frequency: Optional[float],
                  p_error: float) -> None:
         """
@@ -1402,7 +1560,8 @@ class IdFreq(object):
             comparison_name:
                 Name for the comparison.
             identifier:
-                The identifier (plaintext or hashed).
+                The identifier (plaintext or hashed). Can be a string or a
+                :class:`TemporalIdentifier`.
             frequency:
                 Its population frequency.
             p_error:
@@ -1667,14 +1826,25 @@ class Person(object):
         "hashed_postcode_sectors",
         "postcode_sector_frequencies",
     ]
+    TEMPORAL_IDENTIFIERS = [
+        "postcodes",
+        "hashed_postcode_units",
+        "hashed_postcode_sectors",
+    ]
     PLAINTEXT_CSV_FORMAT_HELP = (
         f"Header row present. Columns: {PLAINTEXT_ATTRS}. "
-        f"Semicolon-separated values may be within "
-        f"{sorted(list(set(SEMICOLON_DELIMIT).intersection(PLAINTEXT_ATTRS)))}."
+        f"The fields "
+        f"{sorted(list(set(TEMPORAL_IDENTIFIERS).intersection(PLAINTEXT_ATTRS)))} "  # noqa
+        f"are in TemporalIdentifier format. {TemporalIdentifier.FORMAT_HELP} "
+        f"Semicolon-separated values are allowed within "
+        f"{sorted(list(set(SEMICOLON_DELIMIT).intersection(PLAINTEXT_ATTRS)))}."  # noqa
     )
     HASHED_CSV_FORMAT_HELP = (
         f"Header row present. Columns: {HASHED_ATTRS}. "
-        f"Semicolon-separated values may be within "
+        f"The fields "
+        f"{sorted(list(set(TEMPORAL_IDENTIFIERS).intersection(HASHED_ATTRS)))} "  # noqa
+        f"are in TemporalIdentifier format. {TemporalIdentifier.FORMAT_HELP} "
+        f"Semicolon-separated values are allowed within "
         f"{sorted(list(set(SEMICOLON_DELIMIT).intersection(HASHED_ATTRS)))}."
     )
 
@@ -1698,7 +1868,7 @@ class Person(object):
                  surname: str = "",
                  dob: str = "",
                  gender: str = "",
-                 postcodes: List[str] = None,
+                 postcodes: List[TemporalIdentifier] = None,
 
                  # Hashed
                  hashed_first_name: str = "",
@@ -1721,9 +1891,9 @@ class Person(object):
                  hashed_gender: str = "",
                  gender_frequency: float = None,
 
-                 hashed_postcode_units: List[str] = None,
+                 hashed_postcode_units: List[TemporalIdentifier] = None,
                  postcode_unit_frequencies: List[float] = None,
-                 hashed_postcode_sectors: List[str] = None,
+                 hashed_postcode_sectors: List[TemporalIdentifier] = None,
                  postcode_sector_frequencies: List[float] = None,
 
                  other: Dict[str, Any] = None) -> None:
@@ -1819,8 +1989,10 @@ class Person(object):
         self.surname = standardize_name(surname)
         self.dob = dob
         self.gender = gender
-        self.postcodes = [standardize_postcode(x)
-                          for x in postcodes if x] if postcodes else []
+        self.postcodes = postcodes or []
+        for p in self.postcodes:
+            if p.identifier:
+                p.identifier = standardize_postcode(p.identifier)
 
         self.hashed_first_name = hashed_first_name
         self.first_name_frequency = first_name_frequency
@@ -1922,9 +2094,9 @@ class Person(object):
             if self.dob:
                 assert ISO_DATE_REGEX.match(dob), f"Bad date: {dob}"
             assert self.gender in VALID_GENDERS
-            for postcode in self.postcodes:
-                assert POSTCODE_REGEX.match(postcode), (
-                    f"Bad postcode: {postcode}"
+            for p in self.postcodes:
+                assert POSTCODE_REGEX.match(p.identifier), (
+                    f"Bad postcode: {p.identifier}"
                 )
 
         # ---------------------------------------------------------------------
@@ -1980,9 +2152,9 @@ class Person(object):
             for i in range(len(self.hashed_postcode_units)):
                 self.postcodes_info.append(FuzzyIdFreq(
                     comparison_name=f"postcode",
-                    exact_identifier=self.hashed_postcode_units[i],
+                    exact_identifier=self.hashed_postcode_units[i].identifier,
                     exact_identifier_frequency=self.postcode_unit_frequencies[i],  # noqa
-                    fuzzy_identifier=self.hashed_postcode_sectors[i],
+                    fuzzy_identifier=self.hashed_postcode_sectors[i].identifier,  # noqa
                     fuzzy_identifier_frequency=self.postcode_sector_frequencies[i],  # noqa
                     p_error=cfg.p_minor_postcode_error
                 ))
@@ -2052,12 +2224,12 @@ class Person(object):
             )
             for i in range(len(self.postcodes)):
                 postcode_unit = self.postcodes[i]
-                postcode_sector = get_postcode_sector(postcode_unit)
+                postcode_sector = get_postcode_sector(postcode_unit.identifier)
                 self.postcodes_info.append(FuzzyIdFreq(
                     comparison_name=f"postcode",
-                    exact_identifier=postcode_unit,
+                    exact_identifier=postcode_unit.identifier,
                     exact_identifier_frequency=cfg.postcode_unit_freq(
-                        postcode_unit, prestandardized=True),
+                        postcode_unit.identifier, prestandardized=True),
                     fuzzy_identifier=postcode_sector,
                     fuzzy_identifier_frequency=cfg.postcode_sector_freq(
                         postcode_sector, prestandardized=True),
@@ -2076,8 +2248,23 @@ class Person(object):
     def copy(self) -> "Person":
         """
         Returns a copy of this object.
+
+        - :func:`copy.deepcopy` is incredibly slow, yet :func:`copy.copy` isn't
+          enough when we want to mutate this object.
+        - So we do it quasi-manually. It's just lists that we want to treat as
+          special.
         """
-        return copy.deepcopy(self)
+        # return copy.deepcopy(self)
+        copy_attrs = (
+            self.HASHED_ATTRS if self.is_hashed else self.PLAINTEXT_ATTRS
+        )
+        kwargs = {}  # type: Dict[str, Any]
+        for attrname in copy_attrs:
+            value = getattr(self, attrname)
+            if isinstance(value, list):  # special handling here
+                value = [copy.copy(x) for x in value]
+            kwargs[attrname] = value
+        return Person(cfg=self.cfg, is_hashed=self.is_hashed, **kwargs)
 
     # -------------------------------------------------------------------------
     # String and CSV formats
@@ -2086,23 +2273,24 @@ class Person(object):
     def __str__(self) -> str:
         if self.is_hashed:
             return (
-                f"Person("
-                f"original_id={self.original_id}, "
-                f"research_id={self.research_id},"
-                f"hashed)"
+                f"Hashed person with "
+                f"original_id={self.original_id!r}, "
+                f"research_id={self.research_id!r}"
             )
         else:
             details = ", ".join([
                 f"original_id={self.original_id}",
                 f"research_id={self.research_id}",
-                " ".join([self.first_name] +
-                         self.middle_names +
-                         [self.surname]),
+                "name=" + " ".join(
+                    [self.first_name] +
+                    self.middle_names +
+                    [self.surname]
+                ),
                 f"gender={self.gender}",
-                self.dob,
-                " - ".join(self.postcodes)
+                f"dob={self.dob}",
+                "postcode=" + " - ".join(str(x) for x in self.postcodes)
             ])
-            return f"Person({details}"
+            return f"Person with {details}"
 
     def _csv_dict(self, attrs: List[str]) -> Dict[str, Any]:
         """
@@ -2176,10 +2364,14 @@ class Person(object):
                     v = [int(x) for x in v]
                 elif attr in cls.FLOAT_ATTRS:
                     v = [float(x) for x in v]
+                elif attr in cls.TEMPORAL_IDENTIFIERS:
+                    v = [TemporalIdentifier.from_str(x) for x in v]
             elif attr in cls.INT_ATTRS:
                 v = int(v) if v else None
             elif attr in cls.FLOAT_ATTRS:
                 v = float(v) if v else None
+            elif attr in cls.TEMPORAL_IDENTIFIERS:
+                v = TemporalIdentifier.from_str(v) if v else None
             kwargs[attr] = v
         return Person(cfg=cfg, is_hashed=is_hashed, **kwargs)
 
@@ -2213,7 +2405,7 @@ class Person(object):
     # Created hashed version
     # -------------------------------------------------------------------------
 
-    def as_hashed(self) -> "Person":
+    def hashed(self) -> "Person":
         """
         Returns a :class:`Person` object but with all the elements hashed (if
         they are not blank).
@@ -2258,14 +2450,14 @@ class Person(object):
         middle_name_frequencies = []
         hashed_middle_name_metaphones = []
         middle_name_metaphone_frequencies = []
-        for i, mn in enumerate(middle_names):
-            if mn:
-                mn_metaphone = get_metaphone(mn)
+        for i, p in enumerate(middle_names):
+            if p:
+                mn_metaphone = get_metaphone(p)
                 hashed_middle_names.append(
-                    _hash(mn)
+                    _hash(p)
                 )
                 middle_name_frequencies.append(
-                    fr(_forename_freq(mn, gender, prestandardized=True))
+                    fr(_forename_freq(p, gender, prestandardized=True))
                 )
                 hashed_middle_name_metaphones.append(
                     _hash(mn_metaphone)
@@ -2303,17 +2495,17 @@ class Person(object):
         postcode_unit_frequencies = []
         hashed_postcode_sectors = []
         postcode_sector_frequencies = []
-        for mn in postcodes:
-            if mn:
+        for p in postcodes:
+            if p:
                 hashed_postcode_units.append(
-                    _hash(mn)
+                    p.with_new_identifier(_hash(p.identifier))
                 )
                 postcode_unit_frequencies.append(
-                    fr(_postcode_unit_freq(mn, prestandardized=True))
+                    fr(_postcode_unit_freq(p.identifier, prestandardized=True))
                 )
-                sector = get_postcode_sector(mn)
+                sector = get_postcode_sector(p.identifier)
                 hashed_postcode_sectors.append(
-                    _hash(sector)
+                    p.with_new_identifier(_hash(sector))
                 )
                 postcode_sector_frequencies.append(
                     fr(_postcode_sector_freq(sector))
@@ -2613,8 +2805,9 @@ class Person(object):
             return
         which -= n_middle_names
 
-        self.postcodes[which] = mutate_postcode(self.postcodes[which],
-                                                self.cfg)
+        self.postcodes[which].identifier = mutate_postcode(
+            self.postcodes[which].identifier,
+            self.cfg)
 
 
 # =============================================================================
@@ -2857,7 +3050,14 @@ class People(object):
         Returns a hashed version of itself.
         """
         return People(cfg=self.cfg,
-                      people=[p.as_hashed() for p in self.people])
+                      people=[p.hashed() for p in self.people])
+
+    def copy(self) -> "People":
+        """
+        Returns a copy of itself.
+        """
+        return People(cfg=self.cfg,
+                      people=[p.copy() for p in self.people])
 
 
 # =============================================================================
@@ -2887,8 +3087,8 @@ class TestCondition(object):
         self.person_b = person_b
         self.should_match = should_match
         log.info("- Making hashed versions for later")
-        self.hashed_a = self.person_a.as_hashed()
-        self.hashed_b = self.person_b.as_hashed()
+        self.hashed_a = self.person_a.hashed()
+        self.hashed_b = self.person_b.hashed()
         self.debug = debug
 
     def log_odds_same_plaintext(self) -> float:
@@ -3004,14 +3204,17 @@ COMPARISON_EXTRA_COLNAMES = [
 ]
 
 
-def compare_probands_to_sample(cfg: MatchConfig,
-                               probands: People,
-                               sample: People,
-                               output_csv: str,
-                               report_every: int = 100,
-                               extra_validation_output: bool = False,
-                               n_workers: int = CPU_COUNT,
-                               max_chunksize: int = 100) -> None:
+def compare_probands_to_sample(
+        cfg: MatchConfig,
+        probands: People,
+        sample: People,
+        output_csv: str,
+        report_every: int = 100,
+        extra_validation_output: bool = False,
+        n_workers: int = CPU_COUNT,
+        max_chunksize: int = 100,
+        min_probands_for_parallel: int = DEFAULT_MIN_PROBANDS_FOR_PARALLEL) \
+        -> None:
     r"""
     Compares each proband to the sample. Writes to an output file.
 
@@ -3032,6 +3235,9 @@ def compare_probands_to_sample(cfg: MatchConfig,
             Number of parallel processes to use.
         max_chunksize:
             Maximum chunksize for parallel processing.
+        min_probands_for_parallel:
+            Minimum number of probands for which we will bother to use parallel
+            processing.
 
     Profiling with 10,000 probands and the exact same people in the sample, on
     Wombat:
@@ -3128,7 +3334,7 @@ def compare_probands_to_sample(cfg: MatchConfig,
 
     log.info(f"Comparing each proband to sample. There are "
              f"{n_probands} probands and {n_sample} in the sample.")
-    parallel = n_workers > 1 and n_probands > 1
+    parallel = n_workers > 1 and n_probands >= min_probands_for_parallel
     colnames = COMPARISON_OUTPUT_COLNAMES
     if extra_validation_output:
         colnames += COMPARISON_EXTRA_COLNAMES
@@ -3199,7 +3405,9 @@ def compare_probands_to_sample_from_csv(
         extra_validation_output: bool = False,
         profile: bool = False,
         n_workers: int = CPU_COUNT,
-        max_chunksize: int = DEFAULT_MAX_CHUNKSIZE) -> None:
+        max_chunksize: int = DEFAULT_MAX_CHUNKSIZE,
+        min_probands_for_parallel: int = DEFAULT_MIN_PROBANDS_FOR_PARALLEL) \
+        -> None:
     """
     Compares each of the people in the probands file to the sample file.
 
@@ -3226,6 +3434,9 @@ def compare_probands_to_sample_from_csv(
             Number of parallel processes to use.
         max_chunksize:
             Maximum chunksize for parallel processing.
+        min_probands_for_parallel:
+            Minimum number of probands for which we will bother to use parallel
+            processing.
     """
     # Sample
     log.info("Loading (or caching) sample data")
@@ -3269,7 +3480,8 @@ def compare_probands_to_sample_from_csv(
         output_csv=output_csv,
         extra_validation_output=extra_validation_output,
         n_workers=n_workers,
-        max_chunksize=max_chunksize
+        max_chunksize=max_chunksize,
+        min_probands_for_parallel=min_probands_for_parallel
     )
 
 
@@ -3290,8 +3502,21 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         speedtest:
             run speed tests only?
     """
-    log.warning("Running tests...")
+    log.warning("Running basic unit tests...")
+    # https://stackoverflow.com/questions/19087189/python-unittest-testcase-object-has-no-attribute-runtest  # noqa
+    suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestTemporalIdentifier)  # noqa
+    result = unittest.TextTestRunner().run(suite)
+    assert not result.failures
+
     log.warning("Building test conditions...")
+    p1 = TemporalIdentifier(
+        "CB2 0QQ",  # Addenbrooke's Hospital
+        Date(2000, 1, 1), Date(2010, 1, 1)
+    )
+    p2 = TemporalIdentifier(
+        "CB2 3EB",  # Department of Psychology
+        Date(2000, 1, 1), Date(2010, 1, 1)
+    )
     alice_bcd_unique_2000_add = Person(
         cfg=cfg,
         original_id=1,
@@ -3299,7 +3524,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         middle_names=["Beatrice", "Celia", "Delilah"],
         surname="Rarename",
         dob="2000-01-01",
-        postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
+        postcodes=[p1]
     )
     alec_bcd_unique_2000_add = Person(
         cfg=cfg,
@@ -3308,7 +3533,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         middle_names=["Beatrice", "Celia", "Delilah"],
         surname="Rarename",
         dob="2000-01-01",
-        postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
+        postcodes=[p1]
     )
     bob_bcd_unique_2000_add = Person(
         cfg=cfg,
@@ -3317,7 +3542,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         middle_names=["Beatrice", "Celia", "Delilah"],
         surname="Rarename",
         dob="2000-01-01",
-        postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
+        postcodes=[p1]
     )
     alice_bc_unique_2000_add = Person(
         cfg=cfg,
@@ -3326,7 +3551,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         middle_names=["Beatrice", "Celia"],
         surname="Rarename",
         dob="2000-01-01",
-        postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
+        postcodes=[p1]
     )
     alice_b_unique_2000_add = Person(
         cfg=cfg,
@@ -3335,7 +3560,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         middle_names=["Beatrice"],
         surname="Rarename",
         dob="2000-01-01",
-        postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
+        postcodes=[p1]
     )
     alice_jones_2000_add = Person(
         cfg=cfg,
@@ -3343,7 +3568,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         first_name="Alice",
         surname="Jones",
         dob="2000-01-01",
-        postcodes=["CB2 0QQ"]  # Addenbrooke's Hospital
+        postcodes=[p1]
     )
     bob_smith_1950_psych = Person(
         cfg=cfg,
@@ -3351,8 +3576,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         first_name="Bob",
         surname="Smith",
         dob="1950-05-30",
-        postcodes=["CB2 3EB"]  # Department of Psychology
-        # postcodes=["AB12 3CD"]  # nonexistent postcode; will raise
+        postcodes=[p2]
     )
     alice_smith_1930 = Person(
         cfg=cfg,
@@ -3402,7 +3626,7 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         middle_test_1,
         middle_test_2,
     ]
-    all_people_hashed = [p.as_hashed() for p in all_people]
+    all_people_hashed = [p.hashed() for p in all_people]
     test_values = [
         # Very easy match
         TestCondition(cfg=cfg,
@@ -3501,8 +3725,8 @@ def selftest(cfg: MatchConfig, set_breakpoint: bool = False,
         # On Wombat: 104 microseconds.
         # On Wombat 2020-04-24: 71 microseconds.
 
-        hashed_alice_smith_1930 = alice_smith_1930.as_hashed()
-        hashed_alice_smith_2000 = alice_smith_2000.as_hashed()
+        hashed_alice_smith_1930 = alice_smith_1930.hashed()
+        hashed_alice_smith_2000 = alice_smith_2000.hashed()
 
         t = microsec_per_sec * timeit.timeit(
             "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_1930)",
@@ -3653,6 +3877,7 @@ def make_deletion_data(people: People, cfg: MatchConfig) -> People:
     Surnames and DOBs are excepted as we require exact matches for those.
     """
     deletion_data = People(cfg)
+    log.debug(f"Making deletion data for {people.size()} people")
     for person in people.people:
         modified_person = person.copy()
         modified_person.debug_delete_something()
@@ -3668,6 +3893,7 @@ def make_typo_data(people: People, cfg: MatchConfig) -> People:
     Surnames and DOBs are excepted as we require exact matches for those.
     """
     typo_data = People(cfg)
+    log.debug(f"Making typo data for {people.size()} people")
     for person in people.people:
         modified_person = person.copy()
         modified_person.debug_mutate_something()
@@ -3920,7 +4146,7 @@ def hash_identity_file(cfg: MatchConfig,
         writer.writeheader()
         for inputrow in reader:
             plaintext_person = Person.from_plaintext_csv(cfg, inputrow)
-            hashed_person = plaintext_person.as_hashed()
+            hashed_person = plaintext_person.hashed()
             writer.writerow(hashed_person.hashed_csv_dict(
                 without_frequencies=without_frequencies,
                 include_original_id=include_original_id))
@@ -3935,9 +4161,10 @@ def hash_identity_file(cfg: MatchConfig,
 # -----------------------------------------------------------------------------
 
 def _get_cdl_postcodes(engine: Engine,
-                       cdl_m_number: int) -> List[str]:
+                       cdl_m_number: int) -> List[TemporalIdentifier]:
     """
-    Fetches distinct valid postcodes for a given person, from CRS/CDL.
+    Fetches distinct valid time-stamped postcodes for a given person, from
+    CRS/CDL.
 
     Args:
         engine:
@@ -3946,11 +4173,41 @@ def _get_cdl_postcodes(engine: Engine,
             CRS/CDL primary key ("M number")
 
     Returns:
-        list: of postcodes
+        list: of postcodes in :class:`TemporalIdentifier` format
     """
-    raise NotImplementedError("CDL postcodes: in chronological order")
+    log.critical("_get_cdl_postcodes: needs to be checked")
+    sql = text("""
+
+        SELECT DISTINCT
+            UPPER(PostCode) AS upper_postcode,
+            CAST(StartDate AS DATE) AS start_date,
+            CAST(EndDate AS DATE) AS end_date
+        FROM
+            Addresses A
+        WHERE
+            ClientID = :cdl_m_number
+            AND PostCode IS NOT NULL
+            AND LEN(PostCode) >= 6  -- minimum for valid postcode
+        ORDER BY
+            start_date,
+            end_date,
+            upper_postcode
+
+    """)
+    rows = engine.execute(sql, cdl_m_number=cdl_m_number)
+    postcodes = [
+        TemporalIdentifier(
+            identifier=row[0],  # postcode
+            start_date=row[1],
+            end_date=row[2]
+        )
+        for row in rows
+        if POSTCODE_REGEX.match(row[0])
+    ]
+    return postcodes
 
 
+# noinspection PyUnusedLocal
 def _get_cdl_middle_names(engine: Engine,
                           cdl_m_number: int) -> List[str]:
     """
@@ -3966,7 +4223,8 @@ def _get_cdl_middle_names(engine: Engine,
         list: of middle names
 
     """
-    raise NotImplementedError
+    log.critical("_get_cdl_middle_names: needs to be checked")
+    return []  # Information not present in database!
 
 
 def validate_2_fetch_cdl(cfg: MatchConfig,
@@ -3978,26 +4236,38 @@ def validate_2_fetch_cdl(cfg: MatchConfig,
 
     See :func:`validate_2_fetch_rio` for notes.
     """
-    raise NotImplementedError("Fix SQL as below")
-    raise NotImplementedError(
-        "ethnicity, icd10_dx_present, age_at_first_referral")
+    log.critical("validate_2_fetch_cdl: needs to be checked")
     sql = text("""
 
         SELECT
-            XXX AS cdl_m_number  -- ***
-            CAST(ci.NHS_IDENTIFIER AS BIGINT) AS nhs_number,
-            mpi.FORENAME AS first_name,
-            mpi.SURNAME AS surname,
-            gender = CASE mpi.GENDER
+            p.Patient_ID AS cdl_m_number,
+            CAST(p.NHS_IDENTIFIER AS BIGINT) AS nhs_number,
+            p.FORENAME AS first_name,
+            p.SURNAME AS surname,
+            CASE p.GENDER
                 WHEN 'Female' THEN 'F'
                 WHEN 'Male' THEN 'M'
                 WHEN 'Not Specified' THEN 'X'
                 ELSE ''
                 -- 'Not Known' is the CRS/CDL "unknown" value
             END AS gender,
-            CAST(mpi.DTTM_OF_BIRTH, DATE) AS dob
+            CAST(p.DTTM_OF_BIRTH, DATE) AS dob,
+            p.ETHNICITY AS ethnicity,  -- see also CDLPatient.Ethnicity
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        DIAGNOSIS_PROCEDURES dp
+                    WHERE
+                        dp.Patient_ID = p.Patient_ID
+                        AND dc.CODE IS NOT NULL
+                ) THEN 1
+                ELSE 0
+            END AS icd10_dx_present,
+            CAST(p.CREATE_DTTM AS DATE) AS first_registration_date
         FROM
-            MPI as mpi
+            PATIENTS as p
 
     """)
     hasher = Hasher(hash_key)
@@ -4010,9 +4280,17 @@ def validate_2_fetch_cdl(cfg: MatchConfig,
         postcodes = _get_cdl_postcodes(engine, cdl_m_number)
         nhs_number = row["nhs_number"]
         research_id = _hash(nhs_number)
-        other["age_at_first_referral"] = XXX
-        other["ethnicity"] = XXX
-        other["icd10_dx_present"] = XXX
+        other = OrderedDict()
+        dob = row["dob"]
+        first_mh_care_date = row["first_registration_date"]
+        other["first_mh_care_date"] = first_mh_care_date
+        other["age_at_first_mh_care"] = (
+            (first_mh_care_date - dob).in_years()
+            if dob and first_mh_care_date
+            else None
+        )
+        other["ethnicity"] = row["ethnicity"]
+        other["icd10_dx_present"] = row["icd10_dx_present"]
         p = Person(
             cfg=cfg,
             original_id=nhs_number,
@@ -4033,9 +4311,9 @@ def validate_2_fetch_cdl(cfg: MatchConfig,
 # -----------------------------------------------------------------------------
 
 def _get_rio_postcodes(engine: Engine,
-                       rio_client_id: str) -> List[str]:
+                       rio_client_id: str) -> List[TemporalIdentifier]:
     """
-    Fetches distinct valid postcodes for a given person, from RiO.
+    Fetches distinct valid time-stamped postcodes for a given person, from RiO.
 
     Args:
         engine:
@@ -4044,14 +4322,16 @@ def _get_rio_postcodes(engine: Engine,
             RiO primary key (``ClientId``)
 
     Returns:
-        list: of postcodes
+        list: list: of postcodes in :class:`TemporalIdentifier` format
 
     """
-    raise NotImplementedError("RiO postcodes: change order to chronological")
+    log.critical("_get_rio_postcodes: needs to be checked")
     sql = text("""
 
-        SELECT
-            DISTINCT UPPER(PostCode) AS upper_postcode
+        SELECT DISTINCT
+            UPPER(PostCode) AS upper_postcode,
+            CAST(FromDate AS DATE) AS start_date,
+            CAST(ToDate AS DATE) AS end_date
         FROM
             ClientAddress
         WHERE
@@ -4059,12 +4339,19 @@ def _get_rio_postcodes(engine: Engine,
             AND PostCode IS NOT NULL
             AND LEN(PostCode) >= 6  -- minimum for valid postcode
         ORDER BY
+            start_date,
+            end_date,
             upper_postcode
 
     """)
     rows = engine.execute(sql, client_id=rio_client_id)
     postcodes = [
-        row[0] for row in rows
+        TemporalIdentifier(
+            identifier=row[0],  # postcode
+            start_date=row[1],
+            end_date=row[2]
+        )
+        for row in rows
         if POSTCODE_REGEX.match(row[0])
     ]
     return postcodes
@@ -4073,7 +4360,7 @@ def _get_rio_postcodes(engine: Engine,
 def _get_rio_middle_names(engine: Engine,
                           rio_client_id: str) -> List[str]:
     """
-    Fetches distinct middle names for a given person, from RiO.
+    Fetches middle names for a given person, from RiO.
 
     Args:
         engine:
@@ -4085,6 +4372,7 @@ def _get_rio_middle_names(engine: Engine,
         list: of middle names
 
     """
+    log.critical("_get_rio_middle_names: needs to be checked")
     sql = text("""
 
         SELECT
@@ -4101,7 +4389,11 @@ def _get_rio_middle_names(engine: Engine,
 
     """)
     rows = engine.execute(sql, client_id=rio_client_id)
-    raise NotImplementedError("fetch only one row? Ensure names are ordered")
+    assert len(rows) == 1, (
+        "Didn't expect >1 row per patient in ClientName"
+    )
+    row = rows[0]
+    middle_names = [x for x in row if x]  # remove blanks
     return middle_names
 
 
@@ -4171,11 +4463,13 @@ def validate_2_fetch_rio(cfg: MatchConfig,
     SQLAlchemy Core query to Python dict:
 
     - https://stackoverflow.com/questions/1958219/convert-sqlalchemy-row-object-to-python-dict
+    
+    SQL Server doesn't permit "SELECT EXISTS":
+    
+    - https://stackoverflow.com/questions/2759756/is-it-possible-to-select-exists-directly-as-a-bit
 
     """  # noqa
-
-    raise NotImplementedError(
-        "ethnicity, icd10_dx_present, age_at_first_referral")
+    log.critical("validate_2_fetch_rio: needs to be checked")
     sql = text("""
 
         -- We use the original raw RiO database, not the CRATE-processed one.
@@ -4185,16 +4479,34 @@ def validate_2_fetch_rio(cfg: MatchConfig,
             CAST(ci.NNN AS BIGINT) AS nhs_number,
             ci.Firstname AS first_name,
             ci.Surname AS surname,
-            gender = CASE ci.Gender
+            CASE ci.Gender
                 WHEN 'F' THEN 'F'
                 WHEN 'M' THEN 'M'
                 WHEN 'X' THEN 'X'
                 ELSE ''
                 -- 'U' is the RiO "unknown" value
             END AS gender,
-            CAST(ci.DateOfBirth AS DATE) AS dob
+            CAST(ci.DateOfBirth AS DATE) AS dob,
+            ge.CodeDescription AS ethnicity,
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        DiagnosisClient dc
+                    WHERE
+                        dc.ClientID = ci.ClientID
+                        AND dc.RemovalDate IS NOT NULL
+                ) THEN 1
+                ELSE 0
+            END AS icd10_dx_present,
+            CAST(ci.FirstCareDate AS DATE) AS first_mh_care_date
         FROM
             ClientIndex AS ci
+        LEFT JOIN
+            GenEthnicity ge
+            ON ge.Code = ci.Ethnicity
+            AND ge.Deleted = 0
         WHERE
             -- Restrict to patients with NHS numbers:
             (ci.NNNStatus = 1 OR ci.NNNStatus = 2)
@@ -4219,9 +4531,16 @@ def validate_2_fetch_rio(cfg: MatchConfig,
         nhs_number = row["nhs_number"]
         research_id = _hash(nhs_number)
         other = OrderedDict()
-        other["age_at_first_referral"] = XXX
-        other["ethnicity"] = XXX
-        other["icd10_dx_present"] = XXX
+        dob = row["dob"]
+        first_mh_care_date = row["first_mh_care_date"]
+        other["first_mh_care_date"] = first_mh_care_date
+        other["age_at_first_mh_care"] = (
+            (first_mh_care_date - dob).in_years()
+            if dob and first_mh_care_date
+            else None
+        )
+        other["ethnicity"] = row["ethnicity"]
+        other["icd10_dx_present"] = row["icd10_dx_present"]
         p = Person(
             cfg=cfg,
             original_id=nhs_number,
@@ -4330,7 +4649,22 @@ HELP_COMPARISON = f"""
       (not sorting improves parallel processing efficiency).
 """
 
-HELP_VALIDATE_1 = """
+DEMO_SAMPLE = """
+original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
+1,r1,Alice,Zara,Smith,1931-01-01,F,CB2 0QQ/2000-01-01/2010-12-31
+2,r2,Bob,Yorick,Jones,1932-01-01,M,CB2 3EB/2000-01-01/2010-12-31
+3,r3,Celia,Xena,Wright,1933-01-01,F,CB2 1TP/2000-01-01/2010-12-31
+4,r4,David,William;Wallace,Cartwright,1934-01-01,M,CB2 8PH/2000-01-01/2010-12-31;CB2 1TP/2000-01-01/2010-12-31
+5,r5,Emily,Violet,Fisher,1935-01-01,F,CB3 9DF/2000-01-01/2010-12-31
+6,r6,Frank,Umberto,Williams,1936-01-01,M,CB2 1TQ/2000-01-01/2010-12-31
+7,r7,Greta,Tilly,Taylor,1937-01-01,F,CB2 1DQ/2000-01-01/2010-12-31
+8,r8,Harry,Samuel,Davies,1938-01-01,M,CB3 9ET/2000-01-01/2010-12-31
+9,r9,Iris,Ruth,Evans,1939-01-01,F,CB3 0DG/2000-01-01/2010-12-31
+10,r10,James,Quentin,Thomas,1940-01-01,M,CB2 0SZ/2000-01-01/2010-12-31
+11,r11,Alice,,Smith,1931-01-01,F,CB2 0QQ/2000-01-01/2010-12-31
+""".strip()  # noqa
+
+HELP_VALIDATE_1 = f"""
     Takes an identifiable list of people (typically a short list of imaginary
     people!) and validates the matching process.
 
@@ -4344,18 +4678,7 @@ HELP_VALIDATE_1 = """
     Here's a specimen test CSV file to use, with entirely made-up people and
     institutional (not personal) postcodes in Cambridge:
 
-original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
-1,r1,Alice,Zara,Smith,1931-01-01,F,CB2 0QQ
-2,r2,Bob,Yorick,Jones,1932-01-01,M,CB2 3EB
-3,r3,Celia,Xena,Wright,1933-01-01,F,CB2 1TP
-4,r4,David,William;Wallace,Cartwright,1934-01-01,M,CB2 8PH;CB2 1TP
-5,r5,Emily,Violet,Fisher,1935-01-01,F,CB3 9DF
-6,r6,Frank,Umberto,Williams,1936-01-01,M,CB2 1TQ
-7,r7,Greta,Tilly,Taylor,1937-01-01,F,CB2 1DQ
-8,r8,Harry,Samuel,Davies,1938-01-01,M,CB3 9ET
-9,r9,Iris,Ruth,Evans,1939-01-01,F,CB3 0DG
-10,r10,James,Quentin,Thomas,1940-01-01,M,CB2 0SZ
-11,r11,Alice,,Smith,1931-01-01,F,CB2 0QQ
+{DEMO_SAMPLE}
 
     Explanation of the output format:
 
@@ -4443,17 +4766,14 @@ def main() -> int:
 
     appname = "crate"
     if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
-        default_names_dir = "/path/to/names/directory"
-        default_postcodes_csv = "/path/to/postcodes/file"
         default_cache_dir = "/path/to/crate/user/data"
+        default_postcodes_csv = "/path/to/postcodes/file"
     else:
-        default_names_dir = os.path.abspath(os.path.join(
-            THIS_DIR, "..", "..", "working"))
-        default_postcodes_csv = os.path.abspath(os.path.expanduser(
-            "~/dev/ons/ONSPD_Nov2019/unzipped/Data/ONSPD_NOV_2019_UK.csv"))
         default_cache_dir = os.path.join(
             appdirs.user_data_dir(appname=appname)
         )
+        default_postcodes_csv = os.path.abspath(os.path.expanduser(
+            "~/dev/ons/ONSPD_Nov2019/unzipped/Data/ONSPD_NOV_2019_UK.csv"))
 
     # -------------------------------------------------------------------------
     # Argument parser
@@ -4505,7 +4825,7 @@ def main() -> int:
         "frequency information for prior probabilities")
     priors_group.add_argument(
         "--forename_sex_freq_csv", type=str,
-        default=os.path.join(default_names_dir, "us_forename_sex_freq.csv"),
+        default=os.path.join(default_cache_dir, "us_forename_sex_freq.csv"),
         help=f'CSV file of "name, sex, frequency" pairs for forenames. '
              f'You can generate one via {CRATE_FETCH_WORDLISTS}.'
     )
@@ -4516,7 +4836,7 @@ def main() -> int:
     )
     priors_group.add_argument(
         "--surname_freq_csv", type=str,
-        default=os.path.join(default_names_dir, "us_surname_freq.csv"),
+        default=os.path.join(default_cache_dir, "us_surname_freq.csv"),
         help=f'CSV file of "name, frequency" pairs for forenames. '
              f'You can generate one via {CRATE_FETCH_WORDLISTS}.'
     )
@@ -4674,6 +4994,15 @@ def main() -> int:
     )
 
     # -------------------------------------------------------------------------
+    # commands to print demo sample files
+    # -------------------------------------------------------------------------
+
+    _ = subparsers.add_parser(
+        "print_demo_sample",
+        help="Print a demo sample .CSV file (#1)."
+    )
+
+    # -------------------------------------------------------------------------
     # validate1 command
     # -------------------------------------------------------------------------
 
@@ -4681,20 +5010,17 @@ def main() -> int:
         "validate1",
         help="Run validation test 1 and stop. In this test, a list of people "
              "is compared to a version of itself, at times with elements "
-             "deleted or with typos introduced. ",
+             "deleted or with typos introduced.",
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
         description=HELP_VALIDATE_1,
     )
     validate1_parser.add_argument(
-        "--people", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_validation1_people.csv"),
+        "--people", type=str, required=True,
         help="CSV filename for validation 1 data. " +
              Person.PLAINTEXT_CSV_FORMAT_HELP
     )
     validate1_parser.add_argument(
-        "--output", type=str,
-        default=os.path.join(default_names_dir,
-                             "fuzzy_validation1_output.csv"),
+        "--output", type=str, required=True,
         help="Output CSV file for validation. " + VALIDATION_OUTPUT_CSV_HELP
     )
     validate1_parser.add_argument(
@@ -4722,8 +5048,7 @@ def main() -> int:
         help="Echo SQL?"
     )
     validate2_cdl_parser.add_argument(
-        "--output", type=str,
-        default=os.path.join(default_names_dir, DEFAULT_CDL_PLAINTEXT),
+        "--output", type=str, required=True,
         help="CSV filename for output (plaintext, IDENTIFIABLE) data. " +
              Person.PLAINTEXT_CSV_FORMAT_HELP
     )
@@ -4743,8 +5068,7 @@ def main() -> int:
         help="Echo SQL?"
     )
     validate2_rio_parser.add_argument(
-        "--output", type=str,
-        default=os.path.join(default_names_dir, DEFAULT_RIO_PLAINTEXT),
+        "--output", type=str, required=True,
         help="CSV filename for output (plaintext, IDENTIFIABLE) data. " +
              Person.PLAINTEXT_CSV_FORMAT_HELP
     )
@@ -4768,15 +5092,12 @@ def main() -> int:
         """
     )
     hash_parser.add_argument(
-        "--input", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_probands.csv"),
+        "--input", type=str, required=True,
         help="CSV filename for input (plaintext) data. " +
              Person.PLAINTEXT_CSV_FORMAT_HELP
     )
-    # noinspection PyUnresolvedReferences
     hash_parser.add_argument(
-        "--output", type=str,
-        default=os.path.join(default_names_dir, "fuzzy_probands_hashed.csv"),
+        "--output", type=str, required=True,
         help="Output CSV file for hashed version. " +
              Person.HASHED_CSV_FORMAT_HELP
     )
@@ -4797,20 +5118,23 @@ def main() -> int:
 
     def add_comparison_options(
             p: argparse.ArgumentParser,
-            proband_fn_default: str,
-            sample_fn_default: str,
-            output_fn_default: str) -> None:
-        p.add_argument(
-            "--probands", type=str,
-            default=os.path.join(default_names_dir, proband_fn_default),
-            help="CSV filename for probands data. " +
-                 Person.HASHED_CSV_FORMAT_HELP
+            proband_is_hashed: bool = True,
+            sample_is_hashed: bool = True) -> None:
+        proband_csv_help = (
+            Person.HASHED_CSV_FORMAT_HELP if proband_is_hashed
+            else Person.PLAINTEXT_CSV_FORMAT_HELP
+        )
+        sample_csv_help = (
+            Person.HASHED_CSV_FORMAT_HELP if sample_is_hashed
+            else Person.PLAINTEXT_CSV_FORMAT_HELP
         )
         p.add_argument(
-            "--sample", type=str,
-            default=os.path.join(default_names_dir, sample_fn_default),
-            help="CSV filename for sample data. " +
-                 Person.HASHED_CSV_FORMAT_HELP
+            "--probands", type=str, required=True,
+            help="CSV filename for probands data. " + proband_csv_help
+        )
+        p.add_argument(
+            "--sample", type=str, required=True,
+            help="CSV filename for sample data. " + sample_csv_help
         )
         p.add_argument(
             "--sample_cache", type=str, default=None,
@@ -4819,8 +5143,7 @@ def main() -> int:
             help="File in which to store cached sample info (to speed loading)"
         )
         p.add_argument(
-            "--output", type=str,
-            default=os.path.join(default_names_dir, output_fn_default),
+            "--output", type=str, required=True,
             help="Output CSV file for proband/sample comparison."
         )
         p.add_argument(
@@ -4835,6 +5158,12 @@ def main() -> int:
             "--max_chunksize", type=int, default=DEFAULT_MAX_CHUNKSIZE,
             help="Maximum chunk size (number of probands to pass to a "
                  "subprocess each time)."
+        )
+        p.add_argument(
+            "--min_probands_for_parallel", type=int,
+            default=DEFAULT_MIN_PROBANDS_FOR_PARALLEL,
+            help="Minimum number of probands for which we will bother to use "
+                 "parallel processing."
         )
         p.add_argument(
             "--profile", action="store_true",
@@ -4855,9 +5184,8 @@ def main() -> int:
     )
     add_comparison_options(
         compare_plaintext_parser,
-        proband_fn_default="fuzzy_probands.csv",
-        sample_fn_default="fuzzy_sample.csv",
-        output_fn_default="fuzzy_output_p2p.csv",
+        proband_is_hashed=False,
+        sample_is_hashed=False
     )
 
     # -------------------------------------------------------------------------
@@ -4874,9 +5202,8 @@ def main() -> int:
     )
     add_comparison_options(
         compare_h2h_parser,
-        proband_fn_default="fuzzy_probands_hashed.csv",
-        sample_fn_default="fuzzy_sample_hashed.csv",
-        output_fn_default="fuzzy_output_h2h.csv",
+        proband_is_hashed=True,
+        sample_is_hashed=True
     )
 
     # -------------------------------------------------------------------------
@@ -4895,9 +5222,8 @@ def main() -> int:
     )
     add_comparison_options(
         compare_h2p_parser,
-        proband_fn_default="fuzzy_probands_hashed.csv",
-        sample_fn_default="fuzzy_sample.csv",
-        output_fn_default="fuzzy_output_h2p.csv",
+        proband_is_hashed=True,
+        sample_is_hashed=False,
     )
 
     # -------------------------------------------------------------------------
@@ -5010,7 +5336,7 @@ def main() -> int:
                     "default! Stopping, because this is a very bad idea for "
                     "real data. Specify --allow_default_hash_key to use the "
                     "default for testing purposes.")
-                return EXIT_FAILURE
+                sys.exit(EXIT_FAILURE)
 
     # pdb.set_trace()
 
@@ -5025,6 +5351,9 @@ def main() -> int:
     elif args.command == "speedtest":
         fn = do_cprofile(selftest) if args.profile else selftest
         fn(cfg, speedtest=True)
+
+    elif args.command == "print_demo_sample":
+        print(DEMO_SAMPLE)
 
     elif args.command == "validate1":
         log.info("Running validation test 1.")
@@ -5074,6 +5403,7 @@ def main() -> int:
             cfg=cfg,
             extra_validation_output=args.extra_validation_output,
             max_chunksize=args.max_chunksize,
+            min_probands_for_parallel=args.min_probands_for_parallel,
             n_workers=args.n_workers,
             output_csv=args.output,
             probands_csv=args.probands,
@@ -5093,6 +5423,7 @@ def main() -> int:
             cfg=cfg,
             extra_validation_output=args.extra_validation_output,
             max_chunksize=args.max_chunksize,
+            min_probands_for_parallel=args.min_probands_for_parallel,
             n_workers=args.n_workers,
             output_csv=args.output,
             probands_csv=args.probands,
@@ -5112,6 +5443,7 @@ def main() -> int:
             cfg=cfg,
             extra_validation_output=args.extra_validation_output,
             max_chunksize=args.max_chunksize,
+            min_probands_for_parallel=args.min_probands_for_parallel,
             n_workers=args.n_workers,
             output_csv=args.output,
             probands_csv=args.probands,
