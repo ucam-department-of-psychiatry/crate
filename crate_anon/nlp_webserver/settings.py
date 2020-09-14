@@ -53,7 +53,6 @@ if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
     SETTINGS[NlpServerConfigKeys.SQLALCHEMY_ECHO] = "false"
     SETTINGS[NlpServerConfigKeys.ENCRYPTION_KEY] = \
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
-    print(repr(SETTINGS))
     CONFIG = None  # type: Optional[Configurator]
 else:
     # Real settings.

@@ -275,22 +275,32 @@ class NumericalResultParser(BaseNlpParser):
                  target_unit: str,
                  regex_str_for_debugging: str,
                  commit: bool = False) -> None:
-        """
+        r"""
+        Init function for NumericalResultParser.
+
         Args:
             nlpdef:
-                :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+                A :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`.
+
             cfg_processor_name:
-                config section name in the :ref:`NLP config file <nlp_config>`
+                Config section name in the :ref:`NLP config file <nlp_config>`.
+
             variable:
-                used by subclasses as the record value for ``variable_name``
+                Used by subclasses as the record value for ``variable_name``.
+
             target_unit:
-                fieldname used for the primary output quantity
+                Fieldname used for the primary output quantity.
+
             regex_str_for_debugging:
-                string form of regex, for debugging
+                String form of regex, for debugging.
+
             commit:
-                force a COMMIT whenever we insert data? You should specify this
+                Force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
+
+        Subclasses will extend this method.
         """
+        # NB This docstring was associated with Sphinx errors!
         super().__init__(
             nlpdef=nlpdef,
             cfg_processor_name=cfg_processor_name,

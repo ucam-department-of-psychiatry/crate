@@ -471,6 +471,7 @@ class WbcBase(SimpleNumericalResultParser, ABC):
                  variable: str,
                  commit: bool = False) -> None:
         """
+        ``__init__`` function for :class:`WbcBase`.
 
         Args:
             nlpdef:

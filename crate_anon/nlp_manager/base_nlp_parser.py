@@ -112,6 +112,7 @@ class TableMaker(ABC):
     Base class for all CRATE NLP processors, local and cloud, including those
     that talk to third-party software. Manages the interface to databases for
     results storage, etc.
+
     """
 
     def __init__(self,
@@ -119,20 +120,27 @@ class TableMaker(ABC):
                  cfg_processor_name: Optional[str],
                  commit: bool = False,
                  friendly_name: str = "?") -> None:
-        """
+        r"""
+        ``__init__`` function for :class:`TableMaker`.
+
         Args:
             nlpdef:
-                A :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`.
+                An instance of
+                :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`.
+
             cfg_processor_name:
                 The name of a CRATE NLP config file section, TO WHICH we will
-                add a "processor:" prefix (from which section we may choose to
-                get extra config information).
+                add a ``processor:`` prefix (from which section we may choose
+                to get extra config information).
+
             commit:
                 Force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
+
             friendly_name:
                 Friendly name for the parser.
         """
+        # NB This docstring was associated with Sphinx errors!
         self._nlpdef = nlpdef
         self._cfg_processor_name = cfg_processor_name
         self._commit = commit
@@ -729,13 +737,16 @@ class BaseNlpParser(TableMaker):
 
     @abstractmethod
     def test(self, verbose: bool = False) -> None:
-        """
+        r"""
         Performs a self-test on the NLP processor.
 
         Args:
             verbose:
-                be verbose?
+                Be verbose?
+
+        This is an abstract method that is subclassed.
         """
+        # NB This docstring was associated with Sphinx errors!
         raise NotImplementedError(f"No test function for regex class: "
                                   f"{self.classname()}")
 
