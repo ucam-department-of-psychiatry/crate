@@ -60,7 +60,7 @@ def make_wsgi_app(global_config: Dict[Any, Any], **settings) -> Router:
 
     # Database
     engine = engine_from_config(settings,
-                                NlpServerConfigKeys.SQLALCHEMY_PREFIX,
+                                NlpServerConfigKeys._SQLALCHEMY_PREFIX,
                                 **SQLALCHEMY_COMMON_OPTIONS)
     # ... add to config - pool_recycle is set to create new sessions every 7h
     sqla_url = get_safe_url_from_engine(engine)

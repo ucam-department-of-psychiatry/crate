@@ -24,7 +24,6 @@ docs/source/nlp/nlprp_test_server.py
 
 ===============================================================================
 
-crate_anon/docs/sources/nlp/nlprp_test_server.py
 Simple test server for the NLPRP interface.
 
 """

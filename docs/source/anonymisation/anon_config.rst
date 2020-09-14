@@ -1433,5 +1433,5 @@ the source, it is :data:`crate_anon.nlp_manager.constants.DEMO_CONFIG`.
 
 Here's the specimen NLP config:
 
-..  literalinclude:: specimen_anonymiser_config.ini
+..  literalinclude:: _specimen_anonymiser_config.ini
     :language: ini

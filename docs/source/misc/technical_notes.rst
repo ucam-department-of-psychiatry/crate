@@ -2458,9 +2458,9 @@ Old pipeline notes
                     person SOME_OUTPUT_DEF
                 progenvsection = SOME_ENV_SECTION
                 progargs = java
-                    -classpath {NLPPROGDIR}:{GATEDIR}/bin/gate.jar:{GATEDIR}/lib/*
+                    -classpath {NLPPROGDIR}:{GATE_HOME}/bin/gate.jar:{GATE_HOME}/lib/*
                     CamAnonGatePipeline
-                    -g {GATEDIR}/plugins/ANNIE/ANNIE_with_defaults.gapp
+                    -g {GATE_HOME}/plugins/ANNIE/ANNIE_with_defaults.gapp
                     -a Person
                     -it END_OF_TEXT_FOR_NLP
                     -ot END_OF_NLP_OUTPUT_RECORD

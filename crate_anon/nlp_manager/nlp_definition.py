@@ -186,12 +186,12 @@ def demo_nlp_config() -> str:
 
     if for_docker:
         # See crate.Dockerfile
-        gate_dir = "/crate/gate"
+        gate_home = "/crate/gate"
         kcl_pharmacotherapy_dir = "/crate/brc-gate-pharmacotherapy"
         cloud_request_data_dir = "/crate/tmp/clouddata"
         gate_plugin_file = "/crate/src/docs/source/nlp/specimen_gate_plugin_file.ini"  # noqa
     else:
-        gate_dir = "/path/to/GATE_Developer_8.6.1"
+        gate_home = "/path/to/GATE_Developer_8.6.1"
         kcl_pharmacotherapy_dir = "/path/to/brc-gate-pharmacotherapy"
         cloud_request_data_dir = "/srv/crate/clouddata"
         gate_plugin_file = "/path/to/specimen_gate_plugin_file.ini"
@@ -380,10 +380,10 @@ def demo_nlp_config() -> str:
     Location output_location
 {ProcessorConfigKeys.PROGARGS} =
     java
-    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
-    -Dgate.home="{{GATEDIR}}"
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATE_HOME}}/lib/*"
+    -Dgate.home="{{GATE_HOME}}"
     {GATE_PIPELINE_CLASSNAME}
-    --gate_app "{{GATEDIR}}/plugins/ANNIE/ANNIE_with_defaults.gapp"
+    --gate_app "{{GATE_HOME}}/plugins/ANNIE/ANNIE_with_defaults.gapp"
     --pluginfile "{{GATE_PLUGIN_FILE}}"
     --annotation Person
     --annotation Location
@@ -445,9 +445,9 @@ def demo_nlp_config() -> str:
     Disease_or_Syndrome output_disease_or_syndrome
 {ProcessorConfigKeys.PROGARGS} =
     java
-    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
-    -Dgate.home="{{GATEDIR}}"
-    CrateGatePipeline
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATE_HOME}}/lib/*"
+    -Dgate.home="{{GATE_HOME}}"
+    {GATE_PIPELINE_CLASSNAME}
     --gate_app "{{KCONNECTDIR}}/main-bio/main-bio.xgapp"
     --pluginfile "{{GATE_PLUGIN_FILE}}"
     --annotation Disease_or_Syndrome
@@ -512,9 +512,9 @@ def demo_nlp_config() -> str:
     Prescription output_prescription
 {ProcessorConfigKeys.PROGARGS} =
     java
-    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
-    -Dgate.home="{{GATEDIR}}"
-    CrateGatePipeline
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATE_HOME}}/lib/*"
+    -Dgate.home="{{GATE_HOME}}"
+    {GATE_PIPELINE_CLASSNAME}
     --gate_app "{{GATE_PHARMACOTHERAPY_DIR}}/application.xgapp"
     --pluginfile "{{GATE_PLUGIN_FILE}}"
     --include_set Output
@@ -613,9 +613,9 @@ def demo_nlp_config() -> str:
     DiagnosisAlmost output_lbd_diagnosis
 {ProcessorConfigKeys.PROGARGS} =
     java
-    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
-    -Dgate.home="{{GATEDIR}}"
-    CrateGatePipeline
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATE_HOME}}/lib/*"
+    -Dgate.home="{{GATE_HOME}}"
+    {GATE_PIPELINE_CLASSNAME}
     --gate_app "{{KCL_LBDA_DIR}}/application.xgapp"
     --pluginfile "{{GATE_PLUGIN_FILE}}"
     --set_annotation "" DiagnosisAlmost
@@ -689,7 +689,7 @@ def demo_nlp_config() -> str:
 
 [{NlpConfigPrefixes.ENV}:{my_env}]
 
-GATEDIR = {gate_dir}
+GATE_HOME = {gate_home}
 GATE_PHARMACOTHERAPY_DIR = {kcl_pharmacotherapy_dir}
 GATE_PLUGIN_FILE = {gate_plugin_file}
 KCL_LBDA_DIR = /path/to/brc-gate-LBD/Lewy_Body_Diagnosis

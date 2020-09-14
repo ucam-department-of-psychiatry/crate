@@ -59,7 +59,7 @@ to work properly. (See also :ref:`Windows service <windows_service>`.)
 
 Options:
 
-..  literalinclude:: crate_launch_celery_help.txt
+..  literalinclude:: _crate_launch_celery_help.txt
     :language: none
 
 

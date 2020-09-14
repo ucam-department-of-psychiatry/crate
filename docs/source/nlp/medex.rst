@@ -114,7 +114,7 @@ crate_nlp_build_medex_java_interface
 
 Options:
 
-..  literalinclude:: crate_nlp_build_medex_java_interface_help.txt
+..  literalinclude:: _crate_nlp_build_medex_java_interface_help.txt
     :language: none
 
 
@@ -126,7 +126,7 @@ the UK.
 
 Options:
 
-..  literalinclude:: crate_nlp_build_medex_itself_help.txt
+..  literalinclude:: _crate_nlp_build_medex_itself_help.txt
     :language: none
 
 
@@ -143,7 +143,7 @@ Asking `CrateMedexPipeline` to show its command-line options:
 
 The resulting output:
 
-..  literalinclude:: CrateMedexPipeline_help.txt
+..  literalinclude:: _CrateMedexPipeline_help.txt
     :language: none
 
 

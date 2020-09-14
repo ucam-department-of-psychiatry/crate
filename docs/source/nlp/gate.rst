@@ -92,7 +92,7 @@ This program builds ``CrateGatePipeline``.
 
 Options:
 
-..  literalinclude:: crate_nlp_build_gate_java_interface_help.txt
+..  literalinclude:: _crate_nlp_build_gate_java_interface_help.txt
     :language: none
 
 
@@ -100,7 +100,7 @@ CrateGatePipeline
 ~~~~~~~~~~~~~~~~~
 
 The following specimen scripts presuppose that you have set the environment
-variable `GATE_DIR`, and assume specific locations for the compiled Java (e.g.
+variable `GATE_HOME`, and assume specific locations for the compiled Java (e.g.
 files like `CrateGatePipeline.class`); edit them as required.
 
 Asking `CrateGatePipeline` to show its command-line options:
@@ -110,7 +110,7 @@ Asking `CrateGatePipeline` to show its command-line options:
 
 The resulting output:
 
-..  literalinclude:: CrateGatePipeline_help.txt
+..  literalinclude:: _CrateGatePipeline_help.txt
     :language: none
 
 Asking `CrateGatePipeline` to run the GATE “ANNIE” demonstration:
@@ -131,9 +131,10 @@ Asking `CrateGatePipeline` to run the GATE “ANNIE” demonstration:
 KConnect (Bio-YODIE)
 ~~~~~~~~~~~~~~~~~~~~
 
-This GATE application finds diseases.
+This GATE application finds diseases. Bio-YODIE is part of the KConnect
+project.
 
-- See https://gate.ac.uk/applications/bio-yodie.html
+- See https://gate.ac.uk/applications/bio-yodie.html; http://www.kconnect.eu/.
 
 - The main application is called `main-bio.xgapp`.
 

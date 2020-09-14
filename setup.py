@@ -408,6 +408,7 @@ setup(
             "crate_nlp_build_gate_java_interface=crate_anon.nlp_manager.build_gate_java_interface:main",  # noqa
             "crate_nlp_build_medex_itself=crate_anon.nlp_manager.build_medex_itself:main",  # noqa
             "crate_nlp_build_medex_java_interface=crate_anon.nlp_manager.build_medex_java_interface:main",  # noqa
+            "crate_nlp_prepare_ymls_for_bioyodie=crate_anon.nlp_manager.prepare_umls_for_bioyodie:main",  # noqa
             "crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main",  # noqa
 
             # Web site

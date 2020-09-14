@@ -47,11 +47,10 @@ EXIT_FAILURE = 1
 
 if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
     THIS_DIR = "/path/to/crate/crate_anon/nlp_manager"
-    DEFAULT_GATEDIR = "/path/to/GATE/installation"
+    DEFAULT_GATE_DIR = "/path/to/GATE/installation"
 else:
     THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-    DEFAULT_GATEDIR = os.path.join(os.path.expanduser('~'), 'dev',
-                                   'GATE_Developer_8.6.1')
+    DEFAULT_GATE_DIR = os.environ.get("GATE_HOME", "/")
 
 DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, 'compiled_nlp_classes')
 SOURCE_FILE = os.path.join(THIS_DIR, GATE_PIPELINE_CLASSNAME + '.java')
@@ -72,7 +71,7 @@ def main() -> None:
         '--builddir', default=DEFAULT_BUILD_DIR,
         help="Output directory for compiled .class files")
     parser.add_argument(
-        '--gatedir', default=DEFAULT_GATEDIR,
+        '--gatedir', default=DEFAULT_GATE_DIR,
         help="Root directory of GATE installation")
     parser.add_argument(
         '--java', default=DEFAULT_JAVA,

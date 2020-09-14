@@ -25,5 +25,5 @@ crate_bulk_hash
 
 A tool to hash IDs in bulk, for linkages.
 
-.. literalinclude:: crate_bulk_hash_help.txt
+.. literalinclude:: _crate_bulk_hash_help.txt
     :language: none

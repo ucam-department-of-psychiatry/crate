@@ -22,7 +22,7 @@ usage: crate_fuzzy_id_match [-h] [--version] [--allhelp] [--verbose]
                             [--p_gender_error P_GENDER_ERROR]
                             [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
                             [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
-                            {selftest,speedtest,validate1,validate2_fetch_cdl,validate2_fetch_rio,hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq}
+                            {selftest,speedtest,print_demo_sample,validate1,validate2_fetch_cdl,validate2_fetch_rio,hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq}
                             ...
 
 Identity matching via hashed fuzzy identifiers
@@ -50,7 +50,7 @@ frequency information for prior probabilities:
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
                         crate_fetch_wordlists. (default:
-                        /path/to/names/directory/us_forename_sex_freq.csv)
+                        /path/to/crate/user/data/us_forename_sex_freq.csv)
   --forename_cache_filename FORENAME_CACHE_FILENAME
                         File in which to store cached forename info (to speed
                         loading) (default:
@@ -58,7 +58,7 @@ frequency information for prior probabilities:
   --surname_freq_csv SURNAME_FREQ_CSV
                         CSV file of "name, frequency" pairs for forenames. You
                         can generate one via crate_fetch_wordlists. (default:
-                        /path/to/names/directory/us_surname_freq.csv)
+                        /path/to/crate/user/data/us_surname_freq.csv)
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading) (default:
@@ -147,10 +147,11 @@ matching rules:
 commands:
   Valid commands are as follows.
 
-  {selftest,speedtest,validate1,validate2_fetch_cdl,validate2_fetch_rio,hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq}
+  {selftest,speedtest,print_demo_sample,validate1,validate2_fetch_cdl,validate2_fetch_rio,hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq}
                         Specify one command.
     selftest            Run self-tests and stop
     speedtest           Run speed tests and stop
+    print_demo_sample   Print a demo sample .CSV file (#1).
     validate1           Run validation test 1 and stop. In this test, a list
                         of people is compared to a version of itself, at times
                         with elements deleted or with typos introduced.
@@ -205,9 +206,17 @@ optional arguments:
               time). (default: False)
 
 ===============================================================================
+Help for command 'print_demo_sample'
+===============================================================================
+usage: crate_fuzzy_id_match print_demo_sample [-h]
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+===============================================================================
 Help for command 'validate1'
 ===============================================================================
-usage: crate_fuzzy_id_match validate1 [-h] [--people PEOPLE] [--output OUTPUT]
+usage: crate_fuzzy_id_match validate1 [-h] --people PEOPLE --output OUTPUT
                                       [--seed SEED]
 
     Takes an identifiable list of people (typically a short list of imaginary
@@ -224,17 +233,17 @@ usage: crate_fuzzy_id_match validate1 [-h] [--people PEOPLE] [--output OUTPUT]
     institutional (not personal) postcodes in Cambridge:
 
 original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
-1,r1,Alice,Zara,Smith,1931-01-01,F,CB2 0QQ
-2,r2,Bob,Yorick,Jones,1932-01-01,M,CB2 3EB
-3,r3,Celia,Xena,Wright,1933-01-01,F,CB2 1TP
-4,r4,David,William;Wallace,Cartwright,1934-01-01,M,CB2 8PH;CB2 1TP
-5,r5,Emily,Violet,Fisher,1935-01-01,F,CB3 9DF
-6,r6,Frank,Umberto,Williams,1936-01-01,M,CB2 1TQ
-7,r7,Greta,Tilly,Taylor,1937-01-01,F,CB2 1DQ
-8,r8,Harry,Samuel,Davies,1938-01-01,M,CB3 9ET
-9,r9,Iris,Ruth,Evans,1939-01-01,F,CB3 0DG
-10,r10,James,Quentin,Thomas,1940-01-01,M,CB2 0SZ
-11,r11,Alice,,Smith,1931-01-01,F,CB2 0QQ
+1,r1,Alice,Zara,Smith,1931-01-01,F,CB2 0QQ/2000-01-01/2010-12-31
+2,r2,Bob,Yorick,Jones,1932-01-01,M,CB2 3EB/2000-01-01/2010-12-31
+3,r3,Celia,Xena,Wright,1933-01-01,F,CB2 1TP/2000-01-01/2010-12-31
+4,r4,David,William;Wallace,Cartwright,1934-01-01,M,CB2 8PH/2000-01-01/2010-12-31;CB2 1TP/2000-01-01/2010-12-31
+5,r5,Emily,Violet,Fisher,1935-01-01,F,CB3 9DF/2000-01-01/2010-12-31
+6,r6,Frank,Umberto,Williams,1936-01-01,M,CB2 1TQ/2000-01-01/2010-12-31
+7,r7,Greta,Tilly,Taylor,1937-01-01,F,CB2 1DQ/2000-01-01/2010-12-31
+8,r8,Harry,Samuel,Davies,1938-01-01,M,CB3 9ET/2000-01-01/2010-12-31
+9,r9,Iris,Ruth,Evans,1939-01-01,F,CB3 0DG/2000-01-01/2010-12-31
+10,r10,James,Quentin,Thomas,1940-01-01,M,CB2 0SZ/2000-01-01/2010-12-31
+11,r11,Alice,,Smith,1931-01-01,F,CB2 0QQ/2000-01-01/2010-12-31
 
     Explanation of the output format:
 
@@ -285,16 +294,18 @@ optional arguments:
   --people PEOPLE  CSV filename for validation 1 data. Header row present.
                    Columns: ['original_id', 'research_id', 'first_name',
                    'middle_names', 'surname', 'dob', 'gender', 'postcodes'].
-                   Semicolon-separated values may be within ['middle_names',
-                   'postcodes']. (default:
-                   /path/to/names/directory/fuzzy_validation1_people.csv)
+                   The fields ['postcodes'] are in TemporalIdentifier format.
+                   TemporalIdentifier format: IDENTIFIER/STARTDATE/ENDDATE,
+                   where dates are in YYYY-MM-DD format or one of ['none',
+                   'null', '?'] (case-insensitive). Semicolon-separated values
+                   are allowed within ['middle_names', 'postcodes']. (default:
+                   None)
   --output OUTPUT  Output CSV file for validation. Header row present.
                    Columns: ['collection_name', 'in_sample', 'deletions',
                    'typos', 'is_hashed', 'original_id', 'winner_id',
                    'best_match_id', 'best_log_odds', 'second_best_log_odds',
                    'second_best_match_id', 'correct_if_winner',
-                   'leader_advantage']. (default:
-                   /path/to/names/directory/fuzzy_validation1_output.csv)
+                   'leader_advantage']. (default: None)
   --seed SEED      Random number seed, for introducing deliberate errors in
                    validation test 1 (default: 1234)
 
@@ -302,7 +313,7 @@ optional arguments:
 Help for command 'validate2_fetch_cdl'
 ===============================================================================
 usage: crate_fuzzy_id_match validate2_fetch_cdl [-h] --url URL [--echo]
-                                                [--output OUTPUT]
+                                                --output OUTPUT
 
     Validation #2. Sequence:
 
@@ -331,15 +342,18 @@ optional arguments:
   --output OUTPUT  CSV filename for output (plaintext, IDENTIFIABLE) data.
                    Header row present. Columns: ['original_id', 'research_id',
                    'first_name', 'middle_names', 'surname', 'dob', 'gender',
-                   'postcodes']. Semicolon-separated values may be within
-                   ['middle_names', 'postcodes']. (default: /path/to/names/dir
-                   ectory/validate2_cdl_DANGER_IDENTIFIABLE.csv)
+                   'postcodes']. The fields ['postcodes'] are in
+                   TemporalIdentifier format. TemporalIdentifier format:
+                   IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-MM-DD
+                   format or one of ['none', 'null', '?'] (case-insensitive).
+                   Semicolon-separated values are allowed within
+                   ['middle_names', 'postcodes']. (default: None)
 
 ===============================================================================
 Help for command 'validate2_fetch_rio'
 ===============================================================================
 usage: crate_fuzzy_id_match validate2_fetch_rio [-h] --url URL [--echo]
-                                                [--output OUTPUT]
+                                                --output OUTPUT
 
 See validate2_fetch_cdl command.
 
@@ -351,14 +365,17 @@ optional arguments:
   --output OUTPUT  CSV filename for output (plaintext, IDENTIFIABLE) data.
                    Header row present. Columns: ['original_id', 'research_id',
                    'first_name', 'middle_names', 'surname', 'dob', 'gender',
-                   'postcodes']. Semicolon-separated values may be within
-                   ['middle_names', 'postcodes']. (default: /path/to/names/dir
-                   ectory/validate2_rio_DANGER_IDENTIFIABLE.csv)
+                   'postcodes']. The fields ['postcodes'] are in
+                   TemporalIdentifier format. TemporalIdentifier format:
+                   IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-MM-DD
+                   format or one of ['none', 'null', '?'] (case-insensitive).
+                   Semicolon-separated values are allowed within
+                   ['middle_names', 'postcodes']. (default: None)
 
 ===============================================================================
 Help for command 'hash'
 ===============================================================================
-usage: crate_fuzzy_id_match hash [-h] [--input INPUT] [--output OUTPUT]
+usage: crate_fuzzy_id_match hash [-h] --input INPUT --output OUTPUT
                                  [--without_frequencies]
                                  [--include_original_id]
 
@@ -375,9 +392,13 @@ optional arguments:
   --input INPUT         CSV filename for input (plaintext) data. Header row
                         present. Columns: ['original_id', 'research_id',
                         'first_name', 'middle_names', 'surname', 'dob',
-                        'gender', 'postcodes']. Semicolon-separated values may
-                        be within ['middle_names', 'postcodes']. (default:
-                        /path/to/names/directory/fuzzy_probands.csv)
+                        'gender', 'postcodes']. The fields ['postcodes'] are
+                        in TemporalIdentifier format. TemporalIdentifier
+                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
+                        in YYYY-MM-DD format or one of ['none', 'null', '?']
+                        (case-insensitive). Semicolon-separated values are
+                        allowed within ['middle_names', 'postcodes'].
+                        (default: None)
   --output OUTPUT       Output CSV file for hashed version. Header row
                         present. Columns: ['original_id', 'research_id',
                         'hashed_first_name', 'first_name_frequency',
@@ -391,14 +412,18 @@ optional arguments:
                         'hashed_gender', 'gender_frequency',
                         'hashed_postcode_units', 'postcode_unit_frequencies',
                         'hashed_postcode_sectors',
-                        'postcode_sector_frequencies']. Semicolon-separated
-                        values may be within ['hashed_middle_name_metaphones',
+                        'postcode_sector_frequencies']. The fields
+                        ['hashed_postcode_sectors', 'hashed_postcode_units']
+                        are in TemporalIdentifier format. TemporalIdentifier
+                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
+                        in YYYY-MM-DD format or one of ['none', 'null', '?']
+                        (case-insensitive). Semicolon-separated values are
+                        allowed within ['hashed_middle_name_metaphones',
                         'hashed_middle_names', 'hashed_postcode_sectors',
                         'hashed_postcode_units', 'middle_name_frequencies',
                         'middle_name_metaphone_frequencies',
                         'postcode_sector_frequencies',
-                        'postcode_unit_frequencies']. (default:
-                        /path/to/names/directory/fuzzy_probands_hashed.csv)
+                        'postcode_unit_frequencies']. (default: None)
   --without_frequencies
                         Do not include frequency information. This makes the
                         result suitable for use as a sample file, but not a
@@ -411,13 +436,14 @@ optional arguments:
 ===============================================================================
 Help for command 'compare_plaintext'
 ===============================================================================
-usage: crate_fuzzy_id_match compare_plaintext [-h] [--probands PROBANDS]
-                                              [--sample SAMPLE]
+usage: crate_fuzzy_id_match compare_plaintext [-h] --probands PROBANDS
+                                              --sample SAMPLE
                                               [--sample_cache SAMPLE_CACHE]
-                                              [--output OUTPUT]
+                                              --output OUTPUT
                                               [--extra_validation_output]
                                               [--n_workers N_WORKERS]
                                               [--max_chunksize MAX_CHUNKSIZE]
+                                              [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
                                               [--profile]
 
     Comparison rules:
@@ -478,53 +504,28 @@ usage: crate_fuzzy_id_match compare_plaintext [-h] [--probands PROBANDS]
 optional arguments:
   -h, --help            show this help message and exit
   --probands PROBANDS   CSV filename for probands data. Header row present.
-                        Columns: ['original_id', 'research_id',
-                        'hashed_first_name', 'first_name_frequency',
-                        'hashed_first_name_metaphone',
-                        'first_name_metaphone_frequency',
-                        'hashed_middle_names', 'middle_name_frequencies',
-                        'hashed_middle_name_metaphones',
-                        'middle_name_metaphone_frequencies', 'hashed_surname',
-                        'surname_frequency', 'hashed_surname_metaphone',
-                        'surname_metaphone_frequency', 'hashed_dob',
-                        'hashed_gender', 'gender_frequency',
-                        'hashed_postcode_units', 'postcode_unit_frequencies',
-                        'hashed_postcode_sectors',
-                        'postcode_sector_frequencies']. Semicolon-separated
-                        values may be within ['hashed_middle_name_metaphones',
-                        'hashed_middle_names', 'hashed_postcode_sectors',
-                        'hashed_postcode_units', 'middle_name_frequencies',
-                        'middle_name_metaphone_frequencies',
-                        'postcode_sector_frequencies',
-                        'postcode_unit_frequencies']. (default:
-                        /path/to/names/directory/fuzzy_probands.csv)
+                        Columns: ['original_id', 'research_id', 'first_name',
+                        'middle_names', 'surname', 'dob', 'gender',
+                        'postcodes']. The fields ['postcodes'] are in
+                        TemporalIdentifier format. TemporalIdentifier format:
+                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
+                        MM-DD format or one of ['none', 'null', '?'] (case-
+                        insensitive). Semicolon-separated values are allowed
+                        within ['middle_names', 'postcodes']. (default: None)
   --sample SAMPLE       CSV filename for sample data. Header row present.
-                        Columns: ['original_id', 'research_id',
-                        'hashed_first_name', 'first_name_frequency',
-                        'hashed_first_name_metaphone',
-                        'first_name_metaphone_frequency',
-                        'hashed_middle_names', 'middle_name_frequencies',
-                        'hashed_middle_name_metaphones',
-                        'middle_name_metaphone_frequencies', 'hashed_surname',
-                        'surname_frequency', 'hashed_surname_metaphone',
-                        'surname_metaphone_frequency', 'hashed_dob',
-                        'hashed_gender', 'gender_frequency',
-                        'hashed_postcode_units', 'postcode_unit_frequencies',
-                        'hashed_postcode_sectors',
-                        'postcode_sector_frequencies']. Semicolon-separated
-                        values may be within ['hashed_middle_name_metaphones',
-                        'hashed_middle_names', 'hashed_postcode_sectors',
-                        'hashed_postcode_units', 'middle_name_frequencies',
-                        'middle_name_metaphone_frequencies',
-                        'postcode_sector_frequencies',
-                        'postcode_unit_frequencies']. (default:
-                        /path/to/names/directory/fuzzy_sample.csv)
+                        Columns: ['original_id', 'research_id', 'first_name',
+                        'middle_names', 'surname', 'dob', 'gender',
+                        'postcodes']. The fields ['postcodes'] are in
+                        TemporalIdentifier format. TemporalIdentifier format:
+                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
+                        MM-DD format or one of ['none', 'null', '?'] (case-
+                        insensitive). Semicolon-separated values are allowed
+                        within ['middle_names', 'postcodes']. (default: None)
   --sample_cache SAMPLE_CACHE
                         File in which to store cached sample info (to speed
                         loading) (default: None)
   --output OUTPUT       Output CSV file for proband/sample comparison.
-                        (default:
-                        /path/to/names/directory/fuzzy_output_p2p.csv)
+                        (default: None)
   --extra_validation_output
                         Add extra output for validation purposes. (default:
                         False)
@@ -533,20 +534,23 @@ optional arguments:
   --max_chunksize MAX_CHUNKSIZE
                         Maximum chunk size (number of probands to pass to a
                         subprocess each time). (default: 500)
+  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
+                        Minimum number of probands for which we will bother to
+                        use parallel processing. (default: 100)
   --profile             Profile the code (for development only). (default:
                         False)
 
 ===============================================================================
 Help for command 'compare_hashed_to_hashed'
 ===============================================================================
-usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h]
-                                                     [--probands PROBANDS]
-                                                     [--sample SAMPLE]
+usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] --probands PROBANDS
+                                                     --sample SAMPLE
                                                      [--sample_cache SAMPLE_CACHE]
-                                                     [--output OUTPUT]
+                                                     --output OUTPUT
                                                      [--extra_validation_output]
                                                      [--n_workers N_WORKERS]
                                                      [--max_chunksize MAX_CHUNKSIZE]
+                                                     [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
                                                      [--profile]
 
     Comparison rules:
@@ -619,14 +623,18 @@ optional arguments:
                         'hashed_gender', 'gender_frequency',
                         'hashed_postcode_units', 'postcode_unit_frequencies',
                         'hashed_postcode_sectors',
-                        'postcode_sector_frequencies']. Semicolon-separated
-                        values may be within ['hashed_middle_name_metaphones',
+                        'postcode_sector_frequencies']. The fields
+                        ['hashed_postcode_sectors', 'hashed_postcode_units']
+                        are in TemporalIdentifier format. TemporalIdentifier
+                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
+                        in YYYY-MM-DD format or one of ['none', 'null', '?']
+                        (case-insensitive). Semicolon-separated values are
+                        allowed within ['hashed_middle_name_metaphones',
                         'hashed_middle_names', 'hashed_postcode_sectors',
                         'hashed_postcode_units', 'middle_name_frequencies',
                         'middle_name_metaphone_frequencies',
                         'postcode_sector_frequencies',
-                        'postcode_unit_frequencies']. (default:
-                        /path/to/names/directory/fuzzy_probands_hashed.csv)
+                        'postcode_unit_frequencies']. (default: None)
   --sample SAMPLE       CSV filename for sample data. Header row present.
                         Columns: ['original_id', 'research_id',
                         'hashed_first_name', 'first_name_frequency',
@@ -640,20 +648,23 @@ optional arguments:
                         'hashed_gender', 'gender_frequency',
                         'hashed_postcode_units', 'postcode_unit_frequencies',
                         'hashed_postcode_sectors',
-                        'postcode_sector_frequencies']. Semicolon-separated
-                        values may be within ['hashed_middle_name_metaphones',
+                        'postcode_sector_frequencies']. The fields
+                        ['hashed_postcode_sectors', 'hashed_postcode_units']
+                        are in TemporalIdentifier format. TemporalIdentifier
+                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
+                        in YYYY-MM-DD format or one of ['none', 'null', '?']
+                        (case-insensitive). Semicolon-separated values are
+                        allowed within ['hashed_middle_name_metaphones',
                         'hashed_middle_names', 'hashed_postcode_sectors',
                         'hashed_postcode_units', 'middle_name_frequencies',
                         'middle_name_metaphone_frequencies',
                         'postcode_sector_frequencies',
-                        'postcode_unit_frequencies']. (default:
-                        /path/to/names/directory/fuzzy_sample_hashed.csv)
+                        'postcode_unit_frequencies']. (default: None)
   --sample_cache SAMPLE_CACHE
                         File in which to store cached sample info (to speed
                         loading) (default: None)
   --output OUTPUT       Output CSV file for proband/sample comparison.
-                        (default:
-                        /path/to/names/directory/fuzzy_output_h2h.csv)
+                        (default: None)
   --extra_validation_output
                         Add extra output for validation purposes. (default:
                         False)
@@ -662,20 +673,24 @@ optional arguments:
   --max_chunksize MAX_CHUNKSIZE
                         Maximum chunk size (number of probands to pass to a
                         subprocess each time). (default: 500)
+  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
+                        Minimum number of probands for which we will bother to
+                        use parallel processing. (default: 100)
   --profile             Profile the code (for development only). (default:
                         False)
 
 ===============================================================================
 Help for command 'compare_hashed_to_plaintext'
 ===============================================================================
-usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h]
-                                                        [--probands PROBANDS]
-                                                        [--sample SAMPLE]
+usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
+                                                        PROBANDS --sample
+                                                        SAMPLE
                                                         [--sample_cache SAMPLE_CACHE]
-                                                        [--output OUTPUT]
+                                                        --output OUTPUT
                                                         [--extra_validation_output]
                                                         [--n_workers N_WORKERS]
                                                         [--max_chunksize MAX_CHUNKSIZE]
+                                                        [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
                                                         [--profile]
 
     Comparison rules:
@@ -748,41 +763,32 @@ optional arguments:
                         'hashed_gender', 'gender_frequency',
                         'hashed_postcode_units', 'postcode_unit_frequencies',
                         'hashed_postcode_sectors',
-                        'postcode_sector_frequencies']. Semicolon-separated
-                        values may be within ['hashed_middle_name_metaphones',
+                        'postcode_sector_frequencies']. The fields
+                        ['hashed_postcode_sectors', 'hashed_postcode_units']
+                        are in TemporalIdentifier format. TemporalIdentifier
+                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
+                        in YYYY-MM-DD format or one of ['none', 'null', '?']
+                        (case-insensitive). Semicolon-separated values are
+                        allowed within ['hashed_middle_name_metaphones',
                         'hashed_middle_names', 'hashed_postcode_sectors',
                         'hashed_postcode_units', 'middle_name_frequencies',
                         'middle_name_metaphone_frequencies',
                         'postcode_sector_frequencies',
-                        'postcode_unit_frequencies']. (default:
-                        /path/to/names/directory/fuzzy_probands_hashed.csv)
+                        'postcode_unit_frequencies']. (default: None)
   --sample SAMPLE       CSV filename for sample data. Header row present.
-                        Columns: ['original_id', 'research_id',
-                        'hashed_first_name', 'first_name_frequency',
-                        'hashed_first_name_metaphone',
-                        'first_name_metaphone_frequency',
-                        'hashed_middle_names', 'middle_name_frequencies',
-                        'hashed_middle_name_metaphones',
-                        'middle_name_metaphone_frequencies', 'hashed_surname',
-                        'surname_frequency', 'hashed_surname_metaphone',
-                        'surname_metaphone_frequency', 'hashed_dob',
-                        'hashed_gender', 'gender_frequency',
-                        'hashed_postcode_units', 'postcode_unit_frequencies',
-                        'hashed_postcode_sectors',
-                        'postcode_sector_frequencies']. Semicolon-separated
-                        values may be within ['hashed_middle_name_metaphones',
-                        'hashed_middle_names', 'hashed_postcode_sectors',
-                        'hashed_postcode_units', 'middle_name_frequencies',
-                        'middle_name_metaphone_frequencies',
-                        'postcode_sector_frequencies',
-                        'postcode_unit_frequencies']. (default:
-                        /path/to/names/directory/fuzzy_sample.csv)
+                        Columns: ['original_id', 'research_id', 'first_name',
+                        'middle_names', 'surname', 'dob', 'gender',
+                        'postcodes']. The fields ['postcodes'] are in
+                        TemporalIdentifier format. TemporalIdentifier format:
+                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
+                        MM-DD format or one of ['none', 'null', '?'] (case-
+                        insensitive). Semicolon-separated values are allowed
+                        within ['middle_names', 'postcodes']. (default: None)
   --sample_cache SAMPLE_CACHE
                         File in which to store cached sample info (to speed
                         loading) (default: None)
   --output OUTPUT       Output CSV file for proband/sample comparison.
-                        (default:
-                        /path/to/names/directory/fuzzy_output_h2p.csv)
+                        (default: None)
   --extra_validation_output
                         Add extra output for validation purposes. (default:
                         False)
@@ -791,6 +797,9 @@ optional arguments:
   --max_chunksize MAX_CHUNKSIZE
                         Maximum chunk size (number of probands to pass to a
                         subprocess each time). (default: 500)
+  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
+                        Minimum number of probands for which we will bother to
+                        use parallel processing. (default: 100)
   --profile             Profile the code (for development only). (default:
                         False)
 

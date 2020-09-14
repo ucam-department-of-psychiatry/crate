@@ -409,7 +409,7 @@ Via ``ping``, ``nmap``, and ``curl``, we see that the correct URL is
 ``http://es01:9200/`` (and ``http://web/`` or ``http://web:80/``).
 
 
-Notes on the SemEHR docker setup
+Notes on the SemEHR Docker setup
 --------------------------------
 
 - SemEHR sets up a background Docker application via Docker Compose. This

@@ -1,9 +1,17 @@
 # docker/dockerfiles/crate.Dockerfile
 #
+# Docker image that provides:
+#
+# - CRATE
+# - database drivers
+# - third-party text extraction tools
+# - GATE
+#
 # Directory structure in container:
 #
 #   /crate              All CRATE code/binaries.
 #       /cfg            Config files are mounted here.
+#       /gate           GATE program
 #       /src            Source code for CRATE.
 #       /venv           Python 3 virtual environment.
 #           /bin        Main CRATE executables live here.
@@ -15,6 +23,16 @@
 
 FROM python:3.6-slim-buster
 # This is a version of Debian 10 (see "cat /etc/debian_version").
+
+
+# -----------------------------------------------------------------------------
+# LABEL: metadata
+# -----------------------------------------------------------------------------
+# https://docs.docker.com/engine/reference/builder/#label
+
+
+LABEL description="See https://crateanon.readthedocs.io/"
+LABEL maintainer="Rudolf Cardinal <rudolf@pobox.com>"
 
 
 # -----------------------------------------------------------------------------
@@ -30,6 +48,17 @@ FROM python:3.6-slim-buster
 # - So in short, here we refer to the context as ".".
 
 ADD . /crate/src
+
+
+# -----------------------------------------------------------------------------
+# COPY: can copy from other Docker images
+# -----------------------------------------------------------------------------
+# - https://docs.docker.com/engine/reference/builder/#copy
+# - https://stackoverflow.com/questions/24958140/what-is-the-difference-between-the-copy-and-add-commands-in-a-dockerfile
+
+COPY --from=wormtreat/metamap-2018 \
+    /opt/public_mm/SOMETHING \
+    /tmp/crate_tmp/umls_data
 
 
 # -----------------------------------------------------------------------------
@@ -76,12 +105,40 @@ WORKDIR /crate
 #   export PLUGINFILE=/crate/src/docs/source/nlp/specimen_gate_plugin_file.ini
 #   export TERMINATOR=END
 #   java -classpath "${NLPPROGDIR}:${GATEDIR}/bin/gate.jar:${GATEDIR}/lib/*" -Dgate.home="${GATEDIR}" CrateGatePipeline --gate_app "${GATE_PHARMACOTHERAPY_DIR}/application.xgapp" --include_set Output --annotation Prescription --input_terminator "${TERMINATOR}" --output_terminator "${TERMINATOR}" --suppress_gate_stdout --pluginfile "${PLUGINFILE}"
+#
+# - For KConnect/Bio-YODIE:
 
-RUN echo "- Updating package information..." \
+#   - ant is required by plugins/compilePlugins.sh, from Bio-YODIE.
+#   - see https://github.com/GateNLP/bio-yodie-resource-prep
+#   - UMLS: separate licensing
+
+RUN echo "===============================================================================" \
+    && echo "Setting environment variables" \
+    && echo "===============================================================================" \
+    && export CRATE_ROOT=/crate \
+    && export CRATE_SRC="${CRATE_ROOT}/src" \
+    && export CRATE_VENV="${CRATE_ROOT}/venv" \
+    && export CRATE_VENV_BIN="${CRATE_VENV}/bin" \
+    && export CRATE_PACKAGE_ROOT="${CRATE_VENV}/lib/python3.6/site-packages/crate_anon" \
+    && export CRATE_GATE_PLUGIN_FILE=${CRATE_SRC}/docs/source/nlp/specimen_gate_plugin_file.ini \
+    && export BIOYODIE_DIR="${CRATE_ROOT}/bioyodie" \
+    && export GATE_HOME="${CRATE_ROOT}/gate" \
+    && export KCL_LEWY_BODY_DIAGNOSIS_DIR="${CRATE_ROOT}/kcl_lewy_body_dementia" \
+    && export KCL_PHARMACOTHERAPY_PARENT_DIR="${CRATE_ROOT}/kcl_pharmacotherapy" \
+    && export KCL_PHARMACOTHERAPY_DIR="${KCL_PHARMACOTHERAPY_PARENT_DIR}/brc-gate-pharmacotherapy" \
+    && export TMPDIR="/tmp/crate_tmp" \
+    && mkdir -p "${TMPDIR}"
+    \
+    && echo "===============================================================================" \
+    && echo "OS packages, basic tools, and database drivers" \
+    && echo "===============================================================================" \
+    \
+    && echo "- Updating package information..." \
     && apt-get update \
     && echo "- Installing operating system packages..." \
     && mkdir -p /usr/share/man/man1 /usr/share/man/man2 \
     && apt-get install -y --no-install-recommends \
+        ant \
         curl \
         g++ \
         gcc \
@@ -127,77 +184,91 @@ RUN echo "- Updating package information..." \
     && echo "- wkhtmltopdf: Fetching wkhtmltopdf with patched Qt (~14 Mb)..." \
     && wget \
         --progress=dot:giga \
-        -O /tmp/wkhtmltopdf.deb \
+        -O "${TMPDIR}/wkhtmltopdf.deb" \
         https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb \
     && echo "- wkhtmltopdf: Installing wkhtmltopdf..." \
-    && gdebi --non-interactive /tmp/wkhtmltopdf.deb \
-    && echo "- wkhtmltopdf: Cleaning up..." \
-    && rm /tmp/wkhtmltopdf.deb \
+    && gdebi --non-interactive "${TMPDIR}/wkhtmltopdf.deb" \
     \
-    && echo "- GATE: fetching (~54 Mb)..." \
+    && echo "===============================================================================" \
+    && echo "Third-party NLP tools" \
+    && echo "===============================================================================" \
+    && echo "- GATE..." \
     && wget \
         --progress=dot:giga \
-        -O /tmp/gate-installer.jar \
+        -O "${TMPDIR}/gate-installer.jar" \
         https://github.com/GateNLP/gate-core/releases/download/v8.6.1/gate-developer-8.6.1-installer.jar \
-    && echo "- GATE: installing..." \
-    && java -jar /tmp/gate-installer.jar \
-        /crate/src/docker/dockerfiles/gate_auto_install.xml \
-    && echo "- GATE: cleaning up..." \
-    && rm /tmp/gate-installer.jar \
+    && java -jar "${TMPDIR}/gate-installer.jar" \
+        "${CRATE_SRC}/docker/dockerfiles/gate_auto_install.xml" \
     \
     && echo "- KCL BRC GATE Pharmacotherapy app..." \
     && wget \
         --progress=dot:giga \
-        -O /tmp/brc-gate-pharmacotherapy.zip \
+        -O "${TMPDIR}/brc-gate-pharmacotherapy.zip" \
         https://github.com/KHP-Informatics/brc-gate-pharmacotherapy/releases/download/1.1/brc-gate-pharmacotherapy.zip \
-    && unzip /tmp/brc-gate-pharmacotherapy.zip -d /crate \
-    && rm /tmp/brc-gate-pharmacotherapy.zip \
+    && unzip "${TMPDIR}/brc-gate-pharmacotherapy.zip" -d "${KCL_PHARMACOTHERAPY_PARENT_DIR}" \
     \
+    && echo "- Bio-YODIE..." \
+    && git clone https://github.com/GateNLP/Bio-YODIE "${BIOYODIE_DIR}" \
+    && cd "${BIOYODIE_DIR}" \
+    && git pull --recurse-submodules=on-demand \
+    && git submodule update --init --recursive \
+    && plugins/compilePlugins.sh \
+    \
+    && echo "- KCL BRC GATE Lewy body dementia app..." \
+    && git clone https://github.com/KHP-Informatics/brc-gate-LBD "${TMPDIR}/kcl_lewy" \
+    && unzip "${TMPDIR}/kcl_lewy/Lewy_Body_Diagnosis.zip" -d "${KCL_LEWY_BODY_DIAGNOSIS_DIR}" \
+    \
+    && echo "===============================================================================" \
+    && echo "CRATE" \
+    && echo "===============================================================================" \
     && echo "- Creating Python 3 virtual environment..." \
     && python3 -m venv /crate/venv \
     && echo "- Upgrading pip within virtual environment..." \
-    && /crate/venv/bin/python3 -m pip install --upgrade pip \
-    && echo "- Installing CRATE and Python database drivers..." \
+    && "${CRATE_VENV_BIN}/python3" -m pip install --upgrade pip \
+    && echo "- Installing CRATE (crate_anon, from source) and Python database drivers..." \
     && echo "  * MySQL [mysqlclient]" \
     && echo "  * PostgreSQL [psycopg2]" \
     && echo "  * SQL Server [django-mssql-backend, pyodbc, Microsoft ODBC Driver for SQL Server (Linux) as above]" \
-    && /crate/venv/bin/python3 -m pip install \
-        /crate/src \
+    && "${CRATE_VENV_BIN}/python3" -m pip install \
+        "${CRATE_SRC}" \
         django-mssql-backend==2.8.1 \
         mysqlclient==1.4.6 \
         psycopg2==2.8.5 \
         pyodbc==4.0.30 \
     && echo "- Compiling CRATE Java interfaces..." \
-    && /crate/venv/bin/crate_nlp_build_gate_java_interface \
-        --gatedir /crate/gate \
+    && "${CRATE_VENV_BIN}/crate_nlp_build_gate_java_interface" \
+        --gatedir "${GATE_HOME}" \
     \
+    && echo "===============================================================================" \
+    && echo "Extra NLP steps" \
+    && echo "===============================================================================" \
     && echo "- Running a GATE application to pre-download plugins..." \
     && java \
-        -classpath /crate/venv/lib/python3.6/site-packages/crate_anon/nlp_manager/compiled_nlp_classes:/crate/gate/lib/* \
-        -Dgate.home=/crate/gate \
+        -classpath "${CRATE_PACKAGE_ROOT}/nlp_manager/compiled_nlp_classes:${GATE_HOME}/lib/*" \
+        -Dgate.home="${GATE_HOME}" \
         CrateGatePipeline \
-        --gate_app /crate/brc-gate-pharmacotherapy/application.xgapp \
-        --pluginfile /crate/src/docs/source/nlp/specimen_gate_plugin_file.ini \
+        --gate_app "${KCL_PHARMACOTHERAPY_DIR}/application.xgapp" \
+        --pluginfile "${CRATE_GATE_PLUGIN_FILE}" \
         --suppress_gate_stdout \
         --verbose \
         --launch_then_stop \
     \
+    && echo "===============================================================================" \
+    && echo "Cleanup" \
+    && echo "===============================================================================" \
     && echo "- Removing OS packages used only for the installation..." \
+    && echo "  (but keeping curl, git, unzip, wget)" \
     && apt-get purge -y \
-        curl \
+        ant \
         g++ \
         gcc \
         gdebi \
-        git \
         gnupg2 \
-        unzip \
-        wget \
     && apt-get autoremove -y \
     && echo "- Cleaning up..." \
+    && rm -rf "${TMPDIR}" \
     && rm -rf /var/lib/apt/lists/* \
     && echo "- Done."
-
-# TODO: NLPRP server (via docker-compose.yaml)
 
 
 # -----------------------------------------------------------------------------

@@ -71,7 +71,7 @@ following abbreviations are used:
 
 Options:
 
-..  literalinclude:: crate_preprocess_rio_help.txt
+..  literalinclude:: _crate_preprocess_rio_help.txt
     :language: none
 
 
@@ -82,7 +82,7 @@ crate_preprocess_pcmis
 
 Options:
 
-..  literalinclude:: crate_preprocess_pcmis_help.txt
+..  literalinclude:: _crate_preprocess_pcmis_help.txt
     :language: none
 
 
@@ -93,7 +93,7 @@ crate_postcodes
 
 Options:
 
-..  literalinclude:: crate_postcodes_help.txt
+..  literalinclude:: _crate_postcodes_help.txt
     :language: none
 
 
@@ -109,12 +109,12 @@ files that are absent from others.
 
 Options:
 
-..  literalinclude:: crate_fetch_wordlists_help.txt
+..  literalinclude:: _crate_fetch_wordlists_help.txt
     :language: none
 
 Specimen usage:
 
-..  literalinclude:: crate_fetch_wordlists_specimen_usage.sh
+..  literalinclude:: _crate_fetch_wordlists_specimen_usage.sh
     :language: bash
 
 
@@ -129,5 +129,5 @@ See :mod:`crate_anon.preprocess.fuzzy_id_match`.
 
 Options (from ``crate_fuzzy_id_match --allhelp``):
 
-..  literalinclude:: crate_fuzzy_id_match_help.txt
+..  literalinclude:: _crate_fuzzy_id_match_help.txt
     :language: none

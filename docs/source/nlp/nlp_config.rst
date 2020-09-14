@@ -141,6 +141,7 @@ Testing your NLP definitions
 You can use the command
 
 .. code-block:: bash
+
     crate_nlp [--config CONFIGFILE] --test_nlp --nlpdef NLPDEF
 
 to test an NLP definition. When you do this, you are asked to type text line by
@@ -567,10 +568,10 @@ example:
 
     progargs =
         java
-        -classpath "{NLPPROGDIR}"{OS_PATHSEP}"{GATEDIR}/bin/gate.jar"{OS_PATHSEP}"{GATEDIR}/lib/*"
-        -Dgate.home="{GATEDIR}"
+        -classpath "{NLPPROGDIR}"{OS_PATHSEP}"{GATE_HOME}/bin/gate.jar"{OS_PATHSEP}"{GATE_HOME}/lib/*"
+        -Dgate.home="{GATE_HOME}"
         CrateGatePipeline
-        --gate_app "{GATEDIR}/plugins/ANNIE/ANNIE_with_defaults.gapp"
+        --gate_app "{GATE_HOME}/plugins/ANNIE/ANNIE_with_defaults.gapp"
         --annotation Person
         --annotation Location
         --input_terminator END_OF_TEXT_FOR_NLP
@@ -886,7 +887,7 @@ Example:
 
     [env:MY_ENV_SECTION]
 
-    GATEDIR = /home/myuser/somewhere/GATE_Developer_8.0
+    GATE_HOME = /home/myuser/somewhere/GATE_Developer_8.0
     NLPPROGDIR = /home/myuser/somewhere/crate_anon/nlp_manager/compiled_nlp_classes
     MEDEXDIR = /home/myuser/somewhere/Medex_UIMA_1.3.6
     KCONNECTDIR = /home/myuser/somewhere/yodie-pipeline-1-2-umls-only
@@ -1103,7 +1104,7 @@ A specimen NLP config is available by running ``crate_nlp --democonfig``.
 
 Here's the specimen NLP config:
 
-..  literalinclude:: specimen_nlp_config_file.ini
+..  literalinclude:: _specimen_nlp_config_file.ini
     :language: ini
 
 

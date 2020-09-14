@@ -63,7 +63,7 @@ def main() -> None:
     log.debug(f"Settings file: {config_file}")
     settings = get_appsettings(config_file)
     engine = engine_from_config(settings,
-                                NlpServerConfigKeys.SQLALCHEMY_PREFIX)
+                                NlpServerConfigKeys._SQLALCHEMY_PREFIX)
     sqla_url = get_safe_url_from_engine(engine)
     log.info(f"Using database {sqla_url!r}")
     dbsession.configure(bind=engine)

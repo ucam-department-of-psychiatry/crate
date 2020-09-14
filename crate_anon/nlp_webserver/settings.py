@@ -34,14 +34,29 @@ from typing import Any, Dict, Optional
 from pyramid.paster import get_appsettings
 from pyramid.config import Configurator
 
-from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CONFIG_ENVVAR
+from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
+from crate_anon.nlp_webserver.constants import (
+    NLP_WEBSERVER_CONFIG_ENVVAR,
+    NlpServerConfigKeys,
+)
 
 SETTINGS_PATH = os.getenv(NLP_WEBSERVER_CONFIG_ENVVAR)
 
-if os.environ.get("_SPHINX_AUTODOC_IN_PROGRESS", None):
-    SETTINGS = {}
+if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
+    # Prevent errors whilst building docs, using dummy settings.
+    SETTINGS = {
+        v: ""
+        for k, v in NlpServerConfigKeys.__dict__.items()
+        if not k.startswith("_")
+    }
+    SETTINGS[NlpServerConfigKeys.SQLALCHEMY_URL] = "sqlite://"
+    SETTINGS[NlpServerConfigKeys.SQLALCHEMY_ECHO] = "false"
+    SETTINGS[NlpServerConfigKeys.ENCRYPTION_KEY] = \
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
+    print(repr(SETTINGS))
     CONFIG = None  # type: Optional[Configurator]
 else:
+    # Real settings.
     assert SETTINGS_PATH, (
         f"Missing environment variable {NLP_WEBSERVER_CONFIG_ENVVAR}")
     SETTINGS = get_appsettings(SETTINGS_PATH)  # type: Dict[str, Any]

@@ -97,7 +97,7 @@ crate_nlp_webserver_print_demo
 
 Prints a demo NLP web server config.
 
-.. literalinclude:: crate_nlp_webserver_print_demo_help.txt
+.. literalinclude:: _crate_nlp_webserver_print_demo_help.txt
     :language: none
 
 
@@ -109,7 +109,7 @@ define WSGI_ applications and servers.
 
 Here's a specimen config file:
 
-.. literalinclude:: nlp_webserver_demo_config.ini
+.. literalinclude:: _nlp_webserver_demo_config.ini
     :language: ini
 
 
@@ -315,7 +315,7 @@ processors, via
 
 Specimen processors file:
 
-.. literalinclude:: nlp_webserver_demo_processors.py
+.. literalinclude:: _nlp_webserver_demo_processors.py
     :language: python
 
 
@@ -324,7 +324,7 @@ Specimen processors file:
 crate_nlp_webserver_initialize_db
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. literalinclude:: crate_nlp_webserver_initialize_db_help.txt
+.. literalinclude:: _crate_nlp_webserver_initialize_db_help.txt
     :language: none
 
 
@@ -333,7 +333,7 @@ crate_nlp_webserver_initialize_db
 crate_nlp_webserver_manage_users
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. literalinclude:: crate_nlp_webserver_manage_users_help.txt
+.. literalinclude:: _crate_nlp_webserver_manage_users_help.txt
     :language: none
 
 
@@ -354,7 +354,7 @@ This is the standard Pyramid pserve_ command. At its most basic, it takes a
 single parameter, being the name of your NLP web server config file, and it
 starts the web server.
 
-.. literalinclude:: crate_nlp_webserver_pserve_help.txt
+.. literalinclude:: _crate_nlp_webserver_pserve_help.txt
     :language: none
 
 
@@ -367,7 +367,7 @@ This is the preferred alternative to crate_nlp_webserver_pserve_ for launching
 the CRATE NLP web server via Gunicorn_ (it stops Gunicorn complaining but
 otherwise does the same thing).
 
-.. literalinclude:: crate_nlp_webserver_launch_gunicorn_help.txt
+.. literalinclude:: _crate_nlp_webserver_launch_gunicorn_help.txt
     :language: none
 
 
@@ -379,7 +379,7 @@ crate_nlp_webserver_launch_celery
 This launches the Celery_ back-end job controller for the CRATE NLP web server.
 It needs to be running for your NLP web server to do any proper work!
 
-.. literalinclude:: crate_nlp_webserver_launch_celery_help.txt
+.. literalinclude:: _crate_nlp_webserver_launch_celery_help.txt
     :language: none
 
 

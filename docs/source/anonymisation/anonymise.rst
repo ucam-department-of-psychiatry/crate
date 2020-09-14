@@ -51,7 +51,7 @@ This runs a single-process anonymiser.
 
 Options:
 
-..  literalinclude:: crate_anonymise_help.txt
+..  literalinclude:: _crate_anonymise_help.txt
     :language: none
 
 
@@ -64,5 +64,5 @@ This runs multiple copies of ``crate_anonymise`` in parallel.
 
 Options:
 
-..  literalinclude:: crate_anonymise_multiprocess_help.txt
+..  literalinclude:: _crate_anonymise_multiprocess_help.txt
     :language: none

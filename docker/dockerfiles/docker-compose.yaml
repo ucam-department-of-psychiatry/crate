@@ -203,7 +203,13 @@ services:
             - crate_tmp_volume:/crate/tmp
 
         environment:
+            CRATE_GATE_PLUGIN_FILE: "/crate/src/docs/source/nlp/specimen_gate_plugin_file.ini"
+            CRATE_PACKAGE_ROOT: "/crate/venv/lib/python3.6/site-packages/crate_anon"
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+            GATE_HOME: "/crate/gate"
+            KCL_LEWY_BODY_DIAGNOSIS_DIR: "/crate/kcl_lewy_body_dementia"
+            KCL_PHARMACOTHERAPY_DIR: "/crate/kcl_pharmacotherapy/brc-gate-pharmacotherapy"
+            KCONNECT_DIR: "/crate/bioyodie"
 
         # Command to execute
         command: [
@@ -296,3 +302,22 @@ services:
                 crate_launch_flower
             ",
         ]
+
+
+    # -------------------------------------------------------------------------
+    # TODO: CRATE NLPRP server
+    # -------------------------------------------------------------------------
+
+
+    # -------------------------------------------------------------------------
+    # TODO: SemEHR
+    # -------------------------------------------------------------------------
+    # - https://github.com/CogStack/CogStack-SemEHR
+    # - https://github.com/CogStack/CogStack-SemEHR/tree/master/docker
+    # - https://pubmed.ncbi.nlm.nih.gov/29361077/
+    # Note that Bio-YODIE is its core NLP component.
+
+    #semehr:
+    #    image: semehr/core
+    #
+    #    restart: "always"

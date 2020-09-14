@@ -39,7 +39,7 @@ crate_make_demo_database
 
 Options:
 
-..  literalinclude:: crate_make_demo_database_help.txt
+..  literalinclude:: _crate_make_demo_database_help.txt
     :language: none
 
 
@@ -50,7 +50,7 @@ crate_test_extract_text
 
 Options:
 
-..  literalinclude:: crate_test_extract_text_help.txt
+..  literalinclude:: _crate_test_extract_text_help.txt
     :language: none
 
 
@@ -61,7 +61,7 @@ crate_test_anonymisation
 
 Options:
 
-..  literalinclude:: crate_test_anonymisation_help.txt
+..  literalinclude:: _crate_test_anonymisation_help.txt
     :language: none
 
 
