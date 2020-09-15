@@ -56,10 +56,6 @@ ADD . /crate/src
 # - https://docs.docker.com/engine/reference/builder/#copy
 # - https://stackoverflow.com/questions/24958140/what-is-the-difference-between-the-copy-and-add-commands-in-a-dockerfile
 
-COPY --from=wormtreat/metamap-2018 \
-    /opt/public_mm/SOMETHING \
-    /tmp/crate_tmp/umls_data
-
 
 # -----------------------------------------------------------------------------
 # WORKDIR: Set working directory on container.
@@ -127,7 +123,7 @@ RUN echo "======================================================================
     && export KCL_PHARMACOTHERAPY_PARENT_DIR="${CRATE_ROOT}/kcl_pharmacotherapy" \
     && export KCL_PHARMACOTHERAPY_DIR="${KCL_PHARMACOTHERAPY_PARENT_DIR}/brc-gate-pharmacotherapy" \
     && export TMPDIR="/tmp/crate_tmp" \
-    && mkdir -p "${TMPDIR}"
+    && mkdir -p "${TMPDIR}" \
     \
     && echo "===============================================================================" \
     && echo "OS packages, basic tools, and database drivers" \
@@ -225,6 +221,8 @@ RUN echo "======================================================================
     && python3 -m venv /crate/venv \
     && echo "- Upgrading pip within virtual environment..." \
     && "${CRATE_VENV_BIN}/python3" -m pip install --upgrade pip \
+    && echo "- Installing wheel within virtual environment..." \
+    && "${CRATE_VENV_BIN}/pip" install wheel==0.35.1 \
     && echo "- Installing CRATE (crate_anon, from source) and Python database drivers..." \
     && echo "  * MySQL [mysqlclient]" \
     && echo "  * PostgreSQL [psycopg2]" \
