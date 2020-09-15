@@ -189,7 +189,7 @@ def demo_nlp_config() -> str:
         gate_home = "/crate/gate"
         kcl_pharmacotherapy_dir = "/crate/brc-gate-pharmacotherapy"
         cloud_request_data_dir = "/crate/tmp/clouddata"
-        gate_plugin_file = "/crate/src/docs/source/nlp/specimen_gate_plugin_file.ini"  # noqa
+        gate_plugin_file = "/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini"  # noqa
     else:
         gate_home = "/path/to/GATE_Developer_8.6.1"
         kcl_pharmacotherapy_dir = "/path/to/brc-gate-pharmacotherapy"

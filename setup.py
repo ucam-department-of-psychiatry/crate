@@ -286,7 +286,7 @@ if getattr(our_args, EXTRAS_ARG):
     add_all_files(os.path.join(CRATE_ROOT_DIR, 'nlp_manager'),
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)
-    # ... for the Java
+    # ... for the Java and .ini files
     add_all_files(os.path.join(CRATE_ROOT_DIR, 'testdocs_for_text_extraction'),
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)
@@ -390,8 +390,8 @@ setup(
             "crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main",
 
             # Linkage
-            "crate_fuzzy_id_match=crate_anon.linkage.fuzzy_id_match:main",
             "crate_bulk_hash=crate_anon.linkage.bulk_hash:main",
+            "crate_fuzzy_id_match=crate_anon.linkage.fuzzy_id_match:main",
 
             # Anonymisation
 
@@ -408,15 +408,21 @@ setup(
             "crate_nlp_build_gate_java_interface=crate_anon.nlp_manager.build_gate_java_interface:main",  # noqa
             "crate_nlp_build_medex_itself=crate_anon.nlp_manager.build_medex_itself:main",  # noqa
             "crate_nlp_build_medex_java_interface=crate_anon.nlp_manager.build_medex_java_interface:main",  # noqa
-            "crate_nlp_prepare_ymls_for_bioyodie=crate_anon.nlp_manager.prepare_umls_for_bioyodie:main",  # noqa
             "crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main",  # noqa
+            "crate_nlp_prepare_ymls_for_bioyodie=crate_anon.nlp_manager.prepare_umls_for_bioyodie:main",  # noqa
+            "crate_run_gate_annie_demo=crate_anon.nlp_manager.run_gate_annie_demo:main",  # noqa
+            "crate_run_gate_kcl_kconnect_demo=crate_anon.nlp_manager.run_gate_kcl_kconnect_demo:main",  # noqa
+            "crate_run_gate_kcl_lewy_demo=crate_anon.nlp_manager.run_gate_kcl_lewy_demo:main",  # noqa
+            "crate_run_gate_kcl_pharmacotherapy_demo=crate_anon.nlp_manager.run_gate_kcl_pharmacotherapy_demo:main",  # noqa
+            "crate_show_crate_gate_pipeline_options=crate_anon.nlp_manager.show_crate_gate_pipeline_options:main",  # noqa
+            "crate_show_crate_medex_pipeline_options=crate_anon.nlp_manager.show_crate_medex_pipeline_options:main",  # noqa
 
             # Web site
 
-            "crate_django_manage=crate_anon.crateweb.manage:main",  # will cope with argv  # noqa
-            "crate_generate_new_django_secret_key=cardinal_pythonlib.django.tools.generate_new_django_secret_key:main",  # noqa
             "crate_celery_status=crate_anon.tools.celery_status:main",
+            "crate_django_manage=crate_anon.crateweb.manage:main",  # will cope with argv  # noqa
             "crate_email_rdbm=crate_anon.tools.email_rdbm:main",
+            "crate_generate_new_django_secret_key=cardinal_pythonlib.django.tools.generate_new_django_secret_key:main",  # noqa
             "crate_launch_celery=crate_anon.tools.launch_celery:main",
             "crate_launch_flower=crate_anon.tools.launch_flower:main",
             "crate_print_demo_crateweb_config=crate_anon.tools.print_crateweb_demo_config:main",  # noqa
@@ -432,14 +438,14 @@ setup(
 
             # NLP web server
 
-            "crate_nlp_webserver_initialize_db=crate_anon.nlp_webserver.initialize_db:main",  # noqa
-            "crate_nlp_webserver_print_demo=crate_anon.nlp_webserver.print_demos:main",  # noqa
-            "crate_nlp_webserver_manage_users=crate_anon.nlp_webserver.manage_users:main",  # noqa
             "crate_nlp_webserver_generate_encryption_key=crate_anon.nlp_webserver.security:generate_encryption_key",  # noqa
-            "crate_nlp_webserver_pserve=pyramid.scripts.pserve:main",  # noqa
-            "crate_nlp_webserver_launch_gunicorn=crate_anon.tools.launch_nlp_webserver_gunicorn:main",  # noqa
+            "crate_nlp_webserver_initialize_db=crate_anon.nlp_webserver.initialize_db:main",  # noqa
             "crate_nlp_webserver_launch_celery=crate_anon.tools.launch_nlp_webserver_celery:main",  # noqa
             "crate_nlp_webserver_launch_flower=crate_anon.tools.launch_nlp_webserver_flower:main",  # noqa
+            "crate_nlp_webserver_launch_gunicorn=crate_anon.tools.launch_nlp_webserver_gunicorn:main",  # noqa
+            "crate_nlp_webserver_manage_users=crate_anon.nlp_webserver.manage_users:main",  # noqa
+            "crate_nlp_webserver_print_demo=crate_anon.nlp_webserver.print_demos:main",  # noqa
+            "crate_nlp_webserver_pserve=pyramid.scripts.pserve:main",  # noqa
 
         ],
         # Entry point for nlp webserver

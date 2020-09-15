@@ -138,8 +138,9 @@ The following specimen script assumes specific locations for the compiled Java
 
 Asking `CrateMedexPipeline` to show its command-line options:
 
-.. literalinclude:: show_crate_medex_pipeline_options.sh
-    :language: bash
+.. code-block:: bash
+
+    crate_show_crate_medex_pipeline_options
 
 The resulting output:
 

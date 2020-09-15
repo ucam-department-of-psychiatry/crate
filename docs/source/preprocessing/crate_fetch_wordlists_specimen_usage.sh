@@ -3,8 +3,6 @@
 # Specimen usage under Linux
 # -----------------------------------------------------------------------------
 
-cd ~/Documents/code/crate/working
-
 # Downloading these and then using a file:// URL is unnecessary, but it makes
 # the processing steps faster if we need to retry with new settings.
 wget https://www.gutenberg.org/files/3201/files/CROSSWD.TXT -O dictionary.txt
@@ -16,13 +14,13 @@ crate_fetch_wordlists --help
 
 crate_fetch_wordlists \
     --english_words \
-        --english_words_url file://$PWD/dictionary.txt \
+        --english_words_url "file://${PWD}/dictionary.txt" \
     --us_forenames \
-        --us_forenames_url file://$PWD/forenames.zip \
+        --us_forenames_url "file://${PWD}/forenames.zip" \
         --us_forenames_max_cumfreq_pct 100 \
     --us_surnames \
-        --us_surnames_1990_census_url file://$PWD/surnames_1990.txt \
-        --us_surnames_2010_census_url file://$PWD/surnames_2010.zip \
+        --us_surnames_1990_census_url "file://${PWD}/surnames_1990.txt" \
+        --us_surnames_2010_census_url "file://${PWD}/surnames_2010.zip" \
         --us_surnames_max_cumfreq_pct 100 \
     --eponyms
 

@@ -105,8 +105,9 @@ files like `CrateGatePipeline.class`); edit them as required.
 
 Asking `CrateGatePipeline` to show its command-line options:
 
-.. literalinclude:: show_crate_gate_pipeline_options.sh
-    :language: bash
+.. code-block:: bash
+
+    crate_show_crate_gate_pipeline_options
 
 The resulting output:
 
@@ -115,16 +116,16 @@ The resulting output:
 
 Asking `CrateGatePipeline` to run the GATE “ANNIE” demonstration:
 
-.. literalinclude:: run_gate_annie_demo_via_crate.sh
-    :language: bash
+.. code-block:: bash
 
+    crate_run_gate_annie_demo
 
 .. note::
     For the demonstrations that follow, we presuppose that you have also set
     the environment variable ``CRATE_GATE_PLUGIN_FILE`` to be the filename of
     a GATE plugin INI file like this:
 
-.. literalinclude:: specimen_gate_plugin_file.ini
+.. literalinclude:: _specimen_gate_plugin_file.ini
     :language: ini
 
 
@@ -144,8 +145,9 @@ project.
 
 Script to test the app via the command line:
 
-.. literalinclude:: run_gate_kcl_kconnect_via_crate.sh
-    :language: bash
+.. code-block:: bash
+
+    crate_run_gate_kcl_kconnect_demo
 
 
 .. _kcl_pharmacotherapy:
@@ -165,8 +167,9 @@ This GATE application finds drugs (medications).
 
 Script to test the app via the command line:
 
-.. literalinclude:: run_gate_kcl_pharmacotherapy_via_crate.sh
-    :language: bash
+.. code-block:: bash
+
+    crate_run_gate_kcl_pharmacotherapy_demo
 
 
 KCL Lewy Body Diagnosis Application
@@ -189,8 +192,9 @@ This GATE application finds references to Lewy body dementia.
 
 Script to test the app via the command line:
 
-.. literalinclude:: run_gate_kcl_lbd_via_crate.sh
-    :language: bash
+.. code-block:: bash
+
+    crate_run_gate_kcl_lewy_demo
 
 
 .. _testgateapps:

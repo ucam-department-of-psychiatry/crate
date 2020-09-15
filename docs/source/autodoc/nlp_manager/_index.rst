@@ -56,9 +56,16 @@ crate_anon/nlp_manager
     parse_gate.py.rst
     parse_haematology.py.rst
     parse_medex.py.rst
+    prepare_umls_for_bioyodie.py.rst
     regex_func.py.rst
     regex_numbers.py.rst
     regex_parser.py.rst
     regex_test.py.rst
     regex_units.py.rst
+    run_gate_annie_demo.py.rst
+    run_gate_kcl_kconnect_demo.py.rst
+    run_gate_kcl_lewy_demo.py.rst
+    run_gate_kcl_pharmacotherapy_demo.py.rst
+    show_crate_gate_pipeline_options.py.rst
+    show_crate_medex_pipeline_options.py.rst
     test_all_regex.py.rst

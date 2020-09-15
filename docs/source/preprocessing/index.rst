@@ -114,7 +114,7 @@ Options:
 
 Specimen usage:
 
-..  literalinclude:: _crate_fetch_wordlists_specimen_usage.sh
+..  literalinclude:: crate_fetch_wordlists_specimen_usage.sh
     :language: bash
 
 

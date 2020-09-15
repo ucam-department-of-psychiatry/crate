@@ -29,15 +29,21 @@ crate_anon/common/sysops.py
 """
 
 import logging
+import os
 import subprocess
 import sys
 from typing import List, Optional
 
+from cardinal_pythonlib.cmdline import cmdline_quote
+
+from crate_anon.common.constants import EXIT_FAILURE
+
 log = logging.getLogger(__name__)
 
 
-def die(msg: str, log_level: int = logging.CRITICAL,
-        exit_code: int = 1) -> None:
+def die(msg: str,
+        log_level: int = logging.CRITICAL,
+        exit_code: int = EXIT_FAILURE) -> None:
     """
     Prints a message and hard-exits the program.
 
@@ -51,7 +57,8 @@ def die(msg: str, log_level: int = logging.CRITICAL,
 
 
 def check_call_verbose(args: List[str],
-                       log_level: Optional[int] = logging.INFO) -> None:
+                       log_level: Optional[int] = logging.INFO,
+                       **kwargs) -> None:
     """
     Prints a copy/paste-compatible version of a command, then runs it.
 
@@ -63,6 +70,29 @@ def check_call_verbose(args: List[str],
         :exc:`CalledProcessError` on external command failure
     """
     if log_level is not None:
-        cmd_as_text = subprocess.list2cmdline(args)
-        log.log(level=log_level, msg=cmd_as_text)
-    subprocess.check_call(args)
+        cmd_as_text = cmdline_quote(args)
+        msg = f"[From directory {os.getcwd()}]: {cmd_as_text}"
+        log.log(level=log_level, msg=msg)
+    subprocess.check_call(args, **kwargs)
+
+
+def get_envvar_or_die(envvar: str,
+                      log_level: int = logging.CRITICAL,
+                      exit_code: int = EXIT_FAILURE) -> str:
+    """
+    Returns the value of an environment variable.
+    If it is unset or blank, complains and hard-exits the program.
+
+    Args:
+        envvar: environment variable name
+        log_level: log level to use for failure
+        exit_code: exit code (errorlevel) for failure
+
+    Returns:
+        str: the value of the environment variable
+    """
+    value = os.environ.get(envvar)
+    if not value:
+        die(f"Must set environment variable {envvar}",
+            log_level=log_level, exit_code=exit_code)
+    return value

@@ -203,7 +203,7 @@ services:
             - crate_tmp_volume:/crate/tmp
 
         environment:
-            CRATE_GATE_PLUGIN_FILE: "/crate/src/docs/source/nlp/specimen_gate_plugin_file.ini"
+            CRATE_GATE_PLUGIN_FILE: "/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini"
             CRATE_PACKAGE_ROOT: "/crate/venv/lib/python3.6/site-packages/crate_anon"
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
             GATE_HOME: "/crate/gate"

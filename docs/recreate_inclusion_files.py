@@ -34,6 +34,7 @@ import datetime
 import logging
 import os
 from os.path import dirname, join, realpath
+import shutil
 import stat
 import subprocess
 import sys
@@ -41,7 +42,10 @@ from typing import List
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
-from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
+from crate_anon.common.constants import (
+    CRATE_DIR_NLP_MANAGER,
+    ENVVAR_GENERATING_CRATE_DOCS,
+)
 
 log = logging.getLogger(__name__)
 
@@ -124,9 +128,9 @@ def main():
     # -------------------------------------------------------------------------
     # nlp
     # -------------------------------------------------------------------------
-    run_cmd([join(NLP_DIR, "show_crate_gate_pipeline_options.sh")],
+    run_cmd(["crate_show_crate_gate_pipeline_options"],
             join(NLP_DIR, "_CrateGatePipeline_help.txt"))
-    run_cmd([join(NLP_DIR, "show_crate_medex_pipeline_options.sh")],
+    run_cmd(["crate_show_crate_medex_pipeline_options"],
             join(NLP_DIR, "_CrateMedexPipeline_help.txt"))
     run_cmd(["crate_nlp_build_gate_java_interface", "--help"],
             join(NLP_DIR, "_crate_nlp_build_gate_java_interface_help.txt"))
@@ -159,6 +163,8 @@ def main():
             join(NLP_DIR, "_crate_nlp_webserver_launch_gunicorn_help.txt"))
     run_cmd(["crate_nlp_webserver_launch_celery", "--help"],
             join(NLP_DIR, "_crate_nlp_webserver_launch_celery_help.txt"))
+    shutil.copy(join(CRATE_DIR_NLP_MANAGER, "specimen_gate_plugin_file.ini"),
+                join(NLP_DIR, "_specimen_gate_plugin_file.ini"))
 
     # -------------------------------------------------------------------------
     # preprocessing

@@ -102,7 +102,7 @@ WORKDIR /crate
 #   export NLPPROGDIR=/crate/venv/lib/python3.6/site-packages/crate_anon/nlp_manager/compiled_nlp_classes/
 #   export GATEDIR=/crate/gate
 #   export GATE_PHARMACOTHERAPY_DIR=/crate/brc-gate-pharmacotherapy
-#   export PLUGINFILE=/crate/src/docs/source/nlp/specimen_gate_plugin_file.ini
+#   export PLUGINFILE=/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini
 #   export TERMINATOR=END
 #   java -classpath "${NLPPROGDIR}:${GATEDIR}/bin/gate.jar:${GATEDIR}/lib/*" -Dgate.home="${GATEDIR}" CrateGatePipeline --gate_app "${GATE_PHARMACOTHERAPY_DIR}/application.xgapp" --include_set Output --annotation Prescription --input_terminator "${TERMINATOR}" --output_terminator "${TERMINATOR}" --suppress_gate_stdout --pluginfile "${PLUGINFILE}"
 #
@@ -120,7 +120,7 @@ RUN echo "======================================================================
     && export CRATE_VENV="${CRATE_ROOT}/venv" \
     && export CRATE_VENV_BIN="${CRATE_VENV}/bin" \
     && export CRATE_PACKAGE_ROOT="${CRATE_VENV}/lib/python3.6/site-packages/crate_anon" \
-    && export CRATE_GATE_PLUGIN_FILE=${CRATE_SRC}/docs/source/nlp/specimen_gate_plugin_file.ini \
+    && export CRATE_GATE_PLUGIN_FILE=${CRATE_PACKAGE_ROOT}/nlp_manager/specimen_gate_plugin_file.ini \
     && export BIOYODIE_DIR="${CRATE_ROOT}/bioyodie" \
     && export GATE_HOME="${CRATE_ROOT}/gate" \
     && export KCL_LEWY_BODY_DIAGNOSIS_DIR="${CRATE_ROOT}/kcl_lewy_body_dementia" \
