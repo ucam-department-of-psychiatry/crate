@@ -289,6 +289,18 @@ CRATE_DOCKER_FLOWER_HOST_PORT
 Host port on which to launch the Flower_ monitor.
 
 
+CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**No default. Must be set (even if to a dummy directory).**
+
+A directory to be mounted that contains preprocessed UMLS data for the
+Bio-YODIE NLP tool (which is part of KConnect/SemEHR, and which runs under
+GATE). (You need to download UMLS data and use the
+``crate_nlp_prepare_ymls_for_bioyodie`` script to process it. The output
+directory used with that command is the directory you should specify here.)
+
+
 .. _CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME:
 
 CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME

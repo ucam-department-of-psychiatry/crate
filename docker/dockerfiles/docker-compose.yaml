@@ -22,6 +22,7 @@
 # Those without defaults:
 #
 #   CRATE_DOCKER_CONFIG_HOST_DIR
+#   CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR
 #   CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
 #   CRATE_DOCKER_MYSQL_ROOT_PASSWORD
 
@@ -40,6 +41,7 @@ version: "3.5"
 volumes:
     # See Docker Compose "Volume configuration reference". Note that the syntax
     # here is not the same as for "volumes:" within a service (container).
+    # https://docs.docker.com/compose/compose-file/#volume-configuration-reference
 
     db_data_volume:
         # Without any options, the default driver (usually "local") is used.
@@ -58,7 +60,9 @@ volumes:
         
         driver: local
         driver_opts:
-            o: bind
+            # It's quite hard to find docs for driver_opts for the 'local'
+            # driver! But using "ro" makes it read-only.
+            o: bind,ro
             type: none
             # We use environment variable substitution.
             # https://docs.docker.com/compose/compose-file/#variable-substitution
@@ -67,6 +71,15 @@ volumes:
     crate_tmp_volume:
         # Space to put lock files, user downloads, etc., that need to be shared
         # between containers, but which are expected to be temporary.
+
+    bioyodie_resource_volume:
+        # We cannot pre-download UMLS files, for licensing reasons. So we
+        # provide a script to process UMLS data. Here, we mount the results.
+        driver: local
+        driver_opts:
+            o: bind,ro
+            type: none
+            device: "${CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR}"
 
 
 # =============================================================================
@@ -197,8 +210,9 @@ services:
         # Restart policy
         restart: "always"
 
-        # Mount config file directory
+        # Mount config file directory and other volumes.
         volumes:
+            - bioyodie_resource_volume:/crate/bioyodie/bio-yodie-resources
             - crate_config_volume:/crate/cfg
             - crate_tmp_volume:/crate/tmp
 
@@ -209,7 +223,7 @@ services:
             GATE_HOME: "/crate/gate"
             KCL_LEWY_BODY_DIAGNOSIS_DIR: "/crate/kcl_lewy_body_dementia"
             KCL_PHARMACOTHERAPY_DIR: "/crate/kcl_pharmacotherapy/brc-gate-pharmacotherapy"
-            KCONNECT_DIR: "/crate/bioyodie"
+            KCL_KCONNECT_DIR: "/crate/bioyodie"
 
         # Command to execute
         command: [
@@ -241,8 +255,9 @@ services:
         ports:
             - "${CRATE_DOCKER_CRATEWEB_HOST_PORT}:8000"
 
-        # Mount config file directory
+        # Mount config file directory and other volumes.
         volumes:
+            - bioyodie_resource_volume:/crate/bioyodie/bio-yodie-resources
             - crate_config_volume:/crate/cfg
             - crate_tmp_volume:/crate/tmp
 
@@ -310,7 +325,7 @@ services:
 
 
     # -------------------------------------------------------------------------
-    # TODO: SemEHR
+    # TODO: SemEHR (noting that we already have KConnect: what else does SemEHR offer?)
     # -------------------------------------------------------------------------
     # - https://github.com/CogStack/CogStack-SemEHR
     # - https://github.com/CogStack/CogStack-SemEHR/tree/master/docker
