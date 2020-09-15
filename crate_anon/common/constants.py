@@ -43,8 +43,9 @@ CRATE_PACKAGE_ROOT = os.path.abspath(
     )
 )
 CRATE_DIR_NLP_MANAGER = os.path.join(CRATE_PACKAGE_ROOT, "nlp_manager")
-CRATE_NLP_JAVA_CLASS_DIR = os.path.join(
+CRATE_DIR_JAVA_CLASSES = os.path.join(
     CRATE_DIR_NLP_MANAGER, "compiled_nlp_classes")
+CRATE_DIR_NLPRP = os.path.join(CRATE_PACKAGE_ROOT, "nlprp")
 
 DEMO_NLP_INPUT_TERMINATOR = "STOP"
 DEMO_NLP_OUTPUT_TERMINATOR = "END_OF_NLP_OUTPUT_RECORD"

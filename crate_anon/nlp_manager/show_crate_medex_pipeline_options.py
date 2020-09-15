@@ -34,7 +34,7 @@ import os
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.constants import (
-    CRATE_NLP_JAVA_CLASS_DIR,
+    CRATE_DIR_JAVA_CLASSES,
     ENVVAR_MEDEX_HOME,
 )
 from crate_anon.common.sysops import check_call_verbose, get_envvar_or_die
@@ -49,7 +49,7 @@ def main() -> None:
     check_call_verbose([
         "java",
         "-classpath",
-        f"{CRATE_NLP_JAVA_CLASS_DIR}:{medex_home}/bin:{medex_home}/lib/*",
+        f"{CRATE_DIR_JAVA_CLASSES}:{medex_home}/bin:{medex_home}/lib/*",
         "CrateMedexPipeline",
         "--help",
         "-v", "-v",

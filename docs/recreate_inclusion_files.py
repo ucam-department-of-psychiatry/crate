@@ -44,6 +44,7 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.constants import (
     CRATE_DIR_NLP_MANAGER,
+    CRATE_DIR_NLPRP,
     ENVVAR_GENERATING_CRATE_DOCS,
 )
 
@@ -165,6 +166,10 @@ def main():
             join(NLP_DIR, "_crate_nlp_webserver_launch_celery_help.txt"))
     shutil.copy(join(CRATE_DIR_NLP_MANAGER, "specimen_gate_plugin_file.ini"),
                 join(NLP_DIR, "_specimen_gate_plugin_file.ini"))
+    shutil.copy(join(CRATE_DIR_NLPRP, "nlprp_test_client.py"),
+                join(NLP_DIR, "_nlprp_test_client.py"))
+    shutil.copy(join(CRATE_DIR_NLPRP, "nlprp_test_server.py"),
+                join(NLP_DIR, "_nlprp_test_server.py"))
 
     # -------------------------------------------------------------------------
     # preprocessing
