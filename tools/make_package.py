@@ -44,7 +44,7 @@ from cardinal_pythonlib.file_io import (
 )
 from cardinal_pythonlib.fileops import copy_tree_root, mkdir_p
 
-from crate_anon.common.constants import ENVVAR_RUN_WITHOUT_CONFIG
+from crate_anon.common.constants import EnvVar
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
 
@@ -378,7 +378,7 @@ echo "Installing package to venv and collecting static files"
 source "{DEST_VIRTUALENV}/bin/activate"
 # Run temporarily without local settings file (since the default raises an
 # exception):
-export {ENVVAR_RUN_WITHOUT_CONFIG}=true
+export {EnvVar.RUN_WITHOUT_CONFIG}=true
 crate_django_manage collectstatic --noinput
 deactivate
 

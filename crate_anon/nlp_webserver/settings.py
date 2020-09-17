@@ -34,7 +34,7 @@ from typing import Any, Dict, Optional
 from pyramid.paster import get_appsettings
 from pyramid.config import Configurator
 
-from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
+from crate_anon.common.constants import EnvVar
 from crate_anon.nlp_webserver.constants import (
     NLP_WEBSERVER_CONFIG_ENVVAR,
     NlpServerConfigKeys,
@@ -42,7 +42,7 @@ from crate_anon.nlp_webserver.constants import (
 
 SETTINGS_PATH = os.getenv(NLP_WEBSERVER_CONFIG_ENVVAR)
 
-if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
+if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     # Prevent errors whilst building docs, using dummy settings.
     SETTINGS = {
         v: ""

@@ -37,7 +37,7 @@ import tempfile
 
 from cardinal_pythonlib.logs import configure_logger_for_colour
 
-from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
+from crate_anon.common.constants import EnvVar
 from crate_anon.nlp_manager.constants import (
     MEDEX_PIPELINE_CLASSNAME,
     MEDEX_DATA_READY_SIGNAL,
@@ -49,7 +49,7 @@ log = logging.getLogger(__name__)
 
 EXIT_FAILURE = 1
 
-if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
+if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     THIS_DIR = "/path/to/crate/crate_anon/nlp_manager"
     DEFAULT_MEDEX_DIR = "/path/to/Medex/installation"
 else:

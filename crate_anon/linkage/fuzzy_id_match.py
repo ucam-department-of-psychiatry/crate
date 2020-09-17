@@ -186,7 +186,7 @@ from sqlalchemy.sql import text
 
 from crate_anon.anonymise.anonregex import get_uk_postcode_regex_string
 from crate_anon.common.constants import (
-    ENVVAR_GENERATING_CRATE_DOCS,
+    EnvVar,
     EXIT_FAILURE,
     EXIT_SUCCESS,
 )
@@ -4765,7 +4765,7 @@ def main() -> int:
     """
 
     appname = "crate"
-    if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
+    if EnvVar.GENERATING_CRATE_DOCS in os.environ:
         default_cache_dir = "/path/to/crate/user/data"
         default_postcodes_csv = "/path/to/postcodes/file"
     else:
