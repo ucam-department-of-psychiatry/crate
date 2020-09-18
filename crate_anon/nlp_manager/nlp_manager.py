@@ -1139,11 +1139,12 @@ def inner_main() -> None:
     mode_group.add_argument(
         "-i", "--incremental", dest="incremental", action="store_true",
         help="Process only new/changed information, where possible "
-             "(* default)")
+             "(* default)",
+        default=True)
     mode_group.add_argument(
         "-f", "--full", dest="incremental", action="store_false",
-        help="Drop and remake everything")
-    config_options.set_defaults(incremental=True)
+        help="Drop and remake everything",
+        default=False)
 
     config_options.add_argument(
         "--dropremake", action="store_true",

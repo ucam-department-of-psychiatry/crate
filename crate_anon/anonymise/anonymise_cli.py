@@ -120,12 +120,12 @@ def inner_main() -> None:
     mode_group = mode_options.add_mutually_exclusive_group()
     mode_group.add_argument(
         "-i", "--incremental", dest="incremental", action="store_true",
-        help="Process only new/changed information, where possible "
-             "(* default)")
+        help="Process only new/changed information, where possible",
+        default=True)
     mode_group.add_argument(
         "-f", "--full", dest="incremental", action="store_false",
-        help="Drop and remake everything")
-    parser.set_defaults(incremental=True)
+        help="Drop and remake everything",
+        default=False)
     mode_options.add_argument(
         "--skipdelete", dest="skipdelete", action="store_true",
         help="For incremental updates, skip deletion of rows present in the "
