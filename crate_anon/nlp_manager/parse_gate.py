@@ -38,6 +38,7 @@ import subprocess
 import sys
 from typing import Any, Dict, Generator, List, TextIO, Tuple
 
+from cardinal_pythonlib.cmdline import cmdline_quote
 from cardinal_pythonlib.dicts import (
     rename_keys_in_dict,
     set_null_values_in_dict,
@@ -51,9 +52,7 @@ from crate_anon.nlp_manager.base_nlp_parser import (
     TextProcessingFailed,
 )
 from crate_anon.nlp_manager.constants import (
-    full_sectionname,
     MAX_SQL_FIELD_LEN,
-    NlpConfigPrefixes,
     ProcessorConfigKeys,
     GateFieldNames as GateFN,
 )
@@ -112,23 +111,27 @@ class Gate(BaseNlpParser):
     """
     def __init__(self,
                  nlpdef: NlpDefinition,
-                 cfgsection: str,
+                 cfg_processor_name: str,
                  commit: bool = False) -> None:
         """
         Args:
             nlpdef:
                 a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            cfgsection:
+            cfg_processor_name:
                 the name of a CRATE NLP config file section (from which we may
                 choose to get extra config information)
             commit:
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit,
-                         name="GATE")
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            friendly_name="GATE"
+        )
 
-        if not nlpdef and not cfgsection:
+        if not nlpdef and not cfg_processor_name:
             # Debugging only
             self._debug_mode = True
             self._max_external_prog_uses = 0
@@ -140,50 +143,36 @@ class Gate(BaseNlpParser):
             logtag = ''
         else:
             self._debug_mode = False
-            self._max_external_prog_uses = nlpdef.opt_int(
-                self._sectionname, ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
+            self._max_external_prog_uses = self._cfgsection.opt_int_positive(
+                ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
                 default=0)
-            self._input_terminator = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.INPUT_TERMINATOR,
+            self._input_terminator = self._cfgsection.opt_str(
+                ProcessorConfigKeys.INPUT_TERMINATOR,
                 required=True)
-            self._output_terminator = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.OUTPUT_TERMINATOR,
+            self._output_terminator = self._cfgsection.opt_str(
+                ProcessorConfigKeys.OUTPUT_TERMINATOR,
                 required=True)
-            typepairs = nlpdef.opt_strlist(
-                self._sectionname, ProcessorConfigKeys.OUTPUTTYPEMAP,
+            typepairs = self._cfgsection.opt_strlist(
+                ProcessorConfigKeys.OUTPUTTYPEMAP,
                 required=True, lower=False)
-            self._progenvsection = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.PROGENVSECTION)
-            progargs = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.PROGARGS,
+            self._progenvsection = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROGENVSECTION)
+            progargs = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROGARGS,
                 required=True)
-            logtag = nlpdef.get_logtag() or '.'
+            logtag = nlpdef.logtag or '.'
 
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
         self._type_to_tablename = {}  # type: Dict[str, str]
-        for c in chunks(typepairs, 2):
-            annottype = c[0]
-            outputsection = c[1]
-            # 2018-03-27: not clear why we need to force the user to specify
-            # in lower case! We just said it's case-insensitive. So ditch this:
-            #
-            # if annottype != annottype.lower():
-            #     raise Exception(
-            #         "Section {}: annotation types in outputtypemap must be in "  # noqa
-            #         "lower case: change {}".format(cfgsection, annottype))
-            #
-            # and add this:
+        for annottype, outputsection in chunks(typepairs, 2):
             annottype = annottype.lower()
-            # log.critical(outputsection)
-            c = OutputUserConfig(nlpdef.get_parser(), outputsection)
+            c = OutputUserConfig(nlpdef.parser, outputsection)
             self._outputtypemap[annottype] = c
-            self._type_to_tablename[annottype] = c.get_tablename()
+            self._type_to_tablename[annottype] = c.dest_tablename
 
         if self._progenvsection:
-            self._env = nlpdef.get_env_dict(
-                full_sectionname(NlpConfigPrefixes.ENV,
-                                 self._progenvsection),
-                os.environ)
+            # noinspection PyTypeChecker
+            self._env = nlpdef.get_env_dict(self._progenvsection, os.environ)
         else:
             self._env = os.environ.copy()
         self._env["NLPLOGTAG"] = logtag
@@ -222,7 +211,7 @@ class Gate(BaseNlpParser):
         if self._started:
             return
         args = self._progargs
-        log.info(f"launching command: {args}")
+        log.info(f"Launching command: {cmdline_quote(args)}")
         self._p = subprocess.Popen(args,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
@@ -324,8 +313,8 @@ class Gate(BaseNlpParser):
                         f"Unknown annotation type, skipping: {annottype}")
                     continue
                 c = self._outputtypemap[annottype]
-                rename_keys_in_dict(d, c.renames())
-                set_null_values_in_dict(d, c.null_literals())
+                rename_keys_in_dict(d, c.renames)
+                set_null_values_in_dict(d, c.null_literals)
                 yield self._type_to_tablename[annottype], d
 
             self._n_uses += 1
@@ -362,9 +351,9 @@ class Gate(BaseNlpParser):
         # docstring in superclass
         tables = {}  # type: Dict[str, List[Column]]
         for anottype, otconfig in self._outputtypemap.items():
-            tables[otconfig.get_tablename()] = (
+            tables[otconfig.dest_tablename] = (
                 self._standard_gate_columns() +
-                otconfig.get_columns(self.get_engine())
+                otconfig.get_columns(self.dest_engine)
             )
         return tables
 
@@ -372,9 +361,9 @@ class Gate(BaseNlpParser):
         # docstring in superclass
         tables = {}  # type: Dict[str, List[Index]]
         for anottype, otconfig in self._outputtypemap.items():
-            tables[otconfig.get_tablename()] = (
+            tables[otconfig.dest_tablename] = (
                 self._standard_gate_indexes() +
-                otconfig.get_indexes()
+                otconfig.indexes
             )
         return tables
 
@@ -383,7 +372,7 @@ class Gate(BaseNlpParser):
         if self._debug_mode:
             return super().nlprp_name()
         else:
-            return self._nlpdef.get_name()
+            return self._nlpdef.name
 
     def nlprp_schema_info(self, sql_dialect: str = None) -> Dict[str, Any]:
         # We do not absolutely need to override nlprp_schema_info(). Although

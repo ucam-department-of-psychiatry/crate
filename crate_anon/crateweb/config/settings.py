@@ -35,11 +35,24 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.8/ref/settings/
 """
 
+# =============================================================================
+# Imports
+# =============================================================================
+
 import importlib.machinery
 import logging
 import os
+from typing import List
 
-from crate_anon.common.constants import RUNNING_WITHOUT_CONFIG
+from cardinal_pythonlib.docker import running_under_docker
+from cardinal_pythonlib.fileops import relative_filename_within_dir
+
+from crate_anon.common.constants import (
+    DockerConstants,
+    ENVVAR_GENERATING_CRATE_DOCS,
+    RUNNING_WITHOUT_CONFIG,
+)
+from crate_anon.common.dockerfunc import warn_if_not_within_docker_dir
 from crate_anon.crateweb.config.constants import (
     CRATEWEB_CONFIG_ENV_VAR,
     UrlNames,
@@ -54,6 +67,20 @@ except ImportError:
 
 log = logging.getLogger(__name__)
 
+
+# =============================================================================
+# Docker
+# =============================================================================
+
+RUNNING_UNDER_DOCKER = running_under_docker()
+if RUNNING_UNDER_DOCKER:
+    log.info("Running under Docker")
+
+
+# =============================================================================
+# Directories
+# =============================================================================
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # This is the path of the file FROM WHICH THE MODULE WAS LOADED, NOT THE
@@ -64,10 +91,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # log.warning(f"BASE_DIR: {BASE_DIR}")
 
-DEBUG_TOOLBAR_PATCH_SETTINGS = False
+
+# =============================================================================
+# Django core settings
+# =============================================================================
 
 # Application definition
-
 INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
@@ -119,18 +148,6 @@ MIDDLEWARE = (
 
 )
 
-# Celery things
-# BROKER_URL = 'django://'  # for Celery with Django database as broker
-BROKER_URL = 'amqp://'  # for Celery with RabbitMQ as broker
-CELERY_ACCEPT_CONTENT = ['json']  # avoids potential pickle security problem
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TASK_SERIALIZER = 'json'
-# Results are OPTIONAL. The CRATE web service doesn't use them.
-# But may be helpful for Celery testing.
-# See http://docs.celeryproject.org/en/latest/configuration.html#std:setting-CELERY_RESULT_BACKEND  # noqa
-CELERY_RESULT_BACKEND = "rpc://"  # uses AMQP
-CELERY_RESULT_PERSISTENT = False
-
 LOGIN_URL = '/login/'  # for LoginRequiredMiddleware
 LOGIN_VIEW_NAME = UrlNames.LOGIN  # for LoginRequiredMiddleware
 LOGIN_EXEMPT_URLS = []  # for LoginRequiredMiddleware
@@ -163,6 +180,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'crate_anon.crateweb.config.wsgi.application'
 
+
+# =============================================================================
+# Debug Toolbar
+# =============================================================================
+
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
+
 DEBUG_TOOLBAR_PANELS = [
     # Standard:
     'debug_toolbar.panels.versions.VersionsPanel',
@@ -183,7 +207,26 @@ DEBUG_TOOLBAR_PANELS = [
     # 'template_profiler_panel.panels.template.TemplateProfilerPanel',  # removed 2017-01-31; division by zero error  # noqa
 ]
 
-# Internationalization
+
+# =============================================================================
+# Celery
+# =============================================================================
+
+# BROKER_URL = 'django://'  # for Celery with Django database as broker
+BROKER_URL = 'amqp://'  # for Celery with RabbitMQ as broker
+CELERY_ACCEPT_CONTENT = ['json']  # avoids potential pickle security problem
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'json'
+# Results are OPTIONAL. The CRATE web service doesn't use them.
+# But may be helpful for Celery testing.
+# See http://docs.celeryproject.org/en/latest/configuration.html#std:setting-CELERY_RESULT_BACKEND  # noqa
+CELERY_RESULT_BACKEND = "rpc://"  # uses AMQP
+CELERY_RESULT_PERSISTENT = False
+
+
+# =============================================================================
+# Internationalization including date/time formats
+# =============================================================================
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
@@ -206,6 +249,7 @@ DATETIME_FORMAT = "d M Y, H:i:s"
 SHORT_DATE_FORMAT = "d/m/Y"
 SHORT_TIME_FORMAT = "H:i"
 SHORT_DATETIME_FORMAT = "d/m/Y, H:i:s"
+
 
 # =============================================================================
 # Static files (CSS, JavaScript, Images)
@@ -237,6 +281,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
 # relevant here.
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/
 
+
 # =============================================================================
 # Some managed database access goes to the secret mapping database.
 # =============================================================================
@@ -252,6 +297,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
 #       https://code.djangoproject.com/ticket/27054
 #   ... fixed by adding allow_migrate() to PidLookupRouter
 
+
 # =============================================================================
 # Security; https://docs.djangoproject.com/en/1.8/topics/security/
 # =============================================================================
@@ -259,6 +305,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
 CRATE_HTTPS = True  # may be overridden in local settings
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+X_FRAME_OPTIONS = "SAMEORIGIN"
+# ... we need this for the Archive frame views. See
+# https://docs.djangoproject.com/en/3.0/ref/clickjacking/
+
 
 # =============================================================================
 # Logging; https://docs.djangoproject.com/en/1.8/topics/logging/
@@ -392,6 +443,7 @@ LOGGING = {
     },
 }
 
+
 # =============================================================================
 # PDF generation
 # =============================================================================
@@ -427,6 +479,7 @@ _ = """
 """
 RESEARCHER_FONTSIZE = "10pt"
 
+
 # =============================================================================
 # Import from a site-specific file
 # =============================================================================
@@ -448,28 +501,118 @@ if RUNNING_WITHOUT_CONFIG:
     SECRET_KEY = 'dummy'  # A Django setting.
 else:
     if CRATEWEB_CONFIG_ENV_VAR not in os.environ:
+        _linuxpath = (
+            DockerConstants.CONFIG_DIR if RUNNING_UNDER_DOCKER
+            else "/etc/crate"
+        )
         raise ValueError(f"""
     You must set the {CRATEWEB_CONFIG_ENV_VAR} environment variable first.
     Aim it at your settings file, like this:
 
     (For Linux:)
 
-    export {CRATEWEB_CONFIG_ENV_VAR}=/etc/crate/my_secret_crate_settings.py
+    export {CRATEWEB_CONFIG_ENV_VAR}={_linuxpath}/my_secret_crate_settings.py
 
     (For Windows:)
 
     set {CRATEWEB_CONFIG_ENV_VAR}=C:/some/path/my_secret_crate_settings.py
         """)
+
     filename = os.environ[CRATEWEB_CONFIG_ENV_VAR]
-    print(f"Loading local settings from: {filename}")
+    if RUNNING_UNDER_DOCKER:
+        warn_if_not_within_docker_dir(
+            param_name=CRATEWEB_CONFIG_ENV_VAR,
+            filespec=filename,
+            permit_cfg=True,
+            is_env_var=True
+        )
+
+    if ENVVAR_GENERATING_CRATE_DOCS not in os.environ:
+        print(f"Loading local settings from: {filename}")
     # ... NB logger not yet set to a reasonable priority; use warning level
     # ... no, logger not even configured, and this is loaded via Django;
     #     use print()!
     _loader = importlib.machinery.SourceFileLoader('local_settings',
                                                    filename)
+    # noinspection PyArgumentList
     _local_module = _loader.load_module()
     # noinspection PyUnresolvedReferences
     from local_settings import *  # noqa
+    # noinspection PyUnresolvedReferences
+    from local_settings import (
+        ARCHIVE_TEMPLATE_DIR,
+        ARCHIVE_STATIC_DIR,
+        ARCHIVE_ATTACHMENT_DIR,
+        ARCHIVE_TEMPLATE_CACHE_DIR,
+        DATABASE_HELP_HTML_FILENAME,
+        PRIVATE_FILE_STORAGE_ROOT,
+        PDF_LOGO_ABS_URL,
+        TRAFFIC_LIGHT_RED_ABS_URL,
+        TRAFFIC_LIGHT_YELLOW_ABS_URL,
+        TRAFFIC_LIGHT_GREEN_ABS_URL,
+    )  # noqa
+
+    if RUNNING_UNDER_DOCKER:
+        # /crate/cfg or /crate/venv
+        paramname_filespec_pairs = [
+            ("ARCHIVE_TEMPLATE_DIR", ARCHIVE_TEMPLATE_DIR),
+            ("ARCHIVE_STATIC_DIR", ARCHIVE_STATIC_DIR),
+            ("DATABASE_HELP_HTML_FILENAME", DATABASE_HELP_HTML_FILENAME),
+        ]
+        for param_name, filespec in paramname_filespec_pairs:
+            warn_if_not_within_docker_dir(
+                param_name=param_name,
+                filespec=filespec,
+                permit_cfg=True,
+                permit_venv=True
+            )
+        # /crate/cfg
+        paramname_filespec_pairs = [
+            ("ARCHIVE_ATTACHMENT_DIR", ARCHIVE_ATTACHMENT_DIR),
+        ]
+        for param_name, filespec in paramname_filespec_pairs:
+            warn_if_not_within_docker_dir(
+                param_name=param_name,
+                filespec=filespec,
+                permit_cfg=True,
+            )
+        # /crate/cfg or /crate/tmp
+        paramname_filespec_pairs = [
+            ("PRIVATE_FILE_STORAGE_ROOT", PRIVATE_FILE_STORAGE_ROOT),
+        ]
+        for param_name, filespec in paramname_filespec_pairs:
+            warn_if_not_within_docker_dir(
+                param_name=param_name,
+                filespec=filespec,
+                permit_cfg=True,
+                permit_tmp=True,
+            )
+        # /crate/tmp
+        paramname_filespec_pairs = [
+            ("ARCHIVE_TEMPLATE_CACHE_DIR", ARCHIVE_TEMPLATE_CACHE_DIR),
+        ]
+        for param_name, filespec in paramname_filespec_pairs:
+            warn_if_not_within_docker_dir(
+                param_name=param_name,
+                filespec=filespec,
+                permit_tmp=True,
+            )
+        # /crate/cfg or /crate/venv, as file: URLs
+        paramname_filespec_pairs = [
+            ("PDF_LOGO_ABS_URL", PDF_LOGO_ABS_URL),
+            ("TRAFFIC_LIGHT_RED_ABS_URL", TRAFFIC_LIGHT_RED_ABS_URL),
+            ("TRAFFIC_LIGHT_YELLOW_ABS_URL", TRAFFIC_LIGHT_YELLOW_ABS_URL),
+            ("TRAFFIC_LIGHT_GREEN_ABS_URL", TRAFFIC_LIGHT_GREEN_ABS_URL),
+        ]
+        for param_name, filespec in paramname_filespec_pairs:
+            warn_if_not_within_docker_dir(
+                param_name=param_name,
+                filespec=filespec,
+                permit_cfg=True,
+                permit_venv=True,
+                as_file_url=True
+            )
+
 
 # =============================================================================
 # Extra actions from the site-specific file

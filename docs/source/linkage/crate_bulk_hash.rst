@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/linkage/crate_bulk_hash.rst
+..  crate_anon/docs/source/linkage/crate_bulk_hash.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -25,5 +25,5 @@ crate_bulk_hash
 
 A tool to hash IDs in bulk, for linkages.
 
-.. literalinclude:: crate_bulk_hash_help.txt
+.. literalinclude:: _crate_bulk_hash_help.txt
     :language: none

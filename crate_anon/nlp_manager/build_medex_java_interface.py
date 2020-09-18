@@ -32,10 +32,12 @@ import argparse
 import logging
 import os
 import subprocess
+import sys
 import tempfile
 
 from cardinal_pythonlib.logs import configure_logger_for_colour
 
+from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
 from crate_anon.nlp_manager.constants import (
     MEDEX_PIPELINE_CLASSNAME,
     MEDEX_DATA_READY_SIGNAL,
@@ -45,11 +47,18 @@ from crate_anon.nlp_manager.constants import (
 
 log = logging.getLogger(__name__)
 
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+EXIT_FAILURE = 1
+
+if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
+    THIS_DIR = "/path/to/crate/crate_anon/nlp_manager"
+    DEFAULT_MEDEX_DIR = "/path/to/Medex/installation"
+else:
+    THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+    DEFAULT_MEDEX_DIR = os.path.join(os.path.expanduser('~'), 'dev',
+                                     'Medex_UIMA_1.3.6')
+
 DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, 'compiled_nlp_classes')
 SOURCE_FILE = os.path.join(THIS_DIR, MEDEX_PIPELINE_CLASSNAME + '.java')
-DEFAULT_MEDEX_DIR = os.path.join(os.path.expanduser('~'), 'dev',
-                                 'Medex_UIMA_1.3.6')
 DEFAULT_JAVA = 'java'
 DEFAULT_JAVAC = 'javac'
 
@@ -58,6 +67,7 @@ def main() -> None:
     """
     Command-line processor. See command-line help.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Compile Java classes for CRATE's interface to MedEx-UIMA",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -85,6 +95,11 @@ def main() -> None:
     loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel)
+
+    if not os.path.exists(args.medexdir):
+        log.error(f"Could not find Medex installation at {args.medexdir}. "
+                  f"Is Medex installed? Have you set --medexdir correctly?")
+        sys.exit(EXIT_FAILURE)
 
     medexclasses = os.path.join(args.medexdir, 'bin')
     medexlibjars = os.path.join(args.medexdir, 'lib', '*')

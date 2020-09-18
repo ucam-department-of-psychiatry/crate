@@ -135,7 +135,7 @@ class DataDictionary(object):
             report_every: report to the Python log every *n* columns
         """
         log.info("Reading information for draft data dictionary")
-        existing_signatures = set(ddr.get_signature() for ddr in self.rows)
+        existing_signatures = set(ddr.src_signature for ddr in self.rows)
         for pretty_dbname, db in self.config.sources.items():
             log.info(f"... database nice name = {pretty_dbname}")
             cfg = db.srccfg
@@ -148,8 +148,8 @@ class DataDictionary(object):
                 is_patient_table = False
 
                 # Skip table?
-                if cfg.is_table_blacklisted(tablename):
-                    log.debug(f"Skipping blacklisted table: {tablename}")
+                if cfg.is_table_denied(tablename):
+                    log.debug(f"Skipping denied table: {tablename}")
                     continue
                 all_col_names = [c.name for c in t.columns]
                 if cfg.does_table_fail_minimum_fields(all_col_names):
@@ -175,8 +175,8 @@ class DataDictionary(object):
                     # If you do, they can fail to match the SQLAlchemy
                     # introspection and cause a crash.
                     # Changed to be a destination manipulation (2016-06-04).
-                    if cfg.is_field_blacklisted(columnname):
-                        log.debug(f"Skipping blacklisted column: "
+                    if cfg.is_field_denied(columnname):
+                        log.debug(f"Skipping denied column: "
                                   f"{tablename}.{columnname}")
                         continue
                     comment = ''  # currently unsupported by SQLAlchemy
@@ -191,14 +191,14 @@ class DataDictionary(object):
                         comment=comment)
 
                     # If we have this one already, skip ASAP
-                    sig = ddr.get_signature()
+                    sig = ddr.src_signature
                     if sig in existing_signatures:
                         log.debug(f"Skipping duplicated column: "
                                   f"{tablename}.{columnname}")
                         continue
                     existing_signatures.add(sig)
 
-                    if ddr.contains_patient_info():
+                    if ddr.contains_patient_info:
                         is_patient_table = True
 
                     # Checking validity slows us down, and we are after all
@@ -249,7 +249,7 @@ class DataDictionary(object):
         def ensure_no_type_mismatch(ddr: DataDictionaryRow,
                                     config_sqlatype: Union[TypeEngine, String],
                                     human_type: str) -> None:
-            rowtype = ddr.get_src_sqla_coltype()
+            rowtype = ddr.src_sqla_coltype
             if (is_sqlatype_integer(rowtype) and
                     is_sqlatype_integer(config_sqlatype)):
                 # Good enough. The only integer type we use for PID/MPID is
@@ -261,9 +261,9 @@ class DataDictionary(object):
                 if rowtype.length <= config_sqlatype.length:
                     return
             raise ValueError(
-                f"Source column {r.get_signature()} is marked as a "
+                f"Source column {r.src_signature} is marked as a "
                 f"{human_type} field but its type is "
-                f"{r.get_src_sqla_coltype()}, while the config thinks it "
+                f"{r.src_sqla_coltype}, while the config thinks it "
                 f"should be {config_sqlatype}")
 
         log.debug("Checking DD: source tables...")
@@ -304,7 +304,7 @@ class DataDictionary(object):
                 needs_pidfield = False
                 for r in rows:
                     # Needs PID field in table?
-                    if not r.omit and (r.being_scrubbed() or r.master_pid):
+                    if not r.omit and (r.being_scrubbed or r.master_pid):
                         needs_pidfield = True
 
                     if r.primary_pid:
@@ -322,7 +322,7 @@ class DataDictionary(object):
                                 f"Table {d}.{t} has >1 source PK set")
 
                     # Duff alter method?
-                    for am in r.get_alter_methods():
+                    for am in r.alter_methods:
                         if am.extract_from_blob:
                             extrow = next(
                                 (r2 for r2 in rows
@@ -334,7 +334,7 @@ class DataDictionary(object):
                                     f"field {am.extract_ext_field} not found "
                                     f"in the same table")
                             if not is_sqlatype_text_over_one_char(
-                                    extrow.get_src_sqla_coltype()):
+                                    extrow.src_sqla_coltype):
                                 raise ValueError(
                                     f"alter_method = {r.alter_method}, but "
                                     f"field {am.extract_ext_field}, which "
@@ -432,9 +432,9 @@ class DataDictionary(object):
         src_sigs = []  # type: List[str]
         dst_sigs = []  # type: List[str]
         for r in self.rows:
-            src_sigs.append(r.get_signature())
+            src_sigs.append(r.src_signature)
             if not r.omit:
-                dst_sigs.append(r.get_dest_signature())
+                dst_sigs.append(r.dest_signature)
         # noinspection PyArgumentList
         src_duplicates = [
             item for item, count in collections.Counter(src_sigs).items()
@@ -495,7 +495,7 @@ class DataDictionary(object):
         return SortedSet([
              ddr.src_db
              for ddr in self.rows
-             if ddr.required()
+             if ddr.required
          ])
 
     @lru_cache(maxsize=None)
@@ -531,7 +531,7 @@ class DataDictionary(object):
         return SortedSet([
             (ddr.src_db, ddr.src_table)
             for ddr in self.rows
-            if ddr.contains_patient_info()
+            if ddr.contains_patient_info
         ])
 
     @lru_cache(maxsize=None)
@@ -592,7 +592,7 @@ class DataDictionary(object):
         return SortedSet([
             ddr.dest_table
             for ddr in self.rows
-            if ddr.contains_patient_info() and not ddr.omit
+            if ddr.contains_patient_info and not ddr.omit
         ])
 
     @lru_cache(maxsize=None)
@@ -618,7 +618,7 @@ class DataDictionary(object):
         fields -- that is, rows that must have at least one non-NULL value for
         each patient, or the patient won't get processed.
         """
-        return set([ddr.get_signature() for ddr in self.rows
+        return set([ddr.src_signature for ddr in self.rows
                     if ddr.required_scrubber])
 
     # =========================================================================
@@ -635,7 +635,7 @@ class DataDictionary(object):
         return SortedSet([
             ddr.src_table
             for ddr in self.rows
-            if ddr.src_db == src_db and ddr.required()
+            if ddr.src_db == src_db and ddr.required
         ])
 
     @lru_cache(maxsize=None)
@@ -659,7 +659,7 @@ class DataDictionary(object):
         return SortedSet([
             ddr.src_table
             for ddr in self.rows
-            if ddr.src_db == src_db and ddr.contains_patient_info()
+            if ddr.src_db == src_db and ddr.contains_patient_info
         ])
 
     @lru_cache(maxsize=None)
@@ -874,7 +874,7 @@ class DataDictionary(object):
         metadata = self.config.destdb.metadata
         columns = []  # type: List[Column]
         for ddr in self.get_rows_for_dest_table(tablename):
-            columns.append(ddr.get_dest_sqla_column())
+            columns.append(ddr.dest_sqla_column)
             if ddr.add_src_hash:
                 columns.append(self._get_srchash_sqla_column())
             if ddr.primary_pid:

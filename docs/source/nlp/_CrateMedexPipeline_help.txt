@@ -1,0 +1,31 @@
+usage: CrateMedexPipeline -i DIR -o DIR
+                          [-h] [-v [-v]] [-lt LOGTAG]
+                          [-data_ready_signal DATA_READY]
+                          [-results_ready_signal RESULTS_READY]
+
+Java front end to MedEx-UIMA natural language processor for drugs.
+Takes signals on stdin, and data on disk.
+Writes signals to stdout, and data to disk.
+
+required arguments:
+  -i DIR           (*) Specifies the input directory to read text from.
+  -o DIR           (*) Specifies the input directory to write results to.
+
+optional arguments:
+  --help           Show this help message and exit.
+  -h
+
+  -v               Verbose (use twice to be more verbose).
+
+  -lt LOGTAG       Use an additional tag for stderr logging.
+                   Helpful in multiprocess environments.
+
+  -data_ready_signal DATA_READY
+                   Sets the 'data ready' signal that this program waits for
+                   on stdin before scanning for data.
+
+  -results_ready_signal RESULTS_READY
+                   Sets the 'data ready' signal that this program sends on
+                   stdout once results are ready on disk.
+
+(*) MedEx argument

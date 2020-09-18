@@ -194,13 +194,13 @@ class Height(NumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False,
                  debug: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             regex_str_for_debugging=self.REGEX,
@@ -387,13 +387,13 @@ class Weight(NumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False,
                  debug: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             regex_str_for_debugging=self.REGEX,
@@ -553,12 +553,12 @@ class Bmi(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -601,7 +601,7 @@ class Bp(BaseNlpParser):
 
     (Since we produce two variables, SBP and DBP, and we use something a little
     more complex than
-    :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`,
+    :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`;
     we subclass :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
     directly.)
     """  # noqa
@@ -656,20 +656,20 @@ class Bp(BaseNlpParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             commit=commit,
-            name=self.NAME
+            friendly_name=self.NAME
         )
         if nlpdef is None:  # only None for debugging!
             self.tablename = self.classname().lower()
         else:
-            self.tablename = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.DESTTABLE,
+            self.tablename = self._cfgsection.opt_str(
+                ProcessorConfigKeys.DESTTABLE,
                 required=True)
 
     @classmethod

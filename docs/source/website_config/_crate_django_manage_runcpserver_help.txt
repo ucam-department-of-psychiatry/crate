@@ -1,0 +1,50 @@
+usage: crate_django_manage runcpserver [-h] [--host HOST] [--port PORT]
+                                       [--server_name SERVER_NAME]
+                                       [--threads THREADS]
+                                       [--ssl_certificate SSL_CERTIFICATE]
+                                       [--ssl_private_key SSL_PRIVATE_KEY]
+                                       [--log_screen] [--no_log_screen]
+                                       [--debug_static]
+                                       [--root_path ROOT_PATH] [--version]
+                                       [-v {0,1,2,3}] [--settings SETTINGS]
+                                       [--pythonpath PYTHONPATH] [--traceback]
+                                       [--no-color] [--force-color]
+                                       [--skip-checks]
+
+Run this project in a CherryPy webserver. To do this, CherryPy is required
+(pip install cherrypy).
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --host HOST           hostname to listen on (default: 127.0.0.1)
+  --port PORT           port to listen on (default: 8088)
+  --server_name SERVER_NAME
+                        CherryPy's SERVER_NAME environ entry (default:
+                        localhost)
+  --threads THREADS     Number of threads for server to use (default: 10)
+  --ssl_certificate SSL_CERTIFICATE
+                        SSL certificate file (e.g. /etc/ssl/certs/ssl-cert-
+                        snakeoil.pem)
+  --ssl_private_key SSL_PRIVATE_KEY
+                        SSL private key file (e.g. /etc/ssl/private/ssl-cert-
+                        snakeoil.key)
+  --log_screen          log access requests etc. to terminal (default)
+  --no_log_screen       don't log access requests etc. to terminal
+  --debug_static        show debug info for static file requests
+  --root_path ROOT_PATH
+                        Root path to serve CRATE at. Default:
+  --version             show program's version number and exit
+  -v {0,1,2,3}, --verbosity {0,1,2,3}
+                        Verbosity level; 0=minimal output, 1=normal output,
+                        2=verbose output, 3=very verbose output
+  --settings SETTINGS   The Python path to a settings module, e.g.
+                        "myproject.settings.main". If this isn't provided, the
+                        DJANGO_SETTINGS_MODULE environment variable will be
+                        used.
+  --pythonpath PYTHONPATH
+                        A directory to add to the Python path, e.g.
+                        "/home/djangoprojects/myproject".
+  --traceback           Raise on CommandError exceptions
+  --no-color            Don't colorize the command output.
+  --force-color         Force colorization of the command output.
+  --skip-checks         Skip system checks.

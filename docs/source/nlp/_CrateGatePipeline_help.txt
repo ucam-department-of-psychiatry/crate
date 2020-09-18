@@ -1,0 +1,146 @@
+usage: CrateGatePipeline --gate_app GATEAPP
+                         [--include_set SET [--include_set SET [...]]]
+                         [--exclude_set SET [--exclude_set SET [...]]]
+                         [--annotation ANNOT [--annotation ANNOT [...]]]
+                         [--set_annotation SET ANNOT [...]]
+                         [--encoding ENCODING]
+                         [--input_terminator TERM]
+                         [--output_terminator TERM]
+                         [--log_tag LOGTAG]
+                         [--write_annotated_xml FILESTEM]
+                         [--write_gate_xml FILESTEM]
+                         [--write_tsv FILESTEM]
+                         [--suppress_gate_stdout]
+                         [--show_contents_on_crash]
+                         [-h] [-v [-v [-v]]]
+                         [--loglevel <debug|info|warn|error>]
+                         [--gateloglevel <debug|info|warn|error>]
+                         [--pluginfile PLUGINFILE]
+                         [--launch_then_stop]
+                         [--demo]
+
+Java front end to GATE natural language processor.
+
+- Takes input on stdin. Produces output on stdout.
+- GATE applications produce output clustered (1) into named annotation sets
+  (with a default, unnamed set). (2) Within annotation sets, we find
+  annotations. (3) Each annotation is a collection of key/value pairs.
+  This collection is not fixed, in that individual annotations, or keys within
+  annotations, may be present sometimes and absent sometimes, depending on the
+  input text.
+
+Optional arguments:
+
+  --gate_app GATEAPP
+  -g GATEAPP
+                   Specifies the GATE app (.gapp/.xgapp) file to use.
+                   REQUIRED unless specifying --demo.
+
+  --include_set SET
+  --exclude_set SET
+                   Includes or excludes the specified GATE set, by name.
+                   By default, the inclusion list is empty, and the exclusion
+                   list is also empty. By specifying set names here, you add
+                   to the inclusion or exclusion list. You can specify each
+                   option multiple times. Then, the rules are as follows:
+                   the output from a GATE set is included if (A) the inclusion
+                   list is empty OR the set is on the inclusion list, AND (B)
+                   the set is not on the exclusion list. Note also that there
+                   is a default set with no name; refer to this one using
+                   the empty string "". Set names are compared in a
+                   case-sensitive manner.
+
+  --annotation ANNOT
+  -a ANNOT
+                   Adds the specified annotation to the target list.
+                   If you don't specify any, you'll get them all.
+
+  --set_annotation SET ANNOT
+  -sa SET ANNOT
+                   Adds the specific set/annotation combination to the target
+                   list. Use this option for maximum control. You cannot mix
+                   --annotation and --set_annotation.
+
+  --encoding ENCODING
+  -e ENCODING
+                   The character encoding of the source documents, to be used
+                   for file output. If not specified, the platform default
+                   encoding (currently "UTF-8") is assumed.
+
+  --input_terminator TERMINATOR
+  -it TERMINATOR
+                   Specify stdin end-of-document terminator.
+
+  --output_terminator TERMINATOR
+  -ot TERMINATOR
+                   Specify stdout end-of-document terminator.
+
+  --log_tag LOGTAG
+  -lt LOGTAG
+                   Use an additional tag for stderr logging.
+                   Helpful in multiprocess environments.
+
+  --write_annotated_xml FILESTEM
+  -wa FILESTEM
+                   Write annotated XML document to FILESTEM<n>.xml, where <n>
+                   is the file's sequence number (starting from 0).
+
+  --write_gate_xml FILESTEM
+  -wg FILESTEM
+                   Write GateXML document to FILESTEM<n>.xml.
+
+  --write_tsv FILESTEM
+  -wt FILESTEM
+                   Write TSV-format annotations to FILESTEM<n>.tsv.
+
+  --suppress_gate_stdout
+  -s
+                   Suppress any stdout from GATE application.
+
+  --show_contents_on_crash
+  -show_contents_on_crash
+                   If GATE crashes, report the current text to stderr (as well
+                   as reporting the error).
+                   (WARNING: likely to contain identifiable material.)
+
+  --continue_on_crash
+  -c
+                   If GATE crashes, carry on after reporting the error.
+
+  --help
+  -h
+                   Show this help message and exit.
+
+  --verbose
+  -v
+                   Verbose (use up to 3 times to be more verbose).
+
+  --loglevel LEVEL
+                   Main log level. Overrides verbose. Options are:
+                   debug, info, warn, error
+
+  --gateloglevel LEVEL
+                   GATE log level. Overrides verbose. Options are:
+                   debug, info, warn, error
+
+  --pluginfile PLUGINFILE
+                   INI file specifying GATE plugins, including name,
+                   location of Maven repository and version. See
+                   specimen_gate_plugin_file.ini. A simple example:
+
+                   [ANNIE]
+                   name = annie
+                   location = uk.ac.gate.plugins
+                   version = 8.6
+
+                   [Tools]
+                   name = tools
+                   location = uk.ac.gate.plugins
+                   version = 8.6
+
+ --launch_then_stop
+                   Launch the GATE program, then stop immediately. (Used 
+                   to pre-download plugins.)
+
+  --demo
+                   Use the demo gapp file.

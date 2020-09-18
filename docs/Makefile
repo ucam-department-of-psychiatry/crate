@@ -3,6 +3,9 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
+# SPHINXOPTS    = -W -vvv
+# ... you can add "-W" for "treat warnings as errors"
+# ... and "-vvv" for "very, very verbose"
 SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = CRATE
 SOURCEDIR     = source

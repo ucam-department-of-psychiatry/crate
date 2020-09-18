@@ -77,12 +77,12 @@ class Mmse(NumeratorOutOfDenominatorParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             commit=commit,
             variable_name=self.NAME,
             variable_regex_str=self.MMSE,
@@ -143,12 +143,12 @@ class Ace(NumeratorOutOfDenominatorParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             commit=commit,
             variable_name=self.NAME,
             variable_regex_str=self.ACE,
@@ -254,12 +254,12 @@ class MiniAce(NumeratorOutOfDenominatorParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             commit=commit,
             variable_name=self.NAME,
             variable_regex_str=self.MACE,
@@ -317,12 +317,12 @@ class Moca(NumeratorOutOfDenominatorParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             commit=commit,
             variable_name=self.NAME,
             variable_regex_str=self.MOCA,

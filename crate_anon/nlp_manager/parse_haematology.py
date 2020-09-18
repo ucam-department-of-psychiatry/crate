@@ -120,12 +120,12 @@ class Haemoglobin(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -198,12 +198,12 @@ class Haematocrit(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -291,12 +291,12 @@ class RBC(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -387,12 +387,12 @@ class Esr(SimpleNumericalResultParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -466,16 +466,17 @@ class WbcBase(SimpleNumericalResultParser, ABC):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  cell_type_regex_text: str,
                  variable: str,
                  commit: bool = False) -> None:
         """
+        ``__init__`` function for :class:`WbcBase`.
 
         Args:
             nlpdef:
                 a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            cfgsection:
+            cfg_processor_name:
                 the name of a CRATE NLP config file section (from which we may
                 choose to get extra config information)
             cell_type_regex_text:
@@ -489,7 +490,7 @@ class WbcBase(SimpleNumericalResultParser, ABC):
         """
         super().__init__(
             nlpdef=nlpdef,
-            cfgsection=cfgsection,
+            cfg_processor_name=cfg_processor_name,
             regex_str=self.make_wbc_regex(cell_type_regex_text),
             variable=variable,
             target_unit=self.PREFERRED_UNIT_COLUMN,
@@ -548,14 +549,16 @@ class Wbc(WbcBase):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         commit=commit,
-                         cell_type_regex_text=self.WBC,
-                         variable=self.NAME)
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            cell_type_regex_text=self.WBC,
+            variable=self.NAME
+        )
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass
@@ -615,14 +618,16 @@ class Neutrophils(WbcBase):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         commit=commit,
-                         cell_type_regex_text=self.NEUTROPHILS,
-                         variable=self.NAME)
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            cell_type_regex_text=self.NEUTROPHILS,
+            variable=self.NAME
+        )
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass
@@ -675,14 +680,16 @@ class Lymphocytes(WbcBase):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         commit=commit,
-                         cell_type_regex_text=self.LYMPHOCYTES,
-                         variable=self.NAME)
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            cell_type_regex_text=self.LYMPHOCYTES,
+            variable=self.NAME
+        )
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass
@@ -737,14 +744,16 @@ class Monocytes(WbcBase):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         commit=commit,
-                         cell_type_regex_text=self.MONOCYTES,
-                         variable=self.NAME)
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            cell_type_regex_text=self.MONOCYTES,
+            variable=self.NAME
+        )
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass
@@ -797,14 +806,16 @@ class Basophils(WbcBase):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         commit=commit,
-                         cell_type_regex_text=self.BASOPHILS,
-                         variable=self.NAME)
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            cell_type_regex_text=self.BASOPHILS,
+            variable=self.NAME
+        )
 
     def test(self, verbose=False) -> None:
         # docstring in superclass
@@ -857,14 +868,16 @@ class Eosinophils(WbcBase):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         commit=commit,
-                         cell_type_regex_text=self.EOSINOPHILS,
-                         variable=self.NAME)
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            cell_type_regex_text=self.EOSINOPHILS,
+            variable=self.NAME
+        )
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass
@@ -920,14 +933,16 @@ class Platelets(WbcBase):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         # see documentation above
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         commit=commit,
-                         cell_type_regex_text=self.PLATELETS,
-                         variable=self.NAME)
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            cell_type_regex_text=self.PLATELETS,
+            variable=self.NAME
+        )
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass

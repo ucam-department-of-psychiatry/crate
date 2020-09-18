@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/anonymisation/overview.rst
+..  crate_anon/docs/source/anonymisation/overview.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .

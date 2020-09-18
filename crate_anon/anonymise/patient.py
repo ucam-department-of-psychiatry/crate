@@ -103,17 +103,17 @@ class Patient(object):
             pid: integer or string (usually integer) patient identifier
             debug: turn on scrubber debugging?
         """
-        self.pid = pid
-        self.session = config.admindb.session
+        self._pid = pid
+        self._session = config.admindb.session
 
         # Fetch or create PatientInfo object
-        self.info = self.session.query(PatientInfo).get(pid)
-        if self.info is None:
-            self.info = PatientInfo(pid=pid)
-            self.info.ensure_rid()
-            self.info.ensure_trid(self.session)
-            self.session.add(self.info)
-            self.session.commit()
+        self._info = self._session.query(PatientInfo).get(pid)
+        if self._info is None:
+            self._info = PatientInfo(pid=pid)
+            self._info.ensure_rid()
+            self._info.ensure_trid(self._session)
+            self._session.add(self._info)
+            self._session.commit()
             # prompt commit after insert operations, to ensure no locks
 
         # Scrubber
@@ -138,7 +138,7 @@ class Patient(object):
             replacement_text_third_party=config.replace_third_party_info_with,
             scrub_string_suffixes=config.scrub_string_suffixes,
             string_max_regex_errors=config.string_max_regex_errors,
-            whitelist=config.whitelist,
+            allowlist=config.allowlist,
             alternatives=config.phrase_alternative_words,
         )
         # Database
@@ -152,9 +152,9 @@ class Patient(object):
         self._build_scrubber(pid,
                              depth=0,
                              max_depth=config.thirdparty_xref_max_depth)
-        self._unchanged = self.get_scrubber_hash() == self.info.scrubber_hash
-        self.info.set_scrubber_info(self.scrubber)
-        self.session.commit()
+        self._unchanged = self.scrubber_hash == self._info.scrubber_hash
+        self._info.set_scrubber_info(self.scrubber)
+        self._session.commit()
         # Commit immediately, because other processes may need this table
         # promptly. Otherwise, might get:
         #   Deadlock found when trying to get lock; try restarting transaction
@@ -201,7 +201,7 @@ class Patient(object):
                        ddr.scrub_src is SCRUBSRC.THIRDPARTY_XREF_PID
                        for ddr in ddrows]
             required_scrubber = [ddr.required_scrubber for ddr in ddrows]
-            sigs = [ddr.get_signature() for ddr in ddrows]
+            sigs = [ddr.src_signature for ddr in ddrows]
             # -----------------------------------------------------------------
             # Collect the actual patient-specific values for this table.
             # -----------------------------------------------------------------
@@ -214,7 +214,7 @@ class Patient(object):
                     self.scrubber.add_value(val, scrub_method[i],
                                             patient=is_patient[i])
 
-                    if is_mpid[i] and self.get_mpid() is None:
+                    if is_mpid[i] and self.mpid is None:
                         # We've come across the master ID.
                         self.set_mpid(val)
 
@@ -247,43 +247,49 @@ class Patient(object):
         """  # noqa
         return self._mandatory_scrubbers_unfulfilled
 
-    def get_pid(self) -> Union[int, str]:
+    @property
+    def pid(self) -> Union[int, str]:
         """
         Return the patient ID (PID).
         """
-        return self.info.pid
+        return self._info.pid
 
-    def get_mpid(self) -> Union[int, str]:
+    @property
+    def mpid(self) -> Union[int, str]:
         """
         Return the master patient ID (MPID).
         """
-        return self.info.mpid
+        return self._info.mpid
 
     def set_mpid(self, mpid: Union[int, str]) -> None:
         """
         Set the patient MPID.
         """
-        self.info.set_mpid(mpid)
+        self._info.set_mpid(mpid)
 
-    def get_rid(self) -> str:
+    @property
+    def rid(self) -> str:
         """
         Returns the RID (encrypted PID).
         """
-        return self.info.rid
+        return self._info.rid
 
-    def get_mrid(self) -> str:
+    @property
+    def mrid(self) -> str:
         """
         Returns the master RID (encrypted MPID).
         """
-        return self.info.mrid
+        return self._info.mrid
 
-    def get_trid(self) -> int:
+    @property
+    def trid(self) -> int:
         """
         Returns the transient integer RID (TRID).
         """
-        return self.info.trid
+        return self._info.trid
 
-    def get_scrubber_hash(self) -> str:
+    @property
+    def scrubber_hash(self) -> str:
         """
         Return the hash of our scrubber (for change detection).
         """
@@ -300,8 +306,8 @@ class Patient(object):
             the de-identified text
         """
         return self.scrubber.scrub(text)
-
-    def unchanged(self) -> bool:
+    
+    def is_unchanged(self) -> bool:
         """
         Has the scrubber changed, compared to the previous hashed version in
         the admin database?

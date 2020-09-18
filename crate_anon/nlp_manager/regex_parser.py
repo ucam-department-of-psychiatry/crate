@@ -270,29 +270,43 @@ class NumericalResultParser(BaseNlpParser):
 
     def __init__(self,
                  nlpdef: NlpDefinition,
-                 cfgsection: str,
+                 cfg_processor_name: str,
                  variable: str,
                  target_unit: str,
                  regex_str_for_debugging: str,
                  commit: bool = False) -> None:
-        """
+        r"""
+        Init function for NumericalResultParser.
+
         Args:
             nlpdef:
-                :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            cfgsection:
-                config section name in the :ref:`NLP config file <nlp_config>`
+                A :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`.
+
+            cfg_processor_name:
+                Config section name in the :ref:`NLP config file <nlp_config>`.
+
             variable:
-                used by subclasses as the record value for ``variable_name``
+                Used by subclasses as the record value for ``variable_name``.
+
             target_unit:
-                fieldname used for the primary output quantity
+                Fieldname used for the primary output quantity.
+
             regex_str_for_debugging:
-                string form of regex, for debugging
+                String form of regex, for debugging.
+
             commit:
-                force a COMMIT whenever we insert data? You should specify this
+                Force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
+
+        Subclasses will extend this method.
         """
-        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit,
-                         name=variable)
+        # NB This docstring was associated with Sphinx errors!
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            friendly_name=variable
+        )
         self.variable = variable
         self.target_unit = target_unit
         self.regex_str_for_debugging = regex_str_for_debugging
@@ -301,11 +315,11 @@ class NumericalResultParser(BaseNlpParser):
             self.tablename = self.classname().lower()
             self.assume_preferred_unit = True
         else:
-            self.tablename = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.DESTTABLE,
+            self.tablename = self._cfgsection.opt_str(
+                ProcessorConfigKeys.DESTTABLE,
                 required=True)
-            self.assume_preferred_unit = nlpdef.opt_bool(
-                self._sectionname, ProcessorConfigKeys.ASSUME_PREFERRED_UNIT,
+            self.assume_preferred_unit = self._cfgsection.opt_bool(
+                ProcessorConfigKeys.ASSUME_PREFERRED_UNIT,
                 default=True)
 
         # Sanity checks
@@ -444,7 +458,7 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
     """
     def __init__(self,
                  nlpdef: NlpDefinition,
-                 cfgsection: str,
+                 cfg_processor_name: str,
                  regex_str: str,
                  variable: str,
                  target_unit: str,
@@ -458,8 +472,9 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
             nlpdef:
                 :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
 
-            cfgsection:
-                config section name in the :ref:`NLP config file <nlp_config>`
+            cfg_processor_name:
+                config section suffix in the :ref:`NLP config file
+                <nlp_config>`
 
             regex_str:
                 Regular expression, in string format.
@@ -522,12 +537,14 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
                 print the regex?
 
         """
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         variable=variable,
-                         target_unit=target_unit,
-                         regex_str_for_debugging=regex_str,
-                         commit=commit)
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            variable=variable,
+            target_unit=target_unit,
+            regex_str_for_debugging=regex_str,
+            commit=commit
+        )
         if debug:
             log.debug(f"Regex for {self.classname()}: {regex_str}")
         self.compiled_regex = compile_regex(regex_str)
@@ -607,7 +624,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
     """
     def __init__(self,
                  nlpdef: NlpDefinition,
-                 cfgsection: str,
+                 cfg_processor_name: str,
                  variable_name: str,  # e.g. "MMSE"
                  variable_regex_str: str,  # e.g. regex for MMSE
                  expected_denominator: int,
@@ -626,9 +643,9 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
         Args:
             nlpdef:
                 a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            cfgsection:
-                the name of a CRATE NLP config file section (from which we may
-                choose to get extra config information)
+            cfg_processor_name:
+                the suffix (name) of a CRATE NLP config file processor section
+                (from which we may choose to get extra config information)
             variable_name:
                 becomes the content of the ``variable_name`` output column
             variable_regex_str:
@@ -677,14 +694,16 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
             f"out_of_{expected_denominator}")
         self.take_absolute = take_absolute
 
-        super().__init__(nlpdef=nlpdef,
-                         cfgsection=cfgsection,
-                         commit=commit)
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit
+        )
         if nlpdef is None:  # only None for debugging!
             self.tablename = self.classname().lower()
         else:
-            self.tablename = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.DESTTABLE,
+            self.tablename = self._cfgsection.opt_str(
+                ProcessorConfigKeys.DESTTABLE,
                 required=True)
 
         regex_str = fr"""
@@ -968,15 +987,16 @@ class ValidatorBase(BaseNlpParser):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         """
         Args:
             nlpdef:
                 :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
 
-            cfgsection:
-                config section name in the :ref:`NLP config file <nlp_config>`
+            cfg_processor_name:
+                config section suffix in the :ref:`NLP config file
+                <nlp_config>`
 
             commit:
                 force a COMMIT whenever we insert data? You should specify this
@@ -984,8 +1004,12 @@ class ValidatorBase(BaseNlpParser):
         """
         validated_variable, regex_str_list = self.get_variablename_regexstrlist()  # noqa
         vname = f"{validated_variable}_validator"
-        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit,
-                         name=vname)
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            friendly_name=vname
+        )
         self.regex_str_list = regex_str_list  # for debugging only
         self.compiled_regex_list = [compile_regex(r) for r in regex_str_list]
         self.variable = vname
@@ -994,8 +1018,8 @@ class ValidatorBase(BaseNlpParser):
         if nlpdef is None:  # only None for debugging!
             self.tablename = self.classname().lower()
         else:
-            self.tablename = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.DESTTABLE,
+            self.tablename = self._cfgsection.opt_str(
+                ProcessorConfigKeys.DESTTABLE,
                 required=True)
 
     @classmethod

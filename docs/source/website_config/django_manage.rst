@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/website_config/django_manage.rst
+..  crate_anon/docs/source/website_config/django_manage.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -36,7 +36,7 @@ subcommands of
 
 The available commands are:
 
-..  literalinclude:: crate_django_manage_help.txt
+..  literalinclude:: _crate_django_manage_help.txt
     :language: none
 
 Particularly relevant functions are as follows.
@@ -49,7 +49,7 @@ changepassword
 
 Change a user's password from the command line.
 
-..  literalinclude:: crate_django_manage_changepassword_help.txt
+..  literalinclude:: _crate_django_manage_changepassword_help.txt
     :language: none
 
 
@@ -58,7 +58,7 @@ createsuperuser
 
 Create a superuser from the command line.
 
-..  literalinclude:: crate_django_manage_createsuperuser_help.txt
+..  literalinclude:: _crate_django_manage_createsuperuser_help.txt
     :language: none
 
 
@@ -74,7 +74,7 @@ research database. See
 This functionality is also available from the :ref`front-end web site, for
 RDBMs <rdbm_view_optouts>`.
 
-..  literalinclude:: crate_django_manage_fetch_optouts_help.txt
+..  literalinclude:: _crate_django_manage_fetch_optouts_help.txt
     :language: none
 
 
@@ -87,7 +87,7 @@ See
 This functionality is also available from the :ref`front-end web site, for
 developers <dev_lookup_consent_mode>`.
 
-..  literalinclude:: crate_django_manage_lookup_consent_help.txt
+..  literalinclude:: _crate_django_manage_lookup_consent_help.txt
     :language: none
 
 
@@ -100,7 +100,7 @@ See
 This functionality is also available from the :ref`front-end web site, for
 developers <dev_lookup_patient>`.
 
-..  literalinclude:: crate_django_manage_lookup_patient_help.txt
+..  literalinclude:: _crate_django_manage_lookup_patient_help.txt
     :language: none
 
 
@@ -115,7 +115,7 @@ See
 - :class:`crate_anon.crateweb.consent.management.commands.populate.Command`
 - :meth:`crate_anon.crateweb.consent.models.Leaflet.populate`
 
-..  literalinclude:: crate_django_manage_populate_help.txt
+..  literalinclude:: _crate_django_manage_populate_help.txt
     :language: none
 
 
@@ -125,7 +125,7 @@ resubmit_unprocessed_tasks
 Ask Celery to catch up on any unprocessed CRATE tasks. Use this with caution!
 See :func:`crate_anon.crateweb.consent.tasks.resubmit_unprocessed_tasks_task`.
 
-..  literalinclude:: crate_django_manage_resubmit_unprocessed_tasks_help.txt
+..  literalinclude:: _crate_django_manage_resubmit_unprocessed_tasks_help.txt
     :language: none
 
 
@@ -135,7 +135,7 @@ test_email
 Tests the backend and e-mail systems by sending an e-mail to the RDBM. Also
 available from the :ref:`front-end web site <rdbm_test_message_queue>`.
 
-..  literalinclude:: crate_django_manage_test_email_help.txt
+..  literalinclude:: _crate_django_manage_test_email_help.txt
     :language: none
 
 
@@ -146,7 +146,7 @@ email_rdbm
 
 E-mails the RDBM.
 
-..  literalinclude:: crate_django_manage_email_rdbm_help.txt
+..  literalinclude:: _crate_django_manage_email_rdbm_help.txt
     :language: none
 
 
@@ -160,7 +160,7 @@ runcpserver
 
 Launches the CherryPy web server.
 
-..  literalinclude:: crate_django_manage_runcpserver_help.txt
+..  literalinclude:: _crate_django_manage_runcpserver_help.txt
     :language: none
 
 
@@ -174,7 +174,7 @@ Copy relevant static files from their source location to the place that CRATE
 will serve them to users (or another front-end server, like Apache, will on its
 behalf). Needs to be run as part of site setup.
 
-..  literalinclude:: crate_django_manage_collectstatic_help.txt
+..  literalinclude:: _crate_django_manage_collectstatic_help.txt
     :language: none
 
 
@@ -185,5 +185,5 @@ runserver
 
 Launches the Django test web server.
 
-..  literalinclude:: crate_django_manage_runserver_help.txt
+..  literalinclude:: _crate_django_manage_runserver_help.txt
     :language: none

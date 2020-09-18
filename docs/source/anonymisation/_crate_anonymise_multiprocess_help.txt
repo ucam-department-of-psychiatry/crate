@@ -1,0 +1,12 @@
+usage: crate_anonymise_multiprocess [-h] [--nproc [NPROC]] [--verbose]
+
+Runs the CRATE anonymiser in parallel. Version 0.19.0 (2020-07-21). Note that
+all arguments not specified here are passed to the underlying script (see
+crate_anonymise --help).
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --nproc [NPROC], -n [NPROC]
+                        Number of processes (default is the number of CPUs on
+                        this machine)
+  --verbose, -v         Be verbose

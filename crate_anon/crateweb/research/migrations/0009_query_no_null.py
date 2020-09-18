@@ -9,11 +9,10 @@ class Migration(migrations.Migration):
         ('research', '0008_query_display'),
     ]
 
-    # noinspection PyPep8
     operations = [
         migrations.AddField(
             model_name='query',
             name='no_null',
-            field=models.BooleanField(default=False, verbose_name='Omit Null columns for this query when displayed'),
+            field=models.BooleanField(default=False, verbose_name='Omit Null columns for this query when displayed'),  # nopep8
         ),
     ]

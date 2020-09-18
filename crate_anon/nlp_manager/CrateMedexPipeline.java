@@ -206,13 +206,18 @@ public class CrateMedexPipeline {
 "  -o DIR           (*) Specifies the input directory to write results to.\n" +
 "\n" +
 "optional arguments:\n" +
-"  -h               Show this help message and exit.\n" +
+"  --help           Show this help message and exit.\n" +
+"  -h\n" +
+"\n" +
 "  -v               Verbose (use twice to be more verbose).\n" +
+"\n" +
 "  -lt LOGTAG       Use an additional tag for stderr logging.\n" +
 "                   Helpful in multiprocess environments.\n" +
+"\n" +
 "  -data_ready_signal DATA_READY\n" +
 "                   Sets the 'data ready' signal that this program waits for\n" +
 "                   on stdin before scanning for data.\n" +
+"\n" +
 "  -results_ready_signal RESULTS_READY\n" +
 "                   Sets the 'data ready' signal that this program sends on\n" +
 "                   stdout once results are ready on disk.\n" +
@@ -239,29 +244,37 @@ public class CrateMedexPipeline {
                     if (nleft < 1) fail(insufficient + arg);
                     m_input_dir = m_args[i++];
                     break;
+
                 case "-o":
                     if (nleft < 1) fail(insufficient + arg);
                     m_output_dir = m_args[i++];
                     break;
+
                 case "-h":
+                case "--help":
                     usage();
                     exit();
                     break;
+
                 case "-v":
                     m_verbose++;
                     break;
+
                 case "-lt":
                     if (nleft < 1) fail(insufficient + arg);
                     setLogTag(m_args[i++]);
                     break;
+
                 case "-data_ready_signal":
                     if (nleft < 1) fail(insufficient + arg);
                     m_data_ready_signal = m_args[i++];
                     break;
+
                 case "-results_ready_signal":
                     if (nleft < 1) fail(insufficient + arg);
                     m_results_ready_signal = m_args[i++];
                     break;
+
                 default:
                     usage();
                     abort();

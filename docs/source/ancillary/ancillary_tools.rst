@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/misc/ancillary_tools.rst
+..  crate_anon/docs/source/misc/ancillary_tools.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -39,7 +39,7 @@ crate_make_demo_database
 
 Options:
 
-..  literalinclude:: crate_make_demo_database_help.txt
+..  literalinclude:: _crate_make_demo_database_help.txt
     :language: none
 
 
@@ -50,7 +50,7 @@ crate_test_extract_text
 
 Options:
 
-..  literalinclude:: crate_test_extract_text_help.txt
+..  literalinclude:: _crate_test_extract_text_help.txt
     :language: none
 
 
@@ -61,18 +61,7 @@ crate_test_anonymisation
 
 Options:
 
-..  literalinclude:: crate_test_anonymisation_help.txt
-    :language: none
-
-
-.. _crate_estimate_mysql_memory_usage:
-
-crate_estimate_mysql_memory_usage
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Options:
-
-..  literalinclude:: crate_estimate_mysql_memory_usage_help.txt
+..  literalinclude:: _crate_test_anonymisation_help.txt
     :language: none
 
 

@@ -65,6 +65,7 @@ Speed testing:
 
 import argparse
 import csv
+import fileinput
 import json
 import logging
 import os
@@ -72,7 +73,6 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple, Generator, TYPE_CHECKING
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
-from cardinal_pythonlib.exceptions import die
 from cardinal_pythonlib.fileops import purge
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.sqlalchemy.core_query import count_star
@@ -89,13 +89,17 @@ from crate_anon.anonymise.constants import (
     SEP,
 )
 from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.nlp_manager.all_processors import (
     make_nlp_parser_unconfigured,
     possible_processor_names,
     possible_processor_table,
 )
-from crate_anon.nlp_manager.base_nlp_parser import TextProcessingFailed
+from crate_anon.nlp_manager.base_nlp_parser import (
+    BaseNlpParser,
+    TextProcessingFailed,
+)
 from crate_anon.nlp_manager.constants import (
     DEFAULT_REPORT_EVERY_NLP,
     MAX_STRING_PK_LENGTH,
@@ -280,29 +284,29 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     # large databases.
 
     log.info(f"delete_where_no_source: examining source table "
-             f"{ifconfig.get_srcdb()}.{ifconfig.get_srctable()}; MAY BE SLOW")
+             f"{ifconfig.srcdb}.{ifconfig.srctable}; MAY BE SLOW")
 
     # Start our list with the progress database
     databases = [DbInfo(
-        session=nlpdef.get_progdb_session(),
-        engine=nlpdef.get_progdb_engine(),
-        metadata=nlpdef.get_progdb_metadata(),
-        db=nlpdef.get_progdb(),
+        session=nlpdef.progressdb_session,
+        engine=nlpdef.progressdb_engine,
+        metadata=nlpdef.progressdb_metadata,
+        db=nlpdef.progdb,
         temptable=None
     )]
 
     # Add the processors' destination databases
-    for processor in nlpdef.get_processors():  # of type TableMaker
+    for processor in nlpdef.processors:  # of type TableMaker
         if isinstance(processor, Cloud) and not processor.available_remotely:
             continue
-        session = processor.get_session()
+        session = processor.dest_session
         if any(x.session == session for x in databases):
             continue  # already exists
         databases.append(DbInfo(
             session=session,
-            engine=processor.get_engine(),
-            metadata=processor.get_metadata(),
-            db=processor.get_destdb(),
+            engine=processor.dest_engine,
+            metadata=processor.dest_metadata,
+            db=processor.destdb,
         ))
 
     # Make a temporary table in each database (note: the Table objects become
@@ -311,7 +315,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     log.info("... dropping (if exists) and creating temporary table(s)")
     for database in databases:
         temptable = Table(
-            nlpdef.get_temporary_tablename(),
+            nlpdef.temporary_tablename,
             database.metadata,
             Column(FN_SRCPKVAL, BigInteger),  # not PK, as may be a hash
             Column(FN_SRCPKSTR, String(MAX_STRING_PK_LENGTH)),
@@ -323,7 +327,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
 
     # Insert PKs into temporary tables
 
-    n = count_star(ifconfig.get_source_session(), ifconfig.get_srctable())
+    n = count_star(ifconfig.source_session, ifconfig.srctable)
     log.info(f"... populating temporary table(s): {n} records to go; "
              f"working in chunks of {chunksize}")
     i = 0
@@ -358,11 +362,11 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     ifconfig.delete_progress_records_where_srcpk_not(prog_temptable)
 
     # Delete from others
-    for processor in nlpdef.get_processors():
+    for processor in nlpdef.processors:
         if isinstance(processor, Cloud) and not processor.available_remotely:
             continue
         database = [x for x in databases
-                    if x.session == processor.get_session()][0]
+                    if x.session == processor.dest_session][0]
         temptable = database.temptable
         processor.delete_where_srcpk_not(ifconfig, temptable)
 
@@ -402,7 +406,7 @@ def drop_remake(nlpdef: NlpDefinition,
     # -------------------------------------------------------------------------
     # 1. Progress database
     # -------------------------------------------------------------------------
-    progengine = nlpdef.get_progdb_engine()
+    progengine = nlpdef.progressdb_engine
     if not incremental:
         log.debug("Dropping progress tables")
         # noinspection PyUnresolvedReferences
@@ -416,7 +420,7 @@ def drop_remake(nlpdef: NlpDefinition,
     # -------------------------------------------------------------------------
 
     pretty_names = []  # type: List[str]
-    for processor in nlpdef.get_processors():
+    for processor in nlpdef.processors:
         if isinstance(processor, Cloud) and not processor.available_remotely:
             continue
         new_pretty_names = processor.make_tables(drop_first=not incremental)
@@ -429,7 +433,7 @@ def drop_remake(nlpdef: NlpDefinition,
     # -------------------------------------------------------------------------
     # 3. Delete WHERE NOT IN for incremental
     # -------------------------------------------------------------------------
-    for ifconfig in nlpdef.get_ifconfigs():
+    for ifconfig in nlpdef.inputfieldconfigs:
         with MultiTimerContext(timer, TIMING_DELETE_WHERE_NO_SOURCE):
             if incremental:
                 if not skipdelete:
@@ -469,17 +473,17 @@ def process_nlp(nlpdef: NlpDefinition,
         ntasks: how many tasks are there in total?
     """
     log.info(SEP + "NLP")
-    session = nlpdef.get_progdb_session()
-    if not nlpdef.get_noncloud_processors():
+    session = nlpdef.progressdb_session
+    if not nlpdef.noncloud_processors:
         errmsg = (
-            f"Can't use NLP definition {nlpdef.get_name()!r} as it has no "
+            f"Can't use NLP definition {nlpdef.name!r} as it has no "
             f"local processors (e.g. only has cloud processors). Specify the "
             f"cloud option to process via the cloud."
         )
         log.critical(errmsg)
         raise ValueError(errmsg)
 
-    for ifconfig in nlpdef.get_ifconfigs():
+    for ifconfig in nlpdef.inputfieldconfigs:
         i = 0  # record count within this process
         recnum = tasknum  # record count overall
         totalcount = ifconfig.get_count()  # total number of records in table
@@ -530,7 +534,7 @@ def process_nlp(nlpdef: NlpDefinition,
                     log.debug("Record is new")
 
             processor_failure = False
-            for processor in nlpdef.get_noncloud_processors():
+            for processor in nlpdef.noncloud_processors:
                 if incremental:
                     processor.delete_dest_record(ifconfig, pkval, pkstr,
                                                  commit=incremental)
@@ -548,8 +552,8 @@ def process_nlp(nlpdef: NlpDefinition,
             if processor_failure:
                 log.error(
                     f"At least one processor failed for this record "
-                    f"(srctable={ifconfig.get_srctable()!r}, "
-                    f"pkfield={ifconfig.get_srcpkfield()!r}, "
+                    f"(srctable={ifconfig.srctable!r}, "
+                    f"pkfield={ifconfig.srcpkfield!r}, "
                     f"pkval={pkval!r}, pkstr={pkstr!r}); "
                     f"not marking it as processed.")
                 continue
@@ -559,20 +563,20 @@ def process_nlp(nlpdef: NlpDefinition,
             truncated = other_values[TRUNCATED_FLAG]
             if not truncated or nlpdef.record_truncated_values:
                 if progrec:  # modifying an existing record
-                    progrec.whenprocessedutc = nlpdef.get_now()
+                    progrec.whenprocessedutc = nlpdef.now
                     progrec.srchash = srchash
                 else:  # creating a new record
                     progrec = NlpRecord(
                         # Quasi-key fields:
-                        srcdb=ifconfig.get_srcdb(),
-                        srctable=ifconfig.get_srctable(),
+                        srcdb=ifconfig.srcdb,
+                        srctable=ifconfig.srctable,
                         srcpkval=pkval,
                         srcpkstr=pkstr,
-                        srcfield=ifconfig.get_srcfield(),
-                        nlpdef=nlpdef.get_name(),
+                        srcfield=ifconfig.srcfield,
+                        nlpdef=nlpdef.name,
                         # Other fields:
-                        srcpkfield=ifconfig.get_srcpkfield(),
-                        whenprocessedutc=nlpdef.get_now(),
+                        srcpkfield=ifconfig.srcpkfield,
+                        whenprocessedutc=nlpdef.now,
                         srchash=srchash,
                     )
                     with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
@@ -740,13 +744,13 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
     """
     log.info(SEP + "NLP")
     nlpdef = crinfo.nlpdef
-    filename = crinfo.cloudcfg.data_filename()
+    filename = crinfo.cloudcfg.data_filename
     # Start with blank file
     open(filename, 'w').close()
     # Use append so that, if there's a problem part-way through, we don't lose
     # all data
     with open(filename, 'a') as request_data:
-        for ifconfig in nlpdef.get_ifconfigs():
+        for ifconfig in nlpdef.inputfieldconfigs:
             generated_text = ifconfig.gen_text()
             global_recnum = 0  # Global record number within this ifconfig
             # start = 0  # Start for first block
@@ -764,7 +768,7 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
                 for cloud_request in cloud_requests:
                     if cloud_request.queue_id:
                         request_data.write(
-                            f"{ifconfig.section},{cloud_request.queue_id}\n")
+                            f"{ifconfig.name},{cloud_request.queue_id}\n")
                     else:
                         log.warning("Sent request does not contain queue_id.")
                 # start += crinfo.cloudcfg.limit_before_commit
@@ -776,9 +780,9 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
     Try to retrieve the data from the cloud processors.
     """
     nlpdef = crinfo.nlpdef
-    session = nlpdef.get_progdb_session()
+    session = nlpdef.progressdb_session
     cloudcfg = crinfo.cloudcfg
-    filename = cloudcfg.data_filename()
+    filename = cloudcfg.data_filename
     if not os.path.exists(filename):
         log.error(f"File {filename!r} does not exist. "
                   f"Request may not have been sent.")
@@ -801,7 +805,8 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
         if if_section in ifconfig_cache:
             ifconfig = ifconfig_cache[if_section]
         else:
-            ifconfig = InputFieldConfig(nlpdef=nlpdef, section=if_section)
+            ifconfig = InputFieldConfig(nlpdef=nlpdef,
+                                        cfg_input_name=if_section)
             ifconfig_cache[if_section] = ifconfig
         seen_srchashs = []  # type: List[str]
         cloud_request = CloudRequestProcess(crinfo=crinfo)
@@ -841,20 +846,20 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
                 # Make a note in the progress database that we've processed
                 # a source record
                 if progrec:  # modifying an existing record
-                    progrec.whenprocessedutc = nlpdef.get_now()
+                    progrec.whenprocessedutc = nlpdef.now
                     progrec.srchash = srchash
                 else:  # creating a new record
                     progrec = NlpRecord(
                         # Quasi-key fields:
-                        srcdb=ifconfig.get_srcdb(),
-                        srctable=ifconfig.get_srctable(),
+                        srcdb=ifconfig.srcdb,
+                        srctable=ifconfig.srctable,
                         srcpkval=pkval,
                         srcpkstr=pkstr,
-                        srcfield=ifconfig.get_srcfield(),
-                        nlpdef=nlpdef.get_name(),
+                        srcfield=ifconfig.srcfield,
+                        nlpdef=nlpdef.name,
                         # Other fields:
-                        srcpkfield=ifconfig.get_srcpkfield(),
-                        whenprocessedutc=nlpdef.get_now(),
+                        srcpkfield=ifconfig.srcpkfield,
+                        whenprocessedutc=nlpdef.now,
                         srchash=srchash,
                     )
                     with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
@@ -891,8 +896,8 @@ def process_cloud_now(
     Process text by sending it off to the cloud processors in non-queued mode.
     """
     nlpdef = crinfo.nlpdef
-    session = nlpdef.get_progdb_session()
-    for ifconfig in nlpdef.get_ifconfigs():
+    session = nlpdef.progressdb_session
+    for ifconfig in nlpdef.inputfieldconfigs:
         global_recnum = 0  # Global record number within this ifconfig
         generated_text = ifconfig.gen_text()
         records_left = True
@@ -933,20 +938,20 @@ def process_cloud_now(
                     # Make a note in the progress database that we've processed
                     # a source record
                     if progrec:  # modifying an existing record
-                        progrec.whenprocessedutc = nlpdef.get_now()
+                        progrec.whenprocessedutc = nlpdef.now
                         progrec.srchash = srchash
                     else:  # creating a new record
                         progrec = NlpRecord(
                             # Quasi-key fields:
-                            srcdb=ifconfig.get_srcdb(),
-                            srctable=ifconfig.get_srctable(),
+                            srcdb=ifconfig.srcdb,
+                            srctable=ifconfig.srctable,
                             srcpkval=pkval,
                             srcpkstr=pkstr,
-                            srcfield=ifconfig.get_srcfield(),
-                            nlpdef=nlpdef.get_name(),
+                            srcfield=ifconfig.srcfield,
+                            nlpdef=nlpdef.name,
                             # Other fields:
-                            srcpkfield=ifconfig.get_srcpkfield(),
-                            whenprocessedutc=nlpdef.get_now(),
+                            srcpkfield=ifconfig.srcpkfield,
+                            whenprocessedutc=nlpdef.now,
                             srchash=srchash,
                         )
                     progrecs.add(progrec)
@@ -962,7 +967,7 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
     """
     Delete pending requests from the server's queue.
     """
-    nlpname = nlpdef.get_name()
+    nlpname = nlpdef.name
     cloudcfg = nlpdef.get_cloud_config_or_raise()
     cloud_request = CloudRequestQueueManagement(nlpdef=nlpdef)
 
@@ -977,7 +982,7 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
         return
     # Otherwise:
 
-    filename = cloudcfg.data_filename()
+    filename = cloudcfg.data_filename
     if not os.path.exists(filename):
         log.error(f"File {filename!r} does not exist. "
                   f"Request may not have been sent.")
@@ -1038,10 +1043,10 @@ def show_source_counts(nlpdef: NlpDefinition) -> None:
     """
     print("SOURCE TABLE RECORD COUNTS:")
     counts = []  # type: List[Tuple[str, int]]
-    for ifconfig in nlpdef.get_ifconfigs():
-        session = ifconfig.get_source_session()
-        dbname = ifconfig.get_srcdb()
-        tablename = ifconfig.get_srctable()
+    for ifconfig in nlpdef.inputfieldconfigs:
+        session = ifconfig.source_session
+        dbname = ifconfig.srcdb
+        tablename = ifconfig.srctable
         n = count_star(session, tablename)
         counts.append((f"{dbname}.{tablename}", n))
     print_record_counts(counts)
@@ -1057,9 +1062,9 @@ def show_dest_counts(nlpdef: NlpDefinition) -> None:
     """
     print("DESTINATION TABLE RECORD COUNTS:")
     counts = []  # type: List[Tuple[str, int]]
-    for processor in nlpdef.get_processors():
-        session = processor.get_session()
-        dbname = processor.get_dbname()
+    for processor in nlpdef.processors:
+        session = processor.dest_session
+        dbname = processor.dest_dbname
         for tablename in processor.get_tablenames():
             n = count_star(session, tablename)
             counts.append((f"DESTINATION: {dbname}.{tablename}", n))
@@ -1067,84 +1072,72 @@ def show_dest_counts(nlpdef: NlpDefinition) -> None:
 
 
 # =============================================================================
+# NLP testing
+# =============================================================================
+
+def test_nlp_stdin(nlpdef: NlpDefinition) -> None:
+    """
+    Tests NLP processor(s) by sending stdin to it/them.
+
+    Args:
+        nlpdef:
+            :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
+    """
+    processors = nlpdef.processors
+    processor_names = ", ".join(
+        p.friendly_name_with_section for p in processors)
+    log.info(f"Testing NLP processors: {processor_names}")
+    for p in processors:
+        assert isinstance(p, BaseNlpParser), (
+            "Testing only supported for local (non-cloud) NLP processors "
+            "for now."
+        )
+    prompt = "Please type a line of text to be processed."
+    log.warning(prompt)
+    for text in fileinput.input(files=["-"]):
+        text = text.strip()
+        if text:
+            log.info(f"INPUT: {text!r}")
+            result_found = False
+            for p in processors:  # type: BaseNlpParser
+                for tablename, valuedict in p.parse(text):
+                    result_found = True
+                    log.info(f"RESULT: {tablename}: {valuedict}")
+            if not result_found:
+                log.info("[No results.]")
+        else:
+            log.info("Ignoring blank line.")
+        log.warning(prompt)
+
+
+# =============================================================================
 # Main
 # =============================================================================
 
-def main() -> None:
+def inner_main() -> None:
     """
-    Command-line entry point. See command-line help.
+    Indirect command-line entry point. See command-line help.
     """
     version = f"Version {CRATE_VERSION} ({CRATE_VERSION_DATE})"
     description = f"NLP manager. {version}. By Rudolf Cardinal."
 
     # todo: better with a subcommand parser?
 
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument(
-        "--version", action="version", version=version)
-    parser.add_argument(
+
+    config_options = parser.add_argument_group("Config options")
+    config_options.add_argument(
         "--config",
         help=f"Config file (overriding environment variable "
              f"{NLP_CONFIG_ENV_VAR})")
-    parser.add_argument(
-        '--verbose', '-v', action='store_true',
-        help="Be verbose (use twice for extra verbosity)")
-    parser.add_argument(
-        "--nlpdef", nargs="?", default=None,
+    config_options.add_argument(
+        "--nlpdef",
         help="NLP definition name (from config file)")
-    parser.add_argument(
-        '--report_every_fast', nargs="?", type=int,
-        default=DEFAULT_REPORT_EVERY,
-        help=f"Report insert progress (for fast operations) every n rows in "
-             f"verbose mode (default {DEFAULT_REPORT_EVERY})")
-    parser.add_argument(
-        '--report_every_nlp', nargs="?", type=int,
-        default=DEFAULT_REPORT_EVERY_NLP,
-        help=f"Report progress for NLP every n rows in verbose mode "
-             f"(default {DEFAULT_REPORT_EVERY_NLP})")
-    parser.add_argument(
-        '--chunksize', nargs="?", type=int,
-        default=DEFAULT_CHUNKSIZE,
-        help=f"Number of records copied in a chunk when copying PKs from one "
-             f"database to another (default {DEFAULT_CHUNKSIZE})")
-    parser.add_argument(
-        "--process", nargs="?", type=int, default=0,
-        help="For multiprocess mode: specify process number")
-    parser.add_argument(
-        "--nprocesses", nargs="?", type=int, default=1,
-        help="For multiprocess mode: specify total number of processes "
-             "(launched somehow, of which this is to be one)")
-    parser.add_argument(
-        "--processcluster", default="",
-        help="Process cluster name")
-    parser.add_argument(
-        "--democonfig", action="store_true",
-        help="Print a demo config file")
-    parser.add_argument(
-        "--listprocessors", action="store_true",
-        help="Show possible built-in NLP processor names")
-    parser.add_argument(
-        "--describeprocessors", action="store_true",
-        help="Show details of built-in NLP processors")
-    parser.add_argument(
-        "--print_local_processors", action="store_true",
-        help="Show NLPRP JSON for local processors that are part of the "
-             "chosen NLP definition, then stop")
-    parser.add_argument(
-        "--print_cloud_processors", action="store_true",
-        help="Show NLPRP JSON for cloud (remote) processors that are part of "
-             "the chosen NLP definition, then stop")
-    parser.add_argument(
-        "--showinfo", required=False, nargs='?',
-        metavar="NLP_CLASS_NAME",
-        help="Show detailed information for a parser")
-    parser.add_argument(
-        "--count", action="store_true",
-        help="Count records in source/destination databases, then stop")
 
-    mode_group = parser.add_mutually_exclusive_group()
+    mode_group = config_options.add_mutually_exclusive_group()
     mode_group.add_argument(
         "-i", "--incremental", dest="incremental", action="store_true",
         help="Process only new/changed information, where possible "
@@ -1152,44 +1145,109 @@ def main() -> None:
     mode_group.add_argument(
         "-f", "--full", dest="incremental", action="store_false",
         help="Drop and remake everything")
-    parser.set_defaults(incremental=True)
+    config_options.set_defaults(incremental=True)
 
-    parser.add_argument(
+    config_options.add_argument(
         "--dropremake", action="store_true",
         help="Drop/remake destination tables only")
-    parser.add_argument(
+    config_options.add_argument(
         "--skipdelete", dest="skipdelete", action="store_true",
         help="For incremental updates, skip deletion of rows "
              "present in the destination but not the source")
-    parser.add_argument(
+    config_options.add_argument(
         "--nlp", action="store_true",
         help="Perform NLP processing only")
-    parser.add_argument(
+
+    config_options.add_argument(
+        '--chunksize', type=int, default=DEFAULT_CHUNKSIZE,
+        help=f"Number of records copied in a chunk when copying PKs from one "
+             f"database to another (default {DEFAULT_CHUNKSIZE})")
+
+    reporting_options = parser.add_argument_group("Reporting options")
+    reporting_options.add_argument(
+        '--verbose', '-v', action='store_true',
+        help="Be verbose (use twice for extra verbosity)")
+    reporting_options.add_argument(
+        '--report_every_fast', type=int, default=DEFAULT_REPORT_EVERY,
+        help=f"Report insert progress (for fast operations) every n rows in "
+             f"verbose mode (default {DEFAULT_REPORT_EVERY})")
+    reporting_options.add_argument(
+        '--report_every_nlp', type=int, default=DEFAULT_REPORT_EVERY_NLP,
+        help=f"Report progress for NLP every n rows in verbose mode "
+             f"(default {DEFAULT_REPORT_EVERY_NLP})")
+    reporting_options.add_argument(
         "--echo", action="store_true",
         help="Echo SQL")
-    parser.add_argument(
+    reporting_options.add_argument(
         "--timing", action="store_true",
         help="Show detailed timing breakdown")
-    parser.add_argument(
+
+    multiproc_options = parser.add_argument_group("Multiprocessing options")
+    multiproc_options.add_argument(
+        "--process", type=int, default=0,
+        help="For multiprocess mode: specify process number")
+    multiproc_options.add_argument(
+        "--nprocesses", type=int, default=1,
+        help="For multiprocess mode: specify total number of processes "
+             "(launched somehow, of which this is to be one)")
+    multiproc_options.add_argument(
+        "--processcluster", default="",
+        help="Process cluster name")
+
+    info_actions = parser.add_argument_group("Info actions")
+    info_actions.add_argument(
+        "--version", action="version", version=version)
+    info_actions.add_argument(
+        "--democonfig", action="store_true",
+        help="Print a demo config file")
+    info_actions.add_argument(
+        "--listprocessors", action="store_true",
+        help="Show possible built-in NLP processor names")
+    info_actions.add_argument(
+        "--describeprocessors", action="store_true",
+        help="Show details of built-in NLP processors")
+    info_actions.add_argument(
+        "--test_nlp", action="store_true",
+        help="Test the NLP processor(s) for the selected definition, "
+             "by sending text from stdin to them"
+    )
+    info_actions.add_argument(
+        "--print_local_processors", action="store_true",
+        help="Show NLPRP JSON for local processors that are part of the "
+             "chosen NLP definition, then stop")
+    info_actions.add_argument(
+        "--print_cloud_processors", action="store_true",
+        help="Show NLPRP JSON for cloud (remote) processors that are part of "
+             "the chosen NLP definition, then stop")
+    info_actions.add_argument(
+        "--showinfo", metavar="NLP_CLASS_NAME",
+        help="Show detailed information for a parser")
+    info_actions.add_argument(
+        "--count", action="store_true",
+        help="Count records in source/destination databases, then stop")
+
+    cloud_options = parser.add_argument_group("Cloud options")
+    cloud_options.add_argument(
         "--cloud", action="store_true",
         help="Use cloud-based NLP processing tools. Queued mode by default.")
-    parser.add_argument(
+    cloud_options.add_argument(
         "--immediate", action="store_true",
         help="To be used with 'cloud'. Process immediately.")
-    parser.add_argument(
+    cloud_options.add_argument(
         "--retrieve", action="store_true",
         help="Retrieve NLP data from cloud")
-    parser.add_argument(
+    cloud_options.add_argument(
         "--cancelrequest", action="store_true",
         help="Cancel pending requests for the nlpdef specified")
-    parser.add_argument(
+    cloud_options.add_argument(
         "--cancelall", action="store_true",
         help="Cancel all pending cloud requests. WARNING: this option "
              "cancels all pending requests - not just those for the nlp "
              "definition specified")
-    parser.add_argument(
+    cloud_options.add_argument(
         "--showqueue", action="store_true",
         help="Shows all pending cloud requests.")
+
     args = parser.parse_args()
 
     # Validate args
@@ -1214,6 +1272,8 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel, extranames=mynames)
 
+    # -------------------------------------------------------------------------
+    # Information/test options
     # -------------------------------------------------------------------------
 
     # Demo config?
@@ -1268,6 +1328,13 @@ def main() -> None:
         print_cloud_processors(nlpdef)
         return
 
+    # Test NLP processor via stdin?
+    if args.test_nlp:
+        test_nlp_stdin(nlpdef)
+        return
+
+    # -------------------------------------------------------------------------
+    # Cloud queue manipulation options
     # -------------------------------------------------------------------------
 
     # Delete from queue - do this before Drop/Remake and return so we don't
@@ -1282,6 +1349,10 @@ def main() -> None:
     if args.showqueue:
         show_cloud_queue(nlpdef)
         return
+
+    # -------------------------------------------------------------------------
+    # Main NLP options
+    # -------------------------------------------------------------------------
 
     crinfo = None  # type: Optional[CloudRunInfo]  # for type checker!
     if args.cloud or args.retrieve:
@@ -1310,29 +1381,25 @@ def main() -> None:
 
     # 2. NLP
     if args.nlp or everything:
-        try:
-            if args.cloud:
-                if args.immediate:
-                    process_cloud_now(
-                        crinfo,
-                        incremental=args.incremental,
-                        report_every=args.report_every_nlp)
-                else:
-                    process_cloud_nlp(crinfo,
-                                      incremental=args.incremental,
-                                      report_every=args.report_every_nlp)
-            elif args.retrieve:
-                retrieve_nlp_data(crinfo,
-                                  incremental=args.incremental)
+        if args.cloud:
+            if args.immediate:
+                process_cloud_now(
+                    crinfo,
+                    incremental=args.incremental,
+                    report_every=args.report_every_nlp)
             else:
-                process_nlp(nlpdef,
-                            incremental=args.incremental,
-                            report_every=args.report_every_nlp,
-                            tasknum=args.process,
-                            ntasks=args.nprocesses)
-        except Exception as exc:
-            log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
-            die(exc)
+                process_cloud_nlp(crinfo,
+                                  incremental=args.incremental,
+                                  report_every=args.report_every_nlp)
+        elif args.retrieve:
+            retrieve_nlp_data(crinfo,
+                              incremental=args.incremental)
+        else:
+            process_nlp(nlpdef,
+                        incremental=args.incremental,
+                        report_every=args.report_every_nlp,
+                        tasknum=args.process,
+                        ntasks=args.nprocesses)
 
     log.info("Finished")
     end = get_now_utc_pendulum()
@@ -1341,6 +1408,13 @@ def main() -> None:
 
     if args.timing:
         timer.report()
+
+
+def main() -> None:
+    """
+    Command-line entry point.
+    """
+    call_main_with_exception_reporting(inner_main)
 
 
 # =============================================================================

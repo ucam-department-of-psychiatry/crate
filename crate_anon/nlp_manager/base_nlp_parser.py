@@ -84,6 +84,7 @@ from crate_anon.version import CRATE_VERSION
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.interfaces import Dialect
+    from crate_anon.common.extendedconfigparser import ConfigSection
 
 log = logging.getLogger(__name__)
 
@@ -108,46 +109,56 @@ class TextProcessingFailed(Exception):
 
 class TableMaker(ABC):
     """
-    Base class for all CRATE NLP processors, including those that talk to
-    third-party software. Manages the interface to databases for results
-    storage, etc.
+    Base class for all CRATE NLP processors, local and cloud, including those
+    that talk to third-party software. Manages the interface to databases for
+    results storage, etc.
+
     """
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False,
-                 name: str = "?") -> None:
-        """
+                 friendly_name: str = "?") -> None:
+        r"""
+        ``__init__`` function for :class:`TableMaker`.
+
         Args:
             nlpdef:
-                a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            cfgsection:
-                the name of a CRATE NLP config file section, TO WHICH we will
-                add a "processor:" prefix (from which section we may choose to
-                get extra config information)
+                An instance of
+                :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`.
+
+            cfg_processor_name:
+                The name of a CRATE NLP config file section, TO WHICH we will
+                add a ``processor:`` prefix (from which section we may choose
+                to get extra config information).
+
             commit:
-                force a COMMIT whenever we insert data? You should specify this
+                Force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
-            name:
-                friendly name for the parser
+
+            friendly_name:
+                Friendly name for the parser.
         """
+        # NB This docstring was associated with Sphinx errors!
         self._nlpdef = nlpdef
-        self._cfgsection = cfgsection
+        self._cfg_processor_name = cfg_processor_name
         self._commit = commit
-        self._name = name
+        self._friendly_name = friendly_name
         self._destdb_name = None  # type: Optional[str]
         self._destdb = None  # type: Optional[DatabaseHolder]
-        if nlpdef is not None:
-            self._sectionname = full_sectionname(
-                NlpConfigPrefixes.PROCESSOR, cfgsection)
-            self._destdb_name = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.DESTDB, required=True)
-            self._destdb = nlpdef.get_database(self._destdb_name)
-        else:
+        if nlpdef is None:
             self._sectionname = ""
+            self._cfgsection = None  # type: Optional[ConfigSection]
             self._destdb_name = ""
             self._destdb = None  # type: Optional[DatabaseHolder]
+        else:
+            self._sectionname = full_sectionname(
+                NlpConfigPrefixes.PROCESSOR, cfg_processor_name)
+            self._cfgsection = nlpdef.get_config_section(self._sectionname)
+            self._destdb_name = self._cfgsection.opt_str(
+                ProcessorConfigKeys.DESTDB, required=True)
+            self._destdb = nlpdef.get_database(self._destdb_name)
 
     def __str__(self) -> str:
         return self.classname()
@@ -163,7 +174,7 @@ class TableMaker(ABC):
         return cls.__name__
 
     @classmethod
-    def fully_qualified_name(cls) -> str:
+    def fully_qualified_classname(cls) -> str:
         """
         Returns the class's fully qualified name.
         """
@@ -207,28 +218,32 @@ class TableMaker(ABC):
         """
         return {}
 
-    def get_metadata(self) -> MetaData:
+    @property
+    def dest_metadata(self) -> MetaData:
         """
         Returns the SQLAlchemy metadata for the destination database (which this
         NLP processor was told about at construction).
         """
         return self._destdb.metadata
 
-    def get_session(self) -> Session:
+    @property
+    def dest_session(self) -> Session:
         """
         Returns the SQLAlchemy ORM Session for the destination database (which
         this NLP processor was told about at construction).
         """
         return self._destdb.session
 
-    def get_engine(self) -> Engine:
+    @property
+    def dest_engine(self) -> Engine:
         """
         Returns the SQLAlchemy database Engine for the destination database
         (which this NLP processor was told about at construction).
         """
         return self._destdb.engine
 
-    def get_nlpdef_name(self) -> Optional[str]:
+    @property
+    def nlpdef_name(self) -> Optional[str]:
         """
         Returns the name of our
         :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`, if we
@@ -236,26 +251,29 @@ class TableMaker(ABC):
         """
         if self._nlpdef is None:
             return None
-        return self._nlpdef.get_name()
+        return self._nlpdef.name
 
-    def get_parser_name(self) -> str:
+    @property
+    def friendly_name(self) -> str:
         """
         Returns the NLP parser's friendly name
         """
-        return self._name
+        return self._friendly_name
 
-    def get_dbname(self) -> str:
+    @property
+    def friendly_name_with_section(self) -> str:
         """
-        Returns the friendly name for the destination database (which this NLP
-        processor was told about at construction).
+        Returns the NLP parser's friendly name and config section.
+        """
+        return f"{self._friendly_name} [{self._sectionname}]"
+
+    @property
+    def dest_dbname(self) -> str:
+        """
+        Returns the friendly (config file) name for the destination database
+        (which this NLP processor was told about at construction).
         """
         return self._destdb_name
-
-    def get_cfgsection(self) -> str:
-        """
-        Returns the cfgsection the class was created with.
-        """
-        return self._cfgsection
 
     @staticmethod
     def _assert_no_overlap(description1: str, cols1: List[Column],
@@ -387,7 +405,7 @@ class TableMaker(ABC):
         processor.
         """
         # Obtain a single set of copy columns
-        ifconfigs = self._nlpdef.get_ifconfigs()
+        ifconfigs = self._nlpdef.inputfieldconfigs
         assert ifconfigs, "Must specify a list of InputFieldConfigs"
         assert self._destdb, "Cannot use tables() call without a database"
 
@@ -400,7 +418,7 @@ class TableMaker(ABC):
                                 "source", core_columns)
 
         # Create one or more tables
-        meta = self.get_metadata()
+        meta = self.dest_metadata
         tables = {}  # Dict[str, Table]
         t_columns = self.dest_tables_columns()
         for tablename, extra_dest_cols in t_columns.items():
@@ -469,7 +487,7 @@ class TableMaker(ABC):
             drop_first: drop the tables first?
         """
         assert self._destdb, "No database specified!"
-        engine = self.get_engine()
+        engine = self.dest_engine
         tables = self.tables()
         pretty_names = []  # type: List[str]
         for t in tables.values():
@@ -508,12 +526,12 @@ class TableMaker(ABC):
                 See e.g.
                 http://dev.mysql.com/doc/refman/5.5/en/innodb-deadlocks.html
         """  # noqa
-        session = self.get_session()
-        srcdb = ifconfig.get_srcdb()
-        srctable = ifconfig.get_srctable()
-        srcfield = ifconfig.get_srcfield()
+        session = self.dest_session
+        srcdb = ifconfig.srcdb
+        srctable = ifconfig.srctable
+        srcfield = ifconfig.srcfield
         destdb_name = self._destdb.name
-        nlpdef_name = self._nlpdef.get_name()
+        nlpdef_name = self._nlpdef.name
         for tablename, desttable in self.tables().items():
             log.debug(f"delete_from_dest_dbs... {srcdb}.{srctable} -> "
                       f"{destdb_name}.{tablename}")
@@ -553,10 +571,10 @@ class TableMaker(ABC):
                 this table. Otherwise, we delete *all* NLP destination records
                 from the source column.
         """
-        destsession = self.get_session()
-        srcdb = ifconfig.get_srcdb()
-        srctable = ifconfig.get_srctable()
-        srcfield = ifconfig.get_srcfield()
+        destsession = self.dest_session
+        srcdb = ifconfig.srcdb
+        srctable = ifconfig.srctable
+        srcfield = ifconfig.srcfield
         for desttable_name, desttable in self.tables().items():
             log.debug(f"delete_where_srcpk_not... {srcdb}.{srctable} -> "
                       f"{self._destdb_name}.{desttable_name}")
@@ -567,7 +585,7 @@ class TableMaker(ABC):
                 where(desttable.c._srcdb == srcdb).
                 where(desttable.c._srctable == srctable).
                 where(desttable.c._srcfield == srcfield).
-                where(desttable.c._nlpdef == self._nlpdef.get_name())
+                where(desttable.c._nlpdef == self._nlpdef.name)
             )
             if temptable is not None:
                 log.debug("... deleting selectively")
@@ -601,7 +619,8 @@ class TableMaker(ABC):
             destsession.execute(dest_deletion_query)
             self._nlpdef.commit(destsession)
 
-    def get_destdb(self) -> DatabaseHolder:
+    @property
+    def destdb(self) -> DatabaseHolder:
         """
         Returns the destination database.
         """
@@ -613,12 +632,16 @@ class TableMaker(ABC):
 # =============================================================================
 
 class BaseNlpParser(TableMaker):
+    """
+    Base class for all local CRATE NLP parsers.
+    """
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False,
-                 name: str = "?") -> None:
-        super().__init__(nlpdef, cfgsection, commit, name=name)
+                 friendly_name: str = "?") -> None:
+        super().__init__(nlpdef, cfg_processor_name, commit,
+                         friendly_name=friendly_name)
 
     # -------------------------------------------------------------------------
     # NLP processing
@@ -631,7 +654,8 @@ class BaseNlpParser(TableMaker):
         Main parsing function.
 
         Args:
-            text: the raw text to parse
+            text:
+                the raw text to parse
 
         Yields:
             tuple: ``tablename, valuedict``, where ``valuedict`` is
@@ -674,8 +698,8 @@ class BaseNlpParser(TableMaker):
             # log.warning(f"No word characters found in {text}")
             # ... the warning occurs frequently so slows down processing
             return
-        starting_fields_values[FN_NLPDEF] = self._nlpdef.get_name()
-        session = self.get_session()
+        starting_fields_values[FN_NLPDEF] = self._nlpdef.name
+        session = self.dest_session
         n_values = 0
         with MultiTimerContext(timer, TIMING_PARSE):
             for tablename, nlp_values in self.parse(text):
@@ -708,17 +732,21 @@ class BaseNlpParser(TableMaker):
                     )
                     n_values += 1
         log.debug(
-            f"NLP processor {self.get_nlpdef_name()}/{self.get_parser_name()}:"
+            f"NLP processor {self.nlpdef_name}/{self.friendly_name}:"
             f" found {n_values} values")
 
     @abstractmethod
     def test(self, verbose: bool = False) -> None:
-        """
+        r"""
         Performs a self-test on the NLP processor.
 
         Args:
-            verbose: be verbose?
+            verbose:
+                Be verbose?
+
+        This is an abstract method that is subclassed.
         """
+        # NB This docstring was associated with Sphinx errors!
         raise NotImplementedError(f"No test function for regex class: "
                                   f"{self.classname()}")
 
@@ -743,9 +771,10 @@ class BaseNlpParser(TableMaker):
         <nlprp>` format, which follows ``INFORMATION_SCHEMA.COLUMNS`` closely.
 
         Args:
-            column: the :class:`Column`
-            sql_dialect: preferred SQL dialect for response, or ``None`` for
-                a default
+            column:
+                the :class:`Column`
+            sql_dialect:
+                preferred SQL dialect for response, or ``None`` for a default
         """
         sql_dialect = sql_dialect or DEFAULT_NLPRP_SQL_DIALECT
         assert sql_dialect in ALL_SQL_DIALECTS, (
@@ -776,7 +805,8 @@ class BaseNlpParser(TableMaker):
         external schema information (e.g. GATE processors).
 
         Args:
-            sql_dialect: preferred SQL dialect for ``tabular_schema``
+            sql_dialect:
+                preferred SQL dialect for ``tabular_schema``
         """
         sql_dialect = sql_dialect or DEFAULT_NLPRP_SQL_DIALECT
         tabular_schema = {}  # type: Dict[str, List[Dict[str, Any]]]
@@ -802,7 +832,7 @@ class BaseNlpParser(TableMaker):
         highly unlikely to clash with any other NLP processors on a given
         server.
         """
-        return cls.fully_qualified_name()
+        return cls.fully_qualified_classname()
 
     @classmethod
     def nlprp_title(cls) -> str:
@@ -872,7 +902,8 @@ class BaseNlpParser(TableMaker):
         external schema information (e.g. GATE processors).
 
         Args:
-            sql_dialect: preferred SQL dialect for ``tabular_schema``
+            sql_dialect:
+                preferred SQL dialect for ``tabular_schema``
         """
         return self.nlprp_server_processor(sql_dialect).infodict
 
@@ -885,11 +916,13 @@ class BaseNlpParser(TableMaker):
         This is primarily for debugging.
 
         Args:
-            indent: number of spaces for indentation
-            sort_keys: sort keys?
-            sql_dialect: preferred SQL dialect for ``tabular_schema``, or
-                ``None`` for default
+            indent:
+                number of spaces for indentation
+            sort_keys:
+                sort keys?
+            sql_dialect:
+                preferred SQL dialect for ``tabular_schema``, or ``None`` for
+                default
         """
         json_structure = self.nlprp_processor_info(sql_dialect=sql_dialect)
         return json.dumps(json_structure, indent=indent, sort_keys=sort_keys)
-

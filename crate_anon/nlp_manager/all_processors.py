@@ -28,6 +28,10 @@ crate_anon/nlp_manager/all_processors.py
 
 """
 
+# I don't know why the PyCharm inspector goes haywire and thinks that a bunch
+# of these imports are unused. But that's the reason for all the
+# "noinspection PyUnresolvedReferences" comments.
+
 from inspect import isabstract
 # noinspection PyUnresolvedReferences
 import logging
@@ -138,7 +142,7 @@ def all_parser_classes() -> List[Type[BaseNlpParser]]:
                 f"with the same lower-case name already exists")
         lower_case_short_names.add(lc_sname)
 
-        lc_fname = cls.fully_qualified_name().lower()
+        lc_fname = cls.fully_qualified_classname().lower()
         if lc_fname in lower_case_full_names:
             raise ValueError(
                 f"Trying to add NLP processor {lc_fname!r} but a processor "
@@ -173,14 +177,14 @@ def get_nlp_parser_class(classname: str) -> Optional[Type[TableMaker]]:
     classes = all_tablemaker_classes()
     for cls in classes:
         if (cls.classname().lower() == classname or
-                cls.fully_qualified_name().lower() == classname):
+                cls.fully_qualified_classname().lower() == classname):
             return cls
     return None
 
 
 def make_nlp_parser(classname: str,
                     nlpdef: NlpDefinition,
-                    cfgsection: str) -> TableMaker:
+                    cfg_processor_name: str) -> TableMaker:
     """
     Fetch an NLP processor instance by name.
 
@@ -189,10 +193,10 @@ def make_nlp_parser(classname: str,
             the name of the processor
         nlpdef:
             a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-        cfgsection:
-            the name of a CRATE NLP config file section, passed to the NLP
-            parser as we create it (for it to get extra config information if
-            it wishes)
+        cfg_processor_name:
+            the name (suffix) of a CRATE NLP config file section, passed to the
+            NLP parser as we create it (for it to get extra config information
+            if it wishes)
 
     Returns:
         an NLP processor instance whose class name matches (in case-insensitive
@@ -204,7 +208,10 @@ def make_nlp_parser(classname: str,
     """
     cls = get_nlp_parser_class(classname)
     if cls:
-        return cls(nlpdef=nlpdef, cfgsection=cfgsection)
+        return cls(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name
+        )
     raise ValueError(f"Unknown NLP processor type: {classname!r}")
 
 
@@ -224,7 +231,7 @@ def make_nlp_parser_unconfigured(classname: str,
     """
     cls = get_nlp_parser_class(classname)
     if cls:
-        return cls(nlpdef=None, cfgsection=None)
+        return cls(nlpdef=None, cfg_processor_name=None)
     if raise_if_absent:
         raise ValueError(f"Unknown NLP processor type: {classname!r}")
     return None

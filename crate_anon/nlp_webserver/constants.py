@@ -39,19 +39,20 @@ SERVER_VERSION = '0.1'
 
 
 class NlpServerConfigKeys(object):
+    _SQLALCHEMY_PREFIX = "sqlalchemy."
+
     BACKEND_URL = "backend_url"
     BROKER_URL = "broker_url"
     ENCRYPTION_KEY = "encryption_key"
-    USERS_FILE = "users_file"
     NLP_WEBSERVER_SECRET = "nlp_webserver.secret"
     PROCESSORS_PATH = "processors_path"
-    SQLALCHEMY_PREFIX = "sqlalchemy."
-    SQLALCHEMY_URL = SQLALCHEMY_PREFIX + "url"
-    SQLALCHEMY_ECHO = SQLALCHEMY_PREFIX + "echo"
-    REDIS_PASSWORD = "redis_password"
-    REDIS_HOST = "redis_host"
-    REDIS_PORT = "redis_port"
     REDIS_DB_NUMBER = "redis_db_number"
+    REDIS_HOST = "redis_host"
+    REDIS_PASSWORD = "redis_password"
+    REDIS_PORT = "redis_port"
+    SQLALCHEMY_ECHO = _SQLALCHEMY_PREFIX + "echo"
+    SQLALCHEMY_URL = _SQLALCHEMY_PREFIX + "url"
+    USERS_FILE = "users_file"
 
 
 SQLALCHEMY_COMMON_OPTIONS = {

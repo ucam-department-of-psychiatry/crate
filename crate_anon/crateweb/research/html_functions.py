@@ -35,9 +35,8 @@ import textwrap
 from typing import Any, Dict, Iterable, List, Optional, Pattern
 
 from cardinal_pythonlib.django.function_cache import django_cache_function
-from django.contrib.staticfiles.templatetags.staticfiles import static
+from django.templatetags.static import static
 from django.utils.html import escape
-# from django.template import loader
 from django.template.defaultfilters import linebreaksbr
 from pygments import highlight
 from pygments.lexers.sql import SqlLexer
@@ -544,8 +543,8 @@ def prettify_sql_css() -> str:
 
 
 def prettify_sql_and_args(sql: str,
-                          sql_not_formatted: bool = True,
                           args: List[Any] = None,
+                          sql_not_formatted: bool = True,
                           reformat: bool = False,
                           indent_width: int = 4) -> str:
     """
@@ -553,8 +552,8 @@ def prettify_sql_and_args(sql: str,
 
     Args:
         sql: SQL text
-        sql_not_formatted: is the sql already highlighted and formatted?
         args: optional list of arguments
+        sql_not_formatted: is the sql already highlighted and formatted?
         reformat: reformat the layout?
         indent_width: if reformatting, what indent should we use?
 
@@ -600,8 +599,9 @@ def make_collapsible_sql_query(sql: Optional[str],
     sql = str(sql)
     xlen = len(sql)
     n_lines = len(sql.split('\n'))
-    formatted = prettify_sql_and_args(sql, sql_not_formatted,
-                                      args, reformat=False)
+    formatted = prettify_sql_and_args(sql, args,
+                                      sql_not_formatted=sql_not_formatted,
+                                      reformat=False)
     # x = linebreaksbr(escape(x))
     if ((collapse_at_len and xlen >= collapse_at_len) or
             (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):

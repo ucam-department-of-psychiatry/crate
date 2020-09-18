@@ -6,7 +6,6 @@ import crate_anon.crateweb.consent.storage
 from django.db import migrations, models
 
 
-# noinspection PyPep8
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -27,26 +26,26 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='emailattachment',
             name='file',
-            field=models.FileField(storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/srv/crate_filestorage'), upload_to=''),
+            field=models.FileField(storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/srv/crate_filestorage'), upload_to=''),  # nopep8
         ),
         migrations.AlterField(
             model_name='leaflet',
             name='pdf',
-            field=cardinal_pythonlib.django.fields.restrictedcontentfile.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/srv/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.leaflet_upload_to),
+            field=cardinal_pythonlib.django.fields.restrictedcontentfile.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/srv/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.leaflet_upload_to),  # nopep8
         ),
         migrations.AlterField(
             model_name='letter',
             name='pdf',
-            field=models.FileField(storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/srv/crate_filestorage'), upload_to=''),
+            field=models.FileField(storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/srv/crate_filestorage'), upload_to=''),  # nopep8
         ),
         migrations.AlterField(
             model_name='study',
             name='study_details_pdf',
-            field=cardinal_pythonlib.django.fields.restrictedcontentfile.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/srv/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.study_details_upload_to),
+            field=cardinal_pythonlib.django.fields.restrictedcontentfile.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/srv/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.study_details_upload_to),  # nopep8
         ),
         migrations.AlterField(
             model_name='study',
             name='subject_form_template_pdf',
-            field=cardinal_pythonlib.django.fields.restrictedcontentfile.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/srv/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.study_form_upload_to),
+            field=cardinal_pythonlib.django.fields.restrictedcontentfile.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/srv/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.study_form_upload_to),  # nopep8
         ),
     ]

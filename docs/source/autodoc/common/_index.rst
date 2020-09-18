@@ -33,6 +33,8 @@ crate_anon/common
     __init__.py.rst
     bugfix_flashtext.py.rst
     constants.py.rst
+    dockerfunc.py.rst
+    exceptions.py.rst
     extendedconfigparser.py.rst
     file_io.py.rst
     formatting.py.rst
@@ -41,3 +43,4 @@ crate_anon/common
     profiling.py.rst
     sql.py.rst
     stringfunc.py.rst
+    sysops.py.rst

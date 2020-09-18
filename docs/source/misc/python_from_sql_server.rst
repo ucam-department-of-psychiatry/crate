@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/misc/python_from_sql_server.rst
+..  crate_anon/docs/source/misc/python_from_sql_server.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .

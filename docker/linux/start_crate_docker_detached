@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# docker/linux/start_crate_docker_detached
+#
+# Launches the Docker Compose application in detached (daemon) mode.
+
+set -e
+
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+DOCKER_COMPOSE_DIR="${THIS_DIR}/../dockerfiles"
+
+# We must change directory to pick up ".env" etc.
+
+cd "${DOCKER_COMPOSE_DIR}"
+
+# Having done so, the default Docker Compose filenames include
+# docker-compose.yaml, so we don't need to specify that.
+
+docker-compose up -d

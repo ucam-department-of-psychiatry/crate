@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/nlp/medex.rst
+..  crate_anon/docs/source/nlp/medex.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -114,7 +114,7 @@ crate_nlp_build_medex_java_interface
 
 Options:
 
-..  literalinclude:: crate_nlp_build_medex_java_interface_help.txt
+..  literalinclude:: _crate_nlp_build_medex_java_interface_help.txt
     :language: none
 
 
@@ -126,7 +126,7 @@ the UK.
 
 Options:
 
-..  literalinclude:: crate_nlp_build_medex_itself_help.txt
+..  literalinclude:: _crate_nlp_build_medex_itself_help.txt
     :language: none
 
 
@@ -138,12 +138,13 @@ The following specimen script assumes specific locations for the compiled Java
 
 Asking `CrateMedexPipeline` to show its command-line options:
 
-.. literalinclude:: show_crate_medex_pipeline_options.sh
-    :language: bash
+.. code-block:: bash
+
+    crate_show_crate_medex_pipeline_options
 
 The resulting output:
 
-..  literalinclude:: CrateMedexPipeline_help.txt
+..  literalinclude:: _CrateMedexPipeline_help.txt
     :language: none
 
 

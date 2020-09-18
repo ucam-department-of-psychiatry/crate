@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/changelog.rst
+..  crate_anon/docs/source/changelog.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -17,6 +17,10 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
+.. include:: <isonum.txt>
+.. https://docutils.sourceforge.io/docs/ref/rst/definitions.html
+.. but see also site-packages/docutils/parsers/rst/include
+
 
 Change log/history
 ==================
@@ -34,6 +38,7 @@ Quick links:
 - :ref:`2017 <changelog_2017>`
 - :ref:`2018 <changelog_2018>`
 - :ref:`2019 <changelog_2019>`
+- :ref:`2020 <changelog_2020>`
 
 
 Changes
@@ -543,8 +548,8 @@ Changes
 
 **v0.18.49, 2018-01-07, 2018-03-21, 2018-03-27, published 2018-04-20**
 
-- Use ``flashtext`` (rather than ``regex``) for blacklisting words; this is
-  much faster and allows large blacklists (e.g. a long list of all known
+- Use ``flashtext`` (rather than ``regex``) for denylisting words; this is
+  much faster and allows large denylists (e.g. a long list of all known
   forenames/surnames).
 
 - Provides the ``crate_fetch_wordlists`` tool to fetch names and English words
@@ -1221,6 +1226,12 @@ Changes
 - Bugfix to
   :func:`crate_anon.anonymise.anonymise.process_nonpatient_tables`.
 
+
+.. _changelog_2020:
+
+2020
+~~~~
+
 **v0.18.96, 2020-01-07**
 
 - Security fixes for external dependencies:
@@ -1259,6 +1270,33 @@ Changes
 
 - Downgrade Django as most recent version was not compatible.
 
+**0.18.99, 2020-04-28 to 2020-07-20**
+
+- More efficient simple postcode regex in
+  :func:`crate_anon.anonymise.anonregex.get_uk_postcode_regex_elements`.
+
+- Fuzzy ID matching work.
+
+- Neutral language review, as per https://lkml.org/lkml/2020/7/4/229:
+
+  - ``blacklist`` |rarr| ``denylist``, verb "deny", noun "denial",
+    jargon verb "denylist", jargon adjective "denylisted".
+  - ``whitelist`` |rarr| ``allowlist``, verb "allow", noun "allowing" (not
+    "allowance"; that sense only in the late 15th century, according to the
+    OED; "allowing" as a noun is a gerund or verbal noun; example in UK
+    legislation at
+    https://www.legislation.gov.uk/ukpga/1955/26/pdfs/ukpga_19550026_en.pdf);
+    jargon verb "allowlist", jargon adjective "allowlisted".
+
+  - Tidy up config file processing as part of this work.
+
+- Bump Pillow from 6.2.0 to 7.2.0. Bump Django from 2.2.11 to 2.2.14.
+
+**0.19.0, 2020-07-21**
+
+- Django 3 and multiple other internal package upgrades.
+
+- Basic Docker operation.
 
 
 ===============================================================================

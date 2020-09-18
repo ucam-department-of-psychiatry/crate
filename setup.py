@@ -122,7 +122,6 @@ THIS_DIR = os.path.abspath(os.path.dirname(__file__))  # .../crate
 CRATE_ROOT_DIR = os.path.join(THIS_DIR, "crate_anon")  # .../crate/crate_anon/
 DOC_ROOT_DIR = os.path.join(THIS_DIR, "docs")
 DOC_HTML_DIR = os.path.join(DOC_ROOT_DIR, "build", "html")
-# noinspection PyUnresolvedReferences
 EGG_DIR = os.path.join(THIS_DIR, "crate_anon.egg-info")
 
 # Files
@@ -139,67 +138,72 @@ with open(os.path.join(THIS_DIR, "README.rst"), encoding="utf-8") as f:
 
 # Package dependencies
 INSTALL_REQUIRES = [
-    "amqp==2.3.2",  # amqp is used by Celery
-    "appdirs==1.4.3",  # where to store some temporary data
-    "arrow==0.12.1",  # [pin exact version from cardinal_pythonlib]
-    "beautifulsoup4==4.6.0",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.0.85",  # RNC libraries
-    "cairosvg==2.4.0",  # work with SVG files
-    "celery==4.0.1",  # 4.0.1 is the highest that"ll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
+    "amqp==2.6.0",  # amqp is used by Celery
+    "appdirs==1.4.4",  # where to store some temporary data
+    "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
+    "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
+    "cardinal_pythonlib==1.0.94",  # RNC libraries
+    "cairosvg==2.4.2",  # work with SVG files
+    "celery==4.4.6",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
-    "cherrypy==16.0.2",  # Cross-platform web server
-    "colorlog==3.1.4",  # colour in logs
-    "distro==1.3.0",  # replaces platform.linux_distribution
-    "django==2.2.11",
-    "django-debug-toolbar==1.10.1",  # Django debug toolbar
-    # "django-debug-toolbar-template-profiler==1.0.1",  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
-    "django-extensions==2.0.7",  # for graph_models, show_urls etc.
-    "django-picklefield==1.0.0",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
-    # "django-silk==0.5.7",  # Django profiler
-    "django-sslserver==0.20",  # SSL development server for Django
+    "cherrypy==18.6.0",  # Cross-platform web server
+    "colorlog==4.1.0",  # colour in logs
+    "distro==1.5.0",  # replaces platform.linux_distribution
+    "django==3.0.8",  # for main CRATE research database web server
+    "django-debug-toolbar==3.0a2",  # Django debug toolbar
+    # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa
+    "django-extensions==3.0.3",  # for graph_models, show_urls etc.
+    "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
+    # "django-silk==4.0.1",  # Django profiler
+    "django-sslserver==0.22",  # SSL development server for Django
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
-    "flower==0.9.2",  # debug Celery; web server; only runs explicitly
+    "flower==0.9.5",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
-    "gunicorn==19.8.1",  # UNIX only, though will install under Windows
-    "kombu==4.1.0",  # AMQP library for Celery; requires VC++ under Windows
-    "mako==1.0.7",  # templates with Python in
-    "MarkupSafe==1.0",  # for HTML escaping
-    # "mmh3==2.2"  # MurmurHash, for fast non-cryptographic hashing
-    "openpyxl==2.5.4",  # read Excel
-    "pendulum==2.0.2",  # dates/times
-    "pillow==6.2.0",  # image processing; import as PIL (Python Imaging Library)  # noqa
+    "gunicorn==20.0.4",  # UNIX only, though will install under Windows
+    "kombu==4.6.11",  # AMQP library for Celery; requires VC++ under Windows
+    "mako==1.1.3",  # templates with Python in
+    "MarkupSafe==1.1.1",  # for HTML escaping
+    # mmh3 requires VC++
+    "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa
+    "openpyxl==3.0.4",  # read Excel
+    "pendulum==2.1.1",  # dates/times
+    "pillow==7.2.0",  # image processing; import as PIL (Python Imaging Library)  # noqa
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==0.7.2",  # pretty formating of text-based tables
-    "psutil==5.6.6",  # process management
+    "psutil==5.7.2",  # process management
     "pygments==2.6.1",  # syntax highlighting
-    "pyparsing==2.2.0",  # generic grammar parser
+    "pyparsing==2.4.7",  # generic grammar parser
     "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]
-    "pytz==2018.5",  # timezones
-    "python-dateutil==2.6.1",  # [pin exact version from cardinal_pythonlib]
-    # "python-docx==0.8.5",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
+    "pytz==2020.1",  # timezones
+    "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
+    # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
-    "regex==2018.6.21",  # better regexes (cf. re)
-    "semantic_version==2.6.0",  # semantic versioning; better than semver
-    "sortedcontainers==2.0.4",  # for SortedSet
-    "SQLAlchemy==1.3.6",  # database access
-    "sqlparse==0.2.4",  # [pin exact version from cardinal_pythonlib]
-    "unidecode==1.0.22",  # for removing accents
-    "xlrd==1.1.0",  # for ONS postcode database handling; read Excel files
+    "regex==2020.7.14",  # better regexes (cf. re)
+    "semantic_version==2.8.5",  # semantic versioning; better than semver
+    "sortedcontainers==2.2.2",  # for SortedSet
+    "SQLAlchemy==1.3.18",  # database access
+    "sqlparse==0.3.1",  # [pin exact version from cardinal_pythonlib]
+    "unidecode==1.1.1",  # for removing accents
+    "xlrd==1.2.0",  # for ONS postcode database handling; read Excel files
 
     # Packages for cloud NLP:
-    "bcrypt==3.1.6",  # bcrypt encryption
-    "cryptography==2.5",  # cryptography librar
+    "bcrypt==3.1.7",  # bcrypt encryption
+    "cryptography==3.0",  # cryptography library
     # "mysqlclient",  # database access
-    "paste==3.0.6",  # middleware; https://github.com/cdent/paste/
-    "pyramid==1.10.2",  # Pyramid web framework
-    "pyramid_tm==2.2.1",  # Pyramid transaction management
-    "redis==3.2.1",  # interface to Redis in-memory key-value database
-    "requests==2.21.0",  # HTTP requests
-    "tornado==4.2",  # web framework
-    "transaction==2.4.0",  # generic transaction management
-    "urllib3==1.24.2",  # used by requests
-    "waitress==1.4.3",  # pure-Python WSGI server
-    "zope.sqlalchemy==1.1",  # Zope/SQLAlchemy transaction integration
+    "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
+    "pyramid==1.10.4",  # Pyramid web framework
+    "pyramid_tm==2.4",  # Pyramid transaction management
+    "redis==3.5.3",  # interface to Redis in-memory key-value database
+    "requests==2.24.0",  # HTTP requests
+    "tornado==6.0.4",  # web framework
+    "transaction==3.0.0",  # generic transaction management
+    "urllib3==1.25.9",  # used by requests
+    "waitress==1.4.4",  # pure-Python WSGI server
+    "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
+
+    # For development only:
+    "sphinx==3.1.2",  # documentation
+    "sphinx_rtd_theme==0.5.0",  # documentation
 
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
@@ -225,10 +229,6 @@ if RUNNING_WINDOWS:
         # Windows-specific stuff
         "pypiwin32==223",
     ]
-
-DEVELOPMENT_ONLY_REQUIRES = [
-    "sphinx==1.7.5",  # documentation
-]
 
 
 # =============================================================================
@@ -286,7 +286,7 @@ if getattr(our_args, EXTRAS_ARG):
     add_all_files(os.path.join(CRATE_ROOT_DIR, 'nlp_manager'),
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)
-    # ... for the Java
+    # ... for the Java and .ini files
     add_all_files(os.path.join(CRATE_ROOT_DIR, 'testdocs_for_text_extraction'),
                   extra_files, relative_to=THIS_DIR,
                   skip_patterns=SKIP_PATTERNS)
@@ -390,8 +390,8 @@ setup(
             "crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main",
 
             # Linkage
-            "crate_fuzzy_id_match=crate_anon.linkage.fuzzy_id_match:main",
             "crate_bulk_hash=crate_anon.linkage.bulk_hash:main",
+            "crate_fuzzy_id_match=crate_anon.linkage.fuzzy_id_match:main",
 
             # Anonymisation
 
@@ -409,13 +409,20 @@ setup(
             "crate_nlp_build_medex_itself=crate_anon.nlp_manager.build_medex_itself:main",  # noqa
             "crate_nlp_build_medex_java_interface=crate_anon.nlp_manager.build_medex_java_interface:main",  # noqa
             "crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main",  # noqa
+            "crate_nlp_prepare_ymls_for_bioyodie=crate_anon.nlp_manager.prepare_umls_for_bioyodie:main",  # noqa
+            "crate_run_gate_annie_demo=crate_anon.nlp_manager.run_gate_annie_demo:main",  # noqa
+            "crate_run_gate_kcl_kconnect_demo=crate_anon.nlp_manager.run_gate_kcl_kconnect_demo:main",  # noqa
+            "crate_run_gate_kcl_lewy_demo=crate_anon.nlp_manager.run_gate_kcl_lewy_demo:main",  # noqa
+            "crate_run_gate_kcl_pharmacotherapy_demo=crate_anon.nlp_manager.run_gate_kcl_pharmacotherapy_demo:main",  # noqa
+            "crate_show_crate_gate_pipeline_options=crate_anon.nlp_manager.show_crate_gate_pipeline_options:main",  # noqa
+            "crate_show_crate_medex_pipeline_options=crate_anon.nlp_manager.show_crate_medex_pipeline_options:main",  # noqa
 
             # Web site
 
-            "crate_django_manage=crate_anon.crateweb.manage:main",  # will cope with argv  # noqa
-            "crate_generate_new_django_secret_key=cardinal_pythonlib.django.tools.generate_new_django_secret_key:main",  # noqa
             "crate_celery_status=crate_anon.tools.celery_status:main",
+            "crate_django_manage=crate_anon.crateweb.manage:main",  # will cope with argv  # noqa
             "crate_email_rdbm=crate_anon.tools.email_rdbm:main",
+            "crate_generate_new_django_secret_key=cardinal_pythonlib.django.tools.generate_new_django_secret_key:main",  # noqa
             "crate_launch_celery=crate_anon.tools.launch_celery:main",
             "crate_launch_flower=crate_anon.tools.launch_flower:main",
             "crate_print_demo_crateweb_config=crate_anon.tools.print_crateweb_demo_config:main",  # noqa
@@ -429,22 +436,16 @@ setup(
             # deal with the CherryPy special environment variable
             "crate_launch_django_server=crate_anon.crateweb.manage:runserver",
 
-            # Miscellaneous, from cardinal_pythonlib
-
-            "crate_estimate_mysql_memory_usage=cardinal_pythonlib.tools.estimate_mysql_memory_usage:main",  # noqa
-            "crate_list_all_extensions=cardinal_pythonlib.tools.list_all_extensions:main",  # noqa
-            "crate_merge_csv=cardinal_pythonlib.tools.merge_csv:main",
-
             # NLP web server
 
-            "crate_nlp_webserver_initialize_db=crate_anon.nlp_webserver.initialize_db:main",  # noqa
-            "crate_nlp_webserver_print_demo=crate_anon.nlp_webserver.print_demos:main",  # noqa
-            "crate_nlp_webserver_manage_users=crate_anon.nlp_webserver.manage_users:main",  # noqa
             "crate_nlp_webserver_generate_encryption_key=crate_anon.nlp_webserver.security:generate_encryption_key",  # noqa
-            "crate_nlp_webserver_pserve=pyramid.scripts.pserve:main",  # noqa
-            "crate_nlp_webserver_launch_gunicorn=crate_anon.tools.launch_nlp_webserver_gunicorn:main",  # noqa
+            "crate_nlp_webserver_initialize_db=crate_anon.nlp_webserver.initialize_db:main",  # noqa
             "crate_nlp_webserver_launch_celery=crate_anon.tools.launch_nlp_webserver_celery:main",  # noqa
             "crate_nlp_webserver_launch_flower=crate_anon.tools.launch_nlp_webserver_flower:main",  # noqa
+            "crate_nlp_webserver_launch_gunicorn=crate_anon.tools.launch_nlp_webserver_gunicorn:main",  # noqa
+            "crate_nlp_webserver_manage_users=crate_anon.nlp_webserver.manage_users:main",  # noqa
+            "crate_nlp_webserver_print_demo=crate_anon.nlp_webserver.print_demos:main",  # noqa
+            "crate_nlp_webserver_pserve=pyramid.scripts.pserve:main",  # noqa
 
         ],
         # Entry point for nlp webserver

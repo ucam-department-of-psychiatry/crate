@@ -379,7 +379,7 @@ class DataDictionaryRow(object):
         Return the ``alter_method`` string from the working fields.
         """
         return ",".join(filter(
-            None, (x.get_text() for x in self._alter_methods)))
+            None, (x.as_text for x in self._alter_methods)))
 
     @alter_method.setter
     def alter_method(self, value: str) -> None:
@@ -461,7 +461,7 @@ class DataDictionaryRow(object):
         """
         Defines an order of DDRs based on their source field's signature.
         """
-        return self.get_signature() < other.get_signature()
+        return self.src_signature < other.src_signature
 
     def matches_tabledef(self, tabledef: Union[str, List[str]]) -> bool:
         """
@@ -495,29 +495,32 @@ class DataDictionaryRow(object):
         return ", ".join([f"{a}: {getattr(self, a)}"
                           for a in DataDictionaryRow.ROWNAMES])
 
-    def get_signature(self) -> str:
+    @property
+    def src_signature(self) -> str:
         """
         Returns a signature based on the source database/table/field, in the
         format ``db.table.column``.
         """
         return f"{self.src_db}.{self.src_table}.{self.src_field}"
 
-    def get_dest_signature(self) -> str:
+    @property
+    def dest_signature(self) -> str:
         """
         Returns a signature based on the destination table/field, in the format
         ``table.column``.
         """
         return f"{self.dest_table}.{self.dest_field}"
 
-    def get_offender_description(self) -> str:
+    @property
+    def offender_description(self) -> str:
         """
         Get a string used to describe this DDR (in terms of its
         source/destination fields) if it does something wrong.
         """
         offenderdest = (
-            "" if not self.omit else f" -> {self.get_dest_signature()}"
+            "" if not self.omit else f" -> {self.dest_signature}"
         )
-        return f"{self.get_signature()}{offenderdest}"
+        return f"{self.src_signature}{offenderdest}"
 
     def get_tsv(self) -> str:
         """
@@ -550,6 +553,7 @@ class DataDictionaryRow(object):
         if self.src_is_textual:
             dialect = self.config.get_src_dialect(self.src_db)
             # Get length of field if text field (otherwise this remains 'None')
+            # noinspection PyUnresolvedReferences
             self.src_textlength = crate_anon.common.sql.coltype_length_if_text(
                 self.src_datatype, dialect.name)
         # noinspection PyAttributeOutsideInit
@@ -578,12 +582,14 @@ class DataDictionaryRow(object):
     # Anonymisation decisions
     # -------------------------------------------------------------------------
 
+    @property
     def being_scrubbed(self) -> bool:
         """
         Is the field being scrubbed as it passes from source to destination?
         """
         return any(am.scrub for am in self._alter_methods)
 
+    @property
     def contains_patient_info(self) -> bool:
         """
         Does the field contain patient information? That means any of:
@@ -594,6 +600,7 @@ class DataDictionaryRow(object):
         """
         return self._primary_pid or self._master_pid or bool(self.scrub_src)
 
+    @property
     def contains_vital_patient_info(self) -> bool:
         """
         Does the field contain vital patient information? That means:
@@ -602,6 +609,7 @@ class DataDictionaryRow(object):
         """
         return bool(self.scrub_src)
 
+    @property
     def required(self) -> bool:
         """
         Is the field required? That means any of:
@@ -609,8 +617,8 @@ class DataDictionaryRow(object):
         - chosen by the user to be translated into the destination
         - contains vital patient information (scrub-source information)
         """
-        # return not self.omit or self.contains_patient_info()
-        return not self.omit or self.contains_vital_patient_info()
+        # return not self.omit or self.contains_patient_info
+        return not self.omit or self.contains_vital_patient_info
 
     def skip_row_by_value(self, value: Any) -> bool:
         """
@@ -629,7 +637,8 @@ class DataDictionaryRow(object):
             return True
         return False
 
-    def get_alter_methods(self) -> List[AlterMethod]:
+    @property
+    def alter_methods(self) -> List[AlterMethod]:
         """
         Return all alteration methods to be applied.
 
@@ -640,6 +649,7 @@ class DataDictionaryRow(object):
         """
         return self._alter_methods
 
+    @property
     def skip_row_if_extract_text_fails(self) -> bool:
         """
         Should we skip the row if processing the row involves extracting text
@@ -647,7 +657,8 @@ class DataDictionaryRow(object):
         """
         return any(x.skip_if_text_extract_fails for x in self._alter_methods)
 
-    def get_extracting_text_altermethods(self) -> List[AlterMethod]:
+    @property
+    def extracting_text_altermethods(self) -> List[AlterMethod]:
         """
         Return all alteration methods that involve text extraction.
 
@@ -664,7 +675,7 @@ class DataDictionaryRow(object):
         """
         log.debug(
             f"remove_scrub_from_alter_methods [used for non-patient tables]: "
-            f"{self.get_signature()}")
+            f"{self.src_signature}")
         for sm in self._alter_methods:
             sm.scrub = False
 
@@ -672,6 +683,7 @@ class DataDictionaryRow(object):
     # Other decisions
     # -------------------------------------------------------------------------
 
+    @property
     def using_fulltext_index(self) -> bool:
         """
         Should the destination field have a full-text index?
@@ -682,7 +694,8 @@ class DataDictionaryRow(object):
     # SQLAlchemy types
     # -------------------------------------------------------------------------
 
-    def get_src_sqla_coltype(self) -> TypeEngine:
+    @property
+    def src_sqla_coltype(self) -> TypeEngine:
         """
         Returns the SQLAlchemy column type of the source column.
         """
@@ -695,11 +708,12 @@ class DataDictionaryRow(object):
         """
         self._src_sqla_coltype = sqla_coltype
 
-    def get_dest_sqla_coltype(self) -> TypeEngine:
+    @property
+    def dest_sqla_coltype(self) -> TypeEngine:
         """
         Returns the SQLAlchemy column type of the destination column.
         """
-        dialect = self.config.get_dest_dialect()
+        dialect = self.config.dest_dialect
         if self.dest_datatype:
             # User (or our autogeneration process) wants to override
             # the type.
@@ -711,17 +725,18 @@ class DataDictionaryRow(object):
             # Will be autoconverted to the destination dialect.
             # With some exceptions, addressed as below:
             return convert_sqla_type_for_dialect(
-                coltype=self.get_src_sqla_coltype(),
+                coltype=self.src_sqla_coltype,
                 dialect=dialect,
-                expand_for_scrubbing=self.being_scrubbed())
+                expand_for_scrubbing=self.being_scrubbed)
 
-    def get_dest_sqla_column(self) -> Column:
+    @property
+    def dest_sqla_column(self) -> Column:
         """
         Returns an SQLAlchemy :class:`sqlalchemy.sql.schema.Column` for the
         destination column.
         """
         name = self.dest_field
-        coltype = self.get_dest_sqla_coltype()
+        coltype = self.dest_sqla_coltype
         comment = self.comment or ''
         kwargs = {
             'doc': comment,
@@ -752,7 +767,7 @@ class DataDictionaryRow(object):
             self._check_valid()
         except (AssertionError, ValueError):
             log.exception(
-                f"Offending DD row [{self.get_offender_description()}]: "
+                f"Offending DD row [{self.offender_description}]: "
                 f"{str(self)}")
             raise
 
@@ -770,7 +785,7 @@ class DataDictionaryRow(object):
         """
         if self.dest_field in prohibited_fieldnames:
             log.exception(
-                f"Offending DD row [{self.get_offender_description()}]: "
+                f"Offending DD row [{self.offender_description}]: "
                 f"{str(self)}")
             raise ValueError("Prohibited dest_field name")
 
@@ -788,10 +803,10 @@ class DataDictionaryRow(object):
         if not self.omit:
             assert self.dest_table, "Need dest_table"
             assert self.dest_field, "Need dest_field"
-        src_sqla_coltype = self.get_src_sqla_coltype()
-        dest_sqla_coltype = self.get_dest_sqla_coltype()
+        src_sqla_coltype = self.src_sqla_coltype
+        dest_sqla_coltype = self.dest_sqla_coltype
 
-        if self.src_db not in self.config.get_source_db_names():
+        if self.src_db not in self.config.source_db_names:
             raise ValueError(
                 "Data dictionary row references non-existent source "
                 "database")
@@ -1112,8 +1127,7 @@ class DataDictionaryRow(object):
         elif self.matches_fielddef(dbconf.ddgen_filename_to_text_fields):
             self._alter_methods.append(AlterMethod(config=self.config,
                                                    extract_from_filename=True))
-            self.dest_datatype = giant_text_sqltype(
-                self.config.get_dest_dialect())
+            self.dest_datatype = giant_text_sqltype(self.config.dest_dialect)
             extracting_text = True
         elif self.matches_fielddef(dbconf.bin2text_dict.keys()):
             for binfielddef, extfield in dbconf.bin2text_dict.items():
@@ -1122,8 +1136,7 @@ class DataDictionaryRow(object):
                         config=self.config,
                         extract_from_blob=True,
                         extract_ext_field=extfield))
-            self.dest_datatype = giant_text_sqltype(
-                self.config.get_dest_dialect())
+            self.dest_datatype = giant_text_sqltype(self.config.dest_dialect)
             extracting_text = True
         elif (not self._primary_pid and
               not self._master_pid and
@@ -1174,7 +1187,7 @@ class DataDictionaryRow(object):
         # ---------------------------------------------------------------------
         # Should we index the destination?
         # ---------------------------------------------------------------------
-        dest_sqla_type = self.get_dest_sqla_coltype()
+        dest_sqla_type = self.dest_sqla_coltype
         if self._pk:
             self.index = INDEX.UNIQUE
         elif (self._primary_pid or

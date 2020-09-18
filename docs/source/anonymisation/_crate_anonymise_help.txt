@@ -1,0 +1,103 @@
+usage: crate_anonymise [-h] [--config CONFIG] [--verbose] [--version]
+                       [--democonfig]
+                       [--checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]]
+                       [--draftdd] [--incrementaldd] [--count] [-i | -f]
+                       [--skipdelete] [--dropremake] [--optout]
+                       [--nonpatienttables] [--patienttables] [--index]
+                       [--restrict RESTRICT] [--limits LIMITS LIMITS]
+                       [--file FILE] [--list LIST [LIST ...]]
+                       [--free_text_limit FREE_TEXT_LIMIT] [--excludescrubbed]
+                       [--process [PROCESS]] [--nprocesses [NPROCESSES]]
+                       [--processcluster PROCESSCLUSTER] [--skip_dd_check]
+                       [--seed SEED] [--chunksize [CHUNKSIZE]]
+                       [--reportevery [REPORTEVERY]] [--debugscrubbers]
+                       [--savescrubbers] [--echo]
+
+Database anonymiser. Version 0.19.0 (2020-07-21). By Rudolf Cardinal.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --config CONFIG       Config file (overriding environment variable
+                        CRATE_ANON_CONFIG) (default: None)
+  --verbose, -v         Be verbose (default: False)
+
+Simple commands not requiring a config:
+  --version             show program's version number and exit
+  --democonfig          Print a demo config file (default: False)
+  --checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]
+                        File extensions to check for availability of a text
+                        extractor (use a '.' prefix, and use the special
+                        extension 'None' to check the fallback processor
+                        (default: None)
+
+Simple commands requiring a config:
+  --draftdd             Print a draft data dictionary (default: False)
+  --incrementaldd       Print an INCREMENTAL draft data dictionary (default:
+                        False)
+  --count               Count records in source/destination databases, then
+                        stop (default: False)
+
+Mode options:
+  -i, --incremental     Process only new/changed information, where possible
+                        (* default) (default: True)
+  -f, --full            Drop and remake everything (default: True)
+  --skipdelete          For incremental updates, skip deletion of rows present
+                        in the destination but not the source (default: False)
+
+Action options (default is to do all, but if any are specified, only those are done):
+  --dropremake          Drop/remake destination tables. (default: False)
+  --optout              Update opt-out list in administrative database.
+                        (default: False)
+  --nonpatienttables    Process non-patient tables only (default: False)
+  --patienttables       Process patient tables only (default: False)
+  --index               Create indexes only (default: False)
+
+Restriction options:
+  --restrict RESTRICT   Restrict which patients are processed. Specify which
+                        field to base the restriction on or 'pid' for patient
+                        ids. (default: None)
+  --limits LIMITS LIMITS
+                        Specify lower and upper limits of the field specified
+                        in '--restrict' (default: None)
+  --file FILE           Specify a file with a list of values for the field
+                        specified in '--restrict' (default: None)
+  --list LIST [LIST ...]
+                        Specify a list of values for the field specified in '
+                        --restrict' (default: None)
+  --free_text_limit FREE_TEXT_LIMIT
+                        Filter out all free text fields over the specified
+                        length. For example, if you specify 200, then
+                        VARCHAR(200) fields will be permitted, but
+                        VARCHAR(200), or VARCHAR(MAX), or TEXT (etc., etc.)
+                        fields will be excluded. (default: None)
+  --excludescrubbed     Exclude all text fields which are being scrubbed.
+                        (default: False)
+
+Processing options:
+  --process [PROCESS]   For multiprocess mode: specify process number
+                        (default: 0)
+  --nprocesses [NPROCESSES]
+                        For multiprocess mode: specify total number of
+                        processes (launched somehow, of which this is to be
+                        one) (default: 1)
+  --processcluster PROCESSCLUSTER
+                        Process cluster name (used as part of log name)
+                        (default: )
+  --skip_dd_check       Skip data dictionary validity check (default: False)
+  --seed SEED           String to use as the basis of the seed for the random
+                        number generator used for the transient integer RID
+                        (TRID). Leave blank to use the default seed (system
+                        time). (default: None)
+  --chunksize [CHUNKSIZE]
+                        Number of records copied in a chunk when copying PKs
+                        from one database to another (default: 100000)
+
+Reporting and debugging:
+  --reportevery [REPORTEVERY]
+                        Report insert progress every n rows in verbose mode
+                        (default: 100000)
+  --debugscrubbers      Report sensitive scrubbing information, for debugging
+                        (default: False)
+  --savescrubbers       Saves sensitive scrubbing information in admin
+                        database, for debugging (default: False)
+  --echo                Echo SQL (default: False)

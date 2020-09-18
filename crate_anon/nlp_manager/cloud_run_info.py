@@ -78,7 +78,7 @@ class CloudRunInfo(object):
         """
         if self._local_processors is None:
             self._local_processors = [
-                p for p in self.nlpdef.get_processors()
+                p for p in self.nlpdef.processors
                 if isinstance(p, Cloud)
             ]
         return self._local_processors

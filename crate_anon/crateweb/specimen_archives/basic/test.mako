@@ -61,7 +61,7 @@ cursor = execute(sql)  # or: context["query"](sql)
     <li><a href="${get_attachment_url("doctest.pdf", guess_content_type=False)}">doctest.pdf</a> (force generic Content-Type)</li>
     <li><a href="${get_attachment_url("subdir/doctest2.pdf", content_type=ContentType.PDF)}">subdir/doctest2.pdf</a> (from subdirectory)</li>
     <li><a href="${get_attachment_url("/etc/passwd")}">/etc/passwd</a> (will fail)</li>
-    <li><a href="${get_attachment_url("../whitelist.txt")}">../whitelist.txt</a> (will fail)</li>
+    <li><a href="${get_attachment_url("../allowlist.txt")}">../allowlist.txt</a> (will fail)</li>
 </ul>
 
 <p>Autocreated "all files" list, via more sophisticated embedded Python:</p>

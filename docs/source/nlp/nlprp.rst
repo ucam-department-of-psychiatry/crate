@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/nlp/nlprp.rst
+..  crate_anon/docs/source/nlp/nlprp.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -1330,7 +1330,7 @@ this:
 
 .. rst-class:: nlprprequest
 
-  .. literalinclude:: nlprp_test_client.py
+  .. literalinclude:: _nlprp_test_client.py
      :language: python
 
 
@@ -1342,7 +1342,7 @@ and then you can run this:
 
 .. rst-class:: nlprpresponse
 
-  .. literalinclude:: nlprp_test_server.py
+  .. literalinclude:: _nlprp_test_server.py
      :language: python
 
 

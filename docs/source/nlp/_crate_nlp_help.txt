@@ -1,0 +1,79 @@
+usage: crate_nlp [-h] [--config CONFIG] [--nlpdef NLPDEF] [-i | -f]
+                 [--dropremake] [--skipdelete] [--nlp] [--chunksize CHUNKSIZE]
+                 [--verbose] [--report_every_fast REPORT_EVERY_FAST]
+                 [--report_every_nlp REPORT_EVERY_NLP] [--echo] [--timing]
+                 [--process PROCESS] [--nprocesses NPROCESSES]
+                 [--processcluster PROCESSCLUSTER] [--version] [--democonfig]
+                 [--listprocessors] [--describeprocessors] [--test_nlp]
+                 [--print_local_processors] [--print_cloud_processors]
+                 [--showinfo NLP_CLASS_NAME] [--count] [--cloud] [--immediate]
+                 [--retrieve] [--cancelrequest] [--cancelall] [--showqueue]
+
+NLP manager. Version 0.19.0 (2020-07-21). By Rudolf Cardinal.
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Config options:
+  --config CONFIG       Config file (overriding environment variable
+                        CRATE_NLP_CONFIG)
+  --nlpdef NLPDEF       NLP definition name (from config file)
+  -i, --incremental     Process only new/changed information, where possible
+                        (* default)
+  -f, --full            Drop and remake everything
+  --dropremake          Drop/remake destination tables only
+  --skipdelete          For incremental updates, skip deletion of rows present
+                        in the destination but not the source
+  --nlp                 Perform NLP processing only
+  --chunksize CHUNKSIZE
+                        Number of records copied in a chunk when copying PKs
+                        from one database to another (default 100000)
+
+Reporting options:
+  --verbose, -v         Be verbose (use twice for extra verbosity)
+  --report_every_fast REPORT_EVERY_FAST
+                        Report insert progress (for fast operations) every n
+                        rows in verbose mode (default 100000)
+  --report_every_nlp REPORT_EVERY_NLP
+                        Report progress for NLP every n rows in verbose mode
+                        (default 500)
+  --echo                Echo SQL
+  --timing              Show detailed timing breakdown
+
+Multiprocessing options:
+  --process PROCESS     For multiprocess mode: specify process number
+  --nprocesses NPROCESSES
+                        For multiprocess mode: specify total number of
+                        processes (launched somehow, of which this is to be
+                        one)
+  --processcluster PROCESSCLUSTER
+                        Process cluster name
+
+Info actions:
+  --version             show program's version number and exit
+  --democonfig          Print a demo config file
+  --listprocessors      Show possible built-in NLP processor names
+  --describeprocessors  Show details of built-in NLP processors
+  --test_nlp            Test the NLP processor(s) for the selected definition,
+                        by sending text from stdin to them
+  --print_local_processors
+                        Show NLPRP JSON for local processors that are part of
+                        the chosen NLP definition, then stop
+  --print_cloud_processors
+                        Show NLPRP JSON for cloud (remote) processors that are
+                        part of the chosen NLP definition, then stop
+  --showinfo NLP_CLASS_NAME
+                        Show detailed information for a parser
+  --count               Count records in source/destination databases, then
+                        stop
+
+Cloud options:
+  --cloud               Use cloud-based NLP processing tools. Queued mode by
+                        default.
+  --immediate           To be used with 'cloud'. Process immediately.
+  --retrieve            Retrieve NLP data from cloud
+  --cancelrequest       Cancel pending requests for the nlpdef specified
+  --cancelall           Cancel all pending cloud requests. WARNING: this
+                        option cancels all pending requests - not just those
+                        for the nlp definition specified
+  --showqueue           Shows all pending cloud requests.

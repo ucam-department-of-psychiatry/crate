@@ -51,14 +51,16 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql.schema import ForeignKey
 # noinspection PyPackageRequirements
-from zope.sqlalchemy import ZopeTransactionExtension
+from zope.sqlalchemy import register
 
 
 # =============================================================================
 # SQLAlchemy setup
 # =============================================================================
 
-Session = sessionmaker(extension=ZopeTransactionExtension())
+# Session = sessionmaker(extension=ZopeTransactionExtension())
+Session = sessionmaker()
+register(Session)
 dbsession = scoped_session(Session)
 
 Base = declarative_base()

@@ -51,6 +51,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import and_, column, exists, null, or_, select, table
 from sqlalchemy.sql.schema import MetaData
 
+from crate_anon.common.parallel import is_my_job_by_hash_prehashed
 from crate_anon.nlp_manager.constants import (
     FN_CRATE_VERSION_FIELD,
     FN_WHEN_FETCHED,
@@ -69,14 +70,11 @@ from crate_anon.nlp_manager.constants import (
     MAX_SEMANTIC_VERSION_STRING_LENGTH,
     MAX_STRING_PK_LENGTH,
 )
-from crate_anon.common.parallel import is_my_job_by_hash_prehashed
 from crate_anon.nlp_manager.constants import (
     full_sectionname,
     SqlTypeDbIdentifier,
 )
 from crate_anon.nlp_manager.models import NlpRecord
-# if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
-#     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
 from crate_anon.nlp_manager.nlp_definition import (
     NlpConfigPrefixes,
     NlpDefinition,
@@ -102,7 +100,8 @@ class InputFieldConfig(object):
     See the documentation for the :ref:`NLP config file <nlp_config>`.
     """
 
-    def __init__(self, nlpdef: NlpDefinition, section: str) -> None:
+    def __init__(self, nlpdef: NlpDefinition,
+                 cfg_input_name: str) -> None:
         """
         Read config from a configparser section, and also associate with a
         specific NLP definition.
@@ -112,47 +111,32 @@ class InputFieldConfig(object):
                 :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`,
                 the master NLP definition, referring to the master config file
                 etc.
-            section:
+            cfg_input_name:
                 config section name for the input field definition
         """
-        sectionname = full_sectionname(NlpConfigPrefixes.INPUT, section)
-
-        def opt_str(option: str, required: bool = True) -> str:
-            return nlpdef.opt_str(sectionname, option, required=required)
-
-        def opt_strlist(option: str,
-                        required: bool = False,
-                        lower: bool = True) -> List[str]:
-            return nlpdef.opt_strlist(sectionname, option, as_words=False,
-                                      lower=lower, required=required)
-
-        def opt_int(option: str, default: Optional[int]) -> Optional[int]:
-            return nlpdef.opt_int(sectionname, option, default=default)
-
-        # def opt_bool(option: str, default: bool) -> bool:
-        #     return nlpdef.opt_bool(section, option, default=default)
+        self.name = cfg_input_name
+        cfg = nlpdef.get_config_section(
+            full_sectionname(NlpConfigPrefixes.INPUT, cfg_input_name)
+        )
 
         self._nlpdef = nlpdef
 
-        self._srcdb = opt_str(InputFieldConfigKeys.SRCDB)
-        self._srctable = opt_str(InputFieldConfigKeys.SRCTABLE)
-        self._srcpkfield = opt_str(InputFieldConfigKeys.SRCPKFIELD)
-        self._srcfield = opt_str(InputFieldConfigKeys.SRCFIELD)
-        self._srcdatetimefield = opt_str(InputFieldConfigKeys.SRCDATETIMEFIELD,
-                                         required=False)  # new in v0.18.52
+        self._srcdb = cfg.opt_str(InputFieldConfigKeys.SRCDB)
+        self._srctable = cfg.opt_str(InputFieldConfigKeys.SRCTABLE)
+        self._srcpkfield = cfg.opt_str(InputFieldConfigKeys.SRCPKFIELD)
+        self._srcfield = cfg.opt_str(InputFieldConfigKeys.SRCFIELD)
+        self._srcdatetimefield = cfg.opt_str(
+            InputFieldConfigKeys.SRCDATETIMEFIELD, required=False)
+        # ... new in v0.18.52
         # Make these case-sensitive to avoid our failure in renaming SQLA
         # Column objects to be lower-case:
-        self._copyfields = opt_strlist(
-            InputFieldConfigKeys.COPYFIELDS, lower=False)  # fieldnames
-        self._indexed_copyfields = opt_strlist(
-            InputFieldConfigKeys.INDEXED_COPYFIELDS, lower=False)
-        self._debug_row_limit = opt_int(
+        self._copyfields = cfg.opt_multiline(
+            InputFieldConfigKeys.COPYFIELDS)  # fieldnames
+        self._indexed_copyfields = cfg.opt_multiline(
+            InputFieldConfigKeys.INDEXED_COPYFIELDS)
+        self._debug_row_limit = cfg.opt_int(
             InputFieldConfigKeys.DEBUG_ROW_LIMIT, default=0)
         # self._fetch_sorted = opt_bool('fetch_sorted', default=True)
-
-        # In case we want to store this value after running
-        # 'nlpdef.get_ifconfigs()' so that we can later re-create the ifconfig
-        self.section = section
 
         ensure_valid_table_name(self._srctable)
         ensure_valid_field_name(self._srcpkfield)
@@ -182,62 +166,71 @@ class InputFieldConfig(object):
 
         self._db = nlpdef.get_database(self._srcdb)
 
-    def get_srcdb(self) -> str:
+    @property
+    def srcdb(self) -> str:
         """
         Returns the name of the source database.
         """
         return self._srcdb
 
-    def get_srctable(self) -> str:
+    @property
+    def srctable(self) -> str:
         """
         Returns the name of the source table.
         """
         return self._srctable
 
-    def get_srcpkfield(self) -> str:
+    @property
+    def srcpkfield(self) -> str:
         """
         Returns the name of the primary key (PK) field (column) in the source
         table.
         """
         return self._srcpkfield
 
-    def get_srcfield(self) -> str:
+    @property
+    def srcfield(self) -> str:
         """
         Returns the name of the text field (column) in the source table.
         """
         return self._srcfield
 
-    def get_srcdatetimefield(self) -> str:  # new in v0.18.52
+    @property
+    def srcdatetimefield(self) -> str:  # new in v0.18.52
         """
         Returns the name of the field (column) in the source table that defines
         the date/time of the source text.
         """
         return self._srcdatetimefield
 
-    def get_source_session(self) -> Session:
+    @property
+    def source_session(self) -> Session:
         """
         Returns the SQLAlchemy ORM :class:`Session` for the source database.
         """
         return self._db.session
 
-    def _get_source_metadata(self) -> MetaData:
+    @property
+    def _source_metadata(self) -> MetaData:
         """
         Returns the SQLAlchemy :class:`MetaData` for the source database,
         used for reflection (inspection) of the source database structure.
         """
         return self._db.metadata
 
-    def _get_source_engine(self) -> Engine:
+    @property
+    def _source_engine(self) -> Engine:
         """
         Returns the SQLAlchemy Core :class:`Engine` for the source database.
         """
         return self._db.engine
 
-    def _get_progress_session(self) -> Session:
+    @property
+    def _progress_session(self) -> Session:
         """
         Returns the SQLAlchemy ORM :class:`Session` for the progress database.
         """
-        return self._nlpdef.get_progdb_session()
+        return self._nlpdef.progressdb_session
 
     @staticmethod
     def get_core_columns_for_dest() -> List[Column]:
@@ -320,10 +313,9 @@ class InputFieldConfig(object):
         """
         Ensure that the source table exists, or raise :exc:`RuntimeError`.
         """
-        if not table_or_view_exists(self._get_source_engine(), self._srctable):
-            msg = f"Missing source table: {self._srcdb}.{self._srctable}"
-            log.critical(msg)
-            raise RuntimeError(msg)
+        if not table_or_view_exists(self._source_engine, self._srctable):
+            raise RuntimeError(
+                f"Missing source table: {self._srcdb}.{self._srctable}")
 
     def get_copy_columns(self) -> List[Column]:
         """
@@ -336,7 +328,7 @@ class InputFieldConfig(object):
         """
         # We read the column type from the source database.
         self._require_table_or_view_exists()
-        meta = self._get_source_metadata()
+        meta = self._source_metadata
         t = Table(self._srctable, meta, autoload=True)
         copy_columns = []  # type: List[Column]
         processed_copy_column_names = []  # type: List[str]
@@ -372,7 +364,7 @@ class InputFieldConfig(object):
 
         """
         self._require_table_or_view_exists()
-        meta = self._get_source_metadata()
+        meta = self._source_metadata
         t = Table(self._srctable, meta, autoload=True)
         copy_indexes = []  # type: List[Index]
         processed_copy_index_col_names = []  # type: List[str]
@@ -396,7 +388,7 @@ class InputFieldConfig(object):
         """
         Is the primary key (PK) of the source table an integer?
         """
-        pkcoltype = get_column_type(self._get_source_engine(), self._srctable,
+        pkcoltype = get_column_type(self._source_engine, self._srctable,
                                     self._srcpkfield)
         if not pkcoltype:
             raise ValueError(f"Unable to get column type for column "
@@ -406,8 +398,8 @@ class InputFieldConfig(object):
         return pk_is_integer
 
     def gen_text(self, tasknum: int = 0,
-                 ntasks: int = 1) -> Generator[Tuple[str, Dict[str, Any]],
-                                                     None, None]:
+                 ntasks: int = 1) -> \
+            Generator[Tuple[str, Dict[str, Any]], None, None]:
         """
         Generate text strings from the source database.
 
@@ -417,7 +409,7 @@ class InputFieldConfig(object):
             reference fields, copy fields).
         """
         if 1 < ntasks <= tasknum:
-            raise Exception(f"Invalid tasknum {tasknum}; must be <{ntasks}")
+            raise RuntimeError(f"Invalid tasknum {tasknum}; must be <{ntasks}")
 
         # ---------------------------------------------------------------------
         # Values that are constant to all items we will generate
@@ -435,7 +427,7 @@ class InputFieldConfig(object):
         # ---------------------------------------------------------------------
         # Build a query
         # ---------------------------------------------------------------------
-        session = self.get_source_session()
+        session = self.source_session
         pkcol = column(self._srcpkfield)
         # ... don't use is_sqlatype_integer with this; it's a column clause,
         # not a full column definition.
@@ -538,7 +530,7 @@ class InputFieldConfig(object):
 
         Used for progress monitoring.
         """
-        return count_star(session=self.get_source_session(),
+        return count_star(session=self.source_session,
                           tablename=self._srctable)
 
     def get_progress_record(self,
@@ -550,14 +542,14 @@ class InputFieldConfig(object):
         Returns:
             :class:`crate_anon.nlp_manager.models.NlpRecord`, or ``None``
         """
-        session = self._get_progress_session()
+        session = self._progress_session
         query = (
             session.query(NlpRecord).
             filter(NlpRecord.srcdb == self._srcdb).
             filter(NlpRecord.srctable == self._srctable).
             filter(NlpRecord.srcpkval == srcpkval).
             filter(NlpRecord.srcfield == self._srcfield).
-            filter(NlpRecord.nlpdef == self._nlpdef.get_name())
+            filter(NlpRecord.nlpdef == self._nlpdef.name)
             # Order not important (though the order of the index certainly
             # is; see NlpRecord.__table_args__).
             # http://stackoverflow.com/questions/11436469/does-order-of-where-clauses-matter-in-sql  # noqa
@@ -580,7 +572,7 @@ class InputFieldConfig(object):
         - Timing is subsumed under the timer named
           ``TIMING_DELETE_WHERE_NO_SOURCE``.
         """
-        session = self.get_source_session()
+        session = self.source_session
         query = (
             select([column(self._srcpkfield)]).
             select_from(table(self._srctable))
@@ -607,7 +599,7 @@ class InputFieldConfig(object):
         subsequently been deleted.)
 
         """
-        progsession = self._get_progress_session()
+        progsession = self._progress_session
         log.debug(f"delete_progress_records_where_srcpk_not... "
                   f"{self._srcdb}.{self._srctable} -> progressdb")
         prog_deletion_query = (
@@ -615,7 +607,7 @@ class InputFieldConfig(object):
             filter(NlpRecord.srcdb == self._srcdb).
             filter(NlpRecord.srctable == self._srctable).
             # unnecessary # filter(NlpRecord.srcpkfield == self._srcpkfield).
-            filter(NlpRecord.nlpdef == self._nlpdef.get_name())
+            filter(NlpRecord.nlpdef == self._nlpdef.name)
         )
         if temptable is not None:
             log.debug("... deleting selectively")
@@ -647,13 +639,13 @@ class InputFieldConfig(object):
         Deletes **all** records from the progress database for this NLP
         definition (across all source tables/columns).
         """
-        progsession = self._get_progress_session()
+        progsession = self._progress_session
         prog_deletion_query = (
             progsession.query(NlpRecord).
-            filter(NlpRecord.nlpdef == self._nlpdef.get_name())
+            filter(NlpRecord.nlpdef == self._nlpdef.name)
         )
         log.debug(f"delete_all_progress_records for NLP definition: "
-                  f"{self._nlpdef.get_name()}")
+                  f"{self._nlpdef.name}")
         with MultiTimerContext(timer, TIMING_PROGRESS_DB_DELETE):
             prog_deletion_query.delete(synchronize_session=False)
         self._nlpdef.commit(progsession)

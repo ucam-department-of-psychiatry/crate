@@ -30,7 +30,9 @@ Representation of NLP processors used by CRATE's NLPRP server.
 
 import importlib.util
 import logging
+import os
 
+from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
 from crate_anon.nlprp.constants import NlprpKeys
 from crate_anon.nlp_webserver.constants import (
     KEY_PROCTYPE,
@@ -41,26 +43,27 @@ from crate_anon.nlp_webserver.settings import SETTINGS
 
 log = logging.getLogger(__name__)
 
-proc_file = SETTINGS[NlpServerConfigKeys.PROCESSORS_PATH]
-# from processor_file import PROCESSORS  # doesn't work, need importlib
+if ENVVAR_GENERATING_CRATE_DOCS not in os.environ:
+    _proc_file = SETTINGS[NlpServerConfigKeys.PROCESSORS_PATH]
+    # from processor_file import PROCESSORS  # doesn't work, need importlib
 
-# Import the processors module using the full path as it is configurable
-spec = importlib.util.spec_from_file_location("processors", proc_file)
-processors = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(processors)
+    # Import the processors module using the full path as it is configurable
+    _spec = importlib.util.spec_from_file_location("processors", _proc_file)
+    _processors = importlib.util.module_from_spec(_spec)
+    # noinspection PyUnresolvedReferences
+    _spec.loader.exec_module(_processors)
 
-
-for proc in processors.PROCESSORS:
-    x = ServerProcessor(
-        name=proc[NlprpKeys.NAME],
-        title=proc[NlprpKeys.TITLE],
-        version=proc[NlprpKeys.VERSION],
-        is_default_version=proc[NlprpKeys.IS_DEFAULT_VERSION],
-        description=proc[NlprpKeys.DESCRIPTION],
-        proctype=proc.get(KEY_PROCTYPE),  # may be None
-        schema_type=proc[NlprpKeys.SCHEMA_TYPE],  # 'unknown' or 'tabular'
-        sql_dialect=proc.get(NlprpKeys.SQL_DIALECT),
-        tabular_schema=proc.get(NlprpKeys.TABULAR_SCHEMA)
-    )
-    # Doing this here saves time per request
-    x.set_parser()
+    for proc in _processors.PROCESSORS:
+        x = ServerProcessor(
+            name=proc[NlprpKeys.NAME],
+            title=proc[NlprpKeys.TITLE],
+            version=proc[NlprpKeys.VERSION],
+            is_default_version=proc[NlprpKeys.IS_DEFAULT_VERSION],
+            description=proc[NlprpKeys.DESCRIPTION],
+            proctype=proc.get(KEY_PROCTYPE),  # may be None
+            schema_type=proc[NlprpKeys.SCHEMA_TYPE],  # 'unknown' or 'tabular'
+            sql_dialect=proc.get(NlprpKeys.SQL_DIALECT),
+            tabular_schema=proc.get(NlprpKeys.TABULAR_SCHEMA)
+        )
+        # Doing this here saves time per request
+        x.set_parser()

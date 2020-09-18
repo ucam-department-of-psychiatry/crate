@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/website_config/launch_celery.rst
+..  crate_anon/docs/source/website_config/launch_celery.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -59,7 +59,7 @@ to work properly. (See also :ref:`Windows service <windows_service>`.)
 
 Options:
 
-..  literalinclude:: crate_launch_celery_help.txt
+..  literalinclude:: _crate_launch_celery_help.txt
     :language: none
 
 

@@ -29,12 +29,11 @@ crate_anon/crateweb/consent/storage.py
 """
 
 import logging
+from urllib.parse import urljoin
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
 from django.urls import get_script_prefix
 from django.utils.encoding import filepath_to_uri
-# noinspection PyUnresolvedReferences
-from django.utils.six.moves.urllib.parse import urljoin
 
 from crate_anon.crateweb.config.constants import (
     DOWNLOAD_PRIVATESTORAGE_URL_STEM,

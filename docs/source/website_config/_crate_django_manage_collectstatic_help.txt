@@ -1,0 +1,39 @@
+usage: crate_django_manage collectstatic [-h] [--noinput] [--no-post-process]
+                                         [-i PATTERN] [-n] [-c] [-l]
+                                         [--no-default-ignore] [--version]
+                                         [-v {0,1,2,3}] [--settings SETTINGS]
+                                         [--pythonpath PYTHONPATH]
+                                         [--traceback] [--no-color]
+                                         [--force-color]
+
+Collect static files in a single location.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --noinput, --no-input
+                        Do NOT prompt the user for input of any kind.
+  --no-post-process     Do NOT post process collected files.
+  -i PATTERN, --ignore PATTERN
+                        Ignore files or directories matching this glob-style
+                        pattern. Use multiple times to ignore more.
+  -n, --dry-run         Do everything except modify the filesystem.
+  -c, --clear           Clear the existing files using the storage before
+                        trying to copy or link the original file.
+  -l, --link            Create a symbolic link to each file instead of
+                        copying.
+  --no-default-ignore   Don't ignore the common private glob-style patterns
+                        (defaults to 'CVS', '.*' and '*~').
+  --version             show program's version number and exit
+  -v {0,1,2,3}, --verbosity {0,1,2,3}
+                        Verbosity level; 0=minimal output, 1=normal output,
+                        2=verbose output, 3=very verbose output
+  --settings SETTINGS   The Python path to a settings module, e.g.
+                        "myproject.settings.main". If this isn't provided, the
+                        DJANGO_SETTINGS_MODULE environment variable will be
+                        used.
+  --pythonpath PYTHONPATH
+                        A directory to add to the Python path, e.g.
+                        "/home/djangoprojects/myproject".
+  --traceback           Raise on CommandError exceptions
+  --no-color            Don't colorize the command output.
+  --force-color         Force colorization of the command output.

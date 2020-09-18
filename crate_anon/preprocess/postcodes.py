@@ -96,12 +96,17 @@ from sqlalchemy.sql.schema import MetaData, Table
 import xlrd
 
 from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
+from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
 
 log = logging.getLogger(__name__)
 metadata = MetaData()
 
-DEFAULT_ONSPD_DIR = os.path.join(
-    os.path.expanduser("~"), "dev", "ons", "ONSPD_Nov2019")
+if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
+    DEFAULT_ONSPD_DIR = "/path/to/unzipped/ONSPD/download"
+else:
+    DEFAULT_ONSPD_DIR = os.path.join(
+        os.path.expanduser("~"), "dev", "ons", "ONSPD_Nov2019"
+    )
 DEFAULT_REPORT_EVERY = 1000
 DEFAULT_COMMIT_EVERY = 10000
 YEAR_MONTH_FMT = "%Y%m"
@@ -1234,6 +1239,7 @@ def populate_generic_lookup_table(
             log.critical(f"{n}: {datadict}")
         # filter out blanks:
         datadict = {k: v for k, v in datadict.items() if k}
+        # noinspection PyNoneFunctionAssignment
         obj = sa_class(**datadict)
         session.add(obj)
         if commit and n % commitevery == 0:
@@ -1284,6 +1290,7 @@ def main() -> None:
     """
     Command-line entry point. See command-line help.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
         description=

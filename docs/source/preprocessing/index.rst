@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/anonymisation/preprocessing.rst
+..  crate_anon/docs/source/anonymisation/preprocessing.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -71,7 +71,7 @@ following abbreviations are used:
 
 Options:
 
-..  literalinclude:: crate_preprocess_rio_help.txt
+..  literalinclude:: _crate_preprocess_rio_help.txt
     :language: none
 
 
@@ -82,7 +82,7 @@ crate_preprocess_pcmis
 
 Options:
 
-..  literalinclude:: crate_preprocess_pcmis_help.txt
+..  literalinclude:: _crate_preprocess_pcmis_help.txt
     :language: none
 
 
@@ -93,7 +93,7 @@ crate_postcodes
 
 Options:
 
-..  literalinclude:: crate_postcodes_help.txt
+..  literalinclude:: _crate_postcodes_help.txt
     :language: none
 
 
@@ -103,13 +103,13 @@ crate_fetch_wordlists
 ~~~~~~~~~~~~~~~~~~~~~
 
 This tool assists in fetching common word lists, such as name lists for global
-blacklisting, and words to exclude from such lists (such as English words or
-medical eponyms). It also provides an exclusion filter system, to find lines in
-some files that are absent from others.
+denial, and words to exclude from such lists (such as English words or medical
+eponyms). It also provides an exclusion filter system, to find lines in some
+files that are absent from others.
 
 Options:
 
-..  literalinclude:: crate_fetch_wordlists_help.txt
+..  literalinclude:: _crate_fetch_wordlists_help.txt
     :language: none
 
 Specimen usage:
@@ -129,5 +129,5 @@ See :mod:`crate_anon.preprocess.fuzzy_id_match`.
 
 Options (from ``crate_fuzzy_id_match --allhelp``):
 
-..  literalinclude:: crate_fuzzy_id_match_help.txt
+..  literalinclude:: _crate_fuzzy_id_match_help.txt
     :language: none

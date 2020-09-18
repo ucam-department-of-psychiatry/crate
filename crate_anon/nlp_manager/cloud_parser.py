@@ -37,16 +37,8 @@ from cardinal_pythonlib.lists import chunks
 from sqlalchemy.schema import Column, Index
 from sqlalchemy import types as sqlatypes
 
-from crate_anon.common.extendedconfigparser import configfail
-from crate_anon.nlp_manager.nlp_definition import (
-    NlpDefinition,
-)
-from crate_anon.nlp_manager.constants import (
-    full_sectionname,
-    NlpConfigPrefixes,
-    ProcessorConfigKeys,
-    NlpDefValues,
-)
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.nlp_manager.constants import ProcessorConfigKeys, NlpDefValues
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 from crate_anon.nlprp.constants import (
     NlprpKeys as NKeys,
@@ -72,31 +64,30 @@ class Cloud(TableMaker):
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
-                 cfgsection: Optional[str],
+                 cfg_processor_name: Optional[str],
                  commit: bool = False) -> None:
         """
         Args:
             nlpdef:
                 :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            cfgsection:
+            cfg_processor_name:
                 the config section for the processor
             commit:
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        super().__init__(nlpdef, cfgsection, commit, name="Cloud")
+        assert nlpdef is not None  # not yet supported (does it need to be?)
+        super().__init__(nlpdef, cfg_processor_name, commit,
+                         friendly_name="Cloud")
         self.remote_processor_info = None  # type: Optional[ServerProcessor]
-        sectionname = full_sectionname(NlpConfigPrefixes.PROCESSOR,
-                                       cfgsection)
-        self.procname = nlpdef.opt_str(
-            sectionname, ProcessorConfigKeys.PROCESSOR_NAME,
+        self.procname = self._cfgsection.opt_str(
+            ProcessorConfigKeys.PROCESSOR_NAME,
             required=True)
-        self.procversion = nlpdef.opt_str(
-            sectionname, ProcessorConfigKeys.PROCESSOR_VERSION,
+        self.procversion = self._cfgsection.opt_str(
+            ProcessorConfigKeys.PROCESSOR_VERSION,
             default=None)
         # Made format required so people are less likely to make mistakes
-        self.format = nlpdef.opt_str(
-            sectionname,
+        self.format = self._cfgsection.opt_str(
             ProcessorConfigKeys.PROCESSOR_FORMAT,
             required=True)
         self.schema_type = None
@@ -105,30 +96,21 @@ class Cloud(TableMaker):
         self.available_remotely = False  # update later if available
 
         # Output section - bit of repetition from the 'Gate' parser
-        typepairs = nlpdef.opt_strlist(
-            sectionname, ProcessorConfigKeys.OUTPUTTYPEMAP,
+        typepairs = self._cfgsection.opt_strlist(
+            ProcessorConfigKeys.OUTPUTTYPEMAP,
             required=True, lower=False)
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
         self._type_to_tablename = {}  # type: Dict[str, str]
         self.tablename = None
         # If typepairs is empty the following block won't execute
-        for c in chunks(typepairs, 2):
-            output_type = c[0]
-            outputsection = c[1]
+        for output_type, outputsection in chunks(typepairs, 2):
             output_type = output_type.lower()
-            c = OutputUserConfig(nlpdef.get_parser(), outputsection,
+            c = OutputUserConfig(nlpdef.parser, outputsection,
                                  schema_required=False)
             self._outputtypemap[output_type] = c
-            self._type_to_tablename[output_type] = c.get_tablename()
+            self._type_to_tablename[output_type] = c.dest_tablename
             if output_type == '""':
-                self.tablename = c.get_tablename()
-        # Checks are now taken care of elsewhere
-        # if not self._outputtypemap and not self.tablename:
-        #     configfail(
-        #         f"In section [{sectionname}], neither "
-        #         f"{ProcessorConfigKeys.OUTPUTTYPEMAP!r} nor "
-        #         f"{ProcessorConfigKeys.DESTTABLE!r} is specified. The cloud "
-        #         f"processor won't know where to store its results.")
+                self.tablename = c.dest_tablename
 
     @staticmethod
     def get_coltype_parts(coltype_str: str) -> List[str]:
@@ -242,10 +224,10 @@ class Cloud(TableMaker):
         if self.is_tabular():
             self.schema = remote_processor.tabular_schema
             self.sql_dialect = remote_processor.sql_dialect
-        # Check that, by this stage, we either have a tabular shcema from
+        # Check that, by this stage, we either have a tabular schema from
         # the processor, or we have user-specified destfields
-        assert self.is_tabular or all([x.get_destfields() for
-                                      x in self._outputtypemap.values()]), (
+        assert self.is_tabular or all(x.destfields for
+                                      x in self._outputtypemap.values()), (
             "You haven't specified a table structure and the processor hasn't "
             "provided one.")
 
@@ -273,18 +255,18 @@ class Cloud(TableMaker):
         tables = {}  # type: Dict[str, List[Column]]
 
         for output_type, otconfig in self._outputtypemap.items():
-            tables[otconfig.get_tablename()] = (
+            tables[otconfig.dest_tablename] = (
                 self._standard_columns_if_gate() +
-                otconfig.get_columns(self.get_engine())
+                otconfig.get_columns(self.dest_engine)
             )
         return tables
 
     def _dest_tables_indexes_user(self) -> Dict[str, List[Index]]:
         tables = {}  # type: Dict[str, List[Index]]
         for output_type, otconfig in self._outputtypemap.items():
-            tables[otconfig.get_tablename()] = (
+            tables[otconfig.dest_tablename] = (
                 self._standard_indexes_if_gate() +
-                otconfig.get_indexes()
+                otconfig.indexes
             )
         return tables
 
@@ -327,8 +309,8 @@ class Cloud(TableMaker):
 
     def dest_tables_indexes(self) -> Dict[str, List[Index]]:
         # Docstring in superclass
-        if self._outputtypemap and all([x.get_destfields() for
-                                        x in self._outputtypemap.values()]):
+        if self._outputtypemap and all(x.destfields for
+                                       x in self._outputtypemap.values()):
             return self._dest_tables_indexes_user()
         elif self.is_tabular():
             return self._dest_tables_indexes_auto()
@@ -338,8 +320,8 @@ class Cloud(TableMaker):
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # Docstring in superclass
-        if self._outputtypemap and all([x.get_destfields() for
-                                        x in self._outputtypemap.values()]):
+        if self._outputtypemap and all(x.destfields for
+                                       x in self._outputtypemap.values()):
             return self._dest_tables_columns_user()
         elif self.is_tabular():
             # Must have processor-defined schema because we already checked
@@ -348,5 +330,3 @@ class Cloud(TableMaker):
         else:
             raise ValueError("You haven't specified a table structure and "
                              "the processor hasn't provided one.")
-
-

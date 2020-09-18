@@ -47,9 +47,9 @@ if __name__ == '__main__':
     # Build docs
     print("Making HTML version of documentation")
     os.chdir(THIS_DIR)
-    subprocess.call(["make", "html"])
     subprocess.call(["python", os.path.join(THIS_DIR,
                                             "recreate_inclusion_files.py")])
+    subprocess.call(["make", "html"])
 
     # Copy
     for destdir in DEST_DIRS:

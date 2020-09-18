@@ -147,11 +147,11 @@ PROBLEMS:
 
   .. code-block:; bash
 
-    export MEDEX_HOME=~/dev/MedEx_UIMA_1.3.6  # or similar
-    cd ${MEDEX_HOME}
+    export MEDEX_DIR=~/dev/MedEx_UIMA_1.3.6  # or similar
+    cd ${MEDEX_DIR}
     # OPTIONAL # find . -name "*.class" -exec rm {} \;  # remove old compiled files
     javac \
-        -classpath "${MEDEX_HOME}/src:${MEDEX_HOME}/lib/*" \
+        -classpath "${MEDEX_DIR}/src:${MEDEX_DIR}/lib/*" \
         src/org/apache/medex/Main.java \
         -d bin
 
@@ -399,6 +399,7 @@ import sys
 import tempfile
 from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 
+from cardinal_pythonlib.cmdline import cmdline_quote
 from cardinal_pythonlib.fileops import mkdir_p
 from sqlalchemy import Column, Index, Integer, String, Text
 
@@ -407,10 +408,8 @@ from crate_anon.nlp_manager.base_nlp_parser import (
     TextProcessingFailed,
 )
 from crate_anon.nlp_manager.constants import (
-    full_sectionname,
     MEDEX_DATA_READY_SIGNAL,
     MEDEX_RESULTS_READY_SIGNAL,
-    NlpConfigPrefixes,
     ProcessorConfigKeys,
 )
 from crate_anon.nlp_manager.nlp_definition import (
@@ -496,21 +495,25 @@ class Medex(BaseNlpParser):
 
     def __init__(self,
                  nlpdef: NlpDefinition,
-                 cfgsection: str,
+                 cfg_processor_name: str,
                  commit: bool = False) -> None:
         """
         Args:
             nlpdef:
                 a :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
-            cfgsection:
+            cfg_processor_name:
                 the name of a CRATE NLP config file section (from which we may
                 choose to get extra config information)
             commit:
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit,
-                         name="MedEx")
+        super().__init__(
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            friendly_name="MedEx"
+        )
 
         if nlpdef is None:  # only None for debugging!
             self._debug_mode = True
@@ -521,30 +524,30 @@ class Medex(BaseNlpParser):
             progargs = ""
         else:
             self._debug_mode = False
-            self._tablename = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.DESTTABLE,
+
+            self._tablename = self._cfgsection.opt_str(
+                ProcessorConfigKeys.DESTTABLE,
                 required=True)
 
-            self._max_external_prog_uses = nlpdef.opt_int(
-                self._sectionname, ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
+            self._max_external_prog_uses = self._cfgsection.opt_int_positive(
+                ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
                 default=0)
 
-            self._progenvsection = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.PROGENVSECTION)
+            self._progenvsection = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROGENVSECTION)
 
             if self._progenvsection:
-                self._env = nlpdef.get_env_dict(
-                    full_sectionname(NlpConfigPrefixes.ENV,
-                                     self._progenvsection),
-                    os.environ)
+                # noinspection PyTypeChecker
+                self._env = nlpdef.get_env_dict(self._progenvsection,
+                                                os.environ)
             else:
                 self._env = os.environ.copy()
-            self._env["NLPLOGTAG"] = nlpdef.get_logtag() or '.'
+            self._env["NLPLOGTAG"] = nlpdef.logtag or '.'
             # ... because passing a "-lt" switch with no parameter will make
             # CrateGatePipeline.java complain and stop
 
-            progargs = nlpdef.opt_str(
-                self._sectionname, ProcessorConfigKeys.PROGARGS,
+            progargs = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROGARGS,
                 required=True)
 
         if USE_TEMP_DIRS:
@@ -602,17 +605,17 @@ class Medex(BaseNlpParser):
 
         # Nasty MedEx hacks
         cwd = os.getcwd()
-        log.info(f"for MedEx's benefit, changing to directory: "
+        log.info(f"For MedEx's benefit, changing to directory: "
                  f"{self._workingdir.name}")
         os.chdir(self._workingdir.name)
         sentsdir = os.path.join(self._workingdir.name, "sents")
-        log.info(f"making temporary sentences directory: {sentsdir}")
+        log.info(f"Making temporary sentences directory: {sentsdir}")
         mkdir_p(sentsdir)
         logdir = os.path.join(self._workingdir.name, "log")
-        log.info(f"making temporary log directory: {logdir}")
+        log.info(f"Making temporary log directory: {logdir}")
         mkdir_p(logdir)
 
-        log.info(f"launching command: {args}")
+        log.info(f"Launching command: {cmdline_quote(args)}")
         self._p = subprocess.Popen(args,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
@@ -624,7 +627,7 @@ class Medex(BaseNlpParser):
         # secondly if you don't consume it, you see it on the console, which is
         # helpful.
         self._started = True
-        log.info(f"returning to working directory {cwd}")
+        log.info(f"Returning to working directory {cwd}")
         os.chdir(cwd)
 
     def _encode_to_subproc_stdin(self, text: str) -> None:

@@ -26,7 +26,48 @@ docs/source/conf.py
 
 **Configure Sphinx to build documentation.**
 
-"""
+Tips when Sphinx goes wrong (e.g. on docstrings):
+
+- Add ``-W`` to ``SPHINXOPTS`` in the ``Makefile``
+- Add ``-vvv`` to ``SPHINXOPTS`` in the ``Makefile``.
+- Run ``make html > tmp_sphinx_output.txt`` (stderr is less helpful).
+- Search for (a) your filename, then (b) ``[autodoc] output:`` subsequently;
+  this should show the RST. Search also for things like
+  ``.. py:method:: BaseNlpParser``.
+- Put the RST into https://livesphinx.herokuapp.com/.
+- Inspect the RST.
+
+- Notice in particular:
+
+  - Most docstrings are autoconverted from the Google ``Args:`` format to the
+    ugly ``:param thing:`` format.
+  - In some cases, a class-level docstring is automatically merged with the
+    ``__init__`` docstring, with a different indentation level, and this means
+    that ``Args:`` stuff comes through at the wrong indentation level and is
+    misinterpreted.
+
+- Attempt to fix this problem:
+  https://stackoverflow.com/questions/5599254/how-to-use-sphinxs-autodoc-to-document-a-classs-init-self-method
+
+  - However, note that this makes the ``__init__`` functions appear, but does
+    not prevent the ``__init__`` docstring being appended to the main class
+    docstring. 
+  - Then remove ``autoclass_content = "both"``; see
+    https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#confval-autoclass_content.
+  - That makes message more helpful!
+  - But you still often need to add a line at the top of the ``__init__``
+    docstring.
+
+Less helpful:
+
+- add ``import traceback; traceback.print_stack()`` to
+  ``sphinx.util.logging.WarningIsErrorFilter.filter``
+- add ``print(">>>\n" + "\n".join(lines) + "<<<")`` as the penultimate line
+  of ``sphinx.util.docstrings.prepare_docstring``
+- noting that ``sphinx/parsers.py`` does everything via
+  ``docutils.parsers.rst.states.RSTStateMachine``, ... oh, never mind
+
+"""  # noqa
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -45,10 +86,13 @@ docs/source/conf.py
 # sys.path.insert(0, os.path.abspath('.'))
 
 import os
+from typing import Any
 
 import django
 from sphinx.application import Sphinx
+from sphinx.ext.autodoc import Options
 
+from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
 from crate_anon.version import CRATE_VERSION
 
 
@@ -79,6 +123,8 @@ extensions = [
     'sphinx.ext.githubpages',
     'sphinx.ext.imgmath',
     'sphinx.ext.napoleon',
+    # ... support different docstring styles; we use the Google style:
+    # https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings  # noqa
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
 ]
@@ -111,7 +157,10 @@ exclude_patterns = [
     'Thumbs.db',
     '.DS_Store',
     # CRATE:
-    "**/include*.rst",
+    "installation/include*.rst",
+    "website_using/include*.rst",
+    # ... but don't exclude autodoc/**/include*.rst, so don't use
+    # "**/include*.rst"
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -234,12 +283,30 @@ todo_include_todos = True
 
 
 # -----------------------------------------------------------------------------
-# RNC: add CSS
+# RNC extras
 # -----------------------------------------------------------------------------
-# https://stackoverflow.com/questions/23462494/how-to-add-a-custom-css-file-to-sphinx
+
+# noinspection PyUnusedLocal
+def skip(app: Sphinx,
+         what: str,
+         name: str,
+         obj: Any,
+         would_skip: bool,
+         options: Options) -> bool:
+    # Called by sphinx.ext.autodoc.Documenter.filter_members (q.v.).
+    if name == "__init__":
+        return False
+    return would_skip
+
 
 def setup(app: Sphinx) -> None:
-    app.add_stylesheet('css/crate_docs.css')  # may also be an URL
+    # Add CSS
+    # https://stackoverflow.com/questions/23462494/how-to-add-a-custom-css-file-to-sphinx  # noqa
+    app.add_css_file('css/crate_docs.css')  # may also be an URL
+
+    # Don't skip __init__
+    # https://stackoverflow.com/questions/5599254/how-to-use-sphinxs-autodoc-to-document-a-classs-init-self-method  # noqa
+    app.connect("autodoc-skip-member", skip)
 
 
 # -----------------------------------------------------------------------------
@@ -268,10 +335,10 @@ django.setup()
 
 
 # https://stackoverflow.com/questions/5599254/how-to-use-sphinxs-autodoc-to-document-a-classs-init-self-method  # noqa
-autoclass_content = "both"
+autoclass_content = "class"
 
 # To prevent Pyramid SETTINGS breaking:
-os.environ["_SPHINX_AUTODOC_IN_PROGRESS"] = "true"
+os.environ[ENVVAR_GENERATING_CRATE_DOCS] = "true"
 
 # For "Command killed due to excessive memory consumption" on readthedocs.org:
 # https://docs.readthedocs.io/en/latest/guides/build-using-too-many-resources.html  # noqa

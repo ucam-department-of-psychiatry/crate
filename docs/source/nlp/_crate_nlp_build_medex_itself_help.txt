@@ -1,0 +1,13 @@
+usage: crate_nlp_build_medex_itself [-h] [--medexdir MEDEXDIR] [--javac JAVAC]
+                                    [--deletefirst] [--verbose]
+
+Compile MedEx-UIMA itself (in Java)
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --medexdir MEDEXDIR  Root directory of MedEx installation (default:
+                       /path/to/Medex/installation)
+  --javac JAVAC        Java compiler (default: javac)
+  --deletefirst        Delete existing .class files first (optional) (default:
+                       False)
+  --verbose, -v        Be verbose (default: False)

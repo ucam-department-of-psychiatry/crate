@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/anonymisation/anonymise.rst
+..  crate_anon/docs/source/anonymisation/anonymise.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -51,7 +51,7 @@ This runs a single-process anonymiser.
 
 Options:
 
-..  literalinclude:: crate_anonymise_help.txt
+..  literalinclude:: _crate_anonymise_help.txt
     :language: none
 
 
@@ -64,5 +64,5 @@ This runs multiple copies of ``crate_anonymise`` in parallel.
 
 Options:
 
-..  literalinclude:: crate_anonymise_multiprocess_help.txt
+..  literalinclude:: _crate_anonymise_multiprocess_help.txt
     :language: none

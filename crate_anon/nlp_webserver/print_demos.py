@@ -259,6 +259,7 @@ def main() -> None:
     """
     description = ("Print demo config file or demo processor constants file "
                    "for server side cloud nlp.")
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)

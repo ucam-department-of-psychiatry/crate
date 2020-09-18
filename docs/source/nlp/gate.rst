@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/nlp/gate.rst
+..  crate_anon/docs/source/nlp/gate.rst
 
 ..  Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -92,7 +92,7 @@ This program builds ``CrateGatePipeline``.
 
 Options:
 
-..  literalinclude:: crate_nlp_build_gate_java_interface_help.txt
+..  literalinclude:: _crate_nlp_build_gate_java_interface_help.txt
     :language: none
 
 
@@ -100,31 +100,42 @@ CrateGatePipeline
 ~~~~~~~~~~~~~~~~~
 
 The following specimen scripts presuppose that you have set the environment
-variable `GATE_DIR`, and assume specific locations for the compiled Java (e.g.
+variable `GATE_HOME`, and assume specific locations for the compiled Java (e.g.
 files like `CrateGatePipeline.class`); edit them as required.
 
 Asking `CrateGatePipeline` to show its command-line options:
 
-.. literalinclude:: show_crate_gate_pipeline_options.sh
-    :language: bash
+.. code-block:: bash
+
+    crate_show_crate_gate_pipeline_options
 
 The resulting output:
 
-..  literalinclude:: CrateGatePipeline_help.txt
+..  literalinclude:: _CrateGatePipeline_help.txt
     :language: none
 
 Asking `CrateGatePipeline` to run the GATE “ANNIE” demonstration:
 
-.. literalinclude:: run_gate_annie_demo_via_crate.sh
-    :language: bash
+.. code-block:: bash
+
+    crate_run_gate_annie_demo
+
+.. note::
+    For the demonstrations that follow, we presuppose that you have also set
+    the environment variable ``CRATE_GATE_PLUGIN_FILE`` to be the filename of
+    a GATE plugin INI file like this:
+
+.. literalinclude:: _specimen_gate_plugin_file.ini
+    :language: ini
 
 
 KConnect (Bio-YODIE)
 ~~~~~~~~~~~~~~~~~~~~
 
-This GATE application finds diseases.
+This GATE application finds diseases. Bio-YODIE is part of the KConnect
+project.
 
-- See https://gate.ac.uk/applications/bio-yodie.html
+- See https://gate.ac.uk/applications/bio-yodie.html; http://www.kconnect.eu/.
 
 - The main application is called `main-bio.xgapp`.
 
@@ -134,8 +145,9 @@ This GATE application finds diseases.
 
 Script to test the app via the command line:
 
-.. literalinclude:: run_gate_kcl_kconnect_via_crate.sh
-    :language: bash
+.. code-block:: bash
+
+    crate_run_gate_kcl_kconnect_demo
 
 
 .. _kcl_pharmacotherapy:
@@ -155,8 +167,9 @@ This GATE application finds drugs (medications).
 
 Script to test the app via the command line:
 
-.. literalinclude:: run_gate_kcl_pharmacotherapy_via_crate.sh
-    :language: bash
+.. code-block:: bash
+
+    crate_run_gate_kcl_pharmacotherapy_demo
 
 
 KCL Lewy Body Diagnosis Application
@@ -179,8 +192,9 @@ This GATE application finds references to Lewy body dementia.
 
 Script to test the app via the command line:
 
-.. literalinclude:: run_gate_kcl_lbd_via_crate.sh
-    :language: bash
+.. code-block:: bash
+
+    crate_run_gate_kcl_lewy_demo
 
 
 .. _testgateapps:

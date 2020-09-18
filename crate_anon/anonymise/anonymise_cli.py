@@ -38,16 +38,16 @@ import logging
 import os
 from typing import List
 
-from cardinal_pythonlib.exceptions import die
 from cardinal_pythonlib.extract_text import is_text_extractor_available
 from cardinal_pythonlib.logs import configure_logger_for_colour
 
 from crate_anon.anonymise.constants import (
-    CONFIG_ENV_VAR,
+    ANON_CONFIG_ENV_VAR,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
     DEMO_CONFIG,
 )
+from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 log = logging.getLogger(__name__)
@@ -64,22 +64,24 @@ else:
 # Main
 # =============================================================================
 
-def main() -> None:
+def inner_main() -> None:
     """
-    Command-line entry point. See command-line help.
+    Indirect command-line entry point. See command-line help.
 
     Calls :func:`crate_anon.anonymise.anonymise.anonymise`.
     """
     version = f"Version {CRATE_VERSION} ({CRATE_VERSION_DATE})"
     description = f"Database anonymiser. {version}. By Rudolf Cardinal."
 
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
         "--config",
-        help=f"Config file (overriding environment variable {CONFIG_ENV_VAR})")
+        help=f"Config file (overriding environment variable "
+             f"{ANON_CONFIG_ENV_VAR})")
     parser.add_argument(
         '--verbose', '-v', action="store_true",
         help="Be verbose")
@@ -259,46 +261,49 @@ def main() -> None:
     # -------------------------------------------------------------------------
 
     if args.config:
-        os.environ[CONFIG_ENV_VAR] = args.config
+        os.environ[ANON_CONFIG_ENV_VAR] = args.config
 
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import
-    try:
-        anonymise(
-            draftdd=args.draftdd,
-            incrementaldd=args.incrementaldd,
-            count=args.count,
+    anonymise(
+        draftdd=args.draftdd,
+        incrementaldd=args.incrementaldd,
+        count=args.count,
 
-            incremental=args.incremental,
-            skipdelete=args.skipdelete,
+        incremental=args.incremental,
+        skipdelete=args.skipdelete,
 
-            dropremake=args.dropremake,
-            optout=args.optout,
-            patienttables=args.patienttables,
-            nonpatienttables=args.nonpatienttables,
-            index=args.index,
+        dropremake=args.dropremake,
+        optout=args.optout,
+        patienttables=args.patienttables,
+        nonpatienttables=args.nonpatienttables,
+        index=args.index,
 
-            restrict=args.restrict,
-            restrict_file=args.file,
-            restrict_limits=args.limits,
-            restrict_list=args.list,
-            free_text_limit=args.free_text_limit,
-            exclude_scrubbed_fields=args.excludescrubbed,
+        restrict=args.restrict,
+        restrict_file=args.file,
+        restrict_limits=args.limits,
+        restrict_list=args.list,
+        free_text_limit=args.free_text_limit,
+        exclude_scrubbed_fields=args.excludescrubbed,
 
-            nprocesses=args.nprocesses,
-            process=args.process,
-            skip_dd_check=args.skip_dd_check,
-            seed=args.seed,
-            chunksize=args.chunksize,
+        nprocesses=args.nprocesses,
+        process=args.process,
+        skip_dd_check=args.skip_dd_check,
+        seed=args.seed,
+        chunksize=args.chunksize,
 
-            reportevery=args.reportevery,
-            echo=args.echo,
-            debugscrubbers=args.debugscrubbers,
-            savescrubbers=args.savescrubbers,
-        )
-    except Exception as exc:
-        log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
-        die(exc)
+        reportevery=args.reportevery,
+        echo=args.echo,
+        debugscrubbers=args.debugscrubbers,
+        savescrubbers=args.savescrubbers,
+    )
+
+
+def main() -> None:
+    """
+    Command-line entry point.
+    """
+    call_main_with_exception_reporting(inner_main)
 
 
 # =============================================================================

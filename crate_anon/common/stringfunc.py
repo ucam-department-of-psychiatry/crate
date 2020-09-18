@@ -62,7 +62,7 @@ def remove_whitespace(s: str) -> str:
     """
     Removes whitespace from a string.
     """
-    return ''.join(s.split())
+    return "".join(s.split())
 
 
 # =============================================================================

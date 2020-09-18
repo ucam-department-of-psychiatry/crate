@@ -920,7 +920,7 @@ def toggle_distinct(sql: str,
 # SQLAlchemy reflection and DDL
 # =============================================================================
 
-_print_not_execute = False
+_global_print_not_execute_sql = False
 
 
 def set_print_not_execute(print_not_execute: bool) -> None:
@@ -931,8 +931,8 @@ def set_print_not_execute(print_not_execute: bool) -> None:
     Args:
         print_not_execute: print (not execute)?
     """
-    global _print_not_execute
-    _print_not_execute = print_not_execute
+    global _global_print_not_execute_sql
+    _global_print_not_execute_sql = print_not_execute
 
 
 def execute(engine: Engine, sql: str) -> None:
@@ -947,7 +947,7 @@ def execute(engine: Engine, sql: str) -> None:
         sql: raw SQL to execute (or print)
     """
     log.debug(sql)
-    if _print_not_execute:
+    if _global_print_not_execute_sql:
         print(format_sql_for_print(sql) + "\n;")
         # extra \n in case the SQL ends in a comment
     else:
@@ -1001,9 +1001,8 @@ def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
                       f"already exists; not adding")
     for column_def in column_defs:
         log.info(f"Table {repr(table.name)}: adding column {repr(column_def)}")
-        execute(engine, f"""
-            ALTER TABLE {table.name} ADD {column_def}
-        """)
+        sql = f"ALTER TABLE {table.name} ADD {column_def}"
+        execute(engine, sql)
 
 
 def drop_columns(engine: Engine, table: Table,

@@ -36,7 +36,30 @@ import os
 # =============================================================================
 
 CRATE_DOCS_URL = "https://crateanon.readthedocs.io/"
+CRATE_PACKAGE_ROOT = os.path.abspath(
+    os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),  # this directory, common
+        os.pardir  # parent, crate_anon
+    )
+)
+CRATE_DIR_NLP_MANAGER = os.path.join(CRATE_PACKAGE_ROOT, "nlp_manager")
+CRATE_DIR_JAVA_CLASSES = os.path.join(
+    CRATE_DIR_NLP_MANAGER, "compiled_nlp_classes")
+CRATE_DIR_NLPRP = os.path.join(CRATE_PACKAGE_ROOT, "nlprp")
 
+DEMO_NLP_INPUT_TERMINATOR = "STOP"
+DEMO_NLP_OUTPUT_TERMINATOR = "END_OF_NLP_OUTPUT_RECORD"
+
+ENVVAR_CRATE_GATE_PLUGIN_FILE = "CRATE_GATE_PLUGIN_FILE"
+ENVVAR_GENERATING_CRATE_DOCS = "GENERATING_CRATE_DOCS"
+# ... environment variable whose presence shows that we are generating docs.
+ENVVAR_GATE_HOME = "GATE_HOME"
+ENVVAR_JAVA_HOME = "JAVA_HOME"
+ENVVAR_KCL_LEWY_BODY_DIAGNOSIS_DIR = "KCL_LEWY_BODY_DIAGNOSIS_DIR"
+ENVVAR_KCL_PHARMACOTHERAPY_DIR = "KCL_PHARMACOTHERAPY_DIR"
+ENVVAR_KCL_KCONNECT_DIR = "KCL_KCONNECT_DIR"
+ENVVAR_MEDEX_HOME = "MEDEX_HOME"
+ENVVAR_PATH = "PATH"
 ENVVAR_RUN_WITHOUT_CONFIG = "CRATE_RUN_WITHOUT_LOCAL_SETTINGS"
 EXIT_FAILURE = 1
 EXIT_SUCCESS = 0
@@ -49,6 +72,7 @@ LOWER_CASE_STRINGS_MEANING_TRUE = ['true', '1', 't', 'y', 'yes']
 # Is this program running on readthedocs.org?
 ON_READTHEDOCS = os.environ.get('READTHEDOCS') == 'True'
 
+
 # Will we run without a config file?
 RUNNING_WITHOUT_CONFIG = (
     ON_READTHEDOCS or
@@ -56,6 +80,25 @@ RUNNING_WITHOUT_CONFIG = (
      os.environ[ENVVAR_RUN_WITHOUT_CONFIG].lower() in
      LOWER_CASE_STRINGS_MEANING_TRUE)
 )
+
+
+# =============================================================================
+# DockerConstants
+# =============================================================================
+
+class DockerConstants(object):
+    """
+    Constants for the Docker environment.
+    """
+    # Directories
+    DOCKER_CRATE_ROOT_DIR = "/crate"
+    CONFIG_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "cfg")
+    TMP_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "tmp")
+    VENV_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "venv")
+
+    HOST = "0.0.0.0"
+    # ... not "localhost" or "127.0.0.1"; see
+    # https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors  # noqa
 
 
 # =============================================================================

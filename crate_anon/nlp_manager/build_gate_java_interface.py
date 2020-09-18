@@ -32,19 +32,29 @@ import argparse
 import logging
 import os
 import subprocess
+import sys
 
+from cardinal_pythonlib.cmdline import cmdline_quote
 from cardinal_pythonlib.logs import configure_logger_for_colour
 
+from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
 from crate_anon.nlp_manager.constants import GATE_PIPELINE_CLASSNAME
 
 
 log = logging.getLogger(__name__)
 
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+EXIT_FAILURE = 1
+
+if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
+    THIS_DIR = "/path/to/crate/crate_anon/nlp_manager"
+    DEFAULT_GATE_DIR = "/path/to/GATE/installation"
+else:
+    THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+    DEFAULT_GATE_DIR = os.environ.get("GATE_HOME", "/")
+
 DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, 'compiled_nlp_classes')
 SOURCE_FILE = os.path.join(THIS_DIR, GATE_PIPELINE_CLASSNAME + '.java')
-DEFAULT_GATEDIR = os.path.join(os.path.expanduser('~'), 'dev',
-                               'GATE_Developer_8.0')
+
 DEFAULT_JAVA = 'java'
 DEFAULT_JAVAC = 'javac'
 
@@ -53,6 +63,7 @@ def main() -> None:
     """
     Command-line processor. See command-line help.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Compile Java classes for CRATE's interface to GATE",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -60,7 +71,7 @@ def main() -> None:
         '--builddir', default=DEFAULT_BUILD_DIR,
         help="Output directory for compiled .class files")
     parser.add_argument(
-        '--gatedir', default=DEFAULT_GATEDIR,
+        '--gatedir', default=DEFAULT_GATE_DIR,
         help="Root directory of GATE installation")
     parser.add_argument(
         '--gate_exec',
@@ -86,19 +97,23 @@ def main() -> None:
     configure_logger_for_colour(rootlogger, level=loglevel)
 
     if not args.gate_exec:
+        if not os.path.exists(args.gatedir):
+            log.error(f"Could not find GATE installation at {args.gatedir}. "
+                      f"Is GATE installed? Have you set --gatedir correctly?")
+            sys.exit(EXIT_FAILURE)
+
         gatejar = os.path.join(args.gatedir, 'bin', 'gate.jar')
     else:
         gatejar = args.gate_exec
+
     gatelibjars = os.path.join(args.gatedir, 'lib', '*')
     classpath = os.pathsep.join([args.builddir, gatejar, gatelibjars])
     classpath_options = ['-classpath', classpath]
 
     if args.launch:
-        appfile = os.path.join(args.gatedir,
-                               'plugins', 'ANNIE', 'ANNIE_with_defaults.gapp')
         features = ['-a', 'Person', '-a', 'Location']
         eol_options = ['-it', 'END', '-ot', 'END']
-        prog_args = ['-g', appfile] + features + eol_options
+        prog_args = features + eol_options + ['--demo']
         if args.verbose > 0:
             prog_args += ['-v', '-v']
         if args.verbose > 1:
@@ -109,7 +124,7 @@ def main() -> None:
             [GATE_PIPELINE_CLASSNAME] +
             prog_args
         )
-        log.info(f"Executing command: {cmdargs}")
+        log.info(f"Executing command: {cmdline_quote(cmdargs)}")
         subprocess.check_call(cmdargs)
     else:
         os.makedirs(args.builddir, exist_ok=True)
@@ -120,7 +135,7 @@ def main() -> None:
             ['-d', args.builddir] +
             [SOURCE_FILE]
         )
-        log.info(f"Executing command: {cmdargs}")
+        log.info(f"Executing command: {cmdline_quote(cmdargs)}")
         subprocess.check_call(cmdargs)
         log.info(f"Output *.class files are in {args.builddir}")
 
