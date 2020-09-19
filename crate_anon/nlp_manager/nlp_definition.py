@@ -53,7 +53,7 @@ from crate_anon.anonymise.constants import (
     DEFAULT_MAX_ROWS_BEFORE_COMMIT,
 )
 from crate_anon.anonymise.dbholder import DatabaseHolder
-from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
+from crate_anon.common.constants import EnvVar
 from crate_anon.common.extendedconfigparser import (
     ConfigSection,
     ExtendedConfigParser,
@@ -178,7 +178,7 @@ def demo_nlp_config() -> str:
     proclist_cognitive = _make_proclist(ALL_COGNITIVE_NLP_AND_VALIDATORS)
     proclist_haematology = _make_proclist(ALL_HAEMATOLOGY_NLP_AND_VALIDATORS)
 
-    if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
+    if EnvVar.GENERATING_CRATE_DOCS in os.environ:
         nlp_prog_dir = "/path/to/crate_anon/nlp_manager/compiled_nlp_classes"
     else:
         this_dir = os.path.abspath(os.path.dirname(__file__))  # crate_anon/nlp_manager  # noqa

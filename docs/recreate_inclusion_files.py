@@ -43,9 +43,8 @@ from typing import List
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.constants import (
-    CRATE_DIR_NLP_MANAGER,
-    CRATE_DIR_NLPRP,
-    ENVVAR_GENERATING_CRATE_DOCS,
+    CrateDir,
+    EnvVar,
 )
 
 log = logging.getLogger(__name__)
@@ -84,7 +83,7 @@ def run_cmd(cmdargs: List[str],
     log.info(f"Running: {cmdargs}")
 
     modified_env = os.environ.copy()
-    modified_env[ENVVAR_GENERATING_CRATE_DOCS] = "True"
+    modified_env[EnvVar.GENERATING_CRATE_DOCS] = "True"
     output = subprocess.check_output(
         cmdargs, env=modified_env
     ).decode(encoding)
@@ -164,11 +163,11 @@ def main():
             join(NLP_DIR, "_crate_nlp_webserver_launch_gunicorn_help.txt"))
     run_cmd(["crate_nlp_webserver_launch_celery", "--help"],
             join(NLP_DIR, "_crate_nlp_webserver_launch_celery_help.txt"))
-    shutil.copy(join(CRATE_DIR_NLP_MANAGER, "specimen_gate_plugin_file.ini"),
+    shutil.copy(join(CrateDir.NLP_MANAGER, "specimen_gate_plugin_file.ini"),
                 join(NLP_DIR, "_specimen_gate_plugin_file.ini"))
-    shutil.copy(join(CRATE_DIR_NLPRP, "nlprp_test_client.py"),
+    shutil.copy(join(CrateDir.NLPRP, "nlprp_test_client.py"),
                 join(NLP_DIR, "_nlprp_test_client.py"))
-    shutil.copy(join(CRATE_DIR_NLPRP, "nlprp_test_server.py"),
+    shutil.copy(join(CrateDir.NLPRP, "nlprp_test_server.py"),
                 join(NLP_DIR, "_nlprp_test_server.py"))
 
     # -------------------------------------------------------------------------

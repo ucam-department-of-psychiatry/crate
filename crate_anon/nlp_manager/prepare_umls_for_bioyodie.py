@@ -333,10 +333,7 @@ from cardinal_pythonlib.network import download
 import regex
 
 from crate_anon.common.constants import (
-    ENVVAR_GATE_HOME,
-    ENVVAR_JAVA_HOME,
-    ENVVAR_PATH,
-    EXIT_FAILURE,
+    EnvVar,
     EXIT_SUCCESS,
 )
 from crate_anon.common.sysops import check_call_verbose, die
@@ -439,8 +436,8 @@ def get_default_java_home() -> str:
     """
     Returns a suitable default for the JAVA_HOME environment variable.
     """
-    if ENVVAR_JAVA_HOME in os.environ:
-        return os.environ[ENVVAR_JAVA_HOME]
+    if EnvVar.JAVA_HOME in os.environ:
+        return os.environ[EnvVar.JAVA_HOME]
     java_executable = require_external_tool("java")
     return os.path.abspath(join(java_executable, os.pardir, os.pardir))
 
@@ -449,7 +446,7 @@ def get_default_gate_home() -> str:
     """
     Returns a suitable default for the GATE_HOME environment variable.
     """
-    return os.environ.get(ENVVAR_GATE_HOME, "")
+    return os.environ.get(EnvVar.GATE_HOME, "")
 
 
 def read_config_and_replace_values(filename: str,
@@ -666,16 +663,16 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
     # -------------------------------------------------------------------------
     # For UMLS
     umls_env = os.environ.copy()
-    umls_env[ENVVAR_JAVA_HOME] = umls_java_home
+    umls_env[EnvVar.JAVA_HOME] = umls_java_home
     # For Bio-YODIE preprocessor
     bioyodie_env = os.environ.copy()
-    bioyodie_env[ENVVAR_JAVA_HOME] = system_java_home
-    bioyodie_env[ENVVAR_GATE_HOME] = cfg.gate_home
+    bioyodie_env[EnvVar.JAVA_HOME] = system_java_home
+    bioyodie_env[EnvVar.GATE_HOME] = cfg.gate_home
     groovy_dir = os.path.dirname(os.path.abspath(groovy_executable))
-    old_path = bioyodie_env.get(ENVVAR_PATH, "")
+    old_path = bioyodie_env.get(EnvVar.PATH, "")
     new_path_with_groovy = os.pathsep.join(
         x for x in [groovy_dir, old_path] if x)
-    bioyodie_env[ENVVAR_PATH] = new_path_with_groovy
+    bioyodie_env[EnvVar.PATH] = new_path_with_groovy
 
     # -------------------------------------------------------------------------
     log.info("Cloning Bio-YODIE resource prep repository...")
@@ -837,17 +834,17 @@ def main() -> None:
     )
     parser.add_argument(
         "--java_home",
-        help=f"Value for {ENVVAR_JAVA_HOME} environment variable. "
+        help=f"Value for {EnvVar.JAVA_HOME} environment variable. "
              f"Should be a directory that contains 'bin/java'. "
-             f"Default is (a) existing {ENVVAR_JAVA_HOME} variable; "
+             f"Default is (a) existing {EnvVar.JAVA_HOME} variable; "
              f"(b) location based on 'which java'.",
         default=get_default_java_home()
     )
     parser.add_argument(
         "--gate_home",
-        help=f"Value for {ENVVAR_GATE_HOME} environment variable. "
+        help=f"Value for {EnvVar.GATE_HOME} environment variable. "
              f"Should be a directory that contains 'bin/gate.*'. "
-             f"Default is existing {ENVVAR_GATE_HOME} environment variable.",
+             f"Default is existing {EnvVar.GATE_HOME} environment variable.",
         default=get_default_gate_home()
     )
     parser.add_argument(

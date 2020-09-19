@@ -29,13 +29,12 @@ crate_anon/nlp_manager/show_crate_medex_pipeline_options.py
 """
 
 import logging
-import os
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.constants import (
-    CRATE_DIR_JAVA_CLASSES,
-    ENVVAR_MEDEX_HOME,
+    CrateDir,
+    EnvVar,
 )
 from crate_anon.common.sysops import check_call_verbose, get_envvar_or_die
 
@@ -45,11 +44,11 @@ def main() -> None:
     Command-line entry point.
     """
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    medex_home = get_envvar_or_die(ENVVAR_MEDEX_HOME)
+    medex_home = get_envvar_or_die(EnvVar.MEDEX_HOME)
     check_call_verbose([
         "java",
         "-classpath",
-        f"{CRATE_DIR_JAVA_CLASSES}:{medex_home}/bin:{medex_home}/lib/*",
+        f"{CrateDir.JAVA_CLASSES}:{medex_home}/bin:{medex_home}/lib/*",
         "CrateMedexPipeline",
         "--help",
         "-v", "-v",

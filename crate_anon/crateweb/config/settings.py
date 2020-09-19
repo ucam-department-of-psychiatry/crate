@@ -49,7 +49,7 @@ from cardinal_pythonlib.fileops import relative_filename_within_dir
 
 from crate_anon.common.constants import (
     DockerConstants,
-    ENVVAR_GENERATING_CRATE_DOCS,
+    EnvVar,
     RUNNING_WITHOUT_CONFIG,
 )
 from crate_anon.common.dockerfunc import warn_if_not_within_docker_dir
@@ -527,7 +527,7 @@ else:
             is_env_var=True
         )
 
-    if ENVVAR_GENERATING_CRATE_DOCS not in os.environ:
+    if EnvVar.GENERATING_CRATE_DOCS not in os.environ:
         print(f"Loading local settings from: {filename}")
     # ... NB logger not yet set to a reasonable priority; use warning level
     # ... no, logger not even configured, and this is loaded via Django;

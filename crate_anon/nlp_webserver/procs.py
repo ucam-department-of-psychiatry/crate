@@ -32,7 +32,7 @@ import importlib.util
 import logging
 import os
 
-from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
+from crate_anon.common.constants import EnvVar
 from crate_anon.nlprp.constants import NlprpKeys
 from crate_anon.nlp_webserver.constants import (
     KEY_PROCTYPE,
@@ -43,7 +43,7 @@ from crate_anon.nlp_webserver.settings import SETTINGS
 
 log = logging.getLogger(__name__)
 
-if ENVVAR_GENERATING_CRATE_DOCS not in os.environ:
+if EnvVar.GENERATING_CRATE_DOCS not in os.environ:
     _proc_file = SETTINGS[NlpServerConfigKeys.PROCESSORS_PATH]
     # from processor_file import PROCESSORS  # doesn't work, need importlib
 
