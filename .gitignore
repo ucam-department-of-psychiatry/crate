@@ -32,3 +32,6 @@ celerybeat.pid
 
 # Silver searcher
 .ignore
+
+# Emacs
+.dir-locals.el
