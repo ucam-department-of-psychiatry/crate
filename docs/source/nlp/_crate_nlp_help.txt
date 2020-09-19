@@ -16,64 +16,71 @@ optional arguments:
 
 Config options:
   --config CONFIG       Config file (overriding environment variable
-                        CRATE_NLP_CONFIG)
-  --nlpdef NLPDEF       NLP definition name (from config file)
+                        CRATE_NLP_CONFIG) (default: None)
+  --nlpdef NLPDEF       NLP definition name (from config file) (default: None)
   -i, --incremental     Process only new/changed information, where possible
-                        (* default)
-  -f, --full            Drop and remake everything
-  --dropremake          Drop/remake destination tables only
+                        (default: True)
+  -f, --full            Drop and remake everything (default: False)
+  --dropremake          Drop/remake destination tables only (default: False)
   --skipdelete          For incremental updates, skip deletion of rows present
-                        in the destination but not the source
-  --nlp                 Perform NLP processing only
+                        in the destination but not the source (default: False)
+  --nlp                 Perform NLP processing only (default: False)
   --chunksize CHUNKSIZE
                         Number of records copied in a chunk when copying PKs
-                        from one database to another (default 100000)
+                        from one database to another (default: 100000)
 
 Reporting options:
-  --verbose, -v         Be verbose (use twice for extra verbosity)
+  --verbose, -v         Be verbose (use twice for extra verbosity) (default:
+                        False)
   --report_every_fast REPORT_EVERY_FAST
                         Report insert progress (for fast operations) every n
-                        rows in verbose mode (default 100000)
+                        rows in verbose mode (default: 100000)
   --report_every_nlp REPORT_EVERY_NLP
                         Report progress for NLP every n rows in verbose mode
-                        (default 500)
-  --echo                Echo SQL
-  --timing              Show detailed timing breakdown
+                        (default: 500)
+  --echo                Echo SQL (default: False)
+  --timing              Show detailed timing breakdown (default: False)
 
 Multiprocessing options:
   --process PROCESS     For multiprocess mode: specify process number
+                        (default: 0)
   --nprocesses NPROCESSES
                         For multiprocess mode: specify total number of
                         processes (launched somehow, of which this is to be
-                        one)
+                        one) (default: 1)
   --processcluster PROCESSCLUSTER
-                        Process cluster name
+                        Process cluster name (default: )
 
 Info actions:
   --version             show program's version number and exit
-  --democonfig          Print a demo config file
-  --listprocessors      Show possible built-in NLP processor names
-  --describeprocessors  Show details of built-in NLP processors
+  --democonfig          Print a demo config file (default: False)
+  --listprocessors      Show possible built-in NLP processor names (default:
+                        False)
+  --describeprocessors  Show details of built-in NLP processors (default:
+                        False)
   --test_nlp            Test the NLP processor(s) for the selected definition,
-                        by sending text from stdin to them
+                        by sending text from stdin to them (default: False)
   --print_local_processors
                         Show NLPRP JSON for local processors that are part of
-                        the chosen NLP definition, then stop
+                        the chosen NLP definition, then stop (default: False)
   --print_cloud_processors
                         Show NLPRP JSON for cloud (remote) processors that are
-                        part of the chosen NLP definition, then stop
+                        part of the chosen NLP definition, then stop (default:
+                        False)
   --showinfo NLP_CLASS_NAME
-                        Show detailed information for a parser
+                        Show detailed information for a parser (default: None)
   --count               Count records in source/destination databases, then
-                        stop
+                        stop (default: False)
 
 Cloud options:
   --cloud               Use cloud-based NLP processing tools. Queued mode by
-                        default.
+                        default. (default: False)
   --immediate           To be used with 'cloud'. Process immediately.
-  --retrieve            Retrieve NLP data from cloud
+                        (default: False)
+  --retrieve            Retrieve NLP data from cloud (default: False)
   --cancelrequest       Cancel pending requests for the nlpdef specified
+                        (default: False)
   --cancelall           Cancel all pending cloud requests. WARNING: this
                         option cancels all pending requests - not just those
-                        for the nlp definition specified
-  --showqueue           Shows all pending cloud requests.
+                        for the nlp definition specified (default: False)
+  --showqueue           Shows all pending cloud requests. (default: False)

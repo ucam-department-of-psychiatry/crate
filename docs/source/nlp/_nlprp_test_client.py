@@ -121,6 +121,7 @@ def main() -> None:
     """
     Command-line entry point.
     """
+    # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
