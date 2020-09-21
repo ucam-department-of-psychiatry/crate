@@ -43,4 +43,3 @@ crate_anon/common
     profiling.py.rst
     sql.py.rst
     stringfunc.py.rst
-    sysops.py.rst

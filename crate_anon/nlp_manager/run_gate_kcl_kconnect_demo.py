@@ -39,7 +39,8 @@ from crate_anon.common.constants import (
     DEMO_NLP_OUTPUT_TERMINATOR,
     EnvVar,
 )
-from crate_anon.common.sysops import check_call_verbose, get_envvar_or_die
+from cardinal_pythonlib.subproc import check_call_verbose
+from cardinal_pythonlib.sysops import get_envvar_or_die
 
 
 def main() -> None:

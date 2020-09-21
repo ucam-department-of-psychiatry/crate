@@ -330,13 +330,14 @@ from cardinal_pythonlib.fileops import mkdir_p, pushd
 from cardinal_pythonlib.file_io import write_text
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.network import download
+from cardinal_pythonlib.subproc import check_call_verbose
+from cardinal_pythonlib.sysops import die
 import regex
 
 from crate_anon.common.constants import (
     EnvVar,
     EXIT_SUCCESS,
 )
-from crate_anon.common.sysops import check_call_verbose, die
 
 log = logging.getLogger(__name__)
 
