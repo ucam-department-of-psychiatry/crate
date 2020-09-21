@@ -70,7 +70,9 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Generator, TYPE_CHECKING
+from typing import (
+    Any, Callable, Dict, List, Optional, Tuple, Generator, TYPE_CHECKING,
+)
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.fileops import purge
@@ -619,6 +621,7 @@ def process_nlp(nlpdef: NlpDefinition,
 # =============================================================================
 
 def send_cloud_requests(
+        cloud_request_factory: Callable[[CloudRunInfo], CloudRequestProcess],
         generated_text: Generator[Tuple[str, Dict[str, Any]], None, None],
         crinfo: CloudRunInfo,
         ifconfig: InputFieldConfig,
@@ -640,7 +643,7 @@ def send_cloud_requests(
     if not available_procs:  # request failed, or no processors available
         return [], False, global_recnum
     cloudcfg = crinfo.cloudcfg
-    cloud_request = CloudRequestProcess(crinfo=crinfo)
+    cloud_request = cloud_request_factory(crinfo)
     empty_request = True
     limit_before_commit = cloudcfg.limit_before_commit
     recs = 0
@@ -702,7 +705,7 @@ def send_cloud_requests(
                              "block")
                     i += 1
                     requests.append(cloud_request)
-            cloud_request = CloudRequestProcess(crinfo=crinfo)
+            cloud_request = cloud_request_factory(crinfo)
             # Is the text too big on its own? If so, don't send it. Otherwise
             # add it to the new request
             text_not_too_big, success = cloud_request.add_text(
@@ -736,6 +739,10 @@ def send_cloud_requests(
     return requests, recs > 0, global_recnum
 
 
+def get_new_cloud_request(crinfo: CloudRunInfo) -> CloudRequestProcess:
+    return CloudRequestProcess(crinfo)
+
+
 def process_cloud_nlp(crinfo: CloudRunInfo,
                       incremental: bool = False,
                       report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
@@ -758,6 +765,7 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
             records_left = True
             while records_left:
                 cloud_requests, records_left, global_recnum = send_cloud_requests(  # noqa
+                    get_new_cloud_request,
                     generated_text=generated_text,
                     crinfo=crinfo,
                     ifconfig=ifconfig,
@@ -903,6 +911,7 @@ def process_cloud_now(
         records_left = True
         while records_left:
             cloud_requests,  records_left, global_recnum = send_cloud_requests(
+                get_new_cloud_request,
                 generated_text=generated_text,
                 crinfo=crinfo,
                 global_recnum=global_recnum,

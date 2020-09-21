@@ -29,27 +29,100 @@ crate_anon/nlp_manager/nlp_manager.py
 from typing import Any, Dict, Generator, Tuple
 from unittest import mock, TestCase
 
+from crate_anon.nlp_manager.cloud_request import CloudRequestProcess
+from crate_anon.nlp_manager.input_field_config import FN_SRCPKSTR, FN_SRCPKVAL
 from crate_anon.nlp_manager.nlp_manager import send_cloud_requests
 
 
 class SendCloudRequestsTestCase(TestCase):
     def get_text(self) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
-        yield "", {"": None}
+        for text, other_values in self.test_text:
+            yield text, other_values
 
     def test_exits_when_no_available_processors(self) -> None:
-        generated_text = self.get_text()
+        self.test_text = [
+            ("", {"": None}),
+        ]
 
-        crinfo = mock.Mock(get_remote_processors=mock.Mock(return_value=False))
+        crinfo = mock.Mock(get_remote_processors=mock.Mock(return_value=[]))
         global_recnum_in = 123
         ifconfig = mock.Mock()
+        cloud_request_factory = mock.Mock()
 
         cloud_requests, records_left, global_recnum_out = send_cloud_requests(
-           generated_text,
-           crinfo,
-           ifconfig,
-           global_recnum_in
+            cloud_request_factory,
+            self.get_text(),
+            crinfo,
+            ifconfig,
+            global_recnum_in
         )
 
         self.assertEqual(cloud_requests, [])
         self.assertFalse(records_left)
         self.assertEqual(global_recnum_out, global_recnum_in)
+
+    def test_single_text_sent_in_single_request(self) -> None:
+        self.test_text = [
+            ("a man, a plan, a canal. Panama!", {
+                FN_SRCPKVAL: 1,
+                FN_SRCPKSTR: "",
+            }),
+        ]
+
+        remote_processors = {("name-version", None): mock.Mock()}
+        cloud_config = mock.Mock(
+            remote_processors=remote_processors,
+            limit_before_commit=100,
+            max_records_per_request=10,
+            max_content_length=50000,
+            has_gate_processors=False
+        )
+        # can't set name attribute in constructor here as it has special meaning
+        nlpdef = mock.Mock(
+            get_cloud_config_or_raise=mock.Mock(return_value=cloud_config)
+        )
+        nlpdef.name = ""  # so set it here
+
+        crinfo = mock.Mock(
+            get_remote_processors=mock.Mock(return_value=remote_processors),
+            cloudcfg=cloud_config
+        )
+        global_recnum_in = 123
+        ifconfig = mock.Mock()
+
+        cloud_request = CloudRequestProcess(
+            crinfo=crinfo,
+            nlpdef=nlpdef,
+        )
+
+        # Unrealistic - we always return the same one
+        def cloud_request_factory(crinfo) -> CloudRequestProcess:
+            self.assertEqual(cloud_request_factory.call_count, 0)
+
+            cloud_request_factory.call_count += 1
+
+            return cloud_request
+
+        cloud_request_factory.call_count = 0
+
+        with mock.patch.object(
+                cloud_request, "send_process_request") as mock_send:
+            (cloud_requests,
+             records_processed,
+             global_recnum_out) = send_cloud_requests(
+                cloud_request_factory,
+                self.get_text(),
+                crinfo,
+                ifconfig,
+                global_recnum_in
+            )
+
+            self.assertEqual(cloud_requests[0], cloud_request)
+            self.assertTrue(records_processed)
+            self.assertEqual(global_recnum_out, 124)
+
+        mock_send.assert_called_once_with(
+            queue=True,
+            cookies=None,
+            include_text_in_reply=False  # has_gate_processors
+        )
