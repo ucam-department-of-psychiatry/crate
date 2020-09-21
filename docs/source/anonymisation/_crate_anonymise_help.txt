@@ -39,8 +39,8 @@ Simple commands requiring a config:
 
 Mode options:
   -i, --incremental     Process only new/changed information, where possible
-                        (* default) (default: True)
-  -f, --full            Drop and remake everything (default: True)
+                        (default: True)
+  -f, --full            Drop and remake everything (default: False)
   --skipdelete          For incremental updates, skip deletion of rows present
                         in the destination but not the source (default: False)
 
