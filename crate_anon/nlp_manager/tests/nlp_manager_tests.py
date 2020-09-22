@@ -40,6 +40,28 @@ class SendCloudRequestsTestCase(TestCase):
         for text, other_values in self.test_text:
             yield text, other_values
 
+    def setUp(self) -> None:
+        # Set some sensible defaults here and be explicit in individual tests
+        remote_processors = {("name-version", None): mock.Mock()}
+        self.cloud_config = mock.Mock(
+            remote_processors=remote_processors,
+            limit_before_commit=1000,
+            max_records_per_request=1000,
+            max_content_length=50000,
+            has_gate_processors=True
+        )
+        # can't set name attribute in constructor here as it has special meaning
+        self.nlpdef = mock.Mock(
+            get_cloud_config_or_raise=mock.Mock(return_value=self.cloud_config)
+        )
+        self.nlpdef.name = ""  # so set it here
+
+        self.crinfo = mock.Mock(
+            get_remote_processors=mock.Mock(return_value=remote_processors),
+            cloudcfg=self.cloud_config
+        )
+        self.ifconfig = mock.Mock()
+
     def test_exits_when_no_available_processors(self) -> None:
         self.test_text = [
             ("", {"": None}),
@@ -70,30 +92,11 @@ class SendCloudRequestsTestCase(TestCase):
             }),
         ]
 
-        remote_processors = {("name-version", None): mock.Mock()}
-        cloud_config = mock.Mock(
-            remote_processors=remote_processors,
-            limit_before_commit=100,
-            max_records_per_request=10,
-            max_content_length=50000,
-            has_gate_processors=False
-        )
-        # can't set name attribute in constructor here as it has special meaning
-        nlpdef = mock.Mock(
-            get_cloud_config_or_raise=mock.Mock(return_value=cloud_config)
-        )
-        nlpdef.name = ""  # so set it here
-
-        crinfo = mock.Mock(
-            get_remote_processors=mock.Mock(return_value=remote_processors),
-            cloudcfg=cloud_config
-        )
-        global_recnum_in = 123
-        ifconfig = mock.Mock()
+        self.cloud_config.has_gate_processors = False
 
         cloud_request = CloudRequestProcess(
-            crinfo=crinfo,
-            nlpdef=nlpdef,
+            crinfo=self.crinfo,
+            nlpdef=self.nlpdef,
         )
 
         # Unrealistic - we always return the same one
@@ -105,6 +108,7 @@ class SendCloudRequestsTestCase(TestCase):
             return cloud_request
 
         cloud_request_factory.call_count = 0
+        global_recnum_in = 123
 
         with mock.patch.object(
                 cloud_request, "send_process_request") as mock_send:
@@ -113,8 +117,8 @@ class SendCloudRequestsTestCase(TestCase):
              global_recnum_out) = send_cloud_requests(
                 cloud_request_factory,
                 self.get_text(),
-                crinfo,
-                ifconfig,
+                self.crinfo,
+                self.ifconfig,
                 global_recnum_in
             )
 
@@ -135,7 +139,7 @@ class SendCloudRequestsTestCase(TestCase):
         self.assertEqual(records[0][NKeys.TEXT],
                          "A woman, a plan, a canal. Panamowa!")
 
-    def test_multiple_text_sent_in_single_request(self) -> None:
+    def test_multiple_records_sent_in_single_request(self) -> None:
         self.test_text = [
             ("A woman, a plan, a canal. Panamowa!", {
                 FN_SRCPKVAL: 1,
@@ -151,30 +155,11 @@ class SendCloudRequestsTestCase(TestCase):
             }),
         ]
 
-        remote_processors = {("name-version", None): mock.Mock()}
-        cloud_config = mock.Mock(
-            remote_processors=remote_processors,
-            limit_before_commit=100,
-            max_records_per_request=10,
-            max_content_length=50000,
-            has_gate_processors=False
-        )
-        # can't set name attribute in constructor here as it has special meaning
-        nlpdef = mock.Mock(
-            get_cloud_config_or_raise=mock.Mock(return_value=cloud_config)
-        )
-        nlpdef.name = ""  # so set it here
-
-        crinfo = mock.Mock(
-            get_remote_processors=mock.Mock(return_value=remote_processors),
-            cloudcfg=cloud_config
-        )
         global_recnum_in = 123
-        ifconfig = mock.Mock()
 
         cloud_request = CloudRequestProcess(
-            crinfo=crinfo,
-            nlpdef=nlpdef,
+            crinfo=self.crinfo,
+            nlpdef=self.nlpdef,
         )
 
         # Unrealistic - we always return the same one
@@ -194,8 +179,8 @@ class SendCloudRequestsTestCase(TestCase):
              global_recnum_out) = send_cloud_requests(
                 cloud_request_factory,
                 self.get_text(),
-                crinfo,
-                ifconfig,
+                self.crinfo,
+                self.ifconfig,
                 global_recnum_in
             )
 
@@ -203,14 +188,84 @@ class SendCloudRequestsTestCase(TestCase):
             self.assertTrue(records_processed)
             self.assertEqual(global_recnum_out, 126)
 
-        mock_send.assert_called_once_with(
-            queue=True,
-            cookies=None,
-            include_text_in_reply=False  # has_gate_processors
-        )
-
         records = cloud_request._request_process[NKeys.ARGS][NKeys.CONTENT]
 
         self.assertEqual(records[0][NKeys.METADATA][FN_SRCPKVAL], 1)
         self.assertEqual(records[1][NKeys.METADATA][FN_SRCPKSTR], "pkstr")
         self.assertEqual(records[2][NKeys.TEXT], "Won't lovers revolt now?")
+
+    def test_max_records_per_request(self) -> None:
+        self.test_text = [
+            ("A woman, a plan, a canal. Panamowa!", {
+                FN_SRCPKVAL: 1,
+                FN_SRCPKSTR: "pkstr",
+            }),
+            ("A dog! A panic in a pagoda.", {
+                FN_SRCPKVAL: 2,
+                FN_SRCPKSTR: "pkstr",
+            }),
+            ("Won't lovers revolt now?", {
+                FN_SRCPKVAL: 3,
+                FN_SRCPKSTR: "pkstr",
+            }),
+        ]
+
+        global_recnum_in = 123
+
+        cloud_requests = [
+            CloudRequestProcess(
+                crinfo=self.crinfo,
+                nlpdef=self.nlpdef,
+            ),
+            CloudRequestProcess(
+                crinfo=self.crinfo,
+                nlpdef=self.nlpdef,
+            ),
+            CloudRequestProcess(
+                crinfo=self.crinfo,
+                nlpdef=self.nlpdef,
+            )
+        ]
+
+        def cloud_request_factory(crinfo) -> CloudRequestProcess:
+            request = cloud_requests[cloud_request_factory.call_count]
+
+            cloud_request_factory.call_count += 1
+
+            return request
+
+        cloud_request_factory.call_count = 0
+
+        self.cloud_config.max_records_per_request = 1
+
+        with mock.patch.object(cloud_requests[0], "send_process_request"):
+            with mock.patch.object(cloud_requests[1], "send_process_request"):
+                with mock.patch.object(cloud_requests[2],
+                                       "send_process_request"):
+                    (requests_out,
+                     records_processed,
+                     global_recnum_out) = send_cloud_requests(
+                         cloud_request_factory,
+                         self.get_text(),
+                         self.crinfo,
+                         self.ifconfig,
+                         global_recnum_in
+                     )
+
+        self.assertEqual(requests_out[0], cloud_requests[0])
+        self.assertEqual(requests_out[1], cloud_requests[1])
+        self.assertEqual(requests_out[2], cloud_requests[2])
+
+        self.assertTrue(records_processed)
+        self.assertEqual(global_recnum_out, 126)
+
+        content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        self.assertEqual(content_0[0][NKeys.TEXT],
+                         "A woman, a plan, a canal. Panamowa!")
+
+        content_1 = requests_out[1]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        self.assertEqual(content_1[0][NKeys.TEXT],
+                         "A dog! A panic in a pagoda.")
+
+        content_2 = requests_out[2]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        self.assertEqual(content_2[0][NKeys.TEXT], "Won't lovers revolt now?")

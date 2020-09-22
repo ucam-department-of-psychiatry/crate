@@ -545,10 +545,10 @@ class CloudRequestProcess(CloudRequest):
             # needs to create a new CloudRequestProcess
             return True, False
 
-        if self.number_of_records >= self._cloudcfg.max_records_per_request - 1:
+        self.number_of_records += 1
+        if self.number_of_records > self._cloudcfg.max_records_per_request:
             # Return False if we've reached the record limit for the request
             return False, False
-        self.number_of_records += 1
 
         new_content = {
             NKeys.METADATA: other_values,
