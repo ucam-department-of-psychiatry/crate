@@ -42,25 +42,25 @@ log = logging.getLogger(__name__)
 ## ============================================================================
 
 <div class="mainpage_row">
-  ## --------------------------------------------------------------------------
-  ## Left-hand side: title and tree
-  ## --------------------------------------------------------------------------
-  <div class="${leftcol_class}">
-    ${html_above_title}
-    %if page_title:
-        <div class="pad"><h1>${page_title}</h1></div>
-    %endif
-    <div class="pad">
-        ${tree.html()}
+    ## ------------------------------------------------------------------------
+    ## Left-hand side: title and tree
+    ## ------------------------------------------------------------------------
+    <div class="${leftcol_class}">
+        ${html_above_title}
+        %if page_title:
+            <div class="pad"><h1>${page_title}</h1></div>
+        %endif
+        <div class="pad">
+            ${tree.html()}
+        </div>
     </div>
-  </div>
 
-  ## --------------------------------------------------------------------------
-  ## Right-hand side: content, with initial "nothing selected" text.
-  ## --------------------------------------------------------------------------
-  <div class="${rightcol_class}" id="chosen_content">
-    <div class="obscure_spinner"><i>${no_content_selected}</i></div>
-  </div>
+    ## ------------------------------------------------------------------------
+    ## Right-hand side: content, with initial "nothing selected" text.
+    ## ------------------------------------------------------------------------
+    <div class="${rightcol_class}" id="chosen_content">
+        <div class="obscure_spinner"><i>${no_content_selected}</i></div>
+    </div>
 
 </div>
 
@@ -120,13 +120,13 @@ function getRightContent(id)
 // Execute immediately
 // ----------------------------------------------------------------------------
 
-var TREE_DATA = ${tree.js_data()};
+const TREE_DATA = ${tree.js_data()};
 
-var TREE_ID = "${tree.tree_id}";
+const TREE_ID = "${tree.tree_id}";
 activateTreeExpansion();
 addTreeIDCallbacks(TREE_ID, callback);
 
-var g_current_tree_item_id = "";  // global
+let g_current_tree_item_id = "";  // global
 
 </script>
 

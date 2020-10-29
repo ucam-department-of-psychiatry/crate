@@ -36,12 +36,12 @@ function activateTreeExpansion()
     // - They should be siblings of an element (e.g. <ul>) called "nested",
     //   containing the content.
 
-    var toggler = document.getElementsByClassName("caret");
-    for (var i = 0; i < toggler.length; i++) {
-      toggler[i].addEventListener("click", function() {
-        this.parentElement.querySelector(".nested").classList.toggle("active");
-        this.classList.toggle("caret-down");
-      });
+    const toggler = document.getElementsByClassName("caret");
+    for (let i = 0; i < toggler.length; i++) {
+        toggler[i].addEventListener("click", function() {
+            this.parentElement.querySelector(".nested").classList.toggle("active");
+            this.classList.toggle("caret-down");
+        });
     }
 }
 
@@ -57,7 +57,7 @@ function createCallback(fn, param)
 
 function treeNodeHasChildren(node)
 {
-    var ul_elements = node.getElementsByTagName("ul");
+    const ul_elements = node.getElementsByTagName("ul");
     return ul_elements.length > 0;
 }
 
@@ -67,15 +67,15 @@ function addTreeIDCallbacks(tree_id, handler_fn)
     // Adds callbacks to all items in a tree.
     // When clicked, they will call handler_fn(css_id_of_item).
 
-    var tree = document.getElementById(tree_id);
+    const tree = document.getElementById(tree_id);
     if (tree === null) {
         console.log("Error: no element with ID '" + tree_id + "'");
         return;
     }
     // Find all "<li>" elements within it, EXCEPT those with class "caret":
-    var li_elements = tree.getElementsByTagName("li");
-    for (var i = 0; i < li_elements.length; i++) {
-        var node = li_elements[i];
+    const li_elements = tree.getElementsByTagName("li");
+    for (let i = 0; i < li_elements.length; i++) {
+        const node = li_elements[i];
         if (treeNodeHasChildren(node)) {
             continue;
         }
@@ -87,7 +87,7 @@ function addTreeIDCallbacks(tree_id, handler_fn)
 
 function setElementClassName(element_id, classname)
 {
-    var element = document.getElementById(element_id);
+    const element = document.getElementById(element_id);
     if (element === null) {
         console.log("Error: no element with ID '" + element_id + "'");
         return;

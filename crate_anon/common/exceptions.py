@@ -31,7 +31,7 @@ crate_anon/common/exceptions.py
 import logging
 import sys
 import traceback
-from typing import Callable
+from typing import Callable, NoReturn
 
 from crate_anon.common.constants import EXIT_FAILURE, EXIT_SUCCESS
 
@@ -55,7 +55,7 @@ def report_exception(exc: Exception) -> None:
     log.error(traceback_msg)
 
 
-def call_main_with_exception_reporting(main_function: Callable) -> None:
+def call_main_with_exception_reporting(main_function: Callable) -> NoReturn:
     try:
         result = main_function()
         if isinstance(result, int):

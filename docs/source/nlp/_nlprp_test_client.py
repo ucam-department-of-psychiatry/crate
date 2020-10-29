@@ -33,7 +33,7 @@ import argparse
 import logging
 import requests
 import sys
-from typing import Any
+from typing import Any, NoReturn
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from requests.auth import HTTPBasicAuth
@@ -71,7 +71,7 @@ def get_response(url: str,
     # -------------------------------------------------------------------------
     # How we fail
     # -------------------------------------------------------------------------
-    def fail(msg: str) -> None:
+    def fail(msg: str) -> NoReturn:
         log.warning(msg)
         raise ValueError(msg)
 

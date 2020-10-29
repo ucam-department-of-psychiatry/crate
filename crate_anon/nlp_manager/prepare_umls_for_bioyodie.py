@@ -324,7 +324,7 @@ import os
 from os.path import join
 import shutil
 import tempfile
-from typing import Dict, List
+from typing import Dict, List, NoReturn
 
 from cardinal_pythonlib.fileops import mkdir_p, pushd
 from cardinal_pythonlib.file_io import write_text
@@ -809,7 +809,7 @@ def prepare_umls_for_bioyodie_meta(cfg: UmlsBioyodieConversionConfig) -> None:
 # main
 # =============================================================================
 
-def main() -> None:
+def main() -> NoReturn:
     """
     Command-line entry point.
     """
@@ -889,6 +889,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-    # todo: vast memory usage
-    # todo: groovy class problem
