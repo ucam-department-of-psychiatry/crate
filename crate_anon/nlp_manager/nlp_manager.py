@@ -646,9 +646,15 @@ def send_cloud_requests(
     cloud_request = cloud_request_factory(crinfo)
     empty_request = True
     limit_before_commit = cloudcfg.limit_before_commit
-    recs = 0
+    num_recs_processed = 0
     hasher = crinfo.nlpdef.hash
     for text, other_values in generated_text:
+        # If we've reached the limit of records before commit, return to
+        # outer function in order to process and commit (or write to file if
+        # it's a queued request)
+        if num_recs_processed == limit_before_commit:
+            break
+
         global_recnum += 1
         pkval = other_values[FN_SRCPKVAL]
         pkstr = other_values[FN_SRCPKSTR]
@@ -684,7 +690,6 @@ def send_cloud_requests(
 
         # Add the text to the cloud request with the appropriate metadata
         not_over_length, success = cloud_request.add_text(text, other_values)
-        recs += 1
         if success:
             empty_request = False
         elif not not_over_length:
@@ -717,12 +722,7 @@ def send_cloud_requests(
         # Add 'srchash' to 'other_values' so the metadata will contain it
         # and we can use it later on for updating the progress database
         other_values[FN_SRCHASH] = srchash
-
-        # If we've reached the limit of records before commit, return to
-        # outer function in order to process and commit (or write to file if
-        # it's a queued request)
-        if recs >= limit_before_commit - 1:
-            break
+        num_recs_processed += 1
 
     if not empty_request:
         # Send last request
@@ -736,7 +736,7 @@ def send_cloud_requests(
             requests.append(cloud_request)
     # Return the cloud request objects, whether any records have
     # been processed and the global record number
-    return requests, recs > 0, global_recnum
+    return requests, num_recs_processed > 0, global_recnum
 
 
 def get_new_cloud_request(crinfo: CloudRunInfo) -> CloudRequestProcess:

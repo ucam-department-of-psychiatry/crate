@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/nlp_manager/nlp_manager.py
+crate_anon/nlp_manager/tests/nlp_manager_tests.py
 
 ===============================================================================
 
@@ -30,6 +30,7 @@ from typing import Any, Dict, Generator, Tuple
 from unittest import mock, TestCase
 
 from crate_anon.nlp_manager.cloud_request import CloudRequestProcess
+from crate_anon.nlp_manager.constants import HashClass
 from crate_anon.nlp_manager.input_field_config import FN_SRCPKSTR, FN_SRCPKVAL
 from crate_anon.nlp_manager.nlp_manager import send_cloud_requests
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
@@ -56,9 +57,14 @@ class SendCloudRequestsTestCase(TestCase):
         )
         self.nlpdef.name = ""  # so set it here
 
+        hasher = HashClass("hashphrase")
+
         self.crinfo = mock.Mock(
             get_remote_processors=mock.Mock(return_value=remote_processors),
-            cloudcfg=self.cloud_config
+            cloudcfg=self.cloud_config,
+            # if we don't set this explicitly, getsize will get into an
+            # infinite loop when trying to recursively weigh the mock object
+            nlpdef=mock.Mock(hash=hasher.hash)
         )
         self.ifconfig = mock.Mock()
 
@@ -269,3 +275,63 @@ class SendCloudRequestsTestCase(TestCase):
 
         content_2 = requests_out[2]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(content_2[0][NKeys.TEXT], "Won't lovers revolt now?")
+
+    def test_limit_before_commit_2(self) -> None:
+        self.test_text = [
+            ("A woman, a plan, a canal. Panamowa!", {
+                FN_SRCPKVAL: 1,
+                FN_SRCPKSTR: "pkstr",
+            }),
+            ("A dog! A panic in a pagoda.", {
+                FN_SRCPKVAL: 2,
+                FN_SRCPKSTR: "pkstr",
+            }),
+            ("Won't lovers revolt now?", {
+                FN_SRCPKVAL: 3,
+                FN_SRCPKSTR: "pkstr",
+            }),
+        ]
+
+        global_recnum_in = 123
+
+        cloud_requests = [
+            CloudRequestProcess(
+                crinfo=self.crinfo,
+                nlpdef=self.nlpdef,
+            ),
+        ]
+
+        def cloud_request_factory(crinfo) -> CloudRequestProcess:
+            request = cloud_requests[cloud_request_factory.call_count]
+
+            cloud_request_factory.call_count += 1
+
+            return request
+
+        cloud_request_factory.call_count = 0
+
+        self.cloud_config.limit_before_commit = 2
+
+        with mock.patch.object(cloud_requests[0], "send_process_request"):
+            (requests_out,
+             records_processed,
+             global_recnum_out) = send_cloud_requests(
+                 cloud_request_factory,
+                 self.get_text(),
+                 self.crinfo,
+                 self.ifconfig,
+                 global_recnum_in
+             )
+
+        self.assertEqual(requests_out[0], cloud_requests[0])
+
+        self.assertTrue(records_processed)
+        self.assertEqual(global_recnum_out, 125)
+
+        content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        self.assertEqual(len(content_0), 2)
+        self.assertEqual(content_0[0][NKeys.TEXT],
+                         "A woman, a plan, a canal. Panamowa!")
+
+        self.assertEqual(content_0[1][NKeys.TEXT],
+                         "A dog! A panic in a pagoda.")
