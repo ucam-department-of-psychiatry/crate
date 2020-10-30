@@ -335,3 +335,72 @@ class SendCloudRequestsTestCase(TestCase):
 
         self.assertEqual(content_0[1][NKeys.TEXT],
                          "A dog! A panic in a pagoda.")
+
+    def test_max_content_length(self) -> None:
+        self.test_text = [
+            ("A woman, a plan, a canal. Panamowa!", {
+                FN_SRCPKVAL: 1,
+                FN_SRCPKSTR: "pkstr",
+            }),
+            ("A dog! A panic in a pagoda.", {
+                FN_SRCPKVAL: 2,
+                FN_SRCPKSTR: "pkstr",
+            }),
+            ("Won't lovers revolt now?", {
+                FN_SRCPKVAL: 3,
+                FN_SRCPKSTR: "pkstr",
+            }),
+        ]
+
+        global_recnum_in = 123
+
+        cloud_requests = [
+            CloudRequestProcess(
+                crinfo=self.crinfo,
+                nlpdef=self.nlpdef,
+            ),
+            CloudRequestProcess(
+                crinfo=self.crinfo,
+                nlpdef=self.nlpdef,
+            ),
+        ]
+
+        def cloud_request_factory(crinfo) -> CloudRequestProcess:
+            request = cloud_requests[cloud_request_factory.call_count]
+
+            cloud_request_factory.call_count += 1
+
+            return request
+
+        cloud_request_factory.call_count = 0
+
+        # json lengths: 274, ?, 533
+        self.cloud_config.max_content_length = 500
+
+        with mock.patch.object(cloud_requests[0], "send_process_request"):
+            with mock.patch.object(cloud_requests[1], "send_process_request"):
+                (requests_out,
+                 records_processed,
+                 global_recnum_out) = send_cloud_requests(
+                     cloud_request_factory,
+                     self.get_text(),
+                     self.crinfo,
+                     self.ifconfig,
+                     global_recnum_in
+                 )
+
+        self.assertEqual(requests_out[0], cloud_requests[0])
+        self.assertEqual(requests_out[1], cloud_requests[1])
+
+        self.assertTrue(records_processed)
+        self.assertEqual(global_recnum_out, 126)
+
+        content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        self.assertEqual(content_0[0][NKeys.TEXT],
+                         "A woman, a plan, a canal. Panamowa!")
+
+        self.assertEqual(content_0[1][NKeys.TEXT],
+                         "A dog! A panic in a pagoda.")
+
+        content_1 = requests_out[1]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        self.assertEqual(content_1[0][NKeys.TEXT], "Won't lovers revolt now?")
