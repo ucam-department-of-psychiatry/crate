@@ -57,14 +57,14 @@ class SendCloudRequestsTestCase(TestCase):
         )
         self.nlpdef.name = ""  # so set it here
 
-        hasher = HashClass("hashphrase")
+        self.hasher = HashClass("hashphrase")
 
         self.crinfo = mock.Mock(
             get_remote_processors=mock.Mock(return_value=remote_processors),
             cloudcfg=self.cloud_config,
             # if we don't set this explicitly, getsize will get into an
             # infinite loop when trying to recursively weigh the mock object
-            nlpdef=mock.Mock(hash=hasher.hash)
+            nlpdef=mock.Mock(hash=self.hasher.hash)
         )
         self.ifconfig = mock.Mock()
 
@@ -451,3 +451,65 @@ class SendCloudRequestsTestCase(TestCase):
 
         content_1 = requests_out[1]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(content_1[0][NKeys.TEXT], "Won't lovers revolt now?")
+
+    def test_skips_previous_record_if_incremental(self) -> None:
+        self.test_text = [
+            ("A woman, a plan, a canal. Panamowa!", {
+                FN_SRCPKVAL: 1,
+                FN_SRCPKSTR: "pkstr",
+            }),
+            ("A dog! A panic in a pagoda.", {
+                FN_SRCPKVAL: 2,
+                FN_SRCPKSTR: "pkstr",
+            }),
+        ]
+
+        global_recnum_in = 123
+
+        cloud_requests = [
+            CloudRequestProcess(
+                crinfo=self.crinfo,
+                nlpdef=self.nlpdef,
+            ),
+        ]
+
+        def cloud_request_factory(crinfo) -> CloudRequestProcess:
+            request = cloud_requests[cloud_request_factory.call_count]
+
+            cloud_request_factory.call_count += 1
+
+            return request
+
+        cloud_request_factory.call_count = 0
+
+        mock_progrec = mock.Mock(srchash=self.hasher.hash(self.test_text[0][0]))
+
+        self.ifconfig.get_progress_record = mock.Mock(return_value=mock_progrec)
+
+        with mock.patch.object(cloud_requests[0],
+                               "send_process_request") as mock_send_0:
+            (requests_out,
+             records_processed,
+             global_recnum_out) = send_cloud_requests(
+                 cloud_request_factory,
+                 self.get_text(),
+                 self.crinfo,
+                 self.ifconfig,
+                 global_recnum_in,
+                 incremental=True
+             )
+
+        self.assertEqual(requests_out[0], cloud_requests[0])
+
+        self.assertTrue(records_processed)
+        self.assertEqual(global_recnum_out, 125)
+
+        mock_send_0.assert_called_once_with(
+            queue=True,
+            cookies=None,  # First call: no cookies
+            include_text_in_reply=True  # has_gate_processors from config
+        )
+
+        content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        self.assertEqual(content_0[0][NKeys.TEXT],
+                         "A dog! A panic in a pagoda.")
