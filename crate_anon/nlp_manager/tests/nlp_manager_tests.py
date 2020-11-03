@@ -194,6 +194,8 @@ class SendCloudRequestsTestCase(TestCase):
             self.assertTrue(records_processed)
             self.assertEqual(global_recnum_out, 126)
 
+        mock_send.assert_called_once()
+
         records = cloud_request._request_process[NKeys.ARGS][NKeys.CONTENT]
 
         self.assertEqual(records[0][NKeys.METADATA][FN_SRCPKVAL], 1)
@@ -244,10 +246,12 @@ class SendCloudRequestsTestCase(TestCase):
 
         self.cloud_config.max_records_per_request = 1
 
-        with mock.patch.object(cloud_requests[0], "send_process_request"):
-            with mock.patch.object(cloud_requests[1], "send_process_request"):
+        with mock.patch.object(cloud_requests[0],
+                               "send_process_request") as mock_send_0:
+            with mock.patch.object(cloud_requests[1],
+                                   "send_process_request") as mock_send_1:
                 with mock.patch.object(cloud_requests[2],
-                                       "send_process_request"):
+                                       "send_process_request") as mock_send_2:
                     (requests_out,
                      records_processed,
                      global_recnum_out) = send_cloud_requests(
@@ -264,6 +268,10 @@ class SendCloudRequestsTestCase(TestCase):
 
         self.assertTrue(records_processed)
         self.assertEqual(global_recnum_out, 126)
+
+        mock_send_0.assert_called_once()
+        mock_send_1.assert_called_once()
+        mock_send_2.assert_called_once()
 
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(content_0[0][NKeys.TEXT],
@@ -312,7 +320,8 @@ class SendCloudRequestsTestCase(TestCase):
 
         self.cloud_config.limit_before_commit = 2
 
-        with mock.patch.object(cloud_requests[0], "send_process_request"):
+        with mock.patch.object(cloud_requests[0],
+                               "send_process_request") as mock_send:
             (requests_out,
              records_processed,
              global_recnum_out) = send_cloud_requests(
@@ -377,8 +386,10 @@ class SendCloudRequestsTestCase(TestCase):
         # json lengths: 274, ?, 533
         self.cloud_config.max_content_length = 500
 
-        with mock.patch.object(cloud_requests[0], "send_process_request"):
-            with mock.patch.object(cloud_requests[1], "send_process_request"):
+        with mock.patch.object(cloud_requests[0],
+                               "send_process_request") as mock_send_0:
+            with mock.patch.object(cloud_requests[1],
+                                   "send_process_request") as mock_send_1:
                 (requests_out,
                  records_processed,
                  global_recnum_out) = send_cloud_requests(
@@ -394,6 +405,9 @@ class SendCloudRequestsTestCase(TestCase):
 
         self.assertTrue(records_processed)
         self.assertEqual(global_recnum_out, 126)
+
+        mock_send_0.assert_called_once()
+        mock_send_1.assert_called_once()
 
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(content_0[0][NKeys.TEXT],
