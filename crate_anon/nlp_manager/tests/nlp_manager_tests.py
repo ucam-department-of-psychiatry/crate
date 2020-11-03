@@ -26,12 +26,21 @@ crate_anon/nlp_manager/tests/nlp_manager_tests.py
 
 """
 
-from typing import Any, Dict, Generator, Tuple
+import logging
+from typing import Any, Dict, Generator, Optional, Tuple
 from unittest import mock, TestCase
 
 from crate_anon.nlp_manager.cloud_request import CloudRequestProcess
 from crate_anon.nlp_manager.constants import HashClass
-from crate_anon.nlp_manager.input_field_config import FN_SRCPKSTR, FN_SRCPKVAL
+from crate_anon.nlp_manager.input_field_config import (
+    FN_SRCDB,
+    FN_SRCFIELD,
+    FN_SRCPKFIELD,
+    FN_SRCPKSTR,
+    FN_SRCPKVAL,
+    FN_SRCTABLE,
+)
+from crate_anon.nlp_manager.models import NlpRecord
 from crate_anon.nlp_manager.nlp_manager import send_cloud_requests
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 
@@ -443,6 +452,10 @@ class SendCloudRequestsTestCase(TestCase):
                 FN_SRCPKVAL: 2,
                 FN_SRCPKSTR: "pkstr",
             }),
+            ("Won't lovers revolt now?", {
+                FN_SRCPKVAL: 3,
+                FN_SRCPKSTR: "pkstr",
+            }),
         ]
 
         global_recnum_in = 123
@@ -454,37 +467,43 @@ class SendCloudRequestsTestCase(TestCase):
             ),
         ]
 
-        def cloud_request_factory(crinfo) -> CloudRequestProcess:
-            request = cloud_requests[cloud_request_factory.call_count]
+        def get_progress_record(pkval: int,
+                                pkstr: str) -> Optional[NlpRecord]:
 
-            cloud_request_factory.call_count += 1
+            # same as before
+            if pkval == 1:
+                return mock.Mock(srchash=self.hasher.hash(self.test_text[0][0]))
 
-            return request
+            # changed
+            if pkval == 2:
+                return mock.Mock(
+                    srchash=self.hasher.hash("A cat! A panic in a pataca.")
+                )
 
-        cloud_request_factory.call_count = 0
+            # new
+            return None
 
-        mock_progrec = mock.Mock(srchash=self.hasher.hash(self.test_text[0][0]))
+        self.ifconfig.get_progress_record = get_progress_record
 
-        self.ifconfig.get_progress_record = mock.Mock(return_value=mock_progrec)
-
-        with mock.patch.object(cloud_requests[0],
-                               "send_process_request") as mock_send_0:
-            (requests_out,
-             records_processed,
-             global_recnum_out) = send_cloud_requests(
-                 cloud_request_factory,
-                 self.get_text(),
-                 self.crinfo,
-                 self.ifconfig,
-                 global_recnum_in,
-                 incremental=True
-             )
+        with self.assertLogs(level=logging.DEBUG) as logging_cm:
+            with mock.patch.object(cloud_request_factory.cloud_requests[0],
+                                   "send_process_request") as mock_send_0:
+                (requests_out,
+                 records_processed,
+                 global_recnum_out) = send_cloud_requests(
+                     cloud_request_factory,
+                     self.get_text(),
+                     self.crinfo,
+                     self.ifconfig,
+                     global_recnum_in,
+                     incremental=True
+                 )
 
         self.assertEqual(requests_out[0],
                          cloud_request_factory.cloud_requests[0])
 
         self.assertTrue(records_processed)
-        self.assertEqual(global_recnum_out, 125)
+        self.assertEqual(global_recnum_out, 126)
 
         mock_send_0.assert_called_once_with(
             queue=True,
@@ -495,3 +514,107 @@ class SendCloudRequestsTestCase(TestCase):
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(content_0[0][NKeys.TEXT],
                          "A dog! A panic in a pagoda.")
+
+        logger_name = "crate_anon.nlp_manager.nlp_manager"
+        self.assertIn((f"DEBUG:{logger_name}:Record previously processed; "
+                       "skipping"),
+                      logging_cm.output)
+        self.assertIn(f"DEBUG:{logger_name}:Record has changed",
+                      logging_cm.output)
+        self.assertIn(f"DEBUG:{logger_name}:Record is new",
+                      logging_cm.output)
+
+    def test_log_message_frequency(self) -> None:
+        self.test_text = [
+            ("A woman, a plan, a canal. Panamowa!", {
+                FN_SRCDB: "db",
+                FN_SRCFIELD: "field",
+                FN_SRCPKFIELD: "pkfield",
+                FN_SRCPKSTR: "pkstr",
+                FN_SRCPKVAL: 1,
+                FN_SRCTABLE: "table",
+            }),
+            ("A dog! A panic in a pagoda.", {
+                FN_SRCPKSTR: "pkstr",
+                FN_SRCPKVAL: 2,
+            }),
+            ("Won't lovers revolt now?", {
+                FN_SRCDB: "db",
+                FN_SRCFIELD: "field",
+                FN_SRCPKFIELD: "pkfield",
+                FN_SRCPKSTR: "",
+                FN_SRCPKVAL: 3,
+                FN_SRCTABLE: "table",
+            }),
+        ]
+
+        global_recnum_in = 1
+
+        cloud_request_factory.cloud_requests = [
+            CloudRequestProcess(
+                crinfo=self.crinfo,
+                nlpdef=self.nlpdef,
+            ),
+        ]
+
+        self.ifconfig.get_count = mock.Mock(return_value=100)
+        with self.assertLogs(level=logging.INFO) as logging_cm:
+            with mock.patch.object(cloud_request_factory.cloud_requests[0],
+                                   "send_process_request"):
+                send_cloud_requests(
+                    cloud_request_factory,
+                    self.get_text(),
+                    self.crinfo,
+                    self.ifconfig,
+                    global_recnum_in,
+                    report_every=2
+                )
+
+        logger_name = "crate_anon.nlp_manager.nlp_manager"
+        expected_message = ("Processing db.table.field, PK: pkfield=pkstr "
+                            "(record 2/100)")
+        self.assertIn(f"INFO:{logger_name}:{expected_message}",
+                      logging_cm.output)
+
+        expected_message = ("Processing db.table.field, PK: pkfield=3 "
+                            "(record 4/100)")
+        self.assertIn(f"INFO:{logger_name}:{expected_message}",
+                      logging_cm.output)
+
+    def test_failed_request_logged(self) -> None:
+        self.test_text = [
+            ("A woman, a plan, a canal. Panamowa!", {
+                FN_SRCPKSTR: "pkstr",
+                FN_SRCPKVAL: 1,
+            }),
+        ]
+
+        global_recnum_in = 1
+
+        cloud_request_factory.cloud_requests = [
+            CloudRequestProcess(
+                crinfo=self.crinfo,
+                nlpdef=self.nlpdef,
+            ),
+        ]
+
+        def mock_send_0_side_effect(*args, **kwargs):
+            cloud_request_factory.cloud_requests[0].request_failed = True
+
+        with self.assertLogs(level=logging.WARNING) as logging_cm:
+            with mock.patch.object(cloud_request_factory.cloud_requests[0],
+                                   "send_process_request") as mock_send_0:
+                mock_send_0.side_effect = mock_send_0_side_effect
+                (requests_out,
+                 records_processed,
+                 global_recnum_out) = send_cloud_requests(
+                    cloud_request_factory,
+                    self.get_text(),
+                    self.crinfo,
+                    self.ifconfig,
+                    global_recnum_in,
+                )
+
+        logger_name = "crate_anon.nlp_manager.nlp_manager"
+        self.assertIn(f"WARNING:{logger_name}:Continuing after failed request.",
+                      logging_cm.output)
