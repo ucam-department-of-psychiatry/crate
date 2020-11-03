@@ -98,14 +98,11 @@ class SendCloudRequestsTestCase(TestCase):
             }),
         ]
 
-        self.cloud_config.has_gate_processors = False
-
         cloud_request = CloudRequestProcess(
             crinfo=self.crinfo,
             nlpdef=self.nlpdef,
         )
 
-        # Unrealistic - we always return the same one
         def cloud_request_factory(crinfo) -> CloudRequestProcess:
             self.assertEqual(cloud_request_factory.call_count, 0)
 
@@ -134,8 +131,8 @@ class SendCloudRequestsTestCase(TestCase):
 
         mock_send.assert_called_once_with(
             queue=True,
-            cookies=None,
-            include_text_in_reply=False  # has_gate_processors
+            cookies=None,  # First call: no cookies
+            include_text_in_reply=True  # has_gate_processors from config
         )
 
         records = cloud_request._request_process[NKeys.ARGS][NKeys.CONTENT]
@@ -194,7 +191,11 @@ class SendCloudRequestsTestCase(TestCase):
             self.assertTrue(records_processed)
             self.assertEqual(global_recnum_out, 126)
 
-        mock_send.assert_called_once()
+        mock_send.assert_called_once_with(
+            queue=True,
+            cookies=None,  # First call: no cookies
+            include_text_in_reply=True  # has_gate_processors
+        )
 
         records = cloud_request._request_process[NKeys.ARGS][NKeys.CONTENT]
 
@@ -246,8 +247,14 @@ class SendCloudRequestsTestCase(TestCase):
 
         self.cloud_config.max_records_per_request = 1
 
+        mock_cookies = mock.Mock()
+
+        def mock_send_0_side_effect(*args, **kwargs):
+            cloud_requests[0].cookies = mock_cookies
+
         with mock.patch.object(cloud_requests[0],
                                "send_process_request") as mock_send_0:
+            mock_send_0.side_effect = mock_send_0_side_effect
             with mock.patch.object(cloud_requests[1],
                                    "send_process_request") as mock_send_1:
                 with mock.patch.object(cloud_requests[2],
@@ -269,9 +276,21 @@ class SendCloudRequestsTestCase(TestCase):
         self.assertTrue(records_processed)
         self.assertEqual(global_recnum_out, 126)
 
-        mock_send_0.assert_called_once()
-        mock_send_1.assert_called_once()
-        mock_send_2.assert_called_once()
+        mock_send_0.assert_called_once_with(
+            queue=True,
+            cookies=None,  # First call: no cookies
+            include_text_in_reply=True  # has_gate_processors from config
+        )
+        mock_send_1.assert_called_once_with(
+            queue=True,
+            cookies=mock_cookies,  # Should remember cookies from first response
+            include_text_in_reply=True  # has_gate_processors from config
+        )
+        mock_send_2.assert_called_once_with(
+            queue=True,
+            cookies=mock_cookies,  # Should remember cookies from first response
+            include_text_in_reply=True  # has_gate_processors from config
+        )
 
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(content_0[0][NKeys.TEXT],
@@ -336,6 +355,12 @@ class SendCloudRequestsTestCase(TestCase):
 
         self.assertTrue(records_processed)
         self.assertEqual(global_recnum_out, 125)
+
+        mock_send.assert_called_once_with(
+            queue=True,
+            cookies=None,  # First call: no cookies
+            include_text_in_reply=True  # has_gate_processors from config
+        )
 
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(len(content_0), 2)
@@ -406,8 +431,16 @@ class SendCloudRequestsTestCase(TestCase):
         self.assertTrue(records_processed)
         self.assertEqual(global_recnum_out, 126)
 
-        mock_send_0.assert_called_once()
-        mock_send_1.assert_called_once()
+        mock_send_0.assert_called_once_with(
+            queue=True,
+            cookies=None,  # First call: no cookies
+            include_text_in_reply=True  # has_gate_processors from config
+        )
+        mock_send_1.assert_called_once_with(
+            queue=True,
+            cookies=None,  # First call: no cookies
+            include_text_in_reply=True  # has_gate_processors from config
+        )
 
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(content_0[0][NKeys.TEXT],
