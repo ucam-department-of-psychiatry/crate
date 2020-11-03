@@ -615,6 +615,10 @@ class SendCloudRequestsTestCase(TestCase):
                     global_recnum_in,
                 )
 
+        self.assertEqual(requests_out, [])
+        self.assertTrue(records_processed)
+        self.assertEqual(global_recnum_out, 2)
+
         logger_name = "crate_anon.nlp_manager.nlp_manager"
         self.assertIn(f"WARNING:{logger_name}:Continuing after failed request.",
                       logging_cm.output)
