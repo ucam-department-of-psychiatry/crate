@@ -254,22 +254,24 @@ class SendCloudRequestsTestCase(TestCase):
         def mock_send_0_side_effect(*args, **kwargs):
             cloud_request_factory.cloud_requests[0].cookies = mock_cookies
 
-        with mock.patch.object(cloud_request_factory.cloud_requests[0],
-                               "send_process_request") as mock_send_0:
-            mock_send_0.side_effect = mock_send_0_side_effect
-            with mock.patch.object(cloud_request_factory.cloud_requests[1],
-                                   "send_process_request") as mock_send_1:
-                with mock.patch.object(cloud_request_factory.cloud_requests[2],
-                                       "send_process_request") as mock_send_2:
-                    (requests_out,
-                     records_processed,
-                     global_recnum_out) = send_cloud_requests(
-                         cloud_request_factory,
-                         self.get_text(),
-                         self.crinfo,
-                         self.ifconfig,
-                         global_recnum_in
-                     )
+        with self.assertLogs(level=logging.INFO) as logging_cm:
+            with mock.patch.object(cloud_request_factory.cloud_requests[0],
+                                   "send_process_request") as mock_send_0:
+                mock_send_0.side_effect = mock_send_0_side_effect
+                with mock.patch.object(cloud_request_factory.cloud_requests[1],
+                                       "send_process_request") as mock_send_1:
+                    with mock.patch.object(
+                            cloud_request_factory.cloud_requests[2],
+                            "send_process_request") as mock_send_2:
+                        (requests_out,
+                         records_processed,
+                         global_recnum_out) = send_cloud_requests(
+                             cloud_request_factory,
+                             self.get_text(),
+                             self.crinfo,
+                             self.ifconfig,
+                             global_recnum_in
+                         )
 
         self.assertEqual(requests_out[0],
                          cloud_request_factory.cloud_requests[0])
@@ -307,6 +309,17 @@ class SendCloudRequestsTestCase(TestCase):
 
         content_2 = requests_out[2]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(content_2[0][NKeys.TEXT], "Won't lovers revolt now?")
+
+        logger_name = "crate_anon.nlp_manager.nlp_manager"
+        expected_message = "Sent request to be processed: #1 of this block"
+        self.assertIn(f"INFO:{logger_name}:{expected_message}",
+                      logging_cm.output)
+        expected_message = "Sent request to be processed: #2 of this block"
+        self.assertIn(f"INFO:{logger_name}:{expected_message}",
+                      logging_cm.output)
+        expected_message = "Sent request to be processed: #3 of this block"
+        self.assertIn(f"INFO:{logger_name}:{expected_message}",
+                      logging_cm.output)
 
     def test_limit_before_commit_2(self) -> None:
         self.test_text = [
