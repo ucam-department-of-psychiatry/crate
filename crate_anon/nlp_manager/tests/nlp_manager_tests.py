@@ -455,6 +455,89 @@ class SendCloudRequestsTestCase(TestCase):
         content_1 = requests_out[1]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(content_1[0][NKeys.TEXT], "Won't lovers revolt now?")
 
+    def test_record_bigger_than_max_content_length_skipped(self) -> None:
+        self.test_text = [
+            ("A woman, a plan, a canal. Panamowa!", {
+                FN_SRCPKVAL: 1,
+                FN_SRCPKSTR: "pkstr",
+            }),
+            (("Some text with serialized length greater than 500. "
+              "Some text with serialized length greater than 500. "
+              "Some text with serialized length greater than 500. "
+              "Some text with serialized length greater than 500. "
+              "Some text with serialized length greater than 500. "
+              "Some text with serialized length greater than 500. "), {
+                FN_SRCPKVAL: 2,
+                FN_SRCPKSTR: "pkstr",
+            }),
+            ("Won't lovers revolt now?", {
+                FN_SRCPKVAL: 3,
+                FN_SRCPKSTR: "pkstr",
+            }),
+        ]
+
+        global_recnum_in = 123
+
+        cloud_request_factory.cloud_requests = [
+            CloudRequestProcess(
+                crinfo=self.crinfo,
+                nlpdef=self.nlpdef,
+            ),
+            CloudRequestProcess(
+                crinfo=self.crinfo,
+                nlpdef=self.nlpdef,
+            ),
+        ]
+
+        self.cloud_config.max_content_length = 500
+
+        with self.assertLogs(level=logging.WARNING) as logging_cm:
+            with mock.patch.object(cloud_request_factory.cloud_requests[0],
+                                   "send_process_request") as mock_send_0:
+                with mock.patch.object(cloud_request_factory.cloud_requests[1],
+                                       "send_process_request") as mock_send_1:
+                    (requests_out,
+                     records_processed,
+                     global_recnum_out) = send_cloud_requests(
+                         cloud_request_factory,
+                         self.get_text(),
+                         self.crinfo,
+                         self.ifconfig,
+                         global_recnum_in
+                     )
+
+        self.assertEqual(requests_out[0],
+                         cloud_request_factory.cloud_requests[0])
+        self.assertEqual(requests_out[1],
+                         cloud_request_factory.cloud_requests[1])
+
+        self.assertTrue(records_processed)
+        self.assertEqual(global_recnum_out, 126)
+
+        mock_send_0.assert_called_once_with(
+            queue=True,
+            cookies=None,  # First call: no cookies
+            include_text_in_reply=True  # has_gate_processors from config
+        )
+        mock_send_1.assert_called_once_with(
+            queue=True,
+            cookies=None,  # First call: no cookies
+            include_text_in_reply=True  # has_gate_processors from config
+        )
+
+        content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        self.assertEqual(len(content_0), 1)
+        self.assertEqual(content_0[0][NKeys.TEXT],
+                         "A woman, a plan, a canal. Panamowa!")
+
+        content_1 = requests_out[1]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        self.assertEqual(content_1[0][NKeys.TEXT], "Won't lovers revolt now?")
+
+        logger_name = "crate_anon.nlp_manager.nlp_manager"
+        self.assertIn((f"WARNING:{logger_name}:"
+                       f"Skipping text that's too long to send"),
+                      logging_cm.output)
+
     def test_skips_previous_record_if_incremental(self) -> None:
         self.test_text = [
             ("A woman, a plan, a canal. Panamowa!", {
