@@ -269,6 +269,7 @@ MICROUNITS_PER_ML = per(MICROUNITS, ML)
 MILLIEQ_PER_L = per(MILLIEQ, L)
 MILLIMOLES_PER_L = per(MILLIMOLES, L)
 MILLIMOLES_PER_MOL = per(MILLIMOLES, MOLES)
+UNITS_PER_L = per(UNITS, L)
 MILLIUNITS_PER_L = per(MILLIUNITS, L)
 
 # -----------------------------------------------------------------------------
