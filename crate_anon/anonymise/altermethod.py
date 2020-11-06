@@ -70,8 +70,16 @@ HTML_TAG_RE = regex.compile('<[^>]*>')
 
 class AlterMethod(object):
     """
-    Controls the way in which a source field is transformed on its way to the
+    Implements a SINGLE transformation of source data on its way to the
     destination database.
+
+    Knows how to represent itself as a text element in the relevant column of
+    a data dictionary row, and how to create itself from one of those text
+    elements.
+
+    A :class:`crate_anon.anonymise.ddr.DataDictionaryRow` may include multiple
+    instances of :class:`crate_anon.anonymise.altermethod.AlterMethod` in a
+    sequence.
     """
     def __init__(self,
                  config: "Config",
@@ -156,6 +164,12 @@ class AlterMethod(object):
         if hash_:
             self.hasher = self.config.get_extra_hasher(
                 self.hash_config_section)
+
+        self._assert_valid()
+
+    # -------------------------------------------------------------------------
+    # Text representations
+    # -------------------------------------------------------------------------
 
     def set_from_text(self, value: str) -> None:
         """
@@ -254,6 +268,33 @@ class AlterMethod(object):
             return ALTERMETHOD.HTML_UNTAG.value
         return ""
 
+    # -------------------------------------------------------------------------
+    # Validation
+    # -------------------------------------------------------------------------
+
+    def _assert_valid(self) -> None:
+        """
+        Raises :exc:`ValueError` if the method is invalid (e.g. representing
+        more than one transformation).
+        """
+        methods_map = {
+            "scrub": self.scrub,
+            "truncate_date": self.truncate_date,
+            "extract_text": self.extract_text,
+            "hash": self.hash,
+            "html_unescape": self.html_unescape,
+            "html_untag": self.html_untag,
+            "skip_if_text_extract_fails": self.skip_if_text_extract_fails,
+        }
+        n_methods = sum(int(v) for v in methods_map.values())
+        if n_methods != 1:
+            raise ValueError(f"AlterMethod: should be exactly one method, but "
+                             f"there are {n_methods}: {methods_map}")
+
+    # -------------------------------------------------------------------------
+    # Perform the transformation: master method
+    # -------------------------------------------------------------------------
+
     def alter(self,
               value: Any,
               ddr: "DataDictionaryRow",  # corresponding DataDictionaryRow
@@ -326,6 +367,10 @@ class AlterMethod(object):
         if self.skip_if_text_extract_fails:
             # Modifies other alter methods; doesn't do anything itself
             return value, True
+
+    # -------------------------------------------------------------------------
+    # Transformation internals
+    # -------------------------------------------------------------------------
 
     @staticmethod
     def _scrub_func(value: Any, patient: "Patient") -> Optional[str]:
