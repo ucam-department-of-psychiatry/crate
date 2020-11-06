@@ -1298,6 +1298,8 @@ Changes
 
 - Basic Docker operation.
 
+- Comment lines and blank lines ignored in data dictionary.
+
 
 ===============================================================================
 

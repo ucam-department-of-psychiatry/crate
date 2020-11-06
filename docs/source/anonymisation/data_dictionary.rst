@@ -432,8 +432,8 @@ Minimal data dictionary example
 This illustrates a data dictionary for a fictional database.
 
 Some more specialist columns (``inclusion_values``, ``exclusion_values``) are
-not shown for clarity. Comments are added (lines beginning with #) that
-wouldn't be permitted in the real TSV file.
+not shown for clarity. Blank lines and comment lines (lines beginning with #)
+are ignored.
 
 .. code-block:: none
 
