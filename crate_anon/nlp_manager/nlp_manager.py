@@ -678,27 +678,14 @@ class CloudRequestSender(object):
     def build_request(self) -> None:
         if self.need_new_record:
             if not(self.get_next_record()):
-                if self.request_is_empty or self.need_new_request:
-                    self.state = self.State.FINISHED
-                else:
-                    self.state = self.State.SENDING_REQUEST
-
+                self.handle_no_more_records()
                 return
 
             hasher = self.crinfo.nlpdef.hash
             srchash = hasher(self.text)
-            if self.incremental:
-                pkval = self.other_values[FN_SRCPKVAL]
-                pkstr = self.other_values[FN_SRCPKSTR]
-                progrec = self.ifconfig.get_progress_record(pkval, pkstr)
-                if progrec is not None:
-                    if progrec.srchash == srchash:
-                        log.debug("Record previously processed; skipping")
-                        return
-                    else:
-                        log.debug("Record has changed")
-                else:
-                    log.debug("Record is new")
+
+            if self.incremental and self.record_already_processed(srchash):
+                return
 
             self.num_recs_processed += 1
             self.other_values[FN_SRCHASH] = srchash
@@ -735,6 +722,30 @@ class CloudRequestSender(object):
 
         if self.record_limit_reached():
             self.state = self.State.SENDING_REQUEST
+
+    def handle_no_more_records(self) -> None:
+        if self.request_is_empty or self.need_new_request:
+            # Nothing more to send
+            self.state = self.State.FINISHED
+            return
+
+        # Send last request
+        self.state = self.State.SENDING_REQUEST
+
+    def record_already_processed(self, srchash: str) -> bool:
+        pkval = self.other_values[FN_SRCPKVAL]
+        pkstr = self.other_values[FN_SRCPKSTR]
+        progrec = self.ifconfig.get_progress_record(pkval, pkstr)
+        if progrec is not None:
+            if progrec.srchash == srchash:
+                log.debug("Record previously processed; skipping")
+                return True
+
+            log.debug("Record has changed")
+        else:
+            log.debug("Record is new")
+
+        return False
 
     def record_limit_reached(self) -> bool:
         limit_before_commit = self.crinfo.cloudcfg.limit_before_commit
