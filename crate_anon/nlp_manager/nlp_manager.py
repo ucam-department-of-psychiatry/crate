@@ -713,8 +713,6 @@ class CloudRequestSender(object):
             self.text, self.other_values
         )
 
-        # TODO: Test no word characters?
-
         # text_within_limit | success | Meaning
         # ------------------|---------|----------------------------------
         # True              | False   | No word characters, nothing added

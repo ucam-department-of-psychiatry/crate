@@ -722,3 +722,60 @@ class SendCloudRequestsTestCase(TestCase):
         logger_name = "crate_anon.nlp_manager.nlp_manager"
         self.assertIn(f"WARNING:{logger_name}:Continuing after failed request.",
                       logging_cm.output)
+
+    def test_record_with_no_text_skipped(self) -> None:
+        self.test_text = [
+            ("A woman, a plan, a canal. Panamowa!", {
+                FN_SRCPKVAL: 1,
+                FN_SRCPKSTR: "pkstr",
+            }),
+            ("     \t\t\n\n         ", {
+                FN_SRCPKVAL: 2,
+                FN_SRCPKSTR: "pkstr",
+            }),
+            ("Won't lovers revolt now?", {
+                FN_SRCPKVAL: 3,
+                FN_SRCPKSTR: "pkstr",
+            }),
+        ]
+
+        global_recnum_in = 123
+
+        cloud_request_factory.cloud_requests = [
+            CloudRequestProcess(
+                crinfo=self.crinfo,
+                nlpdef=self.nlpdef,
+            ),
+        ]
+
+        with mock.patch.object(cloud_request_factory.cloud_requests[0],
+                               "send_process_request") as mock_send:
+            (requests_out,
+             records_processed,
+             global_recnum_out) = send_cloud_requests(
+                 cloud_request_factory,
+                 self.get_text(),
+                 self.crinfo,
+                 self.ifconfig,
+                 global_recnum_in
+             )
+
+        self.assertEqual(requests_out[0],
+                         cloud_request_factory.cloud_requests[0])
+
+        self.assertTrue(records_processed)
+        self.assertEqual(global_recnum_out, 126)
+
+        mock_send.assert_called_once_with(
+            queue=True,
+            cookies=None,  # First call: no cookies
+            include_text_in_reply=True  # has_gate_processors from config
+        )
+
+        content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        self.assertEqual(len(content_0), 2)
+        self.assertEqual(content_0[0][NKeys.TEXT],
+                         "A woman, a plan, a canal. Panamowa!")
+
+        self.assertEqual(content_0[1][NKeys.TEXT],
+                         "Won't lovers revolt now?")
