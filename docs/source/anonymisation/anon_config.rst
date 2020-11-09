@@ -1428,8 +1428,8 @@ Many options are not shown and most comments have been removed.
 Specimen config
 ~~~~~~~~~~~~~~~
 
-A specimen NLP config is available by running ``crate_nlp --democonfig``. In
-the source, it is :data:`crate_anon.nlp_manager.constants.DEMO_CONFIG`.
+A specimen anonymiser config file is available by running ``crate_anonymise
+--democonfig``.
 
 Here's the specimen NLP config:
 

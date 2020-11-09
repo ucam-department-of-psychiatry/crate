@@ -2,7 +2,7 @@ amqp==2.6.0
 appdirs==1.4.4
 arrow==0.15.7
 beautifulsoup4==4.9.1
-cardinal_pythonlib==1.0.94
+cardinal_pythonlib==1.0.95
 cairosvg==2.4.2
 celery==4.4.6
 chardet==3.0.4
@@ -41,7 +41,7 @@ sqlparse==0.3.1
 unidecode==1.1.1
 xlrd==1.2.0
 bcrypt==3.1.7
-cryptography==3.0
+cryptography==3.2
 paste==3.4.2
 pyramid==1.10.4
 pyramid_tm==2.4

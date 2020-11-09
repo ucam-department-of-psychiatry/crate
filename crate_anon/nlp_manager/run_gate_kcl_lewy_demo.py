@@ -34,14 +34,13 @@ import os
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.constants import (
-    CRATE_DIR_JAVA_CLASSES,
+    CrateDir,
     DEMO_NLP_INPUT_TERMINATOR,
     DEMO_NLP_OUTPUT_TERMINATOR,
-    ENVVAR_CRATE_GATE_PLUGIN_FILE,
-    ENVVAR_GATE_HOME,
-    ENVVAR_KCL_LEWY_BODY_DIAGNOSIS_DIR,
+    EnvVar,
 )
-from crate_anon.common.sysops import check_call_verbose, get_envvar_or_die
+from cardinal_pythonlib.subproc import check_call_verbose
+from cardinal_pythonlib.sysops import get_envvar_or_die
 
 
 def main() -> None:
@@ -49,12 +48,12 @@ def main() -> None:
     Command-line entry point.
     """
     main_only_quicksetup_rootlogger(level = logging.DEBUG)
-    gate_home = get_envvar_or_die(ENVVAR_GATE_HOME)
-    plugin_file = get_envvar_or_die(ENVVAR_CRATE_GATE_PLUGIN_FILE)
-    kcl_lewy_dir = get_envvar_or_die(ENVVAR_KCL_LEWY_BODY_DIAGNOSIS_DIR)
+    gate_home = get_envvar_or_die(EnvVar.GATE_HOME)
+    plugin_file = get_envvar_or_die(EnvVar.CRATE_GATE_PLUGIN_FILE)
+    kcl_lewy_dir = get_envvar_or_die(EnvVar.KCL_LEWY_BODY_DIAGNOSIS_DIR)
     check_call_verbose([
         "java",
-        "-classpath", f"{CRATE_DIR_JAVA_CLASSES}:{gate_home}/lib/*",
+        "-classpath", f"{CrateDir.JAVA_CLASSES}:{gate_home}/lib/*",
         f"-Dgate.home={gate_home}",
         "CrateGatePipeline",
         "--pluginfile", plugin_file,

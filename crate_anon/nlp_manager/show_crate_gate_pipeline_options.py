@@ -29,15 +29,15 @@ crate_anon/nlp_manager/show_crate_gate_pipeline_options.py
 """
 
 import logging
-import os
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.constants import (
-    CRATE_DIR_JAVA_CLASSES,
-    ENVVAR_GATE_HOME,
+    CrateDir,
+    EnvVar,
 )
-from crate_anon.common.sysops import check_call_verbose, get_envvar_or_die
+from cardinal_pythonlib.subproc import check_call_verbose
+from cardinal_pythonlib.sysops import get_envvar_or_die
 
 
 def main() -> None:
@@ -45,10 +45,10 @@ def main() -> None:
     Command-line entry point.
     """
     main_only_quicksetup_rootlogger(level = logging.DEBUG)
-    gate_home = get_envvar_or_die(ENVVAR_GATE_HOME)
+    gate_home = get_envvar_or_die(EnvVar.GATE_HOME)
     check_call_verbose([
         "java",
-        "-classpath", f"{CRATE_DIR_JAVA_CLASSES}:{gate_home}/lib/*",
+        "-classpath", f"{CrateDir.JAVA_CLASSES}:{gate_home}/lib/*",
         f"-Dgate.home={gate_home}",
         "CrateGatePipeline",
         "--help",

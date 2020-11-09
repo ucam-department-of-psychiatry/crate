@@ -80,7 +80,7 @@ from crate_anon.anonymise.constants import (
     CHARSET,
     TABLE_KWARGS,
 )
-from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
+from crate_anon.common.constants import EnvVar
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.type_api import TypeEngine
@@ -121,7 +121,7 @@ DT_FORMATS = [
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
+if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     DEFAULT_DOCDIR = "/path/to/test_docs"
 else:
     DEFAULT_DOCDIR = os.path.abspath(

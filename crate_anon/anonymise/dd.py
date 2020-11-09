@@ -115,6 +115,12 @@ class DataDictionary(object):
                 )
             log.debug("Data dictionary has correct header. Loading content...")
             for values in tsv:
+                if not values:
+                    # log.debug("Skipping blank line")
+                    continue
+                if values[0].strip().startswith("#"):
+                    # log.debug("Skipping comment line")
+                    continue
                 valuedict = dict(zip(headers, values))
                 ddr = DataDictionaryRow(self.config)
                 try:

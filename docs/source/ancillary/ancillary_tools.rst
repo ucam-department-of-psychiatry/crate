@@ -68,7 +68,7 @@ Options:
 .. _crate_email_rdbm:
 
 crate_email_rdbm
-----------------
+~~~~~~~~~~~~~~~~
 
 E-mails the RDBM.
 

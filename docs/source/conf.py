@@ -92,7 +92,7 @@ import django
 from sphinx.application import Sphinx
 from sphinx.ext.autodoc import Options
 
-from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
+from crate_anon.common.constants import EnvVar
 from crate_anon.version import CRATE_VERSION
 
 
@@ -338,7 +338,7 @@ django.setup()
 autoclass_content = "class"
 
 # To prevent Pyramid SETTINGS breaking:
-os.environ[ENVVAR_GENERATING_CRATE_DOCS] = "true"
+os.environ[EnvVar.GENERATING_CRATE_DOCS] = "true"
 
 # For "Command killed due to excessive memory consumption" on readthedocs.org:
 # https://docs.readthedocs.io/en/latest/guides/build-using-too-many-resources.html  # noqa

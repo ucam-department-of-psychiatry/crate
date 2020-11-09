@@ -142,7 +142,7 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.0.94",  # RNC libraries
+    "cardinal_pythonlib==1.0.95",  # RNC libraries
     "cairosvg==2.4.2",  # work with SVG files
     "celery==4.4.6",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
@@ -189,7 +189,7 @@ INSTALL_REQUIRES = [
 
     # Packages for cloud NLP:
     "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==3.0",  # cryptography library
+    "cryptography==3.2",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework

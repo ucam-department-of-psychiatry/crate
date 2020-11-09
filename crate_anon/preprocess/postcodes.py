@@ -96,12 +96,12 @@ from sqlalchemy.sql.schema import MetaData, Table
 import xlrd
 
 from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
-from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
+from crate_anon.common.constants import EnvVar
 
 log = logging.getLogger(__name__)
 metadata = MetaData()
 
-if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
+if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     DEFAULT_ONSPD_DIR = "/path/to/unzipped/ONSPD/download"
 else:
     DEFAULT_ONSPD_DIR = os.path.join(

@@ -75,6 +75,9 @@ from typing import (
     Any, Callable, Dict, List, Optional, Tuple, Generator, TYPE_CHECKING,
 )
 
+from cardinal_pythonlib.argparse_func import (
+    RawDescriptionArgumentDefaultsHelpFormatter
+)
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.fileops import purge
 from cardinal_pythonlib.logs import configure_logger_for_colour
@@ -1230,7 +1233,7 @@ def inner_main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=description,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter)
 
     config_options = parser.add_argument_group("Config options")
     config_options.add_argument(
@@ -1244,12 +1247,12 @@ def inner_main() -> None:
     mode_group = config_options.add_mutually_exclusive_group()
     mode_group.add_argument(
         "-i", "--incremental", dest="incremental", action="store_true",
-        help="Process only new/changed information, where possible "
-             "(* default)")
+        help="Process only new/changed information, where possible",
+        default=True)
     mode_group.add_argument(
         "-f", "--full", dest="incremental", action="store_false",
-        help="Drop and remake everything")
-    config_options.set_defaults(incremental=True)
+        help="Drop and remake everything",
+        default=False)
 
     config_options.add_argument(
         "--dropremake", action="store_true",
@@ -1265,7 +1268,7 @@ def inner_main() -> None:
     config_options.add_argument(
         '--chunksize', type=int, default=DEFAULT_CHUNKSIZE,
         help=f"Number of records copied in a chunk when copying PKs from one "
-             f"database to another (default {DEFAULT_CHUNKSIZE})")
+             f"database to another")
 
     reporting_options = parser.add_argument_group("Reporting options")
     reporting_options.add_argument(
@@ -1274,11 +1277,10 @@ def inner_main() -> None:
     reporting_options.add_argument(
         '--report_every_fast', type=int, default=DEFAULT_REPORT_EVERY,
         help=f"Report insert progress (for fast operations) every n rows in "
-             f"verbose mode (default {DEFAULT_REPORT_EVERY})")
+             f"verbose mode")
     reporting_options.add_argument(
         '--report_every_nlp', type=int, default=DEFAULT_REPORT_EVERY_NLP,
-        help=f"Report progress for NLP every n rows in verbose mode "
-             f"(default {DEFAULT_REPORT_EVERY_NLP})")
+        help=f"Report progress for NLP every n rows in verbose mode")
     reporting_options.add_argument(
         "--echo", action="store_true",
         help="Echo SQL")

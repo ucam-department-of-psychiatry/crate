@@ -37,7 +37,7 @@ import sys
 from cardinal_pythonlib.cmdline import cmdline_quote
 from cardinal_pythonlib.logs import configure_logger_for_colour
 
-from crate_anon.common.constants import ENVVAR_GENERATING_CRATE_DOCS
+from crate_anon.common.constants import EnvVar
 from crate_anon.nlp_manager.constants import GATE_PIPELINE_CLASSNAME
 
 
@@ -45,7 +45,7 @@ log = logging.getLogger(__name__)
 
 EXIT_FAILURE = 1
 
-if ENVVAR_GENERATING_CRATE_DOCS in os.environ:
+if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     THIS_DIR = "/path/to/crate/crate_anon/nlp_manager"
     DEFAULT_GATE_DIR = "/path/to/GATE/installation"
 else:
