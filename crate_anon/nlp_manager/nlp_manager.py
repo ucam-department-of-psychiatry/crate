@@ -132,6 +132,9 @@ from crate_anon.nlp_manager.cloud_request import (
     CloudRequestListProcessors,
     CloudRequestProcess,
     CloudRequestQueueManagement,
+    RecordLimitExceeded,
+    RecordNotPrintable,
+    RequestTooLong,
 )
 from crate_anon.nlp_manager.cloud_run_info import CloudRunInfo
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
@@ -698,20 +701,20 @@ class CloudRequestSender(object):
             self.request_is_empty = True
             self.need_new_request = False
 
-        # Add the text to the cloud request with the appropriate metadata
-        text_within_limit, success = self.request.add_text(
-            self.text, self.other_values
-        )
-
-        # text_within_limit | success | Meaning
-        # ------------------|---------|----------------------------------
-        # True              | False   | No word characters, nothing added
-        # False             | False   | Record or character limit reached
-        # True              | True    | Text successfully added
-
         self.need_new_record = True
 
-        if not text_within_limit:
+        # Add the text to the cloud request with the appropriate metadata
+        try:
+            self.request.add_text(
+                self.text, self.other_values
+            )
+
+            # added OK, request now has some text
+            self.request_is_empty = False
+
+        except RecordNotPrintable:
+            pass
+        except (RecordLimitExceeded, RequestTooLong):
             if self.request_is_empty:
                 # Get some new text next time
                 log.warning("Skipping text that's too long to send")
@@ -719,9 +722,6 @@ class CloudRequestSender(object):
                 # Try same text again with a fresh request
                 self.need_new_record = False
                 self.state = self.State.SENDING_REQUEST
-
-        if success:
-            self.request_is_empty = False
 
         if self.record_limit_reached():
             self.state = self.State.SENDING_REQUEST

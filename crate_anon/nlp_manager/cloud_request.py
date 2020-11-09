@@ -340,6 +340,18 @@ class CloudRequestListProcessors(CloudRequest):
         return processors
 
 
+class RecordNotPrintable(Exception):
+    pass
+
+
+class RecordLimitExceeded(Exception):
+    pass
+
+
+class RequestTooLong(Exception):
+    pass
+
+
 # =============================================================================
 # CloudRequestProcess
 # =============================================================================
@@ -513,7 +525,7 @@ class CloudRequestProcess(CloudRequest):
                 self.add_processor_to_request(name, version)
 
     def add_text(self, text: str,
-                 other_values: Dict[str, Any]) -> Tuple[bool, bool]:
+                 other_values: Dict[str, Any]) -> None:
         """
         Adds text for analysis to the NLP request, with associated metadata.
 
@@ -532,23 +544,20 @@ class CloudRequestProcess(CloudRequest):
             text: the text
             other_values: the metadata
 
-        Returns:
-            Tuple[bool, bool]: First return values is ``False`` if the request
-                               is too long or has exceeded
-                               ``max_records_per_request``, and ``True`` if
-                               not. Second bool is ``True`` if successfully
-                               added, ``False`` if not.
+        Raises:
+            - :exc:`RecordNotPrintable` if the record contains no printable
+              characters
+            - :exc:`RecordLimitExceeded` if the request has exceeded the
+              maximum number of records
+            - :exc:`RequestTooLong` if the request has exceeded the maximum
+              length
         """
         if not does_text_contain_word_chars(text):
-            # Note - we return True if there are no word characters because it
-            # hasn't technically failed. If we return False, it will think it
-            # needs to create a new CloudRequestProcess
-            return True, False
+            raise RecordNotPrintable
 
         self.number_of_records += 1
         if self.number_of_records > self._cloudcfg.max_records_per_request:
-            # Return False if we've reached the record limit for the request
-            return False, False
+            raise RecordLimitExceeded
 
         new_content = {
             NKeys.METADATA: other_values,
@@ -566,9 +575,9 @@ class CloudRequestProcess(CloudRequest):
             # log.warning("too long!")
             # Too long. Restore the previous state!
             args[content_key] = old_content
-            return False, False
+            raise RequestTooLong
         # Success.
-        return True, True
+        return
 
     def send_process_request(self, queue: bool,
                              cookies: CookieJar = None,
