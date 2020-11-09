@@ -534,12 +534,6 @@ class CloudRequestProcess(CloudRequest):
         characters in the text. Also checks if we've reached the maximum records
         per request.
 
-        Returns a bool stating whether the text is not too long and has not
-        exceeded the maxim um number of records, and another
-        stating whether it has been successful. These need to be in two
-        separate values because 'nlp_manager' needs to know why it's failed to
-        add.
-
         Args:
             text: the text
             other_values: the metadata
@@ -576,8 +570,6 @@ class CloudRequestProcess(CloudRequest):
             # Too long. Restore the previous state!
             args[content_key] = old_content
             raise RequestTooLong
-        # Success.
-        return
 
     def send_process_request(self, queue: bool,
                              cookies: CookieJar = None,
