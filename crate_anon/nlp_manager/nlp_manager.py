@@ -701,8 +701,6 @@ class CloudRequestSender(object):
                     log.debug("Record is new")
 
             self.num_recs_processed += 1
-
-            # TODO: Test this
             self.other_values[FN_SRCHASH] = srchash
 
         if self.need_new_request:

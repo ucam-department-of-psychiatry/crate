@@ -40,7 +40,7 @@ from crate_anon.nlp_manager.input_field_config import (
     FN_SRCPKVAL,
     FN_SRCTABLE,
 )
-from crate_anon.nlp_manager.models import NlpRecord
+from crate_anon.nlp_manager.models import FN_SRCHASH, NlpRecord
 from crate_anon.nlp_manager.nlp_manager import send_cloud_requests
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 
@@ -157,6 +157,10 @@ class SendCloudRequestsTestCase(TestCase):
 
         self.assertEqual(records[0][NKeys.METADATA][FN_SRCPKVAL], 1)
         self.assertEqual(records[0][NKeys.METADATA][FN_SRCPKSTR], "pkstr")
+        self.assertEqual(
+            records[0][NKeys.METADATA][FN_SRCHASH],
+            self.hasher.hash("A woman, a plan, a canal. Panamowa!")
+        )
         self.assertEqual(records[0][NKeys.TEXT],
                          "A woman, a plan, a canal. Panamowa!")
 
