@@ -132,8 +132,8 @@ from crate_anon.nlp_manager.cloud_request import (
     CloudRequestListProcessors,
     CloudRequestProcess,
     CloudRequestQueueManagement,
-    RecordLimitExceeded,
     RecordNotPrintable,
+    RecordsPerRequestExceeded,
     RequestTooLong,
 )
 from crate_anon.nlp_manager.cloud_run_info import CloudRunInfo
@@ -714,8 +714,8 @@ class CloudRequestSender(object):
 
         except RecordNotPrintable:
             pass
-        except (RecordLimitExceeded, RequestTooLong):
-            if self.request_is_empty:
+        except (RecordsPerRequestExceeded, RequestTooLong) as e:
+            if isinstance(e, RequestTooLong) and self.request_is_empty:
                 # Get some new text next time
                 log.warning("Skipping text that's too long to send")
             else:

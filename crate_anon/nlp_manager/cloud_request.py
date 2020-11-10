@@ -344,7 +344,7 @@ class RecordNotPrintable(Exception):
     pass
 
 
-class RecordLimitExceeded(Exception):
+class RecordsPerRequestExceeded(Exception):
     pass
 
 
@@ -541,8 +541,8 @@ class CloudRequestProcess(CloudRequest):
         Raises:
             - :exc:`RecordNotPrintable` if the record contains no printable
               characters
-            - :exc:`RecordLimitExceeded` if the request has exceeded the
-              maximum number of records
+            - :exc:`RecordsPerRequestExceeded` if the request has exceeded the
+              maximum number of records per request
             - :exc:`RequestTooLong` if the request has exceeded the maximum
               length
         """
@@ -551,7 +551,7 @@ class CloudRequestProcess(CloudRequest):
 
         self.number_of_records += 1
         if self.number_of_records > self._cloudcfg.max_records_per_request:
-            raise RecordLimitExceeded
+            raise RecordsPerRequestExceeded
 
         new_content = {
             NKeys.METADATA: other_values,
