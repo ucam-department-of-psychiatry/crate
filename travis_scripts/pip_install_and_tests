@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -e
+
+echo installing pip packages
+pip install -e crate_anon/.
+
+echo checking packages for conflicts
+pip check
+
+echo installing safety checker
+pip install safety
+
+echo checking packages for vulnerabilities
+safety check
+
+echo running tests
+pytest -v
