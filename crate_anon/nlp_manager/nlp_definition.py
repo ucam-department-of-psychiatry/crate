@@ -646,7 +646,7 @@ def demo_nlp_config() -> str:
     # - e.g. {{rule=Includefin, text=Lewy body dementia}}
     # (b) inspection of contents:
     # - run a Cygwin shell
-    # - find . -type f -exec grep cDiagnosis -l {{}} \;
+    # - find . -type f -exec grep cDiagnosis -l {{}} \\;
     # - 3 hits:
     #       ./application-resources/jape/DiagnosisExclude2.jape
     #           ... part of the "Lewy"-detection apparatus
