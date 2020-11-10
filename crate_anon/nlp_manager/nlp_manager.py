@@ -638,18 +638,15 @@ class CloudRequestSender(object):
             generated_text: Generator[Tuple[str, Dict[str, Any]], None, None],
             crinfo: CloudRunInfo,
             ifconfig: InputFieldConfig,
-            global_recnum: int,
             report_every: int = DEFAULT_REPORT_EVERY_NLP,
             incremental: bool = False,
             queue: bool = True) -> None:
         self.generated_text = generated_text
         self.crinfo = crinfo
         self.ifconfig = ifconfig
-        self.global_recnum = global_recnum
         self.report_every = report_every
         self.incremental = incremental
         self.queue = queue
-        self.state = self.State.BUILDING_REQUEST
         self.text = None
         self.other_values = None
         self.request_is_empty = True
@@ -661,7 +658,10 @@ class CloudRequestSender(object):
     'self.queue' determines whether these are queued requests or not. Also
     returns whether the generator for the text is empty.
     """
-    def send_requests(self) -> Tuple[List[CloudRequestProcess], bool, int]:
+    def send_requests(
+            self,
+            global_recnum: int) -> Tuple[List[CloudRequestProcess], bool, int]:
+        self.global_recnum = global_recnum
         self.requests = []  # type: List[CloudRequestProcess]
         self.cookies = None  # type: Optional[CookieJar]
         self.request_count = 1  # number of requests sent
@@ -671,6 +671,7 @@ class CloudRequestSender(object):
             return [], False, self.global_recnum
 
         self.num_recs_processed = 0
+        self.state = self.State.BUILDING_REQUEST
 
         # If we've reached the limit of records before commit, return to
         # outer function in order to process and commit (or write to file if
@@ -835,19 +836,18 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
         for ifconfig in nlpdef.inputfieldconfigs:
             generated_text = ifconfig.gen_text()
             global_recnum = 0  # Global record number within this ifconfig
+            sender = CloudRequestSender(
+                generated_text=generated_text,
+                crinfo=crinfo,
+                ifconfig=ifconfig,
+                incremental=incremental,
+                report_every=report_every)
+
             records_left = True
             while records_left:
-                sender = CloudRequestSender(
-                    generated_text=generated_text,
-                    crinfo=crinfo,
-                    ifconfig=ifconfig,
-                    global_recnum=global_recnum,
-                    incremental=incremental,
-                    report_every=report_every)
-
                 (cloud_requests,
                  records_left,
-                 global_recnum) = sender.send_requests()
+                 global_recnum) = sender.send_requests(global_recnum)
                 for cloud_request in cloud_requests:
                     if cloud_request.queue_id:
                         request_data.write(
@@ -982,21 +982,20 @@ def process_cloud_now(
     for ifconfig in nlpdef.inputfieldconfigs:
         global_recnum = 0  # Global record number within this ifconfig
         generated_text = ifconfig.gen_text()
+        sender = CloudRequestSender(
+            generated_text=generated_text,
+            crinfo=crinfo,
+            ifconfig=ifconfig,
+            incremental=incremental,
+            report_every=report_every,
+            queue=False
+        )
+
         records_left = True
         while records_left:
-            sender = CloudRequestSender(
-                generated_text=generated_text,
-                crinfo=crinfo,
-                global_recnum=global_recnum,
-                ifconfig=ifconfig,
-                incremental=incremental,
-                report_every=report_every,
-                queue=False
-            )
-
             (cloud_requests,
              records_left,
-             global_recnum) = sender.send_requests()
+             global_recnum) = sender.send_requests(global_recnum)
             progrecs = set()
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
