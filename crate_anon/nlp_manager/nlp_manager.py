@@ -635,7 +635,6 @@ class CloudRequestSender(object):
 
     def __init__(
             self,
-            request_factory: Callable[[CloudRunInfo], CloudRequestProcess],
             generated_text: Generator[Tuple[str, Dict[str, Any]], None, None],
             crinfo: CloudRunInfo,
             ifconfig: InputFieldConfig,
@@ -643,7 +642,6 @@ class CloudRequestSender(object):
             report_every: int = DEFAULT_REPORT_EVERY_NLP,
             incremental: bool = False,
             queue: bool = True) -> None:
-        self.request_factory = request_factory
         self.generated_text = generated_text
         self.crinfo = crinfo
         self.ifconfig = ifconfig
@@ -702,7 +700,7 @@ class CloudRequestSender(object):
             self.other_values[FN_SRCHASH] = srchash
 
         if self.need_new_request:
-            self.request = self.request_factory(self.crinfo)
+            self.request = self.get_new_cloud_request()
             self.request_is_empty = True
             self.need_new_request = False
 
@@ -730,6 +728,9 @@ class CloudRequestSender(object):
 
         if self.record_limit_reached():
             self.state = self.State.SENDING_REQUEST
+
+    def get_new_cloud_request(self) -> CloudRequestProcess:
+        return CloudRequestProcess(self.crinfo)
 
     def handle_no_more_records(self) -> None:
         if self.request_is_empty or self.need_new_request:
@@ -817,10 +818,6 @@ class CloudRequestSender(object):
         self.need_new_request = True
 
 
-def get_new_cloud_request(crinfo: CloudRunInfo) -> CloudRequestProcess:
-    return CloudRequestProcess(crinfo)
-
-
 def process_cloud_nlp(crinfo: CloudRunInfo,
                       incremental: bool = False,
                       report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
@@ -841,7 +838,6 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
             records_left = True
             while records_left:
                 sender = CloudRequestSender(
-                    get_new_cloud_request,
                     generated_text=generated_text,
                     crinfo=crinfo,
                     ifconfig=ifconfig,
@@ -989,7 +985,6 @@ def process_cloud_now(
         records_left = True
         while records_left:
             sender = CloudRequestSender(
-                get_new_cloud_request,
                 generated_text=generated_text,
                 crinfo=crinfo,
                 global_recnum=global_recnum,

@@ -45,25 +45,25 @@ from crate_anon.nlp_manager.nlp_manager import CloudRequestSender
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 
 
-def cloud_request_factory(crinfo) -> CloudRequestProcess:
-    request = cloud_request_factory.cloud_requests[
-        cloud_request_factory.call_count
-    ]
+class TestCloudRequestSender(CloudRequestSender):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.call_count = 0
+        self.test_requests = []
 
-    cloud_request_factory.call_count += 1
+    def get_new_cloud_request(self) -> CloudRequestProcess:
+        request = self.test_requests[self.call_count]
+        self.call_count += 1
 
-    return request
+        return request
 
 
-class CloudRequestSenderTestCase(TestCase):
+class CloudRequestSenderTests(TestCase):
     def get_text(self) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         for text, other_values in self.test_text:
             yield text, other_values
 
     def setUp(self) -> None:
-        cloud_request_factory.cloud_requests = []
-        cloud_request_factory.call_count = 0
-
         # Set some sensible defaults here and be explicit in individual tests
         remote_processors = {("name-version", None): mock.Mock()}
         self.cloud_config = mock.Mock(
@@ -98,10 +98,8 @@ class CloudRequestSenderTestCase(TestCase):
         crinfo = mock.Mock(get_remote_processors=mock.Mock(return_value=[]))
         global_recnum_in = 123
         ifconfig = mock.Mock()
-        mock_request_factory = mock.Mock()
 
         sender = CloudRequestSender(
-            mock_request_factory,
             self.get_text(),
             crinfo,
             ifconfig,
@@ -121,31 +119,30 @@ class CloudRequestSenderTestCase(TestCase):
             }),
         ]
 
-        cloud_request_factory.cloud_requests = [
+        global_recnum_in = 123
+
+        sender = TestCloudRequestSender(
+            self.get_text(),
+            self.crinfo,
+            self.ifconfig,
+            global_recnum_in
+        )
+        sender.test_requests = [
             CloudRequestProcess(
                 crinfo=self.crinfo,
                 nlpdef=self.nlpdef
             )
         ]
 
-        global_recnum_in = 123
-
         with mock.patch.object(
-                cloud_request_factory.cloud_requests[0],
+                sender.test_requests[0],
                 "send_process_request") as mock_send:
-            sender = CloudRequestSender(
-                cloud_request_factory,
-                self.get_text(),
-                self.crinfo,
-                self.ifconfig,
-                global_recnum_in
-            )
             (cloud_requests,
              records_processed,
              global_recnum_out) = sender.send_requests()
 
             self.assertEqual(cloud_requests[0],
-                             cloud_request_factory.cloud_requests[0])
+                             sender.test_requests[0])
             self.assertTrue(records_processed)
             self.assertEqual(global_recnum_out, 124)
 
@@ -184,28 +181,27 @@ class CloudRequestSenderTestCase(TestCase):
 
         global_recnum_in = 123
 
-        cloud_request_factory.cloud_requests = [
+        sender = TestCloudRequestSender(
+                self.get_text(),
+                self.crinfo,
+                self.ifconfig,
+                global_recnum_in
+        )
+        sender.test_requests = [
             CloudRequestProcess(
                 crinfo=self.crinfo,
                 nlpdef=self.nlpdef
             )
         ]
 
-        with mock.patch.object(cloud_request_factory.cloud_requests[0],
+        with mock.patch.object(sender.test_requests[0],
                                "send_process_request") as mock_send:
-            sender = CloudRequestSender(
-                cloud_request_factory,
-                self.get_text(),
-                self.crinfo,
-                self.ifconfig,
-                global_recnum_in
-            )
             (cloud_requests,
              records_processed,
              global_recnum_out) = sender.send_requests()
 
             self.assertEqual(cloud_requests[0],
-                             cloud_request_factory.cloud_requests[0])
+                             sender.test_requests[0])
             self.assertTrue(records_processed)
             self.assertEqual(global_recnum_out, 126)
 
@@ -239,7 +235,13 @@ class CloudRequestSenderTestCase(TestCase):
 
         global_recnum_in = 123
 
-        cloud_request_factory.cloud_requests = [
+        sender = TestCloudRequestSender(
+            self.get_text(),
+            self.crinfo,
+            self.ifconfig,
+            global_recnum_in
+        )
+        sender.test_requests = [
             CloudRequestProcess(
                 crinfo=self.crinfo,
                 nlpdef=self.nlpdef,
@@ -259,34 +261,27 @@ class CloudRequestSenderTestCase(TestCase):
         mock_cookies = mock.Mock()
 
         def mock_send_0_side_effect(*args, **kwargs):
-            cloud_request_factory.cloud_requests[0].cookies = mock_cookies
+            sender.test_requests[0].cookies = mock_cookies
 
         with self.assertLogs(level=logging.INFO) as logging_cm:
-            with mock.patch.object(cloud_request_factory.cloud_requests[0],
+            with mock.patch.object(sender.test_requests[0],
                                    "send_process_request") as mock_send_0:
                 mock_send_0.side_effect = mock_send_0_side_effect
-                with mock.patch.object(cloud_request_factory.cloud_requests[1],
+                with mock.patch.object(sender.test_requests[1],
                                        "send_process_request") as mock_send_1:
                     with mock.patch.object(
-                            cloud_request_factory.cloud_requests[2],
+                            sender.test_requests[2],
                             "send_process_request") as mock_send_2:
-                        sender = CloudRequestSender(
-                            cloud_request_factory,
-                            self.get_text(),
-                            self.crinfo,
-                            self.ifconfig,
-                            global_recnum_in
-                        )
                         (requests_out,
                          records_processed,
                          global_recnum_out) = sender.send_requests()
 
         self.assertEqual(requests_out[0],
-                         cloud_request_factory.cloud_requests[0])
+                         sender.test_requests[0])
         self.assertEqual(requests_out[1],
-                         cloud_request_factory.cloud_requests[1])
+                         sender.test_requests[1])
         self.assertEqual(requests_out[2],
-                         cloud_request_factory.cloud_requests[2])
+                         sender.test_requests[2])
 
         self.assertTrue(records_processed)
         self.assertEqual(global_recnum_out, 126)
@@ -347,7 +342,14 @@ class CloudRequestSenderTestCase(TestCase):
 
         global_recnum_in = 123
 
-        cloud_request_factory.cloud_requests = [
+        sender = TestCloudRequestSender(
+            self.get_text(),
+            self.crinfo,
+            self.ifconfig,
+            global_recnum_in
+        )
+
+        sender.test_requests = [
             CloudRequestProcess(
                 crinfo=self.crinfo,
                 nlpdef=self.nlpdef,
@@ -356,22 +358,14 @@ class CloudRequestSenderTestCase(TestCase):
 
         self.cloud_config.limit_before_commit = 2
 
-        with mock.patch.object(cloud_request_factory.cloud_requests[0],
+        with mock.patch.object(sender.test_requests[0],
                                "send_process_request") as mock_send:
-            sender = CloudRequestSender(
-                cloud_request_factory,
-                self.get_text(),
-                self.crinfo,
-                self.ifconfig,
-                global_recnum_in
-            )
-
             (requests_out,
              records_processed,
              global_recnum_out) = sender.send_requests()
 
         self.assertEqual(requests_out[0],
-                         cloud_request_factory.cloud_requests[0])
+                         sender.test_requests[0])
 
         self.assertTrue(records_processed)
         self.assertEqual(global_recnum_out, 125)
@@ -408,7 +402,13 @@ class CloudRequestSenderTestCase(TestCase):
 
         global_recnum_in = 123
 
-        cloud_request_factory.cloud_requests = [
+        sender = TestCloudRequestSender(
+            self.get_text(),
+            self.crinfo,
+            self.ifconfig,
+            global_recnum_in
+        )
+        sender.test_requests = [
             CloudRequestProcess(
                 crinfo=self.crinfo,
                 nlpdef=self.nlpdef,
@@ -422,25 +422,18 @@ class CloudRequestSenderTestCase(TestCase):
         # json lengths: 274, ?, 533
         self.cloud_config.max_content_length = 500
 
-        with mock.patch.object(cloud_request_factory.cloud_requests[0],
+        with mock.patch.object(sender.test_requests[0],
                                "send_process_request") as mock_send_0:
-            with mock.patch.object(cloud_request_factory.cloud_requests[1],
+            with mock.patch.object(sender.test_requests[1],
                                    "send_process_request") as mock_send_1:
-                sender = CloudRequestSender(
-                     cloud_request_factory,
-                     self.get_text(),
-                     self.crinfo,
-                     self.ifconfig,
-                     global_recnum_in
-                )
                 (requests_out,
                  records_processed,
                  global_recnum_out) = sender.send_requests()
 
         self.assertEqual(requests_out[0],
-                         cloud_request_factory.cloud_requests[0])
+                         sender.test_requests[0])
         self.assertEqual(requests_out[1],
-                         cloud_request_factory.cloud_requests[1])
+                         sender.test_requests[1])
 
         self.assertTrue(records_processed)
         self.assertEqual(global_recnum_out, 126)
@@ -489,7 +482,13 @@ class CloudRequestSenderTestCase(TestCase):
 
         global_recnum_in = 123
 
-        cloud_request_factory.cloud_requests = [
+        sender = TestCloudRequestSender(
+            self.get_text(),
+            self.crinfo,
+            self.ifconfig,
+            global_recnum_in
+        )
+        sender.test_requests = [
             CloudRequestProcess(
                 crinfo=self.crinfo,
                 nlpdef=self.nlpdef,
@@ -503,25 +502,18 @@ class CloudRequestSenderTestCase(TestCase):
         self.cloud_config.max_content_length = 500
 
         with self.assertLogs(level=logging.WARNING) as logging_cm:
-            with mock.patch.object(cloud_request_factory.cloud_requests[0],
+            with mock.patch.object(sender.test_requests[0],
                                    "send_process_request") as mock_send_0:
-                with mock.patch.object(cloud_request_factory.cloud_requests[1],
+                with mock.patch.object(sender.test_requests[1],
                                        "send_process_request") as mock_send_1:
-                    sender = CloudRequestSender(
-                         cloud_request_factory,
-                         self.get_text(),
-                         self.crinfo,
-                         self.ifconfig,
-                         global_recnum_in
-                    )
                     (requests_out,
                      records_processed,
                      global_recnum_out) = sender.send_requests()
 
         self.assertEqual(requests_out[0],
-                         cloud_request_factory.cloud_requests[0])
+                         sender.test_requests[0])
         self.assertEqual(requests_out[1],
-                         cloud_request_factory.cloud_requests[1])
+                         sender.test_requests[1])
 
         self.assertTrue(records_processed)
         self.assertEqual(global_recnum_out, 126)
@@ -568,7 +560,14 @@ class CloudRequestSenderTestCase(TestCase):
 
         global_recnum_in = 123
 
-        cloud_request_factory.cloud_requests = [
+        sender = TestCloudRequestSender(
+            self.get_text(),
+            self.crinfo,
+            self.ifconfig,
+            global_recnum_in,
+            incremental=True
+        )
+        sender.test_requests = [
             CloudRequestProcess(
                 crinfo=self.crinfo,
                 nlpdef=self.nlpdef,
@@ -594,22 +593,14 @@ class CloudRequestSenderTestCase(TestCase):
         self.ifconfig.get_progress_record = get_progress_record
 
         with self.assertLogs(level=logging.DEBUG) as logging_cm:
-            with mock.patch.object(cloud_request_factory.cloud_requests[0],
+            with mock.patch.object(sender.test_requests[0],
                                    "send_process_request") as mock_send_0:
-                sender = CloudRequestSender(
-                    cloud_request_factory,
-                    self.get_text(),
-                    self.crinfo,
-                    self.ifconfig,
-                    global_recnum_in,
-                    incremental=True
-                )
                 (requests_out,
                  records_processed,
                  global_recnum_out) = sender.send_requests()
 
         self.assertEqual(requests_out[0],
-                         cloud_request_factory.cloud_requests[0])
+                         sender.test_requests[0])
 
         self.assertTrue(records_processed)
         self.assertEqual(global_recnum_out, 126)
@@ -659,7 +650,15 @@ class CloudRequestSenderTestCase(TestCase):
 
         global_recnum_in = 1
 
-        cloud_request_factory.cloud_requests = [
+        sender = TestCloudRequestSender(
+            self.get_text(),
+            self.crinfo,
+            self.ifconfig,
+            global_recnum_in,
+            report_every=2
+        )
+
+        sender.test_requests = [
             CloudRequestProcess(
                 crinfo=self.crinfo,
                 nlpdef=self.nlpdef,
@@ -668,16 +667,8 @@ class CloudRequestSenderTestCase(TestCase):
 
         self.ifconfig.get_count = mock.Mock(return_value=100)
         with self.assertLogs(level=logging.INFO) as logging_cm:
-            with mock.patch.object(cloud_request_factory.cloud_requests[0],
+            with mock.patch.object(sender.test_requests[0],
                                    "send_process_request"):
-                sender = CloudRequestSender(
-                    cloud_request_factory,
-                    self.get_text(),
-                    self.crinfo,
-                    self.ifconfig,
-                    global_recnum_in,
-                    report_every=2
-                )
                 sender.send_requests()
 
         logger_name = "crate_anon.nlp_manager.nlp_manager"
@@ -701,7 +692,14 @@ class CloudRequestSenderTestCase(TestCase):
 
         global_recnum_in = 1
 
-        cloud_request_factory.cloud_requests = [
+        sender = TestCloudRequestSender(
+            self.get_text(),
+            self.crinfo,
+            self.ifconfig,
+            global_recnum_in,
+        )
+
+        sender.test_requests = [
             CloudRequestProcess(
                 crinfo=self.crinfo,
                 nlpdef=self.nlpdef,
@@ -709,20 +707,12 @@ class CloudRequestSenderTestCase(TestCase):
         ]
 
         def mock_send_0_side_effect(*args, **kwargs):
-            cloud_request_factory.cloud_requests[0].request_failed = True
+            sender.test_requests[0].request_failed = True
 
         with self.assertLogs(level=logging.WARNING) as logging_cm:
-            with mock.patch.object(cloud_request_factory.cloud_requests[0],
+            with mock.patch.object(sender.test_requests[0],
                                    "send_process_request") as mock_send_0:
                 mock_send_0.side_effect = mock_send_0_side_effect
-
-                sender = CloudRequestSender(
-                    cloud_request_factory,
-                    self.get_text(),
-                    self.crinfo,
-                    self.ifconfig,
-                    global_recnum_in,
-                )
 
                 (requests_out,
                  records_processed,
@@ -754,28 +744,27 @@ class CloudRequestSenderTestCase(TestCase):
 
         global_recnum_in = 123
 
-        cloud_request_factory.cloud_requests = [
+        sender = TestCloudRequestSender(
+            self.get_text(),
+            self.crinfo,
+            self.ifconfig,
+            global_recnum_in
+        )
+        sender.test_requests = [
             CloudRequestProcess(
                 crinfo=self.crinfo,
                 nlpdef=self.nlpdef,
             ),
         ]
 
-        with mock.patch.object(cloud_request_factory.cloud_requests[0],
+        with mock.patch.object(sender.test_requests[0],
                                "send_process_request") as mock_send:
-            sender = CloudRequestSender(
-                cloud_request_factory,
-                self.get_text(),
-                self.crinfo,
-                self.ifconfig,
-                global_recnum_in
-            )
             (requests_out,
              records_processed,
              global_recnum_out) = sender.send_requests()
 
         self.assertEqual(requests_out[0],
-                         cloud_request_factory.cloud_requests[0])
+                         sender.test_requests[0])
 
         self.assertTrue(records_processed)
         self.assertEqual(global_recnum_out, 126)
