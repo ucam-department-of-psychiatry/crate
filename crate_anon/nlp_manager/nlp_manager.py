@@ -647,11 +647,6 @@ class CloudRequestSender(object):
         self.report_every = report_every
         self.incremental = incremental
         self.queue = queue
-        self.text = None
-        self.other_values = None
-        self.request_is_empty = True
-        self.need_new_record = True
-        self.need_new_request = True
 
     """
     Sends off a series of cloud requests and returns them as a list.
@@ -665,6 +660,12 @@ class CloudRequestSender(object):
         self.requests = []  # type: List[CloudRequestProcess]
         self.cookies = None  # type: Optional[CookieJar]
         self.request_count = 1  # number of requests sent
+        self.text = None
+        self.other_values = None
+        self.request_is_empty = True
+        self.need_new_record = True
+        self.need_new_request = True
+
         # Check processors are available
         available_procs = self.crinfo.get_remote_processors()
         if not available_procs:
