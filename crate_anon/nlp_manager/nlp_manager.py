@@ -689,7 +689,7 @@ class CloudRequestSender(object):
     def build_request(self) -> None:
         if self.need_new_record:
             if not(self.get_next_record()):
-                self.handle_no_more_records()
+                self.update_state_for_no_more_records()
                 return
 
             hasher = self.crinfo.nlpdef.hash
@@ -734,7 +734,7 @@ class CloudRequestSender(object):
     def get_new_cloud_request(self) -> CloudRequestProcess:
         return CloudRequestProcess(self.crinfo)
 
-    def handle_no_more_records(self) -> None:
+    def update_state_for_no_more_records(self) -> None:
         if self.request_is_empty or self.need_new_request:
             # Nothing more to send
             self.state = self.State.FINISHED
