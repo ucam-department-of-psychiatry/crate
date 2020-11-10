@@ -658,6 +658,11 @@ class CloudRequestSender(object):
         self.need_new_record = True
         self.need_new_request = True
 
+    """
+    Sends off a series of cloud requests and returns them as a list.
+    'self.queue' determines whether these are queued requests or not. Also
+    returns whether the generator for the text is empty.
+    """
     def send_requests(self) -> Tuple[List[CloudRequestProcess], bool, int]:
         self.requests = []  # type: List[CloudRequestProcess]
         self.cookies = None  # type: Optional[CookieJar]
@@ -669,10 +674,10 @@ class CloudRequestSender(object):
 
         self.num_recs_processed = 0
 
+        # If we've reached the limit of records before commit, return to
+        # outer function in order to process and commit (or write to file if
+        # it's a queued request)
         while (self.state != self.State.FINISHED):
-            # If we've reached the limit of records before commit, return to
-            # outer function in order to process and commit (or write to file if
-            # it's a queued request)
             if self.state == self.State.BUILDING_REQUEST:
                 self.build_request()
 
@@ -812,31 +817,6 @@ class CloudRequestSender(object):
         self.need_new_request = True
 
 
-def send_cloud_requests(
-        request_factory: Callable[[CloudRunInfo], CloudRequestProcess],
-        generated_text: Generator[Tuple[str, Dict[str, Any]], None, None],
-        crinfo: CloudRunInfo,
-        ifconfig: InputFieldConfig,
-        global_recnum: int,
-        report_every: int = DEFAULT_REPORT_EVERY_NLP,
-        incremental: bool = False,
-        queue: bool = True) -> Tuple[List[CloudRequestProcess], bool, int]:
-    """
-    Sends off a series of cloud requests and returns them as a list.
-    'queue' determines whether these are queued requests or not. Also returns
-    whether the generator for the text is empty.
-    """
-    sender = CloudRequestSender(request_factory,
-                                generated_text,
-                                crinfo,
-                                ifconfig,
-                                global_recnum,
-                                report_every,
-                                incremental,
-                                queue)
-    return sender.send_requests()
-
-
 def get_new_cloud_request(crinfo: CloudRunInfo) -> CloudRequestProcess:
     return CloudRequestProcess(crinfo)
 
@@ -858,26 +838,26 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
         for ifconfig in nlpdef.inputfieldconfigs:
             generated_text = ifconfig.gen_text()
             global_recnum = 0  # Global record number within this ifconfig
-            # start = 0  # Start for first block
-            # total = ifconfig.get_count()
             records_left = True
             while records_left:
-                cloud_requests, records_left, global_recnum = send_cloud_requests(  # noqa
+                sender = CloudRequestSender(
                     get_new_cloud_request,
                     generated_text=generated_text,
                     crinfo=crinfo,
                     ifconfig=ifconfig,
-                    # start_record=start,
                     global_recnum=global_recnum,
                     incremental=incremental,
                     report_every=report_every)
+
+                (cloud_requests,
+                 records_left,
+                 global_recnum) = sender.send_requests()
                 for cloud_request in cloud_requests:
                     if cloud_request.queue_id:
                         request_data.write(
                             f"{ifconfig.name},{cloud_request.queue_id}\n")
                     else:
                         log.warning("Sent request does not contain queue_id.")
-                # start += crinfo.cloudcfg.limit_before_commit
 
 
 def retrieve_nlp_data(crinfo: CloudRunInfo,
@@ -1008,7 +988,7 @@ def process_cloud_now(
         generated_text = ifconfig.gen_text()
         records_left = True
         while records_left:
-            cloud_requests,  records_left, global_recnum = send_cloud_requests(
+            sender = CloudRequestSender(
                 get_new_cloud_request,
                 generated_text=generated_text,
                 crinfo=crinfo,
@@ -1018,6 +998,10 @@ def process_cloud_now(
                 report_every=report_every,
                 queue=False
             )
+
+            (cloud_requests,
+             records_left,
+             global_recnum) = sender.send_requests()
             progrecs = set()
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
