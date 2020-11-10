@@ -688,7 +688,9 @@ class CloudRequestSender(object):
 
     def build_request(self) -> None:
         if self.need_new_record:
-            if not(self.get_next_record()):
+            try:
+                self.get_next_record()
+            except StopIteration:
                 self.update_state_for_no_more_records()
                 return
 
@@ -762,12 +764,15 @@ class CloudRequestSender(object):
         limit_before_commit = self.crinfo.cloudcfg.limit_before_commit
         return self.num_recs_processed == limit_before_commit
 
-    def get_next_record(self) -> bool:
-        try:
-            self.text, self.other_values = next(self.generated_text)
-        except StopIteration:
-            return False
+    def get_next_record(self) -> None:
+        """
+        Reads the next text record and metadata into self.text and
+        self.other_values
 
+        Raises:
+            - :exc:`StopIteration` if there are no more records
+        """
+        self.text, self.other_values = next(self.generated_text)
         self.global_recnum += 1
 
         pkval = self.other_values[FN_SRCPKVAL]
