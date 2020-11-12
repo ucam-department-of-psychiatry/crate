@@ -40,4 +40,3 @@ from crate_anon.anonymise.config import Config
 # =============================================================================
 
 config = Config()
-

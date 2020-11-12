@@ -168,4 +168,3 @@ class KeywordProcessorFixed(KeywordProcessor):
                     new_sentence.append(current_word)
             idx += 1
         return "".join(new_sentence)
-

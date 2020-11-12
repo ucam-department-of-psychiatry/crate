@@ -27,4 +27,3 @@ crate_anon/crateweb/userprofile/migrations/__init__.py
 The mere existence of this file makes Python treat the directory as a package.
 
 """
-
