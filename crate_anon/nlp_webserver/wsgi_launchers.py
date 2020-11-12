@@ -67,7 +67,7 @@ def cherrypy(wsgi_application: TYPE_WSGI_APP,
     try:
         cherrypy.engine.start()
         cherrypy.engine.block()
-    except:  # nopep8
+    except Exception:
         cherrypy.engine.stop()
     return 0
 
