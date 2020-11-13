@@ -1014,8 +1014,8 @@ class Medex(BaseNlpParser):
                 Column('frequency_endpos', Integer,
                        comment=endposdef + "frequency"),
                 Column('frequency_timex3', String(TIMEX3_MAX_LENGTH),
-                       comment="Normalized frequency in TIMEX3 format "
-                           "(e.g. 'R1P12H')"),
+                       comment=("Normalized frequency in TIMEX3 format "
+                                "(e.g. 'R1P12H')")),
 
                 Column('duration', String(MEDEX_MAX_DURATION_LENGTH),
                        comment="Duration (e.g. 'for 10 days')"),
