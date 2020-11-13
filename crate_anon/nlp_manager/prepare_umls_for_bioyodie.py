@@ -83,7 +83,7 @@ MetamorphoSys produces output like:
         ...
         MRREL.RRF           -- 4.1 GB
         ...
-        MRSAT.RRF           -- 4.2 GB 
+        MRSAT.RRF           -- 4.2 GB
         ...
         release.dat
 
@@ -113,6 +113,28 @@ moves things around. Final output from the Bio-YODIE preprocessor:
                 labelinfo.trace.db
 
 """  # noqa
+
+import argparse
+import logging
+import sys
+import os
+from os.path import join
+import shutil
+import tempfile
+from typing import Dict, List, NoReturn
+
+from cardinal_pythonlib.fileops import mkdir_p, pushd
+from cardinal_pythonlib.file_io import write_text
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from cardinal_pythonlib.network import download
+from cardinal_pythonlib.subproc import check_call_verbose
+from cardinal_pythonlib.sysops import die
+import regex
+
+from crate_anon.common.constants import (
+    EnvVar,
+    EXIT_SUCCESS,
+)
 
 _ = """
 
@@ -145,9 +167,9 @@ From the work directory containing "umls_output":
     tar -xzvf ../scala.tgz
     ant
     cd ..
-    
+
     bin/all.sh
-    
+
 
 ===============================================================================
 General notes
@@ -161,7 +183,7 @@ General notes
   - ``Unexpected problem with mmsys.config.uri`` comes from
     ``plugins/gov.nih.nlm.umls.mmsys.subset/src/gov/nih/nlm/umls/mmsys/subset/SubsetPlugin.java``.
   - That does
-  
+
     .. code-block:: java
 
         // ...
@@ -188,30 +210,30 @@ General notes
                 }
 
             }
-    
+
             public void startApplication() {
                 // ...
-            
+
                     MetamorphoSysInputStream in = subsetConfig.getInputStream();
                     // This happens if something went wrong initializing the config file
                     if (in == null) {
                         throw new IOException("Unexpected problem with mmsys.config.uri");
                     }
-                    
+
                 // ...
             }
-            
+
         // ...
         }
-        
+
   - Via
     ``plugins/gov.nih.nlm.umls.mmsys/src/gov/nih/nlm/umls/mmsys/config/PropertyFileSubsetConfiguration.java``:
-    
+
     .. code-block:: java
-    
+
         public class PropertyFileSubsetConfiguration extends
                 AbstractPropertyFileConfiguration implements SubsetConfiguration {
-        
+
             // ...
             private MetamorphoSysInputStream inputStream;
             // ...
@@ -219,7 +241,7 @@ General notes
             @Override
             public void loadProperties(Properties props) throws IOException {
                 clearLoadWarnings();
-    
+
                 // Load the source paths
                 if (props.containsKey("meta_source_uri")) {
                     setMetaSourceUri(props.getProperty("meta_source_uri"));
@@ -246,15 +268,15 @@ General notes
             public MetamorphoSysInputStream getInputStream() {
                 return inputStream;
             }
-        
+
             // ...
         }
-        
+
   - Via
     ``plugins/gov.nih.nlm.umls.mmsys/src/gov/nih/nlm/umls/mmsys/config/SubsetConfiguration.java``:
-    
+
     - ``open()`` is a method here, but doesn't do much itself.
-    
+
   - ``mmsys_input_stream=NLMFileMetamorphoSysInputStream``, so via
     ``plugins/gov.nih.nlm.umls.mmsys.io/src/gov/nih/nlm/umls/mmsys/io/NLMFileMetamorphoSysInputStream.java``:
 
@@ -273,7 +295,7 @@ be killed. You may see ``Killed`` in the output, and if you use ``grep Kill
 /var/log/syslog`` you may see output like:
 
   .. code-block:: none
-  
+
     Sep 14 23:53:29 wombat kernel: [1316643.026824] oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=39077a0e645869e60c0eee667085a0381cd8e207c9cacd398dae6878335f36ac,mems_allowed=0,global_oom,task_memcg=/user.slice/user-1000.slice/user@1000.service,task=java,pid=1476208,uid=1000
     Sep 14 23:53:29 wombat kernel: [1316643.026902] Out of memory: Killed process 1476208 (java) total-vm:36432500kB, anon-rss:14884116kB, file-rss:0kB, shmem-rss:0kB, UID:1000 pgtables:50500kB oom_score_adj:0
     Sep 14 23:53:29 wombat kernel: [1316644.078094] oom_reaper: reaped process 1476208 (java), now anon-rss:0kB, file-rss:0kB, shmem-rss:0kB
@@ -282,7 +304,7 @@ So that's a process being killed when attempting to use 36 GB of memory. The
 corresponding output from the main process was:
 
   .. code-block:: none
-  
+
     INSERT INTO MRSAT SELECT * FROM CSVREAD(
     '/tmp/tmp_njjv8sg/bio-yodie-resource-prep/srcs/umls/2015AB/META/MRSAT.RRF',
     null,
@@ -301,7 +323,7 @@ The scripts, e.g. bin/*.sh, use commands like
     $ROOTDIR/bin/runScala.sh ExecuteSql DATABASE_FILE SQL_FILE
                              ^^^^^^^^^^
                              class; see runScala.sh
-    
+
 That's using scala/classes/ExecuteSql.class.
 That's from
 https://github.com/GateNLP/bio-yodie-resource-prep/tree/master/scala/classes,
@@ -316,28 +338,6 @@ https://github.com/RudolfCardinal/bio-yodie-resource-prep, primarily:
   it thrash, use 36 GB, and get killed).
 
 """  # noqa
-
-import argparse
-import logging
-import sys
-import os
-from os.path import join
-import shutil
-import tempfile
-from typing import Dict, List, NoReturn
-
-from cardinal_pythonlib.fileops import mkdir_p, pushd
-from cardinal_pythonlib.file_io import write_text
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-from cardinal_pythonlib.network import download
-from cardinal_pythonlib.subproc import check_call_verbose
-from cardinal_pythonlib.sysops import die
-import regex
-
-from crate_anon.common.constants import (
-    EnvVar,
-    EXIT_SUCCESS,
-)
 
 log = logging.getLogger(__name__)
 
@@ -370,7 +370,7 @@ log4j.appender.CONSOLE.layout.ConversionPattern=[%-5p] %m%n
 # - TO   /tmp/tmpg1z_uldg/blah
 # and using "include" rather than "exclude" mode, we got this:
 _NOTES_WORKING_CONFIG_FROM_GUI = """
-# Configuration Properties File 
+# Configuration Properties File
 #Mon Sep 14 17:45:02 BST 2020
 mmsys_output_stream=gov.nih.nlm.umls.mmsys.io.RRFMetamorphoSysOutputStream
 gov.nih.nlm.umls.mmsys.filter.SuppressibleFilter.remove_obsolete_data=false
@@ -500,12 +500,12 @@ def get_mmsys_configfile_text(metadir: str,
     https://www.nlm.nih.gov/research/umls/implementation_resources/community/mmsys/BatchMetaMorphoSys.html,
     edited so it works (but note that ``^sources`` isn't present in the 2017AA
     version):
-    
+
     .. code-block:: bash
 
         export MMSYS_HOME=$PWD  # for example
         export UMLS_RELEASE=2017AA  # for example
-    
+
         grep \
                 "^gov.nih.nlm.umls.mmsys.filter.SourceListFilter.selected_sources" \
                 "${MMSYS_HOME}/config/${UMLS_RELEASE}/user.a.prop" |
