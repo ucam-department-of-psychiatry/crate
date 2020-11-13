@@ -28,7 +28,7 @@ crate_anon/crateweb/userprofile/models.py
 
 """
 
-from typing import Any, List, Optional, Type
+from typing import Any, List, Optional, Type, TYPE_CHECKING
 
 from cardinal_pythonlib.django.fields.jsonclassfield import JsonClassField
 from django.conf import settings
@@ -46,6 +46,9 @@ from crate_anon.crateweb.extra.salutation import (
     salutation,
     title_forename_surname,
 )
+
+if TYPE_CHECKING:
+    from crate_anon.crateweb.research.models import PatientMultiQuery
 
 
 # =============================================================================
