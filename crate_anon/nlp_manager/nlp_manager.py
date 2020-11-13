@@ -516,7 +516,6 @@ def process_nlp(nlpdef: NlpDefinition,
                         approx="~" if pkstr and ntasks > 1 else "",
                         # ... string hashing means approx. distribution
                         recnum=recnum + 1,
-                        i=i,
                         totalcount=totalcount,
                         thisproc=(
                             " ({i}/~{proccount} this process)".format(
