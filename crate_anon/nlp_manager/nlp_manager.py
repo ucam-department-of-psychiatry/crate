@@ -1064,7 +1064,7 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
     if cancel_all:
         # Deleting all from queue!
         cloud_request.delete_all_from_queue()
-        log.info(f"All cloud requests cancelled.")
+        log.info("All cloud requests cancelled.")
         # Should the files be deleted in the program or is that dangerous?
         # ... OK now we guarantee that CRATE will create and use a specific
         # directory.
@@ -1250,8 +1250,8 @@ def inner_main() -> None:
 
     config_options.add_argument(
         '--chunksize', type=int, default=DEFAULT_CHUNKSIZE,
-        help=f"Number of records copied in a chunk when copying PKs from one "
-             f"database to another")
+        help="Number of records copied in a chunk when copying PKs from one "
+             "database to another")
 
     reporting_options = parser.add_argument_group("Reporting options")
     reporting_options.add_argument(
@@ -1259,11 +1259,11 @@ def inner_main() -> None:
         help="Be verbose (use twice for extra verbosity)")
     reporting_options.add_argument(
         '--report_every_fast', type=int, default=DEFAULT_REPORT_EVERY,
-        help=f"Report insert progress (for fast operations) every n rows in "
-             f"verbose mode")
+        help="Report insert progress (for fast operations) every n rows in "
+             "verbose mode")
     reporting_options.add_argument(
         '--report_every_nlp', type=int, default=DEFAULT_REPORT_EVERY_NLP,
-        help=f"Report progress for NLP every n rows in verbose mode")
+        help="Report progress for NLP every n rows in verbose mode")
     reporting_options.add_argument(
         "--echo", action="store_true",
         help="Echo SQL")
