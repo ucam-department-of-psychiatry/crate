@@ -47,7 +47,6 @@ from crate_anon.nlp_manager.constants import (
 
 if TYPE_CHECKING:
     from crate_anon.nlp_manager.nlp_definition import NlpDefinition
-    from crate_anon.nlp_manager.cloud_parser import Cloud
 
 log = logging.getLogger(__name__)
 

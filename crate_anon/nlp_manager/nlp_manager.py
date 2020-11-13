@@ -72,7 +72,7 @@ import logging
 import os
 import sys
 from typing import (
-    Any, Callable, Dict, List, Optional, Tuple, Generator, TYPE_CHECKING,
+    Any, Dict, List, Optional, Tuple, Generator, TYPE_CHECKING,
 )
 
 from cardinal_pythonlib.argparse_func import (

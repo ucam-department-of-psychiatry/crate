@@ -54,8 +54,6 @@ from crate_anon.nlp_manager.parse_biochemistry import *
 from crate_anon.nlp_manager.parse_clinical import *
 from crate_anon.nlp_manager.parse_cognitive import *
 from crate_anon.nlp_manager.parse_haematology import *
-# noinspection PyUnresolvedReferences
-from crate_anon.nlp_manager.regex_parser import NumericalResultParser
 from crate_anon.nlprp.constants import (
     SqlDialects,
 )
