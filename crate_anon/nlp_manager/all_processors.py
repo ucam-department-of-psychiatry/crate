@@ -36,7 +36,7 @@ from inspect import isabstract
 # noinspection PyUnresolvedReferences
 import logging
 # noinspection PyUnresolvedReferences
-from typing import Any, List, Set, Type
+from typing import Any, List, Optional, Set, Type
 
 from cardinal_pythonlib.json.typing_helpers import (
     JsonArrayType,
@@ -48,6 +48,7 @@ import prettytable
 
 # noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser, TableMaker
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.parse_gate import Gate
 from crate_anon.nlp_manager.parse_medex import Medex
 from crate_anon.nlp_manager.parse_biochemistry import *  # noqa: F403
@@ -76,21 +77,21 @@ ignore(Gate)
 ignore(Medex)
 
 # parse_biochemistry
-ignore(Crp)
+ignore(Crp)  # noqa: F405
 
 # parse_clinical
-ignore(Bmi)
+ignore(Bmi)  # noqa: F405
 
 # parse_cognitive
-ignore(Mmse)
+ignore(Mmse)  # noqa: F405
 
 # parse_haematology
-ignore(Wbc)
-ignore(Neutrophils)
-ignore(Lymphocytes)
-ignore(Monocytes)
-ignore(Basophils)
-ignore(Eosinophils)
+ignore(Wbc)  # noqa: F405
+ignore(Neutrophils)  # noqa: F405
+ignore(Lymphocytes)  # noqa: F405
+ignore(Monocytes)  # noqa: F405
+ignore(Basophils)  # noqa: F405
+ignore(Eosinophils)  # noqa: F405
 
 
 # T = TypeVar('T', bound=NlpParser)
