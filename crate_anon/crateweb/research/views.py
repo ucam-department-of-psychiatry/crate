@@ -1617,8 +1617,6 @@ def single_record_html_table(fieldnames: List[str],
         str: HTML
 
     """  # noqa
-    # noinspection PyUnusedLocal
-    nlptable = False
     table_html = ''
     if FN_NLPDEF in fieldnames:
         srcdb_ind = srctable_ind = srcfield_ind = None
