@@ -156,6 +156,7 @@ INSTALL_REQUIRES = [
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
     # "django-silk==4.0.1",  # Django profiler
     "django-sslserver==0.22",  # SSL development server for Django
+    "flake8==3.8.4",  # code checks
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==0.9.5",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
