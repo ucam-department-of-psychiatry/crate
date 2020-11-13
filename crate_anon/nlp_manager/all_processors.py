@@ -50,10 +50,10 @@ import prettytable
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser, TableMaker
 from crate_anon.nlp_manager.parse_gate import Gate
 from crate_anon.nlp_manager.parse_medex import Medex
-from crate_anon.nlp_manager.parse_biochemistry import *
-from crate_anon.nlp_manager.parse_clinical import *
-from crate_anon.nlp_manager.parse_cognitive import *
-from crate_anon.nlp_manager.parse_haematology import *
+from crate_anon.nlp_manager.parse_biochemistry import *  # noqa: F403
+from crate_anon.nlp_manager.parse_clinical import *  # noqa: F403
+from crate_anon.nlp_manager.parse_cognitive import *  # noqa: F403
+from crate_anon.nlp_manager.parse_haematology import *  # noqa: F403
 from crate_anon.nlprp.constants import (
     SqlDialects,
 )
