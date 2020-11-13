@@ -1222,15 +1222,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description=
-        r"""
+        description=r"""
 *   Alters a RiO database to be suitable for CRATE.
 
 *   By default, this treats the source database as being a copy of a RiO
     database (slightly later than version 6.2; exact version unclear).
     Use the "--rcep" (+/- "--cpft") switch(es) to treat it as a
     Servelec RiO CRIS Extract Program (RCEP) v2 output database.
-    """)  # noqa
+    """)
     parser.add_argument("--url", required=True, help="SQLAlchemy database URL")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
     parser.add_argument(
