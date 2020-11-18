@@ -1,0 +1,33 @@
+usage: crate_run_crate_nlp_demo [-h] [--terminator TERMINATOR] --processors
+                                PROCESSOR [PROCESSOR ...] [--verbose]
+                                inputs [inputs ...]
+
+Demonstrate CRATE's built-in Python NLP tools
+
+positional arguments:
+  inputs                Input files (use '-' for stdin)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --terminator TERMINATOR
+                        Single-line terminator separating input chunks in an
+                        input file. (default: STOP)
+  --processors PROCESSOR [PROCESSOR ...]
+                        NLP processor(s) to apply. Possibilities: Ace,AceValid
+                        ator,Basophils,BasophilsValidator,Bmi,BmiValidator,Bp,
+                        BpValidator,Creatinine,CreatinineValidator,Crp,CrpVali
+                        dator,Eosinophils,EosinophilsValidator,Esr,EsrValidato
+                        r,Gate,Glucose,GlucoseValidator,Haematocrit,Haematocri
+                        tValidator,Haemoglobin,HaemoglobinValidator,HbA1c,HbA1
+                        cValidator,HDLCholesterol,HDLCholesterolValidator,Heig
+                        ht,HeightValidator,LDLCholesterol,LDLCholesterolValida
+                        tor,Lithium,LithiumValidator,Lymphocytes,LymphocytesVa
+                        lidator,Medex,MiniAce,MiniAceValidator,Mmse,MmseValida
+                        tor,Moca,MocaValidator,Monocytes,MonocytesValidator,Ne
+                        utrophils,NeutrophilsValidator,Platelets,PlateletsVali
+                        dator,Potassium,PotassiumValidator,RBC,RBCValidator,So
+                        dium,SodiumValidator,TotalCholesterol,TotalCholesterol
+                        Validator,Triglycerides,TriglyceridesValidator,Tsh,Tsh
+                        Validator,Urea,UreaValidator,Wbc,WbcValidator,Weight,W
+                        eightValidator (default: None)
+  --verbose             Be verbose (default: False)

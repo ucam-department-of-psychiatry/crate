@@ -1,0 +1,40 @@
+usage: crate_nlp_prepare_ymls_for_bioyodie [-h] [--keeptemp]
+                                           [--java_home JAVA_HOME]
+                                           [--gate_home GATE_HOME]
+                                           [--groovy GROOVY]
+                                           [--bioyodie_prep_repo_url BIOYODIE_PREP_REPO_URL]
+                                           [--scala_url SCALA_URL]
+                                           umls_zip dest_dir
+
+Prepare UMLS data for BioYodie.
+
+positional arguments:
+  umls_zip              Filename of ZIP file downloaded from https://www.nlm.n
+                        ih.gov/research/umls/licensedcontent/umlsknowledgesour
+                        ces.html, e.g. /path/to/umls-2017AA-full.zip . This
+                        can't be autodownloaded, as it requires a
+                        license/login.
+  dest_dir              Destination directory to write.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --keeptemp            Keep temporary directory on exit. (default: False)
+  --java_home JAVA_HOME
+                        Value for JAVA_HOME environment variable. Should be a
+                        directory that contains 'bin/java'. Default is (a)
+                        existing JAVA_HOME variable; (b) location based on
+                        'which java'. (default: /usr)
+  --gate_home GATE_HOME
+                        Value for GATE_HOME environment variable. Should be a
+                        directory that contains 'bin/gate.*'. Default is
+                        existing GATE_HOME environment variable. (default:
+                        /home/rudolf/dev/GATE_Developer_8.6.1)
+  --groovy GROOVY       Path to groovy binary (ideally v3.0+). Default is the
+                        system copy, if there is one. (default: None)
+  --bioyodie_prep_repo_url BIOYODIE_PREP_REPO_URL
+                        URL of Bio-YODIE preprocessor Git repository (default:
+                        https://github.com/RudolfCardinal/bio-yodie-resource-
+                        prep)
+  --scala_url SCALA_URL
+                        URL for Scala .tgz file (default: https://downloads.li
+                        ghtbend.com/scala/2.11.7/scala-2.11.7.tgz)

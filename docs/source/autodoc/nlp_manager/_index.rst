@@ -62,6 +62,7 @@ crate_anon/nlp_manager
     regex_parser.py.rst
     regex_test.py.rst
     regex_units.py.rst
+    run_crate_nlp_demo.py.rst
     run_gate_annie_demo.py.rst
     run_gate_kcl_kconnect_demo.py.rst
     run_gate_kcl_lewy_demo.py.rst

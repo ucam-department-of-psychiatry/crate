@@ -1,0 +1,12 @@
+usage: crate_nlp_webserver_manage_users [-h]
+                                        [--adduser USERNAME PASSWORD | --rmuser USERNAME | --changepw USERNAME PASSWORD]
+
+Manage users for the CRATE nlp_web server.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --adduser USERNAME PASSWORD
+                        Add a user and associated password.
+  --rmuser USERNAME     Remove a user by specifying their username.
+  --changepw USERNAME PASSWORD
+                        Change a user's password.

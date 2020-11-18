@@ -266,3 +266,11 @@ A summary as of 2019-03-04 (ignoring validators) is:
 
   * - Weight
     - Weight. Handles metric (e.g. "57kg") and imperial (e.g. "10 st 2 lb").
+
+
+**Testing the NLP**
+
+You can test these built-in NLP tools quickly via the command line:
+
+..  literalinclude:: _crate_run_crate_nlp_demo.txt
+    :language: none
