@@ -31,7 +31,7 @@ crate_anon/nlp_manager/run_crate_nlp_demo.py
 import argparse
 import logging
 from pprint import pformat
-from typing import Iterable, List
+from typing import Any, Dict, Iterable, List
 
 from cardinal_pythonlib.file_io import smart_open
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
@@ -126,17 +126,20 @@ def process_text(text: str,
     the output.
     """
     log.debug(f"Processing text:\n{text}")
+    results = {}  # type: Dict[str, List[Dict[str, Any]]]
     for processor in processors:
         log.debug(f"- Processor: {processor.nlprp_name()}.")
         for tablename, nlp_values in processor.parse(text):
             if not nlp_values:
                 continue
-            pretty = pformat(nlp_values)
-            log.info(
-                f"Destination table: {tablename}. Results:\n"
-                f"{pretty}"
-            )
-        log.debug("- Text processing complete.")
+            results_this_proc = results.setdefault(tablename, [])
+            results_this_proc.append(nlp_values)
+    pretty = pformat(results)
+    log.info(
+        f"Results:\n"
+        f"{pretty}"
+    )
+    log.debug("- Text processing complete.")
 
 
 # =============================================================================
