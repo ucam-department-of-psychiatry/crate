@@ -62,6 +62,7 @@ from crate_anon.nlp_manager.regex_units import (
     factor_micromolar_from_mg_per_dl,
     factor_millimolar_from_mg_per_dl,
     G,
+    G_PER_L,
     MG,
     MG_PER_DL,
     MG_PER_L,
@@ -77,6 +78,7 @@ from crate_anon.nlp_manager.regex_units import (
     MILLIMOLES_PER_MOL,
     MILLIUNITS_PER_L,
     PERCENT,
+    UNITS_PER_L,
 )
 
 log = logging.getLogger(__name__)
@@ -710,19 +712,27 @@ class TshValidator(ValidatorBase):
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Tsh.NAME, [Tsh.TSH]
-        
+
+
 # =============================================================================
-# Alkaline Phosphatase (ALP)
+# Alkaline phosphatase
 # =============================================================================
 
-class ALP(SimpleNumericalResultParser):
+class AlkPhos(SimpleNumericalResultParser):
     """
-    Alkaline Phosphatase (ALP).
+    Alkaline phosphatase (ALP, AlkP, AlkPhos).
     """
     ALP = fr"""
         (?: {WORD_BOUNDARY}
-            (?: ALP | alkaline [-\s]+ phosphatase | alk [-\s]+ phos )
-        {WORD_BOUNDARY} )
+            (?:
+                (?: ALk?P (?:\. | {WORD_BOUNDARY}) ) |
+                (?:
+                    alk(?:aline | \.)?
+                    [-\s]*
+                    phos(?:phatase{WORD_BOUNDARY} | \. | {WORD_BOUNDARY})
+                )
+            )
+         )
     """
     REGEX = fr"""
         ( {ALP} )                          # group for "ALP" or equivalent
@@ -734,10 +744,10 @@ class ALP(SimpleNumericalResultParser):
         ( {SIGNED_FLOAT} )                 # group for value
         {OPTIONAL_RESULTS_IGNORABLES}
         (                                  # optional group for units
-            {UNITS_PER_L}                 # good
+            {UNITS_PER_L}
         )?
     """
-    NAME = "ALP"
+    NAME = "AlkPhos"
     PREFERRED_UNIT_COLUMN = "value_U_L"
     UNIT_MAPPING = {
         UNITS_PER_L: 1      # preferred unit
@@ -763,15 +773,20 @@ class ALP(SimpleNumericalResultParser):
         # docstring in superclass
         self.test_numerical_parser([
             ("ALP", []),  # should fail; no values
+            ("was 7", []),  # no quantity
             ("ALP 55", [55]),
             ("Alkaline-Phosphatase 55", [55]),
             ("Alkaline Phosphatase    55 U/L ", [55]),
             ("ALP 55 U/L", [55]),
-            ("ALP-55", [55])
+            ("ALP-55", [55]),
+            ("AlkP 55", [55]),
+            ("alk.phos. 55", [55]),
+            ("alk. phos. 55", [55]),
+            ("alkphos 55", [55]),
         ])
 
 
-class ALPValidator(ValidatorBase):
+class AlkPhosValidator(ValidatorBase):
     """
     Validator for ALP
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
@@ -779,7 +794,7 @@ class ALPValidator(ValidatorBase):
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
-        return ALP.NAME, [ALP.ALP]
+        return AlkPhos.NAME, [AlkPhos.ALP]
 
 
 # =============================================================================
@@ -792,8 +807,10 @@ class ALT(SimpleNumericalResultParser):
     """
     ALT = fr"""
         (?: {WORD_BOUNDARY}
-            (?: ALT | alanine [-\s]+ aminotransferase |
-            Alanine [-\s]+ transaminase )
+            (?:
+                ALT |
+                alanine [-\s]+ (?: aminotransferase | transaminase )
+            )
         {WORD_BOUNDARY} )
     """
     REGEX = fr"""
@@ -806,7 +823,7 @@ class ALT(SimpleNumericalResultParser):
         ( {SIGNED_FLOAT} )                 # group for value
         {OPTIONAL_RESULTS_IGNORABLES}
         (                                  # optional group for units
-            {UNITS_PER_L}                 # good
+            {UNITS_PER_L}
         )?
     """
     NAME = "ALT"
@@ -835,11 +852,14 @@ class ALT(SimpleNumericalResultParser):
         # docstring in superclass
         self.test_numerical_parser([
             ("ALT", []),  # should fail; no values
+            ("was 7", []),  # no quantity
             ("ALT 55", [55]),
             ("alanine-aminotransferase 55", [55]),
             ("Alanine aminotransferase    55 U/L ", [55]),
+            ("alanine transaminase    55 U/L ", [55]),
             ("ALT 55 U/L", [55]),
-            ("ALT-55", [55])
+            ("ALT-55", [55]),
+            ("ALP 55", []),  # wrong thing
         ])
 
 
@@ -852,23 +872,30 @@ class ALTValidator(ValidatorBase):
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return ALT.NAME, [ALT.ALT]
-        
+
+
 # =============================================================================
 # Gamma GT (gGT)
 # =============================================================================
 
-class gGT(SimpleNumericalResultParser):
+class GammaGT(SimpleNumericalResultParser):
     """
-    Gamma GT (gGT).
+    Gamma-glutamyl transferase (gGT).
     """
-    gGT = fr"""
+    GGT = fr"""
         (?: {WORD_BOUNDARY}
-            (?: GGT | gamma [-\s]+ Glutamyl [-\s]+ Transferase | gamma [-\s]+ GT |
-            Gamma [-\s]+ glutamyltransferase )
+            (?:
+                (?: γ | G | gamma)
+                [-\s]*
+                (?:
+                    GT |
+                    glutamyl [-\s]+ transferase
+                )
+            )
         {WORD_BOUNDARY} )
     """
     REGEX = fr"""
-        ( {gGT} )                          # group for "gGT" or equivalent
+        ( {GGT} )                          # group for "GGT" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -877,10 +904,10 @@ class gGT(SimpleNumericalResultParser):
         ( {SIGNED_FLOAT} )                 # group for value
         {OPTIONAL_RESULTS_IGNORABLES}
         (                                  # optional group for units
-            {UNITS_PER_L}                 # good
+            {UNITS_PER_L}
         )?
     """
-    NAME = "gGT"
+    NAME = "GammaGT"
     PREFERRED_UNIT_COLUMN = "value_U_L"
     UNIT_MAPPING = {
         UNITS_PER_L: 1      # preferred unit
@@ -906,15 +933,17 @@ class gGT(SimpleNumericalResultParser):
         # docstring in superclass
         self.test_numerical_parser([
             ("gGT", []),  # should fail; no values
+            ("was 7", []),  # no quantity
             ("gGT 55", [55]),
             ("gamma Glutamyl Transferase 19  U/L", [19]),
             ("Gamma GT    55 U/L ", [55]),
             ("GGT 55 U/L", [55]),
-            ("ggt-55", [55])
+            ("ggt-55", [55]),
+            ("γGT 55", [55]),
         ])
 
 
-class gGTValidator(ValidatorBase):
+class GammaGTValidator(ValidatorBase):
     """
     Validator for gGT
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
@@ -922,24 +951,27 @@ class gGTValidator(ValidatorBase):
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
-        return gGT.NAME, [gGT.gGT]
+        return GammaGT.NAME, [GammaGT.GGT]
         
         
 # =============================================================================
-# Total Bilirubin (totBil)
+# Total bilirubin
 # =============================================================================
 
-class totBil(SimpleNumericalResultParser):
+class Bilirubin(SimpleNumericalResultParser):
     """
-    Total Bilirubin (totBil).
+    Total bilirubin.
     """
-    totBil = fr"""
+    BILIRUBIN = fr"""
         (?: {WORD_BOUNDARY}
-            (?: Total [-\s]+ Bilirubin | T.Bilirubin | T[-\s]+Bilirubin )
-        {WORD_BOUNDARY} )
+            (?:
+                (?: t(?: ot(?:al | \.)? | \.) \s+ )?
+                bili?(?: \. | rubin{WORD_BOUNDARY})?
+            )
+        )
     """
     REGEX = fr"""
-        ( {totBil} )                          # group for "totBil" or equivalent
+        ( {BILIRUBIN} )                    # group for "bilirubin"/equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -948,11 +980,11 @@ class totBil(SimpleNumericalResultParser):
         ( {SIGNED_FLOAT} )                 # group for value
         {OPTIONAL_RESULTS_IGNORABLES}
         (                                  # optional group for units
-             {MICROMOLAR}                        # good
+             {MICROMOLAR}                       # good
             | {MICROMOLES_PER_L}                # good
         )?
     """
-    NAME = "totBil"
+    NAME = "Bilirubin"
     PREFERRED_UNIT_COLUMN = "value_micromol_L"
     UNIT_MAPPING = {
         MICROMOLAR: 1,       # preferred unit
@@ -979,38 +1011,47 @@ class totBil(SimpleNumericalResultParser):
         # docstring in superclass
         self.test_numerical_parser([
             ("tot Bil", []),  # should fail; no values
+            ("was 7", []),  # no quantity
             ("tot Bil 6", [6]),
             ("Total Bilirubin: 6", [6]),
-            ("Total Bilirubin 6 umol/L", [6])
+            ("Total Bilirubin 6 umol/L", [6]),
+            ("bilirubin 17 μM", [17]),
+            ("t.bilirubin 17 μM", [17]),
+            ("t. bilirubin 17 μM", [17]),
+            ("bili. 17 μM", [17]),
+            ("bili 17 μM", [17]),
         ])
 
 
-class totBilValidator(ValidatorBase):
+class BilirubinValidator(ValidatorBase):
     """
-    Validator for totBil
+    Validator for bilirubin.
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
-        return totBil.NAME, [totBil.totBil]
+        return Bilirubin.NAME, [Bilirubin.BILIRUBIN]
         
 
 # =============================================================================
 # Albumin (Alb)
 # =============================================================================
 
-class Alb(SimpleNumericalResultParser):
+class Albumin(SimpleNumericalResultParser):
     """
     Albumin (Alb).
     """
-    Alb = fr"""
+    ALBUMIN = fr"""
         (?: {WORD_BOUNDARY}
-            (?: Alb | Albumin | albumin [-\s]+ level )
-        {WORD_BOUNDARY} )
+            (?:
+                alb(?:\. | umin{WORD_BOUNDARY})?
+                (?: \s+ level{WORD_BOUNDARY})?
+            )
+        )
     """
     REGEX = fr"""
-        ( {Alb} )                          # group for "Alb" or equivalent
+        ( {ALBUMIN} )                      # group for "Alb" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -1019,14 +1060,13 @@ class Alb(SimpleNumericalResultParser):
         ( {SIGNED_FLOAT} )                 # group for value
         {OPTIONAL_RESULTS_IGNORABLES}
         (                                  # optional group for units
-             {G_PER_L}                        # good
+            {G_PER_L}
         )?
     """
-    NAME = "Alb"
-     PREFERRED_UNIT_COLUMN = "value_g_L"
+    NAME = "Albumin"
+    PREFERRED_UNIT_COLUMN = "value_g_L"
     UNIT_MAPPING = {
         G_PER_L: 1       # preferred unit
-        
     }
 
     def __init__(self,
@@ -1049,21 +1089,25 @@ class Alb(SimpleNumericalResultParser):
         # docstring in superclass
         self.test_numerical_parser([
             ("Alb", []),  # should fail; no values
+            ("was 7", []),  # no quantity
+            ("ALP 6", []),  # wrong quantity
             ("Alb 6", [6]),
             ("Albumin: 48", [48]),
-            ("Albumin 48 g/L", [48])
+            ("Albumin 48 g/L", [48]),
+            ("alb. 48", [48]),
+            ("albumin level 48", [48]),
         ])
 
 
-class AlbValidator(ValidatorBase):
+class AlbuminValidator(ValidatorBase):
     """
-    Validator for Alb
+    Validator for Albumin
     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
     explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
-        return Alb.NAME, [Alb.Alb]
+        return Albumin.NAME, [Albumin.ALBUMIN]
         
 
 # =============================================================================
@@ -1726,8 +1770,13 @@ class HbA1cValidator(ValidatorBase):
 # =============================================================================
 
 ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS = [
+    (Albumin, AlbuminValidator),
+    (AlkPhos, AlkPhosValidator),
+    (ALT, ALTValidator),
+    (Bilirubin, BilirubinValidator),
     (Creatinine, CreatinineValidator),
     (Crp, CrpValidator),
+    (GammaGT, GammaGTValidator),
     (Glucose, GlucoseValidator),
     (HbA1c, HbA1cValidator),
     (HDLCholesterol, HDLCholesterolValidator),

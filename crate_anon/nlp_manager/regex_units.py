@@ -235,9 +235,11 @@ PERCENT = r"""(?:%|pe?r?\s?ce?n?t)"""
 
 CELLS = r"(?:\b cells? \b)"
 OPTIONAL_CELLS = CELLS + "?"
+
 MOLES = r"(?:\b mole?s? \b)"  # mol, mole, mols, moles
 MICROMOLES = r"(?: (?:micro|μ|u)mole?s? )"
 MILLIMOLES = r"(?: m(?:illi)?mole?s? )"
+
 MICROEQ = r"(?: (?:micro|μ|u)Eq )"
 MILLIEQ = r"(?:m(?:illi)?Eq)"
 
@@ -255,7 +257,6 @@ MICROMOLAR = r"(?:[μu]M)"
 MILLIMOLAR = r"(?:mM)"  # NB case-insensitive... confusable with millimetres
 
 BILLION_PER_L = per(BILLION, L)
-TRILLION_PER_L = per(TRILLION, L)
 CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
 CELLS_PER_CUBIC_MM_OR_MICROLITRE = per(OPTIONAL_CELLS, CUBIC_MM_OR_MICROLITRE)
 G_PER_DL = per(G, DL)
@@ -269,8 +270,9 @@ MICROUNITS_PER_ML = per(MICROUNITS, ML)
 MILLIEQ_PER_L = per(MILLIEQ, L)
 MILLIMOLES_PER_L = per(MILLIMOLES, L)
 MILLIMOLES_PER_MOL = per(MILLIMOLES, MOLES)
-UNITS_PER_L = per(UNITS, L)
 MILLIUNITS_PER_L = per(MILLIUNITS, L)
+TRILLION_PER_L = per(TRILLION, L)
+UNITS_PER_L = per(UNITS, L)
 
 # -----------------------------------------------------------------------------
 # Speed
