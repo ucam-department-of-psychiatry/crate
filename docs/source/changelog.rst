@@ -1300,6 +1300,13 @@ Changes
 
 - Comment lines and blank lines ignored in data dictionary.
 
+**0.19.1, 2020-11-21**
+
+- "LFT" NLP processors: albumin, ALT, alkaline phosphatase, bilirubin, gamma
+  GT.
+
+- ``crate_run_crate_nlp_demo`` tool to test internal NLP more conveniently.
+
 
 ===============================================================================
 

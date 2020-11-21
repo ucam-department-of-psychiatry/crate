@@ -14,20 +14,22 @@ optional arguments:
                         input file. (default: STOP)
   --processors PROCESSOR [PROCESSOR ...]
                         NLP processor(s) to apply. Possibilities: Ace,AceValid
-                        ator,Basophils,BasophilsValidator,Bmi,BmiValidator,Bp,
-                        BpValidator,Creatinine,CreatinineValidator,Crp,CrpVali
-                        dator,Eosinophils,EosinophilsValidator,Esr,EsrValidato
-                        r,Gate,Glucose,GlucoseValidator,Haematocrit,Haematocri
-                        tValidator,Haemoglobin,HaemoglobinValidator,HbA1c,HbA1
-                        cValidator,HDLCholesterol,HDLCholesterolValidator,Heig
-                        ht,HeightValidator,LDLCholesterol,LDLCholesterolValida
-                        tor,Lithium,LithiumValidator,Lymphocytes,LymphocytesVa
-                        lidator,Medex,MiniAce,MiniAceValidator,Mmse,MmseValida
-                        tor,Moca,MocaValidator,Monocytes,MonocytesValidator,Ne
-                        utrophils,NeutrophilsValidator,Platelets,PlateletsVali
-                        dator,Potassium,PotassiumValidator,RBC,RBCValidator,So
-                        dium,SodiumValidator,TotalCholesterol,TotalCholesterol
-                        Validator,Triglycerides,TriglyceridesValidator,Tsh,Tsh
-                        Validator,Urea,UreaValidator,Wbc,WbcValidator,Weight,W
-                        eightValidator (default: None)
+                        ator,Albumin,AlbuminValidator,AlkPhos,AlkPhosValidator
+                        ,ALT,ALTValidator,Basophils,BasophilsValidator,Bilirub
+                        in,BilirubinValidator,Bmi,BmiValidator,Bp,BpValidator,
+                        Creatinine,CreatinineValidator,Crp,CrpValidator,Eosino
+                        phils,EosinophilsValidator,Esr,EsrValidator,GammaGT,Ga
+                        mmaGTValidator,Gate,Glucose,GlucoseValidator,Haematocr
+                        it,HaematocritValidator,Haemoglobin,HaemoglobinValidat
+                        or,HbA1c,HbA1cValidator,HDLCholesterol,HDLCholesterolV
+                        alidator,Height,HeightValidator,LDLCholesterol,LDLChol
+                        esterolValidator,Lithium,LithiumValidator,Lymphocytes,
+                        LymphocytesValidator,Medex,MiniAce,MiniAceValidator,Mm
+                        se,MmseValidator,Moca,MocaValidator,Monocytes,Monocyte
+                        sValidator,Neutrophils,NeutrophilsValidator,Platelets,
+                        PlateletsValidator,Potassium,PotassiumValidator,RBC,RB
+                        CValidator,Sodium,SodiumValidator,TotalCholesterol,Tot
+                        alCholesterolValidator,Triglycerides,TriglyceridesVali
+                        dator,Tsh,TshValidator,Urea,UreaValidator,Wbc,WbcValid
+                        ator,Weight,WeightValidator (default: None)
   --verbose             Be verbose (default: False)

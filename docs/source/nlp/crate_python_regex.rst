@@ -166,106 +166,172 @@ commands to show these.
 
 *Not all have been formally validated.*
 
-A summary as of 2019-03-04 (ignoring validators) is:
+A summary as of 2020-11-21 (ignoring validators) is:
 
 .. list-table::
   :header-rows: 1
 
   * - Processor
     - Description
+    - Group
 
   * - Ace
     - Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III) total score.
+    - Cognitive.
+
+  * - Albumin
+    - Albumin.
+    - Biochemistry (LFTs).
+
+  * - AlkPhos
+    - Alkaline phosphatase.
+    - Biochemistry (LFTs).
+
+  * - ALT
+    - Alanine aminotransferase.
+    - Biochemistry (LFTs).
 
   * - Basophils
     - Basophil count (absolute).
+    - Haematology (FBC).
+
+  * - Bilirubin
+    - Total bilirubin.
+    - Biochemistry (LFTs).
 
   * - Bmi
     - Body mass index (BMI) (in kg / m^2).
+    - Clinical.
 
   * - Bp
     - Blood pressure, in mmHg. (Systolic and diastolic.)
+    - Clinical.
 
   * - Crp
     - C-reactive protein (CRP).
+    - Biochemistry.
 
   * - Creatinine
     - Creatinine.
+    - Biochemistry (U&E).
 
   * - Eosinophils
     - Eosinophil count (absolute).
+    - Haematology (FBC).
 
   * - Esr
     - Erythrocyte sedimentation rate (ESR).
+    - Haematology.
+
+  * - GammaGT
+    - Gamma-glutamyl transferase.
+    - Biochemistry (LFTs).
 
   * - Gate
     - Processor handling all :ref:`GATE NLP <gate_nlp>`.
+    - Special (handles an external NLP tool).
 
   * - Glucose
     - Glucose.
+    - Biochemistry.
 
   * - Haematocrit.
     - Haematocrit.
+    - Haematology (FBC).
 
   * - Haemoglobin.
     - Haemoglobin.
+    - Haematology (FBC).
 
   * - HbA1c
     - Glycosylated haemoglobin (HbA1c).
+    - Biochemistry.
 
   * - HDLCholesterol
     - High-density lipoprotein (HDL) cholesterol.
+    - Biochemistry (lipid profile).
 
   * - Height
     - Height. Handles metric (e.g. "1.8m") and imperial (e.g. "5 ft 2 in").
+    - Clinical.
 
   * - LDLCholesterol
     - Low-density lipoprotein (LDL) cholesterol.
+    - Biochemistry (lipid profile).
 
   * - Lithium
     - Lithium (Li) levels (for blood tests, not doses).
+    - Biochemistry.
 
   * - Lymphocytes
     - Lymphocyte count (absolute).
+    - Haematology (FBC).
 
   * - MedEx
     - Processor handling :ref:`MedEx-UIMA NLP <medex_nlp>`.
+    - Special (handles an external NLP tool).
 
   * - MiniAce
     - Mini-Addenbrooke's Cognitive Examination (M-ACE).
+    - Cognitive.
 
   * - Mmse
     - Mini-mental state examination (MMSE).
+    - Cognitive.
 
   * - Moca
     - Montreal Cognitive Assessment (MOCA).
+    - Cognitive.
 
   * - Monocytes
     - Monocyte count (absolute).
+    - Haematology (FBC).
 
   * - Neutrophils
     - Neutrophil count (absolute).
+    - Haematology (FBC).
+
+  * - Platelets
+    - Platelet count.
+    - Haematology (FBC).
 
   * - Potassium
     - Potassium (K).
+    - Biochemistry (U&E).
+
+  * - RBC
+    - Red blood cell count.
+    - Haematology (FBC).
 
   * - Sodium
     - Sodium (Na).
+    - Biochemistry (U&E).
 
   * - TotalCholesterol
     - Total cholesterol.
+    - Biochemistry (lipid profile).
+
+  * - Triglycerides
+    - Triglycerides (TG).
+    - Biochemistry (lipid profile).
 
   * - Tsh
     - Thyroid-stimulating hormone (TSH).
 
   * - Urea
     - Urea.
+    - Biochemistry (U&E).
 
   * - Wbc
     - White cell count (WBC, WCC).
+    - Haematology (FBC).
 
   * - Weight
     - Weight. Handles metric (e.g. "57kg") and imperial (e.g. "10 st 2 lb").
+    - Clinical.
+
+(FBC, full blood count. LFTs, liver function tests. U&E, urea and
+electrolytes.)
 
 
 **Testing the NLP**

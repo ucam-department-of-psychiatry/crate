@@ -9,11 +9,43 @@
 |                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
 |                           |     explanation).                                                                |
 |                           |                                                                                  |
+| Albumin                   |                                                                                  |
+|                           |     Albumin (Alb).                                                               |
+|                           |                                                                                  |
+| AlbuminValidator          |                                                                                  |
+|                           |     Validator for Albumin                                                        |
+|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
+|                           |     explanation).                                                                |
+|                           |                                                                                  |
+| AlkPhos                   |                                                                                  |
+|                           |     Alkaline phosphatase (ALP, AlkP, AlkPhos).                                   |
+|                           |                                                                                  |
+| AlkPhosValidator          |                                                                                  |
+|                           |     Validator for ALP                                                            |
+|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
+|                           |     explanation).                                                                |
+|                           |                                                                                  |
+| ALT                       |                                                                                  |
+|                           |     Alanine aminotransferase (ALT).                                              |
+|                           |                                                                                  |
+| ALTValidator              |                                                                                  |
+|                           |     Validator for ALT                                                            |
+|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
+|                           |     explanation).                                                                |
+|                           |                                                                                  |
 | Basophils                 |                                                                                  |
 |                           |     Basophil count (absolute).                                                   |
 |                           |                                                                                  |
 | BasophilsValidator        |                                                                                  |
 |                           |     Validator for Basophils                                                      |
+|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
+|                           |     explanation).                                                                |
+|                           |                                                                                  |
+| Bilirubin                 |                                                                                  |
+|                           |     Total bilirubin.                                                             |
+|                           |                                                                                  |
+| BilirubinValidator        |                                                                                  |
+|                           |     Validator for bilirubin.                                                     |
 |                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
 |                           |     explanation).                                                                |
 |                           |                                                                                  |
@@ -84,6 +116,14 @@
 |                           |                                                                                  |
 | EsrValidator              |                                                                                  |
 |                           |     Validator for Esr                                                            |
+|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
+|                           |     explanation).                                                                |
+|                           |                                                                                  |
+| GammaGT                   |                                                                                  |
+|                           |     Gamma-glutamyl transferase (gGT).                                            |
+|                           |                                                                                  |
+| GammaGTValidator          |                                                                                  |
+|                           |     Validator for gGT                                                            |
 |                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
 |                           |     explanation).                                                                |
 |                           |                                                                                  |

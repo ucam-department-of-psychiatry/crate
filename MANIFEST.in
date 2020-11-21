@@ -224,6 +224,7 @@ include crate_anon/nlp_manager/regex_numbers.py
 include crate_anon/nlp_manager/regex_parser.py
 include crate_anon/nlp_manager/regex_test.py
 include crate_anon/nlp_manager/regex_units.py
+include crate_anon/nlp_manager/run_crate_nlp_demo.py
 include crate_anon/nlp_manager/run_gate_annie_demo.py
 include crate_anon/nlp_manager/run_gate_kcl_kconnect_demo.py
 include crate_anon/nlp_manager/run_gate_kcl_lewy_demo.py
