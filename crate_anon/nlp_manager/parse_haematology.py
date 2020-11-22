@@ -953,6 +953,7 @@ class Eosinophils(WbcBase):
             ("e0 9800 per cubic mm (should fail)", []),
             ("e0 17,600/mm3 (should fail)", []),
             ("Eosinophil count (42K..) 5.2", [5.2]),
+            ("Eosinophil count - observation (42K..) 5.2", [5.2]),
         ], verbose=verbose)
 
 

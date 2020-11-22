@@ -1312,6 +1312,9 @@ Changes
 
 - Read code support for blood test NLP parsers (biochemistry, haematology).
 
+- Significant rework to numerical NLP to support a wider variety, e.g.
+  ``sodium (mM) 132`` as well as ``sodium 132 mM``.
+
 
 ===============================================================================
 

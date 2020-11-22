@@ -38,6 +38,15 @@ import regex  # sudo apt-get install python-regex
 # =============================================================================
 
 ASTERISK = r"\*"
+AT_LEAST_ONE_NONWORD = r"\W+"  # 1 or more non-alphanumeric character
+AT_LEAST_ONE_WHITESPACE = r"\s+"  # one or more whitespace chars
+AT_LEAST_ONE_NON_NEWLINE_WHITESPACE = r"[ \t]+"  # one or more spaces/tabs
+
+HYPHEN_OR_EN_DASH = r"[-–]"
+
+LEFT_BRACKET = r"\("
+
+NON_ALPHANUMERIC_SPLITTERS = regex.compile(AT_LEAST_ONE_NONWORD, regex.UNICODE)
 
 # http://www.regular-expressions.info/lookaround.html
 # Not all engines support lookbehind; e.g. regexr.com doesn't; but Python does
@@ -48,17 +57,8 @@ NOT_DIGIT_LOOKAHEAD = r"(?!\d)"
 # So, for example, ab*c matches abbbc, but not (all of) ababc. See regexr.com
 OPTIONAL_NONWORD = r"\W*"  # zero or more non-alphanumeric characters...
 # ... doesn't need to be [\W]*, for precedence reasons as above.
-AT_LEAST_ONE_NONWORD = r"\W+"  # 1 or more non-alphanumeric character
-
-NON_ALPHANUMERIC_SPLITTERS = regex.compile(AT_LEAST_ONE_NONWORD, regex.UNICODE)
-
 OPTIONAL_WHITESPACE = r"\s*"  # zero or more whitespace chars
 OPTIONAL_NON_NEWLINE_WHITESPACE = r"[ \t]*"  # zero or more spaces/tabs
-AT_LEAST_ONE_WHITESPACE = r"\s+"  # one or more whitespace chars
-AT_LEAST_ONE_NON_NEWLINE_WHITESPACE = r"[ \t]+"  # one or more spaces/tabs
-
-LEFT_BRACKET = r"\("
-RIGHT_BRACKET = r"\)"
 
 REGEX_METACHARS = ["\\", "^", "$", ".",
                    "|", "?", "*", "+",
@@ -67,10 +67,11 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 # http://www.regular-expressions.info/characters.html
 # Start with \, for replacement.
 
-WHITESPACE_CHARACTERS = [" ", "\t", "\n"]
+RIGHT_BRACKET = r"\)"
 
-WORD_BOUNDARY = r"\b"
 WB = r"\b"  # word boundary; escape the slash if not using a raw string
+WHITESPACE_CHARACTERS = [" ", "\t", "\n"]
+WORD_BOUNDARY = WB
 
 
 # =============================================================================

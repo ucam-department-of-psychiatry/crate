@@ -107,11 +107,15 @@ class ReadCode(object):
         """
         components = []  # type: List[str]
         esc_read = escape_literal_string_for_regex(self.read_code)
+        optional_observation = rf"(?:\s* - \s+ observation)?"
         for p in self.phrases:
             phrase = at_start_wb(
                 escape_literal_for_regex_allowing_flexible_whitespace(p)
             )
-            r = fr"{phrase}{OPTIONAL_WHITESPACE}(?:{LB}{esc_read}{RB})?"
+            r = (
+                f"{phrase}{optional_observation}"
+                f"(?:{OPTIONAL_WHITESPACE}{LB}{esc_read}{RB})?"
+            )
             components.append(r)
         return components
 
