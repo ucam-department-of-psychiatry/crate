@@ -622,8 +622,7 @@ class TestReadCodeRegexes(unittest.TestCase):
                      f"- Phrases:\n{phrases}\n"
                      f"- Regular expressions:\n{regexes}\n"
                      f"- Single regex string:\n{spacer}{regex_str}")
-            compiled_regex = compile_regex(regex_str)
-            # todo: ***
+        log.warning("No testing performed; just printed.")
 
 
 if __name__ == '__main__':

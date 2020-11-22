@@ -32,7 +32,7 @@ but bear in mind.
 
 """
 
-from typing import Any, Dict, List, Optional, Pattern, Tuple
+from typing import Any, Dict, Optional, Pattern, Tuple
 
 import regex
 # noinspection PyProtectedMember

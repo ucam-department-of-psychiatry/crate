@@ -38,7 +38,6 @@ from sqlalchemy import Column, Integer, Float, String, Text
 
 from crate_anon.common.regex_helpers import (
     LEFT_BRACKET as LB,
-    regex_or,
     RIGHT_BRACKET as RB,
 )
 from crate_anon.nlp_manager.constants import (
