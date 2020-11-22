@@ -144,7 +144,7 @@ def escape_literal_string_for_regex(s: str) -> str:
     :data:`REGEX_METACHARS`.
     """
     for c in REGEX_METACHARS:
-        s.replace(c, "\\" + c)
+        s = s.replace(c, "\\" + c)
     return s
 
 
