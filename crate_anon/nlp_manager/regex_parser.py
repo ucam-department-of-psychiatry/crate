@@ -36,6 +36,11 @@ from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy import Column, Integer, Float, String, Text
 
+from crate_anon.common.regex_helpers import (
+    LEFT_BRACKET as LB,
+    regex_or,
+    RIGHT_BRACKET as RB,
+)
 from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
     ProcessorConfigKeys,
@@ -83,29 +88,26 @@ log = logging.getLogger(__name__)
 # Generic entities
 # =============================================================================
 
-WORD_BOUNDARY = r"\b"
-
 # -----------------------------------------------------------------------------
 # Blood results
 # -----------------------------------------------------------------------------
 
 OPTIONAL_RESULTS_IGNORABLES = r"""
     (?:  # OPTIONAL_RESULTS_IGNORABLES
-        \s                    # whitespace
-        | \|                  # bar
-        | \:                  # colon
+        \s | \| | \:          # whitespace, bar, colon
         | \bHH?\b | \(HH?\)   # H/HH at a word boundary; (H)/(HH)
         | \bLL?\b | \(LL?\)   # L/LL etc.
-        | \* | \(\*\) | \(    # *, (*), isolated left parenthesis
+        | \* | \(\*\)         # *, (*)
         | — | --              # em dash, double hyphen-minus
         | –\s+ | -\s+ | ‐\s+  # en dash/hyphen-minus/Unicode hyphen; whitespace
     )*                        # ... any of those, repeated 0 or more times
 """
-"""
 # - you often get | characters when people copy/paste tables
 # - blood test abnormality markers can look like e.g.
 #       17 (H), 17 (*), 17 HH
+# Re parentheses:
 # - you can also see things like "CRP (5)"
+#   ... but we'll handle that
 # - However, if there's a right parenthesis only, that's less good, e.g.
 #   "Present: Nicola Adams (NA). 1.0. Minutes of the last meeting."
 #   ... which we don't want to be interpreted as "sodium 1.0".
@@ -114,34 +116,31 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
 #   http://stackoverflow.com/questions/7898310/using-regex-to-balance-match-parenthesis  # noqa
 # - ... simplest is perhaps: base ignorables, or those with brackets, as above
 # - ... even better than a nested thing is just a list of alternatives
-"""
 
 OPTIONAL_POC = r"""
-    (?: ,? \s* POC )?           # OPTIONAL_POC: "point-of-care testing"
+    (?: ,? \s+ POC )?   # OPTIONAL_POC: point-of-care testing, "[,] POC"
 """
-"""
-... e.g. "Glucose, POC"; "Potassium, POC".
-Seen in CUH for
-
-    sodium, POC
-    potassium, POC
-    creatinine, POC
-    urea, POC
-    glucose, POC
-    lactate, POC
-    bilirubin, POC
-    HCT, POC
-    alkaline phosphatase, POC
-    alanine transferase, POC
-
-    HGB, POC
-    WBC, POC
-    PLT, POC
-    MCV, POC
-    MCH, POC
-    neutrophil count, POC
-    lymphocyte count, POC
-"""
+# ... e.g. "Glucose, POC"; "Potassium, POC".
+# Seen in CUH for
+#
+#     sodium, POC
+#     potassium, POC
+#     creatinine, POC
+#     urea, POC
+#     glucose, POC
+#     lactate, POC
+#     bilirubin, POC
+#     HCT, POC
+#     alkaline phosphatase, POC
+#     alanine transferase, POC
+#
+#     HGB, POC
+#     WBC, POC
+#     PLT, POC
+#     MCV, POC
+#     MCH, POC
+#     neutrophil count, POC
+#     lymphocyte count, POC
 
 # -----------------------------------------------------------------------------
 # Tense indicators
@@ -192,8 +191,45 @@ RELATION_LOOKUP = compile_regex_dict({
 
 APOSTROPHE = "[\'’]"  # ASCII apostrophe; right single quote (U+2019)
 
+
 # =============================================================================
-# Generic processors
+# Regex assembly functions
+# =============================================================================
+
+
+# =============================================================================
+# Functions to handle processed data
+# =============================================================================
+
+def common_tense(tense_text: Optional[str], relation_text: Optional[str]) \
+        -> Tuple[Optional[str], Optional[str]]:
+    """
+    Takes strings potentially representing "tense" and "equality" concepts
+    and unifies them.
+
+    - Used, for example, to help impute that "CRP was 72" means that relation
+      was EQ in the PAST, etc.
+
+    Args:
+        tense_text: putative tense information
+        relation_text: putative relationship (equals, less than, etc.)
+
+    Returns:
+         tuple: ``tense, relation``; either may be ``None``.
+    """
+    tense = None
+    if tense_text:
+        _, tense = get_regex_dict_match(tense_text, TENSE_LOOKUP)
+    elif relation_text:
+        _, tense = get_regex_dict_match(relation_text, TENSE_LOOKUP)
+
+    _, relation = get_regex_dict_match(relation_text, RELATION_LOOKUP, "=")
+
+    return tense, relation
+
+
+# =============================================================================
+# Constants for generic processors
 # =============================================================================
 
 FN_VARIABLE_NAME = 'variable_name'
@@ -235,32 +271,13 @@ MAX_TENSE_TEXT_LENGTH = 50
 MAX_TENSE_LENGTH = max(len(x) for x in TENSE_LOOKUP.values())
 
 
-def common_tense(tense_text: Optional[str], relation_text: Optional[str]) \
-        -> Tuple[Optional[str], Optional[str]]:
-    """
-    Takes strings potentially representing "tense" and "equality" concepts
-    and unifies them.
+# =============================================================================
+# Generic processors
+# =============================================================================
 
-    - Used, for example, to help impute that "CRP was 72" means that relation
-      was EQ in the PAST, etc.
-
-    Args:
-        tense_text: putative tense information
-        relation_text: putative relationship (equals, less than, etc.)
-
-    Returns:
-         tuple: ``tense, relation``; either may be ``None``.
-    """
-    tense = None
-    if tense_text:
-        _, tense = get_regex_dict_match(tense_text, TENSE_LOOKUP)
-    elif relation_text:
-        _, tense = get_regex_dict_match(relation_text, TENSE_LOOKUP)
-
-    _, relation = get_regex_dict_match(relation_text, RELATION_LOOKUP, "=")
-
-    return tense, relation
-
+# -----------------------------------------------------------------------------
+# NumericalResultParser
+# -----------------------------------------------------------------------------
 
 class NumericalResultParser(BaseNlpParser):
     """
@@ -455,6 +472,169 @@ class NumericalResultParser(BaseNlpParser):
         log.info("... detailed_test: pass")
 
 
+# -----------------------------------------------------------------------------
+# SimpleNumericalResultParser
+# -----------------------------------------------------------------------------
+
+GROUP_NUMBER_WHOLE_EXPRESSION = 0
+
+GROUP_NAME_QUANTITY = "quantity"
+GROUP_NAME_RELATION = "relation"
+GROUP_NAME_TENSE = "tense"
+GROUP_NAME_UNITS = "units"
+GROUP_NAME_VALUE = "value"
+
+
+def make_simple_numeric_regex(
+        quantity: str,
+        units: str,
+        value: str = SIGNED_FLOAT,
+        tense_indicator: str = TENSE_INDICATOR,
+        relation: str = RELATION,
+        optional_results_ignorables: str = OPTIONAL_RESULTS_IGNORABLES,
+        optional_ignorable_after_quantity: str = "") -> str:
+    r"""
+    Makes a regex with named groups to handle simple numerical results.
+
+    Copes with formats like:
+
+    .. code-block:: none
+
+        sodium 132 mM
+        sodium (mM) 132
+        sodium (132 mM)
+
+    ... and lots more.
+
+    Args:
+        quantity:
+            Regex for the quantity (e.g. for "sodium" or "Na").
+        units:
+            Regex for units.
+        value:
+            Regex for the numerical value (e.g. our ``SIGNED_FLOAT`` regex).
+        tense_indicator:
+            Regex for tense indicator.
+        relation:
+            Regex for mathematical relationship (e.g. equals, less than).
+        optional_results_ignorables:
+            Regex for junk to ignore in between the other things.
+            Should include its own "optionality" (e.g. ``*``).
+        optional_ignorable_after_quantity:
+            Regex for additional things that can be ignored right after the
+            quantity. Should include its own "optionality" (e.g. ``?``).
+
+    The resulting regex groups are named, not numbered:
+
+    .. code-block:: none
+
+        0:          Whole thing; integer, as in: m.group(0)
+        'quantity': Quantity
+        'tense':    Tense (optional)
+        'relation': Relation (optional)
+        'value':    Value
+        'units':    Units (optional)
+
+    ... as used by :class:`SimpleNumericalResultParser`.
+
+    Just to check re overlap:
+
+    .. code-block:: python
+
+        import regex
+        s1 = r"(?P<quantity>Sodium)\s+(?P<value>\d+)\s+(?P<units>mM)"
+        s2 = r"(?P<quantity>Sodium)\s+\((?P<units>mM)\)\s+(?P<value>\d+)"
+        s = f"{s1}|{s2}"
+        r = regex.compile(s)
+        t1 = "Sodium 132 mM"
+        t2 = "Sodium (mM) 127"
+        m1 = r.match(t1)
+        m2 = r.match(t2)
+
+        print(m1.group(0))  # Sodium 132 mM
+        print(m1.group("quantity"))  # Sodium
+        print(m1.group("value"))  # 132
+        print(m1.group("units"))  # mM
+
+        print(m2.group(0))  # Sodium (mM) 127
+        print(m2.group("quantity"))  # Sodium
+        print(m2.group("value"))  # 127
+        print(m2.group("units"))  # mM
+
+    ... so it's fine in that multiple groups can have the same name.
+
+    """
+    def group(groupname: str, contents: str, optional: bool = False) -> str:
+        opt_str = "?" if optional else ""
+        return f"(?P<{groupname}> {contents} ){opt_str}"
+
+    def bracketed(s: str) -> str:
+        return rf"{LB} \s* {s} \s* {RB}"
+
+    group_quantity = group(GROUP_NAME_QUANTITY, quantity)
+    group_tense_optional = group(GROUP_NAME_TENSE, tense_indicator, True)
+    group_relation_optional = group(GROUP_NAME_RELATION, relation, True)
+    group_units = group(GROUP_NAME_UNITS, units)
+    group_units_bracketed = bracketed(group_units)
+    group_value = group(GROUP_NAME_VALUE, value)
+    group_value_bracketed = bracketed(group_value)
+    value_units_all_bracketed = bracketed(rf"{group_value} \s+ {group_units}")
+
+    return fr"""
+        # - Either: quantity [tense] [relation] value [units]
+        #   or:     quantity (units value)
+        #   or:     quantity (units) [tense] [relation] value
+        # Quantity:
+        {group_quantity}
+        # Ignorable:
+        {optional_ignorable_after_quantity}
+        {optional_results_ignorables}
+        (?:
+            (?:
+                # (units) ... [tense] ... [relation] ... value
+                # Units, in brackets:
+                {group_units_bracketed}
+                # Tense indicator (optional):
+                {group_tense_optional}
+                # Ignorable:
+                {optional_results_ignorables}
+                # Relation (optional):
+                {group_relation_optional}
+                # Ignorable:
+                {optional_results_ignorables}
+                # Value:
+                {group_value}
+            )
+            |
+            (?:
+                # (value units)
+                {value_units_all_bracketed}
+            )
+            |
+            (?:
+                # [tense] ... [relation] ... value|(value) ... [units]
+                # Tense indicator (optional):
+                {group_tense_optional}
+                # Ignorable:
+                {optional_results_ignorables}
+                # Relation (optional):
+                {group_relation_optional}
+                # Ignorable:
+                {optional_results_ignorables}
+                # Value or (value):
+                (?:
+                    {group_value} |
+                    {group_value_bracketed}
+                )
+                # Ignorable:
+                {optional_results_ignorables}
+                # Units (optional):
+                {group_units}?
+            )
+        )
+    """
+
+
 class SimpleNumericalResultParser(NumericalResultParser, ABC):
     """
     Base class for simple single-format numerical results. Use this when not
@@ -566,14 +746,14 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
             startpos = m.start()
             endpos = m.end()
             # groups = repr(m.groups())  # all matching groups
-            matching_text = m.group(0)  # the whole thing
+            matching_text = m.group(GROUP_NUMBER_WHOLE_EXPRESSION)
             # matching_text = text[startpos:endpos]  # same thing
 
-            variable_text = m.group(1)
-            tense_text = m.group(2)
-            relation_text = m.group(3)
-            value_text = m.group(4)
-            units = m.group(5)
+            variable_text = m.group(GROUP_NAME_QUANTITY)
+            tense_text = m.group(GROUP_NAME_TENSE)
+            relation_text = m.group(GROUP_NAME_RELATION)
+            value_text = m.group(GROUP_NAME_VALUE)
+            units = m.group(GROUP_NAME_UNITS)
 
             # If units are known (or we're choosing to assume preferred units
             # if none are specified), calculate an absolute value
@@ -619,6 +799,10 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
                 log.debug(f"Match {m} for {repr(text)} -> {result}")
             yield self.tablename, result
 
+
+# -----------------------------------------------------------------------------
+# NumeratorOutOfDenominatorParser
+# -----------------------------------------------------------------------------
 
 class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
     """
@@ -869,7 +1053,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
 
 
 # =============================================================================
-#  More general testing
+# Validator base class (for testing regex NLP classes)
 # =============================================================================
 
 class ValidatorBase(BaseNlpParser):

@@ -47,17 +47,21 @@ from typing import List, Optional, Tuple
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition
-from crate_anon.nlp_manager.regex_parser import (
-    OPTIONAL_POC,
-    OPTIONAL_RESULTS_IGNORABLES,
-    RELATION,
-    SimpleNumericalResultParser,
-    TENSE_INDICATOR,
-    ValidatorBase,
+from crate_anon.common.regex_helpers import (
+    regex_or,
     WORD_BOUNDARY,
 )
-from crate_anon.nlp_manager.regex_numbers import SIGNED_FLOAT
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.nlp_manager.regex_parser import (
+    make_simple_numeric_regex,
+    OPTIONAL_POC,
+    SimpleNumericalResultParser,
+    ValidatorBase,
+)
+from crate_anon.nlp_manager.regex_read_codes import (
+    ReadCodes,
+    regex_components_from_read_codes,
+)
 from crate_anon.nlp_manager.regex_units import (
     BILLION_PER_L,
     CELLS_PER_CUBIC_MM_OR_MICROLITRE,
@@ -93,24 +97,25 @@ class Haemoglobin(SimpleNumericalResultParser):
     This problem is hard to avoid.
 
     """  # noqa
-    HAEMOGLOBIN = fr"""
-        (?: {WORD_BOUNDARY} (?: Ha?emoglobin | Hb | HGB ) {WORD_BOUNDARY} )
+    HAEMOGLOBIN_BASE = fr"""
+        {WORD_BOUNDARY} (?: Ha?emoglobin | Hb | HGB ) {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {HAEMOGLOBIN} )                 # group for "Hb" or equivalent
-        {OPTIONAL_POC}
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?            # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                   # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                 # optional group for units
-            {G_PER_L}                          # good
-            | {G_PER_DL}                       # good
-        )?
-    """
+    HAEMOGLOBIN = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.HAEMOGLOBIN_CONCENTRATION,
+        ),
+        HAEMOGLOBIN_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=HAEMOGLOBIN,
+        units=regex_or(
+            G_PER_L,
+            G_PER_DL
+        ),
+        optional_ignorable_after_quantity=OPTIONAL_POC
+    )
     NAME = "Haemoglobin"
     PREFERRED_UNIT_COLUMN = "value_g_L"
     UNIT_MAPPING = {
@@ -150,6 +155,7 @@ class Haemoglobin(SimpleNumericalResultParser):
             ("Haemoglobin      |       7.6 (H)      | g/dL", [76]),
             ("Hb-96", [96]),
             ("HGB, POC 96", [96]),
+            ("Haemoglobin concentration (Xa96v) 96", [96]),
         ], verbose=verbose)
 
 
@@ -172,23 +178,22 @@ class Haematocrit(SimpleNumericalResultParser):
     """
     Haematocrit (Hct).
     """
-    HAEMATOCRIT = fr"""
-        (?: {WORD_BOUNDARY} (?: Ha?ematocrit | Hct ) {WORD_BOUNDARY} )
+    HAEMATOCRIT_BASE = fr"""
+        {WORD_BOUNDARY} (?: Ha?ematocrit | Hct ) {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {HAEMATOCRIT} )               # group for "haematocrit" or equivalent
-        {OPTIONAL_POC}
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?          # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                 # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )              # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                               # optional group for units
-            {L_PER_L}                          # good
-        )?
-    """
+    HAEMATOCRIT = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.HAEMATOCRIT,
+        ),
+        HAEMATOCRIT_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=HAEMATOCRIT,
+        units=L_PER_L,
+        optional_ignorable_after_quantity=OPTIONAL_POC
+    )
     NAME = "Haematocrit"
     PREFERRED_UNIT_COLUMN = "value_L_L"
     UNIT_MAPPING = {
@@ -222,6 +227,7 @@ class Haematocrit(SimpleNumericalResultParser):
             ("Haematocrit         |       0.33 (H)      | L/L", [0.33]),
             ("my haematocrit was 0.3; his haematocrit was 0.4!", [0.3, 0.4]),
             ("Hct-0.48", [0.48]),
+            ("Haematocrit (X76tb) 0.48", [0.48]),
         ], verbose=verbose)
 
 
@@ -251,36 +257,42 @@ class RBC(SimpleNumericalResultParser):
         RBC, POC    4.84            10*12/L
         RBC, POC    9.99    (H)     10*12/L
     """
-    RED_BLOOD_CELLS = fr"""
+    RED_BLOOD_CELLS_BASE = fr"""
+        {WORD_BOUNDARY}
         (?:
-            {WORD_BOUNDARY}
-            (?:
-                # Red [blood] cell[s] [(RBC)] [count]
-                Red \b \s* (?: blood \s*)? \b cells? \b
-                    (?:\s* \(RBC\) )?
-                    (?:\s* count \b )?
-                # RBC(s)
-                | (?: RBCs? )
-            )
+            # Red [blood] cell[s] [(RBC)] [count]:
+            Red \b \s* (?: blood \s*)? \b cells? \b
+                (?:\s* \(RBC\) )?
+                (?:\s* count \b )?
+            |
+            # RBC(s):
+            (?: RBCs? )
         )
     """
     # Beware: \( or \) next to \b becomes unhappy.
-    REGEX = fr"""
-        ( {RED_BLOOD_CELLS} )              # group for RBCs or equivalent
-        {OPTIONAL_POC}
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {TRILLION_PER_L}                        # good
-            | {CELLS_PER_CUBIC_MM_OR_MICROLITRE}    # good
-            | {BILLION_PER_L}                       # bad
-        )?
-    """
+    RED_BLOOD_CELLS = regex_or(
+        # The order matters here (so, probably everywhere). Go from more to
+        # less specific, i.e. Read codes first.
+        # Otherwise, e.g.:
+        #
+        # Expected [6.2], got [426.0], when parsing
+        # 'Red blood cell count (426..) 6.2'
+        *regex_components_from_read_codes(
+            ReadCodes.RBC_COUNT,
+        ),
+        RED_BLOOD_CELLS_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=RED_BLOOD_CELLS,
+        units=regex_or(
+            TRILLION_PER_L,  # good
+            CELLS_PER_CUBIC_MM_OR_MICROLITRE,  # good
+            BILLION_PER_L  # bad
+        ),
+        optional_ignorable_after_quantity=OPTIONAL_POC
+    )
     NAME = "RBC"
     PREFERRED_UNIT_COLUMN = "value_trillion_per_l"
     UNIT_MAPPING = {
@@ -334,6 +346,7 @@ class RBC(SimpleNumericalResultParser):
             ("RBC, POC    4.84   (H)      10*12/L", [4.84]),
             ("red blood cells count 6.2", [6.2]),
             ("red blood cells (RBC) 6.2", [6.2]),
+            ("Red blood cell count (426..) 6.2", [6.2]),
         ], verbose=verbose)
 
 
@@ -356,28 +369,31 @@ class Esr(SimpleNumericalResultParser):
     """
     Erythrocyte sedimentation rate (ESR).
     """
-    ESR = fr"""
-        (?: {WORD_BOUNDARY}
-            (?: (?: Erythrocyte [\s]+ sed(?:\.|imentation)? [\s]+ rate)
-                | ESR )
-        {WORD_BOUNDARY} )
+    ESR_BASE = fr"""
+        {WORD_BOUNDARY}
+        (?:
+            Erythrocyte [\s]+ sed(?:\.|imentation)? [\s]+ rate
+            | ESR
+        )
+        {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {ESR} )                           # group for "ESR" or equivalent
-        {OPTIONAL_POC}
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?              # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                     # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                  # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                   # optional group for units
-            {MM_PER_H}                          # good
-            | {MG_PER_DL}                       # bad
-            | {MG_PER_L}                        # bad
-        )?
-    """
+    ESR = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.ESR,
+        ),
+        ESR_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=ESR,
+        units=regex_or(
+            MM_PER_H,  # good
+            MG_PER_DL,  # bad
+            MG_PER_L  # bad
+        ),
+        optional_ignorable_after_quantity=OPTIONAL_POC
+    )
     NAME = "ESR"
     PREFERRED_UNIT_COLUMN = "value_mm_h"
     UNIT_MAPPING = {
@@ -424,6 +440,7 @@ class Esr(SimpleNumericalResultParser):
             ("ESR        |       1.9 (H)      | mg/L", []),
             ("my ESR was 15, but his ESR was 89!", [15, 89]),
             ("ESR-18", [18]),
+            ("Erythrocyte sedimentation rate (XE2m7) 18", [18]),
         ], verbose=verbose)
 
 
@@ -505,22 +522,15 @@ class WbcBase(SimpleNumericalResultParser, ABC):
         Makes a regular expression (as text) from text representing a cell
         type.
         """
-        return fr"""
-            ({cell_type_regex_text})        # group for cell type name
-            {OPTIONAL_POC}
-            {OPTIONAL_RESULTS_IGNORABLES}
-            ({TENSE_INDICATOR})?            # optional group for tense indicator
-            {OPTIONAL_RESULTS_IGNORABLES}
-            ({RELATION})?                   # optional group for relation
-            {OPTIONAL_RESULTS_IGNORABLES}
-            ({SIGNED_FLOAT})                # group for value
-            {OPTIONAL_RESULTS_IGNORABLES}
-            (                               # optional units, good and bad
-                {BILLION_PER_L}                      # good
-                | {CELLS_PER_CUBIC_MM_OR_MICROLITRE} # good
-                | {PERCENT}                          # bad, so we can ignore it
-            )?
-        """
+        return make_simple_numeric_regex(
+            quantity=cell_type_regex_text,
+            units=regex_or(
+                BILLION_PER_L,  # good
+                CELLS_PER_CUBIC_MM_OR_MICROLITRE,  # good
+                PERCENT  # bad, so we can ignore it
+            ),
+            optional_ignorable_after_quantity=OPTIONAL_POC
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -531,8 +541,8 @@ class Wbc(WbcBase):
     """
     White cell count (WBC, WCC).
     """
-    WBC = r"""
-        (?: \b (?:
+    WBC_BASE = r"""
+        \b (?:
             (?:                 # White blood cells, white cell count, etc.
                 White\b [\s]* (?:\bblood\b)? [\s]* \bcell[s]?\b
                 [\s]* (?:\bcount\b)? [\s]*
@@ -543,8 +553,16 @@ class Wbc(WbcBase):
             | (?:               # just WBC(s), WBCC, WCC
                 (?: WBC[s]? | WBCC | WCC )
             )
-        ) \b )
+        ) \b
     """
+    WBC = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.WBC_COUNT,
+        ),
+        WBC_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
     NAME = "WBC"
 
     def __init__(self,
@@ -585,6 +603,7 @@ class Wbc(WbcBase):
             ("WBC - 6", [6]),
             ("WBC-6.5", [6.5]),
             ("WBC, POC 6.5", [6.5]),
+            ("Total white blood count (XaIdY) 6.5", [6.5]),
         ], verbose=verbose)
 
 
@@ -605,15 +624,22 @@ class WbcValidator(ValidatorBase):
 
 class Neutrophils(WbcBase):
     """
-    Neutrophil count (absolute).
+    Neutrophil (polymorphonuclear leukoocte) count (absolute).
     """
-    NEUTROPHILS = r"""
-        (?:
-            (?: \b absolute \s* )?
-            \b (?: Neut(?:r(?:o(?:phil)?)?)?s? | N0 ) \b
-            (?: \s* count \b )?
-        )
+    NEUTROPHILS_BASE = r"""
+        (?: \b absolute \s* )?
+        \b (?: Neut(?:r(?:o(?:phil)?)?)?s? | N0 ) \b
+        (?: \s* count \b )?
     """
+    NEUTROPHILS = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.NEUTROPHIL_COUNT,
+            ReadCodes.POLYMORPH_COUNT,
+        ),
+        NEUTROPHILS_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
     NAME = "neutrophils"
 
     def __init__(self,
@@ -647,6 +673,8 @@ class Neutrophils(WbcBase):
             ("n0 9800 per cubic mm", [9.8]),
             ("n0 17,600/mm3", [17.6]),
             ("neuts-17", [17]),
+            ("Neutrophil count (42J..) 17", [17]),
+            ("Polymorph count (XaIao) 17", [17]),
         ], verbose=verbose)
 
 
@@ -669,13 +697,19 @@ class Lymphocytes(WbcBase):
     """
     Lymphocyte count (absolute).
     """
-    LYMPHOCYTES = r"""
-        (?:
-            (?: \b absolute \s* )?
-            \b Lymph(?:o(?:cyte)?)?s? \b
-            (?: \s* count \b )?
-        )
+    LYMPHOCYTES_BASE = r"""
+        (?: \b absolute \s* )?
+        \b Lymph(?:o(?:cyte)?)?s? \b
+        (?: \s* count \b )?
     """
+    LYMPHOCYTES = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.LYMPHOCYTE_COUNT,
+        ),
+        LYMPHOCYTES_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
     NAME = "lymphocytes"
 
     def __init__(self,
@@ -711,6 +745,7 @@ class Lymphocytes(WbcBase):
             ("l0 9800 per cubic mm (should fail)", []),
             ("l0 9800 per cmm (should fail)", []),
             ("l0 17,600/mm3 (should fail)", []),
+            ("Lymphocyte count (42M..) 6.3", [6.3]),
         ], verbose=verbose)
 
 
@@ -733,13 +768,19 @@ class Monocytes(WbcBase):
     """
     Monocyte count (absolute).
     """
-    MONOCYTES = r"""
-        (?:
-            (?: \b absolute \s* )?
-            \b Mono(?:cyte)?s? \b
-            (?: \s* count \b )?
-        )
+    MONOCYTES_BASE = r"""
+        (?: \b absolute \s* )?
+        \b Mono(?:cyte)?s? \b
+        (?: \s* count \b )?
     """
+    MONOCYTES = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.MONOCYTE_COUNT,
+        ),
+        MONOCYTES_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
     NAME = "monocytes"
 
     def __init__(self,
@@ -773,6 +814,7 @@ class Monocytes(WbcBase):
             # We are not supporting "M0":
             ("m0 9800 per cubic mm (should fail)", []),
             ("m0 17,600/mm3 (should fail)", []),
+            ("Monocyte count (42N..) 5.2", [5.2]),
         ], verbose=verbose)
 
 
@@ -795,13 +837,19 @@ class Basophils(WbcBase):
     """
     Basophil count (absolute).
     """
-    BASOPHILS = r"""
-        (?:
-            (?: \b absolute \s* )?
-            \b Baso(?:phil)?s? \b
-            (?: \s* count \b )?
-        )
+    BASOPHILS_BASE = r"""
+        (?: \b absolute \s* )?
+        \b Baso(?:phil)?s? \b
+        (?: \s* count \b )?
     """
+    BASOPHILS = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.BASOPHIL_COUNT,
+        ),
+        BASOPHILS_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
     NAME = "basophils"
 
     def __init__(self,
@@ -835,6 +883,7 @@ class Basophils(WbcBase):
             # We are not supporting "B0":
             ("b0 9800 per cubic mm (should fail)", []),
             ("b0 17,600/mm3 (should fail)", []),
+            ("Basophil count (42L..) 5.2", [5.2]),
         ], verbose=verbose)
 
 
@@ -857,13 +906,19 @@ class Eosinophils(WbcBase):
     """
     Eosinophil count (absolute).
     """
-    EOSINOPHILS = r"""
-        (?:
-            (?: \b absolute \s* )?
-            \b Eo(?:sin(?:o(?:phil)?)?)?s? \b
-            (?: \s* count \b )?
-        )
+    EOSINOPHILS_BASE = r"""
+        (?: \b absolute \s* )?
+        \b Eo(?:sin(?:o(?:phil)?)?)?s? \b
+        (?: \s* count \b )?
     """
+    EOSINOPHILS = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.EOSINOPHIL_COUNT,
+        ),
+        EOSINOPHILS_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
     NAME = "eosinophils"
 
     def __init__(self,
@@ -897,6 +952,7 @@ class Eosinophils(WbcBase):
             # We are not supporting "E0":
             ("e0 9800 per cubic mm (should fail)", []),
             ("e0 17,600/mm3 (should fail)", []),
+            ("Eosinophil count (42K..) 5.2", [5.2]),
         ], verbose=verbose)
 
 
@@ -923,12 +979,18 @@ class Platelets(WbcBase):
     class; platelets are expressed in the same units, of 10^9 / L.
     Typical values 150–450 ×10^9 / L (or 150,000–450,000 per μL).
     """
-    PLATELETS = r"""
-        (?:
-            \b (?: Platelets? | plts? ) \b  # platelet(s), plt(s)
-            (?: \s* count \b )?             # optional "count"
-        )
+    PLATELETS_BASE = r"""
+        \b (?: Platelets? | plts? ) \b  # platelet(s), plt(s)
+        (?: \s* count \b )?             # optional "count"
     """
+    PLATELETS = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.PLATELET_COUNT,
+        ),
+        PLATELETS_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
     NAME = "platelets"
 
     def __init__(self,
@@ -957,6 +1019,7 @@ class Platelets(WbcBase):
             ("plt 400000/mm3", [400]),
             ("plt count 400000/μL", [400]),
             ("plts 400000 per microliter", [400]),
+            ("Platelet count (42P..) 150", [150]),
         ], verbose=verbose)
 
 

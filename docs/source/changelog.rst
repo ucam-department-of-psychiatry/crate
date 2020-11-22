@@ -1307,6 +1307,11 @@ Changes
 
 - ``crate_run_crate_nlp_demo`` tool to test internal NLP more conveniently.
 
+- Bugfix to ``crate_anon.anonymise.anonregex.escape_literal_string_for_regex``:
+  was not doing its job!
+
+- Read code support for blood test NLP parsers (biochemistry, haematology).
+
 
 ===============================================================================
 

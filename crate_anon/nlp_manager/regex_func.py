@@ -32,7 +32,7 @@ but bear in mind.
 
 """
 
-from typing import Any, Dict, Optional, Pattern, Tuple
+from typing import Any, Dict, List, Optional, Pattern, Tuple
 
 import regex
 # noinspection PyProtectedMember
@@ -50,26 +50,6 @@ from regex import _regex_core
 
 REGEX_COMPILE_FLAGS = (regex.IGNORECASE | regex.MULTILINE | regex.VERBOSE |
                        regex.UNICODE)
-
-
-def at_wb_start_end(regex_str: str) -> str:
-    """
-    Returns a version of the regex starting and ending with a word boundary.
-
-    Caution using this. Digits do not end a word, so "mm3" will not match if
-    your "mm" group ends in a word boundary.
-    """
-    return f"\b(?: {regex_str} )\b"
-
-
-def at_start_wb(regex_str: str) -> str:
-    """
-    Returns a version of the regex starting with a word boundary.
-
-    With word boundary at start. Beware, though; e.g. "3kg" is reasonable, and
-    this does NOT have a word boundary in.
-    """
-    return f"(?: \b (?: {regex_str} ) )"
 
 
 def compile_regex(regex_str: str) -> Pattern:

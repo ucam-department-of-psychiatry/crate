@@ -46,18 +46,22 @@ from typing import List, Optional, Tuple, Union
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
+from crate_anon.common.regex_helpers import (
+    regex_or,
+    WORD_BOUNDARY,
+)
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.number import to_float
 from crate_anon.nlp_manager.regex_parser import (
+    make_simple_numeric_regex,
     OPTIONAL_POC,
-    OPTIONAL_RESULTS_IGNORABLES,
-    RELATION,
     SimpleNumericalResultParser,
-    TENSE_INDICATOR,
     ValidatorBase,
-    WORD_BOUNDARY,
 )
-from crate_anon.nlp_manager.regex_numbers import SIGNED_FLOAT
+from crate_anon.nlp_manager.regex_read_codes import (
+    ReadCodes,
+    regex_components_from_read_codes,
+)
 from crate_anon.nlp_manager.regex_units import (
     factor_micromolar_from_mg_per_dl,
     factor_millimolar_from_mg_per_dl,
@@ -109,26 +113,28 @@ class Crp(SimpleNumericalResultParser):
 
     """
 
-    CRP = fr"""
-        (?: {WORD_BOUNDARY}
-            (?: (?: C [-\s]+ reactive [\s]+ protein ) | (?: CRP ) )
-        {WORD_BOUNDARY} )
+    CRP_BASE = fr"""
+        {WORD_BOUNDARY}
+            (?: (?: C [-\s]+ reactive [\s]+ protein ) | CRP )
+        {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {CRP} )                          # group for "CRP" or equivalent
-        {OPTIONAL_POC}
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {MG_PER_DL}
-            | {MG_PER_L}
-        )?
-    """
+    CRP = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.CRP_PLASMA,
+            ReadCodes.CRP_SERUM,
+        ),
+        CRP_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=CRP,
+        units=regex_or(
+            MG_PER_DL,
+            MG_PER_L
+        ),
+        optional_ignorable_after_quantity=OPTIONAL_POC
+    )
     NAME = "CRP"
     PREFERRED_UNIT_COLUMN = "value_mg_L"
     UNIT_MAPPING = {
@@ -182,6 +188,9 @@ class Crp(SimpleNumericalResultParser):
             ("CRP-97", [97]),
             ("CRP 1.9 mg L-1", [1.9]),
             ("CRP        |       1.9 (H)      | mg/L", [1.9]),
+            ("Plasma C-reactive protein level (XE2dy) 45 mg/L", [45]),
+            ("Serum C reactive protein level (XaINL) 45 mg/L", [45]),
+            ("CRP (mg/L) 62", [62]),
         ], verbose=verbose)
 
 
@@ -205,26 +214,30 @@ class Sodium(SimpleNumericalResultParser):
     """
     Sodium (Na).
     """
-    SODIUM = fr"""
-        (?: {WORD_BOUNDARY} (?: Na | Sodium ) {WORD_BOUNDARY} )
+    SODIUM_BASE = fr"""
+        {WORD_BOUNDARY} (?: Na | Sodium ) {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {SODIUM} )                       # group for "Na" or equivalent
-        {OPTIONAL_POC}
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {MILLIMOLAR}                        # good
-            | {MILLIMOLES_PER_L}                # good
-            | {MILLIEQ_PER_L}                   # good
-            | {MG}                              # bad
-        )?
-    """
+    SODIUM = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.SODIUM,
+            ReadCodes.SODIUM_BLOOD,
+            ReadCodes.SODIUM_PLASMA,
+            ReadCodes.SODIUM_SERUM,
+        ),
+        SODIUM_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=SODIUM,
+        units=regex_or(
+            MILLIMOLAR,  # good
+            MILLIMOLES_PER_L,  # good
+            MILLIEQ_PER_L,  # good
+            MG,  # bad
+        ),
+        optional_ignorable_after_quantity=OPTIONAL_POC
+    )
     NAME = "Sodium"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     UNIT_MAPPING = {
@@ -267,7 +280,12 @@ class Sodium(SimpleNumericalResultParser):
             ("blah (Na) 145 mM", []),
             ("Na (145) something", [145]),
             ("Na (145 mM), others", [145]),
-            ("Na-145", [145])
+            ("Na-145", [145]),
+            ("Sodium level (X771T) 145", [145]),
+            ("Blood sodium level (XaDva) 145", [145]),
+            ("Plasma sodium level (XaIRf) 145", [145]),
+            ("Serum sodium level (XE2q0) 145", [145]),
+            ("Serum sodium level (mmol/L) 137", [137]),
         ], verbose=verbose)
 
 
@@ -290,26 +308,30 @@ class Potassium(SimpleNumericalResultParser):
     """
     Potassium (K).
     """
-    POTASSIUM = fr"""
-        (?: {WORD_BOUNDARY} (?: K | Potassium ) {WORD_BOUNDARY} )
+    POTASSIUM_BASE = fr"""
+        {WORD_BOUNDARY} (?: K | Potassium ) {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {POTASSIUM} )                    # group for "K" or equivalent
-        {OPTIONAL_POC}
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {MILLIMOLAR}                        # good
-            | {MILLIMOLES_PER_L}                # good
-            | {MILLIEQ_PER_L}                   # good
-            | {MG}                              # bad
-        )?
-    """
+    POTASSIUM = regex_or(
+        POTASSIUM_BASE,
+        *regex_components_from_read_codes(
+            ReadCodes.POTASSIUM,
+            ReadCodes.POTASSIUM_BLOOD,
+            ReadCodes.POTASSIUM_PLASMA,
+            ReadCodes.POTASSIUM_SERUM,
+        ),
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=POTASSIUM,
+        units=regex_or(
+            MILLIMOLAR,  # good
+            MILLIMOLES_PER_L,  # good
+            MILLIEQ_PER_L,  # good
+            MG,  # bad
+        ),
+        optional_ignorable_after_quantity=OPTIONAL_POC
+    )
     NAME = "Potassium"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     UNIT_MAPPING = {
@@ -352,7 +374,12 @@ class Potassium(SimpleNumericalResultParser):
             ("blah (K) 5.6 mM", []),
             ("K (5.6) something", [5.6]),
             ("K (5.6 mM), others", [5.6]),
-            ("K-3.2", [3.2])
+            ("K-3.2", [3.2]),
+            ("Potassium level (X771S) 3.2", [3.2]),
+            ("Blood potassium level (XaDvZ) 3.2", [3.2]),
+            ("Plasma potassium level (XaIRl) 3.2", [3.2]),
+            ("Serum potassium level (XE2pz) 3.2", [3.2]),
+            ("Serum potassium level (XaIRl) 3.2", []),  # wrong code
         ], verbose=verbose)
 
 
@@ -375,26 +402,29 @@ class Urea(SimpleNumericalResultParser):
     """
     Urea.
     """
-    UREA = fr"""
-        (?: {WORD_BOUNDARY} (?: U(?:r(?:ea)?)? ) {WORD_BOUNDARY} )
+    UREA_BASE = fr"""
+        {WORD_BOUNDARY} U(?:r(?:ea)?)? {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {UREA} )                         # group for "urea" or equivalent
-        {OPTIONAL_POC}
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {MILLIMOLAR}                        # good
-            | {MILLIMOLES_PER_L}                # good
-            | {MILLIEQ_PER_L}                   # good
-            | {MG}                              # bad
-        )?
-    """
+    UREA = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.UREA_BLOOD,
+            ReadCodes.UREA_PLASMA,
+            ReadCodes.UREA_SERUM,
+        ),
+        UREA_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=UREA,
+        units=regex_or(
+            MILLIMOLAR,  # good
+            MILLIMOLES_PER_L,  # good
+            MILLIEQ_PER_L,  # good
+            MG,  # bad
+        ),
+        optional_ignorable_after_quantity=OPTIONAL_POC
+    )
     NAME = "Urea"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     UNIT_MAPPING = {
@@ -436,7 +466,10 @@ class Urea(SimpleNumericalResultParser):
             ("blah (U) 5.6 mM", []),
             ("Urea (5.6) something", [5.6]),
             ("Urea (5.6 mM), others", [5.6]),
-            ("U-3.2", [3.2])
+            ("U-3.2", [3.2]),
+            ("Blood urea (X771P) 3.2", [3.2]),
+            ("Plasma urea level (XaDvl) 3.2", [3.2]),
+            ("Serum urea level (XM0lt) 3.2", [3.2]),
         ], verbose=verbose)
 
 
@@ -459,30 +492,35 @@ class Creatinine(SimpleNumericalResultParser):
     """
     Creatinine. Default units are micromolar (SI).
     """
-    CREATININE = fr"""
-        (?: {WORD_BOUNDARY} (?: Cr(?:eat(?:inine)?)? ) {WORD_BOUNDARY} )
+    CREATININE_BASE = fr"""
+        {WORD_BOUNDARY} Cr(?:eat(?:inine)?)? {WORD_BOUNDARY}
     """
     # ... Cr, Creat, Creatinine
     # Possible that "creatine" is present as a typo... but it's wrong...
-    REGEX = fr"""
-        ( {CREATININE} )                 # group for "creatinine" or equivalent
-        {OPTIONAL_POC}
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?           # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                  # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )               # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                # optional group for units
-            {MICROMOLAR}                        # good
-            | {MICROMOLES_PER_L}                # good
-            | {MICROEQ_PER_L}                   # good
-            | {MG_PER_DL}                       # good but needs conversion
-            | {MG}                              # bad
-        )?
-    """
-    # ... note that MG_PER_DL must precede MG
+    CREATININE = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.CREATININE,
+            ReadCodes.CREATININE_PLASMA,
+            ReadCodes.CREATININE_PLASMA_CORRECTED,
+            ReadCodes.CREATININE_SERUM,
+            ReadCodes.CREATININE_SERUM_CORRECTED,
+        ),
+        CREATININE_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=CREATININE,
+        units=regex_or(
+            MICROMOLAR,  # good
+            MICROMOLES_PER_L,  # good
+            MICROEQ_PER_L,  # good
+            MG_PER_DL,  # good but needs conversion
+            # ... note that MG_PER_DL must precede MG
+            MG,  # bad
+        ),
+        optional_ignorable_after_quantity=OPTIONAL_POC
+    )
     CREATININE_MOLECULAR_MASS_G_PER_MOL = 113.12
     # ... https://pubchem.ncbi.nlm.nih.gov/compound/creatinine
     NAME = "Creatinine"
@@ -491,7 +529,9 @@ class Creatinine(SimpleNumericalResultParser):
         MICROMOLAR: 1,       # preferred unit
         MICROMOLES_PER_L: 1,
         MICROEQ_PER_L: 1,
-        MG_PER_DL: factor_micromolar_from_mg_per_dl(CREATININE_MOLECULAR_MASS_G_PER_MOL)  # noqa
+        MG_PER_DL: factor_micromolar_from_mg_per_dl(
+            CREATININE_MOLECULAR_MASS_G_PER_MOL
+        )
         # but not MG
     }
 
@@ -528,12 +568,20 @@ class Creatinine(SimpleNumericalResultParser):
             ("Creatinine (H) 200 uM", [200]),
             ("Creatinine (*) 200 micromol/L", [200]),
             ("Creatinine (X) 200 uM", []),
+            ("Creatinine 200 micromolar", [200]),
+            ("Creatinine 200 micromolar, others", [200]),
             ("blah (creat) 5.6 uM", []),
             ("Creatinine (200) something", [200]),
+            ("Creatinine (200 micromolar)", [200]),
             ("Creatinine (200 micromolar), others", [200]),
             ("Cr-75", [75]),
             ("creatinine 3 mg/dl", [convert(3)]),
             ("creatinine 3 mg", []),
+            ("Creatinine level (X771Q) 75", [75]),
+            ("Plasma creatinine level (XaETQ) 75", [75]),
+            ("Cor plasma creatinine level (XaERX) 75", [75]),
+            ("Serum creatinine level (XE2q5) 75", [75]),
+            ("Cor serum creatinine level (XaERc) 75", [75]),
         ], verbose=verbose)
 
 
@@ -556,26 +604,27 @@ class Lithium(SimpleNumericalResultParser):
     """
     Lithium (Li) levels (for blood tests, not doses).
     """
-    LITHIUM = fr"""
-        (?: {WORD_BOUNDARY} (?: Li | Lithium ) {WORD_BOUNDARY} )
+    LITHIUM_BASE = fr"""
+        {WORD_BOUNDARY} Li(?:thium)? {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {LITHIUM} )                      # group for "Li" or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {MILLIMOLAR}                        # good
-            | {MILLIMOLES_PER_L}                # good
-            | {MILLIEQ_PER_L}                   # good
-            | {MG}                              # bad
-            | {G}                               # bad
-        )?
-    """
+    LITHIUM = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.LITHIUM_SERUM,
+        ),
+        LITHIUM_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=LITHIUM,
+        units=regex_or(
+            MILLIMOLAR,  # good
+            MILLIMOLES_PER_L,  # good
+            MILLIEQ_PER_L,  # good
+            MG,  # bad
+            G,  # bad
+        )
+    )
     NAME = "Lithium"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     UNIT_MAPPING = {
@@ -622,7 +671,8 @@ class Lithium(SimpleNumericalResultParser):
             ("blah (Li) 1.2 mM", []),
             ("Li (1.3) something", [1.3]),
             ("Li (0.4 mM), others", [0.4]),
-            ("Li-0.4", [0.4])
+            ("Li-0.4", [0.4]),
+            ("Serum lithium level (XE25g) 0.4", [0.4]),
         ], verbose=verbose)
 
 
@@ -645,25 +695,36 @@ class Tsh(SimpleNumericalResultParser):
     """
     Thyroid-stimulating hormone (TSH).
     """
-    TSH = fr"""
-        (?: {WORD_BOUNDARY}
+    TSH_BASE = fr"""
+        {WORD_BOUNDARY}
             (?: TSH | thyroid [-\s]+ stimulating [-\s]+ hormone )
-        {WORD_BOUNDARY} )
+        {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {TSH} )                          # group for "TSH" or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {MILLIUNITS_PER_L}                 # good
-            | {MICROUNITS_PER_ML}              # good
-        )?
-    """
+    TSH = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.TSH_PLASMA,
+            ReadCodes.TSH_PLASMA_30_MIN,
+            ReadCodes.TSH_PLASMA_60_MIN,
+            ReadCodes.TSH_PLASMA_90_MIN,
+            ReadCodes.TSH_PLASMA_120_MIN,
+            ReadCodes.TSH_PLASMA_150_MIN,
+            ReadCodes.TSH_SERUM,
+            ReadCodes.TSH_SERUM_60_MIN,
+            ReadCodes.TSH_SERUM_90_MIN,
+            ReadCodes.TSH_SERUM_120_MIN,
+            ReadCodes.TSH_SERUM_150_MIN,
+        ),
+        TSH_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=TSH,
+        units=regex_or(
+            MILLIUNITS_PER_L,  # good
+            MICROUNITS_PER_ML,  # good
+        )
+    )
     NAME = "TSH"
     PREFERRED_UNIT_COLUMN = "value_mU_L"
     UNIT_MAPPING = {
@@ -699,8 +760,11 @@ class Tsh(SimpleNumericalResultParser):
             ("TSH 1.5 μIU/mL", [1.5]),
             ("TSH 1.5 uU/mL", [1.5]),
             ("TSH 1.5 uIU/mL", [1.5]),
-            ("TSH-2.3", [2.3])
-        ])
+            ("TSH-2.3", [2.3]),
+            ("Plasma TSH level (XaELW) 2.3", [2.3]),
+            ("Serum TSH level (XaELV) 2.3", [2.3]),
+            # etc.; not all Read codes tested here
+        ], verbose=verbose)
 
 
 class TshValidator(ValidatorBase):
@@ -722,31 +786,31 @@ class AlkPhos(SimpleNumericalResultParser):
     """
     Alkaline phosphatase (ALP, AlkP, AlkPhos).
     """
-    ALP = fr"""
-        (?: {WORD_BOUNDARY}
+    ALKP_BASE = fr"""
+        {WORD_BOUNDARY}
+        (?:
+            (?: ALk?P (?:\. | {WORD_BOUNDARY}) ) |
             (?:
-                (?: ALk?P (?:\. | {WORD_BOUNDARY}) ) |
-                (?:
-                    alk(?:aline | \.)?
-                    [-\s]*
-                    phos(?:phatase{WORD_BOUNDARY} | \. | {WORD_BOUNDARY})
-                )
+                alk(?:aline | \.)?
+                [-\s]*
+                phos(?:phatase{WORD_BOUNDARY} | \. | {WORD_BOUNDARY})
             )
-         )
+        )
     """
-    REGEX = fr"""
-        ( {ALP} )                          # group for "ALP" or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {UNITS_PER_L}
-        )?
-    """
+    ALKP = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.ALKPHOS_PLASMA,
+            ReadCodes.ALKPHOS_SERUM,
+            ReadCodes.ALKPHOS,  # least specific; at end
+        ),
+        ALKP_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=ALKP,
+        units=UNITS_PER_L
+    )
     NAME = "AlkPhos"
     PREFERRED_UNIT_COLUMN = "value_U_L"
     UNIT_MAPPING = {
@@ -783,7 +847,11 @@ class AlkPhos(SimpleNumericalResultParser):
             ("alk.phos. 55", [55]),
             ("alk. phos. 55", [55]),
             ("alkphos 55", [55]),
-        ])
+            ("Alkaline phosphatase level (44F3.) 55", [55]),
+            ("Alkaline phosphatase level (44F3x) 55", []),  # test "." in regex
+            ("Plasma alkaline phosphatase level (XaIRj) 55", [55]),
+            ("Serum alkaline phosphatase level (XE2px) 55", [55]),
+        ], verbose=verbose)
 
 
 class AlkPhosValidator(ValidatorBase):
@@ -794,7 +862,7 @@ class AlkPhosValidator(ValidatorBase):
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
-        return AlkPhos.NAME, [AlkPhos.ALP]
+        return AlkPhos.NAME, [AlkPhos.ALKP]
 
 
 # =============================================================================
@@ -803,29 +871,32 @@ class AlkPhosValidator(ValidatorBase):
 
 class ALT(SimpleNumericalResultParser):
     """
-    Alanine aminotransferase (ALT).
+    Alanine aminotransferase (ALT), a.k.a. alanine transaminase (ALT).
+
+    A.k.a. serum glutamate-pyruvate transaminase (SGPT), or serum
+    glutamate-pyruvic transaminase (SGPT), but not a.k.a. those in recent
+    memory!
     """
-    ALT = fr"""
-        (?: {WORD_BOUNDARY}
-            (?:
-                ALT |
-                alanine [-\s]+ (?: aminotransferase | transaminase )
-            )
-        {WORD_BOUNDARY} )
+    ALT_BASE = fr"""
+        {WORD_BOUNDARY}
+        (?:
+            ALT |
+            alanine [-\s]+ (?: aminotransferase | transaminase )
+        )
+        {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {ALT} )                          # group for "ALT" or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {UNITS_PER_L}
-        )?
-    """
+    ALT = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.ALT,
+        ),
+        ALT_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=ALT,
+        units=UNITS_PER_L
+    )
     NAME = "ALT"
     PREFERRED_UNIT_COLUMN = "value_U_L"
     UNIT_MAPPING = {
@@ -860,7 +931,8 @@ class ALT(SimpleNumericalResultParser):
             ("ALT 55 U/L", [55]),
             ("ALT-55", [55]),
             ("ALP 55", []),  # wrong thing
-        ])
+            ("ALT/SGPT serum level (44G3.) 55", [55]),
+        ], verbose=verbose)
 
 
 class ALTValidator(ValidatorBase):
@@ -882,31 +954,32 @@ class GammaGT(SimpleNumericalResultParser):
     """
     Gamma-glutamyl transferase (gGT).
     """
-    GGT = fr"""
-        (?: {WORD_BOUNDARY}
+    GGT_BASE = fr"""
+        {WORD_BOUNDARY}
+        (?:
+            (?: γ | G | gamma)
+            [-\s]*
             (?:
-                (?: γ | G | gamma)
-                [-\s]*
-                (?:
-                    GT |
-                    glutamyl [-\s]+ transferase
-                )
+                GT |
+                glutamyl [-\s]+ transferase
             )
-        {WORD_BOUNDARY} )
+        )
+        {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {GGT} )                          # group for "GGT" or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {UNITS_PER_L}
-        )?
-    """
+    GGT = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.GAMMA_GT,
+            ReadCodes.GAMMA_GT_PLASMA,
+            ReadCodes.GAMMA_GT_SERUM,
+        ),
+        GGT_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=GGT,
+        units=UNITS_PER_L
+    )
     NAME = "GammaGT"
     PREFERRED_UNIT_COLUMN = "value_U_L"
     UNIT_MAPPING = {
@@ -940,7 +1013,10 @@ class GammaGT(SimpleNumericalResultParser):
             ("GGT 55 U/L", [55]),
             ("ggt-55", [55]),
             ("γGT 55", [55]),
-        ])
+            ("Gamma-glutamyl transferase lev (44G4.) 55", [55]),
+            ("Plasma gamma-glutamyl transferase level (XaES4) 55", [55]),
+            ("Serum gamma-glutamyl transferase level (XaES3) 55", [55]),
+        ], verbose=verbose)
 
 
 class GammaGTValidator(ValidatorBase):
@@ -962,28 +1038,29 @@ class Bilirubin(SimpleNumericalResultParser):
     """
     Total bilirubin.
     """
-    BILIRUBIN = fr"""
-        (?: {WORD_BOUNDARY}
-            (?:
-                (?: t(?: ot(?:al | \.)? | \.) \s+ )?
-                bili?(?: \. | rubin{WORD_BOUNDARY})?
-            )
+    BILIRUBIN_BASE = fr"""
+        {WORD_BOUNDARY}
+        (?: t(?: ot(?:al | \.)? | \.) \s+ )?
+        bili?(?: \. | rubin{WORD_BOUNDARY})?
+    """
+    BILIRUBIN = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.BILIRUBIN_PLASMA_TOTAL,
+            ReadCodes.BILIRUBIN_SERUM,
+            ReadCodes.BILIRUBIN_SERUM_TOTAL,
+            ReadCodes.BILIRUBIN_TOTAL,
+        ),
+        BILIRUBIN_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=BILIRUBIN,
+        units=regex_or(
+            MICROMOLAR,  # good
+            MICROMOLES_PER_L,  # good
         )
-    """
-    REGEX = fr"""
-        ( {BILIRUBIN} )                    # group for "bilirubin"/equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-             {MICROMOLAR}                       # good
-            | {MICROMOLES_PER_L}                # good
-        )?
-    """
+    )
     NAME = "Bilirubin"
     PREFERRED_UNIT_COLUMN = "value_micromol_L"
     UNIT_MAPPING = {
@@ -1020,7 +1097,14 @@ class Bilirubin(SimpleNumericalResultParser):
             ("t. bilirubin 17 μM", [17]),
             ("bili. 17 μM", [17]),
             ("bili 17 μM", [17]),
-        ])
+            ("Plasma total bilirubin level (XaETf) 17", [17]),
+            ("Serum bilirubin level (44E..) 17", [17]),
+            ("Serum total bilirubin level (XaERu) 17", [17]),
+            ("Total bilirubin level (XE2qu) 17", [17]),
+            ("Total   bilirubin \t  level \n (XE2qu) 17", [17]),  # test whitespace  # noqa
+            ("xTotal bilirubin level (XE2qu) 17", []),  # test word boundary
+            ("Serum total bilirubin level (XaERu) 6 umol/L", [6]),
+        ], verbose=verbose)
 
 
 class BilirubinValidator(ValidatorBase):
@@ -1042,27 +1126,26 @@ class Albumin(SimpleNumericalResultParser):
     """
     Albumin (Alb).
     """
-    ALBUMIN = fr"""
-        (?: {WORD_BOUNDARY}
-            (?:
-                alb(?:\. | umin{WORD_BOUNDARY})?
-                (?: \s+ level{WORD_BOUNDARY})?
-            )
+    ALBUMIN_BASE = fr"""
+        {WORD_BOUNDARY}
+        (?:
+            alb(?:\. | umin{WORD_BOUNDARY})?
+            (?: \s+ level{WORD_BOUNDARY})?
         )
     """
-    REGEX = fr"""
-        ( {ALBUMIN} )                      # group for "Alb" or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {G_PER_L}
-        )?
-    """
+    ALBUMIN = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.ALBUMIN_PLASMA,
+            ReadCodes.ALBUMIN_SERUM,
+        ),
+        ALBUMIN_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=ALBUMIN,
+        units=G_PER_L
+    )
     NAME = "Albumin"
     PREFERRED_UNIT_COLUMN = "value_g_L"
     UNIT_MAPPING = {
@@ -1096,7 +1179,9 @@ class Albumin(SimpleNumericalResultParser):
             ("Albumin 48 g/L", [48]),
             ("alb. 48", [48]),
             ("albumin level 48", [48]),
-        ])
+            ("Plasma albumin level (XaIRc) 48", [48]),
+            ("Serum albumin level (XE2eA) 48", [48]),
+        ], verbose=verbose)
 
 
 class AlbuminValidator(ValidatorBase):
@@ -1121,26 +1206,48 @@ class Glucose(SimpleNumericalResultParser):
     - By Emanuele Osimo, Feb 2019.
     - Some modifications by Rudolf Cardinal, Feb 2019.
     """
-    GLUCOSE = fr"""
-        (?: {WORD_BOUNDARY} (?: glu(?:c(?:ose)?)? ) {WORD_BOUNDARY} )
+    GLUCOSE_BASE = fr"""
+        {WORD_BOUNDARY} glu(?:c(?:ose)?)? {WORD_BOUNDARY}
         # glu, gluc, glucose
     """
-    REGEX = fr"""
-        ( {GLUCOSE} )                      # group for glucose or equivalent
-        {OPTIONAL_POC}
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {MILLIMOLAR}                        # good
-            | {MILLIMOLES_PER_L}                # good
-            | {MG_PER_DL}                       # good but needs conversion
-        )?
-    """
+    GLUCOSE = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.GLUCOSE,
+            ReadCodes.GLUCOSE_BLOOD,
+            ReadCodes.GLUCOSE_BLOOD_2H_POSTPRANDIAL,
+            ReadCodes.GLUCOSE_BLOOD_150_MIN,
+            ReadCodes.GLUCOSE_PLASMA_RANDOM,
+            ReadCodes.GLUCOSE_PLASMA_FASTING,
+            ReadCodes.GLUCOSE_PLASMA_30_MIN,
+            ReadCodes.GLUCOSE_PLASMA_60_MIN,
+            ReadCodes.GLUCOSE_PLASMA_90_MIN,
+            ReadCodes.GLUCOSE_PLASMA_120_MIN,
+            ReadCodes.GLUCOSE_PLASMA_2H_POSTPRANDIAL,
+            ReadCodes.GLUCOSE_PLASMA_150_MIN,
+            ReadCodes.GLUCOSE_SERUM,
+            ReadCodes.GLUCOSE_SERUM_RANDOM,
+            ReadCodes.GLUCOSE_SERUM_FASTING,
+            ReadCodes.GLUCOSE_SERUM_30_MIN,
+            ReadCodes.GLUCOSE_SERUM_60_MIN,
+            ReadCodes.GLUCOSE_SERUM_90_MIN,
+            ReadCodes.GLUCOSE_SERUM_120_MIN,
+            ReadCodes.GLUCOSE_SERUM_2H_POSTPRANDIAL,
+            ReadCodes.GLUCOSE_SERUM_150_MIN,
+            # !
+        ),
+        GLUCOSE_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=GLUCOSE,
+        units=regex_or(
+            MILLIMOLAR,  # good
+            MILLIMOLES_PER_L,  # good
+            MG_PER_DL,  # good but needs conversion
+        ),
+        optional_ignorable_after_quantity=OPTIONAL_POC
+    )
     GLUCOSE_MOLECULAR_MASS_G_PER_MOL = 180.156
     # ... https://pubchem.ncbi.nlm.nih.gov/compound/D-glucose
     NAME = "Glucose"
@@ -1195,6 +1302,9 @@ class Glucose(SimpleNumericalResultParser):
             ("glucose is 90 mg dl -1", [convert(90)]),
             ("glu-5", [5]),
             ("glucose        |       20.3 (H)      | mmol/L", [20.3]),
+            ("Glucose level (X772y) 5", [5]),
+            ("Blood glucose level (X772z) 5", [5]),
+            # Not all Read codes tested.
         ], verbose=verbose)
 
 
@@ -1220,26 +1330,36 @@ class LDLCholesterol(SimpleNumericalResultParser):
     - By Emanuele Osimo, Feb 2019.
     - Some modifications by Rudolf Cardinal, Feb 2019.
     """
-    LDL = fr"""
-        (?: {WORD_BOUNDARY}
-            (?: LDL [-\s]* (?:chol(?:esterol)? )? )
-        {WORD_BOUNDARY} )
+    LDL_BASE = fr"""
+        {WORD_BOUNDARY}
+        LDL [-\s]*
+        (?:
+            chol(?:esterol)?{WORD_BOUNDARY} |
+            chol\. |
+            {WORD_BOUNDARY}  # allows LDL by itself
+        )
     """
-    REGEX = fr"""
-        ( {LDL} )                       # group for LDL or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {MILLIMOLAR}                        # good
-            | {MILLIMOLES_PER_L}                # good
-            | {MG_PER_DL}                       # OK but needs conversion
-        )?
-    """
+    LDL = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.LDL_PLASMA,
+            ReadCodes.LDL_PLASMA_FASTING,
+            ReadCodes.LDL_PLASMA_RANDOM,
+            ReadCodes.LDL_SERUM,
+            ReadCodes.LDL_SERUM_FASTING,
+            ReadCodes.LDL_SERUM_RANDOM,
+        ),
+        LDL_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=LDL,
+        units=regex_or(
+            MILLIMOLAR,  # good
+            MILLIMOLES_PER_L,  # good
+            MG_PER_DL,  # good but needs conversion
+        )
+    )
     NAME = "LDL cholesterol"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     FACTOR_MG_DL_TO_MMOL_L = 0.02586
@@ -1277,8 +1397,7 @@ class LDLCholesterol(SimpleNumericalResultParser):
             ("LDL", []),  # should fail; no values
             ("LDL 4 mM", [4]),
             ("LDL chol 4 mmol", [4]),
-            ("LDL chol. 4 mmol", []),
-            # ... NOT picked up at present; see word boundary condition; problem?  # noqa
+            ("LDL chol. 4 mmol", [4]),
             ("LDL 4", [4]),
             ("chol 4", []),  # that's total cholesterol
             ("HDL chol 4", []),  # that's HDL cholesterol
@@ -1297,6 +1416,12 @@ class LDLCholesterol(SimpleNumericalResultParser):
             ("ldl chol is 140 mg dl -1", [convert(140)]),
             ("ldl-4", [4]),
             ("LDL chol     |       6.2 (H)      | mmol/L", [6.2]),
+            ("Plasma LDL cholesterol level (XaEVs) 4", [4]),
+            ("Plasma rndm LDL cholest level (44d4.) 4", [4]),
+            ("Plasma fast LDL cholest level (44d5.) 4", [4]),
+            ("Serum LDL cholesterol level (44P6.) 4", [4]),
+            ("Serum fast LDL cholesterol lev (44PD.) 4", [4]),
+            ("Ser random LDL cholesterol lev (44PE.) 4", [4]),
         ], verbose=verbose)
 
 
@@ -1322,26 +1447,36 @@ class HDLCholesterol(SimpleNumericalResultParser):
     - By Emanuele Osimo, Feb 2019.
     - Some modifications by Rudolf Cardinal, Feb 2019.
     """
-    HDL = fr"""
-        (?: {WORD_BOUNDARY}
-            (?: HDL [-\s]* (?:chol(?:esterol)? )? )
-        {WORD_BOUNDARY} )
+    HDL_BASE = fr"""
+        {WORD_BOUNDARY}
+        HDL [-\s]*
+        (?:
+            chol(?:esterol)?{WORD_BOUNDARY} |
+            chol\. |
+            {WORD_BOUNDARY}  # allows HDL by itself
+        )
     """
-    REGEX = fr"""
-        ( {HDL} )                       # group for HDL or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {MILLIMOLAR}                        # good
-            | {MILLIMOLES_PER_L}                # good
-            | {MG_PER_DL}                       # OK but needs conversion
-        )?
-    """
+    HDL = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.HDL_PLASMA,
+            ReadCodes.HDL_PLASMA_FASTING,
+            ReadCodes.HDL_PLASMA_RANDOM,
+            ReadCodes.HDL_SERUM,
+            ReadCodes.HDL_SERUM_FASTING,
+            ReadCodes.HDL_SERUM_RANDOM,
+        ),
+        HDL_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=HDL,
+        units=regex_or(
+            MILLIMOLAR,  # good
+            MILLIMOLES_PER_L,  # good
+            MG_PER_DL,  # good but needs conversion
+        )
+    )
     NAME = "HDL cholesterol"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     FACTOR_MG_DL_TO_MMOL_L = 0.02586
@@ -1379,8 +1514,7 @@ class HDLCholesterol(SimpleNumericalResultParser):
             ("HDL", []),  # should fail; no values
             ("HDL 4 mM", [4]),
             ("HDL chol 4 mmol", [4]),
-            ("HDL chol. 4 mmol", []),
-            # ... NOT picked up at present; see word boundary condition; problem?  # noqa
+            ("HDL chol. 4 mmol", [4]),
             ("HDL 4", [4]),
             ("chol 4", []),  # that's total cholesterol
             ("LDL chol 4", []),  # that's LDL cholesterol
@@ -1399,6 +1533,12 @@ class HDLCholesterol(SimpleNumericalResultParser):
             ("Hdl chol is 140 mg dl -1", [convert(140)]),
             ("hdl-4", [4]),
             ("HDL chol     |       6.2 (H)      | mmol/L", [6.2]),
+            ("Plasma HDL cholesterol level (XaEVr) 4", [4]),
+            ("Plasma rndm HDL cholest level (44d2.) 4", [4]),
+            ("Plasma fast HDL cholest level (44d3.) 4", [4]),
+            ("Serum HDL cholesterol level (44P5.) 4", [4]),
+            ("Serum fast HDL cholesterol lev (44PB.) 4", [4]),
+            ("Ser random HDL cholesterol lev (44PC.) 4", [4]),
         ], verbose=verbose)
 
 
@@ -1419,32 +1559,36 @@ class HDLCholesterolValidator(ValidatorBase):
 
 class TotalCholesterol(SimpleNumericalResultParser):
     """
-    Total cholesterol.
+    Total or undifferentiated cholesterol.
     """
-    CHOLESTEROL = fr"""
+    CHOLESTEROL_BASE = fr"""
+        {WORD_BOUNDARY}
+        (?<!HDL[-\s]+) (?<!LDL[-\s]+)  # not preceded by HDL or LDL
+        (?: tot(?:al) [-\s] )?         # optional "total" prefix
         (?:
-            {WORD_BOUNDARY}
-            (?<!HDL[-\s]+) (?<!LDL[-\s]+)  # not preceded by HDL or LDL
-            (?: tot(?:al) [-\s] )?         # optional "total" prefix
-            (?: chol(?:esterol)? )         # cholesterol
-        {WORD_BOUNDARY} )
+            chol(?:esterol)?{WORD_BOUNDARY} |
+            chol\.
+        )
     """
     # ... (?<! something ) is a negative lookbehind assertion
-    REGEX = fr"""
-        ( {CHOLESTEROL} )                  # group for cholesterol or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {MILLIMOLAR}                        # good
-            | {MILLIMOLES_PER_L}                # good
-            | {MG_PER_DL}                       # OK but needs conversion
-        )?
-    """
+    CHOLESTEROL = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.CHOLESTEROL_SERUM,
+            ReadCodes.CHOLESTEROL_TOTAL_PLASMA,
+            ReadCodes.CHOLESTEROL_TOTAL_SERUM,
+        ),
+        CHOLESTEROL_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=CHOLESTEROL,
+        units=regex_or(
+            MILLIMOLAR,  # good
+            MILLIMOLES_PER_L,  # good
+            MG_PER_DL,  # good but needs conversion
+        )
+    )
     NAME = "Total cholesterol"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     FACTOR_MG_DL_TO_MMOL_L = 0.02586
@@ -1482,8 +1626,7 @@ class TotalCholesterol(SimpleNumericalResultParser):
             ("chol", []),  # should fail; no values
             ("chol 4 mM", [4]),
             ("total chol 4 mmol", [4]),
-            ("chol. 4 mmol", []),
-            # ... NOT picked up at present; see word boundary condition; problem?  # noqa
+            ("chol. 4 mmol", [4]),
             ("chol 4", [4]),
             ("HDL chol 4", []),  # that's HDL cholesterol
             ("LDL chol 4", []),  # that's LDL cholesterol
@@ -1502,6 +1645,9 @@ class TotalCholesterol(SimpleNumericalResultParser):
             ("chol is 140 mg dl -1", [convert(140)]),
             ("chol-4", [4]),
             ("chol     |       6.2 (H)      | mmol/L", [6.2]),
+            ("Serum cholesterol level (XE2eD) 4", [4]),
+            ("Plasma total cholesterol level (XaIRd) 4", [4]),
+            ("Serum total cholesterol level (XaJe9) 4", [4]),
         ], verbose=verbose)
 
 
@@ -1527,26 +1673,33 @@ class Triglycerides(SimpleNumericalResultParser):
     - By Emanuele Osimo, Feb 2019.
     - Some modifications by Rudolf Cardinal, Feb 2019.
     """
-    TG = fr"""
-        (?: {WORD_BOUNDARY}
-            (?: (?: Triglyceride[s]? | TG ) )
-        {WORD_BOUNDARY} )
+    TG_BASE = fr"""
+        {WORD_BOUNDARY}
+        (?: Triglyceride[s]? | TG )
+        {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {TG} )                        # group for triglycerides or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {MILLIMOLAR}                        # good
-            | {MILLIMOLES_PER_L}                # good
-            | {MG_PER_DL}                       # OK but needs conversion
-        )?
-    """
+    TG = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.TG,
+            ReadCodes.TG_PLASMA,
+            ReadCodes.TG_PLASMA_FASTING,
+            ReadCodes.TG_PLASMA_RANDOM,
+            ReadCodes.TG_SERUM,
+            ReadCodes.TG_SERUM_FASTING,
+            ReadCodes.TG_SERUM_RANDOM,
+        ),
+        TG_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=TG,
+        units=regex_or(
+            MILLIMOLAR,  # good
+            MILLIMOLES_PER_L,  # good
+            MG_PER_DL,  # good but needs conversion
+        )
+    )
     NAME = "Triglycerides"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
     FACTOR_MG_DL_TO_MMOL_L = 0.01129  # reciprocal of 88.57
@@ -1603,6 +1756,13 @@ class Triglycerides(SimpleNumericalResultParser):
             ("TG is 140 mg dl -1", [convert(140)]),
             ("TG-4", [4]),
             ("triglycerides    |       6.2 (H)      | mmol/L", [6.2]),
+            ("Triglyceride level (X772O) 4", [4]),
+            ("Plasma triglyceride level (44e..) 4", [4]),
+            ("Plasma rndm triglyceride level (44e0.) 4", [4]),
+            ("Plasma fast triglyceride level (44e1.) 4", [4]),
+            ("Serum triglyceride levels (XE2q9) 4", [4]),
+            ("Serum fasting triglyceride lev (44Q4.) 4", [4]),
+            ("Serum random triglyceride lev (44Q5.) 4", [4]),
         ], verbose=verbose)
 
 
@@ -1673,30 +1833,37 @@ class HbA1c(SimpleNumericalResultParser):
 
     - By Emanuele Osimo, Feb 2019.
     - Some modifications by Rudolf Cardinal, Feb 2019.
+
+    Note: HbA1 is different
+    (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2541274).
     """
-    HBA1C = fr"""
-        (?: {WORD_BOUNDARY}
-            (?: (?: Glyc(?:osyl)?ated [-\s]+ (?:ha?emoglobin|Hb) ) |
-                (?: HbA1c )
-            )
-        {WORD_BOUNDARY} )
+    HBA1C_BASE = fr"""
+        {WORD_BOUNDARY}
+        (?:
+            (?: Glyc(?:osyl)?ated [-\s]+ (?:ha?emoglobin|Hb) ) |
+            HbA1c
+        )
+        {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {HBA1C} )                       # group for HbA1c or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # optional group for units
-            {MILLIMOLES_PER_MOL}                # standard
-            | {PERCENT}                         # good but needs conversion
-            | {MILLIMOLES_PER_L}                # bad; may be an eAG value
-            | {MG_PER_DL}                       # bad; may be an eAG value
-        )?
-    """
+    HBA1C = regex_or(
+        *regex_components_from_read_codes(
+            ReadCodes.HBA1C,
+            ReadCodes.HBA1C_DCCT,
+            ReadCodes.HBA1C_IFCC,
+        ),
+        HBA1C_BASE,
+        wrap_each_in_noncapture_group=True,
+        wrap_result_in_noncapture_group=False
+    )
+    REGEX = make_simple_numeric_regex(
+        quantity=HBA1C,
+        units=regex_or(
+            MILLIMOLES_PER_MOL,  # standard
+            PERCENT,  # good but needs conversion
+            MILLIMOLES_PER_L,  # bad; may be an eAG value
+            MG_PER_DL,  # bad; may be an eAG value
+        )
+    )
     NAME = "HBA1C"
     PREFERRED_UNIT_COLUMN = "value_mmol_mol"
     UNIT_MAPPING = {
@@ -1751,6 +1918,9 @@ class HbA1c(SimpleNumericalResultParser):
             ("HbA1c-31", [31]),
             ("HbA1c-8%", [convert(8)]),
             ("HbA1c    |       40 (H)      | mmol/mol", [40]),
+            ("Haemoglobin A1c level (X772q) 8%", [convert(8)]),
+            ("HbA1c level (DCCT aligned) (XaERp) 8%", [convert(8)]),
+            ("HbA1c levl - IFCC standardised (XaPbt) 31 mmol/mol", [31]),
         ], verbose=verbose)
 
 

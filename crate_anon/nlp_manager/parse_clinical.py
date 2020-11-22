@@ -53,6 +53,7 @@ from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy import Column, Integer, Float, String, Text
 
+from crate_anon.common.regex_helpers import WORD_BOUNDARY
 from crate_anon.nlp_manager.constants import ProcessorConfigKeys
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_parser import (
@@ -80,6 +81,7 @@ from crate_anon.nlp_manager.regex_parser import (
     HELP_UNITS,
     HELP_VALUE_TEXT,
     HELP_VARIABLE_TEXT,
+    make_simple_numeric_regex,
     MAX_RELATION_LENGTH,
     MAX_RELATION_TEXT_LENGTH,
     MAX_TENSE_LENGTH,
@@ -94,7 +96,6 @@ from crate_anon.nlp_manager.regex_parser import (
     to_float,
     to_pos_float,
     ValidatorBase,
-    WORD_BOUNDARY,
 )
 from crate_anon.nlp_manager.regex_numbers import SIGNED_FLOAT
 from crate_anon.nlp_manager.regex_units import (
@@ -527,23 +528,14 @@ class Bmi(SimpleNumericalResultParser):
     Body mass index (BMI) (in kg / m^2).
     """
     BMI = fr"""
-        (?: {WORD_BOUNDARY}
-            (?: BMI | body \s+ mass \s+ index )
-        {WORD_BOUNDARY} )
+        {WORD_BOUNDARY}
+        (?: BMI | body \s+ mass \s+ index )
+        {WORD_BOUNDARY}
     """
-    REGEX = fr"""
-        ( {BMI} )                          # group for "BMI" or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # group for units
-            {KG_PER_SQ_M}
-        )?
-    """
+    REGEX = make_simple_numeric_regex(
+        quantity=BMI,
+        units=KG_PER_SQ_M
+    )
     NAME = "BMI"
     PREFERRED_UNIT_COLUMN = "value_kg_per_sq_m"
     UNIT_MAPPING = {
