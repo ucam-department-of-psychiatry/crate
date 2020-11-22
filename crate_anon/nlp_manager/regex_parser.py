@@ -374,6 +374,7 @@ class NumericalResultParser(BaseNlpParser):
     def test_numerical_parser(
             self,
             test_expected_list: List[Tuple[str, List[float]]],
+            add_test_no_plain_number: bool = True,
             verbose: bool = False) -> None:
         """
         Args:
@@ -391,6 +392,10 @@ class NumericalResultParser(BaseNlpParser):
         log.info(f"Testing parser: {self.classname()}")
         if verbose:
             log.debug(f"... regex string:\n{self.regex_str_for_debugging}")
+        if add_test_no_plain_number:
+            test_expected_list = test_expected_list + [
+                ("999", [])  # no quantity specified
+            ]  # use "+ [...]", not append(), so as not to modify for caller
         for test_string, expected_values in test_expected_list:
             actual_values = list(
                 x[self.target_unit] for t, x in self.parse(test_string)
