@@ -39,7 +39,7 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from crate_anon.common.constants import DEMO_NLP_INPUT_TERMINATOR
 from crate_anon.nlp_manager.all_processors import (
     get_nlp_parser_class,
-    possible_processor_names,
+    possible_processor_names_without_external_tools,
 )
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 
@@ -150,6 +150,10 @@ def main() -> None:
     """
     Command-line entry point.
     """
+    all_processors = "all"
+    possible_proc_names = possible_processor_names_without_external_tools()
+    possible_processor_options = [all_processors] + possible_proc_names
+
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Demonstrate CRATE's built-in Python NLP tools",
@@ -165,9 +169,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--processors", type=str, required=True, nargs="+",
-        metavar="PROCESSOR", choices=possible_processor_names(),
+        metavar="PROCESSOR", choices=possible_processor_options,
         help=f"NLP processor(s) to apply. Possibilities: "
-             f"{','.join(possible_processor_names())}"
+             f"{','.join(possible_processor_options)}"
     )
     parser.add_argument(
         "--verbose", action="store_true",
@@ -180,7 +184,10 @@ def main() -> None:
     )
 
     log.debug(f"Input terminator: {args.terminator!r}")
-    processors = get_processors(processor_names=args.processors)
+    if all_processors in args.processors:
+        processors = get_processors(possible_proc_names)
+    else:
+        processors = get_processors(args.processors)
     for text in gen_chunks_from_files(
             filenames=args.inputs,
             chunk_terminator_line=args.terminator):

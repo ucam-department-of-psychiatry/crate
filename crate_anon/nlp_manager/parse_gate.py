@@ -109,6 +109,8 @@ class Gate(BaseNlpParser):
         - Implemented and exposed as ``--suppress_gate_stdout``.
 
     """
+    uses_external_tool = True
+
     def __init__(self,
                  nlpdef: NlpDefinition,
                  cfg_processor_name: str,
