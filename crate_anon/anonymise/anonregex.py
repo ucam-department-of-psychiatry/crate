@@ -48,42 +48,23 @@ import regex  # sudo apt-get install python-regex
 # noinspection PyProtectedMember
 from regex import _regex_core
 
+from crate_anon.common.regex_helpers import (
+    AT_LEAST_ONE_NONWORD,
+    escape_literal_for_regex_giving_charlist,
+    escape_literal_string_for_regex,
+    NON_ALPHANUMERIC_SPLITTERS,
+    NOT_DIGIT_LOOKAHEAD,
+    NOT_DIGIT_LOOKBEHIND,
+    OPTIONAL_NON_NEWLINE_WHITESPACE,
+    OPTIONAL_NONWORD,
+    WORD_BOUNDARY as WB,
+)
 from crate_anon.common.stringfunc import (
     get_digit_string_from_vaguely_numeric_string,  # for unit testing
     reduce_to_alphanumeric,  # for unit testing
 )
 
 log = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Constants
-# =============================================================================
-
-REGEX_METACHARS = ["\\", "^", "$", ".",
-                   "|", "?", "*", "+",
-                   "(", ")", "[", "{",
-                   "#", " "]
-# http://www.regular-expressions.info/characters.html
-# Start with \, for replacement.
-
-WB = r"\b"  # word boundary; escape the slash if not using a raw string
-
-# http://www.regular-expressions.info/lookaround.html
-# Not all engines support lookbehind; e.g. regexr.com doesn't; but Python does
-NOT_DIGIT_LOOKBEHIND = r"(?<!\d)"
-NOT_DIGIT_LOOKAHEAD = r"(?!\d)"
-
-# The Kleene star has highest precedence.
-# So, for example, ab*c matches abbbc, but not (all of) ababc. See regexr.com
-OPTIONAL_NONWORD = r"\W*"  # zero or more non-alphanumeric characters...
-# ... doesn't need to be [\W]*, for precedence reasons as above.
-AT_LEAST_ONE_NONWORD = r"\W+"  # 1 or more non-alphanumeric character
-
-NON_ALPHANUMERIC_SPLITTERS = regex.compile(AT_LEAST_ONE_NONWORD, regex.UNICODE)
-
-OPTIONAL_WHITESPACE = r"\s*"  # zero or more whitespace chars
-OPTIONAL_NON_NEWLINE_WHITESPACE = r"[ \t]*"  # zero or more spaces/tabs
 
 
 # =============================================================================
@@ -130,39 +111,6 @@ def get_anon_fragments_from_string(s: str) -> List[str]:
 # get_anon_fragments_from_string("Bob D'Souza")
 # get_anon_fragments_from_string("Jemima Al-Khalaim")
 # get_anon_fragments_from_string("47 Russell Square")
-
-
-# =============================================================================
-# Regexes
-# =============================================================================
-
-def escape_literal_string_for_regex(s: str) -> str:
-    r"""
-    Escape any regex characters. Returns a string.
-
-    Start with ``\`` -> ``\\``; this should be the first replacement in
-    :data:`REGEX_METACHARS`.
-    """
-    for c in REGEX_METACHARS:
-        s.replace(c, "\\" + c)
-    return s
-
-
-def escape_literal_for_regex_giving_charlist(s: str) -> List[str]:
-    r"""
-    Escape any regex characters. Returns a list of characters or escaped
-    characters.
-
-    Start with ``\`` -> ``\\``; this should be the first replacement in
-    :data:`REGEX_METACHARS`.
-    """
-    chars = []  # type: List[str]
-    for unescaped_char in s:
-        if unescaped_char in REGEX_METACHARS:
-            chars.append("\\" + unescaped_char)
-        else:
-            chars.append(unescaped_char)
-    return chars
 
 
 # =============================================================================

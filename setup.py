@@ -385,11 +385,13 @@ setup(
 
             # Preprocessing
 
+            "crate_fetch_wordlists=crate_anon.anonymise.fetch_wordlists:main",
             "crate_postcodes=crate_anon.preprocess.postcodes:main",
             "crate_preprocess_pcmis=crate_anon.preprocess.preprocess_pcmis:main",  # noqa
             "crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main",
 
             # Linkage
+
             "crate_bulk_hash=crate_anon.linkage.bulk_hash:main",
             "crate_fuzzy_id_match=crate_anon.linkage.fuzzy_id_match:main",
 
@@ -397,7 +399,6 @@ setup(
 
             "crate_anonymise=crate_anon.anonymise.anonymise_cli:main",
             "crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main",  # noqa
-            "crate_fetch_wordlists=crate_anon.anonymise.fetch_wordlists:main",
             "crate_make_demo_database=crate_anon.anonymise.make_demo_database:main",  # noqa
             "crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main",  # noqa
             "crate_test_extract_text=crate_anon.anonymise.test_extract_text:main",  # noqa
@@ -410,6 +411,7 @@ setup(
             "crate_nlp_build_medex_java_interface=crate_anon.nlp_manager.build_medex_java_interface:main",  # noqa
             "crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main",  # noqa
             "crate_nlp_prepare_ymls_for_bioyodie=crate_anon.nlp_manager.prepare_umls_for_bioyodie:main",  # noqa
+            "crate_run_crate_nlp_demo=crate_anon.nlp_manager.run_crate_nlp_demo:main",  # noqa
             "crate_run_gate_annie_demo=crate_anon.nlp_manager.run_gate_annie_demo:main",  # noqa
             "crate_run_gate_kcl_kconnect_demo=crate_anon.nlp_manager.run_gate_kcl_kconnect_demo:main",  # noqa
             "crate_run_gate_kcl_lewy_demo=crate_anon.nlp_manager.run_gate_kcl_lewy_demo:main",  # noqa

@@ -24,6 +24,8 @@
 .. |specimen| replace::
     See the :ref:`specimen CRATE NLP config file <specimen_nlp_config>`.
 
+.. _UMLS: https://www.nlm.nih.gov/research/umls/index.html
+
 
 .. _gate_nlp:
 
@@ -148,6 +150,14 @@ Script to test the app via the command line:
 .. code-block:: bash
 
     crate_run_gate_kcl_kconnect_demo
+
+This GATE application requires you to register and download UMLS_ data,
+containing disease vocabularies. Once you've done so, the
+``crate_nlp_prepare_ymls_for_bioyodie`` tool will do some necessary
+preprocessing. Its help is:
+
+.. literalinclude:: _crate_nlp_prepare_ymls_for_bioyodie.txt
+    :language: none
 
 
 .. _kcl_pharmacotherapy:
