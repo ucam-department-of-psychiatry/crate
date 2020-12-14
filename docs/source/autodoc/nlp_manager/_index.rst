@@ -41,6 +41,7 @@ crate_anon/nlp_manager
     cloud_config.py.rst
     cloud_parser.py.rst
     cloud_request.py.rst
+    cloud_request_sender.py.rst
     cloud_run_info.py.rst
     constants.py.rst
     input_field_config.py.rst
@@ -69,3 +70,4 @@ crate_anon/nlp_manager
     show_crate_gate_pipeline_options.py.rst
     show_crate_medex_pipeline_options.py.rst
     test_all_regex.py.rst
+    tests/nlp_manager_tests.py.rst

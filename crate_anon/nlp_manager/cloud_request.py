@@ -118,6 +118,22 @@ def to_json_str(json_structure: JsonValueType) -> str:
 
 
 # =============================================================================
+# Exceptions
+# =============================================================================
+
+class RecordNotPrintable(Exception):
+    pass
+
+
+class RecordsPerRequestExceeded(Exception):
+    pass
+
+
+class RequestTooLong(Exception):
+    pass
+
+
+# =============================================================================
 # CloudRequest
 # =============================================================================
 
@@ -338,18 +354,6 @@ class CloudRequestListProcessors(CloudRequest):
             )
             processors.append(proc)
         return processors
-
-
-class RecordNotPrintable(Exception):
-    pass
-
-
-class RecordsPerRequestExceeded(Exception):
-    pass
-
-
-class RequestTooLong(Exception):
-    pass
 
 
 # =============================================================================
@@ -799,10 +803,10 @@ class CloudRequestProcess(CloudRequest):
                             log.error(failmsg)
                             raise
                     else:
-                        raise KeyError(f"Server returned processor {name} "
-                                       "version {version}, but this processor "
-                                       "was not requested.")
-                        raise
+                        raise KeyError(
+                            f"Server returned processor {name} "
+                            f"version {version}, but this processor "
+                            f"was not requested.")
                 if processor.format == NlpDefValues.FORMAT_GATE:
                     for t, r in self.get_nlp_values_gate(processor_data,
                                                          processor,
@@ -848,6 +852,7 @@ class CloudRequestProcess(CloudRequest):
                     session.execute(insertquery)
             except DataError as e:
                 log.error(e)
+                # ... but proceed.
             self._nlpdef.notify_transaction(
                 session, n_rows=1, n_bytes=sys.getsizeof(final_values),
                 force_commit=self._commit)

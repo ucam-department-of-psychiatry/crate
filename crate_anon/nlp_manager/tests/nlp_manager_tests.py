@@ -44,6 +44,11 @@ from crate_anon.nlp_manager.models import FN_SRCHASH, NlpRecord
 from crate_anon.nlp_manager.nlp_manager import CloudRequestSender
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 
+PANAMOWA = "A woman, a plan, a canal. Panamowa!"
+PAGODA = "A dog! A panic in a pagoda."
+PATACA = "A cat! A panic in a pataca."
+REVOLT = "Won't lovers revolt now?"
+
 
 class TestCloudRequestSender(CloudRequestSender):
     def __init__(self, *args, **kwargs):
@@ -51,7 +56,7 @@ class TestCloudRequestSender(CloudRequestSender):
         self.call_count = 0
         self.test_requests = []
 
-    def get_new_cloud_request(self) -> CloudRequestProcess:
+    def _get_new_cloud_request(self) -> CloudRequestProcess:
         request = self.test_requests[self.call_count]
         self.call_count += 1
 
@@ -121,7 +126,7 @@ class CloudRequestSenderTests(TestCase):
 
     def test_single_text_sent_in_single_request(self) -> None:
         self.test_text = [
-            ("A woman, a plan, a canal. Panamowa!", {
+            (PANAMOWA, {
                 FN_SRCPKVAL: 1,
                 FN_SRCPKSTR: "pkstr",
             }),
@@ -162,22 +167,21 @@ class CloudRequestSenderTests(TestCase):
         self.assertEqual(records[0][NKeys.METADATA][FN_SRCPKSTR], "pkstr")
         self.assertEqual(
             records[0][NKeys.METADATA][FN_SRCHASH],
-            self.hasher.hash("A woman, a plan, a canal. Panamowa!")
+            self.hasher.hash(PANAMOWA)
         )
-        self.assertEqual(records[0][NKeys.TEXT],
-                         "A woman, a plan, a canal. Panamowa!")
+        self.assertEqual(records[0][NKeys.TEXT], PANAMOWA)
 
     def test_multiple_records_sent_in_single_request(self) -> None:
         self.test_text = [
-            ("A woman, a plan, a canal. Panamowa!", {
+            (PANAMOWA, {
                 FN_SRCPKVAL: 1,
                 FN_SRCPKSTR: "pkstr",
             }),
-            ("A dog! A panic in a pagoda.", {
+            (PAGODA, {
                 FN_SRCPKVAL: 2,
                 FN_SRCPKSTR: "pkstr",
             }),
-            ("Won't lovers revolt now?", {
+            (REVOLT, {
                 FN_SRCPKVAL: 3,
                 FN_SRCPKSTR: "pkstr",
             }),
@@ -213,19 +217,19 @@ class CloudRequestSenderTests(TestCase):
 
         self.assertEqual(records[0][NKeys.METADATA][FN_SRCPKVAL], 1)
         self.assertEqual(records[1][NKeys.METADATA][FN_SRCPKSTR], "pkstr")
-        self.assertEqual(records[2][NKeys.TEXT], "Won't lovers revolt now?")
+        self.assertEqual(records[2][NKeys.TEXT], REVOLT)
 
     def test_max_records_per_request(self) -> None:
         self.test_text = [
-            ("A woman, a plan, a canal. Panamowa!", {
+            (PANAMOWA, {
                 FN_SRCPKVAL: 1,
                 FN_SRCPKSTR: "pkstr",
             }),
-            ("A dog! A panic in a pagoda.", {
+            (PAGODA, {
                 FN_SRCPKVAL: 2,
                 FN_SRCPKSTR: "pkstr",
             }),
-            ("Won't lovers revolt now?", {
+            (REVOLT, {
                 FN_SRCPKVAL: 3,
                 FN_SRCPKSTR: "pkstr",
             }),
@@ -252,8 +256,9 @@ class CloudRequestSenderTests(TestCase):
 
         mock_cookies = mock.Mock()
 
+        # noinspection PyUnusedLocal
         def mock_send_0_side_effect(*args, **kwargs):
-            self.sender.test_requests[0].cookies = mock_cookies
+            self.sender.test_requests[0]._cookies = mock_cookies
 
         with self.assertLogs(level=logging.INFO) as logging_cm:
             with mock.patch.object(self.sender.test_requests[0],
@@ -297,15 +302,13 @@ class CloudRequestSenderTests(TestCase):
         )
 
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_0[0][NKeys.TEXT],
-                         "A woman, a plan, a canal. Panamowa!")
+        self.assertEqual(content_0[0][NKeys.TEXT], PANAMOWA)
 
         content_1 = requests_out[1]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_1[0][NKeys.TEXT],
-                         "A dog! A panic in a pagoda.")
+        self.assertEqual(content_1[0][NKeys.TEXT], PAGODA)
 
         content_2 = requests_out[2]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_2[0][NKeys.TEXT], "Won't lovers revolt now?")
+        self.assertEqual(content_2[0][NKeys.TEXT], REVOLT)
 
         logger_name = "crate_anon.nlp_manager.nlp_manager"
         expected_message = "Sent request to be processed: #1 of this block"
@@ -320,15 +323,15 @@ class CloudRequestSenderTests(TestCase):
 
     def test_limit_before_commit_2(self) -> None:
         self.test_text = [
-            ("A woman, a plan, a canal. Panamowa!", {
+            (PANAMOWA, {
                 FN_SRCPKVAL: 1,
                 FN_SRCPKSTR: "pkstr",
             }),
-            ("A dog! A panic in a pagoda.", {
+            (PAGODA, {
                 FN_SRCPKVAL: 2,
                 FN_SRCPKSTR: "pkstr",
             }),
-            ("Won't lovers revolt now?", {
+            (REVOLT, {
                 FN_SRCPKVAL: 3,
                 FN_SRCPKSTR: "pkstr",
             }),
@@ -365,23 +368,21 @@ class CloudRequestSenderTests(TestCase):
 
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(len(content_0), 2)
-        self.assertEqual(content_0[0][NKeys.TEXT],
-                         "A woman, a plan, a canal. Panamowa!")
+        self.assertEqual(content_0[0][NKeys.TEXT], PANAMOWA)
 
-        self.assertEqual(content_0[1][NKeys.TEXT],
-                         "A dog! A panic in a pagoda.")
+        self.assertEqual(content_0[1][NKeys.TEXT], PAGODA)
 
     def test_max_content_length(self) -> None:
         self.test_text = [
-            ("A woman, a plan, a canal. Panamowa!", {
+            (PANAMOWA, {
                 FN_SRCPKVAL: 1,
                 FN_SRCPKSTR: "pkstr",
             }),
-            ("A dog! A panic in a pagoda.", {
+            (PAGODA, {
                 FN_SRCPKVAL: 2,
                 FN_SRCPKSTR: "pkstr",
             }),
-            ("Won't lovers revolt now?", {
+            (REVOLT, {
                 FN_SRCPKVAL: 3,
                 FN_SRCPKSTR: "pkstr",
             }),
@@ -433,31 +434,26 @@ class CloudRequestSenderTests(TestCase):
         )
 
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_0[0][NKeys.TEXT],
-                         "A woman, a plan, a canal. Panamowa!")
+        self.assertEqual(content_0[0][NKeys.TEXT], PANAMOWA)
 
-        self.assertEqual(content_0[1][NKeys.TEXT],
-                         "A dog! A panic in a pagoda.")
+        self.assertEqual(content_0[1][NKeys.TEXT], PAGODA)
 
         content_1 = requests_out[1]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_1[0][NKeys.TEXT], "Won't lovers revolt now?")
+        self.assertEqual(content_1[0][NKeys.TEXT], REVOLT)
 
     def test_record_bigger_than_max_content_length_skipped(self) -> None:
+        short_text = "Some text with serialized length greater than 500. "
+        long_text = short_text * 6
         self.test_text = [
-            ("A woman, a plan, a canal. Panamowa!", {
+            (PANAMOWA, {
                 FN_SRCPKVAL: 1,
                 FN_SRCPKSTR: "pkstr",
             }),
-            (("Some text with serialized length greater than 500. "
-              "Some text with serialized length greater than 500. "
-              "Some text with serialized length greater than 500. "
-              "Some text with serialized length greater than 500. "
-              "Some text with serialized length greater than 500. "
-              "Some text with serialized length greater than 500. "), {
+            (long_text, {
                 FN_SRCPKVAL: 2,
                 FN_SRCPKSTR: "pkstr",
             }),
-            ("Won't lovers revolt now?", {
+            (REVOLT, {
                 FN_SRCPKVAL: 3,
                 FN_SRCPKSTR: "pkstr",
             }),
@@ -510,11 +506,10 @@ class CloudRequestSenderTests(TestCase):
 
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(len(content_0), 1)
-        self.assertEqual(content_0[0][NKeys.TEXT],
-                         "A woman, a plan, a canal. Panamowa!")
+        self.assertEqual(content_0[0][NKeys.TEXT], PANAMOWA)
 
         content_1 = requests_out[1]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_1[0][NKeys.TEXT], "Won't lovers revolt now?")
+        self.assertEqual(content_1[0][NKeys.TEXT], REVOLT)
 
         logger_name = "crate_anon.nlp_manager.nlp_manager"
         self.assertIn((f"WARNING:{logger_name}:"
@@ -523,15 +518,15 @@ class CloudRequestSenderTests(TestCase):
 
     def test_skips_previous_record_if_incremental(self) -> None:
         self.test_text = [
-            ("A woman, a plan, a canal. Panamowa!", {
+            (PANAMOWA, {
                 FN_SRCPKVAL: 1,
                 FN_SRCPKSTR: "pkstr",
             }),
-            ("A dog! A panic in a pagoda.", {
+            (PAGODA, {
                 FN_SRCPKVAL: 2,
                 FN_SRCPKSTR: "pkstr",
             }),
-            ("Won't lovers revolt now?", {
+            (REVOLT, {
                 FN_SRCPKVAL: 3,
                 FN_SRCPKSTR: "pkstr",
             }),
@@ -539,7 +534,7 @@ class CloudRequestSenderTests(TestCase):
 
         global_recnum_in = 123
 
-        self.sender.incremental = True
+        self.sender._incremental = True
         self.sender.test_requests = [
             CloudRequestProcess(
                 crinfo=self.crinfo,
@@ -547,6 +542,7 @@ class CloudRequestSenderTests(TestCase):
             ),
         ]
 
+        # noinspection PyUnusedLocal
         def get_progress_record(pkval: int,
                                 pkstr: str) -> Optional[NlpRecord]:
 
@@ -556,9 +552,7 @@ class CloudRequestSenderTests(TestCase):
 
             # changed
             if pkval == 2:
-                return mock.Mock(
-                    srchash=self.hasher.hash("A cat! A panic in a pataca.")
-                )
+                return mock.Mock(srchash=self.hasher.hash(PATACA))
 
             # new
             return None
@@ -587,8 +581,7 @@ class CloudRequestSenderTests(TestCase):
         )
 
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_0[0][NKeys.TEXT],
-                         "A dog! A panic in a pagoda.")
+        self.assertEqual(content_0[0][NKeys.TEXT], PAGODA)
 
         logger_name = "crate_anon.nlp_manager.nlp_manager"
         self.assertIn((f"DEBUG:{logger_name}:Record previously processed; "
@@ -601,7 +594,7 @@ class CloudRequestSenderTests(TestCase):
 
     def test_log_message_frequency(self) -> None:
         self.test_text = [
-            ("A woman, a plan, a canal. Panamowa!", {
+            (PANAMOWA, {
                 FN_SRCDB: "db",
                 FN_SRCFIELD: "field",
                 FN_SRCPKFIELD: "pkfield",
@@ -609,11 +602,11 @@ class CloudRequestSenderTests(TestCase):
                 FN_SRCPKVAL: 1,
                 FN_SRCTABLE: "table",
             }),
-            ("A dog! A panic in a pagoda.", {
+            (PAGODA, {
                 FN_SRCPKSTR: "pkstr",
                 FN_SRCPKVAL: 2,
             }),
-            ("Won't lovers revolt now?", {
+            (REVOLT, {
                 FN_SRCDB: "db",
                 FN_SRCFIELD: "field",
                 FN_SRCPKFIELD: "pkfield",
@@ -625,7 +618,7 @@ class CloudRequestSenderTests(TestCase):
 
         global_recnum_in = 1
 
-        self.sender.report_every = 2
+        self.sender._report_every = 2
         self.sender.test_requests = [
             CloudRequestProcess(
                 crinfo=self.crinfo,
@@ -652,7 +645,7 @@ class CloudRequestSenderTests(TestCase):
 
     def test_failed_request_logged(self) -> None:
         self.test_text = [
-            ("A woman, a plan, a canal. Panamowa!", {
+            (PANAMOWA, {
                 FN_SRCPKSTR: "pkstr",
                 FN_SRCPKVAL: 1,
             }),
@@ -667,6 +660,7 @@ class CloudRequestSenderTests(TestCase):
             ),
         ]
 
+        # noinspection PyUnusedLocal
         def mock_send_0_side_effect(*args, **kwargs):
             self.sender.test_requests[0].request_failed = True
 
@@ -691,7 +685,7 @@ class CloudRequestSenderTests(TestCase):
 
     def test_record_with_no_text_skipped(self) -> None:
         self.test_text = [
-            ("A woman, a plan, a canal. Panamowa!", {
+            (PANAMOWA, {
                 FN_SRCPKVAL: 1,
                 FN_SRCPKSTR: "pkstr",
             }),
@@ -699,7 +693,7 @@ class CloudRequestSenderTests(TestCase):
                 FN_SRCPKVAL: 2,
                 FN_SRCPKSTR: "pkstr",
             }),
-            ("Won't lovers revolt now?", {
+            (REVOLT, {
                 FN_SRCPKVAL: 3,
                 FN_SRCPKSTR: "pkstr",
             }),
@@ -734,8 +728,6 @@ class CloudRequestSenderTests(TestCase):
 
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(len(content_0), 2)
-        self.assertEqual(content_0[0][NKeys.TEXT],
-                         "A woman, a plan, a canal. Panamowa!")
+        self.assertEqual(content_0[0][NKeys.TEXT], PANAMOWA)
 
-        self.assertEqual(content_0[1][NKeys.TEXT],
-                         "Won't lovers revolt now?")
+        self.assertEqual(content_0[1][NKeys.TEXT], REVOLT)

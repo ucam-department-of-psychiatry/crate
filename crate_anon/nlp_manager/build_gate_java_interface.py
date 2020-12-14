@@ -75,7 +75,10 @@ def main() -> None:
         help="Root directory of GATE installation")
     parser.add_argument(
         '--gate_exec',
-        help="Path to GATE executable. Temporary."
+        help="Path to GATE executable (JAR file). "
+             "Temporary (future releases may handle this differently). "
+             "If not specified, defaults to 'bin/gate.jar' "
+             "within the GATE directory."
     )
     parser.add_argument(
         '--java', default=DEFAULT_JAVA,

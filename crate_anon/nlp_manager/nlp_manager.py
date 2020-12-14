@@ -65,15 +65,12 @@ Speed testing:
 
 import argparse
 import csv
-from enum import auto, Enum
 import fileinput
 import json
 import logging
 import os
 import sys
-from typing import (
-    Any, Dict, List, Optional, Tuple, Generator, TYPE_CHECKING,
-)
+from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
 from cardinal_pythonlib.argparse_func import (
     RawDescriptionArgumentDefaultsHelpFormatter
@@ -106,6 +103,7 @@ from crate_anon.nlp_manager.base_nlp_parser import (
     BaseNlpParser,
     TextProcessingFailed,
 )
+from crate_anon.nlp_manager.cloud_request_sender import CloudRequestSender
 from crate_anon.nlp_manager.constants import (
     DEFAULT_REPORT_EVERY_NLP,
     MAX_STRING_PK_LENGTH,
@@ -132,9 +130,6 @@ from crate_anon.nlp_manager.cloud_request import (
     CloudRequestListProcessors,
     CloudRequestProcess,
     CloudRequestQueueManagement,
-    RecordNotPrintable,
-    RecordsPerRequestExceeded,
-    RequestTooLong,
 )
 from crate_anon.nlp_manager.cloud_run_info import CloudRunInfo
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
@@ -626,204 +621,6 @@ def process_nlp(nlpdef: NlpDefinition,
 # Core functions: cloud NLP
 # =============================================================================
 
-class CloudRequestSender(object):
-    class State(Enum):
-        BUILDING_REQUEST = auto()
-        SENDING_REQUEST = auto()
-        FINISHED = auto()
-
-    def __init__(
-            self,
-            generated_text: Generator[Tuple[str, Dict[str, Any]], None, None],
-            crinfo: CloudRunInfo,
-            ifconfig: InputFieldConfig,
-            report_every: int = DEFAULT_REPORT_EVERY_NLP,
-            incremental: bool = False,
-            queue: bool = True) -> None:
-        self.generated_text = generated_text
-        self.crinfo = crinfo
-        self.ifconfig = ifconfig
-        self.report_every = report_every
-        self.incremental = incremental
-        self.queue = queue
-
-    """
-    Sends off a series of cloud requests and returns them as a list.
-    'self.queue' determines whether these are queued requests or not. Also
-    returns whether the generator for the text is empty.
-    """
-    def send_requests(
-            self,
-            global_recnum: int) -> Tuple[List[CloudRequestProcess], bool, int]:
-        self.global_recnum = global_recnum
-        self.requests = []  # type: List[CloudRequestProcess]
-        self.cookies = None  # type: Optional[CookieJar]
-        self.request_count = 1  # number of requests sent
-        self.text = None
-        self.other_values = None
-        self.request_is_empty = True
-        self.need_new_record = True
-        self.need_new_request = True
-
-        # Check processors are available
-        available_procs = self.crinfo.get_remote_processors()
-        if not available_procs:
-            return [], False, self.global_recnum
-
-        self.num_recs_processed = 0
-        self.state = self.State.BUILDING_REQUEST
-
-        # If we've reached the limit of records before commit, return to
-        # outer function in order to process and commit (or write to file if
-        # it's a queued request)
-        while (self.state != self.State.FINISHED):
-            if self.state == self.State.BUILDING_REQUEST:
-                self.build_request()
-
-            if self.state == self.State.SENDING_REQUEST:
-                self.send_request()
-
-        return self.requests, self.num_recs_processed > 0, self.global_recnum
-
-    def build_request(self) -> None:
-        if self.need_new_record:
-            try:
-                self.get_next_record()
-            except StopIteration:
-                self.update_state_for_no_more_records()
-                return
-
-            hasher = self.crinfo.nlpdef.hash
-            srchash = hasher(self.text)
-
-            if self.incremental and self.record_already_processed(srchash):
-                return
-
-            self.num_recs_processed += 1
-            self.other_values[FN_SRCHASH] = srchash
-
-        if self.need_new_request:
-            self.request = self.get_new_cloud_request()
-            self.request_is_empty = True
-            self.need_new_request = False
-
-        self.need_new_record = True
-
-        # Add the text to the cloud request with the appropriate metadata
-        try:
-            self.request.add_text(
-                self.text, self.other_values
-            )
-
-            # added OK, request now has some text
-            self.request_is_empty = False
-
-        except RecordNotPrintable:
-            pass
-        except (RecordsPerRequestExceeded, RequestTooLong) as e:
-            if isinstance(e, RequestTooLong) and self.request_is_empty:
-                # Get some new text next time
-                log.warning("Skipping text that's too long to send")
-            else:
-                # Try same text again with a fresh request
-                self.need_new_record = False
-                self.state = self.State.SENDING_REQUEST
-
-        if self.record_limit_reached():
-            self.state = self.State.SENDING_REQUEST
-
-    def get_new_cloud_request(self) -> CloudRequestProcess:
-        return CloudRequestProcess(self.crinfo)
-
-    def update_state_for_no_more_records(self) -> None:
-        if self.request_is_empty or self.need_new_request:
-            # Nothing more to send
-            self.state = self.State.FINISHED
-            return
-
-        # Send last request
-        self.state = self.State.SENDING_REQUEST
-
-    def record_already_processed(self, srchash: str) -> bool:
-        pkval = self.other_values[FN_SRCPKVAL]
-        pkstr = self.other_values[FN_SRCPKSTR]
-        progrec = self.ifconfig.get_progress_record(pkval, pkstr)
-        if progrec is not None:
-            if progrec.srchash == srchash:
-                log.debug("Record previously processed; skipping")
-                return True
-
-            log.debug("Record has changed")
-        else:
-            log.debug("Record is new")
-
-        return False
-
-    def record_limit_reached(self) -> bool:
-        limit_before_commit = self.crinfo.cloudcfg.limit_before_commit
-        return self.num_recs_processed == limit_before_commit
-
-    def get_next_record(self) -> None:
-        """
-        Reads the next text record and metadata into self.text and
-        self.other_values
-
-        Raises:
-            - :exc:`StopIteration` if there are no more records
-        """
-        self.text, self.other_values = next(self.generated_text)
-        self.global_recnum += 1
-
-        pkval = self.other_values[FN_SRCPKVAL]
-        pkstr = self.other_values[FN_SRCPKSTR]
-        # 'ifconfig.get_progress_record' expects pkstr to be None if it's
-        # empty
-        if not pkstr:
-            pkstr = None
-        if self.report_every and self.global_recnum % self.report_every == 0:
-            # total number of records in table
-            totalcount = self.ifconfig.get_count()
-            log.info(
-                "Processing {db}.{t}.{c}, PK: {pkf}={pkv} "
-                "(record {g_recnum}/{totalcount})".format(
-                    db=self.other_values[FN_SRCDB],
-                    t=self.other_values[FN_SRCTABLE],
-                    c=self.other_values[FN_SRCFIELD],
-                    pkf=self.other_values[FN_SRCPKFIELD],
-                    pkv=pkstr if pkstr else pkval,
-                    g_recnum=self.global_recnum,
-                    totalcount=totalcount
-                )
-            )
-
-        return True
-
-    def send_request(self) -> None:
-        self.request.send_process_request(
-            queue=self.queue,
-            cookies=self.cookies,
-            include_text_in_reply=self.crinfo.cloudcfg.has_gate_processors
-        )
-        # If there's a connection error, we only get this far if we
-        # didn't choose to stop at failure
-        if self.request.request_failed:
-            log.warning("Continuing after failed request.")
-        else:
-            if self.request.cookies:
-                self.cookies = self.request.cookies
-            log.info(f"Sent request to be processed: #{self.request_count} "
-                     f"of this block")
-            self.request_count += 1
-            self.requests.append(self.request)
-
-        if self.record_limit_reached():
-            self.state = self.State.FINISHED
-            return
-
-        self.state = self.State.BUILDING_REQUEST
-        self.need_new_request = True
-
-
 def process_cloud_nlp(crinfo: CloudRunInfo,
                       incremental: bool = False,
                       report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
@@ -842,7 +639,7 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
             generated_text = ifconfig.gen_text()
             global_recnum = 0  # Global record number within this ifconfig
             sender = CloudRequestSender(
-                generated_text=generated_text,
+                text_generator=generated_text,
                 crinfo=crinfo,
                 ifconfig=ifconfig,
                 incremental=incremental,
@@ -988,7 +785,7 @@ def process_cloud_now(
         global_recnum = 0  # Global record number within this ifconfig
         generated_text = ifconfig.gen_text()
         sender = CloudRequestSender(
-            generated_text=generated_text,
+            text_generator=generated_text,
             crinfo=crinfo,
             ifconfig=ifconfig,
             incremental=incremental,
@@ -1001,7 +798,7 @@ def process_cloud_now(
             (cloud_requests,
              records_left,
              global_recnum) = sender.send_requests(global_recnum)
-            progrecs = set()
+            progrecs = set()  # type: Set[NlpRecord]
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
                     continue
@@ -1015,6 +812,10 @@ def process_cloud_now(
                     srchash = metadata[FN_SRCHASH]
                     progrec = None
                     if incremental:
+                        # A word of explanation: to get here, the record must
+                        # have already been found worthy of updating. This is
+                        # now ensured by the CloudRequestSender, which will
+                        # skip relevant unchanged records.
                         crinfo.delete_dest_records(ifconfig, pkval, pkstr,
                                                    commit=True)
                         # Record progress in progress database
@@ -1023,8 +824,10 @@ def process_cloud_now(
                     # record to avoid clashes - it's possible as each processor
                     # may contain results for each record and a set of results
                     # is a list of processors and their results
+                    #
                     # if srchash in seen_srchashs:
-                        # progrec = ifconfig.get_progress_record(pkval, pkstr)
+                    #   progrec = ifconfig.get_progress_record(pkval, pkstr)
+                    #
                     # Make a note in the progress database that we've processed
                     # a source record
                     if progrec:  # modifying an existing record
