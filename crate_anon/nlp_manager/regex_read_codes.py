@@ -45,9 +45,6 @@ from crate_anon.common.regex_helpers import (
     regex_or,
     RIGHT_BRACKET as RB,
 )
-from crate_anon.nlp_manager.regex_func import (
-    compile_regex,
-)
 
 log = logging.getLogger(__name__)
 
@@ -107,7 +104,7 @@ class ReadCode(object):
         """
         components = []  # type: List[str]
         esc_read = escape_literal_string_for_regex(self.read_code)
-        optional_observation = rf"(?:\s* - \s+ observation)?"
+        optional_observation = r"(?:\s* - \s+ observation)?"
         for p in self.phrases:
             phrase = at_start_wb(
                 escape_literal_for_regex_allowing_flexible_whitespace(p)

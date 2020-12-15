@@ -1028,8 +1028,8 @@ class GammaGTValidator(ValidatorBase):
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return GammaGT.NAME, [GammaGT.GGT]
-        
-        
+
+
 # =============================================================================
 # Total bilirubin
 # =============================================================================
@@ -1116,7 +1116,7 @@ class BilirubinValidator(ValidatorBase):
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Bilirubin.NAME, [Bilirubin.BILIRUBIN]
-        
+
 
 # =============================================================================
 # Albumin (Alb)
@@ -1193,7 +1193,7 @@ class AlbuminValidator(ValidatorBase):
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Albumin.NAME, [Albumin.ALBUMIN]
-        
+
 
 # =============================================================================
 # Glucose
