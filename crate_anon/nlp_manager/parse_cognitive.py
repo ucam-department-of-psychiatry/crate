@@ -46,13 +46,13 @@ from typing import List, Optional, Tuple
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
+from crate_anon.common.regex_helpers import WORD_BOUNDARY
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_numbers import UNSIGNED_INTEGER
 from crate_anon.nlp_manager.regex_parser import (
     APOSTROPHE,
     NumeratorOutOfDenominatorParser,
     ValidatorBase,
-    WORD_BOUNDARY,
 )
 from crate_anon.nlp_manager.regex_units import OUT_OF_SEPARATOR
 

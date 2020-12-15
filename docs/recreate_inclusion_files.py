@@ -98,80 +98,10 @@ def run_cmd(cmdargs: List[str],
 
 
 def main():
-    # -------------------------------------------------------------------------
-    # ancillary
-    # -------------------------------------------------------------------------
-    run_cmd(["crate_make_demo_database", "--help"],
-            join(ANCILLARY_DIR, "_crate_make_demo_database_help.txt"))
-    run_cmd(["crate_test_anonymisation", "--help"],
-            join(ANCILLARY_DIR, "_crate_test_anonymisation_help.txt"))
-    run_cmd(["crate_test_extract_text", "--help"],
-            join(ANCILLARY_DIR, "_crate_test_extract_text_help.txt"))
+    # Follow the sequence in setup.py for clarity.
 
     # -------------------------------------------------------------------------
-    # anonymisation
-    # -------------------------------------------------------------------------
-    run_cmd(["crate_anonymise", "--help"],
-            join(ANON_DIR, "_crate_anonymise_help.txt"))
-    run_cmd(["crate_anonymise_multiprocess", "--help"],
-            join(ANON_DIR, "_crate_anonymise_multiprocess_help.txt"))
-    run_cmd(["crate_anonymise", "--democonfig"],
-            join(ANON_DIR, "_specimen_anonymiser_config.ini"))
-    log.info("Manually generated: minimal_anonymiser_config.ini")
-
-    # -------------------------------------------------------------------------
-    # linkage
-    # -------------------------------------------------------------------------
-    run_cmd(["crate_bulk_hash", "--help"],
-            join(LINKAGE_DIR, "_crate_bulk_hash_help.txt"))
-
-    # -------------------------------------------------------------------------
-    # nlp
-    # -------------------------------------------------------------------------
-    run_cmd(["crate_show_crate_gate_pipeline_options"],
-            join(NLP_DIR, "_CrateGatePipeline_help.txt"))
-    run_cmd(["crate_show_crate_medex_pipeline_options"],
-            join(NLP_DIR, "_CrateMedexPipeline_help.txt"))
-    run_cmd(["crate_nlp_build_gate_java_interface", "--help"],
-            join(NLP_DIR, "_crate_nlp_build_gate_java_interface_help.txt"))
-    run_cmd(["crate_nlp_build_medex_itself", "--help"],
-            join(NLP_DIR, "_crate_nlp_build_medex_itself_help.txt"))
-    run_cmd(["crate_nlp_build_medex_java_interface", "--help"],
-            join(NLP_DIR, "_crate_nlp_build_medex_java_interface_help.txt"))
-    run_cmd(["crate_nlp", "--describeprocessors"],
-            join(NLP_DIR, "_crate_nlp_describeprocessors.txt"))
-    run_cmd(["crate_nlp", "--help"],
-            join(NLP_DIR, "_crate_nlp_help.txt"))
-    run_cmd(["crate_nlp_multiprocess", "--help"],
-            join(NLP_DIR, "_crate_nlp_multiprocess_help.txt"))
-    run_cmd(["crate_nlp", "--democonfig"],
-            join(NLP_DIR, "_specimen_nlp_config_file.ini"))
-    run_cmd(["crate_nlp_webserver_initialize_db", "--help"],
-            join(NLP_DIR, "_crate_nlp_webserver_initialize_db_help.txt"))
-    run_cmd(["crate_nlp_webserver_print_demo", "--help"],
-            join(NLP_DIR, "_crate_nlp_webserver_print_demo_help.txt"))
-    run_cmd(["crate_nlp_webserver_print_demo", "--config"],
-            join(NLP_DIR, "_nlp_webserver_demo_config.ini"))
-    run_cmd(["crate_nlp_webserver_print_demo", "--processors"],
-            join(NLP_DIR, "_nlp_webserver_demo_processors.py"),
-            executable=True)
-    run_cmd(["crate_nlp_webserver_pserve", "--help"],
-            join(NLP_DIR, "_crate_nlp_webserver_pserve_help.txt"))
-    run_cmd(["crate_nlp_webserver_pserve", "--help"],
-            join(NLP_DIR, "_crate_nlp_webserver_pserve_help.txt"))
-    run_cmd(["crate_nlp_webserver_launch_gunicorn", "--help"],
-            join(NLP_DIR, "_crate_nlp_webserver_launch_gunicorn_help.txt"))
-    run_cmd(["crate_nlp_webserver_launch_celery", "--help"],
-            join(NLP_DIR, "_crate_nlp_webserver_launch_celery_help.txt"))
-    shutil.copy(join(CrateDir.NLP_MANAGER, "specimen_gate_plugin_file.ini"),
-                join(NLP_DIR, "_specimen_gate_plugin_file.ini"))
-    shutil.copy(join(CrateDir.NLPRP, "nlprp_test_client.py"),
-                join(NLP_DIR, "_nlprp_test_client.py"))
-    shutil.copy(join(CrateDir.NLPRP, "nlprp_test_server.py"),
-                join(NLP_DIR, "_nlprp_test_server.py"))
-
-    # -------------------------------------------------------------------------
-    # preprocessing
+    # Preprocessing
     # -------------------------------------------------------------------------
     run_cmd(["crate_fetch_wordlists", "--help"],
             join(PREPROC_DIR, "_crate_fetch_wordlists_help.txt"))
@@ -185,7 +115,68 @@ def main():
             join(PREPROC_DIR, "_crate_preprocess_rio_help.txt"))
 
     # -------------------------------------------------------------------------
-    # website_config
+    # Linkage
+    # -------------------------------------------------------------------------
+    run_cmd(["crate_bulk_hash", "--help"],
+            join(LINKAGE_DIR, "_crate_bulk_hash_help.txt"))
+    # NOT YET, BUT WHEN IT'S RELEASED:
+    # run_cmd(["crate_fuzzy_id_match", "--help"],
+    #         join(LINKAGE_DIR, "_crate_fuzzy_id_match.txt"))
+
+    # -------------------------------------------------------------------------
+    # Anonymisation
+    # -------------------------------------------------------------------------
+    run_cmd(["crate_anonymise", "--help"],
+            join(ANON_DIR, "_crate_anonymise_help.txt"))
+    run_cmd(["crate_anonymise", "--democonfig"],
+            join(ANON_DIR, "_specimen_anonymiser_config.ini"))
+
+    run_cmd(["crate_anonymise_multiprocess", "--help"],
+            join(ANON_DIR, "_crate_anonymise_multiprocess_help.txt"))
+    run_cmd(["crate_make_demo_database", "--help"],
+            join(ANCILLARY_DIR, "_crate_make_demo_database_help.txt"))
+    run_cmd(["crate_test_anonymisation", "--help"],
+            join(ANCILLARY_DIR, "_crate_test_anonymisation_help.txt"))
+    run_cmd(["crate_test_extract_text", "--help"],
+            join(ANCILLARY_DIR, "_crate_test_extract_text_help.txt"))
+
+    log.info("Manually generated: minimal_anonymiser_config.ini")
+
+    # -------------------------------------------------------------------------
+    # NLP
+    # -------------------------------------------------------------------------
+    run_cmd(["crate_nlp", "--democonfig"],
+            join(NLP_DIR, "_specimen_nlp_config_file.ini"))
+    run_cmd(["crate_nlp", "--describeprocessors"],
+            join(NLP_DIR, "_crate_nlp_describeprocessors.txt"))
+    run_cmd(["crate_nlp", "--help"],
+            join(NLP_DIR, "_crate_nlp_help.txt"))
+
+    run_cmd(["crate_nlp_build_gate_java_interface", "--help"],
+            join(NLP_DIR, "_crate_nlp_build_gate_java_interface_help.txt"))
+    run_cmd(["crate_nlp_build_medex_itself", "--help"],
+            join(NLP_DIR, "_crate_nlp_build_medex_itself_help.txt"))
+    run_cmd(["crate_nlp_build_medex_java_interface", "--help"],
+            join(NLP_DIR, "_crate_nlp_build_medex_java_interface_help.txt"))
+    run_cmd(["crate_nlp_multiprocess", "--help"],
+            join(NLP_DIR, "_crate_nlp_multiprocess_help.txt"))
+    run_cmd(["crate_nlp_prepare_ymls_for_bioyodie", "--help"],
+            join(NLP_DIR, "_crate_nlp_prepare_ymls_for_bioyodie.txt"))
+    run_cmd(["crate_run_crate_nlp_demo", "--help"],
+            join(NLP_DIR, "_crate_run_crate_nlp_demo.txt"))
+    # No help: crate_run_gate_annie_demo
+    # No help: crate_run_gate_kcl_kconnect_demo
+    # No help: crate_run_gate_kcl_lewy_demo
+    # No help: crate_run_gate_kcl_pharmacotherapy_demo
+    run_cmd(["crate_show_crate_gate_pipeline_options"],
+            join(NLP_DIR, "_CrateGatePipeline_help.txt"))
+    run_cmd(["crate_show_crate_medex_pipeline_options"],
+            join(NLP_DIR, "_CrateMedexPipeline_help.txt"))
+    shutil.copy(join(CrateDir.NLP_MANAGER, "specimen_gate_plugin_file.ini"),
+                join(NLP_DIR, "_specimen_gate_plugin_file.ini"))
+
+    # -------------------------------------------------------------------------
+    # Research web site
     # -------------------------------------------------------------------------
     run_cmd(["crate_django_manage", "--help"],
             join(WEB_DIR, "_crate_django_manage_help.txt"))
@@ -221,8 +212,47 @@ def main():
             join(WEB_DIR, "_crate_launch_django_server_help.txt"))
     run_cmd(["crate_print_demo_crateweb_config"],
             join(WEB_DIR, "_specimen_web_config.py"))
+
     log.warning("Skipping crate_windows_service_help.txt (requires Windows)")
 
+    # skip: crate_launch_cherrypy_server
+    # skip: crate_launch_django_server
+
+    # -------------------------------------------------------------------------
+    # NLPRP/NLP web server
+    # -------------------------------------------------------------------------
+    # No help: crate_nlp_webserver_generate_encryption_key
+    run_cmd(["crate_nlp_webserver_initialize_db", "--help"],
+            join(NLP_DIR, "_crate_nlp_webserver_initialize_db_help.txt"))
+    run_cmd(["crate_nlp_webserver_launch_celery", "--help"],
+            join(NLP_DIR, "_crate_nlp_webserver_launch_celery_help.txt"))
+    # No help: crate_nlp_webserver_launch_flower
+    run_cmd(["crate_nlp_webserver_launch_gunicorn", "--help"],
+            join(NLP_DIR, "_crate_nlp_webserver_launch_gunicorn_help.txt"))
+    run_cmd(["crate_nlp_webserver_manage_users", "--help"],
+            join(NLP_DIR, "_crate_nlp_webserver_manage_users.txt"))
+
+    run_cmd(["crate_nlp_webserver_print_demo", "--help"],
+            join(NLP_DIR, "_crate_nlp_webserver_print_demo_help.txt"))
+    run_cmd(["crate_nlp_webserver_print_demo", "--config"],
+            join(NLP_DIR, "_nlp_webserver_demo_config.ini"))
+    run_cmd(["crate_nlp_webserver_print_demo", "--processors"],
+            join(NLP_DIR, "_nlp_webserver_demo_processors.py"),
+            executable=True)
+
+    run_cmd(["crate_nlp_webserver_pserve", "--help"],
+            join(NLP_DIR, "_crate_nlp_webserver_pserve_help.txt"))
+    run_cmd(["crate_nlp_webserver_pserve", "--help"],
+            join(NLP_DIR, "_crate_nlp_webserver_pserve_help.txt"))
+
+    shutil.copy(join(CrateDir.NLPRP, "nlprp_test_client.py"),
+                join(NLP_DIR, "_nlprp_test_client.py"))
+    shutil.copy(join(CrateDir.NLPRP, "nlprp_test_server.py"),
+                join(NLP_DIR, "_nlprp_test_server.py"))
+
+    # -------------------------------------------------------------------------
+    # Done.
+    # -------------------------------------------------------------------------
     log.info("Done.")
 
 

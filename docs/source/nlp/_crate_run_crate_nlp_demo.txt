@@ -1,0 +1,35 @@
+usage: crate_run_crate_nlp_demo [-h] [--terminator TERMINATOR] --processors
+                                PROCESSOR [PROCESSOR ...] [--verbose]
+                                inputs [inputs ...]
+
+Demonstrate CRATE's built-in Python NLP tools
+
+positional arguments:
+  inputs                Input files (use '-' for stdin)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --terminator TERMINATOR
+                        Single-line terminator separating input chunks in an
+                        input file. (default: STOP)
+  --processors PROCESSOR [PROCESSOR ...]
+                        NLP processor(s) to apply. Possibilities: Ace,AceValid
+                        ator,Albumin,AlbuminValidator,AlkPhos,AlkPhosValidator
+                        ,ALT,ALTValidator,Basophils,BasophilsValidator,Bilirub
+                        in,BilirubinValidator,Bmi,BmiValidator,Bp,BpValidator,
+                        Creatinine,CreatinineValidator,Crp,CrpValidator,Eosino
+                        phils,EosinophilsValidator,Esr,EsrValidator,GammaGT,Ga
+                        mmaGTValidator,Gate,Glucose,GlucoseValidator,Haematocr
+                        it,HaematocritValidator,Haemoglobin,HaemoglobinValidat
+                        or,HbA1c,HbA1cValidator,HDLCholesterol,HDLCholesterolV
+                        alidator,Height,HeightValidator,LDLCholesterol,LDLChol
+                        esterolValidator,Lithium,LithiumValidator,Lymphocytes,
+                        LymphocytesValidator,Medex,MiniAce,MiniAceValidator,Mm
+                        se,MmseValidator,Moca,MocaValidator,Monocytes,Monocyte
+                        sValidator,Neutrophils,NeutrophilsValidator,Platelets,
+                        PlateletsValidator,Potassium,PotassiumValidator,RBC,RB
+                        CValidator,Sodium,SodiumValidator,TotalCholesterol,Tot
+                        alCholesterolValidator,Triglycerides,TriglyceridesVali
+                        dator,Tsh,TshValidator,Urea,UreaValidator,Wbc,WbcValid
+                        ator,Weight,WeightValidator (default: None)
+  --verbose             Be verbose (default: False)

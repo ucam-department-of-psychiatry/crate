@@ -243,6 +243,17 @@ def possible_processor_names() -> List[str]:
     return [cls.classname() for cls in all_parser_classes()]
 
 
+def possible_processor_names_without_external_tools() -> List[str]:
+    """
+    Returns all NLP processor names for processors that don't rely on external
+    tools.
+    """
+    return [
+        cls.classname() for cls in all_parser_classes()
+        if not cls.uses_external_tool
+    ]
+
+
 def possible_processor_table() -> str:
     """
     Returns a pretty-formatted string containing a table of all NLP processors

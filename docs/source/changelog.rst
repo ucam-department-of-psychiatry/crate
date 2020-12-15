@@ -1300,6 +1300,21 @@ Changes
 
 - Comment lines and blank lines ignored in data dictionary.
 
+**0.19.1, 2020-11-21**
+
+- "LFT" NLP processors: albumin, ALT, alkaline phosphatase, bilirubin, gamma
+  GT.
+
+- ``crate_run_crate_nlp_demo`` tool to test internal NLP more conveniently.
+
+- Bugfix to ``crate_anon.anonymise.anonregex.escape_literal_string_for_regex``:
+  was not doing its job!
+
+- Read code support for blood test NLP parsers (biochemistry, haematology).
+
+- Significant rework to numerical NLP to support a wider variety, e.g.
+  ``sodium (mM) 132`` as well as ``sodium 132 mM``.
+
 
 ===============================================================================
 

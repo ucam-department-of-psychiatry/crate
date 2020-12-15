@@ -66,11 +66,11 @@ def per(numerator: str, denominator: str,
     """
     # Copes with blank/optional numerators, too.
     options = [
-        fr"(?: {numerator} \s* (?: \/ | \b per \b) \s* {denominator} )",
+        fr"{numerator} \s* (?: \/ | \b per \b) \s* {denominator}",
     ]
     if include_power_minus1:
         options.append(
-            fr"(?: {numerator} \s* \b {denominator} \s* -1 )")
+            fr"{numerator} \s* \b {denominator} \s* -1")
     return r"(?: {} )".format(r" | ".join(options))
     # Use of "\s* \b" rather than "\s+" is so we can have a BLANK numerator.
 
@@ -235,9 +235,11 @@ PERCENT = r"""(?:%|pe?r?\s?ce?n?t)"""
 
 CELLS = r"(?:\b cells? \b)"
 OPTIONAL_CELLS = CELLS + "?"
+
 MOLES = r"(?:\b mole?s? \b)"  # mol, mole, mols, moles
 MICROMOLES = r"(?: (?:micro|μ|u)mole?s? )"
 MILLIMOLES = r"(?: m(?:illi)?mole?s? )"
+
 MICROEQ = r"(?: (?:micro|μ|u)Eq )"
 MILLIEQ = r"(?:m(?:illi)?Eq)"
 
@@ -251,11 +253,10 @@ SCORE = r"(?:scored?)"  # score(d)
 # Concentration
 # -----------------------------------------------------------------------------
 
-MICROMOLAR = r"(?:[μu]M)"
+MICROMOLAR = r"(?:[μu]M | micromolar)"
 MILLIMOLAR = r"(?:mM)"  # NB case-insensitive... confusable with millimetres
 
 BILLION_PER_L = per(BILLION, L)
-TRILLION_PER_L = per(TRILLION, L)
 CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
 CELLS_PER_CUBIC_MM_OR_MICROLITRE = per(OPTIONAL_CELLS, CUBIC_MM_OR_MICROLITRE)
 G_PER_DL = per(G, DL)
@@ -270,6 +271,8 @@ MILLIEQ_PER_L = per(MILLIEQ, L)
 MILLIMOLES_PER_L = per(MILLIMOLES, L)
 MILLIMOLES_PER_MOL = per(MILLIMOLES, MOLES)
 MILLIUNITS_PER_L = per(MILLIUNITS, L)
+TRILLION_PER_L = per(TRILLION, L)
+UNITS_PER_L = per(UNITS, L)
 
 # -----------------------------------------------------------------------------
 # Speed

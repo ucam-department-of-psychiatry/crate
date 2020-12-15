@@ -492,6 +492,7 @@ class Medex(BaseNlpParser):
     Class controlling a Medex-UIMA external process, via our custom Java
     interface, ``CrateMedexPipeline.java``.
     """
+    uses_external_tool = True
 
     def __init__(self,
                  nlpdef: NlpDefinition,

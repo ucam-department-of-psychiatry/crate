@@ -635,6 +635,8 @@ class BaseNlpParser(TableMaker):
     """
     Base class for all local CRATE NLP parsers.
     """
+    uses_external_tool = False  # may be overridden
+
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
                  cfg_processor_name: Optional[str],
