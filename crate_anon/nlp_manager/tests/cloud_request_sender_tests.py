@@ -31,6 +31,7 @@ from typing import Any, Dict, Generator, Optional, Tuple
 from unittest import mock, TestCase
 
 from crate_anon.nlp_manager.cloud_request import CloudRequestProcess
+from crate_anon.nlp_manager.cloud_request_sender import CloudRequestSender
 from crate_anon.nlp_manager.constants import HashClass
 from crate_anon.nlp_manager.input_field_config import (
     FN_SRCDB,
@@ -41,7 +42,6 @@ from crate_anon.nlp_manager.input_field_config import (
     FN_SRCTABLE,
 )
 from crate_anon.nlp_manager.models import FN_SRCHASH, NlpRecord
-from crate_anon.nlp_manager.nlp_manager import CloudRequestSender
 from crate_anon.nlprp.constants import NlprpKeys as NKeys
 
 PANAMOWA = "A woman, a plan, a canal. Panamowa!"
@@ -310,7 +310,7 @@ class CloudRequestSenderTests(TestCase):
         content_2 = requests_out[2]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(content_2[0][NKeys.TEXT], REVOLT)
 
-        logger_name = "crate_anon.nlp_manager.nlp_manager"
+        logger_name = "crate_anon.nlp_manager.cloud_request_sender"
         expected_message = "Sent request to be processed: #1 of this block"
         self.assertIn(f"INFO:{logger_name}:{expected_message}",
                       logging_cm.output)
@@ -511,7 +511,7 @@ class CloudRequestSenderTests(TestCase):
         content_1 = requests_out[1]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(content_1[0][NKeys.TEXT], REVOLT)
 
-        logger_name = "crate_anon.nlp_manager.nlp_manager"
+        logger_name = "crate_anon.nlp_manager.cloud_request_sender"
         self.assertIn((f"WARNING:{logger_name}:"
                        f"Skipping text that's too long to send"),
                       logging_cm.output)
@@ -583,7 +583,7 @@ class CloudRequestSenderTests(TestCase):
         content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
         self.assertEqual(content_0[0][NKeys.TEXT], PAGODA)
 
-        logger_name = "crate_anon.nlp_manager.nlp_manager"
+        logger_name = "crate_anon.nlp_manager.cloud_request_sender"
         self.assertIn((f"DEBUG:{logger_name}:Record previously processed; "
                        "skipping"),
                       logging_cm.output)
@@ -632,7 +632,7 @@ class CloudRequestSenderTests(TestCase):
                                    "send_process_request"):
                 self.sender.send_requests(global_recnum_in)
 
-        logger_name = "crate_anon.nlp_manager.nlp_manager"
+        logger_name = "crate_anon.nlp_manager.cloud_request_sender"
         expected_message = ("Processing db.table.field, PK: pkfield=pkstr "
                             "(record 2/100)")
         self.assertIn(f"INFO:{logger_name}:{expected_message}",
@@ -679,7 +679,7 @@ class CloudRequestSenderTests(TestCase):
         self.assertTrue(records_processed)
         self.assertEqual(global_recnum_out, 2)
 
-        logger_name = "crate_anon.nlp_manager.nlp_manager"
+        logger_name = "crate_anon.nlp_manager.cloud_request_sender"
         self.assertIn(f"WARNING:{logger_name}:Continuing after failed request.",
                       logging_cm.output)
 
