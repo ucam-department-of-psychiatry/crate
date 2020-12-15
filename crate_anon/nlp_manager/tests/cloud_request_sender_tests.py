@@ -258,7 +258,7 @@ class CloudRequestSenderTests(TestCase):
 
         # noinspection PyUnusedLocal
         def mock_send_0_side_effect(*args, **kwargs):
-            self.sender.test_requests[0]._cookies = mock_cookies
+            self.sender.test_requests[0].cookies = mock_cookies
 
         with self.assertLogs(level=logging.INFO) as logging_cm:
             with mock.patch.object(self.sender.test_requests[0],
