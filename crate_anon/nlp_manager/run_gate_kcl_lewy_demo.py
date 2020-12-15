@@ -47,7 +47,7 @@ def main() -> None:
     """
     Command-line entry point.
     """
-    main_only_quicksetup_rootlogger(level = logging.DEBUG)
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
     gate_home = get_envvar_or_die(EnvVar.GATE_HOME)
     plugin_file = get_envvar_or_die(EnvVar.CRATE_GATE_PLUGIN_FILE)
     kcl_lewy_dir = get_envvar_or_die(EnvVar.KCL_LEWY_BODY_DIAGNOSIS_DIR)

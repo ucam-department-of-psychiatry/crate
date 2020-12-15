@@ -269,11 +269,11 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # Superuser access only
     # -------------------------------------------------------------------------
+    # ... NB hard-coded reference to this in consent/storage.py;
+    # can't use reverse
     url(fr'^{DOWNLOAD_PRIVATESTORAGE_URL_STEM}/(?P<filename>.+)$',
         consent_views.download_privatestorage,
         name=UrlNames.DOWNLOAD_PRIVATESTORAGE),
-        # ... NB hard-coded reference to this in consent/storage.py;
-        # can't use reverse
     url(r'^charity_report/$',
         consent_views.charity_report, name=UrlNames.CHARITY_REPORT),
     url(r'^exclusion_report/$',
@@ -296,11 +296,11 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # Restricted C4C views (token-based); clinicians
     # -------------------------------------------------------------------------
+    # note the -? : allows viewing (and URL-reversing within) an e-mail
+    # having a dummy ID of -1.
     url(r'^clinician_response/(?P<clinician_response_id>-?[0-9]+)/$',
         consent_views.clinician_response_view,
         name=UrlNames.CLINICIAN_RESPONSE),
-        # note the -? : allows viewing (and URL-reversing within) an e-mail
-        # having a dummy ID of -1.
     url(r'^clinician_pack/(?P<clinician_response_id>-?[0-9]+)/(?P<token>[a-zA-Z0-9]+)/$',  # noqa
         consent_views.clinician_pack, name=UrlNames.CLINICIAN_PACK),
 
@@ -343,7 +343,7 @@ urlpatterns = [
         name=UrlNames.DRAFT_WITHDRAWAL_LETTER),
     url(r'^draft_first_traffic_light_letter/(?P<patient_lookup_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
         consent_views.draft_first_traffic_light_letter,
-            name=UrlNames.DRAFT_FIRST_TRAFFIC_LIGHT_LETTER),
+        name=UrlNames.DRAFT_FIRST_TRAFFIC_LIGHT_LETTER),
     url(r'^draft_letter_clinician_to_pt_re_study/(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
         consent_views.draft_letter_clinician_to_pt_re_study,
         name=UrlNames.DRAFT_LETTER_CLINICIAN_TO_PT_RE_STUDY),

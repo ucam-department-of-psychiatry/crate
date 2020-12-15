@@ -386,8 +386,11 @@ class NonspecificScrubber(ScrubberBase):
         if self.scrub_all_uk_postcodes:
             elements.extend(
                 get_uk_postcode_regex_elements(
-                    at_word_boundaries_only=
-                    self.anonymise_codes_at_word_boundaries_only))
+                    at_word_boundaries_only=(
+                        self.anonymise_codes_at_word_boundaries_only
+                    )
+                )
+            )
         # noinspection PyTypeChecker
         for n in self.scrub_all_numbers_of_n_digits:
             elements.extend(get_number_of_length_n_regex_elements(

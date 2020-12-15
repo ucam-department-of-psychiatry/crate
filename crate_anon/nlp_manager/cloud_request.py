@@ -36,6 +36,7 @@ import logging
 import sys
 from typing import Any, Dict, List, Tuple, Generator, Optional, TYPE_CHECKING
 import time
+from sqlalchemy.exc import DataError
 
 from cardinal_pythonlib.compression import gzip_string
 from cardinal_pythonlib.rate_limiting import rate_limited
@@ -114,6 +115,22 @@ def to_json_str(json_structure: JsonValueType) -> str:
                       separators=JSON_SEPARATORS_COMPACT)
     # This needs 'default=str' to deal with non-JSON-serializable
     # objects that may occur, such as datetimes in the metadata.
+
+
+# =============================================================================
+# Exceptions
+# =============================================================================
+
+class RecordNotPrintable(Exception):
+    pass
+
+
+class RecordsPerRequestExceeded(Exception):
+    pass
+
+
+class RequestTooLong(Exception):
+    pass
 
 
 # =============================================================================
@@ -511,7 +528,8 @@ class CloudRequestProcess(CloudRequest):
                 version = name_version[1]
                 self.add_processor_to_request(name, version)
 
-    def add_text(self, text: str, other_values: Dict[str, Any]) -> bool:
+    def add_text(self, text: str,
+                 other_values: Dict[str, Any]) -> None:
         """
         Adds text for analysis to the NLP request, with associated metadata.
 
@@ -524,17 +542,20 @@ class CloudRequestProcess(CloudRequest):
             text: the text
             other_values: the metadata
 
-        Returns:
-            bool: ``True`` if successfully added, ``False`` if not.
+        Raises:
+            - :exc:`RecordNotPrintable` if the record contains no printable
+              characters
+            - :exc:`RecordsPerRequestExceeded` if the request has exceeded the
+              maximum number of records per request
+            - :exc:`RequestTooLong` if the request has exceeded the maximum
+              length
         """
         if not does_text_contain_word_chars(text):
-            # log.warning(f"No word characters found in text: {text!r}")
-            return False
+            raise RecordNotPrintable
 
-        if self.number_of_records >= self._cloudcfg.max_records_per_request - 1:
-            # Return False if we've reached the record limit for the request
-            return False
         self.number_of_records += 1
+        if self.number_of_records > self._cloudcfg.max_records_per_request:
+            raise RecordsPerRequestExceeded
 
         new_content = {
             NKeys.METADATA: other_values,
@@ -552,9 +573,7 @@ class CloudRequestProcess(CloudRequest):
             # log.warning("too long!")
             # Too long. Restore the previous state!
             args[content_key] = old_content
-            return False
-        # Success.
-        return True
+            raise RequestTooLong
 
     def send_process_request(self, queue: bool,
                              cookies: CookieJar = None,
@@ -784,8 +803,10 @@ class CloudRequestProcess(CloudRequest):
                             log.error(failmsg)
                             raise
                     else:
-                        log.error(failmsg)
-                        raise
+                        raise KeyError(
+                            f"Server returned processor {name} "
+                            f"version {version}, but this processor "
+                            f"was not requested.")
                 if processor.format == NlpDefValues.FORMAT_GATE:
                     for t, r in self.get_nlp_values_gate(processor_data,
                                                          processor,
@@ -826,8 +847,12 @@ class CloudRequestProcess(CloudRequest):
             final_values = {k: v for k, v in nlp_values.items()
                             if k in column_names}
             insertquery = sqla_table.insert().values(final_values)
-            with MultiTimerContext(timer, TIMING_INSERT):
-                session.execute(insertquery)
+            try:
+                with MultiTimerContext(timer, TIMING_INSERT):
+                    session.execute(insertquery)
+            except DataError as e:
+                log.error(e)
+                # ... but proceed.
             self._nlpdef.notify_transaction(
                 session, n_rows=1, n_bytes=sys.getsizeof(final_values),
                 force_commit=self._commit)

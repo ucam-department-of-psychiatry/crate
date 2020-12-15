@@ -700,7 +700,7 @@ class NlpWebViews(object):
             client_job_id = ""
 
         # Queue IDs that are of interest
-        queue_id_wheres = [Document.username == self.username]  # type: List[ClauseElement]  # nopep8
+        queue_id_wheres = [Document.username == self.username]  # type: List[ClauseElement]  # noqa: E501
         if client_job_id:
             queue_id_wheres.append(Document.client_job_id == client_job_id)
         # noinspection PyUnresolvedReferences

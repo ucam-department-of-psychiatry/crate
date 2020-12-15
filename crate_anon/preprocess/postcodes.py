@@ -1293,8 +1293,7 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
-        description=
-        r"""
+        description=r"""
 -   This program reads data from the UK Office of National Statistics Postcode
     Database (ONSPD) and inserts it into a database.
 
@@ -1321,7 +1320,7 @@ def main() -> None:
     Contains National Statistics data © Crown copyright and database right [year]
 
     See http://www.ons.gov.uk/methodology/geography/licences
-    """)  # noqa
+    """)  # noqa: E501
     parser.add_argument(
         "--dir", default=DEFAULT_ONSPD_DIR,
         help="Root directory of unzipped ONSPD download")

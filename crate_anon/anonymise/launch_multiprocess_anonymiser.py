@@ -82,8 +82,8 @@ def main() -> None:
 
     parser.add_argument(
         "--nproc", "-n", nargs="?", type=int, default=CPUCOUNT,
-        help=f"Number of processes "
-             f"(default is the number of CPUs on this machine)")
+        help="Number of processes "
+             "(default is the number of CPUs on this machine)")
     parser.add_argument(
         '--verbose', '-v', action='store_true',
         help="Be verbose")

@@ -30,4 +30,4 @@ The mere existence of this file makes Python treat the directory as a package.
 
 # Create crate_anon.__version__:
 # noinspection PyPep8Naming
-from crate_anon.version import CRATE_VERSION as __version__
+from crate_anon.version import CRATE_VERSION as __version__  # noqa: F401

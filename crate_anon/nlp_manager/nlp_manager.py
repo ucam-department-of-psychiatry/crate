@@ -70,7 +70,7 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Generator, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
 from cardinal_pythonlib.argparse_func import (
     RawDescriptionArgumentDefaultsHelpFormatter
@@ -103,6 +103,7 @@ from crate_anon.nlp_manager.base_nlp_parser import (
     BaseNlpParser,
     TextProcessingFailed,
 )
+from crate_anon.nlp_manager.cloud_request_sender import CloudRequestSender
 from crate_anon.nlp_manager.constants import (
     DEFAULT_REPORT_EVERY_NLP,
     MAX_STRING_PK_LENGTH,
@@ -143,6 +144,8 @@ log = logging.getLogger(__name__)
 TIMING_DROP_REMAKE = "drop_remake"
 TIMING_DELETE_WHERE_NO_SOURCE = "delete_where_no_source"
 TIMING_PROGRESS_DB_ADD = "progress_db_add"
+TIMING_PROGREC_TOTAL = "progrec_total"
+TIMING_PROGREC_CREATE = "create_progrec"
 
 
 # =============================================================================
@@ -508,7 +511,6 @@ def process_nlp(nlpdef: NlpDefinition,
                         approx="~" if pkstr and ntasks > 1 else "",
                         # ... string hashing means approx. distribution
                         recnum=recnum + 1,
-                        i=i,
                         totalcount=totalcount,
                         thisproc=(
                             " ({i}/~{proccount} this process)".format(
@@ -619,119 +621,6 @@ def process_nlp(nlpdef: NlpDefinition,
 # Core functions: cloud NLP
 # =============================================================================
 
-def send_cloud_requests(
-        generated_text: Generator[Tuple[str, Dict[str, Any]], None, None],
-        crinfo: CloudRunInfo,
-        ifconfig: InputFieldConfig,
-        global_recnum: int,
-        report_every: int = DEFAULT_REPORT_EVERY_NLP,
-        incremental: bool = False,
-        queue: bool = True) -> Tuple[List[CloudRequestProcess], bool, int]:
-    """
-    Sends off a series of cloud requests and returns them as a list.
-    'queue' determines whether these are queued requests or not. Also returns
-    whether the generator for the text is empty.
-    """
-    requests = []  # type: List[CloudRequestProcess]
-    cookies = None  # type: Optional[CookieJar]
-    i = 1  # number of requests sent
-    totalcount = ifconfig.get_count()  # total number of records in table
-    # Check processors are available
-    available_procs = crinfo.get_remote_processors()
-    if not available_procs:  # request failed, or no processors available
-        return [], False, global_recnum
-    cloudcfg = crinfo.cloudcfg
-    cloud_request = CloudRequestProcess(crinfo=crinfo)
-    empty_request = True
-    limit_before_commit = cloudcfg.limit_before_commit
-    recs = 0
-    hasher = crinfo.nlpdef.hash
-    for text, other_values in generated_text:
-        global_recnum += 1
-        pkval = other_values[FN_SRCPKVAL]
-        pkstr = other_values[FN_SRCPKSTR]
-        if report_every and global_recnum % report_every == 0:
-            log.info(
-                "Processing {db}.{t}.{c}, PK: {pkf}={pkv} "
-                "(record {g_recnum}/{totalcount})".format(
-                    db=other_values[FN_SRCDB],
-                    t=other_values[FN_SRCTABLE],
-                    c=other_values[FN_SRCFIELD],
-                    pkf=other_values[FN_SRCPKFIELD],
-                    pkv=pkstr if pkstr else pkval,
-                    g_recnum=global_recnum,
-                    totalcount=totalcount
-                )
-            )
-        # log.critical("other_values={}".format(repr(other_values)))
-        srchash = hasher(text)
-        if incremental:
-            progrec = ifconfig.get_progress_record(pkval, pkstr)
-            if progrec is not None:
-                if progrec.srchash == srchash:
-                    log.debug("Record previously processed; skipping")
-                    continue
-                else:
-                    log.debug("Record has changed")
-            else:
-                log.debug("Record is new")
-
-        # Add the text to the cloud request with the appropriate metadata
-        success = cloud_request.add_text(text, other_values)
-        recs += 1
-        if success:
-            empty_request = False
-        else:
-            if not empty_request:
-                cloud_request.send_process_request(
-                    queue=queue,
-                    cookies=cookies,
-                    include_text_in_reply=crinfo.cloudcfg.has_gate_processors  # noqa
-                )
-                # If there's a connection error, we only get this far if we
-                # didn't choose to stop at failure
-                if cloud_request.request_failed:
-                    log.warning("Continuing after failed request.")
-                else:
-                    if cloud_request.cookies:
-                        cookies = cloud_request.cookies
-                    log.info(f"Sent request to be processed: #{i} of this "
-                             "block")
-                    i += 1
-                    requests.append(cloud_request)
-            cloud_request = CloudRequestProcess(crinfo=crinfo)
-            # Is the text too big on its own? If so, don't send it. Otherwise
-            # add it to the new request
-            text_too_big = not cloud_request.add_text(text, other_values)
-            if text_too_big:
-                log.warning("Skipping text that's too long to send")
-            empty_request = text_too_big
-
-        # Add 'srchash' to 'other_values' so the metadata will contain it
-        # and we can use it later on for updating the progress database
-        other_values[FN_SRCHASH] = srchash
-
-        # If we've reached the limit of records before commit, return to
-        # outer function in order to process and commit (or write to file if
-        # it's a queued request)
-        if recs >= limit_before_commit - 1:
-            break
-
-    if not empty_request:
-        # Send last request
-        cloud_request.send_process_request(
-            queue=queue, cookies=cookies,
-            include_text_in_reply=cloudcfg.has_gate_processors)
-        if cloud_request.request_failed:
-            log.warning("Continuing after failed request.")
-        else:
-            log.info(f"Sent request to be processed: #{i} of this block")
-            requests.append(cloud_request)
-    # Return the cloud request objects, whether any records have
-    # been processed and the global record number
-    return requests, recs > 0, global_recnum
-
-
 def process_cloud_nlp(crinfo: CloudRunInfo,
                       incremental: bool = False,
                       report_every: int = DEFAULT_REPORT_EVERY_NLP) -> None:
@@ -749,25 +638,24 @@ def process_cloud_nlp(crinfo: CloudRunInfo,
         for ifconfig in nlpdef.inputfieldconfigs:
             generated_text = ifconfig.gen_text()
             global_recnum = 0  # Global record number within this ifconfig
-            # start = 0  # Start for first block
-            # total = ifconfig.get_count()
+            sender = CloudRequestSender(
+                text_generator=generated_text,
+                crinfo=crinfo,
+                ifconfig=ifconfig,
+                incremental=incremental,
+                report_every=report_every)
+
             records_left = True
             while records_left:
-                cloud_requests, records_left, global_recnum = send_cloud_requests(  # noqa
-                    generated_text=generated_text,
-                    crinfo=crinfo,
-                    ifconfig=ifconfig,
-                    # start_record=start,
-                    global_recnum=global_recnum,
-                    incremental=incremental,
-                    report_every=report_every)
+                (cloud_requests,
+                 records_left,
+                 global_recnum) = sender.send_requests(global_recnum)
                 for cloud_request in cloud_requests:
                     if cloud_request.queue_id:
                         request_data.write(
                             f"{ifconfig.name},{cloud_request.queue_id}\n")
                     else:
                         log.warning("Sent request does not contain queue_id.")
-                # start += crinfo.cloudcfg.limit_before_commit
 
 
 def retrieve_nlp_data(crinfo: CloudRunInfo,
@@ -895,25 +783,25 @@ def process_cloud_now(
     session = nlpdef.progressdb_session
     for ifconfig in nlpdef.inputfieldconfigs:
         global_recnum = 0  # Global record number within this ifconfig
-        # seen_srchashs = {}  # type: Dict[str, NlpRecord]
-        seen_pks = {}
-        # total = ifconfig.get_count()
         generated_text = ifconfig.gen_text()
+        sender = CloudRequestSender(
+            text_generator=generated_text,
+            crinfo=crinfo,
+            ifconfig=ifconfig,
+            incremental=incremental,
+            report_every=report_every,
+            queue=False
+        )
+
         records_left = True
         while records_left:
-            cloud_requests,  records_left, global_recnum = send_cloud_requests(
-                generated_text=generated_text,
-                crinfo=crinfo,
-                global_recnum=global_recnum,
-                ifconfig=ifconfig,
-                incremental=incremental,
-                report_every=report_every,
-                queue=False
-            )
+            (cloud_requests,
+             records_left,
+             global_recnum) = sender.send_requests(global_recnum)
+            progrecs = set()  # type: Set[NlpRecord]
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
                     continue
-                # cloud_request.set_mirror_processors(mirror_procs)
                 cloud_request.process_all()
                 nlp_data = cloud_request.nlp_data
                 for result in nlp_data[NKeys.RESULTS]:
@@ -922,10 +810,12 @@ def process_cloud_now(
                     pkval = metadata[FN_SRCPKVAL]
                     pkstr = metadata[FN_SRCPKSTR]
                     srchash = metadata[FN_SRCHASH]
-                    pk = pkstr if pkstr else pkval
-                    # progrec = seen_srchashs.get(srchash)
-                    progrec = seen_pks.get(pk)
-                    if incremental and not progrec:
+                    progrec = None
+                    if incremental:
+                        # A word of explanation: to get here, the record must
+                        # have already been found worthy of updating. This is
+                        # now ensured by the CloudRequestSender, which will
+                        # skip relevant unchanged records.
                         crinfo.delete_dest_records(ifconfig, pkval, pkstr,
                                                    commit=True)
                         # Record progress in progress database
@@ -934,8 +824,10 @@ def process_cloud_now(
                     # record to avoid clashes - it's possible as each processor
                     # may contain results for each record and a set of results
                     # is a list of processors and their results
+                    #
                     # if srchash in seen_srchashs:
-                        # progrec = ifconfig.get_progress_record(pkval, pkstr)
+                    #   progrec = ifconfig.get_progress_record(pkval, pkstr)
+                    #
                     # Make a note in the progress database that we've processed
                     # a source record
                     if progrec:  # modifying an existing record
@@ -955,10 +847,10 @@ def process_cloud_now(
                             whenprocessedutc=nlpdef.now,
                             srchash=srchash,
                         )
-                    # seen_srchashs[srchash] = progrec
-                    seen_pks[pk] = progrec
-                    with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-                        session.add(progrec)
+                    progrecs.add(progrec)
+            with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+                log.info("Adding to database...")
+                session.bulk_save_objects(progrecs)
             session.commit()
 
     nlpdef.commit_all()
@@ -975,7 +867,7 @@ def cancel_request(nlpdef: NlpDefinition, cancel_all: bool = False) -> None:
     if cancel_all:
         # Deleting all from queue!
         cloud_request.delete_all_from_queue()
-        log.info(f"All cloud requests cancelled.")
+        log.info("All cloud requests cancelled.")
         # Should the files be deleted in the program or is that dangerous?
         # ... OK now we guarantee that CRATE will create and use a specific
         # directory.
@@ -1161,8 +1053,8 @@ def inner_main() -> None:
 
     config_options.add_argument(
         '--chunksize', type=int, default=DEFAULT_CHUNKSIZE,
-        help=f"Number of records copied in a chunk when copying PKs from one "
-             f"database to another")
+        help="Number of records copied in a chunk when copying PKs from one "
+             "database to another")
 
     reporting_options = parser.add_argument_group("Reporting options")
     reporting_options.add_argument(
@@ -1170,11 +1062,11 @@ def inner_main() -> None:
         help="Be verbose (use twice for extra verbosity)")
     reporting_options.add_argument(
         '--report_every_fast', type=int, default=DEFAULT_REPORT_EVERY,
-        help=f"Report insert progress (for fast operations) every n rows in "
-             f"verbose mode")
+        help="Report insert progress (for fast operations) every n rows in "
+             "verbose mode")
     reporting_options.add_argument(
         '--report_every_nlp', type=int, default=DEFAULT_REPORT_EVERY_NLP,
-        help=f"Report progress for NLP every n rows in verbose mode")
+        help="Report progress for NLP every n rows in verbose mode")
     reporting_options.add_argument(
         "--echo", action="store_true",
         help="Echo SQL")

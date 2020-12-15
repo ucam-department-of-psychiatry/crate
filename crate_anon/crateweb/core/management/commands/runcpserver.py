@@ -315,7 +315,7 @@ def start_server(host: str,
     try:
         cherrypy.engine.start()
         cherrypy.engine.block()
-    except:  # nopep8
+    except Exception:
         # 2017-03-13: shouldn't restrict to KeyboardInterrupt!
         cherrypy.engine.stop()
 

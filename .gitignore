@@ -20,6 +20,10 @@ dist/
 # Temporary files
 *~
 
+# Test coverage
+.coverage
+htmlcov
+
 # =============================================================================
 # Specific
 # =============================================================================
@@ -32,3 +36,6 @@ celerybeat.pid
 
 # Silver searcher
 .ignore
+
+# Emacs
+.dir-locals.el

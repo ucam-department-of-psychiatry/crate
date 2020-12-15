@@ -1091,7 +1091,7 @@ class PostcodeFrequencyInfo(object):
             log.info("... done")
 
             # Calculate
-            log.info(f"Calculating population frequencies for postcodes...")
+            log.info("Calculating population frequencies for postcodes...")
             unit_freq = self._postcode_unit_freq
             sector_freq = self._postcode_sector_freq
             n_oas = len(oa_unit_counter)
@@ -2151,7 +2151,7 @@ class Person(object):
             )
             for i in range(len(self.hashed_postcode_units)):
                 self.postcodes_info.append(FuzzyIdFreq(
-                    comparison_name=f"postcode",
+                    comparison_name="postcode",
                     exact_identifier=self.hashed_postcode_units[i].identifier,
                     exact_identifier_frequency=self.postcode_unit_frequencies[i],  # noqa
                     fuzzy_identifier=self.hashed_postcode_sectors[i].identifier,  # noqa
@@ -2226,7 +2226,7 @@ class Person(object):
                 postcode_unit = self.postcodes[i]
                 postcode_sector = get_postcode_sector(postcode_unit.identifier)
                 self.postcodes_info.append(FuzzyIdFreq(
-                    comparison_name=f"postcode",
+                    comparison_name="postcode",
                     exact_identifier=postcode_unit.identifier,
                     exact_identifier_frequency=cfg.postcode_unit_freq(
                         postcode_unit.identifier, prestandardized=True),
@@ -3020,7 +3020,7 @@ class People(object):
         # decide with sufficient confidence (so must reject)?
         elif best_log_odds < second_best_log_odds + cfg.exceeds_next_best_log_odds:  # noqa
             if verbose:
-                log.debug(f"Second-best is too close to best")
+                log.debug("Second-best is too close to best")
             result.winner = None
 
         # Step 4: clear-enough winner found.
@@ -4463,9 +4463,9 @@ def validate_2_fetch_rio(cfg: MatchConfig,
     SQLAlchemy Core query to Python dict:
 
     - https://stackoverflow.com/questions/1958219/convert-sqlalchemy-row-object-to-python-dict
-    
+
     SQL Server doesn't permit "SELECT EXISTS":
-    
+
     - https://stackoverflow.com/questions/2759756/is-it-possible-to-select-exists-directly-as-a-bit
 
     """  # noqa
@@ -4892,7 +4892,7 @@ def main() -> int:
     )
     priors_group.add_argument(
         "--p_not_male_or_female", type=float, default=0.004,
-        help=f"Probability that a person in the population has gender 'X'."
+        help="Probability that a person in the population has gender 'X'."
     )
     priors_group.add_argument(
         "--p_female_given_male_or_female", type=float, default=0.51,

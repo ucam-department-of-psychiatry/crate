@@ -31,8 +31,7 @@ Tasks to process text for an NLPRP server (and be scheduled via Celery).
 import datetime
 import json
 import logging
-import requests
-import transaction
+from typing import TYPE_CHECKING
 
 from cardinal_pythonlib.json.typing_helpers import (
     JsonArrayType,
@@ -41,9 +40,11 @@ from cardinal_pythonlib.json.typing_helpers import (
 from celery import Celery
 # from celery.app.task import Task  # see "def delay", "def apply_async"
 from cryptography.fernet import Fernet
+import requests
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.exc import SQLAlchemyError
+import transaction
 
 from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 from crate_anon.nlp_manager.constants import (
@@ -61,6 +62,9 @@ from crate_anon.nlp_webserver.security import decrypt_password
 from crate_anon.nlp_webserver.settings import SETTINGS
 from crate_anon.nlprp.api import NlprpKeys
 from crate_anon.nlprp.constants import HttpStatus
+
+if TYPE_CHECKING:
+    from typing import Optional
 
 log = logging.getLogger(__name__)
 

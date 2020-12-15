@@ -74,6 +74,13 @@ def main() -> None:
         '--gatedir', default=DEFAULT_GATE_DIR,
         help="Root directory of GATE installation")
     parser.add_argument(
+        '--gate_exec',
+        help="Path to GATE executable (JAR file). "
+             "Temporary (future releases may handle this differently). "
+             "If not specified, defaults to 'bin/gate.jar' "
+             "within the GATE directory."
+    )
+    parser.add_argument(
         '--java', default=DEFAULT_JAVA,
         help="Java executable")
     parser.add_argument(
@@ -92,12 +99,16 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel)
 
-    if not os.path.exists(args.gatedir):
-        log.error(f"Could not find GATE installation at {args.gatedir}. "
-                  f"Is GATE installed? Have you set --gatedir correctly?")
-        sys.exit(EXIT_FAILURE)
+    if not args.gate_exec:
+        if not os.path.exists(args.gatedir):
+            log.error(f"Could not find GATE installation at {args.gatedir}. "
+                      f"Is GATE installed? Have you set --gatedir correctly?")
+            sys.exit(EXIT_FAILURE)
 
-    gatejar = os.path.join(args.gatedir, 'bin', 'gate.jar')
+        gatejar = os.path.join(args.gatedir, 'bin', 'gate.jar')
+    else:
+        gatejar = args.gate_exec
+
     gatelibjars = os.path.join(args.gatedir, 'lib', '*')
     classpath = os.pathsep.join([args.builddir, gatejar, gatelibjars])
     classpath_options = ['-classpath', classpath]

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -e
+
+echo installing pip packages
+pip install .
+
+echo checking packages for conflicts
+pip check
+
+echo installing safety checker
+pip install safety
+
+echo checking packages for vulnerabilities
+safety check
+
+echo checking python for style and errors
+flake8 --config=setup.cfg crate_anon
+
+echo running tests
+pytest -v

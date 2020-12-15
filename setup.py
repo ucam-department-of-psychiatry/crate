@@ -156,6 +156,7 @@ INSTALL_REQUIRES = [
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
     # "django-silk==4.0.1",  # Django profiler
     "django-sslserver==0.22",  # SSL development server for Django
+    "flake8==3.8.4",  # code checks
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==0.9.5",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
@@ -174,6 +175,7 @@ INSTALL_REQUIRES = [
     "pygments==2.6.1",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
     "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]
+    "pytest==6.0.2",  # automatic testing
     "pytz==2020.1",  # timezones
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
@@ -188,7 +190,7 @@ INSTALL_REQUIRES = [
 
     # Packages for cloud NLP:
     "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==3.2",  # cryptography library
+    "cryptography==3.2.1",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework

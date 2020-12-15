@@ -306,7 +306,7 @@ class Patient(object):
             the de-identified text
         """
         return self.scrubber.scrub(text)
-    
+
     def is_unchanged(self) -> bool:
         """
         Has the scrubber changed, compared to the previous hashed version in

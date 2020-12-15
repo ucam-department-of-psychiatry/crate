@@ -44,7 +44,7 @@ def main() -> None:
     """
     Command-line entry point.
     """
-    main_only_quicksetup_rootlogger(level = logging.DEBUG)
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
     gate_home = get_envvar_or_die(EnvVar.GATE_HOME)
     check_call_verbose([
         "java",

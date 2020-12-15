@@ -31,6 +31,7 @@ psutil==5.7.2
 pygments==2.6.1
 pyparsing==2.4.7
 PyPDF2==1.26.0
+pytest==6.0.2
 pytz==2020.1
 python-dateutil==2.8.1
 regex==2020.7.14
@@ -41,7 +42,7 @@ sqlparse==0.3.1
 unidecode==1.1.1
 xlrd==1.2.0
 bcrypt==3.1.7
-cryptography==3.2
+cryptography==3.2.1
 paste==3.4.2
 pyramid==1.10.4
 pyramid_tm==2.4

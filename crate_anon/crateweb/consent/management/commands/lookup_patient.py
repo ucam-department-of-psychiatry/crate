@@ -72,7 +72,7 @@ class Command(BaseCommand):
         try:
             # noinspection PyTypeChecker
             cli_lookup_patient(opts.nhs_numbers)
-        except:  # nopep8
+        except Exception:
             type_, value, tb = sys.exc_info()
             traceback.print_exc()
             pdb.post_mortem(tb)

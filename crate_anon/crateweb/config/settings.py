@@ -42,10 +42,8 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import importlib.machinery
 import logging
 import os
-from typing import List
 
 from cardinal_pythonlib.docker import running_under_docker
-from cardinal_pythonlib.fileops import relative_filename_within_dir
 
 from crate_anon.common.constants import (
     DockerConstants,
