@@ -800,7 +800,7 @@ Changes
 - Bugfix to
   :func:`crate_anon.preprocess.preprocess_rio.main`. Changed 'progargs.rio'
   to 'rio'.
-  
+
 **v0.18.59, 2018-12-24**
 
 - Bugfix to
@@ -1300,7 +1300,7 @@ Changes
 
 - Comment lines and blank lines ignored in data dictionary.
 
-**0.19.1, 2020-11-21**
+**0.19.1, 2020-12-18**
 
 - "LFT" NLP processors: albumin, ALT, alkaline phosphatase, bilirubin, gamma
   GT.
@@ -1315,6 +1315,7 @@ Changes
 - Significant rework to numerical NLP to support a wider variety, e.g.
   ``sodium (mM) 132`` as well as ``sodium 132 mM``.
 
+**0.19.2, in progress**
 
 ===============================================================================
 
