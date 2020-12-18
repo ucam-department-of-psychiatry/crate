@@ -7,7 +7,7 @@ libxml2-dev
 libxslt1-dev
 poppler-utils
 python3
-python3.5-dev
+python3.6-dev
 rabbitmq-server
 supervisor
 tdsodbc
