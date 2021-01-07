@@ -3,7 +3,7 @@ appdirs==1.4.4
 arrow==0.15.7
 beautifulsoup4==4.9.1
 cardinal_pythonlib==1.0.95
-cairosvg==2.4.2
+cairosvg==2.5.1
 celery==4.4.6
 chardet==3.0.4
 cherrypy==18.6.0
@@ -14,6 +14,7 @@ django-debug-toolbar==3.0a2
 django-extensions==3.0.3
 django-picklefield==3.0.1
 django-sslserver==0.22
+flake8==3.8.4
 flashtext==2.7
 flower==0.9.5
 fuzzy==1.2.2

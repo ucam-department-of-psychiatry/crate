@@ -143,7 +143,7 @@ INSTALL_REQUIRES = [
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
     "cardinal_pythonlib==1.0.95",  # RNC libraries
-    "cairosvg==2.4.2",  # work with SVG files
+    "cairosvg==2.5.1",  # work with SVG files
     "celery==4.4.6",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
     "cherrypy==18.6.0",  # Cross-platform web server

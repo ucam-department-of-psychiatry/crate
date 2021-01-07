@@ -203,6 +203,7 @@ include crate_anon/nlp_manager/build_medex_java_interface.py
 include crate_anon/nlp_manager/cloud_config.py
 include crate_anon/nlp_manager/cloud_parser.py
 include crate_anon/nlp_manager/cloud_request.py
+include crate_anon/nlp_manager/cloud_request_sender.py
 include crate_anon/nlp_manager/cloud_run_info.py
 include crate_anon/nlp_manager/constants.py
 include crate_anon/nlp_manager/input_field_config.py
@@ -222,6 +223,7 @@ include crate_anon/nlp_manager/prepare_umls_for_bioyodie.py
 include crate_anon/nlp_manager/regex_func.py
 include crate_anon/nlp_manager/regex_numbers.py
 include crate_anon/nlp_manager/regex_parser.py
+include crate_anon/nlp_manager/regex_read_codes.py
 include crate_anon/nlp_manager/regex_test.py
 include crate_anon/nlp_manager/regex_units.py
 include crate_anon/nlp_manager/run_crate_nlp_demo.py
@@ -233,6 +235,7 @@ include crate_anon/nlp_manager/show_crate_gate_pipeline_options.py
 include crate_anon/nlp_manager/show_crate_medex_pipeline_options.py
 include crate_anon/nlp_manager/specimen_gate_plugin_file.ini
 include crate_anon/nlp_manager/test_all_regex.py
+include crate_anon/nlp_manager/tests/cloud_request_sender_tests.py
 include crate_anon/testdocs_for_text_extraction/__init__.py
 include crate_anon/testdocs_for_text_extraction/doctest.doc
 include crate_anon/testdocs_for_text_extraction/doctest.docx
