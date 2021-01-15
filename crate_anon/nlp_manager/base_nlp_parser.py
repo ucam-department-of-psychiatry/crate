@@ -50,6 +50,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 from sqlalchemy.dialects import registry
 # from sqlalchemy.dialects.mssql.base import MSDialect
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
@@ -724,8 +725,15 @@ class BaseNlpParser(TableMaker):
                                     if k in column_names}
                     # log.critical(repr(sqla_table))
                     insertquery = sqla_table.insert().values(final_values)
-                    with MultiTimerContext(timer, TIMING_INSERT):
-                        session.execute(insertquery)
+                    try:
+                        with MultiTimerContext(timer, TIMING_INSERT):
+                            session.execute(insertquery)
+                    except DatabaseError as e:
+                        # We can get an error on insert if for example the
+                        # output returned by the NLP is invalid for the column
+                        # type
+                        log.error(e)
+
                     self._nlpdef.notify_transaction(
                         session,
                         n_rows=1,

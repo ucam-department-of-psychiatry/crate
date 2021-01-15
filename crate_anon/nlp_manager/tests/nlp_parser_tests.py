@@ -28,6 +28,7 @@ crate_anon/nlp_manager/tests/nlp_manager_tests.py
 import logging
 import sys
 
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.schema import Column
 from typing import Any, Dict, Generator, List, Tuple
 from unittest import mock, TestCase
@@ -82,8 +83,7 @@ class NlpParserProcessTests(TestCase):
                                      _nlpdef=self.mock_nlpdef,
                                      _destdb=self.mock_db,
                                      get_table=self.mock_get_table,
-                                     _friendly_name="Fruit",
-                                     create=True):
+                                     _friendly_name="Fruit"):
 
                 starting_fields_values = {}
 
@@ -122,4 +122,39 @@ class NlpParserProcessTests(TestCase):
         self.assertIn(
             f"DEBUG:{logger_name}:NLP processor fruitdef/Fruit: found 3 values",
             logging_cm.output
+        )
+
+    def test_skips_failed_insert(self) -> None:
+        self.mock_execute_method.side_effect = OperationalError(
+            "Insert failed", None, None, None
+        )
+        with self.assertLogs(level=logging.ERROR) as logging_cm:
+            with mock.patch.multiple(self.parser,
+                                     _nlpdef=self.mock_nlpdef,
+                                     _destdb=self.mock_db,
+                                     get_table=self.mock_get_table,
+                                     _friendly_name="Fruit"):
+
+                starting_fields_values = {}
+
+                self.parser.process(
+                    "Apple",
+                    starting_fields_values
+                )
+
+        self.mock_notify_transaction_method.assert_any_call(
+            self.mock_session, n_rows=1, n_bytes=sys.getsizeof(
+                {"fruit": "apple"}
+            ),
+            force_commit=mock.ANY
+        )
+        logger_name = "crate_anon.nlp_manager.base_nlp_parser"
+
+        self.assertIn(
+            f"ERROR:{logger_name}",
+            logging_cm.output[0]
+        )
+        self.assertIn(
+            "Insert failed",
+            logging_cm.output[0]
         )
