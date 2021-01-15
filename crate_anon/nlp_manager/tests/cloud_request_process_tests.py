@@ -101,7 +101,7 @@ class CloudRequestProcessTests(TestCase):
         )
         self.assertEqual(self.mock_notify_transaction_method.call_count, 3)
 
-    def test_process_all_skips_failed_insert(self) -> None:
+    def test_process_all_handles_failed_insert(self) -> None:
         nlp_values = [
             ("output", {"fruit": "apple"}, self.mock_processor),
         ]

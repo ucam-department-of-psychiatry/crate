@@ -124,7 +124,7 @@ class NlpParserProcessTests(TestCase):
             logging_cm.output
         )
 
-    def test_skips_failed_insert(self) -> None:
+    def test_handles_failed_insert(self) -> None:
         self.mock_execute_method.side_effect = OperationalError(
             "Insert failed", None, None, None
         )
