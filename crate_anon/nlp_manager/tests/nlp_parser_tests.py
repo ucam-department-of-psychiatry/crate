@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/nlp_manager/tests/nlp_manager_tests.py
+crate_anon/nlp_manager/tests/nlp_parser_tests.py
 
 ===============================================================================
 
