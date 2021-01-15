@@ -36,7 +36,7 @@ import logging
 import sys
 from typing import Any, Dict, List, Tuple, Generator, Optional, TYPE_CHECKING
 import time
-from sqlalchemy.exc import DataError
+from sqlalchemy.exc import DatabaseError
 
 from cardinal_pythonlib.compression import gzip_string
 from cardinal_pythonlib.rate_limiting import rate_limited
@@ -850,7 +850,7 @@ class CloudRequestProcess(CloudRequest):
             try:
                 with MultiTimerContext(timer, TIMING_INSERT):
                     session.execute(insertquery)
-            except DataError as e:
+            except DatabaseError as e:
                 log.error(e)
                 # ... but proceed.
             self._nlpdef.notify_transaction(
