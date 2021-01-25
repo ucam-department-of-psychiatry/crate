@@ -1317,6 +1317,8 @@ Changes
 
 **0.19.2, in progress**
 
+- Handle errors when inserting rows in the destination table during NLP.
+
 ===============================================================================
 
 .. rubric:: Footnotes
