@@ -52,7 +52,7 @@ CRATE_ROOT_DIR = abspath(join(THIS_DIR, pardir))  # .../crate
 CORRECT_COPYRIGHT_LINES = """
 ===============================================================================
 
-    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
