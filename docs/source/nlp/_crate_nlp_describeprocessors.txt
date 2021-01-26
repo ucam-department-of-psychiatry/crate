@@ -26,7 +26,11 @@
 |                           |     explanation).                                                                |
 |                           |                                                                                  |
 | ALT                       |                                                                                  |
-|                           |     Alanine aminotransferase (ALT).                                              |
+|                           |     Alanine aminotransferase (ALT), a.k.a. alanine transaminase (ALT).           |
+|                           |                                                                                  |
+|                           |     A.k.a. serum glutamate-pyruvate transaminase (SGPT), or serum                |
+|                           |     glutamate-pyruvic transaminase (SGPT), but not a.k.a. those in recent        |
+|                           |     memory!                                                                      |
 |                           |                                                                                  |
 | ALTValidator              |                                                                                  |
 |                           |     Validator for ALT                                                            |
@@ -205,6 +209,9 @@
 |                           |     - By Emanuele Osimo, Feb 2019.                                               |
 |                           |     - Some modifications by Rudolf Cardinal, Feb 2019.                           |
 |                           |                                                                                  |
+|                           |     Note: HbA1 is different                                                      |
+|                           |     (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2541274).                      |
+|                           |                                                                                  |
 | HbA1cValidator            |                                                                                  |
 |                           |     Validator for HbA1c                                                          |
 |                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
@@ -293,7 +300,7 @@
 |                           |     explanation).                                                                |
 |                           |                                                                                  |
 | Neutrophils               |                                                                                  |
-|                           |     Neutrophil count (absolute).                                                 |
+|                           |     Neutrophil (polymorphonuclear leukoocte) count (absolute).                   |
 |                           |                                                                                  |
 | NeutrophilsValidator      |                                                                                  |
 |                           |     Validator for Neutrophils                                                    |
@@ -344,7 +351,7 @@
 |                           |     explanation).                                                                |
 |                           |                                                                                  |
 | TotalCholesterol          |                                                                                  |
-|                           |     Total cholesterol.                                                           |
+|                           |     Total or undifferentiated cholesterol.                                       |
 |                           |                                                                                  |
 | TotalCholesterolValidator |                                                                                  |
 |                           |     Validator for total cholesterol                                              |
