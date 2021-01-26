@@ -39,7 +39,7 @@ Quick links:
 - :ref:`2018 <changelog_2018>`
 - :ref:`2019 <changelog_2019>`
 - :ref:`2020 <changelog_2020>`
-
+- :ref:`2021 <changelog_2021>`
 
 Changes
 -------
@@ -1315,9 +1315,16 @@ Changes
 - Significant rework to numerical NLP to support a wider variety, e.g.
   ``sodium (mM) 132`` as well as ``sodium 132 mM``.
 
-**0.19.2, in progress**
+.. _changelog_2021:
+
+2021
+~~~~
+**0.19.2, 2021-01-26**
 
 - Handle errors when inserting rows in the destination table during NLP.
+
+
+**0.19.3, in progress**
 
 ===============================================================================
 
