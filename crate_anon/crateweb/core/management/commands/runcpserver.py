@@ -241,7 +241,9 @@ class Missing(object):
     def index(self) -> str:
         return (
             "[CRATE CherryPy server says:] "
-            "Nothing to see here. Wrong URL path."
+            "Nothing to see here. Wrong URL path. "
+            "(If you are sure it's right, has the server administrator "
+            "set the 'root_path' option correctly?)"
         )
 
 
