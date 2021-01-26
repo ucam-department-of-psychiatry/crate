@@ -45,7 +45,7 @@ INDEX_FILENAME = "_index.rst"
 TOP_AUTODOC_INDEX = os.path.join(AUTODOC_DIR, INDEX_FILENAME)
 
 COPYRIGHT_COMMENT = r"""
-..  Copyright © 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
+..  Copyright © 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
     .
     This file is part of CRATE.
     .

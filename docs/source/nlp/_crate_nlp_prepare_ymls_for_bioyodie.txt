@@ -28,7 +28,7 @@ optional arguments:
                         Value for GATE_HOME environment variable. Should be a
                         directory that contains 'bin/gate.*'. Default is
                         existing GATE_HOME environment variable. (default:
-                        /home/rudolf/dev/GATE_Developer_8.6.1)
+                        /home/martinb/workspace/GATE_Developer_8.6.1)
   --groovy GROOVY       Path to groovy binary (ideally v3.0+). Default is the
                         system copy, if there is one. (default: None)
   --bioyodie_prep_repo_url BIOYODIE_PREP_REPO_URL
