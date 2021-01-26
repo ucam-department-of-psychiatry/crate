@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 r"""
-crate_anon/nlprp/nlprp_test_client.py
+docs/source/nlp/_nlprp_test_client.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -24,7 +24,7 @@ crate_anon/nlprp/nlprp_test_client.py
 
 ===============================================================================
 
-crate_anon/docs/sources/nlp/nlprp_test_client.py
+crate_anon/nlprp/nlprp_test_client.py
 Simple test client for the NLPRP interface.
 
 """

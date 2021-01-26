@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 """
-crate_anon/nlp_manager/tests/nlp_manager_tests.py
+crate_anon/nlp_manager/tests/cloud_request_sender_tests.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -24,6 +24,7 @@ crate_anon/nlp_manager/tests/nlp_manager_tests.py
 
 ===============================================================================
 
+crate_anon/nlp_manager/tests/nlp_manager_tests.py
 """
 
 import logging

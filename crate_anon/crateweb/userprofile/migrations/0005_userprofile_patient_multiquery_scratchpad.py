@@ -5,7 +5,7 @@ crate_anon/crateweb/userprofile/migrations/0005_userprofile_patient_multiquery_s
 
 ===============================================================================
 
-    Copyright (C) 2015-2020 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
