@@ -304,7 +304,7 @@ def get_uk_postcode_regex_elements(
     """
     Get a list of regex strings for scrubbing UK postcodes. These have a
     well-defined format.
-    
+
     Unless compiled with the ``re.IGNORECASE``, they will match upper-case
     postcodes only.
 
@@ -317,7 +317,7 @@ def get_uk_postcode_regex_elements(
         a list of regular expression strings
 
     See:
-    
+
     - https://stackoverflow.com/questions/164979/regex-for-matching-uk-postcodes
     """  # noqa
     # -------------------------------------------------------------------------

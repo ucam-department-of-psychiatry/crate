@@ -51,7 +51,7 @@ Tips when Sphinx goes wrong (e.g. on docstrings):
 
   - However, note that this makes the ``__init__`` functions appear, but does
     not prevent the ``__init__`` docstring being appended to the main class
-    docstring. 
+    docstring.
   - Then remove ``autoclass_content = "both"``; see
     https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#confval-autoclass_content.
   - That makes message more helpful!

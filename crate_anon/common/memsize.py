@@ -45,7 +45,7 @@ def getsize(obj: Any, assume_none_denied: bool = False) -> int:
     """
     Return the total size (in bytes) of the object and its members.
     From https://stackoverflow.com/questions/449560/how-do-i-determine-the-size-of-an-object-in-python
-    
+
     Args:
         obj:
             Object to check.
