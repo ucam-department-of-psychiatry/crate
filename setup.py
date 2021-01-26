@@ -74,6 +74,7 @@ SKIP_PATTERNS = [
     "*.class",  # compiled Java
     "*.pyc",  # "compiled" Python
     "~*",  # temporary files
+    "*~",  # autosave files
 ]
 
 
