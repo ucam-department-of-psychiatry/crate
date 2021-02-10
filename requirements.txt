@@ -43,7 +43,7 @@ sqlparse==0.3.1
 unidecode==1.1.1
 xlrd==1.2.0
 bcrypt==3.1.7
-cryptography==3.3.1
+cryptography==3.3.2
 paste==3.4.2
 pyramid==1.10.4
 pyramid_tm==2.4
