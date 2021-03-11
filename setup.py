@@ -167,7 +167,7 @@ INSTALL_REQUIRES = [
     "MarkupSafe==1.1.1",  # for HTML escaping
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa
-    "openpyxl==3.0.4",  # read Excel
+    "openpyxl==3.0.7",  # read Excel
     "pendulum==2.1.1",  # dates/times
     "pillow==7.2.0",  # image processing; import as PIL (Python Imaging Library)  # noqa
     "pdfkit==0.6.1",  # interface to wkhtmltopdf

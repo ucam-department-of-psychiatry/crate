@@ -235,7 +235,9 @@ include crate_anon/nlp_manager/show_crate_gate_pipeline_options.py
 include crate_anon/nlp_manager/show_crate_medex_pipeline_options.py
 include crate_anon/nlp_manager/specimen_gate_plugin_file.ini
 include crate_anon/nlp_manager/test_all_regex.py
+include crate_anon/nlp_manager/tests/cloud_request_process_tests.py
 include crate_anon/nlp_manager/tests/cloud_request_sender_tests.py
+include crate_anon/nlp_manager/tests/nlp_parser_tests.py
 include crate_anon/testdocs_for_text_extraction/__init__.py
 include crate_anon/testdocs_for_text_extraction/doctest.doc
 include crate_anon/testdocs_for_text_extraction/doctest.docx
