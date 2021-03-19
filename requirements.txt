@@ -25,7 +25,7 @@ MarkupSafe==1.1.1
 mmh3==2.5.1
 openpyxl==3.0.7
 pendulum==2.1.1
-pillow==7.2.0
+pillow==8.1.1
 pdfkit==0.6.1
 prettytable==0.7.2
 psutil==5.7.2
