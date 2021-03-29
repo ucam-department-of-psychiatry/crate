@@ -29,7 +29,7 @@ pillow==7.2.0
 pdfkit==0.6.1
 prettytable==0.7.2
 psutil==5.7.2
-pygments==2.6.1
+pygments==2.7.4
 pyparsing==2.4.7
 PyPDF2==1.26.0
 pytest==6.0.2
