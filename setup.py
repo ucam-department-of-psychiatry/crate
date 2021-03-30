@@ -128,7 +128,6 @@ EGG_DIR = os.path.join(THIS_DIR, "crate_anon.egg-info")
 # Files
 DOCMAKER = os.path.join(DOC_ROOT_DIR, "rebuild_docs.py")
 MANIFEST_FILE = os.path.join(THIS_DIR, "MANIFEST.in")  # we will write this
-PIP_REQ_FILE = os.path.join(THIS_DIR, "requirements.txt")
 
 # OS; setup.py is executed on the destination system at install time, so:
 RUNNING_WINDOWS = platform.system() == "Windows"
@@ -306,13 +305,6 @@ if getattr(our_args, EXTRAS_ARG):
             "# This is an AUTOCREATED file, MANIFEST.in; see setup.py and DO "
             "NOT EDIT BY HAND"])
         manifest.write("\n\n" + "\n".join(manifest_lines) + "\n")
-
-    # -------------------------------------------------------------------------
-    # Write requirements.txt (helps PyCharm)
-    # -------------------------------------------------------------------------
-    with open(PIP_REQ_FILE, "w") as req_file:
-        for line in INSTALL_REQUIRES:
-            req_file.write(line + "\n")
 
 
 # =============================================================================
