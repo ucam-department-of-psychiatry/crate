@@ -181,13 +181,13 @@ INSTALL_REQUIRES = [
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
-    "regex==2020.7.14",  # better regexes (cf. re)
+    "regex==2020.11.13",  # better regexes (cf. re)
     "semantic_version==2.8.5",  # semantic versioning; better than semver
     "sortedcontainers==2.2.2",  # for SortedSet
     "SQLAlchemy==1.3.18",  # database access
     "sqlparse==0.3.1",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
-    "xlrd==1.2.0",  # for ONS postcode database handling; read Excel files
+    "xlrd==2.0.1",  # for ONS postcode database handling; read Excel files
 
     # Packages for cloud NLP:
     "bcrypt==3.1.7",  # bcrypt encryption
@@ -198,9 +198,9 @@ INSTALL_REQUIRES = [
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==3.5.3",  # interface to Redis in-memory key-value database
     "requests==2.24.0",  # HTTP requests
-    "tornado==6.0.4",  # web framework
+    "tornado==6.1",  # web framework
     "transaction==3.0.0",  # generic transaction management
-    "urllib3==1.25.9",  # used by requests
+    "urllib3==1.26.4",  # used by requests
     "waitress==1.4.4",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
 
