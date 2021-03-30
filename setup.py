@@ -173,7 +173,7 @@ INSTALL_REQUIRES = [
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==0.7.2",  # pretty formating of text-based tables
     "psutil==5.7.2",  # process management
-    "pygments==2.6.1",  # syntax highlighting
+    "pygments==2.8.1",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
     "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]
     "pytest==6.0.2",  # automatic testing
