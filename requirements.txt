@@ -25,11 +25,11 @@ MarkupSafe==1.1.1
 mmh3==2.5.1
 openpyxl==3.0.7
 pendulum==2.1.1
-pillow==7.2.0
+pillow==8.1.2
 pdfkit==0.6.1
 prettytable==0.7.2
 psutil==5.7.2
-pygments==2.6.1
+pygments==2.8.1
 pyparsing==2.4.7
 PyPDF2==1.26.0
 pytest==6.0.2
