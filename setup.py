@@ -150,10 +150,10 @@ INSTALL_REQUIRES = [
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==3.0.8",  # for main CRATE research database web server
+    "django==3.1.6",  # for main CRATE research database web server
     "django-debug-toolbar==3.0a2",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa
-    "django-extensions==3.0.3",  # for graph_models, show_urls etc.
+    "django-extensions==3.1.1",  # for graph_models, show_urls etc.
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
     # "django-silk==4.0.1",  # Django profiler
     "django-sslserver==0.22",  # SSL development server for Django
