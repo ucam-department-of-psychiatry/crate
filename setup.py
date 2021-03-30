@@ -28,7 +28,7 @@ CRATE setup file
 
 To use:
 
-    python setup.py sdist --extras
+    python setup.py sdist
 
     twine upload dist/*
 
@@ -38,20 +38,12 @@ To install in development mode:
 
 More reasoning is in the setup.py file for CamCOPS.
 """
-# https://packaging.python.org/en/latest/distributing/#working-in-development-mode  # noqa
-# http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/
-# http://jtushman.github.io/blog/2013/06/17/sharing-code-across-applications-with-python/  # noqa
 
-import argparse
 from setuptools import find_packages, setup
 from codecs import open
-import fnmatch
 import os
 import platform
-from pprint import pformat
-import shutil
 import sys
-from typing import List
 
 from crate_anon.version import CRATE_VERSION
 
@@ -59,75 +51,11 @@ assert sys.version_info >= (3, 6), "Need Python 3.6+"
 
 
 # =============================================================================
-# Helper functions
-# =============================================================================
-
-def deltree(path: str, verbose: bool = False) -> None:
-    if verbose:
-        print(f"Deleting directory: {path}")
-    shutil.rmtree(path, ignore_errors=True)
-
-
-# Files not to bundle
-SKIP_PATTERNS = [
-    "*.gitignore",  # .gitignore files
-    "*.class",  # compiled Java
-    "*.pyc",  # "compiled" Python
-    "~*",  # temporary files
-    "*~",  # autosave files
-]
-
-
-def add_all_files(root_dir: str,
-                  filelist: List[str],
-                  absolute: bool = False,
-                  relative_to: str = "",
-                  include_n_parents: int = 0,
-                  verbose: bool = False,
-                  skip_patterns: List[str] = None) -> None:
-    skip_patterns = skip_patterns or SKIP_PATTERNS
-    if absolute or relative_to:
-        base_dir = root_dir
-    else:
-        base_dir = os.path.abspath(
-            os.path.join(root_dir, *(['..'] * include_n_parents)))
-    for dir_, subdirs, files in os.walk(root_dir, topdown=True):
-        if absolute or relative_to:
-            final_dir = dir_
-        else:
-            final_dir = os.path.relpath(dir_, base_dir)
-        for filename in files:
-            _, ext = os.path.splitext(filename)
-            final_filename = os.path.join(final_dir, filename)
-            if relative_to:
-                final_filename = os.path.relpath(final_filename, relative_to)
-            if any(fnmatch.fnmatch(final_filename, pattern)
-                   for pattern in skip_patterns):
-                if verbose:
-                    print(f"Skipping: {final_filename}")
-                continue
-            if verbose:
-                print(f"Adding: {final_filename}")
-            filelist.append(final_filename)
-
-
-# =============================================================================
 # Constants
 # =============================================================================
 
-# Arguments
-EXTRAS_ARG = "extras"
-
 # Directories
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))  # .../crate
-CRATE_ROOT_DIR = os.path.join(THIS_DIR, "crate_anon")  # .../crate/crate_anon/
-DOC_ROOT_DIR = os.path.join(THIS_DIR, "docs")
-DOC_HTML_DIR = os.path.join(DOC_ROOT_DIR, "build", "html")
-EGG_DIR = os.path.join(THIS_DIR, "crate_anon.egg-info")
-
-# Files
-DOCMAKER = os.path.join(DOC_ROOT_DIR, "rebuild_docs.py")
-MANIFEST_FILE = os.path.join(THIS_DIR, "MANIFEST.in")  # we will write this
 
 # OS; setup.py is executed on the destination system at install time, so:
 RUNNING_WINDOWS = platform.system() == "Windows"
@@ -234,80 +162,6 @@ if RUNNING_WINDOWS:
 
 
 # =============================================================================
-# There's a nasty caching effect. So remove the old ".egg_info" directory
-# =============================================================================
-# http://blog.codekills.net/2011/07/15/lies,-more-lies-and-python-packaging-documentation-on--package_data-/  # noqa
-
-deltree(EGG_DIR, verbose=True)
-
-
-# =============================================================================
-# If we run this with "python setup.py sdist --extras", we *BUILD* the package
-# and do all the extras. (When the end user installs it, that argument will be
-# absent.)
-# =============================================================================
-
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    '--' + EXTRAS_ARG, action='store_true',
-    help=(
-        f"USE THIS TO CREATE PACKAGES (e.g. "
-        f"'python setup.py sdist --{EXTRAS_ARG}. Copies extra info in."
-    )
-)
-our_args, leftover_args = parser.parse_known_args()
-sys.argv[1:] = leftover_args
-
-extra_files = []  # type: List[str]
-
-if getattr(our_args, EXTRAS_ARG):
-    # Here's where we do the extra stuff.
-
-    # -------------------------------------------------------------------------
-    # Add extra files
-    # -------------------------------------------------------------------------
-
-    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/consent/templates'),
-                  extra_files, relative_to=THIS_DIR,
-                  skip_patterns=SKIP_PATTERNS)
-    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/research/templates'),
-                  extra_files, relative_to=THIS_DIR,
-                  skip_patterns=SKIP_PATTERNS)
-    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/static'),
-                  extra_files, relative_to=THIS_DIR,
-                  skip_patterns=SKIP_PATTERNS)
-    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/specimen_archives'),  # noqa
-                  extra_files, relative_to=THIS_DIR,
-                  skip_patterns=SKIP_PATTERNS)
-    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/templates'),
-                  extra_files, relative_to=THIS_DIR,
-                  skip_patterns=SKIP_PATTERNS)
-    add_all_files(os.path.join(CRATE_ROOT_DIR, 'crateweb/userprofile/templates'),  # noqa
-                  extra_files, relative_to=THIS_DIR,
-                  skip_patterns=SKIP_PATTERNS)
-    add_all_files(os.path.join(CRATE_ROOT_DIR, 'nlp_manager'),
-                  extra_files, relative_to=THIS_DIR,
-                  skip_patterns=SKIP_PATTERNS)
-    # ... for the Java and .ini files
-    add_all_files(os.path.join(CRATE_ROOT_DIR, 'testdocs_for_text_extraction'),
-                  extra_files, relative_to=THIS_DIR,
-                  skip_patterns=SKIP_PATTERNS)
-
-    extra_files.sort()
-    print(f"EXTRA_FILES: \n{pformat(extra_files)}")
-
-    # -------------------------------------------------------------------------
-    # Write the manifest (ensures files get into the source distribution).
-    # -------------------------------------------------------------------------
-    manifest_lines = ['include ' + x for x in extra_files]
-    with open(MANIFEST_FILE, 'wt') as manifest:
-        manifest.writelines([
-            "# This is an AUTOCREATED file, MANIFEST.in; see setup.py and DO "
-            "NOT EDIT BY HAND"])
-        manifest.write("\n\n" + "\n".join(manifest_lines) + "\n")
-
-
-# =============================================================================
 # setup args
 # =============================================================================
 
@@ -360,10 +214,6 @@ setup(
     packages=find_packages(),
     # finds all the .py files in subdirectories, as long as there are
     # __init__.py files
-
-    package_data={
-        "crate_anon": extra_files,
-    },
 
     include_package_data=True,  # use MANIFEST.in during install?
     # https://stackoverflow.com/questions/7522250/how-to-include-package-data-with-setuptools-distribute  # noqa
