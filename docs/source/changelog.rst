@@ -1327,7 +1327,9 @@ Changes
 **0.19.3, in progress**
 
 - Migrating Travis CI.
-- Django from 3.1.7 to 3.1.12 for CVE-2021-31542.
+- ``django`` from 3.1.7 to 3.1.12 for CVE-2021-31542.
+- ``pillow`` from 8.1.2 to 8.2.0 for several alerts including CVE-2021-25288.
+- ``urllib3`` from 1.26.4 to 1.26.5 for CVE-2021-33503.
 
 
 ===============================================================================

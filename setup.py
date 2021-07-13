@@ -96,7 +96,7 @@ INSTALL_REQUIRES = [
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa
     "openpyxl==3.0.7",  # read Excel
     "pendulum==2.1.1",  # dates/times
-    "pillow==8.1.2",  # image processing; import as PIL (Python Imaging Library)  # noqa
+    "pillow==8.2.0",  # image processing; import as PIL (Python Imaging Library)  # noqa
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==0.7.2",  # pretty formating of text-based tables
     "psutil==5.7.2",  # process management
@@ -127,7 +127,7 @@ INSTALL_REQUIRES = [
     "requests==2.25.1",  # HTTP requests
     "tornado==6.1",  # web framework
     "transaction==3.0.0",  # generic transaction management
-    "urllib3==1.26.4",  # used by requests
+    "urllib3==1.26.5",  # used by requests
     "waitress==1.4.4",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
 
