@@ -1326,6 +1326,10 @@ Changes
 
 **0.19.3, in progress**
 
+- Migrating Travis CI.
+- Django from 3.1.7 to 3.1.12 for CVE-2021-31542.
+
+
 ===============================================================================
 
 .. rubric:: Footnotes
