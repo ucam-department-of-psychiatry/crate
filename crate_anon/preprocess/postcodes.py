@@ -20,7 +20,7 @@ crate_anon/preprocess/postcodes.py
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 ===============================================================================
 
@@ -93,7 +93,7 @@ from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.schema import MetaData, Table
-import xlrd
+# import xlrd
 
 from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
 from crate_anon.common.constants import EnvVar
@@ -1230,9 +1230,10 @@ def populate_generic_lookup_table(
         csv_reader = csv.DictReader(file)
         dict_iterator = csv_reader
     else:
-        workbook = xlrd.open_workbook(filename)
-        sheet = workbook.sheet_by_index(0)
-        dict_iterator = dict_from_rows(sheet.get_rows())
+        raise ValueError("Only XLSX and CSV these days")
+        # workbook = xlrd.open_workbook(filename)
+        # sheet = workbook.sheet_by_index(0)
+        # dict_iterator = dict_from_rows(sheet.get_rows())
     for datadict in dict_iterator:
         n += 1
         if debug:

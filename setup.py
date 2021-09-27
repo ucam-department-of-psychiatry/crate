@@ -20,7 +20,7 @@ setup.py
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 ===============================================================================
 
@@ -100,6 +100,7 @@ INSTALL_REQUIRES = [
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==0.7.2",  # pretty formating of text-based tables
     "psutil==5.7.2",  # process management
+    "pyexcel-ods==0.6.0",  # for reading ODS files
     "pygments==2.8.1",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
     "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]
@@ -114,7 +115,7 @@ INSTALL_REQUIRES = [
     "SQLAlchemy==1.3.18",  # database access
     "sqlparse==0.3.1",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
-    "xlrd==2.0.1",  # for ONS postcode database handling; read Excel files
+    # "xlrd==2.0.1",  # for ONS postcode database handling; read Excel files
 
     # Packages for cloud NLP:
     "bcrypt==3.1.7",  # bcrypt encryption

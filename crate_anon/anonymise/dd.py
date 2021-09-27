@@ -20,7 +20,7 @@ crate_anon/anonymise/dd.py
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 ===============================================================================
 
@@ -40,8 +40,11 @@ import csv
 from functools import lru_cache
 import logging
 import operator
-from typing import (AbstractSet, Any, List, Optional, Tuple, TYPE_CHECKING,
-                    Union)
+import os
+from typing import (
+    AbstractSet, Any, Callable, Dict, Iterable, List, Optional,
+    Tuple, TYPE_CHECKING, Union
+)
 
 from cardinal_pythonlib.sql.validation import is_sqltype_integer
 from cardinal_pythonlib.sqlalchemy.schema import (
@@ -49,6 +52,8 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     is_sqlatype_string,
     is_sqlatype_text_over_one_char,
 )
+import openpyxl
+import pyexcel_ods
 from sortedcontainers import SortedSet
 import sqlalchemy.exc
 from sqlalchemy import Column, Table, DateTime
@@ -97,41 +102,132 @@ class DataDictionary(object):
         Args:
             filename: filename to read
         """
-        self.rows = []  # type: List[DataDictionaryRow]
-        log.debug(f"Opening data dictionary: {filename}")
+        log.debug(f"Loading data dictionary: {filename}")
+        _, ext = os.path.splitext(filename)
+        if ext == ".tsv":
+            row_gen = self._gen_rows_from_tsv(filename)
+        elif ext == ".xlsx":
+            row_gen = self._gen_rows_from_xlsx(filename)
+        elif ext == ".ods":
+            row_gen = self._gen_rows_from_ods(filename)
+        else:
+            raise ValueError(f"Unknown data dictionary extension: {ext!r}")
+        self._read_from_rows(row_gen)
+
+    @staticmethod
+    def _skip_row(row: List[Any]) -> bool:
+        """
+        Should we skip a row, because it's empty or starts with a comment?
+        """
+        if not row:
+            return True
+        first = row[0]
+        if isinstance(first, str) and first.strip().startswith("#"):
+            return True
+        return not all(v for v in row)
+
+    @classmethod
+    def _gen_rows_from_tsv(cls, filename: str) -> Iterable[List[Any]]:
+        """
+        Generates rows from a TSV file.
+        """
+        log.debug(f"Loading as TSV: {filename}")
         with open(filename, 'r') as tsvfile:
             tsv = csv.reader(tsvfile, delimiter='\t')
-            headers = next(tsv)
-            if not all(x in headers for x in DataDictionaryRow.ROWNAMES):
-                raise ValueError(
-                    "Bad data dictionary file. Must be a tab-separated value "
-                    "(TSV) file with the following row headings:\n"
-                    "{}\n\n"
-                    "but yours are:\n\n"
-                    "{}".format(
-                        "\n".join(DataDictionaryRow.ROWNAMES),
-                        "\n".join(headers)
-                    )
-                )
-            log.debug("Data dictionary has correct header. Loading content...")
-            for values in tsv:
-                if not values:
-                    # log.debug("Skipping blank line")
+            for row in tsv:
+                if cls._skip_row(row):
                     continue
-                if values[0].strip().startswith("#"):
-                    # log.debug("Skipping comment line")
-                    continue
-                valuedict = dict(zip(headers, values))
-                ddr = DataDictionaryRow(self.config)
-                try:
-                    ddr.set_from_dict(valuedict)
-                    ddr.check_valid()
-                except ValueError:
-                    log.critical(f"Offending input: {valuedict}")
-                    raise
-                self.rows.append(ddr)
-            log.debug("... content loaded.")
+                yield row
+
+    @classmethod
+    def _gen_rows_from_xlsx(cls, filename: str) -> Iterable[List[Any]]:
+        """
+        Generates rows from an XLSX file.
+        """
+        log.debug(f"Loading as XLSX: {filename}")
+        workbook = openpyxl.load_workbook(filename)
+        # ... NB potential bug using read_only; see postcodes.py
+        worksheet = workbook.active  # first sheet, by default
+        for sheet_row in worksheet.iter_rows():
+            row = [
+                "" if cell.value is None else cell.value
+                for cell in sheet_row
+            ]
+            if cls._skip_row(row):
+                continue
+            yield row
+
+    @classmethod
+    def _gen_rows_from_ods(cls, filename: str) -> Iterable[List[Any]]:
+        """
+        Generates rows from an ODS file.
+        """
+        log.debug(f"Loading as ODS: {filename}")
+        data = pyexcel_ods.get_data(filename)  # type: Dict[str, List[List[Any]]]  # noqa
+        # ... but it's an ordered dictionary, so:
+        first_key = next(iter(data))
+        first_sheet_rows = data[first_key]
+        for row in first_sheet_rows:
+            if cls._skip_row(row):
+                continue
+            yield row
+
+    def _read_from_rows(self, rows: Iterable[List[Any]]) -> None:
+        """
+        Internal function to read from a set of rows, whatever the underlying
+        format.
+        """
+        # Clear existing data
+        self.rows = []  # type: List[DataDictionaryRow]
+
+        # Headers
+        # noinspection PyTypeChecker
+        headers = next(rows)
+        if not all(x in headers for x in DataDictionaryRow.ROWNAMES):
+            actual = "\n".join(
+                f"{i}. {h}"
+                for i, h in enumerate(headers, start=1)
+            )
+            desired = "\n".join(
+                f"{i}. {h}"
+                for i, h in enumerate(DataDictionaryRow.ROWNAMES, start=1)
+            )
+            raise ValueError(
+                f"Bad data dictionary file. TSV data dictionaries must be "
+                f"in tab-separated value (TSV) format with the following "
+                f"row headings:\n\n"
+                f"{desired}\n\n"
+                f"but yours are:\n\n"
+                f"{actual}"
+            )
+        log.debug("Data dictionary has correct header. Loading content...")
+
+        # Data
+        for values in rows:
+            valuedict = dict(zip(headers, values))
+            ddr = DataDictionaryRow(self.config)
+            try:
+                ddr.set_from_dict(valuedict)
+                ddr.check_valid()
+            except ValueError:
+                log.critical(f"Offending input: {valuedict}")
+                raise
+            self.rows.append(ddr)
+        log.debug("... content loaded.")
+
+        # Clear caches
         self.clear_caches()
+
+    @classmethod
+    def create_from_file(cls,
+                         filename: str,
+                         config: "Config") -> "DataDictionary":
+        """
+        Creates a new data dictionary by reading a file.
+        """
+        dd = DataDictionary(config)
+        dd.read_from_file(filename)
+        return dd
 
     def read_from_source_databases(self, report_every: int = 100) -> None:
         """
@@ -488,6 +584,13 @@ class DataDictionary(object):
             ["\t".join(DataDictionaryRow.ROWNAMES)] +
             [r.get_tsv() for r in self.rows]
         )
+
+    def write_tsv_file(self, filename: str) -> None:
+        """
+        Writes the dictionary to a TSV file.
+        """
+        with open(filename, "wt") as f:
+            f.write(self.get_tsv())
 
     # =========================================================================
     # Global DD queries
@@ -989,3 +1092,36 @@ class DataDictionary(object):
         """
         for func in self.cached_funcs():
             log.debug(f"{func.__name__}: {func.cache_info()}")
+
+    # =========================================================================
+    # Filtering
+    # =========================================================================
+
+    KEEP_FUNCTION_TYPE = Callable[[DataDictionaryRow], bool]
+
+    def remove_rows_by_filter(self, keep: KEEP_FUNCTION_TYPE) -> None:
+        """
+        Removes any rows that do not pass a filter function.
+
+        Args:
+            keep:
+                Function taking a data dictionary row as an argument, and
+                returning a boolean of whether to keep the row.
+        """
+        self.rows = [
+            row for row in self.rows if keep(row)
+        ]
+
+    def omit_rows_by_filter(self, keep: KEEP_FUNCTION_TYPE) -> None:
+        """
+        Set to "omit" any rows that do not pass a filter function.
+        Does not alter any rows already set to omit.
+
+        Args:
+            keep:
+                Function taking a data dictionary row as an argument, and
+                returning a boolean of whether to keep the row.
+        """
+        for row in self.rows:
+            if not row.omit:
+                row.omit = not keep(row)

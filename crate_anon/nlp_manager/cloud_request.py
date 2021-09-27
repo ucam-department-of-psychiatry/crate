@@ -20,7 +20,7 @@ crate_anon/nlp_manager/cloud_request.py
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 ===============================================================================
 

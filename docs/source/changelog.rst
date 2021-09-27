@@ -1315,14 +1315,15 @@ Changes
 - Significant rework to numerical NLP to support a wider variety, e.g.
   ``sodium (mM) 132`` as well as ``sodium 132 mM``.
 
+
 .. _changelog_2021:
 
 2021
 ~~~~
+
 **0.19.2, 2021-01-26**
 
 - Handle errors when inserting rows in the destination table during NLP.
-
 
 **0.19.3, in progress**
 
