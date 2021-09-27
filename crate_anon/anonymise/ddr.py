@@ -56,6 +56,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     is_sqlatype_text_over_one_char,
 )
 from sqlalchemy import Column
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.sqltypes import TypeEngine
 
 from crate_anon.anonymise.altermethod import AlterMethod
@@ -539,7 +540,8 @@ class DataDictionaryRow(object):
     # Setting
     # -------------------------------------------------------------------------
 
-    def set_from_dict(self, valuedict: Dict[str, Any]) -> None:
+    def set_from_dict(self, valuedict: Dict[str, Any],
+                      override_dialect: Dialect = None) -> None:
         """
         Set internal fields from a dict of elements representing a row from the
         TSV data dictionary file.
@@ -551,7 +553,9 @@ class DataDictionaryRow(object):
         self.src_is_textual = crate_anon.common.sql.is_sql_column_type_textual(
             self.src_datatype)
         if self.src_is_textual:
-            dialect = self.config.get_src_dialect(self.src_db)
+            dialect = (
+                override_dialect or self.config.get_src_dialect(self.src_db)
+            )
             # Get length of field if text field (otherwise this remains 'None')
             # noinspection PyUnresolvedReferences
             self.src_textlength = crate_anon.common.sql.coltype_length_if_text(

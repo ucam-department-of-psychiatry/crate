@@ -115,7 +115,6 @@ INSTALL_REQUIRES = [
     "SQLAlchemy==1.3.18",  # database access
     "sqlparse==0.3.1",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
-    # "xlrd==2.0.1",  # for ONS postcode database handling; read Excel files
 
     # Packages for cloud NLP:
     "bcrypt==3.1.7",  # bcrypt encryption

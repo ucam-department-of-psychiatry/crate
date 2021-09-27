@@ -38,6 +38,7 @@ rather than a database table.
 import collections
 import csv
 from functools import lru_cache
+from itertools import zip_longest
 import logging
 import operator
 import os
@@ -57,6 +58,7 @@ import pyexcel_ods
 from sortedcontainers import SortedSet
 import sqlalchemy.exc
 from sqlalchemy import Column, Table, DateTime
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.sqltypes import String, TypeEngine
 
 # don't import config: circular dependency would have to be sorted out
@@ -95,12 +97,31 @@ class DataDictionary(object):
         self.cached_srcdb_table_pairs = SortedSet()
         self.n_definers = 0
 
-    def read_from_file(self, filename: str) -> None:
+    # -------------------------------------------------------------------------
+    # Information
+    # -------------------------------------------------------------------------
+
+    @property
+    def n_rows(self) -> int:
+        """
+        Number of rows.
+        """
+        return len(self.rows)
+
+    # -------------------------------------------------------------------------
+    # Loading
+    # -------------------------------------------------------------------------
+
+    def read_from_file(self,
+                       filename: str,
+                       check_valid: bool = True,
+                       override_dialect: Dialect = None) -> None:
         """
         Read DD from file.
 
         Args:
             filename: filename to read
+            check_valid: check validity against e.g. dialect of source DB?
         """
         log.debug(f"Loading data dictionary: {filename}")
         _, ext = os.path.splitext(filename)
@@ -112,7 +133,9 @@ class DataDictionary(object):
             row_gen = self._gen_rows_from_ods(filename)
         else:
             raise ValueError(f"Unknown data dictionary extension: {ext!r}")
-        self._read_from_rows(row_gen)
+        self._read_from_rows(row_gen,
+                             check_valid=check_valid,
+                             override_dialect=override_dialect)
 
     @staticmethod
     def _skip_row(row: List[Any]) -> bool:
@@ -124,7 +147,7 @@ class DataDictionary(object):
         first = row[0]
         if isinstance(first, str) and first.strip().startswith("#"):
             return True
-        return not all(v for v in row)
+        return not any(v for v in row)
 
     @classmethod
     def _gen_rows_from_tsv(cls, filename: str) -> Iterable[List[Any]]:
@@ -172,7 +195,10 @@ class DataDictionary(object):
                 continue
             yield row
 
-    def _read_from_rows(self, rows: Iterable[List[Any]]) -> None:
+    def _read_from_rows(self,
+                        rows: Iterable[List[Any]],
+                        check_valid: bool = True,
+                        override_dialect: Dialect = None) -> None:
         """
         Internal function to read from a set of rows, whatever the underlying
         format.
@@ -193,9 +219,8 @@ class DataDictionary(object):
                 for i, h in enumerate(DataDictionaryRow.ROWNAMES, start=1)
             )
             raise ValueError(
-                f"Bad data dictionary file. TSV data dictionaries must be "
-                f"in tab-separated value (TSV) format with the following "
-                f"row headings:\n\n"
+                f"Bad data dictionary file. Data dictionaries must be in "
+                f"tabular format with the following headings:\n\n"
                 f"{desired}\n\n"
                 f"but yours are:\n\n"
                 f"{actual}"
@@ -204,11 +229,15 @@ class DataDictionary(object):
 
         # Data
         for values in rows:
-            valuedict = dict(zip(headers, values))
+            if len(values) < len(headers):
+                valuedict = dict(zip_longest(headers, values, fillvalue=""))
+            else:
+                valuedict = dict(zip(headers, values))
             ddr = DataDictionaryRow(self.config)
             try:
-                ddr.set_from_dict(valuedict)
-                ddr.check_valid()
+                ddr.set_from_dict(valuedict, override_dialect=override_dialect)
+                if check_valid:
+                    ddr.check_valid()
             except ValueError:
                 log.critical(f"Offending input: {valuedict}")
                 raise
@@ -221,12 +250,16 @@ class DataDictionary(object):
     @classmethod
     def create_from_file(cls,
                          filename: str,
-                         config: "Config") -> "DataDictionary":
+                         config: "Config",
+                         check_valid: bool = True,
+                         override_dialect: Dialect = None) -> "DataDictionary":
         """
         Creates a new data dictionary by reading a file.
         """
         dd = DataDictionary(config)
-        dd.read_from_file(filename)
+        dd.read_from_file(filename,
+                          check_valid=check_valid,
+                          override_dialect=override_dialect)
         return dd
 
     def read_from_source_databases(self, report_every: int = 100) -> None:
@@ -330,6 +363,10 @@ class DataDictionary(object):
         log.info("... done")
         self.sort()
 
+    # -------------------------------------------------------------------------
+    # Sorting
+    # -------------------------------------------------------------------------
+
     def sort(self) -> None:
         """
         Sorts the data dictionary.
@@ -341,6 +378,10 @@ class DataDictionary(object):
                                     "src_table_lowercase",
                                     "src_field_lowercase"))
         log.info("... done")
+
+    # -------------------------------------------------------------------------
+    # Validation
+    # -------------------------------------------------------------------------
 
     def check_against_source_db(self) -> None:
         """
@@ -572,9 +613,9 @@ class DataDictionary(object):
 
         log.debug("... DD checked.")
 
-    # =========================================================================
-    # Whole-DD operations
-    # =========================================================================
+    # -------------------------------------------------------------------------
+    # Saving
+    # -------------------------------------------------------------------------
 
     def get_tsv(self) -> str:
         """
@@ -592,9 +633,9 @@ class DataDictionary(object):
         with open(filename, "wt") as f:
             f.write(self.get_tsv())
 
-    # =========================================================================
+    # -------------------------------------------------------------------------
     # Global DD queries
-    # =========================================================================
+    # -------------------------------------------------------------------------
 
     @lru_cache(maxsize=None)
     def get_source_databases(self) -> AbstractSet[str]:
@@ -642,6 +683,31 @@ class DataDictionary(object):
             for ddr in self.rows
             if ddr.contains_patient_info
         ])
+
+    def get_src_db_tablepairs_w_no_pt_info(self) \
+            -> AbstractSet[Tuple[str, str]]:
+        """
+        Return a SortedSet of ``source_database_name, source_table`` tuples
+        for tables that contain no patient information.
+        """
+        return SortedSet([
+            (ddr.src_db, ddr.src_table)
+            for ddr in self.rows
+            if not ddr.contains_patient_info
+        ])
+
+    def get_tables_w_no_pt_info(self)  -> AbstractSet[str]:
+        """
+        Return a SortedSet of ``source_table`` names for tables that contain no
+        patient information.
+        """
+        tables_with_pt_info = SortedSet([
+            ddr.src_table
+            for ddr in self.rows
+            if ddr.contains_patient_info
+        ])
+        all_tables = SortedSet([ddr.src_table for ddr in self.rows])
+        return all_tables - tables_with_pt_info
 
     @lru_cache(maxsize=None)
     def get_src_db_tablepairs_w_int_pk(self) -> AbstractSet[Tuple[str, str]]:
@@ -783,9 +849,9 @@ class DataDictionary(object):
             self.get_src_tables_with_patient_info(src_db)
         )
 
-    # =========================================================================
+    # -------------------------------------------------------------------------
     # Queries by source DB/table
-    # =========================================================================
+    # -------------------------------------------------------------------------
 
     @lru_cache(maxsize=None)
     def get_dest_tables_for_src_db_table(
@@ -938,9 +1004,9 @@ class DataDictionary(object):
                 return ddr.src_field
         return None
 
-    # =========================================================================
+    # -------------------------------------------------------------------------
     # Queries by destination table
-    # =========================================================================
+    # -------------------------------------------------------------------------
 
     @lru_cache(maxsize=None)
     def get_src_dbs_tables_for_dest_table(
@@ -967,9 +1033,9 @@ class DataDictionary(object):
             if ddr.dest_table == dest_table and not ddr.omit
         ])
 
-    # =========================================================================
+    # -------------------------------------------------------------------------
     # SQLAlchemy Table objects
-    # =========================================================================
+    # -------------------------------------------------------------------------
 
     @lru_cache(maxsize=None)
     def get_dest_sqla_table(self, tablename: str,
@@ -1034,9 +1100,9 @@ class DataDictionary(object):
             comment='Master research ID (MRID)'
         )
 
-    # =========================================================================
+    # -------------------------------------------------------------------------
     # Clear caches
-    # =========================================================================
+    # -------------------------------------------------------------------------
 
     def cached_funcs(self) -> List[Any]:
         """
@@ -1093,9 +1159,9 @@ class DataDictionary(object):
         for func in self.cached_funcs():
             log.debug(f"{func.__name__}: {func.cache_info()}")
 
-    # =========================================================================
+    # -------------------------------------------------------------------------
     # Filtering
-    # =========================================================================
+    # -------------------------------------------------------------------------
 
     KEEP_FUNCTION_TYPE = Callable[[DataDictionaryRow], bool]
 
