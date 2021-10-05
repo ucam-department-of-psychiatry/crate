@@ -32,43 +32,6 @@ from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 
 
 # =============================================================================
-# HTTP status codes
-# =============================================================================
-
-class HttpStatus(object):
-    """
-    HTTP status codes used by the NLPRP (plus a couple of others).
-    """
-    # 1xx: informational
-    PROCESSING = 102
-
-    # 2xx: success
-    OK = 200
-    ACCEPTED = 202
-    NO_CONTENT = 204  # this HTTP status not emitted by an NLPRP server
-
-    # 3xx: redirection
-    # ... not used
-
-    # 4xx: client error
-    BAD_REQUEST = 400
-    UNAUTHORIZED = 401
-    NOT_FOUND = 404
-
-    # 5xx: server error
-    BAD_GATEWAY = 502
-    INTERNAL_SERVER_ERROR = 500
-    SERVICE_UNAVAILABLE = 503
-
-    @classmethod
-    def is_good_answer(cls, status: int) -> bool:
-        """
-        Is the given HTTP status code a satisfactory answer?
-        """
-        return 200 <= status <= 299 or status == cls.PROCESSING
-
-
-# =============================================================================
 # NLPRP strings
 # =============================================================================
 

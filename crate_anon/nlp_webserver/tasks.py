@@ -33,6 +33,7 @@ import json
 import logging
 from typing import TYPE_CHECKING
 
+from cardinal_pythonlib.httpconst import HttpStatus
 from cardinal_pythonlib.json.typing_helpers import (
     JsonArrayType,
     JsonObjectType,
@@ -61,7 +62,6 @@ from crate_anon.nlp_webserver.constants import (
 from crate_anon.nlp_webserver.security import decrypt_password
 from crate_anon.nlp_webserver.settings import SETTINGS
 from crate_anon.nlprp.api import NlprpKeys
-from crate_anon.nlprp.constants import HttpStatus
 
 if TYPE_CHECKING:
     from typing import Optional
