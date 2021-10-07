@@ -696,7 +696,7 @@ class DataDictionary(object):
             if not ddr.contains_patient_info
         ])
 
-    def get_tables_w_no_pt_info(self)  -> AbstractSet[str]:
+    def get_tables_w_no_pt_info(self) -> AbstractSet[str]:
         """
         Return a SortedSet of ``source_table`` names for tables that contain no
         patient information.
