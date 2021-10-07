@@ -113,7 +113,7 @@ INSTALL_REQUIRES = [
     "semantic_version==2.8.5",  # semantic versioning; better than semver
     "sortedcontainers==2.2.2",  # for SortedSet
     "SQLAlchemy==1.3.18",  # database access
-    "sqlparse==0.3.1",  # [pin exact version from cardinal_pythonlib]
+    "sqlparse==0.4.2",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
 
     # Packages for cloud NLP:
