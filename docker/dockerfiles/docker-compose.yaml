@@ -1,3 +1,6 @@
+---
+# yamllint disable rule:line-length
+# yamllint disable rule:comments-indentation
 # server/docker/dockerfiles/docker-compose.yaml
 #
 # See the help!
@@ -332,7 +335,7 @@ services:
     # - https://pubmed.ncbi.nlm.nih.gov/29361077/
     # Note that Bio-YODIE is its core NLP component.
 
-    #semehr:
+    # semehr:
     #    image: semehr/core
     #
     #    restart: "always"
