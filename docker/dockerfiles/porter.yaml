@@ -1,0 +1,58 @@
+---
+# yamllint disable rule:line-length
+name: crateanon
+version: 0.1.0
+description: "CRATE: Clinical Records Anonymisation and Text Extraction"
+registry: crateanon
+
+required:
+  - docker
+
+# If you want to customize the Dockerfile in use, uncomment the line below and update the referenced file.
+# See https://porter.sh/custom-dockerfile/
+#dockerfile: Dockerfile.tmpl
+
+mixins:
+  - docker-compose
+
+install:
+  - docker-compose:
+      description: Docker Compose up
+      arguments:
+        - up
+        - --abort-on-container-exit
+
+ps:
+  - docker-compose:
+      description: Docker Compose ps
+      arguments:
+        - ps
+
+uninstall:
+  - docker-compose:
+      description: Docker Compose down
+      arguments:
+        - down
+        - --remove-orphans
+
+parameters:
+  - name: crate_docker_config_host_dir
+    type: string
+    env: CRATE_DOCKER_CONFIG_HOST_DIR
+
+  - name: crate_docker_gate_bioyodie_resources_host_dir
+    type: string
+    env: CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR
+
+  - name: crate_docker_mysql_host_port
+    type: integer
+    env: CRATE_DOCKER_MYSQL_HOST_PORT
+
+credentials:
+  - name: crate_docker_mysql_crate_user_password
+    type: string
+    env: CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
+
+  - name: crate_docker_mysql_root_password
+    type: string
+    env: CRATE_DOCKER_MYSQL_ROOT_PASSWORD
