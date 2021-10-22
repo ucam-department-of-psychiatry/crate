@@ -12,6 +12,7 @@
 #
 # Those with defaults in the .env file in this directory:
 #
+#   CRATE_DOCKER_CRATE_ANON_CONFIG
 #   CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME
 #   CRATE_DOCKER_CRATEWEB_HOST_PORT
 #   CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
@@ -220,6 +221,7 @@ services:
             - crate_tmp_volume:/crate/tmp
 
         environment:
+            CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
             CRATE_GATE_PLUGIN_FILE: "/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini"
             CRATE_PACKAGE_ROOT: "/crate/venv/lib/python3.6/site-packages/crate_anon"
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
@@ -311,6 +313,7 @@ services:
             - crate_tmp_volume:/crate/tmp
 
         environment:
+            CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
 
         command: [
