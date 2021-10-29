@@ -287,6 +287,7 @@ services:
             - crate_tmp_volume:/crate/tmp
 
         environment:
+            CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
             CERT_ARGS: ""
             KEY_ARGS: ""
