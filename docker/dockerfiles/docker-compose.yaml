@@ -135,7 +135,7 @@ services:
             - "host.docker.internal:host-gateway"
 
         networks:
-          - crateanon_network
+            - crateanon_network
 
         # Expose ports from the container, "publishing" them to the host.
         # For example, if you offer a MySQL server via "9999:3306", you should
@@ -194,7 +194,7 @@ services:
         extra_hosts:
             - "host.docker.internal:host-gateway"
         networks:
-          - crateanon_network
+            - crateanon_network
 
 
     # -------------------------------------------------------------------------
@@ -253,7 +253,7 @@ services:
         extra_hosts:
             - "host.docker.internal:host-gateway"
         networks:
-          - crateanon_network
+            - crateanon_network
 
 
     # -------------------------------------------------------------------------
@@ -274,7 +274,7 @@ services:
         extra_hosts:
             - "host.docker.internal:host-gateway"
         networks:
-          - crateanon_network
+            - crateanon_network
 
         # Publish port to host.
         ports:
@@ -330,7 +330,7 @@ services:
         extra_hosts:
             - "host.docker.internal:host-gateway"
         networks:
-          - crateanon_network
+            - crateanon_network
 
         # Publish port to host.
         ports:
@@ -353,10 +353,6 @@ services:
                 crate_launch_flower
             ",
         ]
-
-        extra_hosts:
-            - "host.docker.internal:host-gateway"
-
 
     # -------------------------------------------------------------------------
     # TODO: CRATE NLPRP server
@@ -382,5 +378,5 @@ services:
 # =============================================================================
 
 networks:
-  crateanon_network:
-    driver: bridge
+    crateanon_network:
+        driver: bridge
