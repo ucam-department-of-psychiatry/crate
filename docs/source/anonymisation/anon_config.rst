@@ -972,7 +972,7 @@ ddgen_table_denylist
 
 *Multiline string.*
 
-Denylist any tables when creating new data dictionaries?
+Deny any tables when creating new data dictionaries?
 
 This is case-insensitive, and you can use ``*`` and ``?`` wildcards (as per
 Python's fnmatch_ module).
@@ -987,7 +987,7 @@ ddgen_table_allowlist
 
 *Multiline string.*
 
-Allowlist any tables? (Allowlists override denylists.)
+Allow any tables? (Allowlists override denylists.)
 
 .. note::
     Formerly ``ddgen_table_whitelist``; changed 2020-07-20 as part of neutral
@@ -1018,7 +1018,7 @@ ddgen_field_denylist
 
 *Multiline string.*
 
-Denylist any fields (regardless of their table) when creating new data
+Deny any fields (regardless of their table) when creating new data
 dictionaries? Wildcards of ``*`` and ``?`` operate as above.
 
 .. note::
@@ -1031,7 +1031,7 @@ ddgen_field_allowlist
 
 *Multiline string.*
 
-Allowlist any fields? (Allowlists override denylists.)
+Allow any fields? (Allowlists override denylists.)
 
 .. note::
     Formerly ``ddgen_field_whitelist``; changed 2020-07-20 as part of neutral
