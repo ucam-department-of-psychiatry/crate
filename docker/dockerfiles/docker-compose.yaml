@@ -267,20 +267,24 @@ services:
 
         environment:
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+            CERT_ARGS: ""
+            KEY_ARGS: ""
 
         # Command to execute
         # Can use shell-style or list-style syntax.
         command: [
             "wait-for-it", "--host=crate_db", "--port=3306", "--timeout=0", "--strict", "--",
             "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
-            "bash", "-c", "
+            "bash", "-c", '
+                [[ -z "${CRATE_DOCKER_SSL_CERTIFICATE}" ]] && CERT_ARGS="" || CERT_ARGS="--ssl_certificate ${CRATE_DOCKER_SSL_CERTIFICATE}" &&
+                [[ -z "${CRATE_DOCKER_SSL_PRIVATE_KEY}" ]] && KEY_ARGS="" || KEY_ARGS="--ssl_private_key ${CRATE_DOCKER_SSL_PRIVATE_KEY}" &&
                 source /crate/venv/bin/activate &&
                 crate_launch_cherrypy_server
                     --host 0.0.0.0
                     --port 8000
-                    --ssl_certificate ${CRATE_DOCKER_SSL_CERTIFICATE}
-                    --ssl_private_key ${CRATE_DOCKER_SSL_PRIVATE_KEY}
-            ",
+                    ${CERT_ARGS}
+                    ${KEY_ARGS}
+            ',
             # - Re host 0.0.0.0:
             #   https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors
         ]
