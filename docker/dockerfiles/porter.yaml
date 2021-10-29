@@ -19,12 +19,6 @@ install:
         - up
         - --abort-on-container-exit
 
-ps:
-  - docker-compose:
-      description: Docker Compose ps
-      arguments:
-        - ps
-
 uninstall:
   - docker-compose:
       description: Docker Compose down
