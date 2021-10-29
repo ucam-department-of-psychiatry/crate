@@ -89,9 +89,9 @@ Choose your own directory names.
 .. code-block:: bat
 
     C:\Python36\python.exe -m ensurepip
-    C:\Python36\python.exe -m pip install --upgrade pip
     C:\Python36\python.exe -m venv C:\venvs\crate
     C:\venvs\crate\Scripts\activate
+    C:\Python36\python.exe -m pip install --upgrade pip
     pip install crate-anon
 
 
