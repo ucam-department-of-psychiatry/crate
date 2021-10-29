@@ -131,6 +131,12 @@ services:
             # Password for user "root" (set at first container startup).
             MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_MYSQL_ROOT_PASSWORD}"
 
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
+        networks:
+          - crateanon_network
+
         # Expose ports from the container, "publishing" them to the host.
         # For example, if you offer a MySQL server via "9999:3306", you should
         # be able to run
@@ -184,6 +190,11 @@ services:
         # (You can't have no volume.)
         volumes:
             - rabbitmq_volume:/var/lib/rabbitmq
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        networks:
+          - crateanon_network
 
 
     # -------------------------------------------------------------------------
@@ -239,6 +250,11 @@ services:
             ",
         ]
 
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        networks:
+          - crateanon_network
+
 
     # -------------------------------------------------------------------------
     # Re-use the CRATE image, but run the CRATE web server.
@@ -254,6 +270,11 @@ services:
 
         # Restart policy
         restart: "always"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        networks:
+          - crateanon_network
 
         # Publish port to host.
         ports:
@@ -305,6 +326,11 @@ services:
         # Restart policy
         restart: "always"
 
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        networks:
+          - crateanon_network
+
         # Publish port to host.
         ports:
             # Default internal Flower port is 5555.
@@ -327,6 +353,9 @@ services:
             ",
         ]
 
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
 
     # -------------------------------------------------------------------------
     # TODO: CRATE NLPRP server
@@ -345,3 +374,12 @@ services:
     #    image: semehr/core
     #
     #    restart: "always"
+
+
+# =============================================================================
+# Networks
+# =============================================================================
+
+networks:
+  crateanon_network:
+    driver: bridge
