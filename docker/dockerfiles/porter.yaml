@@ -9,7 +9,8 @@ required:
   - docker
 
 mixins:
-  - docker-compose
+  - docker-compose:
+      clientVersion: 1.29.2
 
 install:
   - docker-compose:
