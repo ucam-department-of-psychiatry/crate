@@ -96,8 +96,7 @@ services:
     # MySQL container, providing database services
     # -------------------------------------------------------------------------
 
-    mysql:
-
+    crate_db:
         # Base Docker image. We use a standard MySQL image; see
         # https://hub.docker.com/_/mysql
         image: mysql:5.7
@@ -208,7 +207,7 @@ services:
         # Start order. See docs -- note that this is "order to start", not
         # "wait for startup to complete".
         depends_on:
-            - mysql
+            - crate_db
             - rabbitmq
 
         # Restart policy
@@ -232,7 +231,7 @@ services:
 
         # Command to execute
         command: [
-            "wait-for-it", "--host=mysql", "--port=3306", "--timeout=0", "--strict", "--",
+            "wait-for-it", "--host=crate_db", "--port=3306", "--timeout=0", "--strict", "--",
             "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
             "bash", "-c", "
                 source /crate/venv/bin/activate &&
@@ -272,7 +271,7 @@ services:
         # Command to execute
         # Can use shell-style or list-style syntax.
         command: [
-            "wait-for-it", "--host=mysql", "--port=3306", "--timeout=0", "--strict", "--",
+            "wait-for-it", "--host=crate_db", "--port=3306", "--timeout=0", "--strict", "--",
             "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
             "bash", "-c", "
                 source /crate/venv/bin/activate &&
