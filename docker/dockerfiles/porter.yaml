@@ -9,6 +9,7 @@ required:
   - docker
 
 mixins:
+  - docker
   - docker-compose:
       clientVersion: 1.29.2
 
