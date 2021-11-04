@@ -41,6 +41,18 @@ parameters:
     env: CRATE_DOCKER_MYSQL_HOST_PORT
 
 credentials:
+  - name: DOCKER_USERNAME
+    type: string
+    env: DOCKER_USERNAME
+    applyTo:
+      - publish
+
+  - name: DOCKER_PASSWORD
+    type: string
+    env: DOCKER_PASSWORD
+    applyTo:
+      - publish
+
   - name: crate_docker_mysql_crate_user_password
     type: string
     env: CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
