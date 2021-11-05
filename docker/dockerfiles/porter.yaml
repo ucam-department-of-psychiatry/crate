@@ -13,6 +13,15 @@ mixins:
       clientVersion: 20.10.7
   - docker-compose:
       clientVersion: 1.29.2
+  - exec
+
+print-demo-crateweb-config-file:
+  - docker-compose:
+      description: "Print demo crateweb config file"
+      arguments:
+        - run
+        - --rm crate_workers
+        - /bin/bash -c "source /crate/venv/bin/activate; crate_print_demo_crateweb_config > $CRATE_WEB_LOCAL_SETTINGS"
 
 install:
   - docker-compose:
