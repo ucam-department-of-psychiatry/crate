@@ -23,6 +23,14 @@ print-demo-crateweb-config-file:
         - --rm crate_workers
         - /bin/bash -c "source /crate/venv/bin/activate; crate_print_demo_crateweb_config > $CRATE_WEB_LOCAL_SETTINGS"
 
+django-manage-migrate:
+  - docker-compose:
+      description: "Create the database structure"
+      arguments:
+        - run
+        - --rm crate_workers
+        - /bin/bash -c "source /crate/venv/bin/activate; crate_django_manage migrate"
+
 install:
   - docker-compose:
       description: Docker Compose up
