@@ -159,13 +159,21 @@ services:
 
         # Note that if you do not specify mount points, some are created
         # anyway; for example, the MySQL image wants something at
-        # /var/lib/mysql (internally) and on the hose this might actually be
+        # /var/lib/mysql (internally) and on the host this might actually be
         # e.g. /var/lib/docker/volumes/<gibberish>/_data
         volumes:
             # Format is "[SOURCE:]TARGET[:MODE]", such as
             # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
             - db_data_volume:/var/lib/mysql
-            - "./mysqlconf:/etc/mysql/conf.d"
+
+            # TODO: Temporarily disabled mysqlconf mount as MacOS doesn't like it
+            # Mounts denied:
+            # The path /cnab/app/mysqlconf is not shared from the host and is
+            # not known to Docker.
+
+            # At the moment this just has a config option to stop warnings about
+            # invalid timestamps
+            # - "./mysqlconf:/etc/mysql/conf.d"
 
     # -------------------------------------------------------------------------
     # RabbitMQ container, providing a message queue.
