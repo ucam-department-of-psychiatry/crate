@@ -31,6 +31,14 @@ django-manage-migrate:
         - --rm crate_workers
         - /bin/bash -c "source /crate/venv/bin/activate; crate_django_manage migrate"
 
+django-manage-createsuperuser:
+  - docker-compose:
+      description: "Create a database superuser"
+      arguments:
+        - run
+        - --rm crate_workers
+        - /bin/bash -c "source /crate/venv/bin/activate; crate_django_manage createsuperuser"
+
 install:
   - docker-compose:
       description: Docker Compose up
