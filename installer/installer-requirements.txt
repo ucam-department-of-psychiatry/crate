@@ -1,0 +1,3 @@
+python-on-whales==0.31.0
+urwid==2.1.2
+flake8
