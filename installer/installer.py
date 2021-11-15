@@ -2,9 +2,12 @@
 
 import os
 from pathlib import Path
+import sys
+from typing import Optional
 
+from prompt_toolkit.completion import PathCompleter
+from prompt_toolkit.shortcuts import input_dialog, message_dialog, prompt
 from python_on_whales import docker
-from urwid import Edit, ExitMainLoop, Filler, MainLoop
 
 EXIT_FAILURE = 1
 
@@ -20,6 +23,9 @@ CRATE_WEB_LOCAL_SETTINGS = os.path.join(CRATE_CONFIG_DIR,
 
 
 class Installer:
+    def __init__(self) -> None:
+        self.title = "CRATE Setup"
+
     def install(self) -> None:
         self.configure()
         self.create_local_settings()
@@ -27,48 +33,90 @@ class Installer:
     def configure(self) -> None:
         self.setenv(
             "CRATE_DOCKER_CONFIG_HOST_DIR",
-            self.user_dir(
-                "Select the directory where CRATE will store its configuration"
-            )
+            self.get_docker_config_host_dir()
         )
         self.setenv(
             "CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR",
-            self.user_dir(
-                "Select the directory where CRATE will store Bio-YODIE resources"
-            )
+            self.get_docker_gate_bioyodie_resources_host_dir()
         )
         self.setenv(
             "CRATE_DOCKER_MYSQL_ROOT_PASSWORD",
-            self.user_input(
-                "Enter a new MySQL root password"
-            )
+            self.get_docker_mysql_root_password()
         )
         self.setenv(
             "CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD",
-            self.user_input(
-                "Enter a new password for the MySQL user that CRATE will create"
-            )
+            self.get_docker_mysql_crate_user_password()
+        )
+
+    def get_docker_config_host_dir(self) -> str:
+        return self.get_user_dir(
+            "Select the directory where CRATE will store its configuration"
+        )
+
+    def get_docker_gate_bioyodie_resources_host_dir(self) -> str:
+        return self.get_user_dir(
+            "Select the directory where CRATE will store Bio-YODIE resources"
+        )
+
+    def get_docker_mysql_root_password(self) -> str:
+        return self.get_user_password(
+            "Enter a new MySQL root password"
+        )
+
+    def get_docker_mysql_crate_user_password(self) -> str:
+        return self.get_user_password(
+            "Enter a new password for the MySQL user that CRATE will create"
         )
 
     def setenv(self, name: str, value: str) -> None:
         os.environ[name] = value
 
-    def user_dir(self, prompt: str) -> str:
-        # TODO: File browser
-        return self.user_input(prompt)
+    def get_user_dir(self, text: str, title: Optional[str] = None) -> str:
+        if title is None:
+            title = self.title
 
-    def user_input(self, prompt: str) -> str:
-        edit = Edit(f"{prompt}\n")
-        filler = Filler(edit)
-        loop = MainLoop(filler, unhandled_input=self.exit_on_enter)
-        loop.run()
+        text = f"{text}\nPress Ctrl-N to autocomplete"
+        completer = PathCompleter(only_directories=True, expanduser=True)
+        dir = input_dialog(title=title, text=text,
+                           completer=completer).run()
+        if dir is None:
+            sys.exit(EXIT_FAILURE)
 
-        return edit.edit_text
+        return dir
 
-    @staticmethod
-    def exit_on_enter(key: str) -> None:
-        if key == "enter":
-            raise ExitMainLoop()
+    def get_user_password(self, text: str,
+                          title: Optional[str] = None) -> str:
+        if title is None:
+            title = self.title
+
+        while(True):
+            first = input_dialog(title=title, text=text, password=True).run()
+            if first is None:
+                sys.exit(EXIT_FAILURE)
+
+            second = input_dialog(title=title,
+                                  text="Enter the same password again",
+                                  password=True).run()
+            if second is None:
+                sys.exit(EXIT_FAILURE)
+
+            if first == second:
+                return first
+
+            self.alert("Passwords did not match. Please try again.")
+
+    def alert(self, text: str) -> None:
+        message_dialog(title=self.title, text=text).run()
+
+    def get_user_input(self, text: str, title: Optional[str] = None) -> str:
+        if title is None:
+            title = self.title
+
+        value = input_dialog(title=title, text=text).run()
+        if value is None:
+            sys.exit(EXIT_FAILURE)
+
+        return value
 
     def create_local_settings(self) -> None:
         os.chdir(DOCKERFILES_DIR)

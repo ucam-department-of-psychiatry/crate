@@ -1,3 +1,4 @@
-python-on-whales==0.31.0
-urwid==2.1.2
+# dev only
 flake8
+python-on-whales==0.31.0
+prompt-toolkit==3.0.22
