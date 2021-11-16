@@ -25,6 +25,7 @@ CRATE_WEB_LOCAL_SETTINGS = os.path.join(CRATE_CONFIG_DIR,
 class Installer:
     def __init__(self) -> None:
         self.title = "CRATE Setup"
+        self.testing = False
 
     def install(self) -> None:
         self.configure()
@@ -49,21 +50,33 @@ class Installer:
         )
 
     def get_docker_config_host_dir(self) -> str:
+        if self.testing:
+            return "/c/Users/Martin/crate_config"
+
         return self.get_user_dir(
             "Select the directory where CRATE will store its configuration"
         )
 
     def get_docker_gate_bioyodie_resources_host_dir(self) -> str:
+        if self.testing:
+            return "/c/Users/Martin/bioyodie_config"
+
         return self.get_user_dir(
             "Select the directory where CRATE will store Bio-YODIE resources"
         )
 
     def get_docker_mysql_root_password(self) -> str:
+        if self.testing:
+            return "ramalamadingdong"
+
         return self.get_user_password(
             "Enter a new MySQL root password"
         )
 
     def get_docker_mysql_crate_user_password(self) -> str:
+        if self.testing:
+            return "shoobydoobydoo"
+
         return self.get_user_password(
             "Enter a new password for the MySQL user that CRATE will create"
         )
@@ -134,6 +147,7 @@ class Installer:
 
 def main() -> None:
     installer = Installer()
+    installer.testing = True  # TODO remove
     installer.install()
 
 
