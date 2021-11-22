@@ -47,7 +47,7 @@ import sys
 
 from crate_anon.version import CRATE_VERSION
 
-assert sys.version_info >= (3, 6), "Need Python 3.6+"
+assert sys.version_info >= (3, 7), "Need Python 3.7+"
 
 
 # =============================================================================
@@ -202,7 +202,9 @@ setup(
         "Operating System :: OS Independent",
 
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3 :: Only",
 
         "Topic :: System :: Hardware",

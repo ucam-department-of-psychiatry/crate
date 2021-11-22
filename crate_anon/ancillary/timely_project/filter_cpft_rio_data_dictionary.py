@@ -40,7 +40,6 @@ For first cut:
 
 import argparse
 import logging
-import os
 import re
 from typing import List
 
