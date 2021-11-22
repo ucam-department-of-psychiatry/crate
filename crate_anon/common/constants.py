@@ -246,6 +246,6 @@ RUNNING_WITHOUT_CONFIG = (
     (
         EnvVar.RUN_WITHOUT_CONFIG in os.environ and
         os.environ[EnvVar.RUN_WITHOUT_CONFIG].lower() in
-            LOWER_CASE_STRINGS_MEANING_TRUE
+        LOWER_CASE_STRINGS_MEANING_TRUE
     )
 )
