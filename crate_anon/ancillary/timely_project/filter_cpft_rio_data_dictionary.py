@@ -40,6 +40,7 @@ For first cut:
 
 import argparse
 import logging
+import os
 import re
 from typing import List
 
@@ -130,7 +131,8 @@ def filter_dd(input_filename: str, output_filename: str) -> None:
     Reads a data dictionary, filters it, and writes the output.
     """
     log.info(f"Reading data dictionary: {input_filename}")
-    config = Config()  # read config file from environment variable
+    # We don't care about the actual config, so we use a mock one:
+    config = Config(mock=True)
     dd = DataDictionary.create_from_file(
         input_filename,
         config,

@@ -243,7 +243,9 @@ class HelpUrl(object):
 # Will we run without a config file?
 RUNNING_WITHOUT_CONFIG = (
     ON_READTHEDOCS or
-    (EnvVar.RUN_WITHOUT_CONFIG in os.environ and
-     os.environ[EnvVar.RUN_WITHOUT_CONFIG].lower() in
-     LOWER_CASE_STRINGS_MEANING_TRUE)
+    (
+        EnvVar.RUN_WITHOUT_CONFIG in os.environ and
+        os.environ[EnvVar.RUN_WITHOUT_CONFIG].lower() in
+            LOWER_CASE_STRINGS_MEANING_TRUE
+    )
 )

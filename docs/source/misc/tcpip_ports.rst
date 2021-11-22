@@ -39,8 +39,8 @@ Port    Default function
 25      SMTP
 80      HTTP
 443     HTTPS
-465     SMTPS: secure SMTP (e.g. implicit TLS for SMTP via ``STARTTLS``)
-587     MSA; e.g. explicit TLS (SSL) for SMTP
+465     SMTPS: secure SMTP (implicit TLS for SMTP)
+587     MSA; e.g. explicit TLS (via STARTTLS command) for SMTP
 1433    `Microsoft SQL Server`_
 2575    MLLP/HL7
 3306    MySQL_
