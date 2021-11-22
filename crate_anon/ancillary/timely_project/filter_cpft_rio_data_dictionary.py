@@ -132,7 +132,7 @@ def filter_dd(input_filename: str, output_filename: str) -> None:
     """
     log.info(f"Reading data dictionary: {input_filename}")
     # We don't care about the actual config, so we use a mock one:
-    config = Config(mock=True)
+    config = Config(mock=True, open_databases=False)
     dd = DataDictionary.create_from_file(
         input_filename,
         config,
