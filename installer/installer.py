@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
 import os
-from pathlib import Path
 import sys
 from typing import Optional
 
 from prompt_toolkit.completion import PathCompleter
-from prompt_toolkit.shortcuts import input_dialog, message_dialog, prompt
+from prompt_toolkit.shortcuts import input_dialog, message_dialog
 from python_on_whales import docker
 
 EXIT_FAILURE = 1
@@ -15,11 +14,6 @@ INSTALLER_DIR = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = os.path.join(INSTALLER_DIR, "..")
 DOCKER_DIR = os.path.join(PROJECT_ROOT, "docker")
 DOCKERFILES_DIR = os.path.join(DOCKER_DIR, "dockerfiles")
-
-HOME = str(Path.home())
-CRATE_CONFIG_DIR = os.path.join(HOME, "crate_config")
-CRATE_WEB_LOCAL_SETTINGS = os.path.join(CRATE_CONFIG_DIR,
-                                        "crateweb_local_settings.py")
 
 
 class Installer:
@@ -51,7 +45,7 @@ class Installer:
 
     def get_docker_config_host_dir(self) -> str:
         if self.testing:
-            return "/c/Users/Martin/crate_config"
+            return "/home/martin/crate_config"
 
         return self.get_user_dir(
             "Select the directory where CRATE will store its configuration"
@@ -59,7 +53,7 @@ class Installer:
 
     def get_docker_gate_bioyodie_resources_host_dir(self) -> str:
         if self.testing:
-            return "/c/Users/Martin/bioyodie_config"
+            return "/home/martin/bioyodie_config"
 
         return self.get_user_dir(
             "Select the directory where CRATE will store Bio-YODIE resources"
@@ -136,13 +130,13 @@ class Installer:
 
         demo_config_command = ("source /crate/venv/bin/activate; "
                                "crate_print_demo_crateweb_config > "
-                               f"{CRATE_WEB_LOCAL_SETTINGS}")
+                               "$CRATE_WEB_LOCAL_SETTINGS")
 
         docker.compose.run("crate_workers",
                            remove=True,
                            command=["/bin/bash",
                                     "-c",
-                                    f'"{demo_config_command}"'])
+                                    demo_config_command])
 
 
 def main() -> None:

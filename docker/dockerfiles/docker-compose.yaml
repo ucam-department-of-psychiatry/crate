@@ -68,7 +68,7 @@ volumes:
             # driver! But using "ro" makes it read-only.
 
             # TODO: Switched to rw so the config file can be written
-            o: bind,rw
+            o: bind
             type: none
             # We use environment variable substitution.
             # https://docs.docker.com/compose/compose-file/#variable-substitution
@@ -83,7 +83,7 @@ volumes:
         # provide a script to process UMLS data. Here, we mount the results.
         driver: local
         driver_opts:
-            o: bind,ro
+            o: bind
             type: none
             device: "${CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR}"
 
