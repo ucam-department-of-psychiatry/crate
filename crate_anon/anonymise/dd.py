@@ -709,6 +709,17 @@ class DataDictionary(object):
         all_tables = SortedSet([ddr.src_table for ddr in self.rows])
         return all_tables - tables_with_pt_info
 
+    def get_tables_w_scrub_src(self) -> AbstractSet[str]:
+        """
+        Return a SortedSet of ``source_table`` names for tables that contain
+        ``scrub_src`` information, i.e. that contribute to anonymisation.
+        """
+        return SortedSet([
+            ddr.src_table
+            for ddr in self.rows
+            if ddr.contains_scrub_src
+        ])
+
     @lru_cache(maxsize=None)
     def get_src_db_tablepairs_w_int_pk(self) -> AbstractSet[Tuple[str, str]]:
         """
@@ -1164,6 +1175,7 @@ class DataDictionary(object):
     # -------------------------------------------------------------------------
 
     KEEP_FUNCTION_TYPE = Callable[[DataDictionaryRow], bool]
+    # ... returns keep (True/False)
 
     def remove_rows_by_filter(self, keep: KEEP_FUNCTION_TYPE) -> None:
         """
@@ -1191,3 +1203,26 @@ class DataDictionary(object):
         for row in self.rows:
             if not row.omit:
                 row.omit = not keep(row)
+
+    MODIFYING_KEEP_FUNCTION_TYPE = Callable[[DataDictionaryRow],
+                                            Optional[DataDictionaryRow]]
+    # returns the row (perhaps modified) to keep, or None to reject
+
+    def remove_rows_by_modifying_filter(
+            self, keep_modify: MODIFYING_KEEP_FUNCTION_TYPE) -> None:
+        """
+        Removes any rows that do not pass a filter function; allows the filter
+        function to modify rows that are kept.
+
+        Args:
+            keep_modify:
+                Function taking a data dictionary row as an argument, and
+                returning either the row (potentially modified) to retain it,
+                or ``None`` to reject it.
+        """
+        new_rows = []  # type: List[DataDictionaryRow]
+        for row in self.rows:
+            result = keep_modify(row)
+            if result is not None:
+                new_rows.append(result)
+        self.rows = new_rows
