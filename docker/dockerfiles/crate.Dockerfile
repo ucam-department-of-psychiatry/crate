@@ -184,6 +184,7 @@ RUN echo "======================================================================
     && apt-get update \
     \
     && echo "- Microsoft ODBC Driver for SQL Server (Linux)" \
+    && apt-cache policy odbcinst1debian2
     && ACCEPT_EULA=Y apt-get install -y --no-install-recommends \
         msodbcsql17 \
         mssql-tools \
