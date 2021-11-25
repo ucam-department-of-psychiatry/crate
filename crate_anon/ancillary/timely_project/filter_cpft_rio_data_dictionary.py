@@ -43,27 +43,16 @@ import argparse
 import copy
 import logging
 import re
-from typing import Dict, List, Optional, Pattern, Tuple
+from typing import List, Optional, Tuple
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-from sqlalchemy.dialects.mssql.base import dialect as sql_server_dialect
+from sqlalchemy.dialects.mssql.base import dialect as mssql_server_dialect
 
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.ddr import DataDictionaryRow
 
 log = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Regex convenience
-# =============================================================================
-
-def compile(r: str) -> Pattern:
-    """
-    Compiles a regex for case-insensitive use.
-    """
-    return re.compile(r, flags=re.IGNORECASE)
 
 
 # =============================================================================
@@ -74,9 +63,86 @@ def compile(r: str) -> Pattern:
 
 N_STAGES = 6
 
-EXCLUDE_TABLE_REGEXES = [
+
+class TableCriterion:
+    """
+    Stores a regular expression so we can reuse it compiled for speed and view
+    it and its associated stage.
+    """
+    def __init__(self, stage: Optional[int], table_regex_str: str) -> None:
+        assert stage is None or 1 <= stage <= N_STAGES
+        self.stage = stage
+        self.table_regex_str = table_regex_str
+        self.table_regex_compiled = re.compile(table_regex_str,
+                                               flags=re.IGNORECASE)
+
+    def table_match(self, tablename: str) -> bool:
+        """
+        Does ``tablename`` match our stored pattern?
+        """
+        return bool(self.table_regex_compiled.match(tablename))
+
+    def description(self) -> str:
+        return f"table ≛ {self.table_regex_str}"
+
+
+class FieldCriterion(TableCriterion):
+    """
+    As for :class:`TableCriterion`, but for both a table and a field (column)
+    name.
+    """
+    def __init__(self, field_regex_str: str, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.field_regex_str = field_regex_str
+        self.field_regex_compiled = re.compile(field_regex_str,
+                                               flags=re.IGNORECASE)
+
+    def table_field_match(self, tablename: str, fieldname: str) -> bool:
+        """
+        Do both the table and field names match?
+        """
+        return bool(
+            self.table_regex_compiled.match(tablename)
+            and self.field_regex_compiled.match(fieldname)
+        )
+
+    def description(self) -> str:
+        return (
+            f"table ≛ {self.table_regex_str}, "
+            f"field ≛ {self.field_regex_str}"
+        )
+
+
+def add_table_criteria(criteria: List[TableCriterion],
+                       stage: Optional[int],
+                       regex_strings: List[str]) -> None:
+    """
+    Appends to ``criteria``.
+    """
+    for rs in regex_strings:
+        criteria.append(TableCriterion(stage=stage, table_regex_str=rs))
+
+
+def add_field_criteria(criteria: List[TableCriterion],
+                       stage: Optional[int],
+                       regex_tuples: List[Tuple[str, str]]) -> None:
+    """
+    Appends to ``criteria``.
+    """
+    for tablename, fieldname in regex_tuples:
+        criteria.append(FieldCriterion(stage=stage,
+                                       table_regex_str=tablename,
+                                       field_regex_str=fieldname))
+
+
+# -----------------------------------------------------------------------------
+# Generic exclusions
+# -----------------------------------------------------------------------------
+
+EXCLUDE_TABLES = []  # type: List[TableCriterion]
+add_table_criteria(EXCLUDE_TABLES, stage=None, regex_strings=[
     "cpft_core_assessment_v2_kcsa_children_in_household",  #  about people other than the patient  # noqa
-]
+])
 
 
 # -----------------------------------------------------------------------------
@@ -84,7 +150,9 @@ EXCLUDE_TABLE_REGEXES = [
 # (e.g. referrals, contacts, discharge)
 # -----------------------------------------------------------------------------
 
-STAGE_1_INCLUDE_TABLE_REGEXES = [
+STAGED_INCLUDE_TABLES = []  # type: List[TableCriterion]
+
+add_table_criteria(STAGED_INCLUDE_TABLES, stage=1, regex_strings=[
     # Demographics
     "Client_Demographic_Details",  # basics
     "Client_Address_History",  # addresses blurred to LSOAs
@@ -113,7 +181,7 @@ STAGE_1_INCLUDE_TABLE_REGEXES = [
 
     # Referrals (basic info)
     "Referral.*",  # includes ReferralCoding = diagnosis for referral (+ teams etc.)  # noqa
-]
+])
 
 
 # Note that "UserAssess*" is where all the local custom additions to RiO go.
@@ -124,7 +192,7 @@ STAGE_1_INCLUDE_TABLE_REGEXES = [
 # professional types involved, outcome data, etc.
 # -----------------------------------------------------------------------------
 
-STAGE_2_INCLUDE_TABLE_REGEXES = STAGE_1_INCLUDE_TABLE_REGEXES + [
+add_table_criteria(STAGED_INCLUDE_TABLES, stage=2, regex_strings=[
     "Client_Professional_Contacts",
     "ClientHealthCareProviderAssumed",
 
@@ -137,55 +205,55 @@ STAGE_2_INCLUDE_TABLE_REGEXES = STAGE_1_INCLUDE_TABLE_REGEXES + [
     "Mnt.*",
 
     "ParentGuardianImport",  # outcome data
-]
+])
 
 
 # -----------------------------------------------------------------------------
 # Stage 3: prescribing data
 # -----------------------------------------------------------------------------
 
-STAGE_3_INCLUDE_TABLE_REGEXES = STAGE_2_INCLUDE_TABLE_REGEXES + [
+add_table_criteria(STAGED_INCLUDE_TABLES, stage=3, regex_strings=[
     "Client_Allergies",  # for prescribing
     "Client_Medication",  # will be empty!
     "Client_Prescription",  # will be empty!
-]
+])
 
 
 # -----------------------------------------------------------------------------
 # Stage 4: test results, other health assessments, other clinical info
 # -----------------------------------------------------------------------------
 
-STAGE_4_INCLUDE_TABLE_REGEXES = STAGE_3_INCLUDE_TABLE_REGEXES + [
+add_table_criteria(STAGED_INCLUDE_TABLES, stage=4, regex_strings=[
     "Client_Physical_Details",  # e.g. head circumference
     "ClientMaternalDetail",  # patients who are mothers
     "ClientPhysicalDetailMerged",  # e.g. height, weight
-]
+])
 
 
 # -----------------------------------------------------------------------------
 # Stage 5: (structured) info on care plans etc.
 # -----------------------------------------------------------------------------
 
-STAGE_5_INCLUDE_TABLE_REGEXES = STAGE_4_INCLUDE_TABLE_REGEXES + [
+add_table_criteria(STAGED_INCLUDE_TABLES, stage=5, regex_strings=[
     # Care plans, Care Plan Approach, care coordination
     "Care_Plan.*",
     "CarePlan.*",
     "CareCoordinatorOccupation",
     "CPA.*"
-]
+])
 
 
 # -----------------------------------------------------------------------------
 # Stage 6: de-identified free text
 # -----------------------------------------------------------------------------
 
-STAGE_6_INCLUDE_TABLE_REGEXES = STAGE_5_INCLUDE_TABLE_REGEXES + [
+add_table_criteria(STAGED_INCLUDE_TABLES, stage=6, regex_strings=[
     "Clinical_Documents",
     "CPFT_Core_Assessment.*",
     "Progress_Note",
     "RskRelatedIncidents",
     "UserAssessCAMH",  # CAMH-specific assessments (e.g. questionnaires) -- can have free-text comments.  # noqa
-]
+])
 
 
 # -----------------------------------------------------------------------------
@@ -194,40 +262,12 @@ STAGE_6_INCLUDE_TABLE_REGEXES = STAGE_5_INCLUDE_TABLE_REGEXES + [
 # Specific fields to exclude that would otherwise be included.
 # List of (tablename, fieldname) regex string tuples.
 
-STAGE_6_EXCLUDE_FIELDS = []  # type: List[Tuple[str, str]]
-STAGE_5_EXCLUDE_FIELDS = STAGE_6_EXCLUDE_FIELDS + [
+STAGED_EXCLUDE_FIELDS = []  # type: List[FieldCriterion]
+
+add_field_criteria(STAGED_EXCLUDE_FIELDS, stage=5, regex_tuples=[
     # "exclude at stage 5 or earlier"
     ("RskRelatedIncidents", "Text")
-]  # type: List[Tuple[str, str]]
-STAGE_4_EXCLUDE_FIELDS = STAGE_5_EXCLUDE_FIELDS
-STAGE_3_EXCLUDE_FIELDS = STAGE_4_EXCLUDE_FIELDS
-STAGE_2_EXCLUDE_FIELDS = STAGE_3_EXCLUDE_FIELDS
-STAGE_1_EXCLUDE_FIELDS = STAGE_2_EXCLUDE_FIELDS
-
-
-# -----------------------------------------------------------------------------
-# Putting it together
-# -----------------------------------------------------------------------------
-
-STAGE_INCLUSION_TABLES = {
-    # dictionary mapping stage number to inclusion list
-    1: STAGE_1_INCLUDE_TABLE_REGEXES,
-    2: STAGE_2_INCLUDE_TABLE_REGEXES,
-    3: STAGE_3_INCLUDE_TABLE_REGEXES,
-    4: STAGE_4_INCLUDE_TABLE_REGEXES,
-    5: STAGE_5_INCLUDE_TABLE_REGEXES,
-    6: STAGE_6_INCLUDE_TABLE_REGEXES,
-}  # type: Dict[int, List[str]]
-
-STAGE_EXCLUSION_FIELDS = {
-    # dictionary mapping stage number to (table, field) tuple
-    1: STAGE_1_EXCLUDE_FIELDS,
-    2: STAGE_2_EXCLUDE_FIELDS,
-    3: STAGE_3_EXCLUDE_FIELDS,
-    4: STAGE_4_EXCLUDE_FIELDS,
-    5: STAGE_5_EXCLUDE_FIELDS,
-    6: STAGE_6_EXCLUDE_FIELDS,
-}  # type: Dict[int, List[Tuple[str, str]]]
+])
 
 
 # =============================================================================
@@ -254,9 +294,9 @@ def report(text: str) -> None:
 # =============================================================================
 
 def keep(row: DataDictionaryRow,
-         inclusion_tables_compiled: List[Pattern],
-         exclusion_tables_compiled: List[Pattern],
-         exclusion_fields_compiled: List[Tuple[Pattern, Pattern]],
+         inclusion_tables: List[TableCriterion],
+         exclusion_tables: List[TableCriterion],
+         exclusion_fields: List[FieldCriterion],
          system_tables_lower: List[str],
          scrub_src_tables_lower: List[str]) -> Optional[DataDictionaryRow]:
     """
@@ -275,41 +315,58 @@ def keep(row: DataDictionaryRow,
     """
     tablename = row.src_table
     table_lower = tablename.lower()
+    row_modified = copy.copy(row)  # may or may not use it!
 
-    for r in exclusion_tables_compiled:
-        if r.match(tablename):
-            report(f"Excluding specifically: {tablename}")
+    def decide(keep_: bool, reason: str) -> Optional[DataDictionaryRow]:
+        report(reason)
+        if keep_:
+            full_reason = f"[TIMELY autofilter: {reason}]"
+            row_modified.comment = " ".join((
+                row_modified.comment or "",
+                full_reason
+            ))
+            return row_modified
+        else:
             return None
 
-    for bad_tablename, bad_fieldname in exclusion_fields_compiled:
-        if (bad_tablename.match(tablename)
-                and bad_fieldname.match(row.src_field)):
-            report(f"Excluding specifically: {tablename}.{row.src_field}")
-            return None
+    # -------------------------------------------------------------------------
+    # Main decision log
+    # -------------------------------------------------------------------------
 
-    for r in inclusion_tables_compiled:
-        if r.match(tablename):
-            report(f"INCLUDING specifically: {tablename}")
-            return row
+    if any(et.table_match(tablename) for et in exclusion_tables):
+        return decide(False, f"Excluding specifically: {tablename}")
+
+    for ef in exclusion_fields:
+        if ef.table_field_match(tablename, row.src_field):
+            return decide(
+                False,
+                f"Excluding specifically: {tablename}.{row.src_field} "
+                f"(stage {ef.stage} rule)"
+            )
+
+    for inc_table in inclusion_tables:
+        if inc_table.table_match(tablename):
+            return decide(
+                True,
+                f"INCLUDING specifically: {tablename} "
+                f"(stage {inc_table.stage} rule)"
+            )
 
     if table_lower in system_tables_lower:
-        report(f"INCLUDING system table: {tablename}")
-        return row
+        return decide(True, f"INCLUDING system table: {tablename}")
 
     if table_lower in scrub_src_tables_lower:
-        report(f"INCLUDING FOR ANONYMISATION: {tablename}")
-        # ... but although we include the table in the data dictionary, we
-        # "omit" all rows from the final output (unless the user actively added
-        # the table in a previous step).
-        row_modified = copy.copy(row)
+        # Although we include the table in the data dictionary, we "omit" all
+        # rows from the final output (unless the user actively added the table
+        # in a previous step), in which case we include or omit depending on
+        # the original data dictionary.
         row_modified.omit = True
         log.debug(f"For {tablename}.{row.src_field}, "
                   f"setting 'omit' flag to True")
-        return row_modified
+        return decide(True, f"INCLUDING FOR ANONYMISATION: {tablename}")
 
     # Default:
-    report(f"Excluding by default: {tablename}")
-    return None
+    return decide(False, f"Excluding by default: {tablename}")
 
 
 # =============================================================================
@@ -331,7 +388,7 @@ def filter_dd(input_filename: str,
         input_filename,
         config,
         check_valid=False,
-        override_dialect=sql_server_dialect
+        override_dialect=mssql_server_dialect
     )
 
     # Autodetect anonymisation (scrub-source) tables. We'll include them.
@@ -349,20 +406,23 @@ def filter_dd(input_filename: str,
     log.debug(f"system_tables_lower: {system_tables_lower}")
 
     # Exclusion and inclusion tables.
-    exclusion_tables_compiled = [compile(x) for x in EXCLUDE_TABLE_REGEXES]
-    inclusion_tables = STAGE_INCLUSION_TABLES[stage]
-    inclusion_tables_compiled = [compile(x) for x in inclusion_tables]
-    exclusion_fields_compiled = [
-        (compile(_tablename), compile(_fieldname))
-        for _tablename, _fieldname in STAGE_EXCLUSION_FIELDS[stage]
+    inclusion_tables = [
+        t for t in STAGED_INCLUDE_TABLES
+        if stage >= t.stage
+        # "Include from t.stage or beyond."
+    ]
+    exclusion_fields = [
+        f for f in STAGED_EXCLUDE_FIELDS
+        if stage <= f.stage
+        # "Exclude before and up to/including t.stage."
     ]
 
     def keep_modify_row(row: DataDictionaryRow) -> Optional[DataDictionaryRow]:
         return keep(
             row=row,
-            inclusion_tables_compiled=inclusion_tables_compiled,
-            exclusion_tables_compiled=exclusion_tables_compiled,
-            exclusion_fields_compiled=exclusion_fields_compiled,
+            inclusion_tables=inclusion_tables,
+            exclusion_tables=EXCLUDE_TABLES,
+            exclusion_fields=exclusion_fields,
             system_tables_lower=system_tables_lower,
             scrub_src_tables_lower=scrub_src_tables_lower
         )
