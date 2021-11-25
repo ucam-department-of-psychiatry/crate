@@ -191,6 +191,7 @@ RUN echo "======================================================================
         unixodbc unixodbc-dev \
         odbcinst1debian2=2.3.7 \
         libodbc1=2.3.7 \
+        multiarch-support \
     && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile \
     && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc \
     \
