@@ -35,6 +35,20 @@ LABEL description="See https://crateanon.readthedocs.io/"
 LABEL maintainer="Rudolf Cardinal <rudolf@pobox.com>"
 
 
+FROM ubuntu
+
+# -----------------------------------------------------------------------------
+# Permissions
+# -----------------------------------------------------------------------------
+# https://vsupalov.com/docker-shared-permissions/
+
+ARG USER_ID
+ARG GROUP_ID
+
+RUN addgroup --gid $GROUP_ID crate
+RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID crate
+
+
 # -----------------------------------------------------------------------------
 # ADD: files to copy
 # -----------------------------------------------------------------------------
@@ -283,3 +297,5 @@ RUN echo "======================================================================
 # file.
 
 # CMD ["/bin/bash"]
+
+USER crate
