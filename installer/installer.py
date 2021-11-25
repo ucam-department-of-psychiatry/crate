@@ -27,6 +27,14 @@ class Installer:
 
     def configure(self) -> None:
         self.setenv(
+            "CRATE_DOCKER_INSTALL_USER_ID",
+            self.get_install_user_id()
+        )
+        self.setenv(
+            "CRATE_DOCKER_INSTALL_GROUP_ID",
+            self.get_install_group_id()
+        )
+        self.setenv(
             "CRATE_DOCKER_CONFIG_HOST_DIR",
             self.get_docker_config_host_dir()
         )
@@ -42,6 +50,12 @@ class Installer:
             "CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD",
             self.get_docker_mysql_crate_user_password()
         )
+
+    def get_install_user_id(self) -> str:
+        return str(os.geteuid())
+
+    def get_install_group_id(self) -> str:
+        return str(os.getegid())
 
     def get_docker_config_host_dir(self) -> str:
         if self.testing:
