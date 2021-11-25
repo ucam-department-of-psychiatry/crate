@@ -1,0 +1,25 @@
+---
+# yamllint disable rule:line-length
+name: Docker
+# yamllint disable-line rule:truthy
+on: [push]
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+      - uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          set -euxo pipefail
+          export CRATE_DOCKER_CONFIG_HOST_DIR=${HOME}/crate_config
+          export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=${HOME}/bioyodie_resources
+          export CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD=ramalamadingdong
+          export CRATE_DOCKER_MYSQL_ROOT_PASSWORD=shoobydoobydoo
+          export CRATE_DOCKER_INSTALL_USER_ID=$(id -u)
+          export CRATE_DOCKER_INSTALL_GROUP_ID=$(id -g)
+          cd docker/dockerfiles
+          docker-compose version
+          docker-compose build
