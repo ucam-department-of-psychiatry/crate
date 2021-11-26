@@ -35,8 +35,6 @@ LABEL description="See https://crateanon.readthedocs.io/"
 LABEL maintainer="Rudolf Cardinal <rudolf@pobox.com>"
 
 
-FROM ubuntu
-
 # -----------------------------------------------------------------------------
 # Permissions
 # -----------------------------------------------------------------------------
@@ -183,20 +181,11 @@ RUN echo "======================================================================
     && apt-get update \
     \
     && echo "- Microsoft ODBC Driver for SQL Server (Linux)" \
-    && wget \
-        --progress=dot:giga \
-        -O "${TMPDIR}/multiarch-support.deb" \
-        http://ftp.uk.debian.org/debian/pool/main/g/glibc/multiarch-support_2.28-10_amd64.deb \
-    && echo "- multiarch-support: Installing multiarch-support..." \
-    && gdebi --non-interactive "${TMPDIR}/multiarch-support.deb" \
     && ACCEPT_EULA=Y apt-get install -y --no-install-recommends \
         msodbcsql17 \
         mssql-tools \
         libgssapi-krb5-2 \
         unixodbc unixodbc-dev \
-        odbcinst1debian2=2.3.7 \
-        libodbc1=2.3.7 \
-        multiarch-support \
     && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile \
     && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc \
     \
