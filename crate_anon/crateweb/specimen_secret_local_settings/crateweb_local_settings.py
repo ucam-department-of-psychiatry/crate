@@ -61,8 +61,9 @@ log.critical(
 # =============================================================================
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
-DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"  # example for Apache  # noqa
+# DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"  # example for Apache  # noqa
 # DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://localhost:8000"  # for the Django dev server  # noqa
+DJANGO_SITE_ROOT_ABSOLUTE_URL = "@@django_site_root_absolute_url@@"
 
 FORCE_SCRIPT_NAME = ""
 # FORCE_SCRIPT_NAME = "/crate"  # example for CherryPy or Apache non-root hosting  # noqa
@@ -74,7 +75,7 @@ FORCE_SCRIPT_NAME = ""
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  # CHANGE THIS!  # noqa
+SECRET_KEY = "@@secret_key@@"  # CHANGE THIS!  # noqa
 # Run crate_generate_new_django_secret_key to generate a new one.
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -103,6 +104,7 @@ else:
 # =============================================================================
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
+BROKER_URL = "@@broker_url@@"
 
 # =============================================================================
 # Database configuration
@@ -125,11 +127,11 @@ DATABASES = {
     # Quick MySQL example:
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': '127.0.0.1',
-        'PORT': 3306,  # local
-        'NAME': 'crate_db',
-        'USER': 'someuser',
-        'PASSWORD': 'somepassword',
+        'HOST': '@@mysql_host@@',  # e.g. 127.0.0.1
+        'PORT': '@@mysql_port@@',  # local e.g. 3306
+        'NAME': '@@mysql_db@@',
+        'USER': '@@mysql_user@@',
+        'PASSWORD': '@@mysql_password@@',
     },
 
     # -------------------------------------------------------------------------
@@ -318,10 +320,15 @@ DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = True
 # =============================================================================
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
-ARCHIVE_TEMPLATE_DIR = "/home/somewhere/my_archive_templates"
-ARCHIVE_STATIC_DIR = "/home/somewhere/my_archive_templates/static"
+# e.g. /home/somewhere/my_archive_templates
+ARCHIVE_TEMPLATE_DIR = "@@archive_template_dir@@"
+# e.g. /home/somewhere/my_archive_templates/cache
+ARCHIVE_TEMPLATE_CACHE_DIR = "@@archive_template_cache_dir@@"
+# e.g. /home/somewhere/my_archive_templates/static
+ARCHIVE_STATIC_DIR = "@@archive_static_dir@@"
 ARCHIVE_ROOT_TEMPLATE = "root.mako"
-ARCHIVE_ATTACHMENT_DIR = "/home/somewhere/my_archive_attachments"
+# e.g. /home/somewhere/my_archive_attachments
+ARCHIVE_ATTACHMENT_DIR = "@@archive_attachment_dir@@"
 ARCHIVE_CONTEXT = {}
 CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS = 0
 CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES = 0
@@ -345,7 +352,8 @@ DATABASE_HELP_HTML_FILENAME = None
 
 # Where should we store the files? Make this directory (and don't let it
 # be served by a generic web server that doesn't check permissions).
-PRIVATE_FILE_STORAGE_ROOT = '/srv/crate_filestorage'
+# e.g. /srv/crate_filestorage
+PRIVATE_FILE_STORAGE_ROOT = '@@private_file_storage_root@@'
 
 # Serve files via Django (inefficient but useful for testing) or via Apache
 # with mod_xsendfile (or other web server configured for the X-SendFile
@@ -438,7 +446,7 @@ WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
     "footer-spacing": "3",  # mm, from content down to top of footer
 }
 
-PDF_LOGO_ABS_URL = 'http://localhost/crate_logo'
+PDF_LOGO_ABS_URL = '@@pdf_logo_abs_url@@'  # e.g. 'http://localhost/crate_logo'
 # ... path on local machine, read by wkhtmltopdf
 # Examples:
 #   [if you're running a web server] 'http://localhost/crate_logo'
@@ -451,9 +459,9 @@ PDF_LOGO_WIDTH = "75%"
 
 # The PDF generator also needs to be able to find the traffic-light pictures,
 # on disk (not via your web site):
-TRAFFIC_LIGHT_RED_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/red.png'  # noqa
-TRAFFIC_LIGHT_YELLOW_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/yellow.png'  # noqa
-TRAFFIC_LIGHT_GREEN_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/green.png'  # noqa
+TRAFFIC_LIGHT_RED_ABS_URL = 'file:///@@crate_install_dir@@/crate_anon/crateweb/static/red.png'  # noqa
+TRAFFIC_LIGHT_YELLOW_ABS_URL = 'file:///@@crate_install_dir@@/crate_anon/crateweb/static/yellow.png'  # noqa
+TRAFFIC_LIGHT_GREEN_ABS_URL = 'file:///@@crate_install_dir@@/crate_anon/crateweb/static/green.png'  # noqa
 
 
 # =============================================================================
