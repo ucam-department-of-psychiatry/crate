@@ -183,6 +183,12 @@ RUN echo "======================================================================
     && apt-get update \
     \
     && echo "- Microsoft ODBC Driver for SQL Server (Linux)" \
+    && wget \
+        --progress=dot:giga \
+        -O "${TMPDIR}/multiarch-support.deb" \
+        http://ftp.uk.debian.org/debian/pool/main/g/glibc/multiarch-support_2.28-10_amd64.deb \
+    && echo "- multiarch-support: Installing multiarch-support..." \
+    && gdebi --non-interactive "${TMPDIR}/multiarch-support.deb" \
     && ACCEPT_EULA=Y apt-get install -y --no-install-recommends \
         msodbcsql17 \
         mssql-tools \
