@@ -25,6 +25,7 @@ class Installer:
     def install(self) -> None:
         self.configure()
         self.create_local_settings()
+        self.create_database()
 
     def configure(self) -> None:
         self.setenv(
@@ -154,17 +155,8 @@ class Installer:
 
     def create_local_settings(self) -> None:
         if not os.path.exists(self.local_settings_full_path()):
-            os.chdir(DOCKERFILES_DIR)
-
-            demo_config_command = ("source /crate/venv/bin/activate; "
-                                   "crate_print_demo_crateweb_config > "
+            self.run_crate_command("crate_print_demo_crateweb_config > "
                                    "$CRATE_WEB_LOCAL_SETTINGS")
-
-            docker.compose.run("crate_workers",
-                               remove=True,
-                               command=["/bin/bash",
-                                        "-c",
-                                        demo_config_command])
 
         self.configure_local_settings()
 
@@ -210,12 +202,25 @@ class Installer:
         with open(self.local_settings_full_path(), "w") as f:
             f.write(settings)
 
-
     def local_settings_full_path(self) -> str:
         return os.path.join(
             os.getenv("CRATE_DOCKER_CONFIG_HOST_DIR"),
             os.getenv("CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME")
         )
+
+    def create_database(self) -> None:
+        self.run_crate_command("crate_django_manage migrate")
+
+    def run_crate_command(self, crate_command: str) -> None:
+        os.chdir(DOCKERFILES_DIR)
+
+        venv_command = f"source /crate/venv/bin/activate; {crate_command}"
+
+        docker.compose.run("crate_workers",
+                           remove=True,
+                           command=["/bin/bash", "-c", venv_command])
+
+
 
 def main() -> None:
     installer = Installer()
