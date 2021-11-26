@@ -147,7 +147,6 @@ RUN echo "======================================================================
     && apt-get update \
     && echo "- Installing operating system packages..." \
     && mkdir -p /usr/share/man/man1 /usr/share/man/man2 \
-    && apt-get install -y tzdata \
     && apt-get install -y --no-install-recommends \
         ant \
         curl \
