@@ -25,6 +25,7 @@ class Installer:
     def install(self) -> None:
         self.configure()
         self.create_local_settings()
+        self.create_anon_config()
         self.create_database()
 
     def configure(self) -> None:
@@ -47,6 +48,10 @@ class Installer:
         self.setenv(
             "CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME",
             "crateweb_local_settings.py"
+        )
+        self.setenv(
+            "CRATE_DOCKER_CRATE_ANON_CONFIG",
+            "crate_anon_config.ini"
         )
         self.setenv(
             "CRATE_DOCKER_MYSQL_ROOT_PASSWORD",
@@ -206,6 +211,17 @@ class Installer:
         return os.path.join(
             os.getenv("CRATE_DOCKER_CONFIG_HOST_DIR"),
             os.getenv("CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME")
+        )
+
+    def create_anon_config(self) -> None:
+        if not os.path.exists(self.anon_config_full_path()):
+            self.run_crate_command("crate_anonymise --democonfig > "
+                                   "$CRATE_ANON_CONFIG")
+
+    def anon_config_full_path(self) -> str:
+        return os.path.join(
+            os.getenv("CRATE_DOCKER_CONFIG_HOST_DIR"),
+            os.getenv("CRATE_DOCKER_CRATE_ANON_CONFIG")
         )
 
     def create_database(self) -> None:
