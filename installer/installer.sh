@@ -2,13 +2,29 @@
 
 set -euxo pipefail
 
+# Prerequisites for Windows:
+# Install WSL2
+# Install Docker Desktop for Windows
+# Enable WSL2 in Docker Desktop
+
+# When we move to production the installation process will be:
+# curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh | bash
+
+
 # TODO: Set to 1 when it is working
 UPDATE_PACKAGES=0
 UPDATE_VENV=0
 
-CRATE_HOME=$HOME/crate
-CRATE_INSTALLER_VENV=$HOME/.local/share/virtualenv/crate-installer
+CRATE_HOME=${HOME}/crate
+CRATE_INSTALLER_VENV=${HOME}/.local/share/virtualenv/crate-installer
 
+# TODO:
+# mkdir -p ${CRATE_HOME}
+# cd ${CRATE_HOME}
+# curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/crate.zip
+# unzip crate.zip
+
+# INSTALLER_HOME = ${CRATE_HOME}/installer
 INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
 
 if [ "$UPDATE_PACKAGES" -eq "1" ]; then
