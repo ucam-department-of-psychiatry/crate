@@ -302,12 +302,12 @@ temporary_tablename = _temp_table
 # -----------------------------------------------------------------------------
 
 source_databases =
-    mysourcedb1
-    mysourcedb2
+    sourcedb1
+#    sourcedb2
 
-destination_database = my_destination_database
+destination_database = destination_database
 
-admin_database = my_admin_database
+admin_database = admin_database
 
 # -----------------------------------------------------------------------------
 # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
@@ -338,18 +338,18 @@ optout_col_values =
 # Destination database details. User should have WRITE access.
 # =============================================================================
 
-[my_destination_database]
+[destination_database]
 
-url = mysql+mysqldb://username:password@127.0.0.1:3306/output_databasename?charset=utf8
+url = mysql+mysqldb://@@dest_db_user@@:@@dest_db_password@@@@@dest_db_host@@:@@dest_db_port@@/@@dest_db_name@@?charset=utf8
 
 
 # =============================================================================
 # Administrative database. User should have WRITE access.
 # =============================================================================
 
-[my_admin_database]
+[admin_database]
 
-url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charset=utf8
+url = mysql+mysqldb://@@admin_db_user@@:@@admin_db_password@@@@@admin_db_host@@:@@admin_db_port@@/@@admin_db_name@@?charset=utf8
 
 
 # =============================================================================
@@ -361,13 +361,13 @@ url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charse
 # Source database example 1
 # -----------------------------------------------------------------------------
 
-[mysourcedb1]
+[sourcedb1]
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # CONNECTION DETAILS
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-url = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?charset=utf8
+url = mysql+mysqldb://@@source_db1_user@@:@@source_db1_password@@@@@source_db1_host@@:@@source_db1_port@@/@@source_db1_name@@?charset=utf8
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
