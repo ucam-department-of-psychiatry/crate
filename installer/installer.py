@@ -3,7 +3,7 @@
 import os
 import sys
 import secrets
-from typing import Optional
+from typing import Dict, Optional
 
 from prompt_toolkit.completion import PathCompleter
 from prompt_toolkit.shortcuts import input_dialog, message_dialog
@@ -166,9 +166,6 @@ class Installer:
         self.configure_local_settings()
 
     def configure_local_settings(self) -> None:
-        with open(self.local_settings_full_path(), "r") as f:
-            settings = f.read()
-
         root_dir = "/crate"
         config_dir = os.path.join(root_dir, "cfg")
         archive_template_dir = os.path.join(config_dir, "archive_templates")
@@ -182,7 +179,7 @@ class Installer:
                                                    "archive_attachments"),
             "archive_static_dir": os.path.join(archive_template_dir, "static"),
             "archive_template_cache_dir": os.path.join(
-                tmp_dir, "archive_templates", "cache"
+                archive_template_dir, "cache"
             ),
             "archive_template_dir": archive_template_dir,
             "broker_url": "amqp://rabbitmq:5672",
@@ -201,22 +198,53 @@ class Installer:
 
         }
 
-        for (search, replace) in replace_dict.items():
-            settings = settings.replace(f"@@{search}@@", replace)
+        self.search_replace_file(self.local_settings_full_path(), replace_dict)
 
-        with open(self.local_settings_full_path(), "w") as f:
-            f.write(settings)
+    def create_anon_config(self) -> None:
+        if not os.path.exists(self.anon_config_full_path()):
+            self.run_crate_command("crate_anonymise --democonfig > "
+                                   "$CRATE_ANON_CONFIG")
+        self.configure_anon_config()
+
+    def configure_anon_config(self) -> None:
+        # TODO: Get these from the user
+        # TODO: Configure dialect
+        replace_dict = {
+            "dest_db_user": "research",
+            "dest_db_password": "research",
+            "dest_db_host": "host.docker.internal",
+            "dest_db_port": "3306",
+            "dest_db_name": "research",
+            "admin_db_user": "secret",
+            "admin_db_password": "secret",
+            "admin_db_host": "host.docker.internal",
+            "admin_db_port": "3306",
+            "admin_db_name": "secret",
+            "source_db1_user": "source",
+            "source_db1_password": "source",
+            "source_db1_host": "host.docker.internal",
+            "source_db1_port": "3306",
+            "source_db1_name": "source",
+        }
+
+        self.search_replace_file(self.anon_config_full_path(), replace_dict)
+
+    def search_replace_file(self, filename: str,
+                            replace_dict: Dict[str, str]) -> None:
+        with open(filename, "r") as f:
+            contents = f.read()
+
+        for (search, replace) in replace_dict.items():
+            contents = contents.replace(f"@@{search}@@", replace)
+
+        with open(filename, "w") as f:
+            f.write(contents)
 
     def local_settings_full_path(self) -> str:
         return os.path.join(
             os.getenv("CRATE_DOCKER_CONFIG_HOST_DIR"),
             os.getenv("CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME")
         )
-
-    def create_anon_config(self) -> None:
-        if not os.path.exists(self.anon_config_full_path()):
-            self.run_crate_command("crate_anonymise --democonfig > "
-                                   "$CRATE_ANON_CONFIG")
 
     def anon_config_full_path(self) -> str:
         return os.path.join(
