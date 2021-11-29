@@ -1,0 +1,22 @@
+---
+# yamllint disable rule:line-length
+name: Installer
+# yamllint disable-line rule:truthy
+on:
+    push:
+        paths:
+            - 'crate_anon/**'
+            - .github/workflows/installer.yml
+            - 'docker/**'
+            - 'installer/**'
+jobs:
+    docker:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Build
+              run: |
+                  set -euxo pipefail
+                  cd installer
+                  ./installer.sh
