@@ -18,5 +18,9 @@ jobs:
             - name: Build
               run: |
                   set -euxo pipefail
+                  sudo apt-get update
+                  sudo apt -y install python3-virtualenv python3-venv
+                  # TODO: wget this from releases as a normal user would
+                  # and don't checkout above
                   cd installer
                   ./installer.sh
