@@ -1,4 +1,4 @@
 # dev only
 flake8
-python-on-whales==0.31.0
+python-on-whales==0.32.0
 prompt-toolkit==3.0.22
