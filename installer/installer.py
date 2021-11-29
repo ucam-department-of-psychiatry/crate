@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+from pathlib import Path
 import sys
 import secrets
 from typing import Dict, Optional
@@ -82,7 +83,7 @@ class Installer:
 
     def get_docker_config_host_dir(self) -> str:
         if self.testing:
-            return "/home/martin/crate_config"
+            return os.path.join(str(Path.home()), "crate_config")
 
         return self.get_user_dir(
             "Select the directory where CRATE will store its configuration"
@@ -90,7 +91,7 @@ class Installer:
 
     def get_docker_gate_bioyodie_resources_host_dir(self) -> str:
         if self.testing:
-            return "/home/martin/bioyodie_config"
+            return os.path.join(str(Path.home()), "bioyodie_resources")
 
         return self.get_user_dir(
             "Select the directory where CRATE will store Bio-YODIE resources"
