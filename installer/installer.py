@@ -184,6 +184,12 @@ class Installer:
             "archive_template_dir": archive_template_dir,
             "broker_url": "amqp://rabbitmq:5672",
             "crate_install_dir": crate_install_dir,
+            # TODO: Prompt user for these
+            "dest_db_host": "host.docker.internal",
+            "dest_db_port": "3306",
+            "dest_db_name": "research",
+            "dest_db_user": "research",
+            "dest_db_password": "research",
             "django_site_root_absolute_url": "http://crate_server:8088",
             "mysql_db": os.getenv("CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME"),
             "mysql_host": "crate_db",
@@ -195,7 +201,12 @@ class Installer:
             "pdf_logo_abs_url": "http://localhost/crate_logo",  # TODO
             "private_file_storage_root": os.path.join(tmp_dir, "files"),
             "secret_key": secrets.token_urlsafe(),
-
+            # TODO: Prompt the user for these
+            "secret_db1_host": "host.docker.internal",
+            "secret_db1_port": "3306",
+            "secret_db1_name": "secret",
+            "secret_db1_user": "secret",
+            "secret_db1_password": "secret",
         }
 
         self.search_replace_file(self.local_settings_full_path(), replace_dict)

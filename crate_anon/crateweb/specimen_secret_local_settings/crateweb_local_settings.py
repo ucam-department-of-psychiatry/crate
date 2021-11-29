@@ -153,11 +153,11 @@ DATABASES = {
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': '127.0.0.1',
-        'PORT': 3306,  # local
-        'NAME': 'anonymous_output',  # will be the default database; use None for no default database  # noqa
-        'USER': 'researcher',
-        'PASSWORD': 'somepassword',
+        'HOST': '@@dest_db_host@@',  # e.g. 127.0.0.1
+        'PORT': '@@dest_db_port@@',  # local, e.g. 3306
+        'NAME': '@@dest_db_name@@',  # will be the default database; use None for no default database  # noqa
+        'USER': '@@dest_db_user@@',
+        'PASSWORD': '@@dest_db_password@@',
     },
 
     # -------------------------------------------------------------------------
@@ -165,11 +165,11 @@ DATABASES = {
     # -------------------------------------------------------------------------
     'secret_1': {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': '127.0.0.1',
-        'PORT': 3306,
-        'NAME': 'anonymous_mapping',
-        'USER': 'anonymiser_system',
-        'PASSWORD': 'somepassword',
+        'HOST': '@@secret_db1_host@@',  # e.g. 127.0.0.1
+        'PORT': '@@secret_db1_port@@',
+        'NAME': '@@secret_db1_name@@',
+        'USER': '@@secret_db1_user@@',
+        'PASSWORD': '@@secret_db1_password@@',
     },
 
     # -------------------------------------------------------------------------
