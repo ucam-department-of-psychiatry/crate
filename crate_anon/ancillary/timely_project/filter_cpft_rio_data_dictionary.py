@@ -42,12 +42,18 @@ explicitly setting the "omit" flag to True for all such tables.
 import argparse
 import copy
 import logging
-import re
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy.dialects.mssql.base import dialect as mssql_server_dialect
 
+from crate_anon.ancillary.timely_project.ddcriteria import (
+    add_field_criteria,
+    add_table_criteria,
+    FieldCriterion,
+    N_STAGES,
+    TableCriterion,
+)
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.ddr import DataDictionaryRow
@@ -58,82 +64,6 @@ log = logging.getLogger(__name__)
 # =============================================================================
 # Deciding about rows
 # =============================================================================
-
-# Approvals are in stages.
-
-N_STAGES = 6
-
-
-class TableCriterion:
-    """
-    Stores a regular expression so we can reuse it compiled for speed and view
-    it and its associated stage.
-    """
-    def __init__(self, stage: Optional[int], table_regex_str: str) -> None:
-        assert stage is None or 1 <= stage <= N_STAGES
-        self.stage = stage
-        self.table_regex_str = table_regex_str
-        self.table_regex_compiled = re.compile(table_regex_str,
-                                               flags=re.IGNORECASE)
-
-    def table_match(self, tablename: str) -> bool:
-        """
-        Does ``tablename`` match our stored pattern?
-        """
-        return bool(self.table_regex_compiled.match(tablename))
-
-    def description(self) -> str:
-        return f"table ≛ {self.table_regex_str}"
-
-
-class FieldCriterion(TableCriterion):
-    """
-    As for :class:`TableCriterion`, but for both a table and a field (column)
-    name.
-    """
-    def __init__(self, field_regex_str: str, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.field_regex_str = field_regex_str
-        self.field_regex_compiled = re.compile(field_regex_str,
-                                               flags=re.IGNORECASE)
-
-    def table_field_match(self, tablename: str, fieldname: str) -> bool:
-        """
-        Do both the table and field names match?
-        """
-        return bool(
-            self.table_regex_compiled.match(tablename)
-            and self.field_regex_compiled.match(fieldname)
-        )
-
-    def description(self) -> str:
-        return (
-            f"table ≛ {self.table_regex_str}, "
-            f"field ≛ {self.field_regex_str}"
-        )
-
-
-def add_table_criteria(criteria: List[TableCriterion],
-                       stage: Optional[int],
-                       regex_strings: List[str]) -> None:
-    """
-    Appends to ``criteria``.
-    """
-    for rs in regex_strings:
-        criteria.append(TableCriterion(stage=stage, table_regex_str=rs))
-
-
-def add_field_criteria(criteria: List[TableCriterion],
-                       stage: Optional[int],
-                       regex_tuples: List[Tuple[str, str]]) -> None:
-    """
-    Appends to ``criteria``.
-    """
-    for tablename, fieldname in regex_tuples:
-        criteria.append(FieldCriterion(stage=stage,
-                                       table_regex_str=tablename,
-                                       field_regex_str=fieldname))
-
 
 # -----------------------------------------------------------------------------
 # Generic exclusions
