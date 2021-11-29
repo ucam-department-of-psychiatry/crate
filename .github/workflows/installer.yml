@@ -49,5 +49,6 @@ jobs:
                   sudo apt -y install python3-virtualenv python3-venv
                   # TODO: wget this from releases as a normal user would
                   # and don't checkout above
+                  docker --version
                   cd installer
                   ./installer.sh
