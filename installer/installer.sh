@@ -29,10 +29,12 @@ INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
 
 if [ ! -d "${CRATE_INSTALLER_VENV}" ]; then
     python3 -m venv ${CRATE_INSTALLER_VENV}
-    source ${CRATE_INSTALLER_VENV}/bin/activate
-
-    python -m pip install -U pip setuptools
-    python -m pip install -r ${INSTALLER_HOME}/installer-requirements.txt
 fi
+
+source ${CRATE_INSTALLER_VENV}/bin/activate
+
+python -m pip install -U pip setuptools
+python -m pip install -r ${INSTALLER_HOME}/installer-requirements.txt
+
 
 python $INSTALLER_HOME/installer.py
