@@ -2,7 +2,12 @@
 # yamllint disable rule:line-length
 name: Docker
 # yamllint disable-line rule:truthy
-on: [push]
+on:
+    push:
+        paths:
+            - 'crate_anon/**'
+            - .github/workflows/docker.yml
+            - 'docker/**'
 jobs:
     docker:
         runs-on: ubuntu-latest
