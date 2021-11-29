@@ -27,11 +27,24 @@ INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
 # sudo apt-get update
 # sudo apt -y install python3-virtualenv python3-venv
 
+if [ -z "$CRATE_INSTALLER_PYTHON" ]; then
+    CRATE_INSTALLER_PYTHON=python3
+fi
+
 if [ ! -d "${CRATE_INSTALLER_VENV}" ]; then
-    python3 -m venv ${CRATE_INSTALLER_VENV}
+    # TOOO: Option to rebuild venv
+    ${CRATE_INSTALLER_PYTHON} -m venv ${CRATE_INSTALLER_VENV}
 fi
 
 source ${CRATE_INSTALLER_VENV}/bin/activate
+
+PYTHON_VERSION_OK=$(python3 -c 'import sys; print(sys.version_info.major >=3 and sys.version_info.minor >= 7)')
+
+if [ "${PYTHON_VERSION_OK}" == "False" ]; then
+    python --version
+    echo "You need at least Python 3.7 to run the installer."
+   exit 1
+fi
 
 python -m pip install -U pip setuptools
 python -m pip install -r ${INSTALLER_HOME}/installer-requirements.txt
