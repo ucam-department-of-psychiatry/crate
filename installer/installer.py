@@ -25,6 +25,7 @@ class Installer:
 
     def install(self) -> None:
         self.configure()
+        self.create_directories()
         self.create_local_settings()
         self.create_anon_config()
         self.create_database()
@@ -170,6 +171,14 @@ class Installer:
             sys.exit(EXIT_FAILURE)
 
         return value
+
+    def create_directories(self) -> None:
+        crate_config_dir = os.environ.get("CRATE_DOCKER_CONFIG_HOST_DIR")
+        pathlib.Path(crate_config_dir).mkdir(parents=True, exist_ok=True)
+
+        bioyodie_resources_dir = os.environ.get(
+            "CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR")
+        pathlib.Path(bioyodie_resources_dir).mkdir(parents=True, exist_ok=True)
 
     def create_local_settings(self) -> None:
         if not os.path.exists(self.local_settings_full_path()):
