@@ -5,7 +5,7 @@ name: Build
 on:
     push:
         paths:
-            - 'crate_anon/**'
+            - '**.py'
             - .github/workflows/python-checks.yml
 jobs:
     pip-install-and-tests:
