@@ -12,7 +12,7 @@ set -euxo pipefail
 
 
 CRATE_HOME=${HOME}/crate
-CRATE_INSTALLER_VENV=${HOME}/.local/share/virtualenv/crate-installer
+CRATE_INSTALLER_VENV=${HOME}/.virtualenvs/crate-installer
 
 # TODO:
 # mkdir -p ${CRATE_HOME}
