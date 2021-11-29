@@ -69,6 +69,10 @@ class Installer:
             "CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD",
             self.get_docker_mysql_crate_user_password()
         )
+        self.setenv(
+            "CRATE_DOCKER_MYSQL_HOST_PORT",
+            self.get_docker_mysql_host_port()
+        )
 
     def get_install_user_id(self) -> str:
         return str(os.geteuid())
@@ -106,6 +110,14 @@ class Installer:
 
         return self.get_user_password(
             "Enter a new password for the MySQL user that CRATE will create"
+        )
+
+    def get_docker_mysql_host_port(self) -> str:
+        if self.testing:
+            return "3307"
+
+        return self.get_user_input(
+            "Enter the port where the MySQL database will appear on the host"
         )
 
     def setenv(self, name: str, value: str) -> None:
