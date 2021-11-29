@@ -1807,6 +1807,7 @@ def show_dest_counts() -> None:
 
 def anonymise(draftdd: bool = False,
               incrementaldd: bool = False,
+              dd_output_filename: str = "-",
               count: bool = False,
               incremental: bool = False,
               skipdelete: bool = False,
@@ -1838,6 +1839,9 @@ def anonymise(draftdd: bool = False,
             If true: print a data dictionary, then stop.
         incrementaldd:
             If true: print an incremental data dictionary, then stop.
+        dd_output_filename:
+            For ``draftdd`` and ``incrementaldd``: file for output ('-' for
+            stdout).
         count:
             If true: show source/destination record counts, then stop.
 
@@ -1921,7 +1925,7 @@ def anonymise(draftdd: bool = False,
     config.debug_scrubbers = debugscrubbers
     config.save_scrubbers = savescrubbers
     config.set_echo(echo)
-    if not draftdd:
+    if not draftdd:  # this is where incrementaldd has its effect
         config.load_dd(check_against_source_db=not skip_dd_check)
 
     # -------------------------------------------------------------------------
@@ -1933,7 +1937,7 @@ def anonymise(draftdd: bool = False,
         # will have been loaded from disk; for draftdd, it won't (so a
         # completely fresh one will be generated).
         config.dd.read_from_source_databases()
-        print(config.dd.get_tsv())
+        config.dd.write(dd_output_filename)
         return
 
     # If we are doing more than generating a data dictionary, the config must

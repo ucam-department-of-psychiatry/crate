@@ -113,6 +113,7 @@ class DataDictionaryRow(object):
         "indexlen",
         "comment",
     ]
+    ENUM_ROWNAMES = ("index", "scrub_src", "scrub_method")
 
     def __init__(self, config: "Config") -> None:
         """
@@ -532,9 +533,35 @@ class DataDictionaryRow(object):
             v = getattr(self, x)
             if v is None:
                 v = ""
-            v = str(v)
+            else:
+                v = str(v)
             values.append(v)
         return "\t".join(values)
+
+    @classmethod
+    def header_row(cls) -> List[str]:
+        """
+        Returns a header row (a list of headings) for use in spreadsheet
+        formats.
+        """
+        return list(cls.ROWNAMES)
+
+    def as_row(self) -> List[Any]:
+        """
+        Returns a data row (a list of values whose order matches
+        :meth:`header_row`) for use in spreadsheet formats.
+        """
+        row = []  # type: List[Any]
+        for k in self.ROWNAMES:
+            v = getattr(self, k)
+            if v is None:
+                # some spreadsheet handlers (e.g. pyexcel_ods) choke on None
+                v = ""
+            elif k in self.ENUM_ROWNAMES:
+                # convert enum to str
+                v = str(v)
+            row.append(v)
+        return row
 
     # -------------------------------------------------------------------------
     # Setting
@@ -545,6 +572,14 @@ class DataDictionaryRow(object):
         """
         Set internal fields from a dict of elements representing a row from the
         TSV data dictionary file.
+
+        Args:
+            valuedict:
+                Dictionary mapping row headings (or attribute names) to values.
+            override_dialect:
+                SQLAlchemy SQL dialect to enforce (e.g. for interpreting
+                textual column types in the source database). By default, the
+                source database's own dialect is used.
         """
         self.src_db = valuedict['src_db']
         self.src_table = valuedict['src_table']

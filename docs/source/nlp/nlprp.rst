@@ -1431,7 +1431,7 @@ The following are implementation details that are at the server's discretion:
 - authentication_
 - authorization_
 - accounting (logging, billing, size/frequency restrictions)
-- containerization, parallel processing, message queue details 
+- containerization, parallel processing, message queue details
 
 
 Abbreviations used in this section

@@ -70,7 +70,7 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.1.10",  # RNC libraries
+    "cardinal_pythonlib==1.1.15",  # RNC libraries
     "cairosvg==2.5.1",  # work with SVG files
     "celery==4.4.6",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
@@ -91,7 +91,7 @@ INSTALL_REQUIRES = [
     "gunicorn==20.0.4",  # UNIX only, though will install under Windows
     "kombu==4.6.11",  # AMQP library for Celery; requires VC++ under Windows
     "mako==1.1.3",  # templates with Python in
-    "MarkupSafe==1.1.1",  # for HTML escaping
+    "MarkupSafe==2.0.1",  # for HTML escaping
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa
     "openpyxl==3.0.7",  # read Excel
@@ -100,7 +100,8 @@ INSTALL_REQUIRES = [
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==0.7.2",  # pretty formating of text-based tables
     "psutil==5.7.2",  # process management
-    "pyexcel-ods==0.6.0",  # for reading ODS files
+    "pyexcel-ods==0.6.0",  # for reading/writing ODS files
+    "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.8.1",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
     "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]

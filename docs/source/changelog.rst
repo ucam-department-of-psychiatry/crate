@@ -1337,11 +1337,17 @@ Changes
 
 - ``urllib3`` from 1.26.4 to 1.26.5 for CVE-2021-33503.
 
+- ``MarkupSafe`` from 1.1.1 to 2.0.1 (for other dependencies).
+
+- ``cardinal_pythonlib`` from 1.1.10 to 1.1.15.
+
 - Remove need for ``xlrd`` (was only used for the postcode database and now
   redundant; all other Excel work uses ``openpyxl``), but add ``pyexcel-ods``
   for ODS files.
 
 - **Minimum Python version is now 3.7.**
+
+- Specific code for TIMELY project.
 
 
 ===============================================================================

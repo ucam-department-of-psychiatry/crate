@@ -35,7 +35,7 @@ rather than a database table.
 # Imports
 # =============================================================================
 
-import collections
+from collections import Counter, OrderedDict
 import csv
 from functools import lru_cache
 from itertools import zip_longest
@@ -44,9 +44,10 @@ import operator
 import os
 from typing import (
     AbstractSet, Any, Callable, Dict, Iterable, List, Optional,
-    Tuple, TYPE_CHECKING, Union
+    TextIO, Tuple, TYPE_CHECKING, Union
 )
 
+from cardinal_pythonlib.file_io import smart_open
 from cardinal_pythonlib.sql.validation import is_sqltype_integer
 from cardinal_pythonlib.sqlalchemy.schema import (
     is_sqlatype_integer,
@@ -55,6 +56,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 )
 import openpyxl
 import pyexcel_ods
+import pyexcel_xlsx
 from sortedcontainers import SortedSet
 import sqlalchemy.exc
 from sqlalchemy import Column, Table, DateTime
@@ -73,6 +75,15 @@ if TYPE_CHECKING:
     from crate_anon.anonymise.config import Config
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+EXT_TSV = ".tsv"
+EXT_ODS = ".ods"
+EXT_XLSX = ".xlsx"
 
 
 # =============================================================================
@@ -120,17 +131,23 @@ class DataDictionary(object):
         Read DD from file.
 
         Args:
-            filename: filename to read
-            check_valid: check validity against e.g. dialect of source DB?
+            filename:
+                Filename to read.
+            check_valid:
+                Run a validity check after setting each row from its values?
+            override_dialect:
+                SQLAlchemy SQL dialect to enforce (e.g. for interpreting
+                textual column types in the source database). By default, the
+                source database's own dialect is used.
         """
         log.debug(f"Loading data dictionary: {filename}")
         _, ext = os.path.splitext(filename)
-        if ext == ".tsv":
+        if ext == EXT_TSV:
             row_gen = self._gen_rows_from_tsv(filename)
-        elif ext == ".xlsx":
-            row_gen = self._gen_rows_from_xlsx(filename)
-        elif ext == ".ods":
+        elif ext == EXT_ODS:
             row_gen = self._gen_rows_from_ods(filename)
+        elif ext == EXT_XLSX:
+            row_gen = self._gen_rows_from_xlsx(filename)
         else:
             raise ValueError(f"Unknown data dictionary extension: {ext!r}")
         self._read_from_rows(row_gen,
@@ -202,6 +219,17 @@ class DataDictionary(object):
         """
         Internal function to read from a set of rows, whatever the underlying
         format.
+
+        Args:
+            rows:
+                Iterable of rows (one per data dictionary row), each row being
+                a list of values.
+            check_valid:
+                Run a validity check after setting the values?
+            override_dialect:
+                SQLAlchemy SQL dialect to enforce (e.g. for interpreting
+                textual column types in the source database). By default, the
+                source database's own dialect is used.
         """
         # Clear existing data
         self.rows = []  # type: List[DataDictionaryRow]
@@ -580,11 +608,11 @@ class DataDictionary(object):
                 dst_sigs.append(r.dest_signature)
         # noinspection PyArgumentList
         src_duplicates = [
-            item for item, count in collections.Counter(src_sigs).items()
+            item for item, count in Counter(src_sigs).items()
             if count > 1]
         # noinspection PyArgumentList
         dst_duplicates = [
-            item for item, count in collections.Counter(dst_sigs).items()
+            item for item, count in Counter(dst_sigs).items()
             if count > 1]
         if src_duplicates:
             raise ValueError(f"Duplicate source rows: {src_duplicates}")
@@ -617,6 +645,33 @@ class DataDictionary(object):
     # Saving
     # -------------------------------------------------------------------------
 
+    def write(self, filename: str, filetype: str = None) -> None:
+        """
+        Writes the dictionary, either specifying the filetype or autodetecting
+        it from the specified filename.
+
+        Args:
+            filename:
+                Name of file to write, or "-" for stdout (in which case the
+                filetype is forced to TSV).
+            filetype:
+                File type as one of ``.ods``, ``.tsv``, or ``.xlsx``;
+                alternatively, use ``None`` to autodetect from the filename.
+        """
+        if filename == "-":
+            with smart_open(filename, "wt") as f:  # type: TextIO
+                self.write_tsv_file(f)
+            return
+        ext = filetype or os.path.splitext(filename)[1]
+        if ext == EXT_TSV:
+            self.write_tsv(filename)
+        elif ext == EXT_ODS:
+            self.write_ods(filename)
+        elif ext == EXT_XLSX:
+            self.write_xlsx(filename)
+        else:
+            raise ValueError(f"Unknown data dictionary extension: {ext!r}")
+
     def get_tsv(self) -> str:
         """
         Return the DD in TSV format.
@@ -626,12 +681,48 @@ class DataDictionary(object):
             [r.get_tsv() for r in self.rows]
         )
 
-    def write_tsv_file(self, filename: str) -> None:
+    def write_tsv_file(self, file: TextIO) -> None:
         """
         Writes the dictionary to a TSV file.
         """
+        file.write(self.get_tsv())
+
+    def write_tsv(self, filename: str) -> None:
+        """
+        Writes the dictionary to a TSV file.
+        """
+        log.info(f"Saving data dictionary as TSV: {filename}")
         with open(filename, "wt") as f:
-            f.write(self.get_tsv())
+            self.write_tsv_file(f)
+
+    def _as_dict(self) -> Dict[str, Any]:
+        """
+        Returns an ordered dictionary representation used for writing
+        spreadsheets.
+        """
+        sheetname = "data_dictionary"
+        rows = [
+            DataDictionaryRow.header_row()
+        ] + [
+            ddr.as_row() for ddr in self.rows
+        ]
+        data = OrderedDict()
+        data[sheetname] = rows
+        return data
+
+    def write_ods(self, filename: str) -> None:
+        """
+        Writes the dictionary to an OpenOffice spreadsheet (ODS) file.
+        """
+        log.info(f"Saving data dictionary as ODS: {filename}")
+        pyexcel_ods.save_data(filename, self._as_dict())
+
+    def write_xlsx(self, filename: str) -> None:
+        """
+        Writes the dictionary to an Excel (XLSX) file.
+        """
+        log.info(f"Saving data dictionary as XLSX: {filename}")
+        pyexcel_xlsx.save_data(filename, self._as_dict())
 
     # -------------------------------------------------------------------------
     # Global DD queries
