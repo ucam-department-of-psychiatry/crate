@@ -10,7 +10,7 @@ on:
             - 'docker/**'
             - 'installer/**'
 jobs:
-    docker:
+    installer:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
