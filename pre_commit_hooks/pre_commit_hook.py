@@ -69,7 +69,7 @@ EXIT_FAILURE = 1
 
 PRECOMMIT_DIR = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = os.path.join(PRECOMMIT_DIR, "..")
-PYTHON_SOURCE_DIR = os.path.join(PROJECT_ROOT, "crate_anon")
+PYTHON_SOURCE_DIR = PROJECT_ROOT
 CONFIG_FILE = os.path.abspath(os.path.join(PROJECT_ROOT, "setup.cfg"))
 GITHUB_ACTIONS_DIR = os.path.join(PROJECT_ROOT, ".github", "workflows")
 DOCKERFILES_DIR = os.path.join(PROJECT_ROOT, "docker", "dockerfiles")

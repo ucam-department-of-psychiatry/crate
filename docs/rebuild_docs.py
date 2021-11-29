@@ -32,6 +32,8 @@ import os
 import shutil
 import subprocess
 
+from typing import List
+
 # Work out directories
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 BUILD_HTML_DIR = os.path.join(THIS_DIR, "build", "html")

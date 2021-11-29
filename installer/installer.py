@@ -298,7 +298,6 @@ class Installer:
                            command=["/bin/bash", "-c", venv_command])
 
 
-
 def main() -> None:
     installer = Installer()
     installer.testing = True  # TODO remove
