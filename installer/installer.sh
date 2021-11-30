@@ -41,7 +41,7 @@ PYTHON_VERSION_OK=$(python3 -c 'import sys; print(sys.version_info.major >=3 and
 if [ "${PYTHON_VERSION_OK}" == "False" ]; then
     python --version
     echo "You need at least Python 3.7 to run the installer."
-   exit 1
+    exit 1
 fi
 
 python -m pip install -U pip setuptools
