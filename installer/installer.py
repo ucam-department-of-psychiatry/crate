@@ -28,6 +28,12 @@ class Installer:
         self.create_directories()
         self.create_local_settings()
         self.create_anon_config()
+        print("Dumping hosts file")
+        print("==================")
+        docker.compose.run("crate_workers",
+                           remove=True,
+                           command=["/bin/bash", "-c", "cat /etc/hosts"])
+        print("==================")
         self.create_database()
 
     def configure(self) -> None:
