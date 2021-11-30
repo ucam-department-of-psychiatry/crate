@@ -246,56 +246,56 @@ RESEARCH_DB_INFO = [
         # Column name giving time that record was updated
         RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
     },
-    {
-        RDIKeys.NAME: 'similar_database',
-        RDIKeys.DESCRIPTION: 'A database sharing the RID with the first',
+    # {
+    #     RDIKeys.NAME: 'similar_database',
+    #     RDIKeys.DESCRIPTION: 'A database sharing the RID with the first',
 
-        RDIKeys.DATABASE: 'similar_database',
-        RDIKeys.SCHEMA: 'similar_schema',
-        RDIKeys.TRID_FIELD: 'trid',
-        RDIKeys.RID_FIELD: 'same_rid',
-        RDIKeys.RID_FAMILY: 1,
-        RDIKeys.MRID_TABLE: '',
-        RDIKeys.MRID_FIELD: '',
+    #     RDIKeys.DATABASE: 'similar_database',
+    #     RDIKeys.SCHEMA: 'similar_schema',
+    #     RDIKeys.TRID_FIELD: 'trid',
+    #     RDIKeys.RID_FIELD: 'same_rid',
+    #     RDIKeys.RID_FAMILY: 1,
+    #     RDIKeys.MRID_TABLE: '',
+    #     RDIKeys.MRID_FIELD: '',
 
-        RDIKeys.PID_DESCRIPTION: '',
-        RDIKeys.MPID_DESCRIPTION: '',
-        RDIKeys.RID_DESCRIPTION: '',
-        RDIKeys.MRID_DESCRIPTION: '',
-        RDIKeys.TRID_DESCRIPTION: '',
+    #     RDIKeys.PID_DESCRIPTION: '',
+    #     RDIKeys.MPID_DESCRIPTION: '',
+    #     RDIKeys.RID_DESCRIPTION: '',
+    #     RDIKeys.MRID_DESCRIPTION: '',
+    #     RDIKeys.TRID_DESCRIPTION: '',
 
-        RDIKeys.SECRET_LOOKUP_DB: '',
+    #     RDIKeys.SECRET_LOOKUP_DB: '',
 
-        RDIKeys.DATE_FIELDS_BY_TABLE: {},
-        RDIKeys.DEFAULT_DATE_FIELDS: [],
+    #     RDIKeys.DATE_FIELDS_BY_TABLE: {},
+    #     RDIKeys.DEFAULT_DATE_FIELDS: [],
 
-        RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
-    },
-    {
-        RDIKeys.NAME: 'different_database',
-        RDIKeys.DESCRIPTION: 'A database sharing only the MRID with the first',
+    #     RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
+    # },
+    # {
+    #     RDIKeys.NAME: 'different_database',
+    #     RDIKeys.DESCRIPTION: 'A database sharing only the MRID with the first',  # noqa: E501
 
-        RDIKeys.DATABASE: 'different_database',
-        RDIKeys.SCHEMA: 'different_schema',
-        RDIKeys.TRID_FIELD: 'trid',
-        RDIKeys.RID_FIELD: 'different_rid',
-        RDIKeys.RID_FAMILY: 2,
-        RDIKeys.MRID_TABLE: 'hashed_nhs_numbers',
-        RDIKeys.MRID_FIELD: 'nhshash',
+    #     RDIKeys.DATABASE: 'different_database',
+    #     RDIKeys.SCHEMA: 'different_schema',
+    #     RDIKeys.TRID_FIELD: 'trid',
+    #     RDIKeys.RID_FIELD: 'different_rid',
+    #     RDIKeys.RID_FAMILY: 2,
+    #     RDIKeys.MRID_TABLE: 'hashed_nhs_numbers',
+    #     RDIKeys.MRID_FIELD: 'nhshash',
 
-        RDIKeys.PID_DESCRIPTION: '',
-        RDIKeys.MPID_DESCRIPTION: '',
-        RDIKeys.RID_DESCRIPTION: '',
-        RDIKeys.MRID_DESCRIPTION: '',
-        RDIKeys.TRID_DESCRIPTION: '',
+    #     RDIKeys.PID_DESCRIPTION: '',
+    #     RDIKeys.MPID_DESCRIPTION: '',
+    #     RDIKeys.RID_DESCRIPTION: '',
+    #     RDIKeys.MRID_DESCRIPTION: '',
+    #     RDIKeys.TRID_DESCRIPTION: '',
 
-        RDIKeys.SECRET_LOOKUP_DB: '',
+    #     RDIKeys.SECRET_LOOKUP_DB: '',
 
-        RDIKeys.DATE_FIELDS_BY_TABLE: {},
-        RDIKeys.DEFAULT_DATE_FIELDS: [],
+    #     RDIKeys.DATE_FIELDS_BY_TABLE: {},
+    #     RDIKeys.DEFAULT_DATE_FIELDS: [],
 
-        RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
-    },
+    #     RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
+    # },
 ]
 
 # Which database (from those defined in RESEARCH_DB_INFO above) should be used
