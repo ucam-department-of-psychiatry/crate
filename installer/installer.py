@@ -30,9 +30,7 @@ class Installer:
         self.create_anon_config()
         print("Dumping hosts file")
         print("==================")
-        docker.compose.run("crate_workers",
-                           remove=True,
-                           command=["/bin/bash", "-c", "cat /etc/hosts"])
+        self.run_bash_command("cat /etc/hosts")
         print("==================")
         self.create_database()
 
@@ -295,13 +293,16 @@ class Installer:
         self.run_crate_command("crate_django_manage migrate")
 
     def run_crate_command(self, crate_command: str) -> None:
-        os.chdir(DOCKERFILES_DIR)
+        self.run_bash_command(
+            f"source /crate/venv/bin/activate; {crate_command}"
+        )
 
-        venv_command = f"source /crate/venv/bin/activate; {crate_command}"
+    def run_bash_command(self, bash_command: str) -> None:
+        os.chdir(DOCKERFILES_DIR)
 
         docker.compose.run("crate_workers",
                            remove=True,
-                           command=["/bin/bash", "-c", venv_command])
+                           command=["/bin/bash", "-c", bash_command])
 
 
 def main() -> None:
