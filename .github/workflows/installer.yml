@@ -35,14 +35,14 @@ jobs:
                   cat /etc/mysql/mysql.conf.d/mysqld.cnf
                   sudo service mysql start
                   mysql -e 'CREATE DATABASE ${{ env.DB_RESEARCH_DATABASE }};' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'CREATE USER `${{ env.DB_RESEARCH_USER }}`@`localhost` IDENTIFIED BY "${{ env.DB_RESEARCH_PASSWORD }}";' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'GRANT ALL PRIVILEGES ON `${{ env.DB_RESEARCH_DATABASE }}`.* TO `${{ env.DB_RESEARCH_USER }}`@`localhost`;' -u${{ env.DB_ROOT_USER }} -p${{ env.DB_ROOT_PASSWORD }}
+                  mysql -e 'CREATE USER `${{ env.DB_RESEARCH_USER }}`@`%` IDENTIFIED BY "${{ env.DB_RESEARCH_PASSWORD }}";' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
+                  mysql -e 'GRANT ALL PRIVILEGES ON `${{ env.DB_RESEARCH_DATABASE }}`.* TO `${{ env.DB_RESEARCH_USER }}`@`%`;' -u${{ env.DB_ROOT_USER }} -p${{ env.DB_ROOT_PASSWORD }}
                   mysql -e 'CREATE DATABASE ${{ env.DB_SECRET_DATABASE }};' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'CREATE USER `${{ env.DB_SECRET_USER }}`@`localhost` IDENTIFIED BY "${{ env.DB_SECRET_PASSWORD }}";' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'GRANT ALL PRIVILEGES ON `${{ env.DB_SECRET_DATABASE }}`.* TO `${{ env.DB_SECRET_USER }}`@`localhost`;' -u${{ env.DB_ROOT_USER }} -p${{ env.DB_ROOT_PASSWORD }}
+                  mysql -e 'CREATE USER `${{ env.DB_SECRET_USER }}`@`%` IDENTIFIED BY "${{ env.DB_SECRET_PASSWORD }}";' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
+                  mysql -e 'GRANT ALL PRIVILEGES ON `${{ env.DB_SECRET_DATABASE }}`.* TO `${{ env.DB_SECRET_USER }}`@`%`;' -u${{ env.DB_ROOT_USER }} -p${{ env.DB_ROOT_PASSWORD }}
                   mysql -e 'CREATE DATABASE ${{ env.DB_SOURCE_DATABASE }};' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'CREATE USER `${{ env.DB_SOURCE_USER }}`@`localhost` IDENTIFIED BY "${{ env.DB_SOURCE_PASSWORD }}";' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'GRANT ALL PRIVILEGES ON `${{ env.DB_SOURCE_DATABASE }}`.* TO `${{ env.DB_SOURCE_USER }}`@`localhost`;' -u${{ env.DB_ROOT_USER }} -p${{ env.DB_ROOT_PASSWORD }}
+                  mysql -e 'CREATE USER `${{ env.DB_SOURCE_USER }}`@`%` IDENTIFIED BY "${{ env.DB_SOURCE_PASSWORD }}";' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
+                  mysql -e 'GRANT ALL PRIVILEGES ON `${{ env.DB_SOURCE_DATABASE }}`.* TO `${{ env.DB_SOURCE_USER }}`@`%`;' -u${{ env.DB_ROOT_USER }} -p${{ env.DB_ROOT_PASSWORD }}
 
             - name: Build
               run: |
