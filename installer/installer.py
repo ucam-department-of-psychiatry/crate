@@ -29,6 +29,7 @@ class Installer:
         self.create_local_settings()
         self.create_anon_config()
         self.create_database()
+        self.create_superuser()
 
     def configure(self) -> None:
         self.setenv(
@@ -75,6 +76,18 @@ class Installer:
             "CRATE_DOCKER_MYSQL_HOST_PORT",
             self.get_docker_mysql_host_port()
         )
+        self.setenv(
+            "CRATE_DOCKER_DJANGO_SUPERUSER_USERNAME",
+            self.get_superuser_username()
+        )
+        self.setenv(
+            "CRATE_DOCKER_DJANGO_SUPERUSER_PASSWORD",
+            self.get_superuser_password()
+        )
+        self.setenv(
+            "CRATE_DOCKER_DJANGO_SUPERUSER_EMAIL",
+            self.get_superuser_email()
+        )
 
     def get_install_user_id(self) -> str:
         return str(os.geteuid())
@@ -120,6 +133,21 @@ class Installer:
 
         return self.get_user_input(
             "Enter the port where the MySQL database will appear on the host"
+        )
+
+    def get_superuser_username(self) -> str:
+        return self.get_user_input(
+            "Enter the user name for the CRATE administrator"
+        )
+
+    def get_superuser_password(self) -> str:
+        return self.get_user_password(
+            "Enter the password for the CRATE administrator"
+        )
+
+    def get_superuser_email(self) -> str:
+        return self.get_user_input(
+            "Enter the email address for the CRATE administrator"
         )
 
     def setenv(self, name: str, value: str) -> None:
@@ -287,6 +315,9 @@ class Installer:
 
     def create_database(self) -> None:
         self.run_crate_command("crate_django_manage migrate")
+
+    def create_superuser(self) -> None:
+        self.run_crate_command("crate_django_manage createsuperuser --noinput")
 
     def run_crate_command(self, crate_command: str) -> None:
         self.run_bash_command(
