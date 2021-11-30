@@ -54,7 +54,7 @@ jobs:
                   # TODO: wget this from releases as a normal user would
                   # and don't checkout above
                   docker --version
-                  export CRATE_DOCKER_MYSQL_HOST_PORT=3306
+                  export CRATE_DOCKER_MYSQL_HOST_PORT=3307
                   export CRATE_DOCKER_CONFIG_HOST_DIR=${HOME}/crate_config
                   export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=${HOME}/bioyodie_resources
                   export CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD=ramalamadingdong
