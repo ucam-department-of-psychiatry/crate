@@ -32,6 +32,7 @@ jobs:
               run: |
                   set -euxo pipefail
                   sudo sed -i "s/.*bind-address.*/bind-address = 0.0.0.0/" /etc/mysql/mysql.conf.d/mysqld.cnf
+                  cat /etc/mysql/mysql.conf.d/mysqld.conf
                   sudo service mysql start
                   mysql -e 'CREATE DATABASE ${{ env.DB_RESEARCH_DATABASE }};' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
                   mysql -e 'CREATE USER `${{ env.DB_RESEARCH_USER }}`@`localhost` IDENTIFIED BY "${{ env.DB_RESEARCH_PASSWORD }}";' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
