@@ -54,7 +54,7 @@ from crate_anon.anonymise.constants import (
     BIGSEP,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
-    INDEX,
+    IndexType,
     TABLE_KWARGS,
     SEP,
 )
@@ -70,7 +70,6 @@ from crate_anon.common.file_io import (
     gen_integers_from_file,
     gen_words_from_file,
 )
-from crate_anon.common.formatting import print_record_counts
 from crate_anon.common.parallel import is_my_job_by_hash, is_my_job_by_int
 from crate_anon.common.sql import matches_tabledef
 
@@ -961,7 +960,7 @@ def gen_rows(dbname: str,
         config.notify_src_bytes_read(sys.getsizeof(row))  # ... approximate!
         yield list(row)
         # yield dict(zip(row.keys(), row))
-        # see also http://stackoverflow.com/questions/19406859
+        # see also https://stackoverflow.com/questions/19406859
         config.rows_inserted_per_table[db_table_tuple] += 1
 
 
@@ -1295,7 +1294,7 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
         mssql_fulltext_columns = []  # type: List[Column]
         for tr in tablerows:
             sqla_column = sqla_table.columns[tr.dest_field]
-            fulltext = (tr.index is INDEX.FULLTEXT)
+            fulltext = (tr.index is IndexType.FULLTEXT)
             if fulltext and mssql:
                 # Special processing: we can only create one full-text index
                 # per table under SQL Server, but it can cover multiple
@@ -1304,13 +1303,13 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
             else:
                 add_index(engine=engine,
                           sqla_column=sqla_column,
-                          unique=(tr.index is INDEX.UNIQUE),
+                          unique=(tr.index is IndexType.UNIQUE),
                           fulltext=fulltext,
                           length=tr.indexlen)
             # Extra indexes for TRID, MRID?
             if tr.primary_pid:
                 add_index(engine, sqla_table.columns[config.trid_fieldname],
-                          unique=(tr.index is INDEX.UNIQUE))
+                          unique=(tr.index is IndexType.UNIQUE))
                 if config.add_mrid_wherever_rid_added:
                     add_index(
                         engine,
@@ -1774,42 +1773,11 @@ def process_patient_tables(tasknum: int = 0,
     commit_destdb()
 
 
-def show_source_counts() -> None:
-    """
-    Show (print to stdout) the number of records in all source tables.
-    """
-    print("SOURCE TABLE RECORD COUNTS:")
-    counts = []  # type: List[Tuple[str, int]]
-    for d in config.dd.get_source_databases():
-        session = config.sources[d].session
-        for t in config.dd.get_src_tables(d):
-            n = count_star(session, t)
-            counts.append((f"{d}.{t}", n))
-    print_record_counts(counts)
-
-
-def show_dest_counts() -> None:
-    """
-    Show (print to stout) the number of records in all destination tables.
-    """
-    print("DESTINATION TABLE RECORD COUNTS:")
-    counts = []  # type: List[Tuple[str, int]]
-    session = config.destdb.session
-    for t in config.dd.get_dest_tables():
-        n = count_star(session, t)
-        counts.append((f"DESTINATION: {t}", n))
-    print_record_counts(counts)
-
-
 # =============================================================================
 # Main
 # =============================================================================
 
-def anonymise(draftdd: bool = False,
-              incrementaldd: bool = False,
-              dd_output_filename: str = "-",
-              count: bool = False,
-              incremental: bool = False,
+def anonymise(incremental: bool = False,
               skipdelete: bool = False,
               dropremake: bool = False,
               optout: bool = False,
@@ -1835,16 +1803,6 @@ def anonymise(draftdd: bool = False,
     Main entry point for anonymisation.
 
     Args:
-        draftdd:
-            If true: print a data dictionary, then stop.
-        incrementaldd:
-            If true: print an incremental data dictionary, then stop.
-        dd_output_filename:
-            For ``draftdd`` and ``incrementaldd``: file for output ('-' for
-            stdout).
-        count:
-            If true: show source/destination record counts, then stop.
-
         incremental:
             If true: incremental run, rather than full.
         skipdelete:
@@ -1913,8 +1871,6 @@ def anonymise(draftdd: bool = False,
             "--process argument must be from 0 to (nprocesses - 1) inclusive")
     if nprocesses > 1 and dropremake:
         raise ValueError("Can't use nprocesses > 1 with --dropremake")
-    if incrementaldd and draftdd:
-        raise ValueError("Can't use --incrementaldd and --draftdd")
 
     everything = not any([dropremake, optout, nonpatienttables,
                           patienttables, index])
@@ -1925,29 +1881,9 @@ def anonymise(draftdd: bool = False,
     config.debug_scrubbers = debugscrubbers
     config.save_scrubbers = savescrubbers
     config.set_echo(echo)
-    if not draftdd:  # this is where incrementaldd has its effect
-        config.load_dd(check_against_source_db=not skip_dd_check)
-
-    # -------------------------------------------------------------------------
-    # One-off actions
-    # -------------------------------------------------------------------------
-
-    if draftdd or incrementaldd:
-        # Note: the difference is that for incrementaldd, the data dictionary
-        # will have been loaded from disk; for draftdd, it won't (so a
-        # completely fresh one will be generated).
-        config.dd.read_from_source_databases()
-        config.dd.write(dd_output_filename)
-        return
-
-    # If we are doing more than generating a data dictionary, the config must
-    # be valid.
+    config.load_dd(check_against_source_db=not skip_dd_check)
+    # The config must be valid:
     config.check_valid()
-
-    if count:
-        show_source_counts()
-        show_dest_counts()
-        return
 
     # -------------------------------------------------------------------------
     # Setup

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/ancillary/timely_project/ddcriteria.py
+crate_anon/ancillary/timely_project/dd_criteria.py
 
 ===============================================================================
 
@@ -43,9 +43,6 @@ from typing import List, Optional, Tuple
 # Constants
 # =============================================================================
 
-# Approvals are in stages.
-N_STAGES = 6
-
 # Arbitrary symbol that we'll use for "regex matches":
 MATCHES = "≛"
 
@@ -60,7 +57,6 @@ class TableCriterion:
     it and its associated stage.
     """
     def __init__(self, stage: Optional[int], table_regex_str: str) -> None:
-        assert stage is None or 1 <= stage <= N_STAGES
         self.stage = stage
         self.table_regex_str = table_regex_str
         self.table_regex_compiled = re.compile(table_regex_str,

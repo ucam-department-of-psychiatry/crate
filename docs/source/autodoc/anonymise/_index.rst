@@ -35,12 +35,15 @@ crate_anon/anonymise
     anonregex.py.rst
     anonymise.py.rst
     anonymise_cli.py.rst
+    check_text_extractor.py.rst
     config.py.rst
     config_singleton.py.rst
     constants.py.rst
     dbholder.py.rst
     dd.py.rst
     ddr.py.rst
+    demo_config.py.rst
+    draft_dd.py.rst
     eponyms.py.rst
     fetch_wordlists.py.rst
     launch_multiprocess_anonymiser.py.rst
@@ -48,5 +51,6 @@ crate_anon/anonymise
     models.py.rst
     patient.py.rst
     scrub.py.rst
+    show_counts.py.rst
     test_anonymisation.py.rst
     test_extract_text.py.rst

@@ -806,7 +806,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
         decisions.append("Patient not discharged.")
         contactable_curr_clin = [c for c in current_clinicians
                                  if c.contactable()]
-        # Sorting by two keys: http://stackoverflow.com/questions/11206884
+        # Sorting by two keys: https://stackoverflow.com/questions/11206884
         # LOW priority: most recent clinician. (Goes first in sort.)
         # HIGH priority: preferred type of clinician. (Goes last in sort.)
         # Sort order is: most preferred first.

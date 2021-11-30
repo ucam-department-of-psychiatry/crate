@@ -56,7 +56,7 @@ from crate_anon.crateweb.config.constants import (
     UrlNames,
 )
 
-# http://stackoverflow.com/questions/2636536/how-to-make-django-work-with-unsupported-mysql-drivers-such-as-gevent-mysql-or-c  # noqa
+# https://stackoverflow.com/questions/2636536/how-to-make-django-work-with-unsupported-mysql-drivers-such-as-gevent-mysql-or-c  # noqa
 try:
     import pymysql
     pymysql.install_as_MySQLdb()

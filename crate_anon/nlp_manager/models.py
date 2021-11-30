@@ -75,7 +75,7 @@ class NlpRecord(ProgressBase):
             'srcpkstr',   # last as we may not use it
             # - performance is critical here
             # - put them in descending order of specificity
-            #   http://stackoverflow.com/questions/2292662/how-important-is-the-order-of-columns-in-indexes  # noqa
+            #   https://stackoverflow.com/questions/2292662/how-important-is-the-order-of-columns-in-indexes  # noqa
             # - start with srcpkval, as it's (a) specific and (b) integer
             # - srcpkfield: don't need to index, because the source table
             #   can only have one PK
@@ -85,12 +85,12 @@ class NlpRecord(ProgressBase):
             #   queries (for tables with integer PK)
             unique=True
             # Despite having a NULL field in a UNIQUE index, this is OK for
-            # SQL Server 2008+ (http://stackoverflow.com/questions/767657) and
+            # SQL Server 2008+ (https://stackoverflow.com/questions/767657) and
             # MySQL also seems happy.
         ),
         TABLE_KWARGS
     )
-    # http://stackoverflow.com/questions/6626810/multiple-columns-index-when-using-the-declarative-orm-extension-of-sqlalchemy  # noqa
+    # https://stackoverflow.com/questions/6626810/multiple-columns-index-when-using-the-declarative-orm-extension-of-sqlalchemy  # noqa
     # http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/table_config.html  # noqa
 
     pk = Column(

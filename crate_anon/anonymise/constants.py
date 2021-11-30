@@ -110,7 +110,7 @@ MAX_TRID = 2 ** 31 - 1
 
 
 @unique
-class ALTERMETHOD(StrEnum):
+class AlterMethodType(StrEnum):
     BINARY_TO_TEXT = "binary_to_text"
     FILENAME_FORMAT_TO_TEXT = "filename_format_to_text"  # new in v0.18.18
     FILENAME_TO_TEXT = "filename_to_text"
@@ -124,20 +124,20 @@ class ALTERMETHOD(StrEnum):
 
 
 @unique
-class DECISION(StrEnum):
+class Decision(StrEnum):
     OMIT = "OMIT"
     INCLUDE = "include"
 
 
 @unique
-class INDEX(StrEnum):
+class IndexType(StrEnum):
     NORMAL = "I"
     UNIQUE = "U"
     FULLTEXT = "F"
 
 
 @unique
-class SCRUBMETHOD(StrEnum):
+class ScrubMethod(StrEnum):
     WORDS = "words"
     PHRASE = "phrase"
     NUMERIC = "number"
@@ -146,14 +146,14 @@ class SCRUBMETHOD(StrEnum):
 
 
 @unique
-class SCRUBSRC(StrEnum):
+class ScrubSrc(StrEnum):
     PATIENT = "patient"
     THIRDPARTY = "thirdparty"
     THIRDPARTY_XREF_PID = "thirdparty_xref_pid"
 
 
 @unique
-class SRCFLAG(StrEnum):
+class SrcFlag(StrEnum):
     PK = "K"
     ADD_SRC_HASH = "H"
     PRIMARY_PID = "P"
@@ -622,15 +622,15 @@ ddgen_filename_to_text_fields =
 ddgen_binary_to_text_field_pairs =
 
 """.format(  # noqa
-    SCRUBSRC=SCRUBSRC,
-    INDEX=INDEX,
-    SCRUBMETHOD=SCRUBMETHOD,
-    ALTERMETHOD=ALTERMETHOD,
-    SRCFLAG=SRCFLAG,
+    SCRUBSRC=ScrubSrc,
+    INDEX=IndexType,
+    SCRUBMETHOD=ScrubMethod,
+    ALTERMETHOD=AlterMethodType,
+    SRCFLAG=SrcFlag,
     LONGTEXT=LONGTEXT,
     DEFAULT_MAX_ROWS_BEFORE_COMMIT=DEFAULT_MAX_ROWS_BEFORE_COMMIT,
     DEFAULT_MAX_BYTES_BEFORE_COMMIT=DEFAULT_MAX_BYTES_BEFORE_COMMIT,
-    DECISION=DECISION,
+    DECISION=Decision,
     VERSION=CRATE_VERSION,
     VERSION_DATE=CRATE_VERSION_DATE,
 )
@@ -640,4 +640,4 @@ ddgen_binary_to_text_field_pairs =
 #       source1 = blah
 #       source2 = thing
 # ... you can't have multiple keys with the same name.
-# http://stackoverflow.com/questions/287757
+# https://stackoverflow.com/questions/287757

@@ -66,7 +66,7 @@ Thoughts on configuration method
     config, and catch it with a special entry point script.
 
 -   See also
-    http://stackoverflow.com/questions/7443366/argument-passing-strategy-environment-variables-vs-command-line
+    https://stackoverflow.com/questions/7443366/argument-passing-strategy-environment-variables-vs-command-line
 
 """  # noqa
 

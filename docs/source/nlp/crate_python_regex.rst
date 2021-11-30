@@ -317,6 +317,7 @@ A summary as of 2020-11-21 (ignoring validators) is:
 
   * - Tsh
     - Thyroid-stimulating hormone (TSH).
+    - Biochemistry.
 
   * - Urea
     - Urea.

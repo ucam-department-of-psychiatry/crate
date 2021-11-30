@@ -131,7 +131,7 @@ class ResearcherSubmitContactRequestForm(AbstractContactRequestForm):
             user=user
         )
         # https://docs.djangoproject.com/en/1.8/ref/models/querysets/#field-lookups  # noqa
-        # http://stackoverflow.com/questions/5329586/django-modelchoicefield-filtering-query-set-and-setting-default-value-as-an-obj  # noqa
+        # https://stackoverflow.com/questions/5329586/django-modelchoicefield-filtering-query-set-and-setting-default-value-as-an-obj  # noqa
         rids.label = f"{dbinfo.rid_field} ({dbinfo.rid_description}) (RID)"
         mrids.label = f"{dbinfo.mrid_field} ({dbinfo.mrid_description}) (MRID)"
 

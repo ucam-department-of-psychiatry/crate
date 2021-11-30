@@ -23,9 +23,21 @@
 Data dictionary (DD)
 --------------------
 
-The data dictionary is a TSV file with a single header row, and columns as
-defined below. (The DD columns can be in any order as long as the header row
-matches the data, and the column heading names are exactly as follows.)
+The data dictionary is a catalogue of tables and columns (fields) in a source
+database (typically containing identifiable data). It tells CRATE how to
+transform the data into a de-identified destination database.
+
+The data dictionary is a spreadsheet-style file: a tab-separated values (TSV)
+file, OpenOffice Spreadsheet (ODS) file, or Microsoft Excel XLSX (OpenXML,
+Excel 2007+) file.
+
+It has a single header row, and columns as defined below.
+
+
+.. _crate_anon_draft_dd:
+
+Drafting a data dictionary
+++++++++++++++++++++++++++
 
 Once you have edited your :ref:`anonymiser config file <anon_config_file>` to
 point to your source database, you can generate a **draft data dictionary**
@@ -33,10 +45,26 @@ like this:
 
 .. code-block:: bash
 
-    crate_anonymise --draftdd > mydd.tsv
+    crate_anon_draft_dd --output mydd.xlsx
 
-Now edit the data dictionary as required. Then make your config file point to
-the data dictionary you want to use.
+Now edit the data dictionary as required. (And then edit your config file so it
+points to the data dictionary you have created.)
+
+Full options for this tool are:
+
+..  literalinclude:: _crate_anon_draft_dd.txt
+    :language: none
+
+
+Columns in the data dictionary
+++++++++++++++++++++++++++++++
+
+- The DD columns can be in any order as long as the header row matches the
+  data, and the column headings include the headings shown here.
+
+- In TSV format, lines beginning with a hash (``#``) are treated as comments
+  and ignored, as are blank lines.
+
 
 src_db
 ~~~~~~
@@ -44,15 +72,18 @@ src_db
 This column specifies the source database, using a name that matches one from
 the ``source_databases`` list in the config file.
 
+
 src_table
 ~~~~~~~~~
 
 This column specifies the table name in the source database.
 
+
 src_field
 ~~~~~~~~~
 
 This column specifies the field (column) name in the source database.
+
 
 src_datatype
 ~~~~~~~~~~~~
@@ -383,10 +414,12 @@ dest_table
 
 Table name in the destination database.
 
+
 dest_field
 ~~~~~~~~~~
 
 Field (column) name in the destination database.
+
 
 dest_datatype
 ~~~~~~~~~~~~~
@@ -394,6 +427,7 @@ dest_datatype
 SQL data type in the destination database.
 
 If omitted, the source SQL data type is translated appropriately.
+
 
 index
 ~~~~~
@@ -413,12 +447,14 @@ Value       Meaning
             fields. Only applicable to one field per table.
 =========== ===================================================================
 
+
 indexlen
 ~~~~~~~~
 
 Integer. Can be blank. If not, sets the prefix length of the index.
 This is mandatory in MySQL if you apply a normal (+/- unique) index to a `TEXT`
 or `BLOB` field. It is not required for `FULLTEXT` indexes.
+
 
 comment
 ~~~~~~~
@@ -427,13 +463,12 @@ Field (column) comment, stored in the destination database.
 
 
 Minimal data dictionary example
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++++++++++++++++++++++++++++++++
 
 This illustrates a data dictionary for a fictional database.
 
 Some more specialist columns (``inclusion_values``, ``exclusion_values``) are
-not shown for clarity. Blank lines and comment lines (lines beginning with #)
-are ignored.
+not shown for clarity.
 
 .. code-block:: none
 

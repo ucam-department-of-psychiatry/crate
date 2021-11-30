@@ -971,19 +971,19 @@ def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
     - ANSI SQL: add one column at a time: ``ALTER TABLE ADD [COLUMN] coldef``
 
       - i.e. "COLUMN" optional, one at a time, no parentheses
-      - http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
+      - https://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
 
     - MySQL: ``ALTER TABLE ADD [COLUMN] (a INT, b VARCHAR(32));``
 
       - i.e. "COLUMN" optional, parentheses required for >1, multiple OK
-      - http://dev.mysql.com/doc/refman/5.7/en/alter-table.html
+      - https://dev.mysql.com/doc/refman/5.7/en/alter-table.html
 
     - MS SQL Server: ``ALTER TABLE ADD COLUMN a INT, B VARCHAR(32);``
 
       - i.e. no "COLUMN", no parentheses, multiple OK
       - https://msdn.microsoft.com/en-us/library/ms190238.aspx
       - https://msdn.microsoft.com/en-us/library/ms190273.aspx
-      - http://stackoverflow.com/questions/2523676
+      - https://stackoverflow.com/questions/2523676
 
     This function therefore operates one at a time.
 
@@ -1264,7 +1264,7 @@ def create_view(engine: Engine,
         # MySQL has CREATE OR REPLACE VIEW.
         sql = f"CREATE OR REPLACE VIEW {viewname} AS {select_sql}"
     else:
-        # SQL Server doesn't: http://stackoverflow.com/questions/18534919
+        # SQL Server doesn't: https://stackoverflow.com/questions/18534919
         drop_view(engine, viewname, quiet=True)
         sql = f"CREATE VIEW {viewname} AS {select_sql}"
     log.info(f"Creating view: {repr(viewname)}")
@@ -1716,9 +1716,9 @@ def sql_fragment_cast_to_int(expr: str,
 
     Conversion to INT:
 
-    - http://stackoverflow.com/questions/2000045
-    - http://stackoverflow.com/questions/14719760 (this one in particular!)
-    - http://stackoverflow.com/questions/14692131
+    - https://stackoverflow.com/questions/2000045
+    - https://stackoverflow.com/questions/14719760 (this one in particular!)
+    - https://stackoverflow.com/questions/14692131
 
       - see LIKE example.
       - see ISNUMERIC();
@@ -1729,7 +1729,7 @@ def sql_fragment_cast_to_int(expr: str,
       relates to the SQL Server Management Studio "Find and Replace"
       dialogue box, not to SQL itself!
 
-    - http://stackoverflow.com/questions/29206404/mssql-regular-expression
+    - https://stackoverflow.com/questions/29206404/mssql-regular-expression
 
     Note that the regex-like expression supported by LIKE is extremely limited.
 
@@ -1769,7 +1769,7 @@ def sql_fragment_cast_to_int(expr: str,
 
     LTRIM/RTRIM are not ANSI SQL.
     Nor are unusual LIKE clauses; see
-    http://stackoverflow.com/questions/712580/list-of-special-characters-for-sql-like-clause
+    https://stackoverflow.com/questions/712580/list-of-special-characters-for-sql-like-clause
 
     The other, for SQL Server 2012 or higher, is TRY_CAST:
 

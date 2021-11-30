@@ -126,11 +126,18 @@ def main():
     # -------------------------------------------------------------------------
     # Anonymisation
     # -------------------------------------------------------------------------
+    run_cmd(["crate_anon_check_text_extractor", "--help"],
+            join(ANON_DIR, "_crate_anon_check_text_extractor.txt"))
+    run_cmd(["crate_anon_demo_config", "--help"],
+            join(ANON_DIR, "_crate_anon_demo_config_help.txt"))
+    run_cmd(["crate_anon_draft_dd", "--help"],
+            join(ANON_DIR, "_crate_anon_draft_dd.txt"))
+    run_cmd(["crate_anon_show_counts", "--help"],
+            join(ANON_DIR, "_crate_anon_show_counts_help.txt"))
     run_cmd(["crate_anonymise", "--help"],
             join(ANON_DIR, "_crate_anonymise_help.txt"))
     run_cmd(["crate_anonymise", "--democonfig"],
             join(ANON_DIR, "_specimen_anonymiser_config.ini"))
-
     run_cmd(["crate_anonymise_multiprocess", "--help"],
             join(ANON_DIR, "_crate_anonymise_multiprocess_help.txt"))
     run_cmd(["crate_make_demo_database", "--help"],

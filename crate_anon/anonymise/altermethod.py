@@ -46,7 +46,7 @@ from cardinal_pythonlib.extract_text import (
 import regex
 
 # don't import config: circular dependency would have to be sorted out
-from crate_anon.anonymise.constants import ALTERMETHOD
+from crate_anon.anonymise.constants import AlterMethodType
 
 if TYPE_CHECKING:
     from cardinal_pythonlib.hash import GenericHasher
@@ -200,35 +200,35 @@ class AlterMethod(object):
                     f"Missing {missing_description} in alter method: {value}")
             return secondhalf
 
-        if value == ALTERMETHOD.TRUNCATEDATE.value:
+        if value == AlterMethodType.TRUNCATEDATE.value:
             self.truncate_date = True
-        elif value == ALTERMETHOD.SCRUBIN.value:
+        elif value == AlterMethodType.SCRUBIN.value:
             self.scrub = True
-        elif value.startswith(ALTERMETHOD.BINARY_TO_TEXT.value):
+        elif value.startswith(AlterMethodType.BINARY_TO_TEXT.value):
             self.extract_text = True
             self.extract_from_blob = True
             self.extract_ext_field = get_second_part(
                 "filename/extension field")
-        elif value.startswith(ALTERMETHOD.FILENAME_FORMAT_TO_TEXT.value):
+        elif value.startswith(AlterMethodType.FILENAME_FORMAT_TO_TEXT.value):
             self.extract_text = True
             self.extract_from_file_format = True
             self.file_format_str = get_second_part(
                 "filename format field")
-        elif value == ALTERMETHOD.FILENAME_TO_TEXT.value:
+        elif value == AlterMethodType.FILENAME_TO_TEXT.value:
             self.extract_text = True
             self.extract_from_filename = True
-        elif value == ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS.value:
+        elif value == AlterMethodType.SKIP_IF_TEXT_EXTRACT_FAILS.value:
             self.skip_if_text_extract_fails = True
-        elif value.startswith(ALTERMETHOD.HASH.value):
+        elif value.startswith(AlterMethodType.HASH.value):
             self.hash = True
             self.hash_config_section = get_second_part("hash config section")
             self.hasher = self.config.get_extra_hasher(
                 self.hash_config_section)
         # elif value == ALTERMETHOD.HTML_ESCAPE:
         #     self.html_escape = True
-        elif value == ALTERMETHOD.HTML_UNESCAPE.value:
+        elif value == AlterMethodType.HTML_UNESCAPE.value:
             self.html_unescape = True
-        elif value == ALTERMETHOD.HTML_UNTAG.value:
+        elif value == AlterMethodType.HTML_UNTAG.value:
             self.html_untag = True
         else:
             raise ValueError(f"Bad alter_method part: {value}")
@@ -243,29 +243,29 @@ class AlterMethod(object):
             return altermethod + "=" + parameter
 
         if self.truncate_date:
-            return ALTERMETHOD.TRUNCATEDATE.value
+            return AlterMethodType.TRUNCATEDATE.value
         if self.scrub:
-            return ALTERMETHOD.SCRUBIN.value
+            return AlterMethodType.SCRUBIN.value
         if self.extract_text:
             if self.extract_from_blob:
-                return two_part(ALTERMETHOD.BINARY_TO_TEXT.value,
+                return two_part(AlterMethodType.BINARY_TO_TEXT.value,
                                 self.extract_ext_field)
             elif self.extract_from_file_format:
-                return two_part(ALTERMETHOD.FILENAME_FORMAT_TO_TEXT.value,
+                return two_part(AlterMethodType.FILENAME_FORMAT_TO_TEXT.value,
                                 self.file_format_str)
             else:  # plain filename
-                return ALTERMETHOD.FILENAME_TO_TEXT.value
+                return AlterMethodType.FILENAME_TO_TEXT.value
         if self.skip_if_text_extract_fails:
-            return ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS.value
+            return AlterMethodType.SKIP_IF_TEXT_EXTRACT_FAILS.value
         if self.hash:
-            return two_part(ALTERMETHOD.HASH.value,
+            return two_part(AlterMethodType.HASH.value,
                             self.hash_config_section)
         # if self.html_escape:
         #     return ALTERMETHOD.HTML_ESCAPE.value
         if self.html_unescape:
-            return ALTERMETHOD.HTML_UNESCAPE.value
+            return AlterMethodType.HTML_UNESCAPE.value
         if self.html_untag:
-            return ALTERMETHOD.HTML_UNTAG.value
+            return AlterMethodType.HTML_UNTAG.value
         return ""
 
     # -------------------------------------------------------------------------
@@ -402,7 +402,7 @@ class AlterMethod(object):
         except (ValueError, OverflowError):
             log.warning(
                 f"Invalid date received to "
-                f"{ALTERMETHOD.TRUNCATEDATE} method: {value}")
+                f"{AlterMethodType.TRUNCATEDATE} method: {value}")
             return None
 
     @staticmethod
@@ -412,15 +412,15 @@ class AlterMethod(object):
         """
         # Lots of ways...
         # -- xml.etree, for well-formed XML
-        #    http://stackoverflow.com/questions/9662346
+        #    https://stackoverflow.com/questions/9662346
         # return ''.join(xml.etree.ElementTree.fromstring(text).itertext())
         # -- html.parser
-        #    http://stackoverflow.com/questions/753052
+        #    https://stackoverflow.com/questions/753052
         # -- lxml (but needs source build on Windows):
         #    http://www.neuraladvance.com/removing-html-from-python-strings.html
         #    http://lxml.de/
         # -- regex/re
-        #    http://stackoverflow.com/questions/3662142
+        #    https://stackoverflow.com/questions/3662142
         return HTML_TAG_RE.sub('', text)
 
     def _extract_text_func(

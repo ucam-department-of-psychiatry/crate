@@ -38,18 +38,15 @@ import logging
 import os
 from typing import List
 
-from cardinal_pythonlib.extract_text import is_text_extractor_available
-from cardinal_pythonlib.file_io import smart_open
 from cardinal_pythonlib.logs import configure_logger_for_colour
 
 from crate_anon.anonymise.constants import (
     ANON_CONFIG_ENV_VAR,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
-    DEMO_CONFIG,
 )
 from crate_anon.common.exceptions import call_main_with_exception_reporting
-from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
+from crate_anon.version import CRATE_VERSION_PRETTY
 
 log = logging.getLogger(__name__)
 
@@ -71,12 +68,9 @@ def inner_main() -> None:
 
     Calls :func:`crate_anon.anonymise.anonymise.anonymise`.
     """
-    version = f"Version {CRATE_VERSION} ({CRATE_VERSION_DATE})"
-    description = f"Database anonymiser. {version}. By Rudolf Cardinal."
-
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        description=description,
+        description=f"Database anonymiser. ({CRATE_VERSION_PRETTY})",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
@@ -84,36 +78,10 @@ def inner_main() -> None:
         help=f"Config file (overriding environment variable "
              f"{ANON_CONFIG_ENV_VAR}).")
     parser.add_argument(
+        "--version", action="version", version=CRATE_VERSION_PRETTY)
+    parser.add_argument(
         '--verbose', '-v', action="store_true",
         help="Be verbose")
-
-    # Group descriptions are not word-wrapped automatically.
-    simple_group_1 = parser.add_argument_group(
-        "Simple commands not requiring a config"
-    )
-    simple_group_1.add_argument(
-        "--version", action="version", version=version)
-    simple_group_1.add_argument(
-        "--democonfig", action="store_true",
-        help="Print a demo config file.")
-    simple_group_1.add_argument(
-        "--checkextractor", nargs='*',
-        help="File extensions to check for availability of a text extractor "
-             "(use a '.' prefix, and use the special extension 'None' to "
-             "check the fallback processor).")
-
-    simple_group_2 = parser.add_argument_group(
-        "Simple commands requiring a config"
-    )
-    simple_group_2.add_argument(
-        "--draftdd", action="store_true",
-        help="Print a draft data dictionary.")
-    simple_group_2.add_argument(
-        "--incrementaldd", action="store_true",
-        help="Print an INCREMENTAL draft data dictionary.")
-    simple_group_2.add_argument(
-        "--count", action="store_true",
-        help="Count records in source/destination databases, then stop.")
 
     mode_options = parser.add_argument_group(
         "Mode options"
@@ -131,14 +99,6 @@ def inner_main() -> None:
         "--skipdelete", dest="skipdelete", action="store_true",
         help="For incremental updates, skip deletion of rows present in the "
              "destination but not the source.")
-
-    output_options = parser.add_argument_group(
-        "Output options"
-    )
-    output_options.add_argument(
-        "--output", default="-",
-        help="(For --democonfig, --draftdd, --incrementaldd.) "
-             "File for output; use '-' for stdout.")
 
     action_options = parser.add_argument_group(
         "Action options (default is to do all, but if any are specified, "
@@ -248,25 +208,6 @@ def inner_main() -> None:
     configure_logger_for_colour(rootlogger, loglevel, extranames=mynames)
 
     # -------------------------------------------------------------------------
-    # Simple commands
-    # -------------------------------------------------------------------------
-
-    # Check text converters
-    if args.checkextractor:
-        for ext in args.checkextractor:
-            if ext.lower() == 'none':
-                ext = None
-            available = is_text_extractor_available(ext)
-            print(f"Text extractor for extension {ext} present: {available}")
-        return
-
-    # Demo config?
-    if args.democonfig:
-        with smart_open(args.output, "w") as f:
-            print(DEMO_CONFIG, file=f)
-        return
-
-    # -------------------------------------------------------------------------
     # Onwards
     # -------------------------------------------------------------------------
 
@@ -276,11 +217,6 @@ def inner_main() -> None:
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import
     anonymise(
-        draftdd=args.draftdd,
-        incrementaldd=args.incrementaldd,
-        dd_output_filename=args.output,
-        count=args.count,
-
         incremental=args.incremental,
         skipdelete=args.skipdelete,
 

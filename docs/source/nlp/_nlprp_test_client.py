@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 r"""
-docs/source/nlp/_nlprp_test_client.py
+crate_anon/nlprp/nlprp_test_client.py
 
 ===============================================================================
 
@@ -24,7 +24,7 @@ docs/source/nlp/_nlprp_test_client.py
 
 ===============================================================================
 
-crate_anon/nlprp/nlprp_test_client.py
+crate_anon/docs/sources/nlp/nlprp_test_client.py
 Simple test client for the NLPRP interface.
 
 """

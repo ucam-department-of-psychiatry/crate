@@ -35,7 +35,7 @@ from typing import AbstractSet, Any, Generator, List, Union
 from sqlalchemy.sql import column, select, table
 
 from crate_anon.anonymise.config_singleton import config
-from crate_anon.anonymise.constants import SCRUBSRC
+from crate_anon.anonymise.constants import ScrubSrc
 from crate_anon.anonymise.models import PatientInfo
 from crate_anon.anonymise.scrub import PersonalizedScrubber
 
@@ -68,7 +68,7 @@ def gen_all_values_for_patient(
     cfg = config.sources[dbname].srccfg
     if not cfg.ddgen_per_table_pid_field:
         return
-        # return in a generator: http://stackoverflow.com/questions/13243766
+        # return in a generator: https://stackoverflow.com/questions/13243766
     log.debug(
         f"gen_all_values_for_patient: PID {pid}, "
         f"table {dbname}.{tablename}, fields: {','.join(fields)}")
@@ -194,11 +194,11 @@ class Patient(object):
                                                       ddr.scrub_method)
                 for ddr in ddrows
             ]
-            is_patient = [depth == 0 and ddr.scrub_src is SCRUBSRC.PATIENT
+            is_patient = [depth == 0 and ddr.scrub_src is ScrubSrc.PATIENT
                           for ddr in ddrows]
             is_mpid = [depth == 0 and ddr.master_pid for ddr in ddrows]
             recurse = [depth < max_depth and
-                       ddr.scrub_src is SCRUBSRC.THIRDPARTY_XREF_PID
+                       ddr.scrub_src is ScrubSrc.THIRDPARTY_XREF_PID
                        for ddr in ddrows]
             required_scrubber = [ddr.required_scrubber for ddr in ddrows]
             sigs = [ddr.src_signature for ddr in ddrows]

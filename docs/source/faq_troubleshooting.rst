@@ -665,7 +665,7 @@ or commit:
 
 How?
 
-- http://stackoverflow.com/questions/67093/how-do-i-quickly-rename-a-mysql-database-change-schema-name
+- https://stackoverflow.com/questions/67093/how-do-i-quickly-rename-a-mysql-database-change-schema-name
 - https://gist.github.com/michaelmior/1173781
 
 
@@ -686,7 +686,7 @@ Server instance. Use the "ODBC via connection string" option if other methods
 aren't working: ``DSN=XXX;UID=YYY;PWD=ZZZ``.
 
 If the schema definitions are not seen, it's a permissions issue
-(http://stackoverflow.com/questions/17038716), in which case you can also copy
+(https://stackoverflow.com/questions/17038716), in which case you can also copy
 copy the database using CRATE's anonymiser, treating all tables as non-patient
 tables (i.e. doing no actual anonymisation).
 
@@ -991,9 +991,9 @@ your config file; see the example.
     http://chase-seibert.github.io/blog/2013/08/03/diagnosing-memory-leaks-python.html
 
 .. [#disabledebugcloseapplication]
-    http://stackoverflow.com/questions/396369/how-do-i-disable-the-debug-close-application-dialog-on-windows-vista;
+    https://stackoverflow.com/questions/396369/how-do-i-disable-the-debug-close-application-dialog-on-windows-vista;
     https://msdn.microsoft.com/en-us/library/windows/desktop/bb513638(v=vs.85).aspx;
-    http://stackoverflow.com/questions/3561545/how-to-terminate-a-program-when-it-crashes-which-should-just-fail-a-unit-test/3637710#3637710
+    https://stackoverflow.com/questions/3561545/how-to-terminate-a-program-when-it-crashes-which-should-just-fail-a-unit-test/3637710#3637710
 
 .. [#installapacheant]
     Apache Ant uses `build.xml` files to build Java `.jar` files from Java
@@ -1005,7 +1005,7 @@ your config file; see the example.
 
 .. [#amqp214bug]
     https://github.com/celery/py-amqp/issues/135;
-    http://stackoverflow.com/questions/41775353;
+    https://stackoverflow.com/questions/41775353;
     https://github.com/celery/py-amqp/issues/130
 
 .. [#mysqlidcasesens]

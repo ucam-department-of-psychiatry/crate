@@ -1,0 +1,8 @@
+usage: crate_anon_demo_config [-h] [--output OUTPUT]
+
+Print a demo config file for the CRATE anonymiser. (CRATE version 0.19.3,
+2021-11-29. Created by Rudolf Cardinal.)
+
+optional arguments:
+  -h, --help       show this help message and exit
+  --output OUTPUT  File for output; use '-' for stdout. (default: -)

@@ -46,7 +46,7 @@ from cardinal_pythonlib.text import get_unicode_characters
 from crate_anon.common.bugfix_flashtext import KeywordProcessorFixed
 # ... temp bugfix
 
-from crate_anon.anonymise.constants import SCRUBMETHOD
+from crate_anon.anonymise.constants import ScrubMethod
 from crate_anon.anonymise.anonregex import (
     get_anon_fragments_from_string,
     get_code_regex_elements,
@@ -187,7 +187,7 @@ class WordList(ScrubberBase):
 
         self.words = set()  # type: Set[str]
         # Sets are faster than lists for "is x in s" operations:
-        # http://stackoverflow.com/questions/2831212/python-sets-vs-lists
+        # https://stackoverflow.com/questions/2831212/python-sets-vs-lists
         # noinspection PyTypeChecker
         for f in filenames:
             self.add_file(f, clear_cache=False)
@@ -513,7 +513,7 @@ class PersonalizedScrubber(ScrubberBase):
         self.re_tp_elements = []  # type: List[str]
         # ... both changed from set to list to reflect referee's point re
         #     potential importance of scrubber order
-        self.elements_tuplelist = []  # type: List[Tuple[bool, SCRUBMETHOD, str]]  # noqa
+        self.elements_tuplelist = []  # type: List[Tuple[bool, ScrubMethod, str]]  # noqa
         # ... list of tuples: (patient?, type, value)
         # ... used for get_raw_info(); since we've made the order important,
         #     we should detect changes in order here as well
@@ -527,7 +527,7 @@ class PersonalizedScrubber(ScrubberBase):
 
     @staticmethod
     def get_scrub_method(datatype_long: str,
-                         scrub_method: Optional[SCRUBMETHOD]) -> SCRUBMETHOD:
+                         scrub_method: Optional[ScrubMethod]) -> ScrubMethod:
         """
         Return the default scrub method for a given SQL datatype, unless
         overridden. For example, dates are scrubbed via a date method; numbers
@@ -543,15 +543,15 @@ class PersonalizedScrubber(ScrubberBase):
         if scrub_method is not None:
             return scrub_method
         elif is_sqltype_date(datatype_long):
-            return SCRUBMETHOD.DATE
+            return ScrubMethod.DATE
         elif is_sqltype_text_over_one_char(datatype_long):
-            return SCRUBMETHOD.WORDS
+            return ScrubMethod.WORDS
         else:
-            return SCRUBMETHOD.NUMERIC
+            return ScrubMethod.NUMERIC
 
     def add_value(self,
                   value: Any,
-                  scrub_method: SCRUBMETHOD,
+                  scrub_method: ScrubMethod,
                   patient: bool = True,
                   clear_cache: bool = True) -> None:
         """
@@ -576,15 +576,15 @@ class PersonalizedScrubber(ScrubberBase):
         # Note: object reference
         r = self.re_patient_elements if patient else self.re_tp_elements
 
-        if scrub_method is SCRUBMETHOD.DATE:
+        if scrub_method is ScrubMethod.DATE:
             elements = self.get_elements_date(value)
-        elif scrub_method is SCRUBMETHOD.WORDS:
+        elif scrub_method is ScrubMethod.WORDS:
             elements = self.get_elements_words(value)
-        elif scrub_method is SCRUBMETHOD.PHRASE:
+        elif scrub_method is ScrubMethod.PHRASE:
             elements = self.get_elements_phrase(value)
-        elif scrub_method is SCRUBMETHOD.NUMERIC:
+        elif scrub_method is ScrubMethod.NUMERIC:
             elements = self.get_elements_numeric(value)
-        elif scrub_method is SCRUBMETHOD.CODE:
+        elif scrub_method is ScrubMethod.CODE:
             elements = self.get_elements_code(value)
         else:
             raise ValueError(f"Bug: unknown scrub_method to add_value: "

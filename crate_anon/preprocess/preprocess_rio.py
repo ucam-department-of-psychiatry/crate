@@ -409,7 +409,7 @@ Done.
         AuditAction -- 2 = insert, 3 = update
         RowID -- row number -- how does that work?
             ... cheerfully, SQL Server doesn't have an automatic row ID;
-            http://stackoverflow.com/questions/909155/equivalent-of-oracles-rowid-in-sql-server  # noqa
+            https://stackoverflow.com/questions/909155/equivalent-of-oracles-rowid-in-sql-server  # noqa
             ... so is it the PK we've already identified and called crate_pk?
         TableNumber -- FK to GenTable.Code
         ClientID -- FK to ClientIndex.ClientID

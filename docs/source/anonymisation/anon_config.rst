@@ -43,7 +43,7 @@ You can generate a specimen config file with
 
 .. code-block:: bash
 
-    crate_anonymise --democonfig > test_anon_config.ini
+    crate_anon_demo_config > test_anon_config.ini
 
 You should save this, then edit it to your own needs. A copy is shown
 :ref:`below <specimen_anonymiser_config>`.
@@ -1428,10 +1428,14 @@ Many options are not shown and most comments have been removed.
 Specimen config
 ~~~~~~~~~~~~~~~
 
-A specimen anonymiser config file is available by running ``crate_anonymise
---democonfig``.
+A specimen anonymiser config file is available by running
+``crate_anon_demo_config``. You can send its output to a file using ``>`` or
+the ``--output`` option:
 
-Here's the specimen NLP config:
+..  literalinclude:: _crate_anon_demo_config_help.txt
+    :language: none
+
+Here's the specimen anonymisation config file:
 
 ..  literalinclude:: _specimen_anonymiser_config.ini
     :language: ini

@@ -57,7 +57,7 @@ See also :mod:`crate_anon.crateweb.consent.celery`, which defines the ``app``.
 
 **Circular imports:**
 
-- http://stackoverflow.com/questions/17313532/django-import-loop-between-celery-tasks-and-my-models
+- https://stackoverflow.com/questions/17313532/django-import-loop-between-celery-tasks-and-my-models
 
 - The potential circularity is:
 
@@ -82,7 +82,7 @@ See also :mod:`crate_anon.crateweb.consent.celery`, which defines the ``app``.
 
 - http://celery.readthedocs.org/en/latest/userguide/tasks.html#database-transactions
 
-- http://stackoverflow.com/questions/26862942/django-related-objects-are-missing-from-celery-task-race-condition
+- https://stackoverflow.com/questions/26862942/django-related-objects-are-missing-from-celery-task-race-condition
 
 - https://code.djangoproject.com/ticket/14051
 

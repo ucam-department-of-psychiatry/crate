@@ -95,7 +95,7 @@ elif LINUX_DIST in ('fedora', 'rhel', 'centos'):
         raise AssertionError("Need yum")
     # installer = ['sudo', 'rpm', '-U']  # -U upgrade, equivalent to -i install
     installer = ['yum', '--nogpgcheck', 'localinstall']
-    # ... http://stackoverflow.com/questions/13876875
+    # ... https://stackoverflow.com/questions/13876875
     extension = 'rpm'
 else:
     raise AssertionError("Unsupported Linux distribution")

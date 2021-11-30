@@ -61,20 +61,20 @@ from sqlalchemy.sql.sqltypes import TypeEngine
 
 from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.constants import (
-    ALTERMETHOD,
-    DECISION,
+    AlterMethodType,
+    Decision,
     DEFAULT_INDEX_LEN,
-    INDEX,
+    IndexType,
     MAX_IDENTIFIER_LENGTH,
     ODD_CHARS_TRANSLATE,
-    SCRUBMETHOD,
-    SCRUBSRC,
-    SRCFLAG,
+    ScrubMethod,
+    ScrubSrc,
+    SrcFlag,
 )
 import crate_anon.common.sql
 
 if TYPE_CHECKING:
-    from crate_anon.anonymise.config import Config
+    from crate_anon.anonymise.config import Config, DatabaseSafeConfig
 
 log = logging.getLogger(__name__)
 
@@ -82,10 +82,6 @@ log = logging.getLogger(__name__)
 # =============================================================================
 # DataDictionaryRow
 # =============================================================================
-
-DDR_FWD_REF = "DataDictionaryRow"
-DATABASE_SAFE_CONFIG_FWD_REF = "DatabaseSafeConfig"
-
 
 class DataDictionaryRow(object):
     """
@@ -270,15 +266,15 @@ class DataDictionaryRow(object):
         Returns a string representation of the source flags.
         """
         return ''.join(str(x) for x in (
-            SRCFLAG.PK if self._pk else '',
-            SRCFLAG.ADD_SRC_HASH if self._add_src_hash else '',
-            SRCFLAG.PRIMARY_PID if self._primary_pid else '',
-            SRCFLAG.DEFINES_PRIMARY_PIDS if self._defines_primary_pids else '',
-            SRCFLAG.MASTER_PID if self._master_pid else '',
-            SRCFLAG.CONSTANT if self._constant else '',
-            SRCFLAG.ADDITION_ONLY if self._addition_only else '',
-            SRCFLAG.OPT_OUT if self._opt_out_info else '',
-            SRCFLAG.REQUIRED_SCRUBBER if self._required_scrubber else '',
+            SrcFlag.PK if self._pk else '',
+            SrcFlag.ADD_SRC_HASH if self._add_src_hash else '',
+            SrcFlag.PRIMARY_PID if self._primary_pid else '',
+            SrcFlag.DEFINES_PRIMARY_PIDS if self._defines_primary_pids else '',
+            SrcFlag.MASTER_PID if self._master_pid else '',
+            SrcFlag.CONSTANT if self._constant else '',
+            SrcFlag.ADDITION_ONLY if self._addition_only else '',
+            SrcFlag.OPT_OUT if self._opt_out_info else '',
+            SrcFlag.REQUIRED_SCRUBBER if self._required_scrubber else '',
         ))
 
     @src_flags.setter
@@ -287,15 +283,15 @@ class DataDictionaryRow(object):
         Takes a string representation of the source flags, and sets our
         internal flags accordingly.
         """
-        self._pk = SRCFLAG.PK.value in value
-        self._add_src_hash = SRCFLAG.ADD_SRC_HASH.value in value
-        self._primary_pid = SRCFLAG.PRIMARY_PID.value in value
-        self._defines_primary_pids = SRCFLAG.DEFINES_PRIMARY_PIDS.value in value
-        self._master_pid = SRCFLAG.MASTER_PID.value in value
-        self._constant = SRCFLAG.CONSTANT.value in value
-        self._addition_only = SRCFLAG.ADDITION_ONLY.value in value
-        self._opt_out_info = SRCFLAG.OPT_OUT.value in value
-        self._required_scrubber = SRCFLAG.REQUIRED_SCRUBBER.value in value
+        self._pk = SrcFlag.PK.value in value
+        self._add_src_hash = SrcFlag.ADD_SRC_HASH.value in value
+        self._primary_pid = SrcFlag.PRIMARY_PID.value in value
+        self._defines_primary_pids = SrcFlag.DEFINES_PRIMARY_PIDS.value in value
+        self._master_pid = SrcFlag.MASTER_PID.value in value
+        self._constant = SrcFlag.CONSTANT.value in value
+        self._addition_only = SrcFlag.ADDITION_ONLY.value in value
+        self._opt_out_info = SrcFlag.OPT_OUT.value in value
+        self._required_scrubber = SrcFlag.REQUIRED_SCRUBBER.value in value
 
     @property
     def inclusion_values(self) -> List[Any]:
@@ -421,6 +417,12 @@ class DataDictionaryRow(object):
             if am.extract_text:
                 have_text_extraction = True
 
+    def set_alter_methods_directly(self, methods: List[AlterMethod]) -> None:
+        """
+        For internal use: setting from a list directly.
+        """
+        self.alter_method = ",".join(m.as_text for m in methods)
+
     @property
     def from_file(self) -> bool:
         """
@@ -437,10 +439,10 @@ class DataDictionaryRow(object):
         Returns:
             ``"OMIT"`` or ``"include``.
         """
-        return DECISION.OMIT.value if self.omit else DECISION.INCLUDE.value
+        return Decision.OMIT.value if self.omit else Decision.INCLUDE.value
 
     @decision.setter
-    def decision(self, value: str) -> None:
+    def decision(self, value: Union[str, Decision]) -> None:
         """
         Sets the internal ``omit`` flag from the input (usually taken from the
         data dictionary file).
@@ -449,17 +451,20 @@ class DataDictionaryRow(object):
             value: ``"OMIT"`` or ``"include``.
         """
         try:
-            e = DECISION.lookup(value)
-            self.omit = e is DECISION.OMIT
+            if isinstance(value, Decision):
+                e = value
+            else:
+                e = Decision.lookup(value)
+            self.omit = e is Decision.OMIT
         except ValueError:
             raise ValueError("decision was {}; must be one of {}".format(
-                value, [DECISION.OMIT.value, DECISION.INCLUDE.value]))
+                value, [Decision.OMIT.value, Decision.INCLUDE.value]))
 
     # -------------------------------------------------------------------------
     # Comparisons
     # -------------------------------------------------------------------------
 
-    def __lt__(self, other: DDR_FWD_REF) -> bool:
+    def __lt__(self, other: "DataDictionaryRow") -> bool:
         """
         Defines an order of DDRs based on their source field's signature.
         """
@@ -597,9 +602,9 @@ class DataDictionaryRow(object):
                 self.src_datatype, dialect.name)
         # noinspection PyAttributeOutsideInit
         self.src_flags = valuedict['src_flags']  # a property
-        self.scrub_src = SCRUBSRC.lookup(valuedict['scrub_src'],
+        self.scrub_src = ScrubSrc.lookup(valuedict['scrub_src'],
                                          allow_none=True)
-        self.scrub_method = SCRUBMETHOD.lookup(valuedict['scrub_method'],
+        self.scrub_method = ScrubMethod.lookup(valuedict['scrub_method'],
                                                allow_none=True)
         # noinspection PyAttributeOutsideInit
         self.decision = valuedict['decision']  # a property; sets self.omit
@@ -612,7 +617,7 @@ class DataDictionaryRow(object):
         self.dest_table = valuedict['dest_table']
         self.dest_field = valuedict['dest_field']
         self.dest_datatype = valuedict['dest_datatype'].upper()
-        self.index = INDEX.lookup(valuedict['index'], allow_none=True)
+        self.index = IndexType.lookup(valuedict['index'], allow_none=True)
         self.indexlen = convert_to_int(valuedict['indexlen'])
         self.comment = valuedict['comment']
         self._from_file = True
@@ -735,7 +740,7 @@ class DataDictionaryRow(object):
         """
         Should the destination field have a full-text index?
         """
-        return self.index is INDEX.FULLTEXT
+        return self.index is IndexType.FULLTEXT
 
     # -------------------------------------------------------------------------
     # SQLAlchemy types
@@ -894,55 +899,55 @@ class DataDictionaryRow(object):
 
         if self._defines_primary_pids and not self._primary_pid:
             raise ValueError(
-                f"All fields with src_flags={SRCFLAG.DEFINES_PRIMARY_PIDS} "
-                f"set must have src_flags={SRCFLAG.PRIMARY_PID} set")
+                f"All fields with src_flags={SrcFlag.DEFINES_PRIMARY_PIDS} "
+                f"set must have src_flags={SrcFlag.PRIMARY_PID} set")
 
         if self._opt_out_info and not self.config.optout_col_values:
             raise ValueError(
-                f"Fields with src_flags={SRCFLAG.OPT_OUT} exist, but config's "
+                f"Fields with src_flags={SrcFlag.OPT_OUT} exist, but config's "
                 f"optout_col_values setting is empty")
 
         if count_bool([self._primary_pid,
                        self._master_pid,
                        bool(self.alter_method)]) > 1:
             raise ValueError(
-                f"Field can be any ONE of: src_flags={SRCFLAG.PRIMARY_PID}, "
-                f"src_flags={SRCFLAG.MASTER_PID}, alter_method")
+                f"Field can be any ONE of: src_flags={SrcFlag.PRIMARY_PID}, "
+                f"src_flags={SrcFlag.MASTER_PID}, alter_method")
 
         if self._required_scrubber and not self.scrub_src:
             raise ValueError(
-                f"If you specify src_flags={SRCFLAG.REQUIRED_SCRUBBER}, "
+                f"If you specify src_flags={SrcFlag.REQUIRED_SCRUBBER}, "
                 f"you must specify scrub_src")
 
         if self._add_src_hash:
             if not self._pk:
                 raise ValueError(
-                    f"src_flags={SRCFLAG.ADD_SRC_HASH} can only be set on "
-                    f"src_flags={SRCFLAG.PK} fields")
-            if self.index is not INDEX.UNIQUE:
+                    f"src_flags={SrcFlag.ADD_SRC_HASH} can only be set on "
+                    f"src_flags={SrcFlag.PK} fields")
+            if self.index is not IndexType.UNIQUE:
                 raise ValueError(
-                    f"src_flags={SRCFLAG.ADD_SRC_HASH} fields require "
-                    f"index=={INDEX.UNIQUE}")
+                    f"src_flags={SrcFlag.ADD_SRC_HASH} fields require "
+                    f"index=={IndexType.UNIQUE}")
             if self._constant:
                 raise ValueError(
-                    f"cannot mix {SRCFLAG.ADD_SRC_HASH} flag with "
-                    f"{SRCFLAG.CONSTANT} flag")
+                    f"cannot mix {SrcFlag.ADD_SRC_HASH} flag with "
+                    f"{SrcFlag.CONSTANT} flag")
 
         if self._constant:
             if not self._pk:
                 raise ValueError(
-                    f"src_flags={SRCFLAG.CONSTANT} can only be set on "
-                    f"src_flags={SRCFLAG.PK} fields")
-            if self.index is not INDEX.UNIQUE:
+                    f"src_flags={SrcFlag.CONSTANT} can only be set on "
+                    f"src_flags={SrcFlag.PK} fields")
+            if self.index is not IndexType.UNIQUE:
                 raise ValueError(
-                    f"src_flags={SRCFLAG.CONSTANT} fields require "
-                    f"index=={INDEX.UNIQUE}")
+                    f"src_flags={SrcFlag.CONSTANT} fields require "
+                    f"index=={IndexType.UNIQUE}")
 
         if self._addition_only:
             if not self._pk:
                 raise ValueError(
-                    f"src_flags={SRCFLAG.ADDITION_ONLY} can only be set on "
-                    f"src_flags={SRCFLAG.PK} fields")
+                    f"src_flags={SrcFlag.ADDITION_ONLY} can only be set on "
+                    f"src_flags={SrcFlag.PK} fields")
 
         if self.omit:
             return
@@ -970,7 +975,7 @@ class DataDictionaryRow(object):
             if not self._primary_pid:
                 raise ValueError(
                     f"All fields with src_field={self.src_field} used in "
-                    f"output should have src_flag={SRCFLAG.PRIMARY_PID} set")
+                    f"output should have src_flag={SrcFlag.PRIMARY_PID} set")
             if self.dest_field != self.config.research_id_fieldname:
                 raise ValueError(
                     f"Primary PID field should have dest_field = "
@@ -980,7 +985,7 @@ class DataDictionaryRow(object):
             raise ValueError(
                 f"All fields with src_field = "
                 f"{srccfg.ddgen_master_pid_fieldname} used in output should "
-                f"have src_flags={SRCFLAG.MASTER_PID} set")
+                f"have src_flags={SrcFlag.MASTER_PID} set")
 
         for am in self._alter_methods:
             if am.truncate_date:
@@ -991,13 +996,15 @@ class DataDictionaryRow(object):
             if am.extract_from_filename:
                 if not is_sqlatype_text_over_one_char(src_sqla_coltype):
                     raise ValueError(
-                        f"For alter_method = {ALTERMETHOD.FILENAME_TO_TEXT}, "
+                        f"For alter_method = "
+                        f"{AlterMethodType.FILENAME_TO_TEXT}, "
                         f"source field must contain a filename and therefore "
                         f"must be text type of >1 character")
             if am.extract_from_blob:
                 if not is_sqlatype_binary(src_sqla_coltype):
                     raise ValueError(
-                        f"For alter_method = {ALTERMETHOD.BINARY_TO_TEXT}, "
+                        f"For alter_method = "
+                        f"{AlterMethodType.BINARY_TO_TEXT}, "
                         f"source field must be of binary type")
 
         # This error/warning too hard to be sure of with SQL Server odd
@@ -1011,12 +1018,12 @@ class DataDictionaryRow(object):
                 self.dest_datatype !=
                 self.config.sqltype_encrypted_pid_as_sql):
             raise ValueError(
-                f"All src_flags={SRCFLAG.PRIMARY_PID}/"
-                f"src_flags={SRCFLAG.MASTER_PID} fields used in output must "
+                f"All src_flags={SrcFlag.PRIMARY_PID}/"
+                f"src_flags={SrcFlag.MASTER_PID} fields used in output must "
                 f"have destination_datatype = "
                 f"{self.config.sqltype_encrypted_pid_as_sql}")
 
-        if (self.index in (INDEX.NORMAL, INDEX.UNIQUE) and
+        if (self.index in (IndexType.NORMAL, IndexType.UNIQUE) and
                 self.indexlen is None and
                 does_sqlatype_require_index_len(dest_sqla_coltype)):
             raise ValueError(
@@ -1032,10 +1039,11 @@ class DataDictionaryRow(object):
                              field: str,
                              datatype_sqltext: str,
                              sqla_coltype: TypeEngine,
-                             dbconf: DATABASE_SAFE_CONFIG_FWD_REF,
+                             dbconf: "DatabaseSafeConfig",
                              comment: str = None) -> None:
         """
-        Set up this DDR from a field in the source database.
+        Set up this DDR from a field in the source database, using options set
+        in the config file.
 
         Args:
             db: source database name
@@ -1067,17 +1075,23 @@ class DataDictionaryRow(object):
         if self.matches_fielddef(dbconf.ddgen_pk_fields):
             self._pk = True
             self._constant = (
-                (dbconf.ddgen_constant_content or
-                 self.matches_tabledef(
-                     dbconf.ddgen_constant_content_tables)) and
+                (
+                    dbconf.ddgen_constant_content or
+                    self.matches_tabledef(dbconf.ddgen_constant_content_tables)
+                ) and
                 not self.matches_tabledef(
-                    dbconf.ddgen_nonconstant_content_tables)
+                    dbconf.ddgen_nonconstant_content_tables
+                )
             )
             self._add_src_hash = not self._constant
             self._addition_only = (
-                (dbconf.ddgen_addition_only or
-                 self.matches_tabledef(dbconf.ddgen_addition_only_tables)) and
-                not self.matches_tabledef(dbconf.ddgen_deletion_possible_tables)
+                (
+                    dbconf.ddgen_addition_only or
+                    self.matches_tabledef(dbconf.ddgen_addition_only_tables)
+                ) and
+                not self.matches_tabledef(
+                    dbconf.ddgen_deletion_possible_tables
+                )
             )
         if self.matches_fielddef(dbconf.ddgen_per_table_pid_field):
             self._primary_pid = True
@@ -1102,12 +1116,12 @@ class DataDictionaryRow(object):
                 (self._primary_pid and
                  dbconf.ddgen_add_per_table_pids_to_scrubber) or
                 self.matches_fielddef(dbconf.ddgen_scrubsrc_patient_fields)):
-            self.scrub_src = SCRUBSRC.PATIENT
+            self.scrub_src = ScrubSrc.PATIENT
         elif self.matches_fielddef(dbconf.ddgen_scrubsrc_thirdparty_fields):
-            self.scrub_src = SCRUBSRC.THIRDPARTY
+            self.scrub_src = ScrubSrc.THIRDPARTY
         elif self.matches_fielddef(
                 dbconf.ddgen_scrubsrc_thirdparty_xref_pid_fields):
-            self.scrub_src = SCRUBSRC.THIRDPARTY_XREF_PID
+            self.scrub_src = ScrubSrc.THIRDPARTY_XREF_PID
         else:
             self.scrub_src = None  # type: Optional[str]
 
@@ -1122,21 +1136,21 @@ class DataDictionaryRow(object):
         # ---------------------------------------------------------------------
         if not self.scrub_src:
             self.scrub_method = ""
-        elif (self.scrub_src is SCRUBSRC.THIRDPARTY_XREF_PID or
-                is_sqlatype_numeric(sqla_coltype) or
-                self.matches_fielddef(dbconf.ddgen_per_table_pid_field) or
-                self.matches_fielddef(dbconf.ddgen_master_pid_fieldname) or
-                self.matches_fielddef(dbconf.ddgen_scrubmethod_number_fields)):
-            self.scrub_method = SCRUBMETHOD.NUMERIC
+        elif (self.scrub_src is ScrubSrc.THIRDPARTY_XREF_PID or
+              is_sqlatype_numeric(sqla_coltype) or
+              self.matches_fielddef(dbconf.ddgen_per_table_pid_field) or
+              self.matches_fielddef(dbconf.ddgen_master_pid_fieldname) or
+              self.matches_fielddef(dbconf.ddgen_scrubmethod_number_fields)):
+            self.scrub_method = ScrubMethod.NUMERIC
         elif (is_sqlatype_date(sqla_coltype) or
                 self.matches_fielddef(dbconf.ddgen_scrubmethod_date_fields)):
-            self.scrub_method = SCRUBMETHOD.DATE
+            self.scrub_method = ScrubMethod.DATE
         elif self.matches_fielddef(dbconf.ddgen_scrubmethod_code_fields):
-            self.scrub_method = SCRUBMETHOD.CODE
+            self.scrub_method = ScrubMethod.CODE
         elif self.matches_fielddef(dbconf.ddgen_scrubmethod_phrase_fields):
-            self.scrub_method = SCRUBMETHOD.PHRASE
+            self.scrub_method = ScrubMethod.PHRASE
         else:
-            self.scrub_method = SCRUBMETHOD.WORDS
+            self.scrub_method = ScrubMethod.WORDS
 
         # ---------------------------------------------------------------------
         # Do we want to change the destination fieldname?
@@ -1218,7 +1232,7 @@ class DataDictionaryRow(object):
         # ---------------------------------------------------------------------
         # Manipulate the destination table name?
         # ---------------------------------------------------------------------
-        # http://stackoverflow.com/questions/10017147
+        # https://stackoverflow.com/questions/10017147
         self.dest_table = table
         if dbconf.ddgen_force_lower_case:
             self.dest_table = self.dest_table.lower()
@@ -1236,23 +1250,23 @@ class DataDictionaryRow(object):
         # ---------------------------------------------------------------------
         dest_sqla_type = self.dest_sqla_coltype
         if self._pk:
-            self.index = INDEX.UNIQUE
+            self.index = IndexType.UNIQUE
         elif (self._primary_pid or
               self._master_pid or
               self._defines_primary_pids or
               self.dest_field == self.config.research_id_fieldname):
-            self.index = INDEX.NORMAL
+            self.index = IndexType.NORMAL
         elif (dbconf.ddgen_allow_fulltext_indexing and
               does_sqlatype_merit_fulltext_index(dest_sqla_type)):
-            self.index = INDEX.FULLTEXT
+            self.index = IndexType.FULLTEXT
         elif self.matches_fielddef(dbconf.ddgen_index_fields):
-            self.index = INDEX.NORMAL
+            self.index = IndexType.NORMAL
         else:
             self.index = ""
 
         self.indexlen = (
             DEFAULT_INDEX_LEN
-            if (self.index is not INDEX.FULLTEXT and
+            if (self.index is not IndexType.FULLTEXT and
                 does_sqlatype_require_index_len(dest_sqla_type))
             else None
         )

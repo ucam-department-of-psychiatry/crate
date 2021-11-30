@@ -384,7 +384,7 @@ PROBLEMS:
     we don't have to do something daft like asking the Java to report its file
     encoding to Python through a pipe; instead, we can set the Java default
     encoding. It can't be done dynamically, but it can be done at JVM launch:
-    http://stackoverflow.com/questions/361975/setting-the-default-java-character-encoding.
+    https://stackoverflow.com/questions/361975/setting-the-default-java-character-encoding.
 
     Therefore, we should have a Java parameter specified in the config file as
     ``-Dfile.encoding=UTF-8``.
@@ -464,7 +464,7 @@ TIMEX3_MAX_LENGTH = 50  # guess
 # Then there are multivitamin things in brand_generic with length >600.
 # So we should use an unlimited field; SQLAlchemy helpfully seems to translate
 # Text to VARCHAR(MAX) under SQL Server, which is the more efficient:
-# http://stackoverflow.com/questions/834788/using-varcharmax-vs-text-on-sql-server  # noqa
+# https://stackoverflow.com/questions/834788/using-varcharmax-vs-text-on-sql-server  # noqa
 MEDEX_MAX_FORM_LENGTH = 255  # guess; "Powder For Oral Suspension" (26) is one
 MEDEX_MAX_STRENGTH_LENGTH = 50  # guess
 MEDEX_MAX_DOSE_AMOUNT_LENGTH = 50  # guess

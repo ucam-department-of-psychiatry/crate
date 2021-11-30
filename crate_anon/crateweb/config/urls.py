@@ -71,7 +71,7 @@ import crate_anon.crateweb.research.views as research_views
 import crate_anon.crateweb.userprofile.views as userprofile_views
 
 # This is the place for one-time startup code.
-# http://stackoverflow.com/questions/6791911/execute-code-when-django-starts-once-only  # noqa
+# https://stackoverflow.com/questions/6791911/execute-code-when-django-starts-once-only  # noqa
 # So we cache things here that we don't want the user to have to wait for:
 from crate_anon.crateweb.research.research_db_info import research_database_info  # noqa
 
@@ -367,7 +367,7 @@ urlpatterns = [
 if settings.DEBUG:
     # Debug toolbar
     # - https://github.com/jazzband/django-debug-toolbar/issues/529
-    # - http://stackoverflow.com/questions/32111203/what-is-the-benefit-of-using-django-conf-urls-patterns-versus-a-list-of-url-in-d  # noqa
+    # - https://stackoverflow.com/questions/32111203/what-is-the-benefit-of-using-django-conf-urls-patterns-versus-a-list-of-url-in-d  # noqa
     urlpatterns += [
         url(r'^__debug__/', include(debug_toolbar.urls)),
     ]

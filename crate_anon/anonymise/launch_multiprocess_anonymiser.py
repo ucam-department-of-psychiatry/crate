@@ -28,18 +28,18 @@ crate_anon/anonymise/launch_multiprocess_anonymiser.py
 
 Previous bash version: see
 
-- http://stackoverflow.com/questions/356100
-- http://stackoverflow.com/questions/1644856
-- http://stackoverflow.com/questions/8903239
-- http://stackoverflow.com/questions/1951506
+- https://stackoverflow.com/questions/356100
+- https://stackoverflow.com/questions/1644856
+- https://stackoverflow.com/questions/8903239
+- https://stackoverflow.com/questions/1951506
 - Note: ``$!`` is the process ID of last process launched in background
-- http://stackoverflow.com/questions/59895
+- https://stackoverflow.com/questions/59895
 
 Python version: see
 
-- http://stackoverflow.com/questions/23611396/python-execute-cat-subprocess-in-parallel
-- http://stackoverflow.com/questions/320232/ensuring-subprocesses-are-dead-on-exiting-python-program
-- http://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python
+- https://stackoverflow.com/questions/23611396/python-execute-cat-subprocess-in-parallel
+- https://stackoverflow.com/questions/320232/ensuring-subprocesses-are-dead-on-exiting-python-program
+- https://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python
 """  # noqa
 
 import argparse

@@ -30,3 +30,8 @@ crate_anon/version.py
 
 CRATE_VERSION = "0.19.3"
 CRATE_VERSION_DATE = "2021-11-29"
+
+CRATE_VERSION_PRETTY = (
+    f"CRATE version {CRATE_VERSION}, {CRATE_VERSION_DATE}. "
+    f"Created by Rudolf Cardinal."
+)

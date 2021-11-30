@@ -1,0 +1,183 @@
+#!/usr/bin/env python
+
+"""
+crate_anon/anonymise/draft_dd.py
+
+===============================================================================
+
+    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
+
+===============================================================================
+
+**Draft an anonymisation data dictionary.**
+
+"""
+
+import argparse
+import logging
+import os
+
+from cardinal_pythonlib.enumlike import keys_descriptions_from_enum
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+
+from crate_anon.anonymise.config import Config
+from crate_anon.anonymise.constants import ANON_CONFIG_ENV_VAR
+from crate_anon.preprocess.systmone_ddgen import (
+    DEFAULT_SYSTMONE_CONTEXT,
+    modify_dd_for_systmone,
+    SystmOneContext,
+)
+from crate_anon.version import CRATE_VERSION_PRETTY
+
+log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Draft a data dictionary
+# =============================================================================
+
+def draft_dd(config: Config,
+             dd_output_filename: str,
+             incremental: bool = False,
+             skip_dd_check: bool = False,
+             systmone: bool = False,
+             systmone_context: SystmOneContext = None,
+             systmone_sre_spec_csv_filename: str = None) -> None:
+    """
+    Draft a data dictionary.
+
+    Args:
+        config:
+            Anonymisation config object.
+        incremental:
+            If true: make it an incremental data dictionary, using only fields
+            present in the database but absent from the existing data
+            dictionary referred to in the config.
+        dd_output_filename:
+            File for output ('-' for stdout).
+        skip_dd_check:
+            If true: skip data dictionary validity check when loading the
+            pre-existing data dictionary in "incremental" mode.
+        systmone:
+            Process data dictionary for SystmOne data?
+        systmone_context:
+            For ``systmone``: source database context for SystmOne use.
+        systmone_sre_spec_csv_filename:
+            For ``systmone``: optional filename for TPP Strategic Reporting
+            Extract (SRE) specification CSV.
+    """
+    if incremental:  # this is where incrementaldd has its effect
+        # For "incremental", we load the data dictionary from disk.
+        # Otherwise, we don't, so a completely fresh one will be generated.
+        config.load_dd(check_against_source_db=not skip_dd_check)
+
+    config.dd.read_from_source_databases()
+
+    if systmone:
+        if not systmone_context:
+            raise ValueError("Requires SystmOne context to be specified")
+        modify_dd_for_systmone(config.dd, systmone_context,
+                               systmone_sre_spec_csv_filename)
+
+    config.dd.write(dd_output_filename)
+    return
+
+
+# =============================================================================
+# Main
+# =============================================================================
+
+def main() -> None:
+    """
+    Command-line entry point.
+    """
+    # noinspection PyTypeChecker
+    parser = argparse.ArgumentParser(
+        description=f"Draft a data dictionary for the anonymiser. "
+                    f"({CRATE_VERSION_PRETTY})",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument(
+        "--config",
+        help=f"Config file (overriding environment variable "
+             f"{ANON_CONFIG_ENV_VAR})."
+    )
+    parser.add_argument(
+        '--verbose', '-v', action="store_true",
+        help="Be verbose"
+    )
+    parser.add_argument(
+        "--incremental", action="store_true",
+        help="Drafts an INCREMENTAL draft data dictionary (containing fields "
+             "in the database that aren't in the existing data dictionary "
+             "referred to by the config file)."
+    )
+    parser.add_argument(
+        "--skip_dd_check", action="store_true",
+        help="(For --incremental.) "
+             "Skip validity check for the existing data dictionary.")
+    parser.add_argument(
+        "--output", default="-",
+        help="File for output; use '-' for stdout."
+    )
+    parser.add_argument(
+        "--systmone", action="store_true",
+        help="Modify the data dictionary for SystmOne."
+    )
+
+    s1_options = parser.add_argument_group(
+        "SystmOne options (for when --systmone is used)"
+    )
+    context_k, context_d = keys_descriptions_from_enum(
+        SystmOneContext, keys_to_lower=True)
+    s1_options.add_argument(
+        "--systmone_context", type=str, choices=context_k,
+        default=DEFAULT_SYSTMONE_CONTEXT.name,
+        help="Context of the SystmOne database that you are reading. "
+             f"-- {context_d} --")
+    s1_options.add_argument(
+        "--systmone_sre_spec",
+        help="SystmOne Strategic Reporting Extract (SRE) specification CSV "
+             "filename (from TPP, containing table/field comments).")
+
+    args = parser.parse_args()
+
+    # -------------------------------------------------------------------------
+    # Verbosity, logging
+    # -------------------------------------------------------------------------
+
+    loglevel = logging.DEBUG if args.verbose else logging.INFO
+    main_only_quicksetup_rootlogger(level=loglevel)
+
+    # -------------------------------------------------------------------------
+    # Onwards
+    # -------------------------------------------------------------------------
+
+    if args.config:
+        os.environ[ANON_CONFIG_ENV_VAR] = args.config
+    from crate_anon.anonymise.config_singleton import config  # delayed import
+
+    draft_dd(
+        config=config,
+        dd_output_filename=args.output,
+        incremental=args.incremental,
+        skip_dd_check=args.skip_dd_check,
+        systmone=args.systmone,
+        systmone_context=SystmOneContext[args.systmone_context],
+        systmone_sre_spec_csv_filename=args.systmone_sre_spec,
+    )

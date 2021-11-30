@@ -179,7 +179,7 @@ restart_supervisord()
 # =============================================================================
 # Check prerequisites
 # =============================================================================
-# http://stackoverflow.com/questions/2806897
+# https://stackoverflow.com/questions/2806897
 
 if os.geteuid() == 0:
     exit("This script should not be run using sudo or as the root user")
@@ -548,7 +548,7 @@ with open(workpath(SPECIMEN_SUPERVISOR_CONF_FILE), 'w') as outfile:
 ;       sudo service supervisorctl status
 ; NOTES:
 ; - You can't put quotes around the directory variable
-;   http://stackoverflow.com/questions/10653590
+;   https://stackoverflow.com/questions/10653590
 ; - Programs like celery and gunicorn that are installed within a virtual
 ;   environment use the virtualenv's python via their shebang.
 

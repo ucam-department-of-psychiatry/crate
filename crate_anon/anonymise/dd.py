@@ -66,7 +66,7 @@ from sqlalchemy.sql.sqltypes import String, TypeEngine
 # don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.constants import (
     TABLE_KWARGS,
-    SRCFLAG,
+    SrcFlag,
     TridType,
 )
 from crate_anon.anonymise.ddr import DataDictionaryRow
@@ -182,7 +182,7 @@ class DataDictionary(object):
     @classmethod
     def _gen_rows_from_xlsx(cls, filename: str) -> Iterable[List[Any]]:
         """
-        Generates rows from an XLSX file.
+        Generates rows from an XLSX file, reading the first sheet.
         """
         log.debug(f"Loading as XLSX: {filename}")
         workbook = openpyxl.load_workbook(filename)
@@ -200,7 +200,7 @@ class DataDictionary(object):
     @classmethod
     def _gen_rows_from_ods(cls, filename: str) -> Iterable[List[Any]]:
         """
-        Generates rows from an ODS file.
+        Generates rows from an ODS file, reading the first sheet.
         """
         log.debug(f"Loading as ODS: {filename}")
         data = pyexcel_ods.get_data(filename)  # type: Dict[str, List[List[Any]]]  # noqa
@@ -248,7 +248,7 @@ class DataDictionary(object):
             )
             raise ValueError(
                 f"Bad data dictionary file. Data dictionaries must be in "
-                f"tabular format with the following headings:\n\n"
+                f"tabular format and contain the following headings:\n\n"
                 f"{desired}\n\n"
                 f"but yours are:\n\n"
                 f"{actual}"
@@ -521,7 +521,7 @@ class DataDictionary(object):
                     if expected_pidfield not in fieldnames:
                         log.warning(
                             f"Source table {d}.{t} has a scrub_in or "
-                            f"src_flags={SRCFLAG.MASTER_PID} field but no "
+                            f"src_flags={SrcFlag.MASTER_PID} field but no "
                             f"master patient ID field (expected to be: "
                             f"{expected_pidfield})")
 
@@ -564,11 +564,11 @@ class DataDictionary(object):
                     if r.add_src_hash and r.omit:
                         raise ValueError(
                             f"Do not set omit on "
-                            f"src_flags={SRCFLAG.ADD_SRC_HASH} fields")
+                            f"src_flags={SrcFlag.ADD_SRC_HASH} fields")
                     if r.constant and r.omit:
                         raise ValueError(
                             f"Do not set omit on "
-                            f"src_flags={SRCFLAG.CONSTANT} fields")
+                            f"src_flags={SrcFlag.CONSTANT} fields")
                 # We used to prohibit these combinations at all times, in the
                 # DataDictionaryRow class, but it's inconvenient to have to
                 # alter these flags if you want to omit the whole table.
@@ -584,7 +584,7 @@ class DataDictionary(object):
             if not pid_colname and not mpid_colname:
                 raise ValueError(
                     f"Field {src_db}.{src_table}.{optout_colname} has "
-                    f"src_flags={SRCFLAG.OPT_OUT} set, but that table does "
+                    f"src_flags={SrcFlag.OPT_OUT} set, but that table does "
                     f"not have a primary patient ID field or a master patient "
                     f"ID field")
 
@@ -633,11 +633,11 @@ class DataDictionary(object):
             else:
                 raise ValueError(
                     f"Must have at least one field with "
-                    f"src_flags={SRCFLAG.DEFINES_PRIMARY_PIDS} set.")
+                    f"src_flags={SrcFlag.DEFINES_PRIMARY_PIDS} set.")
         elif self.n_definers > 1:
             log.warning(
                 f"Unusual: >1 field with "
-                f"src_flags={SRCFLAG.DEFINES_PRIMARY_PIDS} set.")
+                f"src_flags={SrcFlag.DEFINES_PRIMARY_PIDS} set.")
 
         log.debug("... DD checked.")
 

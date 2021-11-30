@@ -1349,6 +1349,21 @@ Changes
 
 - Specific code for TIMELY project.
 
+- Full support for data dictionaries in ODS and XLSX format. (Use the first
+  spreadsheet of a file.)
+
+- Split out standalone commands, as the ``crate_anonymise`` command was
+  becoming confusingly multi-purpose:
+
+  - ``crate_anonymise --count`` becomes ``crate_anon_show_counts``;
+  - ``crate_anonymise --democonfig`` becomes ``crate_anon_demo_config``;
+  - ``crate_anonymise --checkextractor`` becomes
+    ``crate_anon_check_text_extractor``;
+  - ``crate_anonymise --draftdd`` and ``crate_anonymise --incrementaldd``
+    become ``crate_anon_draft_dd``.
+
+- Work on SystmOne data dictionaries.
+
 
 ===============================================================================
 
@@ -1361,10 +1376,10 @@ Changes
 
 .. [#f2]
     https://docs.python.org/3/reference/datamodel.html#object.__hash__;
-    http://stackoverflow.com/questions/27522626/hash-function-in-python-3-3-returns-different-results-between-sessions
+    https://stackoverflow.com/questions/27522626/hash-function-in-python-3-3-returns-different-results-between-sessions
 
 .. [#f3]
-    See also http://stackoverflow.com/questions/5400275/fast-large-width-non-cryptographic-string-hashing-in-python
+    See also https://stackoverflow.com/questions/5400275/fast-large-width-non-cryptographic-string-hashing-in-python
 
 .. [#f4]
     https://pypi.python.org/pypi/mmh3/2.2;
@@ -1394,7 +1409,7 @@ Changes
     later, but this is not implemented yet.
 
 .. [#mysqlrenamedb]
-    http://stackoverflow.com/questions/67093/how-do-i-quickly-rename-a-mysql-database-change-schema-name
+    https://stackoverflow.com/questions/67093/how-do-i-quickly-rename-a-mysql-database-change-schema-name
 
 .. [#sqlserverrenamedb]
     https://msdn.microsoft.com/en-GB/library/ms345378.aspx;

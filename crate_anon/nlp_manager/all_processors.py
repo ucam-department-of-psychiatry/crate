@@ -108,8 +108,8 @@ def get_all_subclasses(cls: ClassType) -> List[ClassType]:
         list of classes
     """
     # Type hinting, but not quite:
-    #   http://stackoverflow.com/questions/35655257
-    # Getting derived subclasses: http://stackoverflow.com/questions/3862310
+    #   https://stackoverflow.com/questions/35655257
+    # Getting derived subclasses: https://stackoverflow.com/questions/3862310
     all_subclasses = []  # List[ClassType]
     # noinspection PyArgumentList
     for subclass in cls.__subclasses__():

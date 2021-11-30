@@ -43,7 +43,7 @@ DJANGO_ROOT = os.path.abspath(os.path.join(THIS_DIR, os.pardir, "crateweb"))
 WINDOWS = platform.system() == 'Windows'
 
 
-# http://stackoverflow.com/questions/21666229/celery-auto-reload-on-any-changes
+# https://stackoverflow.com/questions/21666229/celery-auto-reload-on-any-changes
 # HOWEVER: autoreload appears (a) not to work, and (b) to prevent processing!
 
 

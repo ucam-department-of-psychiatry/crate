@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/ancillary/timely_project/filter_cpft_rio_data_dictionary.py
+crate_anon/ancillary/timely_project/filter_data_dictionary.py
 
 ===============================================================================
 
@@ -47,157 +47,22 @@ from typing import List, Optional
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy.dialects.mssql.base import dialect as mssql_server_dialect
 
-from crate_anon.ancillary.timely_project.ddcriteria import (
-    add_field_criteria,
-    add_table_criteria,
+from crate_anon.ancillary.timely_project.dd_criteria import (
     FieldCriterion,
-    N_STAGES,
     TableCriterion,
+)
+from crate_anon.ancillary.timely_project.timely_filter import (
+    N_STAGES,
+    TimelyDDFilter,
+)
+from crate_anon.ancillary.timely_project.timely_filter_cpft_rio import (
+    TimelyCPFTRiOFilter,
 )
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.ddr import DataDictionaryRow
 
 log = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Deciding about rows
-# =============================================================================
-
-# -----------------------------------------------------------------------------
-# Generic exclusions
-# -----------------------------------------------------------------------------
-
-EXCLUDE_TABLES = []  # type: List[TableCriterion]
-add_table_criteria(EXCLUDE_TABLES, stage=None, regex_strings=[
-    "cpft_core_assessment_v2_kcsa_children_in_household",  #  about people other than the patient  # noqa
-])
-
-
-# -----------------------------------------------------------------------------
-# Stage 1: demographics, problem lists, diagnoses, safeguarding, contacts
-# (e.g. referrals, contacts, discharge)
-# -----------------------------------------------------------------------------
-
-STAGED_INCLUDE_TABLES = []  # type: List[TableCriterion]
-
-add_table_criteria(STAGED_INCLUDE_TABLES, stage=1, regex_strings=[
-    # Demographics
-    "Client_Demographic_Details",  # basics
-    "Client_Address_History",  # addresses blurred to LSOAs
-    "Deceased",
-
-    # Safeguarding
-    "Client_Family",  # legal status codes, parental responsibility, etc.
-    "ClientAlert",
-    # ClientAlertRemovalReason is an example of a system table -- it doesn't
-    # relate to a patient. We include those automatically.
-    "RskRelatedIncidents",  # BUT SEE field exclusions
-    "RskRelatedIncidentsRiskType",
-
-    # Basic contacts, e.g. start/end of care plan
-    "Client_CPA",  # care plan start/end dates
-    "Client_GP",  # GP practice registration
-    "Client_School",  # school attended
-    "ClientGPMerged",  # when GP practices merge, we think
-
-    # Diagnosis/problems
-    "ClientOtherSmoker",  # smoking detail
-    "ClientSmoking",  # more smoking detail
-    # ClientSocialFactor -- no data
-    "Diagnosis",  # ICD-10 diagnoses
-    "SNOMED.*",  # SNOMED-coded problems
-
-    # Referrals (basic info)
-    "Referral.*",  # includes ReferralCoding = diagnosis for referral (+ teams etc.)  # noqa
-])
-
-
-# Note that "UserAssess*" is where all the local custom additions to RiO go.
-# These are quite varied.
-
-# -----------------------------------------------------------------------------
-# Stage 2: detailed information about all service contacts, including
-# professional types involved, outcome data, etc.
-# -----------------------------------------------------------------------------
-
-add_table_criteria(STAGED_INCLUDE_TABLES, stage=2, regex_strings=[
-    "Client_Professional_Contacts",
-    "ClientHealthCareProviderAssumed",
-
-    # Inpatient activity (IMS = inpatient management system)
-    "Ims.*",
-    "Inpatient.*",
-    "IPAms.*",
-
-    # Mnt = Mental Health Act
-    "Mnt.*",
-
-    "ParentGuardianImport",  # outcome data
-])
-
-
-# -----------------------------------------------------------------------------
-# Stage 3: prescribing data
-# -----------------------------------------------------------------------------
-
-add_table_criteria(STAGED_INCLUDE_TABLES, stage=3, regex_strings=[
-    "Client_Allergies",  # for prescribing
-    "Client_Medication",  # will be empty!
-    "Client_Prescription",  # will be empty!
-])
-
-
-# -----------------------------------------------------------------------------
-# Stage 4: test results, other health assessments, other clinical info
-# -----------------------------------------------------------------------------
-
-add_table_criteria(STAGED_INCLUDE_TABLES, stage=4, regex_strings=[
-    "Client_Physical_Details",  # e.g. head circumference
-    "ClientMaternalDetail",  # patients who are mothers
-    "ClientPhysicalDetailMerged",  # e.g. height, weight
-])
-
-
-# -----------------------------------------------------------------------------
-# Stage 5: (structured) info on care plans etc.
-# -----------------------------------------------------------------------------
-
-add_table_criteria(STAGED_INCLUDE_TABLES, stage=5, regex_strings=[
-    # Care plans, Care Plan Approach, care coordination
-    "Care_Plan.*",
-    "CarePlan.*",
-    "CareCoordinatorOccupation",
-    "CPA.*"
-])
-
-
-# -----------------------------------------------------------------------------
-# Stage 6: de-identified free text
-# -----------------------------------------------------------------------------
-
-add_table_criteria(STAGED_INCLUDE_TABLES, stage=6, regex_strings=[
-    "Clinical_Documents",
-    "CPFT_Core_Assessment.*",
-    "Progress_Note",
-    "RskRelatedIncidents",
-    "UserAssessCAMH",  # CAMH-specific assessments (e.g. questionnaires) -- can have free-text comments.  # noqa
-])
-
-
-# -----------------------------------------------------------------------------
-# Specific fields
-# -----------------------------------------------------------------------------
-# Specific fields to exclude that would otherwise be included.
-# List of (tablename, fieldname) regex string tuples.
-
-STAGED_EXCLUDE_FIELDS = []  # type: List[FieldCriterion]
-
-add_field_criteria(STAGED_EXCLUDE_FIELDS, stage=5, regex_tuples=[
-    # "exclude at stage 5 or earlier"
-    ("RskRelatedIncidents", "Text")
-])
 
 
 # =============================================================================
@@ -303,7 +168,8 @@ def keep(row: DataDictionaryRow,
 # File handling
 # =============================================================================
 
-def filter_dd(input_filename: str,
+def filter_dd(filter_info: TimelyDDFilter,
+              input_filename: str,
               output_filename: str,
               stage: int) -> None:
     """
@@ -337,12 +203,12 @@ def filter_dd(input_filename: str,
 
     # Exclusion and inclusion tables.
     inclusion_tables = [
-        t for t in STAGED_INCLUDE_TABLES
+        t for t in filter_info.staged_include_tables
         if stage >= t.stage
         # "Include from t.stage or beyond."
     ]
     exclusion_fields = [
-        f for f in STAGED_EXCLUDE_FIELDS
+        f for f in filter_info.staged_exclude_fields
         if stage <= f.stage
         # "Exclude before and up to/including t.stage."
     ]
@@ -351,7 +217,7 @@ def filter_dd(input_filename: str,
         return keep(
             row=row,
             inclusion_tables=inclusion_tables,
-            exclusion_tables=EXCLUDE_TABLES,
+            exclusion_tables=filter_info.exclude_tables,
             exclusion_fields=exclusion_fields,
             system_tables_lower=system_tables_lower,
             scrub_src_tables_lower=scrub_src_tables_lower
@@ -404,7 +270,11 @@ def main() -> None:
     else:
         main_only_quicksetup_rootlogger(level=loglevel)
 
+    # Future: select different types of data dictionary here.
+    filter_info = TimelyCPFTRiOFilter()
+
     filter_dd(
+        filter_info=filter_info,
         input_filename=args.input,
         output_filename=args.output,
         stage=args.stage

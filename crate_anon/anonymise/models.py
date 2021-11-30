@@ -30,12 +30,12 @@ stores in its admin database.**
 To create a SQLAlchemy Table programmatically:
 
 - http://docs.sqlalchemy.org/en/latest/core/schema.html
-- http://stackoverflow.com/questions/5424942/sqlalchemy-model-definition-at-execution
-- http://stackoverflow.com/questions/2580497/database-on-the-fly-with-scripting-languages/2580543#2580543
+- https://stackoverflow.com/questions/5424942/sqlalchemy-model-definition-at-execution
+- https://stackoverflow.com/questions/2580497/database-on-the-fly-with-scripting-languages/2580543#2580543
 
 To create a SQLAlchemy ORM programmatically:
 
-- http://stackoverflow.com/questions/2574105/sqlalchemy-dynamic-mapping/2575016#2575016
+- https://stackoverflow.com/questions/2574105/sqlalchemy-dynamic-mapping/2575016#2575016
 """  # noqa
 
 import logging
@@ -301,7 +301,7 @@ class OptOutPid(AdminBase):
         # noinspection PyArgumentList
         newthing = cls(pid=pid)
         session.merge(newthing)
-        # http://stackoverflow.com/questions/12297156/fastest-way-to-insert-object-if-it-doesnt-exist-with-sqlalchemy  # noqa
+        # https://stackoverflow.com/questions/12297156/fastest-way-to-insert-object-if-it-doesnt-exist-with-sqlalchemy  # noqa
 
 
 class OptOutMpid(AdminBase):

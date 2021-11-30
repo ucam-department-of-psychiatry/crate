@@ -245,6 +245,10 @@ setup(
 
             # Anonymisation
 
+            "crate_anon_check_text_extractor=crate_anon.anonymise.check_text_extractor:main",  # noqa
+            "crate_anon_demo_config=crate_anon.anonymise.demo_config:main",
+            "crate_anon_draft_dd=crate_anon.anonymise.draft_dd:main",
+            "crate_anon_show_counts=crate_anon.anonymise.show_counts:main",
             "crate_anonymise=crate_anon.anonymise.anonymise_cli:main",
             "crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main",  # noqa
             "crate_make_demo_database=crate_anon.anonymise.make_demo_database:main",  # noqa

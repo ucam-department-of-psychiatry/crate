@@ -178,7 +178,7 @@ still go into the "Reserved" list.
 
 The ``-Ofair`` option didn't fix it:
 
-- http://stackoverflow.com/questions/24519559
+- https://stackoverflow.com/questions/24519559
 
 And then it screwed up again, and became unresponsive to the status things.
 Argh!

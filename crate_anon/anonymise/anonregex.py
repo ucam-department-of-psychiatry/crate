@@ -145,7 +145,7 @@ def get_date_regex_elements(
     # Reminders: ? zero or one, + one or more, * zero or more
     # Non-capturing groups: (?:...)
     # ... https://docs.python.org/2/howto/regex.html
-    # ... http://stackoverflow.com/questions/3512471/non-capturing-group
+    # ... https://stackoverflow.com/questions/3512471/non-capturing-group
     # Day, allowing leading zeroes and e.g. "1st, 2nd"
     day = "0*" + str(dt.day) + "(?:st|nd|rd|th)?"
     # Month, allowing leading zeroes for numeric and e.g. Feb/February
@@ -251,7 +251,7 @@ def get_code_regex_elements(
     else:
         if at_numeric_boundaries_only:
             # http://www.regular-expressions.info/lookaround.html
-            # http://stackoverflow.com/questions/15099150/regex-find-one-digit-number  # noqa
+            # https://stackoverflow.com/questions/15099150/regex-find-one-digit-number  # noqa
             return [NOT_DIGIT_LOOKBEHIND + s + NOT_DIGIT_LOOKAHEAD]
         else:
             return [s]

@@ -40,3 +40,4 @@ crate_anon/preprocess
     rio_pk.py.rst
     rio_view_func.py.rst
     rio_views.py.rst
+    systmone_ddgen.py.rst
