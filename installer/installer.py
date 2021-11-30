@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import sys
 import secrets
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional, Union
 
 from prompt_toolkit.completion import PathCompleter
 from prompt_toolkit.shortcuts import input_dialog, message_dialog
@@ -21,7 +21,6 @@ DOCKERFILES_DIR = os.path.join(DOCKER_DIR, "dockerfiles")
 class Installer:
     def __init__(self) -> None:
         self.title = "CRATE Setup"
-        self.testing = False
 
     def install(self) -> None:
         self.configure()
@@ -34,19 +33,19 @@ class Installer:
     def configure(self) -> None:
         self.setenv(
             "CRATE_DOCKER_INSTALL_USER_ID",
-            self.get_install_user_id()
+            self.get_docker_install_user_id
         )
         self.setenv(
             "CRATE_DOCKER_INSTALL_GROUP_ID",
-            self.get_install_group_id()
+            self.get_docker_install_group_id
         )
         self.setenv(
             "CRATE_DOCKER_CONFIG_HOST_DIR",
-            self.get_docker_config_host_dir()
+            self.get_docker_config_host_dir
         )
         self.setenv(
             "CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR",
-            self.get_docker_gate_bioyodie_resources_host_dir()
+            self.get_docker_gate_bioyodie_resources_host_dir
         )
         self.setenv(
             "CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME",
@@ -58,7 +57,7 @@ class Installer:
         )
         self.setenv(
             "CRATE_DOCKER_MYSQL_ROOT_PASSWORD",
-            self.get_docker_mysql_root_password()
+            self.get_docker_mysql_root_password
         )
         self.setenv(
             "CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME",
@@ -70,88 +69,77 @@ class Installer:
         )
         self.setenv(
             "CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD",
-            self.get_docker_mysql_crate_user_password()
+            self.get_docker_mysql_crate_user_password
         )
         self.setenv(
             "CRATE_DOCKER_MYSQL_HOST_PORT",
-            self.get_docker_mysql_host_port()
+            self.get_docker_mysql_host_port
         )
         self.setenv(
             "CRATE_DOCKER_DJANGO_SUPERUSER_USERNAME",
-            self.get_superuser_username()
+            self.get_docker_django_superuser_username
         )
         self.setenv(
             "CRATE_DOCKER_DJANGO_SUPERUSER_PASSWORD",
-            self.get_superuser_password()
+            self.get_docker_django_superuser_password
         )
         self.setenv(
             "CRATE_DOCKER_DJANGO_SUPERUSER_EMAIL",
-            self.get_superuser_email()
+            self.get_docker_django_superuser_email
         )
 
-    def get_install_user_id(self) -> str:
+    def get_docker_install_user_id(self) -> str:
         return str(os.geteuid())
 
-    def get_install_group_id(self) -> str:
+    def get_docker_install_group_id(self) -> str:
         return str(os.getegid())
 
     def get_docker_config_host_dir(self) -> str:
-        if self.testing:
-            return os.path.join(str(Path.home()), "crate_config")
-
         return self.get_user_dir(
             "Select the directory where CRATE will store its configuration"
         )
 
     def get_docker_gate_bioyodie_resources_host_dir(self) -> str:
-        if self.testing:
-            return os.path.join(str(Path.home()), "bioyodie_resources")
-
         return self.get_user_dir(
             "Select the directory where CRATE will store Bio-YODIE resources"
         )
 
     def get_docker_mysql_root_password(self) -> str:
-        if self.testing:
-            return "ramalamadingdong"
-
         return self.get_user_password(
             "Enter a new MySQL root password"
         )
 
     def get_docker_mysql_crate_user_password(self) -> str:
-        if self.testing:
-            return "shoobydoobydoo"
-
         return self.get_user_password(
             "Enter a new password for the MySQL user that CRATE will create"
         )
 
     def get_docker_mysql_host_port(self) -> str:
-        if self.testing:
-            return "3307"
-
         return self.get_user_input(
             "Enter the port where the MySQL database will appear on the host"
         )
 
-    def get_superuser_username(self) -> str:
+    def get_docker_django_superuser_username(self) -> str:
         return self.get_user_input(
             "Enter the user name for the CRATE administrator"
         )
 
-    def get_superuser_password(self) -> str:
+    def get_docker_django_superuser_password(self) -> str:
         return self.get_user_password(
             "Enter the password for the CRATE administrator"
         )
 
-    def get_superuser_email(self) -> str:
+    def get_docker_django_superuser_email(self) -> str:
         return self.get_user_input(
             "Enter the email address for the CRATE administrator"
         )
 
-    def setenv(self, name: str, value: str) -> None:
-        os.environ[name] = value
+    def setenv(self, name: str, value: Union[str, Callable[[], str]]) -> None:
+        if name not in os.environ:
+            if not isinstance(value, str):
+                value = value()
+
+            os.environ[name] = value
 
     def get_user_dir(self, text: str, title: Optional[str] = None) -> str:
         if title is None:
@@ -334,7 +322,6 @@ class Installer:
 
 def main() -> None:
     installer = Installer()
-    installer.testing = True  # TODO remove
     installer.install()
 
 

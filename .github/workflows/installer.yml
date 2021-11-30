@@ -54,5 +54,15 @@ jobs:
                   # TODO: wget this from releases as a normal user would
                   # and don't checkout above
                   docker --version
+                  export CRATE_DOCKER_MYSQL_HOST_PORT=3306
+                  export CRATE_DOCKER_CONFIG_HOST_DIR=${HOME}/crate_config
+                  export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=${HOME}/bioyodie_resources
+                  export CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD=ramalamadingdong
+                  export CRATE_DOCKER_MYSQL_ROOT_PASSWORD=shoobydoobydoo
+                  export CRATE_DOCKER_INSTALL_USER_ID=$(id -u)
+                  export CRATE_DOCKER_INSTALL_GROUP_ID=$(id -g)
+                  export CRATE_DOCKER_DJANGO_SUPERUSER_USERNAME=admin
+                  export CRATE_DOCKER_DJANGO_SUPERUSER_PASSWORD=servisolironcamera
+                  export CRATE_DOCKER_DJANGO_SUPERUSER_EMAIL=admin@example.com
                   cd installer
                   ./installer.sh
