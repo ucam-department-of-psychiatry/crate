@@ -27,9 +27,7 @@ INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
 # sudo apt-get update
 # sudo apt -y install python3-virtualenv python3-venv
 
-if [ -z "$CRATE_INSTALLER_PYTHON" ]; then
-    CRATE_INSTALLER_PYTHON=python3
-fi
+CRATE_INSTALLER_PYTHON=${CRATE_INSTALLER_PYTHON:-python3}
 
 if [ ! -d "${CRATE_INSTALLER_VENV}" ]; then
     # TOOO: Option to rebuild venv
