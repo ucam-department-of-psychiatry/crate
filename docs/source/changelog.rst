@@ -1341,6 +1341,9 @@ Changes
 
 - ``cardinal_pythonlib`` from 1.1.10 to 1.1.15.
 
+- ``kombu`` from 4.4.6 to 5.2.1 (security fix), and ``celery`` from 4.4.6 to
+  5.2.0 in consequence, then ``amqp`` from 2.6.0 to 5.0.6 in consequence.
+
 - Remove need for ``xlrd`` (was only used for the postcode database and now
   redundant; all other Excel work uses ``openpyxl``), but add ``pyexcel-ods``
   for ODS files.

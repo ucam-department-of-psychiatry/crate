@@ -192,6 +192,9 @@ Specimen values:
     SRTable = 'SRAnsweredQuestionnaire'
     QuestionnaireName = 'CPFT Risk Assessment'
 
+(This ends up (in our environment) in the S1_FreeText table, as below, so it
+likely arrives as SRFreeText.)
+
 
 Key fields
 ----------
@@ -222,6 +225,13 @@ Notable tables in the SRE
 - Full text and binary:
 
   - [SR]Media
+  - [SR]FreeText -- if supplied
+
+
+Notable additional tables in the CPFT environment
+-------------------------------------------------
+
+- S1_FreeText
 
 
 CPFT copy
@@ -385,9 +395,6 @@ S1_GENERIC_COL_PID = "IDPatient"  # FK to Patient table
 S1_GENERIC_COL_PK = "RowIdentifier"  # PK for all tables
 S1_GENERIC_COL_RECORDED_BY = "IDProfileEnteredBy"  # FK to SRStaffMemberProfile.RowIdentifier  # noqa
 
-# Columns for free text:
-S1_COL_FREETEXT = "FreeText"
-
 # Columns in the Patient table:
 S1_PATIENT_COL_MPID = "NHSNumber"
 S1_PATIENT_COL_TITLE = "Title"
@@ -543,11 +550,9 @@ OMIT_TABLENAME_COLNAME_PAIRS = (
     ("SafeguardingIncidentDetails", "PoliceReference"),
 )
 
-ALWAYS_FREETEXT_COLS = (
-    S1_COL_FREETEXT,
-)
 FREETEXT_TABLENAME_COLNAME_PAIRS = (
-    ("PersonAtRisk", "ReasonForPlan"),  # free-text re safeguarding
+    ("FreeText", "FreeText"),  # the bulk of free text; VARCHAR(MAX)
+    ("PersonAtRisk", "ReasonForPlan"),  # free text re safeguarding
     ("ReferralIn", "PrimaryReason"),  # only 200 chars; may be OK
     ("SafeguardingAllegationDetails", "Outcome"),  # only 100 chars; ?OK
     ("SpecialNotes", "Note"),  # 8000 char free text
@@ -770,16 +775,14 @@ def is_free_text(tablename: str, colname: str) -> bool:
     """
     Is this a free-text field requiring scrubbing?
 
-    Unusually, there is not very much free text, and it is all collated.
+    Unusually, there is not very much free text, and it is mostly collated.
     (We haven't added binary support yet. Do we have the binary documents?)
     """
-    return (
-        colname in ALWAYS_FREETEXT_COLS or
-        (tablename, colname) in FREETEXT_TABLENAME_COLNAME_PAIRS
-    )
+    return (tablename, colname) in FREETEXT_TABLENAME_COLNAME_PAIRS
 
 
-def process_generic_table_column(colname: str,
+def process_generic_table_column(tablename: str,
+                                 colname: str,
                                  ssi: ScrubSrcAlterMethodInfo,
                                  cfg: Config) -> bool:
     """
@@ -804,7 +807,7 @@ def process_generic_table_column(colname: str,
         ssi.include()
         return True
 
-    elif colname == S1_COL_FREETEXT:
+    elif is_free_text(tablename, colname):
         # Free text to be scrubbed.
         ssi.add_alter_method(AlterMethod(config=cfg, scrub=True))
         ssi.include()
@@ -921,7 +924,8 @@ def get_scrub_alter_details(
     # -------------------------------------------------------------------------
     # Proceed for all other tables.
     # -------------------------------------------------------------------------
-    if process_generic_table_column(colname, ssi, cfg):
+    handled = process_generic_table_column(tablename, colname, ssi, cfg)
+    if handled:
         # Recognized and handled as a generic column.
         return ssi
 
