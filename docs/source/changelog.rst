@@ -1344,6 +1344,8 @@ Changes
 - ``kombu`` from 4.4.6 to 5.2.1 (security fix), and ``celery`` from 4.4.6 to
   5.2.0 in consequence, then ``amqp`` from 2.6.0 to 5.0.6 in consequence.
 
+- Update jQuery from 3.1.1 to 3.6.0, and jQuery UI from 1.12.1 to 1.13.0.
+
 - Remove need for ``xlrd`` (was only used for the postcode database and now
   redundant; all other Excel work uses ``openpyxl``), but add ``pyexcel-ods``
   for ODS files.
