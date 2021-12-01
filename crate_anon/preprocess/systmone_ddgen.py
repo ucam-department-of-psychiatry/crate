@@ -201,6 +201,29 @@ Key fields
 - ``SRPatient.NHSNumber`` -- the NHS number (MPID, in CRATE terms).
 
 
+Notable tables in the SRE
+-------------------------
+
+- [SR]Patient, as above
+
+- Patient identifiers and relationship/third-party details:
+
+  - [SR]PatientAddressHistory
+  - [SR]PatientContactDetails
+  - [SR]HospitalAAndENumber
+
+- Relationship/third-party details:
+
+  - [SR]PatientRelationship
+  - some of the safeguarding tables
+
+- [SR]NDOptOutPreference, re NHS national data opt out (for NHS Act s251 use)
+
+- Full text and binary:
+
+  - [SR]Media
+
+
 CPFT copy
 ---------
 
@@ -254,7 +277,7 @@ import csv
 from dataclasses import dataclass, field
 from enum import Enum
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from cardinal_pythonlib.enumlike import CaseInsensitiveEnumMeta
 
@@ -275,6 +298,14 @@ log = logging.getLogger(__name__)
 # =============================================================================
 # Constants
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# Typing
+# -----------------------------------------------------------------------------
+
+SRE_SPEC_TYPE = Dict[Tuple[str, str], "SystmOneSRESpecRow"]
+# ... maps (tablename, colname) tuples to SystmOneSRESpecRow objects.
+
 
 # -----------------------------------------------------------------------------
 # Cosmetic
@@ -305,8 +336,8 @@ TABLE_PREFIXES = {
 # -----------------------------------------------------------------------------
 # Table names
 # -----------------------------------------------------------------------------
+# "Core" tablename, without the SR/S1_/... prefix.
 
-# Tables ("core" tablename, without the SR/S1_/... prefix):
 S1_TAB_PATIENT = "Patient"  # e.g. SRPatient (SRE), S1_Patient (CPFT)
 S1_TAB_ADDRESS = "PatientAddressHistory"
 S1_TAB_CONTACT_DETAILS = "PatientContactDetails"
@@ -326,6 +357,7 @@ S1_TAB_MEDIA = "Media"  # todo: binary documents -- how?
 S1_TAB_SAFEGUARDING_PERSON_AT_RISK = "SafeguardingPersonAtRisk"
 
 # See also OMIT_TABLENAME_COLNAME_PAIRS below.
+#
 # Other tables whose name might suggest patient identifiers:
 # - SRAddressBookEntry: institutional addresses only? (FK to this from
 #   SRSafeguardingIncidentDetails, for example.) todo: check -- institutional addresses only?  # noqa
@@ -576,6 +608,9 @@ class SystmOneSRESpecRow:
     Represents a row in the SystmOne SRE specification CSV file.
     """
     def __init__(self, d: Dict[str, Any]) -> None:
+        """
+        Initialize with a row dictionary from a :class:`csv.DictReader`.
+        """
         self.table_name = d["TableName"]  # type: str
         self.table_description = d["TableDescription"]  # type: str
         self.column_name = d["ColumnName"]  # type: str
@@ -605,7 +640,7 @@ class SystmOneSRESpecRow:
     @property
     def linked_table_core(self) -> str:
         """
-        Core part of the tablename.
+        Core part of the linked table name.
         """
         return core_tablename(self.linked_table, SystmOneContext.TPP_SRE)
 
@@ -629,7 +664,7 @@ class SystmOneSRESpecRow:
             elements.append(" ".join(links))
         return COMMENT_SEP.join(elements)
 
-    def line(self, context: SystmOneContext) -> str:
+    def description(self, context: SystmOneContext) -> str:
         """
         Full description line.
         """
@@ -655,6 +690,7 @@ class ScrubSrcAlterMethodInfo:
     """
     For describing scrub-source and alter-method information.
     """
+    change_comment_only: bool = False
     src_flags: str = ""
     scrub_src: Optional[ScrubSrc] = None
     scrub_method: Optional[ScrubMethod] = None
@@ -782,14 +818,29 @@ def process_generic_table_column(colname: str,
     return False
 
 
-def get_scrub_alter_details(tablename: str,
-                            colname: str,
-                            cfg: Config) -> ScrubSrcAlterMethodInfo:
+def get_scrub_alter_details(
+        tablename: str,
+        colname: str,
+        cfg: Config,
+        include_generic: bool = False) -> ScrubSrcAlterMethodInfo:
     """
     The main "thinking" function.
 
     Is this a sensitive field that should be used for scrubbing?
     Should it be modified in transit?
+
+    Args:
+        tablename:
+            The "core" tablename being considered, without any prefix (e.g.
+            "Patient", not "SRPatient" or "S1_Patient").
+        colname:
+            The database column name.
+        cfg:
+            A :class:`crate_anon.anonymise.config.Config` object.
+        include_generic:
+            Include all fields that are not known about by this code and
+            treated specially? If False, the config file settings are used
+            (which may omit or include). If True, all such fields are included.
     """
     ssi = ScrubSrcAlterMethodInfo(decision=Decision.OMIT)  # omit by default
 
@@ -958,7 +1009,11 @@ def get_scrub_alter_details(tablename: str,
         # ---------------------------------------------------------------------
         # A generic field in a generic table.
         # ---------------------------------------------------------------------
-        ssi.include()
+        if include_generic:
+            ssi.include()
+        else:
+            # Don't change anything except the comment:
+            ssi.change_comment_only = True
 
     return ssi
 
@@ -985,9 +1040,30 @@ def get_index_flag(tablename: str, colname: str) -> Optional[IndexType]:
 
 def annotate_systmone_dd_row(ddr: DataDictionaryRow,
                              context: SystmOneContext,
-                             specifications: List[SystmOneSRESpecRow]) -> None:
+                             specifications: SRE_SPEC_TYPE,
+                             append_comments: bool = False,
+                             include_generic: bool = False) -> None:
     """
     Modifies (in place) a data dictionary row for SystmOne.
+
+    Args:
+        ddr:
+            The data dictionary row to amend.
+        context:
+            The context from which SystmOne data is being extracted (e.g. the
+            raw TPP Strategic Reporting Extract (SRE), or a local version
+            processed into CPFT's Data Warehouse).
+        specifications:
+            Details of the TPP SRE specifications.
+        append_comments:
+            Append comments to any that were autogenerated, rather than
+            replacing them. (If you use the SRE specifications, you may as well
+            set this to False as the SRE specification comments are much
+            better.)
+        include_generic:
+            Include all fields that are not known about by this code and
+            treated specially? If False, the config file settings are used
+            (which may omit or include). If True, all such fields are included.
     """
     tablename = core_tablename(ddr.src_table, context, required=False)
     # We proceed even if the table doesn't fit out scheme (in which case
@@ -998,45 +1074,55 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
     log.debug(f"Considering: {ddr.src_table}.{colname}")
 
     # Do our thinking
-    ssi = get_scrub_alter_details(tablename, colname, ddr.config)
+    ssi = get_scrub_alter_details(tablename, colname, ddr.config,
+                                  include_generic=include_generic)
 
-    # Source information
-    ddr.src_flags = ssi.src_flags
-    ddr.scrub_src = ssi.scrub_src
-    ddr.scrub_method = ssi.scrub_method
+    if not ssi.change_comment_only:
+        # Source information
+        ddr.src_flags = ssi.src_flags
+        ddr.scrub_src = ssi.scrub_src
+        ddr.scrub_method = ssi.scrub_method
 
-    # Output decision
-    ddr.decision = ssi.decision
+        # Output decision
+        ddr.decision = ssi.decision
 
-    # Alterations
-    ddr.set_alter_methods_directly(ssi.alter_methods)
+        # Alterations
+        ddr.set_alter_methods_directly(ssi.alter_methods)
 
-    # Indexing
-    ddr.index = get_index_flag(tablename, colname)
+        # Indexing
+        ddr.index = get_index_flag(tablename, colname)
 
     # Improve comment
-    for spec in specifications:
-        if spec.matches(tablename, colname):
-            ddr.comment = COMMENT_SEP.join((
-                ddr.comment or "",
-                spec.comment(context)
-            ))
+    spec = specifications.get((tablename, colname))
+    if spec:
+        spec_comment = spec.comment(context)
+        # If we have no new comment, leave the old one alone.
+        if spec_comment:
+            if append_comments:
+                ddr.comment = COMMENT_SEP.join((ddr.comment or "",
+                                                spec_comment))
+            else:
+                ddr.comment = spec_comment
 
 
 # =============================================================================
 # Read a SystmOne SRE specification CSV file
 # =============================================================================
 
-def read_systmone_sre_spec(filename: str) -> List[SystmOneSRESpecRow]:
+def read_systmone_sre_spec(filename: str) -> SRE_SPEC_TYPE:
     """
     Read a SystmOne SRE specification CSV file. This provides useful comments!
+    The format is of a dictionary mapping (tablename, colname) tuples to
+    SystmOneSRESpecRow objects.
     """
+    specs = {}  # type: SRE_SPEC_TYPE
     with open(filename, "r") as f:
         reader = csv.DictReader(f)
-        specs = []  # type: List[SystmOneSRESpecRow]
         for rowdict in reader:
-            specs.append(SystmOneSRESpecRow(rowdict))
-        return specs
+            s = SystmOneSRESpecRow(rowdict)
+            tablename_colname_tuple = s.tablename_core, s.column_name
+            specs[tablename_colname_tuple] = s
+    return specs
 
 
 # =============================================================================
@@ -1046,16 +1132,48 @@ def read_systmone_sre_spec(filename: str) -> List[SystmOneSRESpecRow]:
 def modify_dd_for_systmone(dd: DataDictionary,
                            context: SystmOneContext,
                            sre_spec_csv_filename: str = "",
-                           debug_specs: bool = False) -> None:
+                           debug_specs: bool = False,
+                           append_comments: bool = False,
+                           include_generic: bool = False) -> None:
     """
     Modifies a data dictionary in place.
+
+    Args:
+        dd
+            The data dictionary to amend.
+        context:
+            The context from which SystmOne data is being extracted (e.g. the
+            raw TPP Strategic Reporting Extract (SRE), or a local version
+            processed into CPFT's Data Warehouse).
+        sre_spec_csv_filename:
+            Optional filename for the TPP SRE specification file, in
+            comma-separated value (CSV) format. If present, this will be used
+            to add proper descriptive comments to all known fields. Highly
+            recommended.
+        debug_specs:
+            Report the SRE specifications to the log.
+        append_comments:
+            Append comments to any that were autogenerated, rather than
+            replacing them. (If you use the SRE specifications, you may as well
+            set this to False as the SRE specification comments are much
+            better.)
+        include_generic:
+            Include all fields that are not known about by this code and
+            treated specially? If False, the config file settings are used
+            (which may omit or include). If True, all such fields are included.
     """
     specs = (
         read_systmone_sre_spec(sre_spec_csv_filename)
         if sre_spec_csv_filename else []
     )
     if debug_specs:
-        specs_str = '\n'.join(spec.line(context) for spec in specs)
+        specs_str = '\n'.join(spec.description(context) for spec in specs)
         log.debug(f"SystmOne specs:\n{specs_str}")
     for ddr in dd.rows:
-        annotate_systmone_dd_row(ddr, context, specs)
+        annotate_systmone_dd_row(
+            ddr=ddr,
+            context=context,
+            specifications=specs,
+            append_comments=append_comments,
+            include_generic=include_generic
+        )

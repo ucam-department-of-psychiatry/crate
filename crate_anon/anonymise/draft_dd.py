@@ -57,7 +57,9 @@ def draft_dd(config: Config,
              skip_dd_check: bool = False,
              systmone: bool = False,
              systmone_context: SystmOneContext = None,
-             systmone_sre_spec_csv_filename: str = None) -> None:
+             systmone_sre_spec_csv_filename: str = None,
+             systmone_append_comments: bool = False,
+             systmone_include_generic: bool = False) -> None:
     """
     Draft a data dictionary.
 
@@ -76,10 +78,20 @@ def draft_dd(config: Config,
         systmone:
             Process data dictionary for SystmOne data?
         systmone_context:
-            For ``systmone``: source database context for SystmOne use.
+            (For SystmOne.) Source database context for SystmOne use.
         systmone_sre_spec_csv_filename:
-            For ``systmone``: optional filename for TPP Strategic Reporting
+            (For SystmOne.) Optional filename for TPP Strategic Reporting
             Extract (SRE) specification CSV.
+        systmone_append_comments:
+            (For SystmOne.) Append, rather than replacing, existing comments?
+            Usually better as False -- if you use
+            ``systmone_sre_spec_csv_filename`, this will provide better
+            comments.
+        systmone_include_generic:
+            (For SystmOne.) Include all fields that are not known about by this
+            code and treated specially? If False, the config file settings are
+            used (which may omit or include). If True, all such fields are
+            included.
     """
     if incremental:  # this is where incrementaldd has its effect
         # For "incremental", we load the data dictionary from disk.
@@ -91,8 +103,13 @@ def draft_dd(config: Config,
     if systmone:
         if not systmone_context:
             raise ValueError("Requires SystmOne context to be specified")
-        modify_dd_for_systmone(config.dd, systmone_context,
-                               systmone_sre_spec_csv_filename)
+        modify_dd_for_systmone(
+            dd=config.dd,
+            context=systmone_context,
+            sre_spec_csv_filename=systmone_sre_spec_csv_filename,
+            append_comments=systmone_append_comments,
+            include_generic=systmone_include_generic,
+        )
 
     config.dd.write(dd_output_filename)
     return
@@ -110,12 +127,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=f"Draft a data dictionary for the anonymiser. "
                     f"({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
 
     parser.add_argument(
         "--config",
         help=f"Config file (overriding environment variable "
-             f"{ANON_CONFIG_ENV_VAR})."
+             f"{ANON_CONFIG_ENV_VAR}). Note that the config file has several "
+             f"options governing the automatic generation of data "
+             f"dictionaries."
     )
     parser.add_argument(
         '--verbose', '-v', action="store_true",
@@ -130,7 +150,8 @@ def main() -> None:
     parser.add_argument(
         "--skip_dd_check", action="store_true",
         help="(For --incremental.) "
-             "Skip validity check for the existing data dictionary.")
+             "Skip validity check for the existing data dictionary."
+    )
     parser.add_argument(
         "--output", default="-",
         help="File for output; use '-' for stdout."
@@ -147,13 +168,24 @@ def main() -> None:
         SystmOneContext, keys_to_lower=True)
     s1_options.add_argument(
         "--systmone_context", type=str, choices=context_k,
-        default=DEFAULT_SYSTMONE_CONTEXT.name,
+        default=DEFAULT_SYSTMONE_CONTEXT.name.lower(),
         help="Context of the SystmOne database that you are reading. "
-             f"-- {context_d} --")
+             f"[{context_d}]"
+    )
     s1_options.add_argument(
         "--systmone_sre_spec",
         help="SystmOne Strategic Reporting Extract (SRE) specification CSV "
-             "filename (from TPP, containing table/field comments).")
+             "filename (from TPP, containing table/field comments)."
+    )
+    s1_options.add_argument(
+        "--systmone_append_comments", action="store_true",
+        help="Append to comments, rather than replacing them."
+    )
+    s1_options.add_argument(
+        "--systmone_include_generic", action="store_true",
+        help="Include all 'generic' fields, overriding preferences set via "
+             "the config file options."
+    )
 
     args = parser.parse_args()
 
@@ -180,4 +212,6 @@ def main() -> None:
         systmone=args.systmone,
         systmone_context=SystmOneContext[args.systmone_context],
         systmone_sre_spec_csv_filename=args.systmone_sre_spec,
+        systmone_append_comments=args.systmone_append_comments,
+        systmone_include_generic=args.systmone_include_generic,
     )
