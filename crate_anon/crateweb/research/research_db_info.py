@@ -711,7 +711,7 @@ ORDER BY
 
         - A PostgreSQL connection is always to a single database; see
           https://stackoverflow.com/questions/10335561/use-database-name-command-in-postgresql
-        - http://dba.stackexchange.com/questions/75015
+        - https://dba.stackexchange.com/questions/75015
         - https://stackoverflow.com/questions/14713774
         - Note that creating a GIN index looks like:
 

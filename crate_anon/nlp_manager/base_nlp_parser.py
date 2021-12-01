@@ -525,7 +525,7 @@ class TableMaker(ABC):
                 execute a COMMIT after we have deleted the records?
                 If you don't do this, we will get deadlocks in incremental mode.
                 See e.g.
-                http://dev.mysql.com/doc/refman/5.5/en/innodb-deadlocks.html
+                https://dev.mysql.com/doc/refman/5.5/en/innodb-deadlocks.html
         """  # noqa
         session = self.dest_session
         srcdb = ifconfig.srcdb

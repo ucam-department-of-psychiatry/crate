@@ -139,7 +139,7 @@ crate_anon/crateweb/consent/celery.py
 
 Inspecting workers:
 
-- http://docs.celeryproject.org/en/latest/userguide/workers.html#inspecting-workers  # noqa
+- https://docs.celeryproject.org/en/latest/userguide/workers.html#inspecting-workers  # noqa
 
 Inspecting lots of things:
 

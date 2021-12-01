@@ -244,7 +244,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     - In SQLAlchemy, :func:`exists`:
 
       - https://stackoverflow.com/questions/14600619
-      - http://docs.sqlalchemy.org/en/latest/core/selectable.html
+      - https://docs.sqlalchemy.org/en/latest/core/selectable.html
 
     - Furthermore, in SQL ``NULL = NULL`` is false (it's null), and ``NULL <>
       NULL`` is also false (it's null), so we have to do an explicit null

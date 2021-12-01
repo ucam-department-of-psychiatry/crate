@@ -94,7 +94,7 @@ function callback(id)
     }
 
     // Set the contents panels
-    var rcd = getRightContentDiv();
+    let rcd = getRightContentDiv();
     rcd.innerHTML = getRightContent(id);
 
     // Indicate on the left-hand tree which is currently selected

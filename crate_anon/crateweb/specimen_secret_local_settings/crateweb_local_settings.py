@@ -480,6 +480,6 @@ PDF_LETTER_FOOTER_HTML = ''
 # =============================================================================
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
-CHARITY_URL = "http://www.cpft.nhs.uk/research.htm"
+CHARITY_URL = "https://www.cpft.nhs.uk/research.htm"
 CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa

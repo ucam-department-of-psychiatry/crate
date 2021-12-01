@@ -49,7 +49,7 @@ Javascript to help research users build SQL queries.
 */
 
 // QB_DATATYPE_* values must match crate_anon/common/sql.py
-var QB_DATATYPE_DATE = "date",
+const QB_DATATYPE_DATE = "date",
     QB_DATATYPE_FLOAT = "float",
     QB_DATATYPE_INTEGER = "int",
     QB_DATATYPE_STRING = "string",
@@ -116,7 +116,7 @@ var QB_DATATYPE_DATE = "date",
 // The declarations from the server come later in the HTML and will override
 // these, so it's safe to declare dummy instances here, which helps the linter:
 
-var DATABASE_STRUCTURE = [
+const DATABASE_STRUCTURE = [
         {
             database: 'dummy_database',
             schema: 'dummy_schema',
@@ -158,7 +158,7 @@ var DATABASE_STRUCTURE = [
 // ============================================================================
 
 function contains(a, obj) {
-    for (var i = 0; i < a.length; i++) {
+    for (let i = 0; i < a.length; i++) {
         if (a[i] === obj) {
             return true;
         }
@@ -171,11 +171,9 @@ function contains(a, obj) {
 // ============================================================================
 
 function get_all_db_names() {
-    var db_names = [],
-        db,
-        i;
-    for (i = 0; i < DATABASE_STRUCTURE.length; ++i) {
-        db = DATABASE_STRUCTURE[i].database;
+    let db_names = [];
+    for (let i = 0; i < DATABASE_STRUCTURE.length; ++i) {
+        const db = DATABASE_STRUCTURE[i].database;
         if (!contains(db_names, db)) {
             db_names.push(db);
         }
@@ -184,12 +182,10 @@ function get_all_db_names() {
 }
 
 function get_all_schema_names(db) {
-    var schema_names = [],
-        schema,
-        i;
-    for (i = 0; i < DATABASE_STRUCTURE.length; ++i) {
+    let schema_names = [];
+    for (let i = 0; i < DATABASE_STRUCTURE.length; ++i) {
         if (DATABASE_STRUCTURE[i].database === db) {
-            schema = DATABASE_STRUCTURE[i].schema;
+            const schema = DATABASE_STRUCTURE[i].schema;
             if (!contains(schema_names, schema)) {
                 schema_names.push(schema);
             }
@@ -199,8 +195,7 @@ function get_all_schema_names(db) {
 }
 
 function get_schema_info(db, schema) {
-    var i;
-    for (i = 0; i < DATABASE_STRUCTURE.length; ++i) {
+    for (let i = 0; i < DATABASE_STRUCTURE.length; ++i) {
         if (DATABASE_STRUCTURE[i].database === db &&
                 DATABASE_STRUCTURE[i].schema === schema) {
             return DATABASE_STRUCTURE[i];
@@ -210,25 +205,23 @@ function get_schema_info(db, schema) {
 }
 
 function get_all_table_names(db, schema) {
-    var schema_info = get_schema_info(db, schema),
-        table_names = [],
-        i;
+    const schema_info = get_schema_info(db, schema);
+    let table_names = [];
     if (schema_info === null) {
         return [];
     }
-    for (i = 0; i < schema_info.tables.length; ++i) {
+    for (let i = 0; i < schema_info.tables.length; ++i) {
         table_names.push(schema_info.tables[i].table);
     }
     return table_names;
 }
 
 function get_table_info(db, schema, table) {
-    var schema_info = get_schema_info(db, schema),
-        i;
+    const schema_info = get_schema_info(db, schema);
     if (schema_info === null) {
         return null;
     }
-    for (i = 0; i < schema_info.tables.length; ++i) {
+    for (let i = 0; i < schema_info.tables.length; ++i) {
         if (schema_info.tables[i].table === table) {
             return schema_info.tables[i];
         }
@@ -237,25 +230,23 @@ function get_table_info(db, schema, table) {
 }
 
 function get_all_column_names(db, schema, table) {
-    var tableinfo = get_table_info(db, schema, table),
-        column_names = [],
-        i;
+    const tableinfo = get_table_info(db, schema, table);
+    let column_names = [];
     if (tableinfo === null) {
         return [];
     }
-    for (i = 0; i < tableinfo.columns.length; ++i) {
+    for (let i = 0; i < tableinfo.columns.length; ++i) {
         column_names.push(tableinfo.columns[i].colname);
     }
     return column_names;
 }
 
 function get_column_info(db, schema, table, column) {
-    var tableinfo = get_table_info(db, schema, table),
-        i;
+    const tableinfo = get_table_info(db, schema, table);
     if (tableinfo === null) {
         return null;
     }
-    for (i = 0; i < tableinfo.columns.length; ++i) {
+    for (let i = 0; i < tableinfo.columns.length; ++i) {
         if (tableinfo.columns[i].colname === column) {
             return tableinfo.columns[i];
         }
@@ -272,11 +263,9 @@ function log(text) {
 }
 
 function get_select_options_from_list(valuelist) {
-    var i,
-        val,
-        options = [];
-    for (i = 0; i < valuelist.length; ++i) {
-        val = valuelist[i];
+    let options = [];
+    for (let i = 0; i < valuelist.length; ++i) {
+        const val = valuelist[i];
         options.push({text: val, value: val});
     }
     return options;
@@ -284,13 +273,11 @@ function get_select_options_from_list(valuelist) {
 
 function reset_select_options(element, options) {
     // options should be a list of objects with attributes: text, value
-    var i,
-        opt;
     while (element.options.length > 0) {
         element.remove(element.options.length - 1);
     }
-    for (i = 0; i < options.length; ++i) {
-        opt = document.createElement('option');
+    for (let i = 0; i < options.length; ++i) {
+        let opt = document.createElement('option');
         opt.text = options[i].text;
         opt.value = options[i].value;
         element.add(opt, null);
@@ -298,7 +285,7 @@ function reset_select_options(element, options) {
 }
 
 function reset_select_options_by_id(element_id, options) {
-    var element = document.getElementById(element_id);
+    let element = document.getElementById(element_id);
     reset_select_options(element, options);
 }
 
@@ -340,17 +327,16 @@ function show_input(element, method) {
 
 function set_picker_value_by_id(element_id, value, default_value) {
     // For <select ...> <option ...> <option ...> </select> elements.
-    var element = document.getElementById(element_id),
-        i;
+    let element = document.getElementById(element_id);
     if (value) {
-        for (i = 0; i < element.options.length; ++i) {
+        for (let i = 0; i < element.options.length; ++i) {
             if (element.options[i].value === value) {
                 element.selectedIndex = i;
                 return;
             }
         }
     } else if (default_value) {
-        for (i = 0; i < element.options.length; ++i) {
+        for (let i = 0; i < element.options.length; ++i) {
             if (element.options[i].value === default_value) {
                 element.selectedIndex = i;
                 return;
@@ -360,7 +346,7 @@ function set_picker_value_by_id(element_id, value, default_value) {
 }
 
 function get_picker_value_by_id(element_id) {
-    var element = document.getElementById(element_id);
+    const element = document.getElementById(element_id);
     if (element.selectedIndex < 0) {
         return "";
     }
@@ -369,20 +355,20 @@ function get_picker_value_by_id(element_id) {
 
 function set_input_value_by_id(id, value) {
     // For <input ... value=""> elements
-    var element = document.getElementById(id);
+    let element = document.getElementById(id);
     element.value = value;
 }
 
 function get_input_value_by_id(id) {
     // For <input ... value=""> elements
-    var element = document.getElementById(id);
+    const element = document.getElementById(id);
     return element.value;
 }
 
 /*
 function set_checkbox_input_by_id(id, value) {
     // For <input ... type="checkbox" ...>
-    var element = document.getElementById(id);
+    let element = document.getElementById(id);
     // http://stackoverflow.com/questions/7851868/whats-the-proper-value-for-a-checked-attribute-of-an-html-checkbox
     // http://stackoverflow.com/questions/208105/how-do-i-remove-a-property-from-a-javascript-object
     if (value) {
@@ -400,7 +386,7 @@ function set_hidden_boolean_input_by_id(id, value) {
 function display_html_by_id(element_id, html, append, sep) {
     append = append === undefined ? false : append;
     sep = sep === undefined ? "<br>" : sep;
-    var element = document.getElementById(element_id);
+    let element = document.getElementById(element_id);
     if (append) {
         if (element.innerHTML) {
             element.innerHTML += sep;
@@ -491,13 +477,13 @@ function set_op(op, default_op) {
 }
 
 function where_op_changed() {
-    var entry_date = document.getElementById(ID_WHERE_VALUE_DATE),
+    let entry_date = document.getElementById(ID_WHERE_VALUE_DATE),
         entry_file = document.getElementById(ID_WHERE_VALUE_FILE),
         entry_float = document.getElementById(ID_WHERE_VALUE_FLOAT),
         entry_integer = document.getElementById(ID_WHERE_VALUE_INTEGER),
-        entry_text = document.getElementById(ID_WHERE_VALUE_TEXT),
-        coltype = get_current_coltype(),
-        op = get_current_op();
+        entry_text = document.getElementById(ID_WHERE_VALUE_TEXT);
+    const coltype = get_current_coltype();
+    const op = get_current_op();
     log("where_op_changed: coltype = " + coltype + ", op = " + op);
     hide_input(entry_date);
     hide_input(entry_file);
@@ -535,10 +521,10 @@ function where_op_changed() {
 }
 
 function column_changed() {
-    var where_op_picker = document.getElementById(ID_WHERE_OP),
+    let where_op_picker = document.getElementById(ID_WHERE_OP),
         where_button = document.getElementById(ID_WHERE_BUTTON),
-        select_button = document.getElementById(ID_SELECT_BUTTON),
-        db = get_current_db(),
+        select_button = document.getElementById(ID_SELECT_BUTTON);
+    const db = get_current_db(),
         schema = get_current_schema(),
         table = get_current_table(),
         column = get_current_column(),
@@ -546,8 +532,8 @@ function column_changed() {
         old_op = get_current_op(),
         coltype = colinfo ? colinfo.coltype : null,
         rawtype = colinfo ? colinfo.rawtype : null,
-        comment = colinfo ? colinfo.comment : null,
-        colinfo_html = "";
+        comment = colinfo ? colinfo.comment : null;
+    let colinfo_html = "";
     log("column_changed: column = " + column + ", coltype = " + coltype);
     set_input_value_by_id(ID_COLTYPE, coltype);
     if (STARTING_VALUES.with_database) {
@@ -610,12 +596,12 @@ function column_changed() {
 }
 
 function table_changed() {
-    var db = get_current_db(),
+    const db = get_current_db(),
         schema = get_current_schema(),
         table = get_current_table(),
-        column_picker = document.getElementById(ID_COLUMN_PICKER),
         column_names = get_all_column_names(db, schema, table),
         column_options = get_select_options_from_list(column_names);
+    let column_picker = document.getElementById(ID_COLUMN_PICKER);
     log("table_changed: table = " + table);
     if (!table) {
         hide_element(column_picker);
@@ -627,11 +613,11 @@ function table_changed() {
 }
 
 function schema_changed() {
-    var db = get_current_db(),
+    const db = get_current_db(),
         schema = get_current_schema(),
-        table_picker = document.getElementById(ID_TABLE_PICKER),
         table_names = get_all_table_names(db, schema),
         table_options = get_select_options_from_list(table_names);
+    let table_picker = document.getElementById(ID_TABLE_PICKER);
     log("schema_changed: schema = " + schema);
     if (!schema) {
         hide_element(table_picker);
@@ -643,10 +629,10 @@ function schema_changed() {
 }
 
 function db_changed() {
-    var db = get_current_db(),
-        schema_picker = document.getElementById(ID_SCHEMA_PICKER),
+    const db = get_current_db(),
         schema_names = get_all_schema_names(db),
         schema_options = get_select_options_from_list(schema_names);
+    let schema_picker = document.getElementById(ID_SCHEMA_PICKER);
     log("db_changed: db = " + db);
     if (!db) {
         hide_element(schema_picker);
@@ -660,14 +646,14 @@ function db_changed() {
 function populate() {
     // This is the "onload" function called by the HTML.
     log("populate");
-    var db_picker = document.getElementById(ID_DATABASE_PICKER),
+    let db_picker = document.getElementById(ID_DATABASE_PICKER),
         schema_picker = document.getElementById(ID_SCHEMA_PICKER),
         table_picker = document.getElementById(ID_TABLE_PICKER),
         column_picker = document.getElementById(ID_COLUMN_PICKER),
         where_op_picker = document.getElementById(ID_WHERE_OP),
         coltype_info_element = document.getElementById(ID_COLTYPE_INFO),
-        current_col_element = document.getElementById(ID_CURRENT_COLUMN),
-        db_names = get_all_db_names(),
+        current_col_element = document.getElementById(ID_CURRENT_COLUMN);
+    const db_names = get_all_db_names(),
         db_options = get_select_options_from_list(db_names),
         schema_names = get_all_schema_names(''),  // in case we're not using the database level
         schema_options = get_select_options_from_list(schema_names),  // in case we're not using the database level

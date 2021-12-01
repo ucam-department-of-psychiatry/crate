@@ -30,7 +30,7 @@ and surnames.**
 See:
 
 - https://stackoverflow.com/questions/1803628/raw-list-of-person-names
-- http://www.dicts.info/dictionaries.php
+- https://www.dicts.info/dictionaries.php
 
 For the Moby project:
 

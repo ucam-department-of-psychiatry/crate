@@ -49,7 +49,7 @@ class FruitParser(BaseNlpParser):
 
         for word in text.split(" "):
             if word.lower() in fruits:
-                yield ("output", {"fruit": word.lower()})
+                yield "output", {"fruit": word.lower()}
 
 
 class NlpParserProcessTests(TestCase):

@@ -37,19 +37,19 @@ See also :mod:`crate_anon.crateweb.consent.celery`, which defines the ``app``.
     Possible otherwise that if this module is imported in different ways
     (e.g. absolute, relative), you'll get a "Received unregistered task"
     error.
-    http://docs.celeryq.org/en/latest/userguide/tasks.html#task-names
+    https://docs.celeryq.org/en/latest/userguide/tasks.html#task-names
 
 
 **Acknowledgement/not doing things more than once:**
 
-- http://docs.celeryproject.org/en/latest/userguide/tasks.html
+- https://docs.celeryproject.org/en/latest/userguide/tasks.html
 
 - default is to acknowledge on receipt of request, not after task completion;
   that prevents things from happening more than once.
   If you can guarantee your function is idempotent, you can acknowledge after
   completion.
 
-- http://docs.celeryproject.org/en/latest/faq.html#faq-acks-late-vs-retry
+- https://docs.celeryproject.org/en/latest/faq.html#faq-acks-late-vs-retry
 
 - We'll stick with the default (slightly less reliable but won't be run more
   than once).
@@ -80,7 +80,7 @@ See also :mod:`crate_anon.crateweb.consent.celery`, which defines the ``app``.
 
   Object is received by Celery in the state before save() at step 3.
 
-- http://celery.readthedocs.org/en/latest/userguide/tasks.html#database-transactions
+- https://celery.readthedocs.org/en/latest/userguide/tasks.html#database-transactions
 
 - https://stackoverflow.com/questions/26862942/django-related-objects-are-missing-from-celery-task-race-condition
 

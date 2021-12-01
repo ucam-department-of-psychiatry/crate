@@ -29,7 +29,7 @@ stores in its admin database.**
 
 To create a SQLAlchemy Table programmatically:
 
-- http://docs.sqlalchemy.org/en/latest/core/schema.html
+- https://docs.sqlalchemy.org/en/latest/core/schema.html
 - https://stackoverflow.com/questions/5424942/sqlalchemy-model-definition-at-execution
 - https://stackoverflow.com/questions/2580497/database-on-the-fly-with-scripting-languages/2580543#2580543
 

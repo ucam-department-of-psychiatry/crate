@@ -30,7 +30,7 @@ patient identifiers.**
 
 
 .. _TLSH: https://github.com/trendmicro/tlsh
-.. _sdhash: http://roussev.net/sdhash/sdhash.html
+.. _sdhash: https://roussev.net/sdhash/sdhash.html
 .. _Nilsimsa: https://en.wikipedia.org/wiki/Nilsimsa_Hash
 .. _ssdeep: https://ssdeep-project.github.io/ssdeep/index.html
 
@@ -322,7 +322,7 @@ def get_metaphone(x: str) -> str:
 
     See
 
-    - http://www.b-eye-network.com/view/1596
+    - https://www.b-eye-network.com/view/1596
     - https://dl.acm.org/citation.cfm?id=349132
 
     The implementation is from https://pypi.org/project/Fuzzy/.

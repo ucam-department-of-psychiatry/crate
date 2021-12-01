@@ -31,13 +31,13 @@ Code-Point Open, CSV, GB
 - https://www.ordnancesurvey.co.uk/business-and-government/products/opendata-products.html
 - https://www.ordnancesurvey.co.uk/business-and-government/products/code-point-open.html
 - https://www.ordnancesurvey.co.uk/opendatadownload/products.html
-- http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
+- https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
 
 Office for National Statistics Postcode Database (ONSPD):
 
 - https://geoportal.statistics.gov.uk/geoportal/catalog/content/filelist.page
 - e.g. ONSPD_MAY_2016_csv.zip
-- http://www.ons.gov.uk/methodology/geography/licences
+- https://www.ons.gov.uk/methodology/geography/licences
 
 Background:
 
@@ -206,7 +206,7 @@ class ExtendedBase(object):
     as usual.
 
     See
-    http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/mixins.html
+    https://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/mixins.html
     """
     __table_args__ = TABLE_KWARGS
 
@@ -1014,7 +1014,7 @@ _ = '''
 # =============================================================================
 # Models: centroids
 # =============================================================================
-# http://webarchive.nationalarchives.gov.uk/20160105160709/http://www.ons.gov.uk/ons/guide-method/geography/products/census/spatial/centroids/index.html  # noqa
+# https://webarchive.nationalarchives.gov.uk/20160105160709/http://www.ons.gov.uk/ons/guide-method/geography/products/census/spatial/centroids/index.html  # noqa
 #
 # Looking at lower_layer_super_output_areas_(e+w)_2011_population_weighted_centroids_v2.zip : # noqa
 # - LSOA_2011_EW_PWC.shp -- probably a Shape file;
@@ -1304,7 +1304,7 @@ def main() -> None:
     Tell this program which directory you used.
 
 -   Specify your database as an SQLAlchemy connection URL: see
-        http://docs.sqlalchemy.org/en/latest/core/engines.html
+        https://docs.sqlalchemy.org/en/latest/core/engines.html
     The general format is:
         dialect[+driver]://username:password@host[:port]/database[?key=value...]
 
@@ -1320,7 +1320,7 @@ def main() -> None:
     Contains Royal Mail data © Royal Mail copyright and database right [year]
     Contains National Statistics data © Crown copyright and database right [year]
 
-    See http://www.ons.gov.uk/methodology/geography/licences
+    See https://www.ons.gov.uk/methodology/geography/licences
     """)  # noqa: E501
     parser.add_argument(
         "--dir", default=DEFAULT_ONSPD_DIR,

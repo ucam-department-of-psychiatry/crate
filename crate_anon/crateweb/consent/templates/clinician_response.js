@@ -7,11 +7,11 @@
         initial_response
 */
 
-var c_available_python = "{{ option_c_available }}";
-var c_available = c_available_python === "True";
-var r_available_python = "{{ option_r_available }}";
-var r_available = r_available_python === "True";
-var initial_response = "{{ initial_response }}";
+const c_available_python = "{{ option_c_available }}";
+const c_available = c_available_python === "True";
+const r_available_python = "{{ option_r_available }}";
+const r_available = r_available_python === "True";
+const initial_response = "{{ initial_response }}";
 
 //noinspection JSUnusedGlobalSymbols
 function startup() {

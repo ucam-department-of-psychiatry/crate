@@ -153,7 +153,7 @@ ddgen_table_denylist = #
     GenPrinter*  # printers
     GenToDoList  # user to-do list items/notifications
     gridall  # same number of records as dtoElectoralWardPCLookup; also geography;
-    KP90ErrorLog  # error log for KP90 report; http://www.hscic.gov.uk/datacollections/kp90
+    KP90ErrorLog  # error log for KP90 report; https://www.hscic.gov.uk/datacollections/kp90
     LR*  # Legitimate Relationships module
     Meeting*  # Meetings module
     Mes*  # messaging

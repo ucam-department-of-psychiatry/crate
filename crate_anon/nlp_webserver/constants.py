@@ -39,7 +39,7 @@ SERVER_VERSION = '0.1'
 
 
 class NlpServerConfigKeys(object):
-    _SQLALCHEMY_PREFIX = "sqlalchemy."
+    SQLALCHEMY_PREFIX = "sqlalchemy."  # not itself a key
 
     BACKEND_URL = "backend_url"
     BROKER_URL = "broker_url"
@@ -50,8 +50,8 @@ class NlpServerConfigKeys(object):
     REDIS_HOST = "redis_host"
     REDIS_PASSWORD = "redis_password"
     REDIS_PORT = "redis_port"
-    SQLALCHEMY_ECHO = _SQLALCHEMY_PREFIX + "echo"
-    SQLALCHEMY_URL = _SQLALCHEMY_PREFIX + "url"
+    SQLALCHEMY_ECHO = SQLALCHEMY_PREFIX + "echo"
+    SQLALCHEMY_URL = SQLALCHEMY_PREFIX + "url"
     USERS_FILE = "users_file"
 
 

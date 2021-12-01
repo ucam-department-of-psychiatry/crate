@@ -3960,7 +3960,7 @@ def archive_template(request: HttpRequest) -> HttpResponse:
       context; see :ref:`the Python Mako context <archive_mako_context>`.
 
     - If we use DMP, it will add a ``request.dmp`` object; see
-      http://doconix.github.io/django-mako-plus/topics_variables.html.
+      https://doconix.github.io/django-mako-plus/topics_variables.html.
       (We won't use DMP.)
 
     """  # noqa

@@ -153,9 +153,9 @@ else:
         // Graph
         // ====================================================================
 
-        var chart = document.getElementById("chart");
-        var data = ${json_compact(data)};
-        var layout = ${json_compact(layout)};
+        let chart = document.getElementById("chart");
+        const data = ${json_compact(data)};
+        const layout = ${json_compact(layout)};
 
         plotly_config["toImageButtonOptions"]["filename"] = ${json_compact(filename)};
         console.log(plotly_config);

@@ -48,6 +48,7 @@ import prettytable
 
 # noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser, TableMaker
+# noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.parse_gate import Gate
 from crate_anon.nlp_manager.parse_medex import Medex

@@ -106,8 +106,8 @@ class Crp(SimpleNumericalResultParser):
 
     - Refs include:
 
-      - http://www.ncbi.nlm.nih.gov/pubmed/7705110
-      - http://emedicine.medscape.com/article/2086909-overview
+      - https://www.ncbi.nlm.nih.gov/pubmed/7705110
+      - https://emedicine.medscape.com/article/2086909-overview
 
     - 1 mg/dL = 10 mg/L, so normal in mg/dL is <=1 roughly.
 

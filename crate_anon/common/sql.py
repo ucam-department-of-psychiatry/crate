@@ -2120,7 +2120,7 @@ def escape_percent_in_literal(sql: str) -> str:
     Escapes ``%`` by converting it to ``\%``.
     Use this for LIKE clauses.
 
-    - http://dev.mysql.com/doc/refman/5.7/en/string-literals.html
+    - https://dev.mysql.com/doc/refman/5.7/en/string-literals.html
     """
     return sql.replace('%', r'\%')
 

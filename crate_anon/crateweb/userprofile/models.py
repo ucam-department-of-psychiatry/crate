@@ -118,7 +118,7 @@ class UserProfile(models.Model):
         verbose_name='SQL scratchpad for query builder')
     patient_multiquery_scratchpad = JsonClassField(
         verbose_name='PatientMultiQuery scratchpad (in JSON) for builder',
-        null=True)  # type: 'PatientMultiQuery'
+        null=True)  # type: PatientMultiQuery
 
     # -------------------------------------------------------------------------
     # Developer

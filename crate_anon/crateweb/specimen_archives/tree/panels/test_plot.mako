@@ -38,15 +38,15 @@ crate_anon/crateweb/specimen_archives/tree/panels/test_plot.mako
 // ============================================================================
 // See https://plot.ly/javascript/reference/
 
-var chart = document.getElementById("plotly_chart");
-var data = [{
+let chart = document.getElementById("plotly_chart");
+const data = [{
     x: [1, 2, 3, 4, 5],
     y: [1, 2, 4, 8, 16],
     type: "scatter",
     name: "Fictional data"
     // line: { shape: "spline" }
 }];
-var layout = {
+const layout = {
     width: window.innerWidth,
     // height: window.innerHeight,
     margin: {

@@ -75,7 +75,7 @@ log = logging.getLogger(__name__)
 
 TaskSession = scoped_session(Session)
 engine = engine_from_config(SETTINGS,
-                            NlpServerConfigKeys._SQLALCHEMY_PREFIX,
+                            NlpServerConfigKeys.SQLALCHEMY_PREFIX,
                             **SQLALCHEMY_COMMON_OPTIONS)
 TaskSession.configure(bind=engine)
 

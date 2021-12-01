@@ -28,8 +28,8 @@ crate_anon/anonymise/make_demo_database.py
 
 See also:
 
-- http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3751474/
-- http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3751474/table/T7/
+- https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3751474/
+- https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3751474/table/T7/
 
 After anonymisation, check with:
 
@@ -149,7 +149,7 @@ def compile_blob_mysql(type_: "TypeEngine",
     Provides a custom type for the SQLAlchemy ``LargeBinary`` type under MySQL,
     by using ``LONGBLOB`` (which overrides the default of ``BLOB``).
 
-    MySQL: http://dev.mysql.com/doc/refman/5.7/en/storage-requirements.html
+    MySQL: https://dev.mysql.com/doc/refman/5.7/en/storage-requirements.html
 
     .. code-block:: none
 

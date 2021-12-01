@@ -74,14 +74,14 @@ for logging.
 How do we clean up the temporary directories?
 
 - ``__del__`` is not the opposite of ``__init__``;
-  http://www.algorithm.co.il/blogs/programming/python-gotchas-1-__del__-is-not-the-opposite-of-__init__/
-- http://eli.thegreenplace.net/2009/06/12/safely-using-destructors-in-python
+  https://www.algorithm.co.il/blogs/programming/python-gotchas-1-__del__-is-not-the-opposite-of-__init__/
+- https://eli.thegreenplace.net/2009/06/12/safely-using-destructors-in-python
 
 PROBLEMS:
 
 - NLP works fine, but UK-style abbreviations e.g. "qds" not recognized where
   "q.i.d." is. US abbreviations: e.g.
-  http://www.d.umn.edu/medweb/Modules/Prescription/Abbreviations.html
+  https://www.d.umn.edu/medweb/Modules/Prescription/Abbreviations.html
 
   - Places to look, and things to try adding:
 
@@ -171,7 +171,7 @@ PROBLEMS:
 
       .. code-block:: java
 
-        // EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
+        // EXTRA FOR UK FREQUENCIES (see https://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
         // NB case-insensitive regexes in SemanticRuleEngine.java, so ignore case here
         regexlist.put("^(q\\.?q\\.?h\\.?)( |$)", "FREQ");  // qqh, quarta quaque hora (RNC)
         regexlist.put("^(q\\.?d\\.?s\\.?)( |$)", "FREQ");  // qds, quater die sumendum (RNC); must go before existing competing expression: regexlist.put("^q(\\.|)\\d+( |$)","FREQ");
@@ -193,7 +193,7 @@ PROBLEMS:
 
       .. code-block:: none
 
-        // EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
+        // EXTRA FOR UK FREQUENCIES (see https://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
         // NB case-sensitive regexes in Rule.java, so offer upper- and lower-case alternatives here
         // qqh, quarta quaque hora (RNC)
         expression="\b[Qq]\.?[Qq]\.?[Hh]\.?\b",val="R1P4H"
@@ -225,7 +225,7 @@ PROBLEMS:
 
   (c) source:
 
-      - http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations
+      - https://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations
 
 - How about routes of administration?
 
