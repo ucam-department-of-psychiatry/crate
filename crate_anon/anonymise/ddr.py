@@ -771,21 +771,24 @@ class DataDictionaryRow(object):
         """
         Returns the SQLAlchemy column type of the destination column.
         """
-        dialect = self.config.dest_dialect
         if self.dest_datatype:
             # User (or our autogeneration process) wants to override
             # the type.
-            return get_sqla_coltype_from_dialect_str(self.dest_datatype,
-                                                     dialect)
+            return get_sqla_coltype_from_dialect_str(
+                self.dest_datatype,
+                self.config.dest_dialect
+            )
         else:
+            # Destination data type is not explicitly specified.
             # Return the SQLAlchemy column type class determined from the
             # source database by reflection.
             # Will be autoconverted to the destination dialect.
             # With some exceptions, addressed as below:
             return convert_sqla_type_for_dialect(
                 coltype=self.src_sqla_coltype,
-                dialect=dialect,
-                expand_for_scrubbing=self.being_scrubbed)
+                dialect=self.config.dest_dialect,
+                expand_for_scrubbing=self.being_scrubbed
+            )
 
     @property
     def dest_sqla_column(self) -> Column:
@@ -1345,8 +1348,8 @@ class DataDictionaryRow(object):
 
         self.indexlen = (
             DEFAULT_INDEX_LEN
-            if (self.index is not IndexType.FULLTEXT and
-                does_sqlatype_require_index_len(dest_sqla_type))
+            if (self.index is not IndexType.FULLTEXT
+                and does_sqlatype_require_index_len(dest_sqla_type))
             else None
         )
 

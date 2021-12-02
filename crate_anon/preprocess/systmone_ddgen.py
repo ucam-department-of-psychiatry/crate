@@ -462,6 +462,9 @@ CPFT_TAB_REL_MOTHER = "PatientRelationshipMother"
 
 OMIT_TABLES = (
     "NomisNumber",  # Prison NOMIS numbers
+
+    # CPFT extras:
+    "gr_workings",  # no idea
 )
 CORE_TO_CONTEXT_TABLE_TRANSLATIONS = {
     # Key: destination context.
@@ -589,6 +592,7 @@ CPFT_GENERIC_COL_AGE_YEARS = "AgeInYears"
 # ... usually "at the time of calculation, or death", i.e. unhelpful if you are
 # unsure when the data was extracted; see stored procedure load_S1_Patient.
 CPFT_GENERIC_COL_PATIENT_NAME = "PatientName"
+CPFT_GENERIC_COL_NHSNUM_MOTHER = "CYPHS_NHSNumber_Mother"
 
 S1_TO_CPFT_COLUMN_TRANSLATION = {
     # Where CPFT has renamed a column.
@@ -673,6 +677,8 @@ S1_COLS_GENERIC_EXCLUDE = (
     S1_REL_COL_ADDRESS_MOBILE_TELEPHONE,
     S1_REL_COL_ADDRESS_FAX,
     S1_REL_COL_ADDRESS_EMAIL,
+
+    CPFT_GENERIC_COL_NHSNUM_MOTHER,
 
     S1_HOSPNUM_COL_HOSPNUM,  # just in case
 )
@@ -877,16 +883,21 @@ def tablename_prefix(context: SystmOneContext) -> str:
 
 
 def core_tablename(tablename: str,
-                   from_context: SystmOneContext) -> str:
+                   from_context: SystmOneContext,
+                   allow_unprefixed: bool = False) -> str:
     """
-    Is this a table of an expected format that we will consider? If so, returns
-    the "core" part of the tablename, in the given context. Otherwise, return
-    the input.
+    Is this a table of an expected format that we will consider?
+    - If so, returns the "core" part of the tablename, in the given context.
+    - Otherwise, if ``allow_unprefixed`` return the input.
+    - Otherwise, return an empty string.
     """
     prefix = tablename_prefix(from_context)
     if not tablename.startswith(prefix):
-        log.debug(f"Unrecognized table name style: {tablename}")
-        return tablename
+        log.warning(f"Unrecognized table name style: {tablename}")
+        if allow_unprefixed:
+            return tablename
+        else:
+            return ""
     rest = tablename[len(prefix):]
     if not rest:
         raise ValueError(f"Table name {tablename!r} only contains its prefix")
@@ -1453,7 +1464,8 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
                              context: SystmOneContext,
                              specifications: SRE_SPEC_TYPE,
                              append_comments: bool = False,
-                             include_generic: bool = False) -> None:
+                             include_generic: bool = False,
+                             allow_unprefixed_tables: bool = False) -> None:
     """
     Modifies (in place) a data dictionary row for SystmOne.
 
@@ -1475,12 +1487,16 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
             Include all fields that are not known about by this code and
             treated specially? If False, the config file settings are used
             (which may omit or include). If True, all such fields are included.
+        allow_unprefixed_tables:
+            Permit tables that don't start with the expected contextual prefix?
+            Discouraged; you may get odd tables and views.
     """
-    tablename = core_tablename(ddr.src_table, from_context=context)
-    # We proceed even if the table doesn't fit out scheme (e.g. start with the
-    # expected prefix). For example, our local team might create a table with
-    # an inconsistent name, yet meeting the basic structure of other SystmOne
-    # tables.
+    tablename = core_tablename(ddr.src_table,
+                               from_context=context,
+                               allow_unprefixed=allow_unprefixed_tables)
+    if not tablename:
+        # It didn't have the right prefix and allow_unprefixed_tables is False.
+        return
     colname = core_columnname(tablename, ddr.src_field, from_context=context)
 
     debugmsg = f"Considering: {ddr.src_table}.{ddr.src_field}"
@@ -1549,7 +1565,8 @@ def modify_dd_for_systmone(dd: DataDictionary,
                            sre_spec_csv_filename: str = "",
                            debug_specs: bool = False,
                            append_comments: bool = False,
-                           include_generic: bool = False) -> None:
+                           include_generic: bool = False,
+                           allow_unprefixed_tables: bool = False) -> None:
     """
     Modifies a data dictionary in place.
 
@@ -1576,6 +1593,9 @@ def modify_dd_for_systmone(dd: DataDictionary,
             Include all fields that are not known about by this code and
             treated specially? If False, the config file settings are used
             (which may omit or include). If True, all such fields are included.
+        allow_unprefixed_tables:
+            Permit tables that don't start with the expected contextual prefix?
+            Discouraged; you may get odd tables and views.
     """
     specs = (
         read_systmone_sre_spec(sre_spec_csv_filename)
@@ -1590,5 +1610,6 @@ def modify_dd_for_systmone(dd: DataDictionary,
             context=context,
             specifications=specs,
             append_comments=append_comments,
-            include_generic=include_generic
+            include_generic=include_generic,
+            allow_unprefixed_tables=allow_unprefixed_tables,
         )

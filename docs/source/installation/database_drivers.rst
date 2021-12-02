@@ -47,8 +47,8 @@ Database engines
 
 Supported engines include:
 
-- MySQL_: free, open source, simple administration including via `MySQL
-  Workbench`_.
+- MySQL_: free, open source, simple administration including via
+  `MySQL Workbench`_.
 
 - PostgreSQL_: free, open source, emphasis on standards compliance, advanced
   column types.
@@ -76,7 +76,10 @@ Summarizing the discussion below:
   <django_mssql_backend>`, and with SQLAlchemy use pyodbc_, both via ODBC. For
   the ODBC drivers:
 
-  - under Windows, use native drivers (`Microsoft ODBC Driver for SQL Server`_);
+  - under Windows, use native drivers
+    (`Microsoft ODBC Driver for SQL Server`_), and :ref:`configure your ODBC
+    connection for MARS <configure_odbc_mars>`;
+
   - under Linux, use the `Microsoft ODBC Driver for SQL Server (Linux)`_ (and
     if you don't want to use that, use FreeTDS_ in a version that supports
     MARS_).

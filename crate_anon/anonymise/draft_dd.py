@@ -59,7 +59,8 @@ def draft_dd(config: Config,
              systmone_context: SystmOneContext = None,
              systmone_sre_spec_csv_filename: str = None,
              systmone_append_comments: bool = False,
-             systmone_include_generic: bool = False) -> None:
+             systmone_include_generic: bool = False,
+             systmone_allow_unprefixed_tables: bool = False) -> None:
     """
     Draft a data dictionary.
 
@@ -92,6 +93,11 @@ def draft_dd(config: Config,
             code and treated specially? If False, the config file settings are
             used (which may omit or include). If True, all such fields are
             included.
+        systmone_allow_unprefixed_tables:
+            (For SystmOne.) Permit tables that don't start with the expected
+            prefix? (That prefix is e.g. 'SR' for the TPP SRE context, 'S1_'
+            for the CPFT Data Warehouse context.) Discouraged; you may get odd
+            tables and views.
     """
     if incremental:  # this is where incrementaldd has its effect
         # For "incremental", we load the data dictionary from disk.
@@ -109,6 +115,7 @@ def draft_dd(config: Config,
             sre_spec_csv_filename=systmone_sre_spec_csv_filename,
             append_comments=systmone_append_comments,
             include_generic=systmone_include_generic,
+            allow_unprefixed_tables=systmone_allow_unprefixed_tables,
         )
 
     config.dd.write(dd_output_filename)
@@ -186,6 +193,13 @@ def main() -> None:
         help="Include all 'generic' fields, overriding preferences set via "
              "the config file options."
     )
+    s1_options.add_argument(
+        "--systmone_allow_unprefixed_tables", action="store_true",
+        help="Permit tables that don't start with the expected prefix "
+             "(which is e.g. 'SR' for the TPP SRE context, 'S1_' for the CPFT "
+             "Data Warehouse context). Discouraged; you may get odd tables "
+             "and views."
+    )
 
     args = parser.parse_args()
 
@@ -214,4 +228,5 @@ def main() -> None:
         systmone_sre_spec_csv_filename=args.systmone_sre_spec,
         systmone_append_comments=args.systmone_append_comments,
         systmone_include_generic=args.systmone_include_generic,
+        systmone_allow_unprefixed_tables=args.systmone_allow_unprefixed_tables,
     )

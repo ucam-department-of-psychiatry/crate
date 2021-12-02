@@ -446,7 +446,7 @@ ddgen_allow_fulltext_indexing = True
     # DATA DICTIONARY MANIPULATION TO DESTINATION TABLE/FIELD NAMES
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-ddgen_force_lower_case = True
+ddgen_force_lower_case = False
 ddgen_convert_odd_chars_to_underscore = True
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -464,7 +464,7 @@ debug_limited_tables =
 
 url = mysql+mysqldb://username:password@127.0.0.1:3306/source2_databasename?charset=utf8
 
-ddgen_force_lower_case = True
+ddgen_force_lower_case = False
 ddgen_per_table_pid_field = patient_id
 ddgen_master_pid_fieldname = nhsnum
 ddgen_table_denylist =
@@ -495,7 +495,7 @@ ddgen_binary_to_text_field_pairs =
 url = mysql+mysqldb://username:password@127.0.0.1:3306/camcops_databasename?charset=utf8
 
 # FOR EXAMPLE:
-ddgen_force_lower_case = True
+ddgen_force_lower_case = False
 ddgen_per_table_pid_field = _patient_idnum1
 ddgen_pid_defining_fieldnames = _patient_idnum1
 ddgen_master_pid_fieldname = _patient_idnum2

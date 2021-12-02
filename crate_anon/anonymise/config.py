@@ -254,7 +254,7 @@ class DatabaseSafeConfig(object):
             'ddgen_allow_fulltext_indexing', True)
 
         self.ddgen_force_lower_case = cfg.opt_bool(
-            'ddgen_force_lower_case', True)
+            'ddgen_force_lower_case', False)
         self.ddgen_convert_odd_chars_to_underscore = cfg.opt_bool(
             'ddgen_convert_odd_chars_to_underscore', True)
 

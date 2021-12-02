@@ -1329,9 +1329,11 @@ Data dictionary generation: altering destination table/field names
 ddgen_force_lower_case
 ######################
 
-*Boolean.* Default: true.
+*Boolean.* Default: false.
 
 Force all destination table/field names to lower case?
+
+(Default changed from true to false in v0.19.3.)
 
 
 ddgen_convert_odd_chars_to_underscore

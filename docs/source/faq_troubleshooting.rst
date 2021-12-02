@@ -786,8 +786,13 @@ https://dev.mysql.com/doc/refman/5.0/en/fulltext-search.html
 SQL Server
 ----------
 
+
+.. _configure_odbc_mars:
+
 […] “Connection is busy with results for another command” […]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Or: configuring Windows ODBC for MARS.**
 
 If you see this with Microsoft SQL Server via ODBC/pyodbc, you need to enable
 Multiple Active Result Sets (MARS), because for some reason Microsoft think
@@ -801,12 +806,21 @@ query) to a single database at once. There are several ways:
   although this is documented [#enablingmars]_, it didn’t work via pyodbc
   [#enablingmarsmethodfailed]_!
 
-- (WORKS.) Run the command: ``odbcconf /a {CONFIGSYSDSN "SQL Server Native Client
-  11.0" "DSN=MY_DSN|MARS_Connection=Yes"}`` (replacing the driver and DSN names
-  with your own). You can re-run the ODBC configuration wizard, and it should
-  now say `Multiple Active Result Sets(MARS): YES` where it said `... NO`
-  before. This does work. Use ``CONFIGDSN`` instead of ``CONFIGSYSDSN`` if you
-  are using a user DSN. Your changes should be visible if you restart the ODBC
+- (WORKS.)
+
+  - Fire up an Administrator command prompt (e.g. press the Start button, start
+    typing "Command Prompt", and when it appears, right-click it and choose
+    "Run as Administrator").
+
+  - Run the command: ``odbcconf /a {CONFIGSYSDSN "SQL Server Native Client
+    11.0" "DSN=MY_DSN|MARS_Connection=Yes"}`` (replacing the driver and DSN
+    names with your own).
+
+  - You can re-run the ODBC configuration wizard, and it should now say
+    `Multiple Active Result Sets(MARS): YES` where it said `... NO` before.
+
+  This does work. Use ``CONFIGDSN`` instead of ``CONFIGSYSDSN`` if you are
+  using a user DSN. Your changes should be visible if you restart the ODBC
   control panel (e.g. with ``odbccp32.cpl``) and go through the configuration
   wizard again; the MARS option (which you can’t edit) should have changed from
   “No” to “Yes”.

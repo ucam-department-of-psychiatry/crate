@@ -1387,6 +1387,8 @@ Changes
 
 - Explicit support for Python 3.10.
 
+- ``ddgen_force_lower_case`` default changed from True to False.
+
 
 ===============================================================================
 

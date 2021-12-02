@@ -69,6 +69,8 @@ Columns in the data dictionary
 src_db
 ~~~~~~
 
+*String.*
+
 This column specifies the source database, using a name that matches one from
 the ``source_databases`` list in the config file.
 
@@ -76,17 +78,23 @@ the ``source_databases`` list in the config file.
 src_table
 ~~~~~~~~~
 
+*String.*
+
 This column specifies the table name in the source database.
 
 
 src_field
 ~~~~~~~~~
 
+*String.*
+
 This column specifies the field (column) name in the source database.
 
 
 src_datatype
 ~~~~~~~~~~~~
+
+*String.*
 
 This column gives the source column's SQL data type (e.g. `INT`,
 `VARCHAR(50)`).
@@ -96,6 +104,8 @@ This column gives the source column's SQL data type (e.g. `INT`,
 
 src_flags
 ~~~~~~~~~
+
+*String.*
 
 This field can be blank or can contain a string made up of one or more
 characters. The characters have the following meanings:
@@ -201,6 +211,8 @@ Character   Meaning
 scrub_src
 ~~~~~~~~~
 
+*String.*
+
 One of the following values, or blank:
 
 ======================= =======================================================
@@ -232,6 +244,8 @@ Value                   Meaning
 
 scrub_method
 ~~~~~~~~~~~~
+
+*String.*
 
 Applicable to `scrub_src` fields, this column determines the manner in which
 this field should be treated for scrubbing. It must be one of the following
@@ -284,6 +298,8 @@ Value                       Meaning
 decision
 ~~~~~~~~
 
+*String.*
+
 One of the following two values:
 
 =========== ===================================================================
@@ -298,6 +314,8 @@ This is case sensitive, for safety.
 
 inclusion_values
 ~~~~~~~~~~~~~~~~
+
+*String.*
 
 Either blank, or an expression that evaluates to a Python iterable (e.g. list
 or tuple) with Python's `ast.literal_eval()` function (see
@@ -325,6 +343,8 @@ Examples:
 exclusion_values
 ~~~~~~~~~~~~~~~~
 
+*String.*
+
 As for ``inclusion_values``, but the row is excluded if the field's value is in
 the exclusion_values list.
 
@@ -333,6 +353,8 @@ the exclusion_values list.
 
 alter_method
 ~~~~~~~~~~~~
+
+*String.*
 
 Manner in which to alter the data. Blank, or a comma-separated list of one or
 more of the following. (You should replace aspects in capitals with appropriate
@@ -442,17 +464,23 @@ or:
 dest_table
 ~~~~~~~~~~
 
+*String.*
+
 Table name in the destination database.
 
 
 dest_field
 ~~~~~~~~~~
 
+*String.*
+
 Field (column) name in the destination database.
 
 
 dest_datatype
 ~~~~~~~~~~~~~
+
+*String.* Default: none.
 
 SQL data type in the destination database.
 
@@ -461,6 +489,8 @@ If omitted, the source SQL data type is translated appropriately.
 
 index
 ~~~~~
+
+*String.*
 
 One of:
 
@@ -481,13 +511,17 @@ Value       Meaning
 indexlen
 ~~~~~~~~
 
-Integer. Can be blank. If not, sets the prefix length of the index.
-This is mandatory in MySQL if you apply a normal (+/- unique) index to a `TEXT`
-or `BLOB` field. It is not required for `FULLTEXT` indexes.
+*Integer.* Default: none.
+
+Can be blank. If not, sets the prefix length of the index. This is mandatory in
+MySQL if you apply a normal (+/- unique) index to a `TEXT` or `BLOB` field. It
+is not required for `FULLTEXT` indexes.
 
 
 comment
 ~~~~~~~
+
+*String.*
 
 Field (column) comment, stored in the destination database.
 
