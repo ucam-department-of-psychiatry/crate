@@ -1,0 +1,3 @@
+Third party stubs for MyPy (static type checker)
+
+Stubs which are not in typeshed go here. They can be generated with stubgen and modified.
