@@ -306,7 +306,9 @@ class Installer:
         self.run_crate_command("crate_django_manage migrate")
 
     def create_superuser(self) -> None:
-        self.run_crate_command("crate_django_manage createsuperuser --noinput")
+        # Will either create a superuser or update an existing one
+        # with the given username
+        self.run_crate_command("crate_django_manage ensuresuperuser")
 
     def run_crate_command(self, crate_command: str) -> None:
         self.run_bash_command(
