@@ -29,6 +29,7 @@ class Installer:
         self.create_anon_config()
         self.create_database()
         self.create_superuser()
+        self.start()
 
     def configure(self) -> None:
         self.setenv(
@@ -318,6 +319,11 @@ class Installer:
         docker.compose.run("crate_workers",
                            remove=True,
                            command=["/bin/bash", "-c", bash_command])
+
+    def start(self) -> None:
+        os.chdir(DOCKERFILES_DIR)
+
+        docker.compose.up(detach=True)
 
 
 def main() -> None:
