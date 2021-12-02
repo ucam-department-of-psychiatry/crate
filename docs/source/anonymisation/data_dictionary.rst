@@ -217,6 +217,14 @@ Value                   Meaning
                         (such as a relative). The scrubber should recursively
                         include THAT patient's identifying information as
                         third-party information for THIS patient.
+
+                        Fields marked thus, if included in the destination
+                        database (see :ref:`decision <dd_decision>`), are
+                        automatically hashed with the "primary" PID hasher,
+                        allowing you to link connected records in the research
+                        database. You cannot specify another :ref:`alter_method
+                        <dd_alter_method>`.
+
 ======================= =======================================================
 
 
@@ -229,28 +237,46 @@ Applicable to `scrub_src` fields, this column determines the manner in which
 this field should be treated for scrubbing. It must be one of the following
 values (or blank):
 
-=========== ===================================================================
-Value       Meaning
-=========== ===================================================================
-``words``   Treat as a set of textual words. This is the default for all
-            textual fields (e.g. `CHAR`, `VARCHAR`, `TEXT`). Typically used for
-            names. Also OK for e-mail addresses.
+=========================== ===================================================
+Value                       Meaning
+=========================== ===================================================
+``words``                   Treat as a set of textual words. This is the
+                            default for all textual fields (e.g. `CHAR`,
+                            `VARCHAR`, `TEXT`). Typically used for names: for
+                            example, "John Smith" will scrub both "John" and
+                            "Smith" separately. Also OK for e-mail addresses.
 
-``phrase``  Treat as a textual phrase (a sequence of words to be replaced only
-            when they occur in sequence). Typically used for address
-            components.
+``phrase``                  Treat as a textual phrase (a sequence of words to
+                            be replaced only when they occur in sequence).
+                            Any superfluous whitespace at the start/end, or
+                            between words, is ignored. Typically used for
+                            address components: for example, "5 Tree Avenue"
+                            will not scrub "tree" or "avenue" by themselves,
+                            but this phrase will be scrubbed.
 
-``number``  Treat as a number. This is the default for all numeric fields (e.g.
-            `INTEGER`, `FLOAT`). If you have a phone number in a text field,
-            use this method; it will be scrubbed regardless of
-            spacing/punctuation.
+``phrase_unless_numeric``   If the value is numeric, ignore it. Otherwise,
+                            treat it as ``phrase``. For example, if you have
+                            an address field that is meant to be "building
+                            number" (e.g. "5") but someone might put a name
+                            (e.g. "Seaview") or an address line (e.g. "5 Tree
+                            Road"), this will remove the more complex pieces of
+                            information but will ignore "5" (preserving e.g.
+                            "haloperidol 5 mg" elsewhere).
 
-``code``    Teat as an alphanumeric code. Suited to postcodes. Very like the
-            numeric method, but permits non-digits.
+``number``                  Treat as a number. This is the default for all
+                            numeric fields (e.g. `INTEGER`, `FLOAT`). If you
+                            have a phone number in a text field, use this
+                            method; it will be scrubbed regardless of
+                            spacing/punctuation.
 
-``date``    Treat as a date. This is the default for all `DATE`/`DATETIME`
-            fields.
-=========== ===================================================================
+``code``                    Treat as an alphanumeric code. Suited to postcodes.
+                            Very like the numeric method, but permits
+                            non-digits.
+
+``date``                    Treat as a date, and scrub any recognizable
+                            representations of that date. This is the default
+                            for all `DATE`/`DATETIME` fields.
+=========================== ===================================================
 
 
 .. _dd_decision:
@@ -309,7 +335,8 @@ alter_method
 ~~~~~~~~~~~~
 
 Manner in which to alter the data. Blank, or a comma-separated list of one or
-more of:
+more of the following. (You should replace aspects in capitals with appropriate
+values.)
 
 =============================== ===============================================
 Component                       Meaning
@@ -325,19 +352,25 @@ Component                       Meaning
                                 fields.
 
 ``binary_to_text=EXTFIELDNAME`` **Convert a binary field (e.g. `VARBINARY`,
-                                `BLOB`) to text (e.g. `LONGTEXT`).** The binary
-                                data is taken to be the representation of a
-                                document. The field `EXTFIELDNAME`, which must
-                                be in the same source table, must contain the
-                                file extension (e.g. ``'pdf'``, ``'.pdf'``) or
-                                a filename with that extension (e.g.
+                                `BLOB`) to text (e.g. `LONGTEXT`).** Insert
+                                your chosen field name in place of
+                                `EXTFIELDNAME`. The binary data is taken to be
+                                the representation of a document. The field
+                                must be in the same source table, must contain
+                                the file extension (e.g. ``'pdf'``, ``'.pdf'``)
+                                or a filename with that extension (e.g.
                                 ``'/some/path/mything.pdf'``), so that the
                                 anonymiser knows how to treat the binary data
                                 to extract text from it.
 
+``filename_to_text``            As for the binary-to-text option, but the field
+                                contains a full filename (the contents of which
+                                is converted to text), rather than containing
+                                binary data directly.
+
 ``filename_format_to_text=FMT`` A more powerful way of specifying a filename
                                 that can be created using data from this table.
-                                The `FMT` parameter is an unquoted Python
+                                Replace `FMT` with an unquoted Python
                                 str.format() string; see
                                 https://docs.python.org/3.4/library/stdtypes.html#str.format.
                                 The dictionary passed to `format()` is created
@@ -345,9 +378,10 @@ Component                       Meaning
 
                                 Using an example from RiO: if your
                                 ClientDocuments table contains a `ClientID`
-                                column (e.g. ``999999``) and a `Path` column
-                                (e.g. ``'appointment_letter.pdf'``), and you
-                                know that the actual file will then be found at
+                                column (with a value like ``999999``) and a
+                                `Path` column (with a value like
+                                ``appointment_letter.pdf``), and you know that
+                                the actual file will then be found at
                                 ``C:\some\path\999999\docs\appointment_letter.pdf``,
                                 then you can specify this with
 
@@ -358,11 +392,6 @@ Component                       Meaning
                                 You probably want to apply this
                                 ``alter_method`` to the `Path` column in this
                                 example, though that's not mandatory.
-
-``filename_to_text``            As for the binary-to-text option, but the field
-                                contains a filename (the contents of which is
-                                converted to text), rather than containing
-                                binary data directly.
 
 ``skip_if_extract_fails``       If one of the text extraction methods is
                                 specified, and this flag is also specified,
@@ -383,7 +412,8 @@ Component                       Meaning
                                 ``<a href="http://somewhere">see link</a>``
                                 to ``see link``
 
-``hash=HASH_CONFIG_SECTION``    Hash this field,
+``hash=HASH_CONFIG_SECTION``    Hash this field, using the hasher specified in
+                                the config file section that you name.
 
 =============================== ===============================================
 

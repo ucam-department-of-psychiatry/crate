@@ -140,6 +140,7 @@ class IndexType(StrEnum):
 class ScrubMethod(StrEnum):
     WORDS = "words"
     PHRASE = "phrase"
+    PHRASE_UNLESS_NUMERIC = "phrase_unless_numeric"
     NUMERIC = "number"
     DATE = "date"
     CODE = "code"

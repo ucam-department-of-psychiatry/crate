@@ -200,8 +200,8 @@ class NameInfo(object):
         Assert that the frequences are reasonable numbers.
         """
         assert (
-            isinstance(self.freq_pct, float) and
-            isinstance(self.cumfreq_pct, float)
+            isinstance(self.freq_pct, float)
+            and isinstance(self.cumfreq_pct, float)
         ), f"Bad frequencies in {self}"
 
     @property

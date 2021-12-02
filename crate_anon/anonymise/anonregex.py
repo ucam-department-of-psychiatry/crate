@@ -89,7 +89,10 @@ def get_anon_fragments_from_string(s: str) -> List[str]:
       treats apostrophes and hyphens as word boundaries.*
       Therefore, we don't need the largest-level chunks, like ``D'Souza``.
     """
-    return NON_ALPHANUMERIC_SPLITTERS.split(s)
+    return list(filter(None, NON_ALPHANUMERIC_SPLITTERS.split(s)))
+    # The filter(None, ...) aspect removes empty strings, e.g. from
+    # leading/trailing whitespace.
+
     # smallfragments = []  # type: List[str]
     # combinedsmallfragments = []  # type: List[str]
     # for chunk in s.split():  # split on whitespace

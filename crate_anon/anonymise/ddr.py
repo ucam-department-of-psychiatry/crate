@@ -232,6 +232,13 @@ class DataDictionaryRow(object):
         return self._master_pid
 
     @property
+    def third_party_pid(self) -> bool:
+        """
+        Does this field contain the PID of a different (e.g. related) patient?
+        """
+        return self.scrub_src == ScrubSrc.THIRDPARTY_XREF_PID
+
+    @property
     def constant(self) -> bool:
         """
         Is the source field guaranteed not to change (for a given PK)?
@@ -390,8 +397,7 @@ class DataDictionaryRow(object):
         elements = [x.strip() for x in value.split(",") if x]
         methods = []  # type: List[AlterMethod]
         for e in elements:
-            methods.append(AlterMethod(config=self.config,
-                                       text_value=e))
+            methods.append(AlterMethod(config=self.config, text_value=e))
         # Now establish order. Text extraction first; everything else in order.
         text_extraction_indices = []  # type: List[int]
         for i, am in enumerate(methods):
@@ -848,6 +854,12 @@ class DataDictionaryRow(object):
         Raises:
             :exc:`AssertionError`, :exc:`ValueError`
         """
+        src_sqla_coltype = self.src_sqla_coltype
+        dest_sqla_coltype = self.dest_sqla_coltype
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Anything missing?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         assert self.src_db, "Need src_db"
         assert self.src_table, "Need src_table"
         assert self.src_field, "Need src_field"
@@ -855,21 +867,26 @@ class DataDictionaryRow(object):
         if not self.omit:
             assert self.dest_table, "Need dest_table"
             assert self.dest_field, "Need dest_field"
-        src_sqla_coltype = self.src_sqla_coltype
-        dest_sqla_coltype = self.dest_sqla_coltype
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Check source database/table/field are OK
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if self.src_db not in self.config.source_db_names:
             raise ValueError(
                 "Data dictionary row references non-existent source "
                 "database")
+
         srccfg = self.config.sources[self.src_db].srccfg
+
         ensure_valid_table_name(self.src_table)
         ensure_valid_field_name(self.src_field)
+
         if len(self.src_table) > MAX_IDENTIFIER_LENGTH:
             log.warning(
                 f"Table name in {self.src_table}.{self.src_field} is too long "
                 f"for MySQL ({len(self.src_table)} characters > "
                 f"{MAX_IDENTIFIER_LENGTH} maximum")
+
         if len(self.src_field) > MAX_IDENTIFIER_LENGTH:
             log.warning(
                 f"Field name in {self.src_table}.{self.src_field} is too long "
@@ -897,6 +914,9 @@ class DataDictionaryRow(object):
         #                              SRCFLAG.PRIMARY_PID,
         #                              SRCFLAG.MASTER_PID))
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Check for conflicting or missing flags
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if self._defines_primary_pids and not self._primary_pid:
             raise ValueError(
                 f"All fields with src_flags={SrcFlag.DEFINES_PRIMARY_PIDS} "
@@ -909,10 +929,15 @@ class DataDictionaryRow(object):
 
         if count_bool([self._primary_pid,
                        self._master_pid,
+                       self.third_party_pid,
                        bool(self.alter_method)]) > 1:
             raise ValueError(
-                f"Field can be any ONE of: src_flags={SrcFlag.PRIMARY_PID}, "
-                f"src_flags={SrcFlag.MASTER_PID}, alter_method")
+                f"Field can be any ONE of: "
+                f"src_flags={SrcFlag.PRIMARY_PID}, "
+                f"src_flags={SrcFlag.MASTER_PID}, "
+                f"scrub_src={ScrubSrc.THIRDPARTY_XREF_PID}, or "
+                f"alter_method "
+                f"(because those flags all imply a certain alter_method)")
 
         if self._required_scrubber and not self.scrub_src:
             raise ValueError(
@@ -949,28 +974,39 @@ class DataDictionaryRow(object):
                     f"src_flags={SrcFlag.ADDITION_ONLY} can only be set on "
                     f"src_flags={SrcFlag.PK} fields")
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # No more checks required if field will be omitted.
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if self.omit:
             return
 
-        # ---------------------------------------------------------------------
-        # Below here: checks only applying to non-omitted columns
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Check destination table/field/datatype
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Table
         ensure_valid_table_name(self.dest_table)
         if self.dest_table == self.config.temporary_tablename:
             raise ValueError(
                 f"Destination tables can't be named "
                 f"{self.config.temporary_tablename}, as that's the name set "
                 f"in the config's temporary_tablename variable")
+        # Field
         ensure_valid_field_name(self.dest_field)
         if self.dest_field == self.config.source_hash_fieldname:
             raise ValueError(
                 f"Destination fields can't be named "
                 f"{self.config.source_hash_fieldname}, as that's the name set "
                 f"in the config's source_hash_fieldname variable")
+        # Datatype
         if self.dest_datatype and not is_sqltype_valid(self.dest_datatype):
             raise ValueError(
                 f"Field has invalid destination data type: "
                 f"{self.dest_datatype}")
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Check destination flags/special fields
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # PID/RID
         if self.matches_fielddef(srccfg.ddgen_per_table_pid_field):
             if not self._primary_pid:
                 raise ValueError(
@@ -980,13 +1016,26 @@ class DataDictionaryRow(object):
                 raise ValueError(
                     f"Primary PID field should have dest_field = "
                     f"{self.config.research_id_fieldname}")
+        # MPID/MRID
         if (self.matches_fielddef(srccfg.ddgen_master_pid_fieldname) and
                 not self._master_pid):
             raise ValueError(
                 f"All fields with src_field = "
                 f"{srccfg.ddgen_master_pid_fieldname} used in output should "
                 f"have src_flags={SrcFlag.MASTER_PID} set")
+        # Either
+        if ((self._primary_pid or self._master_pid) and
+                self.dest_datatype !=
+                self.config.sqltype_encrypted_pid_as_sql):
+            raise ValueError(
+                f"All src_flags={SrcFlag.PRIMARY_PID}/"
+                f"src_flags={SrcFlag.MASTER_PID} fields used in output must "
+                f"have destination_datatype = "
+                f"{self.config.sqltype_encrypted_pid_as_sql}")
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Check alteration methods
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         for am in self._alter_methods:
             if am.truncate_date:
                 if not (is_sqlatype_date(src_sqla_coltype) or
@@ -1014,15 +1063,9 @@ class DataDictionaryRow(object):
         #         raise ValueError("Can't scrub in non-text field or "
         #                          "single-character text field")
 
-        if ((self._primary_pid or self._master_pid) and
-                self.dest_datatype !=
-                self.config.sqltype_encrypted_pid_as_sql):
-            raise ValueError(
-                f"All src_flags={SrcFlag.PRIMARY_PID}/"
-                f"src_flags={SrcFlag.MASTER_PID} fields used in output must "
-                f"have destination_datatype = "
-                f"{self.config.sqltype_encrypted_pid_as_sql}")
-
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Check indexing
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if (self.index in (IndexType.NORMAL, IndexType.UNIQUE) and
                 self.indexlen is None and
                 does_sqlatype_require_index_len(dest_sqla_coltype)):
@@ -1043,7 +1086,9 @@ class DataDictionaryRow(object):
                              comment: str = None) -> None:
         """
         Set up this DDR from a field in the source database, using options set
-        in the config file.
+        in the config file. Used to draft a data dictionary. This is the
+        first-draft classification of a given column, which the administrator
+        should review and may then wish to edit.
 
         Args:
             db: source database name
@@ -1069,92 +1114,109 @@ class DataDictionaryRow(object):
         self.comment = comment
         self._from_file = False
 
-        # ---------------------------------------------------------------------
-        # Is the field special, such as a PK?
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ddgen: Is the field special, such as a PK?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if self.matches_fielddef(dbconf.ddgen_pk_fields):
+            # Table primary key (e.g. arbitrary integer).
             self._pk = True
             self._constant = (
                 (
-                    dbconf.ddgen_constant_content or
-                    self.matches_tabledef(dbconf.ddgen_constant_content_tables)
-                ) and
-                not self.matches_tabledef(
+                    dbconf.ddgen_constant_content
+                    or self.matches_tabledef(
+                        dbconf.ddgen_constant_content_tables
+                    )
+                )
+                and not self.matches_tabledef(
                     dbconf.ddgen_nonconstant_content_tables
                 )
             )
             self._add_src_hash = not self._constant
             self._addition_only = (
                 (
-                    dbconf.ddgen_addition_only or
-                    self.matches_tabledef(dbconf.ddgen_addition_only_tables)
-                ) and
-                not self.matches_tabledef(
+                    dbconf.ddgen_addition_only
+                    or self.matches_tabledef(dbconf.ddgen_addition_only_tables)
+                )
+                and not self.matches_tabledef(
                     dbconf.ddgen_deletion_possible_tables
                 )
             )
+
         if self.matches_fielddef(dbconf.ddgen_per_table_pid_field):
+            # PID, e.g. local hospital number.
             self._primary_pid = True
             if self.matches_tabledef(dbconf.ddgen_table_defines_pids):
                 self._defines_primary_pids = True
+
         if self.matches_fielddef(dbconf.ddgen_master_pid_fieldname):
+            # MPID, e.g. NHS number.
             self._master_pid = True
+
         if self.matches_fielddef(dbconf.ddgen_pid_defining_fieldnames):
+            # The PID in the "chief" patient table.
             self._defines_primary_pids = True
 
-        # ---------------------------------------------------------------------
-        # Does it indicate the patient wishes to opt out entirely?
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ddgen: Does it indicate the patient wishes to opt out entirely?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if self.matches_fielddef(dbconf.ddgen_patient_opt_out_fields):
             self._opt_out_info = True
 
-        # ---------------------------------------------------------------------
-        # Does the field contain sensitive data?
-        # ---------------------------------------------------------------------
-        if (self._master_pid or
-                self._defines_primary_pids or
-                (self._primary_pid and
-                 dbconf.ddgen_add_per_table_pids_to_scrubber) or
-                self.matches_fielddef(dbconf.ddgen_scrubsrc_patient_fields)):
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ddgen: Does the field contain sensitive data?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        if (self._master_pid
+                or self._defines_primary_pids
+                or (self._primary_pid
+                    and dbconf.ddgen_add_per_table_pids_to_scrubber)
+                or self.matches_fielddef(dbconf.ddgen_scrubsrc_patient_fields)):  # noqa
             self.scrub_src = ScrubSrc.PATIENT
+
         elif self.matches_fielddef(dbconf.ddgen_scrubsrc_thirdparty_fields):
             self.scrub_src = ScrubSrc.THIRDPARTY
+
         elif self.matches_fielddef(
                 dbconf.ddgen_scrubsrc_thirdparty_xref_pid_fields):
             self.scrub_src = ScrubSrc.THIRDPARTY_XREF_PID
+
         else:
             self.scrub_src = None  # type: Optional[str]
 
-        # ---------------------------------------------------------------------
-        # Is it a mandatory scrubbing field?
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ddgen: Is it a mandatory scrubbing field?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if self.matches_fielddef(dbconf.ddgen_required_scrubsrc_fields):
             self._required_scrubber = True
 
-        # ---------------------------------------------------------------------
-        # What kind of sensitive data? Date, text, number, code?
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ddgen: What kind of sensitive data? Date, text, number, code?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if not self.scrub_src:
             self.scrub_method = ""
-        elif (self.scrub_src is ScrubSrc.THIRDPARTY_XREF_PID or
-              is_sqlatype_numeric(sqla_coltype) or
-              self.matches_fielddef(dbconf.ddgen_per_table_pid_field) or
-              self.matches_fielddef(dbconf.ddgen_master_pid_fieldname) or
-              self.matches_fielddef(dbconf.ddgen_scrubmethod_number_fields)):
+
+        elif (self.scrub_src is ScrubSrc.THIRDPARTY_XREF_PID
+              or is_sqlatype_numeric(sqla_coltype)
+              or self.matches_fielddef(dbconf.ddgen_per_table_pid_field)
+              or self.matches_fielddef(dbconf.ddgen_master_pid_fieldname)
+              or self.matches_fielddef(dbconf.ddgen_scrubmethod_number_fields)):  # noqa
             self.scrub_method = ScrubMethod.NUMERIC
-        elif (is_sqlatype_date(sqla_coltype) or
-                self.matches_fielddef(dbconf.ddgen_scrubmethod_date_fields)):
+
+        elif (is_sqlatype_date(sqla_coltype)
+              or self.matches_fielddef(dbconf.ddgen_scrubmethod_date_fields)):
             self.scrub_method = ScrubMethod.DATE
+
         elif self.matches_fielddef(dbconf.ddgen_scrubmethod_code_fields):
             self.scrub_method = ScrubMethod.CODE
+
         elif self.matches_fielddef(dbconf.ddgen_scrubmethod_phrase_fields):
             self.scrub_method = ScrubMethod.PHRASE
+
         else:
             self.scrub_method = ScrubMethod.WORDS
 
-        # ---------------------------------------------------------------------
-        # Do we want to change the destination fieldname?
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ddgen: Do we want to change the destination fieldname?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if self._primary_pid:
             self.dest_field = self.config.research_id_fieldname
         elif self._master_pid:
@@ -1169,28 +1231,34 @@ class DataDictionaryRow(object):
             self.dest_field = self.dest_field.translate(ODD_CHARS_TRANSLATE)
             # ... this will choke on a Unicode string
 
-        # ---------------------------------------------------------------------
-        # Do we want to change the destination field SQL type?
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ddgen: Do we want to change the destination field SQL type?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if self._primary_pid or self._master_pid:
             self.dest_datatype = self.config.sqltype_encrypted_pid_as_sql
         else:
             self.dest_datatype = ''
         # ... and see also potential changes made below
 
-        # ---------------------------------------------------------------------
-        # How should we manipulate the destination?
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ddgen: How should we manipulate the destination?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         extracting_text = False
+
         if self.matches_fielddef(dbconf.ddgen_truncate_date_fields):
+            # Date truncation
             self._alter_methods.append(AlterMethod(config=self.config,
                                                    truncate_date=True))
+
         elif self.matches_fielddef(dbconf.ddgen_filename_to_text_fields):
+            # Read filename from database, read file, convert to text
             self._alter_methods.append(AlterMethod(config=self.config,
                                                    extract_from_filename=True))
             self.dest_datatype = giant_text_sqltype(self.config.dest_dialect)
             extracting_text = True
+
         elif self.matches_fielddef(dbconf.bin2text_dict.keys()):
+            # Read binary data from database, convert to text
             for binfielddef, extfield in dbconf.bin2text_dict.items():
                 if self.matches_fielddef(binfielddef):
                     self._alter_methods.append(AlterMethod(
@@ -1199,15 +1267,17 @@ class DataDictionaryRow(object):
                         extract_ext_field=extfield))
             self.dest_datatype = giant_text_sqltype(self.config.dest_dialect)
             extracting_text = True
-        elif (not self._primary_pid and
-              not self._master_pid and
-              is_sqlatype_text_of_length_at_least(
-                  sqla_coltype, dbconf.ddgen_min_length_for_scrubbing) and
-              not self.matches_fielddef(
+
+        elif (not self._primary_pid
+              and not self._master_pid
+              and is_sqlatype_text_of_length_at_least(
+                  sqla_coltype, dbconf.ddgen_min_length_for_scrubbing)
+              and not self.matches_fielddef(
                   dbconf.ddgen_safe_fields_exempt_from_scrubbing)):
             # Text field meeting the criteria to scrub
             self._alter_methods.append(AlterMethod(config=self.config,
                                                    scrub=True))
+
         if extracting_text:
             # Scrub all extract-text fields, unless asked not to
             if (not self.matches_fielddef(
@@ -1222,6 +1292,7 @@ class DataDictionaryRow(object):
                     skip_if_text_extract_fails=True))
 
         for fieldspec, cfg_section in dbconf.ddgen_extra_hash_fields.items():
+            # Hash something using an "extra" hasher.
             if self.matches_fielddef(fieldspec):
                 self._alter_methods.append(AlterMethod(
                     config=self.config,
@@ -1229,38 +1300,46 @@ class DataDictionaryRow(object):
                     hash_config_section=cfg_section
                 ))
 
-        # ---------------------------------------------------------------------
-        # Manipulate the destination table name?
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ddgen: Manipulate the destination table name?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # https://stackoverflow.com/questions/10017147
         self.dest_table = table
+
         if dbconf.ddgen_force_lower_case:
             self.dest_table = self.dest_table.lower()
+
         if dbconf.ddgen_convert_odd_chars_to_underscore:
             self.dest_table = str(self.dest_table)
             # ... if this fails, there's a Unicode problem
             self.dest_table = self.dest_table.translate(ODD_CHARS_TRANSLATE)
+
         for suffix in dbconf.ddgen_rename_tables_remove_suffixes:
             if self.dest_table.endswith(suffix):
                 self.dest_table = self.dest_table[:-len(suffix)]  # remove it
                 break  # only remove one suffix!
 
-        # ---------------------------------------------------------------------
-        # Should we index the destination?
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ddgen: Should we index the destination?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         dest_sqla_type = self.dest_sqla_coltype
+
         if self._pk:
             self.index = IndexType.UNIQUE
-        elif (self._primary_pid or
-              self._master_pid or
-              self._defines_primary_pids or
-              self.dest_field == self.config.research_id_fieldname):
+
+        elif (self._primary_pid
+              or self._master_pid
+              or self._defines_primary_pids
+              or self.dest_field == self.config.research_id_fieldname):
             self.index = IndexType.NORMAL
-        elif (dbconf.ddgen_allow_fulltext_indexing and
-              does_sqlatype_merit_fulltext_index(dest_sqla_type)):
+
+        elif (dbconf.ddgen_allow_fulltext_indexing
+              and does_sqlatype_merit_fulltext_index(dest_sqla_type)):
             self.index = IndexType.FULLTEXT
+
         elif self.matches_fielddef(dbconf.ddgen_index_fields):
             self.index = IndexType.NORMAL
+
         else:
             self.index = ""
 
@@ -1271,19 +1350,22 @@ class DataDictionaryRow(object):
             else None
         )
 
-        # ---------------------------------------------------------------------
-        # Should we omit it (at least until a human has looked at the DD)?
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ddgen: Should we omit it (at least until a human has checked the DD)?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
         # In descending order of priority:
         if self.matches_fielddef(dbconf.ddgen_omit_fields):  # explicit
             # Explicit omission trumps everything else
             # (There are rare occasions with "additional" databases where we
             # may want to omit a PK/PID/MPID field.)
             self.omit = True
+
         elif self._pk or self._primary_pid or self._master_pid:
             # We always want PKs, and the translated PID/MPID (RID+TRID or
             # MRID respectively).
             self.omit = False
+
         elif bool(self.scrub_src):
             # Scrub-source fields are generally sensitive and therefore worthy
             # of omission, EXCEPT that if a date is marked for truncation, the
@@ -1292,8 +1374,10 @@ class DataDictionaryRow(object):
                 self.omit = False
             else:
                 self.omit = True
+
         elif self.matches_fielddef(dbconf.ddgen_include_fields):  # explicit
             # Explicit inclusion next.
             self.omit = False
+
         else:
             self.omit = dbconf.ddgen_omit_by_default

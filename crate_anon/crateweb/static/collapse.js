@@ -4,7 +4,7 @@ crate_anon/crateweb/static/collapse.js
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 

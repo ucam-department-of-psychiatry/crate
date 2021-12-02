@@ -29,7 +29,8 @@ Contributors
 ------------
 
 - Rudolf Cardinal <rudolf@pobox.com>, 2015–.
-- Francesca Spivack, 2018–.
+- Francesca Spivack, 2018–2020.
+- Martin Burchell, 2020–.
 
 Quick links:
 
@@ -1368,6 +1369,15 @@ Changes
     become ``crate_anon_draft_dd``.
 
 - Work on SystmOne data dictionaries.
+
+- New scrub method: ``phrase_unless_numeric``.
+
+- Efficiency check when recursing into third-party records, to avoid doing the
+  same work twice.
+
+- Automatically hash third-party PIDs using the same hasher as patient PIDs,
+  rendering the de-identified records linkable (if and only if the third-party
+  PID field is marked for inclusion).
 
 
 ===============================================================================

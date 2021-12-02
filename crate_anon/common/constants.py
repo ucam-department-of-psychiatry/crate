@@ -244,8 +244,8 @@ class HelpUrl(object):
 RUNNING_WITHOUT_CONFIG = (
     ON_READTHEDOCS or
     (
-        EnvVar.RUN_WITHOUT_CONFIG in os.environ and
-        os.environ[EnvVar.RUN_WITHOUT_CONFIG].lower() in
+        EnvVar.RUN_WITHOUT_CONFIG in os.environ
+        and os.environ[EnvVar.RUN_WITHOUT_CONFIG].lower() in
         LOWER_CASE_STRINGS_MEANING_TRUE
     )
 )

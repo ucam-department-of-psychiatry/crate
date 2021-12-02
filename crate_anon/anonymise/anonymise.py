@@ -1237,6 +1237,10 @@ def process_table(sourcedbname: str,
                 value = patient.rid
             elif ddr.master_pid:
                 value = config.encrypt_master_pid(value)
+            elif ddr.third_party_pid:
+                # Third-party PID; we encrypt with the same hasher as for other
+                # PIDs, so that de-identified records remain linkable.
+                value = config.encrypt_primary_pid(value)
 
             for alter_method in ddr.alter_methods:
                 value, skiprow = alter_method.alter(

@@ -582,6 +582,8 @@ class PersonalizedScrubber(ScrubberBase):
             elements = self.get_elements_words(value)
         elif scrub_method is ScrubMethod.PHRASE:
             elements = self.get_elements_phrase(value)
+        elif scrub_method is ScrubMethod.PHRASE_UNLESS_NUMERIC:
+            elements = self.get_elements_phrase_unless_numeric(value)
         elif scrub_method is ScrubMethod.NUMERIC:
             elements = self.get_elements_numeric(value)
         elif scrub_method is ScrubMethod.CODE:
@@ -648,7 +650,7 @@ class PersonalizedScrubber(ScrubberBase):
         """
         Returns a list of regex elements for a given phrase.
         """
-        value = str(value)
+        value = str(value).strip()
         if not value:
             return []
         length = len(value)
@@ -667,6 +669,17 @@ class PersonalizedScrubber(ScrubberBase):
                 self.anonymise_strings_at_word_boundaries_only),
             alternatives=self.alternatives
         )
+
+    def get_elements_phrase_unless_numeric(self, value: Any) -> List[str]:
+        """
+        If the value is numeric, return an empty list. Otherwise, returns a
+        list of regex elements for the given phrase.
+        """
+        try:
+            _ = float(value)
+            return []
+        except (TypeError, ValueError):
+            return self.get_elements_phrase(value)
 
     def get_elements_numeric(self, value: Any) -> List[str]:
         """
@@ -788,13 +801,3 @@ class PersonalizedScrubber(ScrubberBase):
             ('elements', self.elements_tuplelist),
         )
         return OrderedDict(d)
-
-
-_TEST_FLASHTEXT = r"""
-
-import flashtext
-replacement = "[~~~]"
-keywords = [
-
-
-"""

@@ -141,11 +141,12 @@ class Patient(object):
             allowlist=config.allowlist,
             alternatives=config.phrase_alternative_words,
         )
-        # Database
-        # Construction. We go through all "scrub-from" fields in the data
-        # dictionary. We collect all values of those fields from the source
-        # database.
+
+        # Add information to the scrubber from the database.
+        # We go through all "scrub-from" fields in the data dictionary. We
+        # collect all values of those fields from the source database.
         log.debug("Building scrubber")
+        self._third_party_pids_seen = set()
         self._db_table_pair_list = config.dd.get_scrub_from_db_table_pairs()
         self._mandatory_scrubbers_unfulfilled = \
             config.dd.get_mandatory_scrubber_sigs().copy()
@@ -173,9 +174,13 @@ class Patient(object):
         dictionary row.
 
         Args:
-            pid: integer or string (usually integer) patient identifier
-            depth: current recursion depth for third-party information
-            max_depth: maximum recursion depth for third-party information
+            pid:
+                Integer or string (usually integer) patient identifier.
+            depth:
+                Current recursion depth for third-party information. If this
+                is greater than 0, we are dealing with third-party information.
+            max_depth:
+                Maximum recursion depth for third-party information.
         """
         if depth > 0:
             log.debug(f"Building scrubber recursively: depth = {depth}")
@@ -197,9 +202,13 @@ class Patient(object):
             is_patient = [depth == 0 and ddr.scrub_src is ScrubSrc.PATIENT
                           for ddr in ddrows]
             is_mpid = [depth == 0 and ddr.master_pid for ddr in ddrows]
-            recurse = [depth < max_depth and
-                       ddr.scrub_src is ScrubSrc.THIRDPARTY_XREF_PID
-                       for ddr in ddrows]
+            # The check for "depth == 0" means that third-party information is
+            # never marked as patient-related.
+            recurse = [
+                depth < max_depth
+                and ddr.scrub_src is ScrubSrc.THIRDPARTY_XREF_PID
+                for ddr in ddrows
+            ]
             required_scrubber = [ddr.required_scrubber for ddr in ddrows]
             sigs = [ddr.src_signature for ddr in ddrows]
             # -----------------------------------------------------------------
@@ -230,6 +239,13 @@ class Patient(object):
                             # TypeError: NULL value (None)
                             # ValueError: duff value, i.e. non-integer
                             continue
+                        if related_pid in self._third_party_pids_seen:
+                            # Don't bother doing the same relative twice (if
+                            # their ID occurs in more than one place in the
+                            # patient's record); that's inefficient.
+                            continue
+                        self._third_party_pids_seen.add(related_pid)
+                        # Go and explore that other patient's record:
                         self._build_scrubber(related_pid, depth + 1, max_depth)
 
                     if val is not None and required_scrubber[i]:

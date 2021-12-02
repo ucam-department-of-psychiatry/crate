@@ -27,11 +27,11 @@ crate_anon/nlp_manager/tests/nlp_parser_tests.py
 """
 import logging
 import sys
+from typing import Any, Dict, Generator, List, Tuple
+from unittest import mock, TestCase
 
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.schema import Column
-from typing import Any, Dict, Generator, List, Tuple
-from unittest import mock, TestCase
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 
