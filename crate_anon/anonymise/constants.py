@@ -187,8 +187,8 @@ MAX_IDENTIFIER_LENGTH = 64
 # This does not need to vary with Docker status.
 
 # noinspection PyPep8
-DEMO_CONFIG = r"""# Configuration file for CRATE anonymiser (crate_anonymise).
-# Version {VERSION} ({VERSION_DATE}).
+DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
+# Version {CRATE_VERSION} ({CRATE_VERSION_DATE}).
 #
 # SEE HELP FOR DETAILS.
 
@@ -622,19 +622,7 @@ ddgen_truncate_date_fields = _patient_dob
 ddgen_filename_to_text_fields =
 ddgen_binary_to_text_field_pairs =
 
-""".format(  # noqa
-    SCRUBSRC=ScrubSrc,
-    INDEX=IndexType,
-    SCRUBMETHOD=ScrubMethod,
-    ALTERMETHOD=AlterMethodType,
-    SRCFLAG=SrcFlag,
-    LONGTEXT=LONGTEXT,
-    DEFAULT_MAX_ROWS_BEFORE_COMMIT=DEFAULT_MAX_ROWS_BEFORE_COMMIT,
-    DEFAULT_MAX_BYTES_BEFORE_COMMIT=DEFAULT_MAX_BYTES_BEFORE_COMMIT,
-    DECISION=Decision,
-    VERSION=CRATE_VERSION,
-    VERSION_DATE=CRATE_VERSION_DATE,
-)
+"""  # noqa
 
 # For the style:
 #       [source_databases]

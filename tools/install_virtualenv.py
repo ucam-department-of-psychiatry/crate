@@ -60,7 +60,7 @@ PYTHONBASE = os.path.basename(PYTHON)
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, os.pardir))
-PIP_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements.txt')
+# PIP_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements.txt')
 # DEB_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements-ubuntu.txt')
 # RPM_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements-rpm.txt')
 

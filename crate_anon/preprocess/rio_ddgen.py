@@ -55,7 +55,8 @@ def get_rio_dd_settings(ddhint: DDHint) -> str:
     Returns:
         the config file settings, as a string
     """
-    return """
+    suppress_tables = "\n    ".join(ddhint.get_suppressed_tables())
+    return f"""
 ddgen_omit_by_default = True
 
 ddgen_omit_fields =
@@ -389,10 +390,4 @@ ddgen_allow_fulltext_indexing = True
 ddgen_force_lower_case = False
 
 ddgen_convert_odd_chars_to_underscore = True
-    """.format(  # noqa
-        CRATE_COL_PK=CRATE_COL_PK,
-        CRATE_COL_RIO_NUMBER=CRATE_COL_RIO_NUMBER,
-        RIO_COL_PATIENT_ID=RIO_COL_PATIENT_ID,
-        suppress_tables="\n    ".join(ddhint.get_suppressed_tables()),
-        VIEW_ADDRESS_WITH_GEOGRAPHY=VIEW_ADDRESS_WITH_GEOGRAPHY,
-    )
+"""  # noqa
