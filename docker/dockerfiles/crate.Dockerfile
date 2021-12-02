@@ -107,7 +107,7 @@ WORKDIR /crate
 #
 # - Testing KCL pharmacotherapy app:
 #
-#   export NLPPROGDIR=/crate/venv/lib/python3.6/site-packages/crate_anon/nlp_manager/compiled_nlp_classes/
+#   export NLPPROGDIR=/crate/venv/lib/python3.7/site-packages/crate_anon/nlp_manager/compiled_nlp_classes/
 #   export GATEDIR=/crate/gate
 #   export GATE_PHARMACOTHERAPY_DIR=/crate/brc-gate-pharmacotherapy
 #   export PLUGINFILE=/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini
@@ -127,7 +127,7 @@ RUN echo "======================================================================
     && export CRATE_SRC="${CRATE_ROOT}/src" \
     && export CRATE_VENV="${CRATE_ROOT}/venv" \
     && export CRATE_VENV_BIN="${CRATE_VENV}/bin" \
-    && export CRATE_PACKAGE_ROOT="${CRATE_VENV}/lib/python3.6/site-packages/crate_anon" \
+    && export CRATE_PACKAGE_ROOT="${CRATE_VENV}/lib/python3.7/site-packages/crate_anon" \
     && export CRATE_GATE_PLUGIN_FILE=${CRATE_PACKAGE_ROOT}/nlp_manager/specimen_gate_plugin_file.ini \
     && export BIOYODIE_DIR="${CRATE_ROOT}/bioyodie" \
     && export GATE_HOME="${CRATE_ROOT}/gate" \
