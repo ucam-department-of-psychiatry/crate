@@ -210,7 +210,7 @@ class Installer:
         archive_template_dir = os.path.join(config_dir, "archive_templates")
         tmp_dir = os.path.join(root_dir, "tmp")
         venv_dir = os.path.join(root_dir, "venv")
-        crate_install_dir = os.path.join(venv_dir, "lib", "python3.6",
+        crate_install_dir = os.path.join(venv_dir, "lib", "python3.7",
                                          "site-packages")
 
         replace_dict = {

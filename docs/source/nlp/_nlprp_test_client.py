@@ -41,7 +41,7 @@ from requests.auth import HTTPBasicAuth
 from crate_anon.nlprp.api import NlprpRequest, NlprpResponse
 from crate_anon.nlprp.constants import NlprpCommands
 
-assert sys.version_info >= (3, 6), "Need Python 3.6+"
+assert sys.version_info >= (3, 7), "Need Python 3.7+"
 
 log = logging.getLogger(__name__)
 

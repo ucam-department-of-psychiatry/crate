@@ -55,13 +55,13 @@ tools. Here's a logical sequence.
 Python
 ~~~~~~
 
-Install Python 3.6 or higher. If it's not already installed:
+Install Python 3.7 or higher. If it's not already installed:
 
 **Linux**
 
 .. code-block:: bash
 
-    sudo apt-get install python3.6-dev
+    sudo apt-get install python3.7-dev
 
 **Windows**
 
@@ -79,7 +79,7 @@ Choose your own directory names.
 
 .. code-block:: bash
 
-    python3.6 -m venv ~/venvs/crate
+    python3.7 -m venv ~/venvs/crate
     source ~/venvs/crate/bin/activate
     python -m pip install --upgrade pip
     pip install crate-anon
