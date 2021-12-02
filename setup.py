@@ -72,7 +72,7 @@ INSTALL_REQUIRES = [
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
     "cardinal_pythonlib==1.1.10",  # RNC libraries
     "cairosvg==2.5.1",  # work with SVG files
-    "celery==4.4.6",  # back-end scheduling
+    "celery==5.2.0",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
@@ -89,7 +89,7 @@ INSTALL_REQUIRES = [
     "flower==0.9.5",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==20.0.4",  # UNIX only, though will install under Windows
-    "kombu==4.6.11",  # AMQP library for Celery; requires VC++ under Windows
+    "kombu==5.2.1",  # AMQP library for Celery; requires VC++ under Windows
     "mako==1.1.3",  # templates with Python in
     "MarkupSafe==1.1.1",  # for HTML escaping
     # mmh3 requires VC++
