@@ -20,19 +20,23 @@ class Command(BaseCommand):
         User = get_user_model()
 
         # We just support the default names for a user's attributes for now
-        user_data = {"is_staff": True, "is_superuser": True}
-
         username = os.environ.get("DJANGO_SUPERUSER_USERNAME")
         if username is None:
             raise CommandError("You must set DJANGO_SUPERUSER_USERNAME")
-        user_data["username"] = username
 
         password = os.environ.get("DJANGO_SUPERUSER_PASSWORD")
         if password is None:
             raise CommandError("You must set DJANGO_SUPERUSER_PASSWORD")
-        user_data["password"] = password
 
         email = os.environ.get("DJANGO_SUPERUSER_EMAIL") or ""
-        user_data["email"] = email
 
-        User.objects.update_or_create(**user_data)
+        user, created = User.objects.get_or_create(username=username)
+        user.password = password
+        user.email = email
+        user.save()
+
+        if options['verbosity'] >= 1:
+            if created:
+                self.stdout.write("Superuser created successfully.")
+            else:
+                self.stdout.write("Superuser updated successfully.")
