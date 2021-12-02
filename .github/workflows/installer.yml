@@ -9,6 +9,7 @@ on:
             - .github/workflows/installer.yml
             - 'docker/**'
             - 'installer/**'
+            - setup.py
 jobs:
     installer:
         runs-on: ubuntu-latest

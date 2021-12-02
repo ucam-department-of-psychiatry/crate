@@ -8,6 +8,7 @@ on:
             - 'crate_anon/**'
             - .github/workflows/docker.yml
             - 'docker/**'
+            - setup.py
 jobs:
     docker:
         runs-on: ubuntu-latest
