@@ -21,7 +21,7 @@
 # FROM: Base image
 # -----------------------------------------------------------------------------
 
-FROM python:3.6-slim-buster
+FROM python:3.7-slim-buster
 # This is a version of Debian 10 (see "cat /etc/debian_version").
 
 
