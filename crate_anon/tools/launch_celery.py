@@ -75,8 +75,8 @@ def inner_main() -> None:
     # os.chdir(DJANGO_ROOT)
     cmdargs = [
         "celery",
+        "--app", CRATEWEB_CELERY_APP_NAME,
         args.command,
-        "-A", CRATEWEB_CELERY_APP_NAME,
     ]
     if args.command == "worker":
         cmdargs += ["-l", "debug" if args.debug else "info"]  # --loglevel

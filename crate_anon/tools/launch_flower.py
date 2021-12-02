@@ -39,7 +39,7 @@ def main() -> None:
     """
     cmdargs = [
         "celery",
-        "-A", CRATEWEB_CELERY_APP_NAME,
+        "--app", CRATEWEB_CELERY_APP_NAME,
         "flower"
     ]
     print(f"Launching Flower: {cmdargs}")

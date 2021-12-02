@@ -70,8 +70,8 @@ def main() -> None:
 
     cmdargs = [
         "celery",
+        "--app", NLP_WEBSERVER_CELERY_APP_NAME,
         args.command,
-        "-A", NLP_WEBSERVER_CELERY_APP_NAME,
     ]
     if args.command == "worker":
         cmdargs += ["-l", "debug" if args.debug else "info"]  # --loglevel

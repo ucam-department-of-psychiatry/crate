@@ -39,7 +39,7 @@ def main() -> None:
     """
     cmdargs = [
         "celery",
-        "-A", NLP_WEBSERVER_CELERY_APP_NAME,
+        "--app", NLP_WEBSERVER_CELERY_APP_NAME,
         "flower"
     ]
     print(f"Launching Flower: {cmdargs}")
