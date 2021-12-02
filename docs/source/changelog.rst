@@ -1351,6 +1351,10 @@ Changes
   redundant; all other Excel work uses ``openpyxl``), but add ``pyexcel-ods``
   for ODS files.
 
+- ``pendulum`` from 2.1.1 to 2.1.2 so it installs (Python 3.7, Windows)
+  (previously, it complained about PEP 517;
+  https://github.com/sdispater/pendulum/issues/454).
+
 - **Minimum Python version is now 3.7.**
 
 - Specific code for TIMELY project.
@@ -1378,6 +1382,8 @@ Changes
 - Automatically hash third-party PIDs using the same hasher as patient PIDs,
   rendering the de-identified records linkable (if and only if the third-party
   PID field is marked for inclusion).
+
+- Explicit support for Python 3.10.
 
 
 ===============================================================================
