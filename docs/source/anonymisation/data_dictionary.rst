@@ -129,7 +129,8 @@ Character   Meaning
               containing a hash of the contents of the source record -- all
               fields that are not omitted, OR contain scrubbing information
               (``scrub_src``). The field is of type VARCHAR and its length is
-              determined by the ``hash_method`` parameter (see below).
+              determined by the :ref:`hash_method <anon_config_hash_method>`
+              option.
 
             - This table is then capable of incremental updates.
 

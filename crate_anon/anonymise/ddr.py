@@ -65,10 +65,11 @@ from crate_anon.anonymise.constants import (
     Decision,
     DEFAULT_INDEX_LEN,
     IndexType,
-    MAX_IDENTIFIER_LENGTH,
+    MYSQL_MAX_IDENTIFIER_LENGTH,
     ODD_CHARS_TRANSLATE,
     ScrubMethod,
     ScrubSrc,
+    SQLSERVER_MAX_IDENTIFIER_LENGTH,
     SrcFlag,
 )
 import crate_anon.common.sql
@@ -896,17 +897,27 @@ class DataDictionaryRow(object):
         ensure_valid_table_name(self.src_table)
         ensure_valid_field_name(self.src_field)
 
-        if len(self.src_table) > MAX_IDENTIFIER_LENGTH:
+        if len(self.src_table) > MYSQL_MAX_IDENTIFIER_LENGTH:
             log.warning(
                 f"Table name in {self.src_table}.{self.src_field} is too long "
                 f"for MySQL ({len(self.src_table)} characters > "
-                f"{MAX_IDENTIFIER_LENGTH} maximum")
+                f"{MYSQL_MAX_IDENTIFIER_LENGTH} maximum")
+        if len(self.src_table) > SQLSERVER_MAX_IDENTIFIER_LENGTH:
+            log.warning(
+                f"Table name in {self.src_table}.{self.src_field} is too long "
+                f"for SQL Server ({len(self.src_table)} characters > "
+                f"{SQLSERVER_MAX_IDENTIFIER_LENGTH} maximum")
 
-        if len(self.src_field) > MAX_IDENTIFIER_LENGTH:
+        if len(self.src_field) > MYSQL_MAX_IDENTIFIER_LENGTH:
             log.warning(
                 f"Field name in {self.src_table}.{self.src_field} is too long "
                 f"for MySQL ({len(self.src_field)} characters > "
-                f"{MAX_IDENTIFIER_LENGTH} maximum")
+                f"{MYSQL_MAX_IDENTIFIER_LENGTH} maximum")
+        if len(self.src_field) > SQLSERVER_MAX_IDENTIFIER_LENGTH:
+            log.warning(
+                f"Field name in {self.src_table}.{self.src_field} is too long "
+                f"for SQL Server ({len(self.src_field)} characters > "
+                f"{SQLSERVER_MAX_IDENTIFIER_LENGTH} maximum")
 
         # REMOVED 2016-06-04; fails with complex SQL Server types, which can
         # look like 'NVARCHAR(10) COLLATE "Latin1_General_CI_AS"'.
@@ -1038,13 +1049,14 @@ class DataDictionaryRow(object):
                 f"All fields with src_field = "
                 f"{srccfg.ddgen_master_pid_fieldname} used in output should "
                 f"have src_flags={SrcFlag.MASTER_PID} set")
-        # Either
-        if ((self._primary_pid or self._master_pid) and
+        # Anything that is hashed
+        if ((self._primary_pid or self._master_pid or self._add_src_hash) and
                 self.dest_datatype !=
                 self.config.sqltype_encrypted_pid_as_sql):
             raise ValueError(
                 f"All src_flags={SrcFlag.PRIMARY_PID}/"
-                f"src_flags={SrcFlag.MASTER_PID} fields used in output must "
+                f"src_flags={SrcFlag.MASTER_PID}/"
+                f"src_flags={SrcFlag.ADD_SRC_HASH} fields used in output must "
                 f"have destination_datatype = "
                 f"{self.config.sqltype_encrypted_pid_as_sql}")
 

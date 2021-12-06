@@ -177,8 +177,11 @@ TABLE_KWARGS = {
     'mysql_engine': 'InnoDB',
 }
 
-MAX_IDENTIFIER_LENGTH = 64
+MYSQL_MAX_IDENTIFIER_LENGTH = 64
 # MySQL: 64 -- http://dev.mysql.com/doc/refman/5.7/en/identifiers.html
+SQLSERVER_MAX_IDENTIFIER_LENGTH = 128
+# Microsoft SQL Server: 128 --
+# https://docs.microsoft.com/en-us/sql/relational-databases/databases/database-identifiers  # noqa
 
 
 # =============================================================================

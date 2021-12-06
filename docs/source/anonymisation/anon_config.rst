@@ -130,7 +130,13 @@ hash_method
 
 *String.*
 
-PID-to-RID hashing method. Options are:
+Hashing method, used for
+
+- PID to RID conversion;
+- MPID to MRID conversion;
+- hashing source data for change detection.
+
+Options are:
 
 - ``HMAC_MD5`` -- use MD5_ and produce a 32-character digest
 - ``HMAC_SHA256`` -- use SHA256_ and produce a 64-character digest
