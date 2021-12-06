@@ -235,7 +235,7 @@ class DatabaseSafeConfig(object):
         self.ddgen_safe_fields_exempt_from_scrubbing = cfg.opt_multiline(
             'ddgen_safe_fields_exempt_from_scrubbing')
         self.ddgen_min_length_for_scrubbing = cfg.opt_int(
-            'ddgen_min_length_for_scrubbing', 0)
+            'ddgen_min_length_for_scrubbing', 50)
 
         self.ddgen_truncate_date_fields = cfg.opt_multiline(
             'ddgen_truncate_date_fields')
@@ -252,6 +252,8 @@ class DatabaseSafeConfig(object):
         self.ddgen_index_fields = cfg.opt_multiline('ddgen_index_fields')
         self.ddgen_allow_fulltext_indexing = cfg.opt_bool(
             'ddgen_allow_fulltext_indexing', True)
+        self.ddgen_freetext_index_min_length = cfg.opt_int(
+            "ddgen_allow_fulltext_indexing", 1000)
 
         self.ddgen_force_lower_case = cfg.opt_bool(
             'ddgen_force_lower_case', False)

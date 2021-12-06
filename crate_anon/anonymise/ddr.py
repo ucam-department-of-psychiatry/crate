@@ -1089,11 +1089,11 @@ class DataDictionaryRow(object):
     # -------------------------------------------------------------------------
 
     def set_from_src_db_info(self,
-                             db: str,
-                             table: str,
-                             field: str,
-                             datatype_sqltext: str,
-                             sqla_coltype: TypeEngine,
+                             src_db: str,
+                             src_table: str,
+                             src_field: str,
+                             src_datatype_sqltext: str,
+                             src_sqla_coltype: TypeEngine,
                              dbconf: "DatabaseSafeConfig",
                              comment: str = None) -> None:
         """
@@ -1103,19 +1103,26 @@ class DataDictionaryRow(object):
         should review and may then wish to edit.
 
         Args:
-            db: source database name
-            table: source table name
-            field: source field (column) name
-            datatype_sqltext: string SQL type, e.g. ``"VARCHAR(100)"``
-            sqla_coltype: SQLAlchemy column type, e.g. ``Integer()``
-            dbconf: :class:`crate_anon.anonymise.config.DatabaseSafeConfig`
-            comment: textual comment
+            src_db:
+                Source database name.
+            src_table:
+                Source table name.
+            src_field:
+                Source field (column) name.
+            src_datatype_sqltext:
+                Source string SQL type, e.g. ``"VARCHAR(100)"``.
+            src_sqla_coltype:
+                Source SQLAlchemy column type, e.g. ``Integer()``.
+            dbconf:
+                A :class:`crate_anon.anonymise.config.DatabaseSafeConfig`.
+            comment:
+                Textual comment.
         """
-        self.src_db = db
-        self.src_table = table
-        self.src_field = field
-        self.src_datatype = datatype_sqltext
-        self._src_sqla_coltype = sqla_coltype
+        self.src_db = src_db
+        self.src_table = src_table
+        self.src_field = src_field
+        self.src_datatype = src_datatype_sqltext
+        self._src_sqla_coltype = src_sqla_coltype
         self._pk = False
         self._add_src_hash = False
         self._primary_pid = False
@@ -1207,13 +1214,13 @@ class DataDictionaryRow(object):
             self.scrub_method = ""
 
         elif (self.scrub_src is ScrubSrc.THIRDPARTY_XREF_PID
-              or is_sqlatype_numeric(sqla_coltype)
+              or is_sqlatype_numeric(src_sqla_coltype)
               or self.matches_fielddef(dbconf.ddgen_per_table_pid_field)
               or self.matches_fielddef(dbconf.ddgen_master_pid_fieldname)
               or self.matches_fielddef(dbconf.ddgen_scrubmethod_number_fields)):  # noqa
             self.scrub_method = ScrubMethod.NUMERIC
 
-        elif (is_sqlatype_date(sqla_coltype)
+        elif (is_sqlatype_date(src_sqla_coltype)
               or self.matches_fielddef(dbconf.ddgen_scrubmethod_date_fields)):
             self.scrub_method = ScrubMethod.DATE
 
@@ -1234,7 +1241,7 @@ class DataDictionaryRow(object):
         elif self._master_pid:
             self.dest_field = self.config.master_research_id_fieldname
         else:
-            self.dest_field = field
+            self.dest_field = src_field
         if dbconf.ddgen_force_lower_case:
             self.dest_field = self.dest_field.lower()
         if dbconf.ddgen_convert_odd_chars_to_underscore:
@@ -1283,7 +1290,7 @@ class DataDictionaryRow(object):
         elif (not self._primary_pid
               and not self._master_pid
               and is_sqlatype_text_of_length_at_least(
-                  sqla_coltype, dbconf.ddgen_min_length_for_scrubbing)
+                  src_sqla_coltype, dbconf.ddgen_min_length_for_scrubbing)
               and not self.matches_fielddef(
                   dbconf.ddgen_safe_fields_exempt_from_scrubbing)):
             # Text field meeting the criteria to scrub
@@ -1316,7 +1323,7 @@ class DataDictionaryRow(object):
         # ddgen: Manipulate the destination table name?
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # https://stackoverflow.com/questions/10017147
-        self.dest_table = table
+        self.dest_table = src_table
 
         if dbconf.ddgen_force_lower_case:
             self.dest_table = self.dest_table.lower()
@@ -1345,8 +1352,10 @@ class DataDictionaryRow(object):
               or self.dest_field == self.config.research_id_fieldname):
             self.index = IndexType.NORMAL
 
-        elif (dbconf.ddgen_allow_fulltext_indexing
-              and does_sqlatype_merit_fulltext_index(dest_sqla_type)):
+        elif (dbconf.ddgen_allow_fulltext_indexing and
+              does_sqlatype_merit_fulltext_index(
+                  src_sqla_coltype,
+                  min_length=dbconf.ddgen_freetext_index_min_length)):
             self.index = IndexType.FULLTEXT
 
         elif self.matches_fielddef(dbconf.ddgen_index_fields):

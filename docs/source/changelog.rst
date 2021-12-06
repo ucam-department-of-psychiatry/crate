@@ -1389,6 +1389,10 @@ Changes
 
 - ``ddgen_force_lower_case`` default changed from True to False.
 
+- ``ddgen_min_length_for_scrubbing`` default changed from 0 to 50.
+
+- New ``ddgen_freetext_index_min_length`` option.
+
 
 ===============================================================================
 

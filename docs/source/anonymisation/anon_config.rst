@@ -1206,11 +1206,11 @@ Known safe fields, exempt from scrubbing.
 ddgen_min_length_for_scrubbing
 ##############################
 
-*Integer.* Default: 0.
+*Integer.* Default: 50.
 
-Define minimum text column length for scrubbing (fields shorter than this value
-are assumed safe). For example, specifying 10 will mean that ``VARCHAR(9)``
-columns are assumed not to need scrubbing.
+Define minimum source text column length for scrubbing (fields shorter than
+this value are assumed safe). For example, specifying 10 will mean that
+``VARCHAR(9)`` columns are assumed not to need scrubbing.
 
 
 ddgen_truncate_date_fields
@@ -1311,6 +1311,8 @@ ddgen_index_fields
 Fields to apply an index to.
 
 
+.. _ddgen_allow_fulltext_indexing:
+
 ddgen_allow_fulltext_indexing
 #############################
 
@@ -1319,6 +1321,23 @@ ddgen_allow_fulltext_indexing
 Allow full-text index creation?
 
 (Disable for databases that don't support full-text indexes?)
+
+
+ddgen_freetext_index_min_length
+###############################
+
+*Integer.* Default: 1000.
+
+For full-text index creation (see ddgen_freetext_index_min_length_): what is
+the minimum (source) text field length that should have a free-text index
+applied?
+
+.. note::
+
+    This is applied to the length of the source field, not the destination,
+    because sometimes short source fields are expanded (to make room for
+    "anonymisation expansion"), so the source length is usually more
+    meaningful.
 
 
 Data dictionary generation: altering destination table/field names
