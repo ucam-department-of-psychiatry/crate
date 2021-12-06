@@ -333,7 +333,7 @@ import csv
 from dataclasses import dataclass, field
 from enum import Enum
 import logging
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from cardinal_pythonlib.dicts import reversedict
 from cardinal_pythonlib.enumlike import CaseInsensitiveEnumMeta
@@ -833,6 +833,23 @@ EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS = (
 
 
 # =============================================================================
+# Output
+# =============================================================================
+
+_warned = set()  # type: Set[str]
+
+
+def warn_once(msg: str) -> None:
+    """
+    Warns the user once only.
+    """
+    global _warned
+    if msg not in _warned:
+        log.warning(msg)
+        _warned.add(msg)
+
+
+# =============================================================================
 # Table/column name interpretation
 # =============================================================================
 
@@ -893,7 +910,7 @@ def core_tablename(tablename: str,
     """
     prefix = tablename_prefix(from_context)
     if not tablename.startswith(prefix):
-        log.warning(f"Unrecognized table name style: {tablename}")
+        warn_once(f"Unrecognized table name style: {tablename}")
         if allow_unprefixed:
             return tablename
         else:

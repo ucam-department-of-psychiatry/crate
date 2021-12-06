@@ -731,9 +731,9 @@ class DataDictionaryRow(object):
         Prevent this row from being scrubbed, by removing any "scrub" method
         from among its alteration methods.
         """
-        log.debug(
-            f"remove_scrub_from_alter_methods [used for non-patient tables]: "
-            f"{self.src_signature}")
+        # log.debug(
+        #     f"remove_scrub_from_alter_methods "
+        #     f"[used for non-patient tables]: {self.src_signature}")
         for sm in self._alter_methods:
             sm.scrub = False
 
