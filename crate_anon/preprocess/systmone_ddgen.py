@@ -1617,7 +1617,8 @@ def modify_dd_for_systmone(dd: DataDictionary,
                            debug_specs: bool = False,
                            append_comments: bool = False,
                            include_generic: bool = False,
-                           allow_unprefixed_tables: bool = False) -> None:
+                           allow_unprefixed_tables: bool = False,
+                           alter_loaded_rows: bool = False) -> None:
     """
     Modifies a data dictionary in place.
 
@@ -1647,6 +1648,9 @@ def modify_dd_for_systmone(dd: DataDictionary,
         allow_unprefixed_tables:
             Permit tables that don't start with the expected contextual prefix?
             Discouraged; you may get odd tables and views.
+        alter_loaded_rows:
+            Alter rows that were loaded from disk (not read from a database)?
+            The default is to leave such rows untouched.
     """
     log.info(f"Modifying data dictionary for SystmOne. Context = {context}")
     specs = (
@@ -1657,6 +1661,9 @@ def modify_dd_for_systmone(dd: DataDictionary,
         specs_str = '\n'.join(spec.description(context) for spec in specs)
         log.debug(f"SystmOne specs:\n{specs_str}")
     for ddr in dd.rows:
+        if ddr.from_file and not alter_loaded_rows:
+            # Skip rows that were loaded from disk.
+            continue
         annotate_systmone_dd_row(
             ddr=ddr,
             context=context,

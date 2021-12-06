@@ -294,6 +294,9 @@ class DataDictionary(object):
         """
         Create a draft DD from a source database.
 
+        Will skip any rows it knows about already (thus allowing the generation
+        of incremental changes).
+
         Args:
             report_every: report to the Python log every *n* columns
         """
@@ -353,7 +356,10 @@ class DataDictionary(object):
                         dbconf=cfg,
                         comment=comment)
 
+                    # ---------------------------------------------------------
                     # If we have this one already, skip ASAP
+                    # This is how incremental data dictionaries get generatd.
+                    # ---------------------------------------------------------
                     sig = ddr.src_signature
                     if sig in existing_signatures:
                         log.debug(f"Skipping duplicated column: "

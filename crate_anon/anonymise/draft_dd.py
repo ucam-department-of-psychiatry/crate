@@ -61,7 +61,8 @@ def draft_dd(config: Config,
              systmone_sre_spec_csv_filename: str = None,
              systmone_append_comments: bool = False,
              systmone_include_generic: bool = False,
-             systmone_allow_unprefixed_tables: bool = False) -> None:
+             systmone_allow_unprefixed_tables: bool = False,
+             systmone_alter_loaded_rows: bool = False) -> None:
     """
     Draft a data dictionary.
 
@@ -102,13 +103,18 @@ def draft_dd(config: Config,
             prefix? (That prefix is e.g. 'SR' for the TPP SRE context, 'S1_'
             for the CPFT Data Warehouse context.) Discouraged; you may get odd
             tables and views.
+        systmone_alter_loaded_rows:
+            Alter rows that were loaded from disk (not read from a database)?
+            The default is to leave such rows untouched.
     """
-    if incremental:  # this is where incrementaldd has its effect
+    if incremental:
         # For "incremental", we load the data dictionary from disk.
         # Otherwise, we don't, so a completely fresh one will be generated.
         config.load_dd(check_against_source_db=not skip_dd_check)
 
     config.dd.read_from_source_databases()
+    # Will skip source columns that it knows about already (and thus generate
+    # an incremental data dictionary if we had pre-loaded some).
 
     if systmone:
         if not systmone_context:
@@ -120,6 +126,7 @@ def draft_dd(config: Config,
             append_comments=systmone_append_comments,
             include_generic=systmone_include_generic,
             allow_unprefixed_tables=systmone_allow_unprefixed_tables,
+            alter_loaded_rows=systmone_alter_loaded_rows,
         )
     if explicit_dest_datatype:
         config.dd.make_dest_datatypes_explicit()
@@ -214,6 +221,12 @@ def main() -> None:
              "Data Warehouse context). Discouraged; you may get odd tables "
              "and views."
     )
+    s1_options.add_argument(
+        "--systmone_alter_loaded_rows", action="store_true",
+        help="(For --incremental.) Alter rows that were loaded from disk "
+             "(not read from a database)? The default is to leave such rows "
+             "untouched."
+    )
 
     args = parser.parse_args()
 
@@ -244,4 +257,5 @@ def main() -> None:
         systmone_append_comments=args.systmone_append_comments,
         systmone_include_generic=args.systmone_include_generic,
         systmone_allow_unprefixed_tables=args.systmone_allow_unprefixed_tables,
+        systmone_alter_loaded_rows=args.systmone_alter_loaded_rows,
     )
