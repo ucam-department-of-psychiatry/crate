@@ -1647,6 +1647,7 @@ def modify_dd_for_systmone(dd: DataDictionary,
             Permit tables that don't start with the expected contextual prefix?
             Discouraged; you may get odd tables and views.
     """
+    log.info(f"Modifying data dictionary for SystmOne. Context = {context}...")
     specs = (
         read_systmone_sre_spec(sre_spec_csv_filename)
         if sre_spec_csv_filename else []
@@ -1663,3 +1664,4 @@ def modify_dd_for_systmone(dd: DataDictionary,
             include_generic=include_generic,
             allow_unprefixed_tables=allow_unprefixed_tables,
         )
+    log.info("... done")
