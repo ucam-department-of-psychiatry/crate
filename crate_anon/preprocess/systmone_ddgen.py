@@ -469,8 +469,9 @@ OMIT_TABLES = (
 )
 OMIT_TABLES_REGEX = (
     # CPFT extras:
-    "vw",  # views
-    "zzz",  # anything starting with "zzz" or "ZZZ" is a scratch table, I think
+    # ... nothing; we were doing "vw" (views) and "zzz" (scratch tables) but
+    # this should be handled by --systmone_allow_unprefixed_tables (and now
+    # is), so the user can decide.
 )
 CORE_TO_CONTEXT_TABLE_TRANSLATIONS = {
     # Key: destination context.
@@ -1547,6 +1548,7 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
                                allow_unprefixed=allow_unprefixed_tables)
     if not tablename:
         # It didn't have the right prefix and allow_unprefixed_tables is False.
+        ddr.decision = Decision.OMIT
         return
     colname = core_columnname(tablename, ddr.src_field, from_context=context)
 

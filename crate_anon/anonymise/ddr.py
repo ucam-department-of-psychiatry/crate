@@ -584,6 +584,9 @@ class DataDictionaryRow(object):
         Set internal fields from a dict of elements representing a row from the
         TSV data dictionary file.
 
+        Also sets the "loaded from file" indicator, since that is the context
+        in which we use this function.
+
         Args:
             valuedict:
                 Dictionary mapping row headings (or attribute names) to values.
