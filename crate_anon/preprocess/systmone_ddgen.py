@@ -1095,6 +1095,7 @@ class ScrubSrcAlterMethodInfo:
     scrub_method: Optional[ScrubMethod] = None
     decision: Decision = Decision.OMIT
     alter_methods: List[AlterMethod] = field(default_factory=list)
+    dest_datatype: str = None
 
     def __post_init__(self) -> None:
         """
@@ -1572,6 +1573,11 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
 
         # Alterations
         ddr.set_alter_methods_directly(ssi.alter_methods)
+
+        # Destination
+        if (SrcFlag.PRIMARY_PID.value in ssi.src_flags
+                or SrcFlag.MASTER_PID.value in ssi.src_flags):
+            ddr.dest_datatype = ddr.config.sqltype_encrypted_pid_as_sql
 
         # Indexing
         ddr.index = get_index_flag(tablename, colname)

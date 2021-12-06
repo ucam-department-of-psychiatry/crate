@@ -112,7 +112,9 @@ def draft_dd(config: Config,
         # Otherwise, we don't, so a completely fresh one will be generated.
         config.load_dd(check_against_source_db=not skip_dd_check)
 
-    config.dd.read_from_source_databases()
+    dd = config.dd
+
+    dd.read_from_source_databases()
     # Will skip source columns that it knows about already (and thus generate
     # an incremental data dictionary if we had pre-loaded some).
 
@@ -120,7 +122,7 @@ def draft_dd(config: Config,
         if not systmone_context:
             raise ValueError("Requires SystmOne context to be specified")
         modify_dd_for_systmone(
-            dd=config.dd,
+            dd=dd,
             context=systmone_context,
             sre_spec_csv_filename=systmone_sre_spec_csv_filename,
             append_comments=systmone_append_comments,
@@ -129,8 +131,9 @@ def draft_dd(config: Config,
             alter_loaded_rows=systmone_alter_loaded_rows,
         )
     if explicit_dest_datatype:
-        config.dd.make_dest_datatypes_explicit()
-    config.dd.write(dd_output_filename)
+        dd.make_dest_datatypes_explicit()
+    dd.check_valid(check_against_source_db=not skip_dd_check)
+    dd.write(dd_output_filename)
     return
 
 
@@ -168,8 +171,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--skip_dd_check", action="store_true",
-        help="(For --incremental.) "
-             "Skip validity check for the existing data dictionary."
+        help="Skip validity check (against the source database) for the "
+             "data dictionary."
     )
     parser.add_argument(
         "--output", default="-",

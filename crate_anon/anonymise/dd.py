@@ -566,8 +566,16 @@ class DataDictionary(object):
             raise ValueError("Empty data dictionary after removing "
                              "redundant tables")
 
-        # Individual rows will already have been checked with their own
-        # check_valid() method. But now we check collective consistency.
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Check (or re-check) individual rows
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        log.debug("Checking DD: individual row validity...")
+        for r in self.rows:
+            r.check_valid()
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Check collective consistency
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         log.debug("Checking DD: prohibited flags...")
         for d in self.get_source_databases():
