@@ -1393,6 +1393,11 @@ Changes
 
 - New ``ddgen_freetext_index_min_length`` option.
 
+- Fulltext indexing during data dictionary autogeneration now bases its
+  decisions on the source (not destination) datatype. This handles the
+  "auto-expansion" better -- otherwise all sorts of things were attracting the
+  full-text flag.
+
 
 ===============================================================================
 
