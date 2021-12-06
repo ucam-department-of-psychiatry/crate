@@ -1366,7 +1366,8 @@ class DataDictionaryRow(object):
 
         self.indexlen = (
             DEFAULT_INDEX_LEN
-            if (self.index is not IndexType.FULLTEXT
+            if (self.index
+                and self.index is not IndexType.FULLTEXT
                 and does_sqlatype_require_index_len(dest_sqla_type))
             else None
         )
