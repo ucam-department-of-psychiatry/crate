@@ -506,7 +506,7 @@ class DataDictionaryRow(object):
         """
         Returns a string representation of the DDR.
         """
-        return ", ".join([f"{a}: {getattr(self, a)}"
+        return ", ".join([f"{a}: {getattr(self, a)!r}"
                           for a in DataDictionaryRow.ROWNAMES])
 
     @property
