@@ -710,7 +710,8 @@ S1_COLS_PATIENT_TABLE_OK_UNMODIFIED = S1_COLS_GENERIC_OK_UNMODIFIED + (
     # are safe -- we assume they are unsafe, and let them through only if we
     # know about them. So we add "safe" things (that are not direct
     # identifiers) here.
-    S1_PATIENT_COL_TITLE,
+
+    # S1_PATIENT_COL_TITLE,  # unnecessary -- and might be rare, e.g. Lord High Admiral  # noqa
     S1_PATIENT_COL_GENDER,
     S1_PATIENT_COL_SPEAKS_ENGLISH,
     S1_PATIENT_COL_SPINE_MATCHED,
