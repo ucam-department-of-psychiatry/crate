@@ -55,6 +55,7 @@ def draft_dd(config: Config,
              dd_output_filename: str,
              incremental: bool = False,
              skip_dd_check: bool = False,
+             explicit_dest_datatype: bool = False,
              systmone: bool = False,
              systmone_context: SystmOneContext = None,
              systmone_sre_spec_csv_filename: str = None,
@@ -76,6 +77,9 @@ def draft_dd(config: Config,
         skip_dd_check:
             If true: skip data dictionary validity check when loading the
             pre-existing data dictionary in "incremental" mode.
+        explicit_dest_datatype:
+            Make destination datatypes explicit, not implicit. (Primarily for
+            debugging.)
         systmone:
             Process data dictionary for SystmOne data?
         systmone_context:
@@ -117,7 +121,8 @@ def draft_dd(config: Config,
             include_generic=systmone_include_generic,
             allow_unprefixed_tables=systmone_allow_unprefixed_tables,
         )
-
+    if explicit_dest_datatype:
+        config.dd.make_dest_datatypes_explicit()
     config.dd.write(dd_output_filename)
     return
 
@@ -162,6 +167,15 @@ def main() -> None:
     parser.add_argument(
         "--output", default="-",
         help="File for output; use '-' for stdout."
+    )
+    parser.add_argument(
+        "--explicit_dest_datatype", action="store_true",
+        help="(Primarily for debugging.) CRATE will convert the source column "
+             "data type (e.g. INTEGER, FLOAT, VARCHAR(25)) to a datatype for "
+             "the destination database, sometimes with modifications. "
+             "However, this is usually implicit: the draft data dictionary "
+             "doesn't show these data types unless they require modification. "
+             "Use this option to make them all explicit."
     )
     parser.add_argument(
         "--systmone", action="store_true",
@@ -223,6 +237,7 @@ def main() -> None:
         dd_output_filename=args.output,
         incremental=args.incremental,
         skip_dd_check=args.skip_dd_check,
+        explicit_dest_datatype=args.explicit_dest_datatype,
         systmone=args.systmone,
         systmone_context=SystmOneContext[args.systmone_context],
         systmone_sre_spec_csv_filename=args.systmone_sre_spec,

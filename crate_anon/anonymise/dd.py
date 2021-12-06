@@ -391,6 +391,15 @@ class DataDictionary(object):
         log.info("... done")
         self.sort()
 
+    def make_dest_datatypes_explicit(self) -> None:
+        """
+        By default, when autocreating a data dictionary, the ``dest_datatype``
+        field is not populated explicit, just implicitly. This option makes
+        them explicit by instantiating those values. Primarily for debugging.
+        """
+        for ddr in self.rows:
+            ddr.make_dest_datatype_explicit()
+
     # -------------------------------------------------------------------------
     # Sorting
     # -------------------------------------------------------------------------

@@ -812,6 +812,15 @@ class DataDictionaryRow(object):
             kwargs['nullable'] = False
         return Column(name, coltype, **kwargs)
 
+    def make_dest_datatype_explicit(self) -> None:
+        """
+        By default, when autocreating a data dictionary, the ``dest_datatype``
+        field is not populated explicit, just implicitly. This option makes
+        them explicit by instantiating those values. Primarily for debugging.
+        """
+        if not self.dest_datatype:
+            self.dest_datatype = str(self.dest_sqla_coltype)
+
     # -------------------------------------------------------------------------
     # Validation
     # -------------------------------------------------------------------------
