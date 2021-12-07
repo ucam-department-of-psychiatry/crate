@@ -70,4 +70,13 @@ use these lines in your :ref:`anonymiser config file <anon_config_file>`:
 
     sqlatype_mpid = String(10)
 
+For your source database, use these settings:
+
+.. code-block:: ini
+
+    ddgen_omit_by_default = False
+    # ... or use "--systemone_include_generic" with crate_anon_draft_dd
+    ddgen_per_table_pid_field = IDPatient
+
+
 See :ref:`sqlatype_mpid <anon_config_sqlatype_mpid>`.

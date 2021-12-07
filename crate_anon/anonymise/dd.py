@@ -65,7 +65,9 @@ from sqlalchemy.sql.sqltypes import String, TypeEngine
 
 # don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.constants import (
+    AlterMethodType,
     AnonymiseConfigKeys,
+    AnonymiseDatabaseSafeConfigKeys,
     TABLE_KWARGS,
     SrcFlag,
     TridType,
@@ -550,7 +552,11 @@ class DataDictionary(object):
                 needs_pidfield = False
                 for r in rows:
                     # Needs PID field in table?
-                    if not r.omit and (r.being_scrubbed or r.master_pid):
+                    if not r.omit and r.being_scrubbed:
+                        # Before 2021-12-07, we used to check r.master_pid,
+                        # too. However, if nothing is being scrubbed, then the
+                        # lack of a link via primary PID is a researcher
+                        # inconvenience, not an de-identification risk.
                         needs_pidfield = True
 
                     if r.primary_pid:
@@ -596,10 +602,13 @@ class DataDictionary(object):
                     expected_pidfield = db.srccfg.ddgen_per_table_pid_field
                     if expected_pidfield not in fieldnames:
                         log.warning(
-                            f"Source table {d}.{t} has a scrub_in or "
-                            f"src_flags={SrcFlag.MASTER_PID} field but no "
-                            f"master patient ID field (expected to be: "
-                            f"{expected_pidfield})")
+                            f"Source table {d}.{t} has a "
+                            f"{AlterMethodType.SCRUBIN!r} field but no "
+                            f"primary patient ID field (expected to be: "
+                            f"{expected_pidfield!r} according to config file "
+                            f"{AnonymiseDatabaseSafeConfigKeys.DDGEN_PER_TABLE_PID_FIELD!r} "  # noqa
+                            f"parameter)"
+                        )
 
         log.debug("... source tables checked.")
 
