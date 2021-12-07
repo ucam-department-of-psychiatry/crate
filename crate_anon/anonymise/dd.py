@@ -141,7 +141,7 @@ def ensure_no_source_type_mismatch(ddr: DataDictionaryRow,
             else:
                 suffix = (
                     f"Using a bigger string field in the config (minimum "
-                    f"length {rowtype.length}) would fix this."
+                    f"length {STRING_LENGTH_FOR_BIGINT}) would fix this."
                 )
     elif is_sqlatype_string(rowtype):
         # ---------------------------------------------------------------------
