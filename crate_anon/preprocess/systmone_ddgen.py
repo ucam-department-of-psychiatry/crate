@@ -466,13 +466,17 @@ OMIT_TABLES = (
 
     # CPFT extras:
     "gr_workings",  # no idea
-    "Inpatients",  # S1_Inpatients: current inpatients -- but has NHSNumber as FLOAT  # noqa
 )
 OMIT_TABLES_REGEX = (
     # CPFT extras:
-    # ... nothing; we were doing "vw" (views) and "zzz" (scratch tables) but
-    # this should be handled by --systmone_allow_unprefixed_tables (and now
-    # is), so the user can decide.
+
+    "Inpatients",
+    # ... S1_Inpatients, S1_Inpatients_20201020: current inpatients -- but
+    # these tables have NHSNumber as FLOAT.
+
+    # ... we were doing "vw" (views) and "zzz" (scratch tables) but this should
+    # be handled by --systmone_allow_unprefixed_tables (and now is), so the
+    # user can decide.
 )
 CORE_TO_CONTEXT_TABLE_TRANSLATIONS = {
     # Key: destination context.
