@@ -866,38 +866,35 @@ def warn_once(msg: str) -> None:
 # Plain strings
 # -----------------------------------------------------------------------------
 
-def eq(x: str, y_regex: str) -> bool:
+def eq(x: str, y: str) -> bool:
     """
     Case-insensitive string comparison.
-
-    Returns True if the regex matches at the start of the string.
     """
-    return bool(re.match(y_regex, x, flags=re.IGNORECASE))
+    return x.lower() == y.lower()
 
 
 def tcmatch(table1: str, column1: str,
-            table2_regex: str, column2_regex: str) -> bool:
+            table2: str, column2: str) -> bool:
     """
-    Equal (in case-insensitive fashion) for table and column, via regexes?
+    Equal (in case-insensitive fashion) for table and column?
     """
-    return eq(table1, table2_regex) and eq(column1, column2_regex)
+    return eq(table1, table2) and eq(column1, column2)
 
 
-def is_in(x: str, y_regexes: Iterable[str]) -> bool:
+def is_in(x: str, y: Iterable[str]) -> bool:
     """
-    Case-insensitive regex-based version of "in", to replace "if x in y".
+    Case-insensitive version of "in", to replace "if x in y".
     """
-    return any(eq(x, test) for test in y_regexes)
+    return any(eq(x, test) for test in y)
 
 
-def is_pair_in(a: str, b: str, y_regexes: Iterable[Tuple[str, str]]) -> bool:
+def is_pair_in(a: str, b: str, y: Iterable[Tuple[str, str]]) -> bool:
     """
-    Case-insensitive version of "in", to replace "if a, b in y". Allows
-    regexes in y.
+    Case-insensitive version of "in", to replace "if a, b in y".
     """
     return any(
         eq(a, test_a) and eq(b, test_b)
-        for test_a, test_b in y_regexes
+        for test_a, test_b in y
     )
 
 
@@ -907,8 +904,6 @@ def is_pair_in(a: str, b: str, y_regexes: Iterable[Tuple[str, str]]) -> bool:
 
 def eq_re(x: str, y_regex: str) -> bool:
     """
-    Case-insensitive regex-based string comparison.
-
     Returns True if the regex matches at the start of the string.
     """
     return bool(re.match(y_regex, x, flags=re.IGNORECASE))

@@ -603,7 +603,7 @@ class DataDictionary(object):
                     if expected_pidfield not in fieldnames:
                         log.warning(
                             f"Source table {d}.{t} has a "
-                            f"{AlterMethodType.SCRUBIN!r} field but no "
+                            f"{AlterMethodType.SCRUBIN.value!r} field but no "
                             f"primary patient ID field (expected to be: "
                             f"{expected_pidfield!r} according to config file "
                             f"{AnonymiseDatabaseSafeConfigKeys.DDGEN_PER_TABLE_PID_FIELD!r} "  # noqa
