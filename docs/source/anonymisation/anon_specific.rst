@@ -76,7 +76,10 @@ For your source database, use these settings:
 
     ddgen_omit_by_default = False
     # ... or use "--systemone_include_generic" with crate_anon_draft_dd
-    ddgen_per_table_pid_field = IDPatient
+    # ... or use True if you want to hand-review everything
 
+    ddgen_per_table_pid_field = IDPatient
+    # ... largely cosmetic; improves the warnings if your local database
+    # modifications have an odd structure.
 
 See :ref:`sqlatype_mpid <anon_config_sqlatype_mpid>`.

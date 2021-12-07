@@ -463,6 +463,7 @@ CPFT_TAB_REL_MOTHER = "PatientRelationshipMother"
 
 OMIT_TABLES = (
     "NomisNumber",  # Prison NOMIS numbers
+    "SafeguardingAllegationDetails",  # sensitive and no patient ID column
 
     # CPFT extras:
     "gr_workings",  # no idea

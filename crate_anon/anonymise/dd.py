@@ -601,7 +601,7 @@ class DataDictionary(object):
                     # manually, it may not be relevant.
                     expected_pidfield = db.srccfg.ddgen_per_table_pid_field
                     if expected_pidfield not in fieldnames:
-                        log.warning(
+                        log.error(
                             f"Source table {d}.{t} has a "
                             f"{AlterMethodType.SCRUBIN.value!r} field but no "
                             f"primary patient ID field (expected to be: "
