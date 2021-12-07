@@ -81,6 +81,31 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
+# Helper functions
+# =============================================================================
+
+def warn_if_identifier_long(table: str, column: str) -> None:
+    """
+    Warns about identifiers that are too long for specific database engines.
+    """
+    engine_maxlen = (
+        ("MySQL", MYSQL_MAX_IDENTIFIER_LENGTH),
+        ("SQL Server", SQLSERVER_MAX_IDENTIFIER_LENGTH),
+    )
+    description_value = (
+        ("Table", table),
+        ("Column", column),
+    )
+    for engine, maxlen in engine_maxlen:
+        for description, value in description_value:
+            if len(value) > maxlen:
+                log.warning(
+                    f"{description} name in {table!r}.{column!r} "
+                    f"is too long for {engine} "
+                    f"({len(value)} characters > {maxlen} maximum)")
+
+
+# =============================================================================
 # DataDictionaryRow
 # =============================================================================
 
@@ -897,27 +922,7 @@ class DataDictionaryRow(object):
         ensure_valid_table_name(self.src_table)
         ensure_valid_field_name(self.src_field)
 
-        if len(self.src_table) > MYSQL_MAX_IDENTIFIER_LENGTH:
-            log.warning(
-                f"Table name in {self.src_table}.{self.src_field} is too long "
-                f"for MySQL ({len(self.src_table)} characters > "
-                f"{MYSQL_MAX_IDENTIFIER_LENGTH} maximum")
-        if len(self.src_table) > SQLSERVER_MAX_IDENTIFIER_LENGTH:
-            log.warning(
-                f"Table name in {self.src_table}.{self.src_field} is too long "
-                f"for SQL Server ({len(self.src_table)} characters > "
-                f"{SQLSERVER_MAX_IDENTIFIER_LENGTH} maximum")
-
-        if len(self.src_field) > MYSQL_MAX_IDENTIFIER_LENGTH:
-            log.warning(
-                f"Field name in {self.src_table}.{self.src_field} is too long "
-                f"for MySQL ({len(self.src_field)} characters > "
-                f"{MYSQL_MAX_IDENTIFIER_LENGTH} maximum")
-        if len(self.src_field) > SQLSERVER_MAX_IDENTIFIER_LENGTH:
-            log.warning(
-                f"Field name in {self.src_table}.{self.src_field} is too long "
-                f"for SQL Server ({len(self.src_field)} characters > "
-                f"{SQLSERVER_MAX_IDENTIFIER_LENGTH} maximum")
+        warn_if_identifier_long(self.src_table, self.src_field)
 
         # REMOVED 2016-06-04; fails with complex SQL Server types, which can
         # look like 'NVARCHAR(10) COLLATE "Latin1_General_CI_AS"'.
@@ -926,19 +931,6 @@ class DataDictionaryRow(object):
         #     raise ValueError(
         #         "Field has invalid source data type: {}".format(
         #             self.src_datatype))
-
-        # 2016-11-11: error message clarified
-        # 2017-05-06: check removed; we can now handle non-integer PIDs
-        #
-        # if ((self._primary_pid or self._master_pid) and
-        #         not is_sqltype_integer(self.src_datatype)):
-        #     raise ValueError(
-        #         "For {}: All fields with src_flags={} or src_flags={} set "
-        #         "should be integer, (a) for work distribution purposes, and "
-        #         "(b) so we know the structure of our secret mapping table "
-        #         "in advance.".format(self.src_field,
-        #                              SRCFLAG.PRIMARY_PID,
-        #                              SRCFLAG.MASTER_PID))
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check for conflicting or missing flags

@@ -30,3 +30,4 @@ Anonymisation
     anon_config.rst
     data_dictionary.rst
     anonymise.rst
+    anon_specific.rst

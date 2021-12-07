@@ -9,7 +9,9 @@ Purpose
 
 - Performs some specific preprocessing tasks; e.g.
 
-  - preprocesses some specific databases (e.g. Servelec RiO EMR).
+  - preprocesses some specific databases (e.g. Servelec RiO EMR);
+  - drafts a "data dictionary" for anonymisation, with special knowledge of
+    some databases (e.g. TPP SystmOne);
   - fetches some word lists, e.g. forenames/surnames/eponyms.
 
 - Provides a natural language processing (NLP) pipeline.

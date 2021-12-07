@@ -85,6 +85,59 @@ EXT_TSV = ".tsv"
 EXT_ODS = ".ods"
 EXT_XLSX = ".xlsx"
 
+STRING_LENGTH_FOR_BIGINT = len(str(-2 ** 63))
+# = -2^63: https://dev.mysql.com/doc/refman/8.0/en/integer-types.html
+
+
+# =============================================================================
+# Helper functions
+# =============================================================================
+
+def ensure_no_source_type_mismatch(ddr: DataDictionaryRow,
+                                   config_sqlatype: Union[TypeEngine, String],
+                                   human_type: str) -> None:
+    """
+    Ensure that the source column type of a data dictionary row is compatible
+    with what's expected from the config. We check this only for specific type
+    of column (PID, MPID), because we need to know their data types concretely
+    for the secret mapping table. The question is not whether the types are the
+    same, but whether the value will fit into the config-determined type (for
+    example, it's OK to convert an integer to a long-enough string but
+    necessarily not the other way round).
+
+    Args:
+        ddr:
+            Data dictionary row.
+        config_sqlatype:
+            SQLAlchemy column type that would be expected based on the current
+            config.
+        human_type:
+            Description of the nature of the row for human purposes.
+    """
+    rowtype = ddr.src_sqla_coltype
+    if is_sqlatype_integer(rowtype):
+        if is_sqlatype_integer(config_sqlatype):
+            # Good enough. The only integer type we use for PID/MPID is
+            # BigInteger, so any integer type should fit.
+            return
+        elif is_sqlatype_string(config_sqlatype):
+            # Storing an integer in a string. This may be OK, if the string is
+            # long enough. We could do detailed checks here based on the type
+            # of integer, but we'll be simple.
+            if STRING_LENGTH_FOR_BIGINT <= config_sqlatype.length:
+                # It'll fit!
+                return
+    elif is_sqlatype_string(rowtype):
+        # Strings are fine if we will store them in a long-enough string.
+        if is_sqlatype_string(config_sqlatype):
+            # noinspection PyUnresolvedReferences
+            if rowtype.length <= config_sqlatype.length:
+                return
+    raise ValueError(
+        f"Source column {ddr.src_signature} is marked as a "
+        f"{human_type} field but its type is {rowtype}, "
+        f"while the config thinks it should be {config_sqlatype}")
+
 
 # =============================================================================
 # DataDictionary
@@ -432,26 +485,6 @@ class DataDictionary(object):
 
         Also caches SQLAlchemy source column types.
         """
-        def ensure_no_type_mismatch(ddr: DataDictionaryRow,
-                                    config_sqlatype: Union[TypeEngine, String],
-                                    human_type: str) -> None:
-            rowtype = ddr.src_sqla_coltype
-            if (is_sqlatype_integer(rowtype) and
-                    is_sqlatype_integer(config_sqlatype)):
-                # Good enough. The only integer type we use for PID/MPID is
-                # BigInteger, so any integer type should fit.
-                return
-            if (is_sqlatype_string(rowtype) and
-                    is_sqlatype_string(config_sqlatype)):
-                # noinspection PyUnresolvedReferences
-                if rowtype.length <= config_sqlatype.length:
-                    return
-            raise ValueError(
-                f"Source column {r.src_signature} is marked as a "
-                f"{human_type} field but its type is "
-                f"{r.src_sqla_coltype}, while the config thinks it "
-                f"should be {config_sqlatype}")
-
         log.debug("Checking DD: source tables...")
         for d in self.get_source_databases():
             db = self.config.sources[d]
@@ -481,7 +514,8 @@ class DataDictionary(object):
                             f"Column {r.src_field!r} missing from table {t!r} "
                             f"in source database {d!r}")
                     sqla_coltype = (
-                        db.metadata.tables[t].columns[r.src_field].type)
+                        db.metadata.tables[t].columns[r.src_field].type
+                    )
                     r.set_src_sqla_coltype(sqla_coltype)  # CACHES TYPE HERE
 
                 # We have to iterate twice, but shouldn't iterate more than
@@ -494,11 +528,11 @@ class DataDictionary(object):
                         needs_pidfield = True
 
                     if r.primary_pid:
-                        ensure_no_type_mismatch(r, self.config.pidtype,
-                                                "primary PID")
+                        ensure_no_source_type_mismatch(r, self.config.pidtype,
+                                                       "primary PID")
                     if r.master_pid:
-                        ensure_no_type_mismatch(r, self.config.mpidtype,
-                                                "master PID")
+                        ensure_no_source_type_mismatch(r, self.config.mpidtype,
+                                                       "master PID")
 
                     # Too many PKs?
                     if r.pk:
@@ -513,7 +547,8 @@ class DataDictionary(object):
                             extrow = next(
                                 (r2 for r2 in rows
                                     if r2.src_field == am.extract_ext_field),
-                                None)
+                                None
+                            )
                             if extrow is None:
                                 raise ValueError(
                                     f"alter_method = {r.alter_method}, but "
