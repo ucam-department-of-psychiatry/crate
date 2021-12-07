@@ -37,7 +37,7 @@ from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 
 
 class FruitParser(BaseNlpParser):
-    def test(self) -> None:
+    def test(self, verbose: bool = False) -> None:
         pass
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:

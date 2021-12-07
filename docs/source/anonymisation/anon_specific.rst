@@ -18,6 +18,7 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 .. _CRIS: https://pubmed.ncbi.nlm.nih.gov/23842533/
+.. _PCMIS: https://www.york.ac.uk/healthsciences/pc-mis/
 .. _RiO: https://www.servelec.co.uk/product-range/rio-epr-system/
 .. _SystmOne: https://tpp-uk.com/products/
 
@@ -38,6 +39,13 @@ Servelec RiO_ data exports come in several formats, including:
 Individual organizations may process these too. CRATE provides a preprocessor
 (:ref:`crate_preprocess_rio <crate_preprocess_rio>`) to convert a RiO database
 to a format suitable for anonymisation via CRATE.
+
+
+PCMIS
+-----
+
+There is a specific preprocessing tool for PCMIS_, namely
+:ref:`crate_preprocess_pcmis <crate_preprocess_pcmis>`.
 
 
 TPP SystmOne

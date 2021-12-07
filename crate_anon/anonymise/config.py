@@ -104,13 +104,17 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.sqltypes import TypeEngine
 
+# noinspection PyPep8Naming
 from crate_anon.anonymise.constants import (
     ANON_CONFIG_ENV_VAR,
+    AnonymiseConfigKeys as AK,
+    AnonymiseDatabaseSafeConfigKeys as SK,
     DEFAULT_CHUNKSIZE,
-    DEFAULT_REPORT_EVERY,
-    DEFAULT_MAX_ROWS_BEFORE_COMMIT,
     DEFAULT_MAX_BYTES_BEFORE_COMMIT,
+    DEFAULT_MAX_ROWS_BEFORE_COMMIT,
+    DEFAULT_REPORT_EVERY,
     DEMO_CONFIG,
+    HashConfigKeys as HK,
     SEP,
 )
 from crate_anon.anonymise.dd import DataDictionary
@@ -124,6 +128,7 @@ from crate_anon.common.extendedconfigparser import (
     ExtendedConfigParser,
 )
 from crate_anon.common.sql import TransactionSizeLimiter
+from crate_anon.nlp_manager.constants import DatabaseConfigKeys
 
 if TYPE_CHECKING:
     from crate_anon.anonymise.dbholder import DatabaseHolder
@@ -157,117 +162,121 @@ class DatabaseSafeConfig(object):
         cfg = ConfigSection(section=section, parser=parser)
 
         self.ddgen_omit_by_default = cfg.opt_bool(
-            'ddgen_omit_by_default', True)
-        self.ddgen_omit_fields = cfg.opt_multiline('ddgen_omit_fields')
-        self.ddgen_include_fields = cfg.opt_multiline('ddgen_include_fields')
+            SK.DDGEN_OMIT_BY_DEFAULT, True)
+        self.ddgen_omit_fields = cfg.opt_multiline(SK.DDGEN_OMIT_FIELDS)
+        self.ddgen_include_fields = cfg.opt_multiline(SK.DDGEN_INCLUDE_FIELDS)
 
         self.ddgen_allow_no_patient_info = cfg.opt_bool(
-            'ddgen_allow_no_patient_info', False)
+            SK.DDGEN_ALLOW_NO_PATIENT_INFO, False)
         self.ddgen_per_table_pid_field = cfg.opt_str(
-            'ddgen_per_table_pid_field')
+            SK.DDGEN_PER_TABLE_PID_FIELD)
         self.ddgen_table_defines_pids = cfg.opt_str(
-            'ddgen_table_defines_pids')
+            SK.DDGEN_TABLE_DEFINES_PIDS)
         self.ddgen_add_per_table_pids_to_scrubber = cfg.opt_bool(
-            'ddgen_add_per_table_pids_to_scrubber', False)
+            SK.DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER, False)
         self.ddgen_master_pid_fieldname = cfg.opt_str(
-            'ddgen_master_pid_fieldname')
+            SK.DDGEN_MASTER_PID_FIELDNAME)
         cfg.require_absent(
-            "ddgen_table_blacklist",
-            "Replace 'ddgen_table_blacklist' with 'ddgen_table_denylist'"
+            SK.DEPRECATED_DDGEN_TABLE_BLACKLIST,
+            f"Replace {SK.DEPRECATED_DDGEN_TABLE_BLACKLIST!r} with "
+            f"{SK.DDGEN_TABLE_DENYLIST!r}"
         )
         self.ddgen_table_denylist = cfg.opt_multiline(
-            'ddgen_table_denylist')
+            SK.DDGEN_TABLE_DENYLIST)
         cfg.require_absent(
-            "ddgen_table_whitelist",
-            "Replace 'ddgen_table_whitelist' with 'ddgen_table_allowlist'"
+            SK.DEPRECATED_DDGEN_TABLE_WHITELIST,
+            f"Replace {SK.DEPRECATED_DDGEN_TABLE_WHITELIST!r} with "
+            f"{SK.DDGEN_TABLE_ALLOWLIST!r}"
         )
         self.ddgen_table_allowlist = cfg.opt_multiline(
-            'ddgen_table_allowlist')
+            SK.DDGEN_TABLE_ALLOWLIST)
         self.ddgen_table_require_field_absolute = cfg.opt_multiline(
-            'ddgen_table_require_field_absolute')
+            SK.DDGEN_TABLE_REQUIRE_FIELD_ABSOLUTE)
         self.ddgen_table_require_field_conditional = \
             cfg.opt_multiline_csv_pairs(
-                'ddgen_table_require_field_conditional')
+                SK.DDGEN_TABLE_REQUIRE_FIELD_CONDITIONAL)
         cfg.require_absent(
-            "ddgen_field_blacklist",
-            "Replace 'ddgen_field_blacklist' with 'ddgen_field_denylist'"
+            SK.DEPRECATED_DDGEN_FIELD_BLACKLIST,
+            f"Replace {SK.DEPRECATED_DDGEN_FIELD_BLACKLIST!r} with "
+            f"{SK.DDGEN_FIELD_DENYLIST!r}"
         )
         self.ddgen_field_denylist = cfg.opt_multiline(
-            'ddgen_field_denylist')
+            SK.DDGEN_FIELD_DENYLIST)
         cfg.require_absent(
-            "ddgen_field_whitelist",
-            "Replace 'ddgen_field_whitelist' with 'ddgen_field_allowlist'"
+            SK.DEPRECATED_DDGEN_FIELD_WHITELIST,
+            f"Replace {SK.DEPRECATED_DDGEN_FIELD_WHITELIST!r} with "
+            f"{SK.DDGEN_FIELD_ALLOWLIST!r}"
         )
         self.ddgen_field_allowlist = cfg.opt_multiline(
-            'ddgen_field_allowlist')
-        self.ddgen_pk_fields = cfg.opt_multiline('ddgen_pk_fields')
+            SK.DDGEN_FIELD_ALLOWLIST)
+        self.ddgen_pk_fields = cfg.opt_multiline(SK.DDGEN_PK_FIELDS)
 
         self.ddgen_constant_content = cfg.opt_bool(
-            'ddgen_constant_content', False)
+            SK.DDGEN_CONSTANT_CONTENT, False)
         self.ddgen_constant_content_tables = cfg.opt_str(
-            'ddgen_constant_content_tables')
+            SK.DDGEN_CONSTANT_CONTENT_TABLES)
         self.ddgen_nonconstant_content_tables = cfg.opt_str(
-            'ddgen_nonconstant_content_tables')
-        self.ddgen_addition_only = cfg.opt_bool('ddgen_addition_only', False)
+            SK.DDGEN_NONCONSTANT_CONTENT_TABLES)
+        self.ddgen_addition_only = cfg.opt_bool(SK.DDGEN_ADDITION_ONLY, False)
         self.ddgen_addition_only_tables = cfg.opt_str(
-            'ddgen_addition_only_tables')
+            SK.DDGEN_ADDITION_ONLY_TABLES)
         self.ddgen_deletion_possible_tables = cfg.opt_str(
-            'ddgen_deletion_possible_tables')
+            SK.DDGEN_DELETION_POSSIBLE_TABLES)
 
         self.ddgen_pid_defining_fieldnames = cfg.opt_multiline(
-            'ddgen_pid_defining_fieldnames')
+            SK.DDGEN_PID_DEFINING_FIELDNAMES)
         self.ddgen_scrubsrc_patient_fields = cfg.opt_multiline(
-            'ddgen_scrubsrc_patient_fields')
+            SK.DDGEN_SCRUBSRC_PATIENT_FIELDS)
         self.ddgen_scrubsrc_thirdparty_fields = cfg.opt_multiline(
-            'ddgen_scrubsrc_thirdparty_fields')
+            SK.DDGEN_SCRUBSRC_THIRDPARTY_FIELDS)
         self.ddgen_scrubsrc_thirdparty_xref_pid_fields = cfg.opt_multiline(
-            'ddgen_scrubsrc_thirdparty_xref_pid_fields')
+            SK.DDGEN_SCRUBSRC_THIRDPARTY_XREF_PID_FIELDS)
         self.ddgen_required_scrubsrc_fields = cfg.opt_multiline(
-            'ddgen_required_scrubsrc_fields')
+            SK.DDGEN_REQUIRED_SCRUBSRC_FIELDS)
         self.ddgen_scrubmethod_code_fields = cfg.opt_multiline(
-            'ddgen_scrubmethod_code_fields')
+            SK.DDGEN_SCRUBMETHOD_CODE_FIELDS)
         self.ddgen_scrubmethod_date_fields = cfg.opt_multiline(
-            'ddgen_scrubmethod_date_fields')
+            SK.DDGEN_SCRUBMETHOD_DATE_FIELDS)
         self.ddgen_scrubmethod_number_fields = cfg.opt_multiline(
-            'ddgen_scrubmethod_number_fields')
+            SK.DDGEN_SCRUBMETHOD_NUMBER_FIELDS)
         self.ddgen_scrubmethod_phrase_fields = cfg.opt_multiline(
-            'ddgen_scrubmethod_phrase_fields')
+            SK.DDGEN_SCRUBMETHOD_PHRASE_FIELDS)
         self.ddgen_safe_fields_exempt_from_scrubbing = cfg.opt_multiline(
-            'ddgen_safe_fields_exempt_from_scrubbing')
+            SK.DDGEN_SAFE_FIELDS_EXEMPT_FROM_SCRUBBING)
         self.ddgen_min_length_for_scrubbing = cfg.opt_int(
-            'ddgen_min_length_for_scrubbing', 50)
+            SK.DDGEN_MIN_LENGTH_FOR_SCRUBBING, 50)
 
         self.ddgen_truncate_date_fields = cfg.opt_multiline(
-            'ddgen_truncate_date_fields')
+            SK.DDGEN_TRUNCATE_DATE_FIELDS)
         self.ddgen_filename_to_text_fields = cfg.opt_multiline(
-            'ddgen_filename_to_text_fields')
+            SK.DDGEN_FILENAME_TO_TEXT_FIELDS)
 
         self.bin2text_dict = cfg.opt_multiline_csv_pairs(
-            'ddgen_binary_to_text_field_pairs')
+            SK.DDGEN_BINARY_TO_TEXT_FIELD_PAIRS)
         self.ddgen_skip_row_if_extract_text_fails_fields = cfg.opt_multiline(
-            'ddgen_skip_row_if_extract_text_fails_fields')
+            SK.DDGEN_SKIP_ROW_IF_EXTRACT_TEXT_FAILS_FIELDS)
         self.ddgen_rename_tables_remove_suffixes = cfg.opt_multiline(
-            'ddgen_rename_tables_remove_suffixes', as_words=True)
+            SK.DDGEN_RENAME_TABLES_REMOVE_SUFFIXES, as_words=True)
 
-        self.ddgen_index_fields = cfg.opt_multiline('ddgen_index_fields')
+        self.ddgen_index_fields = cfg.opt_multiline(SK.DDGEN_INDEX_FIELDS)
         self.ddgen_allow_fulltext_indexing = cfg.opt_bool(
-            'ddgen_allow_fulltext_indexing', True)
+            SK.DDGEN_ALLOW_FULLTEXT_INDEXING, True)
         self.ddgen_freetext_index_min_length = cfg.opt_int(
-            "ddgen_allow_fulltext_indexing", 1000)
+            SK.DDGEN_FREETEXT_INDEX_MIN_LENGTH, 1000)
 
         self.ddgen_force_lower_case = cfg.opt_bool(
-            'ddgen_force_lower_case', False)
+            SK.DDGEN_FORCE_LOWER_CASE, False)
         self.ddgen_convert_odd_chars_to_underscore = cfg.opt_bool(
-            'ddgen_convert_odd_chars_to_underscore', True)
+            SK.DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE, True)
 
-        self.debug_row_limit = cfg.opt_int('debug_row_limit', 0)
-        self.debug_limited_tables = cfg.opt_multiline('debug_limited_tables')
+        self.debug_row_limit = cfg.opt_int(SK.DEBUG_ROW_LIMIT, 0)
+        self.debug_limited_tables = cfg.opt_multiline(SK.DEBUG_LIMITED_TABLES)
 
         self.ddgen_patient_opt_out_fields = cfg.opt_multiline(
-            'ddgen_patient_opt_out_fields')
+            SK.DDGEN_PATIENT_OPT_OUT_FIELDS)
 
         self.ddgen_extra_hash_fields = cfg.opt_multiline_csv_pairs(
-            'ddgen_extra_hash_fields')
+            SK.DDGEN_EXTRA_HASH_FIELDS)
         # ... key: fieldspec
         # ... value: hash_config_section_name
 
@@ -349,8 +358,8 @@ def get_extra_hasher(parser: ExtendedConfigParser,
         the hasher
     """
     cfg = ConfigSection(section=section, parser=parser)
-    hash_method = cfg.opt_str("hash_method", required=True)
-    secret_key = cfg.opt_str("secret_key", required=True)
+    hash_method = cfg.opt_str(HK.HASH_METHOD, required=True)
+    secret_key = cfg.opt_str(HK.SECRET_KEY, required=True)
     return make_hasher(hash_method, secret_key)
 
 
@@ -478,7 +487,7 @@ class Config(object):
                 sys.exit(1)
 
         cfg = ConfigSection(
-            section="main",
+            section=AK.SECTION_MAIN,
             filename=filename,
             fileobj=fileobj
         )
@@ -501,15 +510,16 @@ class Config(object):
         # Data dictionary
         # ---------------------------------------------------------------------
 
-        self.data_dictionary_filename = cfg.opt_str('data_dictionary_filename')
+        self.data_dictionary_filename = cfg.opt_str(
+            AK.DATA_DICTIONARY_FILENAME)
 
         # ---------------------------------------------------------------------
         # Critical field types
         # ---------------------------------------------------------------------
 
-        self.pidtype = get_sqlatype(cfg.opt_str('sqlatype_pid'), BigInteger())
+        self.pidtype = get_sqlatype(cfg.opt_str(AK.SQLATYPE_PID), BigInteger())
         self.pidtype_is_integer = is_sqlatype_integer(self.pidtype)
-        self.mpidtype = get_sqlatype(cfg.opt_str('sqlatype_mpid'),
+        self.mpidtype = get_sqlatype(cfg.opt_str(AK.SQLATYPE_MPID),
                                      BigInteger())
         self.mpidtype_is_integer = is_sqlatype_integer(self.mpidtype)
 
@@ -517,15 +527,15 @@ class Config(object):
         # Encryption phrases/passwords
         # ---------------------------------------------------------------------
 
-        self.hash_method = cfg.opt_str('hash_method')
+        self.hash_method = cfg.opt_str(AK.HASH_METHOD)
         self.per_table_patient_id_encryption_phrase = cfg.opt_str(
-            'per_table_patient_id_encryption_phrase')
+            AK.PER_TABLE_PATIENT_ID_ENCRYPTION_PHRASE)
         self.master_patient_id_encryption_phrase = cfg.opt_str(
-            'master_patient_id_encryption_phrase')
+            AK.MASTER_PATIENT_ID_ENCRYPTION_PHRASE)
         self.change_detection_encryption_phrase = cfg.opt_str(
-            'change_detection_encryption_phrase')
+            AK.CHANGE_DETECTION_ENCRYPTION_PHRASE)
         _extra_hash_config_section_names = cfg.opt_multiline(
-            "extra_hash_config_sections")
+            AK.EXTRA_HASH_CONFIG_SECTIONS)
 
         self.extra_hashers = {}  # type: Dict[str, GenericHasher]
         for hasher_name in _extra_hash_config_section_names:
@@ -560,66 +570,69 @@ class Config(object):
         # ---------------------------------------------------------------------
 
         self.extract_text_extensions_case_sensitive = cfg.opt_bool(
-            'extract_text_extensions_case_sensitive', False)
+            AK.EXTRACT_TEXT_EXTENSIONS_CASE_SENSITIVE, False)
         self.extract_text_extensions_permitted = cfg.opt_multiline(
-            'extract_text_extensions_permitted')
+            AK.EXTRACT_TEXT_EXTENSIONS_PERMITTED)
         self.extract_text_extensions_prohibited = cfg.opt_multiline(
-            'extract_text_extensions_prohibited')
-        self.extract_text_plain = cfg.opt_bool('extract_text_plain', True)
-        self.extract_text_width = cfg.opt_int('extract_text_width', 80)
+            AK.EXTRACT_TEXT_EXTENSIONS_PROHIBITED)
+        self.extract_text_plain = cfg.opt_bool(AK.EXTRACT_TEXT_PLAIN, True)
+        self.extract_text_width = cfg.opt_int(AK.EXTRACT_TEXT_WIDTH, 80)
 
         # ---------------------------------------------------------------------
         # Anonymisation
         # ---------------------------------------------------------------------
 
         self.replace_patient_info_with = cfg.opt_str(
-            'replace_patient_info_with')
+            AK.REPLACE_PATIENT_INFO_WITH)
         self.replace_third_party_info_with = cfg.opt_str(
-            'replace_third_party_info_with')
+            AK.REPLACE_THIRD_PARTY_INFO_WITH)
         self.replace_nonspecific_info_with = cfg.opt_str(
-            'replace_nonspecific_info_with')
+            AK.REPLACE_NONSPECIFIC_INFO_WITH)
         self.thirdparty_xref_max_depth = cfg.opt_int(
-            'thirdparty_xref_max_depth', 1)
+            AK.THIRDPARTY_XREF_MAX_DEPTH, 1)
         self.string_max_regex_errors = cfg.opt_int(
-            'string_max_regex_errors', 0)
+            AK.STRING_MAX_REGEX_ERRORS, 0)
         self.min_string_length_for_errors = cfg.opt_int(
-            'min_string_length_for_errors', 1)
+            AK.MIN_STRING_LENGTH_FOR_ERRORS, 1)
         self.min_string_length_to_scrub_with = cfg.opt_int(
-            'min_string_length_to_scrub_with', 2)
+            AK.MIN_STRING_LENGTH_TO_SCRUB_WITH, 2)
         self.scrub_all_uk_postcodes = cfg.opt_bool(
-            'scrub_all_uk_postcodes', False)
+            AK.SCRUB_ALL_UK_POSTCODES, False)
         self.anonymise_codes_at_word_boundaries_only = cfg.opt_bool(
-            'anonymise_codes_at_word_boundaries_only', True)
+            AK.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY, True)
         self.anonymise_dates_at_word_boundaries_only = cfg.opt_bool(
-            'anonymise_dates_at_word_boundaries_only', True)
+            AK.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY, True)
         self.anonymise_numbers_at_word_boundaries_only = cfg.opt_bool(
-            'anonymise_numbers_at_word_boundaries_only', False)
+            AK.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY, False)
         self.anonymise_numbers_at_numeric_boundaries_only = cfg.opt_bool(
-            'anonymise_numbers_at_numeric_boundaries_only', True)
+            AK.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY, True)
         self.anonymise_strings_at_word_boundaries_only = cfg.opt_bool(
-            'anonymise_strings_at_word_boundaries_only', True)
+            AK.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY, True)
 
-        self.scrub_string_suffixes = cfg.opt_multiline('scrub_string_suffixes')
+        self.scrub_string_suffixes = cfg.opt_multiline(
+            AK.SCRUB_STRING_SUFFIXES)
         cfg.require_absent(
-            "whitelist_filenames",
-            "Replace 'whitelist_filenames' with 'allowlist_filenames'"
+            AK.DEPRECATED_WHITELIST_FILENAMES,
+            f"Replace {AK.DEPRECATED_WHITELIST_FILENAMES!r} with "
+            f"{AK.ALLOWLIST_FILENAMES!r}"
         )
-        self.allowlist_filenames = cfg.opt_multiline('allowlist_filenames')
+        self.allowlist_filenames = cfg.opt_multiline(AK.ALLOWLIST_FILENAMES)
         cfg.require_absent(
-            "blacklist_filenames",
-            "Replace 'blacklist_filenames' with 'denylist_filenames'"
+            AK.DEPRECATED_BLACKLIST_FILENAMES,
+            f"Replace {AK.DEPRECATED_BLACKLIST_FILENAMES!r} with "
+            f"{AK.DENYLIST_FILENAMES!r}"
         )
-        self.denylist_filenames = cfg.opt_multiline('denylist_filenames')
+        self.denylist_filenames = cfg.opt_multiline(AK.DENYLIST_FILENAMES)
         self.phrase_alternative_word_filenames = cfg.opt_multiline(
-            'phrase_alternative_word_filenames')
+            AK.PHRASE_ALTERNATIVE_WORD_FILENAMES)
         self.scrub_all_numbers_of_n_digits = cfg.opt_multiline_int(
-            'scrub_all_numbers_of_n_digits', minimum=1)
-        self.timefield = cfg.opt_str('timefield_name')
+            AK.SCRUB_ALL_NUMBERS_OF_N_DIGITS, minimum=1)
+        self.timefield = cfg.opt_str(AK.TIMEFIELD_NAME)
 
         # Get all extra regexes
-        if parser.has_section('extra_regexes'):
+        if parser.has_section(AK.SECTION_EXTRA_REGEXES):
             self.extra_regexes = [
-                x[1] for x in parser.items('extra_regexes')
+                x[1] for x in parser.items(AK.SECTION_EXTRA_REGEXES)
             ]
         else:
             self.extra_regexes = []  # type: List[str]
@@ -662,39 +675,42 @@ class Config(object):
         # Output fields and formatting
         # ---------------------------------------------------------------------
 
-        self.research_id_fieldname = cfg.opt_str('research_id_fieldname')
-        self.trid_fieldname = cfg.opt_str('trid_fieldname')
+        self.research_id_fieldname = cfg.opt_str(AK.RESEARCH_ID_FIELDNAME)
+        self.trid_fieldname = cfg.opt_str(AK.TRID_FIELDNAME)
         self.master_research_id_fieldname = cfg.opt_str(
-            'master_research_id_fieldname')
+            AK.MASTER_RESEARCH_ID_FIELDNAME)
         self.add_mrid_wherever_rid_added = cfg.opt_bool(
-            'add_mrid_wherever_rid_added', True)
-        self.source_hash_fieldname = cfg.opt_str('source_hash_fieldname')
+            AK.ADD_MRID_WHEREVER_RID_ADDED, True)
+        self.source_hash_fieldname = cfg.opt_str(AK.SOURCE_HASH_FIELDNAME)
         self.ddgen_append_source_info_to_comment = cfg.opt_bool(
-            'ddgen_append_source_info_to_comment', True)
+            AK.DDGEN_APPEND_SOURCE_INFO_TO_COMMENT, True)
 
         # ---------------------------------------------------------------------
         # Destination database configuration
         # ---------------------------------------------------------------------
 
         self.max_rows_before_commit = cfg.opt_int(
-            'max_rows_before_commit', DEFAULT_MAX_ROWS_BEFORE_COMMIT)
+            AK.MAX_ROWS_BEFORE_COMMIT, DEFAULT_MAX_ROWS_BEFORE_COMMIT)
         self.max_bytes_before_commit = cfg.opt_int(
-            'max_bytes_before_commit', DEFAULT_MAX_BYTES_BEFORE_COMMIT)
+            AK.MAX_BYTES_BEFORE_COMMIT, DEFAULT_MAX_BYTES_BEFORE_COMMIT)
         self.temporary_tablename = cfg.opt_str(
-            'temporary_tablename')
+            AK.TEMPORARY_TABLENAME)
 
         # ---------------------------------------------------------------------
         # Databases
         # ---------------------------------------------------------------------
 
-        destination_database_cfg_section = cfg.opt_str('destination_database')
+        destination_database_cfg_section = cfg.opt_str(AK.DESTINATION_DATABASE)
         self._destination_database_url = parser.get_str(
-            destination_database_cfg_section, 'url', required=True)
-        admin_database_cfg_section = cfg.opt_str('admin_database')
+            destination_database_cfg_section,
+            DatabaseConfigKeys.URL,
+            required=True
+        )
+        admin_database_cfg_section = cfg.opt_str(AK.ADMIN_DATABASE)
         if destination_database_cfg_section == admin_database_cfg_section:
             raise ValueError(
                 "Destination and admin databases mustn't be the same")
-        source_database_cfg_sections = cfg.opt_multiline('source_databases')
+        source_database_cfg_sections = cfg.opt_multiline(AK.SOURCE_DATABASES)
         self._source_db_names = source_database_cfg_sections
         if destination_database_cfg_section in source_database_cfg_sections:
             raise ValueError("Destination database mustn't be listed as a "
@@ -761,16 +777,17 @@ class Config(object):
         # Processing options
         # ---------------------------------------------------------------------
 
-        self.debug_max_n_patients = cfg.opt_int('debug_max_n_patients', 0)
-        self.debug_pid_list = cfg.opt_multiline('debug_pid_list')
+        self.debug_max_n_patients = cfg.opt_int(AK.DEBUG_MAX_N_PATIENTS, 0)
+        self.debug_pid_list = cfg.opt_multiline(AK.DEBUG_PID_LIST)
 
         # ---------------------------------------------------------------------
         # Opting out entirely
         # ---------------------------------------------------------------------
 
-        self.optout_pid_filenames = cfg.opt_multiline('optout_pid_filenames')
-        self.optout_mpid_filenames = cfg.opt_multiline('optout_mpid_filenames')
-        self.optout_col_values = cfg.opt_pyvalue_list('optout_col_values')
+        self.optout_pid_filenames = cfg.opt_multiline(AK.OPTOUT_PID_FILENAMES)
+        self.optout_mpid_filenames = cfg.opt_multiline(
+            AK.OPTOUT_MPID_FILENAMES)
+        self.optout_col_values = cfg.opt_pyvalue_list(AK.OPTOUT_COL_VALUES)
 
         # ---------------------------------------------------------------------
         # Rest of initialization

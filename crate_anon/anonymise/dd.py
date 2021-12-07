@@ -65,6 +65,7 @@ from sqlalchemy.sql.sqltypes import String, TypeEngine
 
 # don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.constants import (
+    AnonymiseConfigKeys,
     TABLE_KWARGS,
     SrcFlag,
     TridType,
@@ -95,7 +96,7 @@ STRING_LENGTH_FOR_BIGINT = len(str(-2 ** 63))
 
 def ensure_no_source_type_mismatch(ddr: DataDictionaryRow,
                                    config_sqlatype: Union[TypeEngine, String],
-                                   human_type: str) -> None:
+                                   primary_pid: bool = True) -> None:
     """
     Ensure that the source column type of a data dictionary row is compatible
     with what's expected from the config. We check this only for specific type
@@ -111,11 +112,21 @@ def ensure_no_source_type_mismatch(ddr: DataDictionaryRow,
         config_sqlatype:
             SQLAlchemy column type that would be expected based on the current
             config.
-        human_type:
-            Description of the nature of the row for human purposes.
+        primary_pid:
+            Is this the main PID field? If false, it's the MPID.
     """
+    if primary_pid:
+        human_type = "primary PID"
+        configparam = AnonymiseConfigKeys.SQLATYPE_PID
+    else:
+        human_type = "master PID"
+        configparam = AnonymiseConfigKeys.SQLATYPE_MPID
     rowtype = ddr.src_sqla_coltype
+    suffix = ""
     if is_sqlatype_integer(rowtype):
+        # ---------------------------------------------------------------------
+        # Integer source
+        # ---------------------------------------------------------------------
         if is_sqlatype_integer(config_sqlatype):
             # Good enough. The only integer type we use for PID/MPID is
             # BigInteger, so any integer type should fit.
@@ -127,16 +138,31 @@ def ensure_no_source_type_mismatch(ddr: DataDictionaryRow,
             if STRING_LENGTH_FOR_BIGINT <= config_sqlatype.length:
                 # It'll fit!
                 return
+            else:
+                suffix = (
+                    f"Using a bigger string field in the config (minimum "
+                    f"length {rowtype.length}) would fix this."
+                )
     elif is_sqlatype_string(rowtype):
+        # ---------------------------------------------------------------------
+        # String source
+        # ---------------------------------------------------------------------
         # Strings are fine if we will store them in a long-enough string.
         if is_sqlatype_string(config_sqlatype):
             # noinspection PyUnresolvedReferences
             if rowtype.length <= config_sqlatype.length:
                 return
+            else:
+                suffix = (
+                    f"Using a bigger string field in the config (minimum "
+                    f"length {rowtype.length}) would fix this."
+                )
+    # Generic error:
     raise ValueError(
         f"Source column {ddr.src_signature} is marked as a "
         f"{human_type} field but its type is {rowtype}, "
-        f"while the config thinks it should be {config_sqlatype}")
+        f"while the config thinks it should be {config_sqlatype} "
+        f"(determined by the {configparam!r} parameter). {suffix}")
 
 
 # =============================================================================
@@ -529,10 +555,10 @@ class DataDictionary(object):
 
                     if r.primary_pid:
                         ensure_no_source_type_mismatch(r, self.config.pidtype,
-                                                       "primary PID")
+                                                       primary_pid=True)
                     if r.master_pid:
                         ensure_no_source_type_mismatch(r, self.config.mpidtype,
-                                                       "master PID")
+                                                       primary_pid=False)
 
                     # Too many PKs?
                     if r.pk:
