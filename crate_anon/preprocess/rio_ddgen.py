@@ -165,9 +165,9 @@ def get_rio_dd_settings(ddhint: DDHint) -> str:
     RioPerformanceTimings  # system
     RR*  # Results Reporting (e.g. laboratories, radiology)
     #   ... would be great, but we don't have it
-    RTT*  # RTT*} = Referral-to-Treatment (RTT) data collection (see NHS England docs)
-    SAF*  # SAF*} = system; looks like details of tablet devices
-    Scheduler*  # Scheduler*} = Scheduler module (for RiO computing)
+    RTT*  # RTT* -- Referral-to-Treatment (RTT) data collection (see NHS England docs)
+    SAF*  # SAF* -- system; looks like details of tablet devices
+    Scheduler*  # Scheduler* -- Scheduler module (for RiO computing)
     Sec*  # Security? Definitely RiO internal stuff.
     SPINE*  # system
     SPRExternalNotification  # system?

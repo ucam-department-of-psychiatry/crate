@@ -466,6 +466,7 @@ OMIT_TABLES = (
 
     # CPFT extras:
     "gr_workings",  # no idea
+    "S1_Inpatients",  # current inpatients -- but has NHSNumber as FLOAT
 )
 OMIT_TABLES_REGEX = (
     # CPFT extras:
