@@ -1233,7 +1233,10 @@ def process_table(sourcedbname: str,
                 continue  # skip column
 
             if ddr.primary_pid:
-                assert(value == patient.pid)
+                assert value == patient.pid, (
+                    f"PID mismatch: value = {value!r}, "
+                    f"patient.pid = {patient.pid!r}"
+                )
                 value = patient.rid
             elif ddr.master_pid:
                 value = config.encrypt_master_pid(value)
