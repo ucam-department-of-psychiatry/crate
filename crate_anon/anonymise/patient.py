@@ -32,10 +32,11 @@ like ID values and scrubbers.**
 import logging
 from typing import AbstractSet, Any, Generator, List, Union
 
+from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import column, select, table
 
 from crate_anon.anonymise.config_singleton import config
-from crate_anon.anonymise.constants import ScrubSrc
+from crate_anon.anonymise.dd import ScrubSourceFieldInfo
 from crate_anon.anonymise.models import PatientInfo
 from crate_anon.anonymise.scrub import PersonalizedScrubber
 
@@ -47,40 +48,39 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 def gen_all_values_for_patient(
-        dbname: str,
+        session: Session,
         tablename: str,
-        fields: List[str],
+        scrub_src_fieldinfo: List[ScrubSourceFieldInfo],
+        pid_field: str,
         pid: Union[int, str]) -> Generator[List[Any], None, None]:
     """
     Generate all sensitive (``scrub_src``) values for a given patient, from a
     given source table. Used to build the scrubber.
 
     Args:
-
-        dbname: source database name
-        tablename: source table
-        fields: list of source fields containing ``scrub_src`` information
-        pid: patient ID
+        session:
+            database session
+        tablename:
+            source table
+        scrub_src_fieldinfo:
+            list of information about the scrub-source fields
+        pid_field:
+            field to query for patient ID
+        pid:
+            patient ID
 
     Yields:
-         rows, where each row is a list of values that matches ``fields``.
+         rows, where each row is a list of values that matches
+         ``scrub_src_fieldinfo``.
     """
-    cfg = config.sources[dbname].srccfg
-    if not cfg.ddgen_per_table_pid_field:
-        return
-        # return in a generator: https://stackoverflow.com/questions/13243766
-    log.debug(
-        f"gen_all_values_for_patient: PID {pid}, "
-        f"table {dbname}.{tablename}, fields: {','.join(fields)}")
-    session = config.sources[dbname].session
     query = (
-        select([column(f) for f in fields]).
-        where(column(cfg.ddgen_per_table_pid_field) == pid).
-        select_from(table(tablename))
+        select([column(i.value_fieldname) for i in scrub_src_fieldinfo])
+        .where(column(pid_field) == pid)
+        .select_from(table(tablename))
     )
     result = session.execute(query)
     for row in result:
-        log.debug(f"... yielding row: {row}")
+        log.debug(f"... gen_all_values_for_patient yielding row: {row}")
         yield row
 
 
@@ -145,7 +145,7 @@ class Patient(object):
         # Add information to the scrubber from the database.
         # We go through all "scrub-from" fields in the data dictionary. We
         # collect all values of those fields from the source database.
-        log.debug("Building scrubber")
+        log.debug(f"Building scrubber: pid = {pid!r}")
         self._third_party_pids_seen = set()
         self._db_table_pair_list = config.dd.get_scrub_from_db_table_pairs()
         self._mandatory_scrubbers_unfulfilled = \
@@ -185,53 +185,52 @@ class Patient(object):
         if depth > 0:
             log.debug(f"Building scrubber recursively: depth = {depth}")
         # ---------------------------------------------------------------------
-        # For all source tables...
+        # For all source tables with scrub-source information...
         # ---------------------------------------------------------------------
         for (src_db, src_table) in self._db_table_pair_list:
+            session = config.sources[src_db].session
             # -----------------------------------------------------------------
             # Build a list of scrub-from fields for this table.
             # -----------------------------------------------------------------
-            ddrows = config.dd.get_scrub_from_rows(src_db, src_table)
-            fields = [ddr.src_field for ddr in ddrows]
-            # Precalculate things; we might being going through a lot of values
-            scrub_method = [
-                PersonalizedScrubber.get_scrub_method(ddr.src_datatype,
-                                                      ddr.scrub_method)
-                for ddr in ddrows
-            ]
-            is_patient = [depth == 0 and ddr.scrub_src is ScrubSrc.PATIENT
-                          for ddr in ddrows]
-            is_mpid = [depth == 0 and ddr.master_pid for ddr in ddrows]
-            # The check for "depth == 0" means that third-party information is
-            # never marked as patient-related.
-            recurse = [
-                depth < max_depth
-                and ddr.scrub_src is ScrubSrc.THIRDPARTY_XREF_PID
-                for ddr in ddrows
-            ]
-            required_scrubber = [ddr.required_scrubber for ddr in ddrows]
-            sigs = [ddr.src_signature for ddr in ddrows]
+            scrubsrc_infolist = config.dd.get_scrub_from_rows_as_fieldinfo(
+                src_db=src_db,
+                src_table=src_table,
+                depth=depth,
+                max_depth=max_depth,
+            )
+            pid_field = config.dd.get_pid_name(src_db, src_table)
+            if not pid_field:
+                log.error(f"Patient table {src_db}.{src_table} "
+                          f"has no identifiable patient ID field")
+                continue
             # -----------------------------------------------------------------
             # Collect the actual patient-specific values for this table.
             # -----------------------------------------------------------------
-            for values in gen_all_values_for_patient(src_db, src_table,
-                                                     fields, pid):
+            for values in gen_all_values_for_patient(
+                    session=session,
+                    tablename=src_table,
+                    scrub_src_fieldinfo=scrubsrc_infolist,
+                    pid_field=pid_field,
+                    pid=pid):
                 for i, val in enumerate(values):
                     # ---------------------------------------------------------
                     # Add a value to the scrubber
                     # ---------------------------------------------------------
-                    self.scrubber.add_value(val, scrub_method[i],
-                                            patient=is_patient[i])
+                    info = scrubsrc_infolist[i]
+                    self.scrubber.add_value(val, info.scrub_method,
+                                            patient=info.is_patient)
 
-                    if is_mpid[i] and self.mpid is None:
-                        # We've come across the master ID.
+                    if info.is_mpid and self.mpid is None:
+                        # -----------------------------------------------------
+                        # We've come across the MPID for the first time.
+                        # -----------------------------------------------------
                         self.set_mpid(val)
 
-                    if recurse[i]:
+                    if info.recurse:
                         # -----------------------------------------------------
                         # We've come across a patient ID of another patient,
-                        # whose information should be trawled and treated
-                        # as third-party information
+                        # whose information should be trawled and treated as
+                        # third-party information
                         # -----------------------------------------------------
                         try:
                             related_pid = int(val)
@@ -248,8 +247,12 @@ class Patient(object):
                         # Go and explore that other patient's record:
                         self._build_scrubber(related_pid, depth + 1, max_depth)
 
-                    if val is not None and required_scrubber[i]:
-                        self._mandatory_scrubbers_unfulfilled.discard(sigs[i])
+                    # If this is a mandatory scrubber, note if its requirement
+                    # has been fulfilled.
+                    if val is not None and info.required_scrubber:
+                        self._mandatory_scrubbers_unfulfilled.discard(
+                            info.signature
+                        )
 
     @property
     def mandatory_scrubbers_unfulfilled(self) -> AbstractSet[str]:

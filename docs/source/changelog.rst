@@ -196,6 +196,17 @@ Changes
 2016
 ~~~~
 
+**2016-02-09**
+
+- SQL helpers for free-text search.
+- Massive SQL speedup for fetching/caching table info from database.
+- NOTE that highlighting will not always work for unusual characters, e.g.
+  apostrophes ('); see research.html_functions.make_result_element This is
+  because we apply django.utils.html.escape before we apply the highlighting,
+  and django.utils.html.escape transforms "'" into "&#39;". But we can't
+  highlight and then escape, because we need the HTML in the highlighting.
+  Not critical.
+
 **v0.14.0, 2016-03-10**
 
 - Code cleanup.
@@ -1397,6 +1408,16 @@ Changes
   decisions on the source (not destination) datatype. This handles the
   "auto-expansion" better -- otherwise all sorts of things were attracting the
   full-text flag.
+
+- Remove warnings about lack of primary PID field in source tables with an MPID
+  if no scrubbing is required (that's an inconvenience, not a de-identification
+  risk).
+
+- Use ``DataDictionary.get_pid_name`` instead of ``ddgen_per_table_pid_field``
+  to establish the PID field for each table for scrubbing. The ``ddgen``
+  options should only be for generating a data dictionary; the user may have
+  revised the data dictionary subsequently, and there is no requirement that
+  all PID fields have the same name across tables.
 
 
 ===============================================================================

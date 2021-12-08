@@ -1,13 +1,6 @@
 crate (0.02-1) all; urgency=low
 
-  * SQL helpers for free-text search.
-  * Massive SQL speedup for fetching/caching table info from database.
-  * NOTE that highlighting will not always work for unusual characters, e.g.
-    apostrophes ('); see research.html_functions.make_result_element
-    This is because we apply django.utils.html.escape before we apply
-    the highlighting, and django.utils.html.escape transforms "'" into "&#39;".
-    But we can't highlight and then escape, because we need the HTML in the
-    highlighting. Never mind; this is not critical!
+  * All changes are in changelog.rst.
 
  -- Rudolf Cardinal <rudolf@pobox.com>  Tue, 09 Feb 2016 03:25:00 +0000
 

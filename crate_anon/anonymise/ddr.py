@@ -62,6 +62,7 @@ from sqlalchemy.sql.sqltypes import TypeEngine
 from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.constants import (
     AlterMethodType,
+    AnonymiseConfigKeys,
     Decision,
     DEFAULT_INDEX_LEN,
     IndexType,
@@ -1042,15 +1043,18 @@ class DataDictionaryRow(object):
                 f"{srccfg.ddgen_master_pid_fieldname} used in output should "
                 f"have src_flags={SrcFlag.MASTER_PID} set")
         # Anything that is hashed
-        if ((self._primary_pid or self._master_pid or self._add_src_hash) and
-                self.dest_datatype !=
+        if ((self._primary_pid or self._master_pid or self._add_src_hash)
+                and self.dest_datatype
+                and self.dest_datatype !=
                 self.config.sqltype_encrypted_pid_as_sql):
             raise ValueError(
                 f"All src_flags={SrcFlag.PRIMARY_PID}/"
                 f"src_flags={SrcFlag.MASTER_PID}/"
-                f"src_flags={SrcFlag.ADD_SRC_HASH} fields used in output must "
-                f"have destination_datatype = "
-                f"{self.config.sqltype_encrypted_pid_as_sql}")
+                f"src_flags={SrcFlag.ADD_SRC_HASH} "
+                f"fields used in output must have destination_datatype = "
+                f"{self.config.sqltype_encrypted_pid_as_sql} "
+                f"(determined by the config parameter "
+                f"{AnonymiseConfigKeys.HASH_METHOD!r})")
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check alteration methods

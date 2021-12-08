@@ -37,6 +37,7 @@ rather than a database table.
 
 from collections import Counter, OrderedDict
 import csv
+from dataclasses import dataclass
 from functools import lru_cache
 from itertools import zip_longest
 import logging
@@ -69,10 +70,13 @@ from crate_anon.anonymise.constants import (
     AnonymiseConfigKeys,
     AnonymiseDatabaseSafeConfigKeys,
     TABLE_KWARGS,
+    ScrubMethod,
+    ScrubSrc,
     SrcFlag,
     TridType,
 )
 from crate_anon.anonymise.ddr import DataDictionaryRow
+from crate_anon.anonymise.scrub import PersonalizedScrubber
 
 if TYPE_CHECKING:
     from crate_anon.anonymise.config import Config
@@ -90,6 +94,21 @@ EXT_XLSX = ".xlsx"
 
 STRING_LENGTH_FOR_BIGINT = len(str(-2 ** 63))
 # = -2^63: https://dev.mysql.com/doc/refman/8.0/en/integer-types.html
+
+
+# =============================================================================
+# Helper classes
+# =============================================================================
+
+@dataclass
+class ScrubSourceFieldInfo:
+    is_mpid: bool
+    is_patient: bool
+    recurse: bool
+    required_scrubber: bool
+    scrub_method: ScrubMethod
+    signature: str
+    value_fieldname: str
 
 
 # =============================================================================
@@ -1113,6 +1132,55 @@ class DataDictionary(object):
                 ddr.src_table == src_table)
         ])
         # even if omit flag set
+
+    def get_scrub_from_rows_as_fieldinfo(
+            self,
+            src_db: str,
+            src_table: str,
+            depth: int,
+            max_depth: int) -> List[ScrubSourceFieldInfo]:
+        """
+        Using :meth:`get_scrub_from_rows`, as a list of
+        :class:`ScrubSourceFieldInfo` objects, which is more convenient for
+        scrubbing.
+
+        Args:
+            src_db:
+                Source database name.
+            src_table:
+                Source table name.
+            depth:
+                Current recursion depth for looking up third-party information.
+            max_depth:
+                Maximum permitted recursion depth for looking up third-party
+                information.
+        """
+        ddrows = self.get_scrub_from_rows(src_db, src_table)
+        infolist = []  # type: List[ScrubSourceFieldInfo]
+        for ddr in ddrows:
+            info = ScrubSourceFieldInfo(
+                is_mpid=(
+                    depth == 0 and ddr.master_pid
+                    # The check for "depth == 0" means that third-party
+                    # information is never marked as patient-related.
+                ),
+                is_patient=(
+                    depth == 0 and ddr.scrub_src is ScrubSrc.PATIENT
+                ),
+                recurse=(
+                    depth < max_depth
+                    and ddr.scrub_src is ScrubSrc.THIRDPARTY_XREF_PID
+                ),
+                required_scrubber=ddr.required_scrubber,
+                scrub_method=PersonalizedScrubber.get_scrub_method(
+                    ddr.src_datatype,
+                    ddr.scrub_method
+                ),
+                signature=ddr.src_signature,
+                value_fieldname=ddr.src_field,
+            )
+            infolist.append(info)
+        return infolist
 
     @lru_cache(maxsize=None)
     def get_pk_ddr(self, src_db: str, src_table: str) \
