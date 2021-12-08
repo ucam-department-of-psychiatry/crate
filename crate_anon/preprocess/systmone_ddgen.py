@@ -592,9 +592,6 @@ S1_REL_COL_ORG = "RelationshipWithOrganisation"
 S1_HOSPNUM_COL_HOSPNUM = "HospitalNumber"
 S1_HOSPNUM_COL_COMMENTS = "Comments"
 
-# Columns in the SafeguardingPersonAtRisk table
-S1_SAFEGUARDING_P_AT_RISK_COL_NHSNUM = "NhsNumber"  # case different
-
 # Other column names used by CPFT
 CPFT_CLIENT_ID = "ClientID"
 CPFT_REL_MOTHER_COL_NHSNUM = S1_PATIENT_COL_NHSNUM
@@ -617,6 +614,15 @@ S1_TO_CPFT_COLUMN_TRANSLATION = {
     (S1_TAB_RELATIONSHIPS,
      S1_REL_COL_RELATED_STAFFCODE_OR_RELNHSNUM): S1_PATIENT_COL_NHSNUM,
 }
+
+PID_SYNONYMS = (
+    S1_GENERIC_COL_PID,
+    CPFT_CLIENT_ID,
+)
+MPID_SYNONYMS = (
+    S1_PATIENT_COL_NHSNUM,
+    CPFT_GENERIC_COL_NHSNUM2,
+)
 
 
 # -----------------------------------------------------------------------------
@@ -1147,17 +1153,20 @@ def is_pid(colname: str) -> bool:
     """
     Is this column the SystmOne primary patient identifier (PID)?
 
+    It's nearly always S1_GENERIC_COL_PID. But occasionally something else
+    (e.g. in CPFT-created tables).
+
     This works for all tables EXCEPT the main "Patient" table, where the PK
     takes its place.
     """
-    return eq(colname, S1_GENERIC_COL_PID)
+    return is_in(colname, PID_SYNONYMS)
 
 
 def is_mpid(colname: str) -> bool:
     """
-    Is this column the SystmOne primary patient identifier (PID)?
+    Is this column the master patient identifier (MPID), i.e. the NHS number?
     """
-    return eq(colname, S1_PATIENT_COL_NHSNUM)
+    return is_in(colname, MPID_SYNONYMS)
 
 
 def is_pk(colname: str) -> bool:
@@ -1228,7 +1237,10 @@ def process_generic_table_column(tablename: str,
 
     elif eq(colname, CPFT_CLIENT_ID):
         # Some tables blend in old (e.g. RiO) or other (e.g. PCMIS) patient
-        # IDs. These need to be scrubbed out, but might not be PIDs.
+        # IDs. These need to be scrubbed out. They might not always by SystmOne
+        # PIDs, but there isn't a significant risk of hashing another type of
+        # ID (it just won't link to much else, usually).
+        ssi.add_src_flag(SrcFlag.PRIMARY_PID)
         ssi.scrub_src = ScrubSrc.PATIENT
         ssi.scrub_method = ScrubMethod.CODE
         ssi.omit()
@@ -1464,8 +1476,7 @@ def get_scrub_alter_details(
         ssi.scrub_method = ScrubMethod.CODE  # can contain text
 
     elif tcmatch(tablename, colname,
-                 S1_TAB_SAFEGUARDING_PERSON_AT_RISK,
-                 S1_SAFEGUARDING_P_AT_RISK_COL_NHSNUM):
+                 S1_TAB_SAFEGUARDING_PERSON_AT_RISK, S1_PATIENT_COL_NHSNUM):
         # ---------------------------------------------------------------------
         # Another person's NHS number.
         # ---------------------------------------------------------------------

@@ -200,9 +200,9 @@ class Patient(object):
             )
             pid_field = config.dd.get_pid_name(src_db, src_table)
             if not pid_field:
-                log.error(f"Patient table {src_db}.{src_table} "
-                          f"has no identifiable patient ID field")
-                continue
+                # Shouldn't happen -- part of the data dictionary checks.
+                raise ValueError(f"Scrub-source table {src_db}.{src_table} "
+                                 f"has no identifiable patient ID field")
             # -----------------------------------------------------------------
             # Collect the actual patient-specific values for this table.
             # -----------------------------------------------------------------

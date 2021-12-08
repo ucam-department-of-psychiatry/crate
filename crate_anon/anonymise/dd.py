@@ -532,7 +532,6 @@ class DataDictionary(object):
 
         Also caches SQLAlchemy source column types.
         """
-        log.debug("Checking DD: source tables...")
         for d in self.get_source_databases():
             db = self.config.sources[d]
 
@@ -629,8 +628,6 @@ class DataDictionary(object):
                             f"parameter)"
                         )
 
-        log.debug("... source tables checked.")
-
     def check_valid(self,
                     prohibited_fieldnames: List[str] = None,
                     check_against_source_db: bool = True) -> None:
@@ -672,25 +669,36 @@ class DataDictionary(object):
                 # This will have excluded all tables where all rows are
                 # omitted. So now we have only active tables, for which we
                 # cannot combine certain flags.
+                # (We used to prohibit these combinations at all times, in the
+                # DataDictionaryRow class, but it's inconvenient to have to
+                # alter these flags if you want to omit the whole table.)
                 for r in self.get_rows_for_src_table(d, t):
                     if r.add_src_hash and r.omit:
                         raise ValueError(
                             f"Do not set omit on "
-                            f"src_flags={SrcFlag.ADD_SRC_HASH} fields")
+                            f"src_flags={SrcFlag.ADD_SRC_HASH} fields -- "
+                            f"currently set for {r.src_signature}")
                     if r.constant and r.omit:
                         raise ValueError(
                             f"Do not set omit on "
-                            f"src_flags={SrcFlag.CONSTANT} fields")
-                # We used to prohibit these combinations at all times, in the
-                # DataDictionaryRow class, but it's inconvenient to have to
-                # alter these flags if you want to omit the whole table.
+                            f"src_flags={SrcFlag.CONSTANT} fields -- "
+                            f"currently set for {r.src_signature}")
+
+        log.debug("Checking DD: table consistency...")
+        for d, t in self.get_scrub_from_db_table_pairs():
+            pid_field = self.get_pid_name(d, t)
+            if not pid_field:
+                raise ValueError(
+                    f"Scrub-source table {d}.{t} must have a patient ID field "
+                    f"(one with flag {SrcFlag.PRIMARY_PID})"
+                )
 
         log.debug("Checking DD: prohibited fieldnames...")
         if prohibited_fieldnames:
             for r in self.rows:
                 r.check_prohibited_fieldnames(prohibited_fieldnames)
 
-        log.debug("Checking DD: source tables...")
+        log.debug("Checking DD: opt-out fields...")
         for t in self.get_optout_defining_fields():
             (src_db, src_table, optout_colname, pid_colname, mpid_colname) = t
             if not pid_colname and not mpid_colname:
@@ -711,30 +719,29 @@ class DataDictionary(object):
                         s=", ".join(["{}.{}".format(s[0], s[1]) for s in sdt]),
                     ))
 
-        log.debug("Checking DD: duplicate source/destination rows?")
-        src_sigs = []  # type: List[str]
-        dst_sigs = []  # type: List[str]
-        for r in self.rows:
-            src_sigs.append(r.src_signature)
-            if not r.omit:
-                dst_sigs.append(r.dest_signature)
-        # noinspection PyArgumentList
+        log.debug("Checking DD: duplicate source rows?")
+        src_sigs = [r.src_signature for r in self.rows]
         src_duplicates = [
             item for item, count in Counter(src_sigs).items()
-            if count > 1]
-        # noinspection PyArgumentList
-        dst_duplicates = [
-            item for item, count in Counter(dst_sigs).items()
-            if count > 1]
+            if count > 1
+        ]
         if src_duplicates:
             raise ValueError(f"Duplicate source rows: {src_duplicates}")
+
+        log.debug("Checking DD: duplicate destination rows?")
+        dst_sigs = [r.dest_signature for r in self.rows if not r.omit]
+        dst_duplicates = [
+            item for item, count in Counter(dst_sigs).items()
+            if count > 1
+        ]
         if dst_duplicates:
-            raise ValueError(f"Duplicate source rows: {dst_duplicates}")
+            raise ValueError(f"Duplicate destination rows: {dst_duplicates}")
 
         if check_against_source_db:
+            log.debug("Checking DD against source database tables...")
             self.check_against_source_db()
 
-        log.debug("Checking DD: global checks...")
+        log.debug("Checking DD: global patient-defining fields...")
         self.n_definers = sum([1 if x.defines_primary_pids else 0
                                for x in self.rows])
         if self.n_definers == 0:

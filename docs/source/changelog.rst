@@ -1419,6 +1419,9 @@ Changes
   revised the data dictionary subsequently, and there is no requirement that
   all PID fields have the same name across tables.
 
+- Add data dictionary check that all scrub-source tables have a patient ID
+  field.
+
 
 ===============================================================================
 
