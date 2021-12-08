@@ -1413,7 +1413,7 @@ def get_scrub_alter_details(
             # as a third-party scrubber for our index patient."
             ssi.scrub_src = ScrubSrc.THIRDPARTY_XREF_PID
             ssi.scrub_method = ScrubMethod.NUMERIC
-            ssi.include()
+            # ... and omit.
 
         elif is_in(colname, S1_COLS_RELATIONSHIP_WORDS):
             ssi.scrub_src = ScrubSrc.THIRDPARTY
