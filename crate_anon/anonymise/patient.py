@@ -212,6 +212,7 @@ class Patient(object):
                     scrub_src_fieldinfo=scrubsrc_infolist,
                     pid_field=pid_field,
                     pid=pid):
+                # The order of "values" matches that of "scrubsrc_infolist".
                 for i, val in enumerate(values):
                     # ---------------------------------------------------------
                     # Add a value to the scrubber

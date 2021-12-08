@@ -678,7 +678,7 @@ class DataDictionaryRow(object):
         - MPID
         - scrub-source (sensitive) information
         """
-        return self._primary_pid or self._master_pid or bool(self.scrub_src)
+        return self.primary_pid or self.master_pid or bool(self.scrub_src)
 
     @property
     def contains_scrub_src(self) -> bool:
@@ -797,6 +797,14 @@ class DataDictionaryRow(object):
         self._src_sqla_coltype = sqla_coltype
 
     @property
+    def dest_should_be_encrypted_pid_type(self) -> bool:
+        """
+        Should the destination column (if included) be of the encrypted
+        PID/MPID type?
+        """
+        return self.primary_pid or self.third_party_pid or self.master_pid
+
+    @property
     def dest_sqla_coltype(self) -> TypeEngine:
         """
         Returns the SQLAlchemy column type of the destination column.
@@ -810,15 +818,19 @@ class DataDictionaryRow(object):
             )
         else:
             # Destination data type is not explicitly specified.
-            # Return the SQLAlchemy column type class determined from the
-            # source database by reflection.
-            # Will be autoconverted to the destination dialect.
-            # With some exceptions, addressed as below:
-            return convert_sqla_type_for_dialect(
-                coltype=self.src_sqla_coltype,
-                dialect=self.config.dest_dialect,
-                expand_for_scrubbing=self.being_scrubbed
-            )
+            # Is it a special type of field?
+            if self.dest_should_be_encrypted_pid_type:
+                return self.config.sqltype_encrypted_pid
+            else:
+                # Otherwise: return the SQLAlchemy column type class determined
+                # from the source database by reflection. Will be autoconverted
+                # to the destination dialect, with some exceptions, addressed
+                # as below:
+                return convert_sqla_type_for_dialect(
+                    coltype=self.src_sqla_coltype,
+                    dialect=self.config.dest_dialect,
+                    expand_for_scrubbing=self.being_scrubbed
+                )
 
     @property
     def dest_sqla_column(self) -> Column:
@@ -936,7 +948,7 @@ class DataDictionaryRow(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check for conflicting or missing flags
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        if self._defines_primary_pids and not self._primary_pid:
+        if self._defines_primary_pids and not self.primary_pid:
             raise ValueError(
                 f"All fields with src_flags={SrcFlag.DEFINES_PRIMARY_PIDS} "
                 f"set must have src_flags={SrcFlag.PRIMARY_PID} set")
@@ -946,8 +958,8 @@ class DataDictionaryRow(object):
                 f"Fields with src_flags={SrcFlag.OPT_OUT} exist, but config's "
                 f"optout_col_values setting is empty")
 
-        if count_bool([self._primary_pid,
-                       self._master_pid,
+        if count_bool([self.primary_pid,
+                       self.master_pid,
                        self.third_party_pid,
                        bool(self.alter_method)]) > 1:
             raise ValueError(
@@ -1027,7 +1039,7 @@ class DataDictionaryRow(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # PID/RID
         if self.matches_fielddef(srccfg.ddgen_per_table_pid_field):
-            if not self._primary_pid:
+            if not self.primary_pid:
                 raise ValueError(
                     f"All fields with src_field={self.src_field} used in "
                     f"output should have src_flag={SrcFlag.PRIMARY_PID} set")
@@ -1037,13 +1049,14 @@ class DataDictionaryRow(object):
                     f"{self.config.research_id_fieldname}")
         # MPID/MRID
         if (self.matches_fielddef(srccfg.ddgen_master_pid_fieldname) and
-                not self._master_pid):
+                not self.master_pid):
             raise ValueError(
                 f"All fields with src_field = "
                 f"{srccfg.ddgen_master_pid_fieldname} used in output should "
                 f"have src_flags={SrcFlag.MASTER_PID} set")
-        # Anything that is hashed
-        if ((self._primary_pid or self._master_pid or self._add_src_hash)
+        # Anything that is hashed (but not self._add_src_hash -- added
+        # separately):
+        if (self.dest_should_be_encrypted_pid_type
                 and self.dest_datatype
                 and self.dest_datatype !=
                 self.config.sqltype_encrypted_pid_as_sql):
@@ -1195,9 +1208,9 @@ class DataDictionaryRow(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ddgen: Does the field contain sensitive data?
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        if (self._master_pid
-                or self._defines_primary_pids
-                or (self._primary_pid
+        if (self.master_pid
+                or self.defines_primary_pids
+                or (self.primary_pid
                     and dbconf.ddgen_add_per_table_pids_to_scrubber)
                 or self.matches_fielddef(dbconf.ddgen_scrubsrc_patient_fields)):  # noqa
             self.scrub_src = ScrubSrc.PATIENT
@@ -1247,9 +1260,9 @@ class DataDictionaryRow(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ddgen: Do we want to change the destination fieldname?
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        if self._primary_pid:
+        if self.primary_pid:
             self.dest_field = self.config.research_id_fieldname
-        elif self._master_pid:
+        elif self.master_pid:
             self.dest_field = self.config.master_research_id_fieldname
         else:
             self.dest_field = src_field
@@ -1264,7 +1277,7 @@ class DataDictionaryRow(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ddgen: Do we want to change the destination field SQL type?
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        if self._primary_pid or self._master_pid:
+        if self.dest_should_be_encrypted_pid_type:
             self.dest_datatype = self.config.sqltype_encrypted_pid_as_sql
         else:
             self.dest_datatype = ''
@@ -1298,8 +1311,8 @@ class DataDictionaryRow(object):
             self.dest_datatype = giant_text_sqltype(self.config.dest_dialect)
             extracting_text = True
 
-        elif (not self._primary_pid
-              and not self._master_pid
+        elif (not self.primary_pid
+              and not self.master_pid
               and is_sqlatype_text_of_length_at_least(
                   src_sqla_coltype, dbconf.ddgen_min_length_for_scrubbing)
               and not self.matches_fielddef(
@@ -1357,9 +1370,9 @@ class DataDictionaryRow(object):
         if self._pk:
             self.index = IndexType.UNIQUE
 
-        elif (self._primary_pid
-              or self._master_pid
-              or self._defines_primary_pids
+        elif (self.primary_pid
+              or self.master_pid
+              or self.defines_primary_pids
               or self.dest_field == self.config.research_id_fieldname):
             self.index = IndexType.NORMAL
 
@@ -1394,7 +1407,7 @@ class DataDictionaryRow(object):
             # may want to omit a PK/PID/MPID field.)
             self.omit = True
 
-        elif self._pk or self._primary_pid or self._master_pid:
+        elif self._pk or self.primary_pid or self.master_pid:
             # We always want PKs, and the translated PID/MPID (RID+TRID or
             # MRID respectively).
             self.omit = False

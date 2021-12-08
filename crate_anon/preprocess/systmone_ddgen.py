@@ -1413,7 +1413,7 @@ def get_scrub_alter_details(
             # as a third-party scrubber for our index patient."
             ssi.scrub_src = ScrubSrc.THIRDPARTY_XREF_PID
             ssi.scrub_method = ScrubMethod.NUMERIC
-            # ... and omit.
+            ssi.include()
 
         elif is_in(colname, S1_COLS_RELATIONSHIP_WORDS):
             ssi.scrub_src = ScrubSrc.THIRDPARTY
@@ -1586,16 +1586,10 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
         # Alterations
         ddr.set_alter_methods_directly(ssi.alter_methods)
 
-        # Destination
-        if (SrcFlag.PRIMARY_PID.value in ssi.src_flags
-                or SrcFlag.MASTER_PID.value in ssi.src_flags
-                or SrcFlag.ADD_SRC_HASH.value in ssi.src_flags):
-            ddr.dest_datatype = ddr.config.sqltype_encrypted_pid_as_sql
+        # Destination -- automatic
 
         # Indexing
         ddr.index = get_index_flag(tablename, colname)
-        if SrcFlag.ADD_SRC_HASH.value in ssi.src_flags:
-            ddr.index = IndexType.UNIQUE
 
     # Improve comment
     spec = specifications.get((tablename, colname))

@@ -1339,7 +1339,7 @@ class DataDictionary(object):
         """
         return Column(
             self.config.source_hash_fieldname,
-            self.config.SqlTypeEncryptedPid,
+            self.config.sqltype_encrypted_pid,
             comment='Hashed amalgamation of all source fields'
         )
 
@@ -1365,7 +1365,7 @@ class DataDictionary(object):
         """
         return Column(
             self.config.master_research_id_fieldname,
-            self.config.SqlTypeEncryptedPid,
+            self.config.sqltype_encrypted_pid,
             nullable=True,
             comment='Master research ID (MRID)'
         )

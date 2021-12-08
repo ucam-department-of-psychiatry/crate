@@ -1446,7 +1446,7 @@ def wipe_destination_data_for_opt_out_patients(report_every: int = 1000,
     temptable = Table(
         config.temporary_tablename,
         metadata,
-        Column(pkfield, config.SqlTypeEncryptedPid, primary_key=True),
+        Column(pkfield, config.sqltype_encrypted_pid, primary_key=True),
         **TABLE_KWARGS
     )
     log.debug(start + ": 1. dropping temporary table")

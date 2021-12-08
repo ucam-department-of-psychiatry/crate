@@ -545,8 +545,8 @@ class Config(object):
         dummyhash = make_hasher(self.hash_method, "dummysalt")
         encrypted_length = dummyhash.output_length()
 
-        self.SqlTypeEncryptedPid = String(encrypted_length)
-        self.sqltype_encrypted_pid_as_sql = str(self.SqlTypeEncryptedPid)
+        self.sqltype_encrypted_pid = String(encrypted_length)
+        self.sqltype_encrypted_pid_as_sql = str(self.sqltype_encrypted_pid)
         # ... VARCHAR(32) for MD5; VARCHAR(64) for SHA-256; VARCHAR(128) for
         # SHA-512.
 

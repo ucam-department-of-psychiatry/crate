@@ -120,7 +120,7 @@ class PatientInfo(AdminBase):
         primary_key=True, autoincrement=False,
         comment="Patient ID (PID) (PK)")
     rid = Column(
-        PatientInfoConstants.RID_FIELDNAME, config.SqlTypeEncryptedPid,
+        PatientInfoConstants.RID_FIELDNAME, config.sqltype_encrypted_pid,
         nullable=False, unique=True,
         comment="Research ID (RID)")
     trid = Column(
@@ -131,10 +131,10 @@ class PatientInfo(AdminBase):
         PatientInfoConstants.MPID_FIELDNAME, config.mpidtype,
         comment="Master patient ID (MPID)")
     mrid = Column(
-        PatientInfoConstants.MRID_FIELDNAME, config.SqlTypeEncryptedPid,
+        PatientInfoConstants.MRID_FIELDNAME, config.sqltype_encrypted_pid,
         comment="Master research ID (MRID)")
     scrubber_hash = Column(
-        'scrubber_hash', config.SqlTypeEncryptedPid,
+        'scrubber_hash', config.sqltype_encrypted_pid,
         comment="Scrubber hash (for change detection)")
     patient_scrubber_text = Column(
         "_raw_scrubber_patient", Text,
