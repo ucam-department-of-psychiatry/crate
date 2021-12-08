@@ -24,11 +24,14 @@
 
 
 Specific databases
-++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. contents::
+   :local:
 
 
 Servelec RiO
-------------
+-------------------------------------------------------------------------------
 
 Servelec RiO_ data exports come in several formats, including:
 
@@ -42,14 +45,14 @@ to a format suitable for anonymisation via CRATE.
 
 
 PCMIS
------
+-------------------------------------------------------------------------------
 
 There is a specific preprocessing tool for PCMIS_, namely
 :ref:`crate_preprocess_pcmis <crate_preprocess_pcmis>`.
 
 
 TPP SystmOne
-------------
+-------------------------------------------------------------------------------
 
 TPP provide a "strategic reporting extract" (SRE) containing SystmOne data.
 This contains structured data, but can contain free text too.

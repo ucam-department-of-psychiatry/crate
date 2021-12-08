@@ -267,6 +267,7 @@ crate_anon/crateweb
     templates/generic_error.html.rst
     templates/global_header.html.rst
     templates/home.html.rst
+    templates/include_jquery.html.rst
     templates/logged_out.html.rst
     templates/login.html.rst
     templates/page_nav.html.rst
