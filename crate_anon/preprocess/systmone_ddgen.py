@@ -593,7 +593,8 @@ S1_HOSPNUM_COL_HOSPNUM = "HospitalNumber"
 S1_HOSPNUM_COL_COMMENTS = "Comments"
 
 # Other column names used by CPFT
-CPFT_CLIENT_ID = "ClientID"
+CPFT_ALTERNATIVE_PATIENT_ID_1 = "ClientID"
+CPFT_ALTERNATIVE_PATIENT_ID_2 = "PatientID"  # e.g. S1_eDSM (a CPFT table)
 CPFT_REL_MOTHER_COL_NHSNUM = S1_PATIENT_COL_NHSNUM
 CPFT_PATIENT_COL_MIDDLE_NAMES = "GivenName2"
 CPFT_PATIENT_COL_DOB = "DOB"
@@ -617,7 +618,8 @@ S1_TO_CPFT_COLUMN_TRANSLATION = {
 
 PID_SYNONYMS = (
     S1_GENERIC_COL_PID,
-    CPFT_CLIENT_ID,
+    CPFT_ALTERNATIVE_PATIENT_ID_1,
+    CPFT_ALTERNATIVE_PATIENT_ID_2,
 )
 MPID_SYNONYMS = (
     S1_PATIENT_COL_NHSNUM,
@@ -1235,7 +1237,7 @@ def process_generic_table_column(tablename: str,
         ssi.omit()
         # ... likely redundant but that's not obvious within this function
 
-    elif eq(colname, CPFT_CLIENT_ID):
+    elif eq(colname, CPFT_ALTERNATIVE_PATIENT_ID_1):
         # Some tables blend in old (e.g. RiO) or other (e.g. PCMIS) patient
         # IDs. These need to be scrubbed out. They might not always by SystmOne
         # PIDs, but there isn't a significant risk of hashing another type of
