@@ -1233,7 +1233,10 @@ def process_table(sourcedbname: str,
                 continue  # skip column
 
             if ddr.primary_pid:
-                assert value == patient.pid, (
+                assert str(value) == str(patient.pid), (
+                    # We compare using str() because we may have an integer and
+                    # a string version. These will hash to the same value (see
+                    # scrub_tests.py).
                     f"PID mismatch: value = {value!r}, "
                     f"patient.pid = {patient.pid!r}"
                 )

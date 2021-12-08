@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/nlp_manager/tests/scrub_tests.py
+crate_anon/anonymise/tests/scrub_tests.py
 
 ===============================================================================
 
@@ -28,6 +28,10 @@ Unit testing.
 
 """
 
+# =============================================================================
+# Imports
+# =============================================================================
+
 import logging
 from unittest import TestCase
 
@@ -39,22 +43,41 @@ from crate_anon.anonymise.scrub import PersonalizedScrubber
 log = logging.getLogger(__name__)
 
 
-_TEST_FLASHTEXT = r"""
+# =============================================================================
+# Constants
+# =============================================================================
 
-import flashtext
-replacement = "[~~~]"
-keywords = [
+TEST_KEY = "hello"
+PATIENT_REPLACEMENT = "[XXX]"
+THIRD_PARTY_REPLACEMENT = "[YYY]"
 
 
-"""
+# =============================================================================
+# Unit tests
+# =============================================================================
+
+class HashTests(TestCase):
+    def test_str_int_hash_equivalent(self) -> None:
+        """
+        Hashing an integer and its string equivalent should give the same
+        answer.
+        """
+        hasher = HmacMD5Hasher(TEST_KEY)
+        x = 1234567
+        y = str(x)
+        self.assertEqual(
+            hasher.hash(x),
+            hasher.hash(y),
+            "Hasher providing different answer for str and int"
+        )
 
 
 class PersonalizedScrubberTests(TestCase):
     def setUp(self) -> None:
-        self.key = "hello"
+        self.key = TEST_KEY
         self.hasher = HmacMD5Hasher(self.key)
-        self.anonpatient = "[XXX]"
-        self.anonthird = "[YYY]"
+        self.anonpatient = PATIENT_REPLACEMENT
+        self.anonthird = THIRD_PARTY_REPLACEMENT
 
     def test_phrase_unless_numeric(self) -> None:
         tests = [
