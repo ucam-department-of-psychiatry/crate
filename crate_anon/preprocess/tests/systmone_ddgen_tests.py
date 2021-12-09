@@ -32,7 +32,6 @@ Unit testing.
 # Imports
 # =============================================================================
 
-import logging
 from unittest import TestCase
 
 from crate_anon.preprocess.systmone_ddgen import (
@@ -43,8 +42,6 @@ from crate_anon.preprocess.systmone_ddgen import (
     OMIT_TABLES_REGEX,
     SystmOneContext,
 )
-
-log = logging.getLogger(__name__)
 
 
 # =============================================================================

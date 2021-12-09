@@ -32,15 +32,12 @@ Unit testing.
 # Imports
 # =============================================================================
 
-import logging
 from unittest import TestCase
 
 from cardinal_pythonlib.hash import HmacMD5Hasher
 
 from crate_anon.anonymise.constants import ScrubMethod
 from crate_anon.anonymise.scrub import PersonalizedScrubber
-
-log = logging.getLogger(__name__)
 
 
 # =============================================================================

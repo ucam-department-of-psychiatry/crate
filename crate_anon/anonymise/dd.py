@@ -952,7 +952,7 @@ class DataDictionary(object):
 
             # Source
             src_has_pk = False
-            src_pk_fieldname = None
+            src_pk_fieldname = None  # type: Optional[str]
             src_constant = False
             src_addition_only = False
             src_defines_pid = False

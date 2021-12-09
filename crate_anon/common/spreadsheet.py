@@ -36,7 +36,7 @@ import csv
 from enum import Enum
 import logging
 import os
-from typing import Any, Dict, Iterable, Sequence, TextIO
+from typing import Any, Dict, Iterable, List, Sequence, TextIO
 
 from cardinal_pythonlib.file_io import smart_open
 import openpyxl
@@ -157,6 +157,35 @@ def gen_rows_from_spreadsheet(filename: str) \
 # Writing methods
 # =============================================================================
 
+def make_safe_for_spreadsheet(x: Any) -> Any:
+    """
+    Helper function for :func:`remove_none_values_from_spreadsheet`.
+    """
+    return "" if x is None else x
+
+
+def remove_none_values_from_spreadsheet(data: MULTIPLE_SPREADSHEET_TYPE) \
+        -> MULTIPLE_SPREADSHEET_TYPE:
+    """
+    The ODS writer does not cope with ``None`` values, giving:
+
+    .. code-block:: none
+        AttributeError: 'NoneType' object has no attribute 'split'
+
+    Here, we transform ``None`` values to the empty string.
+    """
+    result = {}
+    for sheetname, sheetdata in data.items():
+        converted_sheetdata = []  # type: List[List[Any]]
+        for row in sheetdata:
+            converted_row = [
+                make_safe_for_spreadsheet(x) for x in row
+            ]
+            converted_sheetdata.append(converted_row)
+        result[sheetname] = converted_sheetdata
+    return result
+
+
 def write_tsv(filename: str, rows: SINGLE_SPREADSHEET_TYPE) -> None:
     """
     Writes to a tab-separated values (TSV) file.
@@ -230,7 +259,8 @@ def write_spreadsheet(filename: str,
         first_sheet = data[first_key]
         write_tsv(filename, first_sheet)
     elif ext == SpreadsheetFileExtensions.ODS.value:
-        write_ods(filename, data)
+        # The ODS writer does not like None values.
+        write_ods(filename, remove_none_values_from_spreadsheet(data))
     elif ext == SpreadsheetFileExtensions.XLSX.value:
         write_xlsx(filename, data)
     else:
