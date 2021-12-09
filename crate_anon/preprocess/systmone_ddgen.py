@@ -462,6 +462,8 @@ CPFT_TAB_REL_MOTHER = "PatientRelationshipMother"
 # -----------------------------------------------------------------------------
 # Table collections
 # -----------------------------------------------------------------------------
+# Tables are referred to here by their "core" name, i.e. after removal of
+# prefixes like "SR" or "S1_", if they have one.
 
 OMIT_TABLES = (
     "NomisNumber",  # Prison NOMIS numbers
@@ -469,6 +471,7 @@ OMIT_TABLES = (
 
     # CPFT extras:
     "gr_workings",  # no idea
+    "InpatientAvailableBeds",  # RowIdentifier very far from unique; ?no PK; no patient info  # noqa
 )
 INCLUDE_TABLES_REGEX = (
     # Include even if --systmone_allow_unprefixed_tables is not used.
@@ -1220,10 +1223,14 @@ def is_mpid(colname: str) -> bool:
     return is_in(colname, MPID_SYNONYMS)
 
 
-def is_pk(colname: str) -> bool:
+def is_pk(colname: str, sqla_coltype: TypeEngine) -> bool:
     """
     Is this a primary key (PK) column within its table?
     """
+    if sqla_coltype.nullable:
+        return False  # can't be a PK if it can be NULL
+    if sqla_coltype.primary_key:
+        return True
     return eq(colname, S1_GENERIC_COL_PK)
 
 
@@ -1261,7 +1268,7 @@ def process_generic_table_column(tablename: str,
     # ---------------------------------------------------------------------
     # Generic table
     # ---------------------------------------------------------------------
-    if is_pk(colname):
+    if is_pk(colname, sqla_coltype):
         # PK for all tables.
         ssi.add_src_flag(SrcFlag.PK)
         ssi.add_src_flag(SrcFlag.ADD_SRC_HASH)
@@ -1569,7 +1576,7 @@ def get_index_flag(tablename: str,
     elif (is_master_patient_table(tablename)
             and (is_pid(colname) or is_mpid(colname))):
         return IndexType.UNIQUE
-    elif is_pid(colname) or is_pk(colname):
+    elif is_pid(colname) or is_pk(colname, sqla_coltype):
         return IndexType.NORMAL
     elif is_pair_in(tablename, colname,
                     EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS):
