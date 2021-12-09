@@ -116,7 +116,7 @@ Character   Meaning
 ``K``       | **PK.**
             | This field is the primary key (PK) for the table it's in.
 
-`H`         | **ADD SOURCE HASH.**
+``H``       | **ADD SOURCE HASH.**
             | Add source hash of the record, for incremental updates?
 
             - This flag may only be set for source PK (``K``) fields (which

@@ -112,15 +112,22 @@ class DDTableSummary:
     src_table: str
 
     # Source information
-    has_defining_pid: bool
-    has_pid: bool
-    has_mpid: bool
-    has_patient_scrub_src_info: bool
-    has_third_party_scrub_src_info: bool
+    src_has_pk: bool
+    src_pk_fieldname: str
+    src_constant: bool
+    src_addition_only: bool
+    src_defines_pid: bool
+    src_has_pid: bool
+    src_has_mpid: bool
+    src_has_opt_out: bool
+    src_has_patient_scrub_info: bool
+    src_has_third_party_scrub_info: bool
+    src_has_required_scrub_info: bool
 
     # Destination information
     dest_table: str
     dest_has_rows: bool
+    dest_add_src_hash: bool
     dest_being_scrubbed: bool
 
 
@@ -944,48 +951,73 @@ class DataDictionary(object):
             rows = self.get_rows_for_src_table(src_db, src_table)
 
             # Source
-            has_defining_pid = False
-            has_mpid = False
-            has_patient_scrub_src_info = False
-            has_pid = False
-            has_third_party_scrub_src_info = False
+            src_has_pk = False
+            src_pk_fieldname = None
+            src_constant = False
+            src_addition_only = False
+            src_defines_pid = False
+            src_has_pid = False
+            src_has_mpid = False
+            src_has_opt_out = False
+            src_has_patient_scrub_info = False
+            src_has_third_party_scrub_info = False
+            src_has_required_scrub_info = False
             # Destination
             dest_table = None  # type: Optional[str]
             dest_has_rows = False
+            dest_add_src_hash = False
             dest_being_scrubbed = False
 
             for ddr in rows:
                 # Source
-                has_defining_pid = has_defining_pid or ddr.defines_primary_pids
-                has_patient_scrub_src_info = (
-                    has_patient_scrub_src_info
+                src_has_pk = src_has_pk or ddr.pk
+                if ddr.pk:
+                    src_pk_fieldname = ddr.src_field
+                src_constant = src_constant or ddr.constant
+                src_addition_only = src_addition_only or ddr.addition_only
+                src_defines_pid = src_defines_pid or ddr.defines_primary_pids
+                src_has_pid = src_has_pid or ddr.primary_pid
+                src_has_mpid = src_has_mpid or ddr.master_pid
+                src_has_opt_out = src_has_opt_out or ddr.opt_out_info
+                src_has_patient_scrub_info = (
+                    src_has_patient_scrub_info
                     or ddr.contains_patient_scrub_src_info
                 )
-                has_pid = has_pid or ddr.primary_pid
-                has_mpid = has_mpid or ddr.master_pid
-                has_third_party_scrub_src_info = (
-                    has_third_party_scrub_src_info
+                src_has_third_party_scrub_info = (
+                    src_has_third_party_scrub_info
                     or ddr.contains_third_party_info
+                )
+                src_has_required_scrub_info = (
+                    src_has_required_scrub_info
+                    or ddr.required_scrubber
                 )
                 # Destination
                 dest_table = dest_table or ddr.dest_table
-                dest_being_scrubbed = dest_being_scrubbed or ddr.being_scrubbed
                 dest_has_rows = dest_has_rows or not ddr.omit
+                dest_add_src_hash = dest_add_src_hash or ddr.add_src_hash
+                dest_being_scrubbed = dest_being_scrubbed or ddr.being_scrubbed
 
             info = DDTableSummary(
                 # Which table?
                 src_db=src_db,
                 src_table=src_table,
                 # Source info
-                has_defining_pid=has_defining_pid,
-                has_mpid=has_mpid,
-                has_pid=has_pid,
-                has_patient_scrub_src_info=has_patient_scrub_src_info,
-                has_third_party_scrub_src_info=has_third_party_scrub_src_info,
+                src_has_pk=src_has_pk,
+                src_pk_fieldname=src_pk_fieldname,
+                src_constant=src_constant,
+                src_addition_only=src_addition_only,
+                src_defines_pid=src_defines_pid,
+                src_has_pid=src_has_pid,
+                src_has_mpid=src_has_mpid,
+                src_has_opt_out=src_has_opt_out,
+                src_has_patient_scrub_info=src_has_patient_scrub_info,
+                src_has_third_party_scrub_info=src_has_third_party_scrub_info,
+                src_has_required_scrub_info=src_has_required_scrub_info,
                 # Destination info
                 dest_table=dest_table,
-                dest_being_scrubbed=dest_being_scrubbed,
                 dest_has_rows=dest_has_rows,
+                dest_add_src_hash=dest_add_src_hash,
+                dest_being_scrubbed=dest_being_scrubbed,
             )
             infolist.append(info)
         return infolist
