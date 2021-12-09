@@ -1556,12 +1556,14 @@ def get_scrub_alter_details(
     return ssi
 
 
-def get_index_flag(tablename: str, colname: str) -> Optional[IndexType]:
+def get_index_flag(tablename: str,
+                   colname: str,
+                   sqla_coltype: TypeEngine) -> Optional[IndexType]:
     """
     Should this be indexed? Returns an indexing flag, or ``None`` if it should
     not be indexed.
     """
-    if is_free_text(tablename, colname):
+    if is_free_text(tablename, colname, sqla_coltype):
         return IndexType.FULLTEXT
     elif (is_master_patient_table(tablename)
             and (is_pid(colname) or is_mpid(colname))):
@@ -1648,7 +1650,7 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
         # Destination -- automatic
 
         # Indexing
-        ddr.index = get_index_flag(tablename, colname)
+        ddr.index = get_index_flag(tablename, colname, ddr.src_sqla_coltype)
         if SrcFlag.ADD_SRC_HASH.value in ssi.src_flags:
             ddr.index = IndexType.UNIQUE
 
