@@ -492,6 +492,10 @@ OMIT_TABLES_REGEX = (
     # underscore then 8 digits. These are temporary copies that we should not
     # use:
     r".*_\d{8}$"
+
+    # This CPFT table is a non-patient table (but with potentially identifiable
+    # information about referral reason? -- maybe not) -- skip it.
+    "ReferralsOpen$",
 )
 CORE_TO_CONTEXT_TABLE_TRANSLATIONS = {
     # Key: destination context.
