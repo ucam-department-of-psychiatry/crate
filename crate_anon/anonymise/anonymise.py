@@ -51,6 +51,7 @@ from sqlalchemy.sql import column, func, or_, select, table, text
 
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
+    AnonymiseConfigKeys,
     BIGSEP,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
@@ -767,7 +768,8 @@ def get_pids_from_field_limits(field: str, low: int, high: int) -> List[Any]:
 def gen_patient_ids(
         tasknum: int = 0,
         ntasks: int = 1,
-        specified_pids: List[Any] = None) -> Generator[int, None, None]:
+        specified_pids: List[Union[int, str]] = None) \
+        -> Generator[Union[int, str], None, None]:
     """
     Generate patient IDs.
 
@@ -777,7 +779,7 @@ def gen_patient_ids(
         specified_pids: optional list of PIDs to restrict ourselves to
 
     Yields:
-        integer patient IDs (PIDs)
+        integer or string patient IDs (PIDs)
 
     - Assigns work to threads/processes, via the simple expedient of processing
       only those patient ID numbers where ``patientnum % ntasks == tasknum``.
@@ -800,9 +802,11 @@ def gen_patient_ids(
         log.warning("USING MANUALLY SPECIFIED INTEGER PATIENT ID LIST")
         for pid in config.debug_pid_list:
             if pid_is_integer:
-                if is_my_job_by_int(int(pid), tasknum=tasknum, ntasks=ntasks):
+                pid = int(pid)
+                if is_my_job_by_int(pid, tasknum=tasknum, ntasks=ntasks):
                     yield pid
             else:
+                pid = str(pid)
                 if is_my_job_by_hash(pid, tasknum=tasknum, ntasks=ntasks):
                     yield pid
         return
@@ -828,53 +832,66 @@ def gen_patient_ids(
     for ddr in config.dd.rows:
         if not ddr.defines_primary_pids:
             continue
-        pidcol = column(ddr.src_field)
+        log.debug(f"Looking for patient IDs in "
+                  f"{ddr.src_table}.{ddr.src_field}")
         session = config.sources[ddr.src_db].session
+        pidcol = column(ddr.src_field)
         query = (
-            select([pidcol]).
-            select_from(table(ddr.src_table)).
-            where(pidcol is not None).
-            distinct()
-            # order_by(pidcol)  # no need to order by
+            select([pidcol])
+            .select_from(table(ddr.src_table))
+            .where(pidcol is not None)
+            .distinct()
+            # .order_by(pidcol)  # no need to order by
         )
         if ntasks > 1 and pid_is_integer:
+            # With integers, we can take our slice of the workload through a
+            # restricted query.
             query = query.where(pidcol % ntasks == tasknum)
         result = session.execute(query)
-        log.debug(f"Looking for patient IDs in {ddr.src_table}.{ddr.src_field}")  # noqa
         for row in result:
-            # Extract ID
-            patient_id = row[0]
+            # Extract patient ID
+            pid = row[0]
 
             # Duff?
-            if patient_id is None:
+            if pid is None:
                 log.warning("Patient ID is NULL")
                 continue
 
-            # Operating on non-integer PIDs and not our job?
-            if distribute_by_hash and not is_my_job_by_hash(
-                    patient_id, tasknum=tasknum, ntasks=ntasks):
-                continue
+            # Ensure type is correct -- even if we are querying from an integer
+            # field and then behaving as if it is a string subsequently.
+            # Note that e.g. SELECT '123' = 123 gives 1 (true), i.e. strings
+            # can be compared to integers.
+            if pid_is_integer:
+                pid = int(pid)
+            else:
+                pid = str(pid)
+                # Operating on non-integer PIDs and not our job?
+                if distribute_by_hash and not is_my_job_by_hash(
+                        pid, tasknum=tasknum, ntasks=ntasks):
+                    continue
 
             # Duplicate?
             if keeping_track:
                 # Consider, for non-integer PIDs, storing the hash64 instead
                 # of the raw value.
-                if patient_id in processed_ids:
+                if pid in processed_ids:
                     # we've done this one already; skip it this time
                     continue
-                processed_ids.add(patient_id)
+                processed_ids.add(pid)
 
             # Valid one
-            log.debug(f"Found patient id: {patient_id}")
+            log.debug(f"Found patient id: {pid}")
             n_found += 1
-            yield patient_id
+            yield pid
 
             # Too many?
             if 0 < debuglimit <= n_found:
                 log.warning(
-                    f"Not fetching more than {debuglimit} patients (in total "
-                    f"for this process) due to debug_max_n_patients limit")
-                result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
+                    f"Not fetching more than {debuglimit} "
+                    f"patients (in total for this process) due to "
+                    f"{AnonymiseConfigKeys.DEBUG_MAX_N_PATIENTS} limit")
+                result.close()
+                # http://docs.sqlalchemy.org/en/latest/core/connections.html
                 return
 
 

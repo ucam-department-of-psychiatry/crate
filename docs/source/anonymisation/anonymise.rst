@@ -103,7 +103,7 @@ crate_anon_summarize_dd
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 This ancillary tool reads your data dictionary and summarizes facts about
-each table.
+each table. It may be helpful to find problems with large data dictionaries.
 
 ..  literalinclude:: _crate_anon_summarize_dd_help.txt
     :language: none
