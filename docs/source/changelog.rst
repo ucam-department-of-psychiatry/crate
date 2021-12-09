@@ -1422,6 +1422,17 @@ Changes
 - Add data dictionary check that all scrub-source tables have a patient ID
   field.
 
+- Remove ``ddgen_allow_no_patient_info`` option and replace it with
+  ``allow_no_patient_info`` -- this is now a "runtime" setting, not a "data
+  dictionary definition" setting. Depending on ``allow_no_patient_info``,
+  warnings or errors are produced if a data dictionary is used without
+  patient-defining information (which is usually wrong, but there are sometimes
+  sensible use-cases for it).
+
+- Option for ``ddgen_min_length_for_scrubbing`` to be less than 1 to disable
+  scrubbing entirely (helpful for the SystmOne automatic data dictionary
+  generation).
+
 
 ===============================================================================
 

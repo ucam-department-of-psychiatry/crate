@@ -161,13 +161,13 @@ class DatabaseSafeConfig(object):
         """
         cfg = ConfigSection(section=section, parser=parser)
 
+        self.ddgen_append_source_info_to_comment = cfg.opt_bool(
+            SK.DDGEN_APPEND_SOURCE_INFO_TO_COMMENT, True)
         self.ddgen_omit_by_default = cfg.opt_bool(
             SK.DDGEN_OMIT_BY_DEFAULT, True)
         self.ddgen_omit_fields = cfg.opt_multiline(SK.DDGEN_OMIT_FIELDS)
         self.ddgen_include_fields = cfg.opt_multiline(SK.DDGEN_INCLUDE_FIELDS)
 
-        self.ddgen_allow_no_patient_info = cfg.opt_bool(
-            SK.DDGEN_ALLOW_NO_PATIENT_INFO, False)
         self.ddgen_per_table_pid_field = cfg.opt_str(
             SK.DDGEN_PER_TABLE_PID_FIELD)
         self.ddgen_table_defines_pids = cfg.opt_str(
@@ -551,17 +551,20 @@ class Config(object):
         # SHA-512.
 
         if not self.per_table_patient_id_encryption_phrase:
-            raise ValueError("Missing per_table_patient_id_encryption_phrase")
+            raise ValueError(
+                f"Missing {AK.PER_TABLE_PATIENT_ID_ENCRYPTION_PHRASE}")
         self.primary_pid_hasher = make_hasher(
             self.hash_method, self.per_table_patient_id_encryption_phrase)
 
         if not self.master_patient_id_encryption_phrase:
-            raise ValueError("Missing master_patient_id_encryption_phrase")
+            raise ValueError(
+                f"Missing {AK.MASTER_PATIENT_ID_ENCRYPTION_PHRASE}")
         self.master_pid_hasher = make_hasher(
             self.hash_method, self.master_patient_id_encryption_phrase)
 
         if not self.change_detection_encryption_phrase:
-            raise ValueError("Missing change_detection_encryption_phrase")
+            raise ValueError(
+                f"Missing {AK.CHANGE_DETECTION_ENCRYPTION_PHRASE}")
         self.change_detection_hasher = make_hasher(
             self.hash_method, self.change_detection_encryption_phrase)
 
@@ -582,6 +585,8 @@ class Config(object):
         # Anonymisation
         # ---------------------------------------------------------------------
 
+        self.allow_no_patient_info = cfg.opt_bool(
+            AK.ALLOW_NO_PATIENT_INFO, False)
         self.replace_patient_info_with = cfg.opt_str(
             AK.REPLACE_PATIENT_INFO_WITH)
         self.replace_third_party_info_with = cfg.opt_str(
@@ -682,8 +687,6 @@ class Config(object):
         self.add_mrid_wherever_rid_added = cfg.opt_bool(
             AK.ADD_MRID_WHEREVER_RID_ADDED, True)
         self.source_hash_fieldname = cfg.opt_str(AK.SOURCE_HASH_FIELDNAME)
-        self.ddgen_append_source_info_to_comment = cfg.opt_bool(
-            AK.DDGEN_APPEND_SOURCE_INFO_TO_COMMENT, True)
 
         # ---------------------------------------------------------------------
         # Destination database configuration
@@ -881,13 +884,13 @@ class Config(object):
 
         # Destination databases
         if not self.destdb:
-            raise ValueError("No destination database specified.")
+            raise ValueError(f"No {AK.DESTINATION_DATABASE} specified.")
         if not self.admindb:
-            raise ValueError("No admin database specified.")
+            raise ValueError(f"No {AK.ADMIN_DATABASE} specified.")
 
         # Test table names
         if not self.temporary_tablename:
-            raise ValueError("No temporary_tablename specified.")
+            raise ValueError(f"No {AK.TEMPORARY_TABLENAME} specified.")
         ensure_valid_table_name(self.temporary_tablename)
 
         # Test field names
@@ -897,10 +900,11 @@ class Config(object):
             ensure_valid_field_name(getattr(self, name))
 
         specialfieldlist = [
-            "research_id_fieldname",
-            "trid_fieldname",
-            "master_research_id_fieldname",
-            "source_hash_fieldname",
+            # Our attributes have the same names as these parameters:
+            AK.RESEARCH_ID_FIELDNAME,
+            AK.TRID_FIELDNAME,
+            AK.MASTER_RESEARCH_ID_FIELDNAME,
+            AK.SOURCE_HASH_FIELDNAME,
         ]
         fieldset = set()  # type: Set[str]
         for attrname in specialfieldlist:
@@ -913,45 +917,50 @@ class Config(object):
 
         # Test strings
         if not self.replace_patient_info_with:
-            raise ValueError("Blank replace_patient_info_with")
+            raise ValueError(f"Blank {AK.REPLACE_PATIENT_INFO_WITH}")
         if not self.replace_third_party_info_with:
-            raise ValueError("Blank replace_third_party_info_with")
+            raise ValueError(f"Blank {AK.REPLACE_THIRD_PARTY_INFO_WITH}")
         if not self.replace_nonspecific_info_with:
-            raise ValueError("Blank replace_nonspecific_info_with")
+            raise ValueError(f"Blank {AK.REPLACE_NONSPECIFIC_INFO_WITH}")
         replacements = list({self.replace_patient_info_with,
                              self.replace_third_party_info_with,
                              self.replace_nonspecific_info_with})
         if len(replacements) != 3:
+            # So inadvisable that we prevent it.
             raise ValueError(
-                "Inadvisable: replace_patient_info_with, "
-                "replace_third_party_info_with, and "
-                "replace_nonspecific_info_with should all be distinct")
+                f"{AK.REPLACE_PATIENT_INFO_WITH}, "
+                f"{AK.REPLACE_THIRD_PARTY_INFO_WITH}, and "
+                f"{AK.REPLACE_NONSPECIFIC_INFO_WITH} should all be distinct")
 
         # Regex
         if self.string_max_regex_errors < 0:
-            raise ValueError("string_max_regex_errors < 0, nonsensical")
+            raise ValueError(f"{AK.STRING_MAX_REGEX_ERRORS} < 0, nonsensical")
         if self.min_string_length_for_errors < 1:
-            raise ValueError("min_string_length_for_errors < 1, nonsensical")
+            raise ValueError(
+                f"{AK.MIN_STRING_LENGTH_FOR_ERRORS} < 1, nonsensical")
         if self.min_string_length_to_scrub_with < 1:
             raise ValueError(
-                "min_string_length_to_scrub_with < 1, nonsensical")
+                f"{AK.MIN_STRING_LENGTH_TO_SCRUB_WITH} < 1, nonsensical")
 
         # Source databases
         if not self.sources:
             raise ValueError("No source databases specified.")
         for dbname, dbinfo in self.sources.items():
             cfg = dbinfo.srccfg
-            if not cfg.ddgen_allow_no_patient_info:
-                if not cfg.ddgen_per_table_pid_field:
-                    raise ValueError(
-                        f"Missing ddgen_per_table_pid_field in config for"
-                        f" database {dbname}")
+            if cfg.ddgen_per_table_pid_field:
                 ensure_valid_field_name(cfg.ddgen_per_table_pid_field)
                 if cfg.ddgen_per_table_pid_field == self.source_hash_fieldname:
-                    raise ValueError("Config: ddgen_per_table_pid_field can't "
-                                     "be the same as source_hash_fieldname")
+                    raise ValueError(
+                        f"Config: {SK.DDGEN_PER_TABLE_PID_FIELD} "
+                        f"parameter can't be the same as "
+                        f"{AK.SOURCE_HASH_FIELDNAME}")
             if cfg.ddgen_master_pid_fieldname:
                 ensure_valid_field_name(cfg.ddgen_master_pid_fieldname)
+                if cfg.ddgen_master_pid_fieldname == self.source_hash_fieldname:
+                    raise ValueError(
+                        f"Config: {SK.DDGEN_MASTER_PID_FIELDNAME} "
+                        f"parameter can't be the same as "
+                        f"{AK.SOURCE_HASH_FIELDNAME}")
 
         # OK!
         log.debug("Config validated.")
@@ -1004,8 +1013,8 @@ class Config(object):
         if hasher_name not in self.extra_hashers.keys():
             raise ValueError(
                 f"Extra hasher {hasher_name} requested but doesn't exist; "
-                f"check you have listed it in 'extra_hash_config_sections' in "
-                f"the config file")
+                f"check you have listed it in "
+                f"{AK.EXTRA_HASH_CONFIG_SECTIONS!r} in the config file")
         return self.extra_hashers[hasher_name]
 
     @property

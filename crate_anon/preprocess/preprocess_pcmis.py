@@ -320,8 +320,6 @@ def get_pcmis_dd_settings(ddhint: DDHint) -> str:
     Patient*{CRATE_VIEW_SUFFIX}.*
     ReferralDetails{CRATE_VIEW_SUFFIX}.*
 
-{sk.DDGEN_ALLOW_NO_PATIENT_INFO} = False
-
 {sk.DDGEN_PER_TABLE_PID_FIELD} = {PCMIS_COL_PATIENT_ID}
 
 {sk.DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER} = False

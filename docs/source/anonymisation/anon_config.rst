@@ -19,7 +19,7 @@
 
 .. |ddgen_only| replace::
     This section relates to **automatic creation of data dictionaries** only.
-    In normal use, none of these settings does anything.
+    In normal use, these settings do nothing.
 
 .. _fnmatch: https://docs.python.org/3.4/library/fnmatch.html
 .. _MD5: https://en.wikipedia.org/wiki/MD5
@@ -276,6 +276,18 @@ Default width (in columns) to word-wrap extracted text to.
 
 Anonymisation
 +++++++++++++
+
+allow_no_patient_info
+#####################
+
+*Boolean.* Default: false.
+
+Allow the absence of patient info? Used to copy databases; WILL NOT ANONYMISE.
+Since this is usually (but not always) a mistake, this option exists as a
+safeguard: if you have it set to false and attempt to anonymise with a data
+dictionary that contains no "patient-defining" information (i.e. a table that
+lists all patients), CRATE will stop with an error.
+
 
 replace_patient_info_with
 #########################
@@ -629,24 +641,20 @@ It will be indexed (non-uniquely; the MRID is not always guaranteed to be
 present just because the PID is present).
 
 
+.. _source_hash_fieldname:
+
 source_hash_fieldname
 #####################
 
 *String.*
 
-Change-detection hash fieldname for destination tables. This will be a
-``VARCHAR`` of length determined by :ref:`hash_method
-<anon_config_hash_method>`. Used to hash entire rows to see if they've changed
-later.
-
-
-ddgen_append_source_info_to_comment
-###################################
-
-*Boolean.* Default: true.
-
-When drafting a data dictionary, append the source table/field name to the
-column comment?
+Change-detection hash fieldname for destination tables, used to hash entire
+rows to see if they've changed later. To rephrase: this is a field (column)
+that CRATE will create in tables in the destination database, using it to store
+a "signature" of the source row (allowing changes to be detected). This column
+will be a ``VARCHAR`` of length determined by :ref:`hash_method
+<anon_config_hash_method>`. See also :ref:`src_flags <dd_src_flags>` in the
+data dictionary.
 
 
 Destination database configuration
@@ -866,8 +874,8 @@ You may need to install additional drivers, e.g.
 ... see :ref:`database drivers <database_drivers>`.
 
 
-Data dictionary generation: input fields
-++++++++++++++++++++++++++++++++++++++++
+Data dictionary generation: source fields
++++++++++++++++++++++++++++++++++++++++++
 
 |ddgen_only|
 
@@ -916,14 +924,6 @@ You can specify additional fields to include (see :ref:`decision
 If a field contains scrubbing source information (see :ref:`scrub_src
 <dd_scrub_src>`), it will also be omitted pending human review, regardless of
 other settings.
-
-
-ddgen_allow_no_patient_info
-############################
-
-*Boolean.* Default: false.
-
-Allow the absence of patient info? Used to copy databases; WILL NOT ANONYMISE.
 
 
 ddgen_per_table_pid_field
@@ -1218,6 +1218,9 @@ Define minimum source text column length for scrubbing (fields shorter than
 this value are assumed safe). For example, specifying 10 will mean that
 ``VARCHAR(9)`` columns are assumed not to need scrubbing.
 
+If you specify a number below 1 (e.g. 0), nothing will be marked for scrubbing.
+Be particularly careful with this!
+
 
 ddgen_truncate_date_fields
 ##########################
@@ -1304,10 +1307,38 @@ where ``case_number_hashdef`` is an extra hash definition (see
 :ref:`alter_method <dd_alter_method>` in the data dictionary).
 
 
-Data dictionary generation: destination indexing
-++++++++++++++++++++++++++++++++++++++++++++++++
+Data dictionary generation: destination fields
+++++++++++++++++++++++++++++++++++++++++++++++
 
 |ddgen_only|
+
+
+ddgen_force_lower_case
+######################
+
+*Boolean.* Default: false.
+
+Force all destination table/field names to lower case?
+
+(Default changed from true to false in v0.19.3.)
+
+
+ddgen_convert_odd_chars_to_underscore
+#####################################
+
+*Boolean.* Default: true.
+
+Convert spaces in table/fieldnames (yuk!) to underscores?
+
+
+ddgen_append_source_info_to_comment
+###################################
+
+*Boolean.* Default: true.
+
+When drafting a data dictionary, append the source table/field name to the
+column comment?
+
 
 ddgen_index_fields
 ##################
@@ -1344,29 +1375,6 @@ applied?
     because sometimes short source fields are expanded (to make room for
     "anonymisation expansion"), so the source length is usually more
     meaningful.
-
-
-Data dictionary generation: altering destination table/field names
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-|ddgen_only|
-
-ddgen_force_lower_case
-######################
-
-*Boolean.* Default: false.
-
-Force all destination table/field names to lower case?
-
-(Default changed from true to false in v0.19.3.)
-
-
-ddgen_convert_odd_chars_to_underscore
-#####################################
-
-*Boolean.* Default: true.
-
-Convert spaces in table/fieldnames (yuk!) to underscores?
 
 
 Other options for source databases

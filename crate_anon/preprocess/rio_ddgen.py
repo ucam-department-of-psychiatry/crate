@@ -103,8 +103,6 @@ def get_rio_dd_settings(ddhint: DDHint) -> str:
     # -------------------------------------------------------------------------
     CPFT_*.*  # all fields in "CPFT_*" views
 
-{sk.DDGEN_ALLOW_NO_PATIENT_INFO} = False
-
 {sk.DDGEN_PER_TABLE_PID_FIELD} = crate_rio_number
 
 {sk.DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER} = False

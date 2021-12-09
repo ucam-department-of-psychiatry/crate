@@ -68,7 +68,6 @@ from sqlalchemy.sql.sqltypes import String, TypeEngine
 from crate_anon.anonymise.constants import (
     AlterMethodType,
     AnonymiseConfigKeys,
-    AnonymiseDatabaseSafeConfigKeys,
     TABLE_KWARGS,
     ScrubMethod,
     ScrubSrc,
@@ -206,7 +205,6 @@ class DataDictionary(object):
         self.rows = []  # type: List[DataDictionaryRow]
         # noinspection PyArgumentList
         self.cached_srcdb_table_pairs = SortedSet()
-        self.n_definers = 0
 
     # -------------------------------------------------------------------------
     # Information
@@ -390,7 +388,7 @@ class DataDictionary(object):
                           override_dialect=override_dialect)
         return dd
 
-    def read_from_source_databases(self, report_every: int = 100) -> None:
+    def draft_from_source_databases(self, report_every: int = 100) -> None:
         """
         Create a draft DD from a source database.
 
@@ -401,12 +399,19 @@ class DataDictionary(object):
             report_every: report to the Python log every *n* columns
         """
         log.info("Reading information for draft data dictionary")
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Scan databases
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         existing_signatures = set(ddr.src_signature for ddr in self.rows)
         for pretty_dbname, db in self.config.sources.items():
             log.info(f"... database nice name = {pretty_dbname}")
             cfg = db.srccfg
             meta = db.metadata
             i = 0
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Scan each table
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             for t in meta.sorted_tables:
                 tablename = t.name
                 log.info(f"... ... table: {tablename}")
@@ -423,6 +428,9 @@ class DataDictionary(object):
                               f"minimum field requirements")
                     continue
 
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # Scan each column
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 for c in t.columns:
                     i += 1
                     if report_every and i % report_every == 0:
@@ -446,7 +454,7 @@ class DataDictionary(object):
                                   f"{tablename}.{columnname}")
                         continue
                     comment = ''  # currently unsupported by SQLAlchemy
-                    if self.config.ddgen_append_source_info_to_comment:
+                    if cfg.ddgen_append_source_info_to_comment:
                         comment = f"[from {tablename}.{columnname}]"
                     ddr = DataDictionaryRow(self.config)
                     ddr.set_from_src_db_info(
@@ -458,7 +466,7 @@ class DataDictionary(object):
 
                     # ---------------------------------------------------------
                     # If we have this one already, skip ASAP
-                    # This is how incremental data dictionaries get generatd.
+                    # This is how incremental data dictionaries get generated.
                     # ---------------------------------------------------------
                     sig = ddr.src_signature
                     if sig in existing_signatures:
@@ -537,21 +545,28 @@ class DataDictionary(object):
 
             for t in self.get_src_tables(d):
 
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # Ensure each source table maps to only one destination table
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 dt = self.get_dest_tables_for_src_db_table(d, t)
                 if len(dt) > 1:
                     raise ValueError(
                         f"Source table {d}.{t} maps to >1 destination "
                         f"table: {', '.join(dt)}")
 
-                rows = self.get_rows_for_src_table(d, t)
-                fieldnames = self.get_fieldnames_for_src_table(d, t)
-
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # Ensure source table is in database
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 if t not in db.table_names:
                     log.debug(
                         f"Source database {d!r} has tables: {db.table_names}")
                     raise ValueError(
                         f"Table {t!r} missing from source database {d!r}")
 
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # Row checks: preamble
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                rows = self.get_rows_for_src_table(d, t)
                 # We may need to cross-reference rows, so all rows need to know
                 # their type.
                 for r in rows:
@@ -564,19 +579,27 @@ class DataDictionary(object):
                     )
                     r.set_src_sqla_coltype(sqla_coltype)  # CACHES TYPE HERE
 
-                # We have to iterate twice, but shouldn't iterate more than
-                # that, for speed.
-                n_pks = 0
-                needs_pidfield = False
-                for r in rows:
-                    # Needs PID field in table?
-                    if not r.omit and r.being_scrubbed:
-                        # Before 2021-12-07, we used to check r.master_pid,
-                        # too. However, if nothing is being scrubbed, then the
-                        # lack of a link via primary PID is a researcher
-                        # inconvenience, not an de-identification risk.
-                        needs_pidfield = True
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # If PID field is required, is it present?
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                needs_pidfield = any(r.being_scrubbed and not r.omit
+                                     for r in rows)
+                # Before 2021-12-07, we used to check r.master_pid, too.
+                # However, if nothing is being scrubbed, then the lack of a
+                # link via primary PID is a researcher inconvenience, not an
+                # de-identification risk.
+                if needs_pidfield and not self.get_pid_name(d, t):
+                    raise ValueError(
+                        f"Source table {d}.{t} has a "
+                        f"{AlterMethodType.SCRUBIN.value!r} "
+                        f"field but no primary patient ID field"
+                    )
 
+                n_pks = 0
+                for r in rows:
+                    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    # Data types for special rows
+                    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     if r.primary_pid:
                         ensure_no_source_type_mismatch(r, self.config.pidtype,
                                                        primary_pid=True)
@@ -584,14 +607,18 @@ class DataDictionary(object):
                         ensure_no_source_type_mismatch(r, self.config.mpidtype,
                                                        primary_pid=False)
 
+                    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     # Too many PKs?
+                    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     if r.pk:
                         n_pks += 1
                         if n_pks > 1:
                             raise ValueError(
                                 f"Table {d}.{t} has >1 source PK set")
 
+                    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     # Duff alter method?
+                    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     for am in r.alter_methods:
                         if am.extract_from_blob:
                             extrow = next(
@@ -601,9 +628,9 @@ class DataDictionary(object):
                             )
                             if extrow is None:
                                 raise ValueError(
-                                    f"alter_method = {r.alter_method}, but "
-                                    f"field {am.extract_ext_field} not found "
-                                    f"in the same table")
+                                    f"alter_method = {r.alter_method}, "
+                                    f"but field {am.extract_ext_field} "
+                                    f"not found in the same table")
                             if not is_sqlatype_text_over_one_char(
                                     extrow.src_sqla_coltype):
                                 raise ValueError(
@@ -611,22 +638,6 @@ class DataDictionary(object):
                                     f"field {am.extract_ext_field}, which "
                                     f"should contain an extension or "
                                     f"filename, is not text of >1 character")
-
-                if needs_pidfield:
-                    # Test changed from an error to a warning 2016-11-11.
-                    # We don't really care about validating against the ddgen
-                    # options; if a user has done their data dictionary
-                    # manually, it may not be relevant.
-                    expected_pidfield = db.srccfg.ddgen_per_table_pid_field
-                    if expected_pidfield not in fieldnames:
-                        log.error(
-                            f"Source table {d}.{t} has a "
-                            f"{AlterMethodType.SCRUBIN.value!r} field but no "
-                            f"primary patient ID field (expected to be: "
-                            f"{expected_pidfield!r} according to config file "
-                            f"{AnonymiseDatabaseSafeConfigKeys.DDGEN_PER_TABLE_PID_FIELD!r} "  # noqa
-                            f"parameter)"
-                        )
 
     def check_valid(self,
                     prohibited_fieldnames: List[str] = None,
@@ -742,18 +753,18 @@ class DataDictionary(object):
             self.check_against_source_db()
 
         log.debug("Checking DD: global patient-defining fields...")
-        self.n_definers = sum([1 if x.defines_primary_pids else 0
-                               for x in self.rows])
-        if self.n_definers == 0:
-            if all([db.srccfg.ddgen_allow_no_patient_info
-                    for pretty_dbname, db in self.config.sources.items()]):
+        n_definers = sum([1 if x.defines_primary_pids else 0
+                          for x in self.rows])
+        if n_definers == 0:
+            if self.config.allow_no_patient_info:
                 log.warning("NO PATIENT-DEFINING FIELD! DATABASE(S) WILL "
                             "BE COPIED, NOT ANONYMISED.")
             else:
                 raise ValueError(
-                    f"Must have at least one field with "
-                    f"src_flags={SrcFlag.DEFINES_PRIMARY_PIDS} set.")
-        elif self.n_definers > 1:
+                    f"No patient-defining field! (And "
+                    f"{AnonymiseConfigKeys.ALLOW_NO_PATIENT_INFO} not set.)"
+                )
+        elif n_definers > 1:
             log.warning(
                 f"Unusual: >1 field with "
                 f"src_flags={SrcFlag.DEFINES_PRIMARY_PIDS} set.")
@@ -1017,9 +1028,9 @@ class DataDictionary(object):
         return set([ddr.src_signature for ddr in self.rows
                     if ddr.required_scrubber])
 
-    # =========================================================================
+    # -------------------------------------------------------------------------
     # Queries by source DB
-    # =========================================================================
+    # -------------------------------------------------------------------------
 
     @lru_cache(maxsize=None)
     def get_src_tables(self, src_db: str) -> AbstractSet[str]:

@@ -125,12 +125,12 @@ Character   Meaning
               field).
 
             - If set, a field is added to the destination table, with field
-              name as set by the config's ``source_hash_fieldname`` variable,
-              containing a hash of the contents of the source record -- all
-              fields that are not omitted, OR contain scrubbing information
-              (``scrub_src``). The field is of type VARCHAR and its length is
-              determined by the :ref:`hash_method <anon_config_hash_method>`
-              option.
+              name as set by the config's :ref:`source_hash_fieldname
+              <source_hash_fieldname>` variable, containing a hash of the
+              contents of the source record -- all fields that are not omitted,
+              OR contain scrubbing information (``scrub_src``). The field is of
+              type ``VARCHAR`` and its length is determined by the
+              :ref:`hash_method <anon_config_hash_method>` option.
 
             - This table is then capable of incremental updates.
 

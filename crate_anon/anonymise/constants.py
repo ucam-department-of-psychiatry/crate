@@ -216,6 +216,7 @@ class AnonymiseConfigKeys:
     EXTRACT_TEXT_WIDTH = "extract_text_width"
 
     # Anonymisation
+    ALLOW_NO_PATIENT_INFO = "allow_no_patient_info"
     ALLOWLIST_FILENAMES = "allowlist_filenames"
     ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY = "anonymise_codes_at_word_boundaries_only"  # noqa
     ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY = "anonymise_dates_at_word_boundaries_only"  # noqa
@@ -244,7 +245,6 @@ class AnonymiseConfigKeys:
     MASTER_RESEARCH_ID_FIELDNAME = "master_research_id_fieldname"
     ADD_MRID_WHEREVER_RID_ADDED = "add_mrid_wherever_rid_added"
     SOURCE_HASH_FIELDNAME = "source_hash_fieldname"
-    DDGEN_APPEND_SOURCE_INFO_TO_COMMENT = "ddgen_append_source_info_to_comment"
 
     # Destination database configuration
     MAX_ROWS_BEFORE_COMMIT = "max_rows_before_commit"
@@ -274,7 +274,7 @@ class AnonymiseDatabaseSafeConfigKeys:
     DDGEN_ADDITION_ONLY = "ddgen_addition_only"
     DDGEN_ADDITION_ONLY_TABLES = "ddgen_addition_only_tables"
     DDGEN_ALLOW_FULLTEXT_INDEXING = "ddgen_allow_fulltext_indexing"
-    DDGEN_ALLOW_NO_PATIENT_INFO = "ddgen_allow_no_patient_info"
+    DDGEN_APPEND_SOURCE_INFO_TO_COMMENT = "ddgen_append_source_info_to_comment"
     DDGEN_BINARY_TO_TEXT_FIELD_PAIRS = "ddgen_binary_to_text_field_pairs"
     DDGEN_CONSTANT_CONTENT = "ddgen_constant_content"
     DDGEN_CONSTANT_CONTENT_TABLES = "ddgen_constant_content_tables"
@@ -387,6 +387,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # Anonymisation
 # -----------------------------------------------------------------------------
 
+{_AK.ALLOW_NO_PATIENT_INFO} = False
 {_AK.REPLACE_PATIENT_INFO_WITH} = [__PPP__]
 {_AK.REPLACE_THIRD_PARTY_INFO_WITH} = [__TTT__]
 {_AK.REPLACE_NONSPECIFIC_INFO_WITH} = [~~~]
@@ -416,7 +417,6 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_AK.TRID_FIELDNAME} = trid
 {_AK.MASTER_RESEARCH_ID_FIELDNAME} = nhshash
 {_AK.SOURCE_HASH_FIELDNAME} = _src_hash
-{_AK.DDGEN_APPEND_SOURCE_INFO_TO_COMMENT} = True
 
 # -----------------------------------------------------------------------------
 # Destination database configuration
@@ -503,7 +503,6 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_SK.DDGEN_OMIT_BY_DEFAULT} = True
 {_SK.DDGEN_OMIT_FIELDS} =
 {_SK.DDGEN_INCLUDE_FIELDS} =
-{_SK.DDGEN_ALLOW_NO_PATIENT_INFO} = False
 {_SK.DDGEN_PER_TABLE_PID_FIELD} = patient_id
 {_SK.DDGEN_TABLE_DEFINES_PIDS} = patient
 {_SK.DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER} = False
@@ -570,6 +569,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_DK.URL} = mysql+mysqldb://username:password@127.0.0.1:3306/source2_databasename?charset=utf8
 
 {_SK.DDGEN_FORCE_LOWER_CASE} = False
+{_SK.DDGEN_APPEND_SOURCE_INFO_TO_COMMENT} = True
 {_SK.DDGEN_PER_TABLE_PID_FIELD} = patient_id
 {_SK.DDGEN_MASTER_PID_FIELDNAME} = nhsnum
 {_SK.DDGEN_TABLE_DENYLIST} =

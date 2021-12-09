@@ -604,6 +604,7 @@ CPFT_GENERIC_COL_AGE_YEARS = "AgeInYears"
 # unsure when the data was extracted; see stored procedure load_S1_Patient.
 CPFT_GENERIC_COL_PATIENT_NAME = "PatientName"
 CPFT_GENERIC_COL_NHSNUM_MOTHER = "CYPHS_NHSNumber_Mother"
+CPFT_GENERIC_COL_POSTCODE = "PostCode"
 
 S1_TO_CPFT_COLUMN_TRANSLATION = {
     # Where CPFT has renamed a column.
@@ -700,6 +701,7 @@ S1_COLS_GENERIC_EXCLUDE = (
     S1_REL_COL_ADDRESS_EMAIL,
 
     CPFT_GENERIC_COL_NHSNUM_MOTHER,
+    CPFT_GENERIC_COL_POSTCODE,
 
     S1_HOSPNUM_COL_HOSPNUM,  # just in case
 )
@@ -851,6 +853,11 @@ EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS = (
     # S1_Patient.IDPatient: Added by CPFT. Duplicate of RowIdentifier.
     # But likely to be used by researchers, so should be indexed.
     (S1_TAB_PATIENT, S1_GENERIC_COL_PID),
+)
+
+EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS = (
+    # Things that look like free text, but aren't.
+    ("AnsweredQuestionnaire", "QuestionnaireName"),
 )
 
 
@@ -1221,22 +1228,6 @@ def process_generic_table_column(tablename: str,
         ssi.add_src_flag(SrcFlag.MASTER_PID)
         ssi.include()
 
-    elif is_free_text(tablename, colname):
-        # Free text to be scrubbed.
-        ssi.add_alter_method(AlterMethod(config=cfg, scrub=True))
-        ssi.include()
-
-    elif is_in(colname, S1_COLS_GENERIC_OK_UNMODIFIED):
-        # Generic columns that are always OK (e.g. organization ID).
-        ssi.include()
-
-    elif is_in(colname, S1_COLS_GENERIC_EXCLUDE):
-        # Columns that are never OK in a generic table, and are duplicated
-        # direct identifiers (handled specially in the master patient ID table
-        # etc.).
-        ssi.omit()
-        # ... likely redundant but that's not obvious within this function
-
     elif eq(colname, CPFT_ALTERNATIVE_PATIENT_ID_1):
         # Some tables blend in old (e.g. RiO) or other (e.g. PCMIS) patient
         # IDs. These need to be scrubbed out. They might not always by SystmOne
@@ -1250,6 +1241,24 @@ def process_generic_table_column(tablename: str,
         # we can't hash this consistently (I don't think), or at least we
         # could, but it would likely be confusing since those patients are not
         # in the master index.
+
+    elif is_in(colname, S1_COLS_GENERIC_EXCLUDE):
+        # Columns that are never OK in a generic table, and are duplicated
+        # direct identifiers (handled specially in the master patient ID table
+        # etc.).
+        ssi.omit()
+        # ... likely redundant but that's not obvious within this function
+
+    elif is_in(colname, S1_COLS_GENERIC_OK_UNMODIFIED):
+        # Generic columns that are always OK (e.g. organization ID).
+        ssi.include()
+
+    elif (is_free_text(tablename, colname)
+            and not is_pair_in(tablename, colname,
+                               EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS)):
+        # Free text to be scrubbed.
+        ssi.add_alter_method(AlterMethod(config=cfg, scrub=True))
+        ssi.include()
 
     else:
         # Unrecognized.

@@ -1313,10 +1313,11 @@ class DataDictionaryRow(object):
 
         elif (not self.primary_pid
               and not self.master_pid
-              and is_sqlatype_text_of_length_at_least(
-                  src_sqla_coltype, dbconf.ddgen_min_length_for_scrubbing)
               and not self.matches_fielddef(
-                  dbconf.ddgen_safe_fields_exempt_from_scrubbing)):
+                    dbconf.ddgen_safe_fields_exempt_from_scrubbing)
+              and dbconf.ddgen_min_length_for_scrubbing >= 1
+              and is_sqlatype_text_of_length_at_least(
+                  src_sqla_coltype, dbconf.ddgen_min_length_for_scrubbing)):
             # Text field meeting the criteria to scrub
             self._alter_methods.append(AlterMethod(config=self.config,
                                                    scrub=True))

@@ -1144,22 +1144,30 @@ def process_table(sourcedbname: str,
     # If addhash or constant is true AND we are not omitting all rows, then
     # the non-omitted rows will include the source PK (by the data dictionary's
     # validation process).
-    ddrows = [ddr for ddr in ddrows
-              if (
-                  (not ddr.omit) or  # used for data
-                  (addhash and ddr.scrub_src) or  # used for hash
-                  ddr.inclusion_values or  # used for filter
-                  ddr.exclusion_values  # used for filter
-              )]
+    ddrows = [
+        ddr for ddr in ddrows
+        if (
+            (not ddr.omit)  # used for data
+            or (addhash and ddr.scrub_src)  # used for hash
+            or ddr.inclusion_values  # used for filter
+            or ddr.exclusion_values  # used for filter
+        )
+    ]
     # Exclude all text fields over a chosen length
     if free_text_limit is not None:
-        ddrows = [ddr for ddr in ddrows
-                  if (ddr.src_textlength is None) or
-                  (ddr.src_textlength <= free_text_limit)]
+        ddrows = [
+            ddr for ddr in ddrows
+            if (
+               ddr.src_textlength is None
+               or ddr.src_textlength <= free_text_limit
+            )
+        ]
     # Exclude all scrubbed fields if requested
     if exclude_scrubbed_fields:
-        ddrows = [ddr for ddr in ddrows
-                  if (not ddr.src_is_textual) or (not ddr.being_scrubbed)]
+        ddrows = [
+            ddr for ddr in ddrows
+            if (not ddr.src_is_textual) or (not ddr.being_scrubbed)
+        ]
     if not ddrows:
         # No columns to process at all.
         return

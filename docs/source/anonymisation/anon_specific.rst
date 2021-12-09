@@ -72,6 +72,12 @@ use these lines in your :ref:`anonymiser config file <anon_config_file>`:
 .. code-block:: ini
 
     sqlatype_mpid = String(10)
+    #
+    # Within CPFT, we have some locally created columns with string versions of
+    # the primary SystmOne ID, and so forth, so we use:
+    #
+    # sqlatype_pid = String(100)
+    # sqlatype_mpid = String(100)
 
 For your source database, use these settings:
 

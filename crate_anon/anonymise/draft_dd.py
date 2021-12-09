@@ -114,7 +114,7 @@ def draft_dd(config: Config,
 
     dd = config.dd
 
-    dd.read_from_source_databases()
+    dd.draft_from_source_databases()
     # Will skip source columns that it knows about already (and thus generate
     # an incremental data dictionary if we had pre-loaded some).
 
