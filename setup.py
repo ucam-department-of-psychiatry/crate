@@ -86,7 +86,7 @@ INSTALL_REQUIRES = [
     "django-sslserver==0.22",  # SSL development server for Django
     "flake8==3.8.4",  # code checks
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
-    "flower==0.9.5",  # debug Celery; web server; only runs explicitly
+    "flower==1.0.0",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==20.0.4",  # UNIX only, though will install under Windows
     "kombu==5.2.2",  # AMQP library for Celery; requires VC++ under Windows
