@@ -32,16 +32,16 @@ Simple test client for the NLPRP interface.
 import argparse
 import logging
 import requests
-import sys
 from typing import Any, NoReturn
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from requests.auth import HTTPBasicAuth
 
+from crate_anon.version import require_minimum_python_version
 from crate_anon.nlprp.api import NlprpRequest, NlprpResponse
 from crate_anon.nlprp.constants import NlprpCommands
 
-assert sys.version_info >= (3, 6), "Need Python 3.6+"
+require_minimum_python_version()
 
 log = logging.getLogger(__name__)
 

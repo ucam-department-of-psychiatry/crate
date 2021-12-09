@@ -51,9 +51,13 @@ import urllib.request
 
 import distro
 
-assert sys.version_info >= (3, 6), "Need Python 3.6+"
+from crate_anon.version import require_minimum_python_version
+
+
+require_minimum_python_version()
 if not platform.system() == 'Linux':
     raise AssertionError("Need Linux")
+
 
 # =============================================================================
 # What version do we have/need?

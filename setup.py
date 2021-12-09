@@ -43,11 +43,10 @@ from setuptools import find_packages, setup
 from codecs import open
 import os
 import platform
-import sys
 
-from crate_anon.version import CRATE_VERSION
+from crate_anon.version import CRATE_VERSION, require_minimum_python_version
 
-assert sys.version_info >= (3, 7), "Need Python 3.7+"
+require_minimum_python_version()
 
 
 # =============================================================================

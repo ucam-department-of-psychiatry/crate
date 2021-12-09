@@ -37,7 +37,7 @@ import sys
 from typing import List
 
 
-assert sys.version_info >= (3, 6), "Need Python 3.6+"
+assert sys.version_info >= (3, 7), "Need Python 3.7+"
 
 LINUX = platform.system() == 'Linux'
 # LINUX_DIST = platform.linux_distribution()[0].lower()

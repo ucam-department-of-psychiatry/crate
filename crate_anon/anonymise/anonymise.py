@@ -52,6 +52,7 @@ from sqlalchemy.sql import column, func, or_, select, table, text
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
     AnonymiseConfigKeys,
+    AnonymiseDatabaseSafeConfigKeys,
     BIGSEP,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
@@ -782,7 +783,8 @@ def gen_patient_ids(
         integer or string patient IDs (PIDs)
 
     - Assigns work to threads/processes, via the simple expedient of processing
-      only those patient ID numbers where ``patientnum % ntasks == tasknum``.
+      only those patient ID numbers where ``patientnum % ntasks == tasknum``
+      (for integers), or an equivalent method for string PIDs.
     """
 
     assert ntasks >= 1
@@ -969,10 +971,11 @@ def gen_rows(dbname: str,
             if not config.warned_re_limits[db_table_tuple]:
                 log.warning(
                     f"Table {dbname}.{sourcetable}: not fetching more than "
-                    f"{debuglimit} rows (in total for this process) "
-                    f"due to debugging limits")
+                    f"{debuglimit} rows (in total for this process) due to "
+                    f"{AnonymiseDatabaseSafeConfigKeys.DEBUG_ROW_LIMIT}")
                 config.warned_re_limits[db_table_tuple] = True
-            result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
+            result.close()
+            # http://docs.sqlalchemy.org/en/latest/core/connections.html
             return
         config.notify_src_bytes_read(sys.getsizeof(row))  # ... approximate!
         yield list(row)
