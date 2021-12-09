@@ -71,4 +71,3 @@ jobs:
               run: |
                 cd ${GITHUB_WORKSPACE}/docker/dockerfiles
                 docker compose logs
-                docker compose run --rm crate_workers /bin/bash -c "curl --retry 10 --retry-connrefused http://localhost:8000/"
