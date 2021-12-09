@@ -339,7 +339,6 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 from cardinal_pythonlib.dicts import reversedict
 from cardinal_pythonlib.enumlike import CaseInsensitiveEnumMeta
 from cardinal_pythonlib.sqlalchemy.schema import is_sqlatype_string
-from sqlalchemy.sql.sqltypes import TypeEngine
 
 from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.constants import (
@@ -1561,17 +1560,17 @@ def get_scrub_alter_details(
 
 def get_index_flag(tablename: str,
                    colname: str,
-                   sqla_coltype: TypeEngine) -> Optional[IndexType]:
+                   ddr: DataDictionaryRow) -> Optional[IndexType]:
     """
     Should this be indexed? Returns an indexing flag, or ``None`` if it should
     not be indexed.
     """
-    if is_free_text(tablename, colname, sqla_coltype):
+    if is_free_text(tablename, colname, ddr):
         return IndexType.FULLTEXT
     elif (is_master_patient_table(tablename)
             and (is_pid(colname) or is_mpid(colname))):
         return IndexType.UNIQUE
-    elif is_pid(colname) or is_pk(colname, sqla_coltype):
+    elif is_pid(colname) or is_pk(colname, ddr):
         return IndexType.NORMAL
     elif is_pair_in(tablename, colname,
                     EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS):
@@ -1653,7 +1652,7 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
         # Destination -- automatic
 
         # Indexing
-        ddr.index = get_index_flag(tablename, colname, ddr.src_sqla_coltype)
+        ddr.index = get_index_flag(tablename, colname, ddr)
         if SrcFlag.ADD_SRC_HASH.value in ssi.src_flags:
             ddr.index = IndexType.UNIQUE
 
