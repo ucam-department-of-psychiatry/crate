@@ -753,8 +753,7 @@ class DataDictionary(object):
             self.check_against_source_db()
 
         log.debug("Checking DD: global patient-defining fields...")
-        n_definers = sum([1 if x.defines_primary_pids else 0
-                          for x in self.rows])
+        n_definers = self.n_definers
         if n_definers == 0:
             if self.config.allow_no_patient_info:
                 log.warning("NO PATIENT-DEFINING FIELD! DATABASE(S) WILL "
@@ -857,6 +856,14 @@ class DataDictionary(object):
     # -------------------------------------------------------------------------
     # Global DD queries
     # -------------------------------------------------------------------------
+
+    @property
+    def n_definers(self) -> int:
+        """
+        The number of patient-defining columns.
+        """
+        return sum([1 if x.defines_primary_pids else 0
+                    for x in self.rows])
 
     @lru_cache(maxsize=None)
     def get_source_databases(self) -> AbstractSet[str]:
