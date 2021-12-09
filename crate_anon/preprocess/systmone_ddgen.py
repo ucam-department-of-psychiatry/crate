@@ -470,17 +470,22 @@ OMIT_TABLES = (
     # CPFT extras:
     "gr_workings",  # no idea
 )
+INCLUDE_TABLES_REGEX = (
+    # Include even if --systmone_allow_unprefixed_tables is not used.
+    "vw",  # views
+)
 OMIT_TABLES_REGEX = (
     # CPFT extras:
 
+    # S1_Inpatients, S1_Inpatients_20201020: current inpatients -- but these
+    # tables have NHSNumber as FLOAT. Exclude them:
     "Inpatients",
-    # ... S1_Inpatients, S1_Inpatients_20201020: current inpatients -- but
-    # these tables have NHSNumber as FLOAT.
 
     # I considered excluding "vw.*" (views) and "zzz.*" (scratch tables) here,
     # but the user has the option to exclude all such tables via
-    # --systmone_allow_unprefixed_tables if they desire. Views may be useful.
-    # However, "zzz" tables in CPFT are scratch tables that should not be used:
+    # --systmone_allow_unprefixed_tables if they desire. Views may be useful;
+    # see also INCLUDE_TABLES_REGEX above. However, "zzz" tables in CPFT are
+    # scratch tables that should not be used:
     "zzz.*",
 
     # Some have suffixes e.g. "S1_ReferralsIn_20200917", i.e. end with an
@@ -602,8 +607,6 @@ S1_HOSPNUM_COL_HOSPNUM = "HospitalNumber"
 S1_HOSPNUM_COL_COMMENTS = "Comments"
 
 # Other column names used by CPFT
-CPFT_ALTERNATIVE_PATIENT_ID_1 = "ClientID"
-CPFT_ALTERNATIVE_PATIENT_ID_2 = "PatientID"  # e.g. S1_eDSM (a CPFT table)
 CPFT_REL_MOTHER_COL_NHSNUM = S1_PATIENT_COL_NHSNUM
 CPFT_PATIENT_COL_MIDDLE_NAMES = "GivenName2"
 CPFT_PATIENT_COL_DOB = "DOB"
@@ -628,8 +631,9 @@ S1_TO_CPFT_COLUMN_TRANSLATION = {
 
 PID_SYNONYMS = (
     S1_GENERIC_COL_PID,
-    CPFT_ALTERNATIVE_PATIENT_ID_1,
-    CPFT_ALTERNATIVE_PATIENT_ID_2,
+    "ClientID",  # seen in CPFT
+    "PatientID",  # e.g. in CPFT: S1_eDSM (a CPFT table)
+    "PatID",  # e.g. in CPFT: ASCRIBE_Statin
 )
 MPID_SYNONYMS = (
     S1_PATIENT_COL_NHSNUM,
@@ -988,11 +992,14 @@ def core_tablename(tablename: str,
     """
     prefix = tablename_prefix(from_context)
     if not tablename.startswith(prefix):
-        warn_once(f"Unrecognized table name style: {tablename}")
-        if allow_unprefixed:
+        if is_in_re(tablename, INCLUDE_TABLES_REGEX):
             return tablename
         else:
-            return ""
+            warn_once(f"Unrecognized table name style: {tablename}")
+            if allow_unprefixed:
+                return tablename
+            else:
+                return ""
     rest = tablename[len(prefix):]
     if not rest:
         raise ValueError(f"Table name {tablename!r} only contains its prefix")
@@ -1194,6 +1201,10 @@ def is_pid(colname: str) -> bool:
 
     This works for all tables EXCEPT the main "Patient" table, where the PK
     takes its place.
+
+    Occasionally, CPFT tables blend SystmOne patients with other patients using
+    IDs from other EHR systems. However, those patients won't be in our master
+    patient index, so their data won't be brought through.
     """
     return is_in(colname, PID_SYNONYMS)
 
@@ -1261,20 +1272,6 @@ def process_generic_table_column(tablename: str,
         # An NHS number in a random table. OK, as long as we hash it.
         ssi.add_src_flag(SrcFlag.MASTER_PID)
         ssi.include()
-
-    elif eq(colname, CPFT_ALTERNATIVE_PATIENT_ID_1):
-        # Some tables blend in old (e.g. RiO) or other (e.g. PCMIS) patient
-        # IDs. These need to be scrubbed out. They might not always by SystmOne
-        # PIDs, but there isn't a significant risk of hashing another type of
-        # ID (it just won't link to much else, usually).
-        ssi.add_src_flag(SrcFlag.PRIMARY_PID)
-        ssi.scrub_src = ScrubSrc.PATIENT
-        ssi.scrub_method = ScrubMethod.CODE
-        ssi.omit()
-        # ... if there's not also an NHS number, this will be unhelpful, but
-        # we can't hash this consistently (I don't think), or at least we
-        # could, but it would likely be confusing since those patients are not
-        # in the master index.
 
     elif is_in(colname, S1_COLS_GENERIC_EXCLUDE):
         # Columns that are never OK in a generic table, and are duplicated
@@ -1611,6 +1608,7 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
         allow_unprefixed_tables:
             Permit tables that don't start with the expected contextual prefix?
             Discouraged; you may get odd tables and views.
+            A few (see INCLUDE_TABLES_REGEX) are explicitly included anyway.
     """
     tablename = core_tablename(ddr.src_table,
                                from_context=context,
