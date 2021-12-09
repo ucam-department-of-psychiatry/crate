@@ -74,8 +74,29 @@ is then helpful:
     CREATE VIEW vwS1_PatientAddressWithResearchGeography
     AS (
         SELECT
-            -- Original columns:
-            A.*,
+            -- Original columns that are not identifying:
+
+            -- ... PK and patient ID:
+            A.RowIdentifier,
+            A.IDPatient,
+
+            -- ... Admin fields:
+            A.DateEvent,
+            A.DateEventRecorded,
+            -- [not in CPFT version] A.IDDoneBy,
+            -- [not in CPFT version] A.IDEvent,
+            -- [not in CPFT version] A.IDOrganisation,
+            -- [not in CPFT version] A.IDOrganisationDoneAt,
+            -- [not in CPFT version] A.IDOrganisationRegisteredAt,
+            -- [not in CPFT version] A.IDOrganisationVisibleTo,
+            -- [not in CPFT version] A.IDProfileEnteredBy,
+            -- [not in CPFT version] A.TextualEventDoneBy,
+
+            -- ... Non-identifying information about the address:
+            A.AddressType,
+            A.CcgOfResidence,
+            A.DateTo,
+
             -- Geography columns (with nothing too specific):
             P.bua11,
             P.buasd11,
@@ -95,6 +116,7 @@ is then helpful:
             P.ru11ind,
             P.statsward,
             P.ur01ind
+
         FROM
             S1_PatientAddress AS A
             INNER JOIN onspd.dbo.postcode AS P
