@@ -134,6 +134,8 @@ def main():
             join(ANON_DIR, "_crate_anon_draft_dd.txt"))
     run_cmd(["crate_anon_show_counts", "--help"],
             join(ANON_DIR, "_crate_anon_show_counts_help.txt"))
+    run_cmd(["crate_anon_summarize_dd", "--help"],
+            join(ANON_DIR, "_crate_anon_summarize_dd_help.txt"))
     run_cmd(["crate_anonymise", "--help"],
             join(ANON_DIR, "_crate_anonymise_help.txt"))
     run_cmd(["crate_anonymise", "--democonfig"],

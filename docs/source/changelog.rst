@@ -1433,6 +1433,8 @@ Changes
   scrubbing entirely (helpful for the SystmOne automatic data dictionary
   generation).
 
+- ``crate_anon_summarize_dd`` tool.
+
 
 ===============================================================================
 

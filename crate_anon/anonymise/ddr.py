@@ -259,11 +259,34 @@ class DataDictionaryRow(object):
         return self._master_pid
 
     @property
+    def contains_patient_scrub_src_info(self) -> bool:
+        """
+        Does this field contain scrub-source information about the patient?
+        """
+        return self.scrub_src == ScrubSrc.PATIENT
+
+    @property
+    def contains_third_party_info_directly(self) -> bool:
+        """
+        Does this field contain (identifiable) information about a third party,
+        directly?
+        """
+        return self.scrub_src == ScrubSrc.THIRDPARTY
+
+    @property
     def third_party_pid(self) -> bool:
         """
         Does this field contain the PID of a different (e.g. related) patient?
         """
         return self.scrub_src == ScrubSrc.THIRDPARTY_XREF_PID
+
+    @property
+    def contains_third_party_info(self) -> bool:
+        """
+        Does this field contain (identifiable) information about a third party,
+        either directly or via a third-party PID?
+        """
+        return self.third_party_pid or self.contains_third_party_info_directly
 
     @property
     def constant(self) -> bool:
@@ -562,20 +585,6 @@ class DataDictionaryRow(object):
         )
         return f"{self.src_signature}{offenderdest}"
 
-    def get_tsv(self) -> str:
-        """
-        Return a TSV row for writing.
-        """
-        values = []  # type: List[str]
-        for x in DataDictionaryRow.ROWNAMES:
-            v = getattr(self, x)
-            if v is None:
-                v = ""
-            else:
-                v = str(v)
-            values.append(v)
-        return "\t".join(values)
-
     @classmethod
     def header_row(cls) -> List[str]:
         """
@@ -666,8 +675,9 @@ class DataDictionaryRow(object):
     def being_scrubbed(self) -> bool:
         """
         Is the field being scrubbed as it passes from source to destination?
+        (Only true if the field is being included, not omitted.)
         """
-        return any(am.scrub for am in self._alter_methods)
+        return not self.omit and any(am.scrub for am in self._alter_methods)
 
     @property
     def contains_patient_info(self) -> bool:

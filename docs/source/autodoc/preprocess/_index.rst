@@ -41,3 +41,4 @@ crate_anon/preprocess
     rio_view_func.py.rst
     rio_views.py.rst
     systmone_ddgen.py.rst
+    tests/systmone_ddgen_tests.py.rst

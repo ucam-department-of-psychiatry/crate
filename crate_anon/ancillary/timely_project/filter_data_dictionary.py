@@ -227,7 +227,7 @@ def filter_dd(filter_info: TimelyDDFilter,
     dd.remove_rows_by_modifying_filter(keep_modify_row)
     log.info(f"... ending with {dd.n_rows} rows.")
     log.info(f"Writing data dictionary: {output_filename}")
-    dd.write_tsv(output_filename)
+    dd.write(output_filename)
 
 
 # =============================================================================

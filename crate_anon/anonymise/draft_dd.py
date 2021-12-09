@@ -134,7 +134,6 @@ def draft_dd(config: Config,
         dd.make_dest_datatypes_explicit()
     dd.check_valid(check_against_source_db=not skip_dd_check)
     dd.write(dd_output_filename)
-    return
 
 
 # =============================================================================

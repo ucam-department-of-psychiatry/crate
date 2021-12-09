@@ -36,28 +36,22 @@ rather than a database table.
 # =============================================================================
 
 from collections import Counter, OrderedDict
-import csv
 from dataclasses import dataclass
 from functools import lru_cache
 from itertools import zip_longest
 import logging
 import operator
-import os
 from typing import (
-    AbstractSet, Any, Callable, Dict, Iterable, List, Optional,
-    TextIO, Tuple, TYPE_CHECKING, Union
+    AbstractSet, Any, Callable, Dict, List, Optional,
+    Tuple, TYPE_CHECKING, Union
 )
 
-from cardinal_pythonlib.file_io import smart_open
 from cardinal_pythonlib.sql.validation import is_sqltype_integer
 from cardinal_pythonlib.sqlalchemy.schema import (
     is_sqlatype_integer,
     is_sqlatype_string,
     is_sqlatype_text_over_one_char,
 )
-import openpyxl
-import pyexcel_ods
-import pyexcel_xlsx
 from sortedcontainers import SortedSet
 import sqlalchemy.exc
 from sqlalchemy import Column, Table, DateTime
@@ -76,6 +70,11 @@ from crate_anon.anonymise.constants import (
 )
 from crate_anon.anonymise.ddr import DataDictionaryRow
 from crate_anon.anonymise.scrub import PersonalizedScrubber
+from crate_anon.common.spreadsheet import (
+    gen_rows_from_spreadsheet,
+    SINGLE_SPREADSHEET_TYPE,
+    write_spreadsheet,
+)
 
 if TYPE_CHECKING:
     from crate_anon.anonymise.config import Config
@@ -86,10 +85,6 @@ log = logging.getLogger(__name__)
 # =============================================================================
 # Constants
 # =============================================================================
-
-EXT_TSV = ".tsv"
-EXT_ODS = ".ods"
-EXT_XLSX = ".xlsx"
 
 STRING_LENGTH_FOR_BIGINT = len(str(-2 ** 63))
 # = -2^63: https://dev.mysql.com/doc/refman/8.0/en/integer-types.html
@@ -108,6 +103,25 @@ class ScrubSourceFieldInfo:
     scrub_method: ScrubMethod
     signature: str
     value_fieldname: str
+
+
+@dataclass
+class DDTableSummary:
+    # Which table?
+    src_db: str
+    src_table: str
+
+    # Source information
+    has_defining_pid: bool
+    has_pid: bool
+    has_mpid: bool
+    has_patient_scrub_src_info: bool
+    has_third_party_scrub_src_info: bool
+
+    # Destination information
+    dest_table: str
+    dest_has_rows: bool
+    dest_being_scrubbed: bool
 
 
 # =============================================================================
@@ -239,79 +253,13 @@ class DataDictionary(object):
                 source database's own dialect is used.
         """
         log.debug(f"Loading data dictionary: {filename}")
-        _, ext = os.path.splitext(filename)
-        if ext == EXT_TSV:
-            row_gen = self._gen_rows_from_tsv(filename)
-        elif ext == EXT_ODS:
-            row_gen = self._gen_rows_from_ods(filename)
-        elif ext == EXT_XLSX:
-            row_gen = self._gen_rows_from_xlsx(filename)
-        else:
-            raise ValueError(f"Unknown data dictionary extension: {ext!r}")
+        row_gen = gen_rows_from_spreadsheet(filename)
         self._read_from_rows(row_gen,
                              check_valid=check_valid,
                              override_dialect=override_dialect)
 
-    @staticmethod
-    def _skip_row(row: List[Any]) -> bool:
-        """
-        Should we skip a row, because it's empty or starts with a comment?
-        """
-        if not row:
-            return True
-        first = row[0]
-        if isinstance(first, str) and first.strip().startswith("#"):
-            return True
-        return not any(v for v in row)
-
-    @classmethod
-    def _gen_rows_from_tsv(cls, filename: str) -> Iterable[List[Any]]:
-        """
-        Generates rows from a TSV file.
-        """
-        log.debug(f"Loading as TSV: {filename}")
-        with open(filename, 'r') as tsvfile:
-            tsv = csv.reader(tsvfile, delimiter='\t')
-            for row in tsv:
-                if cls._skip_row(row):
-                    continue
-                yield row
-
-    @classmethod
-    def _gen_rows_from_xlsx(cls, filename: str) -> Iterable[List[Any]]:
-        """
-        Generates rows from an XLSX file, reading the first sheet.
-        """
-        log.debug(f"Loading as XLSX: {filename}")
-        workbook = openpyxl.load_workbook(filename)
-        # ... NB potential bug using read_only; see postcodes.py
-        worksheet = workbook.active  # first sheet, by default
-        for sheet_row in worksheet.iter_rows():
-            row = [
-                "" if cell.value is None else cell.value
-                for cell in sheet_row
-            ]
-            if cls._skip_row(row):
-                continue
-            yield row
-
-    @classmethod
-    def _gen_rows_from_ods(cls, filename: str) -> Iterable[List[Any]]:
-        """
-        Generates rows from an ODS file, reading the first sheet.
-        """
-        log.debug(f"Loading as ODS: {filename}")
-        data = pyexcel_ods.get_data(filename)  # type: Dict[str, List[List[Any]]]  # noqa
-        # ... but it's an ordered dictionary, so:
-        first_key = next(iter(data))
-        first_sheet_rows = data[first_key]
-        for row in first_sheet_rows:
-            if cls._skip_row(row):
-                continue
-            yield row
-
     def _read_from_rows(self,
-                        rows: Iterable[List[Any]],
+                        rows: SINGLE_SPREADSHEET_TYPE,
                         check_valid: bool = True,
                         override_dialect: Dialect = None) -> None:
         """
@@ -582,8 +530,7 @@ class DataDictionary(object):
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # If PID field is required, is it present?
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                needs_pidfield = any(r.being_scrubbed and not r.omit
-                                     for r in rows)
+                needs_pidfield = any(r.being_scrubbed for r in rows)
                 # Before 2021-12-07, we used to check r.master_pid, too.
                 # However, if nothing is being scrubbed, then the lack of a
                 # link via primary PID is a researcher inconvenience, not an
@@ -787,42 +734,9 @@ class DataDictionary(object):
                 File type as one of ``.ods``, ``.tsv``, or ``.xlsx``;
                 alternatively, use ``None`` to autodetect from the filename.
         """
-        if filename == "-":
-            with smart_open(filename, "wt") as f:  # type: TextIO
-                self.write_tsv_file(f)
-            return
-        ext = filetype or os.path.splitext(filename)[1]
-        if ext == EXT_TSV:
-            self.write_tsv(filename)
-        elif ext == EXT_ODS:
-            self.write_ods(filename)
-        elif ext == EXT_XLSX:
-            self.write_xlsx(filename)
-        else:
-            raise ValueError(f"Unknown data dictionary extension: {ext!r}")
-
-    def get_tsv(self) -> str:
-        """
-        Return the DD in TSV format.
-        """
-        return "\n".join(
-            ["\t".join(DataDictionaryRow.ROWNAMES)] +
-            [r.get_tsv() for r in self.rows]
-        )
-
-    def write_tsv_file(self, file: TextIO) -> None:
-        """
-        Writes the dictionary to a TSV file.
-        """
-        file.write(self.get_tsv())
-
-    def write_tsv(self, filename: str) -> None:
-        """
-        Writes the dictionary to a TSV file.
-        """
-        log.info(f"Saving data dictionary as TSV: {filename}")
-        with open(filename, "wt") as f:
-            self.write_tsv_file(f)
+        log.info("Saving data dictionary...")
+        data = self._as_dict()
+        write_spreadsheet(filename, data, filetype=filetype)
 
     def _as_dict(self) -> Dict[str, Any]:
         """
@@ -838,20 +752,6 @@ class DataDictionary(object):
         data = OrderedDict()
         data[sheetname] = rows
         return data
-
-    def write_ods(self, filename: str) -> None:
-        """
-        Writes the dictionary to an OpenOffice spreadsheet (ODS) file.
-        """
-        log.info(f"Saving data dictionary as ODS: {filename}")
-        pyexcel_ods.save_data(filename, self._as_dict())
-
-    def write_xlsx(self, filename: str) -> None:
-        """
-        Writes the dictionary to an Excel (XLSX) file.
-        """
-        log.info(f"Saving data dictionary as XLSX: {filename}")
-        pyexcel_xlsx.save_data(filename, self._as_dict())
 
     # -------------------------------------------------------------------------
     # Global DD queries
@@ -1034,6 +934,61 @@ class DataDictionary(object):
         """
         return set([ddr.src_signature for ddr in self.rows
                     if ddr.required_scrubber])
+
+    def get_summary_info_by_table(self) -> List[DDTableSummary]:
+        """
+        Returns summary information by table.
+        """
+        infolist = []  # type: List[DDTableSummary]
+        for src_db, src_table in self.get_src_db_tablepairs():
+            rows = self.get_rows_for_src_table(src_db, src_table)
+
+            # Source
+            has_defining_pid = False
+            has_mpid = False
+            has_patient_scrub_src_info = False
+            has_pid = False
+            has_third_party_scrub_src_info = False
+            # Destination
+            dest_table = None  # type: Optional[str]
+            dest_has_rows = False
+            dest_being_scrubbed = False
+
+            for ddr in rows:
+                # Source
+                has_defining_pid = has_defining_pid or ddr.defines_primary_pids
+                has_patient_scrub_src_info = (
+                    has_patient_scrub_src_info
+                    or ddr.contains_patient_scrub_src_info
+                )
+                has_pid = has_pid or ddr.primary_pid
+                has_mpid = has_mpid or ddr.master_pid
+                has_third_party_scrub_src_info = (
+                    has_third_party_scrub_src_info
+                    or ddr.contains_third_party_info
+                )
+                # Destination
+                dest_table = dest_table or ddr.dest_table
+                dest_being_scrubbed = dest_being_scrubbed or ddr.being_scrubbed
+                dest_has_rows = dest_has_rows or not ddr.omit
+
+            info = DDTableSummary(
+                # Which table?
+                src_db=src_db,
+                src_table=src_table,
+                # Source info
+                has_defining_pid=has_defining_pid,
+                has_mpid=has_mpid,
+                has_pid=has_pid,
+                has_patient_scrub_src_info=has_patient_scrub_src_info,
+                has_third_party_scrub_src_info=has_third_party_scrub_src_info,
+                # Destination info
+                dest_table=dest_table,
+                dest_being_scrubbed=dest_being_scrubbed,
+                dest_has_rows=dest_has_rows,
+            )
+            infolist.append(info)
+        return infolist
 
     # -------------------------------------------------------------------------
     # Queries by source DB

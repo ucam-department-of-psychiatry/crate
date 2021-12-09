@@ -95,3 +95,15 @@ might want. See :ref:`third-party text extractors
 
 ..  literalinclude:: _crate_anon_check_text_extractor.txt
     :language: none
+
+
+.. _crate_anon_summarize_dd:
+
+crate_anon_summarize_dd
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This ancillary tool reads your data dictionary and summarizes facts about
+each table.
+
+..  literalinclude:: _crate_anon_summarize_dd_help.txt
+    :language: none
