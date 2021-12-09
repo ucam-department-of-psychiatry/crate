@@ -342,7 +342,6 @@ from cardinal_pythonlib.sqlalchemy.schema import is_sqlatype_string
 from sqlalchemy.sql.sqltypes import TypeEngine
 
 from crate_anon.anonymise.altermethod import AlterMethod
-from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.constants import (
     Decision,
     IndexType,
@@ -1223,27 +1222,27 @@ def is_mpid(colname: str) -> bool:
     return is_in(colname, MPID_SYNONYMS)
 
 
-def is_pk(colname: str, sqla_coltype: TypeEngine) -> bool:
+def is_pk(colname: str, ddr: DataDictionaryRow) -> bool:
     """
     Is this a primary key (PK) column within its table?
     """
-    if sqla_coltype.nullable:
+    if ddr.src_reflected_nullable:
         return False  # can't be a PK if it can be NULL
-    if sqla_coltype.primary_key:
+    if ddr.src_reflected_primary_key:
         return True
     return eq(colname, S1_GENERIC_COL_PK)
 
 
 def is_free_text(tablename: str,
                  colname: str,
-                 sqla_coltype: TypeEngine) -> bool:
+                 ddr: DataDictionaryRow) -> bool:
     """
     Is this a free-text field requiring scrubbing?
 
     Unusually, there is not very much free text, and it is mostly collated.
     (We haven't added binary support yet. Do we have the binary documents?)
     """
-    if not is_sqlatype_string(sqla_coltype):
+    if not is_sqlatype_string(ddr.src_sqla_coltype):
         # Not a textual type
         return False
     return is_pair_in_re(tablename, colname,
@@ -1256,9 +1255,8 @@ def is_free_text(tablename: str,
 
 def process_generic_table_column(tablename: str,
                                  colname: str,
-                                 sqla_coltype: TypeEngine,
-                                 ssi: ScrubSrcAlterMethodInfo,
-                                 cfg: Config) -> bool:
+                                 ddr: DataDictionaryRow,
+                                 ssi: ScrubSrcAlterMethodInfo) -> bool:
     """
     Performs operations applicable to columns any SystmOne table, except a few
     very special ones like Patient. Modifies ssi in place.
@@ -1268,7 +1266,7 @@ def process_generic_table_column(tablename: str,
     # ---------------------------------------------------------------------
     # Generic table
     # ---------------------------------------------------------------------
-    if is_pk(colname, sqla_coltype):
+    if is_pk(colname, ddr):
         # PK for all tables.
         ssi.add_src_flag(SrcFlag.PK)
         ssi.add_src_flag(SrcFlag.ADD_SRC_HASH)
@@ -1295,11 +1293,11 @@ def process_generic_table_column(tablename: str,
         # Generic columns that are always OK (e.g. organization ID).
         ssi.include()
 
-    elif (is_free_text(tablename, colname, sqla_coltype)
+    elif (is_free_text(tablename, colname, ddr)
             and not is_pair_in(tablename, colname,
                                EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS)):
         # Free text to be scrubbed.
-        ssi.add_alter_method(AlterMethod(config=cfg, scrub=True))
+        ssi.add_alter_method(AlterMethod(config=ddr.config, scrub=True))
         ssi.include()
 
     else:
@@ -1312,8 +1310,7 @@ def process_generic_table_column(tablename: str,
 def get_scrub_alter_details(
         tablename: str,
         colname: str,
-        sqla_coltype: TypeEngine,
-        cfg: Config,
+        ddr: DataDictionaryRow,
         include_generic: bool = False) -> ScrubSrcAlterMethodInfo:
     """
     The main "thinking" function.
@@ -1327,10 +1324,8 @@ def get_scrub_alter_details(
             "Patient", not "SRPatient" or "S1_Patient").
         colname:
             The database column name.
-        sqla_coltype:
-            The SQLALchemy column type of the source column.
-        cfg:
-            A :class:`crate_anon.anonymise.config.Config` object.
+        ddr:
+            Data dictionary row.
         include_generic:
             Include all fields that are not known about by this code and
             treated specially? If False, the config file settings are used
@@ -1382,7 +1377,8 @@ def get_scrub_alter_details(
             # Truncate and scrub dates of birth.
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.DATE
-            ssi.add_alter_method(AlterMethod(config=cfg, truncate_date=True))
+            ssi.add_alter_method(AlterMethod(config=ddr.config,
+                                             truncate_date=True))
             ssi.include()
 
         elif eq(colname, S1_PATIENT_COL_DOD):
@@ -1425,9 +1421,8 @@ def get_scrub_alter_details(
     handled = process_generic_table_column(
         tablename=tablename,
         colname=colname,
-        sqla_coltype=sqla_coltype,
+        ddr=ddr,
         ssi=ssi,
-        cfg=cfg
     )
     if handled:
         # Recognized and handled as a generic column.
@@ -1639,8 +1634,7 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
     ssi = get_scrub_alter_details(
         tablename=tablename,
         colname=colname,
-        sqla_coltype=ddr.src_sqla_coltype,
-        cfg=ddr.config,
+        ddr=ddr,
         include_generic=include_generic
     )
 

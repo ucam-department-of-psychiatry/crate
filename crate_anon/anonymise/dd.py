@@ -391,6 +391,9 @@ class DataDictionary(object):
                     if report_every and i % report_every == 0:
                         log.debug(f"... reading source field number {i}")
                     columnname = c.name
+                    # Do not manipulate the case of SOURCE tables/columns.
+                    # If you do, they can fail to match the SQLAlchemy
+                    # introspection and cause a crash.
                     # import pdb; pdb.set_trace()
                     # log.critical(f"str(coltype) == {str(c.type)}")
                     # log.critical(f"repr(coltype) == {repr(c.type)}")
@@ -400,10 +403,9 @@ class DataDictionary(object):
                         log.critical(f"Column that failed was: {c!r}")
                         raise
                     sqla_coltype = c.type
-                    # Do not manipulate the case of SOURCE tables/columns.
-                    # If you do, they can fail to match the SQLAlchemy
-                    # introspection and cause a crash.
-                    # Changed to be a destination manipulation (2016-06-04).
+                    nullable = c.nullable
+                    primary_key = c.primary_key
+                    Column
                     if cfg.is_field_denied(columnname):
                         log.debug(f"Skipping denied column: "
                                   f"{tablename}.{columnname}")
@@ -417,7 +419,10 @@ class DataDictionary(object):
                         datatype_sqltext,
                         sqla_coltype,
                         dbconf=cfg,
-                        comment=comment)
+                        comment=comment,
+                        nullable=nullable,
+                        primary_key=primary_key,
+                    )
 
                     # ---------------------------------------------------------
                     # If we have this one already, skip ASAP

@@ -155,6 +155,8 @@ class DataDictionaryRow(object):
         self.src_textlength = None  # type: Optional[int]
 
         self._src_sqla_coltype = None  # type: Optional[str]
+        self._src_reflected_nullable = True
+        self._src_reflected_primary_key = False
 
         self.scrub_src = None  # type: Optional[str]
         self.scrub_method = None  # type: Optional[str]
@@ -222,6 +224,22 @@ class DataDictionaryRow(object):
         primary key (PK)?
         """
         return self._pk
+
+    @property
+    def src_reflected_nullable(self) -> bool:
+        """
+        Defaults to True. But if the DD row was created by database reflection,
+        and the source field was set NOT NULL, will return True.
+        """
+        return self._src_reflected_nullable
+
+    @property
+    def src_reflected_primary_key(self) -> bool:
+        """
+        Defaults to True. But if the DD row was created by database reflection,
+        and the source field was marked as a PRIMARY KEY, will return True.
+        """
+        return self._src_reflected_primary_key
 
     @property
     def add_src_hash(self) -> bool:
@@ -1129,7 +1147,9 @@ class DataDictionaryRow(object):
                              src_datatype_sqltext: str,
                              src_sqla_coltype: TypeEngine,
                              dbconf: "DatabaseSafeConfig",
-                             comment: str = None) -> None:
+                             comment: str = None,
+                             nullable: bool = True,
+                             primary_key: bool = False) -> None:
         """
         Set up this DDR from a field in the source database, using options set
         in the config file. Used to draft a data dictionary. This is the
@@ -1151,12 +1171,19 @@ class DataDictionaryRow(object):
                 A :class:`crate_anon.anonymise.config.DatabaseSafeConfig`.
             comment:
                 Textual comment.
+            nullable:
+                Whether the source is can be NULL (True) or is NOT NULL
+                (False).
+            primary_key:
+                Whether the source is marked as a primary key.
         """
         self.src_db = src_db
         self.src_table = src_table
         self.src_field = src_field
         self.src_datatype = src_datatype_sqltext
         self._src_sqla_coltype = src_sqla_coltype
+        self._src_reflected_nullable = nullable
+        self._src_reflected_primary_key = primary_key
         self._pk = False
         self._add_src_hash = False
         self._primary_pid = False
