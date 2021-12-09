@@ -41,24 +41,15 @@ from crate_anon.common.spreadsheet import write_spreadsheet
 
 
 # =============================================================================
-# Constants
-# =============================================================================
-
-TEST_KEY = "hello"
-PATIENT_REPLACEMENT = "[XXX]"
-THIRD_PARTY_REPLACEMENT = "[YYY]"
-
-
-# =============================================================================
 # Unit tests
 # =============================================================================
 
 class SpreadsheetTests(TestCase):
     # noinspection PyMethodMayBeStatic
-    def test_write_none(self) -> None:
+    def test_write_values(self) -> None:
         """
-        Hashing an integer and its string equivalent should give the same
-        answer.
+        Test that all kinds of types of values can be written to all our
+        spreadsheet formats.
         """
         data = {
             "sheet_P": [
@@ -74,9 +65,12 @@ class SpreadsheetTests(TestCase):
         }
         with tempfile.TemporaryDirectory() as dirname:
             ods_filename = os.path.join(dirname, "test.ods")
-            tsv_filename = os.path.join(dirname, "test.tsv")
-            xlsx_filename = os.path.join(dirname, "test.tsv")
             write_spreadsheet(ods_filename, data)
+
+            tsv_filename = os.path.join(dirname, "test.tsv")
             write_spreadsheet(tsv_filename, data)
+
+            xlsx_filename = os.path.join(dirname, "test.tsv")
             write_spreadsheet(xlsx_filename, data)
+
         # ... the test is that nothing crashes.
