@@ -60,6 +60,47 @@ This contains structured data, but can contain free text too.
 The structure of the SRE is good from CRATE's perspective; it does not require
 reshaping for anonymisation.
 
+One additional view is helpful to add blurred geographical information. Our
+team creates a table ``S1_PatientAddress`` from the source table
+``SRPatientAddressHistory``, creating also the column ``PostCode_NoSpaces``.
+We use
+the :ref:`crate_postcodes <crate_postcodes>` tool to import UK Office for
+National Statistics geography data into a database named ``onspd``. This view
+is then helpful:
+
+.. code-block:: sql
+
+    USE SystmOne;  -- or whatever your identifiable SystmOne database is named
+    CREATE VIEW vwS1_PatientAddressWithResearchGeography
+    AS (
+        SELECT
+            -- Original columns:
+            A.*,
+            -- Geography columns (with nothing too specific):
+            P.bua11,
+            P.buasd11,
+            P.casward,
+            P.imd,
+            P.lea,
+            P.lsoa01,
+            P.lsoa11,
+            P.msoa01,
+            P.msoa11,
+            P.nuts,
+            P.oac01,
+            P.oac11,
+            P.parish,
+            P.pcon,
+            P.pct,
+            P.ru11ind,
+            P.statsward,
+            P.ur01ind
+        FROM
+            S1_PatientAddress AS A
+            INNER JOIN onspd.dbo.postcode AS P
+            ON P.pcd_nospace = A.PostCode_NoSpaces
+    )
+
 Use the :ref:`crate_anon_draft_dd <crate_anon_draft_dd>` tool to create a data
 dictionary from SystmOne_. CRATE knows something about the structure of a
 typical SystmOne database.

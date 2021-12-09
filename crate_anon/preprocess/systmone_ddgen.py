@@ -338,6 +338,8 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from cardinal_pythonlib.dicts import reversedict
 from cardinal_pythonlib.enumlike import CaseInsensitiveEnumMeta
+from cardinal_pythonlib.sqlalchemy.schema import is_sqlatype_string
+from sqlalchemy.sql.sqltypes import TypeEngine
 
 from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.config import Config
@@ -475,9 +477,16 @@ OMIT_TABLES_REGEX = (
     # ... S1_Inpatients, S1_Inpatients_20201020: current inpatients -- but
     # these tables have NHSNumber as FLOAT.
 
-    # ... we were doing "vw" (views) and "zzz" (scratch tables) but this should
-    # be handled by --systmone_allow_unprefixed_tables (and now is), so the
-    # user can decide.
+    # I considered excluding "vw.*" (views) and "zzz.*" (scratch tables) here,
+    # but the user has the option to exclude all such tables via
+    # --systmone_allow_unprefixed_tables if they desire. Views may be useful.
+    # However, "zzz" tables in CPFT are scratch tables that should not be used:
+    "zzz.*",
+
+    # Some have suffixes e.g. "S1_ReferralsIn_20200917", i.e. end with an
+    # underscore then 8 digits. These are temporary copies that we should not
+    # use:
+    r".*_\d{8}$"
 )
 CORE_TO_CONTEXT_TABLE_TRANSLATIONS = {
     # Key: destination context.
@@ -842,12 +851,20 @@ OMIT_TABLENAME_COLNAME_PAIRS = (
     ("SafeguardingIncidentDetails", "PoliceReference"),
 )
 
-FREETEXT_TABLENAME_COLNAME_PAIRS = (
-    ("FreeText", "FreeText"),  # the bulk of free text; VARCHAR(MAX)
-    ("PersonAtRisk", "ReasonForPlan"),  # free text re safeguarding
-    ("ReferralIn", "PrimaryReason"),  # only 200 chars; may be OK
-    ("SafeguardingAllegationDetails", "Outcome"),  # only 100 chars; ?OK
-    ("SpecialNotes", "Note"),  # 8000 char free text
+FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = (
+    # Regexes are matched from the start of strings, so it just takes a
+    # terminal "$" for an exact match.
+    ("FreeText$", "FreeText$"),  # the bulk of free text; VARCHAR(MAX)
+    ("PersonAtRisk$", "ReasonForPlan$"),  # free text re safeguarding
+    ("ReferralIn$", "PrimaryReason$"),  # only 200 chars; may be OK
+    ("SafeguardingAllegationDetails$", "Outcome$"),  # only 100 chars -- but OMIT whole table, as above  # noqa
+    ("SpecialNotes$", "Note$"),  # 8000 char free text
+
+    # CPFT versions (argh)!:
+    # - SRReferralIn renamed to S1_ReferralsIn with extra columns,
+    #   PrimaryReason, but there are several others, like
+    #   ReferralReasonDescription1.
+    (".*Referral", ".*Reason"),
 )
 EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS = (
     # S1_Patient.IDPatient: Added by CPFT. Duplicate of RowIdentifier.
@@ -934,6 +951,16 @@ def is_in_re(x: str, y_regexes: Iterable[str]) -> bool:
     Case-insensitive regex-based version of "in", to replace "if x in y".
     """
     return any(eq_re(x, test) for test in y_regexes)
+
+
+def is_pair_in_re(a: str, b: str, y_regexes: Iterable[Tuple[str, str]]) -> bool:
+    """
+    Case-insensitive regex-based version of "in", to replace "if a, b in y".
+    """
+    return any(
+        eq_re(a, test_a) and eq_re(b, test_b)
+        for test_a, test_b in y_regexes
+    )
 
 
 # =============================================================================
@@ -1185,14 +1212,20 @@ def is_pk(colname: str) -> bool:
     return eq(colname, S1_GENERIC_COL_PK)
 
 
-def is_free_text(tablename: str, colname: str) -> bool:
+def is_free_text(tablename: str,
+                 colname: str,
+                 sqla_coltype: TypeEngine) -> bool:
     """
     Is this a free-text field requiring scrubbing?
 
     Unusually, there is not very much free text, and it is mostly collated.
     (We haven't added binary support yet. Do we have the binary documents?)
     """
-    return is_pair_in(tablename, colname, FREETEXT_TABLENAME_COLNAME_PAIRS)
+    if not is_sqlatype_string(sqla_coltype):
+        # Not a textual type
+        return False
+    return is_pair_in_re(tablename, colname,
+                         FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS)
 
 
 # =============================================================================
@@ -1201,6 +1234,7 @@ def is_free_text(tablename: str, colname: str) -> bool:
 
 def process_generic_table_column(tablename: str,
                                  colname: str,
+                                 sqla_coltype: TypeEngine,
                                  ssi: ScrubSrcAlterMethodInfo,
                                  cfg: Config) -> bool:
     """
@@ -1253,7 +1287,7 @@ def process_generic_table_column(tablename: str,
         # Generic columns that are always OK (e.g. organization ID).
         ssi.include()
 
-    elif (is_free_text(tablename, colname)
+    elif (is_free_text(tablename, colname, sqla_coltype)
             and not is_pair_in(tablename, colname,
                                EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS)):
         # Free text to be scrubbed.
@@ -1270,6 +1304,7 @@ def process_generic_table_column(tablename: str,
 def get_scrub_alter_details(
         tablename: str,
         colname: str,
+        sqla_coltype: TypeEngine,
         cfg: Config,
         include_generic: bool = False) -> ScrubSrcAlterMethodInfo:
     """
@@ -1284,6 +1319,8 @@ def get_scrub_alter_details(
             "Patient", not "SRPatient" or "S1_Patient").
         colname:
             The database column name.
+        sqla_coltype:
+            The SQLALchemy column type of the source column.
         cfg:
             A :class:`crate_anon.anonymise.config.Config` object.
         include_generic:
@@ -1377,7 +1414,13 @@ def get_scrub_alter_details(
     # -------------------------------------------------------------------------
     # Proceed for all other tables.
     # -------------------------------------------------------------------------
-    handled = process_generic_table_column(tablename, colname, ssi, cfg)
+    handled = process_generic_table_column(
+        tablename=tablename,
+        colname=colname,
+        sqla_coltype=sqla_coltype,
+        ssi=ssi,
+        cfg=cfg
+    )
     if handled:
         # Recognized and handled as a generic column.
         return ssi
@@ -1582,8 +1625,13 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
     log.debug(debugmsg)
 
     # Do our thinking
-    ssi = get_scrub_alter_details(tablename, colname, ddr.config,
-                                  include_generic=include_generic)
+    ssi = get_scrub_alter_details(
+        tablename=tablename,
+        colname=colname,
+        sqla_coltype=ddr.src_sqla_coltype,
+        cfg=ddr.config,
+        include_generic=include_generic
+    )
 
     if not ssi.change_comment_only:
         # Source information
