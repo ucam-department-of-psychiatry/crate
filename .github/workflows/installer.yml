@@ -71,3 +71,5 @@ jobs:
               run: |
                 cd ${GITHUB_WORKSPACE}/docker/dockerfiles
                 docker compose logs
+                SERVER_IP=$(docker inspect crate_crate_server --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+                curl -I -L --retry 10 --retry-connrefused $SERVER_IP:8000
