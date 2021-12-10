@@ -102,7 +102,7 @@ services:
         # Base Docker image. We use a standard MySQL image; see
         # https://hub.docker.com/_/mysql
         image: mysql:5.7
-
+        container_name: crate_crate_db
         # Restart policy.
         # - I am slightly confused between "when the computer reboots" and
         #   "if the container crashes".
@@ -185,6 +185,7 @@ services:
 
         # Base Docker image.
         image: rabbitmq:3.8.5
+        container_name: crate_rabbitmq
 
         # Restart policy
         restart: "always"
@@ -228,6 +229,7 @@ services:
         # If you specify "image" as well as "build", Compose names the built
         # image. Syntax is "IMAGE[:TAG]".
         image: crate
+        container_name: crate_crate_workers
 
         # Start order. See docs -- note that this is "order to start", not
         # "wait for startup to complete".
@@ -280,6 +282,7 @@ services:
     crate_server:
         # Re-use the image built above.
         image: crate
+        container_name: crate_crate_server
 
         # Start order.
         depends_on:
@@ -336,6 +339,7 @@ services:
     flower:
         # Re-use the image built above.
         image: crate
+        container_name: crate_flower
 
         # Start order.
         depends_on:
