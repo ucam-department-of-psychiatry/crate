@@ -204,6 +204,7 @@ from crate_anon.common.sql import (
     ensure_columns_present,
     get_column_names,
     get_table_names,
+    IndexCreationInfo,
     set_print_not_execute,
     ViewMaker,
 )
@@ -827,9 +828,13 @@ def process_table(table: Table, engine: Engine,
             add_columns(engine, table, [crate_pk_col])
         ensure_columns_present(engine, tablename=table.name,
                                column_names=required_cols)
-        add_indexes(engine, table, [{'index_name': CRATE_IDX_PK,
-                                     'column': CRATE_COL_PK,
-                                     'unique': True}])
+        add_indexes(engine, table, [
+            IndexCreationInfo(
+                index_name=CRATE_IDX_PK,
+                column=CRATE_COL_PK,
+                unique=True
+            )
+        ])
 
 
 def process_all_tables(engine: Engine,
@@ -913,8 +918,7 @@ def main() -> None:
 
     hack_in_mssql_xml_type()
 
-    engine = create_engine(progargs.url, echo=progargs.echo,
-                           encoding=CHARSET)
+    engine = create_engine(progargs.url, echo=progargs.echo, encoding=CHARSET)
     metadata = MetaData()
     metadata.bind = engine
     log.info(f"Database: {repr(engine.url)}")  # ... repr hides p/w

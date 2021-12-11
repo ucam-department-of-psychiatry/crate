@@ -60,6 +60,9 @@ This contains structured data, but can contain free text too.
 The structure of the SRE is good from CRATE's perspective; it does not require
 reshaping for anonymisation.
 
+The :ref:`crate_preprocess_systmone <crate_preprocess_systmone>` will index a
+SystmOne source database (without which, anonymisation is very slow).
+
 One additional view is helpful to add blurred geographical information. Our
 team creates a table ``S1_PatientAddress`` from the source table
 ``SRPatientAddressHistory``, creating also the column ``PostCode_NoSpaces``.

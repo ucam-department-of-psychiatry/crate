@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 r"""
-crate_anon/preprocess/preprocess_rio.py
+crate_anon/preprocess/systmone_ddgen.py
 
 ===============================================================================
 
@@ -1229,6 +1229,13 @@ def is_pk(colname: str, ddr: DataDictionaryRow) -> bool:
         return False  # can't be a PK if it can be NULL
     if ddr.src_reflected_primary_key:
         return True
+    return is_pk_simple(colname)
+
+
+def is_pk_simple(colname: str) -> bool:
+    """
+    Is this likely to be a primary key column, based only on its name?
+    """
     return eq(colname, S1_GENERIC_COL_PK)
 
 

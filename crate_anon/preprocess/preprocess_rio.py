@@ -422,17 +422,14 @@ import argparse
 import logging
 from typing import List
 
-from cardinal_pythonlib.debugging import pdb_run
+# from cardinal_pythonlib.debugging import pdb_run
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.sqlalchemy.schema import (
     get_effective_int_pk_col,
     hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
-from sqlalchemy import (
-    create_engine,
-    MetaData,
-)
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.schema import Column, Table
 from sqlalchemy.sql.sqltypes import BigInteger, Integer
@@ -451,6 +448,7 @@ from crate_anon.common.sql import (
     get_column_names,
     get_table_names,
     get_view_names,
+    IndexCreationInfo,
     set_print_not_execute,
     sql_fragment_cast_to_int,
     ViewMaker,
@@ -627,15 +625,15 @@ def process_patient_table(table: Table, engine: Engine,
     # above, so it doesn't matter that we add these last. Their use is for
     # the subsequent CRATE anonymisation table scans.
     add_indexes(engine, table, [
-        {
-            'index_name': CRATE_IDX_PK,
-            'column': CRATE_COL_PK,
-            'unique': True,
-        },
-        {
-            'index_name': CRATE_IDX_RIONUM,
-            'column': CRATE_COL_RIO_NUMBER,
-        },
+        IndexCreationInfo(
+            index_name=CRATE_IDX_PK,
+            column=CRATE_COL_PK,
+            unique=True
+        ),
+        IndexCreationInfo(
+            index_name=CRATE_IDX_RIONUM,
+            column=CRATE_COL_RIO_NUMBER,
+        ),
     ])
 
 
@@ -684,9 +682,13 @@ def process_nonpatient_table(table: Table,
             UPDATE {table.name} SET {CRATE_COL_PK} = {other_pk_col}
             WHERE {CRATE_COL_PK} IS NULL
         """)
-    add_indexes(engine, table, [{'index_name': CRATE_IDX_PK,
-                                 'column': CRATE_COL_PK,
-                                 'unique': True}])
+    add_indexes(engine, table, [
+        IndexCreationInfo(
+            index_name=CRATE_IDX_PK,
+            column=CRATE_COL_PK,
+            unique=True
+        )
+    ])
 
 
 def drop_for_nonpatient_table(table: Table, engine: Engine) -> None:
@@ -773,18 +775,20 @@ def process_progress_notes(table: Table,
     add_columns(engine, table, [crate_col_max_subnum, crate_col_last_note])
     # We're always in "RiO land", not "RCEP land", for this one.
     add_indexes(engine, table, [
-        {  # Joint index, for JOIN in UPDATE statement below
-            'index_name': CRATE_IDX_RIONUM_NOTENUM,
-            'column': f'{CRATE_COL_RIO_NUMBER}, NoteNum',
-        },
-        {  # Speeds up WHERE below. (Much, much faster for second run.)
-            'index_name': CRATE_IDX_MAX_SUBNUM,
-            'column': CRATE_COL_MAX_SUBNUM,
-        },
-        {  # Speeds up WHERE below. (Much, much faster for second run.)
-            'index_name': CRATE_IDX_LAST_NOTE,
-            'column': CRATE_COL_LAST_NOTE,
-        },
+        IndexCreationInfo(  # Joint index, for JOIN in UPDATE statement below
+            index_name=CRATE_IDX_RIONUM_NOTENUM,
+            column=f'{CRATE_COL_RIO_NUMBER}, NoteNum',
+        ),
+        IndexCreationInfo(
+            # Speeds up WHERE below. (Much, much faster for second run.)
+            index_name=CRATE_IDX_MAX_SUBNUM,
+            column=CRATE_COL_MAX_SUBNUM,
+        ),
+        IndexCreationInfo(
+            # Speeds up WHERE below. (Much, much faster for second run.)
+            index_name=CRATE_IDX_LAST_NOTE,
+            column=CRATE_COL_LAST_NOTE,
+        ),
     ])
 
     ensure_columns_present(engine, tablename=table.name, column_names=[
@@ -873,18 +877,18 @@ def process_clindocs_table(table: Table, engine: Engine,
     table.append_column(crate_col_last_doc)
     add_columns(engine, table, [crate_col_max_docver, crate_col_last_doc])
     add_indexes(engine, table, [
-        {
-            'index_name': CRATE_IDX_RIONUM_SERIALNUM,
-            'column': f'{CRATE_COL_RIO_NUMBER}, SerialNumber',
-        },
-        {
-            'index_name': CRATE_IDX_MAX_DOCVER,
-            'column': CRATE_COL_MAX_DOCVER,
-        },
-        {
-            'index_name': CRATE_IDX_LAST_DOC,
-            'column': CRATE_COL_LAST_DOC,
-        },
+        IndexCreationInfo(
+            index_name=CRATE_IDX_RIONUM_SERIALNUM,
+            column=[CRATE_COL_RIO_NUMBER, "SerialNumber"],
+        ),
+        IndexCreationInfo(
+            index_name=CRATE_IDX_MAX_DOCVER,
+            column=CRATE_COL_MAX_DOCVER,
+        ),
+        IndexCreationInfo(
+            index_name=CRATE_IDX_LAST_DOC,
+            column=CRATE_COL_LAST_DOC,
+        ),
     ])
 
     required_cols = ["SerialNumber", "RevisionID"]
@@ -1363,8 +1367,7 @@ def main() -> None:
 
     hack_in_mssql_xml_type()
 
-    engine = create_engine(progargs.url, echo=progargs.echo,
-                           encoding=CHARSET)
+    engine = create_engine(progargs.url, echo=progargs.echo, encoding=CHARSET)
     metadata = MetaData()
     metadata.bind = engine
     log.info(f"Database: {repr(engine.url)}")  # ... repr hides p/w
@@ -1413,4 +1416,5 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    pdb_run(main)
+    # pdb_run(main)
+    main()

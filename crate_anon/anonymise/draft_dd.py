@@ -224,8 +224,8 @@ def main() -> None:
         "--systmone_allow_unprefixed_tables", action="store_true",
         help="Permit tables that don't start with the expected prefix "
              "(which is e.g. 'SR' for the TPP SRE context, 'S1_' for the CPFT "
-             "Data Warehouse context). Discouraged; you may get odd tables "
-             "and views."
+             "Data Warehouse context). May add helpful content, but you may "
+             "get odd tables and views."
     )
     s1_options.add_argument(
         "--systmone_alter_loaded_rows", action="store_true",

@@ -29,6 +29,7 @@ crate_anon/common/sql.py
 """
 
 from collections import OrderedDict
+from dataclasses import dataclass
 import functools
 import logging
 import re
@@ -40,7 +41,6 @@ from cardinal_pythonlib.json.serialize import (
     register_for_json,
 )
 from cardinal_pythonlib.lists import unique_list
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.reprfunc import mapped_repr_stripping_underscores
 from cardinal_pythonlib.sizeformatter import sizeof_fmt
 from cardinal_pythonlib.sql.literals import (
@@ -153,6 +153,26 @@ MSSQL_COLTYPE_TO_LEN = {
 #     if not table:
 #         raise ValueError("Missing table supplied to combine_db_schema_table")
 #     return ".".join(x for x in [db, schema, table] if x)
+
+
+# =============================================================================
+# Helper classes
+# =============================================================================
+
+@dataclass
+class IndexCreationInfo:
+    index_name: str  #: Name of the index
+    column: Union[str, List[str]]  #: Column name(s) to index
+    unique: bool = False  #: Make a unique index?
+
+    @property
+    def column_names(self) -> str:
+        if isinstance(self.column, str):
+            # Single column
+            return self.column
+        else:
+            # Multiple columns
+            return ", ".join(self.column)
 
 
 # =============================================================================
@@ -1037,8 +1057,9 @@ def drop_columns(engine: Engine, table: Table,
             execute(engine, sql)
 
 
-def add_indexes(engine: Engine, table: Table,
-                indexdictlist: Iterable[Dict[str, Any]]) -> None:
+def add_indexes(engine: Engine,
+                table: Table,
+                index_info_list: Iterable[IndexCreationInfo]) -> None:
     """
     Adds indexes to a table.
 
@@ -1046,35 +1067,23 @@ def add_indexes(engine: Engine, table: Table,
     :func:`set_print_not_execute`.
 
     Args:
-        engine: SQLAlchemy database Engine
-        table: SQLAlchemy Table object
-        indexdictlist:
-            indexes to add, specified as a list of dictionaries. Each
-            dictionary has the following keys:
-
-            =============== =================== ===============================
-            Key             Status              Contents
-            =============== =================== ===============================
-            ``index_name``  mandatory, str      Name of the index
-            ``column``      mandatory, str or   Column name(s) to index
-                            List[str]
-            ``unique``      optional, bool,     Make a unique index?
-                            default ``False``
-            =============== =================== ===============================
+        engine:
+            SQLAlchemy database Engine
+        table:
+            SQLAlchemy Table object
+        index_info_list:
+            Index(es) to create: list of :class:`IndexCreationInfo` objects.
     """
     existing_index_names = get_index_names(engine, tablename=table.name,
                                            to_lower=True)
-    for idxdefdict in indexdictlist:
-        index_name = idxdefdict['index_name']
-        column = idxdefdict['column']
-        if not isinstance(column, str):
-            column = ", ".join(column)  # must be a list
-        unique = idxdefdict.get('unique', False)
+    for i in index_info_list:
+        index_name = i.index_name
+        column = i.column_names
         if index_name.lower() not in existing_index_names:
             log.info(f"Table {table.name!r}: adding index {index_name!r} on "
                      f"column {column!r}")
             execute(engine, f"""
-                CREATE{" UNIQUE" if unique else ""} INDEX {index_name}
+                CREATE{" UNIQUE" if i.unique else ""} INDEX {index_name}
                     ON {table.name} ({column})
             """)
         else:
@@ -2211,43 +2220,3 @@ def translate_sql_qmark_to_percent(sql: str) -> str:
         else:
             newsql += c
     return newsql
-
-
-_ = """
-    _SQLTEST1 = "SELECT a FROM b WHERE c=? AND d LIKE 'blah%' AND e='?'"
-    _SQLTEST2 = "SELECT a FROM b WHERE c=%s AND d LIKE 'blah%%' AND e='?'"
-    _SQLTEST3 = translate_sql_qmark_to_percent(_SQLTEST1)
-"""
-
-
-# =============================================================================
-# Tests
-# =============================================================================
-
-def unit_tests() -> None:
-    """
-    Unit tests.
-    """
-    assert matches_tabledef("sometable", "sometable")
-    assert matches_tabledef("sometable", "some*")
-    assert matches_tabledef("sometable", "*table")
-    assert matches_tabledef("sometable", "*")
-    assert matches_tabledef("sometable", "s*e")
-    assert not matches_tabledef("sometable", "x*y")
-
-    assert matches_fielddef("sometable", "somefield", "*.somefield")
-    assert matches_fielddef("sometable", "somefield", "sometable.somefield")
-    assert matches_fielddef("sometable", "somefield", "sometable.*")
-    assert matches_fielddef("sometable", "somefield", "somefield")
-
-    grammar = make_grammar(SqlaDialectName.MYSQL)
-    sql = "SELECT t1.c1, t2.c2 " \
-          "FROM t1 INNER JOIN t2 ON t1.k = t2.k"
-    parsed = grammar.get_select_statement().parseString(sql, parseAll=True)
-    table_id = get_first_from_table(parsed)  # noqa
-    log.info(repr(table_id))
-
-
-if __name__ == '__main__':
-    main_only_quicksetup_rootlogger()
-    unit_tests()

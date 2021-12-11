@@ -113,6 +113,8 @@ def main():
             join(PREPROC_DIR, "_crate_preprocess_pcmis_help.txt"))
     run_cmd(["crate_preprocess_rio", "--help"],
             join(PREPROC_DIR, "_crate_preprocess_rio_help.txt"))
+    run_cmd(["crate_preprocess_systmone", "--help"],
+            join(PREPROC_DIR, "_crate_preprocess_systmone_help.txt"))
 
     # -------------------------------------------------------------------------
     # Linkage

@@ -237,6 +237,7 @@ setup(
             "crate_postcodes=crate_anon.preprocess.postcodes:main",
             "crate_preprocess_pcmis=crate_anon.preprocess.preprocess_pcmis:main",  # noqa
             "crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main",
+            "crate_preprocess_systmone=crate_anon.preprocess.preprocess_systmone:main",  # noqa
 
             # Linkage
 
