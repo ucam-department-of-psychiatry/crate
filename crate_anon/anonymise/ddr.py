@@ -43,6 +43,7 @@ from cardinal_pythonlib.sql.validation import (
     ensure_valid_table_name,
     is_sqltype_valid,
 )
+from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 from cardinal_pythonlib.sqlalchemy.schema import (
     convert_sqla_type_for_dialect,
     does_sqlatype_merit_fulltext_index,
@@ -56,8 +57,6 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     is_sqlatype_text_over_one_char,
 )
 from sqlalchemy import Column
-from sqlalchemy.dialects.mssql.base import dialect as ms_sql_server_dialect
-from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.sqltypes import TypeEngine
 
@@ -89,20 +88,20 @@ log = logging.getLogger(__name__)
 
 def warn_if_identifier_long(table: str,
                             column: str,
-                            dest_dialect: Optional[Dialect]) -> None:
+                            dest_dialect: Optional[str]) -> None:
     """
     Warns about identifiers that are too long for specific database engines.
     """
-    name_dialect_maxlen = (
-        ("MySQL", mysql_dialect, MYSQL_MAX_IDENTIFIER_LENGTH),
-        ("SQL Server", ms_sql_server_dialect, SQLSERVER_MAX_IDENTIFIER_LENGTH),
+    prettyname_dialectname_maxlen = (
+        ("MySQL", SqlaDialectName.MYSQL, MYSQL_MAX_IDENTIFIER_LENGTH),
+        ("SQL Server", SqlaDialectName.MSSQL, SQLSERVER_MAX_IDENTIFIER_LENGTH),
     )
     description_value = (
         ("Table", table),
         ("Column", column),
     )
-    for dialect_name, dialect, maxlen in name_dialect_maxlen:
-        if dest_dialect is not None and dest_dialect != dialect:
+    for prettyname, dialect_name, maxlen in prettyname_dialectname_maxlen:
+        if dest_dialect is not None and dest_dialect != dialect_name:
             # We know our destination dialect and it's not the one we're
             # considering.
             continue
@@ -110,7 +109,7 @@ def warn_if_identifier_long(table: str,
             if len(value) > maxlen:
                 log.warning(
                     f"{description} name in {table!r}.{column!r} "
-                    f"is too long for {dialect_name} "
+                    f"is too long for {prettyname} "
                     f"({len(value)} characters > {maxlen} maximum)")
 
 
@@ -557,6 +556,13 @@ class DataDictionaryRow(object):
         """
         return self.config.dest_dialect
 
+    @property
+    def dest_dialect_name(self) -> str:
+        """
+        Returns the SQLAlchemy dialect name for the destination database.
+        """
+        return self.config.dest_dialect_name
+
     # -------------------------------------------------------------------------
     # Comparisons
     # -------------------------------------------------------------------------
@@ -865,7 +871,7 @@ class DataDictionaryRow(object):
             # the type.
             return get_sqla_coltype_from_dialect_str(
                 self.dest_datatype,
-                self.config.dest_dialect
+                self.dest_dialect
             )
         else:
             # Destination data type is not explicitly specified.
@@ -879,7 +885,7 @@ class DataDictionaryRow(object):
                 # as below:
                 return convert_sqla_type_for_dialect(
                     coltype=self.src_sqla_coltype,
-                    dialect=self.config.dest_dialect,
+                    dialect=self.dest_dialect,
                     expand_for_scrubbing=self.being_scrubbed
                 )
 
@@ -989,7 +995,7 @@ class DataDictionaryRow(object):
         if self.include:
             # Ensure the destination table/column names are OK for the dialect.
             warn_if_identifier_long(self.dest_table, self.dest_field,
-                                    self.dest_dialect)
+                                    self.dest_dialect_name)
 
         # REMOVED 2016-06-04; fails with complex SQL Server types, which can
         # look like 'NVARCHAR(10) COLLATE "Latin1_General_CI_AS"'.
@@ -1360,7 +1366,7 @@ class DataDictionaryRow(object):
             # Read filename from database, read file, convert to text
             self._alter_methods.append(AlterMethod(config=self.config,
                                                    extract_from_filename=True))
-            self.dest_datatype = giant_text_sqltype(self.config.dest_dialect)
+            self.dest_datatype = giant_text_sqltype(self.dest_dialect)
             extracting_text = True
 
         elif self.matches_fielddef(dbconf.bin2text_dict.keys()):
@@ -1371,7 +1377,7 @@ class DataDictionaryRow(object):
                         config=self.config,
                         extract_from_blob=True,
                         extract_ext_field=extfield))
-            self.dest_datatype = giant_text_sqltype(self.config.dest_dialect)
+            self.dest_datatype = giant_text_sqltype(self.dest_dialect)
             extracting_text = True
 
         elif (not self.primary_pid

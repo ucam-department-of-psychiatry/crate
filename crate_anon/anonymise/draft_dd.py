@@ -117,7 +117,6 @@ def draft_dd(config: Config,
     dd.draft_from_source_databases()
     # Will skip source columns that it knows about already (and thus generate
     # an incremental data dictionary if we had pre-loaded some).
-    dd.tidy_draft()
 
     if systmone:
         if not systmone_context:
@@ -131,7 +130,8 @@ def draft_dd(config: Config,
             allow_unprefixed_tables=systmone_allow_unprefixed_tables,
             alter_loaded_rows=systmone_alter_loaded_rows,
         )
-        dd.tidy_draft()
+
+    dd.tidy_draft()
 
     if explicit_dest_datatype:
         dd.make_dest_datatypes_explicit()

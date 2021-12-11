@@ -47,6 +47,7 @@ from typing import (
 )
 
 from cardinal_pythonlib.sql.validation import is_sqltype_integer
+from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 from cardinal_pythonlib.sqlalchemy.schema import (
     is_sqlatype_integer,
     is_sqlatype_string,
@@ -55,8 +56,6 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 from sortedcontainers import SortedSet
 import sqlalchemy.exc
 from sqlalchemy import Column, Table, DateTime
-from sqlalchemy.dialects.mssql.base import dialect as ms_sql_server_dialect
-# from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.sqltypes import String, TypeEngine
 
@@ -248,6 +247,13 @@ class DataDictionary(object):
         the destination database.
         """
         return self.config.dest_dialect
+
+    @property
+    def dest_dialect_name(self) -> str:
+        """
+        Returns the SQLAlchemy dialect name for the destination database.
+        """
+        return self.config.dest_dialect_name
 
     # -------------------------------------------------------------------------
     # Loading
@@ -455,13 +461,13 @@ class DataDictionary(object):
 
     def tidy_draft(self) -> None:
         """
-        Corrects a draft data dictionary for overall logical consistency, but
-        do not change rows loaded from disk. (That is, only correct rows that
-        we have automatically drafted.)
+        Corrects a draft data dictionary for overall logical consistency.
 
         The checks are:
 
         - Don't scrub in non-patient tables.
+        - SQL Server only supports one FULLTEXT index per table, and only if
+          the table has a non-null column with a unique index.
 
         Test code for full-text index creation:
 
@@ -492,7 +498,7 @@ class DataDictionary(object):
         log.debug("... Make full-text indexes follow dialect rules")
 
         # https://docs.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-index-transact-sql?view=sql-server-ver15  # noqa
-        if self.dest_dialect == ms_sql_server_dialect:
+        if self.dest_dialect_name == SqlaDialectName.SQLSERVER:
             for d, t in self.get_src_db_tablepairs():
                 rows = self.get_rows_for_src_table(d, t)
 

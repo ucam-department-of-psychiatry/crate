@@ -1059,6 +1059,14 @@ class Config(object):
         """
         return self._dest_dialect
 
+    @property
+    def dest_dialect_name(self) -> str:
+        """
+        Returns the SQLAlchemy name for the destination database dialect (e.g.
+        ``mysql``).
+        """
+        return self._dest_dialect.name
+
     def commit_dest_db(self) -> None:
         """
         Executes a ``COMMIT`` on the destination database.
