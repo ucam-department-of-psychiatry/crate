@@ -121,7 +121,7 @@ def main() -> None:
     parser.add_argument(
         "--print", action="store_true",
         help="Print SQL but do not execute it. (You can redirect the printed "
-             "output to create an SQL script.")
+             "output to create an SQL script.)")
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
     context_k, context_d = keys_descriptions_from_enum(
         SystmOneContext, keys_to_lower=True)
@@ -154,7 +154,7 @@ def main() -> None:
 
     preprocess_systmone(
         engine,
-        context=args.systmone_context,
+        context=SystmOneContext[args.systmone_context],
         allow_unprefixed_tables=args.systmone_allow_unprefixed_tables,
     )
 

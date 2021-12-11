@@ -870,7 +870,7 @@ def main() -> None:
     parser.add_argument(
         "--print", action="store_true",
         help="Print SQL but do not execute it. (You can redirect the printed "
-             "output to create an SQL script.")
+             "output to create an SQL script.)")
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
 
     parser.add_argument(
