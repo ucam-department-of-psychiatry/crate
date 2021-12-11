@@ -1583,7 +1583,7 @@ def get_index_flag(tablename: str,
         # Full-text indexes
         return IndexType.FULLTEXT
     else:
-        return None
+        return IndexType.NONE
 
 
 # =============================================================================

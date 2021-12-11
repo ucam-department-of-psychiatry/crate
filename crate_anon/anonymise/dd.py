@@ -523,7 +523,7 @@ class DataDictionary(object):
                                 f"Removing index from column "
                                 f"{ddr.dest_field!r}."
                             )
-                            ddr.index = None
+                            ddr.index = IndexType.NONE
 
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # SQL server: only one FULLTEXT index per table. (Although in
@@ -542,7 +542,7 @@ class DataDictionary(object):
                                 f"full-text index from "
                                 f"{ddr.dest_table}.{ddr.dest_field}."
                             )
-                            ddr.index = None
+                            ddr.index = IndexType.NONE
                         else:
                             n_fulltext += 1
 

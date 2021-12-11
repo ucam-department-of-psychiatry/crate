@@ -1026,7 +1026,7 @@ def gen_index_row_sets_by_table(
 
     """
     indexrows = [ddr for ddr in config.dd.rows
-                 if ddr.index and not ddr.omit]
+                 if ddr.index != IndexType.NONE and not ddr.omit]
     tables = SortedSet([r.dest_table for r in indexrows])
     # must sort for parallel processing consistency: set() order varies
     for i, t in enumerate(tables):
@@ -1332,7 +1332,7 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
         mssql_fulltext_columns = []  # type: List[Column]
         for tr in tablerows:
             sqla_column = sqla_table.columns[tr.dest_field]
-            fulltext = (tr.index is IndexType.FULLTEXT)
+            fulltext = (tr.index == IndexType.FULLTEXT)
             if fulltext and mssql:
                 # Special processing: we can only create one full-text index
                 # per table under SQL Server, but it can cover multiple
@@ -1341,13 +1341,13 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
             else:
                 add_index(engine=engine,
                           sqla_column=sqla_column,
-                          unique=(tr.index is IndexType.UNIQUE),
+                          unique=(tr.index == IndexType.UNIQUE),
                           fulltext=fulltext,
                           length=tr.indexlen)
             # Extra indexes for TRID, MRID?
             if tr.primary_pid:
                 add_index(engine, sqla_table.columns[config.trid_fieldname],
-                          unique=(tr.index is IndexType.UNIQUE))
+                          unique=(tr.index == IndexType.UNIQUE))
                 if config.add_mrid_wherever_rid_added:
                     add_index(
                         engine,

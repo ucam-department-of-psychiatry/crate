@@ -833,7 +833,7 @@ class DataDictionaryRow(object):
         """
         Should the destination field have a full-text index?
         """
-        return self.index is IndexType.FULLTEXT
+        return self.index == IndexType.FULLTEXT
 
     # -------------------------------------------------------------------------
     # SQLAlchemy types
@@ -1040,7 +1040,7 @@ class DataDictionaryRow(object):
                 raise ValueError(
                     f"src_flags={SrcFlag.ADD_SRC_HASH} can only be set on "
                     f"src_flags={SrcFlag.PK} fields")
-            if self.index is not IndexType.UNIQUE:
+            if self.index != IndexType.UNIQUE:
                 raise ValueError(
                     f"src_flags={SrcFlag.ADD_SRC_HASH} fields require "
                     f"index=={IndexType.UNIQUE}")
@@ -1054,7 +1054,7 @@ class DataDictionaryRow(object):
                 raise ValueError(
                     f"src_flags={SrcFlag.CONSTANT} can only be set on "
                     f"src_flags={SrcFlag.PK} fields")
-            if self.index is not IndexType.UNIQUE:
+            if self.index != IndexType.UNIQUE:
                 raise ValueError(
                     f"src_flags={SrcFlag.CONSTANT} fields require "
                     f"index=={IndexType.UNIQUE}")
