@@ -419,7 +419,7 @@ class DataDictionary(object):
                     sqla_coltype = c.type
                     nullable = c.nullable
                     primary_key = c.primary_key
-                    comment = c.getattr("comment", "")
+                    comment = getattr(c, "comment", "")
                     # ... not all dialects support reflecting comments;
                     # https://docs.sqlalchemy.org/en/14/core/reflection.html
                     if cfg.ddgen_append_source_info_to_comment:
