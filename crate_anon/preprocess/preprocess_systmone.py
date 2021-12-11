@@ -90,13 +90,11 @@ def preprocess_systmone(engine: Engine,
         for column in table.columns:  # type: Column
             colname = column.name
             idxname = f"_idx_{colname}"
-            if is_pk_simple(colname):
-                add_indexes(engine, table, [IndexCreationInfo(
-                    index_name=idxname,
-                    column=colname,
-                    unique=True
-                )])
-            elif is_pid(colname) or is_mpid(colname):
+            if is_pk_simple(colname) or is_pid(colname) or is_mpid(colname):
+                # It's too much faff to work out reliably if the source table
+                # should have a UNIQUE index, particularly when local (CPFT)
+                # tables use the "RowIdentifier" column name in a non-unique
+                # way. It's not critical, as we're only reading.
                 add_indexes(engine, table, [IndexCreationInfo(
                     index_name=idxname,
                     column=colname,
