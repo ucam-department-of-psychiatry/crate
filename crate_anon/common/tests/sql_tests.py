@@ -38,7 +38,11 @@ from unittest import TestCase
 from cardinal_pythonlib.sql.sql_grammar_factory import make_grammar
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 
-from crate_anon.common.sql import matches_fielddef, matches_tabledef
+from crate_anon.common.sql import (
+    get_first_from_table,
+    matches_fielddef,
+    matches_tabledef,
+)
 
 log = logging.getLogger(__name__)
 
@@ -76,5 +80,6 @@ class SqlTests(TestCase):
             FROM t1 INNER JOIN t2 ON t1.k = t2.k
         """)
         parsed = grammar.get_select_statement().parseString(sql, parseAll=True)
-        table_id = get_first_from_table(parsed)  # noqa
+        log.critical(repr(parsed))
+        table_id = get_first_from_table(parsed)
         log.info(repr(table_id))

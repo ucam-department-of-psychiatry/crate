@@ -126,13 +126,13 @@ def main() -> None:
     context_k, context_d = keys_descriptions_from_enum(
         SystmOneContext, keys_to_lower=True)
     parser.add_argument(
-        "--context", type=str, choices=context_k,
+        "--systmone_context", type=str, choices=context_k,
         default=DEFAULT_SYSTMONE_CONTEXT.name.lower(),
         help="Context of the SystmOne database that you are reading. "
              f"[{context_d}]"
     )
     parser.add_argument(
-        "--allow_unprefixed_tables", action="store_true",
+        "--systmone_allow_unprefixed_tables", action="store_true",
         help="Permit tables that don't start with the expected prefix "
              "(which is e.g. 'SR' for the TPP SRE context, 'S1_' for the CPFT "
              "Data Warehouse context). May add helpful content, but you may "
@@ -154,8 +154,8 @@ def main() -> None:
 
     preprocess_systmone(
         engine,
-        context=args.context,
-        allow_unprefixed_tables=args.allow_unprefixed_tables,
+        context=args.systmone_context,
+        allow_unprefixed_tables=args.systmone_allow_unprefixed_tables,
     )
 
 

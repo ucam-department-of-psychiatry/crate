@@ -837,6 +837,9 @@ def get_first_from_table(parsed: ParseResults,
     """
     existing_tables = parsed.join_source.from_tables.asList()
     for t in existing_tables:
+        if isinstance(t, list):
+            assert len(t) == 1
+            t = t[0]
         table_id = split_db_schema_table(t)
         if match_db and table_id.db != match_db:
             continue
