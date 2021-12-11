@@ -519,7 +519,7 @@ class DataDictionary(object):
                                 f"To create a FULLTEXT index, SQL Server "
                                 f"requires a non-nullable column with a "
                                 f"unique index. Can't find one for "
-                                f"destination table {ddr.dest_table!r}."
+                                f"destination table {ddr.dest_table!r}. "
                                 f"Removing index from column "
                                 f"{ddr.dest_field!r}."
                             )

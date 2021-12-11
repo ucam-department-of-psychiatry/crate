@@ -177,7 +177,7 @@ class DataDictionaryRow(object):
         self.dest_table = None  # type: Optional[str]
         self.dest_field = None  # type: Optional[str]
         self.dest_datatype = None  # type: Optional[str]
-        self.index = None  # type: Optional[str]
+        self.index = IndexType.NONE  # type: IndexType
         self.indexlen = None  # type: Optional[int]
         self.comment = ''
 
@@ -1456,12 +1456,12 @@ class DataDictionaryRow(object):
             self.index = IndexType.NORMAL
 
         else:
-            self.index = ""
+            self.index = IndexType.NONE
 
         self.indexlen = (
             DEFAULT_INDEX_LEN
-            if (self.index
-                and self.index is not IndexType.FULLTEXT
+            if (self.index != IndexType.NONE
+                and self.index != IndexType.FULLTEXT
                 and does_sqlatype_require_index_len(dest_sqla_type))
             else None
         )

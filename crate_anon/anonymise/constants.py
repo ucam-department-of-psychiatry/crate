@@ -132,6 +132,7 @@ class Decision(StrEnum):
 
 @unique
 class IndexType(StrEnum):
+    NONE = ""
     NORMAL = "I"
     UNIQUE = "U"
     FULLTEXT = "F"
