@@ -1565,16 +1565,23 @@ def get_index_flag(tablename: str,
     Should this be indexed? Returns an indexing flag, or ``None`` if it should
     not be indexed.
     """
-    if is_free_text(tablename, colname, ddr):
-        return IndexType.FULLTEXT
+    if is_pk(colname, ddr):
+        # PKs should have a unique index.
+        return IndexType.UNIQUE
     elif (is_master_patient_table(tablename)
             and (is_pid(colname) or is_mpid(colname))):
+        # In the master patient table, PIDs and MPIDs are unique.
         return IndexType.UNIQUE
-    elif is_pid(colname) or is_pk(colname, ddr):
+    elif is_pid(colname) or is_mpid(colname):
+        # We index all patient IDs.
         return IndexType.NORMAL
     elif is_pair_in(tablename, colname,
                     EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS):
+        # Additional columns to index
         return IndexType.NORMAL
+    elif is_free_text(tablename, colname, ddr):
+        # Full-text indexes
+        return IndexType.FULLTEXT
     else:
         return None
 
