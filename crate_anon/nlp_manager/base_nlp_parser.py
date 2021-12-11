@@ -48,7 +48,6 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 # https://github.com/zzzeek/sqlalchemy/blob/master/README.dialects.rst
 # noinspection PyProtectedMember
 from sqlalchemy.dialects import registry
-# from sqlalchemy.dialects.mssql.base import MSDialect
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm.session import Session

@@ -19,7 +19,6 @@
 
 
 .. _data_dictionary:
-
 Data dictionary (DD)
 --------------------
 
@@ -35,7 +34,6 @@ It has a single header row, and columns as defined below.
 
 
 .. _crate_anon_draft_dd:
-
 Drafting a data dictionary
 ++++++++++++++++++++++++++
 
@@ -101,7 +99,6 @@ This column gives the source column's SQL data type (e.g. `INT`,
 
 
 .. _dd_src_flags:
-
 src_flags
 ~~~~~~~~~
 
@@ -208,7 +205,6 @@ Character   Meaning
 
 
 .. _dd_scrub_src:
-
 scrub_src
 ~~~~~~~~~
 
@@ -242,7 +238,6 @@ Value                   Meaning
 
 
 .. _dd_scrub_method:
-
 scrub_method
 ~~~~~~~~~~~~
 
@@ -295,7 +290,6 @@ Value                       Meaning
 
 
 .. _dd_decision:
-
 decision
 ~~~~~~~~
 
@@ -351,7 +345,6 @@ the exclusion_values list.
 
 
 .. _dd_alter_method:
-
 alter_method
 ~~~~~~~~~~~~
 

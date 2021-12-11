@@ -55,6 +55,8 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 from sortedcontainers import SortedSet
 import sqlalchemy.exc
 from sqlalchemy import Column, Table, DateTime
+from sqlalchemy.dialects.mssql.base import dialect as ms_sql_server_dialect
+# from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.sqltypes import String, TypeEngine
 
@@ -62,10 +64,11 @@ from sqlalchemy.sql.sqltypes import String, TypeEngine
 from crate_anon.anonymise.constants import (
     AlterMethodType,
     AnonymiseConfigKeys,
-    TABLE_KWARGS,
+    IndexType,
     ScrubMethod,
     ScrubSrc,
     SrcFlag,
+    TABLE_KWARGS,
     TridType,
 )
 from crate_anon.anonymise.ddr import DataDictionaryRow
@@ -238,6 +241,14 @@ class DataDictionary(object):
         """
         return len(self.rows)
 
+    @property
+    def dest_dialect(self) -> Dialect:
+        """
+        Returns the SQLAlchemy :class:`Dialect` (e.g. MySQL, SQL Server...) for
+        the destination database.
+        """
+        return self.config.dest_dialect
+
     # -------------------------------------------------------------------------
     # Loading
     # -------------------------------------------------------------------------
@@ -370,8 +381,6 @@ class DataDictionary(object):
             for t in meta.sorted_tables:
                 tablename = t.name
                 log.info(f"... ... table: {tablename}")
-                new_rows = []  # type: List[DataDictionaryRow]
-                is_patient_table = False
 
                 # Skip table?
                 if cfg.is_table_denied(tablename):
@@ -390,13 +399,18 @@ class DataDictionary(object):
                     i += 1
                     if report_every and i % report_every == 0:
                         log.debug(f"... reading source field number {i}")
+                    # Name
                     columnname = c.name
                     # Do not manipulate the case of SOURCE tables/columns.
                     # If you do, they can fail to match the SQLAlchemy
                     # introspection and cause a crash.
-                    # import pdb; pdb.set_trace()
-                    # log.critical(f"str(coltype) == {str(c.type)}")
-                    # log.critical(f"repr(coltype) == {repr(c.type)}")
+
+                    # Skip column?
+                    if cfg.is_field_denied(columnname):
+                        log.debug(f"Skipping denied column: "
+                                  f"{tablename}.{columnname}")
+                        continue
+                    # Other attributes
                     try:
                         datatype_sqltext = str(c.type)
                     except sqlalchemy.exc.CompileError:
@@ -405,14 +419,12 @@ class DataDictionary(object):
                     sqla_coltype = c.type
                     nullable = c.nullable
                     primary_key = c.primary_key
-                    Column
-                    if cfg.is_field_denied(columnname):
-                        log.debug(f"Skipping denied column: "
-                                  f"{tablename}.{columnname}")
-                        continue
-                    comment = ''  # currently unsupported by SQLAlchemy
+                    comment = c.getattr("comment", "")
+                    # ... not all dialects support reflecting comments;
+                    # https://docs.sqlalchemy.org/en/14/core/reflection.html
                     if cfg.ddgen_append_source_info_to_comment:
                         comment = f"[from {tablename}.{columnname}]"
+                    # Create row
                     ddr = DataDictionaryRow(self.config)
                     ddr.set_from_src_db_info(
                         pretty_dbname, tablename, columnname,
@@ -435,35 +447,104 @@ class DataDictionary(object):
                         continue
                     existing_signatures.add(sig)
 
-                    if ddr.contains_patient_info:
-                        is_patient_table = True
-
-                    # Checking validity slows us down, and we are after all
-                    # creating these programmatically!
-                    # ddr.check_valid(self.config)
-
-                    new_rows.append(ddr)
-
-                # Now, table-wide checks across all columns:
-                if not is_patient_table:
-                    for ddr in new_rows:
-                        ddr.remove_scrub_from_alter_methods()
-                        # Pointless to scrub in a non-patient table
-
-                self.rows.extend(new_rows)
+                    self.rows.append(ddr)
 
         log.info("... done")
         self.clear_caches()
-        log.info("Revising draft data dictionary")
-        for ddr in self.rows:
-            if ddr.from_file:
-                continue
-            # Don't scrub_in non-patient tables
-            if (ddr.src_table
-                    not in self.get_src_tables_with_patient_info(ddr.src_db)):
-                ddr._scrub = False
-        log.info("... done")
         self.sort()
+
+    def tidy_draft(self) -> None:
+        """
+        Corrects a draft data dictionary for overall logical consistency, but
+        do not change rows loaded from disk. (That is, only correct rows that
+        we have automatically drafted.)
+
+        The checks are:
+
+        - Don't scrub in non-patient tables.
+
+        Test code for full-text index creation:
+
+        .. code-block:: sql
+
+            -- SQL Server
+            USE mydb;
+            CREATE FULLTEXT CATALOG default_fulltext_catalog AS DEFAULT;
+            CREATE TABLE junk (intthing INT PRIMARY KEY, textthing VARCHAR(MAX));
+            -- now find the name of the PK index (! -- by hand or see cardinal_pythonlib)
+            CREATE FULLTEXT INDEX ON junk (textthing) KEY INDEX <pk_index_name>;
+
+            -- MySQL:
+            USE mydb;
+            CREATE TABLE junk (intthing INT PRIMARY KEY, text1 LONGTEXT, text2 LONGTEXT);
+            ALTER TABLE junk ADD FULLTEXT INDEX ftidx1 (text1);
+            ALTER TABLE junk ADD FULLTEXT INDEX ftidx2 (text2);  -- OK
+        """   # noqa
+        log.info("Tidying/correcting draft data dictionary")
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        log.debug("... Don't scrub in non-patient tables")
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        for d, t in self.get_src_db_tablepairs_w_no_pt_info():
+            for ddr in self.get_rows_for_src_table(d, t):
+                ddr.remove_scrub_from_alter_methods()
+
+        log.debug("... Make full-text indexes follow dialect rules")
+
+        # https://docs.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-index-transact-sql?view=sql-server-ver15  # noqa
+        if self.dest_dialect == ms_sql_server_dialect:
+            for d, t in self.get_src_db_tablepairs():
+                rows = self.get_rows_for_src_table(d, t)
+
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # SQL Server: every table with a FULLTEXT index must have a
+                # column that is non-nullable with a unique index.
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                sqlserver_ok_for_fulltext = False
+                for ddr in rows:
+                    if (ddr.include
+                            and not ddr.src_reflected_nullable
+                            and ddr.index == IndexType.UNIQUE):
+                        sqlserver_ok_for_fulltext = True
+                if not sqlserver_ok_for_fulltext:
+                    for ddr in rows:
+                        if ddr.include and ddr.index == IndexType.FULLTEXT:
+                            log.warning(
+                                f"To create a FULLTEXT index, SQL Server "
+                                f"requires a non-nullable column with a "
+                                f"unique index. Can't find one for "
+                                f"destination table {ddr.dest_table!r}."
+                                f"Removing index from column "
+                                f"{ddr.dest_field!r}."
+                            )
+                            ddr.index = None
+
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # SQL server: only one FULLTEXT index per table. (Although in
+                # principle you can have one FULLTEXT index that covers
+                # multiple columns; we don't support that.)
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                n_fulltext = 0
+                for ddr in rows:
+                    if ddr.include and ddr.index == IndexType.FULLTEXT:
+                        if n_fulltext >= 1:
+                            log.warning(
+                                f"SQL Server permits only one FULLTEXT index "
+                                f"per table (and CRATE does not support "
+                                f"multi-column full-text indexes). Since "
+                                f"there is already one, removing the "
+                                f"full-text index from "
+                                f"{ddr.dest_table}.{ddr.dest_field}."
+                            )
+                            ddr.index = None
+                        else:
+                            n_fulltext += 1
+
+        # MySQL: fine to have multiple FULLTEXT indexes in one table.
+        # See text code above.
+
+        log.info("... done")
+        self.clear_caches()
 
     def make_dest_datatypes_explicit(self) -> None:
         """
@@ -947,84 +1028,91 @@ class DataDictionary(object):
         return set([ddr.src_signature for ddr in self.rows
                     if ddr.required_scrubber])
 
-    def get_summary_info_by_table(self) -> List[DDTableSummary]:
+    def get_summary_info_for_table(self,
+                                   src_db: str,
+                                   src_table: str) -> DDTableSummary:
+        """
+        Returns summary information for a specific table.
+        """
+        rows = self.get_rows_for_src_table(src_db, src_table)
+
+        # Source
+        src_has_pk = False
+        src_pk_fieldname = None  # type: Optional[str]
+        src_constant = False
+        src_addition_only = False
+        src_defines_pid = False
+        src_has_pid = False
+        src_has_mpid = False
+        src_has_opt_out = False
+        src_has_patient_scrub_info = False
+        src_has_third_party_scrub_info = False
+        src_has_required_scrub_info = False
+        # Destination
+        dest_table = None  # type: Optional[str]
+        dest_has_rows = False
+        dest_add_src_hash = False
+        dest_being_scrubbed = False
+
+        for ddr in rows:
+            # Source
+            src_has_pk = src_has_pk or ddr.pk
+            if ddr.pk:
+                src_pk_fieldname = ddr.src_field
+            src_constant = src_constant or ddr.constant
+            src_addition_only = src_addition_only or ddr.addition_only
+            src_defines_pid = src_defines_pid or ddr.defines_primary_pids
+            src_has_pid = src_has_pid or ddr.primary_pid
+            src_has_mpid = src_has_mpid or ddr.master_pid
+            src_has_opt_out = src_has_opt_out or ddr.opt_out_info
+            src_has_patient_scrub_info = (
+                src_has_patient_scrub_info
+                or ddr.contains_patient_scrub_src_info
+            )
+            src_has_third_party_scrub_info = (
+                src_has_third_party_scrub_info
+                or ddr.contains_third_party_info
+            )
+            src_has_required_scrub_info = (
+                src_has_required_scrub_info
+                or ddr.required_scrubber
+            )
+            # Destination
+            dest_table = dest_table or ddr.dest_table
+            dest_has_rows = dest_has_rows or not ddr.omit
+            dest_add_src_hash = dest_add_src_hash or ddr.add_src_hash
+            dest_being_scrubbed = dest_being_scrubbed or ddr.being_scrubbed
+
+        return DDTableSummary(
+            # Which table?
+            src_db=src_db,
+            src_table=src_table,
+            # Source info
+            src_has_pk=src_has_pk,
+            src_pk_fieldname=src_pk_fieldname,
+            src_constant=src_constant,
+            src_addition_only=src_addition_only,
+            src_defines_pid=src_defines_pid,
+            src_has_pid=src_has_pid,
+            src_has_mpid=src_has_mpid,
+            src_has_opt_out=src_has_opt_out,
+            src_has_patient_scrub_info=src_has_patient_scrub_info,
+            src_has_third_party_scrub_info=src_has_third_party_scrub_info,
+            src_has_required_scrub_info=src_has_required_scrub_info,
+            # Destination info
+            dest_table=dest_table,
+            dest_has_rows=dest_has_rows,
+            dest_add_src_hash=dest_add_src_hash,
+            dest_being_scrubbed=dest_being_scrubbed,
+        )
+
+    def get_summary_info_all_tables(self) -> List[DDTableSummary]:
         """
         Returns summary information by table.
         """
         infolist = []  # type: List[DDTableSummary]
         for src_db, src_table in self.get_src_db_tablepairs():
-            rows = self.get_rows_for_src_table(src_db, src_table)
-
-            # Source
-            src_has_pk = False
-            src_pk_fieldname = None  # type: Optional[str]
-            src_constant = False
-            src_addition_only = False
-            src_defines_pid = False
-            src_has_pid = False
-            src_has_mpid = False
-            src_has_opt_out = False
-            src_has_patient_scrub_info = False
-            src_has_third_party_scrub_info = False
-            src_has_required_scrub_info = False
-            # Destination
-            dest_table = None  # type: Optional[str]
-            dest_has_rows = False
-            dest_add_src_hash = False
-            dest_being_scrubbed = False
-
-            for ddr in rows:
-                # Source
-                src_has_pk = src_has_pk or ddr.pk
-                if ddr.pk:
-                    src_pk_fieldname = ddr.src_field
-                src_constant = src_constant or ddr.constant
-                src_addition_only = src_addition_only or ddr.addition_only
-                src_defines_pid = src_defines_pid or ddr.defines_primary_pids
-                src_has_pid = src_has_pid or ddr.primary_pid
-                src_has_mpid = src_has_mpid or ddr.master_pid
-                src_has_opt_out = src_has_opt_out or ddr.opt_out_info
-                src_has_patient_scrub_info = (
-                    src_has_patient_scrub_info
-                    or ddr.contains_patient_scrub_src_info
-                )
-                src_has_third_party_scrub_info = (
-                    src_has_third_party_scrub_info
-                    or ddr.contains_third_party_info
-                )
-                src_has_required_scrub_info = (
-                    src_has_required_scrub_info
-                    or ddr.required_scrubber
-                )
-                # Destination
-                dest_table = dest_table or ddr.dest_table
-                dest_has_rows = dest_has_rows or not ddr.omit
-                dest_add_src_hash = dest_add_src_hash or ddr.add_src_hash
-                dest_being_scrubbed = dest_being_scrubbed or ddr.being_scrubbed
-
-            info = DDTableSummary(
-                # Which table?
-                src_db=src_db,
-                src_table=src_table,
-                # Source info
-                src_has_pk=src_has_pk,
-                src_pk_fieldname=src_pk_fieldname,
-                src_constant=src_constant,
-                src_addition_only=src_addition_only,
-                src_defines_pid=src_defines_pid,
-                src_has_pid=src_has_pid,
-                src_has_mpid=src_has_mpid,
-                src_has_opt_out=src_has_opt_out,
-                src_has_patient_scrub_info=src_has_patient_scrub_info,
-                src_has_third_party_scrub_info=src_has_third_party_scrub_info,
-                src_has_required_scrub_info=src_has_required_scrub_info,
-                # Destination info
-                dest_table=dest_table,
-                dest_has_rows=dest_has_rows,
-                dest_add_src_hash=dest_add_src_hash,
-                dest_being_scrubbed=dest_being_scrubbed,
-            )
-            infolist.append(info)
+            infolist.append(self.get_summary_info_for_table(src_db, src_table))
         return infolist
 
     # -------------------------------------------------------------------------

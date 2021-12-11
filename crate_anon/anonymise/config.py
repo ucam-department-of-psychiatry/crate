@@ -98,7 +98,7 @@ from cardinal_pythonlib.sqlalchemy.insert_on_duplicate import (
 )
 import regex
 from sqlalchemy import BigInteger, create_engine, String
-from sqlalchemy.dialects.mssql.base import dialect as mssql_dialect
+from sqlalchemy.dialects.mssql.base import dialect as ms_sql_server_dialect
 from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Dialect
@@ -774,7 +774,7 @@ class Config(object):
             if open_databases:
                 self.src_dialects[sourcedb_name] = srcdb.engine.dialect
             else:  # in context of web framework
-                self.src_dialects[sourcedb_name] = mssql_dialect
+                self.src_dialects[sourcedb_name] = ms_sql_server_dialect
 
         # ---------------------------------------------------------------------
         # Processing options

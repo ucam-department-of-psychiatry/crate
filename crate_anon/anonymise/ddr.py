@@ -56,6 +56,8 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     is_sqlatype_text_over_one_char,
 )
 from sqlalchemy import Column
+from sqlalchemy.dialects.mssql.base import dialect as ms_sql_server_dialect
+from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.sqltypes import TypeEngine
 
@@ -85,24 +87,30 @@ log = logging.getLogger(__name__)
 # Helper functions
 # =============================================================================
 
-def warn_if_identifier_long(table: str, column: str) -> None:
+def warn_if_identifier_long(table: str,
+                            column: str,
+                            dest_dialect: Optional[Dialect]) -> None:
     """
     Warns about identifiers that are too long for specific database engines.
     """
-    engine_maxlen = (
-        ("MySQL", MYSQL_MAX_IDENTIFIER_LENGTH),
-        ("SQL Server", SQLSERVER_MAX_IDENTIFIER_LENGTH),
+    name_dialect_maxlen = (
+        ("MySQL", mysql_dialect, MYSQL_MAX_IDENTIFIER_LENGTH),
+        ("SQL Server", ms_sql_server_dialect, SQLSERVER_MAX_IDENTIFIER_LENGTH),
     )
     description_value = (
         ("Table", table),
         ("Column", column),
     )
-    for engine, maxlen in engine_maxlen:
+    for dialect_name, dialect, maxlen in name_dialect_maxlen:
+        if dest_dialect is not None and dest_dialect != dialect:
+            # We know our destination dialect and it's not the one we're
+            # considering.
+            continue
         for description, value in description_value:
             if len(value) > maxlen:
                 log.warning(
                     f"{description} name in {table!r}.{column!r} "
-                    f"is too long for {engine} "
+                    f"is too long for {dialect_name} "
                     f"({len(value)} characters > {maxlen} maximum)")
 
 
@@ -534,6 +542,21 @@ class DataDictionaryRow(object):
             raise ValueError("decision was {}; must be one of {}".format(
                 value, [Decision.OMIT.value, Decision.INCLUDE.value]))
 
+    @property
+    def include(self) -> bool:
+        """
+        Is this row being included (not omitted)?
+        """
+        return not self.omit
+
+    @property
+    def dest_dialect(self) -> Dialect:
+        """
+        Returns the SQLAlchemy :class:`Dialect` (e.g. MySQL, SQL Server...) for
+        the destination database.
+        """
+        return self.config.dest_dialect
+
     # -------------------------------------------------------------------------
     # Comparisons
     # -------------------------------------------------------------------------
@@ -963,7 +986,10 @@ class DataDictionaryRow(object):
         ensure_valid_table_name(self.src_table)
         ensure_valid_field_name(self.src_field)
 
-        warn_if_identifier_long(self.src_table, self.src_field)
+        if self.include:
+            # Ensure the destination table/column names are OK for the dialect.
+            warn_if_identifier_long(self.dest_table, self.dest_field,
+                                    self.dest_dialect)
 
         # REMOVED 2016-06-04; fails with complex SQL Server types, which can
         # look like 'NVARCHAR(10) COLLATE "Latin1_General_CI_AS"'.
@@ -1122,7 +1148,7 @@ class DataDictionaryRow(object):
 
         # This error/warning too hard to be sure of with SQL Server odd
         # string types:
-        # if self._scrub and not self._extract_text:
+        # if [RENAMED: self._scrub] and not self._extract_text:
         #     if not is_sqltype_text_over_one_char(self.src_datatype):
         #         raise ValueError("Can't scrub in non-text field or "
         #                          "single-character text field")

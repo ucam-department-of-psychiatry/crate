@@ -63,7 +63,7 @@ def summarize_dd(config: Config,
     dd = config.dd
     header_row = [f.name for f in fields(DDTableSummary)]
     rows = [header_row] + [
-        astuple(x) for x in dd.get_summary_info_by_table()
+        astuple(x) for x in dd.get_summary_info_all_tables()
     ]
     data = {"data_dictionary_report": rows}
     write_spreadsheet(output_filename, data)

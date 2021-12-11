@@ -79,7 +79,6 @@ Format of the configuration file
 
 
 .. _anon_config_main_section:
-
 [main] section
 ~~~~~~~~~~~~~~
 
@@ -107,7 +106,6 @@ See :ref:`sqlatype_mpid <anon_config_sqlatype_mpid>` below.
 
 
 .. _anon_config_sqlatype_mpid:
-
 sqlatype_mpid
 #############
 
@@ -124,7 +122,6 @@ Encryption phrases/passwords
 ++++++++++++++++++++++++++++
 
 .. _anon_config_hash_method:
-
 hash_method
 ###########
 
@@ -169,7 +166,6 @@ database), so that changes in content can be detected.
 
 
 .. _anon_config_extra_hash_config_sections:
-
 extra_hash_config_sections
 ##########################
 
@@ -187,7 +183,6 @@ Text extraction
 +++++++++++++++
 
 .. _anon_config_extract_text_extensions_permitted:
-
 extract_text_extensions_permitted
 #################################
 
@@ -321,7 +316,6 @@ database cursor for each recursion).
 
 
 .. _anon_config_replace_nonspecific_info_with:
-
 replace_nonspecific_info_with
 #############################
 
@@ -347,7 +341,6 @@ Applies to scrub methods ``words``, but not to ``phrase`` (see
 
 
 .. _anon_config_string_max_regex_errors:
-
 string_max_regex_errors
 #######################
 
@@ -507,7 +500,6 @@ See https://www.mrs.org.uk/pdf/postcodeformat.pdf; these can look like
 
 
 .. _anon_config_anonymise_codes_at_word_boundaries_only:
-
 anonymise_codes_at_word_boundaries_only
 #######################################
 
@@ -536,7 +528,6 @@ As for :ref:`anonymise_codes_at_word_boundaries_only
 
 
 .. _anon_config_anonymise_numbers_at_word_boundaries_only:
-
 anonymise_numbers_at_word_boundaries_only
 #########################################
 
@@ -629,7 +620,6 @@ source tables.
 
 
 .. _add_mrid_wherever_rid_added:
-
 add_mrid_wherever_rid_added
 ###########################
 
@@ -734,7 +724,8 @@ debug_max_n_patients
 *Integer.* Default: 0.
 
 Limit the number of patients to be processed? Specify 0 (the default) for no
-limit.
+limit. The limit applies to each process separately, if you are using parallel
+processing.
 
 
 debug_pid_list
@@ -801,7 +792,6 @@ Specify a LIST OF PYTHON VALUES; for example:
 
 
 .. _anon_config_extra_regexes:
-
 [extra_regexes] section
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -912,7 +902,6 @@ here. Settings here override :ref:`ddgen_include_fields
 
 
 .. _anon_config_ddgen_include_fields:
-
 ddgen_include_fields
 ####################
 
@@ -1053,7 +1042,6 @@ Fieldnames assumed to be their table's PK.
 
 
 .. _anon_config_ddgen_constant_content:
-
 ddgen_constant_content
 ######################
 
@@ -1072,7 +1060,6 @@ matches both).
 
 
 .. _anon_config_ddgen_constant_content_tables:
-
 ddgen_constant_content_tables
 #############################
 
@@ -1083,7 +1070,6 @@ Table-specific overrides for :ref:`ddgen_constant_content
 
 
 .. _anon_config_ddgen_nonconstant_content_tables:
-
 ddgen_nonconstant_content_tables
 ################################
 
@@ -1349,7 +1335,6 @@ Fields to apply an index to.
 
 
 .. _ddgen_allow_fulltext_indexing:
-
 ddgen_allow_fulltext_indexing
 #############################
 
@@ -1381,7 +1366,6 @@ Other options for source databases
 ++++++++++++++++++++++++++++++++++
 
 .. _anon_config_debug_row_limit:
-
 debug_row_limit
 ###############
 
@@ -1403,7 +1387,6 @@ information for that patient is trawled.
 
 
 .. _anon_config_debug_limited_tables:
-
 debug_limited_tables
 ####################
 
@@ -1414,7 +1397,6 @@ List of tables to which to apply :ref:`debug_row_limit
 
 
 .. _anon_config_hasher_definitions:
-
 Hasher definitions
 ~~~~~~~~~~~~~~~~~~
 
@@ -1459,7 +1441,6 @@ Many options are not shown and most comments have been removed.
 
 
 .. _specimen_anonymiser_config:
-
 Specimen config
 ~~~~~~~~~~~~~~~
 
