@@ -41,6 +41,7 @@ from sqlalchemy.engine.base import Engine
 from crate_anon.anonymise.constants import CHARSET
 from crate_anon.common.sql import (
     add_indexes,
+    drop_indexes,
     IndexCreationInfo,
     set_print_not_execute,
 )
@@ -65,7 +66,8 @@ log = logging.getLogger(__name__)
 
 def preprocess_systmone(engine: Engine,
                         context: SystmOneContext,
-                        allow_unprefixed_tables: bool = False) -> None:
+                        allow_unprefixed_tables: bool = False,
+                        drop_danger_drop: bool = False) -> None:
     """
     Add indexes to a SystmOne source database. Otherwise, anonymisation is very
     slow.
@@ -91,15 +93,19 @@ def preprocess_systmone(engine: Engine,
             colname = column.name
             idxname = f"_idx_{colname}"
             if is_pk_simple(colname) or is_pid(colname) or is_mpid(colname):
+
                 # It's too much faff to work out reliably if the source table
                 # should have a UNIQUE index, particularly when local (CPFT)
                 # tables use the "RowIdentifier" column name in a non-unique
                 # way. It's not critical, as we're only reading.
-                add_indexes(engine, table, [IndexCreationInfo(
-                    index_name=idxname,
-                    column=colname,
-                    unique=False
-                )])
+                if drop_danger_drop:
+                    drop_indexes(engine, table, [idxname])
+                else:
+                    add_indexes(engine, table, [IndexCreationInfo(
+                        index_name=idxname,
+                        column=colname,
+                        unique=False
+                    )])
 
 
 # =============================================================================
@@ -136,6 +142,11 @@ def main() -> None:
              "Data Warehouse context). May add helpful content, but you may "
              "get odd tables and views."
     )
+    parser.add_argument(
+        "--drop-danger-drop", action="store_true",
+        help="REMOVES new columns and indexes, rather than creating them. "
+             "(There's not very much danger; no real information is lost, but "
+             "it might take a while to recalculate it.)")
 
     args = parser.parse_args()
 
@@ -154,6 +165,7 @@ def main() -> None:
         engine,
         context=SystmOneContext[args.systmone_context],
         allow_unprefixed_tables=args.systmone_allow_unprefixed_tables,
+        drop_danger_drop=args.drop_danger_drop,
     )
 
 
