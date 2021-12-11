@@ -874,13 +874,13 @@ def main() -> None:
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
 
     parser.add_argument(
-        "--drop-danger-drop", action="store_true",
+        "--drop_danger_drop", action="store_true",
         help="REMOVES new columns and indexes, rather than creating them. "
              "(There's not very much danger; no real information is lost, but "
              "it might take a while to recalculate it.)")
 
     parser.add_argument(
-        "--debug-skiptables", action="store_true",
+        "--debug_skiptables", action="store_true",
         help="DEBUG-ONLY OPTION. Skip tables (view creation only)")
 
     parser.add_argument(
@@ -896,7 +896,7 @@ def main() -> None:
              "identifying.")
 
     parser.add_argument(
-        "--settings-filename",
+        "--settings_filename",
         help="Specify filename to write draft ddgen_* settings to, for use in "
              "a CRATE anonymiser configuration file.")
 

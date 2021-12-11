@@ -1435,6 +1435,9 @@ Changes
 
 - ``crate_anon_summarize_dd`` tool.
 
+- Change some hyphens to underscores in the command-line arguments to the
+  PCMIS and RiO preprocessing tools, for consistency.
+
 
 ===============================================================================
 

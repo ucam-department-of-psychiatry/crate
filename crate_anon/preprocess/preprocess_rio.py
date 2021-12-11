@@ -1247,7 +1247,7 @@ def main() -> None:
         help="Treat the source database as the product of Servelec's RiO CRIS "
              "Extract Program v2 (instead of raw RiO)")
     parser.add_argument(
-        "--drop-danger-drop", action="store_true",
+        "--drop_danger_drop", action="store_true",
         help="REMOVES new columns and indexes, rather than creating them. "
              "(There's not very much danger; no real information is lost, but "
              "it might take a while to recalculate it.)")
@@ -1257,18 +1257,18 @@ def main() -> None:
              "Trust (CPFT) RCEP database. Only applicable with --rcep")
 
     parser.add_argument(
-        "--debug-skiptables", action="store_true",
+        "--debug_skiptables", action="store_true",
         help="DEBUG-ONLY OPTION. Skip tables (view creation only)")
 
     prog_curr_group = parser.add_mutually_exclusive_group()
     prog_curr_group.add_argument(
-        "--prognotes-current-only",
+        "--prognotes_current_only",
         dest="prognotes_current_only",
         action="store_true",
         help="Progress_Notes view restricted to current versions only "
              "(* default)")
     prog_curr_group.add_argument(
-        "--prognotes-all",
+        "--prognotes_all",
         dest="prognotes_current_only",
         action="store_false",
         help="Progress_Notes view shows old versions too")
@@ -1276,12 +1276,12 @@ def main() -> None:
 
     clindocs_curr_group = parser.add_mutually_exclusive_group()
     clindocs_curr_group.add_argument(
-        "--clindocs-current-only",
+        "--clindocs_current_only",
         dest="clindocs_current_only",
         action="store_true",
         help="Clinical_Documents view restricted to current versions only (*)")
     clindocs_curr_group.add_argument(
-        "--clindocs-all",
+        "--clindocs_all",
         dest="clindocs_current_only",
         action="store_false",
         help="Clinical_Documents view shows old versions too")
@@ -1289,12 +1289,12 @@ def main() -> None:
 
     allerg_curr_group = parser.add_mutually_exclusive_group()
     allerg_curr_group.add_argument(
-        "--allergies-current-only",
+        "--allergies_current_only",
         dest="allergies_current_only",
         action="store_true",
         help="Client_Allergies view restricted to current info only")
     allerg_curr_group.add_argument(
-        "--allergies-all",
+        "--allergies_all",
         dest="allergies_current_only",
         action="store_false",
         help="Client_Allergies view shows deleted allergies too (*)")
@@ -1302,12 +1302,12 @@ def main() -> None:
 
     audit_group = parser.add_mutually_exclusive_group()
     audit_group.add_argument(
-        "--audit-info",
+        "--audit_info",
         dest="audit_info",
         action="store_true",
         help="Audit information (creation/update times) added to views")
     audit_group.add_argument(
-        "--no-audit-info",
+        "--no_audit_info",
         dest="audit_info",
         action="store_false",
         help="No audit information added (*)")
@@ -1326,7 +1326,7 @@ def main() -> None:
              f"identifying. Default: {' '.join(DEFAULT_GEOG_COLS)}")
 
     parser.add_argument(
-        "--settings-filename",
+        "--settings_filename",
         help="Specify filename to write draft ddgen_* settings to, for use in "
              "a CRATE anonymiser configuration file.")
 

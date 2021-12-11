@@ -143,7 +143,7 @@ def main() -> None:
              "get odd tables and views."
     )
     parser.add_argument(
-        "--drop-danger-drop", action="store_true",
+        "--drop_danger_drop", action="store_true",
         help="REMOVES new columns and indexes, rather than creating them. "
              "(There's not very much danger; no real information is lost, but "
              "it might take a while to recalculate it.)")
