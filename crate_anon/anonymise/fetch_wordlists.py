@@ -1095,5 +1095,5 @@ def main() -> None:
                      min_line_length=args.min_word_length)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

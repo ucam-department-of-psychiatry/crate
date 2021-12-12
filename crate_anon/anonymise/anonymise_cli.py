@@ -257,7 +257,7 @@ def main() -> None:
 # Command-line entry point
 # =============================================================================
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if DEBUG_RUN_WITH_PDB:
         pdb_run(main)
     else:

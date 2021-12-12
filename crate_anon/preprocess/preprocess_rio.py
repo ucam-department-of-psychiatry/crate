@@ -1415,6 +1415,6 @@ def main() -> None:
             print(get_rio_dd_settings(ddhint), file=f)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # pdb_run(main)
     main()

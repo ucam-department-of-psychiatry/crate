@@ -579,5 +579,5 @@ Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
             )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

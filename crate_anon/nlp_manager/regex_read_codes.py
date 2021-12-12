@@ -622,6 +622,6 @@ class TestReadCodeRegexes(unittest.TestCase):
         log.warning("No testing performed; just printed.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     unittest.main()

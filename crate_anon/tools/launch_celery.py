@@ -117,5 +117,5 @@ def main() -> None:
     call_main_with_exception_reporting(inner_main)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

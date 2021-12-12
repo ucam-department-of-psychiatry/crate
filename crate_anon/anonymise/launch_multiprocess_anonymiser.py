@@ -85,7 +85,7 @@ def main() -> None:
         help="Number of processes "
              "(default is the number of CPUs on this machine)")
     parser.add_argument(
-        '--verbose', '-v', action='store_true',
+        "--verbose", "-v", action="store_true",
         help="Be verbose")
     args, unknownargs = parser.parse_known_args()
 
@@ -93,6 +93,7 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel)
 
+    common_launcher = [sys.executable, "-m", ANONYMISER]
     common_options = ["-v"] * (1 if args.verbose else 0) + unknownargs
 
     log.debug(f"common_options: {common_options}")
@@ -117,18 +118,18 @@ def main() -> None:
     # system module), it might import "regex.py" from the same directory (which
     # it wouldn't normally do, because Python 3 uses absolute not relative
     # imports).
-    procargs = [
-        sys.executable, '-m', ANONYMISER,
-        '--dropremake', '--processcluster=STRUCTURE'
+    procargs = common_launcher + [
+        '--dropremake',
+        '--processcluster=STRUCTURE'
     ] + common_options
     check_call_process(procargs)
 
     # -------------------------------------------------------------------------
     # Build opt-out lists. Only run one copy of this!
     # -------------------------------------------------------------------------
-    procargs = [
-        sys.executable, '-m', ANONYMISER,
-        '--optout', '--processcluster=OPTOUT',
+    procargs = common_launcher + [
+        '--optout',
+        '--processcluster=OPTOUT',
         '--skip_dd_check'
     ] + common_options
     check_call_process(procargs)
@@ -145,8 +146,7 @@ def main() -> None:
     # (a) patient tables
     args_list = []  # type: List[List[str]]
     for procnum in range(nprocesses_patient):
-        procargs = [
-            sys.executable, '-m', ANONYMISER,
+        procargs = common_launcher + [
             '--patienttables',
             '--processcluster=PATIENT',
             f'--nprocesses={nprocesses_patient}',
@@ -154,9 +154,9 @@ def main() -> None:
             '--skip_dd_check'
         ] + common_options
         args_list.append(procargs)
+    # (b) non-patient tables
     for procnum in range(nprocesses_nonpatient):
-        procargs = [
-            sys.executable, '-m', ANONYMISER,
+        procargs = common_launcher + [
             '--nonpatienttables',
             '--processcluster=NONPATIENT',
             f'--nprocesses={nprocesses_nonpatient}',
@@ -165,6 +165,8 @@ def main() -> None:
         ] + common_options
         args_list.append(procargs)
     run_multiple_processes(args_list)  # Wait for them all to finish
+    # todo: fix cardinal_pythonlib to allow requesting e.g. n processes in
+    # total but only n/2 at once
 
     time_middle = time.time()
 
@@ -173,8 +175,7 @@ def main() -> None:
     # (Always fastest to index last.)
     # -------------------------------------------------------------------------
     args_list = [
-        [
-            sys.executable, '-m', ANONYMISER,
+        common_launcher + [
             '--index',
             '--processcluster=INDEX',
             f'--nprocesses={nprocesses_index}',
@@ -195,5 +196,5 @@ def main() -> None:
           f"total {total_dur} s")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

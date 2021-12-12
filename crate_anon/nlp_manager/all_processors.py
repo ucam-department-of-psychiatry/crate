@@ -321,6 +321,6 @@ def all_crate_python_processors_nlprp_processor_info(
     return allprocs
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all_processors()

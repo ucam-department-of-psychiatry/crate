@@ -179,5 +179,5 @@ def main() -> None:
     print(f"Time taken: {total_dur} s")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

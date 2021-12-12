@@ -84,5 +84,5 @@ def main() -> None:
     nice_call(cmdargs, cleanup_timeout=args.cleanup_timeout_s)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

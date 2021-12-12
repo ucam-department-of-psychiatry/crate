@@ -146,5 +146,5 @@ def main() -> None:
                  destroy_first=args.destroy_first)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

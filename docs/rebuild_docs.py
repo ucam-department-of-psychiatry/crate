@@ -38,7 +38,7 @@ BUILD_HTML_DIR = os.path.join(THIS_DIR, "build", "html")
 
 DEST_DIRS = []  # type: List[str]
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Remove anything old
     for destdir in [BUILD_HTML_DIR] + DEST_DIRS:
         print(f"Deleting directory {destdir!r}")

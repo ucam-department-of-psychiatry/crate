@@ -745,7 +745,7 @@ def examples_for_paper() -> None:
         print(r)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     unittest.main()
     examples_for_paper()

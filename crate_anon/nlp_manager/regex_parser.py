@@ -1583,6 +1583,6 @@ def test_all(verbose: bool = False) -> None:
     # learning_alternative_regex_groups()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all()

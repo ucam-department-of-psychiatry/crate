@@ -1439,6 +1439,14 @@ Changes
   PCMIS and RiO preprocessing tools, for consistency.
 
 
+To do
+-----
+
+- Fix promise for ``crate_anonymise_multiprocess``: it is launching *n* patient
+  processes and *n* non-patient processes simultaneously. Attempts in progress
+  in ``cardinal_pythonlib.subproc.run_multiple_processes``.
+
+
 ===============================================================================
 
 .. rubric:: Footnotes

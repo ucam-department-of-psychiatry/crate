@@ -44,5 +44,5 @@ def main() -> None:
         print(line.rstrip('\n'))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
