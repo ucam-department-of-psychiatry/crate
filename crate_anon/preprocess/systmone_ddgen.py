@@ -1596,9 +1596,9 @@ def get_index_flag(tablename: str,
     if is_pk(colname, ddr):
         # PKs should have a unique index.
         return IndexType.UNIQUE
-    elif (is_master_patient_table(tablename)
-            and (is_pid(colname) or is_mpid(colname))):
-        # In the master patient table, PIDs and MPIDs are unique.
+    elif is_master_patient_table(tablename) and is_pid(colname):
+        # In the master patient table, PIDs are unique.
+        # (MPIDs aren't -- they can be NULL.)
         return IndexType.UNIQUE
     elif is_pid(colname) or is_mpid(colname):
         # We index all patient IDs.
