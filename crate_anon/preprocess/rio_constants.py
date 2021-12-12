@@ -28,6 +28,8 @@ crate_anon/preprocess/rio_constants.py
 
 """
 
+from crate_anon.preprocess.constants import CRATE_IDX_PREFIX
+
 # Tables in RiO v6.2 Core:
 RIO_TABLE_MASTER_PATIENT = "ClientIndex"
 RIO_TABLE_ADDRESS = "ClientAddress"
@@ -87,16 +89,16 @@ CRATE_COL_MAX_DOCVER = "crate_max_docver_for_doc"
 CRATE_COL_LAST_DOC = "crate_last_doc_in_chain"
 
 # Indexes added... generic:
-CRATE_IDX_PK = "crate_idx_pk"  # for any patient table
-CRATE_IDX_RIONUM = "crate_idx_rionum"  # for any patient table
+CRATE_IDX_PK = f"{CRATE_IDX_PREFIX}_pk"  # for any patient table
+CRATE_IDX_RIONUM = f"{CRATE_IDX_PREFIX}_rionum"  # for any patient table
 # For progress notes:
-CRATE_IDX_RIONUM_NOTENUM = "crate_idx_rionum_notenum"
-CRATE_IDX_MAX_SUBNUM = "crate_idx_max_subnum"
-CRATE_IDX_LAST_NOTE = "crate_idx_last_note"
+CRATE_IDX_RIONUM_NOTENUM = f"{CRATE_IDX_PREFIX}_rionum_notenum"
+CRATE_IDX_MAX_SUBNUM = f"{CRATE_IDX_PREFIX}_max_subnum"
+CRATE_IDX_LAST_NOTE = f"{CRATE_IDX_PREFIX}_last_note"
 # For clinical documents:
-CRATE_IDX_RIONUM_SERIALNUM = "crateidx_rionum_serialnum"
-CRATE_IDX_MAX_DOCVER = "crate_idx_max_docver"
-CRATE_IDX_LAST_DOC = "crate_idx_last_doc"
+CRATE_IDX_RIONUM_SERIALNUM = f"{CRATE_IDX_PREFIX}_rionum_serialnum"
+CRATE_IDX_MAX_DOCVER = f"{CRATE_IDX_PREFIX}_max_docver"
+CRATE_IDX_LAST_DOC = f"{CRATE_IDX_PREFIX}_last_doc"
 
 # Views added:
 VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT = "progress_notes_current_crate"

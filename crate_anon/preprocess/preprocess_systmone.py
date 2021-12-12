@@ -45,6 +45,7 @@ from crate_anon.common.sql import (
     IndexCreationInfo,
     set_print_not_execute,
 )
+from crate_anon.preprocess.constants import CRATE_IDX_PREFIX
 from crate_anon.preprocess.systmone_ddgen import (
     core_tablename,
     DEFAULT_SYSTMONE_CONTEXT,
@@ -69,8 +70,8 @@ def preprocess_systmone(engine: Engine,
                         allow_unprefixed_tables: bool = False,
                         drop_danger_drop: bool = False) -> None:
     """
-    Add indexes to a SystmOne source database. Otherwise, anonymisation is very
-    slow.
+    Add indexes to a SystmOne source database. Without this, anonymisation is
+    very slow.
     """
     log.info("Reflecting (inspecting) database...")
     metadata = MetaData()
@@ -91,7 +92,7 @@ def preprocess_systmone(engine: Engine,
         # noinspection PyTypeChecker
         for column in table.columns:  # type: Column
             colname = column.name
-            idxname = f"_idx_{colname}"
+            idxname = f"{CRATE_IDX_PREFIX}_{colname}"
             if is_pk_simple(colname) or is_pid(colname) or is_mpid(colname):
 
                 # It's too much faff to work out reliably if the source table

@@ -208,6 +208,7 @@ from crate_anon.common.sql import (
     set_print_not_execute,
     ViewMaker,
 )
+from crate_anon.preprocess.constants import CRATE_IDX_PREFIX
 from crate_anon.preprocess.rio_constants import (
     DEFAULT_GEOG_COLS,
     ONSPD_TABLE_POSTCODE,
@@ -223,7 +224,7 @@ log = logging.getLogger(__name__)
 
 CRATE_COL_PK = "crate_pk"
 
-CRATE_IDX_PK = "crate_idx_pk"  # for any patient table
+CRATE_IDX_PK = f"{CRATE_IDX_PREFIX}_pk"  # for any patient table
 
 CRATE_VIEW_SUFFIX = "_crateview"
 

@@ -1265,8 +1265,9 @@ def process_table(sourcedbname: str,
                     # We compare using str() because we may have an integer and
                     # a string version. These will hash to the same value (see
                     # scrub_tests.py).
-                    f"PID mismatch: value = {value!r}, "
-                    f"patient.pid = {patient.pid!r}"
+                    f"PID mismatch from {ddr.src_signature}: "
+                    f"str(value) = {str(value)!r} but "
+                    f"str(patient.pid) = {str(patient.pid)!r}"
                 )
                 value = patient.rid
             elif ddr.master_pid:

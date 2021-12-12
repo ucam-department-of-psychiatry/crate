@@ -485,9 +485,9 @@ OMIT_TABLES_REGEX = (
     # I considered excluding "vw.*" (views) and "zzz.*" (scratch tables) here,
     # but the user has the option to exclude all such tables via
     # --systmone_allow_unprefixed_tables if they desire. Views may be useful;
-    # see also INCLUDE_TABLES_REGEX above. However, "zzz" tables in CPFT are
-    # scratch tables that should not be used:
-    "zzz.*",
+    # see also INCLUDE_TABLES_REGEX above. However, "zz" or "zzz" tables in
+    # CPFT are scratch tables that should not be used:
+    "zz",
 
     # Some have suffixes e.g. "S1_ReferralsIn_20200917", i.e. end with an
     # underscore then 8 digits. These are temporary copies that we should not
@@ -497,6 +497,16 @@ OMIT_TABLES_REGEX = (
     # This CPFT table is a non-patient table (but with potentially identifiable
     # information about referral reason? -- maybe not) -- skip it.
     "ReferralsOpen$",
+
+    # Waiting list tables use a confusing blend of SystmOne "IDPatient" and
+    # RiO "ClientID" columns, and it's not clear they add much:
+    "WaitList_",  # S1_Waitlist_*
+
+    # These contain (a) age (rather than DOB) information, and (b) information
+    # from multiple systems -- some risk of including RiO patients with the
+    # same ClientID as a SystmOne IDPatient, unless filtered, and is derived
+    # information anyway -- for now, we'll omit.
+    "Mortality",  # includes S1_Mortality, S1_MortalityAdditionalInfo
 )
 CORE_TO_CONTEXT_TABLE_TRANSLATIONS = {
     # Key: destination context.
@@ -636,8 +646,19 @@ S1_TO_CPFT_COLUMN_TRANSLATION = {
 
 PID_SYNONYMS = (
     S1_GENERIC_COL_PID,
-    "ClientID",  # seen in CPFT
+
+    "ClientID",
+    # ... seen in CPFT -- although often these tables should be excluded and
+    # this field contains RiO (not SystmOne) IDs. However, some look at least
+    # partially valid (e.g. S1_Deaths.ClientID, S1_Mortality.ClientID,
+    # S1_MortalityAdditionalInfo.ClientID). For the last of those, there is an
+    # explicit "SourceSystem" column; sometimes this is SystmOne, sometimes
+    # RiO, etc. Using ClientID as a primary patient ID will mean that only IDs
+    # present in the SystmOne master table will be taken. However, there is
+    # also potential for confusion, so we exclude these tables above.
+
     "PatientID",  # e.g. in CPFT: S1_eDSM (a CPFT table)
+
     "PatID",  # e.g. in CPFT: ASCRIBE_Statin
 )
 MPID_SYNONYMS = (
