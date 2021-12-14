@@ -107,13 +107,13 @@ v123.csv``, which is a full description of the SRE. Principles:
 
   .. code-block:: python
 
-    import csv
-    s = set()
-    for i, row in enumerate(csv.reader(open("Specification v123.csv"))):
-        if i > 0:
-            s.add(f"{row[0]} - {row[1]}")
+import csv
+s = set()
+for i, row in enumerate(csv.reader(open("Specification v123.csv"))):
+    if i > 0:
+        s.add(f"{row[0]} - {row[1]}")
 
-    print("\n".join((x for x in sorted(s))))
+print("\n".join((x for x in sorted(s))))
 
   Translating that to a single line: https://www.python.org/dev/peps/pep-0289/
   ... meh, hard.
@@ -286,7 +286,7 @@ In more detail:
   to view the source. For example, the stored procedure named
   ``dbo.load_S1_Patient`` creates the ``S1_Patient`` table.
 
-- ``RwNo`` is frequently used, typically via:
+- ``RwNo`` or ``RwNo_Patient`` is frequently used, typically via:
 
   .. code-block:: none
 
@@ -295,13 +295,25 @@ In more detail:
         ROW_NUMBER() OVER (
             PARTITION BY IDPatient
             ORDER BY DateEventRecorded DESC
-        ) RwNo
+        ) AS RwNo
     FROM
         -- somewhere
     WHERE
         RwNo = 1
+    ;
 
-  ... in other words, picking the most recent for each patient.
+    SELECT
+        -- stuff,
+        ROW_NUMBER() OVER (
+            PARTITION BY IDPatient
+            ORDER BY DateEvent DESC
+        ) AS RwNo_Patient
+    FROM
+        -- somewhere
+    ;
+
+  ... in other words, picking the most recent for each patient (or, without
+  the WHERE clause, showing its sequencing within each patient).
 
 
 Related tools
@@ -338,7 +350,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from cardinal_pythonlib.dicts import reversedict
 from cardinal_pythonlib.enumlike import CaseInsensitiveEnumMeta
-from cardinal_pythonlib.sqlalchemy.schema import is_sqlatype_string
+# from cardinal_pythonlib.sqlalchemy.schema import is_sqlatype_string
 
 from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.constants import (
@@ -419,43 +431,59 @@ TABLE_PREFIXES = {
 # -----------------------------------------------------------------------------
 # "Core" tablename, without the SR/S1_/... prefix.
 
-S1_TAB_PATIENT = "Patient"  # e.g. SRPatient (SRE), S1_Patient (CPFT)
-S1_TAB_ADDRESS = "PatientAddressHistory"
-S1_TAB_CONTACT_DETAILS = "PatientContactDetails"
-S1_TAB_RELATIONSHIPS = "PatientRelationship"
+class S1Table:
+    """
+    SystmOne "core" table names, with no prefix.
+    """
+    PATIENT = "Patient"  # e.g. SRPatient (SRE), S1_Patient (CPFT)
+    ADDRESS = "PatientAddressHistory"
+    CONTACT_DETAILS = "PatientContactDetails"
+    RELATIONSHIPS = "PatientRelationship"
 
-# Other tables starting "Patient":
-# - SRPatientContactProperty: seems not relevant; describes visits/diary events
-# - SRPatientGroups: e.g. to group patients in a residential home; also family,
-#   but contains no direct identifiers.
-# - SRPatientLeave: leave from hospital.
-# - SRPatientLocation: location within A&E departments, I think.
-# - SRPatientRegistration: registration status (and who did it); also their
-#   preferred pharmacy; but no direct identifiers.
+    # Other tables starting "Patient":
+    # - SRPatientContactProperty: seems not relevant; describes visits/diary
+    #   events
+    # - SRPatientGroups: e.g. to group patients in a residential home; also
 
-S1_TAB_HOSP_AE_NUMBERS = "HospitalAAndENumber"
-S1_TAB_MEDIA = "Media"  # todo: binary documents -- how?
-S1_TAB_SAFEGUARDING_PERSON_AT_RISK = "SafeguardingPersonAtRisk"
+    #   family, but contains no direct identifiers.
+    # - SRPatientLeave: leave from hospital.
+    # - SRPatientLocation: location within A&E departments, I think.
+    # - SRPatientRegistration: registration status (and who did it); also their
+    #   preferred pharmacy; but no direct identifiers.
 
-# See also OMIT_TABLENAME_COLNAME_PAIRS below.
-#
-# Other tables whose name might suggest patient identifiers:
-# - SRAddressBookEntry: institutional addresses only? (FK to this from
-#   SRSafeguardingIncidentDetails, for example.) todo: check -- institutional addresses only?  # noqa
-# - SRHospitalAdmissionAndDischarge, etc. -- no external identifiers linked to
-#   HospitalAAndENumber, just SystmOne IDs.
-# - SROohEmergencyCall -- no contact numbers.
-# - SROohTransport -- very structured.
-# - SROohVisit -- very structured.
+    HOSP_AE_NUMBERS = "HospitalAAndENumber"
+    MEDIA = "Media"  # todo: binary documents -- how?
+    SAFEGUARDING_PERSON_AT_RISK = "SafeguardingPersonAtRisk"
+
+    # See also OMIT_TABLENAME_COLNAME_PAIRS below.
+    #
+    # Other tables whose name might suggest patient identifiers:
+    # - SRAddressBookEntry: institutional addresses only? (FK to this from
+    #   SRSafeguardingIncidentDetails, for example.) todo: check -- institutional addresses only?  # noqa
+    # - SRHospitalAdmissionAndDischarge, etc. -- no external identifiers linked
+    #   to HospitalAAndENumber, just SystmOne IDs.
+    # - SROohEmergencyCall -- no contact numbers.
+    # - SROohTransport -- very structured.
+    # - SROohVisit -- very structured.
+
+
+class CPFTTable:
+    """
+    Selected tables that CPFT have renamed or created.
+    """
+    ADDRESS = "PatientAddress"
+    CONTACT_DETAILS = "PatientContact"
+    REL_MOTHER = "PatientRelationshipMother"
+    CYP_FRS_TELEPHONE_TRIAGE = "CYPFRS_TelephoneTriage"
+
 
 S1_TO_CPFT_TABLE_TRANSLATION = {
     # Where CPFT has renamed a S1 SRE table directly.
-    S1_TAB_ADDRESS: "PatientAddress",
+    S1Table.ADDRESS: CPFTTable.ADDRESS,
     # ... i.e. CPFT have renamed SRPatientAddressHistory to S1_PatientAddress.
-    S1_TAB_CONTACT_DETAILS: "PatientContact",
+    S1Table.CONTACT_DETAILS: CPFTTable.CONTACT_DETAILS,
 }
 
-CPFT_TAB_REL_MOTHER = "PatientRelationshipMother"
 
 # -----------------------------------------------------------------------------
 # Table collections
@@ -478,9 +506,43 @@ INCLUDE_TABLES_REGEX = (
 OMIT_TABLES_REGEX = (
     # CPFT extras:
 
+    "AuditLog",  # may have gone now! Was there for a while. Not relevant.
+    # todo: *** check gone
+
+    # This one filters for CTV3 codes Y2c49 and Y2ca. These might well be codes
+    # recently added by TPP for COVID-19 ("official" Read codes have been
+    # frozen since 2016, according to
+    # https://datadictionary.nhs.uk/supporting_information/read_coded_clinical_terms.html),  # noqa
+    # so I'm not sure what they are. However, the implication of the name of
+    # the table is that they restrict to NHS staff, so we should think about
+    # this. todo: *** a/w Nitin 2021-12-14
+    # "ClinicalOutcome_NHS_Staff_LongCovid",
+
     # S1_Inpatients, S1_Inpatients_20201020: current inpatients -- but these
     # tables have NHSNumber as FLOAT. Exclude them:
     "Inpatients",
+    # todo: *** check gone
+
+    # These contain (a) age (rather than DOB) information, and (b) information
+    # from multiple systems -- some risk of including RiO patients with
+    # coincidentally the same ClientID as a SystmOne IDPatient, unless
+    # filtered, and is derived information anyway -- for now, we'll omit.
+    "Mortality",  # includes S1_Mortality, S1_MortalityAdditionalInfo
+    # todo: *** check gone
+
+    # This CPFT table is a non-patient table (but with potentially identifiable
+    # information about referral reason? -- maybe not) -- skip it.
+    "ReferralsOpen$",
+    # todo: *** check gone
+
+    # Waiting list tables use a confusing blend of SystmOne "IDPatient" and
+    # RiO "ClientID" columns, and it's not clear they add much:
+    "WaitList_",  # S1_Waitlist_*
+    # todo: *** check gone
+
+    # Not relevant clinically:
+    "UserSmartCard",
+    # todo: *** check gone
 
     # I considered excluding "vw.*" (views) and "zzz.*" (scratch tables) here,
     # but the user has the option to exclude all such tables via
@@ -491,22 +553,8 @@ OMIT_TABLES_REGEX = (
 
     # Some have suffixes e.g. "S1_ReferralsIn_20200917", i.e. end with an
     # underscore then 8 digits. These are temporary copies that we should not
-    # use:
-    r".*_\d{8}$",
-
-    # This CPFT table is a non-patient table (but with potentially identifiable
-    # information about referral reason? -- maybe not) -- skip it.
-    "ReferralsOpen$",
-
-    # Waiting list tables use a confusing blend of SystmOne "IDPatient" and
-    # RiO "ClientID" columns, and it's not clear they add much:
-    "WaitList_",  # S1_Waitlist_*
-
-    # These contain (a) age (rather than DOB) information, and (b) information
-    # from multiple systems -- some risk of including RiO patients with the
-    # same ClientID as a SystmOne IDPatient, unless filtered, and is derived
-    # information anyway -- for now, we'll omit.
-    "Mortality",  # includes S1_Mortality, S1_MortalityAdditionalInfo
+    # use. Some have more after that date.
+    r".*_\d{8}",
 )
 CORE_TO_CONTEXT_TABLE_TRANSLATIONS = {
     # Key: destination context.
@@ -527,125 +575,178 @@ CONTEXT_TO_CORE_TABLE_TRANSLATIONS = {
 # We work internally with TPP SRE column names. Any renaming (e.g. in CPFT) is
 # explicitly noted.
 
-# Columns in all tables:
-S1_GENERIC_COL_DONE_AT = "IDOrganisationDoneAt"  # FK to SROrganisation.ID
-S1_GENERIC_COL_DONE_BY = "IDDoneBy"  # FK to SRStaffMember.RowIdentifier
-S1_GENERIC_COL_EVENT_ID = "IDEvent"  # FK to SREvent.RowIdentifier
-S1_GENERIC_COL_EVENT_OCCURRED = "DateEvent"  # when event happened
-S1_GENERIC_COL_EVENT_RECORDED = "DateEventRecorded"  # when event recorded
-S1_GENERIC_COL_ORG = "IDOrganisation"  # org at which the data was entered
-S1_GENERIC_COL_ORG_ID = "IDOrganisationVisibleTo"  # FK to SROrganisation.ID
-S1_GENERIC_COL_ORG_REGISTERED_AT = "IDOrganisationRegisteredAt"  # org where the patient was registered when the data was entered  # noqa
-S1_GENERIC_COL_PID = "IDPatient"  # FK to Patient table
-S1_GENERIC_COL_PK = "RowIdentifier"  # PK for all tables
-S1_GENERIC_COL_RECORDED_BY = "IDProfileEnteredBy"  # FK to SRStaffMemberProfile.RowIdentifier  # noqa
+class S1GenericCol:
+    """
+    Columns used in many SystmOne tables.
+    """
+    DONE_AT = "IDOrganisationDoneAt"  # FK to SROrganisation.ID
+    DONE_BY = "IDDoneBy"  # FK to SRStaffMember.RowIdentifier
+    EVENT_ID = "IDEvent"  # FK to SREvent.RowIdentifier
+    EVENT_OCCURRED = "DateEvent"  # when event happened
+    EVENT_RECORDED = "DateEventRecorded"  # when event recorded
+    ORG = "IDOrganisation"  # org at which the data was entered
+    ORG_ID = "IDOrganisationVisibleTo"  # FK to SROrganisation.ID
+    ORG_REGISTERED_AT = "IDOrganisationRegisteredAt"  # org where the patient was registered when the data was entered  # noqa
+    PID = "IDPatient"  # FK to Patient table
+    PK = "RowIdentifier"  # PK for all tables
+    RECORDED_BY = "IDProfileEnteredBy"  # FK to SRStaffMemberProfile.RowIdentifier  # noqa
 
-# Columns in the Patient table:
-S1_PATIENT_COL_NHSNUM = "NHSNumber"
-S1_PATIENT_COL_TITLE = "Title"
-S1_PATIENT_COL_FORENAME = "FirstName"
-S1_PATIENT_COL_MIDDLE_NAMES = "MiddleNames"
-S1_PATIENT_COL_SURNAME = "Surname"
-S1_PATIENT_COL_PREV_SURNAME = "PreviousSurname"
-S1_PATIENT_COL_EMAIL = "EmailAddress"
-S1_PATIENT_COL_DOB = "DateBirth"
-S1_PATIENT_COL_DOD = "DateDeath"
-S1_PATIENT_COL_BIRTHPLACE = "BirthPlace"
-S1_PATIENT_COL_GENDER = "Gender"
-S1_PATIENT_COL_SPEAKS_ENGLISH = "SpeaksEnglish"  # curious that this is a specific flag  # noqa
-S1_PATIENT_COL_TESTPATIENT = "TestPatient"
-S1_PATIENT_COL_SOCIAL_SERVICES_REF = "SSRef"
-S1_PATIENT_COL_SPINE_MATCHED = "SpineMatched"
 
-# Columns in the PatientAddressHistory table:
-S1_ADDRESS_COL_BUILDING_NAME = "NameOfBuilding"
-S1_ADDRESS_COL_BUILDING_NUMBER = "NumberOfBuilding"
-S1_ADDRESS_COL_ROAD = "NameOfRoad"
-S1_ADDRESS_COL_LOCALITY = "NameOfLocality"
-S1_ADDRESS_COL_TOWN = "NameOfTown"
-S1_ADDRESS_COL_COUNTY = "NameOfCounty"
-S1_ADDRESS_COL_POSTCODE = "FullPostCode"
-CPFT_ADDRESS_COL_POSTCODE_NOSPACE = "PostCode_NoSpaces"
+class CPFTGenericCol:
+    """"
+    CPFT variants for generic column names.
+    """
+    AGE_YEARS = "AgeInYears"
+    # ... usually "at the time of calculation, or death", i.e. unhelpful if you
+    # are unsure when the data was extracted; see stored procedure
+    # load_S1_Patient.
+    ASSIGNMENT_NUMBER = "AssignmentNumber"
+    # ... payroll number of member of staff, I think -- too sensitive and I am
+    # surprised it is there in the first place.
+    HOME_CONTACT_NUMBER = "HomeContactNumber"  # *** todo: check gone from Demographics  # noqa
+    MOBILE_CONTACT_NUMBER = "MobileContactNumber"  # *** todo: check gone from Demographics  # noqa
+    NHSNUM2 = "NHSNumber2"
+    NHSNUM_MOTHER = "CYPHS_NHSNumber_Mother"
+    PATIENT_ADDRESS = "PatientAddress"
+    PATIENT_NAME = "PatientName"
+    POSTCODE = "PostCode"
 
-# Columns in the PatientContactDetails table:
-S1_CONTACT_COL_NUMBER = "ContactNumber"
 
-# Columns in the PatientRelationship table:
-# (this is also one that we specify everything in detail, since CPFT add in
-# extra identifiers)
-S1_REL_COL_RELATED_ID_DEPRECATED = "IDRelationshipWithPatient"
-# ... replaced by IDPatientRelationshipWith
-S1_REL_COL_RELATED_ID = "IDPatientRelationshipWith"
-S1_REL_COL_RELATED_STAFFCODE_OR_RELNHSNUM = "CodeRelationshipWithUser"
-# ... SRE help says "The ODS code for the staff member the relationship is
-# with". However, it seems that it sometimes contains the NHS number of the
-# relative (certainly an NHS number that differs from the patient's!).
-S1_REL_COL_NAME = "RelationshipWithName"
-S1_REL_COL_DOB = "RelationshipWithDateOfBirth"
-S1_REL_COL_ADDRESS_HOUSE_NAME = "RelationshipWithHouseName"
-S1_REL_COL_ADDRESS_HOUSE_NUMBER = "RelationshipWithHouseNumber"
-S1_REL_COL_ADDRESS_ROAD = "RelationshipWithRoad"
-S1_REL_COL_ADDRESS_LOCALITY = "RelationshipWithLocality"
-S1_REL_COL_ADDRESS_POST_TOWN = "RelationshipWithPostTown"
-S1_REL_COL_ADDRESS_COUNTY = "RelationshipWithCounty"
-S1_REL_COL_ADDRESS_POSTCODE = "RelationshipWithPostCode"
-S1_REL_COL_ADDRESS_TELEPHONE = "RelationshipWithTelephone"
-S1_REL_COL_ADDRESS_WORK_TELEPHONE = "RelationshipWithWorkTelephone"
-S1_REL_COL_ADDRESS_MOBILE_TELEPHONE = "RelationshipWithMobileTelephone"
-S1_REL_COL_ADDRESS_FAX = "RelationshipWithFax"
-S1_REL_COL_ADDRESS_EMAIL = "RelationshipWithEmailAddress"
-# Fields about the timing/nature of the relationship:
-S1_REL_COL_DATE_ENDED = "DateEnded"
-S1_REL_COL_REL_TYPE = "RelationshipType"
-S1_REL_COL_GUARDIAN_PROXY = "PersonalGuardianOrProxy"
-S1_REL_COL_NEXT_OF_KIN = "NextOfKin"
-S1_REL_COL_CARER = "CaresForPatient"
-S1_REL_COL_PRINCIPAL_CARER = "PrincipalCarerForPatient"
-S1_REL_COL_KEYHOLDER = "KeyHolder"
-S1_REL_COL_PARENTAL_RESPONSIBILITY = "HasParentalResponsibility"
-S1_REL_COL_FINANCIAL_REP = "FinancialRepresentative"
-S1_REL_COL_ADVOCATE = "Advocate"
-S1_REL_COL_MAIN_VISITOR = "MainVisitor"
-S1_REL_COL_CALLBACK_CONSENT = "CallCentreCallBackConsent"
-S1_REL_COL_COPY_CORRESPONDENCE = "CopyCorrespondence"
-S1_REL_COL_CONTACT_ORDER = "ContactOrder"
-S1_REL_COL_CONTACT_METHOD = "ContactMethod"
-S1_REL_COL_COMMS_FORMAT = "CommunicationFormat"
-S1_REL_COL_INTERPRETER_REQUIRED = "InterpreterRequired"
-# and things that are about the relative but not directly identifying:
-S1_REL_COL_SEX = "RelationshipWithSex"
-S1_REL_COL_LANGUAGE = "RelationshipWithSpokenLanguage"
-S1_REL_COL_ORG = "RelationshipWithOrganisation"
+class S1PatientCol:
+    """
+    Columns in the Patient table.
+    """
+    NHSNUM = "NHSNumber"
+    TITLE = "Title"
+    FORENAME = "FirstName"
+    MIDDLE_NAMES = "MiddleNames"
+    SURNAME = "Surname"
+    PREV_SURNAME = "PreviousSurname"
+    EMAIL = "EmailAddress"
+    DOB = "DateBirth"
+    DOD = "DateDeath"
+    BIRTHPLACE = "BirthPlace"
+    GENDER = "Gender"
+    SPEAKS_ENGLISH = "SpeaksEnglish"  # curious that this is a specific flag  # noqa
+    TESTPATIENT = "TestPatient"
+    SOCIAL_SERVICES_REF = "SSRef"
+    SPINE_MATCHED = "SpineMatched"
 
-# Columns in the HospitalAAndENumber table
-S1_HOSPNUM_COL_HOSPNUM = "HospitalNumber"
-S1_HOSPNUM_COL_COMMENTS = "Comments"
 
-# Other column names used by CPFT
-CPFT_REL_MOTHER_COL_NHSNUM = S1_PATIENT_COL_NHSNUM
-CPFT_PATIENT_COL_MIDDLE_NAMES = "GivenName2"
-CPFT_PATIENT_COL_DOB = "DOB"
-CPFT_GENERIC_COL_NHSNUM2 = "NHSNumber2"
-CPFT_GENERIC_COL_AGE_YEARS = "AgeInYears"
-# ... usually "at the time of calculation, or death", i.e. unhelpful if you are
-# unsure when the data was extracted; see stored procedure load_S1_Patient.
-CPFT_GENERIC_COL_PATIENT_NAME = "PatientName"
-CPFT_GENERIC_COL_NHSNUM_MOTHER = "CYPHS_NHSNumber_Mother"
-CPFT_GENERIC_COL_POSTCODE = "PostCode"
+class CPFTPatientCol:
+    """
+    CPFT variants for the patient table.
+    """
+    MIDDLE_NAMES = "GivenName2"
+    DOB = "DOB"
+
+
+class S1AddressCol:
+    """
+    Columns in the PatientAddressHistory table.
+    """
+    BUILDING_NAME = "NameOfBuilding"
+    BUILDING_NUMBER = "NumberOfBuilding"
+    ROAD = "NameOfRoad"
+    LOCALITY = "NameOfLocality"
+    TOWN = "NameOfTown"
+    COUNTY = "NameOfCounty"
+    POSTCODE = "FullPostCode"
+
+
+class CPFTAddressCol:
+    """
+    CPFT variants for the address table.
+    """
+    POSTCODE_NOSPACE = "PostCode_NoSpaces"
+
+
+class S1ContactCol:
+    """
+    Columns in the PatientContactDetails table.
+    """
+    NUMBER = "ContactNumber"
+
+
+class S1RelCol:
+    """
+    Columns in the PatientRelationship table.
+    (This is also one for which we specify everything in detail, since CPFT add
+    in extra identifiers.)
+    """
+    RELATED_ID_DEPRECATED = "IDRelationshipWithPatient"
+    # ... replaced by IDPatientRelationshipWith
+    RELATED_ID = "IDPatientRelationshipWith"
+    RELATED_STAFFCODE_OR_RELNHSNUM = "CodeRelationshipWithUser"
+    # ... SRE help says "The ODS code for the staff member the relationship is
+    # with". However, it seems that it sometimes contains the NHS number of the
+    # relative (certainly an NHS number that differs from the patient's!).
+    NAME = "RelationshipWithName"
+    DOB = "RelationshipWithDateOfBirth"
+    ADDRESS_HOUSE_NAME = "RelationshipWithHouseName"
+    ADDRESS_HOUSE_NUMBER = "RelationshipWithHouseNumber"
+    ADDRESS_ROAD = "RelationshipWithRoad"
+    ADDRESS_LOCALITY = "RelationshipWithLocality"
+    ADDRESS_POST_TOWN = "RelationshipWithPostTown"
+    ADDRESS_COUNTY = "RelationshipWithCounty"
+    ADDRESS_POSTCODE = "RelationshipWithPostCode"
+    ADDRESS_TELEPHONE = "RelationshipWithTelephone"
+    ADDRESS_WORK_TELEPHONE = "RelationshipWithWorkTelephone"
+    ADDRESS_MOBILE_TELEPHONE = "RelationshipWithMobileTelephone"
+    ADDRESS_FAX = "RelationshipWithFax"
+    ADDRESS_EMAIL = "RelationshipWithEmailAddress"
+    # Fields about the timing/nature of the relationship:
+    DATE_ENDED = "DateEnded"
+    REL_TYPE = "RelationshipType"
+    GUARDIAN_PROXY = "PersonalGuardianOrProxy"
+    NEXT_OF_KIN = "NextOfKin"
+    CARER = "CaresForPatient"
+    PRINCIPAL_CARER = "PrincipalCarerForPatient"
+    KEYHOLDER = "KeyHolder"
+    PARENTAL_RESPONSIBILITY = "HasParentalResponsibility"
+    FINANCIAL_REP = "FinancialRepresentative"
+    ADVOCATE = "Advocate"
+    MAIN_VISITOR = "MainVisitor"
+    CALLBACK_CONSENT = "CallCentreCallBackConsent"
+    COPY_CORRESPONDENCE = "CopyCorrespondence"
+    CONTACT_ORDER = "ContactOrder"
+    CONTACT_METHOD = "ContactMethod"
+    COMMS_FORMAT = "CommunicationFormat"
+    INTERPRETER_REQUIRED = "InterpreterRequired"
+    # and things that are about the relative but not directly identifying:
+    SEX = "RelationshipWithSex"
+    LANGUAGE = "RelationshipWithSpokenLanguage"
+    ORG = "RelationshipWithOrganisation"
+
+
+class CPFTOtherCol:
+    """
+    Other CPFT variants.
+    """
+    REL_MOTHER_COL_NHSNUM = S1PatientCol.NHSNUM
+
+
+class S1HospNumCol:
+    """
+    Columns in the HospitalAAndENumber table.
+    """
+    HOSPNUM = "HospitalNumber"
+    COMMENTS = "Comments"
+
 
 S1_TO_CPFT_COLUMN_TRANSLATION = {
     # Where CPFT has renamed a column.
     # - Key: (core_tablename, colname) tuple.
     # - Value: new CPFT column name.
-    (S1_TAB_PATIENT,
-     S1_PATIENT_COL_MIDDLE_NAMES): CPFT_PATIENT_COL_MIDDLE_NAMES,
-    (S1_TAB_PATIENT, S1_PATIENT_COL_DOB): CPFT_PATIENT_COL_DOB,
-    (S1_TAB_RELATIONSHIPS,
-     S1_REL_COL_RELATED_STAFFCODE_OR_RELNHSNUM): S1_PATIENT_COL_NHSNUM,
+    (S1Table.PATIENT,
+     S1PatientCol.MIDDLE_NAMES): CPFTPatientCol.MIDDLE_NAMES,
+    (S1Table.PATIENT, S1PatientCol.DOB): CPFTPatientCol.DOB,
+    (S1Table.RELATIONSHIPS,
+     S1RelCol.RELATED_STAFFCODE_OR_RELNHSNUM): S1PatientCol.NHSNUM,
 }
 
 PID_SYNONYMS = (
-    S1_GENERIC_COL_PID,
+    S1GenericCol.PID,
 
     "ClientID",
     # ... seen in CPFT -- although often these tables should be excluded and
@@ -662,8 +763,8 @@ PID_SYNONYMS = (
     "PatID",  # e.g. in CPFT: ASCRIBE_Statin
 )
 MPID_SYNONYMS = (
-    S1_PATIENT_COL_NHSNUM,
-    CPFT_GENERIC_COL_NHSNUM2,
+    S1PatientCol.NHSNUM,
+    CPFTGenericCol.NHSNUM2,
 )
 
 
@@ -683,83 +784,91 @@ CONTEXT_TO_CORE_CONTEXT_COLUMN_TRANSLATIONS = {
 }  # type: COLUMN_TRANSLATION_DICT_TYPE
 
 S1_COLS_GENERIC_OK_UNMODIFIED = (
-    S1_GENERIC_COL_DONE_AT,
-    S1_GENERIC_COL_DONE_BY,
-    S1_GENERIC_COL_EVENT_ID,
-    S1_GENERIC_COL_EVENT_OCCURRED,
-    S1_GENERIC_COL_EVENT_RECORDED,
-    S1_GENERIC_COL_ORG,
-    S1_GENERIC_COL_ORG_ID,
-    S1_GENERIC_COL_ORG_REGISTERED_AT,
-    S1_GENERIC_COL_RECORDED_BY,
+    S1GenericCol.DONE_AT,
+    S1GenericCol.DONE_BY,
+    S1GenericCol.EVENT_ID,
+    S1GenericCol.EVENT_OCCURRED,
+    S1GenericCol.EVENT_RECORDED,
+    S1GenericCol.ORG,
+    S1GenericCol.ORG_ID,
+    S1GenericCol.ORG_REGISTERED_AT,
+    S1GenericCol.RECORDED_BY,
 )
 S1_COLS_GENERIC_EXCLUDE = (
-    # For when CPFT put identifiers all over the place. We can simply exclude
-    # (rather than using them for scrubbing) since they are duplicates (for
-    # convenience) of information in other tables like Patient,
-    # PatientContactDetails, PatientAddressHistory.
+    # Columns to exclude, regardless of table.
+    #
+    # This is primarily for when CPFT put identifiers all over the place (e.g.
+    # joining them from the patient table). We can simply exclude (rather than
+    # using them for scrubbing) since they are duplicates (for convenience) of
+    # information in other tables like Patient, PatientContactDetails,
+    # PatientAddressHistory.
 
-    S1_PATIENT_COL_FORENAME,
-    S1_PATIENT_COL_MIDDLE_NAMES,
-    S1_PATIENT_COL_SURNAME,
-    S1_PATIENT_COL_PREV_SURNAME,
-    S1_PATIENT_COL_EMAIL,
-    S1_PATIENT_COL_DOB,
+    S1PatientCol.DOB,
+    S1PatientCol.EMAIL,
+    S1PatientCol.FORENAME,
+    S1PatientCol.MIDDLE_NAMES,
+    S1PatientCol.PREV_SURNAME,
+    S1PatientCol.SURNAME,
+    S1PatientCol.TITLE,  # unnecessary -- and might be rare, e.g. Lord High Admiral  # noqa
 
-    CPFT_GENERIC_COL_NHSNUM2,
-    CPFT_PATIENT_COL_MIDDLE_NAMES,
-    CPFT_PATIENT_COL_DOB,
-    CPFT_GENERIC_COL_AGE_YEARS,
+    S1AddressCol.BUILDING_NAME,
+    S1AddressCol.BUILDING_NUMBER,
+    S1AddressCol.COUNTY,
+    S1AddressCol.LOCALITY,
+    S1AddressCol.POSTCODE,
+    S1AddressCol.ROAD,
+    S1AddressCol.TOWN,
+
+    S1RelCol.ADDRESS_COUNTY,
+    S1RelCol.ADDRESS_EMAIL,
+    S1RelCol.ADDRESS_FAX,
+    S1RelCol.ADDRESS_HOUSE_NAME,
+    S1RelCol.ADDRESS_HOUSE_NUMBER,
+    S1RelCol.ADDRESS_LOCALITY,
+    S1RelCol.ADDRESS_MOBILE_TELEPHONE,
+    S1RelCol.ADDRESS_POST_TOWN,
+    S1RelCol.ADDRESS_POSTCODE,
+    S1RelCol.ADDRESS_ROAD,
+    S1RelCol.ADDRESS_TELEPHONE,
+    S1RelCol.ADDRESS_WORK_TELEPHONE,
+    S1RelCol.DOB,
+    S1RelCol.NAME,
+
+    S1HospNumCol.HOSPNUM,  # just in case
+
+    CPFTGenericCol.AGE_YEARS,
     # ... age when? Unhelpful. (And also, potentially leads to DOB discovery;
     # a blurred age near a birthday might be un-blurred by this.)
-    CPFT_GENERIC_COL_PATIENT_NAME,
+    CPFTGenericCol.ASSIGNMENT_NUMBER,  # could hash it, but still, sensitive.
+    CPFTGenericCol.HOME_CONTACT_NUMBER,
+    CPFTGenericCol.MOBILE_CONTACT_NUMBER,
+    CPFTGenericCol.NHSNUM2,
+    CPFTGenericCol.NHSNUM_MOTHER,
+    CPFTGenericCol.PATIENT_ADDRESS,
+    CPFTGenericCol.PATIENT_NAME,
+    CPFTGenericCol.POSTCODE,
 
-    S1_ADDRESS_COL_BUILDING_NAME,
-    S1_ADDRESS_COL_BUILDING_NUMBER,
-    S1_ADDRESS_COL_ROAD,
-    S1_ADDRESS_COL_LOCALITY,
-    S1_ADDRESS_COL_TOWN,
-    S1_ADDRESS_COL_COUNTY,
-    S1_ADDRESS_COL_POSTCODE,
+    CPFTPatientCol.DOB,
+    CPFTPatientCol.MIDDLE_NAMES,
 
-    CPFT_ADDRESS_COL_POSTCODE_NOSPACE,
-
-    S1_REL_COL_NAME,
-    S1_REL_COL_DOB,
-    S1_REL_COL_ADDRESS_HOUSE_NAME,
-    S1_REL_COL_ADDRESS_HOUSE_NUMBER,
-    S1_REL_COL_ADDRESS_ROAD,
-    S1_REL_COL_ADDRESS_LOCALITY,
-    S1_REL_COL_ADDRESS_POST_TOWN,
-    S1_REL_COL_ADDRESS_COUNTY,
-    S1_REL_COL_ADDRESS_POSTCODE,
-    S1_REL_COL_ADDRESS_TELEPHONE,
-    S1_REL_COL_ADDRESS_WORK_TELEPHONE,
-    S1_REL_COL_ADDRESS_MOBILE_TELEPHONE,
-    S1_REL_COL_ADDRESS_FAX,
-    S1_REL_COL_ADDRESS_EMAIL,
-
-    CPFT_GENERIC_COL_NHSNUM_MOTHER,
-    CPFT_GENERIC_COL_POSTCODE,
-
-    S1_HOSPNUM_COL_HOSPNUM,  # just in case
+    CPFTAddressCol.POSTCODE_NOSPACE,
 )
 
 S1_COLS_PATIENT_WORDS = (
     # Scrub as words.
-    S1_PATIENT_COL_FORENAME,
-    S1_PATIENT_COL_MIDDLE_NAMES,
-    S1_PATIENT_COL_SURNAME,
-    S1_PATIENT_COL_PREV_SURNAME,
-    S1_PATIENT_COL_EMAIL,
-    S1_PATIENT_COL_BIRTHPLACE,  # Unusual. But: scrub birthplace.
+    S1PatientCol.FORENAME,
+    S1PatientCol.MIDDLE_NAMES,
+    S1PatientCol.SURNAME,
+    S1PatientCol.PREV_SURNAME,
+    S1PatientCol.EMAIL,
+    S1PatientCol.BIRTHPLACE,  # Unusual. But: scrub birthplace.
 )
 S1_COLS_REQUIRED_SCRUBBERS = (
     # Information that must be present in the master patient table.
-    S1_GENERIC_COL_PK,  # likely redundant! It's the PID "definer".
-    S1_PATIENT_COL_FORENAME,
-    S1_PATIENT_COL_SURNAME,
-    S1_PATIENT_COL_DOB,
+    S1GenericCol.PK,  # likely redundant! It's the PID "definer".
+    S1PatientCol.FORENAME,
+    S1PatientCol.SURNAME,
+    S1PatientCol.DOB,
 )
 S1_COLS_PATIENT_TABLE_OK_UNMODIFIED = S1_COLS_GENERIC_OK_UNMODIFIED + (
     # This list exists because we don't assume that things in the Patient table
@@ -767,10 +876,9 @@ S1_COLS_PATIENT_TABLE_OK_UNMODIFIED = S1_COLS_GENERIC_OK_UNMODIFIED + (
     # know about them. So we add "safe" things (that are not direct
     # identifiers) here.
 
-    # S1_PATIENT_COL_TITLE,  # unnecessary -- and might be rare, e.g. Lord High Admiral  # noqa
-    S1_PATIENT_COL_GENDER,
-    S1_PATIENT_COL_SPEAKS_ENGLISH,
-    S1_PATIENT_COL_SPINE_MATCHED,
+    S1PatientCol.GENDER,
+    S1PatientCol.SPEAKS_ENGLISH,
+    S1PatientCol.SPINE_MATCHED,
     # Added by CPFT:
     "DeathIndicator",  # binary version (0 alive, 1 dead)
     "NationalDataOptOut",  # Added by CPFT (from NDOptOutPreference)?)
@@ -781,91 +889,91 @@ S1_COLS_PATIENT_TABLE_OK_UNMODIFIED = S1_COLS_GENERIC_OK_UNMODIFIED + (
 
 S1_COLS_ADDRESS_PHRASES = (
     # Scrub as phrases.
-    # - For S1_ADDRESS_COL_BUILDING_NAME, see below.
-    # - For S1_ADDRESS_COL_BUILDING_NUMBER, see below.
-    S1_ADDRESS_COL_ROAD,
-    S1_ADDRESS_COL_LOCALITY,
-    S1_ADDRESS_COL_TOWN,
-    S1_ADDRESS_COL_COUNTY,
+    # - For S1AddressCol.BUILDING_NAME, see below.
+    # - For S1AddressCol.BUILDING_NUMBER, see below.
+    S1AddressCol.ROAD,
+    S1AddressCol.LOCALITY,
+    S1AddressCol.TOWN,
+    S1AddressCol.COUNTY,
 )
 S1_COLS_ADDRESS_PHRASE_UNLESS_NUMBER = (
-    S1_ADDRESS_COL_BUILDING_NAME,
-    S1_ADDRESS_COL_BUILDING_NUMBER,
-    # S1_ADDRESS_COL_BUILDING_NUMBER poses a new problem for us: this is meant
+    S1AddressCol.BUILDING_NAME,
+    S1AddressCol.BUILDING_NUMBER,
+    # S1AddressCol.BUILDING_NUMBER poses a new problem for us: this is meant
     # to be e.g. "5", which is by itself non-identifying and would be a big
     # problem if we scrub (consider e.g. "5 mg"). However, sometimes it is "5
     # Tree Road", because it's not forced to be numeric. So we extend CRATE
     # (2021-12-01) to add ScrubMethod.PHRASE_UNLESS_NUMERIC.
-    # (S1_ADDRESS_COL_BUILDING_NAME occasionally contains numbers only, so we
+    # (S1AddressCol.BUILDING_NAME occasionally contains numbers only, so we
     # do the same thing.)
 )
 
 S1_COLS_RELATIONSHIP_XREF_ID = (
     # Scrub (third-party) as full cross-references to another record.
-    S1_REL_COL_RELATED_ID_DEPRECATED,
-    S1_REL_COL_RELATED_ID,
+    S1RelCol.RELATED_ID_DEPRECATED,
+    S1RelCol.RELATED_ID,
 )
 S1_COLS_RELATIONSHIP_WORDS = (
     # Scrub (third-party) as words.
-    S1_REL_COL_NAME,
-    S1_REL_COL_ADDRESS_EMAIL,
+    S1RelCol.NAME,
+    S1RelCol.ADDRESS_EMAIL,
     # Added by CPFT:
     "Surname",  # surname of relative
     "FirstName",  # surname of relative
 )
 S1_COLS_RELATIONSHIP_DATES = (
     # Scrub (third-party) as dates.
-    S1_REL_COL_DOB,
+    S1RelCol.DOB,
     # Added by CPFT:
-    "DOB",  # likely duplicate of S1_REL_COL_DOB
+    "DOB",  # likely duplicate of S1RelCol.DOB
 )
 S1_COLS_RELATIONSHIP_PHRASES = (
     # Scrub (third-party) as phrases.
     # Same principles as for the patient address, above.
-    # - For S1_REL_COL_ADDRESS_HOUSE_NAME, see below.
-    # - For S1_REL_COL_ADDRESS_HOUSE_NUMBER, see below.
-    S1_REL_COL_ADDRESS_ROAD,
-    S1_REL_COL_ADDRESS_LOCALITY,
-    S1_REL_COL_ADDRESS_POST_TOWN,
-    S1_REL_COL_ADDRESS_COUNTY,
+    # - For S1RelCol.ADDRESS_HOUSE_NAME, see below.
+    # - For S1RelCol.ADDRESS_HOUSE_NUMBER, see below.
+    S1RelCol.ADDRESS_ROAD,
+    S1RelCol.ADDRESS_LOCALITY,
+    S1RelCol.ADDRESS_POST_TOWN,
+    S1RelCol.ADDRESS_COUNTY,
 )
 S1_COLS_RELATIONSHIP_PHRASE_UNLESS_NUMERIC = (
-    S1_REL_COL_ADDRESS_HOUSE_NAME,
-    S1_REL_COL_ADDRESS_HOUSE_NUMBER,
+    S1RelCol.ADDRESS_HOUSE_NAME,
+    S1RelCol.ADDRESS_HOUSE_NUMBER,
 )
 S1_COLS_RELATIONSHIP_CODES = (
     # Scrub (third-party) as codes.
-    S1_REL_COL_ADDRESS_POSTCODE,
+    S1RelCol.ADDRESS_POSTCODE,
 )
 S1_COLS_RELATIONSHIP_NUMBERS = (
     # Scrub (third-party) as numbers.
-    S1_REL_COL_RELATED_STAFFCODE_OR_RELNHSNUM,
-    S1_REL_COL_ADDRESS_TELEPHONE,
-    S1_REL_COL_ADDRESS_WORK_TELEPHONE,
-    S1_REL_COL_ADDRESS_MOBILE_TELEPHONE,
-    S1_REL_COL_ADDRESS_FAX,
+    S1RelCol.RELATED_STAFFCODE_OR_RELNHSNUM,
+    S1RelCol.ADDRESS_TELEPHONE,
+    S1RelCol.ADDRESS_WORK_TELEPHONE,
+    S1RelCol.ADDRESS_MOBILE_TELEPHONE,
+    S1RelCol.ADDRESS_FAX,
 )
 S1_COLS_RELATIONSHIP_OK_UNMODIFIED = (
-    S1_REL_COL_DATE_ENDED,
-    S1_REL_COL_REL_TYPE,
-    S1_REL_COL_GUARDIAN_PROXY,
-    S1_REL_COL_NEXT_OF_KIN,
-    S1_REL_COL_CARER,
-    S1_REL_COL_PRINCIPAL_CARER,
-    S1_REL_COL_KEYHOLDER,
-    S1_REL_COL_PARENTAL_RESPONSIBILITY,
-    S1_REL_COL_FINANCIAL_REP,
-    S1_REL_COL_ADVOCATE,
-    S1_REL_COL_MAIN_VISITOR,
-    S1_REL_COL_CALLBACK_CONSENT,
-    S1_REL_COL_COPY_CORRESPONDENCE,
-    S1_REL_COL_CONTACT_ORDER,
-    S1_REL_COL_CONTACT_METHOD,
-    S1_REL_COL_COMMS_FORMAT,
-    S1_REL_COL_INTERPRETER_REQUIRED,
-    S1_REL_COL_SEX,
-    S1_REL_COL_LANGUAGE,
-    S1_REL_COL_ORG,
+    S1RelCol.DATE_ENDED,
+    S1RelCol.REL_TYPE,
+    S1RelCol.GUARDIAN_PROXY,
+    S1RelCol.NEXT_OF_KIN,
+    S1RelCol.CARER,
+    S1RelCol.PRINCIPAL_CARER,
+    S1RelCol.KEYHOLDER,
+    S1RelCol.PARENTAL_RESPONSIBILITY,
+    S1RelCol.FINANCIAL_REP,
+    S1RelCol.ADVOCATE,
+    S1RelCol.MAIN_VISITOR,
+    S1RelCol.CALLBACK_CONSENT,
+    S1RelCol.COPY_CORRESPONDENCE,
+    S1RelCol.CONTACT_ORDER,
+    S1RelCol.CONTACT_METHOD,
+    S1RelCol.COMMS_FORMAT,
+    S1RelCol.INTERPRETER_REQUIRED,
+    S1RelCol.SEX,
+    S1RelCol.LANGUAGE,
+    S1RelCol.ORG,
     # Added by CPFT:
     "DateDeath",  # date of death of relative
 )
@@ -875,31 +983,44 @@ CPFT_REL_MOTHER_OK_UNMODIFIED = ()
 OMIT_TABLENAME_COLNAME_PAIRS = (
     # Other specific fields to omit.
     ("Contacts", "ContactWith"),
-    (S1_TAB_HOSP_AE_NUMBERS, S1_HOSPNUM_COL_COMMENTS),
+    (S1Table.HOSP_AE_NUMBERS, S1HospNumCol.COMMENTS),
     ("OohAction", "Details"),  # Out-of-hours calls; details can sometimes contain phone numbers  # noqa
     ("OohThirdPartyCall", "Contact"),  # free text
     ("SafeguardingIncidentDetails", "PoliceReference"),
 )
 
 FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = (
-    # Regexes are matched from the start of strings, so it just takes a
-    # terminal "$" for an exact match.
     ("FreeText$", "FreeText$"),  # the bulk of free text; VARCHAR(MAX)
     ("PersonAtRisk$", "ReasonForPlan$"),  # free text re safeguarding
     ("ReferralIn$", "PrimaryReason$"),  # only 200 chars; may be OK
     ("SafeguardingAllegationDetails$", "Outcome$"),  # only 100 chars -- but OMIT whole table, as above  # noqa
     ("SpecialNotes$", "Note$"),  # 8000 char free text
 
-    # CPFT versions (argh)!:
+    # CPFT:
+
     # - SRReferralIn renamed to S1_ReferralsIn with extra columns,
     #   PrimaryReason, but there are several others, like
     #   ReferralReasonDescription1.
     (".*Referral", ".*Reason"),
+
+    # - S1_CYPFRS_TelephoneTriage links in a bunch of things from S1_FreeText.
+    (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Assessment"),
+    (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Presentation"),
+    (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Risk"),
+    (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Strength"),
+    (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Intervention"),
+    (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Problem"),
+    (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Social"),
+    (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Advice"),
+    (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Clinical"),
+    (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Outcome"),
+    (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*NextOfKin"),
+    # todo: *** check filtered
 )
 EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS = (
     # S1_Patient.IDPatient: Added by CPFT. Duplicate of RowIdentifier.
     # But likely to be used by researchers, so should be indexed.
-    (S1_TAB_PATIENT, S1_GENERIC_COL_PID),
+    (S1Table.PATIENT, S1GenericCol.PID),
 )
 
 EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS = (
@@ -1215,14 +1336,14 @@ def is_master_patient_table(tablename: str) -> bool:
     """
     Is this the master patient table?
     """
-    return eq(tablename, S1_TAB_PATIENT)
+    return eq(tablename, S1Table.PATIENT)
 
 
 def is_pid(colname: str) -> bool:
     """
     Is this column the SystmOne primary patient identifier (PID)?
 
-    It's nearly always S1_GENERIC_COL_PID. But occasionally something else
+    It's nearly always S1GenericCol.PID. But occasionally something else
     (e.g. in CPFT-created tables).
 
     This works for all tables EXCEPT the main "Patient" table, where the PK
@@ -1257,9 +1378,10 @@ def is_pk_simple(colname: str) -> bool:
     """
     Is this likely to be a primary key column, based only on its name?
     """
-    return eq(colname, S1_GENERIC_COL_PK)
+    return eq(colname, S1GenericCol.PK)
 
 
+# noinspection PyUnusedLocal
 def is_free_text(tablename: str,
                  colname: str,
                  ddr: DataDictionaryRow) -> bool:
@@ -1269,9 +1391,9 @@ def is_free_text(tablename: str,
     Unusually, there is not very much free text, and it is mostly collated.
     (We haven't added binary support yet. Do we have the binary documents?)
     """
-    if not is_sqlatype_string(ddr.src_sqla_coltype):
-        # Not a textual type
-        return False
+    # if not is_sqlatype_string(ddr.src_sqla_coltype):  # UNRELIABLE?
+    #     # Not a textual type
+    #     return False
     return is_pair_in_re(tablename, colname,
                          FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS)
 
@@ -1369,8 +1491,8 @@ def get_scrub_alter_details(
     # -------------------------------------------------------------------------
     # Deal with the core patient table. Many details here.
     # -------------------------------------------------------------------------
-    if eq(tablename, S1_TAB_PATIENT):
-        if eq(colname, S1_GENERIC_COL_PK):
+    if eq(tablename, S1Table.PATIENT):
+        if eq(colname, S1GenericCol.PK):
             # RowIdentifier: SystmOne patient ID in the master patient table.
             # Hash and scrub SystmOne IDs.
             ssi.add_src_flag(SrcFlag.PRIMARY_PID)  # automatically hashed
@@ -1379,7 +1501,7 @@ def get_scrub_alter_details(
             ssi.scrub_method = ScrubMethod.NUMERIC
             ssi.include()
 
-        elif eq(colname, S1_GENERIC_COL_PID):
+        elif eq(colname, S1GenericCol.PID):
             # IDPatient: Added by CPFT to the master patient table?
             # Needs to be hashed. Is a duplicate of RowIdentifier.
             ssi.add_src_flag(SrcFlag.PRIMARY_PID)  # automatically hashed
@@ -1400,7 +1522,7 @@ def get_scrub_alter_details(
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.WORDS
 
-        elif eq(colname, S1_PATIENT_COL_DOB):
+        elif eq(colname, S1PatientCol.DOB):
             # Truncate and scrub dates of birth.
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.DATE
@@ -1408,21 +1530,21 @@ def get_scrub_alter_details(
                                              truncate_date=True))
             ssi.include()
 
-        elif eq(colname, S1_PATIENT_COL_DOD):
+        elif eq(colname, S1PatientCol.DOD):
             # Include dates of death.
             ssi.include()
 
-        elif eq(colname, S1_PATIENT_COL_BIRTHPLACE):
+        elif eq(colname, S1PatientCol.BIRTHPLACE):
             # Unusual. But: scrub birthplace.
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.WORDS
 
-        elif eq(colname, S1_PATIENT_COL_TESTPATIENT):
+        elif eq(colname, S1PatientCol.TESTPATIENT):
             # Exclude test patients.
             ssi.add_src_flag(SrcFlag.OPT_OUT)
             ssi.include()
 
-        elif eq(colname, S1_PATIENT_COL_SOCIAL_SERVICES_REF):
+        elif eq(colname, S1PatientCol.SOCIAL_SERVICES_REF):
             # Scrub and omit Social Services ID (text).
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.CODE
@@ -1455,7 +1577,7 @@ def get_scrub_alter_details(
         # Recognized and handled as a generic column.
         return ssi
 
-    if eq(tablename, S1_TAB_ADDRESS):
+    if eq(tablename, S1Table.ADDRESS):
         # ---------------------------------------------------------------------
         # Address table.
         # ---------------------------------------------------------------------
@@ -1467,20 +1589,20 @@ def get_scrub_alter_details(
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.PHRASE_UNLESS_NUMERIC
 
-        elif eq(colname, S1_ADDRESS_COL_POSTCODE):
+        elif eq(colname, S1AddressCol.POSTCODE):
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.CODE
 
         else:
             # omit anything else in the address table, e.g.
-            # CPFT_ADDRESS_COL_POSTCODE_NOSPACE
+            # CPFTAddressCol.POSTCODE_NOSPACE
             pass
 
-    elif eq(tablename, S1_TAB_CONTACT_DETAILS):
+    elif eq(tablename, S1Table.CONTACT_DETAILS):
         # ---------------------------------------------------------------------
         # Contact details table.
         # ---------------------------------------------------------------------
-        if eq(colname, S1_CONTACT_COL_NUMBER):
+        if eq(colname, S1ContactCol.NUMBER):
             # Could be patient; ?could be third party; mostly patient?
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.NUMERIC
@@ -1488,7 +1610,7 @@ def get_scrub_alter_details(
         else:
             pass  # omit anything else in the contact details table
 
-    elif eq(tablename, S1_TAB_RELATIONSHIPS):
+    elif eq(tablename, S1Table.RELATIONSHIPS):
         # ---------------------------------------------------------------------
         # Third-party (relationships) table.
         # ---------------------------------------------------------------------
@@ -1529,7 +1651,7 @@ def get_scrub_alter_details(
         else:
             pass  # omit anything unknown in the relationship table
 
-    elif eq(tablename, CPFT_TAB_REL_MOTHER):
+    elif eq(tablename, CPFTTable.REL_MOTHER):
         # ---------------------------------------------------------------------
         # A CPFT partial duplicate table: from the relationship table where
         # that relationship is "Mother".
@@ -1539,7 +1661,7 @@ def get_scrub_alter_details(
             ssi.scrub_method = ScrubMethod.NUMERIC
             ssi.include()
 
-        elif eq(colname, CPFT_REL_MOTHER_COL_NHSNUM):
+        elif eq(colname, CPFTOtherCol.REL_MOTHER_COL_NHSNUM):
             # Likely a duplicate as a scrubber. But that's not a problem for
             # CRATE and this also marks it as something to remove.
             ssi.scrub_src = ScrubSrc.THIRDPARTY
@@ -1552,7 +1674,7 @@ def get_scrub_alter_details(
             pass  # omit anything unown
 
     elif tcmatch(tablename, colname,
-                 S1_TAB_HOSP_AE_NUMBERS, S1_HOSPNUM_COL_HOSPNUM):
+                 S1Table.HOSP_AE_NUMBERS, S1HospNumCol.HOSPNUM):
         # ---------------------------------------------------------------------
         # A hospital number.
         # ---------------------------------------------------------------------
@@ -1560,7 +1682,7 @@ def get_scrub_alter_details(
         ssi.scrub_method = ScrubMethod.CODE  # can contain text
 
     elif tcmatch(tablename, colname,
-                 S1_TAB_SAFEGUARDING_PERSON_AT_RISK, S1_PATIENT_COL_NHSNUM):
+                 S1Table.SAFEGUARDING_PERSON_AT_RISK, S1PatientCol.NHSNUM):
         # ---------------------------------------------------------------------
         # Another person's NHS number.
         # ---------------------------------------------------------------------

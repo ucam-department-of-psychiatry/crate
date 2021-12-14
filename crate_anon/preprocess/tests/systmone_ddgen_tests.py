@@ -62,3 +62,6 @@ class SystmOneDDGenTests(TestCase):
         self.assertTrue(eq(test_referralsopen_core, "ReferralsOpen"))
         self.assertTrue(eq_re(test_referralsopen_core, "ReferralsOpen$"))
         self.assertTrue(is_in_re(test_referralsopen_core, OMIT_TABLES_REGEX))
+        self.assertTrue(is_in_re("Accommodation_20210329", OMIT_TABLES_REGEX))
+        self.assertTrue(is_in_re("Accommodation_20210329_blah", OMIT_TABLES_REGEX))  # noqa
+        self.assertTrue(is_in_re("S1_Accommodation_20210329", OMIT_TABLES_REGEX))  # noqa

@@ -42,7 +42,7 @@ explicitly setting the "omit" flag to True for all such tables.
 import argparse
 import copy
 import logging
-from typing import List, Optional
+from typing import Dict, List, Optional, Type
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy.dialects.mssql.base import dialect as mssql_server_dialect
@@ -58,11 +58,25 @@ from crate_anon.ancillary.timely_project.timely_filter import (
 from crate_anon.ancillary.timely_project.timely_filter_cpft_rio import (
     TimelyCPFTRiOFilter,
 )
+from crate_anon.ancillary.timely_project.timely_filter_systmone import (
+    TimelySystmOneFilter,
+)
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.ddr import DataDictionaryRow
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+FILTER_INFO_CHOICES = {
+    # name, class
+    "CPFT_RiO": TimelyCPFTRiOFilter,
+    "SystmOne": TimelySystmOneFilter
+}  # type: Dict[str, Type[TimelyDDFilter]]
 
 
 # =============================================================================
@@ -250,17 +264,22 @@ def main() -> None:
         help="Data dictionary file to write"
     )
     parser.add_argument(
+        "--system", type=str, required=True,
+        choices=sorted(FILTER_INFO_CHOICES.keys()),
+        help="EHR system for which to translate the data dictionary"
+    )
+    parser.add_argument(
+        "--stage", type=int,
+        choices=list(range(1, N_STAGES + 1)), default=1,
+        help="Approval stage."
+    )
+    parser.add_argument(
         "--nocolour", action="store_true",
         help="Disable colour in logs"
     )
     parser.add_argument(
         "--verbose", action="store_true",
         help="Be verbose"
-    )
-    parser.add_argument(
-        "--stage", type=int,
-        choices=list(range(1, N_STAGES + 1)), default=1,
-        help="Approval stage."
     )
     args = parser.parse_args()
 
@@ -271,7 +290,8 @@ def main() -> None:
         main_only_quicksetup_rootlogger(level=loglevel)
 
     # Future: select different types of data dictionary here.
-    filter_info = TimelyCPFTRiOFilter()
+    filter_info_class = FILTER_INFO_CHOICES[args.system]
+    filter_info = filter_info_class()
 
     filter_dd(
         filter_info=filter_info,

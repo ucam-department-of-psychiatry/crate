@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/ancillary/timely_project/timely_filter_cpft_rio.py
+crate_anon/ancillary/timely_project/timely_filter_systmone.py
 
 ===============================================================================
 
@@ -27,7 +27,7 @@ crate_anon/ancillary/timely_project/timely_filter_cpft_rio.py
 Helper code for MRC TIMELY project (Moore, grant MR/T046430/1). Not of general
 interest.
 
-Information to filter CPFT RiO data dictionaries for TIMELY.
+Information to filter SystmOne data dictionaries for TIMELY.
 
 """
 
@@ -46,9 +46,9 @@ from crate_anon.ancillary.timely_project.timely_filter import TimelyDDFilter
 # TimelyCPFTRiOFilter
 # =============================================================================
 
-class TimelyCPFTRiOFilter(TimelyDDFilter):
+class TimelySystmOneFilter(TimelyDDFilter):
     """
-    Filter a CPFT RiO data dictionary.
+    Filter a SystmOne data dictionary (with some CPFT extensions).
     """
     def __init__(self) -> None:
         super().__init__()
@@ -57,8 +57,9 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
         # Generic exclusions
         # ---------------------------------------------------------------------
 
+        # *** todo: deal with prefixes
+
         add_table_criteria(self.exclude_tables, stage=None, regex_strings=[
-            "cpft_core_assessment_v2_kcsa_children_in_household",  #  about people other than the patient  # noqa
         ])
 
         # ---------------------------------------------------------------------
@@ -67,38 +68,59 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
         # ---------------------------------------------------------------------
 
         add_table_criteria(self.staged_include_tables, stage=1, regex_strings=[
-            # Demographics
-            "Client_Demographic_Details",  # basics
-            "Client_Address_History",  # addresses blurred to LSOAs
-            "Deceased",
+            "18WeekWait",  # referral info
+            "Accommodation",  # e.g. lives in sheltered accommodation
+            "ActivityEvent.*",  # e.g. attendance/non-attendance at appts
+            "Appointments",  # contacts
+            "CarerStatus",  # e.g. "is a carer"
+            "Child_At_Risk",  # safeguarding
+            "Child_Protection_Plan_Reason",  # safeguarding
+            "Contacts.*",
+            "CPA$",  # start date etc.
+            "Deaths",
+            "Demographics",
+            "Diagnosis",
+            "Disability.*",
+            "Employment",
+            "Event",  # nature of contact, e.g. face-to-face or e-mail
+            "InpatientWardStay",
+            "Medical_History_Previous_Diagnosis",
+            "NDOptOutPreference",
+            "Newborn_Bloodspot_.*",
+            "OutOfHours.*",  # e.g. MIU contacts, dispositions
+            "OverseasVisitorChargingCategory",  # demographics
+            "Patient$",  # demographics
+            "PatientAddress",  # demographics
+            "PatientContact",  # useless?
+            "PatientEthnicity",
+            "PatientGPPractice",
+            "PatientLanguageDeathOptions",  # language = demographics
+            "PatientRelationship",  # e.g. "other is a carer for patient"
+            "PatientSRCodeInformation",  # Read codes (e.g. diagnoses)
+            "PersonAtRisk",  # safeguarding
+            "PRISM_ReReferral",  # primary care MH service
+            "Provisional_Diagnosis",  # diagnoses
+            "ReferralAllocation$",  # teams
+            "ReferralInReferralReason",  # picklist reason for referral
+            "ReferralsIn",
+            "ReferralsOut",
+            "RiskReview",  # safeguarding
+            "Safeguarding.*",
+            "Secondary_Diagnosis",
+            "SettledAccommodationIndicator",
+            "SpecialEducationalNeeds",
+            "Team",  # non-patient lookup table
+            "TeamMember",  # non-patient lookup table
+            "Templates",  # CTV3/SNOMED codes from templates
+            "Vanguard",  # referrals to CPFT Vanguard MH service
+            "WaitingList",  # contains some free text notes; see below
+            "WaitList_EatingDisorders",  # referral waiting lists
+            "WorkingHours",  # number of hours worked by patient
 
-            # Safeguarding
-            "Client_Family",  # legal status codes, parental responsibility, etc.  # noqa
-            "ClientAlert",
-            # ClientAlertRemovalReason is an example of a system table -- it
-            # doesn't relate to a patient. We include those automatically.
-            "RskRelatedIncidents",  # BUT SEE field exclusions
-            "RskRelatedIncidentsRiskType",
-
-            # Basic contacts, e.g. start/end of care plan
-            "Client_CPA",  # care plan start/end dates
-            "Client_GP",  # GP practice registration
-            "Client_School",  # school attended
-            "ClientGPMerged",  # when GP practices merge, we think
-
-            # Diagnosis/problems
-            "ClientOtherSmoker",  # smoking detail
-            "ClientSmoking",  # more smoking detail
-            # ClientSocialFactor -- no data
-            "Diagnosis",  # ICD-10 diagnoses
-            "SNOMED.*",  # SNOMED-coded problems
-
-            # Referrals (basic info)
-            "Referral.*",  # includes ReferralCoding = diagnosis for referral (+ teams etc.)  # noqa
+            # Views:
+            "vsS1_OutOfHours",  # see OutOfHours above
+            "vsS1_PatientAddressWithResearchGeography",
         ])
-
-        # Note that "UserAssess*" is where all the local custom additions to
-        # RiO go. These are quite varied.
 
         # ---------------------------------------------------------------------
         # Stage 2: detailed information about all service contacts, including
@@ -106,18 +128,20 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
         # ---------------------------------------------------------------------
 
         add_table_criteria(self.staged_include_tables, stage=2, regex_strings=[
-            "Client_Professional_Contacts",
-            "ClientHealthCareProviderAssumed",
-
-            # Inpatient activity (IMS = inpatient management system)
-            "Ims.*",
-            "Inpatient.*",
-            "IPAms.*",
-
-            # Mnt = Mental Health Act
-            "Mnt.*",
-
-            "ParentGuardianImport",  # outcome data
+            "AQ_.*",  # (fact of) answerered questionnaire
+            "Clustering",  # care cluster classification
+            "Coded_Procedure",
+            "ECT.*",
+            "EuroQol.*",  # quality-of-life outcome data
+            "Goal",
+            "NewbornHearingAudiologyOutcome",
+            "NewbornHearingScreeningOutcome",
+            "PhysicalHealthChecks",  # the fact of it being done
+            "ReferralInIntervention",  # e.g. discharged, got better
+            "SessionNotes_CTV3Code",  # who does what (in outline)
+            "SessionNotes_Template",  # who does what (in outline)
+            "Visit",  # home visits
+            "WardAttender",
         ])
 
         # ---------------------------------------------------------------------
@@ -125,9 +149,8 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
         # ---------------------------------------------------------------------
 
         add_table_criteria(self.staged_include_tables, stage=3, regex_strings=[
-            "Client_Allergies",  # for prescribing
-            "Client_Medication",  # will be empty!
-            "Client_Prescription",  # will be empty!
+            "CYPHS_502_Immunisation",
+            "Immunisation",
         ])
 
         # ---------------------------------------------------------------------
@@ -135,9 +158,17 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
         # ---------------------------------------------------------------------
 
         add_table_criteria(self.staged_include_tables, stage=4, regex_strings=[
-            "Client_Physical_Details",  # e.g. head circumference
-            "ClientMaternalDetail",  # patients who are mothers
-            "ClientPhysicalDetailMerged",  # e.g. height, weight
+            "AnsweredQuestionnaire",  # fact of questionnaires being answered
+            "AssistiveTechnologyToSupportDisability",
+            "ClinicalMeasure_.*",
+            "ClinicalOutcome_.*",
+            "Coded_.*",  # finding, observations, [procedures: see 2], scored assessments  # noqa
+            "Falls_AtRiskState.*",
+            "Inpatient_NorthwickParkIndex",  # may be current inpatients only
+            "InpatientLeave",
+            "MentalHealthAct.*",
+            "PatientAnsweredQuestionnaireInformation",
+            "PatientLetterInformation",
         ])
 
         # ---------------------------------------------------------------------
@@ -145,11 +176,9 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
         # ---------------------------------------------------------------------
 
         add_table_criteria(self.staged_include_tables, stage=5, regex_strings=[
-            # Care plans, Care Plan Approach, care coordination
-            "Care_Plan.*",
             "CarePlan.*",
-            "CareCoordinatorOccupation",
-            "CPA.*"
+            "CPA.*",  # the rest, except "CPA" above
+            "RestrictiveIntervention",  # restrictive physical intervention
         ])
 
         # ---------------------------------------------------------------------
@@ -157,11 +186,10 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
         # ---------------------------------------------------------------------
 
         add_table_criteria(self.staged_include_tables, stage=6, regex_strings=[
-            "Clinical_Documents",
-            "CPFT_Core_Assessment.*",
-            "Progress_Note",
-            "RskRelatedIncidents",
-            "UserAssessCAMH",  # CAMH-specific assessments (e.g. questionnaires) -- can have free-text comments.  # noqa
+            "CYPFRS_TelephoneTriage",
+            "FreeText",
+            "LADSCYPHS_Output",
+            "LADSCYPQuestionnaires",
         ])
 
         # ---------------------------------------------------------------------
@@ -172,5 +200,5 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
 
         add_field_criteria(self.staged_exclude_fields, stage=5, regex_tuples=[
             # "exclude at stage 5 or earlier"
-            ("RskRelatedIncidents", "Text")
+            ("WaitingList", "Notes")
         ])
