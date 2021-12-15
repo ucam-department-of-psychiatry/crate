@@ -109,14 +109,26 @@ class ScrubberBase(object):
 # WordList
 # =============================================================================
 
-def lower_case_words_from_file(fileobj: Iterable[str]) -> Generator[str, None,
-                                                                    None]:
+def lower_case_words_from_file(fileobj: Iterable[str]) \
+        -> Generator[str, None, None]:
     """
     Generates lower-case words from a file.
     """
     for line in fileobj:
         for word in line.split():
-            yield word.lower()
+            if word:
+                yield word.lower()
+
+
+def lower_case_phrase_lines_from_file(fileobj: Iterable[str]) \
+        -> Generator[str, None, None]:
+    """
+    Generates lower-case phrases from a file, one per line.
+    """
+    for line in fileobj:
+        phrase = line.strip()
+        if phrase:
+            yield phrase.lower()
 
 
 FLASHTEXT_WORD_CHARACTERS = set(
@@ -139,6 +151,7 @@ class WordList(ScrubberBase):
     """
     def __init__(self,
                  filenames: Iterable[str] = None,
+                 as_phrase_lines: bool = False,
                  words: Iterable[str] = None,
                  replacement_text: str = '[---]',
                  hasher: GenericHasher = None,
@@ -149,16 +162,19 @@ class WordList(ScrubberBase):
         """
         Args:
             filenames:
-                filenames to read words from
+                Filenames to read words from.
+            as_phrase_lines:
+                Keep lines intact (as phrases), rather than splitting them into
+                individual words.
             words:
-                additional words to add
+                Additional words to add.
             replacement_text:
-                replace sensitive content with this string
+                Replace sensitive content with this string.
             hasher:
                 :class:`GenericHasher` to use to hash this scrubber (for
-                change-detection purposes); should be a secure hasher
+                change-detection purposes); should be a secure hasher.
             suffixes:
-                append each of these suffixes to each word
+                Append each of these suffixes to each word.
             at_word_boundaries_only:
                 Boolean. If set, ensure that the regex begins and ends with a
                 word boundary requirement. (If false: will scrub ``ANN`` from
@@ -190,7 +206,11 @@ class WordList(ScrubberBase):
         # https://stackoverflow.com/questions/2831212/python-sets-vs-lists
         # noinspection PyTypeChecker
         for f in filenames:
-            self.add_file(f, clear_cache=False)
+            self.add_file(
+                f,
+                as_phrase_lines=as_phrase_lines,
+                clear_cache=False
+            )
         # noinspection PyTypeChecker
         for w in words:
             self.add_word(w, clear_cache=False)
@@ -220,16 +240,27 @@ class WordList(ScrubberBase):
         if clear_cache:
             self.clear_cache()
 
-    def add_file(self, filename: str, clear_cache: bool = True) -> None:
+    def add_file(self,
+                 filename: str,
+                 as_phrase_lines: bool = False,
+                 clear_cache: bool = True) -> None:
         """
         Add all words from a file.
 
         Args:
-            filename: file to read
-            clear_cache: also clear our cache?
+            filename:
+                File to read.
+            as_phrase_lines:
+                Keep lines intact (as phrases), rather than splitting them into
+                individual words.
+            clear_cache:
+                Also clear our cache?
         """
         with open(filename) as f:
-            wordgen = lower_case_words_from_file(f)
+            if as_phrase_lines:
+                wordgen = lower_case_phrase_lines_from_file(f)
+            else:
+                wordgen = lower_case_words_from_file(f)
             for w in wordgen:
                 self.words.add(w)
         if clear_cache:

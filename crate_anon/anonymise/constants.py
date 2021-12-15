@@ -225,6 +225,7 @@ class AnonymiseConfigKeys:
     ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY = "anonymise_numbers_at_word_boundaries_only"  # noqa
     ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY = "anonymise_strings_at_word_boundaries_only"  # noqa
     DENYLIST_FILENAMES = "denylist_filenames"
+    DENYLIST_FILES_AS_PHRASE_LINES = "denylist_files_as_phrase_lines"
     DEPRECATED_BLACKLIST_FILENAMES = "blacklist_filenames"
     DEPRECATED_WHITELIST_FILENAMES = "whitelist_filenames"
     MIN_STRING_LENGTH_FOR_ERRORS = "min_string_length_for_errors"
@@ -400,6 +401,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_AK.MIN_STRING_LENGTH_TO_SCRUB_WITH} = 2
 {_AK.ALLOWLIST_FILENAMES} =
 {_AK.DENYLIST_FILENAMES} =
+{_AK.DENYLIST_FILES_AS_PHRASE_LINES} = False
 {_AK.PHRASE_ALTERNATIVE_WORD_FILENAMES} =
 {_AK.SCRUB_ALL_NUMBERS_OF_N_DIGITS} =
 {_AK.SCRUB_ALL_UK_POSTCODES} = False

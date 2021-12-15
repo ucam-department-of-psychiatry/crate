@@ -31,13 +31,22 @@ Unit testing.
 # =============================================================================
 # Imports
 # =============================================================================
-
+import re
+import logging
+import os
+from tempfile import TemporaryDirectory
+from typing import List
 from unittest import TestCase
 
 from cardinal_pythonlib.hash import HmacMD5Hasher
 
 from crate_anon.anonymise.constants import ScrubMethod
-from crate_anon.anonymise.scrub import PersonalizedScrubber
+from crate_anon.anonymise.scrub import (
+    PersonalizedScrubber,
+    WordList,
+)
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -75,6 +84,8 @@ class PersonalizedScrubberTests(TestCase):
         self.hasher = HmacMD5Hasher(self.key)
         self.anonpatient = PATIENT_REPLACEMENT
         self.anonthird = THIRD_PARTY_REPLACEMENT
+        self.tempdir = TemporaryDirectory()
+        self.maxDiff = None  # see full differences upon failure
 
     def test_phrase_unless_numeric(self) -> None:
         tests = [
@@ -123,3 +134,84 @@ class PersonalizedScrubberTests(TestCase):
                     f"Failure for scrubvalue: {scrubvalue!r}; regex elements "
                     f"are {scrubber.re_patient_elements}"
                 )
+
+    def _test_wordlist(self, regex_method: bool = False) -> None:
+        """
+        Test with e.g.
+
+        .. code-block:: python
+
+            pytest -k test_wordlist --log-cli-level=INFO
+        """
+        denylist_phrases = [
+            "Alice",
+            "Bob",
+            "Charlie Brown",
+            "Daisy",
+        ]
+        anon_text = PATIENT_REPLACEMENT
+        test_source_text = """
+            I met Alice in the street.
+            She was walking with Bob.
+            Charlie was not with them.
+            Their gloves were brown.
+            They stopped to inspect a daisy.
+            They discussed Charlie Brown cartoons.
+            They discussed Charlie  Brown cartoons all day long.
+        """
+        denylist_text = (
+            "\n" + "\n".join(f" {x} " for x in denylist_phrases) + "\n"
+        )
+        # https://stackoverflow.com/questions/952914/how-to-make-a-flat-list-out-of-a-list-of-lists  # noqa
+        denylist_words = []  # type: List[str]
+        for line in denylist_phrases:
+            denylist_words += [x for x in line.split() if x]
+
+        expected_result_phrases = test_source_text
+        for element in denylist_phrases:
+            # https://stackoverflow.com/questions/919056/case-insensitive-replace  # noqa
+            element_re = re.compile(re.escape(element), re.IGNORECASE)
+            expected_result_phrases = element_re.sub(anon_text,
+                                                     expected_result_phrases)
+
+        expected_result_words = test_source_text
+        for element in denylist_words:
+            element_re = re.compile(re.escape(element), re.IGNORECASE)
+            expected_result_words = element_re.sub(anon_text,
+                                                   expected_result_words)
+
+        filename = os.path.join(self.tempdir.name, "badwords.txt")
+        with open(filename, "wt") as f:
+            f.write(denylist_text)
+
+        wordlist_phrases = WordList(
+            filenames=[filename],
+            as_phrase_lines=True,
+            replacement_text=anon_text,
+            regex_method=regex_method
+        )
+        wordlist_words = WordList(
+            filenames=[filename],
+            as_phrase_lines=False,
+            replacement_text=anon_text,
+            regex_method=regex_method
+        )
+
+        log.info(f"test_source_text: {test_source_text}")
+        log.info(f"denylist_text: {denylist_text}")
+
+        result_words = wordlist_words.scrub(test_source_text)
+        log.info(f"denylist_words: {denylist_words}")
+        log.info(f"result_words: {result_words}")
+        log.info(f"expected_result_words: {expected_result_words}")
+        self.assertEqual(result_words, expected_result_words)
+
+        result_phrases = wordlist_phrases.scrub(test_source_text)
+        log.info(f"denylist_phrases: {denylist_phrases}")
+        log.info(f"result_phrases: {result_phrases}")
+        log.info(f"expected_result_phrases: {expected_result_phrases}")
+        self.assertEqual(result_phrases, expected_result_phrases)
+
+    def test_wordlist(self) -> None:
+        self._test_wordlist(regex_method=False)
+        self._test_wordlist(regex_method=True)

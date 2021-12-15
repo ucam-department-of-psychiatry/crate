@@ -428,6 +428,7 @@ Here's a suggestion for some of the sorts of words you might include:
     language review.
 
 
+.. _denylist_filenames:
 denylist_filenames
 ##################
 
@@ -446,9 +447,42 @@ Specify these as a list of filenames, e.g
         /some/path/girl_names.txt
         /some/path/common_surnames.txt
 
+The prototypical use is to remove all known names (pre-filtered to remove
+medical eponyms) -- see also :ref:`crate_fetch_wordlists
+<crate_fetch_wordlists>`.
+
+See denylist_files_as_phrase_lines_, which governs how these files are
+interpreted.
+
 .. note::
     Formerly ``blacklist_filenames``; changed 2020-07-20 as part of neutral
     language review.
+
+
+.. _denylist_files_as_phrase_lines:
+denylist_files_as_phrase_lines
+##############################
+
+*Boolean.* Default: false.
+
+(For denylist_filenames_.) Consider a "denylist" file like this:
+
+.. code-block:: none
+
+        Alice
+        Bob
+        Charlie Brown
+
+If ``denylist_files_as_phrase_lines`` is false, then every *word* will be
+scrubbed -- ``Alice``, ``Bob``, ``Charlie``, and ``Brown``.
+
+If ``denylist_files_as_phrase_lines`` is true, then every line is treated as a
+``phrase`` to be scrubbed: ``Alice``, ``Bob``, and ``Charlie Brown``. That is,
+``Charlie`` and ``Brown`` will not be scrubbed, just the composite phrase.
+However, spacing matters here: as a phrase, ``Charlie Brown`` will not scrub
+``Charlie Brown`` (note the double-space). The prototypical use of this option
+is to provide a list of organizational (e.g. general practitioner) addresses
+that should be scrubbed, and always appear in a consistent format.
 
 
 phrase_alternative_word_filenames
