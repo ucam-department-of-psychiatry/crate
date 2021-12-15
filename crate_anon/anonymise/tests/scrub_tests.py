@@ -45,6 +45,7 @@ from crate_anon.anonymise.scrub import (
     PersonalizedScrubber,
     WordList,
 )
+from crate_anon.common.bugfix_flashtext import KeywordProcessorFixed
 
 log = logging.getLogger(__name__)
 
@@ -134,6 +135,26 @@ class PersonalizedScrubberTests(TestCase):
                     f"Failure for scrubvalue: {scrubvalue!r}; regex elements "
                     f"are {scrubber.re_patient_elements}"
                 )
+
+    def _test_flashtext_word_boundaries(self, target: str) -> None:
+        target = "daisy"
+        anon_text = PATIENT_REPLACEMENT
+        ft = KeywordProcessorFixed(case_sensitive=False)
+        ft.add_keyword(target, anon_text)
+        self.assertEqual(
+            # FlashText will replace at word boundaries:
+            ft.replace_keywords(f"x {target} x"),
+            f"x {anon_text} x"
+        )
+        self.assertEqual(
+            # But only at word boundaries, so this won't replace:
+            ft.replace_keywords(f"x{target}x"),
+            f"x{target}x"
+        )
+
+    def test_flashtext_word_boundaries(self) -> None:
+        self._test_flashtext_word_boundaries("daisy")
+        self._test_flashtext_word_boundaries("daisy bluebell")
 
     def _test_wordlist(self, regex_method: bool = False) -> None:
         """
