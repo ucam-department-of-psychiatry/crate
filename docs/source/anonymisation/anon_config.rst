@@ -453,7 +453,7 @@ The prototypical use is to remove all known names (pre-filtered to remove
 medical eponyms) -- see also :ref:`crate_fetch_wordlists
 <crate_fetch_wordlists>`.
 
-See denylist_files_as_phrase_lines_, which governs how these files are
+See denylist_files_as_phrases_, which governs how these files are
 interpreted.
 
 .. note::
@@ -461,9 +461,9 @@ interpreted.
     language review.
 
 
-.. _denylist_files_as_phrase_lines:
-denylist_files_as_phrase_lines
-##############################
+.. _denylist_files_as_phrases:
+denylist_files_as_phrases
+#########################
 
 *Boolean.* Default: false.
 
@@ -475,13 +475,13 @@ denylist_files_as_phrase_lines
         Bob
         Charlie Brown
 
-If ``denylist_files_as_phrase_lines`` is false, then every *word* will be
-scrubbed -- ``Alice``, ``Bob``, ``Charlie``, and ``Brown``.
+If ``denylist_files_as_phrases`` is false, then every *word* will be scrubbed
+-- ``Alice``, ``Bob``, ``Charlie``, and ``Brown``.
 
-If ``denylist_files_as_phrase_lines`` is true, then every line is treated as a
-``phrase`` to be scrubbed: ``Alice``, ``Bob``, and ``Charlie Brown``. That is,
-``Charlie`` and ``Brown`` will not be scrubbed, just the composite phrase.
-This option is further configurable via denylist_phrases_flexible_whitespace_.
+If ``denylist_files_as_phrases`` is true, then every line is treated as a
+*phrase* to be scrubbed: ``Alice``, ``Bob``, and ``Charlie Brown``. That is,
+``Charlie`` and ``Brown`` will not be scrubbed, just the composite phrase. This
+option is further configurable via denylist_phrases_flexible_whitespace_.
 
 The prototypical use of this option is to provide a list of organizational
 (e.g. general practitioner) addresses that should be scrubbed, and always
@@ -494,7 +494,7 @@ denylist_phrases_flexible_whitespace
 
 *Boolean.* Default: false.
 
-(For denylist_files_as_phrase_lines_.)
+(For denylist_files_as_phrases_.)
 
 If false:
 

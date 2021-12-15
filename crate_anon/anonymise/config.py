@@ -628,8 +628,8 @@ class Config(object):
             f"{AK.DENYLIST_FILENAMES!r}"
         )
         self.denylist_filenames = cfg.opt_multiline(AK.DENYLIST_FILENAMES)
-        self.denylist_files_as_phrase_lines = cfg.opt_bool(
-            AK.DENYLIST_FILES_AS_PHRASE_LINES, False)
+        self.denylist_files_as_phrases = cfg.opt_bool(
+            AK.DENYLIST_FILES_AS_PHRASES, False)
         self.denylist_phrases_flexible_whitespace = cfg.opt_bool(
             AK.DENYLIST_PHRASES_FLEXIBLE_WHITESPACE, False)
         self.phrase_alternative_word_filenames = cfg.opt_multiline(
@@ -659,7 +659,7 @@ class Config(object):
         )
         self.denylist = WordList(
             filenames=self.denylist_filenames,
-            as_phrases=self.denylist_files_as_phrase_lines,
+            as_phrases=self.denylist_files_as_phrases,
             replacement_text=self.replace_nonspecific_info_with,
             hasher=self.change_detection_hasher,
             at_word_boundaries_only=(
