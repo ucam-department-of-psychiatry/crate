@@ -189,6 +189,10 @@ class WordList(ScrubberBase):
                 deals with variable whitespace. If False: much faster (uses
                 FlashText), but whitespace is inflexible.
         """
+        if at_word_boundaries_only is False and not regex_method:
+            raise ValueError(
+                "FlashText (chosen by regex_method=False) will only work at "
+                "word boundaries")
         filenames = filenames or []
         words = words or []
 
