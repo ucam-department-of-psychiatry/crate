@@ -373,16 +373,16 @@ def get_string_regex_elements(
 
     Args:
         s:
-            the starting string
+            The starting string.
         suffixes:
-            a list of suffixes to permit, typically ``["s"]``
+            A list of suffixes to permit, typically ``["s"]``.
         at_word_boundaries_only:
             Boolean. If set, ensure that the regex begins and ends with a word
             boundary requirement.
             (If false: will scrub ``ANN`` from ``bANNed``.)
         max_errors:
-            the maximum number of typographical insertion/deletion/substitution
-            errors to permit
+            The maximum number of typographical insertion/deletion/substitution
+            errors to permit.
 
     Returns:
         a list of regular expression strings
@@ -418,6 +418,7 @@ def get_string_regex_elements(
 
 def get_phrase_regex_elements(
         phrase: str,
+        suffixes: List[str] = None,
         at_word_boundaries_only: bool = True,
         max_errors: int = 0,
         alternatives: List[List[str]] = None) -> List[str]:
@@ -427,16 +428,18 @@ def get_phrase_regex_elements(
 
     Args:
         phrase:
-            e.g. '4 Privet Drive'
+            E.g. '4 Privet Drive'.
+        suffixes:
+            A list of suffixes to permit (unusual).
         at_word_boundaries_only:
-            apply regex only at word boundaries
+            Apply regex only at word boundaries?
         max_errors:
-            maximum number of typos, as defined by the regex module
+            Maximum number of typos, as defined by the regex module.
         alternatives:
             This allows words to be substituted by equivalents; such as
             ``St`` for ``Street`` or ``Rd`` for ``Road``. The parameter is a
             list of lists of equivalents; see
-            :func:`crate_anon.anonymise.config.get_word_alternatives`
+            :func:`crate_anon.anonymise.config.get_word_alternatives`.
 
     Returns:
         A list of regex fragments.
@@ -475,10 +478,18 @@ def get_phrase_regex_elements(
     s = AT_LEAST_ONE_NONWORD.join(strings)
     if max_errors > 0:
         s = "(" + s + "){e<" + str(max_errors + 1) + "}"
-    if at_word_boundaries_only:
-        return [WB + s + WB]
+    if suffixes:
+        suffixstr = (
+            "(?:" +
+            "|".join([escape_literal_string_for_regex(x) for x in suffixes]) +
+            "|)"  # allows for no suffix at all
+        )
     else:
-        return [s]
+        suffixstr = ""
+    if at_word_boundaries_only:
+        return [WB + s + suffixstr + WB]
+    else:
+        return [s + suffixstr]
 
 
 # =============================================================================

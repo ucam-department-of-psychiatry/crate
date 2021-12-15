@@ -1438,7 +1438,11 @@ Changes
 - Change some hyphens to underscores in the command-line arguments to the
   PCMIS and RiO preprocessing tools, for consistency.
 
-- ``denylist_files_as_phrase_lines`` option for anonymisation.
+- ``denylist_files_as_phrase_lines`` option for anonymisation, and
+  ``denylist_phrases_flexible_whitespace``.
+
+- Fix :class:`crate_anon.anonymise.scrub.WordList` to use its ``suffixes``
+  parameter even if ``regex_method`` is False. (Was not being used.)
 
 
 To do

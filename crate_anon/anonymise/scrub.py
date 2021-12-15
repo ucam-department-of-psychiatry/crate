@@ -151,8 +151,8 @@ class WordList(ScrubberBase):
     """
     def __init__(self,
                  filenames: Iterable[str] = None,
-                 as_phrase_lines: bool = False,
                  words: Iterable[str] = None,
+                 as_phrases: bool = False,
                  replacement_text: str = '[---]',
                  hasher: GenericHasher = None,
                  suffixes: List[str] = None,
@@ -163,11 +163,12 @@ class WordList(ScrubberBase):
         Args:
             filenames:
                 Filenames to read words from.
-            as_phrase_lines:
-                Keep lines intact (as phrases), rather than splitting them into
-                individual words.
             words:
                 Additional words to add.
+            as_phrases:
+                Keep lines in the source file intact (as phrases), rather than
+                splitting them into individual words, and (if ``regex_method``
+                is True) scrub as phrases.
             replacement_text:
                 Replace sensitive content with this string.
             hasher:
@@ -182,17 +183,19 @@ class WordList(ScrubberBase):
             max_errors:
                 The maximum number of typographical insertion / deletion /
                 substitution errors to permit. Applicable only if
-                ``regex_method`` is true.
+                ``regex_method`` is True.
             regex_method:
-                Use regular expressions? Best not to; the alternative is
-                FlashText, which is much faster.
+                Use regular expressions? If True: slower, but phrase scrubbing
+                deals with variable whitespace. If False: much faster (uses
+                FlashText), but whitespace is inflexible.
         """
         filenames = filenames or []
         words = words or []
 
         super().__init__(hasher)
         self.replacement_text = replacement_text
-        self.suffixes = suffixes
+        self.as_phrases = as_phrases
+        self.suffixes = suffixes or []  # type: List[str]
         self.at_word_boundaries_only = at_word_boundaries_only
         self.max_errors = max_errors
         self.regex_method = regex_method
@@ -206,11 +209,7 @@ class WordList(ScrubberBase):
         # https://stackoverflow.com/questions/2831212/python-sets-vs-lists
         # noinspection PyTypeChecker
         for f in filenames:
-            self.add_file(
-                f,
-                as_phrase_lines=as_phrase_lines,
-                clear_cache=False
-            )
+            self.add_file(f, clear_cache=False)
         # noinspection PyTypeChecker
         for w in words:
             self.add_word(w, clear_cache=False)
@@ -240,24 +239,18 @@ class WordList(ScrubberBase):
         if clear_cache:
             self.clear_cache()
 
-    def add_file(self,
-                 filename: str,
-                 as_phrase_lines: bool = False,
-                 clear_cache: bool = True) -> None:
+    def add_file(self, filename: str, clear_cache: bool = True) -> None:
         """
         Add all words from a file.
 
         Args:
             filename:
                 File to read.
-            as_phrase_lines:
-                Keep lines intact (as phrases), rather than splitting them into
-                individual words.
             clear_cache:
                 Also clear our cache?
         """
         with open(filename) as f:
-            if as_phrase_lines:
+            if self.as_phrases:
                 wordgen = lower_case_phrase_lines_from_file(f)
             else:
                 wordgen = lower_case_words_from_file(f)
@@ -295,6 +288,14 @@ class WordList(ScrubberBase):
                 return text
             return self._processor.replace_keywords(text)
 
+    def _gen_word_and_suffixed(self, w: str) -> Iterable[str]:
+        """
+        Yields the word supplied plus suffixed versions.
+        """
+        yield w
+        for s in self.suffixes:
+            yield w + s
+
     def build(self) -> None:
         """
         Compiles a high-speed scrubbing device, be it a regex or a FlashText
@@ -303,12 +304,20 @@ class WordList(ScrubberBase):
         if self.regex_method:
             elements = []  # type: List[str]
             for w in self.words:
-                elements.extend(get_string_regex_elements(
-                    w,
-                    suffixes=self.suffixes,
-                    at_word_boundaries_only=self.at_word_boundaries_only,
-                    max_errors=self.max_errors
-                ))
+                if self.as_phrases:
+                    elements.extend(get_phrase_regex_elements(
+                        w,
+                        suffixes=self.suffixes,
+                        at_word_boundaries_only=self.at_word_boundaries_only,
+                        max_errors=self.max_errors
+                    ))
+                else:
+                    elements.extend(get_string_regex_elements(
+                        w,
+                        suffixes=self.suffixes,
+                        at_word_boundaries_only=self.at_word_boundaries_only,
+                        max_errors=self.max_errors
+                    ))
             log.debug(f"Building regex with {len(elements)} elements")
             self._regex = get_regex_from_elements(elements)
         else:
@@ -320,7 +329,8 @@ class WordList(ScrubberBase):
                 log.debug(f"Building FlashText processor with "
                           f"{len(self.words)} keywords")
                 for w in self.words:
-                    self._processor.add_keyword(w, replacement)
+                    for sw in self._gen_word_and_suffixed(w):
+                        self._processor.add_keyword(sw, replacement)
             else:
                 self._processor = None  # type: Optional[KeywordProcessorFixed]
         self._built = True

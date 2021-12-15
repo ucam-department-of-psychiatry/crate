@@ -21,8 +21,10 @@
     This section relates to **automatic creation of data dictionaries** only.
     In normal use, these settings do nothing.
 
+.. _FlashText: https://flashtext.readthedocs.io/en/latest/
 .. _fnmatch: https://docs.python.org/3.4/library/fnmatch.html
 .. _MD5: https://en.wikipedia.org/wiki/MD5
+.. _regex: https://pypi.org/project/regex/
 .. _SHA256: https://en.wikipedia.org/wiki/SHA-2
 .. _SHA512: https://en.wikipedia.org/wiki/SHA-2
 
@@ -479,10 +481,32 @@ scrubbed -- ``Alice``, ``Bob``, ``Charlie``, and ``Brown``.
 If ``denylist_files_as_phrase_lines`` is true, then every line is treated as a
 ``phrase`` to be scrubbed: ``Alice``, ``Bob``, and ``Charlie Brown``. That is,
 ``Charlie`` and ``Brown`` will not be scrubbed, just the composite phrase.
-However, spacing matters here: as a phrase, ``Charlie Brown`` will not scrub
-``Charlie Brown`` (note the double-space). The prototypical use of this option
-is to provide a list of organizational (e.g. general practitioner) addresses
-that should be scrubbed, and always appear in a consistent format.
+This option is further configurable via denylist_phrases_flexible_whitespace_.
+
+The prototypical use of this option is to provide a list of organizational
+(e.g. general practitioner) addresses that should be scrubbed, and always
+appear in a consistent format.
+
+
+.. _denylist_phrases_flexible_whitespace:
+denylist_phrases_flexible_whitespace
+####################################
+
+*Boolean.* Default: false.
+
+(For denylist_files_as_phrase_lines_.)
+
+If false:
+
+- Replacements are very fast (they use FlashText_).
+- However, spacing matters and is exactly as provided: as a phrase, ``Charlie
+  Brown`` will not scrub ``Charlie  Brown`` (note the double-space).
+
+If true:
+
+- Replacements are not as fast (they use regex_).
+- However, spacing is flexible; the phrase ``Charlie Brown`` will scrub
+  ``Charlie   Brown`` and the like.
 
 
 phrase_alternative_word_filenames

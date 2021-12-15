@@ -173,6 +173,11 @@ class PersonalizedScrubberTests(TestCase):
             element_re = re.compile(re.escape(element), re.IGNORECASE)
             expected_result_phrases = element_re.sub(anon_text,
                                                      expected_result_phrases)
+        if regex_method:
+            # Regexes handle whitespace flexibly.
+            expected_result_phrases = expected_result_phrases.replace(
+                "Charlie  Brown", anon_text
+            )
 
         expected_result_words = test_source_text
         for element in denylist_words:
@@ -186,13 +191,13 @@ class PersonalizedScrubberTests(TestCase):
 
         wordlist_phrases = WordList(
             filenames=[filename],
-            as_phrase_lines=True,
+            as_phrases=True,
             replacement_text=anon_text,
             regex_method=regex_method
         )
         wordlist_words = WordList(
             filenames=[filename],
-            as_phrase_lines=False,
+            as_phrases=False,
             replacement_text=anon_text,
             regex_method=regex_method
         )
@@ -211,6 +216,25 @@ class PersonalizedScrubberTests(TestCase):
         log.info(f"result_phrases: {result_phrases}")
         log.info(f"expected_result_phrases: {expected_result_phrases}")
         self.assertEqual(result_phrases, expected_result_phrases)
+
+        wordlist_suffixes = WordList(
+            words=["one", "two"],
+            suffixes=["dog", "cat"],
+            replacement_text=anon_text,
+            regex_method=regex_method
+        )
+        self.assertEqual(
+            wordlist_suffixes.scrub("x one x"),
+            f"x {anon_text} x"
+        )
+        self.assertEqual(
+            wordlist_suffixes.scrub("x onedog x"),
+            f"x {anon_text} x"
+        )
+        self.assertEqual(
+            wordlist_suffixes.scrub("x one dog x"),
+            f"x {anon_text} dog x"
+        )
 
     def test_wordlist(self) -> None:
         self._test_wordlist(regex_method=False)
