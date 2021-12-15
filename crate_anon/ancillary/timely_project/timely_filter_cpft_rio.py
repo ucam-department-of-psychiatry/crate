@@ -172,5 +172,29 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
 
         add_field_criteria(self.staged_exclude_fields, stage=5, regex_tuples=[
             # "exclude at stage 5 or earlier"
-            ("RskRelatedIncidents", "Text")
+            ("Client_School", "Change_Reason"),
+            ("ClientAlert", "Comment"),
+            ("ClientAlert", "RemovalComment"),
+
+            ("Diagnosis", "Comment"),
+            # NB Diagnosis.Diagnosis is fine -- ICD-10 text only
+            ("Diagnosis", "RemovalComment"),
+
+            ("Referral$", "Discharge_Comment"),
+            ("Referral$", "IWS_Comment"),
+            ("Referral$", "Referral_Comment"),
+
+            ("Referral_Staff_History", "Comment"),
+
+            ("Referral_Team_History", "Comment"),
+
+            ("RskRelatedIncidents", "Text"),
+
+            # SNOMED_Client.SC_Ass_ElementID: should not be free-text
+            # SNOMED_Client.SC_Ass_FormName: should not be free-text
+            ("SNOMED_Client", "SC_Comment"),
+            ("SNOMED_Client", "SC_WrapperXML"),  # unlikely to be free text but unsure  # noqa
+
+            # More generally, anything that says "Comment" should be filtered:
+            (".+", ".*Comment"),
         ])

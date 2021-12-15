@@ -509,39 +509,41 @@ OMIT_TABLES_REGEX = (
     "AuditLog",  # may have gone now! Was there for a while. Not relevant.
     # todo: *** check gone
 
-    # This one filters for CTV3 codes Y2c49 and Y2ca. These might well be codes
-    # recently added by TPP for COVID-19 ("official" Read codes have been
-    # frozen since 2016, according to
-    # https://datadictionary.nhs.uk/supporting_information/read_coded_clinical_terms.html),  # noqa
-    # so I'm not sure what they are. However, the implication of the name of
-    # the table is that they restrict to NHS staff, so we should think about
-    # this. todo: *** a/w Nitin 2021-12-14
-    # "ClinicalOutcome_NHS_Staff_LongCovid",
+    # KEPT: ClinicalOutcome_NHS_Staff_LongCovid.
+    # This one filters for CTV3 codes Y2c49 and Y2ca. As d/w NP 2021-12-14:
+    # - These are "local" codes.
+    #   ("Official" Read codes have been frozen since 2016, according to
+    #   https://datadictionary.nhs.uk/supporting_information/read_coded_clinical_terms.html.)  # noqa
+    # - They indicate whether or not someone is a healthcare worker (HCW).
+    # - Introduced for COVID-19, since HCW status was a clear risk factor for
+    #   infection.
+    # - No detail suggesting identification (and they don't indicate e.g.
+    #   membership of a specific Trust, or a specific job role).
 
-    # S1_Inpatients, S1_Inpatients_20201020: current inpatients -- but these
-    # tables have NHSNumber as FLOAT. Exclude them:
     "Inpatients",
+    # S1_Inpatients, S1_Inpatients_20201020: current inpatients -- but these
+    # tables have NHSNumber as FLOAT. Exclude them.
     # todo: *** check gone
 
+    "Mortality",  # includes S1_Mortality, S1_MortalityAdditionalInfo
     # These contain (a) age (rather than DOB) information, and (b) information
     # from multiple systems -- some risk of including RiO patients with
     # coincidentally the same ClientID as a SystmOne IDPatient, unless
     # filtered, and is derived information anyway -- for now, we'll omit.
-    "Mortality",  # includes S1_Mortality, S1_MortalityAdditionalInfo
     # todo: *** check gone
 
+    "ReferralsOpen$",
     # This CPFT table is a non-patient table (but with potentially identifiable
     # information about referral reason? -- maybe not) -- skip it.
-    "ReferralsOpen$",
     # todo: *** check gone
 
-    # Waiting list tables use a confusing blend of SystmOne "IDPatient" and
-    # RiO "ClientID" columns, and it's not clear they add much:
     "WaitList_",  # S1_Waitlist_*
+    # Waiting list tables use a confusing blend of SystmOne "IDPatient" and
+    # RiO "ClientID" columns, and it's not clear they add much.
     # todo: *** check gone
 
-    # Not relevant clinically:
     "UserSmartCard",
+    # Not relevant clinically.
     # todo: *** check gone
 
     # I considered excluding "vw.*" (views) and "zzz.*" (scratch tables) here,

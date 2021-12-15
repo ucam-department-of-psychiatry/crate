@@ -55,6 +55,14 @@ class TableCriterion:
     """
     Stores a regular expression so we can reuse it compiled for speed and view
     it and its associated stage.
+
+    Note that "matching" uses ``compiled_regex.match()`` via a case-insensitive
+    comparison. That matches at the start of strings. (Compare ``search()``,
+    which matches anywhere.) So:
+
+    - a leading ``^`` is implicit;
+    - prefix with ``.*`` to allow matching in the middle of strings;
+    - suffix with ``$`` to match the entire string only (not just the start).
     """
     def __init__(self, stage: Optional[int], table_regex_str: str) -> None:
         self.stage = stage
