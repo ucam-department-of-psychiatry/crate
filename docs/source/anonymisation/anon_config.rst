@@ -460,6 +460,10 @@ interpreted.
     Formerly ``blacklist_filenames``; changed 2020-07-20 as part of neutral
     language review.
 
+.. note::
+    These words are removed only at word boundaries. So "Bob" won't scrub
+    "bobsleigh", for example.
+
 
 .. _denylist_files_as_phrases:
 denylist_files_as_phrases
