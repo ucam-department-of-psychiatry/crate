@@ -464,6 +464,12 @@ interpreted.
     These words are removed only at word boundaries. So "Bob" won't scrub
     "bobsleigh", for example.
 
+.. note::
+    Whitespace is removed at the start/end of lines, and any line starting with
+    a hash (``#``) is treated as a comment and ignored. (However, comments are
+    not permitted at the end of lines containing content; they are treated as
+    part of the content.)
+
 
 .. _denylist_files_as_phrases:
 denylist_files_as_phrases

@@ -179,9 +179,12 @@ class PersonalizedScrubberTests(TestCase):
             They stopped to inspect a daisy.
             They discussed Charlie Brown cartoons.
             They discussed Charlie  Brown cartoons all day long.
+            They made comment after comment.
         """
         denylist_text = (
-            "\n" + "\n".join(f" {x} " for x in denylist_phrases) + "\n"
+            "\n# comment\n"
+            + "\n".join(f" {x} " for x in denylist_phrases)
+            + "\n"
         )
         # https://stackoverflow.com/questions/952914/how-to-make-a-flat-list-out-of-a-list-of-lists  # noqa
         denylist_words = []  # type: List[str]

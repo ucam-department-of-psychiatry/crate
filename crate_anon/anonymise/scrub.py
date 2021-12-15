@@ -36,6 +36,7 @@ from typing import (Any, Dict, Iterable, Generator, List, Optional, Pattern,
                     Set, Tuple, Union)
 
 from cardinal_pythonlib.datetimefunc import coerce_to_datetime
+from cardinal_pythonlib.file_io import gen_lines_without_comments
 from cardinal_pythonlib.hash import GenericHasher
 from cardinal_pythonlib.sql.validation import (
     is_sqltype_date,
@@ -109,26 +110,27 @@ class ScrubberBase(object):
 # WordList
 # =============================================================================
 
-def lower_case_words_from_file(fileobj: Iterable[str]) \
+def lower_case_words_from_file(filename: str) \
         -> Generator[str, None, None]:
     """
     Generates lower-case words from a file.
     """
-    for line in fileobj:
+    for line in gen_lines_without_comments(filename,
+                                           comment_at_start_only=True):
         for word in line.split():
             if word:
                 yield word.lower()
 
 
-def lower_case_phrase_lines_from_file(fileobj: Iterable[str]) \
+def lower_case_phrase_lines_from_file(filename: str) \
         -> Generator[str, None, None]:
     """
     Generates lower-case phrases from a file, one per line.
     """
-    for line in fileobj:
-        phrase = line.strip()
-        if phrase:
-            yield phrase.lower()
+    for line in gen_lines_without_comments(filename,
+                                           comment_at_start_only=True):
+        # line is pre-stripped (left/right) and not empty
+        yield line.lower()
 
 
 FLASHTEXT_WORD_CHARACTERS = set(
@@ -253,13 +255,12 @@ class WordList(ScrubberBase):
             clear_cache:
                 Also clear our cache?
         """
-        with open(filename) as f:
-            if self.as_phrases:
-                wordgen = lower_case_phrase_lines_from_file(f)
-            else:
-                wordgen = lower_case_words_from_file(f)
-            for w in wordgen:
-                self.words.add(w)
+        if self.as_phrases:
+            wordgen = lower_case_phrase_lines_from_file(filename)
+        else:
+            wordgen = lower_case_words_from_file(filename)
+        for w in wordgen:
+            self.words.add(w)
         if clear_cache:
             self.clear_cache()
 
