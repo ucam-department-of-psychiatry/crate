@@ -137,7 +137,6 @@ class PersonalizedScrubberTests(TestCase):
                 )
 
     def _test_flashtext_word_boundaries(self, target: str) -> None:
-        target = "daisy"
         anon_text = PATIENT_REPLACEMENT
         ft = KeywordProcessorFixed(case_sensitive=False)
         ft.add_keyword(target, anon_text)
