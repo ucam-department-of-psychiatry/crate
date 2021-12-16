@@ -429,6 +429,9 @@ Here's a suggestion for some of the sorts of words you might include:
     Formerly ``whitelist_filenames``; changed 2020-07-20 as part of neutral
     language review.
 
+See :ref:`anonymisation sequence <anonymisation_sequence>` for an explanation
+of how the allow/deny sequence works.
+
 
 .. _denylist_filenames:
 denylist_filenames
@@ -455,6 +458,10 @@ medical eponyms) -- see also :ref:`crate_fetch_wordlists
 
 See denylist_files_as_phrases_, which governs how these files are
 interpreted.
+
+See :ref:`anonymisation sequence <anonymisation_sequence>` for an explanation
+of how the allow/deny sequence works.
+
 
 .. note::
     Formerly ``blacklist_filenames``; changed 2020-07-20 as part of neutral
@@ -1493,6 +1500,43 @@ secret_key
 *String.*
 
 Secret key for the hasher.
+
+
+
+.. _anonymisation_sequence:
+Anonymisation sequence
+~~~~~~~~~~~~~~~~~~~~~~
+
+When CRATE processes data and creates scrubbers, it follows the
+following sequence:
+
+- For every patient, a scrubber is built (see
+  :class:`crate_anon.anonymise.patient.Patient`).
+
+  - NONSPECIFIC options are set according to the config file.
+
+    - This can include generic options like removing all numbers with a certain
+      number of digits, or anything that looks like a UK postcode.
+
+    - It can also include words or phrases to remove, read from files specified
+      by denylist_filenames_.
+
+  - PATIENT and THIRD-PARTY information is added by scanning the source
+    database for all "scrub-source" information for that patient (optionally,
+    recursing into third-party records).
+
+    - Words and phrases are not added if they are in the "allowlist" (see
+      allowlist_filenames_).
+
+- For every data item for that patient that requires scrubbing, scrub using the
+  patient's scrubber.
+
+- That scrubber operates as follows (see
+  :meth:`crate_anon.anonymise.scrub.PersonalizedScrubber.scrub`):
+
+  - the NONSPECIFIC scrubber runs first;
+  - the PATIENT scrubber runs second;
+  - the THIRD-PARTY scrubber runs third.
 
 
 Minimal anonymiser config
