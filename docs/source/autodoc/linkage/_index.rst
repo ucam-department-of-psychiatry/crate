@@ -34,3 +34,4 @@ crate_anon/linkage
     bulk_hash.py.rst
     fuzzy_id_match.py.rst
     test_hash_speed.py.rst
+    tests/fuzzy_id_match_tests.py.rst

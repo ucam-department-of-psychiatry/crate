@@ -240,7 +240,7 @@ Notable additional tables/columns in the CPFT environment
 - Several tables have identifiers linked in. For example, try:
 
   .. code-block:: sql
-  
+
     SELECT * FROM information_schema.columns WHERE column_name = 'FirstName'
 
 

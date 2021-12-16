@@ -55,4 +55,5 @@ crate_anon/anonymise
     summarize_dd.py.rst
     test_anonymisation.py.rst
     test_extract_text.py.rst
+    tests/anonregex_tests.py.rst
     tests/scrub_tests.py.rst

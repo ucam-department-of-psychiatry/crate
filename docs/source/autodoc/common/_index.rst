@@ -46,3 +46,4 @@ crate_anon/common
     sql.py.rst
     stringfunc.py.rst
     tests/spreadsheet_tests.py.rst
+    tests/sql_tests.py.rst

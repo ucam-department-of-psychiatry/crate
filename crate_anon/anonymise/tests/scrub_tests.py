@@ -31,6 +31,7 @@ Unit testing.
 # =============================================================================
 # Imports
 # =============================================================================
+
 import re
 import logging
 import os
@@ -60,7 +61,7 @@ THIRD_PARTY_REPLACEMENT = "[YYY]"
 
 
 # =============================================================================
-# Unit tests
+# Test hashing
 # =============================================================================
 
 class HashTests(TestCase):
@@ -79,62 +80,14 @@ class HashTests(TestCase):
         )
 
 
-class PersonalizedScrubberTests(TestCase):
+# =============================================================================
+# Test WordList
+# =============================================================================
+
+class WordListTests(TestCase):
     def setUp(self) -> None:
-        self.key = TEST_KEY
-        self.hasher = HmacMD5Hasher(self.key)
-        self.anonpatient = PATIENT_REPLACEMENT
-        self.anonthird = THIRD_PARTY_REPLACEMENT
         self.tempdir = TemporaryDirectory()
         self.maxDiff = None  # see full differences upon failure
-
-    def test_phrase_unless_numeric(self) -> None:
-        tests = [
-            ("5", {
-                "blah 5 blah": "blah 5 blah",
-            }),
-            (" 5 ", {
-                "blah 5 blah": "blah 5 blah",
-            }),
-            (" 5.0 ", {
-                "blah 5 blah": "blah 5 blah",
-                "blah 5. blah": "blah 5. blah",
-                "blah 5.0 blah": "blah 5.0 blah",
-            }),
-            (" 5. ", {
-                "blah 5 blah": "blah 5 blah",
-                "blah 5. blah": "blah 5. blah",
-                "blah 5.0 blah": "blah 5.0 blah",
-            }),
-            ("5 Tree Road", {
-                "blah 5 blah": "blah 5 blah",
-                "blah 5 Tree Road blah": f"blah {self.anonpatient} blah",
-            }),
-            (" 5 Tree Road ", {
-                "blah 5 blah": "blah 5 blah",
-                "blah 5 Tree Road blah": f"blah {self.anonpatient} blah",
-            }),
-            (" 5b ", {
-                "blah 5b blah": f"blah {self.anonpatient} blah",
-            }),
-        ]
-        for scrubvalue, mapping in tests:
-            scrubber = PersonalizedScrubber(
-                replacement_text_patient=self.anonpatient,
-                replacement_text_third_party=self.anonthird,
-                hasher=self.hasher,
-                min_string_length_to_scrub_with=1,
-                debug=True
-            )
-            scrubber.add_value(scrubvalue,
-                               scrub_method=ScrubMethod.PHRASE_UNLESS_NUMERIC)
-            for start, end in mapping.items():
-                self.assertEqual(
-                    scrubber.scrub(start),
-                    end,
-                    f"Failure for scrubvalue: {scrubvalue!r}; regex elements "
-                    f"are {scrubber.re_patient_elements}"
-                )
 
     def _test_flashtext_word_boundaries(self, target: str) -> None:
         anon_text = PATIENT_REPLACEMENT
@@ -262,3 +215,63 @@ class PersonalizedScrubberTests(TestCase):
     def test_wordlist(self) -> None:
         self._test_wordlist(regex_method=False)
         self._test_wordlist(regex_method=True)
+
+
+# =============================================================================
+# Test PersonalizedScrubber
+# =============================================================================
+
+class PersonalizedScrubberTests(TestCase):
+    def setUp(self) -> None:
+        self.key = TEST_KEY
+        self.hasher = HmacMD5Hasher(self.key)
+        self.anonpatient = PATIENT_REPLACEMENT
+        self.anonthird = THIRD_PARTY_REPLACEMENT
+
+    def test_phrase_unless_numeric(self) -> None:
+        tests = [
+            ("5", {
+                "blah 5 blah": "blah 5 blah",
+            }),
+            (" 5 ", {
+                "blah 5 blah": "blah 5 blah",
+            }),
+            (" 5.0 ", {
+                "blah 5 blah": "blah 5 blah",
+                "blah 5. blah": "blah 5. blah",
+                "blah 5.0 blah": "blah 5.0 blah",
+            }),
+            (" 5. ", {
+                "blah 5 blah": "blah 5 blah",
+                "blah 5. blah": "blah 5. blah",
+                "blah 5.0 blah": "blah 5.0 blah",
+            }),
+            ("5 Tree Road", {
+                "blah 5 blah": "blah 5 blah",
+                "blah 5 Tree Road blah": f"blah {self.anonpatient} blah",
+            }),
+            (" 5 Tree Road ", {
+                "blah 5 blah": "blah 5 blah",
+                "blah 5 Tree Road blah": f"blah {self.anonpatient} blah",
+            }),
+            (" 5b ", {
+                "blah 5b blah": f"blah {self.anonpatient} blah",
+            }),
+        ]
+        for scrubvalue, mapping in tests:
+            scrubber = PersonalizedScrubber(
+                replacement_text_patient=self.anonpatient,
+                replacement_text_third_party=self.anonthird,
+                hasher=self.hasher,
+                min_string_length_to_scrub_with=1,
+                debug=True
+            )
+            scrubber.add_value(scrubvalue,
+                               scrub_method=ScrubMethod.PHRASE_UNLESS_NUMERIC)
+            for start, end in mapping.items():
+                self.assertEqual(
+                    scrubber.scrub(start),
+                    end,
+                    f"Failure for scrubvalue: {scrubvalue!r}; regex elements "
+                    f"are {scrubber.re_patient_elements}"
+                )

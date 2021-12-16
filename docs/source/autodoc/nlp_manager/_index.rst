@@ -75,3 +75,4 @@ crate_anon/nlp_manager
     tests/cloud_request_process_tests.py.rst
     tests/cloud_request_sender_tests.py.rst
     tests/nlp_parser_tests.py.rst
+    tests/regex_read_codes_tests.py.rst
