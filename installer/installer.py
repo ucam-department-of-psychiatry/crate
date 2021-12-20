@@ -27,6 +27,7 @@ class Installer:
         self.title = "CRATE Setup"
 
     def install(self) -> None:
+        self.check_setup()
         self.configure()
         self.create_directories()
         self.create_local_settings()
@@ -34,6 +35,12 @@ class Installer:
         self.create_database()
         self.create_superuser()
         self.start()
+
+    def check_setup(self) -> None:
+        info = docker.info()
+        if info.id is None:
+            print("Docker is not running. Please start Docker and try again.")
+            sys.exit(EXIT_FAILURE)
 
     def configure(self) -> None:
         self.setenv(
