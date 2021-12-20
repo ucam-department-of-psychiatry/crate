@@ -65,7 +65,7 @@ class Installer:
         )
         self.setenv(
             "CRATE_DOCKER_CRATEWEB_HOST_PORT",
-            "443"
+            self.get_docker_crateweb_host_port
         )
         self.setenv(
             "CRATE_DOCKER_CRATE_ANON_CONFIG",
@@ -118,6 +118,11 @@ class Installer:
     def get_docker_gate_bioyodie_resources_host_dir(self) -> str:
         return self.get_user_dir(
             "Select the directory where CRATE will store Bio-YODIE resources"
+        )
+
+    def get_docker_crateweb_host_port(self) -> str:
+        return self.get_user_input(
+            "Enter the port where the CRATE web app will be appear on the host"
         )
 
     def get_docker_mysql_root_password(self) -> str:
