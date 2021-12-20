@@ -377,7 +377,7 @@ class Installer:
         raise NotImplementedError
 
     def get_crate_server_port_from_host(self) -> str:
-        raise NotImplementedError
+        return os.getenv("CRATE_DOCKER_CRATEWEB_HOST_PORT")
 
 
 class Wsl2Installer(Installer):
@@ -385,23 +385,18 @@ class Wsl2Installer(Installer):
         # ip -j -f inet -br addr show eth0
         # Also -p(retty) when debugging manually
         ip_info = json.loads(run(
-            ["ip", "-j", "-f", "inet" "-br" "addr", "show", "eth0"], stdout=PIPE
+            ["ip", "-j", "-f", "inet", "-br", "addr", "show", "eth0"],
+            stdout=PIPE
         ).stdout.decode("utf-8"))
 
-        ip_address = ip_info[0]["addr_info"]["local"]
+        ip_address = ip_info[0]["addr_info"][0]["local"]
 
         return ip_address
-
-    def get_crate_server_port_from_host(self) -> str:
-        return os.getenv("CRATE_DOCKER_CRATEWEB_HOST_PORT")
 
 
 class NativeLinuxInstaller(Installer):
     def get_crate_server_ip_from_host(self) -> str:
         return self.get_crate_server_ip_address()
-
-    def get_crate_server_port_from_host(self) -> str:
-        return "8000"
 
 
 class MacOsInstaller(Installer):
