@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
+import json
 import os
 from pathlib import Path
+from platform import uname
 import sys
 import secrets
+from subprocess import PIPE, run
 from typing import Callable, Dict, Optional, Union
+import urllib
 
 from prompt_toolkit.completion import PathCompleter
 from prompt_toolkit.shortcuts import input_dialog, message_dialog
@@ -51,6 +55,10 @@ class Installer:
         self.setenv(
             "CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME",
             "crateweb_local_settings.py"
+        )
+        self.setenv(
+            "CRATE_DOCKER_CRATEWEB_HOST_PORT",
+            "443"
         )
         self.setenv(
             "CRATE_DOCKER_CRATE_ANON_CONFIG",
@@ -327,10 +335,90 @@ class Installer:
 
         docker.compose.up(detach=True)
 
+        url = self.get_crate_server_url()
+        print(f"The CRATE application is running at {url}")
+
+    def get_crate_server_url(self) -> str:
+        ip_address = self.get_crate_server_ip_from_host()
+        port = self.get_crate_server_port_from_host()
+
+        if port == "443":
+            scheme = "https"
+        else:
+            scheme = "http"
+
+        netloc = f"{ip_address}:{port}"
+        path = "/"
+        params = query = fragment = None
+
+        return urllib.parse.urlunparse(
+            (scheme, netloc, path, params, query, fragment)
+        )
+
+    def get_crate_server_ip_address(self) -> str:
+        container = docker.container.inspect("crate_crate_server")
+        network_settings = container.network_settings
+
+        return network_settings.networks['crate_crateanon_network'].ip_address
+
+    def get_crate_server_ip_from_host(self) -> str:
+        raise NotImplementedError
+
+    def get_crate_server_port_from_host(self) -> str:
+        raise NotImplementedError
+
+
+class Wsl2Installer(Installer):
+    def get_crate_server_ip_from_host(self) -> str:
+        # ip -j -f inet -br addr show eth0
+        # Also -p(retty) when debugging manually
+        ip_info = json.loads(run(
+            ["ip", "-j", "-f", "inet" "-br" "addr", "show", "eth0"], stdout=PIPE
+        ).stdout.decode("utf-8"))
+
+        ip_address = ip_info[0]["addr_info"]["local"]
+
+        return ip_address
+
+    def get_crate_server_port_from_host(self) -> str:
+        return os.getenv("CRATE_DOCKER_CRATEWEB_HOST_PORT")
+
+
+class NativeLinuxInstaller(Installer):
+    def get_crate_server_ip_from_host(self) -> str:
+        return self.get_crate_server_ip_address()
+
+    def get_crate_server_port_from_host(self) -> str:
+        return "8000"
+
+
+class MacOsInstaller(Installer):
+    pass
+
 
 def main() -> None:
-    installer = Installer()
+    installer = get_installer()
     installer.install()
+
+
+def get_installer() -> Installer:
+    sys_info = uname()
+
+    if "microsoft-standard" in sys_info.release:
+        return Wsl2Installer()
+
+    if sys_info.system == "Linux":
+        return NativeLinuxInstaller()
+
+    if sys_info.system == "Darwin":
+        return MacOsInstaller()
+
+    if sys_info.system == "Windows":
+        print("The installer cannot be run under native Windows. Please "
+              "install Windows Subsystem for Linux 2 (WSL2) and run the "
+              "installer from there. Alternatively follow the instructions "
+              "to install CRATE manually.")
+        sys.exit(EXIT_FAILURE)
 
 
 if __name__ == "__main__":
