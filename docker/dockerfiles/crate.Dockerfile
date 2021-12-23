@@ -264,6 +264,12 @@ RUN echo "======================================================================
         --launch_then_stop \
     \
     && echo "===============================================================================" \
+    && echo "Creating static files directories" \
+    && echo "===============================================================================" \
+    && mkdir -p /crate/static_base/static \
+    && mkdir -p /crate/static_base/static_collected \
+    && chown -R crate:crate /crate/static_base \
+    && echo "===============================================================================" \
     && echo "Cleanup" \
     && echo "===============================================================================" \
     && echo "- Removing OS packages used only for the installation..." \

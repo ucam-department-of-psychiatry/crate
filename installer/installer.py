@@ -33,6 +33,8 @@ class Installer:
         self.create_local_settings()
         self.create_anon_config()
         self.create_database()
+        self.collect_static()
+        self.populate()
         self.create_superuser()
         self.start()
 
@@ -324,6 +326,12 @@ class Installer:
 
     def create_database(self) -> None:
         self.run_crate_command("crate_django_manage migrate")
+
+    def collect_static(self) -> None:
+        self.run_crate_command("crate_django_manage collectstatic")
+
+    def populate(self) -> None:
+        self.run_crate_command("crate_django_manage populate")
 
     def create_superuser(self) -> None:
         # Will either create a superuser or update an existing one

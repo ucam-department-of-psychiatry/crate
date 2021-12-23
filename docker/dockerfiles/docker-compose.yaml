@@ -74,6 +74,9 @@ volumes:
             # https://docs.docker.com/compose/compose-file/#variable-substitution
             device: "${CRATE_DOCKER_CONFIG_HOST_DIR}"
 
+    crate_static_volume:
+        # Space to put static files (parent dir of Django STATIC_ROOT)
+
     crate_tmp_volume:
         # Space to put lock files, user downloads, etc., that need to be shared
         # between containers, but which are expected to be temporary.
@@ -244,6 +247,7 @@ services:
         volumes:
             - bioyodie_resource_volume:/crate/bioyodie/bio-yodie-resources
             - crate_config_volume:/crate/cfg
+            - crate_static_volume:/crate/static_base
             - crate_tmp_volume:/crate/tmp
 
         environment:
@@ -251,6 +255,7 @@ services:
             CRATE_GATE_PLUGIN_FILE: "/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini"
             CRATE_PACKAGE_ROOT: "/crate/venv/lib/python3.7/site-packages/crate_anon"
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+            CRATE_WEB_STATIC_BASE_DIR: "/crate/static_base"
             GATE_HOME: "/crate/gate"
             KCL_LEWY_BODY_DIAGNOSIS_DIR: "/crate/kcl_lewy_body_dementia"
             KCL_PHARMACOTHERAPY_DIR: "/crate/kcl_pharmacotherapy/brc-gate-pharmacotherapy"
@@ -304,11 +309,13 @@ services:
         volumes:
             - bioyodie_resource_volume:/crate/bioyodie/bio-yodie-resources
             - crate_config_volume:/crate/cfg
+            - crate_static_volume:/crate/static_base
             - crate_tmp_volume:/crate/tmp
 
         environment:
             CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+            CRATE_WEB_STATIC_BASE_DIR: "/crate/static_base"
             CERT_ARGS: ""
             KEY_ARGS: ""
 
@@ -366,6 +373,7 @@ services:
         environment:
             CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+            CRATE_WEB_STATIC_BASE_DIR: "/crate/static_base"
 
         command: [
             "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
