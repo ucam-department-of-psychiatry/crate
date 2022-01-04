@@ -105,7 +105,7 @@ INSTALL_REQUIRES = [
     "pyparsing==2.4.7",  # generic grammar parser
     "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]
     "pytest==6.0.2",  # automatic testing
-    "pytz==2020.1",  # timezones
+    "pytz==2021.3",  # timezones
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
