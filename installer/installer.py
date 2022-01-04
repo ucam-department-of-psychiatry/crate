@@ -252,6 +252,7 @@ class Installer:
             "dest_db_user": "research",
             "dest_db_password": "research",
             "django_site_root_absolute_url": "http://crate_server:8088",
+            "force_script_name": self.get_crate_server_path(),
             "mysql_db": os.getenv("CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME"),
             "mysql_host": "crate_db",
             "mysql_password": os.getenv(
@@ -368,12 +369,15 @@ class Installer:
             scheme = "http"
 
         netloc = f"{ip_address}:{port}"
-        path = "/"
+        path = self.get_crate_server_path()
         params = query = fragment = None
 
         return urllib.parse.urlunparse(
             (scheme, netloc, path, params, query, fragment)
         )
+
+    def get_crate_server_path(self) -> str:
+        return "/crate"
 
     def get_crate_server_ip_address(self) -> str:
         container = docker.container.inspect("crate_crate_server")

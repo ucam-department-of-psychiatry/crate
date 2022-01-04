@@ -65,7 +65,8 @@ log.critical(
 # DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://localhost:8000"  # for the Django dev server  # noqa
 DJANGO_SITE_ROOT_ABSOLUTE_URL = "@@django_site_root_absolute_url@@"
 
-FORCE_SCRIPT_NAME = ""
+FORCE_SCRIPT_NAME = "@@force_script_name@@"
+# FORCE_SCRIPT_NAME = ""  # example for Apache root hosting
 # FORCE_SCRIPT_NAME = "/crate"  # example for CherryPy or Apache non-root hosting  # noqa
 
 
