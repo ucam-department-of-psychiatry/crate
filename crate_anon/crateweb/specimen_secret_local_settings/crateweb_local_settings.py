@@ -83,7 +83,7 @@ SECRET_KEY = "@@secret_key@@"  # CHANGE THIS!  # noqa
 DEBUG = False
 # ... when False, note that static files must be served properly
 
-CRATE_HTTPS = True  # require HTTPS and disallow plain HTTP
+CRATE_HTTPS = @@crate_https@@  # True: require HTTPS and disallow plain HTTP
 
 
 # noinspection PyUnusedLocal

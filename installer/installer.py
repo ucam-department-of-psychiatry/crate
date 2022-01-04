@@ -124,7 +124,8 @@ class Installer:
 
     def get_docker_crateweb_host_port(self) -> str:
         return self.get_user_input(
-            "Enter the port where the CRATE web app will be appear on the host"
+            ("Enter the port where the CRATE web app will be appear on the "
+             "host (443 if you wish to use HTTPS).")
         )
 
     def get_docker_mysql_root_password(self) -> str:
@@ -253,6 +254,7 @@ class Installer:
             "dest_db_password": "research",
             "django_site_root_absolute_url": "http://crate_server:8088",
             "force_script_name": self.get_crate_server_path(),
+            "crate_https": self.use_https(),
             "mysql_db": os.getenv("CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME"),
             "mysql_host": "crate_db",
             "mysql_password": os.getenv(
@@ -360,14 +362,14 @@ class Installer:
         print(f"The CRATE application is running at {url}")
 
     def get_crate_server_url(self) -> str:
-        ip_address = self.get_crate_server_ip_from_host()
-        port = self.get_crate_server_port_from_host()
-
-        if port == "443":
+        if self.use_https():
             scheme = "https"
         else:
             scheme = "http"
 
+        ip_address = self.get_crate_server_ip_from_host()
+
+        port = self.get_crate_server_port_from_host()
         netloc = f"{ip_address}:{port}"
         path = self.get_crate_server_path()
         params = query = fragment = None
@@ -375,6 +377,9 @@ class Installer:
         return urllib.parse.urlunparse(
             (scheme, netloc, path, params, query, fragment)
         )
+
+    def use_https(self) -> bool:
+        return self.get_crate_server_port_from_host() == "443"
 
     def get_crate_server_path(self) -> str:
         return "/crate"
