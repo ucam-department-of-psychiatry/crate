@@ -89,7 +89,7 @@ INSTALL_REQUIRES = [
     "flower==1.0.0",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==20.0.4",  # UNIX only, though will install under Windows
-    "kombu==5.2.2",  # AMQP library for Celery; requires VC++ under Windows
+    "kombu==5.2.3",  # AMQP library for Celery; requires VC++ under Windows
     "mako==1.1.3",  # templates with Python in
     "MarkupSafe==1.1.1",  # for HTML escaping
     # mmh3 requires VC++
