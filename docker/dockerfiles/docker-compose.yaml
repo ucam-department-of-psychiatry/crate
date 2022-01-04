@@ -247,7 +247,7 @@ services:
         volumes:
             - bioyodie_resource_volume:/crate/bioyodie/bio-yodie-resources
             - crate_config_volume:/crate/cfg
-            - crate_static_volume:/crate/static_base
+            - crate_static_volume:/crate/static
             - crate_tmp_volume:/crate/tmp
 
         environment:
