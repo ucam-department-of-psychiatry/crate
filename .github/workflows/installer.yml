@@ -74,3 +74,4 @@ jobs:
                 docker compose logs
                 SERVER_IP=$(docker inspect crate_crate_server --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
                 curl -I -L --retry 10 --retry-connrefused $SERVER_IP:8000
+                curl -I -L --retry 10 --retry-connrefused $SERVER_IP:8000/crate_static/scrubber.png

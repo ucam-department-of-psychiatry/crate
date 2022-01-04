@@ -266,9 +266,8 @@ RUN echo "======================================================================
     && echo "===============================================================================" \
     && echo "Creating static files directories" \
     && echo "===============================================================================" \
-    && mkdir -p /crate/static_base/static \
-    && mkdir -p /crate/static_base/static_collected \
-    && chown -R crate:crate /crate/static_base \
+    && mkdir -p /crate/static \
+    && chown -R crate:crate /crate/static \
     && echo "===============================================================================" \
     && echo "Cleanup" \
     && echo "===============================================================================" \

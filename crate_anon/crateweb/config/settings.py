@@ -266,16 +266,16 @@ STATIC_URL = '/crate_static/'
 # serve from this URL (and from wherever seems best on the filesystem) during
 # production.
 
-STATIC_BASE_DIR = BASE_DIR
-
-if RUNNING_UNDER_DOCKER:
-    STATIC_BASE_DIR = os.getenv("CRATE_WEB_STATIC_BASE_DIR")
-
-LOCAL_STATIC_DIR = os.path.join(STATIC_BASE_DIR, 'static')
+LOCAL_STATIC_DIR = os.path.join(BASE_DIR, 'static')
 STATICFILES_DIRS = (
     LOCAL_STATIC_DIR,
 )
-STATIC_ROOT = os.path.join(STATIC_BASE_DIR, 'static_collected')
+
+if RUNNING_UNDER_DOCKER:
+    STATIC_ROOT = os.getenv("CRATE_WEB_STATIC_ROOT")
+else:
+    STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
+
 # ... for collectstatic
 
 # NOTE that deriving from django.contrib.staticfiles.storage.StaticFilesStorage
