@@ -397,7 +397,7 @@ class Installer:
         self.run_crate_command("crate_django_manage migrate")
 
     def collect_static(self) -> None:
-        self.run_crate_command("crate_django_manage collectstatic")
+        self.run_crate_command("crate_django_manage collectstatic --no-input")
 
     def populate(self) -> None:
         self.run_crate_command("crate_django_manage populate")
