@@ -6,12 +6,13 @@ from pathlib import Path
 from platform import uname
 import sys
 import secrets
+import shutil
 from subprocess import PIPE, run
 from typing import Callable, Dict, Optional, Union
 import urllib
 
 from prompt_toolkit.completion import PathCompleter
-from prompt_toolkit.shortcuts import input_dialog, message_dialog
+from prompt_toolkit.shortcuts import input_dialog, message_dialog, yes_no_dialog
 from python_on_whales import docker
 
 EXIT_FAILURE = 1
@@ -32,6 +33,8 @@ class Installer:
         self.create_directories()
         self.create_local_settings()
         self.create_anon_config()
+        if self.use_https():
+            self.copy_ssl_files()
         self.create_database()
         self.collect_static()
         self.populate()
@@ -69,6 +72,19 @@ class Installer:
             "CRATE_DOCKER_CRATEWEB_HOST_PORT",
             self.get_docker_crateweb_host_port
         )
+        self.setenv(
+            "CRATE_DOCKER_CRATEWEB_USE_HTTPS",
+            self.get_docker_crateweb_use_https
+        )
+        if self.use_https():
+            self.setenv(
+                "CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE",
+                self.get_docker_crateweb_ssl_certificate
+            )
+            self.setenv(
+                "CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY",
+                self.get_docker_crateweb_ssl_private_key
+            )
         self.setenv(
             "CRATE_DOCKER_CRATE_ANON_CONFIG",
             "crate_anon_config.ini"
@@ -125,7 +141,20 @@ class Installer:
     def get_docker_crateweb_host_port(self) -> str:
         return self.get_user_input(
             ("Enter the port where the CRATE web app will be appear on the "
-             "host (443 if you wish to use HTTPS).")
+             "host.")
+        )
+
+    def get_docker_crateweb_use_https(self) -> str:
+        return self.get_user_boolean("Access the CRATE web app over HTTPS?")
+
+    def get_docker_crateweb_ssl_certificate(self) -> str:
+        return self.get_user_file(
+            "Select the SSL certificate file."
+        )
+
+    def get_docker_crateweb_ssl_private_key(self) -> str:
+        return self.get_user_file(
+            "Select the SSL private key file."
         )
 
     def get_docker_mysql_root_password(self) -> str:
@@ -178,6 +207,19 @@ class Installer:
 
         return dir
 
+    def get_user_file(self, text: str, title: Optional[str] = None) -> str:
+        if title is None:
+            title = self.title
+
+        text = f"{text}\nPress Ctrl-N to autocomplete"
+        completer = PathCompleter(only_directories=False, expanduser=True)
+        file = input_dialog(title=title, text=text,
+                            completer=completer).run()
+        if file is None:
+            sys.exit(EXIT_FAILURE)
+
+        return file
+
     def get_user_password(self, text: str,
                           title: Optional[str] = None) -> str:
         if title is None:
@@ -201,6 +243,19 @@ class Installer:
 
     def alert(self, text: str) -> None:
         message_dialog(title=self.title, text=text).run()
+
+    def get_user_boolean(self, text: str, title: Optional[str] = None) -> str:
+        if title is None:
+            title = self.title
+
+        value = yes_no_dialog(title=title, text=text).run()
+        if value is None:
+            sys.exit(EXIT_FAILURE)
+
+        if value:
+            return "1"
+
+        return "0"
 
     def get_user_input(self, text: str, title: Optional[str] = None) -> str:
         if title is None:
@@ -254,7 +309,7 @@ class Installer:
             "dest_db_password": "research",
             "django_site_root_absolute_url": "http://crate_server:8088",
             "force_script_name": self.get_crate_server_path(),
-            "crate_https": self.use_https(),
+            "crate_https": str(self.use_https()),
             "mysql_db": os.getenv("CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME"),
             "mysql_host": "crate_db",
             "mysql_password": os.getenv(
@@ -327,6 +382,17 @@ class Installer:
             os.getenv("CRATE_DOCKER_CRATE_ANON_CONFIG")
         )
 
+    def copy_ssl_files(self) -> str:
+        config_dir = os.getenv("CRATE_DOCKER_CONFIG_HOST_DIR")
+
+        cert_dest = os.path.join(config_dir, "crate.crt")
+        key_dest = os.path.join(config_dir, "crate.key")
+
+        shutil.copy(os.getenv("CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE"),
+                    cert_dest)
+        shutil.copy(os.getenv("CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY"),
+                    key_dest)
+
     def create_database(self) -> None:
         self.run_crate_command("crate_django_manage migrate")
 
@@ -358,8 +424,10 @@ class Installer:
 
         docker.compose.up(detach=True)
 
-        url = self.get_crate_server_url()
-        print(f"The CRATE application is running at {url}")
+        server_url = self.get_crate_server_url()
+        localhost_url = self.get_crate_server_localhost_url()
+        print(f"The CRATE application is running at {server_url} "
+              f"or {localhost_url}")
 
     def get_crate_server_url(self) -> str:
         if self.use_https():
@@ -369,8 +437,22 @@ class Installer:
 
         ip_address = self.get_crate_server_ip_from_host()
 
+        netloc = f"{ip_address}:8000"
+        path = self.get_crate_server_path()
+        params = query = fragment = None
+
+        return urllib.parse.urlunparse(
+            (scheme, netloc, path, params, query, fragment)
+        )
+
+    def get_crate_server_localhost_url(self) -> str:
+        if self.use_https():
+            scheme = "https"
+        else:
+            scheme = "http"
+
         port = self.get_crate_server_port_from_host()
-        netloc = f"{ip_address}:{port}"
+        netloc = f"localhost:{port}"
         path = self.get_crate_server_path()
         params = query = fragment = None
 
@@ -379,7 +461,7 @@ class Installer:
         )
 
     def use_https(self) -> bool:
-        return self.get_crate_server_port_from_host() == "443"
+        return os.getenv("CRATE_DOCKER_CRATEWEB_USE_HTTPS") == "1"
 
     def get_crate_server_path(self) -> str:
         return "/crate"
