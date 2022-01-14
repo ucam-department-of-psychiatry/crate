@@ -31,7 +31,9 @@ class Command(BaseCommand):
         email = os.environ.get("DJANGO_SUPERUSER_EMAIL") or ""
 
         user, created = User.objects.get_or_create(username=username)
-        user.password = password
+        user.is_superuser = True
+        user.is_staff = True
+        user.set_password(password)
         user.email = email
         user.save()
 
