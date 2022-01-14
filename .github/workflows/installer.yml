@@ -66,6 +66,7 @@ jobs:
                   export CRATE_DOCKER_DJANGO_SUPERUSER_PASSWORD=servisolironcamera
                   export CRATE_DOCKER_DJANGO_SUPERUSER_EMAIL=admin@example.com
                   export CRATE_DOCKER_CRATEWEB_HOST_PORT=8000
+                  export CRATE_DOCKER_CRATEWEB_USE_HTTPS=0
                   cd ${GITHUB_WORKSPACE}/installer
                   ./installer.sh
             - name: Test

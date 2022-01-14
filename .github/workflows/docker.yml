@@ -24,6 +24,7 @@ jobs:
                   export CRATE_DOCKER_MYSQL_ROOT_PASSWORD=shoobydoobydoo
                   export CRATE_DOCKER_INSTALL_USER_ID=$(id -u)
                   export CRATE_DOCKER_INSTALL_GROUP_ID=$(id -g)
+                  export CRATE_DOCKER_CRATEWEB_USE_HTTPS=0
                   cd docker/dockerfiles
                   docker-compose version
                   docker-compose build
