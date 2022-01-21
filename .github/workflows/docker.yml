@@ -16,6 +16,18 @@ jobs:
             - uses: actions/checkout@v2
 
             - name: Build
+              # These are set in .env:
+              # CRATE_DOCKER_CRATE_ANON_CONFIG=crate_anon_config.ini
+              # CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME=crateweb_local_settings.py
+              # CRATE_DOCKER_CRATEWEB_HOST_PORT=8000
+              # CRATE_DOCKER_CRATEWEB_USE_HTTPS=0
+              # CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE=
+              # CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY=
+              # CRATE_DOCKER_FLOWER_HOST_PORT=5555
+              # CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME=crate_web_db
+              # CRATE_DOCKER_MYSQL_CRATE_USER_NAME=crate_web_user
+              # CRATE_DOCKER_MYSQL_CRATE_HOST_PORT=3306
+
               run: |
                   set -euxo pipefail
                   export CRATE_DOCKER_CONFIG_HOST_DIR=${HOME}/crate_config

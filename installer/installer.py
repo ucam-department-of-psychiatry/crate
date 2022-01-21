@@ -48,6 +48,16 @@ class Installer:
             sys.exit(EXIT_FAILURE)
 
     def configure(self) -> None:
+        self.configure_user()
+        self.configure_config_files()
+        self.configure_crateweb()
+        self.configure_crate_db()
+        self.configure_research_db()
+        self.configure_secret_db()
+        self.configure_source_db()
+        self.configure_django()
+
+    def configure_user(self) -> None:
         self.setenv(
             "CRATE_DOCKER_INSTALL_USER_ID",
             self.get_docker_install_user_id
@@ -56,6 +66,8 @@ class Installer:
             "CRATE_DOCKER_INSTALL_GROUP_ID",
             self.get_docker_install_group_id
         )
+
+    def configure_config_files(self) -> None:
         self.setenv(
             "CRATE_DOCKER_CONFIG_HOST_DIR",
             self.get_docker_config_host_dir
@@ -68,6 +80,12 @@ class Installer:
             "CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME",
             "crateweb_local_settings.py"
         )
+        self.setenv(
+            "CRATE_DOCKER_CRATE_ANON_CONFIG",
+            "crate_anon_config.ini"
+        )
+
+    def configure_crateweb(self) -> None:
         self.setenv(
             "CRATE_DOCKER_CRATEWEB_HOST_PORT",
             self.get_docker_crateweb_host_port
@@ -85,13 +103,11 @@ class Installer:
                 "CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY",
                 self.get_docker_crateweb_ssl_private_key
             )
+
+    def configure_crate_db(self) -> None:
         self.setenv(
-            "CRATE_DOCKER_CRATE_ANON_CONFIG",
-            "crate_anon_config.ini"
-        )
-        self.setenv(
-            "CRATE_DOCKER_MYSQL_ROOT_PASSWORD",
-            self.get_docker_mysql_root_password
+            "CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD",
+            self.get_docker_mysql_crate_root_password
         )
         self.setenv(
             "CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME",
@@ -106,9 +122,104 @@ class Installer:
             self.get_docker_mysql_crate_user_password
         )
         self.setenv(
-            "CRATE_DOCKER_MYSQL_HOST_PORT",
-            self.get_docker_mysql_host_port
+            "CRATE_DOCKER_MYSQL_CRATE_HOST_PORT",
+            self.get_docker_mysql_crate_host_port
         )
+
+    def configure_research_db(self) -> None:
+        # TODO: Prompt user for these?
+        self.setenv(
+            "CRATE_DOCKER_RESEARCH_DATABASE_ENGINE",
+            "mysql"
+        )
+        self.setenv(
+            "CRATE_DOCKER_RESEARCH_DATABASE_HOST",
+            "research_db"
+        )
+        self.setenv(
+            "CRATE_DOCKER_RESEARCH_DATABASE_PORT",
+            "3306"
+        )
+        self.setenv(
+            "CRATE_DOCKER_RESEARCH_DATABASE_ROOT_PASSWORD",
+            "research"
+        )
+        self.setenv(
+            "CRATE_DOCKER_RESEARCH_DATABASE_NAME",
+            "research"
+        )
+        self.setenv(
+            "CRATE_DOCKER_RESEARCH_DATABASE_USER_NAME",
+            "research"
+        )
+        self.setenv(
+            "CRATE_DOCKER_RESEARCH_DATABASE_USER_PASSWORD",
+            "research"
+        )
+
+    def configure_secret_db(self) -> None:
+        # TODO: Prompt user for these?
+        self.setenv(
+            "CRATE_DOCKER_SECRET_DATABASE_ENGINE",
+            "mysql"
+        )
+        self.setenv(
+            "CRATE_DOCKER_SECRET_DATABASE_HOST",
+            "secret_db"
+        )
+        self.setenv(
+            "CRATE_DOCKER_SECRET_DATABASE_PORT",
+            "3306"
+        )
+        self.setenv(
+            "CRATE_DOCKER_SECRET_DATABASE_ROOT_PASSWORD",
+            "secret"
+        )
+        self.setenv(
+            "CRATE_DOCKER_SECRET_DATABASE_NAME",
+            "secret"
+        )
+        self.setenv(
+            "CRATE_DOCKER_SECRET_DATABASE_USER_NAME",
+            "secret"
+        )
+        self.setenv(
+            "CRATE_DOCKER_SECRET_DATABASE_USER_PASSWORD",
+            "secret"
+        )
+
+    def configure_source_db(self) -> None:
+        # TODO: Prompt user for these?
+        self.setenv(
+            "CRATE_DOCKER_SOURCE_DATABASE_ENGINE",
+            "mysql"
+        )
+        self.setenv(
+            "CRATE_DOCKER_SOURCE_DATABASE_HOST",
+            "source_db"
+        )
+        self.setenv(
+            "CRATE_DOCKER_SOURCE_DATABASE_PORT",
+            "3306"
+        )
+        self.setenv(
+            "CRATE_DOCKER_SOURCE_DATABASE_ROOT_PASSWORD",
+            "source"
+        )
+        self.setenv(
+            "CRATE_DOCKER_SOURCE_DATABASE_NAME",
+            "source"
+        )
+        self.setenv(
+            "CRATE_DOCKER_SOURCE_DATABASE_USER_NAME",
+            "source"
+        )
+        self.setenv(
+            "CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD",
+            "source"
+        )
+
+    def configure_django(self) -> None:
         self.setenv(
             "CRATE_DOCKER_DJANGO_SUPERUSER_USERNAME",
             self.get_docker_django_superuser_username
@@ -141,7 +252,7 @@ class Installer:
     def get_docker_crateweb_host_port(self) -> str:
         return self.get_user_input(
             ("Enter the port where the CRATE web app will be appear on the "
-             "host.")
+             "host")
         )
 
     def get_docker_crateweb_use_https(self) -> str:
@@ -157,9 +268,9 @@ class Installer:
             "Select the SSL private key file."
         )
 
-    def get_docker_mysql_root_password(self) -> str:
+    def get_docker_mysql_crate_root_password(self) -> str:
         return self.get_user_password(
-            "Enter a new MySQL root password"
+            "Enter a new MySQL root password for CRATE's internal database"
         )
 
     def get_docker_mysql_crate_user_password(self) -> str:
@@ -167,9 +278,11 @@ class Installer:
             "Enter a new password for the MySQL user that CRATE will create"
         )
 
-    def get_docker_mysql_host_port(self) -> str:
+    def get_docker_mysql_crate_host_port(self) -> str:
         return self.get_user_input(
-            "Enter the port where the MySQL database will appear on the host"
+            ("Enter the port where CRATE's internal MySQL database will appear "
+             "on the host."),
+            default="43306"  # TODO: Default not yet working
         )
 
     def get_docker_django_superuser_username(self) -> str:
@@ -257,11 +370,17 @@ class Installer:
 
         return "0"
 
-    def get_user_input(self, text: str, title: Optional[str] = None) -> str:
+    def get_user_input(self, text: str, title: Optional[str] = None,
+                       default: str = "") -> str:
         if title is None:
             title = self.title
 
-        value = input_dialog(title=title, text=text).run()
+        # TODO: No way of passing default to input_dialog()
+        # https://github.com/prompt-toolkit/python-prompt-toolkit/issues/1544
+        #
+        # Either we create a PR to do so or write our own input_dialog()
+        app = input_dialog(title=title, text=text)
+        value = app.run()
         if value is None:
             sys.exit(EXIT_FAILURE)
 
@@ -301,12 +420,24 @@ class Installer:
             "archive_template_dir": archive_template_dir,
             "broker_url": "amqp://rabbitmq:5672",
             "crate_install_dir": crate_install_dir,
-            # TODO: Prompt user for these
-            "dest_db_host": "host.docker.internal",
-            "dest_db_port": "3306",
-            "dest_db_name": "research",
-            "dest_db_user": "research",
-            "dest_db_password": "research",
+            "dest_db_engine": self.get_django_engine(
+                os.getenv("CRATE_DOCKER_RESEARCH_DATABASE_ENGINE")
+            ),
+            "dest_db_host": os.getenv(
+                "CRATE_DOCKER_RESEARCH_DATABASE_HOST"
+            ),
+            "dest_db_port": os.getenv(
+                "CRATE_DOCKER_RESEARCH_DATABASE_PORT"
+            ),
+            "dest_db_name": os.getenv(
+                "CRATE_DOCKER_RESEARCH_DATABASE_NAME"
+            ),
+            "dest_db_user": os.getenv(
+                "CRATE_DOCKER_RESEARCH_DATABASE_USER_NAME"
+            ),
+            "dest_db_password": os.getenv(
+                "CRATE_DOCKER_RESEARCH_DATABASE_USER_PASSWORD"
+            ),
             "django_site_root_absolute_url": "http://crate_server:8088",
             "force_script_name": self.get_crate_server_path(),
             "crate_https": str(self.use_https()),
@@ -320,15 +451,30 @@ class Installer:
             "pdf_logo_abs_url": "http://localhost/crate_logo",  # TODO
             "private_file_storage_root": os.path.join(tmp_dir, "files"),
             "secret_key": secrets.token_urlsafe(),
-            # TODO: Prompt the user for these
-            "secret_db1_host": "host.docker.internal",
-            "secret_db1_port": "3306",
-            "secret_db1_name": "secret",
-            "secret_db1_user": "secret",
-            "secret_db1_password": "secret",
+            "secret_db1_engine": self.get_django_engine(
+                os.getenv("CRATE_DOCKER_SECRET_DATABASE_ENGINE")
+            ),
+            "secret_db1_host": os.getenv("CRATE_DOCKER_SECRET_DATABASE_HOST"),
+            "secret_db1_port": os.getenv("CRATE_DOCKER_SECRET_DATABASE_PORT"),
+            "secret_db1_name": os.getenv("CRATE_DOCKER_SECRET_DATABASE_NAME"),
+            "secret_db1_user": os.getenv(
+                "CRATE_DOCKER_SECRET_DATABASE_USER_NAME"
+            ),
+            "secret_db1_password": os.getenv(
+                "CRATE_DOCKER_SECRET_DATABASE_USER_PASSWORD"
+            ),
         }
 
         self.search_replace_file(self.local_settings_full_path(), replace_dict)
+
+    def get_django_engine(self, label: str) -> str:
+        engines = {
+            "mysql": "django.db.backends.mysql",
+            "oracle": "django.db.backends.oracle",
+            "postgresql": "django.db.backends.postgresql",
+        }
+
+        return engines[label]
 
     def create_anon_config(self) -> None:
         if not os.path.exists(self.anon_config_full_path()):
@@ -337,27 +483,67 @@ class Installer:
         self.configure_anon_config()
 
     def configure_anon_config(self) -> None:
-        # TODO: Get these from the user
-        # TODO: Configure dialect
         replace_dict = {
-            "dest_db_user": "research",
-            "dest_db_password": "research",
-            "dest_db_host": "host.docker.internal",
-            "dest_db_port": "3306",
-            "dest_db_name": "research",
-            "admin_db_user": "secret",
-            "admin_db_password": "secret",
-            "admin_db_host": "host.docker.internal",
-            "admin_db_port": "3306",
-            "admin_db_name": "secret",
-            "source_db1_user": "source",
-            "source_db1_password": "source",
-            "source_db1_host": "host.docker.internal",
-            "source_db1_port": "3306",
-            "source_db1_name": "source",
+            "dest_db_engine": self.get_sqlalchemy_engine(
+                os.getenv("CRATE_DOCKER_RESEARCH_DATABASE_ENGINE")
+            ),
+            "dest_db_user": os.getenv(
+                "CRATE_DOCKER_RESEARCH_DATABASE_USER_NAME"
+            ),
+            "dest_db_password": os.getenv(
+                "CRATE_DOCKER_RESEARCH_DATABASE_USER_PASSWORD"
+            ),
+            "dest_db_host": os.getenv(
+                "CRATE_DOCKER_RESEARCH_DATABASE_HOST"
+            ),
+            "dest_db_port": os.getenv(
+                "CRATE_DOCKER_RESEARCH_DATABASE_PORT"
+            ),
+            "dest_db_name": os.getenv(
+                "CRATE_DOCKER_RESEARCH_DATABASE_NAME"
+            ),
+            "admin_db_engine": self.get_sqlalchemy_engine(
+                os.getenv("CRATE_DOCKER_SECRET_DATABASE_ENGINE")
+            ),
+            "admin_db_user": os.getenv(
+                "CRATE_DOCKER_SECRET_DATABASE_USER_NAME"
+            ),
+            "admin_db_password": os.getenv(
+                "CRATE_DOCKER_SECRET_DATABASE_USER_PASSWORD"
+            ),
+            "admin_db_host": os.getenv("CRATE_DOCKER_SECRET_DATABASE_HOST"),
+            "admin_db_port": os.getenv("CRATE_DOCKER_SECRET_DATABASE_PORT"),
+            "admin_db_name": os.getenv("CRATE_DOCKER_SECRET_DATABASE_NAME"),
+            "source_db1_engine": self.get_sqlalchemy_engine(
+                os.getenv("CRATE_DOCKER_SOURCE_DATABASE_ENGINE")
+            ),
+            "source_db1_user": os.getenv(
+                "CRATE_DOCKER_SOURCE_DATABASE_USER_NAME"
+            ),
+            "source_db1_password": os.getenv(
+                "CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD"
+            ),
+            "source_db1_host": os.getenv(
+                "CRATE_DOCKER_SOURCE_DATABASE_HOST"
+            ),
+            "source_db1_port": os.getenv(
+                "CRATE_DOCKER_SOURCE_DATABASE_PORT"
+            ),
+            "source_db1_name": os.getenv(
+                "CRATE_DOCKER_SOURCE_DATABASE_NAME"
+            ),
         }
 
         self.search_replace_file(self.anon_config_full_path(), replace_dict)
+
+    def get_sqlalchemy_engine(self, label: str) -> str:
+        engines = {
+            "mysql": "mysql+mysqldb",
+            "oracle": "oracle+cxoracle",
+            "postgresql": "postgresql+psycopg2",
+        }
+
+        return engines[label]
 
     def search_replace_file(self, filename: str,
                             replace_dict: Dict[str, str]) -> None:
@@ -365,6 +551,10 @@ class Installer:
             contents = f.read()
 
         for (search, replace) in replace_dict.items():
+            if replace is None:
+                print(f"Can't replace '{search}' with None")
+                sys.exit(EXIT_FAILURE)
+
             contents = contents.replace(f"@@{search}@@", replace)
 
         with open(filename, "w") as f:

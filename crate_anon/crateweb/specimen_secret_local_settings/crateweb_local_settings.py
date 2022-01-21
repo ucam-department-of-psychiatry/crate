@@ -153,7 +153,7 @@ DATABASES = {
         # [2] ... so researchers can't see secrets
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': '@@dest_db_engine@@',
         'HOST': '@@dest_db_host@@',  # e.g. 127.0.0.1
         'PORT': '@@dest_db_port@@',  # local, e.g. 3306
         'NAME': '@@dest_db_name@@',  # will be the default database; use None for no default database  # noqa
@@ -165,7 +165,7 @@ DATABASES = {
     # One or more secret databases for RID/PID mapping
     # -------------------------------------------------------------------------
     'secret_1': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': '@@secret_db1_engine@@',
         'HOST': '@@secret_db1_host@@',  # e.g. 127.0.0.1
         'PORT': '@@secret_db1_port@@',
         'NAME': '@@secret_db1_name@@',

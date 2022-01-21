@@ -29,24 +29,6 @@ jobs:
         steps:
             - uses: actions/checkout@v2
 
-            - name: Set up MySQL
-              run: |
-                  set -euxo pipefail
-                  sudo apt-get update
-                  sudo apt -y install gnutls-bin
-                  sudo sed -i "s/^bind-address.*/bind-address = 0.0.0.0/" /etc/mysql/mysql.conf.d/mysqld.cnf
-                  cat /etc/mysql/mysql.conf.d/mysqld.cnf
-                  sudo service mysql start
-                  mysql -e 'CREATE DATABASE ${{ env.DB_RESEARCH_DATABASE }};' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'CREATE USER `${{ env.DB_RESEARCH_USER }}`@`%` IDENTIFIED WITH mysql_native_password BY "${{ env.DB_RESEARCH_PASSWORD }}";' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'GRANT ALL PRIVILEGES ON `${{ env.DB_RESEARCH_DATABASE }}`.* TO `${{ env.DB_RESEARCH_USER }}`@`%`;' -u${{ env.DB_ROOT_USER }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'CREATE DATABASE ${{ env.DB_SECRET_DATABASE }};' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'CREATE USER `${{ env.DB_SECRET_USER }}`@`%` IDENTIFIED WITH mysql_native_password BY "${{ env.DB_SECRET_PASSWORD }}";' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'GRANT ALL PRIVILEGES ON `${{ env.DB_SECRET_DATABASE }}`.* TO `${{ env.DB_SECRET_USER }}`@`%`;' -u${{ env.DB_ROOT_USER }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'CREATE DATABASE ${{ env.DB_SOURCE_DATABASE }};' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'CREATE USER `${{ env.DB_SOURCE_USER }}`@`%` IDENTIFIED WITH mysql_native_password BY "${{ env.DB_SOURCE_PASSWORD }}";' -u${{ env.DB_ROOT_USER  }} -p${{ env.DB_ROOT_PASSWORD }}
-                  mysql -e 'GRANT ALL PRIVILEGES ON `${{ env.DB_SOURCE_DATABASE }}`.* TO `${{ env.DB_SOURCE_USER }}`@`%`;' -u${{ env.DB_ROOT_USER }} -p${{ env.DB_ROOT_PASSWORD }}
-
             - name: Build
               run: |
                   set -euxo pipefail
@@ -55,7 +37,7 @@ jobs:
                   # TODO: wget this from releases as a normal user would
                   # and don't checkout above
                   docker --version
-                  export CRATE_DOCKER_MYSQL_HOST_PORT=3307
+                  export CRATE_DOCKER_MYSQL_CRATE_HOST_PORT=3307
                   export CRATE_DOCKER_CONFIG_HOST_DIR=${HOME}/crate_config
                   export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=${HOME}/bioyodie_resources
                   export CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD=ramalamadingdong

@@ -340,7 +340,7 @@ optout_col_values =
 
 [destination_database]
 
-url = mysql+mysqldb://@@dest_db_user@@:@@dest_db_password@@@@@dest_db_host@@:@@dest_db_port@@/@@dest_db_name@@?charset=utf8
+url = @@dest_db_engine@@://@@dest_db_user@@:@@dest_db_password@@@@@dest_db_host@@:@@dest_db_port@@/@@dest_db_name@@?charset=utf8
 
 
 # =============================================================================
@@ -349,7 +349,7 @@ url = mysql+mysqldb://@@dest_db_user@@:@@dest_db_password@@@@@dest_db_host@@:@@d
 
 [admin_database]
 
-url = mysql+mysqldb://@@admin_db_user@@:@@admin_db_password@@@@@admin_db_host@@:@@admin_db_port@@/@@admin_db_name@@?charset=utf8
+url = @@admin_db_engine@@://@@admin_db_user@@:@@admin_db_password@@@@@admin_db_host@@:@@admin_db_port@@/@@admin_db_name@@?charset=utf8
 
 
 # =============================================================================
@@ -367,7 +367,7 @@ url = mysql+mysqldb://@@admin_db_user@@:@@admin_db_password@@@@@admin_db_host@@:
     # CONNECTION DETAILS
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-url = mysql+mysqldb://@@source_db1_user@@:@@source_db1_password@@@@@source_db1_host@@:@@source_db1_port@@/@@source_db1_name@@?charset=utf8
+url = @@source_db1_engine@@://@@source_db1_user@@:@@source_db1_password@@@@@source_db1_host@@:@@source_db1_port@@/@@source_db1_name@@?charset=utf8
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES

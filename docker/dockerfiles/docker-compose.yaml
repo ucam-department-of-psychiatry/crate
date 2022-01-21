@@ -20,7 +20,7 @@
 #   CRATE_DOCKER_FLOWER_HOST_PORT
 #   CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
 #   CRATE_DOCKER_MYSQL_CRATE_USER_NAME
-#   CRATE_DOCKER_MYSQL_HOST_PORT
+#   CRATE_DOCKER_MYSQL_CRATE_HOST_PORT
 #   COMPOSE_PROJECT_NAME -- used by Docker Compose itself
 #
 # Those without defaults:
@@ -28,7 +28,7 @@
 #   CRATE_DOCKER_CONFIG_HOST_DIR
 #   CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR
 #   CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
-#   CRATE_DOCKER_MYSQL_ROOT_PASSWORD
+#   CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD
 
 
 # =============================================================================
@@ -47,10 +47,13 @@ volumes:
     # here is not the same as for "volumes:" within a service (container).
     # https://docs.docker.com/compose/compose-file/#volume-configuration-reference
 
-    db_data_volume:
+    crate_db_data_volume:
         # Without any options, the default driver (usually "local") is used.
         # This will probably create a volume at
         # /var/lib/docker/volumes/VOLUME/_data on the host.
+    research_db_data_volume:
+    secret_db_data_volume:
+    source_db_data_volume:
 
     rabbitmq_volume:
         # Again, we make it explicit (or we get Docker gibberish names).
@@ -134,7 +137,7 @@ services:
             MYSQL_PASSWORD: "${CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD}"
 
             # Password for user "root" (set at first container startup).
-            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_MYSQL_ROOT_PASSWORD}"
+            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD}"
 
         extra_hosts:
             - "host.docker.internal:host-gateway"
@@ -153,7 +156,7 @@ services:
             # Short format is: "HOST_PORT:CONTAINER_PORT".
             # Should always use explicit string format here.
             # MySQL offers port 3306 by default.
-            - "${CRATE_DOCKER_MYSQL_HOST_PORT}:3306"
+            - "${CRATE_DOCKER_MYSQL_CRATE_HOST_PORT}:3306"
 
         # Expose ports to linked services without publishing them to the host.
         # Specify the container (internal) port.
@@ -167,7 +170,7 @@ services:
         volumes:
             # Format is "[SOURCE:]TARGET[:MODE]", such as
             # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
-            - db_data_volume:/var/lib/mysql
+            - crate_db_data_volume:/var/lib/mysql
 
             # TODO: Temporarily disabled mysqlconf mount as MacOS doesn't like it
             # Mounts denied:
@@ -177,6 +180,123 @@ services:
             # At the moment this just has a config option to stop warnings about
             # invalid timestamps
             # - "./mysqlconf:/etc/mysql/conf.d"
+
+    research_db:
+        image: mysql:5.7
+        container_name: crate_research_db
+        restart: "always"
+
+        environment:
+            # Create database with this name at first container startup.
+            MYSQL_DATABASE: "${CRATE_DOCKER_RESEARCH_DATABASE_NAME}"
+
+            # Create user with this name at first container startup, with
+            # GRANT ALL access to the database named in MYSQL_DATABASE.
+            MYSQL_USER: "${CRATE_DOCKER_RESEARCH_DATABASE_USER_NAME}"
+
+            # Password for MYSQL_USER (set at first container startup).
+            MYSQL_PASSWORD: "${CRATE_DOCKER_RESEARCH_DATABASE_USER_PASSWORD}"
+
+            # Password for user "root" (set at first container startup).
+            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_RESEARCH_DATABASE_ROOT_PASSWORD}"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
+        networks:
+            - crateanon_network
+
+        # Expose ports to linked services without publishing them to the host.
+        # Specify the container (internal) port.
+        expose:
+            - "3306"
+
+        # Note that if you do not specify mount points, some are created
+        # anyway; for example, the MySQL image wants something at
+        # /var/lib/mysql (internally) and on the host this might actually be
+        # e.g. /var/lib/docker/volumes/<gibberish>/_data
+        volumes:
+            # Format is "[SOURCE:]TARGET[:MODE]", such as
+            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
+            - research_db_data_volume:/var/lib/mysql
+
+    secret_db:
+        image: mysql:5.7
+        container_name: crate_secret_db
+        restart: "always"
+
+        environment:
+            # Create database with this name at first container startup.
+            MYSQL_DATABASE: "${CRATE_DOCKER_SECRET_DATABASE_NAME}"
+
+            # Create user with this name at first container startup, with
+            # GRANT ALL access to the database named in MYSQL_DATABASE.
+            MYSQL_USER: "${CRATE_DOCKER_SECRET_DATABASE_USER_NAME}"
+
+            # Password for MYSQL_USER (set at first container startup).
+            MYSQL_PASSWORD: "${CRATE_DOCKER_SECRET_DATABASE_USER_PASSWORD}"
+
+            # Password for user "root" (set at first container startup).
+            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_SECRET_DATABASE_ROOT_PASSWORD}"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
+        networks:
+            - crateanon_network
+
+        # Expose ports to linked services without publishing them to the host.
+        # Specify the container (internal) port.
+        expose:
+            - "3306"
+
+        # Note that if you do not specify mount points, some are created
+        # anyway; for example, the MySQL image wants something at
+        # /var/lib/mysql (internally) and on the host this might actually be
+        # e.g. /var/lib/docker/volumes/<gibberish>/_data
+        volumes:
+            # Format is "[SOURCE:]TARGET[:MODE]", such as
+            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
+            - secret_db_data_volume:/var/lib/mysql
+
+    source_db:
+        image: mysql:5.7
+        container_name: crate_source_db
+        restart: "always"
+
+        environment:
+            # Create database with this name at first container startup.
+            MYSQL_DATABASE: "${CRATE_DOCKER_SOURCE_DATABASE_NAME}"
+
+            # Create user with this name at first container startup, with
+            # GRANT ALL access to the database named in MYSQL_DATABASE.
+            MYSQL_USER: "${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME}"
+
+            # Password for MYSQL_USER (set at first container startup).
+            MYSQL_PASSWORD: "${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD}"
+
+            # Password for user "root" (set at first container startup).
+            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_SOURCE_DATABASE_ROOT_PASSWORD}"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
+        networks:
+            - crateanon_network
+
+        # Expose ports to linked services without publishing them to the host.
+        # Specify the container (internal) port.
+        expose:
+            - "3306"
+
+        # Note that if you do not specify mount points, some are created
+        # anyway; for example, the MySQL image wants something at
+        # /var/lib/mysql (internally) and on the host this might actually be
+        # e.g. /var/lib/docker/volumes/<gibberish>/_data
+        volumes:
+            # Format is "[SOURCE:]TARGET[:MODE]", such as
+            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
+            - source_db_data_volume:/var/lib/mysql
 
     # -------------------------------------------------------------------------
     # RabbitMQ container, providing a message queue.
@@ -238,6 +358,9 @@ services:
         # "wait for startup to complete".
         depends_on:
             - crate_db
+            - research_db
+            - secret_db
+            - source_db
             - rabbitmq
 
         # Restart policy

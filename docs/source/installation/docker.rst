@@ -339,8 +339,8 @@ the database named in CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME_. See also
 CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD_.
 
 
-CRATE_DOCKER_MYSQL_HOST_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_MYSQL_CRATE_HOST_PORT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 *Default: 3306*
 
@@ -358,10 +358,10 @@ else.
 You should **not** expose this port to the "outside", beyond your host.
 
 
-.. _CRATE_DOCKER_MYSQL_ROOT_PASSWORD:
+.. _CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD:
 
-CRATE_DOCKER_MYSQL_ROOT_PASSWORD
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **No default. Must be set during MySQL container creation.**
 
