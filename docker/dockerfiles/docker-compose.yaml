@@ -171,15 +171,7 @@ services:
             # Format is "[SOURCE:]TARGET[:MODE]", such as
             # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
             - crate_db_data_volume:/var/lib/mysql
-
-            # TODO: Temporarily disabled mysqlconf mount as MacOS doesn't like it
-            # Mounts denied:
-            # The path /cnab/app/mysqlconf is not shared from the host and is
-            # not known to Docker.
-
-            # At the moment this just has a config option to stop warnings about
-            # invalid timestamps
-            # - "./mysqlconf:/etc/mysql/conf.d"
+            - "./mysqlconf:/etc/mysql/conf.d"
 
     research_db:
         image: mysql:5.7
@@ -219,6 +211,7 @@ services:
             # Format is "[SOURCE:]TARGET[:MODE]", such as
             # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
             - research_db_data_volume:/var/lib/mysql
+            - "./mysqlconf:/etc/mysql/conf.d"
 
     secret_db:
         image: mysql:5.7
@@ -258,6 +251,7 @@ services:
             # Format is "[SOURCE:]TARGET[:MODE]", such as
             # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
             - secret_db_data_volume:/var/lib/mysql
+            - "./mysqlconf:/etc/mysql/conf.d"
 
     source_db:
         image: mysql:5.7
@@ -297,6 +291,7 @@ services:
             # Format is "[SOURCE:]TARGET[:MODE]", such as
             # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
             - source_db_data_volume:/var/lib/mysql
+            - "./mysqlconf:/etc/mysql/conf.d"
 
     # -------------------------------------------------------------------------
     # RabbitMQ container, providing a message queue.

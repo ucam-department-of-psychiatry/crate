@@ -172,6 +172,7 @@ RUN echo "======================================================================
         poppler-utils \
         tdsodbc \
         unrtf \
+        wbritish \
     \
     && echo "- Adding repositories..." \
     && echo "  * Microsoft ODBC driver for SQL Server" \

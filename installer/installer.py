@@ -35,11 +35,12 @@ class Installer:
         self.create_anon_config()
         if self.use_https():
             self.copy_ssl_files()
-        self.create_database()
+        self.create_crate_database()
         self.collect_static()
         self.populate()
         self.create_superuser()
         self.start()
+        self.create_demo_data()
 
     def check_setup(self) -> None:
         info = docker.info()
@@ -536,15 +537,6 @@ class Installer:
 
         self.search_replace_file(self.anon_config_full_path(), replace_dict)
 
-    def get_sqlalchemy_engine(self, label: str) -> str:
-        engines = {
-            "mysql": "mysql+mysqldb",
-            "oracle": "oracle+cxoracle",
-            "postgresql": "postgresql+psycopg2",
-        }
-
-        return engines[label]
-
     def search_replace_file(self, filename: str,
                             replace_dict: Dict[str, str]) -> None:
         with open(filename, "r") as f:
@@ -583,7 +575,7 @@ class Installer:
         shutil.copy(os.getenv("CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY"),
                     key_dest)
 
-    def create_database(self) -> None:
+    def create_crate_database(self) -> None:
         self.run_crate_command("crate_django_manage migrate")
 
     def collect_static(self) -> None:
@@ -618,6 +610,45 @@ class Installer:
         localhost_url = self.get_crate_server_localhost_url()
         print(f"The CRATE application is running at {server_url} "
               f"or {localhost_url}")
+
+    def create_demo_data(self) -> None:
+        dialect = os.getenv("CRATE_DOCKER_SOURCE_DATABASE_ENGINE")
+        user = os.getenv("CRATE_DOCKER_SOURCE_DATABASE_USER_NAME")
+        password = os.getenv("CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD")
+        host = os.getenv("CRATE_DOCKER_SOURCE_DATABASE_HOST")
+        port = os.getenv("CRATE_DOCKER_SOURCE_DATABASE_PORT")
+        name = os.getenv("CRATE_DOCKER_SOURCE_DATABASE_NAME")
+
+        url = self.get_sqlalchemy_url(dialect, user, password, host, port, name)
+
+        self.run_crate_command(f"crate_make_demo_database {url}")
+
+    def get_sqlalchemy_url(self,
+                           dialect: str,
+                           user: str,
+                           password: str,
+                           host: str,
+                           port: str,
+                           name: str) -> str:
+
+        scheme = self.get_sqlalchemy_engine(dialect)
+        netloc = f"{user}:{password}@{host}:{port}"
+        path = name
+        query = "charset=utf8"
+        params = fragment = None
+
+        return urllib.parse.urlunparse(
+            (scheme, netloc, path, params, query, fragment)
+        )
+
+    def get_sqlalchemy_engine(self, label: str) -> str:
+        engines = {
+            "mysql": "mysql+mysqldb",
+            "oracle": "oracle+cxoracle",
+            "postgresql": "postgresql+psycopg2",
+        }
+
+        return engines[label]
 
     def get_crate_server_url(self) -> str:
         if self.use_https():
