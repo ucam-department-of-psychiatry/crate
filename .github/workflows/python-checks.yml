@@ -35,7 +35,11 @@ jobs:
                   echo installing vulnerability checker
                   python -m pip install safety
                   echo checking packages for vulnerabilities
-                  safety check --full-report
+                  # All of these vulnerabilities look either harmless or very low risk
+                  # 44715 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/19038
+                  # 44716 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/19000
+                  # 44717 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/18993
+                  safety check --full-report -i 44715 -i 44716 -i 44717
                   echo checking python for style and errors
                   flake8 --config=setup.cfg crate_anon
                   echo running tests
