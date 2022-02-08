@@ -45,7 +45,8 @@ class Installer:
     def check_setup(self) -> None:
         info = docker.info()
         if info.id is None:
-            print("Docker is not running. Please start Docker and try again.")
+            print("Could not connect to Docker. Check that Docker is running "
+                  "and your user is in the 'docker' group.")
             sys.exit(EXIT_FAILURE)
 
     def configure(self) -> None:
