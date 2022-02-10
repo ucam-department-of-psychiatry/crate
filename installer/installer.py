@@ -8,7 +8,8 @@ import sys
 import secrets
 import shutil
 from subprocess import PIPE, run
-from typing import Callable, Dict, Optional, Union
+import textwrap
+from typing import Callable, Dict, Iterable, Optional, Union
 import urllib
 
 from prompt_toolkit.completion import PathCompleter
@@ -539,11 +540,16 @@ class Installer:
                 "CRATE_DOCKER_SOURCE_DATABASE_NAME"
             ),
             "source_db1_ddgen_include_fields": "Note.note",
-            "source_db1_ddgen_scrubsrc_patient_fields": "\n".join(
-                ["forename", "surname"]),
+            "source_db1_ddgen_scrubsrc_patient_fields": self.format_multiline(
+                ("forename", "surname")
+            )
         }
 
         self.search_replace_file(self.anon_config_full_path(), replace_dict)
+
+    def format_multiline(self, values: Iterable[str]) -> str:
+        indented_values = textwrap.indent("\n".join(values), 4*" ")
+        return f"\n{indented_values}"
 
     def search_replace_file(self, filename: str,
                             replace_dict: Dict[str, str]) -> None:

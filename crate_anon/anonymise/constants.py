@@ -406,7 +406,7 @@ ddgen_deletion_possible_tables =
 
 ddgen_pid_defining_fieldnames =
 
-ddgen_scrubsrc_patient_fields =  @@source_db1_ddgen_scrubsrc_patient_fields@@
+ddgen_scrubsrc_patient_fields = @@source_db1_ddgen_scrubsrc_patient_fields@@
 ddgen_scrubsrc_thirdparty_fields =
 ddgen_scrubsrc_thirdparty_xref_pid_fields =
 
