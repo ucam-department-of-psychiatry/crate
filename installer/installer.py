@@ -41,6 +41,9 @@ class Installer:
         self.create_superuser()
         self.start()
         self.create_demo_data()
+        self.create_data_dictionary()
+        self.anonymise_demo_data()
+        self.report_status()
 
     def check_setup(self) -> None:
         info = docker.info()
@@ -486,6 +489,7 @@ class Installer:
 
     def configure_anon_config(self) -> None:
         replace_dict = {
+            "data_dictionary_filename": self.get_data_dictionary_filename(),
             "dest_db_engine": self.get_sqlalchemy_engine(
                 os.getenv("CRATE_DOCKER_RESEARCH_DATABASE_ENGINE")
             ),
@@ -534,6 +538,7 @@ class Installer:
             "source_db1_name": os.getenv(
                 "CRATE_DOCKER_SOURCE_DATABASE_NAME"
             ),
+            "source_db1_ddgen_include_fields": "Note.note",
         }
 
         self.search_replace_file(self.anon_config_full_path(), replace_dict)
@@ -607,6 +612,7 @@ class Installer:
 
         docker.compose.up(detach=True)
 
+    def report_status(self) -> None:
         server_url = self.get_crate_server_url()
         localhost_url = self.get_crate_server_localhost_url()
         print(f"The CRATE application is running at {server_url} "
@@ -623,6 +629,16 @@ class Installer:
         url = self.get_sqlalchemy_url(dialect, user, password, host, port, name)
 
         self.run_crate_command(f"crate_make_demo_database {url}")
+
+    def create_data_dictionary(self) -> None:
+        data_dictionary = self.get_data_dictionary_filename()
+        self.run_crate_command(f"crate_anonymise --draftdd > {data_dictionary}")
+
+    def get_data_dictionary_filename(self) -> str:
+        return "/crate/cfg/data_dictionary.tsv"
+
+    def anonymise_demo_data(self) -> None:
+        self.run_crate_command("crate_anonymise --full")
 
     def get_sqlalchemy_url(self,
                            dialect: str,

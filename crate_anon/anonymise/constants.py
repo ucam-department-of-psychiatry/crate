@@ -201,7 +201,7 @@ DEMO_CONFIG = r"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # Data dictionary
 # -----------------------------------------------------------------------------
 
-data_dictionary_filename = testdd.tsv
+data_dictionary_filename = @@data_dictionary_filename@@
 
 # -----------------------------------------------------------------------------
 # Critical field types
@@ -375,7 +375,7 @@ url = @@source_db1_engine@@://@@source_db1_user@@:@@source_db1_password@@@@@sour
 
 ddgen_omit_by_default = True
 ddgen_omit_fields =
-ddgen_include_fields =
+ddgen_include_fields = @@source_db1_ddgen_include_fields@@
 
 ddgen_allow_no_patient_info = False
 
