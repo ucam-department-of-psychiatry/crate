@@ -444,13 +444,16 @@ class Config(object):
     Class representing the main CRATE anonymiser configuration.
     """
 
-    def __init__(self, open_databases: bool = True) -> None:
+    def __init__(self,
+                 open_databases: bool = True,
+                 mock: bool = False) -> None:
         """
         Read the config from the file specified in the ``CRATE_ANON_CONFIG``
         environment variable.
 
         Args:
             open_databases: open SQLAlchemy connections to the databases?
+            mock: create mock (dummy) config?
         """
 
         # Get filename
@@ -460,7 +463,7 @@ class Config(object):
             filename = self.config_filename
             fileobj = None
         except (KeyError, AssertionError):
-            if RUNNING_WITHOUT_CONFIG:
+            if RUNNING_WITHOUT_CONFIG or mock:
                 # Running in a mock environment; no config required
                 filename = None
                 fileobj = StringIO(DEMO_CONFIG)

@@ -49,6 +49,7 @@ from cardinal_pythonlib.dicts import (
     rename_keys_in_dict,
     set_null_values_in_dict,
 )
+from cardinal_pythonlib.httpconst import HttpStatus
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 from requests import post, Response
 from requests.exceptions import HTTPError, RequestException
@@ -79,7 +80,6 @@ from crate_anon.nlprp.api import (
     nlprp_datetime_to_datetime_utc_no_tzinfo,
 )
 from crate_anon.nlprp.constants import (
-    HttpStatus,
     NlprpCommands,
     NlprpKeys as NKeys,
     NlprpValues,

@@ -26,26 +26,34 @@ crate_anon/ancillary/timely_project/filter_cpft_rio_data_dictionary.py
 
 **Helper code for a specific project. Not of general interest.**
 
-For the MRC TIMELY project (Moore, grant MR/T046430/1), filter a CPFT RiO
+For the MRC TIMELY project (Moore, grant MR/T046430/1), filter a CRATE CPFT RiO
 data dictionary, cutting it down.
 
-For first cut:
+Operates in 6 stages, following the approvals process.
 
-- no free text
-- include things USEFUL FOR ANONYMISATION, e.g. client_name_history, but they
-  will not in the final output.
-- include things of (final) interest (obviously).
+The input and output are CRATE data dictionaries. Therefore, we want to include
+tables required for anonymisation (e.g. names, NHS numbers) -- this may look
+alarming, but isn't -- the subsequent anonymisation process will not yield that
+information in the resulting de-identified database. We double-check that by
+explicitly setting the "omit" flag to True for all such tables.
 
 """
 
 import argparse
+import copy
 import logging
-import re
-from typing import List
+from typing import List, Optional
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-from sqlalchemy.dialects.mssql.base import dialect as sql_server_dialect
+from sqlalchemy.dialects.mssql.base import dialect as mssql_server_dialect
 
+from crate_anon.ancillary.timely_project.ddcriteria import (
+    add_field_criteria,
+    add_table_criteria,
+    FieldCriterion,
+    N_STAGES,
+    TableCriterion,
+)
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.ddr import DataDictionaryRow
@@ -57,31 +65,146 @@ log = logging.getLogger(__name__)
 # Deciding about rows
 # =============================================================================
 
-EXCLUDE_TABLE_REGEXES = [
-    "user.*",  # Custom forms added by CPFT; usually semi-structured/free text (but sometimes more useful)  # noqa
+# -----------------------------------------------------------------------------
+# Generic exclusions
+# -----------------------------------------------------------------------------
+
+EXCLUDE_TABLES = []  # type: List[TableCriterion]
+add_table_criteria(EXCLUDE_TABLES, stage=None, regex_strings=[
     "cpft_core_assessment_v2_kcsa_children_in_household",  #  about people other than the patient  # noqa
-]
-INCLUDE_TABLE_REGEXES = [
-    "assessmentdates",
-    "care_plan_.*",
-    "careplanproblemorder",
-    "client.*",  # client* and client_*
-    "deceased",
-    "dgndiagnosissecondary",  # dgn = diagnosis
-    "diagnosis",
-    "ims.*",  # e.g. ward attendance
-    "inpatient_.*",  # admissions etc.
-    "mntclient.*",  # mnt = Mental Health Act
-    "referral.*",
-    "rio_manual_opt_out",
-    "snomed_client",
-]
-
-EXCLUDE_TABLES_RE_COMPILED = [re.compile(x) for x in EXCLUDE_TABLE_REGEXES]
-INCLUDE_TABLES_RE_COMPILED = [re.compile(x) for x in INCLUDE_TABLE_REGEXES]
+])
 
 
-# Nasty:
+# -----------------------------------------------------------------------------
+# Stage 1: demographics, problem lists, diagnoses, safeguarding, contacts
+# (e.g. referrals, contacts, discharge)
+# -----------------------------------------------------------------------------
+
+STAGED_INCLUDE_TABLES = []  # type: List[TableCriterion]
+
+add_table_criteria(STAGED_INCLUDE_TABLES, stage=1, regex_strings=[
+    # Demographics
+    "Client_Demographic_Details",  # basics
+    "Client_Address_History",  # addresses blurred to LSOAs
+    "Deceased",
+
+    # Safeguarding
+    "Client_Family",  # legal status codes, parental responsibility, etc.
+    "ClientAlert",
+    # ClientAlertRemovalReason is an example of a system table -- it doesn't
+    # relate to a patient. We include those automatically.
+    "RskRelatedIncidents",  # BUT SEE field exclusions
+    "RskRelatedIncidentsRiskType",
+
+    # Basic contacts, e.g. start/end of care plan
+    "Client_CPA",  # care plan start/end dates
+    "Client_GP",  # GP practice registration
+    "Client_School",  # school attended
+    "ClientGPMerged",  # when GP practices merge, we think
+
+    # Diagnosis/problems
+    "ClientOtherSmoker",  # smoking detail
+    "ClientSmoking",  # more smoking detail
+    # ClientSocialFactor -- no data
+    "Diagnosis",  # ICD-10 diagnoses
+    "SNOMED.*",  # SNOMED-coded problems
+
+    # Referrals (basic info)
+    "Referral.*",  # includes ReferralCoding = diagnosis for referral (+ teams etc.)  # noqa
+])
+
+
+# Note that "UserAssess*" is where all the local custom additions to RiO go.
+# These are quite varied.
+
+# -----------------------------------------------------------------------------
+# Stage 2: detailed information about all service contacts, including
+# professional types involved, outcome data, etc.
+# -----------------------------------------------------------------------------
+
+add_table_criteria(STAGED_INCLUDE_TABLES, stage=2, regex_strings=[
+    "Client_Professional_Contacts",
+    "ClientHealthCareProviderAssumed",
+
+    # Inpatient activity (IMS = inpatient management system)
+    "Ims.*",
+    "Inpatient.*",
+    "IPAms.*",
+
+    # Mnt = Mental Health Act
+    "Mnt.*",
+
+    "ParentGuardianImport",  # outcome data
+])
+
+
+# -----------------------------------------------------------------------------
+# Stage 3: prescribing data
+# -----------------------------------------------------------------------------
+
+add_table_criteria(STAGED_INCLUDE_TABLES, stage=3, regex_strings=[
+    "Client_Allergies",  # for prescribing
+    "Client_Medication",  # will be empty!
+    "Client_Prescription",  # will be empty!
+])
+
+
+# -----------------------------------------------------------------------------
+# Stage 4: test results, other health assessments, other clinical info
+# -----------------------------------------------------------------------------
+
+add_table_criteria(STAGED_INCLUDE_TABLES, stage=4, regex_strings=[
+    "Client_Physical_Details",  # e.g. head circumference
+    "ClientMaternalDetail",  # patients who are mothers
+    "ClientPhysicalDetailMerged",  # e.g. height, weight
+])
+
+
+# -----------------------------------------------------------------------------
+# Stage 5: (structured) info on care plans etc.
+# -----------------------------------------------------------------------------
+
+add_table_criteria(STAGED_INCLUDE_TABLES, stage=5, regex_strings=[
+    # Care plans, Care Plan Approach, care coordination
+    "Care_Plan.*",
+    "CarePlan.*",
+    "CareCoordinatorOccupation",
+    "CPA.*"
+])
+
+
+# -----------------------------------------------------------------------------
+# Stage 6: de-identified free text
+# -----------------------------------------------------------------------------
+
+add_table_criteria(STAGED_INCLUDE_TABLES, stage=6, regex_strings=[
+    "Clinical_Documents",
+    "CPFT_Core_Assessment.*",
+    "Progress_Note",
+    "RskRelatedIncidents",
+    "UserAssessCAMH",  # CAMH-specific assessments (e.g. questionnaires) -- can have free-text comments.  # noqa
+])
+
+
+# -----------------------------------------------------------------------------
+# Specific fields
+# -----------------------------------------------------------------------------
+# Specific fields to exclude that would otherwise be included.
+# List of (tablename, fieldname) regex string tuples.
+
+STAGED_EXCLUDE_FIELDS = []  # type: List[FieldCriterion]
+
+add_field_criteria(STAGED_EXCLUDE_FIELDS, stage=5, regex_tuples=[
+    # "exclude at stage 5 or earlier"
+    ("RskRelatedIncidents", "Text")
+])
+
+
+# =============================================================================
+# Reporting decisions to the log
+# =============================================================================
+
+# Nasty global:
 reported = set()
 
 
@@ -96,58 +219,146 @@ def report(text: str) -> None:
     reported.add(text)
 
 
-def keep(row: DataDictionaryRow, system_tables: List[str]) -> bool:
+# =============================================================================
+# Deciding what to keep
+# =============================================================================
+
+def keep(row: DataDictionaryRow,
+         inclusion_tables: List[TableCriterion],
+         exclusion_tables: List[TableCriterion],
+         exclusion_fields: List[FieldCriterion],
+         system_tables_lower: List[str],
+         scrub_src_tables_lower: List[str]) -> Optional[DataDictionaryRow]:
     """
-    Filters each row. Returns ``True`` to keep, ``False`` to reject.
+    Filters each row. (Each row represents a source column/field.)
+
+    - Always include anonymisation tables, matching
+      ``scrub_src_tables_lower``.
+    - Always exclude tables matching ``exclusion_tables_compiled``.
+    - Always exclude fields matching ``exclusion_fields_compiled``.
+    - Then include rows whose table matches ``inclusion_tables_compiled``.
+    - Then include all system (non-patient) tables, matching
+      ``scrub_src_tables_lower``.
+    - Then exclude anything not meeting those criteria.
+
+    Returns the row itself to keep, or None to reject.
     """
-    table_lower = row.src_table.lower()
+    tablename = row.src_table
+    table_lower = tablename.lower()
+    row_modified = copy.copy(row)  # may or may not use it!
 
-    for r in EXCLUDE_TABLES_RE_COMPILED:
-        if r.match(table_lower):
-            report(f"Excluding specifically: {table_lower}")
-            return False
+    def decide(keep_: bool, reason: str) -> Optional[DataDictionaryRow]:
+        report(reason)
+        if keep_:
+            full_reason = f"[TIMELY autofilter: {reason}]"
+            row_modified.comment = " ".join((
+                row_modified.comment or "",
+                full_reason
+            ))
+            return row_modified
+        else:
+            return None
 
-    for r in INCLUDE_TABLES_RE_COMPILED:
-        if r.match(table_lower):
-            report(f"INCLUDING specifically: {table_lower}")
-            return True
+    # -------------------------------------------------------------------------
+    # Main decision log
+    # -------------------------------------------------------------------------
 
-    if table_lower in system_tables:
-        report(f"INCLUDING system table: {table_lower}")
-        return True
+    if any(et.table_match(tablename) for et in exclusion_tables):
+        return decide(False, f"Excluding specifically: {tablename}")
+
+    for ef in exclusion_fields:
+        if ef.table_field_match(tablename, row.src_field):
+            return decide(
+                False,
+                f"Excluding specifically: {tablename}.{row.src_field} "
+                f"(stage {ef.stage} rule)"
+            )
+
+    for inc_table in inclusion_tables:
+        if inc_table.table_match(tablename):
+            return decide(
+                True,
+                f"INCLUDING specifically: {tablename} "
+                f"(stage {inc_table.stage} rule)"
+            )
+
+    if table_lower in system_tables_lower:
+        return decide(True, f"INCLUDING system table: {tablename}")
+
+    if table_lower in scrub_src_tables_lower:
+        # Although we include the table in the data dictionary, we "omit" all
+        # rows from the final output (unless the user actively added the table
+        # in a previous step), in which case we include or omit depending on
+        # the original data dictionary.
+        row_modified.omit = True
+        log.debug(f"For {tablename}.{row.src_field}, "
+                  f"setting 'omit' flag to True")
+        return decide(True, f"INCLUDING FOR ANONYMISATION: {tablename}")
 
     # Default:
-    report(f"Excluding by default: {table_lower}")
-    return False
+    return decide(False, f"Excluding by default: {tablename}")
 
 
 # =============================================================================
 # File handling
 # =============================================================================
 
-def filter_dd(input_filename: str, output_filename: str) -> None:
+def filter_dd(input_filename: str,
+              output_filename: str,
+              stage: int) -> None:
     """
     Reads a data dictionary, filters it, and writes the output.
     """
+    assert 1 <= stage <= N_STAGES
+    log.info(f"Processing CPFT RiO data dictionary for TIMELY Stage {stage}")
     log.info(f"Reading data dictionary: {input_filename}")
-    config = Config()  # read config file from environment variable
+    # We don't care about the actual config, so we use a mock one:
+    config = Config(mock=True, open_databases=False)
     dd = DataDictionary.create_from_file(
         input_filename,
         config,
         check_valid=False,
-        override_dialect=sql_server_dialect
+        override_dialect=mssql_server_dialect
     )
-    system_tables = [
+
+    # Autodetect anonymisation (scrub-source) tables. We'll include them.
+    scrub_src_tables_lower = [
+        table.lower()
+        for table in dd.get_tables_w_scrub_src()
+    ]
+    log.debug(f"scrub_src_tables_lower: {scrub_src_tables_lower}")
+
+    # Autodetect system tables (those with no patient). We'll include them.
+    system_tables_lower = [
         table.lower()
         for table in dd.get_tables_w_no_pt_info()
     ]
-    # log.critical(f"system_tables: {system_tables}")
+    log.debug(f"system_tables_lower: {system_tables_lower}")
 
-    def keep_row(row: DataDictionaryRow) -> bool:
-        return keep(row, system_tables)
+    # Exclusion and inclusion tables.
+    inclusion_tables = [
+        t for t in STAGED_INCLUDE_TABLES
+        if stage >= t.stage
+        # "Include from t.stage or beyond."
+    ]
+    exclusion_fields = [
+        f for f in STAGED_EXCLUDE_FIELDS
+        if stage <= f.stage
+        # "Exclude before and up to/including t.stage."
+    ]
+
+    def keep_modify_row(row: DataDictionaryRow) -> Optional[DataDictionaryRow]:
+        return keep(
+            row=row,
+            inclusion_tables=inclusion_tables,
+            exclusion_tables=EXCLUDE_TABLES,
+            exclusion_fields=exclusion_fields,
+            system_tables_lower=system_tables_lower,
+            scrub_src_tables_lower=scrub_src_tables_lower
+        )
 
     log.info(f"Filtering. Starting with {dd.n_rows} rows...")
-    dd.remove_rows_by_filter(keep_row)
+    dd.remove_rows_by_modifying_filter(keep_modify_row)
     log.info(f"... ending with {dd.n_rows} rows.")
     log.info(f"Writing data dictionary: {output_filename}")
     dd.write_tsv_file(output_filename)
@@ -161,10 +372,12 @@ def main() -> None:
     """
     Command-line entry point.
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         "input", type=str,
-        help="Data dictionary file to read"
+        help="Data dictionary file to read",
     )
     parser.add_argument(
         "output", type=str,
@@ -174,13 +387,28 @@ def main() -> None:
         "--nocolour", action="store_true",
         help="Disable colour in logs"
     )
+    parser.add_argument(
+        "--verbose", action="store_true",
+        help="Be verbose"
+    )
+    parser.add_argument(
+        "--stage", type=int,
+        choices=list(range(1, N_STAGES + 1)), default=1,
+        help="Approval stage."
+    )
     args = parser.parse_args()
 
+    loglevel = logging.DEBUG if args.verbose else logging.INFO
     if args.nocolour:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=loglevel)
     else:
-        main_only_quicksetup_rootlogger()
-    filter_dd(input_filename=args.input, output_filename=args.output)
+        main_only_quicksetup_rootlogger(level=loglevel)
+
+    filter_dd(
+        input_filename=args.input,
+        output_filename=args.output,
+        stage=args.stage
+    )
 
 
 if __name__ == "__main__":

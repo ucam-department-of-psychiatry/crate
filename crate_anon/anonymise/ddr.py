@@ -605,13 +605,21 @@ class DataDictionaryRow(object):
         return self._primary_pid or self._master_pid or bool(self.scrub_src)
 
     @property
+    def contains_scrub_src(self) -> bool:
+        """
+        Does the field contain scrub-source information (sensitive information
+        used for de-identification)?
+        """
+        return bool(self.scrub_src)
+
+    @property
     def contains_vital_patient_info(self) -> bool:
         """
         Does the field contain vital patient information? That means:
 
         - scrub-source (sensitive) information
         """
-        return bool(self.scrub_src)
+        return self.contains_scrub_src
 
     @property
     def required(self) -> bool:

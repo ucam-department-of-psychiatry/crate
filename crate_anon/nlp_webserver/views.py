@@ -35,6 +35,7 @@ import json
 from typing import Dict, Generator, List, Optional, Tuple, Any
 import redis
 
+from cardinal_pythonlib.httpconst import HttpStatus
 from cardinal_pythonlib.json.typing_helpers import (
     JsonArrayType,
     JsonObjectType,
@@ -65,7 +66,6 @@ from crate_anon.nlprp.api import (
     pendulum_to_nlprp_datetime,
 )
 from crate_anon.nlprp.constants import (
-    HttpStatus,
     NlprpCommands,
     NlprpKeys as NKeys,
     NlprpValues,

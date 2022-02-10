@@ -28,8 +28,8 @@ Errors used by NLPRP servers.
 
 """
 
+from cardinal_pythonlib.httpconst import HttpStatus
 from cardinal_pythonlib.reprfunc import auto_repr
-from crate_anon.nlprp.constants import HttpStatus
 
 
 # =============================================================================

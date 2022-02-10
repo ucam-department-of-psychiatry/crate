@@ -34,13 +34,14 @@ import sys
 from typing import Any, Dict
 from wsgiref.simple_server import make_server
 
+from cardinal_pythonlib.httpconst import HttpStatus
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from pyramid.config import Configurator
 from pyramid.request import Request
 from pyramid.response import Response
 from semantic_version import Version
 
-from crate_anon.nlprp.constants import HttpStatus, NlprpKeys
+from crate_anon.nlprp.constants import NlprpKeys
 from crate_anon.nlprp.api import NlprpRequest, NlprpResponse
 
 assert sys.version_info >= (3, 7), "Need Python 3.7+"

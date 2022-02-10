@@ -1341,6 +1341,8 @@ Changes
   redundant; all other Excel work uses ``openpyxl``), but add ``pyexcel-ods``
   for ODS files.
 
+- **Minimum Python version is now 3.7.**
+
 
 ===============================================================================
 
