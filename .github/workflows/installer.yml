@@ -61,5 +61,5 @@ jobs:
             - name: Test anonymisation
               run: |
                 cd ${GITHUB_WORKSPACE}/docker/dockerfiles
-                anonymised = $(docker compose exec research_db mysql -Ns -u research -presearch research -e "SELECT SUBSTR(note, 1, 36) FROM note LIMIT 1")
+                anonymised=$(docker compose exec research_db mysql -Ns -u research -presearch research -e "SELECT SUBSTR(note, 1, 36) FROM note LIMIT 1")
                 [ "${anonymised}" = "\n[__PPP__] [__PPP__] lived on a farm" ]
