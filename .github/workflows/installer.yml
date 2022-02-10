@@ -59,5 +59,5 @@ jobs:
                   curl -I -L --fail $SERVER_IP:8000/crate_static/scrubber.png
                   cd ${GITHUB_WORKSPACE}/docker/dockerfiles
                   # Check anonymiser worked
-                  anonymised=$(docker compose exec research_db mysql -Ns -u research -presearch research -e "SELECT SUBSTR(note, 1, 36) FROM note LIMIT 1")
+                  anonymised=$(docker compose exec -T research_db mysql -Ns -u research -presearch research -e "SELECT SUBSTR(note, 1, 36) FROM note LIMIT 1")
                   [ "${anonymised}" = "\n[__PPP__] [__PPP__] lived on a farm" ]
