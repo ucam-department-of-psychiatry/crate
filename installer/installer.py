@@ -539,6 +539,8 @@ class Installer:
                 "CRATE_DOCKER_SOURCE_DATABASE_NAME"
             ),
             "source_db1_ddgen_include_fields": "Note.note",
+            "source_db1_ddgen_scrubsrc_patient_fields": "\n".join(
+                ["forename", "surname"]),
         }
 
         self.search_replace_file(self.anon_config_full_path(), replace_dict)
