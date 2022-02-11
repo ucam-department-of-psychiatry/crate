@@ -447,7 +447,7 @@ WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
     "footer-spacing": "3",  # mm, from content down to top of footer
 }
 
-PDF_LOGO_ABS_URL = '@@pdf_logo_abs_url@@'  # e.g. 'http://localhost/crate_logo'
+PDF_LOGO_ABS_URL = '@@pdf_logo_abs_url@@'
 # ... path on local machine, read by wkhtmltopdf
 # Examples:
 #   [if you're running a web server] 'http://localhost/crate_logo'

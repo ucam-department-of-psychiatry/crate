@@ -454,7 +454,7 @@ class Installer:
             ),
             "mysql_port": "3306",
             "mysql_user": os.getenv("CRATE_DOCKER_MYSQL_CRATE_USER_NAME"),
-            "pdf_logo_abs_url": "http://localhost/crate_logo",  # TODO
+            "pdf_logo_abs_url": "file:///crate/cfg/crate_logo.png",
             "private_file_storage_root": os.path.join(tmp_dir, "files"),
             "secret_key": secrets.token_urlsafe(),
             "secret_db1_engine": self.get_django_engine(
