@@ -67,10 +67,6 @@ volumes:
 
         driver: local
         driver_opts:
-            # It's quite hard to find docs for driver_opts for the 'local'
-            # driver! But using "ro" makes it read-only.
-
-            # TODO: Switched to rw so the config file can be written
             o: bind
             type: none
             # We use environment variable substitution.

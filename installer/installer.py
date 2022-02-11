@@ -421,7 +421,7 @@ class Installer:
                                                    "archive_attachments"),
             "archive_static_dir": os.path.join(archive_template_dir, "static"),
             "archive_template_cache_dir": os.path.join(
-                archive_template_dir, "cache"
+                tmp_dir, "archive_template_cache"
             ),
             "archive_template_dir": archive_template_dir,
             "broker_url": "amqp://rabbitmq:5672",
