@@ -301,6 +301,14 @@ else:
 #   ... fixed by adding allow_migrate() to PidLookupRouter
 
 
+# https://docs.djangoproject.com/en/4.0/releases/3.2/
+# When defining a model, if no field in a model is defined with
+# primary_key=True an implicit primary key is added. The type of this implicit
+# primary key can now be controlled via the DEFAULT_AUTO_FIELD
+# In a future Django release the default value of DEFAULT_AUTO_FIELD will be
+# changed to BigAutoField.
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 # =============================================================================
 # Security; https://docs.djangoproject.com/en/1.8/topics/security/
 # =============================================================================
