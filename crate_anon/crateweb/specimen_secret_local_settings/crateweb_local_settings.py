@@ -199,53 +199,69 @@ RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 RESEARCH_DB_INFO = [
     {
-        # Unique name:
-        RDIKeys.NAME: 'myresearchdb',
+        # Unique name e.g. 'myresearchdb':
+        RDIKeys.NAME: '@@rdi1_name@@',
 
-        # Human-friendly description:
-        RDIKeys.DESCRIPTION: 'My friendly research database',
+        # Human-friendly description e.g. 'My friendly research database':
+        RDIKeys.DESCRIPTION: '@@rdi1_description@@',
 
         # Database name as seen by the database engine:
         # - BLANK, i.e. '', for MySQL.
         # - BLANK, i.e. '', for PostgreSQL.
         # - The database name, for SQL Server.
-        RDIKeys.DATABASE: '',
+        RDIKeys.DATABASE: '@@rdi1_database@@',
 
         # Schema name:
         # - The database=schema name, for MySQL.
         # - The schema name, for PostgreSQL (usual default: 'public').
         # - The schema name, for SQL Server (usual default: 'dbo').
-        RDIKeys.SCHEMA: 'dbo',
+        RDIKeys.SCHEMA: '@@rdi1_schema@@',
 
         # Fields not in the database, but used for SELECT AS statements for
         # some clinician views:
-        RDIKeys.PID_PSEUDO_FIELD: 'my_pid_field',
-        RDIKeys.MPID_PSEUDO_FIELD: 'my_mpid_field',
+        # e.g. 'my_pid_field':
+        RDIKeys.PID_PSEUDO_FIELD: '@@rdi1_pid_psuedo_field@@',
+        # e.g. 'my_mpid_field':
+        RDIKeys.MPID_PSEUDO_FIELD: '@@rdi1_mpid_pseudo_field@@',
 
         # Fields and tables found within the database:
-        RDIKeys.TRID_FIELD: 'trid',
-        RDIKeys.RID_FIELD: 'brcid',
-        RDIKeys.RID_FAMILY: 1,
-        RDIKeys.MRID_TABLE: 'patients',
-        RDIKeys.MRID_FIELD: 'nhshash',
+        # e.g. 'trid'
+        RDIKeys.TRID_FIELD: '@@rdi1_trid_field@@',
+        # e.g. 'brcid'
+        RDIKeys.RID_FIELD: '@@rdi1_rid_field@@',
+        # e.g. 1
+        RDIKeys.RID_FAMILY: @@rdi1_rid_family@@,
+        # e.g. 'patients'
+        RDIKeys.MRID_TABLE: '@@rdi1_mrid_table@@',
+        # e.g. 'nhshash'
+        RDIKeys.MRID_FIELD: '@@rdi1_mrid_field@@',
 
         # Descriptions, used for PID lookup and the like
-        RDIKeys.PID_DESCRIPTION: 'Patient ID (My ID Num; PID) for database X',
-        RDIKeys.MPID_DESCRIPTION: 'Master patient ID (NHS number; MPID)',
-        RDIKeys.RID_DESCRIPTION: 'Research ID (RID) for database X',
-        RDIKeys.MRID_DESCRIPTION: 'Master research ID (MRID)',
-        RDIKeys.TRID_DESCRIPTION: 'Transient research ID (TRID) for database X',
+        # e.g. 'Patient ID (My ID Num; PID) for database X'
+        RDIKeys.PID_DESCRIPTION: '@@rdi1_pid_description@@',
+        # e.g. 'Master patient ID (NHS number; MPID)'
+        RDIKeys.MPID_DESCRIPTION: '@@rdi1_mpid_description@@',
+        # e.g. 'Research ID (RID) for database X'
+        RDIKeys.RID_DESCRIPTION: '@@rdi1_rid_description@@',
+        # e.g. 'Master research ID (MRID)'
+        RDIKeys.MRID_DESCRIPTION: '@@rdi1_mrid_description@@',
+        # e.g. 'Transient research ID (TRID) for database X',
+        RDIKeys.TRID_DESCRIPTION: '@@rdi1_trid_description@@',
 
         # To look up PID/RID mappings, provide a key for 'secret_lookup_db'
         # that is a database alias from DATABASES:
-        RDIKeys.SECRET_LOOKUP_DB: 'secret_1',
+        # e.g. 'secret_1'
+        RDIKeys.SECRET_LOOKUP_DB: '@@rdi1_secret_lookup_db@@',
 
         # For the data finder: table-specific and default date column names
-        RDIKeys.DATE_FIELDS_BY_TABLE: {},
-        RDIKeys.DEFAULT_DATE_FIELDS: ['default_date_field'],
+        RDIKeys.DATE_FIELDS_BY_TABLE: {@@rdi1_date_fields_by_table@@},
+
+        # e.g. ['default_date_field']
+        RDIKeys.DEFAULT_DATE_FIELDS: [@@rdi1_default_date_fields@@],
 
         # Column name giving time that record was updated
-        RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
+        # e.g. '_when_fetched_utc'
+        RDIKeys.UPDATE_DATE_FIELD: '@@rdi1_update_date_field@@',
     },
     # {
     #     RDIKeys.NAME: 'similar_database',
@@ -303,7 +319,7 @@ RESEARCH_DB_INFO = [
 # to look up patients when contact requests are made?
 # Give the 'name' attribute of one of the databases in RESEARCH_DB_INFO.
 # Its secret_lookup_db will be used for the actual lookup process.
-RESEARCH_DB_FOR_CONTACT_LOOKUP = 'myresearchdb'
+RESEARCH_DB_FOR_CONTACT_LOOKUP = '@@research_db_for_contact_lookup@@'
 
 # Definitions of source database names in CRATE NLP tables
 NLP_SOURCEDB_MAP = {'SOURCE_DATABASE': 'research'}
