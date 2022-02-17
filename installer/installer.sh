@@ -14,14 +14,21 @@ set -euxo pipefail
 CRATE_HOME=${HOME}/crate
 CRATE_INSTALLER_VENV=${HOME}/.virtualenvs/crate-installer
 
-# TODO:
-# mkdir -p ${CRATE_HOME}
-# cd ${CRATE_HOME}
-# curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/crate.zip
-# unzip crate.zip
+mkdir -p ${CRATE_HOME}
+cd ${CRATE_HOME}
 
-# INSTALLER_HOME = ${CRATE_HOME}/installer
-INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
+# Production:
+# curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/crate.zip
+
+# Pre-production
+curl -L https://github.com/RudolfCardinal/crate/archive/refs/tags/installer-test-1/crate.zip
+unzip crate.zip
+
+# Production
+INSTALLER_HOME = ${CRATE_HOME}/installer
+
+# Development
+# INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
 
 # Prerequisites (platform dependent) :
 # sudo apt-get update
