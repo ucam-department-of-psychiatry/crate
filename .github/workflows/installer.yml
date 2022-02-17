@@ -46,7 +46,7 @@ jobs:
                   export CRATE_DOCKER_CRATEWEB_HOST_PORT=8000
                   export CRATE_DOCKER_CRATEWEB_USE_HTTPS=0
                   # curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh | bash
-                  curl -L https://github.com/RudolfCardinal/crate/archive/refs/tags/installer-test-1/installer.sh | bash
+                  curl -L https://github.com/RudolfCardinal/crate/releases/download/installer-test-1/installer.sh | bash
                   # Check Django app is running
                   cd ${GITHUB_WORKSPACE}/docker/dockerfiles
                   docker compose logs
