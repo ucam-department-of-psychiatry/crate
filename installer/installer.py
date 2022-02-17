@@ -740,7 +740,7 @@ class Installer:
         return network_settings.networks['crate_crateanon_network'].ip_address
 
     def get_crate_server_ip_from_host(self) -> str:
-        raise NotImplementedError
+        return self.get_crate_server_ip_address()
 
     def get_crate_server_port_from_host(self) -> str:
         return os.getenv("CRATE_DOCKER_CRATEWEB_HOST_PORT")
@@ -765,8 +765,7 @@ class Wsl2Installer(Installer):
 
 
 class NativeLinuxInstaller(Installer):
-    def get_crate_server_ip_from_host(self) -> str:
-        return self.get_crate_server_ip_address()
+    pass
 
 
 class MacOsInstaller(Installer):
