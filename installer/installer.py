@@ -642,10 +642,8 @@ class Installer:
         docker.compose.up(detach=True)
 
     def report_status(self) -> None:
-        server_url = self.get_crate_server_url()
         localhost_url = self.get_crate_server_localhost_url()
-        print(f"The CRATE application is running at {server_url} "
-              f"or {localhost_url}")
+        print(f"The CRATE application is running at {localhost_url}")
 
     def create_demo_data(self) -> None:
         dialect = os.getenv("CRATE_DOCKER_SOURCE_DATABASE_ENGINE")
@@ -696,22 +694,6 @@ class Installer:
 
         return engines[label]
 
-    def get_crate_server_url(self) -> str:
-        if self.use_https():
-            scheme = "https"
-        else:
-            scheme = "http"
-
-        ip_address = self.get_crate_server_ip_from_host()
-
-        netloc = f"{ip_address}:8000"
-        path = self.get_crate_server_path()
-        params = query = fragment = None
-
-        return urllib.parse.urlunparse(
-            (scheme, netloc, path, params, query, fragment)
-        )
-
     def get_crate_server_localhost_url(self) -> str:
         if self.use_https():
             scheme = "https"
@@ -739,15 +721,14 @@ class Installer:
 
         return network_settings.networks['crate_crateanon_network'].ip_address
 
-    def get_crate_server_ip_from_host(self) -> str:
-        return self.get_crate_server_ip_address()
-
     def get_crate_server_port_from_host(self) -> str:
         return os.getenv("CRATE_DOCKER_CRATEWEB_HOST_PORT")
 
 
 class Wsl2Installer(Installer):
     def get_crate_server_ip_from_host(self) -> str:
+        # TODO: Not currently used. Remove if not needed
+
         # ip -j -f inet -br addr show eth0
         # Also -p(retty) when debugging manually
         ip_info = json.loads(run(
@@ -759,13 +740,32 @@ class Wsl2Installer(Installer):
 
         return ip_address
 
-    def report_status(self) -> None:
-        localhost_url = self.get_crate_server_localhost_url()
-        print(f"The CRATE application is running at {localhost_url}")
-
 
 class NativeLinuxInstaller(Installer):
-    pass
+    def report_status(self) -> None:
+        server_url = self.get_crate_server_url()
+        localhost_url = self.get_crate_server_localhost_url()
+        print(f"The CRATE application is running at {server_url} "
+              f"or {localhost_url}")
+
+    def get_crate_server_url(self) -> str:
+        if self.use_https():
+            scheme = "https"
+        else:
+            scheme = "http"
+
+        ip_address = self.get_crate_server_ip_from_host()
+
+        netloc = f"{ip_address}:8000"
+        path = self.get_crate_server_path()
+        params = query = fragment = None
+
+        return urllib.parse.urlunparse(
+            (scheme, netloc, path, params, query, fragment)
+        )
+
+    def get_crate_server_ip_from_host(self) -> str:
+        return self.get_crate_server_ip_address()
 
 
 class MacOsInstaller(Installer):
