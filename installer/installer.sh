@@ -18,10 +18,10 @@ mkdir -p ${CRATE_HOME}
 cd ${CRATE_HOME}
 
 # Production:
-# curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/crate.zip
+# curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/crate.zip --output crate.zip
 
 # Pre-production
-curl -L https://github.com/RudolfCardinal/crate/archive/refs/tags/installer-test-1/crate.zip
+curl -L https://github.com/RudolfCardinal/crate/archive/refs/tags/installer-test-1/crate.zip --output crate.zip
 unzip crate.zip
 
 # Production
