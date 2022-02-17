@@ -68,10 +68,6 @@ class Installer:
             "CRATE_DOCKER_INSTALL_USER_ID",
             self.get_docker_install_user_id
         )
-        self.setenv(
-            "CRATE_DOCKER_INSTALL_GROUP_ID",
-            self.get_docker_install_group_id
-        )
 
     def configure_config_files(self) -> None:
         self.setenv(
@@ -241,9 +237,6 @@ class Installer:
 
     def get_docker_install_user_id(self) -> str:
         return str(os.geteuid())
-
-    def get_docker_install_group_id(self) -> str:
-        return str(os.getegid())
 
     def get_docker_config_host_dir(self) -> str:
         return self.get_user_dir(

@@ -41,10 +41,8 @@ LABEL maintainer="Rudolf Cardinal <rudolf@pobox.com>"
 # https://vsupalov.com/docker-shared-permissions/
 
 ARG USER_ID
-ARG GROUP_ID
 
-RUN addgroup --gid $GROUP_ID crate
-RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID crate
+RUN adduser --disabled-password --gecos '' --uid $USER_ID crate
 
 
 # -----------------------------------------------------------------------------

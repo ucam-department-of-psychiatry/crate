@@ -338,7 +338,6 @@ services:
 
             args:
                 - USER_ID=${CRATE_DOCKER_INSTALL_USER_ID}
-                - GROUP_ID=${CRATE_DOCKER_INSTALL_GROUP_ID}
 
         # If you specify "image" as well as "build", Compose names the built
         # image. Syntax is "IMAGE[:TAG]".
