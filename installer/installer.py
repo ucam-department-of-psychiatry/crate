@@ -395,6 +395,7 @@ class Installer:
 
     def create_local_settings(self) -> None:
         if not os.path.exists(self.local_settings_full_path()):
+            Path(self.local_settings_full_path()).touch()
             self.run_crate_command("crate_print_demo_crateweb_config > "
                                    "$CRATE_WEB_LOCAL_SETTINGS")
 
@@ -498,6 +499,7 @@ class Installer:
 
     def create_anon_config(self) -> None:
         if not os.path.exists(self.anon_config_full_path()):
+            Path(self.anon_config_full_path()).touch()
             self.run_crate_command("crate_anonymise --democonfig > "
                                    "$CRATE_ANON_CONFIG")
         self.configure_anon_config()
