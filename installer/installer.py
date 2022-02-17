@@ -759,6 +759,10 @@ class Wsl2Installer(Installer):
 
         return ip_address
 
+    def report_status(self) -> None:
+        localhost_url = self.get_crate_server_localhost_url()
+        print(f"The CRATE application is running at {localhost_url}")
+
 
 class NativeLinuxInstaller(Installer):
     def get_crate_server_ip_from_host(self) -> str:
