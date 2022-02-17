@@ -4,10 +4,11 @@ import json
 import os
 from pathlib import Path
 from platform import uname
-import sys
 import secrets
 import shutil
+import string
 from subprocess import PIPE, run
+import sys
 import textwrap
 from typing import Callable, Dict, Iterable, Optional, Union
 import urllib
@@ -507,6 +508,9 @@ class Installer:
     def configure_anon_config(self) -> None:
         replace_dict = {
             "data_dictionary_filename": self.get_data_dictionary_filename(),
+            "per_table_patient_id_encryption_phrase": self.get_hmac_md5_key(),
+            "master_patient_id_encryption_phrase": self.get_hmac_md5_key(),
+            "change_detection_encryption_phrase": self.get_hmac_md5_key(),
             "dest_db_engine": self.get_sqlalchemy_engine(
                 os.getenv("CRATE_DOCKER_RESEARCH_DATABASE_ENGINE")
             ),
@@ -562,6 +566,10 @@ class Installer:
         }
 
         self.search_replace_file(self.anon_config_full_path(), replace_dict)
+
+    def get_hmac_md5_key(self) -> str:
+        alphabet = string.ascii_letters + string.digits
+        return "".join(secrets.choice(alphabet) for i in range(16))
 
     def format_multiline(self, values: Iterable[str]) -> str:
         indented_values = textwrap.indent("\n".join(values), 4*" ")

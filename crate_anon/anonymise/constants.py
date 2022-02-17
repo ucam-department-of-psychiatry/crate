@@ -216,11 +216,11 @@ sqlatype_mpid =
 
 hash_method = HMAC_MD5
 
-per_table_patient_id_encryption_phrase = SOME_PASSPHRASE_REPLACE_ME
+per_table_patient_id_encryption_phrase = @@per_table_patient_id_encryption_phrase@@
 
-master_patient_id_encryption_phrase = SOME_OTHER_PASSPHRASE_REPLACE_ME
+master_patient_id_encryption_phrase = @@master_patient_id_encryption_phrase@@
 
-change_detection_encryption_phrase = YETANOTHER
+change_detection_encryption_phrase = @@change_detection_encryption_phrase@@
 
 extra_hash_config_sections =
 
