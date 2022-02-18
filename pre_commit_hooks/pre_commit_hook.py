@@ -143,10 +143,9 @@ def main() -> None:
         log.error("flake8 version must be 3.7.8 or higher for type hint support")  # noqa
         sys.exit(EXIT_FAILURE)
 
-    log.info("Checking Python style...")
-
     try:
         check_yml()
+        log.info("Checking Python style...")
         check_python_style()
         log.info("... very stylish.")
     except CalledProcessError as e:
