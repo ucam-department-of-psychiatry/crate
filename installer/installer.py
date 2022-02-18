@@ -40,7 +40,7 @@ from subprocess import PIPE, run
 import sys
 import textwrap
 from typing import Callable, Dict, Iterable, Optional, Union
-import urllib
+import urllib.parse
 
 from prompt_toolkit.completion import PathCompleter
 from prompt_toolkit.shortcuts import input_dialog, message_dialog, yes_no_dialog
@@ -631,7 +631,7 @@ class Installer:
             os.getenv("CRATE_DOCKER_CRATE_ANON_CONFIG")
         )
 
-    def copy_ssl_files(self) -> str:
+    def copy_ssl_files(self) -> None:
         config_dir = os.getenv("CRATE_DOCKER_CONFIG_HOST_DIR")
 
         cert_dest = os.path.join(config_dir, "crate.crt")
@@ -827,6 +827,10 @@ def get_installer() -> Installer:
               "installer from there. Alternatively follow the instructions "
               "to install CRATE manually.")
         sys.exit(EXIT_FAILURE)
+
+    print("Sorry, the installer can't be run under {sys_info.system}.")
+
+    sys.exit(EXIT_FAILURE)
 
 
 if __name__ == "__main__":
