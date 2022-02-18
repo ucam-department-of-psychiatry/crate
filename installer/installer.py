@@ -29,14 +29,12 @@ from installer.sh
 
 """
 
-import json
 import os
 from pathlib import Path
 from platform import uname
 import secrets
 import shutil
 import string
-from subprocess import PIPE, run
 import sys
 import textwrap
 from typing import Callable, Dict, Iterable, Optional, Union
@@ -758,19 +756,7 @@ class Installer:
 
 
 class Wsl2Installer(Installer):
-    def get_crate_server_ip_from_host(self) -> str:
-        # TODO: Not currently used. Remove if not needed
-
-        # ip -j -f inet -br addr show eth0
-        # Also -p(retty) when debugging manually
-        ip_info = json.loads(run(
-            ["ip", "-j", "-f", "inet", "-br", "addr", "show", "eth0"],
-            stdout=PIPE
-        ).stdout.decode("utf-8"))
-
-        ip_address = ip_info[0]["addr_info"][0]["local"]
-
-        return ip_address
+    pass
 
 
 class NativeLinuxInstaller(Installer):
