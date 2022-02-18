@@ -725,11 +725,7 @@ class Installer:
         return engines[label]
 
     def get_crate_server_localhost_url(self) -> str:
-        if self.use_https():
-            scheme = "https"
-        else:
-            scheme = "http"
-
+        scheme = self.get_craate_server_scheme()
         port = self.get_crate_server_port_from_host()
         netloc = f"localhost:{port}"
         path = self.get_crate_server_path()
@@ -738,6 +734,12 @@ class Installer:
         return urllib.parse.urlunparse(
             (scheme, netloc, path, params, query, fragment)
         )
+
+    def get_crate_server_scheme(self) -> str:
+        if self.use_https():
+            return "https"
+
+        return "http"
 
     def use_https(self) -> bool:
         return os.getenv("CRATE_DOCKER_CRATEWEB_USE_HTTPS") == "1"
@@ -767,11 +769,7 @@ class NativeLinuxInstaller(Installer):
               f"or {localhost_url}")
 
     def get_crate_server_url(self) -> str:
-        if self.use_https():
-            scheme = "https"
-        else:
-            scheme = "http"
-
+        scheme = self.get_crate_server_scheme()
         ip_address = self.get_crate_server_ip_from_host()
 
         netloc = f"{ip_address}:8000"
