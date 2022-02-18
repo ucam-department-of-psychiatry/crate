@@ -2,6 +2,9 @@
 
 set -euxo pipefail
 
+# Do as little as possible in this script.
+# This should just bootstrap installer.py.
+
 # Prerequisites for Windows:
 # Install WSL2
 # Install Docker Desktop for Windows
@@ -10,22 +13,23 @@ set -euxo pipefail
 # When we move to production the installation process will be:
 # curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh | bash
 
-
 CRATE_HOME=${HOME}/crate
 CRATE_INSTALLER_VENV=${HOME}/.virtualenvs/crate-installer
+CRATE_GITHUB_REPOSITORY=https://github.com/RudolfCardinal/crate
+CRATE_TAR_FILE=crate.tar.gz
+
+# Development:
+CRATE_DOWNLOAD_PATH=${CRATE_GITHUB_REPOSITORY}/archive/refs/tags/installer-test-1/${CRATE_TAR_FILE}
+
+# Production:
+# CRATE_DOWNLOAD_PATH=${CRATE_GITHUB_REPOSITORY}/releases/latest/download/${CRATE_TAR_FILE}
 
 mkdir -p ${CRATE_HOME}
 cd ${CRATE_HOME}
 
-# Production:
-# curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/crate.zip --output crate.zip
-
-# Pre-production
-curl -L https://github.com/RudolfCardinal/crate/archive/refs/tags/installer-test-1/crate.zip --output crate.zip
-unzip crate.zip
-
-# Production
-INSTALLER_HOME = ${CRATE_HOME}/installer
+curl -L --retry 10 --fail ${CRATE_DOWNLOAD_PATH}  --output ${CRATE_TAR_FILE}
+tar xzf ${CRATE_TAR_FILE} --strip-components=1
+INSTALLER_HOME=${CRATE_HOME}/installer
 
 # Development
 # INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
