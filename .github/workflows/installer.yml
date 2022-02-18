@@ -33,7 +33,7 @@ jobs:
                   # Production:
                   # curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh | bash
                   # Development:
-                  curl -L --retry 10 --fail https://github.com/RudolfCardinal/crate/releases/download/installer-test-6/installer.sh | bash
+                  curl -L --retry 10 --fail https://github.com/RudolfCardinal/crate/releases/download/installer-test-7/installer.sh | bash
                   # Check Django app is running
                   cd ${HOME}/crate/docker/dockerfiles
                   docker compose logs

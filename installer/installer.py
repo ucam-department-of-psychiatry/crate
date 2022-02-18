@@ -726,7 +726,7 @@ class Installer:
         return engines[label]
 
     def get_crate_server_localhost_url(self) -> str:
-        scheme = self.get_craate_server_scheme()
+        scheme = self.get_crate_server_scheme()
         port = self.get_crate_server_port_from_host()
         netloc = f"localhost:{port}"
         path = self.get_crate_server_path()
