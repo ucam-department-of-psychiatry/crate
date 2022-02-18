@@ -29,12 +29,14 @@ from installer.sh
 
 """
 
+from argparse import ArgumentParser
 import os
 from pathlib import Path
 from platform import uname
 import secrets
 import shutil
 import string
+from subprocess import run
 import sys
 import textwrap
 from typing import Callable, Dict, Iterable, Optional, Union
@@ -668,7 +670,6 @@ class Installer:
 
     def start(self) -> None:
         os.chdir(DOCKERFILES_DIR)
-
         docker.compose.up(detach=True)
 
     def report_status(self) -> None:
@@ -756,6 +757,15 @@ class Installer:
     def get_crate_server_port_from_host(self) -> str:
         return os.getenv("CRATE_DOCKER_CRATEWEB_HOST_PORT")
 
+    def stop(self) -> str:
+        os.chdir(DOCKERFILES_DIR)
+        docker.compose.down()
+
+    def enter_crate_container(self) -> None:
+        # python_on_whales doesn't support docker compose exec yet
+        os.chdir(DOCKERFILES_DIR)
+        run(["docker", "compose", "exec", "crate_server", "/bin/bash"])
+
 
 class Wsl2Installer(Installer):
     pass
@@ -789,8 +799,40 @@ class MacOsInstaller(Installer):
 
 
 def main() -> None:
+    parser = ArgumentParser()
+    subparsers = parser.add_subparsers(
+        title="commands",
+        description="Valid CRATE installer commands are:",
+        help="Specify one command.",
+        dest="command"
+    )
+    subparsers.required = True
+
+    subparsers.add_parser("install")
+    subparsers.add_parser("stop")
+    subparsers.add_parser("start")
+    run_crate_command = subparsers.add_parser("run_crate_command")
+    run_crate_command.add_argument("crate_command", type=str)
+    subparsers.add_parser("enter_crate_container")
+
     installer = get_installer()
-    installer.install()
+
+    args = parser.parse_args()
+
+    if args.command == "install":
+        installer.install()
+
+    if args.command == "stop":
+        installer.stop()
+
+    if args.command == "start":
+        installer.start()
+
+    if args.command == "run_crate_command":
+        installer.run_crate_command(args.crate_command)
+
+    if args.command == "enter_crate_container":
+        installer.enter_crate_container()
 
 
 def get_installer() -> Installer:

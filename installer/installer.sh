@@ -43,7 +43,7 @@ CRATE_GITHUB_REPOSITORY=https://github.com/RudolfCardinal/crate
 CRATE_TAR_FILE=crate.tar.gz
 
 # Development:
-CRATE_DOWNLOAD_PATH=${CRATE_GITHUB_REPOSITORY}/archive/refs/tags/installer-test-5/${CRATE_TAR_FILE}
+CRATE_DOWNLOAD_PATH=${CRATE_GITHUB_REPOSITORY}/archive/refs/tags/installer-test-6/${CRATE_TAR_FILE}
 
 # Production:
 # CRATE_DOWNLOAD_PATH=${CRATE_GITHUB_REPOSITORY}/releases/latest/download/${CRATE_TAR_FILE}
@@ -83,4 +83,4 @@ python -m pip install -U pip setuptools
 python -m pip install -r ${INSTALLER_HOME}/installer-requirements.txt
 
 
-python $INSTALLER_HOME/installer.py
+python $INSTALLER_HOME/installer.py install
