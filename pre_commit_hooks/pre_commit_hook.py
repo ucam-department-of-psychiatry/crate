@@ -101,7 +101,7 @@ def check_yml() -> None:
     run_yamllint(GITHUB_ACTIONS_DIR)
     run_yamllint(DOCKERFILES_DIR)
 
-    log.info("...OK")
+    log.info("... OK")
 
 
 def run_yamllint(yaml_dir: str) -> None:
