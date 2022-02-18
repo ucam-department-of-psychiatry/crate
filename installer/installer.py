@@ -253,16 +253,16 @@ class Installer:
 
     def configure_django(self) -> None:
         self.setenv(
-            "CRATE_DOCKER_DJANGO_SUPERUSER_USERNAME",
-            self.get_docker_django_superuser_username
+            "CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME",
+            self.get_docker_crateweb_superuser_username
         )
         self.setenv(
-            "CRATE_DOCKER_DJANGO_SUPERUSER_PASSWORD",
-            self.get_docker_django_superuser_password
+            "CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD",
+            self.get_docker_crateweb_superuser_password
         )
         self.setenv(
-            "CRATE_DOCKER_DJANGO_SUPERUSER_EMAIL",
-            self.get_docker_django_superuser_email
+            "CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL",
+            self.get_docker_crateweb_superuser_email
         )
 
     def get_docker_install_user_id(self) -> str:
@@ -314,17 +314,17 @@ class Installer:
             default="43306"  # TODO: Default not yet working
         )
 
-    def get_docker_django_superuser_username(self) -> str:
+    def get_docker_crateweb_superuser_username(self) -> str:
         return self.get_user_input(
             "Enter the user name for the CRATE administrator"
         )
 
-    def get_docker_django_superuser_password(self) -> str:
+    def get_docker_crateweb_superuser_password(self) -> str:
         return self.get_user_password(
             "Enter the password for the CRATE administrator"
         )
 
-    def get_docker_django_superuser_email(self) -> str:
+    def get_docker_crateweb_superuser_email(self) -> str:
         return self.get_user_input(
             "Enter the email address for the CRATE administrator"
         )

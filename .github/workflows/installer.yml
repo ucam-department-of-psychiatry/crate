@@ -25,9 +25,9 @@ jobs:
                   export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=${HOME}/bioyodie_resources
                   export CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD=ramalamadingdong
                   export CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD=shoobydoobydoo
-                  export CRATE_DOCKER_DJANGO_SUPERUSER_USERNAME=admin
-                  export CRATE_DOCKER_DJANGO_SUPERUSER_PASSWORD=servisolironcamera
-                  export CRATE_DOCKER_DJANGO_SUPERUSER_EMAIL=admin@example.com
+                  export CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME=admin
+                  export CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD=servisolironcamera
+                  export CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL=admin@example.com
                   export CRATE_DOCKER_CRATEWEB_HOST_PORT=8000
                   export CRATE_DOCKER_CRATEWEB_USE_HTTPS=0
                   # Production:
