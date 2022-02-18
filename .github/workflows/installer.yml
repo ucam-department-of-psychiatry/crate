@@ -13,19 +13,6 @@ on:
 jobs:
     installer:
         runs-on: ubuntu-latest
-        env:
-            DB_RESEARCH_DATABASE: research
-            DB_RESEARCH_USER: research
-            DB_RESEARCH_PASSWORD: research
-            DB_SECRET_DATABASE: secret
-            DB_SECRET_USER: secret
-            DB_SECRET_PASSWORD: secret
-            DB_SOURCE_DATABASE: source
-            DB_SOURCE_USER: source
-            DB_SOURCE_PASSWORD: source
-            DB_ROOT_USER: root
-            DB_ROOT_PASSWORD: root
-
         steps:
             - name: Build
               run: |
