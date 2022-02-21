@@ -21,6 +21,7 @@ jobs:
                   python -m pip install -e .
                   python -m pip install mysqlclient
                   export CRATE_ANON_CONFIG=${HOME}/crate_anon_config.ini
+                  export GATE_HOME=${HOME}/GATE_Developer_8.6.1
                   crate_anonymise --democonfig > ${CRATE_ANON_CONFIG}
                   cd docs
                   echo Creating autodocs
