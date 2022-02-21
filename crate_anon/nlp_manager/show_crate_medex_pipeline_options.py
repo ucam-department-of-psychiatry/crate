@@ -33,7 +33,7 @@ import logging
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.constants import (
-    CrateDir,
+    CratePath,
     EnvVar,
 )
 from cardinal_pythonlib.subproc import check_call_verbose
@@ -49,7 +49,7 @@ def main() -> None:
     check_call_verbose([
         "java",
         "-classpath",
-        f"{CrateDir.JAVA_CLASSES}:{medex_home}/bin:{medex_home}/lib/*",
+        f"{CratePath.JAVA_CLASSES_DIR}:{medex_home}/bin:{medex_home}/lib/*",
         "CrateMedexPipeline",
         "--help",
         "-v", "-v",

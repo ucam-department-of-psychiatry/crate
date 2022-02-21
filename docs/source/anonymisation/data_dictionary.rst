@@ -168,7 +168,8 @@ Character   Meaning
 
             (b) If the field is not omitted: the field will be hashed as the
                 primary ID (database patient primary key) in the destination,
-                and a transient research ID (TRID) also added.
+                and a transient research ID (TRID) also added. You cannot
+                specify another :ref:`alter_method <dd_alter_method>`.
 
 ``*``       | **DEFINES PRIMARY PIDS.**
             | This field *defines* primary PIDs. If set, this row will be used
@@ -180,7 +181,13 @@ Character   Meaning
 
 ``M``       | **MASTER PID.**
             | Master ID (e.g. NHS number).
-            | The field will be hashed with the master PID hasher.
+
+            (a) The first such value encountered for any patient will be
+                recorded as their MPID.
+
+            (b) If the field is not omitted, it will be hashed with the MPID
+                hasher. You cannot specify another :ref:`alter_method
+                <dd_alter_method>`.
 
 ``!``       | **OPT OUT.**
             | This field is used to mark that the patient wishes to opt out

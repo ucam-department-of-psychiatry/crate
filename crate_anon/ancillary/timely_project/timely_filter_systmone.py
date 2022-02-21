@@ -57,7 +57,7 @@ class TimelySystmOneFilter(TimelyDDFilter):
         # Generic exclusions
         # ---------------------------------------------------------------------
 
-        # *** todo: deal with prefixes
+        # todo: TIMELY/SystmOne: deal with prefixes ***
 
         add_table_criteria(self.exclude_tables, stage=None, regex_strings=[
         ])

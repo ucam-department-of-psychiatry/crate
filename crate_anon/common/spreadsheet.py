@@ -64,6 +64,7 @@ MULTIPLE_SPREADSHEET_TYPE = Dict[str, SINGLE_SPREADSHEET_TYPE]
 # =============================================================================
 
 class SpreadsheetFileExtensions(Enum):
+    CSV = ".csv"
     TSV = ".tsv"
     ODS = ".ods"
     XLSX = ".xlsx"
@@ -85,14 +86,27 @@ def skip_spreadsheet_row(row: SPREADSHEET_ROW_TYPE) -> bool:
     return not any(v for v in row)
 
 
+def gen_rows_from_csv(filename: str) -> SINGLE_SPREADSHEET_GENERATOR_TYPE:
+    """
+    Generates rows from a CSV file.
+    """
+    log.debug(f"Loading as CSV: {filename}")
+    with open(filename, 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            if skip_spreadsheet_row(row):
+                continue
+            yield row
+
+
 def gen_rows_from_tsv(filename: str) -> SINGLE_SPREADSHEET_GENERATOR_TYPE:
     """
     Generates rows from a TSV file.
     """
     log.debug(f"Loading as TSV: {filename}")
     with open(filename, 'r') as tsvfile:
-        tsv = csv.reader(tsvfile, delimiter='\t')
-        for row in tsv:
+        reader = csv.reader(tsvfile, delimiter='\t')
+        for row in reader:
             if skip_spreadsheet_row(row):
                 continue
             yield row
@@ -141,10 +155,12 @@ def gen_rows_from_spreadsheet(filename: str) \
             Filename to read.
     """
     _, ext = os.path.splitext(filename)
-    if ext == SpreadsheetFileExtensions.TSV.value:
-        row_gen = gen_rows_from_tsv(filename)
+    if ext == SpreadsheetFileExtensions.CSV.value:
+        row_gen = gen_rows_from_csv(filename)
     elif ext == SpreadsheetFileExtensions.ODS.value:
         row_gen = gen_rows_from_ods(filename)
+    elif ext == SpreadsheetFileExtensions.TSV.value:
+        row_gen = gen_rows_from_tsv(filename)
     elif ext == SpreadsheetFileExtensions.XLSX.value:
         row_gen = gen_rows_from_xlsx(filename)
     else:
@@ -184,6 +200,24 @@ def remove_none_values_from_spreadsheet(data: MULTIPLE_SPREADSHEET_TYPE) \
             converted_sheetdata.append(converted_row)
         result[sheetname] = converted_sheetdata
     return result
+
+
+def write_csv(filename: str, rows: SINGLE_SPREADSHEET_TYPE) -> None:
+    """
+    Writes to a comma-separated values (CSV) file.
+
+    Empty (null) values are translated to "".
+
+    Args:
+        rows:
+            Rows to write. (The first row is often a header row.)
+        filename:
+            Name of file to write.
+    """
+    log.info(f"Saving as CSV: {filename}")
+    with smart_open(filename, "wt") as f:  # type: TextIO
+        writer = csv.writer(f)
+        writer.writerows(rows)
 
 
 def write_tsv(filename: str, rows: SINGLE_SPREADSHEET_TYPE) -> None:
@@ -258,6 +292,10 @@ def write_spreadsheet(filename: str,
         # https://stackoverflow.com/questions/30362391/how-do-you-find-the-first-key-in-a-dictionary  # noqa
         first_sheet = data[first_key]
         write_tsv(filename, first_sheet)
+    elif ext == SpreadsheetFileExtensions.CSV.value:
+        first_key = next(iter(data))
+        first_sheet = data[first_key]
+        write_csv(filename, first_sheet)
     elif ext == SpreadsheetFileExtensions.ODS.value:
         # The ODS writer does not like None values.
         write_ods(filename, remove_none_values_from_spreadsheet(data))

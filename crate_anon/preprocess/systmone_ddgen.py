@@ -107,13 +107,13 @@ v123.csv``, which is a full description of the SRE. Principles:
 
   .. code-block:: python
 
-import csv
-s = set()
-for i, row in enumerate(csv.reader(open("Specification v123.csv"))):
-    if i > 0:
-        s.add(f"{row[0]} - {row[1]}")
-
-print("\n".join((x for x in sorted(s))))
+    import csv
+    s = set()
+    for i, row in enumerate(csv.reader(open("Specification v123.csv"))):
+        if i > 0:
+            s.add(f"{row[0]} - {row[1]}")
+    
+    print("\n".join((x for x in sorted(s))))
 
   Translating that to a single line: https://www.python.org/dev/peps/pep-0289/
   ... meh, hard.
@@ -227,7 +227,7 @@ Notable tables in the SRE
 
 - Full text and binary:
 
-  - [SR]Media
+  - [SR]Media -- contains filenames and some metadata
   - [SR]FreeText -- if supplied
 
 
@@ -235,7 +235,7 @@ Notable additional tables/columns in the CPFT environment
 ---------------------------------------------------------
 
 - S1_FreeText -- this includes all answers to Questionnaires (linked via
-  ``IDAnsweredQuestionnaire`` etc.).
+  ``IDAnsweredQuestionnaire`` etc.). Comes from the "upgraded" SRE.
 
 - Several tables have identifiers linked in. For example, try:
 
@@ -316,6 +316,225 @@ In more detail:
   the WHERE clause, showing its sequencing within each patient).
 
 
+Manual review after first draft
+-------------------------------
+
+Reviewing CPFT de-identified output for patient-related content only (not
+staff-related), per local ethics approvals.
+
+.. code-block:: sql
+
+    -- Tables in the de-identified database:
+    SELECT table_name FROM information_schema.tables WHERE table_catalog = 'S1' ORDER BY table_name;
+
+Reviewed and OK:
+
+- S1_18WeekWait
+
+Reviewed and tweaked and OK:
+
+Tweaked and needs re-review:
+
+- S1_3DayFollowUp (eliminate PatientAddress)
+- S1_7DayFollowUp (eliminate PatientAddress, auto-rename NHSNumber to mrid)
+
+To review:
+
+- S1_Accommodation
+- S1_ActivityEvent
+- S1_ActivityEvent_DNA
+- S1_ActivityEvent_EventDuration
+- S1_AnsweredQuestionnaire
+- S1_Appointments
+- S1_AQ_CarePlan
+- S1_AQ_CrisisPlan
+- S1_AQ_CurrentView
+- S1_AQ_HoNOSChildren
+- S1_AQ_PhysicalHealthCheck_B1
+- S1_AQ_PhysicalHealthCheck_B2
+- S1_AQ_RiskAssessment
+- S1_AQ_SafePlan
+- S1_AQ_VTE
+- S1_AssistiveTechnologyToSupportDisability
+- S1_AuditLog
+- S1_CarePlan
+- S1_CarePlanDetail
+- S1_CarePlanReview
+- S1_CarerStatus
+- S1_Caseload
+- S1_Child_At_Risk
+- S1_Child_Protection_Plan_Reason
+- S1_ClinicalDashboard
+- S1_ClinicalDashboard_Pulmonary
+- S1_ClinicalDashboard_Pulmonary_Referrals
+- S1_ClinicalMeasure_ACE_II
+- S1_ClinicalMeasure_AlcoholUnitsWeek
+- S1_ClinicalMeasure_BloodPressure
+- S1_ClinicalMeasure_BloodPressure_Grouped
+- S1_ClinicalMeasure_BloodTestDeclined
+- S1_ClinicalMeasure_BMI
+- S1_ClinicalMeasure_BodyWeight
+- S1_ClinicalMeasure_CGAS
+- S1_ClinicalMeasure_Cholesterol_HDL_Ratio
+- S1_ClinicalMeasure_Cigarettes_Day
+- S1_ClinicalMeasure_Exercise_MinsWeek
+- S1_ClinicalMeasure_FruitVeg_Day
+- S1_ClinicalMeasure_GlycatedHaemoglobin
+- S1_ClinicalMeasure_NEWS_II
+- S1_ClinicalMeasure_QRisk
+- S1_ClinicalMeasure_QTcB_IntervalDuration
+- S1_ClinicalMeasure_Rockwood
+- S1_ClinicalMeasure_SWEMWBS
+- S1_ClinicalMeasure_TotalCholesterol
+- S1_ClinicalOutcome_7DFU_UnsuccessfulContact
+- S1_ClinicalOutcome_AlcoholAdvice
+- S1_ClinicalOutcome_CPA
+- S1_ClinicalOutcome_MaritalStatus
+- S1_ClinicalOutcome_MHCapacity
+- S1_ClinicalOutcome_MilitaryServicesMember
+- S1_ClinicalOutcome_NHS_Staff_LongCovid
+- S1_ClinicalOutcome_Occupation
+- S1_ClinicalOutcome_PhysicalHealthCheck_A1
+- S1_ClinicalOutcome_Section58
+- S1_ClinicalOutcome_SmokingAdvice
+- S1_Clustering
+- S1_Coded_Finding
+- S1_Coded_Observations
+- S1_Coded_Procedure
+- S1_Coded_Scored_Assessment
+- S1_Contacts
+- S1_Contacts_CYP_PlanMetric_7
+- S1_ContactsArchive
+- S1_ContactsArchive_ClientSequence
+- S1_ContactsArchive_ClientSequenceAttended
+- S1_ContactsArchive_ClientSequenceAttendedFaceToFace
+- S1_ContactsArchive_LatestStaffContact
+- S1_ContactsArchive_NonLegalContacts
+- S1_ContactsArchive_TotalsByReferral
+- S1_CoronaVirus
+- S1_CPA
+- S1_CPACareCoordinator
+- S1_CPAMentalHealthAssessment
+- S1_CurrentInpatientDashboard_Doctors
+- S1_CYPFRS_TelephoneTriage
+- S1_CYPHS_502_Immunisation
+- S1_Deaths
+- S1_Demographics
+- S1_Diagnosis
+- S1_Disability
+- S1_DisabilityImpactPerception
+- S1_DischargeDelay
+- S1_DischargeDelay_Fact
+- S1_ECTCourse
+- S1_ECTTreatment
+- S1_eDSM
+- S1_Employment
+- S1_EuroQol
+- S1_EuroQol_Comparison
+- S1_Event
+- S1_Falls_AtRiskState
+- S1_Falls_AtRiskState_Comparison
+- S1_FreeText
+- S1_Goal
+- S1_HealthyChildProgramme_DashboardExtractASQ3
+- S1_HealthyChildProgramme_DashboardExtractASQ3_Trend
+- S1_HealthyChildProgramme_DashboardExtractTwoPointFiveYearReview
+- S1_HealthyChildProgramme_DashboardExtractTwoPointFiveYearReview_Trend
+- S1_HealthyChildProgramme_DashboardExtractVisitType
+- S1_HealthyChildProgramme_DashboardExtractVisitType_Trend
+- S1_HealthyChildProgramme_Monitoring
+- S1_HealthyChildProgramme_Monitoring_Trend
+- S1_ICW_PTL
+- S1_Immunisation
+- S1_Inpatient_NorthwickParkIndex
+- S1_InpatientAvailableBeds
+- S1_InpatientBedClosure
+- S1_InpatientBedStay
+- S1_InpatientBedStay_Old
+- S1_InpatientLeave
+- S1_InpatientWardStay
+- S1_LADSCYPHS_Output
+- S1_LADSCYPQuestionnaires
+- S1_Letter
+- S1_MDT_Caseload
+- S1_Medical_History_Previous_Diagnosis
+- S1_MentalHealthAct_Awol
+- S1_MentalHealthAct_ClientConsent
+- S1_MentalHealthAct_ClientSection
+- S1_MentalHealthAct_ClientSectionedBy
+- S1_MentalHealthAct_ClientSectionRecall
+- S1_MentalHealthAct_ClientSectionRightsExplained
+- S1_MentalHealthAct_SectionAppeal
+- S1_MentalHealthCarePlan
+- S1_NDOptOutPreference
+- S1_Newborn_Bloodspot_Congenital_Hyperthyroidism
+- S1_Newborn_Bloodspot_Cystic_Fibrosis
+- S1_Newborn_Bloodspot_Dehydrogenase_Deficiency
+- S1_Newborn_Bloodspot_Glutaric_Aciduria_Type1
+- S1_Newborn_Bloodspot_Homocystinuria
+- S1_Newborn_Bloodspot_Isovaleric_Aciduria
+- S1_Newborn_Bloodspot_Maple_Syrup_Urine
+- S1_Newborn_Bloodspot_Phenylketonuria
+- S1_Newborn_Bloodspot_SickleCell
+- S1_NewbornHearingAudiologyOutcome
+- S1_NewbornHearingScreeningOutcome
+- S1_OutOfHours
+- S1_OutOfHoursAction
+- S1_OutOfHoursAssessment
+- S1_OutOfHoursCaseOutcome
+- S1_OutOfHoursSRCodeInformation
+- S1_OverseasVisitorChargingCategory
+- S1_Patient
+- S1_PatientAddress
+- S1_PatientAnsweredQuestionnaireInformation
+- S1_PatientContact
+- S1_PatientEthnicity
+- S1_PatientGPPractice
+- S1_PatientLanguageDeathOptions
+- S1_PatientLetterInformation
+- S1_PatientOverview
+- S1_PatientRelationship
+- S1_PatientRelationshipMother
+- S1_PatientSRCodeInformation
+- S1_PersonAtRisk
+- S1_PhysicalHealthChecks
+- S1_PRISM_ReReferral
+- S1_Provisional_Diagnosis
+- S1_QRisk
+- S1_ReferralAllocation
+- S1_ReferralAllocationStaff
+- S1_ReferralInIntervention
+- S1_ReferralInReferralReason
+- S1_ReferralsIn
+- S1_ReferralsOut
+- S1_RestrictiveIntervention
+- S1_RiskReview
+- S1_SafeguardingCases
+- S1_SafeguardingCaseStageQuestions
+- S1_SafeguardingCaseStages
+- S1_SafeguardingIncidentDetails
+- S1_SafeguardingPersonAlleged
+- S1_SafeguardingPersonAtRisk
+- S1_SafeguardingVulnerabilityFactor
+- S1_Secondary_Diagnosis
+- S1_SessionNotes_CTV3Code
+- S1_SessionNotes_Templates
+- S1_SettledAccomodationIndicator
+- S1_SpecialEducationalNeeds
+- S1_StaffActivity
+- S1_Team
+- S1_TeamMember
+- S1_Templates
+- S1_Vanguard
+- S1_Visit
+- S1_WaitingList
+- S1_WaitList_EatingDisorders
+- S1_WardAttender
+- S1_WorkingHours
+- vwS1_OutOfHours
+- vwS1_PatientAddressWithResearchGeography
+
+
 Related tools
 -------------
 
@@ -335,7 +554,7 @@ Related tools
 
 """  # noqa
 
-# *** todo: implement S1_ClinicalOutcome_ConsentResearch when it arrives
+# todo: SystmOne: implement S1_ClinicalOutcome_ConsentResearch when it arrives ***  # noqa
 
 # =============================================================================
 # Imports
@@ -1295,6 +1514,7 @@ class ScrubSrcAlterMethodInfo:
     decision: Decision = Decision.OMIT
     alter_methods: List[AlterMethod] = field(default_factory=list)
     dest_datatype: str = None
+    dest_field: str = None
 
     def __post_init__(self) -> None:
         """
@@ -1426,11 +1646,13 @@ def process_generic_table_column(tablename: str,
     elif is_pid(colname):
         # FK to Patient.RowIdentifier for all other patient-related tables.
         ssi.add_src_flag(SrcFlag.PRIMARY_PID)
+        ssi.dest_field = ddr.config.research_id_fieldname
         ssi.include()
 
     elif is_mpid(colname):
         # An NHS number in a random table. OK, as long as we hash it.
         ssi.add_src_flag(SrcFlag.MASTER_PID)
+        ssi.dest_field = ddr.config.master_research_id_fieldname
         ssi.include()
 
     elif is_in(colname, S1_COLS_GENERIC_EXCLUDE):
@@ -1808,7 +2030,8 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
         # Alterations
         ddr.set_alter_methods_directly(ssi.alter_methods)
 
-        # Destination -- automatic
+        # Destination -- mostly automatic
+        ddr.dest_field = ssi.dest_field or ddr.dest_field
 
         # Indexing
         ddr.index = get_index_flag(tablename, colname, ddr)

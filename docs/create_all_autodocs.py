@@ -29,22 +29,56 @@ docs/create_all_autodocs.py
 import argparse
 import logging
 import os
+from os.path import abspath, dirname, join, realpath
 
 from cardinal_pythonlib.fileops import rmtree
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.sphinxtools import AutodocIndex
 
+from crate_anon.common.constants import CratePath
+
 log = logging.getLogger(__name__)
 
-# Work out directories
-THIS_DIR = os.path.dirname(os.path.realpath(__file__))  # .../docs
-PACKAGE_ROOT_DIR = os.path.abspath(os.path.join(THIS_DIR, os.pardir))  # .../
-CODE_ROOT_DIR = os.path.join(PACKAGE_ROOT_DIR, "crate_anon")
-AUTODOC_DIR = os.path.join(THIS_DIR, "source", "autodoc")
-INDEX_FILENAME = "_index.rst"
-TOP_AUTODOC_INDEX = os.path.join(AUTODOC_DIR, INDEX_FILENAME)
 
-COPYRIGHT_COMMENT = r"""
+# =============================================================================
+# Constants
+# =============================================================================
+
+class DevPath:
+    """
+    Directories for development (including documentation), and some filenames.
+    """
+    # -------------------------------------------------------------------------
+    # Directories
+    # -------------------------------------------------------------------------
+    DOC_ROOT_DIR = dirname(realpath(__file__))  # .../docs
+
+    # Python package, code
+    PACKAGE_ROOT_DIR = abspath(join(DOC_ROOT_DIR, os.pardir))  # .../
+
+    # Docs
+    DOCS_SOURCE_DIR = join(DOC_ROOT_DIR, "source")
+
+    DOCS_ANCILLARY_DIR = join(DOCS_SOURCE_DIR, "ancillary")
+    DOCS_ANON_DIR = join(DOCS_SOURCE_DIR, "anonymisation")
+    DOCS_AUTODOC_DIR = join(DOCS_SOURCE_DIR, "autodoc")
+    DOCS_LINKAGE_DIR = join(DOCS_SOURCE_DIR, "linkage")
+    DOCS_NLP_DIR = join(DOCS_SOURCE_DIR, "nlp")
+    DOCS_PREPROC_DIR = join(DOCS_SOURCE_DIR, "preprocessing")
+    DOCS_WEB_DIR = join(DOCS_SOURCE_DIR, "website_config")
+
+    # -------------------------------------------------------------------------
+    # Filenames without paths
+    # -------------------------------------------------------------------------
+    INDEX_FILENAME = "_index.rst"
+
+    # -------------------------------------------------------------------------
+    # Filenames
+    # -------------------------------------------------------------------------
+    TOP_AUTODOC_INDEX = os.path.join(DOCS_AUTODOC_DIR, INDEX_FILENAME)
+
+
+RST_COPYRIGHT_COMMENT = r"""
 ..  Copyright © 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
     .
     This file is part of CRATE.
@@ -61,8 +95,7 @@ COPYRIGHT_COMMENT = r"""
     .
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
-
-"""
+""".strip()
 
 SKIP_GLOBS = [
     # we include "__init__.py"
@@ -74,21 +107,26 @@ SKIP_GLOBS = [
 ]
 
 
+# =============================================================================
+# Autodoc creation
+# =============================================================================
+
 def make_subindex(directory: str) -> AutodocIndex:
     return AutodocIndex(
-        index_filename=os.path.join(AUTODOC_DIR, directory, INDEX_FILENAME),
-        project_root_dir=PACKAGE_ROOT_DIR,
-        autodoc_rst_root_dir=AUTODOC_DIR,
-        highest_code_dir=CODE_ROOT_DIR,
+        index_filename=os.path.join(
+            DevPath.DOCS_AUTODOC_DIR, directory, DevPath.INDEX_FILENAME),
+        project_root_dir=DevPath.PACKAGE_ROOT_DIR,
+        autodoc_rst_root_dir=DevPath.DOCS_AUTODOC_DIR,
+        highest_code_dir=CratePath.CRATE_ANON_DIR,
         source_filenames_or_globs=[
-            os.path.join(CODE_ROOT_DIR, directory, "**/*.css"),
-            os.path.join(CODE_ROOT_DIR, directory, "**/*.html"),
-            os.path.join(CODE_ROOT_DIR, directory, "**/*.mako"),
-            os.path.join(CODE_ROOT_DIR, directory, "**/*.py"),
-            os.path.join(CODE_ROOT_DIR, directory, "**/*.java"),
-            os.path.join(CODE_ROOT_DIR, directory, "**/*.js"),
+            os.path.join(CratePath.CRATE_ANON_DIR, directory, "**/*.css"),
+            os.path.join(CratePath.CRATE_ANON_DIR, directory, "**/*.html"),
+            os.path.join(CratePath.CRATE_ANON_DIR, directory, "**/*.mako"),
+            os.path.join(CratePath.CRATE_ANON_DIR, directory, "**/*.py"),
+            os.path.join(CratePath.CRATE_ANON_DIR, directory, "**/*.java"),
+            os.path.join(CratePath.CRATE_ANON_DIR, directory, "**/*.js"),
         ],
-        rst_prefix=COPYRIGHT_COMMENT,
+        rst_prefix=RST_COPYRIGHT_COMMENT,
         title="crate_anon/" + directory,  # path style, not module style
         skip_globs=SKIP_GLOBS,
         # source_rst_title_style_python=False,
@@ -97,20 +135,20 @@ def make_subindex(directory: str) -> AutodocIndex:
 
 def make_autodoc(make: bool, destroy_first: bool) -> None:
     if destroy_first:
-        if make and os.path.exists(AUTODOC_DIR):
-            log.info(f"Deleting directory {AUTODOC_DIR!r}")
-            rmtree(AUTODOC_DIR)
+        if make and os.path.exists(DevPath.DOCS_AUTODOC_DIR):
+            log.info(f"Deleting directory {DevPath.DOCS_AUTODOC_DIR!r}")
+            rmtree(DevPath.DOCS_AUTODOC_DIR)
         else:
             log.warning(
-                f"Would delete directory {AUTODOC_DIR!r} "
+                f"Would delete directory {DevPath.DOCS_AUTODOC_DIR!r} "
                 f"(not doing so as in mock mode)")
     top_idx = AutodocIndex(
-        index_filename=TOP_AUTODOC_INDEX,
-        project_root_dir=PACKAGE_ROOT_DIR,
-        autodoc_rst_root_dir=AUTODOC_DIR,
-        highest_code_dir=CODE_ROOT_DIR,
+        index_filename=DevPath.TOP_AUTODOC_INDEX,
+        project_root_dir=DevPath.PACKAGE_ROOT_DIR,
+        autodoc_rst_root_dir=DevPath.DOCS_AUTODOC_DIR,
+        highest_code_dir=CratePath.CRATE_ANON_DIR,
         toctree_maxdepth=2,
-        rst_prefix=COPYRIGHT_COMMENT,
+        rst_prefix=RST_COPYRIGHT_COMMENT,
     )
     top_idx.add_indexes([
         make_subindex("anonymise"),
@@ -125,6 +163,10 @@ def make_autodoc(make: bool, destroy_first: bool) -> None:
     top_idx.write_index_and_rst_files(overwrite=True, mock=not make)
     # print(top_idx.index_content())
 
+
+# =============================================================================
+# Command-line entry point
+# =============================================================================
 
 def main() -> None:
     parser = argparse.ArgumentParser()

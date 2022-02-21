@@ -121,29 +121,51 @@ class DataDictionaryRow(object):
     """
     Class representing a single row of a data dictionary (a DDR).
     """
+    # For attribute/config references:
+    SRC_DB = "src_db"
+    SRC_TABLE = "src_table"
+    SRC_FIELD = "src_field"
+    SRC_DATAFILE = "src_datatype"
+    SRC_FLAGS = "src_flags"
+
+    SCRUB_SRC = "scrub_src"
+    SCRUB_METHOD = "scrub_method"
+
+    DECISION = "decision"
+    INCLUSION_VALUES = "inclusion_values"
+    EXCLUSION_VALUES = "exclusion_values"
+    ALTER_METHOD = "alter_method"
+
+    DEST_TABLE = "dest_table"
+    DEST_FIELD = "dest_field"
+    DEST_DATATYPE = "dest_datatype"
+    INDEX = "index"
+    INDEXLEN = "indexlen"
+    COMMENT = "comment"
+
     ROWNAMES = [
-        "src_db",
-        "src_table",
-        "src_field",
-        "src_datatype",
-        "src_flags",
+        SRC_DB,
+        SRC_TABLE,
+        SRC_FIELD,
+        SRC_DATAFILE,
+        SRC_FLAGS,
 
-        "scrub_src",
-        "scrub_method",
+        SCRUB_SRC,
+        SCRUB_METHOD,
 
-        "decision",
-        "inclusion_values",
-        "exclusion_values",
-        "alter_method",
+        DECISION,
+        INCLUSION_VALUES,
+        EXCLUSION_VALUES,
+        ALTER_METHOD,
 
-        "dest_table",
-        "dest_field",
-        "dest_datatype",
-        "index",
-        "indexlen",
-        "comment",
+        DEST_TABLE,
+        DEST_FIELD,
+        DEST_DATATYPE,
+        INDEX,
+        INDEXLEN,
+        COMMENT,
     ]
-    ENUM_ROWNAMES = ("index", "scrub_src", "scrub_method")
+    ENUM_ROWNAMES = (INDEX, SCRUB_SRC, SCRUB_METHOD)
 
     def __init__(self, config: "Config") -> None:
         """
@@ -312,6 +334,16 @@ class DataDictionaryRow(object):
         either directly or via a third-party PID?
         """
         return self.third_party_pid or self.contains_third_party_info_directly
+
+    def has_special_alter_method(self) -> bool:
+        """
+        Fields for which the alter method is fixed.
+        """
+        return (
+            self.primary_pid
+            or self.master_pid
+            or self.third_party_pid
+        )
 
     @property
     def constant(self) -> bool:
@@ -1008,15 +1040,17 @@ class DataDictionaryRow(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check for conflicting or missing flags
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        if self._defines_primary_pids and not self.primary_pid:
+        if self.defines_primary_pids and not self.primary_pid:
             raise ValueError(
-                f"All fields with src_flags={SrcFlag.DEFINES_PRIMARY_PIDS} "
-                f"set must have src_flags={SrcFlag.PRIMARY_PID} set")
+                f"All fields with "
+                f"{self.SRC_FLAGS}={SrcFlag.DEFINES_PRIMARY_PIDS} "
+                f"set must have {self.SRC_FLAGS}={SrcFlag.PRIMARY_PID} set")
 
-        if self._opt_out_info and not self.config.optout_col_values:
+        if self.opt_out_info and not self.config.optout_col_values:
             raise ValueError(
-                f"Fields with src_flags={SrcFlag.OPT_OUT} exist, but config's "
-                f"optout_col_values setting is empty")
+                f"Fields with {self.SRC_FLAGS}={SrcFlag.OPT_OUT} "
+                f"exist, but config's {AnonymiseConfigKeys.OPTOUT_COL_VALUES} "
+                f"setting is empty")
 
         if count_bool([self.primary_pid,
                        self.master_pid,
@@ -1024,46 +1058,54 @@ class DataDictionaryRow(object):
                        bool(self.alter_method)]) > 1:
             raise ValueError(
                 f"Field can be any ONE of: "
-                f"src_flags={SrcFlag.PRIMARY_PID}, "
-                f"src_flags={SrcFlag.MASTER_PID}, "
-                f"scrub_src={ScrubSrc.THIRDPARTY_XREF_PID}, or "
-                f"alter_method "
-                f"(because those flags all imply a certain alter_method)")
+                f"{self.SRC_FLAGS}={SrcFlag.PRIMARY_PID}, "
+                f"{self.SRC_FLAGS}={SrcFlag.MASTER_PID}, "
+                f"{self.SCRUB_SRC}={ScrubSrc.THIRDPARTY_XREF_PID}, or "
+                f"{self.ALTER_METHOD} "
+                f"(because those flags all imply a certain "
+                f"{self.ALTER_METHOD})")
 
-        if self._required_scrubber and not self.scrub_src:
+        if self.required_scrubber and not self.scrub_src:
             raise ValueError(
-                f"If you specify src_flags={SrcFlag.REQUIRED_SCRUBBER}, "
-                f"you must specify scrub_src")
+                f"If you specify "
+                f"{self.SRC_FLAGS}={SrcFlag.REQUIRED_SCRUBBER}, "
+                f"you must specify {self.SCRUB_SRC}")
 
-        if self._add_src_hash:
-            if not self._pk:
+        if self.add_src_hash:
+            if not self.pk:
                 raise ValueError(
-                    f"src_flags={SrcFlag.ADD_SRC_HASH} can only be set on "
-                    f"src_flags={SrcFlag.PK} fields")
+                    f"{self.SRC_FLAGS}={SrcFlag.ADD_SRC_HASH} "
+                    f"can only be set on "
+                    f"{self.SRC_FLAGS}={SrcFlag.PK} fields")
+            if self.omit:
+                raise ValueError(
+                    f"Cannot omit fields with "
+                    f"{self.SRC_FLAGS}={SrcFlag.ADD_SRC_HASH} set")
             if self.index != IndexType.UNIQUE:
                 raise ValueError(
-                    f"src_flags={SrcFlag.ADD_SRC_HASH} fields require "
-                    f"index=={IndexType.UNIQUE}")
-            if self._constant:
+                    f"{self.SRC_FLAGS}={SrcFlag.ADD_SRC_HASH} fields require "
+                    f"{self.INDEX}=={IndexType.UNIQUE}")
+            if self.constant:
                 raise ValueError(
                     f"cannot mix {SrcFlag.ADD_SRC_HASH} flag with "
                     f"{SrcFlag.CONSTANT} flag")
 
-        if self._constant:
-            if not self._pk:
+        if self.constant:
+            if not self.pk:
                 raise ValueError(
-                    f"src_flags={SrcFlag.CONSTANT} can only be set on "
-                    f"src_flags={SrcFlag.PK} fields")
+                    f"{self.SRC_FLAGS}={SrcFlag.CONSTANT} can only be set on "
+                    f"{self.SRC_FLAGS}={SrcFlag.PK} fields")
             if self.index != IndexType.UNIQUE:
                 raise ValueError(
-                    f"src_flags={SrcFlag.CONSTANT} fields require "
-                    f"index=={IndexType.UNIQUE}")
+                    f"{self.SRC_FLAGS}={SrcFlag.CONSTANT} fields require "
+                    f"{self.INDEX}=={IndexType.UNIQUE}")
 
-        if self._addition_only:
-            if not self._pk:
+        if self.addition_only:
+            if not self.pk:
                 raise ValueError(
-                    f"src_flags={SrcFlag.ADDITION_ONLY} can only be set on "
-                    f"src_flags={SrcFlag.PK} fields")
+                    f"{self.SRC_FLAGS}={SrcFlag.ADDITION_ONLY} "
+                    f"can only be set on "
+                    f"{self.SRC_FLAGS}={SrcFlag.PK} fields")
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # No more checks required if field will be omitted.
@@ -1080,18 +1122,26 @@ class DataDictionaryRow(object):
             raise ValueError(
                 f"Destination tables can't be named "
                 f"{self.config.temporary_tablename}, as that's the name set "
-                f"in the config's temporary_tablename variable")
+                f"in the config's {AnonymiseConfigKeys.TEMPORARY_TABLENAME} "
+                f"variable")
         # Field
         ensure_valid_field_name(self.dest_field)
         if self.dest_field == self.config.source_hash_fieldname:
             raise ValueError(
                 f"Destination fields can't be named "
                 f"{self.config.source_hash_fieldname}, as that's the name set "
-                f"in the config's source_hash_fieldname variable")
+                f"in the config's {AnonymiseConfigKeys.SOURCE_HASH_FIELDNAME} "
+                f"variable")
+        elif self.dest_field == self.config.trid_fieldname:
+            raise ValueError(
+                f"Destination fields can't be named "
+                f"{self.config.trid_fieldname}, as that's the name set "
+                f"in the config's {AnonymiseConfigKeys.TRID_FIELDNAME} "
+                f"variable")
         # Datatype
         if self.dest_datatype and not is_sqltype_valid(self.dest_datatype):
             raise ValueError(
-                f"Field has invalid destination data type: "
+                f"Field has invalid {self.DEST_DATATYPE}: "
                 f"{self.dest_datatype}")
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1101,19 +1151,20 @@ class DataDictionaryRow(object):
         if self.matches_fielddef(srccfg.ddgen_per_table_pid_field):
             if not self.primary_pid:
                 raise ValueError(
-                    f"All fields with src_field={self.src_field} used in "
-                    f"output should have src_flag={SrcFlag.PRIMARY_PID} set")
+                    f"All fields with {self.SRC_FIELD}={self.src_field} "
+                    f"used in output should have "
+                    f"{self.SRC_FLAGS}={SrcFlag.PRIMARY_PID} set")
             if self.dest_field != self.config.research_id_fieldname:
                 raise ValueError(
-                    f"Primary PID field should have dest_field = "
+                    f"Primary PID field should have {self.DEST_FIELD} = "
                     f"{self.config.research_id_fieldname}")
         # MPID/MRID
         if (self.matches_fielddef(srccfg.ddgen_master_pid_fieldname) and
                 not self.master_pid):
             raise ValueError(
-                f"All fields with src_field = "
+                f"All fields with {self.SRC_FIELD} = "
                 f"{srccfg.ddgen_master_pid_fieldname} used in output should "
-                f"have src_flags={SrcFlag.MASTER_PID} set")
+                f"have {self.SRC_FLAGS}={SrcFlag.MASTER_PID} set")
         # Anything that is hashed (but not self._add_src_hash -- added
         # separately):
         if (self.dest_should_be_encrypted_pid_type
@@ -1121,10 +1172,10 @@ class DataDictionaryRow(object):
                 and self.dest_datatype !=
                 self.config.sqltype_encrypted_pid_as_sql):
             raise ValueError(
-                f"All src_flags={SrcFlag.PRIMARY_PID}/"
-                f"src_flags={SrcFlag.MASTER_PID}/"
-                f"src_flags={SrcFlag.ADD_SRC_HASH} "
-                f"fields used in output must have destination_datatype = "
+                f"All {self.SRC_FLAGS}={SrcFlag.PRIMARY_PID}/"
+                f"{self.SRC_FLAGS}={SrcFlag.MASTER_PID}/"
+                f"{self.SRC_FLAGS}={SrcFlag.ADD_SRC_HASH} "
+                f"fields used in output must have {self.DEST_DATATYPE} = "
                 f"{self.config.sqltype_encrypted_pid_as_sql} "
                 f"(determined by the config parameter "
                 f"{AnonymiseConfigKeys.HASH_METHOD!r})")
@@ -1132,23 +1183,30 @@ class DataDictionaryRow(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check alteration methods
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        if self.has_special_alter_method and self._alter_methods:
+            raise ValueError(
+                f"Don't specify {self.ALTER_METHOD} "
+                f"for PID/MPID/third-party PID fields; "
+                f"these are handled specially"
+            )
         for am in self._alter_methods:
             if am.truncate_date:
                 if not (is_sqlatype_date(src_sqla_coltype) or
                         is_sqlatype_text_over_one_char(src_sqla_coltype)):
-                    raise ValueError("Can't set truncate_date for "
-                                     "non-date/non-text field")
+                    raise ValueError(
+                        f"Can't set {AlterMethodType.TRUNCATEDATE.value} "
+                        f"for non-date/non-text field")
             if am.extract_from_filename:
                 if not is_sqlatype_text_over_one_char(src_sqla_coltype):
                     raise ValueError(
-                        f"For alter_method = "
+                        f"For {self.ALTER_METHOD} = "
                         f"{AlterMethodType.FILENAME_TO_TEXT}, "
                         f"source field must contain a filename and therefore "
                         f"must be text type of >1 character")
             if am.extract_from_blob:
                 if not is_sqlatype_binary(src_sqla_coltype):
                     raise ValueError(
-                        f"For alter_method = "
+                        f"For {self.ALTER_METHOD} = "
                         f"{AlterMethodType.BINARY_TO_TEXT}, "
                         f"source field must be of binary type")
 
@@ -1166,7 +1224,8 @@ class DataDictionaryRow(object):
                 self.indexlen is None and
                 does_sqlatype_require_index_len(dest_sqla_coltype)):
             raise ValueError(
-                "Must specify indexlen to index a TEXT or BLOB field")
+                f"Must specify {self.INDEXLEN} "
+                f"to index a TEXT or BLOB field")
 
     # -------------------------------------------------------------------------
     # Other stuff requiring config or database info
@@ -1229,7 +1288,7 @@ class DataDictionaryRow(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ddgen: Is the field special, such as a PK?
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        if self.matches_fielddef(dbconf.ddgen_pk_fields):
+        if self.matches_fielddef(dbconf.ddgen_pk_fields) or primary_key:
             # Table primary key (e.g. arbitrary integer).
             self._pk = True
             self._constant = (

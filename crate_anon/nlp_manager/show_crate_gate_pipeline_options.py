@@ -33,7 +33,7 @@ import logging
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.constants import (
-    CrateDir,
+    CratePath,
     EnvVar,
 )
 from cardinal_pythonlib.subproc import check_call_verbose
@@ -48,7 +48,7 @@ def main() -> None:
     gate_home = get_envvar_or_die(EnvVar.GATE_HOME)
     check_call_verbose([
         "java",
-        "-classpath", f"{CrateDir.JAVA_CLASSES}:{gate_home}/lib/*",
+        "-classpath", f"{CratePath.JAVA_CLASSES_DIR}:{gate_home}/lib/*",
         f"-Dgate.home={gate_home}",
         "CrateGatePipeline",
         "--help",

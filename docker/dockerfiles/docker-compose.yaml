@@ -50,14 +50,14 @@ volumes:
 
     rabbitmq_volume:
         # Again, we make it explicit (or we get Docker gibberish names).
-        
+
     crate_config_volume:
         # Holds CRATE config files.
         #
         # The alternative to mounting a directory is Docker "configs" but these
         # are a bit different and don't allow single-file bind-mounting under
         # Windows. See https://docs.docker.com/engine/swarm/configs/
-        
+
         driver: local
         driver_opts:
             # It's quite hard to find docs for driver_opts for the 'local'
@@ -127,7 +127,7 @@ services:
 
             # Password for user "root" (set at first container startup).
             MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_MYSQL_ROOT_PASSWORD}"
-            
+
         # Expose ports from the container, "publishing" them to the host.
         # For example, if you offer a MySQL server via "9999:3306", you should
         # be able to run
@@ -193,10 +193,10 @@ services:
         build:
             # Context for Docker to build the image (relative to this file).
             context: ../../
-            
+
             # Filename of the Dockerfile to use, relative to the context.
             dockerfile: docker/dockerfiles/crate.Dockerfile
-        
+
         # If you specify "image" as well as "build", Compose names the built
         # image. Syntax is "IMAGE[:TAG]".
         image: crate
@@ -250,7 +250,7 @@ services:
 
         # Restart policy
         restart: "always"
-        
+
         # Publish port to host.
         ports:
             - "${CRATE_DOCKER_CRATEWEB_HOST_PORT}:8000"

@@ -1341,108 +1341,134 @@ Changes
 
 - Migrating Travis CI.
 
-- ``django`` from 3.1.7 to 3.1.12 for CVE-2021-31542, then to 3.1.13 for
-  CVE-2021-35042.
+- Library updates:
 
-- ``pillow`` from 8.1.2 to 8.2.0 for several alerts including CVE-2021-25288,
-  then to 8.3.2 (CVE-2021-23437).
+  - ``cardinal_pythonlib`` from 1.1.10 to 1.1.15.
 
-- ``urllib3`` from 1.26.4 to 1.26.5 for CVE-2021-33503.
+  - ``celery`` from 5.2.0 to 5.2.2 for CVE-2021-23727.
 
-- ``MarkupSafe`` from 1.1.1 to 2.0.1 (for other dependencies).
+  - ``django`` from 3.1.7 to 3.1.12 for CVE-2021-31542, then to 3.1.13 for
+    CVE-2021-35042.
 
-- ``cardinal_pythonlib`` from 1.1.10 to 1.1.15.
+  - Update jQuery from 3.1.1 to 3.6.0, and jQuery UI from 1.12.1 to 1.13.0.
 
-- ``kombu`` from 4.4.6 to 5.2.1 (security fix), and ``celery`` from 4.4.6 to
-  5.2.0 in consequence, then ``amqp`` from 2.6.0 to 5.0.6 in consequence.
-  Change syntax in ``launch_nlp_webserver_celery.py`` as a result, and
-  similarly elsewhere.
+  - ``kombu`` from 4.4.6 to 5.2.1 (security fix), and ``celery`` from 4.4.6 to
+    5.2.0 in consequence, then ``amqp`` from 2.6.0 to 5.0.6 in consequence.
+    Change syntax in ``launch_nlp_webserver_celery.py`` as a result, and
+    similarly elsewhere. Then ``kombu`` to 5.2.2 when ``celery`` bumped as
+    above.
 
-- Update jQuery from 3.1.1 to 3.6.0, and jQuery UI from 1.12.1 to 1.13.0.
+  - ``MarkupSafe`` from 1.1.1 to 2.0.1 (for other dependencies).
 
-- Remove need for ``xlrd`` (was only used for the postcode database and now
-  redundant; all other Excel work uses ``openpyxl``), but add ``pyexcel-ods``
-  for ODS files.
+  - ``pendulum`` from 2.1.1 to 2.1.2 so it installs (Python 3.7, Windows)
+    (previously, it complained about PEP 517;
+    https://github.com/sdispater/pendulum/issues/454).
 
-- ``pendulum`` from 2.1.1 to 2.1.2 so it installs (Python 3.7, Windows)
-  (previously, it complained about PEP 517;
-  https://github.com/sdispater/pendulum/issues/454).
+  - ``pillow`` from 8.1.2 to 8.2.0 for several alerts including CVE-2021-25288,
+    then to 8.3.2 (CVE-2021-23437), then to 9.0.0 (e.g. CVE-2022-22817).
 
-- **Minimum Python version is now 3.7.**
+  - ``urllib3`` from 1.26.4 to 1.26.5 for CVE-2021-33503.
+
+  - Remove need for ``xlrd`` (was only used for the postcode database and now
+    redundant; all other Excel work uses ``openpyxl``), but add ``pyexcel-ods``
+    for ODS files.
+
+- **Minimum Python version is now 3.7.** (Python 3.6 reached end-of-life on
+  2021-12-23.) Explicit support for Python 3.10.
 
 - Specific code for TIMELY project.
 
-- Full support for data dictionaries in ODS and XLSX format. (Use the first
-  spreadsheet of a file.)
+- Command line:
 
-- Split out standalone commands, as the ``crate_anonymise`` command was
-  becoming confusingly multi-purpose:
+  - Split out standalone commands, as the ``crate_anonymise`` command was
+    becoming confusingly multi-purpose:
 
-  - ``crate_anonymise --count`` becomes ``crate_anon_show_counts``;
-  - ``crate_anonymise --democonfig`` becomes ``crate_anon_demo_config``;
-  - ``crate_anonymise --checkextractor`` becomes
-    ``crate_anon_check_text_extractor``;
-  - ``crate_anonymise --draftdd`` and ``crate_anonymise --incrementaldd``
-    become ``crate_anon_draft_dd``.
+    - ``crate_anonymise --count`` becomes ``crate_anon_show_counts``;
+    - ``crate_anonymise --democonfig`` becomes ``crate_anon_demo_config``;
+    - ``crate_anonymise --checkextractor`` becomes
+      ``crate_anon_check_text_extractor``;
+    - ``crate_anonymise --draftdd`` and ``crate_anonymise --incrementaldd``
+      become ``crate_anon_draft_dd``.
 
-- Work on SystmOne data dictionaries.
+  - ``crate_anon_summarize_dd`` tool.
 
-- New scrub method: ``phrase_unless_numeric``.
+  - Change some hyphens to underscores in the command-line arguments to the
+    PCMIS and RiO preprocessing tools, for consistency.
 
-- Efficiency check when recursing into third-party records, to avoid doing the
-  same work twice.
+- Help:
 
-- Automatically hash third-party PIDs using the same hasher as patient PIDs,
-  rendering the de-identified records linkable (if and only if the third-party
-  PID field is marked for inclusion).
+  - Index of all CRATE commands.
 
-- Explicit support for Python 3.10.
+- Data dictionaries and automatic data dictionary generation:
 
-- ``ddgen_force_lower_case`` default changed from True to False.
+  - Full support for data dictionaries in CSV, ODS, and XLSX format, as well as
+    the existing TSV. (Uses the first spreadsheet of a potentially multi-sheet
+    file when reading.)
 
-- ``ddgen_min_length_for_scrubbing`` default changed from 0 to 50.
+  - Work on SystmOne data dictionaries.
 
-- New ``ddgen_freetext_index_min_length`` option.
+  - ``ddgen_force_lower_case`` default changed from True to False.
 
-- Fulltext indexing during data dictionary autogeneration now bases its
-  decisions on the source (not destination) datatype. This handles the
-  "auto-expansion" better -- otherwise all sorts of things were attracting the
-  full-text flag.
+  - ``ddgen_min_length_for_scrubbing`` default changed from 0 to 50.
 
-- Remove warnings about lack of primary PID field in source tables with an MPID
-  if no scrubbing is required (that's an inconvenience, not a de-identification
-  risk).
+  - New ``ddgen_freetext_index_min_length`` option.
 
-- Use ``DataDictionary.get_pid_name`` instead of ``ddgen_per_table_pid_field``
-  to establish the PID field for each table for scrubbing. The ``ddgen``
-  options should only be for generating a data dictionary; the user may have
-  revised the data dictionary subsequently, and there is no requirement that
-  all PID fields have the same name across tables.
+  - Fulltext indexing during data dictionary autogeneration now bases its
+    decisions on the source (not destination) datatype. This handles the
+    "auto-expansion" better -- otherwise all sorts of things were attracting
+    the full-text flag.
 
-- Add data dictionary check that all scrub-source tables have a patient ID
-  field.
+  - Remove warnings about lack of primary PID field in source tables with an
+    MPID if no scrubbing is required (that's an inconvenience, not a
+    de-identification risk).
 
-- Remove ``ddgen_allow_no_patient_info`` option and replace it with
-  ``allow_no_patient_info`` -- this is now a "runtime" setting, not a "data
-  dictionary definition" setting. Depending on ``allow_no_patient_info``,
-  warnings or errors are produced if a data dictionary is used without
-  patient-defining information (which is usually wrong, but there are sometimes
-  sensible use-cases for it).
+  - Use ``DataDictionary.get_pid_name`` instead of
+    ``ddgen_per_table_pid_field`` to establish the PID field for each table for
+    scrubbing. The ``ddgen`` options should only be for generating a data
+    dictionary; the user may have revised the data dictionary subsequently, and
+    there is no requirement that all PID fields have the same name across
+    tables.
 
-- Option for ``ddgen_min_length_for_scrubbing`` to be less than 1 to disable
-  scrubbing entirely (helpful for the SystmOne automatic data dictionary
-  generation).
+  - Add data dictionary check that all scrub-source tables have a patient ID
+    field.
 
-- ``crate_anon_summarize_dd`` tool.
+  - Remove ``ddgen_allow_no_patient_info`` option and replace it with
+    ``allow_no_patient_info`` -- this is now a "runtime" setting, not a "data
+    dictionary definition" setting. Depending on ``allow_no_patient_info``,
+    warnings or errors are produced if a data dictionary is used without
+    patient-defining information (which is usually wrong, but there are
+    sometimes sensible use-cases for it).
 
-- Change some hyphens to underscores in the command-line arguments to the
-  PCMIS and RiO preprocessing tools, for consistency.
+  - Option for ``ddgen_min_length_for_scrubbing`` to be less than 1 to disable
+    scrubbing entirely (helpful for the SystmOne automatic data dictionary
+    generation).
 
-- ``denylist_files_as_phrases`` option for anonymisation, and
-  ``denylist_phrases_flexible_whitespace``.
+  - Add data dictionary row check that "add source hash" (H) flag fields are
+    not omitted, as promised in the documentation.
 
-- Fix :class:`crate_anon.anonymise.scrub.WordList` to use its ``suffixes``
-  parameter even if ``regex_method`` is False. (Was not being used.)
+  - Autodetect primary keys.
+
+- Anonymisation:
+
+  - New scrub method: ``phrase_unless_numeric``.
+
+  - Efficiency check when recursing into third-party records, to avoid doing
+    the same work twice.
+
+  - Automatically hash third-party PIDs using the same hasher as patient PIDs,
+    rendering the de-identified records linkable (if and only if the
+    third-party PID field is marked for inclusion).
+
+  - ``denylist_files_as_phrases`` option for anonymisation, and
+    ``denylist_phrases_flexible_whitespace``.
+
+  - Fix :class:`crate_anon.anonymise.scrub.WordList` to use its ``suffixes``
+    parameter even if ``regex_method`` is False. (Was not being used.)
+
+  - Ensure that if MRIDs are being automatically (option
+    ``add_mrid_wherever_rid_added``), but a table has an explicit MPID/MRID
+    data dictionary row with the same name, that we don't attempt to add it
+    twice.
 
 
 To do

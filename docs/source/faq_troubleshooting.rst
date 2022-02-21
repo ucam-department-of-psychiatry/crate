@@ -104,8 +104,8 @@ This error usually appears with encrypted, password-protected DOCX files. The
 anonymiser will not be able to read these, and this error can be ignored.
 
 
-“UnRtf: … has stopped working”
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+“UnRtf: ... has stopped working”
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If a third-party program is used by CRATE for text extraction and fails, you
 may get lots of messages from Windows like “UnRtf: convert document in RTF
@@ -128,6 +128,14 @@ entries [#disabledebugcloseapplication]_:
     HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting : “DontShowUI”=dword:00000001
     HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting : “DontSendAdditionalData”=dword:00000001
     HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\Consent : “DefaultConsent”=dword:00000002
+
+
+"UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can get this error when you try to use a config file in Windows, certainly
+by using Notepad to create/edit a CRATE config file. Notepad can default to
+"UTF-16 LE" encoding. Re-save the config file with UTF-8 encoding.
 
 
 CRATE NLP
@@ -786,9 +794,7 @@ https://dev.mysql.com/doc/refman/5.0/en/fulltext-search.html
 SQL Server
 ----------
 
-
 .. _configure_odbc_mars:
-
 […] “Connection is busy with results for another command” […]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -902,6 +908,19 @@ try this:
 
     USE mydatabase;
     ALTER USER [myserver\RCardinal] WITH DEFAULT_SCHEMA = dbo;
+
+
+"Restricted data type attribute violation"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We've seen this whilst performing an initial scan (data dictionary
+autogeneration) of a source database using the ``SQL Server Native Client
+11.0`` ODBC driver with SQL Server 2012 (version series 11 per
+https://sqlserverbuilds.blogspot.com/; unsure of specific version), via
+``pyodbc==4.0.x``, default ODBC settings (except MARS enabled, as above), and a
+read-only connection. The SQLAlchemy URL for this setup is
+``mssql+pyodbc://@odbc_data_source_name``. The error went away by using the
+``ODBC Driver 17 for SQL Server`` driver instead.
 
 
 Windows

@@ -33,7 +33,7 @@ import logging
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.constants import (
-    CrateDir,
+    CratePath,
     DEMO_NLP_INPUT_TERMINATOR,
     DEMO_NLP_OUTPUT_TERMINATOR,
     EnvVar,
@@ -54,7 +54,7 @@ def main() -> None:
              f"an end-of-input marker. Don't use that for real!")
     check_call_verbose([
         "java",
-        "-classpath", f"{CrateDir.JAVA_CLASSES}:{gate_home}/lib/*",
+        "-classpath", f"{CratePath.JAVA_CLASSES_DIR}:{gate_home}/lib/*",
         f"-Dgate.home={gate_home}",
         "CrateGatePipeline",
         "--annotation", "Person",

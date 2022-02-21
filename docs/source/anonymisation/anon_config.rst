@@ -1113,7 +1113,8 @@ ddgen_pk_fields
 
 *Multiline string.*
 
-Fieldnames assumed to be their table's PK.
+Fieldnames assumed to be their table's PK. In addition to these, any columns
+that the source database reports as a PK will be treated as such.
 
 
 .. _anon_config_ddgen_constant_content:

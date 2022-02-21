@@ -133,8 +133,7 @@ def wipe_and_recreate_destination_db(incremental: bool = False) -> None:
     log.info(f"Rebuilding destination database (incremental={incremental})")
     engine = config.destdb.engine
     for tablename in config.dd.get_dest_tables():
-        sqla_table = config.dd.get_dest_sqla_table(
-            tablename, config.timefield, config.add_mrid_wherever_rid_added)
+        sqla_table = config.dd.get_dest_sqla_table(tablename)
         # Drop
         if not incremental:
             log.info(f"Dropping table: {tablename}")
@@ -194,8 +193,7 @@ def delete_dest_rows_with_no_src_row(
     metadata = MetaData()  # operate in isolation!
     destengine = config.destdb.engine
     destsession = config.destdb.session
-    dest_table = config.dd.get_dest_sqla_table(
-        dest_table_name, config.timefield, config.add_mrid_wherever_rid_added)
+    dest_table = config.dd.get_dest_sqla_table(dest_table_name)
     pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
 
     # If there's no source PK, we just delete everything
@@ -1207,8 +1205,7 @@ def process_table(sourcedbname: str,
     timefield = config.timefield
     add_mrid_wherever_rid_added = config.add_mrid_wherever_rid_added
     mrid_fieldname = config.master_research_id_fieldname
-    sqla_table = config.dd.get_dest_sqla_table(dest_table, timefield,
-                                               add_mrid_wherever_rid_added)
+    sqla_table = config.dd.get_dest_sqla_table(dest_table)
     session = config.destdb.session
 
     # Count what we'll do, so we can give a better indication of progress
@@ -1217,9 +1214,16 @@ def process_table(sourcedbname: str,
     recnum = tasknum or 0
 
     # Process the rows
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Generate data
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     for row in gen_rows(sourcedbname, sourcetable, sourcefields,
                         pid, debuglimit=debuglimit,
                         intpkname=intpkname, tasknum=tasknum, ntasks=ntasks):
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Reporting
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         n += 1
         if n % config.report_every_n_rows == 0:
             log.info(
@@ -1227,6 +1231,9 @@ def process_table(sourcedbname: str,
                 f"{' for this patient' if pid is not None else ''} "
                 f"({config.overall_progress()})")
         recnum += ntasks or 1
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Change detection: source hash and constant rows
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if addhash:
             srchash = config.hash_object(row)
             if incremental and identical_record_exists_by_hash(
@@ -1247,19 +1254,32 @@ def process_table(sourcedbname: str,
                     f"(destination) {dest_table}.{dest_pk_name} = "
                     f"{row[pkfield_index]}")
                 continue
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Iterate through values, altering them if necessary
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         destvalues = {}  # type: Dict[str, Any]
         skip_row = False
         for i, ddr in enumerate(ddrows):
             value = row[i]
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Skip row?
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             if ddr.skip_row_by_value(value):
                 # log.debug("skipping row based on inclusion/exclusion values")
                 skip_row = True
                 break  # skip row
             # NOTE: would be most efficient if ddrows were ordered with
             # inclusion/exclusion fields first. (Not yet done automatically.)
+
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Skip column?
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             if ddr.omit:
                 continue  # skip column
 
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Value alteration: "special" methods (PID, MPID) or other methods
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             if ddr.primary_pid:
                 assert str(value) == str(patient.pid), (
                     # We compare using str() because we may have an integer and
@@ -1276,25 +1296,35 @@ def process_table(sourcedbname: str,
                 # Third-party PID; we encrypt with the same hasher as for other
                 # PIDs, so that de-identified records remain linkable.
                 value = config.encrypt_primary_pid(value)
-
-            for alter_method in ddr.alter_methods:
-                value, skiprow = alter_method.alter(
-                    value=value, ddr=ddr, row=row,
-                    ddrows=ddrows, patient=patient)
-                if skiprow:
-                    break  # from alter method loop
+            else:
+                # Value alteration: other methods
+                for alter_method in ddr.alter_methods:
+                    value, skiprow = alter_method.alter(
+                        value=value, ddr=ddr, row=row,
+                        ddrows=ddrows, patient=patient)
+                    if skiprow:
+                        break  # from alter method loop
 
             if skip_row:
                 break  # from data dictionary row (field) loop
 
             destvalues[ddr.dest_field] = value
 
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Special timestamp field
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             if timefield:
                 destvalues[timefield] = datetime.utcnow()
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Skip the row?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if skip_row or not destvalues:
             continue  # next row
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Add extra columns?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if addhash:
             destvalues[config.source_hash_fieldname] = srchash
         if addtrid:
@@ -1302,6 +1332,9 @@ def process_table(sourcedbname: str,
             if add_mrid_wherever_rid_added:
                 destvalues[mrid_fieldname] = patient.mrid
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Insert values into database
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         q = sqla_table.insert_on_duplicate().values(destvalues)
         session.execute(q)
 
@@ -1328,8 +1361,7 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
     mssql_fulltext_columns_by_table = []  # type: List[List[Column]]
     for (tablename, tablerows) in gen_index_row_sets_by_table(tasknum=tasknum,
                                                               ntasks=ntasks):
-        sqla_table = config.dd.get_dest_sqla_table(
-            tablename, config.timefield, config.add_mrid_wherever_rid_added)
+        sqla_table = config.dd.get_dest_sqla_table(tablename)
         mssql_fulltext_columns = []  # type: List[Column]
         for tr in tablerows:
             sqla_column = sqla_table.columns[tr.dest_field]
@@ -1514,10 +1546,7 @@ def wipe_destination_data_for_opt_out_patients(report_every: int = 1000,
     log.debug(start + ": 5. deleting from destination table by opt-out RID")
     for dest_table_name in config.dd.get_dest_tables_with_patient_info():
         log.debug(start + f": ... {dest_table_name}")
-        dest_table = config.dd.get_dest_sqla_table(
-            dest_table_name,
-            config.timefield,
-            config.add_mrid_wherever_rid_added)
+        dest_table = config.dd.get_dest_sqla_table(dest_table_name)
         query = dest_table.delete().where(
             column(ridfield).in_(
                 select([temptable.columns[pkfield]])

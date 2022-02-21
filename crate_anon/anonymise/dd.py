@@ -63,6 +63,7 @@ from sqlalchemy.sql.sqltypes import String, TypeEngine
 from crate_anon.anonymise.constants import (
     AlterMethodType,
     AnonymiseConfigKeys,
+    Decision,
     IndexType,
     ScrubMethod,
     ScrubSrc,
@@ -732,13 +733,15 @@ class DataDictionary(object):
                 for r in self.get_rows_for_src_table(d, t):
                     if r.add_src_hash and r.omit:
                         raise ValueError(
-                            f"Do not set omit on "
-                            f"src_flags={SrcFlag.ADD_SRC_HASH} fields -- "
+                            f"Do not set {Decision.OMIT.value} on "
+                            f"{DataDictionaryRow.SRC_FLAGS}="
+                            f"{SrcFlag.ADD_SRC_HASH} fields -- "
                             f"currently set for {r.src_signature}")
                     if r.constant and r.omit:
                         raise ValueError(
-                            f"Do not set omit on "
-                            f"src_flags={SrcFlag.CONSTANT} fields -- "
+                            f"Do not set {Decision.OMIT.value} on "
+                            f"{DataDictionaryRow.SRC_FLAGS}="
+                            f"{SrcFlag.CONSTANT} fields -- "
                             f"currently set for {r.src_signature}")
 
         log.debug("Checking DD: table consistency...")
@@ -761,9 +764,9 @@ class DataDictionary(object):
             if not pid_colname and not mpid_colname:
                 raise ValueError(
                     f"Field {src_db}.{src_table}.{optout_colname} has "
-                    f"src_flags={SrcFlag.OPT_OUT} set, but that table does "
-                    f"not have a primary patient ID field or a master patient "
-                    f"ID field")
+                    f"{DataDictionaryRow.SRC_FLAGS}={SrcFlag.OPT_OUT} set, "
+                    f"but that table does not have a primary patient ID field "
+                    f"or a master patient ID field")
 
         log.debug("Checking DD: destination tables...")
         for t in self.get_dest_tables():
@@ -812,7 +815,8 @@ class DataDictionary(object):
         elif n_definers > 1:
             log.warning(
                 f"Unusual: >1 field with "
-                f"src_flags={SrcFlag.DEFINES_PRIMARY_PIDS} set.")
+                f"{DataDictionaryRow.SRC_FLAGS}="
+                f"{SrcFlag.DEFINES_PRIMARY_PIDS} set.")
 
         log.debug("... DD checked.")
 
@@ -1412,15 +1416,18 @@ class DataDictionary(object):
     # -------------------------------------------------------------------------
 
     @lru_cache(maxsize=None)
-    def get_dest_sqla_table(self, tablename: str,
-                            timefield: str = None,
-                            add_mrid_wherever_rid_added: bool = False) -> Table:
+    def get_dest_sqla_table(self, tablename: str) -> Table:
         """
         For a given destination table name, return an
         :class:`sqlalchemy.sql.schema.Table` object for the destination table
         (which we will create).
         """
-        metadata = self.config.destdb.metadata
+        config = self.config
+        metadata = config.destdb.metadata
+        timefield = config.timefield
+        add_mrid_wherever_rid_added = config.add_mrid_wherever_rid_added
+        pid_found = False
+        rows_include_mrid_with_expected_name = False
         columns = []  # type: List[Column]
         for ddr in self.get_rows_for_dest_table(tablename):
             columns.append(ddr.dest_sqla_column)
@@ -1428,8 +1435,17 @@ class DataDictionary(object):
                 columns.append(self._get_srchash_sqla_column())
             if ddr.primary_pid:
                 columns.append(self._get_trid_sqla_column())
-                if add_mrid_wherever_rid_added:
-                    columns.append(self._get_mrid_sqla_column())
+                pid_found = True
+            if (ddr.master_pid and
+                    ddr.dest_field == config.master_research_id_fieldname):
+                # This table has an explicit MRID field with the expected name;
+                # we make a note, because if we're being asked to add MRIDs
+                # automatically along with RIDs, we need not to do it twice.
+                rows_include_mrid_with_expected_name = True
+        if (pid_found
+                and add_mrid_wherever_rid_added
+                and not rows_include_mrid_with_expected_name):
+            columns.append(self._get_mrid_sqla_column())
         if timefield:
             timecol = Column(timefield, DateTime)
             columns.append(timecol)
