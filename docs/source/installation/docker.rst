@@ -348,11 +348,11 @@ containers in this project.
 Tools
 -----
 
-All live in the ``docker`` directory.
+All live in the ``installer`` directory.
 
 
-bash_within_docker
-~~~~~~~~~~~~~~~~~~
+enter_crate_container.sh
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Starts a container with the CRATE image and runs a Bash shell within it.
 
@@ -361,32 +361,22 @@ Starts a container with the CRATE image and runs a Bash shell within it.
     Running a shell within a container allows you to break things! Be careful.
 
 
-start_crate_docker_detached
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+start_crate.sh
+~~~~~~~~~~~~~~
 
-Shortcut for ``docker-compose up -d``. The ``-d`` switch is short for
+Shortcut for ``docker compose up -d``. The ``-d`` switch is short for
 ``--detach`` (or daemon mode).
 
 
-start_crate_docker_interactive
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Shortcut for ``docker-compose up --abort-on-container-exit``.
-
-.. note::
-    The ``docker-compose`` command looks for a Docker Compose configuration
-    file with a default filename; one called ``docker-compose.yaml`` is
-    provided.
-
-
-stop_crate_docker
-~~~~~~~~~~~~~~~~~
-
-Shortcut for ``docker-compose down``.
-
-
-within_docker
+stop_crate.sh
 ~~~~~~~~~~~~~
+
+Shortcut for ``docker compose down``.
+
+
+run_crate_command
+~~~~~~~~~~~~~~~~~
 
 This script starts a container with the CRATE image, activates the CRATE
 virtual environment, and runs a command within it. For example, to explore this
@@ -394,9 +384,9 @@ container, you can do
 
     .. code-block:: bash
 
-        ./within_docker /bin/bash
+        ./run_crate_command.sh /bin/bash
 
-... which is equivalent to the ``bash_within_docker`` script (see above and
+... which is equivalent to the ``enter_docker_container`` script (see above and
 note the warning).
 
 
