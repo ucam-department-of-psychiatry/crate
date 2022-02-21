@@ -132,7 +132,7 @@ Here is an example settings file. See :ref:`environment_variables
 
 To start the installer on all platforms:
 
-``curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh | bash``
+``. <(curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh)``
 
 
 .. _environment-variables:
