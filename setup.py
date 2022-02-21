@@ -66,18 +66,18 @@ with open(os.path.join(THIS_DIR, "README.rst"), encoding="utf-8") as f:
 
 # Package dependencies
 INSTALL_REQUIRES = [
-    "amqp==2.6.0",  # amqp is used by Celery
+    "amqp==5.0.9",  # amqp is used by Celery
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
     "cardinal_pythonlib==1.1.10",  # RNC libraries
     "cairosvg==2.5.1",  # work with SVG files
-    "celery==4.4.6",  # back-end scheduling
+    "celery==5.2.3",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==3.1.13",  # for main CRATE research database web server
+    "django==3.2.12",  # for main CRATE research database web server
     "django-debug-toolbar==3.0a2",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -86,17 +86,17 @@ INSTALL_REQUIRES = [
     "django-sslserver==0.22",  # SSL development server for Django
     "flake8==3.8.4",  # code checks
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
-    "flower==0.9.5",  # debug Celery; web server; only runs explicitly
+    "flower==1.0.0",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==20.0.4",  # UNIX only, though will install under Windows
-    "kombu==4.6.11",  # AMQP library for Celery; requires VC++ under Windows
+    "kombu==5.2.3",  # AMQP library for Celery; requires VC++ under Windows
     "mako==1.1.3",  # templates with Python in
     "MarkupSafe==1.1.1",  # for HTML escaping
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa
     "openpyxl==3.0.7",  # read Excel
     "pendulum==2.1.1",  # dates/times
-    "pillow==8.3.2",  # image processing; import as PIL (Python Imaging Library)  # noqa
+    "pillow==9.0.0",  # image processing; import as PIL (Python Imaging Library)  # noqa
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==0.7.2",  # pretty formating of text-based tables
     "psutil==5.7.2",  # process management
@@ -105,7 +105,7 @@ INSTALL_REQUIRES = [
     "pyparsing==2.4.7",  # generic grammar parser
     "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]
     "pytest==6.0.2",  # automatic testing
-    "pytz==2020.1",  # timezones
+    "pytz==2021.3",  # timezones
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html

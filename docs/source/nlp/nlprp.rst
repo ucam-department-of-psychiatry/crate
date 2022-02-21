@@ -1322,7 +1322,7 @@ keys:
       - If true, all queue entries (for this client!) are deleted.
 
 
-Specimen Python 3.6+ client program
+Specimen Python 3.7+ client program
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Very briefly, run ``pip install requests crate_anon``, and then you can run
@@ -1334,7 +1334,7 @@ this:
      :language: python
 
 
-Specimen Python 3.6+ server program
+Specimen Python 3.7+ server program
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Similarly, for a dummy server program, run ``pip install pyramid crate_anon``
@@ -1431,7 +1431,7 @@ The following are implementation details that are at the server's discretion:
 - authentication_
 - authorization_
 - accounting (logging, billing, size/frequency restrictions)
-- containerization, parallel processing, message queue details 
+- containerization, parallel processing, message queue details
 
 
 Abbreviations used in this section
