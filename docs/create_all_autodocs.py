@@ -71,6 +71,7 @@ SKIP_GLOBS = [
     "modernizr*",
     "**/jquery*/*",
     "**/static_collected/*",
+    "**/compiled_nlp_classes/*",
 ]
 
 
