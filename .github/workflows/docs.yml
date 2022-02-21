@@ -19,6 +19,8 @@ jobs:
                   python -m pip install -U pip
                   echo installing pip packages
                   python -m pip install -e .
+                  export CRATE_ANON_CONFIG=${HOME}/crate_anon_config.ini
+                  crate_anonymise --democonfig > ${CRATE_ANON_CONFIG}
                   cd docs
                   echo Creating autodocs
                   ./create_all_autodocs.py --make --destroy_first
