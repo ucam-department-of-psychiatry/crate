@@ -21,7 +21,7 @@ jobs:
                   python -m pip install -e .
                   cd docs
                   echo Creating autodocs
-                  ./create_all_autodocs.py --make
+                  ./create_all_autodocs.py --make --destroy_first
                   cd ${GITHUB_WORKSPACE}
                   echo Checking files not checked in
                   git diff
