@@ -1,0 +1,36 @@
+---
+# yamllint disable rule:line-length
+name: Build docs
+# yamllint disable-line rule:truthy
+on: push
+
+jobs:
+    build-docs:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - name: Build docs
+              run: |
+                  set -xe
+                  python -m venv ${HOME}/venv
+                  source ${HOME}/venv/bin/activate
+                  python -VV
+                  python -m site
+                  python -m pip install -U pip
+                  echo installing pip packages
+                  python -m pip install -e .
+                  cd docs
+                  echo Creating autodocs
+                  ./create_all_autodocs.py --make
+                  cd ${GITHUB_WORKSPACE}
+                  echo Checking files not checked in
+                  git update-index --refresh
+                  git diff-index --quiet HEAD --
+                  test -z "$(git ls-files --exclude-standard --others)"
+                  cd docs
+                  echo Rebuilding docs
+                  ./rebuild_docs.py
+                  echo Checking files not checked in
+                  git update-index --refresh
+                  git diff-index --quiet HEAD --
+                  test -z "$(git ls-files --exclude-standard --others)"
