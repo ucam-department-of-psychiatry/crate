@@ -47,12 +47,12 @@ if __name__ == '__main__':
     # Build docs
     print("Making HTML version of documentation")
     os.chdir(THIS_DIR)
-    subprocess.call(["python", os.path.join(THIS_DIR,
-                                            "recreate_inclusion_files.py")])
+    subprocess.check_call(["python", os.path.join(THIS_DIR,
+                                                  "recreate_inclusion_files.py")])
     # -W: Turn warnings into errors
     # -n nitpicky mode: report dead links
     # --keep-going: report errors but only fail at the end of the build
-    subprocess.call(["make", "html", 'SPHINXOPTS="-W -n"'])
+    subprocess.check_call(["make", "html", 'SPHINXOPTS="-W -n"'])
 
     # Copy
     for destdir in DEST_DIRS:
