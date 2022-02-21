@@ -49,7 +49,10 @@ if __name__ == '__main__':
     os.chdir(THIS_DIR)
     subprocess.call(["python", os.path.join(THIS_DIR,
                                             "recreate_inclusion_files.py")])
-    subprocess.call(["make", "html"])
+    # -W: Turn warnings into errors
+    # -n nitpicky mode: report dead links
+    # --keep-going: report errors but only fail at the end of the build
+    subprocess.call(["make", "html", 'SPHINXOPTS="-W -n"'])
 
     # Copy
     for destdir in DEST_DIRS:
