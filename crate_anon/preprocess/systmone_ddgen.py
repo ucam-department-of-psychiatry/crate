@@ -1968,6 +1968,7 @@ def get_index_flag(tablename: str,
         return IndexType.NORMAL
     elif should_be_fulltext_indexed(tablename, colname):
         # Full-text indexes
+        log.error(f"Adding FULLTEXT index to: {tablename}.{colname}")
         return IndexType.FULLTEXT
     else:
         return IndexType.NONE
