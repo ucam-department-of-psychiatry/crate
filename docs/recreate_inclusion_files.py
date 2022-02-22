@@ -30,6 +30,7 @@ That is, e.g. "command --help > somefile.txt".
 
 """
 
+import argparse
 import datetime
 import logging
 import os
@@ -98,6 +99,11 @@ def run_cmd(cmdargs: List[str],
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--skip-medex", type=bool, action="store_true",
+                        help="Don't try to build Medex files", default=False)
+    args = parser.parse_args()
+
     # Follow the sequence in setup.py for clarity.
 
     # -------------------------------------------------------------------------
@@ -154,10 +160,13 @@ def main():
 
     run_cmd(["crate_nlp_build_gate_java_interface", "--help"],
             join(NLP_DIR, "_crate_nlp_build_gate_java_interface_help.txt"))
-    run_cmd(["crate_nlp_build_medex_itself", "--help"],
-            join(NLP_DIR, "_crate_nlp_build_medex_itself_help.txt"))
-    run_cmd(["crate_nlp_build_medex_java_interface", "--help"],
-            join(NLP_DIR, "_crate_nlp_build_medex_java_interface_help.txt"))
+
+    if not args.skip_medex:
+        run_cmd(["crate_nlp_build_medex_itself", "--help"],
+                join(NLP_DIR, "_crate_nlp_build_medex_itself_help.txt"))
+        run_cmd(["crate_nlp_build_medex_java_interface", "--help"],
+                join(NLP_DIR, "_crate_nlp_build_medex_java_interface_help.txt"))
+
     run_cmd(["crate_nlp_multiprocess", "--help"],
             join(NLP_DIR, "_crate_nlp_multiprocess_help.txt"))
     run_cmd(["crate_nlp_prepare_ymls_for_bioyodie", "--help"],
@@ -170,8 +179,9 @@ def main():
     # No help: crate_run_gate_kcl_pharmacotherapy_demo
     run_cmd(["crate_show_crate_gate_pipeline_options"],
             join(NLP_DIR, "_CrateGatePipeline_help.txt"))
-    run_cmd(["crate_show_crate_medex_pipeline_options"],
-            join(NLP_DIR, "_CrateMedexPipeline_help.txt"))
+    if not args.skip_medex:
+        run_cmd(["crate_show_crate_medex_pipeline_options"],
+                join(NLP_DIR, "_CrateMedexPipeline_help.txt"))
     shutil.copy(join(CrateDir.NLP_MANAGER, "specimen_gate_plugin_file.ini"),
                 join(NLP_DIR, "_specimen_gate_plugin_file.ini"))
 
