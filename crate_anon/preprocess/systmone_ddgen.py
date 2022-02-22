@@ -1594,8 +1594,15 @@ def is_pk(colname: str, ddr: DataDictionaryRow) -> bool:
     """
     Is this a primary key (PK) column within its table?
     """
-    if ddr.src_reflected_nullable:
-        return False  # can't be a PK if it can be NULL
+    # This check is debatable. It's possible that the source database has
+    # columns that are NULLable but are in fact never null and are PKs. Indeed,
+    # that is the case; e.g. S1_FreeText.RowIdentifier is shown as "bigint,
+    # null" in SQL Server Manager, but "SELECT * FROM S1_FreeText WHERE
+    # RowIdentifier IS NULL" gives 0 rows.
+    #
+    # if ddr.src_reflected_nullable:
+    #     return False  # can't be a PK if it can be NULL
+
     if ddr.src_reflected_primary_key:
         return True
     return is_pk_simple(colname)

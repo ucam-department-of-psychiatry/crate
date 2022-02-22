@@ -522,9 +522,9 @@ class DataDictionary(object):
                         if ddr.include and ddr.index == IndexType.FULLTEXT:
                             log.warning(
                                 f"To create a FULLTEXT index, SQL Server "
-                                f"requires a non-nullable column with a "
-                                f"unique index. Can't find one for "
-                                f"destination table {ddr.dest_table!r}. "
+                                f"requires the table to have a non-nullable "
+                                f"column with a unique index. Can't find one "
+                                f"for destination table {ddr.dest_table!r}. "
                                 f"Removing index from column "
                                 f"{ddr.dest_field!r}."
                             )
