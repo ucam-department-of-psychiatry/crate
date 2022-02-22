@@ -91,6 +91,8 @@ class CloudRequestSender(object):
             incremental: bool = False,
             queue: bool = True) -> None:
         """
+        Initialise class
+
         Args:
             text_generator:
                  Generator that generates text strings from the source
