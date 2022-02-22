@@ -26,7 +26,7 @@ jobs:
                   java -jar "${HOME}/gate-installer.jar" "${GITHUB_WORKSPACE}/docs/gate_auto_install.xml"
                   export GATE_HOME=${HOME}/GATE_Developer_8.6.1
                   crate_anonymise --democonfig > ${CRATE_ANON_CONFIG}
-                  cd docs
+                  cd ${GITHUB_WORKSPACE}/docs
                   echo Creating autodocs
                   ./create_all_autodocs.py --make --destroy_first
                   cd ${GITHUB_WORKSPACE}
