@@ -511,13 +511,13 @@ class DataDictionary(object):
                 # SQL Server: every table with a FULLTEXT index must have a
                 # column that is non-nullable with a unique index.
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                sqlserver_ok_for_fulltext = False
+                table_ok_for_fulltext = False
                 for ddr in rows:
                     if (ddr.include
                             and not ddr.src_reflected_nullable
                             and ddr.index == IndexType.UNIQUE):
-                        sqlserver_ok_for_fulltext = True
-                if not sqlserver_ok_for_fulltext:
+                        table_ok_for_fulltext = True
+                if not table_ok_for_fulltext:
                     for ddr in rows:
                         if ddr.include and ddr.index == IndexType.FULLTEXT:
                             log.warning(

@@ -1512,7 +1512,7 @@ class ScrubSrcAlterMethodInfo:
     """
     For describing scrub-source and alter-method information.
     """
-    change_comment_only: bool = False
+    change_comment_and_indexing_only: bool = False
     src_flags: str = ""
     scrub_src: Optional[ScrubSrc] = None
     scrub_method: Optional[ScrubMethod] = None
@@ -1940,7 +1940,7 @@ def get_scrub_alter_details(
             ssi.include()
         else:
             # Don't change anything except the comment:
-            ssi.change_comment_only = True
+            ssi.change_comment_and_indexing_only = True
 
     return ssi
 
@@ -1968,7 +1968,6 @@ def get_index_flag(tablename: str,
         return IndexType.NORMAL
     elif should_be_fulltext_indexed(tablename, colname):
         # Full-text indexes
-        log.error(f"Adding FULLTEXT index to: {tablename}.{colname}")
         return IndexType.FULLTEXT
     else:
         return IndexType.NONE
@@ -2032,7 +2031,7 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
         include_generic=include_generic
     )
 
-    if not ssi.change_comment_only:
+    if not ssi.change_comment_and_indexing_only:
         # Source information
         ddr.src_flags = ssi.src_flags
         ddr.scrub_src = ssi.scrub_src
@@ -2047,10 +2046,10 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
         # Destination -- mostly automatic
         ddr.dest_field = ssi.dest_field or ddr.dest_field
 
-        # Indexing
-        ddr.index = get_index_flag(tablename, colname, ddr)
-        if SrcFlag.ADD_SRC_HASH.value in ssi.src_flags:
-            ddr.index = IndexType.UNIQUE
+    # Indexing
+    ddr.index = get_index_flag(tablename, colname, ddr)
+    if SrcFlag.ADD_SRC_HASH.value in ssi.src_flags:
+        ddr.index = IndexType.UNIQUE
 
     # Improve comment
     spec = specifications.get((tablename, colname))
