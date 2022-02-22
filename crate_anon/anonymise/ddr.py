@@ -335,6 +335,7 @@ class DataDictionaryRow(object):
         """
         return self.third_party_pid or self.contains_third_party_info_directly
 
+    @property
     def has_special_alter_method(self) -> bool:
         """
         Fields for which the alter method is fixed.
