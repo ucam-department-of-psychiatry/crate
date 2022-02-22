@@ -21,6 +21,9 @@ jobs:
                   python -m pip install -e .
                   python -m pip install mysqlclient
                   export CRATE_ANON_CONFIG=${HOME}/crate_anon_config.ini
+                  wget --progress=dot:giga -O "${HOME}/gate-installer.jar" https://github.com/GateNLP/gate-core/releases/download/v8.6.1/gate-developer-8.6.1-installer.jar
+                  cd ${HOME}
+                  java -jar "${HOME}/gate-installer.jar" "${GITHUB_WORKSPACE}/docs/gate_auto_install.xml"
                   export GATE_HOME=${HOME}/GATE_Developer_8.6.1
                   crate_anonymise --democonfig > ${CRATE_ANON_CONFIG}
                   cd docs
