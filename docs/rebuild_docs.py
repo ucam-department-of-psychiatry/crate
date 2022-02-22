@@ -66,7 +66,7 @@ if __name__ == '__main__':
     # -W: Turn warnings into errors
     # -n nitpicky mode: report dead links
     # --keep-going: report errors but only fail at the end of the build
-    subprocess.check_call(["make", "html", 'SPHINXOPTS="-W -n"'])
+    subprocess.check_call(["make", "html", 'SPHINXOPTS="-W"'])
 
     # Copy
     for destdir in DEST_DIRS:
