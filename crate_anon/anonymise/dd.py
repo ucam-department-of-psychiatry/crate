@@ -490,16 +490,20 @@ class DataDictionary(object):
         log.info("Tidying/correcting draft data dictionary")
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        log.debug("... Don't scrub in non-patient tables")
+        log.debug("... Ensuring we don't scrub in non-patient tables")
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         for d, t in self.get_src_db_tablepairs_w_no_pt_info():
             for ddr in self.get_rows_for_src_table(d, t):
                 ddr.remove_scrub_from_alter_methods()
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         log.debug("... Make full-text indexes follow dialect rules")
-
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # https://docs.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-index-transact-sql?view=sql-server-ver15  # noqa
         if self.dest_dialect_name == SqlaDialectName.SQLSERVER:
+            # -----------------------------------------------------------------
+            # Checks for Microsoft SQL Server
+            # -----------------------------------------------------------------
             for d, t in self.get_src_db_tablepairs():
                 rows = self.get_rows_for_src_table(d, t)
 

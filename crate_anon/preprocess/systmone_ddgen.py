@@ -1238,6 +1238,11 @@ FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = (
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*NextOfKin"),
     # todo: *** check filtered
 )
+FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS = (
+    # Subset of FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS where we would want to
+    # implement a FULLTEXT index.
+    ("FreeText$", "FreeText$"),  # the bulk of free text; VARCHAR(MAX)
+)
 EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS = (
     # S1_Patient.IDPatient: Added by CPFT. Duplicate of RowIdentifier.
     # But likely to be used by researchers, so should be indexed.
@@ -1603,10 +1608,8 @@ def is_pk_simple(colname: str) -> bool:
     return eq(colname, S1GenericCol.PK)
 
 
-# noinspection PyUnusedLocal
 def is_free_text(tablename: str,
-                 colname: str,
-                 ddr: DataDictionaryRow) -> bool:
+                 colname: str) -> bool:
     """
     Is this a free-text field requiring scrubbing?
 
@@ -1618,6 +1621,16 @@ def is_free_text(tablename: str,
     #     return False
     return is_pair_in_re(tablename, colname,
                          FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS)
+
+
+def should_be_fulltext_indexed(tablename: str, colname: str) -> bool:
+    """
+    Is this a field that should get a FULLTEXT index? That's not just "a column
+    that contains free text and should scrubbed", that is "a column with a lot
+    of interesting free text that should get a special index".
+    """
+    return is_pair_in_re(tablename, colname,
+                         FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS)
 
 
 # =============================================================================
@@ -1666,7 +1679,7 @@ def process_generic_table_column(tablename: str,
         # Generic columns that are always OK (e.g. organization ID).
         ssi.include()
 
-    elif (is_free_text(tablename, colname, ddr)
+    elif (is_free_text(tablename, colname)
             and not is_pair_in(tablename, colname,
                                EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS)):
         # Free text to be scrubbed.
@@ -1953,7 +1966,7 @@ def get_index_flag(tablename: str,
                     EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS):
         # Additional columns to index
         return IndexType.NORMAL
-    elif is_free_text(tablename, colname, ddr):
+    elif should_be_fulltext_indexed(tablename, colname):
         # Full-text indexes
         return IndexType.FULLTEXT
     else:
