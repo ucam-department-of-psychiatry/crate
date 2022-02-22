@@ -28,6 +28,7 @@ docs/rebuild_docs.py
 
 """
 
+import argparse
 import os
 import shutil
 import subprocess
@@ -47,8 +48,21 @@ if __name__ == '__main__':
     # Build docs
     print("Making HTML version of documentation")
     os.chdir(THIS_DIR)
-    subprocess.check_call(["python", os.path.join(THIS_DIR,
-                                                  "recreate_inclusion_files.py")])
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--skip-medex", action="store_true",
+                        help="Don't try to build Medex help files",
+                        default=False)
+    args = parser.parse_args()
+
+    recreate_args = ["python",
+                     os.path.join(THIS_DIR,
+                                  "recreate_inclusion_files.py")]
+
+    if args.skip_medex:
+        recreate_args.append("--skip-medex")
+    subprocess.check_call(recreate_args)
+
     # -W: Turn warnings into errors
     # -n nitpicky mode: report dead links
     # --keep-going: report errors but only fail at the end of the build
