@@ -319,7 +319,7 @@ DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = True
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 ARCHIVE_TEMPLATE_DIR = "/home/somewhere/my_archive_templates"
-ARCHIVE_TEMPLATE_CACHE_DIR = "/home/somewhere/my_archive_templates/cache"
+ARCHIVE_TEMPLATE_CACHE_DIR = "/tmp/archive_template_cache"
 ARCHIVE_STATIC_DIR = "/home/somewhere/my_archive_templates/static"
 ARCHIVE_ROOT_TEMPLATE = "root.mako"
 ARCHIVE_ATTACHMENT_DIR = "/home/somewhere/my_archive_attachments"
