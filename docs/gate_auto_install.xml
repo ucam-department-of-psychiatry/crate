@@ -22,7 +22,7 @@
     <com.izforge.izpack.panels.htmllicence.HTMLLicencePanel id="HTMLLicencePanel_1"/>
     <com.izforge.izpack.panels.target.TargetPanel id="TargetPanel_2">
         <!-- Edited: -->
-        <installpath>${HOME}/GATE_Developer_8.6.1</installpath>
+        <installpath>/home/runner/GATE_Developer_8.6.1</installpath>
     </com.izforge.izpack.panels.target.TargetPanel>
     <com.izforge.izpack.panels.packs.PacksPanel id="PacksPanel_3">
         <pack index="0" name="Core" selected="true"/>
