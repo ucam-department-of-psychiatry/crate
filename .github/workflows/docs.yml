@@ -26,9 +26,11 @@ jobs:
                   java -jar "${HOME}/gate-installer.jar" "${GITHUB_WORKSPACE}/docs/gate_auto_install.xml"
                   export GATE_HOME=${HOME}/GATE_Developer_8.6.1
                   crate_anonymise --democonfig > ${CRATE_ANON_CONFIG}
+                  cd ${GITHUB_WORKSPACE}/crate_anon/nlp_manager
+                  python ./build_gate_java_interface.py
                   cd ${GITHUB_WORKSPACE}/docs
                   echo Creating autodocs
-                  ./create_all_autodocs.py --make --destroy_first
+                  python ./create_all_autodocs.py --make --destroy_first
                   cd ${GITHUB_WORKSPACE}
                   echo Checking files not checked in
                   git diff
@@ -37,7 +39,7 @@ jobs:
                   test -z "$(git ls-files --exclude-standard --others)"
                   cd docs
                   echo Rebuilding docs
-                  ./rebuild_docs.py
+                  python ./rebuild_docs.py
                   echo Checking files not checked in
                   git diff
                   git update-index --refresh
