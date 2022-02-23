@@ -28,4 +28,11 @@ crate_anon/preprocess/constants.py
 
 """
 
+# Prefix for index names:
 CRATE_IDX_PREFIX = "crate_idx"
+
+# If our preprocessors need to create a primary key (PK) column in a table as
+# part of preprocessing, we call it this:
+CRATE_COL_PK = "crate_pk"
+# Making it explicitly CRATE-related makes it distinctive from more generic
+# names like "id" or "pk" or "RowIdentifier".

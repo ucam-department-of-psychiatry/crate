@@ -67,9 +67,6 @@ DEFAULT_GEOG_COLS = [
 ]
 
 # Columns added:
-CRATE_COL_PK = "crate_pk"
-# Do NOT use 'id'; this appears in RiO ClientAlternativeId /
-# RCEP Client_Alternative_ID. "pk" is OK for RCEP + RiO, but clarity is good
 CRATE_COL_RIO_NUMBER = "crate_rio_number"
 # "rio_number" is OK for RCEP + RiO, but clarity is good
 CRATE_COL_NHS_NUMBER = "crate_nhs_number_int"

@@ -192,7 +192,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--systmone", action="store_true",
-        help="Modify the data dictionary for SystmOne."
+        help="Modify the data dictionary for SystmOne. CRATE knows about some "
+             "of the standard SystmOne data structure and can read a "
+             "database and customize the data dictionary for SystmOne."
     )
 
     s1_options = parser.add_argument_group(

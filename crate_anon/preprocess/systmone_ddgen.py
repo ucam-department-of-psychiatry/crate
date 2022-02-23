@@ -198,6 +198,13 @@ Specimen values:
 (This ends up (in our environment) in the S1_FreeText table, as below, so it
 likely arrives as SRFreeText.)
 
+However, note that ``RowIdentifier`` is **not** unique in this table. Whatever
+they mean by "record", it isn't that. For example, there are 7 rows with one
+common value of ``RowIdentifier`` that are clearly the 7 questions (in
+``Question``) and textually coded answers (in ``FreeText``) to a SWEMWBS
+questionnaire. That means that to apply a FULLTEXT index, which requires an
+indexed unique value, we have to add one.
+
 
 Key fields
 ----------
@@ -603,6 +610,7 @@ from crate_anon.anonymise.constants import (
     SrcFlag,
 )
 from crate_anon.anonymise.dd import DataDictionary, DataDictionaryRow
+from crate_anon.preprocess.constants import CRATE_COL_PK
 
 log = logging.getLogger(__name__)
 
@@ -1447,6 +1455,10 @@ GENERIC_COLS_TO_INDEX = {
 # Columns that are PKs
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
+    # If CRATE inserts its PK field somewhere, it's a PK.
+    (".*", CRATE_COL_PK + "$"),
+)
 _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # Primary key fields with non-standard names.
     # Note that some are CPFT-created tables, which is why they don't follow
@@ -1506,20 +1518,27 @@ _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # eDSM: no PK
 )
 PK_TABLENAME_COLNAME_REGEX_PAIRS = {
-    SystmOneContext.TPP_SRE: (),
-    SystmOneContext.CPFT_DW: _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
+    SystmOneContext.TPP_SRE: _PK_TABLENAME_COLNAME_REGEX_PAIRS_S1,
+    SystmOneContext.CPFT_DW:
+        _PK_TABLENAME_COLNAME_REGEX_PAIRS_S1
+        + _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
-_NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
+_NOT_PK_TABLENAME_COLNAME_PAIRS_S1 = (
+    ("FullText", S1GenericCol.PK),  # not unique; see above re full text
+)
+_NOT_PK_TABLENAME_COLNAME_PAIRS_CPFT = (
     # These look like PKs, but gave rise to a "Violation of PRIMARY KEY
     # constraint" error, so they aren't. This happens when someone in CPFT
     # maps e.g. "RowIdentifier" in an unusual way.
     ("Child_At_Risk", S1GenericCol.PK),  # not unique
     ("InpatientBedStay", S1GenericCol.PK),  # not unique
 )
-NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS = {
-    SystmOneContext.TPP_SRE: (),
-    SystmOneContext.CPFT_DW: _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
+NOT_PK_TABLENAME_COLNAME_PAIRS = {
+    SystmOneContext.TPP_SRE: _NOT_PK_TABLENAME_COLNAME_PAIRS_S1,
+    SystmOneContext.CPFT_DW:
+        _NOT_PK_TABLENAME_COLNAME_PAIRS_S1
+        + _NOT_PK_TABLENAME_COLNAME_PAIRS_CPFT,
 }
 
 
@@ -1891,9 +1910,9 @@ def is_pk(tablename: str,
     if ddr and ddr.pk:
         return True
     # 2. If it's explicitly ruled out as a PK (e.g. it has the name that should
-    #    mean it's a PK but it's been messed with locally), then it's not a PK.
-    if is_pair_in_re(tablename, colname,
-                     NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS[context]):
+    #    mean it's a PK but it's been messed with locally, or the TPP design
+    #    team were having an off day), then it's not a PK.
+    if is_pair_in(tablename, colname, NOT_PK_TABLENAME_COLNAME_PAIRS[context]):
         return False
     # 3. If it has the standard column name, i.e. RowIdentifier, then it's
     #    a PK.

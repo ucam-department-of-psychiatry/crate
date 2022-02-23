@@ -453,6 +453,7 @@ from crate_anon.common.sql import (
     sql_fragment_cast_to_int,
     ViewMaker,
 )
+from crate_anon.preprocess.constants import CRATE_COL_PK
 from crate_anon.preprocess.rio_constants import (
     CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES,
     CRATE_COL_LAST_DOC,
@@ -460,7 +461,6 @@ from crate_anon.preprocess.rio_constants import (
     CRATE_COL_MAX_DOCVER,
     CRATE_COL_MAX_SUBNUM,
     CRATE_COL_NHS_NUMBER,
-    CRATE_COL_PK,
     CRATE_COL_RIO_NUMBER,
     CRATE_IDX_LAST_DOC,
     CRATE_IDX_LAST_NOTE,

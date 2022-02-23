@@ -34,10 +34,10 @@ from crate_anon.common.sql import (
     sql_string_literal,
     ViewMaker,
 )
+from crate_anon.preprocess.constants import CRATE_COL_PK
 from crate_anon.preprocess.rio_constants import (
     CRATE_COL_LAST_DOC,
     CRATE_COL_LAST_NOTE,
-    CRATE_COL_PK,
     CRATE_COL_RIO_NUMBER,
 )
 

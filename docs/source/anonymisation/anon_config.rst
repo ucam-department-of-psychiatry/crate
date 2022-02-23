@@ -119,6 +119,52 @@ assumed to be large integers, using SQLAlchemy's ``BigInteger`` (e.g.
 SQL Server's ``BIGINT``). If you do specify them, you may specify EITHER
 ``BigInteger`` or a string type such as ``String(50)``.
 
+.. note::
+
+    Some databases have genuine string IDs, like "M123456", and you should of
+    course use a string type then. However, some databases have integers stored
+    in a variety of fields. For example, an NHS number is a 10-digit integer.
+    This might be stored in a ``BIGINT`` field, or a ``VARCHAR(10)`` field,
+    even if the latter is odd. What should you do?
+
+    Use ``BigInteger`` for preference.
+
+    First, note that it is very unusual to have PIDs going into your
+    destination database, so the only places these column types are likely to
+    be used are in your secret mapping database. (CRATE's :ref:`RIDs <rid>` in
+    the research database are typically alphanumeric, i.e. strings, and its
+    :ref:`TRIDs <trid>` are integer.)
+
+    Second, database autoconvert string values to integer and vice versa, with
+    varying flexibility. Here are two examples:
+
+    .. code-block:: sql
+
+        -- MySQL 5.7.30:
+        SELECT 123 = 123;  -- returns 1, meaning true
+        SELECT 123 = '123';  -- returns 1, meaning true
+        SELECT 123 = '123x';  -- returns 1, meaning true
+        SELECT 123 = 'x123';  -- returns 0, meaning false
+        DROP TABLE IF EXISTS rubbish;
+        CREATE TABLE rubbish (a INTEGER, b VARCHAR(10));
+        INSERT INTO rubbish (a, b) VALUES (123, '123'), (456, '456');
+        SELECT * FROM rubbish WHERE a = '123';  -- returns 1 row
+        SELECT * FROM rubbish WHERE a = '123x';  -- returns 1 row
+        SELECT * FROM rubbish WHERE b = 123;  -- returns 1 row
+
+        -- Microsoft SQL Server 14.0.1000.169:
+        SELECT 123 = 123;  -- Incorrect syntax near '='.
+        SELECT 123 = '123';  -- Incorrect syntax near '='.
+        SELECT 123 = '123x';  -- Incorrect syntax near '='.
+        SELECT 123 = 'x123';  -- Incorrect syntax near '='.
+        USE mydatabase;
+        DROP TABLE IF EXISTS rubbish;
+        CREATE TABLE rubbish (a INTEGER, b VARCHAR(10));
+        INSERT INTO rubbish (a, b) VALUES (123, '123'), (456, '456');
+        SELECT * FROM rubbish WHERE a = '123';  -- works
+        SELECT * FROM rubbish WHERE a = '123x';  -- Conversion failed when converting the varchar value '123x' to data type int.
+        SELECT * FROM rubbish WHERE b = 123;  -- works
+
 
 Encryption phrases/passwords
 ++++++++++++++++++++++++++++

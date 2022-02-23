@@ -34,18 +34,23 @@ from typing import TYPE_CHECKING
 
 from cardinal_pythonlib.enumlike import keys_descriptions_from_enum
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-from cardinal_pythonlib.sqlalchemy.schema import hack_in_mssql_xml_type
+from cardinal_pythonlib.sqlalchemy.schema import (
+    hack_in_mssql_xml_type,
+    make_bigint_autoincrement_column,
+)
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.engine.base import Engine
 
 from crate_anon.anonymise.constants import CHARSET
 from crate_anon.common.sql import (
+    add_columns,
     add_indexes,
+    drop_columns,
     drop_indexes,
     IndexCreationInfo,
     set_print_not_execute,
 )
-from crate_anon.preprocess.constants import CRATE_IDX_PREFIX
+from crate_anon.preprocess.constants import CRATE_COL_PK, CRATE_IDX_PREFIX
 from crate_anon.preprocess.systmone_ddgen import (
     core_tablename,
     DEFAULT_SYSTMONE_CONTEXT,
@@ -59,6 +64,17 @@ if TYPE_CHECKING:
     from sqlalchemy.schema import Column, Table
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+# Tables are referred to here by their "core" name, i.e. after removal of
+# prefixes like "SR" or "S1_", if they have one.
+
+TABLES_REQUIRING_CRATE_PK = (
+    "FreeText",
+)
 
 
 # =============================================================================
@@ -89,6 +105,21 @@ def preprocess_systmone(engine: Engine,
         if not ct:
             log.debug(f"Skipping table: {table.name}")
             continue
+
+        table_needs_pk = ct in TABLES_REQUIRING_CRATE_PK
+
+        # If creating, (1) create PK if necessary, (2) create indexes.
+        # If dropping, (1) drop indexes, (2) drop PK.
+
+        # Create step #1
+        if not drop_danger_drop and table_needs_pk:
+            crate_pk_col = make_bigint_autoincrement_column(
+                CRATE_COL_PK, engine.dialect)
+            # SQL Server requires Table-bound columns in order to generate DDL:
+            table.append_column(crate_pk_col)
+            add_columns(engine, table, [crate_pk_col])
+
+        # Create step #2 or drop step #1
         # noinspection PyTypeChecker
         for column in table.columns:  # type: Column
             colname = column.name
@@ -100,7 +131,9 @@ def preprocess_systmone(engine: Engine,
                 # It's too much faff to work out reliably if the source table
                 # should have a UNIQUE index, particularly when local (CPFT)
                 # tables use the "RowIdentifier" column name in a non-unique
-                # way. It's not critical, as we're only reading.
+                # way. It's not critical, as we're only reading, so a
+                # non-unique index is fine (even if we move to a unique index
+                # on the destination).
                 if drop_danger_drop:
                     drop_indexes(engine, table, [idxname])
                 else:
@@ -109,6 +142,10 @@ def preprocess_systmone(engine: Engine,
                         column=colname,
                         unique=False
                     )])
+
+        # Drop step #2
+        if drop_danger_drop and table_needs_pk:
+            drop_columns(engine, table, [CRATE_COL_PK])
 
 
 # =============================================================================

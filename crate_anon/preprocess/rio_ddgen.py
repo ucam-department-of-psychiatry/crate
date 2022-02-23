@@ -33,8 +33,8 @@ The results should still be reviewed by a human!
 
 from crate_anon.anonymise.constants import AnonymiseDatabaseSafeConfigKeys
 from crate_anon.preprocess.ddhint import DDHint
+from crate_anon.preprocess.constants import CRATE_COL_PK
 from crate_anon.preprocess.rio_constants import (
-    CRATE_COL_PK,
     CRATE_COL_RIO_NUMBER,
     RIO_COL_PATIENT_ID,
     VIEW_ADDRESS_WITH_GEOGRAPHY,
