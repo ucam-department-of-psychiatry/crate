@@ -2050,7 +2050,9 @@ def is_sql_column_type_textual(column_type: str,
       :meth:`crate_anon.crateweb.research.research_db_info._schema_query_microsoft`
       returns "NVARCHAR(-1)"
     """
-    column_type = column_type.upper()
+    if not column_type:
+        return False
+    column_type = column_type.upper().split()[0]
     if column_type in SQLTYPES_TEXT:
         # A text type without a specific length
         return True
