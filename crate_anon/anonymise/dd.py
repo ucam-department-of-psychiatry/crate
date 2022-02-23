@@ -539,7 +539,7 @@ class DataDictionary(object):
                 table_ok_for_fulltext = False
                 for ddr in rows:
                     if (ddr.include
-                            and not ddr.not_null
+                            and ddr.not_null
                             and ddr.index == IndexType.UNIQUE):
                         table_ok_for_fulltext = True
                 if not table_ok_for_fulltext:

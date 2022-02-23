@@ -276,6 +276,14 @@ This broadly follows the SRE, but is expanded. Some notable differences:
     CTV3Code = 'XaaDb'
     CTV3Text = 'Declined invitation to participate in research study'
 
+  So for CPFT, we will autodetect this table/column
+  (S1_ClinicalOutcome_ConsentResearch_OptOutCheck.SNOMEDCode) and the config
+  file should contain:
+  
+  .. code-block:: ini
+  
+    optout_col_values = [1091881000000109]
+
 - There seem to be quite a few extra tables, such as:
 
   .. code-block:: none
@@ -1349,7 +1357,7 @@ _EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS_CPFT = (
 )
 EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS = {
     SystmOneContext.TPP_SRE: (),
-    SystmOneContext.CPFT_DW: _EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS_CPFT,
+    SystmOneContext.CPFT_DW: _EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS_CPFT,  # noqa
 }
 
 _GENERIC_COLS_TO_INDEX_S1 = (
@@ -1438,7 +1446,7 @@ PK_TABLENAME_COLNAME_REGEX_PAIRS = {
 }
 
 _OPT_OUT_TABLENAME_COLNAME_PAIRS_CPFT = (
-    ("ClinicalOutcome_ConsentResearch_OptOutCheck", "SNOMEDCode")
+    ("ClinicalOutcome_ConsentResearch_OptOutCheck", "SNOMEDCode"),
 )
 OPT_OUT_TABLENAME_COLNAME_PAIRS = {
     SystmOneContext.TPP_SRE: (),
