@@ -850,6 +850,14 @@ CONTEXT_TO_CORE_TABLE_TRANSLATIONS = {
     SystmOneContext.CPFT_DW: reversedict(_S1_TO_CPFT_TABLE_TRANSLATION),
 }  # type: TABLE_TRANSLATION_DICT_TYPE
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Tables that look like they have a proper PK, but don't
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+TABLES_REQUIRING_CRATE_PK_REGEX = (
+    "FreeText",  # including FreeText (S1) and FreeText_* (CPFT)
+)
+
 
 # -----------------------------------------------------------------------------
 # Column names
@@ -1539,21 +1547,21 @@ PK_TABLENAME_COLNAME_REGEX_PAIRS = {
         + _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
-_NOT_PK_TABLENAME_COLNAME_PAIRS_S1 = (
-    ("FreeText", S1GenericCol.PK),  # not unique; see above re free text
+_NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
+    ("FreeText", S1GenericCol.PK),  # not unique; see TABLES_REQUIRING_CRATE_PK_REGEX above  # noqa
 )
-_NOT_PK_TABLENAME_COLNAME_PAIRS_CPFT = (
+_NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # These look like PKs, but gave rise to a "Violation of PRIMARY KEY
     # constraint" error, so they aren't. This happens when someone in CPFT
     # maps e.g. "RowIdentifier" in an unusual way.
-    ("Child_At_Risk", S1GenericCol.PK),  # not unique
-    ("InpatientBedStay", S1GenericCol.PK),  # not unique
+    ("Child_At_Risk$", S1GenericCol.PK),  # not unique
+    ("InpatientBedStay$", S1GenericCol.PK),  # not unique
 )
-NOT_PK_TABLENAME_COLNAME_PAIRS = {
-    SystmOneContext.TPP_SRE: _NOT_PK_TABLENAME_COLNAME_PAIRS_S1,
+NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS = {
+    SystmOneContext.TPP_SRE: _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1,
     SystmOneContext.CPFT_DW:
-        _NOT_PK_TABLENAME_COLNAME_PAIRS_S1
-        + _NOT_PK_TABLENAME_COLNAME_PAIRS_CPFT,
+        _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1
+        + _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
 
@@ -1931,7 +1939,8 @@ def is_pk(tablename: str,
     # 1. If it's explicitly ruled out as a PK (e.g. it has the name that should
     #    mean it's a PK but it's been messed with locally, or the TPP design
     #    team were having an off day), then it's not a PK.
-    if is_pair_in(tablename, colname, NOT_PK_TABLENAME_COLNAME_PAIRS[context]):
+    if is_pair_in(tablename, colname,
+                  NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS[context]):
         return False
     # 2. If the source database says so (ours never does).
     if ddr and ddr.pk:
