@@ -1380,7 +1380,7 @@ _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Clinical"),
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Outcome"),
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*NextOfKin"),
-    # todo: *** check filtered
+    # ... actually, superseded; see tables picked up by "FreeText_" above.
 )
 FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.TPP_SRE: _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1,
@@ -1389,10 +1389,21 @@ FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = {
         + _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
-EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1 = (
+_EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1 = (
     # Things that look like free text, but aren't.
     ("AnsweredQuestionnaire", "QuestionnaireName"),
 )
+_EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_CPFT = (
+    # These two contain non-patient data:
+    ("FreeText_Honos_Scoring_Answers", ".+"),
+    ("FreeText_Honos_Scoring_Questions", ".+"),
+)
+EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS = {
+    SystmOneContext.TPP_SRE: _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1,
+    SystmOneContext.CPFT_DW:
+        _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1
+        + _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_CPFT,
+}
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Columns to index
@@ -1894,21 +1905,24 @@ def is_pk(tablename: str,
 
 def is_free_text(tablename: str,
                  colname: str,
-                 context: SystmOneContext) -> bool:
+                 context: SystmOneContext,
+                 ddr: DataDictionaryRow = None) -> bool:
     """
     Is this a free-text field requiring scrubbing?
 
     Unusually, there is not very much free text, and it is mostly collated.
     (We haven't added binary support yet. Do we have the binary documents?)
     """
-    # if not is_sqlatype_string(ddr.src_sqla_coltype):  # UNRELIABLE?
-    #     # Not a textual type
-    #     return False
     return (
-        is_pair_in_re(tablename, colname,
-                      FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS[context])
-        and not is_pair_in(tablename, colname,
-                           EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1)
+        (not ddr or ddr.src_is_textual)
+        and is_pair_in_re(
+            tablename, colname,
+            FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS[context]
+        )
+        and not is_pair_in(
+            tablename, colname,
+            EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS[context]
+        )
     )
 
 
@@ -1990,7 +2004,7 @@ def process_generic_table_column(tablename: str,
         # Generic columns that are always OK (e.g. organization ID).
         ssi.include()
 
-    elif ddr.src_is_textual and is_free_text(tablename, colname, context):
+    elif is_free_text(tablename, colname, context, ddr):
         # Free text to be scrubbed.
         ssi.add_alter_method(AlterMethod(config=ddr.config, scrub=True))
         ssi.include()
