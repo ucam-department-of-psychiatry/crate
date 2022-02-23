@@ -69,7 +69,7 @@ def show_dest_counts(config: Config) -> None:
     print("DESTINATION TABLE RECORD COUNTS:")
     counts = []  # type: List[Tuple[str, int]]
     session = config.destdb.session
-    for t in config.dd.get_dest_tables():
+    for t in config.dd.get_dest_tables_included():
         n = count_star(session, t)
         counts.append((f"DESTINATION: {t}", n))
     print_record_counts(counts)

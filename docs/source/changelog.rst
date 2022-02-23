@@ -1477,6 +1477,11 @@ Changes
 
   - Add support for SQL column comments (supported since SQLAlchemy 1.2).
 
+  - Drop all tables known to the data dictionary (not just tables with
+    included content), to avoid leaving orphan tables when the data dictionary
+    is altered to OMIT everything in a table. As before, only active tables are
+    created.
+
 
 To do
 -----

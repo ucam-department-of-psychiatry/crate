@@ -735,7 +735,7 @@ class DataDictionary(object):
         log.info("Checking data dictionary...")
         if not self.rows:
             raise ValueError("Empty data dictionary")
-        if not self.get_dest_tables():
+        if not self.get_dest_tables_included():
             raise ValueError("Empty data dictionary after removing "
                              "redundant tables")
 
@@ -798,7 +798,7 @@ class DataDictionary(object):
                     f"or a master patient ID field")
 
         log.debug("Checking DD: destination tables...")
-        for t in self.get_dest_tables():
+        for t in self.get_dest_tables_included():
             sdt = self.get_src_dbs_tables_for_dest_table(t)
             if len(sdt) > 1:
                 raise ValueError(
@@ -1019,9 +1019,21 @@ class DataDictionary(object):
         )
 
     @lru_cache(maxsize=None)
-    def get_dest_tables(self) -> AbstractSet[str]:
+    def get_dest_tables_all(self) -> AbstractSet[str]:
         """
-        Return a SortedSet of all destination table names.
+        Return a SortedSet of all destination table names (including tables
+        that will receive no contents).
+        """
+        return SortedSet([
+            ddr.dest_table
+            for ddr in self.rows
+        ])
+
+    @lru_cache(maxsize=None)
+    def get_dest_tables_included(self) -> AbstractSet[str]:
+        """
+        Return a SortedSet of all destination table names (tables with at least
+        some columns that are included).
         """
         return SortedSet([
             ddr.dest_table
@@ -1536,7 +1548,8 @@ class DataDictionary(object):
             self.get_src_db_tablepairs_w_int_pk,
             self.get_src_dbs_tables_with_no_pt_info_no_pk,
             self.get_src_dbs_tables_with_no_pt_info_int_pk,
-            self.get_dest_tables,
+            self.get_dest_tables_all,
+            self.get_dest_tables_included,
             self.get_dest_tables_with_patient_info,
             self.get_optout_defining_fields,
             self.get_mandatory_scrubber_sigs,

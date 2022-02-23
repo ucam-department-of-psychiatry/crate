@@ -765,6 +765,10 @@ _OMIT_TABLES_REGEX_S1 = ()
 _OMIT_TABLES_REGEX_CPFT = (
     # CPFT extras:
 
+    "Accommodation_",
+    # ... e.g. Accommodation_20210329, Accommodation_Wendy
+    # todo: *** check gone
+
     "AuditLog",  # may have gone now! Was there for a while. Not relevant.
     # todo: *** check gone
 
@@ -1445,6 +1449,18 @@ PK_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.CPFT_DW: _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
+_NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
+    # These look like PKs, but gave rise to a "Violation of PRIMARY KEY
+    # constraint" error, so they aren't. This happens when someone in CPFT
+    # maps e.g. "RowIdentifier" in an unusual way.
+    ("Child_At_Risk", S1GenericCol.PK),  # not unique
+    ("InpatientBedStay", S1GenericCol.PK),  # not unique
+)
+NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS = {
+    SystmOneContext.TPP_SRE: (),
+    SystmOneContext.CPFT_DW: _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
+}
+
 _OPT_OUT_TABLENAME_COLNAME_PAIRS_CPFT = (
     ("ClinicalOutcome_ConsentResearch_OptOutCheck", "SNOMEDCode"),
 )
@@ -1808,11 +1824,16 @@ def is_pk(tablename: str,
     # 1. If the source database says so (ours never does).
     if ddr and ddr.pk:
         return True
-    # 2. If it has the standard column name, i.e. RowIdentifier, then it's
+    # 2. If it's explicitly ruled out as a PK (e.g. it has the name that should
+    #    mean it's a PK but it's been messed with locally), then it's not a PK.
+    if is_pair_in_re(tablename, colname,
+                     NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS[context]):
+        return False
+    # 3. If it has the standard column name, i.e. RowIdentifier, then it's
     #    a PK.
     if eq(colname, S1GenericCol.PK):
         return True
-    # 3. If it's a specifically noted PK.
+    # 4. If it's a specifically noted PK.
     return is_pair_in_re(tablename, colname,
                          PK_TABLENAME_COLNAME_REGEX_PAIRS[context])
 

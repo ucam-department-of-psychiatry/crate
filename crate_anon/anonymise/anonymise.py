@@ -132,12 +132,18 @@ def wipe_and_recreate_destination_db(incremental: bool = False) -> None:
     """
     log.info(f"Rebuilding destination database (incremental={incremental})")
     engine = config.destdb.engine
-    for tablename in config.dd.get_dest_tables():
-        sqla_table = config.dd.get_dest_sqla_table(tablename)
-        # Drop
-        if not incremental:
+
+    # Drop (all tables that we know about -- this prevents orphan tables when
+    # we alter a data dictionary).
+    if not incremental:
+        for tablename in config.dd.get_dest_tables_all():
+            sqla_table = config.dd.get_dest_sqla_table(tablename)
             log.info(f"Dropping table: {tablename}")
             sqla_table.drop(engine, checkfirst=True)
+
+    # Create and check (tables that will receive content).
+    for tablename in config.dd.get_dest_tables_included():
+        sqla_table = config.dd.get_dest_sqla_table(tablename)
         # Create
         log.info(f"Creating table: {tablename}")
         log.debug(repr(sqla_table))
