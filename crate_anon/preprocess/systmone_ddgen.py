@@ -696,7 +696,7 @@ class CPFTTable:
     CYP_FRS_TELEPHONE_TRIAGE = "CYPFRS_TelephoneTriage"
 
 
-S1_TO_CPFT_TABLE_TRANSLATION = {
+_S1_TO_CPFT_TABLE_TRANSLATION = {
     # Where CPFT has renamed a S1 SRE table directly.
     S1Table.ADDRESS: CPFTTable.ADDRESS,
     # ... i.e. CPFT have renamed SRPatientAddressHistory to S1_PatientAddress.
@@ -710,7 +710,17 @@ S1_TO_CPFT_TABLE_TRANSLATION = {
 # Tables are referred to here by their "core" name, i.e. after removal of
 # prefixes like "SR" or "S1_", if they have one.
 
-OMIT_TABLES = (
+_INCLUDE_TABLES_REGEX_S1 = ()
+_INCLUDE_TABLES_REGEX_CPFT = (
+    # Include even if --systmone_allow_unprefixed_tables is not used.
+    "vw",  # views
+)
+INCLUDE_TABLES_REGEX = {
+    SystmOneContext.TPP_SRE: _INCLUDE_TABLES_REGEX_S1,
+    SystmOneContext.CPFT_DW: _INCLUDE_TABLES_REGEX_S1 + _INCLUDE_TABLES_REGEX_CPFT  # noqa
+}
+
+_OMIT_TABLES_S1 = (
     "NomisNumber",  # Prison NOMIS numbers
     "SafeguardingAllegationDetails",  # sensitive and no patient ID column
 
@@ -718,11 +728,18 @@ OMIT_TABLES = (
     "gr_workings",  # no idea
     "InpatientAvailableBeds",  # RowIdentifier very far from unique; ?no PK; no patient info  # noqa
 )
-INCLUDE_TABLES_REGEX = (
-    # Include even if --systmone_allow_unprefixed_tables is not used.
-    "vw",  # views
+_OMIT_TABLES_CPFT_EXTRAS = (
+    # CPFT extras:
+    "gr_workings",  # no idea
+    "InpatientAvailableBeds",  # RowIdentifier very far from unique; ?no PK; no patient info  # noqa
 )
-OMIT_TABLES_REGEX = (
+OMIT_TABLES = {
+    SystmOneContext.TPP_SRE: _OMIT_TABLES_S1,
+    SystmOneContext.CPFT_DW: _OMIT_TABLES_S1 + _OMIT_TABLES_CPFT_EXTRAS
+}
+
+_OMIT_TABLES_REGEX_S1 = ()
+_OMIT_TABLES_REGEX_CPFT = (
     # CPFT extras:
 
     "AuditLog",  # may have gone now! Was there for a while. Not relevant.
@@ -777,16 +794,21 @@ OMIT_TABLES_REGEX = (
     # use. Some have more after that date.
     r".*_\d{8}",
 )
+OMIT_TABLES_REGEX = {
+    SystmOneContext.TPP_SRE: _OMIT_TABLES_REGEX_S1,
+    SystmOneContext.CPFT_DW: _OMIT_TABLES_REGEX_S1 + _OMIT_TABLES_REGEX_CPFT
+}
+
 CORE_TO_CONTEXT_TABLE_TRANSLATIONS = {
     # Key: destination context.
     # Value: translation dictionary, mapping "core" tablename to target.
     # Absent values lead to no translation.
     SystmOneContext.TPP_SRE: {},
-    SystmOneContext.CPFT_DW: S1_TO_CPFT_TABLE_TRANSLATION,
+    SystmOneContext.CPFT_DW: _S1_TO_CPFT_TABLE_TRANSLATION,
 }  # type: TABLE_TRANSLATION_DICT_TYPE
 CONTEXT_TO_CORE_TABLE_TRANSLATIONS = {
     SystmOneContext.TPP_SRE: {},
-    SystmOneContext.CPFT_DW: reversedict(S1_TO_CPFT_TABLE_TRANSLATION),
+    SystmOneContext.CPFT_DW: reversedict(_S1_TO_CPFT_TABLE_TRANSLATION),
 }  # type: TABLE_TRANSLATION_DICT_TYPE
 
 
@@ -959,7 +981,7 @@ class S1HospNumCol:
     COMMENTS = "Comments"
 
 
-S1_TO_CPFT_COLUMN_TRANSLATION = {
+_S1_TO_CPFT_COLUMN_TRANSLATION = {
     # Where CPFT has renamed a column.
     # - Key: (core_tablename, colname) tuple.
     # - Value: new CPFT column name.
@@ -970,9 +992,10 @@ S1_TO_CPFT_COLUMN_TRANSLATION = {
      S1RelCol.RELATED_STAFFCODE_OR_RELNHSNUM): S1PatientCol.NHSNUM,
 }
 
-PID_SYNONYMS = (
+_PID_SYNONYMS_S1 = (
     S1GenericCol.PATIENT_ID,
-
+)
+_PID_SYNONYMS_CPFT = (
     "ClientID",
     # ... seen in CPFT -- although often these tables should be excluded and
     # this field contains RiO (not SystmOne) IDs. However, some look at least
@@ -984,13 +1007,23 @@ PID_SYNONYMS = (
     # also potential for confusion, so we exclude these tables above.
 
     "PatientID",  # e.g. in CPFT: S1_eDSM (a CPFT table)
-
     "PatID",  # e.g. in CPFT: ASCRIBE_Statin
 )
-MPID_SYNONYMS = (
+PID_SYNONYMS = {
+    SystmOneContext.TPP_SRE: _PID_SYNONYMS_S1,
+    SystmOneContext.CPFT_DW: _PID_SYNONYMS_S1 + _PID_SYNONYMS_CPFT,
+}
+
+_MPID_SYNONYMS_S1 = (
     S1PatientCol.NHSNUM,
+)
+_MPID_SYNONYMS_CPFT = (
     CPFTGenericCol.NHSNUM2,
 )
+MPID_SYNONYMS = {
+    SystmOneContext.TPP_SRE: _MPID_SYNONYMS_S1,
+    SystmOneContext.CPFT_DW: _MPID_SYNONYMS_S1 + _MPID_SYNONYMS_CPFT,
+}
 
 
 # -----------------------------------------------------------------------------
@@ -1001,14 +1034,14 @@ CORE_TO_CONTEXT_COLUMN_TRANSLATIONS = {
     # Key: destination context.
     # Value: translation dictionary -- see e.g. S1_TO_CPFT_COLUMN_TRANSLATION.
     SystmOneContext.TPP_SRE: {},
-    SystmOneContext.CPFT_DW: S1_TO_CPFT_COLUMN_TRANSLATION,
+    SystmOneContext.CPFT_DW: _S1_TO_CPFT_COLUMN_TRANSLATION,
 }  # type: COLUMN_TRANSLATION_DICT_TYPE
 CONTEXT_TO_CORE_CONTEXT_COLUMN_TRANSLATIONS = {
     SystmOneContext.TPP_SRE: {},
-    SystmOneContext.CPFT_DW: _flip_coldict(S1_TO_CPFT_COLUMN_TRANSLATION)
+    SystmOneContext.CPFT_DW: _flip_coldict(_S1_TO_CPFT_COLUMN_TRANSLATION)
 }  # type: COLUMN_TRANSLATION_DICT_TYPE
 
-S1_COLS_GENERIC_OK_UNMODIFIED = (
+COLS_GENERIC_OK_UNMODIFIED_S1 = (
     S1GenericCol.ORG_ID_DONE_AT,
     S1GenericCol.STAFF_ID_DONE_BY,
     S1GenericCol.EVENT_ID,
@@ -1019,7 +1052,7 @@ S1_COLS_GENERIC_OK_UNMODIFIED = (
     S1GenericCol.ORG_REGISTERED_AT,
     S1GenericCol.STAFF_PROFILE_ID_RECORDED_BY,
 )
-S1_COLS_GENERIC_EXCLUDE = (
+_COLS_GENERIC_EXCLUDE_S1 = (
     # Columns to exclude, regardless of table.
     #
     # This is primarily for when CPFT put identifiers all over the place (e.g.
@@ -1060,7 +1093,8 @@ S1_COLS_GENERIC_EXCLUDE = (
     S1RelCol.NAME,
 
     S1HospNumCol.HOSPNUM,  # just in case
-
+)
+_COLS_GENERIC_EXCLUDE_CPFT = (
     CPFTGenericCol.AGE_YEARS,
     # ... age when? Unhelpful. (And also, potentially leads to DOB discovery;
     # a blurred age near a birthday might be un-blurred by this.)
@@ -1078,8 +1112,14 @@ S1_COLS_GENERIC_EXCLUDE = (
 
     CPFTAddressCol.POSTCODE_NOSPACE,
 )
+COLS_GENERIC_EXCLUDE = {
+    SystmOneContext.TPP_SRE: _COLS_GENERIC_EXCLUDE_S1,
+    SystmOneContext.CPFT_DW:
+        _COLS_GENERIC_EXCLUDE_S1
+        + _COLS_GENERIC_EXCLUDE_CPFT,
+}
 
-S1_COLS_PATIENT_WORDS = (
+COLS_PATIENT_WORDS = (
     # Scrub as words.
     S1PatientCol.FORENAME,
     S1PatientCol.MIDDLE_NAMES,
@@ -1088,14 +1128,14 @@ S1_COLS_PATIENT_WORDS = (
     S1PatientCol.EMAIL,
     S1PatientCol.BIRTHPLACE,  # Unusual. But: scrub birthplace.
 )
-S1_COLS_REQUIRED_SCRUBBERS = (
+COLS_REQUIRED_SCRUBBERS = (
     # Information that must be present in the master patient table.
     S1PatientCol.PK,  # likely redundant! It's the PID "definer".
     S1PatientCol.FORENAME,
     S1PatientCol.SURNAME,
     S1PatientCol.DOB,
 )
-S1_COLS_PATIENT_TABLE_OK_UNMODIFIED = S1_COLS_GENERIC_OK_UNMODIFIED + (
+_COLS_PATIENT_TABLE_OK_UNMODIFIED_S1 = COLS_GENERIC_OK_UNMODIFIED_S1 + (
     # This list exists because we don't assume that things in the Patient table
     # are safe -- we assume they are unsafe, and let them through only if we
     # know about them. So we add "safe" things (that are not direct
@@ -1104,6 +1144,8 @@ S1_COLS_PATIENT_TABLE_OK_UNMODIFIED = S1_COLS_GENERIC_OK_UNMODIFIED + (
     S1PatientCol.GENDER,
     S1PatientCol.SPEAKS_ENGLISH,
     S1PatientCol.SPINE_MATCHED,
+)
+_COLS_PATIENT_TABLE_OK_UNMODIFIED_CPFT = (
     # Added by CPFT:
     "DeathIndicator",  # binary version (0 alive, 1 dead)
     "NationalDataOptOut",  # Added by CPFT (from NDOptOutPreference)?)
@@ -1111,8 +1153,14 @@ S1_COLS_PATIENT_TABLE_OK_UNMODIFIED = S1_COLS_GENERIC_OK_UNMODIFIED + (
     # - We ignore "AgeInYears" (added by CPFT) since that is dangerous and
     #   depends on when you ask.
 )
+COLS_PATIENT_TABLE_OK_UNMODIFIED = {
+    SystmOneContext.TPP_SRE: _COLS_PATIENT_TABLE_OK_UNMODIFIED_S1,
+    SystmOneContext.CPFT_DW:
+        _COLS_PATIENT_TABLE_OK_UNMODIFIED_S1
+        + _COLS_PATIENT_TABLE_OK_UNMODIFIED_CPFT,
+}
 
-S1_COLS_ADDRESS_PHRASES = (
+COLS_ADDRESS_PHRASES = (
     # Scrub as phrases.
     # - For S1AddressCol.BUILDING_NAME, see below.
     # - For S1AddressCol.BUILDING_NUMBER, see below.
@@ -1121,7 +1169,7 @@ S1_COLS_ADDRESS_PHRASES = (
     S1AddressCol.TOWN,
     S1AddressCol.COUNTY,
 )
-S1_COLS_ADDRESS_PHRASE_UNLESS_NUMBER = (
+COLS_ADDRESS_PHRASE_UNLESS_NUMBER = (
     S1AddressCol.BUILDING_NAME,
     S1AddressCol.BUILDING_NUMBER,
     # S1AddressCol.BUILDING_NUMBER poses a new problem for us: this is meant
@@ -1133,26 +1181,42 @@ S1_COLS_ADDRESS_PHRASE_UNLESS_NUMBER = (
     # do the same thing.)
 )
 
-S1_COLS_RELATIONSHIP_XREF_ID = (
+COLS_RELATIONSHIP_XREF_ID = (
     # Scrub (third-party) as full cross-references to another record.
     S1RelCol.RELATED_ID_DEPRECATED,
     S1RelCol.RELATED_ID,
 )
-S1_COLS_RELATIONSHIP_WORDS = (
+_COLS_RELATIONSHIP_WORDS_S1 = (
     # Scrub (third-party) as words.
     S1RelCol.NAME,
     S1RelCol.ADDRESS_EMAIL,
+)
+_COLS_RELATIONSHIP_WORDS_CPFT = (
     # Added by CPFT:
     "Surname",  # surname of relative
     "FirstName",  # surname of relative
 )
-S1_COLS_RELATIONSHIP_DATES = (
+COLS_RELATIONSHIP_WORDS = {
+    SystmOneContext.TPP_SRE: _COLS_RELATIONSHIP_WORDS_S1,
+    SystmOneContext.CPFT_DW:
+        _COLS_RELATIONSHIP_WORDS_S1
+        + _COLS_RELATIONSHIP_WORDS_CPFT,
+}
+_COLS_RELATIONSHIP_DATES_S1 = (
     # Scrub (third-party) as dates.
     S1RelCol.DOB,
+)
+_COLS_RELATIONSHIP_DATES_CPFT = (
     # Added by CPFT:
     "DOB",  # likely duplicate of S1RelCol.DOB
 )
-S1_COLS_RELATIONSHIP_PHRASES = (
+COLS_RELATIONSHIP_DATES = {
+    SystmOneContext.TPP_SRE: _COLS_RELATIONSHIP_DATES_S1,
+    SystmOneContext.CPFT_DW:
+        _COLS_RELATIONSHIP_DATES_S1
+        + _COLS_RELATIONSHIP_WORDS_CPFT,
+}
+COLS_RELATIONSHIP_PHRASES = (
     # Scrub (third-party) as phrases.
     # Same principles as for the patient address, above.
     # - For S1RelCol.ADDRESS_HOUSE_NAME, see below.
@@ -1162,15 +1226,15 @@ S1_COLS_RELATIONSHIP_PHRASES = (
     S1RelCol.ADDRESS_POST_TOWN,
     S1RelCol.ADDRESS_COUNTY,
 )
-S1_COLS_RELATIONSHIP_PHRASE_UNLESS_NUMERIC = (
+COLS_RELATIONSHIP_PHRASE_UNLESS_NUMERIC = (
     S1RelCol.ADDRESS_HOUSE_NAME,
     S1RelCol.ADDRESS_HOUSE_NUMBER,
 )
-S1_COLS_RELATIONSHIP_CODES = (
+COLS_RELATIONSHIP_CODES = (
     # Scrub (third-party) as codes.
     S1RelCol.ADDRESS_POSTCODE,
 )
-S1_COLS_RELATIONSHIP_NUMBERS = (
+COLS_RELATIONSHIP_NUMBERS = (
     # Scrub (third-party) as numbers.
     S1RelCol.RELATED_STAFFCODE_OR_RELNHSNUM,
     S1RelCol.ADDRESS_TELEPHONE,
@@ -1178,7 +1242,7 @@ S1_COLS_RELATIONSHIP_NUMBERS = (
     S1RelCol.ADDRESS_MOBILE_TELEPHONE,
     S1RelCol.ADDRESS_FAX,
 )
-S1_COLS_RELATIONSHIP_OK_UNMODIFIED = (
+_COLS_RELATIONSHIP_OK_UNMODIFIED_S1 = (
     S1RelCol.DATE_ENDED,
     S1RelCol.REL_TYPE,
     S1RelCol.GUARDIAN_PROXY,
@@ -1199,13 +1263,21 @@ S1_COLS_RELATIONSHIP_OK_UNMODIFIED = (
     S1RelCol.SEX,
     S1RelCol.LANGUAGE,
     S1RelCol.ORG,
+)
+_COLS_RELATIONSHIP_OK_UNMODIFIED_CPFT = (
     # Added by CPFT:
     "DateDeath",  # date of death of relative
 )
+COLS_RELATIONSHIP_OK_UNMODIFIED = {
+    SystmOneContext.TPP_SRE: _COLS_RELATIONSHIP_OK_UNMODIFIED_S1,
+    SystmOneContext.CPFT_DW:
+        _COLS_RELATIONSHIP_OK_UNMODIFIED_S1
+        + _COLS_RELATIONSHIP_OK_UNMODIFIED_CPFT,
+}
 
 CPFT_REL_MOTHER_OK_UNMODIFIED = ()
 
-OMIT_TABLENAME_COLNAME_PAIRS = (
+OMIT_TABLENAME_COLNAME_PAIRS_S1 = (
     # Other specific fields to omit.
     ("Contacts", "ContactWith"),
     (S1Table.HOSP_AE_NUMBERS, S1HospNumCol.COMMENTS),
@@ -1214,13 +1286,14 @@ OMIT_TABLENAME_COLNAME_PAIRS = (
     ("SafeguardingIncidentDetails", "PoliceReference"),
 )
 
-FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = (
+_FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
     ("FreeText$", "FreeText$"),  # the bulk of free text; VARCHAR(MAX)
     ("PersonAtRisk$", "ReasonForPlan$"),  # free text re safeguarding
     ("ReferralIn$", "PrimaryReason$"),  # only 200 chars; may be OK
     ("SafeguardingAllegationDetails$", "Outcome$"),  # only 100 chars -- but OMIT whole table, as above  # noqa
     ("SpecialNotes$", "Note$"),  # 8000 char free text
-
+)
+_FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # CPFT:
 
     # - SRReferralIn renamed to S1_ReferralsIn with extra columns,
@@ -1242,31 +1315,51 @@ FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = (
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*NextOfKin"),
     # todo: *** check filtered
 )
+FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = {
+    SystmOneContext.TPP_SRE: _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1,
+    SystmOneContext.CPFT_DW:
+        _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1
+        + _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
+}
 FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS = (
     # Subset of FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS where we would want to
     # implement a FULLTEXT index.
     ("FreeText$", "FreeText$"),  # the bulk of free text; VARCHAR(MAX)
 )
-EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS = (
+
+_EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS_CPFT = (
     # S1_Patient.IDPatient: Added by CPFT. Duplicate of RowIdentifier.
     # But likely to be used by researchers, so should be indexed.
     (S1Table.PATIENT, S1GenericCol.PATIENT_ID),
 )
-GENERIC_COLS_TO_INDEX = (
+EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS = {
+    SystmOneContext.TPP_SRE: (),
+    SystmOneContext.CPFT_DW: _EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS_CPFT,
+}
+
+_GENERIC_COLS_TO_INDEX_S1 = (
     # Generically sensible things to index.
     S1GenericCol.EVENT_ID,
     S1GenericCol.PATIENT_ID,
     S1GenericCol.QUESTIONNAIRE_ID,
     S1GenericCol.REFERRAL_ID,
+)
+_GENERIC_COLS_TO_INDEX_CPFT = (
     CPFTGenericCol.PATIENT_ID_SYNONYM_1,
 )
-EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS = (
+GENERIC_COLS_TO_INDEX = {
+    SystmOneContext.TPP_SRE: _GENERIC_COLS_TO_INDEX_S1,
+    SystmOneContext.CPFT_DW:
+        _GENERIC_COLS_TO_INDEX_S1
+        + _GENERIC_COLS_TO_INDEX_CPFT,
+}
+
+EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1 = (
     # Things that look like free text, but aren't.
     ("AnsweredQuestionnaire", "QuestionnaireName"),
 )
 
-
-PK_TABLENAME_COLNAME_REGEX_PAIRS = (
+_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # Primary key fields with non-standard names.
     # Note that some are CPFT-created tables, which is why they don't follow
     # standard conventions.
@@ -1274,7 +1367,7 @@ PK_TABLENAME_COLNAME_REGEX_PAIRS = (
     ("ActivityEvent_EventDuration", S1GenericCol.EVENT_ID),
     # AQ_* -- no obvious PK.
     ("_CGAS_PairedScore_By_Referral", S1GenericCol.REFERRAL_ID),
-    ("CarePlan", "CarePlanID"),  # includes CarePlanDetail
+    ("CarePlan", "CarePlanID"),  # includes CarePlanDetail, modified from the source  # noqa
     # ... CarePlanReview has IDCarePlan but that is not unique.
     ("Caseload", "IDReferralIn"),
     # ClinicalDashboard*: a bunch of CPFT things; no obvious PK.
@@ -1315,15 +1408,19 @@ PK_TABLENAME_COLNAME_REGEX_PAIRS = (
     # PatientLanguageDeathOptions: no PK
     # PatientLetterInformation: IDPatient currently unique but I strongly suspect only temporarily  # noqa
     ("PatientOverview", S1GenericCol.REFERRAL_ID),
-    # PatientRelationship: no PK
+    # PatientRelationship: no PK (modified from the source)
     ("PatientRelationshipMother", S1GenericCol.PATIENT_ID),
     # PatientSRCodeInformation: no PK
     # PhysicalHealthChecks*: no PK (IDPatient currently unique in S1_PhysicalHealthChecks_CQUIN but unlikely to remain so)  # noqa
     # QRisk: no PK
-    ("ReferralInIntervention", S1GenericCol.REFERRAL_ID),
+    ("ReferralInIntervention", S1GenericCol.REFERRAL_ID), # modified from the source  # noqa
     ("Vanguard", "ReferralNumber"),
     # eDSM: no PK
 )
+PK_TABLENAME_COLNAME_REGEX_PAIRS = {
+    SystmOneContext.TPP_SRE: (),
+    SystmOneContext.CPFT_DW: _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
+}
 
 
 # =============================================================================
@@ -1436,7 +1533,7 @@ def core_tablename(tablename: str,
     """
     prefix = tablename_prefix(from_context)
     if not tablename.startswith(prefix):
-        if is_in_re(tablename, INCLUDE_TABLES_REGEX):
+        if is_in_re(tablename, INCLUDE_TABLES_REGEX[from_context]):
             return tablename
         else:
             warn_once(f"Unrecognized table name style: {tablename}")
@@ -1637,7 +1734,7 @@ def is_master_patient_table(tablename: str) -> bool:
     return eq(tablename, S1Table.PATIENT)
 
 
-def is_pid(colname: str) -> bool:
+def is_pid(colname: str, context: SystmOneContext) -> bool:
     """
     Is this column the SystmOne primary patient identifier (PID)?
 
@@ -1651,17 +1748,20 @@ def is_pid(colname: str) -> bool:
     IDs from other EHR systems. However, those patients won't be in our master
     patient index, so their data won't be brought through.
     """
-    return is_in(colname, PID_SYNONYMS)
+    return is_in(colname, PID_SYNONYMS[context])
 
 
-def is_mpid(colname: str) -> bool:
+def is_mpid(colname: str, context: SystmOneContext) -> bool:
     """
     Is this column the master patient identifier (MPID), i.e. the NHS number?
     """
-    return is_in(colname, MPID_SYNONYMS)
+    return is_in(colname, MPID_SYNONYMS[context])
 
 
-def is_pk(tablename: str, colname: str, ddr: DataDictionaryRow) -> bool:
+def is_pk(tablename: str,
+          colname: str,
+          ddr: DataDictionaryRow,
+          context: SystmOneContext) -> bool:
     """
     Is this a primary key (PK) column within its table?
     """
@@ -1682,11 +1782,13 @@ def is_pk(tablename: str, colname: str, ddr: DataDictionaryRow) -> bool:
     if eq(colname, S1GenericCol.PK):
         return True
     # 3. If it's a specifically noted PK.
-    return is_pair_in_re(tablename, colname, PK_TABLENAME_COLNAME_REGEX_PAIRS)
+    return is_pair_in_re(tablename, colname,
+                         PK_TABLENAME_COLNAME_REGEX_PAIRS[context])
 
 
 def is_free_text(tablename: str,
-                 colname: str) -> bool:
+                 colname: str,
+                 context: SystmOneContext) -> bool:
     """
     Is this a free-text field requiring scrubbing?
 
@@ -1697,7 +1799,7 @@ def is_free_text(tablename: str,
     #     # Not a textual type
     #     return False
     return is_pair_in_re(tablename, colname,
-                         FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS)
+                         FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS[context])
 
 
 def should_be_fulltext_indexed(tablename: str, colname: str) -> bool:
@@ -1717,49 +1819,67 @@ def should_be_fulltext_indexed(tablename: str, colname: str) -> bool:
 def process_generic_table_column(tablename: str,
                                  colname: str,
                                  ddr: DataDictionaryRow,
-                                 ssi: ScrubSrcAlterMethodInfo) -> bool:
+                                 ssi: ScrubSrcAlterMethodInfo,
+                                 context: SystmOneContext) -> bool:
     """
     Performs operations applicable to columns any SystmOne table, except a few
     very special ones like Patient. Modifies ssi in place.
 
     Returns: recognized and dealt with?
     """
-    # ---------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Generic table
-    # ---------------------------------------------------------------------
-    if is_pk(tablename, colname, ddr):
+    # -------------------------------------------------------------------------
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # PKs, PIDs, MPIDs (which can overlap, e.g. a PK that is a PID)
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    handled = False
+    if is_pk(tablename, colname, ddr, context):
         # PK for all tables.
         ssi.add_src_flag(SrcFlag.PK)
         ssi.add_src_flag(SrcFlag.NOT_NULL)
         ssi.add_src_flag(SrcFlag.ADD_SRC_HASH)
         ssi.include()
+        handled = True
 
-    elif is_pid(colname):
+    # PKs can also be other things:
+
+    if is_pid(colname, context):
         # FK to Patient.RowIdentifier for all other patient-related tables.
         ssi.add_src_flag(SrcFlag.PRIMARY_PID)
         ssi.dest_field = ddr.config.research_id_fieldname
         ssi.include()
+        handled = True
 
-    elif is_mpid(colname):
+    elif is_mpid(colname, context):
         # An NHS number in a random table. OK, as long as we hash it.
         ssi.add_src_flag(SrcFlag.MASTER_PID)
         ssi.dest_field = ddr.config.master_research_id_fieldname
         ssi.include()
+        handled = True
 
-    elif is_in(colname, S1_COLS_GENERIC_EXCLUDE):
+    if handled:
+        return True
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Other things
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if is_in(colname, COLS_GENERIC_EXCLUDE[context]):
         # Columns that are never OK in a generic table, and are duplicated
         # direct identifiers (handled specially in the master patient ID table
         # etc.).
         ssi.omit()
         # ... likely redundant but that's not obvious within this function
 
-    elif is_in(colname, S1_COLS_GENERIC_OK_UNMODIFIED):
+    elif is_in(colname, COLS_GENERIC_OK_UNMODIFIED_S1):
         # Generic columns that are always OK (e.g. organization ID).
         ssi.include()
 
-    elif (is_free_text(tablename, colname)
-            and not is_pair_in(tablename, colname,
-                               EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS)):
+    elif (is_free_text(tablename, colname, context)
+            and not is_pair_in(
+                tablename, colname,
+                EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1)):
         # Free text to be scrubbed.
         ssi.add_alter_method(AlterMethod(config=ddr.config, scrub=True))
         ssi.include()
@@ -1775,6 +1895,7 @@ def get_scrub_alter_details(
         tablename: str,
         colname: str,
         ddr: DataDictionaryRow,
+        context: SystmOneContext,
         include_generic: bool = False) -> ScrubSrcAlterMethodInfo:
     """
     The main "thinking" function.
@@ -1790,6 +1911,10 @@ def get_scrub_alter_details(
             The database column name.
         ddr:
             Data dictionary row.
+        context:
+            The context from which SystmOne data is being extracted (e.g. the
+            raw TPP Strategic Reporting Extract (SRE), or a local version
+            processed into CPFT's Data Warehouse).
         include_generic:
             Include all fields that are not known about by this code and
             treated specially? If False, the config file settings are used
@@ -1800,7 +1925,8 @@ def get_scrub_alter_details(
     # -------------------------------------------------------------------------
     # Omit table entirely?
     # -------------------------------------------------------------------------
-    if is_in(tablename, OMIT_TABLES) or is_in_re(tablename, OMIT_TABLES_REGEX):
+    if (is_in(tablename, OMIT_TABLES[context])
+            or is_in_re(tablename, OMIT_TABLES_REGEX[context])):
         return ssi
 
     # -------------------------------------------------------------------------
@@ -1826,7 +1952,7 @@ def get_scrub_alter_details(
             ssi.scrub_method = ScrubMethod.NUMERIC
             ssi.include()
 
-        elif is_mpid(colname):  # NHS number
+        elif is_mpid(colname, context):  # NHS number
             # Hash and scrub NHS numbers. (Present as a text field, but is
             # numeric.)
             ssi.add_src_flag(SrcFlag.MASTER_PID)  # automatically hashed
@@ -1834,7 +1960,7 @@ def get_scrub_alter_details(
             ssi.scrub_method = ScrubMethod.NUMERIC
             ssi.include()
 
-        elif is_in(colname, S1_COLS_PATIENT_WORDS):
+        elif is_in(colname, COLS_PATIENT_WORDS):
             # Scrub and omit all names.
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.WORDS
@@ -1867,7 +1993,7 @@ def get_scrub_alter_details(
             ssi.scrub_method = ScrubMethod.CODE
             ssi.omit()  # just to be explicit
 
-        elif is_in(colname, S1_COLS_PATIENT_TABLE_OK_UNMODIFIED):
+        elif is_in(colname, COLS_PATIENT_TABLE_OK_UNMODIFIED[context]):
             # These are OK.
             ssi.include()
 
@@ -1876,7 +2002,7 @@ def get_scrub_alter_details(
             pass  # omit anything else in the master patient table
 
         # Via a separate "if" statement:
-        if is_in(colname, S1_COLS_REQUIRED_SCRUBBERS):
+        if is_in(colname, COLS_REQUIRED_SCRUBBERS):
             ssi.add_src_flag(SrcFlag.REQUIRED_SCRUBBER)
 
         return ssi
@@ -1889,6 +2015,7 @@ def get_scrub_alter_details(
         colname=colname,
         ddr=ddr,
         ssi=ssi,
+        context=context
     )
     if handled:
         # Recognized and handled as a generic column.
@@ -1898,11 +2025,11 @@ def get_scrub_alter_details(
         # ---------------------------------------------------------------------
         # Address table.
         # ---------------------------------------------------------------------
-        if is_in(colname, S1_COLS_ADDRESS_PHRASES):
+        if is_in(colname, COLS_ADDRESS_PHRASES):
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.PHRASE
 
-        elif is_in(colname, S1_COLS_ADDRESS_PHRASE_UNLESS_NUMBER):
+        elif is_in(colname, COLS_ADDRESS_PHRASE_UNLESS_NUMBER):
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.PHRASE_UNLESS_NUMERIC
 
@@ -1931,49 +2058,50 @@ def get_scrub_alter_details(
         # ---------------------------------------------------------------------
         # Third-party (relationships) table.
         # ---------------------------------------------------------------------
-        if is_in(colname, S1_COLS_RELATIONSHIP_XREF_ID):
+        if is_in(colname, COLS_RELATIONSHIP_XREF_ID):
             # "Go fetch that linked patient, and use their identity information
             # as a third-party scrubber for our index patient."
             ssi.scrub_src = ScrubSrc.THIRDPARTY_XREF_PID
             ssi.scrub_method = ScrubMethod.NUMERIC
             ssi.include()
 
-        elif is_in(colname, S1_COLS_RELATIONSHIP_WORDS):
+        elif is_in(colname, COLS_RELATIONSHIP_WORDS[context]):
             ssi.scrub_src = ScrubSrc.THIRDPARTY
             ssi.scrub_method = ScrubMethod.WORDS
 
-        elif is_in(colname, S1_COLS_RELATIONSHIP_DATES):
+        elif is_in(colname, COLS_RELATIONSHIP_DATES[context]):
             ssi.scrub_src = ScrubSrc.THIRDPARTY
             ssi.scrub_method = ScrubMethod.DATE
 
-        elif is_in(colname, S1_COLS_RELATIONSHIP_PHRASES):
+        elif is_in(colname, COLS_RELATIONSHIP_PHRASES):
             ssi.scrub_src = ScrubSrc.THIRDPARTY
             ssi.scrub_method = ScrubMethod.PHRASE
 
-        elif is_in(colname, S1_COLS_RELATIONSHIP_PHRASE_UNLESS_NUMERIC):
+        elif is_in(colname, COLS_RELATIONSHIP_PHRASE_UNLESS_NUMERIC):
             ssi.scrub_src = ScrubSrc.THIRDPARTY
             ssi.scrub_method = ScrubMethod.PHRASE_UNLESS_NUMERIC
 
-        elif is_in(colname, S1_COLS_RELATIONSHIP_CODES):
+        elif is_in(colname, COLS_RELATIONSHIP_CODES):
             ssi.scrub_src = ScrubSrc.THIRDPARTY
             ssi.scrub_method = ScrubMethod.CODE
 
-        elif is_in(colname, S1_COLS_RELATIONSHIP_NUMBERS):
+        elif is_in(colname, COLS_RELATIONSHIP_NUMBERS):
             ssi.scrub_src = ScrubSrc.THIRDPARTY
             ssi.scrub_method = ScrubMethod.NUMERIC
 
-        elif is_in(colname, S1_COLS_RELATIONSHIP_OK_UNMODIFIED):
+        elif is_in(colname, COLS_RELATIONSHIP_OK_UNMODIFIED[context]):
             ssi.include()
 
         else:
             pass  # omit anything unknown in the relationship table
 
-    elif eq(tablename, CPFTTable.REL_MOTHER):
+    elif (context == SystmOneContext.CPFT_DW
+            and eq(tablename, CPFTTable.REL_MOTHER)):
         # ---------------------------------------------------------------------
         # A CPFT partial duplicate table: from the relationship table where
         # that relationship is "Mother".
         # ---------------------------------------------------------------------
-        if is_in(colname, S1_COLS_RELATIONSHIP_XREF_ID):
+        if is_in(colname, COLS_RELATIONSHIP_XREF_ID):
             ssi.scrub_src = ScrubSrc.THIRDPARTY_XREF_PID
             ssi.scrub_method = ScrubMethod.NUMERIC
             ssi.include()
@@ -2006,7 +2134,7 @@ def get_scrub_alter_details(
         ssi.scrub_src = ScrubSrc.THIRDPARTY
         ssi.scrub_method = ScrubMethod.NUMERIC
 
-    elif is_pair_in(tablename, colname, OMIT_TABLENAME_COLNAME_PAIRS):
+    elif is_pair_in(tablename, colname, OMIT_TABLENAME_COLNAME_PAIRS_S1):
         # ---------------------------------------------------------------------
         # A column to omit specifically.
         # ---------------------------------------------------------------------
@@ -2027,32 +2155,33 @@ def get_scrub_alter_details(
 
 def get_index_flag(tablename: str,
                    colname: str,
-                   ddr: DataDictionaryRow) -> Optional[IndexType]:
+                   ddr: DataDictionaryRow,
+                   context: SystmOneContext) -> Optional[IndexType]:
     """
     Should this be indexed? Returns an indexing flag, or ``None`` if it should
     not be indexed.
     """
-    if is_pk(tablename, colname, ddr):
+    if is_pk(tablename, colname, ddr, context):
         # PKs should have a unique index.
         return IndexType.UNIQUE
-    elif is_master_patient_table(tablename) and is_pid(colname):
+    pid = is_pid(colname, context)
+    if is_master_patient_table(tablename) and pid:
         # In the master patient table, PIDs are unique.
         # (MPIDs aren't -- they can be NULL.)
         return IndexType.UNIQUE
-    elif is_pid(colname) or is_mpid(colname):
+    if pid or is_mpid(colname, context):
         # We index all patient IDs.
         return IndexType.NORMAL
-    elif is_pair_in(tablename, colname,
-                    EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS):
+    if is_pair_in(tablename, colname,
+                  EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS[context]):
         # Additional columns to index
         return IndexType.NORMAL
-    elif colname in GENERIC_COLS_TO_INDEX:
+    if colname in GENERIC_COLS_TO_INDEX[context]:
         return IndexType.NORMAL
-    elif should_be_fulltext_indexed(tablename, colname):
+    if should_be_fulltext_indexed(tablename, colname):
         # Full-text indexes
         return IndexType.FULLTEXT
-    else:
-        return IndexType.NONE
+    return IndexType.NONE
 
 
 # =============================================================================
@@ -2110,7 +2239,8 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
         tablename=tablename,
         colname=colname,
         ddr=ddr,
-        include_generic=include_generic
+        include_generic=include_generic,
+        context=context
     )
 
     if not ssi.change_comment_and_indexing_only:
@@ -2129,7 +2259,7 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
         ddr.dest_field = ssi.dest_field or ddr.dest_field
 
     # Indexing
-    ddr.index = get_index_flag(tablename, colname, ddr)
+    ddr.index = get_index_flag(tablename, colname, ddr, context)
     if SrcFlag.ADD_SRC_HASH.value in ssi.src_flags:
         ddr.index = IndexType.UNIQUE
 

@@ -1150,7 +1150,7 @@ class DataDictionaryRow(object):
         if self.matches_fielddef(srccfg.ddgen_per_table_pid_field):
             if not self.primary_pid:
                 raise ValueError(
-                    f"All fields with {self.SRC_FIELD}={self.src_field} "
+                    f"All fields with {self.SRC_FIELD}={self.src_field!r} "
                     f"used in output should have "
                     f"{self.SRC_FLAGS}={SrcFlag.PRIMARY_PID} set")
             if self.dest_field != self.config.research_id_fieldname:
