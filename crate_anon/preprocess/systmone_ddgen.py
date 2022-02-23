@@ -1525,7 +1525,7 @@ PK_TABLENAME_COLNAME_REGEX_PAIRS = {
 }
 
 _NOT_PK_TABLENAME_COLNAME_PAIRS_S1 = (
-    ("FullText", S1GenericCol.PK),  # not unique; see above re full text
+    ("FreeText", S1GenericCol.PK),  # not unique; see above re free text
 )
 _NOT_PK_TABLENAME_COLNAME_PAIRS_CPFT = (
     # These look like PKs, but gave rise to a "Violation of PRIMARY KEY
@@ -1906,14 +1906,14 @@ def is_pk(tablename: str,
     # if ddr.src_reflected_nullable:
     #     return False  # can't be a PK if it can be NULL
 
-    # 1. If the source database says so (ours never does).
-    if ddr and ddr.pk:
-        return True
-    # 2. If it's explicitly ruled out as a PK (e.g. it has the name that should
+    # 1. If it's explicitly ruled out as a PK (e.g. it has the name that should
     #    mean it's a PK but it's been messed with locally, or the TPP design
     #    team were having an off day), then it's not a PK.
     if is_pair_in(tablename, colname, NOT_PK_TABLENAME_COLNAME_PAIRS[context]):
         return False
+    # 2. If the source database says so (ours never does).
+    if ddr and ddr.pk:
+        return True
     # 3. If it has the standard column name, i.e. RowIdentifier, then it's
     #    a PK.
     if eq(colname, S1GenericCol.PK):

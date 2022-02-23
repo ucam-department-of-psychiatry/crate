@@ -699,7 +699,7 @@ class DataDictionary(object):
                         f"field but no primary patient ID field"
                     )
 
-                n_pks = 0
+                pk_colname = None
                 for r in rows:
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     # Data types for special rows
@@ -715,10 +715,12 @@ class DataDictionary(object):
                     # Too many PKs?
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     if r.pk:
-                        n_pks += 1
-                        if n_pks > 1:
+                        if pk_colname:
                             raise ValueError(
-                                f"Table {d}.{t} has >1 source PK set")
+                                f"Table {d}.{t} has >1 source PK set "
+                                f"(previously {pk_colname!r}, "
+                                f"now {r.src_field!r}).")
+                        pk_colname = r.src_field
 
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     # Duff alter method?
