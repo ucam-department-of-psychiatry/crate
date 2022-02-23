@@ -1056,16 +1056,6 @@ _PID_SYNONYMS_S1 = (
     S1GenericCol.PATIENT_ID,
 )
 _PID_SYNONYMS_CPFT = (
-    "ClientID",
-    # ... seen in CPFT -- although often these tables should be excluded and
-    # this field contains RiO (not SystmOne) IDs. However, some look at least
-    # partially valid (e.g. S1_Deaths.ClientID, S1_Mortality.ClientID,
-    # S1_MortalityAdditionalInfo.ClientID). For the last of those, there is an
-    # explicit "SourceSystem" column; sometimes this is SystmOne, sometimes
-    # RiO, etc. Using ClientID as a primary patient ID will mean that only IDs
-    # present in the SystmOne master table will be taken. However, there is
-    # also potential for confusion, so we exclude these tables above.
-
     "PatientID",  # e.g. in CPFT: S1_eDSM (a CPFT table)
     "PatID",  # e.g. in CPFT: ASCRIBE_Statin
 )
@@ -1087,6 +1077,30 @@ _MPID_SYNONYMS_CPFT = (
 MPID_SYNONYMS = {
     SystmOneContext.TPP_SRE: _MPID_SYNONYMS_S1,
     SystmOneContext.CPFT_DW: _MPID_SYNONYMS_S1 + _MPID_SYNONYMS_CPFT,
+}
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Other system identifiers
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+_OTHER_SYSTEM_IDS_CPFT = (
+    "ClientID",
+    # ... seen in CPFT -- although often these tables should be excluded and
+    # this field contains RiO (not SystmOne) IDs. However, some look at least
+    # partially valid (e.g. S1_Deaths.ClientID, S1_Mortality.ClientID,
+    # S1_MortalityAdditionalInfo.ClientID). For the last of those, there is an
+    # explicit "SourceSystem" column; sometimes this is SystmOne, sometimes
+    # RiO, etc. Using ClientID as a primary patient ID will mean that only IDs
+    # present in the SystmOne master table will be taken. However, there is
+    # also potential for confusion, so we exclude these tables above.
+    #
+    # Empirically: S1_Deaths.ClientID contains IDs that look neither like
+    # SystmOne IDs (integer) or RiO ones (integer) or CRS/CDL ("M" prefix) but
+    # hav e.g. an "AP<integer>" format -- ah, it's PCMIS.
+)
+OTHER_SYSTEM_IDS = {
+    SystmOneContext.TPP_SRE: (),
+    SystmOneContext.CPFT_DW: _OTHER_SYSTEM_IDS_CPFT,
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1890,6 +1904,13 @@ def is_mpid(colname: str, context: SystmOneContext) -> bool:
     return is_in(colname, MPID_SYNONYMS[context])
 
 
+def is_other_system_id(colname: str, context: SystmOneContext) -> bool:
+    """
+    Is this column an ID from another system (e.g. RiO, PCMIS)?
+    """
+    return is_in(colname, OTHER_SYSTEM_IDS[context])
+
+
 def is_pk(tablename: str,
           colname: str,
           context: SystmOneContext,
@@ -2006,6 +2027,14 @@ def process_generic_table_column(tablename: str,
         ssi.add_src_flag(SrcFlag.MASTER_PID)
         ssi.dest_field = ddr.config.master_research_id_fieldname
         ssi.include()
+        handled = True
+
+    elif is_other_system_id(colname, context):
+        # Something like a RiO or PCMIS ID. Use it to scrub, but it's not a
+        # PID or MPID.
+        ssi.scrub_src = ScrubSrc.PATIENT
+        ssi.scrub_method = ScrubMethod.CODE
+        ssi.omit()
         handled = True
 
     if handled:
