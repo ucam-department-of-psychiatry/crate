@@ -723,8 +723,8 @@ class CPFTTable:
     """
     ADDRESS = "PatientAddress"
     CONTACT_DETAILS = "PatientContact"
-    REL_MOTHER = "PatientRelationshipMother"
     CYP_FRS_TELEPHONE_TRIAGE = "CYPFRS_TelephoneTriage"
+    REL_MOTHER = "PatientRelationshipMother"
 
 
 # -----------------------------------------------------------------------------
@@ -761,6 +761,7 @@ _OMIT_TABLES_S1 = (
 )
 _OMIT_TABLES_CPFT_EXTRAS = (
     # CPFT extras:
+    "Deaths",  # has NHS number then multi-system ID but not consistent SystmOne patient ID  # noqa
     "gr_workings",  # no idea
     "InpatientAvailableBeds",  # RowIdentifier very far from unique; ?no PK; no patient info  # noqa
 )
