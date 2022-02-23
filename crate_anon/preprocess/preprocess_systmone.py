@@ -51,7 +51,7 @@ from crate_anon.preprocess.systmone_ddgen import (
     DEFAULT_SYSTMONE_CONTEXT,
     is_mpid,
     is_pid,
-    is_pk_simple,
+    is_pk,
     SystmOneContext,
 )
 
@@ -93,8 +93,10 @@ def preprocess_systmone(engine: Engine,
         for column in table.columns:  # type: Column
             colname = column.name
             idxname = f"{CRATE_IDX_PREFIX}_{colname}"
-            if is_pk_simple(colname) or is_pid(colname) or is_mpid(colname):
-
+            if (column.primary_key
+                    or is_pk(ct, colname, context)
+                    or is_pid(colname, context)
+                    or is_mpid(colname, context)):
                 # It's too much faff to work out reliably if the source table
                 # should have a UNIQUE index, particularly when local (CPFT)
                 # tables use the "RowIdentifier" column name in a non-unique

@@ -225,6 +225,9 @@ Notable tables in the SRE
 
 - [SR]NDOptOutPreference, re NHS national data opt out (for NHS Act s251 use)
 
+  - This has an IDPatient column; presumably presence indicates an active
+    opt-out.
+
 - Full text and binary:
 
   - [SR]Media -- contains filenames and some metadata
@@ -259,7 +262,19 @@ This broadly follows the SRE, but is expanded. Some notable differences:
 - Tables named ``SR*`` in the SRE are named ``S1_*`` in the CPFT version (e.g.
   ``SRPatient`` becomes ``S1_Patient``).
 
-- There is a ``S1_Patient.NationalDataOptOut`` column.
+- There is a ``S1_Patient.NationalDataOptOut`` column (0 or 1).
+
+- The local opt-out information appears in S1_ClinicalOutcome_ConsentResearch
+  (as the OptOut field, a text field) but is clearer in
+  S1_ClinicalOutcome_ConsentResearch_OptOutCheck, which only contains patients
+  opting out and has:
+  
+  .. code-block:: none
+
+    IDPatient = <ID_of_patient_opting_out>  
+    SNOMEDCode = 1091881000000109
+    CTV3Code = 'XaaDb'
+    CTV3Text = 'Declined invitation to participate in research study'
 
 - There seem to be quite a few extra tables, such as:
 
@@ -1422,6 +1437,14 @@ PK_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.CPFT_DW: _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
+_OPT_OUT_TABLENAME_COLNAME_PAIRS_CPFT = (
+    ("ClinicalOutcome_ConsentResearch_OptOutCheck", "SNOMEDCode")
+)
+OPT_OUT_TABLENAME_COLNAME_PAIRS = {
+    SystmOneContext.TPP_SRE: (),
+    SystmOneContext.CPFT_DW: _OPT_OUT_TABLENAME_COLNAME_PAIRS_CPFT,
+}
+
 
 # =============================================================================
 # Output
@@ -1760,8 +1783,8 @@ def is_mpid(colname: str, context: SystmOneContext) -> bool:
 
 def is_pk(tablename: str,
           colname: str,
-          ddr: DataDictionaryRow,
-          context: SystmOneContext) -> bool:
+          context: SystmOneContext,
+          ddr: DataDictionaryRow = None) -> bool:
     """
     Is this a primary key (PK) column within its table?
     """
@@ -1775,7 +1798,7 @@ def is_pk(tablename: str,
     #     return False  # can't be a PK if it can be NULL
 
     # 1. If the source database says so (ours never does).
-    if ddr.pk:
+    if ddr and ddr.pk:
         return True
     # 2. If it has the standard column name, i.e. RowIdentifier, then it's
     #    a PK.
@@ -1835,7 +1858,7 @@ def process_generic_table_column(tablename: str,
     # PKs, PIDs, MPIDs (which can overlap, e.g. a PK that is a PID)
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     handled = False
-    if is_pk(tablename, colname, ddr, context):
+    if is_pk(tablename, colname, context, ddr):
         # PK for all tables.
         ssi.add_src_flag(SrcFlag.PK)
         ssi.add_src_flag(SrcFlag.NOT_NULL)
@@ -1844,6 +1867,10 @@ def process_generic_table_column(tablename: str,
         handled = True
 
     # PKs can also be other things:
+
+    if is_pair_in(tablename, colname, OPT_OUT_TABLENAME_COLNAME_PAIRS[context]):
+        ssi.add_src_flag(SrcFlag.OPT_OUT)
+        handled = True
 
     if is_pid(colname, context):
         # FK to Patient.RowIdentifier for all other patient-related tables.
@@ -2161,7 +2188,7 @@ def get_index_flag(tablename: str,
     Should this be indexed? Returns an indexing flag, or ``None`` if it should
     not be indexed.
     """
-    if is_pk(tablename, colname, ddr, context):
+    if is_pk(tablename, colname, context, ddr):
         # PKs should have a unique index.
         return IndexType.UNIQUE
     pid = is_pid(colname, context)
