@@ -1482,6 +1482,10 @@ Changes
     is altered to OMIT everything in a table. As before, only active tables are
     created.
 
+  - Allow secret table PID/MPID types to be integer despite string source
+    fields, giving a warning only. This is acceptable if the source fields do
+    in fact contain only integers-as-strings, e.g. '123'.
+
 
 To do
 -----

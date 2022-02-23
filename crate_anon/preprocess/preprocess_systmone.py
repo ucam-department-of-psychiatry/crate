@@ -87,7 +87,7 @@ def preprocess_systmone(engine: Engine,
                         drop_danger_drop: bool = False) -> None:
     """
     Add indexes to a SystmOne source database. Without this, anonymisation is
-    very slow.
+    very slow. Also adds pseudo-PK columns to selected tables.
     """
     log.info("Reflecting (inspecting) database...")
     metadata = MetaData()
@@ -108,8 +108,8 @@ def preprocess_systmone(engine: Engine,
 
         table_needs_pk = ct in TABLES_REQUIRING_CRATE_PK
 
-        # If creating, (1) create PK if necessary, (2) create indexes.
-        # If dropping, (1) drop indexes, (2) drop PK.
+        # If creating, (1) create pseudo-PK if necessary, (2) create indexes.
+        # If dropping, (1) drop indexes, (2) drop pseudo-PK if necessary.
 
         # Create step #1
         if not drop_danger_drop and table_needs_pk:

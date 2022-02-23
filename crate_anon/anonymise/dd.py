@@ -167,15 +167,22 @@ def ensure_no_source_type_mismatch(ddr: DataDictionaryRow,
         configparam = AnonymiseConfigKeys.SQLATYPE_MPID
     rowtype = ddr.src_sqla_coltype
     suffix = ""
+    error = True  # we may downgrade to a warning
+    destination_is_integer = is_sqlatype_integer(config_sqlatype)
+    assert destination_is_integer or is_sqlatype_string(config_sqlatype), (
+        f"Bug: config parameter {configparam!r} has given a type of "
+        f"{config_sqlatype}, which appears neither integer nor string."
+    )
     if is_sqlatype_integer(rowtype):
         # ---------------------------------------------------------------------
         # Integer source
         # ---------------------------------------------------------------------
-        if is_sqlatype_integer(config_sqlatype):
-            # Good enough. The only integer type we use for PID/MPID is
-            # BigInteger, so any integer type should fit.
+        if destination_is_integer:
+            # Good enough. The only integer type we use for storing a PID/MPID
+            # in the secret mapping table is BigInteger, so any integer type
+            # should fit.
             return
-        elif is_sqlatype_string(config_sqlatype):
+        else:
             # Storing an integer in a string. This may be OK, if the string is
             # long enough. We could do detailed checks here based on the type
             # of integer, but we'll be simple.
@@ -191,8 +198,15 @@ def ensure_no_source_type_mismatch(ddr: DataDictionaryRow,
         # ---------------------------------------------------------------------
         # String source
         # ---------------------------------------------------------------------
-        # Strings are fine if we will store them in a long-enough string.
-        if is_sqlatype_string(config_sqlatype):
+        if destination_is_integer:
+            error = False
+            suffix = (
+                "Warning only: this is acceptable if, but only if, the source "
+                "string fields contain only integers."
+            )
+        else:
+            # Storing a string in a string. Fine if the destination is big
+            # enough.
             # noinspection PyUnresolvedReferences
             if rowtype.length <= config_sqlatype.length:
                 return
@@ -201,12 +215,20 @@ def ensure_no_source_type_mismatch(ddr: DataDictionaryRow,
                     f"Using a bigger string field in the config (minimum "
                     f"length {rowtype.length}) would fix this."
                 )
-    # Generic error:
-    raise ValueError(
-        f"Source column {ddr.src_signature} is marked as a "
-        f"{human_type} field but its type is {rowtype}, "
-        f"while the config thinks it should be {config_sqlatype} "
-        f"(determined by the {configparam!r} parameter). {suffix}")
+    else:
+        # e.g. something silly like a DATETIME source
+        pass
+    # Generic error or warning:
+    msg = (
+        f"Source column {ddr.src_signature} is marked as a {human_type} field "
+        f"but its type is {rowtype}, while the config thinks it should be "
+        f"{config_sqlatype} (determined by the {configparam!r} parameter). "
+        f"{suffix}"
+    )
+    if error:
+        raise ValueError(msg)
+    else:
+        log.warning(msg)
 
 
 # =============================================================================
