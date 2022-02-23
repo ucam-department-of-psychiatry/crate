@@ -38,6 +38,7 @@ from crate_anon.preprocess.systmone_ddgen import (
     core_tablename,
     eq,
     eq_re,
+    is_free_text,
     is_in_re,
     OMIT_TABLES_REGEX,
     SystmOneContext,
@@ -67,3 +68,13 @@ class SystmOneDDGenTests(TestCase):
         self.assertTrue(is_in_re("Accommodation_20210329", omit_tables))
         self.assertTrue(is_in_re("Accommodation_20210329_blah", omit_tables))
         self.assertTrue(is_in_re("S1_Accommodation_20210329", omit_tables))
+
+    def test_freetext_columns(self) -> None:
+        sre = SystmOneContext.TPP_SRE
+        cpft = SystmOneContext.CPFT_DW
+        # Free-text columns in all environments:
+        for context in [sre, cpft]:
+            self.assertTrue(is_free_text("FreeText", "FreeText", context))
+        # CPFT but not SRE environment:
+        self.assertTrue(is_free_text("FreeText_CYPFRS_TelephoneTriage", "RiskofAbsconding", cpft))  # noqa
+        self.assertFalse(is_free_text("FreeText_CYPFRS_TelephoneTriage", "RiskofAbsconding", sre))  # noqa

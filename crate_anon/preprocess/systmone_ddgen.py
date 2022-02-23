@@ -719,19 +719,15 @@ class CPFTTable:
     CYP_FRS_TELEPHONE_TRIAGE = "CYPFRS_TelephoneTriage"
 
 
-_S1_TO_CPFT_TABLE_TRANSLATION = {
-    # Where CPFT has renamed a S1 SRE table directly.
-    S1Table.ADDRESS: CPFTTable.ADDRESS,
-    # ... i.e. CPFT have renamed SRPatientAddressHistory to S1_PatientAddress.
-    S1Table.CONTACT_DETAILS: CPFTTable.CONTACT_DETAILS,
-}
-
-
 # -----------------------------------------------------------------------------
 # Table collections
 # -----------------------------------------------------------------------------
 # Tables are referred to here by their "core" name, i.e. after removal of
 # prefixes like "SR" or "S1_", if they have one.
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Tables to include
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 _INCLUDE_TABLES_REGEX_S1 = ()
 _INCLUDE_TABLES_REGEX_CPFT = (
@@ -742,6 +738,10 @@ INCLUDE_TABLES_REGEX = {
     SystmOneContext.TPP_SRE: _INCLUDE_TABLES_REGEX_S1,
     SystmOneContext.CPFT_DW: _INCLUDE_TABLES_REGEX_S1 + _INCLUDE_TABLES_REGEX_CPFT  # noqa
 }
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Tables to omit
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 _OMIT_TABLES_S1 = (
     "NomisNumber",  # Prison NOMIS numbers
@@ -767,10 +767,8 @@ _OMIT_TABLES_REGEX_CPFT = (
 
     "Accommodation_",
     # ... e.g. Accommodation_20210329, Accommodation_Wendy
-    # todo: *** check gone
 
     "AuditLog",  # may have gone now! Was there for a while. Not relevant.
-    # todo: *** check gone
 
     # KEPT: ClinicalOutcome_NHS_Staff_LongCovid.
     # This one filters for CTV3 codes Y2c49 and Y2ca. As d/w NP 2021-12-14:
@@ -786,28 +784,23 @@ _OMIT_TABLES_REGEX_CPFT = (
     "Inpatients",
     # S1_Inpatients, S1_Inpatients_20201020: current inpatients -- but these
     # tables have NHSNumber as FLOAT. Exclude them.
-    # todo: *** check gone
 
     "Mortality",  # includes S1_Mortality, S1_MortalityAdditionalInfo
     # These contain (a) age (rather than DOB) information, and (b) information
     # from multiple systems -- some risk of including RiO patients with
     # coincidentally the same ClientID as a SystmOne IDPatient, unless
     # filtered, and is derived information anyway -- for now, we'll omit.
-    # todo: *** check gone
 
     "ReferralsOpen$",
     # This CPFT table is a non-patient table (but with potentially identifiable
     # information about referral reason? -- maybe not) -- skip it.
-    # todo: *** check gone
 
     "WaitList_",  # S1_Waitlist_*
     # Waiting list tables use a confusing blend of SystmOne "IDPatient" and
     # RiO "ClientID" columns, and it's not clear they add much.
-    # todo: *** check gone
 
     "UserSmartCard",
     # Not relevant clinically.
-    # todo: *** check gone
 
     # I considered excluding "vw.*" (views) and "zzz.*" (scratch tables) here,
     # but the user has the option to exclude all such tables via
@@ -826,6 +819,16 @@ OMIT_TABLES_REGEX = {
     SystmOneContext.CPFT_DW: _OMIT_TABLES_REGEX_S1 + _OMIT_TABLES_REGEX_CPFT
 }
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Tables that have been renamed
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+_S1_TO_CPFT_TABLE_TRANSLATION = {
+    # Where CPFT has renamed a S1 SRE table directly.
+    S1Table.ADDRESS: CPFTTable.ADDRESS,
+    # ... i.e. CPFT have renamed SRPatientAddressHistory to S1_PatientAddress.
+    S1Table.CONTACT_DETAILS: CPFTTable.CONTACT_DETAILS,
+}
 CORE_TO_CONTEXT_TABLE_TRANSLATIONS = {
     # Key: destination context.
     # Value: translation dictionary, mapping "core" tablename to target.
@@ -875,8 +878,8 @@ class CPFTGenericCol:
     ASSIGNMENT_NUMBER = "AssignmentNumber"
     # ... payroll number of member of staff, I think -- too sensitive and I am
     # surprised it is there in the first place.
-    HOME_CONTACT_NUMBER = "HomeContactNumber"  # *** todo: check gone from Demographics  # noqa
-    MOBILE_CONTACT_NUMBER = "MobileContactNumber"  # *** todo: check gone from Demographics  # noqa
+    HOME_CONTACT_NUMBER = "HomeContactNumber"
+    MOBILE_CONTACT_NUMBER = "MobileContactNumber"
     NHSNUM2 = "NHSNumber2"
     NHSNUM_MOTHER = "CYPHS_NHSNumber_Mother"
     PATIENT_ADDRESS = "PatientAddress"
@@ -1008,6 +1011,14 @@ class S1HospNumCol:
     COMMENTS = "Comments"
 
 
+# -----------------------------------------------------------------------------
+# Column collections
+# -----------------------------------------------------------------------------
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Columns that have been renamed
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 _S1_TO_CPFT_COLUMN_TRANSLATION = {
     # Where CPFT has renamed a column.
     # - Key: (core_tablename, colname) tuple.
@@ -1018,6 +1029,20 @@ _S1_TO_CPFT_COLUMN_TRANSLATION = {
     (S1Table.RELATIONSHIPS,
      S1RelCol.RELATED_STAFFCODE_OR_RELNHSNUM): S1PatientCol.NHSNUM,
 }
+CORE_TO_CONTEXT_COLUMN_TRANSLATIONS = {
+    # Key: destination context.
+    # Value: translation dictionary -- see e.g. S1_TO_CPFT_COLUMN_TRANSLATION.
+    SystmOneContext.TPP_SRE: {},
+    SystmOneContext.CPFT_DW: _S1_TO_CPFT_COLUMN_TRANSLATION,
+}  # type: COLUMN_TRANSLATION_DICT_TYPE
+CONTEXT_TO_CORE_CONTEXT_COLUMN_TRANSLATIONS = {
+    SystmOneContext.TPP_SRE: {},
+    SystmOneContext.CPFT_DW: _flip_coldict(_S1_TO_CPFT_COLUMN_TRANSLATION)
+}  # type: COLUMN_TRANSLATION_DICT_TYPE
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# PID column names
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 _PID_SYNONYMS_S1 = (
     S1GenericCol.PATIENT_ID,
@@ -1041,6 +1066,10 @@ PID_SYNONYMS = {
     SystmOneContext.CPFT_DW: _PID_SYNONYMS_S1 + _PID_SYNONYMS_CPFT,
 }
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# MPID column names
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 _MPID_SYNONYMS_S1 = (
     S1PatientCol.NHSNUM,
 )
@@ -1052,21 +1081,9 @@ MPID_SYNONYMS = {
     SystmOneContext.CPFT_DW: _MPID_SYNONYMS_S1 + _MPID_SYNONYMS_CPFT,
 }
 
-
-# -----------------------------------------------------------------------------
-# Column collections
-# -----------------------------------------------------------------------------
-
-CORE_TO_CONTEXT_COLUMN_TRANSLATIONS = {
-    # Key: destination context.
-    # Value: translation dictionary -- see e.g. S1_TO_CPFT_COLUMN_TRANSLATION.
-    SystmOneContext.TPP_SRE: {},
-    SystmOneContext.CPFT_DW: _S1_TO_CPFT_COLUMN_TRANSLATION,
-}  # type: COLUMN_TRANSLATION_DICT_TYPE
-CONTEXT_TO_CORE_CONTEXT_COLUMN_TRANSLATIONS = {
-    SystmOneContext.TPP_SRE: {},
-    SystmOneContext.CPFT_DW: _flip_coldict(_S1_TO_CPFT_COLUMN_TRANSLATION)
-}  # type: COLUMN_TRANSLATION_DICT_TYPE
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Columns to treat as safe
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 COLS_GENERIC_OK_UNMODIFIED_S1 = (
     S1GenericCol.ORG_ID_DONE_AT,
@@ -1079,6 +1096,69 @@ COLS_GENERIC_OK_UNMODIFIED_S1 = (
     S1GenericCol.ORG_REGISTERED_AT,
     S1GenericCol.STAFF_PROFILE_ID_RECORDED_BY,
 )
+_COLS_PATIENT_TABLE_OK_UNMODIFIED_S1 = COLS_GENERIC_OK_UNMODIFIED_S1 + (
+    # This list exists because we don't assume that things in the Patient table
+    # are safe -- we assume they are unsafe, and let them through only if we
+    # know about them. So we add "safe" things (that are not direct
+    # identifiers) here.
+    S1PatientCol.GENDER,
+    S1PatientCol.SPEAKS_ENGLISH,
+    S1PatientCol.SPINE_MATCHED,
+)
+_COLS_PATIENT_TABLE_OK_UNMODIFIED_CPFT = (
+    # Added by CPFT:
+    "DeathIndicator",  # binary version (0 alive, 1 dead)
+    "NationalDataOptOut",  # Added by CPFT (from NDOptOutPreference)?)
+    # - CPFT also add "RwNo" (bigint), but it's always 1 here. See above.
+    # - We ignore "AgeInYears" (added by CPFT) since that is dangerous and
+    #   depends on when you ask.
+)
+COLS_PATIENT_TABLE_OK_UNMODIFIED = {
+    SystmOneContext.TPP_SRE: _COLS_PATIENT_TABLE_OK_UNMODIFIED_S1,
+    SystmOneContext.CPFT_DW:
+        _COLS_PATIENT_TABLE_OK_UNMODIFIED_S1
+        + _COLS_PATIENT_TABLE_OK_UNMODIFIED_CPFT,
+}
+
+_COLS_RELATIONSHIP_OK_UNMODIFIED_S1 = (
+    S1RelCol.DATE_ENDED,
+    S1RelCol.REL_TYPE,
+    S1RelCol.GUARDIAN_PROXY,
+    S1RelCol.NEXT_OF_KIN,
+    S1RelCol.CARER,
+    S1RelCol.PRINCIPAL_CARER,
+    S1RelCol.KEYHOLDER,
+    S1RelCol.PARENTAL_RESPONSIBILITY,
+    S1RelCol.FINANCIAL_REP,
+    S1RelCol.ADVOCATE,
+    S1RelCol.MAIN_VISITOR,
+    S1RelCol.CALLBACK_CONSENT,
+    S1RelCol.COPY_CORRESPONDENCE,
+    S1RelCol.CONTACT_ORDER,
+    S1RelCol.CONTACT_METHOD,
+    S1RelCol.COMMS_FORMAT,
+    S1RelCol.INTERPRETER_REQUIRED,
+    S1RelCol.SEX,
+    S1RelCol.LANGUAGE,
+    S1RelCol.ORG,
+)
+_COLS_RELATIONSHIP_OK_UNMODIFIED_CPFT = (
+    # Added by CPFT:
+    "DateDeath",  # date of death of relative
+)
+COLS_RELATIONSHIP_OK_UNMODIFIED = {
+    SystmOneContext.TPP_SRE: _COLS_RELATIONSHIP_OK_UNMODIFIED_S1,
+    SystmOneContext.CPFT_DW:
+        _COLS_RELATIONSHIP_OK_UNMODIFIED_S1
+        + _COLS_RELATIONSHIP_OK_UNMODIFIED_CPFT,
+}
+
+CPFT_REL_MOTHER_OK_UNMODIFIED = ()
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Columns to exclude from the output
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 _COLS_GENERIC_EXCLUDE_S1 = (
     # Columns to exclude, regardless of table.
     #
@@ -1146,6 +1226,19 @@ COLS_GENERIC_EXCLUDE = {
         + _COLS_GENERIC_EXCLUDE_CPFT,
 }
 
+OMIT_TABLENAME_COLNAME_PAIRS_S1 = (
+    # Other specific fields to omit.
+    ("Contacts", "ContactWith"),
+    (S1Table.HOSP_AE_NUMBERS, S1HospNumCol.COMMENTS),
+    ("OohAction", "Details"),  # Out-of-hours calls; details can sometimes contain phone numbers  # noqa
+    ("OohThirdPartyCall", "Contact"),  # free text
+    ("SafeguardingIncidentDetails", "PoliceReference"),
+)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Columns containing scrub-source information
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 COLS_PATIENT_WORDS = (
     # Scrub as words.
     S1PatientCol.FORENAME,
@@ -1155,6 +1248,7 @@ COLS_PATIENT_WORDS = (
     S1PatientCol.EMAIL,
     S1PatientCol.BIRTHPLACE,  # Unusual. But: scrub birthplace.
 )
+
 COLS_REQUIRED_SCRUBBERS = (
     # Information that must be present in the master patient table.
     S1PatientCol.PK,  # likely redundant! It's the PID "definer".
@@ -1162,30 +1256,6 @@ COLS_REQUIRED_SCRUBBERS = (
     S1PatientCol.SURNAME,
     S1PatientCol.DOB,
 )
-_COLS_PATIENT_TABLE_OK_UNMODIFIED_S1 = COLS_GENERIC_OK_UNMODIFIED_S1 + (
-    # This list exists because we don't assume that things in the Patient table
-    # are safe -- we assume they are unsafe, and let them through only if we
-    # know about them. So we add "safe" things (that are not direct
-    # identifiers) here.
-
-    S1PatientCol.GENDER,
-    S1PatientCol.SPEAKS_ENGLISH,
-    S1PatientCol.SPINE_MATCHED,
-)
-_COLS_PATIENT_TABLE_OK_UNMODIFIED_CPFT = (
-    # Added by CPFT:
-    "DeathIndicator",  # binary version (0 alive, 1 dead)
-    "NationalDataOptOut",  # Added by CPFT (from NDOptOutPreference)?)
-    # - CPFT also add "RwNo" (bigint), but it's always 1 here. See above.
-    # - We ignore "AgeInYears" (added by CPFT) since that is dangerous and
-    #   depends on when you ask.
-)
-COLS_PATIENT_TABLE_OK_UNMODIFIED = {
-    SystmOneContext.TPP_SRE: _COLS_PATIENT_TABLE_OK_UNMODIFIED_S1,
-    SystmOneContext.CPFT_DW:
-        _COLS_PATIENT_TABLE_OK_UNMODIFIED_S1
-        + _COLS_PATIENT_TABLE_OK_UNMODIFIED_CPFT,
-}
 
 COLS_ADDRESS_PHRASES = (
     # Scrub as phrases.
@@ -1213,6 +1283,7 @@ COLS_RELATIONSHIP_XREF_ID = (
     S1RelCol.RELATED_ID_DEPRECATED,
     S1RelCol.RELATED_ID,
 )
+
 _COLS_RELATIONSHIP_WORDS_S1 = (
     # Scrub (third-party) as words.
     S1RelCol.NAME,
@@ -1229,6 +1300,7 @@ COLS_RELATIONSHIP_WORDS = {
         _COLS_RELATIONSHIP_WORDS_S1
         + _COLS_RELATIONSHIP_WORDS_CPFT,
 }
+
 _COLS_RELATIONSHIP_DATES_S1 = (
     # Scrub (third-party) as dates.
     S1RelCol.DOB,
@@ -1243,6 +1315,7 @@ COLS_RELATIONSHIP_DATES = {
         _COLS_RELATIONSHIP_DATES_S1
         + _COLS_RELATIONSHIP_WORDS_CPFT,
 }
+
 COLS_RELATIONSHIP_PHRASES = (
     # Scrub (third-party) as phrases.
     # Same principles as for the patient address, above.
@@ -1257,10 +1330,12 @@ COLS_RELATIONSHIP_PHRASE_UNLESS_NUMERIC = (
     S1RelCol.ADDRESS_HOUSE_NAME,
     S1RelCol.ADDRESS_HOUSE_NUMBER,
 )
+
 COLS_RELATIONSHIP_CODES = (
     # Scrub (third-party) as codes.
     S1RelCol.ADDRESS_POSTCODE,
 )
+
 COLS_RELATIONSHIP_NUMBERS = (
     # Scrub (third-party) as numbers.
     S1RelCol.RELATED_STAFFCODE_OR_RELNHSNUM,
@@ -1269,49 +1344,11 @@ COLS_RELATIONSHIP_NUMBERS = (
     S1RelCol.ADDRESS_MOBILE_TELEPHONE,
     S1RelCol.ADDRESS_FAX,
 )
-_COLS_RELATIONSHIP_OK_UNMODIFIED_S1 = (
-    S1RelCol.DATE_ENDED,
-    S1RelCol.REL_TYPE,
-    S1RelCol.GUARDIAN_PROXY,
-    S1RelCol.NEXT_OF_KIN,
-    S1RelCol.CARER,
-    S1RelCol.PRINCIPAL_CARER,
-    S1RelCol.KEYHOLDER,
-    S1RelCol.PARENTAL_RESPONSIBILITY,
-    S1RelCol.FINANCIAL_REP,
-    S1RelCol.ADVOCATE,
-    S1RelCol.MAIN_VISITOR,
-    S1RelCol.CALLBACK_CONSENT,
-    S1RelCol.COPY_CORRESPONDENCE,
-    S1RelCol.CONTACT_ORDER,
-    S1RelCol.CONTACT_METHOD,
-    S1RelCol.COMMS_FORMAT,
-    S1RelCol.INTERPRETER_REQUIRED,
-    S1RelCol.SEX,
-    S1RelCol.LANGUAGE,
-    S1RelCol.ORG,
-)
-_COLS_RELATIONSHIP_OK_UNMODIFIED_CPFT = (
-    # Added by CPFT:
-    "DateDeath",  # date of death of relative
-)
-COLS_RELATIONSHIP_OK_UNMODIFIED = {
-    SystmOneContext.TPP_SRE: _COLS_RELATIONSHIP_OK_UNMODIFIED_S1,
-    SystmOneContext.CPFT_DW:
-        _COLS_RELATIONSHIP_OK_UNMODIFIED_S1
-        + _COLS_RELATIONSHIP_OK_UNMODIFIED_CPFT,
-}
 
-CPFT_REL_MOTHER_OK_UNMODIFIED = ()
-
-OMIT_TABLENAME_COLNAME_PAIRS_S1 = (
-    # Other specific fields to omit.
-    ("Contacts", "ContactWith"),
-    (S1Table.HOSP_AE_NUMBERS, S1HospNumCol.COMMENTS),
-    ("OohAction", "Details"),  # Out-of-hours calls; details can sometimes contain phone numbers  # noqa
-    ("OohThirdPartyCall", "Contact"),  # free text
-    ("SafeguardingIncidentDetails", "PoliceReference"),
-)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Columns containing free text, which need to be scrubbed
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ... assuming they are of string type.
 
 _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
     ("FreeText$", "FreeText$"),  # the bulk of free text; VARCHAR(MAX)
@@ -1327,6 +1364,9 @@ _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     #   PrimaryReason, but there are several others, like
     #   ReferralReasonDescription1.
     (".*Referral", ".*Reason"),
+
+    # A bunch of explicitly free-text fields:
+    ("FreeText_", ".*"),
 
     # - S1_CYPFRS_TelephoneTriage links in a bunch of things from S1_FreeText.
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Assessment"),
@@ -1348,9 +1388,19 @@ FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = {
         _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1
         + _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
-FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS = (
-    # Subset of FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS where we would want to
-    # implement a FULLTEXT index.
+
+EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1 = (
+    # Things that look like free text, but aren't.
+    ("AnsweredQuestionnaire", "QuestionnaireName"),
+)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Columns to index
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
+    # Subset of free-text columns where we would want to implement a FULLTEXT
+    # index.
     ("FreeText$", "FreeText$"),  # the bulk of free text; VARCHAR(MAX)
 )
 
@@ -1381,10 +1431,9 @@ GENERIC_COLS_TO_INDEX = {
         + _GENERIC_COLS_TO_INDEX_CPFT,
 }
 
-EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1 = (
-    # Things that look like free text, but aren't.
-    ("AnsweredQuestionnaire", "QuestionnaireName"),
-)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Columns that are PKs
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # Primary key fields with non-standard names.
@@ -1460,6 +1509,11 @@ NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.TPP_SRE: (),
     SystmOneContext.CPFT_DW: _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Columns containing opt-out information
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 _OPT_OUT_TABLENAME_COLNAME_PAIRS_CPFT = (
     ("ClinicalOutcome_ConsentResearch_OptOutCheck", "SNOMEDCode"),
@@ -1850,8 +1904,12 @@ def is_free_text(tablename: str,
     # if not is_sqlatype_string(ddr.src_sqla_coltype):  # UNRELIABLE?
     #     # Not a textual type
     #     return False
-    return is_pair_in_re(tablename, colname,
-                         FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS[context])
+    return (
+        is_pair_in_re(tablename, colname,
+                      FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS[context])
+        and not is_pair_in(tablename, colname,
+                           EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1)
+    )
 
 
 def should_be_fulltext_indexed(tablename: str, colname: str) -> bool:
@@ -1861,7 +1919,7 @@ def should_be_fulltext_indexed(tablename: str, colname: str) -> bool:
     of interesting free text that should get a special index".
     """
     return is_pair_in_re(tablename, colname,
-                         FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS)
+                         FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS_S1)
 
 
 # =============================================================================
@@ -1932,10 +1990,7 @@ def process_generic_table_column(tablename: str,
         # Generic columns that are always OK (e.g. organization ID).
         ssi.include()
 
-    elif (is_free_text(tablename, colname, context)
-            and not is_pair_in(
-                tablename, colname,
-                EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1)):
+    elif ddr.src_is_textual and is_free_text(tablename, colname, context):
         # Free text to be scrubbed.
         ssi.add_alter_method(AlterMethod(config=ddr.config, scrub=True))
         ssi.include()
