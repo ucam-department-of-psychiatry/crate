@@ -53,15 +53,17 @@ class SystmOneDDGenTests(TestCase):
         """
         Test some regex functions for excluding tables.
         """
+        cpft = SystmOneContext.CPFT_DW
         test_referralsopen = "S1_ReferralsOpen"  # CPFT version
         test_referralsopen_core = core_tablename(
             tablename=test_referralsopen,
-            from_context=SystmOneContext.CPFT_DW,
+            from_context=cpft,
             allow_unprefixed=True
         )
         self.assertTrue(eq(test_referralsopen_core, "ReferralsOpen"))
         self.assertTrue(eq_re(test_referralsopen_core, "ReferralsOpen$"))
-        self.assertTrue(is_in_re(test_referralsopen_core, OMIT_TABLES_REGEX))
-        self.assertTrue(is_in_re("Accommodation_20210329", OMIT_TABLES_REGEX))
-        self.assertTrue(is_in_re("Accommodation_20210329_blah", OMIT_TABLES_REGEX))  # noqa
-        self.assertTrue(is_in_re("S1_Accommodation_20210329", OMIT_TABLES_REGEX))  # noqa
+        omit_tables = OMIT_TABLES_REGEX[cpft]
+        self.assertTrue(is_in_re(test_referralsopen_core, omit_tables))
+        self.assertTrue(is_in_re("Accommodation_20210329", omit_tables))
+        self.assertTrue(is_in_re("Accommodation_20210329_blah", omit_tables))
+        self.assertTrue(is_in_re("S1_Accommodation_20210329", omit_tables))
