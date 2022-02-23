@@ -1939,8 +1939,8 @@ def is_pk(tablename: str,
     # 1. If it's explicitly ruled out as a PK (e.g. it has the name that should
     #    mean it's a PK but it's been messed with locally, or the TPP design
     #    team were having an off day), then it's not a PK.
-    if is_pair_in(tablename, colname,
-                  NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS[context]):
+    if is_pair_in_re(tablename, colname,
+                     NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS[context]):
         return False
     # 2. If the source database says so (ours never does).
     if ddr and ddr.pk:
