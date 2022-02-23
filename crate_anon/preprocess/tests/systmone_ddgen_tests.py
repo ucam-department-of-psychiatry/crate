@@ -78,3 +78,5 @@ class SystmOneDDGenTests(TestCase):
         # CPFT but not SRE environment:
         self.assertTrue(is_free_text("FreeText_CYPFRS_TelephoneTriage", "RiskofAbsconding", cpft))  # noqa
         self.assertFalse(is_free_text("FreeText_CYPFRS_TelephoneTriage", "RiskofAbsconding", sre))  # noqa
+        # Not even in CPFT:
+        self.assertFalse(is_free_text("FreeText_Honos_Scoring_Answers", "FreeText", cpft))  # noqa

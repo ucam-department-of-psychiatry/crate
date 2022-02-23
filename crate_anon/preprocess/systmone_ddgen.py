@@ -1389,20 +1389,21 @@ FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = {
         + _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
-_EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1 = (
+_EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
     # Things that look like free text, but aren't.
-    ("AnsweredQuestionnaire", "QuestionnaireName"),
+    ("AnsweredQuestionnaire$", "QuestionnaireName$"),
 )
-_EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_CPFT = (
+_EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # These two contain non-patient data:
     ("FreeText_Honos_Scoring_Answers", ".+"),
     ("FreeText_Honos_Scoring_Questions", ".+"),
 )
-EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS = {
-    SystmOneContext.TPP_SRE: _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1,
+EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS = {
+    SystmOneContext.TPP_SRE:
+        _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_S1,
     SystmOneContext.CPFT_DW:
-        _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_S1
-        + _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS_CPFT,
+        _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_S1
+        + _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1913,15 +1914,16 @@ def is_free_text(tablename: str,
     Unusually, there is not very much free text, and it is mostly collated.
     (We haven't added binary support yet. Do we have the binary documents?)
     """
+    if ddr and not ddr.src_is_textual:
+        return False
     return (
-        (not ddr or ddr.src_is_textual)
-        and is_pair_in_re(
+        is_pair_in_re(
             tablename, colname,
             FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS[context]
         )
-        and not is_pair_in(
+        and not is_pair_in_re(
             tablename, colname,
-            EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS[context]
+            EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS[context]
         )
     )
 
