@@ -74,7 +74,12 @@ from crate_anon.anonymise.constants import (
     SQLSERVER_MAX_IDENTIFIER_LENGTH,
     SrcFlag,
 )
-import crate_anon.common.sql
+from crate_anon.common.sql import (
+    coltype_length_if_text,
+    is_sql_column_type_textual,
+    matches_fielddef,
+    matches_tabledef,
+)
 
 if TYPE_CHECKING:
     from crate_anon.anonymise.config import Config, DatabaseSafeConfig
@@ -180,9 +185,8 @@ class DataDictionaryRow(object):
         self.src_field = None  # type: Optional[str]
         self.src_datatype = None    # type: Optional[str]  # in SQL string format  # noqa
         # src_flags: a property; see below
-        self.src_is_textual = None  # type: Optional[bool]
-        self.src_textlength = None  # type: Optional[int]
 
+        self._src_override_dialect = None  # type: Optional[Dialect]
         self._src_sqla_coltype = None  # type: Optional[str]
 
         self.scrub_src = None  # type: Optional[str]
@@ -222,7 +226,7 @@ class DataDictionaryRow(object):
         self._alter_methods = []  # type: List[AlterMethod]
 
     # -------------------------------------------------------------------------
-    # Properties
+    # Properties: Relating to whole databases
     # -------------------------------------------------------------------------
 
     @property
@@ -231,6 +235,36 @@ class DataDictionaryRow(object):
         Returns the source database name, in lower case.
         """
         return self.src_db.lower()
+
+    @property
+    def src_dialect(self) -> Dialect:
+        """
+        Returns the SQLAlchemy :class:`Dialect` (e.g. MySQL, SQL Server...) for
+        the source database.
+        """
+        return (
+            self._src_override_dialect
+            or self.config.get_src_dialect(self.src_db)
+        )
+
+    @property
+    def dest_dialect(self) -> Dialect:
+        """
+        Returns the SQLAlchemy :class:`Dialect` (e.g. MySQL, SQL Server...) for
+        the destination database.
+        """
+        return self.config.dest_dialect
+
+    @property
+    def dest_dialect_name(self) -> str:
+        """
+        Returns the SQLAlchemy dialect name for the destination database.
+        """
+        return self.config.dest_dialect_name
+
+    # -------------------------------------------------------------------------
+    # Properties: Relating to database columns
+    # -------------------------------------------------------------------------
 
     @property
     def src_table_lowercase(self) -> str:
@@ -261,6 +295,30 @@ class DataDictionaryRow(object):
         and the source field was set NOT NULL, will return True.
         """
         return self._not_null
+
+    @property
+    def src_is_textual(self) -> bool:
+        """
+        Is the source column textual?
+        """
+        return is_sql_column_type_textual(self.src_datatype)
+
+    @property
+    def src_textlength(self) -> Optional[int]:
+        """
+        If the source column is textual, returns its length (or ``None``) for
+        unlimited. Also returns ``None`` if the source is not textual.
+        """
+        if not self.src_is_textual:
+            return None
+        dialect = self.src_dialect
+        # Get length of field if text field (otherwise this remains 'None')
+        # noinspection PyUnresolvedReferences
+        return coltype_length_if_text(self.src_datatype, dialect.name)
+
+    # -------------------------------------------------------------------------
+    # Properties: CRATE
+    # -------------------------------------------------------------------------
 
     @property
     def add_src_hash(self) -> bool:
@@ -575,21 +633,6 @@ class DataDictionaryRow(object):
         """
         return not self.omit
 
-    @property
-    def dest_dialect(self) -> Dialect:
-        """
-        Returns the SQLAlchemy :class:`Dialect` (e.g. MySQL, SQL Server...) for
-        the destination database.
-        """
-        return self.config.dest_dialect
-
-    @property
-    def dest_dialect_name(self) -> str:
-        """
-        Returns the SQLAlchemy dialect name for the destination database.
-        """
-        return self.config.dest_dialect_name
-
     # -------------------------------------------------------------------------
     # Comparisons
     # -------------------------------------------------------------------------
@@ -608,7 +651,7 @@ class DataDictionaryRow(object):
             tabledef: ``fnmatch``-style pattern (e.g.
                 ``"patient_address_table_*"``), or list of them
         """
-        return crate_anon.common.sql.matches_tabledef(self.src_table, tabledef)
+        return matches_tabledef(self.src_table, tabledef)
 
     def matches_fielddef(self, fielddef: Union[str, List[str]]) -> bool:
         """
@@ -618,8 +661,7 @@ class DataDictionaryRow(object):
             fielddef: ``fnmatch``-style pattern (e.g. ``"system_table.*"`` or
                 ``"*.nhs_number"``), or list of them
         """
-        return crate_anon.common.sql.matches_fielddef(
-            self.src_table, self.src_field, fielddef)
+        return matches_fielddef(self.src_table, self.src_field, fielddef)
 
     # -------------------------------------------------------------------------
     # Representations
@@ -709,16 +751,7 @@ class DataDictionaryRow(object):
         self.src_table = valuedict['src_table']
         self.src_field = valuedict['src_field']
         self.src_datatype = valuedict['src_datatype'].upper()
-        self.src_is_textual = crate_anon.common.sql.is_sql_column_type_textual(
-            self.src_datatype)
-        if self.src_is_textual:
-            dialect = (
-                override_dialect or self.config.get_src_dialect(self.src_db)
-            )
-            # Get length of field if text field (otherwise this remains 'None')
-            # noinspection PyUnresolvedReferences
-            self.src_textlength = crate_anon.common.sql.coltype_length_if_text(
-                self.src_datatype, dialect.name)
+        self._src_override_dialect = override_dialect
         # noinspection PyAttributeOutsideInit
         self.src_flags = valuedict['src_flags']  # a property
         self.scrub_src = ScrubSrc.lookup(valuedict['scrub_src'],
