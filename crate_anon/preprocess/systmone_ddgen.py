@@ -554,7 +554,7 @@ Related tools
 
 """  # noqa
 
-# todo: SystmOne: implement S1_ClinicalOutcome_ConsentResearch when it arrives ***  # noqa
+# todo: SystmOne (CRATE traffic-light system): implement S1_ClinicalOutcome_ConsentResearch  # noqa
 
 # =============================================================================
 # Imports
@@ -800,17 +800,19 @@ class S1GenericCol:
     """
     Columns used in many SystmOne tables.
     """
-    DONE_AT = "IDOrganisationDoneAt"  # FK to SROrganisation.ID
-    DONE_BY = "IDDoneBy"  # FK to SRStaffMember.RowIdentifier
     EVENT_ID = "IDEvent"  # FK to SREvent.RowIdentifier
-    EVENT_OCCURRED = "DateEvent"  # when event happened
-    EVENT_RECORDED = "DateEventRecorded"  # when event recorded
-    ORG = "IDOrganisation"  # org at which the data was entered
-    ORG_ID = "IDOrganisationVisibleTo"  # FK to SROrganisation.ID
+    EVENT_OCCURRED_WHEN = "DateEvent"  # when event happened
+    EVENT_RECORDED_WHEN = "DateEventRecorded"  # when event recorded
+    ORG_ID_DONE_AT = "IDOrganisationDoneAt"  # FK to SROrganisation.ID
+    ORG_ID_ENTERED_AT = "IDOrganisation"  # org at which the data was entered
+    ORG_ID_VISIBLE_TO = "IDOrganisationVisibleTo"  # FK to SROrganisation.ID
     ORG_REGISTERED_AT = "IDOrganisationRegisteredAt"  # org where the patient was registered when the data was entered  # noqa
-    PID = "IDPatient"  # FK to Patient table
-    PK = "RowIdentifier"  # PK for all tables
-    RECORDED_BY = "IDProfileEnteredBy"  # FK to SRStaffMemberProfile.RowIdentifier  # noqa
+    PATIENT_ID = "IDPatient"  # FK to SRPatient.RowIdentifier
+    PK = "RowIdentifier"  # PK for nearly all SystmOne original tables
+    QUESTIONNAIRE_ID = "IDAnsweredQuestionnaire"  # FK to SRAnsweredQuestionnaire.RowIdentifier  # noqa
+    REFERRAL_ID = "IDReferralIn"  # FK to SRReferralIn.RowIdentifier  # noqa
+    STAFF_ID_DONE_BY = "IDDoneBy"  # FK to SRStaffMember.RowIdentifier
+    STAFF_PROFILE_ID_RECORDED_BY = "IDProfileEnteredBy"  # FK to SRStaffMemberProfile.RowIdentifier  # noqa
 
 
 class CPFTGenericCol:
@@ -831,12 +833,14 @@ class CPFTGenericCol:
     PATIENT_ADDRESS = "PatientAddress"
     PATIENT_NAME = "PatientName"
     POSTCODE = "PostCode"
+    PATIENT_ID_SYNONYM_1 = "Patient_ID"
 
 
 class S1PatientCol:
     """
     Columns in the Patient table.
     """
+    PK = S1GenericCol.PK  # RowIdentifier
     NHSNUM = "NHSNumber"
     TITLE = "Title"
     FORENAME = "FirstName"
@@ -848,7 +852,7 @@ class S1PatientCol:
     DOD = "DateDeath"
     BIRTHPLACE = "BirthPlace"
     GENDER = "Gender"
-    SPEAKS_ENGLISH = "SpeaksEnglish"  # curious that this is a specific flag  # noqa
+    SPEAKS_ENGLISH = "SpeaksEnglish"  # curious that this is a specific flag
     TESTPATIENT = "TestPatient"
     SOCIAL_SERVICES_REF = "SSRef"
     SPINE_MATCHED = "SpineMatched"
@@ -967,7 +971,7 @@ S1_TO_CPFT_COLUMN_TRANSLATION = {
 }
 
 PID_SYNONYMS = (
-    S1GenericCol.PID,
+    S1GenericCol.PATIENT_ID,
 
     "ClientID",
     # ... seen in CPFT -- although often these tables should be excluded and
@@ -1005,15 +1009,15 @@ CONTEXT_TO_CORE_CONTEXT_COLUMN_TRANSLATIONS = {
 }  # type: COLUMN_TRANSLATION_DICT_TYPE
 
 S1_COLS_GENERIC_OK_UNMODIFIED = (
-    S1GenericCol.DONE_AT,
-    S1GenericCol.DONE_BY,
+    S1GenericCol.ORG_ID_DONE_AT,
+    S1GenericCol.STAFF_ID_DONE_BY,
     S1GenericCol.EVENT_ID,
-    S1GenericCol.EVENT_OCCURRED,
-    S1GenericCol.EVENT_RECORDED,
-    S1GenericCol.ORG,
-    S1GenericCol.ORG_ID,
+    S1GenericCol.EVENT_OCCURRED_WHEN,
+    S1GenericCol.EVENT_RECORDED_WHEN,
+    S1GenericCol.ORG_ID_ENTERED_AT,
+    S1GenericCol.ORG_ID_VISIBLE_TO,
     S1GenericCol.ORG_REGISTERED_AT,
-    S1GenericCol.RECORDED_BY,
+    S1GenericCol.STAFF_PROFILE_ID_RECORDED_BY,
 )
 S1_COLS_GENERIC_EXCLUDE = (
     # Columns to exclude, regardless of table.
@@ -1086,7 +1090,7 @@ S1_COLS_PATIENT_WORDS = (
 )
 S1_COLS_REQUIRED_SCRUBBERS = (
     # Information that must be present in the master patient table.
-    S1GenericCol.PK,  # likely redundant! It's the PID "definer".
+    S1PatientCol.PK,  # likely redundant! It's the PID "definer".
     S1PatientCol.FORENAME,
     S1PatientCol.SURNAME,
     S1PatientCol.DOB,
@@ -1246,12 +1250,79 @@ FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS = (
 EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS = (
     # S1_Patient.IDPatient: Added by CPFT. Duplicate of RowIdentifier.
     # But likely to be used by researchers, so should be indexed.
-    (S1Table.PATIENT, S1GenericCol.PID),
+    (S1Table.PATIENT, S1GenericCol.PATIENT_ID),
 )
-
+GENERIC_COLS_TO_INDEX = (
+    # Generically sensible things to index.
+    S1GenericCol.EVENT_ID,
+    S1GenericCol.PATIENT_ID,
+    S1GenericCol.QUESTIONNAIRE_ID,
+    S1GenericCol.REFERRAL_ID,
+    CPFTGenericCol.PATIENT_ID_SYNONYM_1,
+)
 EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_PAIRS = (
     # Things that look like free text, but aren't.
     ("AnsweredQuestionnaire", "QuestionnaireName"),
+)
+
+
+PK_TABLENAME_COLNAME_REGEX_PAIRS = (
+    # Primary key fields with non-standard names.
+    # Note that some are CPFT-created tables, which is why they don't follow
+    # standard conventions.
+    ("3DayFollowUp", "IDHospitalAdmissionAndDischarge"),
+    ("ActivityEvent_EventDuration", S1GenericCol.EVENT_ID),
+    # AQ_* -- no obvious PK.
+    ("_CGAS_PairedScore_By_Referral", S1GenericCol.REFERRAL_ID),
+    ("CarePlan", "CarePlanID"),  # includes CarePlanDetail
+    # ... CarePlanReview has IDCarePlan but that is not unique.
+    ("Caseload", "IDReferralIn"),
+    # ClinicalDashboard*: a bunch of CPFT things; no obvious PK.
+    # ClinicalMeasure*: a bunch of CPFT derived things; no obvious PK.
+    # ClinicalOutcome*: a bunch of CPFT derived things; no obvious PK.
+    # ContactsArchive_LatestStaffContact: no obvious PK.
+    ("ContactsArchive_NonLegalContacts", S1GenericCol.EVENT_ID),
+    ("ContactsArchive_TotalsByReferral", S1GenericCol.REFERRAL_ID),
+    # Contacts_CYP_PlanMetric_7: no obvious PK.
+    ("Contacts_CarerStatus_MH", S1GenericCol.PATIENT_ID),
+    ("Contacts_CarerStatus_PH", S1GenericCol.PATIENT_ID),
+    # CoronaVirus: no obvious PK (maybe combination of IDPatient, IDReferralIn)
+    # CurrentInpatientDashboard_Doctors: *almost* IDPatient, IDReferralIn but one extra row  # noqa
+    # Deaths: no obvious PK, despite "ClientID" (not unique)
+    ("Demographics", S1GenericCol.PATIENT_ID),
+    # DischargeDelay_Fact: no obvious PK.
+    # EuroQol*: no PKs
+    # FACT_Inp_Data: no obvious PK.
+    # Falls_AtRiskState*: no PKs
+    # FreeText_* [CPFT derived free text tables]: none in the first, not all explored  # noqa
+    # GateKeeping: no obvious PK.
+    # Honos_Scores: no PK
+    # ICW_PTL: no PK
+    # Immunisation: no obvious PK
+    # InpatientLeave: no obvious PK
+    # Inpatient_NorthwickParkIndex: no obvious PK
+    # LADSAdults_Output: no obvious PK
+    ("LADSAdultsQuestionnaires", S1GenericCol.QUESTIONNAIRE_ID),
+    # LADSCYPHS_Output: no obvious PK
+    ("LADSCYPQuestionnaires", S1GenericCol.QUESTIONNAIRE_ID),
+    ("MDT_Caseload", S1GenericCol.REFERRAL_ID),
+    # OutOfHoursSRCodeInformation: no PK
+    # PRISM_ReReferral: no PK
+    # PatientAnsweredQuestionnaireInformation: IDPatient currently unique but I strongly suspect only temporarily  # noqa
+    # PatientContact: no PK
+    # PatientEthnicity: no PK
+    ("PatientGPPractice", S1GenericCol.PATIENT_ID),
+    # PatientLanguageDeathOptions: no PK
+    # PatientLetterInformation: IDPatient currently unique but I strongly suspect only temporarily  # noqa
+    ("PatientOverview", S1GenericCol.REFERRAL_ID),
+    # PatientRelationship: no PK
+    ("PatientRelationshipMother", S1GenericCol.PATIENT_ID),
+    # PatientSRCodeInformation: no PK
+    # PhysicalHealthChecks*: no PK (IDPatient currently unique in S1_PhysicalHealthChecks_CQUIN but unlikely to remain so)  # noqa
+    # QRisk: no PK
+    ("ReferralInIntervention", S1GenericCol.REFERRAL_ID),
+    ("Vanguard", "ReferralNumber"),
+    # eDSM: no PK
 )
 
 
@@ -1590,29 +1661,28 @@ def is_mpid(colname: str) -> bool:
     return is_in(colname, MPID_SYNONYMS)
 
 
-def is_pk(colname: str, ddr: DataDictionaryRow) -> bool:
+def is_pk(tablename: str, colname: str, ddr: DataDictionaryRow) -> bool:
     """
     Is this a primary key (PK) column within its table?
     """
     # This check is debatable. It's possible that the source database has
     # columns that are NULLable but are in fact never null and are PKs. Indeed,
     # that is the case; e.g. S1_FreeText.RowIdentifier is shown as "bigint,
-    # null" in SQL Server Manager, but "SELECT * FROM S1_FreeText WHERE
-    # RowIdentifier IS NULL" gives 0 rows.
+    # null" in SQL Server Manager, but "SELECT COUNT(*) FROM S1_FreeText WHERE
+    # RowIdentifier IS NULL" gives 0 rows, out of ~1M rows in total.
     #
     # if ddr.src_reflected_nullable:
     #     return False  # can't be a PK if it can be NULL
 
-    if ddr.src_reflected_primary_key:
+    # 1. If the source database says so (ours never does).
+    if ddr.pk:
         return True
-    return is_pk_simple(colname)
-
-
-def is_pk_simple(colname: str) -> bool:
-    """
-    Is this likely to be a primary key column, based only on its name?
-    """
-    return eq(colname, S1GenericCol.PK)
+    # 2. If it has the standard column name, i.e. RowIdentifier, then it's
+    #    a PK.
+    if eq(colname, S1GenericCol.PK):
+        return True
+    # 3. If it's a specifically noted PK.
+    return is_pair_in_re(tablename, colname, PK_TABLENAME_COLNAME_REGEX_PAIRS)
 
 
 def is_free_text(tablename: str,
@@ -1657,9 +1727,10 @@ def process_generic_table_column(tablename: str,
     # ---------------------------------------------------------------------
     # Generic table
     # ---------------------------------------------------------------------
-    if is_pk(colname, ddr):
+    if is_pk(tablename, colname, ddr):
         # PK for all tables.
         ssi.add_src_flag(SrcFlag.PK)
+        ssi.add_src_flag(SrcFlag.NOT_NULL)
         ssi.add_src_flag(SrcFlag.ADD_SRC_HASH)
         ssi.include()
 
@@ -1739,14 +1810,16 @@ def get_scrub_alter_details(
         if eq(colname, S1GenericCol.PK):
             # RowIdentifier: SystmOne patient ID in the master patient table.
             # Hash and scrub SystmOne IDs.
+            ssi.add_src_flag(SrcFlag.PK)
+            ssi.add_src_flag(SrcFlag.NOT_NULL)
             ssi.add_src_flag(SrcFlag.PRIMARY_PID)  # automatically hashed
             ssi.add_src_flag(SrcFlag.DEFINES_PRIMARY_PIDS)
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.NUMERIC
             ssi.include()
 
-        elif eq(colname, S1GenericCol.PID):
-            # IDPatient: Added by CPFT to the master patient table?
+        elif eq(colname, S1GenericCol.PATIENT_ID):
+            # IDPatient: Added by CPFT to the master patient table.
             # Needs to be hashed. Is a duplicate of RowIdentifier.
             ssi.add_src_flag(SrcFlag.PRIMARY_PID)  # automatically hashed
             ssi.scrub_src = ScrubSrc.PATIENT
@@ -1959,7 +2032,7 @@ def get_index_flag(tablename: str,
     Should this be indexed? Returns an indexing flag, or ``None`` if it should
     not be indexed.
     """
-    if is_pk(colname, ddr):
+    if is_pk(tablename, colname, ddr):
         # PKs should have a unique index.
         return IndexType.UNIQUE
     elif is_master_patient_table(tablename) and is_pid(colname):
@@ -1972,6 +2045,8 @@ def get_index_flag(tablename: str,
     elif is_pair_in(tablename, colname,
                     EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS):
         # Additional columns to index
+        return IndexType.NORMAL
+    elif colname in GENERIC_COLS_TO_INDEX:
         return IndexType.NORMAL
     elif should_be_fulltext_indexed(tablename, colname):
         # Full-text indexes

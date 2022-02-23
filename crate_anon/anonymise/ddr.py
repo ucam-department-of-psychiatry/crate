@@ -184,8 +184,6 @@ class DataDictionaryRow(object):
         self.src_textlength = None  # type: Optional[int]
 
         self._src_sqla_coltype = None  # type: Optional[str]
-        self._src_reflected_nullable = True
-        self._src_reflected_primary_key = False
 
         self.scrub_src = None  # type: Optional[str]
         self.scrub_method = None  # type: Optional[str]
@@ -199,6 +197,7 @@ class DataDictionaryRow(object):
         self.dest_table = None  # type: Optional[str]
         self.dest_field = None  # type: Optional[str]
         self.dest_datatype = None  # type: Optional[str]
+        self._dest_nullable = None  # type: Optional[bool]
         self.index = IndexType.NONE  # type: IndexType
         self.indexlen = None  # type: Optional[int]
         self.comment = ''
@@ -207,6 +206,7 @@ class DataDictionaryRow(object):
 
         # For src_flags:
         self._pk = False
+        self._not_null = False
         self._add_src_hash = False
         self._primary_pid = False
         self._defines_primary_pids = False
@@ -255,20 +255,12 @@ class DataDictionaryRow(object):
         return self._pk
 
     @property
-    def src_reflected_nullable(self) -> bool:
+    def not_null(self) -> bool:
         """
-        Defaults to True. But if the DD row was created by database reflection,
+        Defaults to False. But if the DD row was created by database reflection,
         and the source field was set NOT NULL, will return True.
         """
-        return self._src_reflected_nullable
-
-    @property
-    def src_reflected_primary_key(self) -> bool:
-        """
-        Defaults to True. But if the DD row was created by database reflection,
-        and the source field was marked as a PRIMARY KEY, will return True.
-        """
-        return self._src_reflected_primary_key
+        return self._not_null
 
     @property
     def add_src_hash(self) -> bool:
@@ -382,6 +374,7 @@ class DataDictionaryRow(object):
         """
         return ''.join(str(x) for x in (
             SrcFlag.PK if self._pk else '',
+            SrcFlag.NOT_NULL if self._not_null else '',
             SrcFlag.ADD_SRC_HASH if self._add_src_hash else '',
             SrcFlag.PRIMARY_PID if self._primary_pid else '',
             SrcFlag.DEFINES_PRIMARY_PIDS if self._defines_primary_pids else '',
@@ -393,20 +386,21 @@ class DataDictionaryRow(object):
         ))
 
     @src_flags.setter
-    def src_flags(self, value: str) -> None:
+    def src_flags(self, flags: str) -> None:
         """
         Takes a string representation of the source flags, and sets our
         internal flags accordingly.
         """
-        self._pk = SrcFlag.PK.value in value
-        self._add_src_hash = SrcFlag.ADD_SRC_HASH.value in value
-        self._primary_pid = SrcFlag.PRIMARY_PID.value in value
-        self._defines_primary_pids = SrcFlag.DEFINES_PRIMARY_PIDS.value in value
-        self._master_pid = SrcFlag.MASTER_PID.value in value
-        self._constant = SrcFlag.CONSTANT.value in value
-        self._addition_only = SrcFlag.ADDITION_ONLY.value in value
-        self._opt_out_info = SrcFlag.OPT_OUT.value in value
-        self._required_scrubber = SrcFlag.REQUIRED_SCRUBBER.value in value
+        self._pk = SrcFlag.PK.value in flags
+        self._not_null = SrcFlag.NOT_NULL.value in flags
+        self._add_src_hash = SrcFlag.ADD_SRC_HASH.value in flags
+        self._primary_pid = SrcFlag.PRIMARY_PID.value in flags
+        self._defines_primary_pids = SrcFlag.DEFINES_PRIMARY_PIDS.value in flags
+        self._master_pid = SrcFlag.MASTER_PID.value in flags
+        self._constant = SrcFlag.CONSTANT.value in flags
+        self._addition_only = SrcFlag.ADDITION_ONLY.value in flags
+        self._opt_out_info = SrcFlag.OPT_OUT.value in flags
+        self._required_scrubber = SrcFlag.REQUIRED_SCRUBBER.value in flags
 
     @property
     def inclusion_values(self) -> List[Any]:
@@ -898,6 +892,11 @@ class DataDictionaryRow(object):
     def dest_sqla_coltype(self) -> TypeEngine:
         """
         Returns the SQLAlchemy column type of the destination column.
+
+        Note that this doesn't include nullable status. An SQLAlchemy column
+        looks like Column(String(50), nullable=False) -- the type that we're
+        fetching here is, for example, the String(50) part. For the full
+        column, see ``dest_sqla_column`` below.
         """
         if self.dest_datatype:
             # User (or our autogeneration process) wants to override
@@ -932,15 +931,14 @@ class DataDictionaryRow(object):
         coltype = self.dest_sqla_coltype
         comment = self.comment or ''
         kwargs = {
-            'doc': comment,
-            # When SQLAlchemy 1.2 released, add this:
-            # 'comment': comment,
-            # https://bitbucket.org/zzzeek/sqlalchemy/issues/1546/feature-request-commenting-db-objects  # noqa
+            'doc': comment,  # Python side
+            'comment': comment,  # SQL side; supported from SQLAlchemy 1.2:
+            # https://docs.sqlalchemy.org/en/14/core/metadata.html#sqlalchemy.schema.Column.params.comment  # noqa
         }
-        if self._pk:
+        if self.pk:
             kwargs['primary_key'] = True
             kwargs['autoincrement'] = False
-        if self.primary_pid:
+        if self.not_null or self.primary_pid:
             kwargs['nullable'] = False
         return Column(name, coltype, **kwargs)
 
@@ -1274,8 +1272,7 @@ class DataDictionaryRow(object):
         self.src_field = src_field
         self.src_datatype = src_datatype_sqltext
         self._src_sqla_coltype = src_sqla_coltype
-        self._src_reflected_nullable = nullable
-        self._src_reflected_primary_key = primary_key
+        self._not_null = not nullable
         self._pk = False
         self._add_src_hash = False
         self._primary_pid = False

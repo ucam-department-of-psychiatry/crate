@@ -1470,6 +1470,13 @@ Changes
     data dictionary row with the same name, that we don't attempt to add it
     twice.
 
+  - Make primary key columns (which are already detected and/or configured by
+    the user) explicitly NOT NULL on the destination, which allows free-text
+    indexing. Replicate source NOT NULL status, allowing the user to control
+    this via a source flag, for other column types.
+
+  - Add support for SQL column comments (supported since SQLAlchemy 1.2).
+
 
 To do
 -----

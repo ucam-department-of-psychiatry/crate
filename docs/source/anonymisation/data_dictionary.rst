@@ -113,6 +113,21 @@ Character   Meaning
 ``K``       | **PK.**
             | This field is the primary key (PK) for the table it's in.
 
+``N``       | **NOT NULL.**
+            | This field should be set to ``NOT NULL`` in the destination.
+
+            - Primary key columns are usually NOT NULL. It is in principle
+              possible to have a NULL primary key but this is extremely rare
+              and not usually sensible.
+
+            - Primary PID columns (see below) are set to ``NOT NULL``
+              automatically by CRATE.
+
+            - NOT NULL status might not seem to matter for a read-only research
+              database, but having the correct NOT NULL status is required by
+              some database engines (e.g. SQL Server) for full-text indexing of
+              other fields (see below).
+
 ``H``       | **ADD SOURCE HASH.**
             | Add source hash of the record, for incremental updates?
 
@@ -506,6 +521,11 @@ Value       Meaning
 
 ``F``       Create a `FULLTEXT` index, for rapid searching within long text
             fields. Only applicable to one field per table.
+
+            - Some database engines (e.g. Microsoft SQL Server) require a NOT
+              NULL column with a unique index (i.e. effectively a slightly more
+              restricted primary key) to be present in the same table before it
+              will permit a FULLTEXT index.
 =========== ===================================================================
 
 

@@ -158,6 +158,7 @@ class ScrubSrc(StrEnum):
 @unique
 class SrcFlag(StrEnum):
     PK = "K"
+    NOT_NULL = "N"
     ADD_SRC_HASH = "H"
     PRIMARY_PID = "P"
     DEFINES_PRIMARY_PIDS = "*"

@@ -418,14 +418,12 @@ class DataDictionary(object):
                                   f"{tablename}.{columnname}")
                         continue
                     # Other attributes
+                    sqla_coltype = c.type
                     try:
-                        datatype_sqltext = str(c.type)
+                        datatype_sqltext = str(sqla_coltype)
                     except sqlalchemy.exc.CompileError:
                         log.critical(f"Column that failed was: {c!r}")
                         raise
-                    sqla_coltype = c.type
-                    nullable = c.nullable
-                    primary_key = c.primary_key
                     comment = getattr(c, "comment", "")
                     # ... not all dialects support reflecting comments;
                     # https://docs.sqlalchemy.org/en/14/core/reflection.html
@@ -439,8 +437,8 @@ class DataDictionary(object):
                         sqla_coltype,
                         dbconf=cfg,
                         comment=comment,
-                        nullable=nullable,
-                        primary_key=primary_key,
+                        nullable=c.nullable,
+                        primary_key=c.primary_key,
                     )
 
                     # ---------------------------------------------------------
@@ -474,14 +472,41 @@ class DataDictionary(object):
 
         .. code-block:: sql
 
-            -- SQL Server
+            -- ----------------------------------------------------------------
+            -- SQL Server: basic use
+            -- ----------------------------------------------------------------
+
             USE mydb;
             CREATE FULLTEXT CATALOG default_fulltext_catalog AS DEFAULT;
             CREATE TABLE junk (intthing INT PRIMARY KEY, textthing VARCHAR(MAX));
             -- now find the name of the PK index (! -- by hand or see cardinal_pythonlib)
             CREATE FULLTEXT INDEX ON junk (textthing) KEY INDEX <pk_index_name>;
 
-            -- MySQL:
+            -- ----------------------------------------------------------------
+            -- SQL Server: it means it about the "NOT NULL" aspects, and a
+            -- unique index is not enough
+            -- ----------------------------------------------------------------
+
+            USE mydb;
+            DROP TABLE IF EXISTS rubbish;
+            CREATE TABLE rubbish (a INT NOT NULL, b VARCHAR(MAX));
+            CREATE UNIQUE INDEX rubbish_a ON rubbish (a);
+            CREATE FULLTEXT INDEX ON rubbish (b) KEY INDEX rubbish_a;
+            
+            -- .. that works, but if you remove the "NOT NULL" from the table
+            -- definition, it fails with:
+            --
+            -- 'rubbish_a' is not a valid index to enforce a full-text search
+            -- key. A full-text search key must be a unique, non-nullable,
+            -- single-column index which is not offline, is not defined on a
+            -- non-deterministic or imprecise nonpersisted computed column,
+            -- does not have a filter, and has maximum size of 900 bytes.
+            -- Choose another index for the full-text key.
+
+            -- ----------------------------------------------------------------
+            -- MySQL: two FULLTEXT indexes on one table
+            -- ----------------------------------------------------------------
+
             USE mydb;
             CREATE TABLE junk (intthing INT PRIMARY KEY, text1 LONGTEXT, text2 LONGTEXT);
             ALTER TABLE junk ADD FULLTEXT INDEX ftidx1 (text1);
@@ -514,7 +539,7 @@ class DataDictionary(object):
                 table_ok_for_fulltext = False
                 for ddr in rows:
                     if (ddr.include
-                            and not ddr.src_reflected_nullable
+                            and not ddr.not_null
                             and ddr.index == IndexType.UNIQUE):
                         table_ok_for_fulltext = True
                 if not table_ok_for_fulltext:
