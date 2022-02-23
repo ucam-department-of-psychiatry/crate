@@ -136,13 +136,15 @@ Character   Meaning
               `index=U` setting, so that a unique index is created for this
               field).
 
-            - If set, a field is added to the destination table, with field
-              name as set by the config's :ref:`source_hash_fieldname
-              <source_hash_fieldname>` variable, containing a hash of the
-              contents of the source record -- all fields that are not omitted,
-              OR contain scrubbing information (``scrub_src``). The field is of
-              type ``VARCHAR`` and its length is determined by the
-              :ref:`hash_method <anon_config_hash_method>` option.
+            - If set, an additional column (field) is added to the destination
+              table. This extra column's name is the value of the config's
+              :ref:`source_hash_fieldname <source_hash_fieldname>` variable; it
+              is of type ``VARCHAR`` and its length is determined by the
+              :ref:`hash_method <anon_config_hash_method>` option. This field
+              will contain a hash of the contents of the source record
+              (specifically, a hash of a composite of all fields that are not
+              omitted, OR contain scrubbing information as determined by
+              ``scrub_src``).
 
             - This table is then capable of incremental updates.
 

@@ -515,14 +515,20 @@ class DataDictionary(object):
         log.info("Tidying/correcting draft data dictionary")
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        log.debug("... Ensuring we don't scrub in non-patient tables")
+        log.info("... Ensuring we don't scrub in non-patient tables")
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         for d, t in self.get_src_db_tablepairs_w_no_pt_info():
             for ddr in self.get_rows_for_src_table(d, t):
-                ddr.remove_scrub_from_alter_methods()
+                if ddr.being_scrubbed:
+                    log.warning(
+                        f"Removing {AlterMethodType.SCRUBIN.value} from "
+                        f"{DataDictionaryRow.ALTER_METHOD} setting of "
+                        f"destination {ddr.dest_signature}, since that is not "
+                        f"a patient table")
+                    ddr.remove_scrub_from_alter_methods()
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        log.debug("... Make full-text indexes follow dialect rules")
+        log.info("... Make full-text indexes follow dialect rules")
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # https://docs.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-index-transact-sql?view=sql-server-ver15  # noqa
         if self.dest_dialect_name == SqlaDialectName.SQLSERVER:
@@ -950,11 +956,10 @@ class DataDictionary(object):
         Return a SortedSet of ``source_database_name, source_table`` tuples
         for tables that contain no patient information.
         """
-        return SortedSet([
-            (ddr.src_db, ddr.src_table)
-            for ddr in self.rows
-            if not ddr.contains_patient_info
-        ])
+        return (
+            self.get_src_db_tablepairs()
+            - self.get_src_db_tablepairs_w_pt_info()
+        )
 
     def get_tables_w_no_pt_info(self) -> AbstractSet[str]:
         """

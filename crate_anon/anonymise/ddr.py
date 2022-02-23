@@ -180,20 +180,18 @@ class DataDictionaryRow(object):
             config: :class:`crate_anon.anonymise.config.Config`
         """
         self.config = config
+
+        # In the order of ROWNAMES:
         self.src_db = None  # type: Optional[str]
         self.src_table = None  # type: Optional[str]
         self.src_field = None  # type: Optional[str]
         self.src_datatype = None    # type: Optional[str]  # in SQL string format  # noqa
         # src_flags: a property; see below
 
-        self._src_override_dialect = None  # type: Optional[Dialect]
-        self._src_sqla_coltype = None  # type: Optional[str]
-
         self.scrub_src = None  # type: Optional[str]
         self.scrub_method = None  # type: Optional[str]
 
         # decision: a property; see below
-        self.omit = False  # in the DD file, this is 'decision'
         # inclusion_values: a property; see below
         # exclusion_values: a property; see below
         # alter_method: a property; see below
@@ -201,12 +199,9 @@ class DataDictionaryRow(object):
         self.dest_table = None  # type: Optional[str]
         self.dest_field = None  # type: Optional[str]
         self.dest_datatype = None  # type: Optional[str]
-        self._dest_nullable = None  # type: Optional[bool]
         self.index = IndexType.NONE  # type: IndexType
         self.indexlen = None  # type: Optional[int]
         self.comment = ''
-
-        self._from_file = False
 
         # For src_flags:
         self._pk = False
@@ -220,9 +215,14 @@ class DataDictionaryRow(object):
         self._opt_out_info = False
         self._required_scrubber = False
 
+        # Other:
+        self.omit = False  # in the DD file, this corresponds to 'decision'
+
+        self._from_file = False
+        self._src_override_dialect = None  # type: Optional[Dialect]
+        self._src_sqla_coltype = None  # type: Optional[str]
         self._inclusion_values = []  # type: List[Any]
         self._exclusion_values = []  # type: List[Any]
-
         self._alter_methods = []  # type: List[AlterMethod]
 
     # -------------------------------------------------------------------------
@@ -545,6 +545,8 @@ class DataDictionaryRow(object):
         """
         return ",".join(filter(
             None, (x.as_text for x in self._alter_methods)))
+        # This removes any AlterMethod objects that are doing nothing, because
+        # they return blank strings.
 
     @alter_method.setter
     def alter_method(self, value: str) -> None:
@@ -587,6 +589,7 @@ class DataDictionaryRow(object):
         """
         For internal use: setting from a list directly.
         """
+        # Calls the alter_method setter.
         self.alter_method = ",".join(m.as_text for m in methods)
 
     @property

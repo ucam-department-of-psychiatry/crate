@@ -2371,8 +2371,6 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
 
     # Indexing
     ddr.index = get_index_flag(tablename, colname, ddr, context)
-    if SrcFlag.ADD_SRC_HASH.value in ssi.src_flags:
-        ddr.index = IndexType.UNIQUE
 
     # Improve comment
     spec = specifications.get((tablename, colname))
