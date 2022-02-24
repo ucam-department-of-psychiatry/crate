@@ -784,7 +784,7 @@ _OMIT_TABLES_REGEX_CPFT = (
     # - These are "local" codes.
     #   ("Official" Read codes have been frozen since 2016, according to
     #   https://datadictionary.nhs.uk/supporting_information/read_coded_clinical_terms.html.)  # noqa
-    # - They indicate whether or not someone is a healthcare worker (HCW).
+    # - They indicate whether someone is a healthcare worker (HCW).
     # - Introduced for COVID-19, since HCW status was a clear risk factor for
     #   infection.
     # - No detail suggesting identification (and they don't indicate e.g.
@@ -886,6 +886,11 @@ class S1GenericCol:
     STAFF_ID_DONE_BY = "IDDoneBy"  # FK to SRStaffMember.RowIdentifier
     STAFF_PROFILE_ID_RECORDED_BY = "IDProfileEnteredBy"  # FK to SRStaffMemberProfile.RowIdentifier  # noqa
 
+    CTV3_CODE = "CTV3Code"  # Read code
+    CTV3_TEXT = "CTV3Text"  # ... and corresponding description
+    SNOMED_CODE = "SNOMEDCode"  # SNOMED-CT code
+    SNOMED_TEXT = "SNOMEDText"  # ... and corresponding description
+
 
 class CPFTGenericCol:
     """"
@@ -896,7 +901,7 @@ class CPFTGenericCol:
     # are unsure when the data was extracted; see stored procedure
     # load_S1_Patient.
     ASSIGNMENT_NUMBER = "AssignmentNumber"
-    # ... payroll number of member of staff, I think -- too sensitive and I am
+    # ... payroll number of member of staff, I think -- too sensitive, and I am
     # surprised it is there in the first place.
     HOME_CONTACT_NUMBER = "HomeContactNumber"
     MOBILE_CONTACT_NUMBER = "MobileContactNumber"
@@ -1414,7 +1419,6 @@ _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Clinical"),
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Outcome"),
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*NextOfKin"),
-    # ... actually, superseded; see tables picked up by "FreeText_" above.
 )
 FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.TPP_SRE: _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1,
@@ -1450,22 +1454,26 @@ FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
     ("FreeText$", "FreeText$"),  # the bulk of free text; VARCHAR(MAX)
 )
 
-_EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS_CPFT = (
+_NORMAL_INDEX_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # S1_Patient.IDPatient: Added by CPFT. Duplicate of RowIdentifier.
     # But likely to be used by researchers, so should be indexed.
-    (S1Table.PATIENT, S1GenericCol.PATIENT_ID),
+    (S1Table.PATIENT + "$", S1GenericCol.PATIENT_ID + "$"),
 )
-EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS = {
+NORMAL_INDEX_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.TPP_SRE: (),
-    SystmOneContext.CPFT_DW: _EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS_CPFT,  # noqa
+    SystmOneContext.CPFT_DW: _NORMAL_INDEX_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
 _GENERIC_COLS_TO_INDEX_S1 = (
     # Generically sensible things to index.
-    S1GenericCol.EVENT_ID,
-    S1GenericCol.PATIENT_ID,
-    S1GenericCol.QUESTIONNAIRE_ID,
-    S1GenericCol.REFERRAL_ID,
+    S1GenericCol.CTV3_CODE,  # common clinical coding
+    S1GenericCol.CTV3_TEXT,  # common clinical coding
+    S1GenericCol.EVENT_ID,  # a common FK
+    S1GenericCol.EVENT_OCCURRED_WHEN,  # when did it happen?
+    S1GenericCol.QUESTIONNAIRE_ID,  # a common FK
+    S1GenericCol.REFERRAL_ID,  # a common FK
+    S1GenericCol.SNOMED_CODE,  # common clinical coding
+    S1GenericCol.SNOMED_TEXT,  # common clinical coding
 )
 _GENERIC_COLS_TO_INDEX_CPFT = (
     CPFTGenericCol.PATIENT_ID_SYNONYM_1,
@@ -1941,7 +1949,7 @@ def is_pk(tablename: str,
     #     return False  # can't be a PK if it can be NULL
 
     # 1. If it's explicitly ruled out as a PK (e.g. it has the name that should
-    #    mean it's a PK but it's been messed with locally, or the TPP design
+    #    mean it's a PK, but it's been messed with locally, or the TPP design
     #    team were having an off day), then it's not a PK.
     if is_pair_in_re(tablename, colname,
                      NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS[context]):
@@ -1985,8 +1993,8 @@ def is_free_text(tablename: str,
 def should_be_fulltext_indexed(tablename: str, colname: str) -> bool:
     """
     Is this a field that should get a FULLTEXT index? That's not just "a column
-    that contains free text and should scrubbed", that is "a column with a lot
-    of interesting free text that should get a special index".
+    that contains free text and should be scrubbed", that is "a column with a
+    lot of interesting free text that should get a special index".
     """
     return is_pair_in_re(tablename, colname,
                          FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS_S1)
@@ -2361,8 +2369,9 @@ def get_index_flag(tablename: str,
     if pid or is_mpid(colname, context):
         # We index all patient IDs.
         return IndexType.NORMAL
-    if is_pair_in(tablename, colname,
-                  EXTRA_STANDARD_INDEX_TABLENAME_COLNAME_PAIRS[context]):
+    if is_pair_in_re(
+            tablename, colname,
+            NORMAL_INDEX_TABLENAME_COLNAME_REGEX_PAIRS[context]):
         # Additional columns to index
         return IndexType.NORMAL
     if colname in GENERIC_COLS_TO_INDEX[context]:

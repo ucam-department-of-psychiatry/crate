@@ -117,7 +117,7 @@ def add_table_criteria(criteria: List[TableCriterion],
         criteria.append(TableCriterion(stage=stage, table_regex_str=rs))
 
 
-def add_field_criteria(criteria: List[TableCriterion],
+def add_field_criteria(criteria: List[FieldCriterion],
                        stage: Optional[int],
                        regex_tuples: List[Tuple[str, str]]) -> None:
     """

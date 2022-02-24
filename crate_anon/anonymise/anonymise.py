@@ -805,7 +805,7 @@ def gen_patient_ids(
 
     # Debug option?
     if config.debug_pid_list:
-        log.warning("USING MANUALLY SPECIFIED INTEGER PATIENT ID LIST")
+        log.warning("USING MANUALLY SPECIFIED PATIENT ID LIST")
         for pid in config.debug_pid_list:
             if pid_is_integer:
                 pid = int(pid)

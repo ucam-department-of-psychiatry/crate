@@ -35,11 +35,19 @@ Information to filter SystmOne data dictionaries for TIMELY.
 # Imports
 # =============================================================================
 
+from typing import Optional, List, Tuple
+
 from crate_anon.ancillary.timely_project.dd_criteria import (
     add_field_criteria,
     add_table_criteria,
+    FieldCriterion,
+    TableCriterion,
 )
 from crate_anon.ancillary.timely_project.timely_filter import TimelyDDFilter
+from crate_anon.preprocess.systmone_ddgen import (
+    SystmOneContext,
+    TABLE_PREFIXES,
+)
 
 
 # =============================================================================
@@ -50,6 +58,37 @@ class TimelySystmOneFilter(TimelyDDFilter):
     """
     Filter a SystmOne data dictionary (with some CPFT extensions).
     """
+
+    CONTEXT = SystmOneContext.TPP_SRE  # default context
+
+    @classmethod
+    def _add_tables(cls,
+                    criteria: List[TableCriterion],
+                    stage: Optional[int],
+                    regex_strings: List[str]) -> None:
+        """
+        Apply a context-specific table prefix before adding table criteria.
+        """
+        table_prefix = TABLE_PREFIXES[cls.CONTEXT]
+        prefixed_regex_strings = [
+            table_prefix + t for t in regex_strings
+        ]
+        add_table_criteria(criteria, stage, prefixed_regex_strings)
+
+    @classmethod
+    def _add_fields(cls,
+                    criteria: List[FieldCriterion],
+                    stage: Optional[int],
+                    regex_tuples: List[Tuple[str, str]]) -> None:
+        """
+        Apply a context-specific table prefix before adding field criteria.
+        """
+        table_prefix = TABLE_PREFIXES[cls.CONTEXT]
+        prefixed_regex_tuples = [
+            (table_prefix + t, f) for t, f in regex_tuples
+        ]
+        add_field_criteria(criteria, stage, prefixed_regex_tuples)
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -57,9 +96,7 @@ class TimelySystmOneFilter(TimelyDDFilter):
         # Generic exclusions
         # ---------------------------------------------------------------------
 
-        # todo: TIMELY/SystmOne: deal with prefixes ***
-
-        add_table_criteria(self.exclude_tables, stage=None, regex_strings=[
+        self._add_tables(self.exclude_tables, stage=None, regex_strings=[
         ])
 
         # ---------------------------------------------------------------------
@@ -67,7 +104,7 @@ class TimelySystmOneFilter(TimelyDDFilter):
         # contacts (e.g. referrals, contacts, discharge)
         # ---------------------------------------------------------------------
 
-        add_table_criteria(self.staged_include_tables, stage=1, regex_strings=[
+        self._add_tables(self.staged_include_tables, stage=1, regex_strings=[
             "18WeekWait",  # referral info
             "Accommodation",  # e.g. lives in sheltered accommodation
             "ActivityEvent.*",  # e.g. attendance/non-attendance at appts
@@ -127,7 +164,7 @@ class TimelySystmOneFilter(TimelyDDFilter):
         # professional types involved, procedures, outcome data, etc.
         # ---------------------------------------------------------------------
 
-        add_table_criteria(self.staged_include_tables, stage=2, regex_strings=[
+        self._add_tables(self.staged_include_tables, stage=2, regex_strings=[
             "AQ_.*",  # (fact of) answerered questionnaire
             "Clustering",  # care cluster classification
             "Coded_Procedure",
@@ -148,7 +185,7 @@ class TimelySystmOneFilter(TimelyDDFilter):
         # Stage 3: prescribing data
         # ---------------------------------------------------------------------
 
-        add_table_criteria(self.staged_include_tables, stage=3, regex_strings=[
+        self._add_tables(self.staged_include_tables, stage=3, regex_strings=[
             "CYPHS_502_Immunisation",
             "Immunisation",
         ])
@@ -157,7 +194,7 @@ class TimelySystmOneFilter(TimelyDDFilter):
         # Stage 4: test results, other health assessments, other clinical info
         # ---------------------------------------------------------------------
 
-        add_table_criteria(self.staged_include_tables, stage=4, regex_strings=[
+        self._add_tables(self.staged_include_tables, stage=4, regex_strings=[
             "AnsweredQuestionnaire",  # fact of questionnaires being answered
             "AssistiveTechnologyToSupportDisability",
             "ClinicalMeasure_.*",
@@ -175,7 +212,7 @@ class TimelySystmOneFilter(TimelyDDFilter):
         # Stage 5: (structured) info on care plans etc.
         # ---------------------------------------------------------------------
 
-        add_table_criteria(self.staged_include_tables, stage=5, regex_strings=[
+        self._add_tables(self.staged_include_tables, stage=5, regex_strings=[
             "CarePlan.*",
             "CPA.*",  # the rest, except "CPA" above
             "RestrictiveIntervention",  # restrictive physical intervention
@@ -185,7 +222,7 @@ class TimelySystmOneFilter(TimelyDDFilter):
         # Stage 6: de-identified free text
         # ---------------------------------------------------------------------
 
-        add_table_criteria(self.staged_include_tables, stage=6, regex_strings=[
+        self._add_tables(self.staged_include_tables, stage=6, regex_strings=[
             "CYPFRS_TelephoneTriage",
             "FreeText",
             "LADSCYPHS_Output",
@@ -198,7 +235,15 @@ class TimelySystmOneFilter(TimelyDDFilter):
         # Specific fields to exclude that would otherwise be included.
         # List of (tablename, fieldname) regex string tuples.
 
-        add_field_criteria(self.staged_exclude_fields, stage=5, regex_tuples=[
+        self._add_fields(self.staged_exclude_fields, stage=5, regex_tuples=[
             # "exclude at stage 5 or earlier"
             ("WaitingList", "Notes")
         ])
+
+
+class TimelyCPFTGenericSystmOneFilter(TimelySystmOneFilter):
+    """
+    Whatever we would have got from TimelySystmOneFilter, but with table
+    prefixes appropriate to the CPFT Data Warehouse.
+    """
+    CONTEXT = SystmOneContext.CPFT_DW

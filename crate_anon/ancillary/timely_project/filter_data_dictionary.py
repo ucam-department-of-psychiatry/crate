@@ -59,7 +59,7 @@ from crate_anon.ancillary.timely_project.timely_filter_cpft_rio import (
     TimelyCPFTRiOFilter,
 )
 from crate_anon.ancillary.timely_project.timely_filter_systmone import (
-    TimelySystmOneFilter,
+    TimelyCPFTGenericSystmOneFilter,
 )
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.dd import DataDictionary
@@ -75,7 +75,7 @@ log = logging.getLogger(__name__)
 FILTER_INFO_CHOICES = {
     # name, class
     "CPFT_RiO": TimelyCPFTRiOFilter,
-    "SystmOne": TimelySystmOneFilter
+    "CPFT_GenericSystmOne": TimelyCPFTGenericSystmOneFilter
 }  # type: Dict[str, Type[TimelyDDFilter]]
 
 
