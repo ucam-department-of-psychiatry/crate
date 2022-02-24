@@ -821,7 +821,10 @@ _OMIT_TABLES_REGEX_CPFT = (
     # Some have suffixes e.g. "S1_ReferralsIn_20200917", i.e. end with an
     # underscore then 8 digits. These are temporary copies that we should not
     # use. Some have more after that date.
-    r".*_\d{8}",
+    r"\w+_\d{8}",
+
+    # If a table has the suffix "_old", we probably don't want it!
+    r"\w+_old",
 )
 OMIT_TABLES_REGEX = {
     SystmOneContext.TPP_SRE: _OMIT_TABLES_REGEX_S1,
@@ -1555,7 +1558,8 @@ _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # constraint" error, so they aren't. This happens when someone in CPFT
     # maps e.g. "RowIdentifier" in an unusual way.
     ("Child_At_Risk$", S1GenericCol.PK),  # not unique
-    ("InpatientBedStay$", S1GenericCol.PK),  # not unique
+    ("InpatientBedStay", S1GenericCol.PK),  # not unique
+    # ... includes InpatientBedStay_Old, etc., now excluded
 )
 NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.TPP_SRE: _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1,
