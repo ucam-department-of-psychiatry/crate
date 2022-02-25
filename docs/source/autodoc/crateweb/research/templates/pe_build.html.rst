@@ -26,4 +26,4 @@ crate_anon/crateweb/research/templates/pe_build.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/pe_build.html
-    :language: HTML
+    :language: html+django

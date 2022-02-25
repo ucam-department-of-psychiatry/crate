@@ -26,4 +26,4 @@ crate_anon/crateweb/consent/templates/study_table.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/study_table.html
-    :language: HTML
+    :language: html+django

@@ -26,4 +26,4 @@ crate_anon/crateweb/templates/logged_out.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/logged_out.html
-    :language: HTML
+    :language: html+django

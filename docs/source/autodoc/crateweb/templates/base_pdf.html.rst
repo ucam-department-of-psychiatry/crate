@@ -26,4 +26,4 @@ crate_anon/crateweb/templates/base_pdf.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/base_pdf.html
-    :language: HTML
+    :language: html+django

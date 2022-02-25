@@ -26,4 +26,4 @@ crate_anon/crateweb/consent/templates/letter_patient_from_clinician_re_study.htm
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/letter_patient_from_clinician_re_study.html
-    :language: HTML
+    :language: html+django

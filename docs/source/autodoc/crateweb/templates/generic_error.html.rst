@@ -26,4 +26,4 @@ crate_anon/crateweb/templates/generic_error.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/generic_error.html
-    :language: HTML
+    :language: html+django

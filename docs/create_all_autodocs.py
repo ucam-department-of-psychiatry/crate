@@ -75,6 +75,11 @@ SKIP_GLOBS = [
     "**/compiled_nlp_classes/*",
 ]
 
+PYGMENTS_LANGUAGE_OVERRIDE = {
+    ".html": "html+django",
+    ".css": "css+django"
+}
+
 
 def make_subindex(directory: str) -> AutodocIndex:
     return AutodocIndex(
@@ -93,6 +98,7 @@ def make_subindex(directory: str) -> AutodocIndex:
         rst_prefix=COPYRIGHT_COMMENT,
         title="crate_anon/" + directory,  # path style, not module style
         skip_globs=SKIP_GLOBS,
+        pygments_language_override=PYGMENTS_LANGUAGE_OVERRIDE,
         # source_rst_title_style_python=False,
     )
 

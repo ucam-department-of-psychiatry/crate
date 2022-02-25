@@ -26,4 +26,4 @@ crate_anon/crateweb/templates/show_form_errors.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/show_form_errors.html
-    :language: HTML
+    :language: html+django

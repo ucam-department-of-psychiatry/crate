@@ -26,4 +26,4 @@ crate_anon/crateweb/research/templates/rid_lookup_form.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/rid_lookup_form.html
-    :language: HTML
+    :language: html+django

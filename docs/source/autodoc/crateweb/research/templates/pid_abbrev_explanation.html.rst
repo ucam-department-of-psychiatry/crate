@@ -26,4 +26,4 @@ crate_anon/crateweb/research/templates/pid_abbrev_explanation.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/pid_abbrev_explanation.html
-    :language: HTML
+    :language: html+django

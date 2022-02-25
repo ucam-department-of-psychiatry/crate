@@ -26,4 +26,4 @@ crate_anon/crateweb/static/extra_styles.css
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/static/extra_styles.css
-    :language: CSS
+    :language: css+django

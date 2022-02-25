@@ -26,4 +26,4 @@ crate_anon/crateweb/templates/admin/save_only_submit_row.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/templates/admin/save_only_submit_row.html
-    :language: HTML
+    :language: html+django

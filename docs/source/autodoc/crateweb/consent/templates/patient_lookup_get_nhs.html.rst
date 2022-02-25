@@ -26,4 +26,4 @@ crate_anon/crateweb/consent/templates/patient_lookup_get_nhs.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/patient_lookup_get_nhs.html
-    :language: HTML
+    :language: html+django

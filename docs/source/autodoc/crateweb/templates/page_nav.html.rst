@@ -26,4 +26,4 @@ crate_anon/crateweb/templates/page_nav.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/page_nav.html
-    :language: HTML
+    :language: html+django

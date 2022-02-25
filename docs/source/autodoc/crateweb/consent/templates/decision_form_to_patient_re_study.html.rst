@@ -26,4 +26,4 @@ crate_anon/crateweb/consent/templates/decision_form_to_patient_re_study.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/decision_form_to_patient_re_study.html
-    :language: HTML
+    :language: html+django

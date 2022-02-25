@@ -26,4 +26,4 @@ crate_anon/crateweb/consent/templates/generate_random_nhs.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/generate_random_nhs.html
-    :language: HTML
+    :language: html+django

@@ -26,4 +26,4 @@ crate_anon/crateweb/templates/email.css
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/email.css
-    :language: CSS
+    :language: css+django

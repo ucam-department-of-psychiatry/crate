@@ -26,4 +26,4 @@ crate_anon/crateweb/templates/login.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/login.html
-    :language: HTML
+    :language: html+django

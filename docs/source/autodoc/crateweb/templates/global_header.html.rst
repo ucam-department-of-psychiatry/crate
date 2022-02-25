@@ -26,4 +26,4 @@ crate_anon/crateweb/templates/global_header.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/global_header.html
-    :language: HTML
+    :language: html+django

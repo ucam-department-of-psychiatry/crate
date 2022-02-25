@@ -26,4 +26,4 @@ crate_anon/crateweb/consent/templates/clinician_contact_request_submit.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/clinician_contact_request_submit.html
-    :language: HTML
+    :language: html+django

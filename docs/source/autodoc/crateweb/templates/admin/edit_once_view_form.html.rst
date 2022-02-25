@@ -26,4 +26,4 @@ crate_anon/crateweb/templates/admin/edit_once_view_form.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/templates/admin/edit_once_view_form.html
-    :language: HTML
+    :language: html+django

@@ -26,4 +26,4 @@ crate_anon/crateweb/research/templates/include_clinician_warning_lag.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/include_clinician_warning_lag.html
-    :language: HTML
+    :language: html+django

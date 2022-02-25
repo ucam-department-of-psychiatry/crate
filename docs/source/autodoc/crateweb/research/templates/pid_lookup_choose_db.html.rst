@@ -26,4 +26,4 @@ crate_anon/crateweb/research/templates/pid_lookup_choose_db.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/pid_lookup_choose_db.html
-    :language: HTML
+    :language: html+django

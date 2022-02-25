@@ -26,4 +26,4 @@ crate_anon/crateweb/consent/templates/charity_report.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/charity_report.html
-    :language: HTML
+    :language: html+django

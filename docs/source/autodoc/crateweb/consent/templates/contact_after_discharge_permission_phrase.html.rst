@@ -26,4 +26,4 @@ crate_anon/crateweb/consent/templates/contact_after_discharge_permission_phrase.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/contact_after_discharge_permission_phrase.html
-    :language: HTML
+    :language: html+django

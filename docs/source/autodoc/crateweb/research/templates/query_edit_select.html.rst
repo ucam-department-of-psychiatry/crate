@@ -26,4 +26,4 @@ crate_anon/crateweb/research/templates/query_edit_select.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/query_edit_select.html
-    :language: HTML
+    :language: html+django
