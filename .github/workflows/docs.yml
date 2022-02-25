@@ -12,6 +12,7 @@ jobs:
             - name: Build docs
               run: |
                   set -xe
+                  sudo apt-get install texlive-latex-extra
                   python -m venv ${HOME}/venv
                   source ${HOME}/venv/bin/activate
                   python -VV
