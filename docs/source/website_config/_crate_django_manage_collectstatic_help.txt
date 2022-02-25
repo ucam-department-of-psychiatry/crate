@@ -4,7 +4,7 @@ usage: crate_django_manage collectstatic [-h] [--noinput] [--no-post-process]
                                          [-v {0,1,2,3}] [--settings SETTINGS]
                                          [--pythonpath PYTHONPATH]
                                          [--traceback] [--no-color]
-                                         [--force-color]
+                                         [--force-color] [--skip-checks]
 
 Collect static files in a single location.
 
@@ -37,3 +37,4 @@ optional arguments:
   --traceback           Raise on CommandError exceptions
   --no-color            Don't colorize the command output.
   --force-color         Force colorization of the command output.
+  --skip-checks         Skip system checks.
