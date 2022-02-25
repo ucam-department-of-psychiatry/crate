@@ -44,7 +44,7 @@ from semantic_version import Version
 from crate_anon.nlprp.constants import NlprpKeys
 from crate_anon.nlprp.api import NlprpRequest, NlprpResponse
 
-assert sys.version_info >= (3, 6), "Need Python 3.6+"
+assert sys.version_info >= (3, 7), "Need Python 3.7+"
 
 log = logging.getLogger(__name__)
 
