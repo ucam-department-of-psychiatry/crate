@@ -224,8 +224,6 @@ crate_anon/crateweb
     specimen_archives/basic/test_subpanel_1.mako.rst
     specimen_archives/basic/test_subpanel_2.mako.rst
     specimen_archives/static/archive.css.rst
-    specimen_archives/static/plotly-1.49.4.js.rst
-    specimen_archives/static/plotly-1.49.4.min.js.rst
     specimen_archives/static/tree.js.rst
     specimen_archives/tree/inherit/base.mako.rst
     specimen_archives/tree/inherit/plotting.mako.rst

@@ -69,6 +69,7 @@ SKIP_GLOBS = [
     # "crateweb_local_settings.py",
     "jquery*",
     "modernizr*",
+    "plotly*",
     "**/jquery*/*",
     "**/static_collected/*",
     "**/compiled_nlp_classes/*",
