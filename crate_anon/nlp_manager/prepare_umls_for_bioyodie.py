@@ -437,6 +437,9 @@ def get_default_java_home() -> str:
     """
     Returns a suitable default for the JAVA_HOME environment variable.
     """
+    if EnvVar.GENERATING_CRATE_DOCS:
+        return "/path/to/java"
+
     if EnvVar.JAVA_HOME in os.environ:
         return os.environ[EnvVar.JAVA_HOME]
     java_executable = require_external_tool("java")

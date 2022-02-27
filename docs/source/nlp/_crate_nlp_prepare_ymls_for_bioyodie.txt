@@ -23,7 +23,7 @@ optional arguments:
                         Value for JAVA_HOME environment variable. Should be a
                         directory that contains 'bin/java'. Default is (a)
                         existing JAVA_HOME variable; (b) location based on
-                        'which java'. (default: /usr)
+                        'which java'. (default: /path/to/java)
   --gate_home GATE_HOME
                         Value for GATE_HOME environment variable. Should be a
                         directory that contains 'bin/gate.*'. Default is
