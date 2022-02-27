@@ -450,6 +450,9 @@ def get_default_gate_home() -> str:
     """
     Returns a suitable default for the GATE_HOME environment variable.
     """
+    if EnvVar.GENERATING_CRATE_DOCS:
+        return "/path/to/GATE/directory"
+
     return os.environ.get(EnvVar.GATE_HOME, "")
 
 
