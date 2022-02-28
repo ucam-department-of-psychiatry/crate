@@ -156,3 +156,4 @@ PROCESSORS = all_crate_python_processors_nlprp_processor_info() + [
 if __name__ == "__main__":
     import json  # delayed import
     print(json.dumps(PROCESSORS, indent=4, sort_keys=True))
+

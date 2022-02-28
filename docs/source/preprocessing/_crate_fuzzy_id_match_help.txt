@@ -530,7 +530,8 @@ optional arguments:
                         Add extra output for validation purposes. (default:
                         False)
   --n_workers N_WORKERS
-                        Number of processes to use in parallel. (default: 8)
+                        Number of processes to use in parallel. Defaults to
+                        number of CPUs on your system. (default: 8)
   --max_chunksize MAX_CHUNKSIZE
                         Maximum chunk size (number of probands to pass to a
                         subprocess each time). (default: 500)
@@ -669,7 +670,8 @@ optional arguments:
                         Add extra output for validation purposes. (default:
                         False)
   --n_workers N_WORKERS
-                        Number of processes to use in parallel. (default: 8)
+                        Number of processes to use in parallel. Defaults to
+                        number of CPUs on your system. (default: 8)
   --max_chunksize MAX_CHUNKSIZE
                         Maximum chunk size (number of probands to pass to a
                         subprocess each time). (default: 500)
@@ -793,7 +795,8 @@ optional arguments:
                         Add extra output for validation purposes. (default:
                         False)
   --n_workers N_WORKERS
-                        Number of processes to use in parallel. (default: 8)
+                        Number of processes to use in parallel. Defaults to
+                        number of CPUs on your system. (default: 8)
   --max_chunksize MAX_CHUNKSIZE
                         Maximum chunk size (number of probands to pass to a
                         subprocess each time). (default: 500)

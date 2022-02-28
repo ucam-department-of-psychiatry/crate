@@ -28,6 +28,7 @@ docs/rebuild_docs.py
 
 """
 
+import argparse
 import os
 import shutil
 import subprocess
@@ -47,9 +48,26 @@ if __name__ == '__main__':
     # Build docs
     print("Making HTML version of documentation")
     os.chdir(THIS_DIR)
-    subprocess.call(["python", os.path.join(THIS_DIR,
-                                            "recreate_inclusion_files.py")])
-    subprocess.call(["make", "html"])
+
+    # When running from the GitHub action, it isn't possible to
+    # download and build Medex automatically, so we just skip this
+    # step.
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--skip_medex", action="store_true",
+                        help="Don't try to build Medex help files",
+                        default=False)
+    args = parser.parse_args()
+
+    recreate_args = ["python",
+                     os.path.join(THIS_DIR,
+                                  "recreate_inclusion_files.py")]
+
+    if args.skip_medex:
+        recreate_args.append("--skip_medex")
+    subprocess.check_call(recreate_args)
+
+    # -W: Turn warnings into errors
+    subprocess.check_call(["make", "html", 'SPHINXOPTS="-W"'])
 
     # Copy
     for destdir in DEST_DIRS:

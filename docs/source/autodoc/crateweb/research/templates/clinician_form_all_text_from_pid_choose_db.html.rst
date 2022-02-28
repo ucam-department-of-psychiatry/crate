@@ -18,7 +18,7 @@
     GNU General Public License for more details.
     .
     You should have received a copy of the GNU General Public License
-    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 
 
@@ -26,4 +26,4 @@ crate_anon/crateweb/research/templates/clinician_form_all_text_from_pid_choose_d
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/clinician_form_all_text_from_pid_choose_db.html
-    :language: HTML
+    :language: html+django
