@@ -113,9 +113,10 @@ putting the settings in a file and executing them before running the installer
 (e.g. ``source ~/my_crate_settings``).
 
 Here is an example settings file. See :ref:`environment_variables
-<environment_variables>` for a description of each setting.
+<docker_environment_variables>` for a description of each setting.
 
     .. code-block:: bash
+
         export CRATE_DOCKER_CONFIG_HOST_DIR=${HOME}/crate_config
         export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=${HOME}/bioyodie_resources
         export CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD=mysqluserpassword
@@ -135,7 +136,7 @@ To start the installer on all platforms:
 ``. <(curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh)``
 
 
-.. _environment-variables:
+.. _docker_environment_variables:
 
 Environment variables
 ---------------------
@@ -143,7 +144,7 @@ Environment variables
 .. _CRATE_DOCKER_CONFIG_HOST_DIR:
 
 CRATE_DOCKER_CONFIG_HOST_DIR
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **No default. Must be set.**
 
@@ -161,7 +162,7 @@ use a trailing slash.
 .. _CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME:
 
 CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default: crateweb_local_settings.py*
 
@@ -170,7 +171,7 @@ CRATE_DOCKER_CONFIG_HOST_DIR_).
 
 
 CRATE_DOCKER_CRATEWEB_HOST_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **No default: Must be set**
 
@@ -210,7 +211,7 @@ Access the CRATE web app over HTTPS? (0=no, 1=yes)
 .. _CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE:
 
 CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default is blank.*
 
@@ -218,27 +219,27 @@ CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
 .. _CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY:
 
 CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default is blank.*
 
 CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 User name for the CRATE administrator.
 
 CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Password for the CRATE administrator.
 
 CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Email address for the CRATE administrator.
 
 CRATE_DOCKER_FLOWER_HOST_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default: 5555*
 
@@ -246,7 +247,7 @@ Host port on which to launch the Flower_ monitor.
 
 
 CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **No default. Must be set (even if to a dummy directory).**
 
@@ -261,7 +262,7 @@ On Windows, ensure this is within the Windows (not WSL2) file system.
 .. _CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME:
 
 CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default: crate_web_db*
 
@@ -271,7 +272,7 @@ Name of the MySQL database to be used for CRATE web site data.
 .. _CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD:
 
 CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **No default. Must be set during MySQL container creation.**
 
@@ -287,7 +288,7 @@ CRATE_DOCKER_MYSQL_CRATE_USER_NAME_).
 .. _CRATE_DOCKER_MYSQL_CRATE_USER_NAME:
 
 CRATE_DOCKER_MYSQL_CRATE_USER_NAME
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default: crate_web_user*
 
@@ -297,7 +298,7 @@ CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD_.
 
 
 CRATE_DOCKER_MYSQL_CRATE_HOST_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default: 3306*
 
@@ -318,7 +319,7 @@ You should **not** expose this port to the "outside", beyond your host.
 .. _CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD:
 
 CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **No default. Must be set during MySQL container creation.**
 
@@ -331,7 +332,7 @@ MySQL password for the ``root`` user.
 
 
 COMPOSE_PROJECT_NAME
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 *Default: crate*
 
@@ -352,7 +353,7 @@ All live in the ``installer`` directory.
 
 
 enter_crate_container.sh
-~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Starts a container with the CRATE image and runs a Bash shell within it.
 
@@ -362,7 +363,7 @@ Starts a container with the CRATE image and runs a Bash shell within it.
 
 
 start_crate.sh
-~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^
 
 Shortcut for ``docker compose up -d``. The ``-d`` switch is short for
 ``--detach`` (or daemon mode).
@@ -370,13 +371,13 @@ Shortcut for ``docker compose up -d``. The ``-d`` switch is short for
 
 
 stop_crate.sh
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
 Shortcut for ``docker compose down``.
 
 
 run_crate_command
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 
 This script starts a container with the CRATE image, activates the CRATE
 virtual environment, and runs a command within it. For example, to explore this
