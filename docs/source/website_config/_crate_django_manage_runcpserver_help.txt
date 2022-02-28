@@ -33,6 +33,7 @@ optional arguments:
   --debug_static        show debug info for static file requests
   --root_path ROOT_PATH
                         Root path to serve CRATE at. Default:
+                        /crate/root/path/
   --version             show program's version number and exit
   -v {0,1,2,3}, --verbosity {0,1,2,3}
                         Verbosity level; 0=minimal output, 1=normal output,
