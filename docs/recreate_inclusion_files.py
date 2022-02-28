@@ -162,6 +162,9 @@ def main():
             join(NLP_DIR, "_crate_nlp_build_gate_java_interface_help.txt"))
 
     if not args.skip_medex:
+        # When running from the GitHub action, it isn't possible to
+        # download and build Medex automatically, so we just skip this
+        # step.
         run_cmd(["crate_nlp_build_medex_itself", "--help"],
                 join(NLP_DIR, "_crate_nlp_build_medex_itself_help.txt"))
         run_cmd(["crate_nlp_build_medex_java_interface", "--help"],

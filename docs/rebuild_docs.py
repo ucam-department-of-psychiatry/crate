@@ -49,6 +49,9 @@ if __name__ == '__main__':
     print("Making HTML version of documentation")
     os.chdir(THIS_DIR)
 
+    # When running from the GitHub action, it isn't possible to
+    # download and build Medex automatically, so we just skip this
+    # step.
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip_medex", action="store_true",
                         help="Don't try to build Medex help files",
@@ -64,8 +67,6 @@ if __name__ == '__main__':
     subprocess.check_call(recreate_args)
 
     # -W: Turn warnings into errors
-    # -n nitpicky mode: report dead links
-    # --keep-going: report errors but only fail at the end of the build
     subprocess.check_call(["make", "html", 'SPHINXOPTS="-W"'])
 
     # Copy
