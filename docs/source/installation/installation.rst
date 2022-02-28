@@ -230,7 +230,7 @@ Built in.
 **Windows**
 
 Install Visual C++ 14.x [#vs2015]_ (or later?), the official compiler for
-Python 3.5-3.8 under Windows [#python36vstudio]_. Visual Studio Community is
+Python 3.7-3.9 under Windows [#pythonvstudio]_. Visual Studio Community is
 free [#vscommunity]_.
 
 
@@ -449,10 +449,7 @@ go wrong, so retest that the web server and the e-mail transmission task work.
 .. [#vs2015]
     Visual Studio 2015; VC++ 14.0; MSC_VER=1900
 
-.. [#python34vstudio]
-    See http://stackoverflow.com/questions/29909330
-
-.. [#python36vstudio]
+.. [#pythonvstudio]
     See https://wiki.python.org/moin/WindowsCompilers
 
 .. [#vstudiogeneral]
