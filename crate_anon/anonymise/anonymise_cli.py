@@ -100,6 +100,9 @@ def inner_main() -> None:
         "--democonfig", action="store_true",
         help="Print a demo config file")
     simple_group_1.add_argument(
+        "--leave_placeholders", action="store_true",
+        help="Don't substitute @@ placeholders with examples")
+    simple_group_1.add_argument(
         "--checkextractor", nargs='*',
         help="File extensions to check for availability of a text extractor "
              "(use a '.' prefix, and use the special extension 'None' to "
@@ -257,6 +260,9 @@ def inner_main() -> None:
 
     # Demo config?
     if args.democonfig:
+        if args.leave_placeholders:
+            return print(DEMO_CONFIG.strip())
+
         return print_demo_config()
 
     # -------------------------------------------------------------------------

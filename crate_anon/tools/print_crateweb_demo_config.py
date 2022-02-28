@@ -27,6 +27,7 @@ crate_anon/tools/print_crateweb_demo_config.py
 **Print a demonstration CRATE web (Django) config file.**
 
 """
+import argparse
 import pprint
 import re
 import sys
@@ -524,6 +525,15 @@ def main() -> None:
     """
     Command-line entry point.
     """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--leave_placeholders", action="store_true",
+                        help="Don't substitute @@ placeholders with examples",
+                        default=False)
+    args = parser.parse_args()
+
+    if args.leave_placeholders:
+        print(DEMO_CONFIG.strip())
+        return
 
     replace_dict = {
         "archive_attachment_dir": "/home/somewhere/my_archive_attachments",
