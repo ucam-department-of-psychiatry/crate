@@ -84,7 +84,6 @@ INSTALL_REQUIRES = [
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
     # "django-silk==4.0.1",  # Django profiler
     "django-sslserver==0.22",  # SSL development server for Django
-    "flake8==3.8.4",  # code checks
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==1.0.0",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
@@ -132,6 +131,8 @@ INSTALL_REQUIRES = [
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
 
     # For development only:
+    "flake8==3.8.4",  # code checks
+    "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
     "sphinx==3.1.2",  # documentation
     "sphinx_rtd_theme==0.5.0",  # documentation
 

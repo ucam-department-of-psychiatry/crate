@@ -18,7 +18,7 @@
     GNU General Public License for more details.
     .
     You should have received a copy of the GNU General Public License
-    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 
 
@@ -26,4 +26,4 @@ crate_anon/crateweb/research/templates/sqlhelper_form_text_anywhere_choose_db.ht
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/sqlhelper_form_text_anywhere_choose_db.html
-    :language: HTML
+    :language: html+django

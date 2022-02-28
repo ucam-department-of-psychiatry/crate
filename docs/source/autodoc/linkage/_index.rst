@@ -18,7 +18,7 @@
     GNU General Public License for more details.
     .
     You should have received a copy of the GNU General Public License
-    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 
 
@@ -33,3 +33,4 @@ crate_anon/linkage
     __init__.py.rst
     bulk_hash.py.rst
     fuzzy_id_match.py.rst
+    test_hash_speed.py.rst

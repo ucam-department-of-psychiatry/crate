@@ -18,7 +18,7 @@
     GNU General Public License for more details.
     .
     You should have received a copy of the GNU General Public License
-    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 
 
@@ -43,36 +43,6 @@ crate_anon/nlp_manager
     cloud_request.py.rst
     cloud_request_sender.py.rst
     cloud_run_info.py.rst
-    compiled_nlp_classes/__init__.py.rst
-    compiled_nlp_classes/all_processors.py.rst
-    compiled_nlp_classes/base_nlp_parser.py.rst
-    compiled_nlp_classes/build_gate_java_interface.py.rst
-    compiled_nlp_classes/build_medex_itself.py.rst
-    compiled_nlp_classes/build_medex_java_interface.py.rst
-    compiled_nlp_classes/cloud_config.py.rst
-    compiled_nlp_classes/cloud_parser.py.rst
-    compiled_nlp_classes/cloud_request.py.rst
-    compiled_nlp_classes/cloud_run_info.py.rst
-    compiled_nlp_classes/constants.py.rst
-    compiled_nlp_classes/input_field_config.py.rst
-    compiled_nlp_classes/launch_multiprocess_nlp.py.rst
-    compiled_nlp_classes/models.py.rst
-    compiled_nlp_classes/nlp_definition.py.rst
-    compiled_nlp_classes/nlp_manager.py.rst
-    compiled_nlp_classes/number.py.rst
-    compiled_nlp_classes/output_user_config.py.rst
-    compiled_nlp_classes/parse_biochemistry.py.rst
-    compiled_nlp_classes/parse_clinical.py.rst
-    compiled_nlp_classes/parse_cognitive.py.rst
-    compiled_nlp_classes/parse_gate.py.rst
-    compiled_nlp_classes/parse_haematology.py.rst
-    compiled_nlp_classes/parse_medex.py.rst
-    compiled_nlp_classes/regex_func.py.rst
-    compiled_nlp_classes/regex_numbers.py.rst
-    compiled_nlp_classes/regex_parser.py.rst
-    compiled_nlp_classes/regex_test.py.rst
-    compiled_nlp_classes/regex_units.py.rst
-    compiled_nlp_classes/test_all_regex.py.rst
     constants.py.rst
     input_field_config.py.rst
     launch_multiprocess_nlp.py.rst

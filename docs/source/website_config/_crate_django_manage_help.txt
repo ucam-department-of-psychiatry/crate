@@ -20,6 +20,7 @@ Available subcommands:
     remove_stale_contenttypes
 
 [core]
+    ensuresuperuser
     runcpserver
 
 [debug_toolbar]

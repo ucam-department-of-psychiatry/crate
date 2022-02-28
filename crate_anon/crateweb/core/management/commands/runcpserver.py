@@ -64,6 +64,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import translation
 
+from crate_anon.common.constants import EnvVar
 from crate_anon.crateweb.config.wsgi import application as wsgi_application
 # COULD ALSO USE:
 #   from django.core.handlers.wsgi import WSGIHandler
@@ -74,7 +75,11 @@ log = logging.getLogger(__name__)
 
 CRATE_STATIC_URL_PATH = settings.STATIC_URL.rstrip('/')
 NEED_UNIX = "Need UNIX for group/user operations"
-DEFAULT_ROOT = settings.FORCE_SCRIPT_NAME
+
+if EnvVar.GENERATING_CRATE_DOCS:
+    DEFAULT_ROOT = "/crate/root/path/"
+else:
+    DEFAULT_ROOT = settings.FORCE_SCRIPT_NAME
 
 
 class Command(BaseCommand):

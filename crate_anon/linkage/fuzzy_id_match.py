@@ -208,7 +208,12 @@ CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = False  # for debugging only
 dmeta = DMetaphone()
 
 CRATE_FETCH_WORDLISTS = "crate_fetch_wordlists"
-CPU_COUNT = cpu_count()
+
+if EnvVar.GENERATING_CRATE_DOCS in os.environ:
+    CPU_COUNT = 8
+else:
+    CPU_COUNT = cpu_count()
+
 DAYS_PER_YEAR = 365.25  # approximately!
 DEFAULT_HASH_KEY = "fuzzy_id_match_default_hash_key_DO_NOT_USE_FOR_LIVE_DATA"
 DEFAULT_MAX_CHUNKSIZE = 500
@@ -5152,7 +5157,8 @@ def main() -> int:
         )
         p.add_argument(
             "--n_workers", type=int, default=CPU_COUNT,
-            help="Number of processes to use in parallel."
+            help=("Number of processes to use in parallel. "
+                  "Defaults to number of CPUs on your system.")
         )
         p.add_argument(
             "--max_chunksize", type=int, default=DEFAULT_MAX_CHUNKSIZE,

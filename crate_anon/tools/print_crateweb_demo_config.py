@@ -27,6 +27,12 @@ crate_anon/tools/print_crateweb_demo_config.py
 **Print a demonstration CRATE web (Django) config file.**
 
 """
+import pprint
+import re
+import sys
+from typing import Dict
+
+from crate_anon.common.constants import EXIT_FAILURE
 
 DEMO_CONFIG = r"""
 # **Site-specific Django settings for CRATE web front end.**
@@ -79,7 +85,7 @@ FORCE_SCRIPT_NAME = "@@force_script_name@@"
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "@@secret_key@@"  # CHANGE THIS!  # noqa
+SECRET_KEY = '@@secret_key@@'  # CHANGE THIS!  # noqa
 # Run crate_generate_new_django_secret_key to generate a new one.
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -132,7 +138,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'HOST': '@@mysql_host@@',  # e.g. 127.0.0.1
-        'PORT': '@@mysql_port@@',  # local e.g. 3306
+        'PORT': @@mysql_port@@,  # local e.g. 3306
         'NAME': '@@mysql_db@@',
         'USER': '@@mysql_user@@',
         'PASSWORD': '@@mysql_password@@',
@@ -158,7 +164,7 @@ DATABASES = {
 
         'ENGINE': '@@dest_db_engine@@',
         'HOST': '@@dest_db_host@@',  # e.g. 127.0.0.1
-        'PORT': '@@dest_db_port@@',  # local, e.g. 3306
+        'PORT': @@dest_db_port@@,  # local, e.g. 3306
         'NAME': '@@dest_db_name@@',  # will be the default database; use None for no default database  # noqa
         'USER': '@@dest_db_user@@',
         'PASSWORD': '@@dest_db_password@@',
@@ -170,7 +176,7 @@ DATABASES = {
     'secret_1': {
         'ENGINE': '@@secret_db1_engine@@',
         'HOST': '@@secret_db1_host@@',  # e.g. 127.0.0.1
-        'PORT': '@@secret_db1_port@@',
+        'PORT': @@secret_db1_port@@,
         'NAME': '@@secret_db1_name@@',
         'USER': '@@secret_db1_user@@',
         'PASSWORD': '@@secret_db1_password@@',
@@ -511,8 +517,6 @@ PDF_LETTER_FOOTER_HTML = ''
 CHARITY_URL = "http://www.cpft.nhs.uk/research.htm"
 CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
-
-
 """
 
 
@@ -520,8 +524,88 @@ def main() -> None:
     """
     Command-line entry point.
     """
-    print(DEMO_CONFIG)
+
+    replace_dict = {
+        "archive_attachment_dir": "/home/somewhere/my_archive_attachments",
+        "archive_static_dir": "/home/somewhere/my_archive_templates/static",
+        "archive_template_cache_dir": "/tmp/somewhere/my_archive_template_cache",  # noqa: E501
+        "archive_template_dir": "/home/somewhere/my_archive_templates",
+        "broker_url": "",
+        "crate_https": "True",
+        "crate_install_dir": "somewhere",
+        "dest_db_engine": "django.db.backends.mysql",
+        "dest_db_host": "127.0.0.1",
+        "dest_db_name": "anonymous_output",
+        "dest_db_password": "somepassword",
+        "dest_db_port": "3306",
+        "dest_db_user": "researcher",
+        "django_site_root_absolute_url": "http://mymachine.mydomain",
+        "force_script_name": "",
+        "mysql_db": "crate_db",
+        "mysql_host": "127.0.0.1",
+        "mysql_password": "somepassword",
+        "mysql_port": "3306",
+        "mysql_user": "someuser",
+        "pdf_logo_abs_url": "http://localhost/crate_logo",
+        "private_file_storage_root": "/srv/crate_filestorage",
+        "rdi1_database": "",
+        "rdi1_date_fields_by_table": "",
+        "rdi1_default_date_fields": "'default_date_field'",
+        "rdi1_description": "My friendly research database",
+        "rdi1_mpid_description": "Master patient ID (NHS number; MPID)",
+        "rdi1_mpid_pseudo_field": "my_mpid_field",
+        "rdi1_mrid_description": "Master research ID (MRID)",
+        "rdi1_mrid_field": "nhshash",
+        "rdi1_mrid_table": "patients",
+        "rdi1_name": "myresearchdb",
+        "rdi1_pid_description": "Patient ID (My ID Num; PID) for database X",
+        "rdi1_pid_psuedo_field": "my_pid_field",
+        "rdi1_rid_description": "Research ID (RID) for database X",
+        "rdi1_rid_family": "1",
+        "rdi1_rid_field": "brcid",
+        "rdi1_schema": "dbo",
+        "rdi1_secret_lookup_db": "secret_1",
+        "rdi1_trid_description": "Transient research ID (TRID) for database X",
+        "rdi1_trid_field": "trid",
+        "rdi1_update_date_field": "_when_fetched_utc",
+        "research_db_for_contact_lookup": "myresearchdb",
+        "secret_db1_engine": "django.db.backends.mysql",
+        "secret_db1_host": "127.0.0.1",
+        "secret_db1_name": "anonymous_mapping",
+        "secret_db1_password": "somepassword",
+        "secret_db1_port": "3306",
+        "secret_db1_user": "anonymiser_system",
+        "secret_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    }
+
+    config = search_replace_text(DEMO_CONFIG, replace_dict)
+
+    missing_dict = {}
+
+    regex = r"@@([^@]*)@@"
+    for match in re.finditer(regex, config):
+        missing_dict[f"{match.group(1)}"] = ""
+
+    if missing_dict:
+        print("@@ Placeholders not substituted in DEMO_CONFIG:",
+              file=sys.stderr)
+        pprint.pprint(missing_dict, stream=sys.stderr)
+        sys.exit(EXIT_FAILURE)
+
+    print(config.strip())
 
 
-if __name__ == '__main__':
+def search_replace_text(text: str,
+                        replace_dict: Dict[str, str]) -> str:
+    for (search, replace) in replace_dict.items():
+        if replace is None:
+            print(f"Can't replace '{search}' with None")
+            sys.exit(EXIT_FAILURE)
+
+        text = text.replace(f"@@{search}@@", replace)
+
+    return text
+
+
+if __name__ == "__main__":
     main()
