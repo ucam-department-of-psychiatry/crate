@@ -100,7 +100,7 @@ def run_cmd(cmdargs: List[str],
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--skip-medex", action="store_true",
+    parser.add_argument("--skip_medex", action="store_true",
                         help="Don't try to build Medex files", default=False)
     args = parser.parse_args()
 

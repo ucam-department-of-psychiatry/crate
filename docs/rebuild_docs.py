@@ -50,7 +50,7 @@ if __name__ == '__main__':
     os.chdir(THIS_DIR)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--skip-medex", action="store_true",
+    parser.add_argument("--skip_medex", action="store_true",
                         help="Don't try to build Medex help files",
                         default=False)
     args = parser.parse_args()
@@ -60,7 +60,7 @@ if __name__ == '__main__':
                                   "recreate_inclusion_files.py")]
 
     if args.skip_medex:
-        recreate_args.append("--skip-medex")
+        recreate_args.append("--skip_medex")
     subprocess.check_call(recreate_args)
 
     # -W: Turn warnings into errors
