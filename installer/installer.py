@@ -40,11 +40,14 @@ import string
 from subprocess import run
 import sys
 import textwrap
-from typing import Callable, Dict, Iterable, Optional, Union
+from typing import Callable, Dict, Iterable, Union
 import urllib.parse
 
+from prompt_toolkit import HTML, print_formatted_text, prompt
 from prompt_toolkit.completion import PathCompleter
-from prompt_toolkit.shortcuts import input_dialog, message_dialog, yes_no_dialog
+from prompt_toolkit.document import Document
+from prompt_toolkit.styles import Style
+from prompt_toolkit.validation import Validator, ValidationError
 from python_on_whales import docker
 
 EXIT_FAILURE = 1
@@ -58,8 +61,12 @@ DOCKERFILES_DIR = os.path.join(DOCKER_DIR, "dockerfiles")
 class Installer:
     def __init__(self) -> None:
         self.title = "CRATE Setup"
+        self.style = Style.from_dict({
+            "span": "#ffffff bg:#005eb8",
+        })
 
     def install(self) -> None:
+        self.start_message()
         self.check_setup()
         self.configure()
         self.create_directories()
@@ -76,6 +83,10 @@ class Installer:
         self.create_data_dictionary()
         self.anonymise_demo_data()
         self.report_status()
+
+    def start_message(self) -> None:
+        print_formatted_text(HTML("<span>CRATE Installer</span>"),
+                             style=self.style)
 
     def check_setup(self) -> None:
         info = docker.info()
@@ -94,14 +105,18 @@ class Installer:
             sys.exit(EXIT_FAILURE)
 
     def configure(self) -> None:
-        self.configure_user()
-        self.configure_config_files()
-        self.configure_crateweb()
-        self.configure_crate_db()
-        self.configure_research_db()
-        self.configure_secret_db()
-        self.configure_source_db()
-        self.configure_django()
+        try:
+            self.configure_user()
+            self.configure_config_files()
+            self.configure_crateweb()
+            self.configure_crate_db()
+            self.configure_research_db()
+            self.configure_secret_db()
+            self.configure_source_db()
+            self.configure_django()
+        except (KeyboardInterrupt, EOFError):
+            print("Installation aborted")
+            sys.exit(EXIT_FAILURE)
 
     def configure_user(self) -> None:
         self.setenv(
@@ -280,53 +295,57 @@ class Installer:
 
     def get_docker_config_host_dir(self) -> str:
         return self.get_user_dir(
-            "Select the directory where CRATE will store its configuration"
+            "Select the host directory where CRATE will store its "
+            "configuration:"
         )
 
     def get_docker_gate_bioyodie_resources_host_dir(self) -> str:
         return self.get_user_dir(
-            "Select the directory where CRATE will store Bio-YODIE resources"
+            "Select the host directory where CRATE will store Bio-YODIE "
+            "resources:"
         )
 
     def get_docker_crateweb_host_port(self) -> str:
         return self.get_user_input(
             ("Enter the port where the CRATE web app will be appear on the "
-             "host")
+             "host:")
         )
 
     def get_docker_crateweb_use_https(self) -> str:
-        return self.get_user_boolean("Access the CRATE web app over HTTPS?")
+        return self.get_user_boolean(
+            "Access the CRATE web app over HTTPS (y/n)?"
+        )
 
     def get_docker_crateweb_ssl_certificate(self) -> str:
         return self.get_user_file(
-            "Select the SSL certificate file."
+            "Select the SSL certificate file:"
         )
 
     def get_docker_crateweb_ssl_private_key(self) -> str:
         return self.get_user_file(
-            "Select the SSL private key file."
+            "Select the SSL private key file:"
         )
 
     def get_docker_mysql_crate_root_password(self) -> str:
         return self.get_user_password(
-            "Enter a new MySQL root password for CRATE's internal database"
+            "Enter a new MySQL root password for CRATE's internal database:"
         )
 
     def get_docker_mysql_crate_user_password(self) -> str:
         return self.get_user_password(
-            "Enter a new password for the MySQL user that CRATE will create"
+            "Enter a new password for the MySQL user that CRATE will create:"
         )
 
     def get_docker_mysql_crate_host_port(self) -> str:
         return self.get_user_input(
             ("Enter the port where CRATE's internal MySQL database will appear "
-             "on the host."),
+             "on the host:"),
             default="43306"  # TODO: Default not yet working
         )
 
     def get_docker_crateweb_superuser_username(self) -> str:
         return self.get_user_input(
-            "Enter the user name for the CRATE administrator"
+            "Enter the user name for the CRATE administrator:"
         )
 
     def get_docker_crateweb_superuser_password(self) -> str:
@@ -336,7 +355,7 @@ class Installer:
 
     def get_docker_crateweb_superuser_email(self) -> str:
         return self.get_user_input(
-            "Enter the email address for the CRATE administrator"
+            "Enter the email address for the CRATE administrator:"
         )
 
     def setenv(self, name: str, value: Union[str, Callable[[], str]]) -> None:
@@ -346,84 +365,44 @@ class Installer:
 
             os.environ[name] = value
 
-    def get_user_dir(self, text: str, title: Optional[str] = None) -> str:
-        if title is None:
-            title = self.title
-
-        text = f"{text}\nPress Ctrl-N to autocomplete"
+    def get_user_dir(self, text: str) -> str:
         completer = PathCompleter(only_directories=True, expanduser=True)
-        dir = input_dialog(title=title, text=text,
-                           completer=completer).run()
-        if dir is None:
-            sys.exit(EXIT_FAILURE)
+        dir = self.prompt(text, completer=completer)
 
-        return dir
+        return os.path.expanduser(dir)
 
-    def get_user_file(self, text: str, title: Optional[str] = None) -> str:
-        if title is None:
-            title = self.title
-
-        text = f"{text}\nPress Ctrl-N to autocomplete"
+    def get_user_file(self, text: str) -> str:
         completer = PathCompleter(only_directories=False, expanduser=True)
-        file = input_dialog(title=title, text=text,
-                            completer=completer).run()
-        if file is None:
-            sys.exit(EXIT_FAILURE)
+        file = self.prompt(text, completer=completer,
+                           complete_while_typing=True,
+                           validator=FileValidator())
 
-        return file
+        return os.path.expanduser(file)
 
-    def get_user_password(self, text: str,
-                          title: Optional[str] = None) -> str:
-        if title is None:
-            title = self.title
+    def get_user_password(self, text: str) -> str:
+        first = self.prompt(text, is_password=True)
+        second = self.prompt(
+            "Enter the same password again:",
+            is_password=True,
+            validator=PasswordMatchValidator(first)
+        )
 
-        while(True):
-            first = input_dialog(title=title, text=text, password=True).run()
-            if first is None:
-                sys.exit(EXIT_FAILURE)
+        if first == second:
+            return first
 
-            second = input_dialog(title=title,
-                                  text="Enter the same password again",
-                                  password=True).run()
-            if second is None:
-                sys.exit(EXIT_FAILURE)
-
-            if first == second:
-                return first
-
-            self.alert("Passwords did not match. Please try again.")
-
-    def alert(self, text: str) -> None:
-        message_dialog(title=self.title, text=text).run()
-
-    def get_user_boolean(self, text: str, title: Optional[str] = None) -> str:
-        if title is None:
-            title = self.title
-
-        value = yes_no_dialog(title=title, text=text).run()
-        if value is None:
-            sys.exit(EXIT_FAILURE)
-
-        if value:
+    def get_user_boolean(self, text: str) -> str:
+        value = self.prompt(text, validator=YesNoValidator())
+        if value.lower() == "y":
             return "1"
 
         return "0"
 
-    def get_user_input(self, text: str, title: Optional[str] = None,
-                       default: str = "") -> str:
-        if title is None:
-            title = self.title
+    def get_user_input(self, text: str, default: str = "") -> str:
+        return self.prompt(text, default=default)
 
-        # TODO: No way of passing default to input_dialog()
-        # https://github.com/prompt-toolkit/python-prompt-toolkit/issues/1544
-        #
-        # Either we create a PR to do so or write our own input_dialog()
-        app = input_dialog(title=title, text=text)
-        value = app.run()
-        if value is None:
-            sys.exit(EXIT_FAILURE)
-
-        return value
+    def prompt(self, text: str, *args, **kwargs) -> str:
+        return prompt(HTML(f"\n<span>{text}</span> "),
+                      *args, **kwargs, style=self.style)
 
     def create_directories(self) -> None:
         crate_config_dir = os.environ.get("CRATE_DOCKER_CONFIG_HOST_DIR")
@@ -810,6 +789,33 @@ class NativeLinuxInstaller(Installer):
 
 class MacOsInstaller(Installer):
     pass
+
+
+class YesNoValidator(Validator):
+    def validate(self, document: Document) -> None:
+        text = document.text
+
+        if text.lower() not in ("y", "n"):
+            raise ValidationError(message="Please answer 'y' or 'n'")
+
+
+class FileValidator(Validator):
+    def validate(self, document: Document) -> None:
+        filename = document.text
+
+        if not os.path.isfile(os.path.expanduser(filename)):
+            raise ValidationError(message=f"'{filename}' is not a valid file")
+
+
+class PasswordMatchValidator(Validator):
+    def __init__(self, first_password: str) -> None:
+        self.first_password = first_password
+
+    def validate(self, document: Document) -> None:
+        password = document.text
+
+        if password != self.first_password:
+            raise ValidationError(message="Passwords do not match")
 
 
 def main() -> None:
