@@ -122,16 +122,26 @@ def identical_record_exists_by_pk(dest_table: str,
 # Database actions
 # =============================================================================
 
-def wipe_and_recreate_destination_db(incremental: bool = False) -> None:
+def wipe_and_recreate_destination_db(incremental: bool = False,
+                                     full_drop_only: bool = False) -> None:
     """
     Drop and recreate all destination tables (as specified in the DD) in the
     destination database.
 
     Args:
-        incremental: don't drop the tables first
+        incremental:
+            Don't drop the tables first, just create them if they don't exist.
+        full_drop_only:
+            Drop everything, but don't rebuild. Incompatible with
+            ``incremental``.
     """
-    log.info(f"Rebuilding destination database (incremental={incremental})")
+    assert not (incremental and full_drop_only)
     engine = config.destdb.engine
+
+    if full_drop_only:
+        log.info("Dropping tables from destination database")
+    else:
+        log.info(f"Rebuilding destination database (incremental={incremental})")
 
     # Drop (all tables that we know about -- this prevents orphan tables when
     # we alter a data dictionary).
@@ -140,6 +150,8 @@ def wipe_and_recreate_destination_db(incremental: bool = False) -> None:
             sqla_table = config.dd.get_dest_sqla_table(tablename)
             log.info(f"Dropping table: {tablename}")
             sqla_table.drop(engine, checkfirst=True)
+    if full_drop_only:
+        return
 
     # Create and check (tables that will receive content).
     for tablename in config.dd.get_dest_tables_included():
@@ -1576,40 +1588,64 @@ def wipe_destination_data_for_opt_out_patients(report_every: int = 1000,
 
 
 def drop_remake(incremental: bool = False,
-                skipdelete: bool = False) -> None:
+                skipdelete: bool = False,
+                full_drop_only: bool = False) -> None:
     """
     Drop and rebuild (a) mapping table, (b) destination tables.
 
     Args:
         incremental:
-            doesn't drop tables; just deletes destination information where
+            Doesn't drop tables; just deletes destination information where
             source information no longer exists.
         skipdelete:
             For incremental updates, skip deletion of rows present in the
             destination but not the source
+        full_drop_only:
+            Performs a full drop (even opt-out tables) and does nothing else.
+            Incompatible with ``incremental``.
     """
+    assert not (full_drop_only and incremental)
     log.info(SEP + "Creating database structure +/- deleting dead data")
     engine = config.admindb.engine
-    if not incremental:
+
+    # -------------------------------------------------------------------------
+    # Mapping tables
+    # -------------------------------------------------------------------------
+
+    all_admin_tables = (OptOutMpid, OptOutPid, PatientInfo, TridRecord)
+    all_admin_except_opt_out = (PatientInfo, TridRecord)
+
+    # Drop
+    if full_drop_only:
+        log.info("Dropping all admin tables")
+        to_drop = all_admin_tables
+    elif not incremental:
         log.info("Dropping admin tables except opt-out")
-        # not OptOut
-
+        to_drop = all_admin_except_opt_out
+    else:
+        # Incremental mode
+        to_drop = ()
+    for drop_tableclass in to_drop:
         # noinspection PyUnresolvedReferences
-        PatientInfo.__table__.drop(engine, checkfirst=True)
-        # noinspection PyUnresolvedReferences
-        TridRecord.__table__.drop(engine, checkfirst=True)
-    log.info("Creating admin tables")
-    # noinspection PyUnresolvedReferences
-    OptOutPid.__table__.create(engine, checkfirst=True)
-    # noinspection PyUnresolvedReferences
-    OptOutMpid.__table__.create(engine, checkfirst=True)
-    # noinspection PyUnresolvedReferences
-    PatientInfo.__table__.create(engine, checkfirst=True)
-    # noinspection PyUnresolvedReferences
-    TridRecord.__table__.create(engine, checkfirst=True)
+        drop_tableclass.__table__.drop(engine, checkfirst=True)
 
-    wipe_and_recreate_destination_db(incremental=incremental)
-    if skipdelete or not incremental:
+    # Create
+    if full_drop_only:
+        to_create = ()
+    else:
+        log.info("Creating admin tables")
+        to_create = all_admin_tables
+    for create_tableclass in to_create:
+        # noinspection PyUnresolvedReferences
+        create_tableclass.__table__.create(engine, checkfirst=True)
+
+    # -------------------------------------------------------------------------
+    # Destination tables
+    # -------------------------------------------------------------------------
+
+    wipe_and_recreate_destination_db(incremental=incremental,
+                                     full_drop_only=full_drop_only)
+    if full_drop_only or skipdelete or not incremental:
         return
     for d in config.dd.get_source_databases():
         for t in config.dd.get_src_tables(d):
@@ -1854,6 +1890,7 @@ def process_patient_tables(tasknum: int = 0,
 def anonymise(incremental: bool = False,
               skipdelete: bool = False,
               dropremake: bool = False,
+              full_drop_only: bool = False,
               optout: bool = False,
               patienttables: bool = False,
               nonpatienttables: bool = False,
@@ -1885,6 +1922,9 @@ def anonymise(incremental: bool = False,
 
         dropremake:
             If true: drop/remake destination tables.
+        full_drop_only:
+            If true: drop destination tables (even opt-out ones) and do nothing
+            else.
         optout:
             If true: update opt-out list.
         patienttables:
@@ -1989,6 +2029,9 @@ def anonymise(incremental: bool = False,
     start = get_now_utc_pendulum()
 
     # 1. Drop/remake tables. Single-tasking only.
+    if full_drop_only:
+        drop_remake(full_drop_only=True)
+        return
     if dropremake or everything:
         drop_remake(incremental=incremental, skipdelete=skipdelete)
 

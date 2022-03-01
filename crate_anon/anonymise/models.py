@@ -95,8 +95,8 @@ class PatientInfo(AdminBase):
             mapping_patient_id_fieldname
             mapping_master_id_fieldname
 
-        - Note that these are still actively used, as they can be used to
-          set the names in the OUTPUT database (not the mapping database):
+        - Note that the following are still actively used, as they can be used
+          to set the names in the OUTPUT database (not the mapping database):
 
           .. code-block:: none
 
@@ -109,7 +109,7 @@ class PatientInfo(AdminBase):
 
         - the source PID type (e.g. INT, BIGINT, VARCHAR)
         - the source MPID type (e.g. BIGINT)
-        - the encrypted (RID, MRID) type (which is set by the encryption
+        - the encrypted (RID, MRID) type, which is set by the encryption
           algorithm; e.g. VARCHAR(128) for SHA-512.
     """
     __tablename__ = PatientInfoConstants.SECRET_MAP_TABLENAME

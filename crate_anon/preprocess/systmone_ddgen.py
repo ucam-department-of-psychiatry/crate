@@ -1241,6 +1241,8 @@ _COLS_GENERIC_EXCLUDE_S1 = (
     S1HospNumCol.HOSPNUM,  # just in case
 )
 _COLS_GENERIC_EXCLUDE_CPFT = (
+    CPFTAddressCol.POSTCODE_NOSPACE,
+
     CPFTGenericCol.AGE_YEARS,
     # ... age when? Unhelpful. (And also, potentially leads to DOB discovery;
     # a blurred age near a birthday might be un-blurred by this.)
@@ -1255,8 +1257,6 @@ _COLS_GENERIC_EXCLUDE_CPFT = (
 
     CPFTPatientCol.DOB,
     CPFTPatientCol.MIDDLE_NAMES,
-
-    CPFTAddressCol.POSTCODE_NOSPACE,
 )
 COLS_GENERIC_EXCLUDE = {
     SystmOneContext.TPP_SRE: _COLS_GENERIC_EXCLUDE_S1,

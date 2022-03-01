@@ -90,8 +90,8 @@ def gen_all_values_for_patient(
 
 class Patient(object):
     """
-    Class representing a patient-specific information, such as PIDs, RIDs, and
-    scrubbers.
+    Class representing a patient with patient-specific information, such as
+    PIDs, RIDs, and scrubbers.
     """
 
     def __init__(self, pid: Union[int, str], debug: bool = False) -> None:
