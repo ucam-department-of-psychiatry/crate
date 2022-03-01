@@ -400,14 +400,13 @@ class Installer:
 
     def get_user_password(self, text: str) -> str:
         first = self.prompt(text, is_password=True)
-        second = self.prompt(
+        self.prompt(
             "Enter the same password again:",
             is_password=True,
             validator=PasswordMatchValidator(first)
         )
 
-        if first == second:
-            return first
+        return first
 
     def get_user_boolean(self, text: str) -> str:
         value = self.prompt(text, validator=YesNoValidator())
@@ -778,7 +777,7 @@ class Installer:
     def get_crate_server_port_from_host(self) -> str:
         return os.getenv("CRATE_DOCKER_CRATEWEB_HOST_PORT")
 
-    def stop(self) -> str:
+    def stop(self) -> None:
         os.chdir(DOCKERFILES_DIR)
         docker.compose.down()
 
