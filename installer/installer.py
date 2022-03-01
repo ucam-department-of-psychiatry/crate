@@ -39,6 +39,7 @@ import shutil
 import string
 from subprocess import run
 import sys
+from tempfile import NamedTemporaryFile
 import textwrap
 from typing import Callable, Dict, Iterable, Union
 import urllib.parse
@@ -98,6 +99,7 @@ class Installer:
         self.create_data_dictionary()
         self.anonymise_demo_data()
         self.report_status()
+        self.write_environment_variables()
 
     def start_message(self) -> None:
         print_formatted_text(HTML("<span>CRATE Installer</span>"),
@@ -132,6 +134,7 @@ class Installer:
         except (KeyboardInterrupt, EOFError):
             # The user pressed CTRL-C or CTRL-D
             print("Installation aborted")
+            self.write_environment_variables()
             sys.exit(EXIT_FAILURE)
 
     def configure_user(self) -> None:
@@ -684,6 +687,15 @@ class Installer:
     def report_status(self) -> None:
         localhost_url = self.get_crate_server_localhost_url()
         print(f"The CRATE application is running at {localhost_url}")
+
+    def write_environment_variables(self) -> None:
+        with NamedTemporaryFile(delete=False, mode="w") as f:
+            for key, value in os.environ.items():
+                if key.startswith("CRATE_DOCKER"):
+                    f.write(f"export {key}={value}\n")
+
+        print("Settings have been saved and can be loaded with "
+              f"'source {f.name}'.")
 
     def create_demo_data(self) -> None:
         dialect = os.getenv("CRATE_DOCKER_SOURCE_DATABASE_ENGINE")
