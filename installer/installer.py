@@ -57,6 +57,21 @@ PROJECT_ROOT = os.path.join(INSTALLER_DIR, "..")
 DOCKER_DIR = os.path.join(PROJECT_ROOT, "docker")
 DOCKERFILES_DIR = os.path.join(DOCKER_DIR, "dockerfiles")
 
+# Python Prompt Toolkit has basic support for text entry / yes-no / alert
+# dialogs but unfortunately there are a couple of features lacking:
+#
+# Completion does not display:
+# https://github.com/prompt-toolkit/python-prompt-toolkit/issues/715
+#
+# No way of specifying a default:
+# https://github.com/prompt-toolkit/python-prompt-toolkit/issues/1544
+#
+# So for now, just use basic prompts.
+#
+# An alternative library is Urwid (https://urwid.org/) but that leaves a
+# lot of work for the programmer (See file browser example:
+# https://github.com/urwid/urwid/blob/master/examples/browse.py
+
 
 class Installer:
     def __init__(self) -> None:
@@ -115,6 +130,7 @@ class Installer:
             self.configure_source_db()
             self.configure_django()
         except (KeyboardInterrupt, EOFError):
+            # The user pressed CTRL-C or CTRL-D
             print("Installation aborted")
             sys.exit(EXIT_FAILURE)
 
