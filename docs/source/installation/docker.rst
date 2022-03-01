@@ -133,7 +133,7 @@ Here is an example settings file. See :ref:`environment_variables
 
 To start the installer on all platforms:
 
-``. <(curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh)``
+``curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh --output crate_docker_installer.sh && bash --init-file crate_docker_installer.sh``
 
 
 .. _docker_environment_variables:
