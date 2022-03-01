@@ -85,6 +85,7 @@ class Installer:
         self.start_message()
         self.check_setup()
         self.configure()
+        self.write_environment_variables()
         self.create_directories()
         self.create_local_settings()
         self.create_anon_config()
@@ -99,7 +100,6 @@ class Installer:
         self.create_data_dictionary()
         self.anonymise_demo_data()
         self.report_status()
-        self.write_environment_variables()
 
     def start_message(self) -> None:
         print_formatted_text(HTML("<span>CRATE Installer</span>"),
