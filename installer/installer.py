@@ -34,6 +34,7 @@ import os
 from pathlib import Path
 from platform import uname
 import secrets
+from semantic_version import Version
 import shutil
 import string
 from subprocess import run
@@ -81,6 +82,15 @@ class Installer:
         if info.id is None:
             print("Could not connect to Docker. Check that Docker is running "
                   "and your user is in the 'docker' group.")
+            sys.exit(EXIT_FAILURE)
+
+        # python_on_whales doesn't support --short or --format so we do some
+        # parsing
+        version_string = docker.compose.version().split()[-1].lstrip("v")
+        version = Version(version_string)
+        if version.major < 2:
+            print(f"The version of Docker Compose ({version}) is too old. "
+                  "Please install v2 or greater.")
             sys.exit(EXIT_FAILURE)
 
     def configure(self) -> None:
