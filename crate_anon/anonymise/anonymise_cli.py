@@ -109,7 +109,7 @@ def inner_main() -> None:
         help="Drop/remake destination tables, and admin tables except "
              "opt-out tables.")
     action_options.add_argument(
-        "--fulldrop", action="store_true",
+        "--drop_all", action="store_true",
         help="Drop all destination and admin tables, then stop.")
     action_options.add_argument(
         "--optout", action="store_true",
@@ -225,7 +225,7 @@ def inner_main() -> None:
         skipdelete=args.skipdelete,
 
         dropremake=args.dropremake,
-        full_drop_only=args.fulldrop,
+        full_drop_only=args.drop_all,
         optout=args.optout,
         patienttables=args.patienttables,
         nonpatienttables=args.nonpatienttables,
