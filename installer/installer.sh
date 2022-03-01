@@ -35,7 +35,9 @@ set -euxo pipefail
 # Enable WSL2 in Docker Desktop
 
 # When we move to production the installation process will be:
-# curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh --output crate_docker_installer.sh && bash --init-file crate_docker_installer.sh
+# curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh --output crate_docker_installer.sh
+# chmod u+x crate_docker_installer.sh
+# ./crate_docker_installer.sh
 CRATE_HOME=${HOME}/crate
 CRATE_INSTALLER_VENV=${HOME}/.virtualenvs/crate-installer
 CRATE_GITHUB_REPOSITORY=https://github.com/RudolfCardinal/crate
