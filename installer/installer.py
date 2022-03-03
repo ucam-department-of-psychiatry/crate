@@ -49,7 +49,7 @@ from prompt_toolkit.completion import PathCompleter
 from prompt_toolkit.document import Document
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import Validator, ValidationError
-from python_on_whales import docker
+from python_on_whales import docker, DockerException
 
 EXIT_FAILURE = 1
 
@@ -112,9 +112,15 @@ class Installer:
                   "and your user is in the 'docker' group.")
             sys.exit(EXIT_FAILURE)
 
-        # python_on_whales doesn't support --short or --format so we do some
-        # parsing
-        version_string = docker.compose.version().split()[-1].lstrip("v")
+        try:
+            # python_on_whales doesn't support --short or --format so we do some
+            # parsing
+            version_string = docker.compose.version().split()[-1].lstrip("v")
+        except DockerException:
+            print("It looks like you don't have Docker Compose installed."
+                  "Please install v2 or greater")
+            sys.exit(EXIT_FAILURE)
+
         version = Version(version_string)
         if version.major < 2:
             print(f"The version of Docker Compose ({version}) is too old. "

@@ -95,8 +95,8 @@ Windows
 
 Linux
 ^^^^^
-- Install Docker Engine https://docs.docker.com/engine/install/. This now includes
-  Docker Compose. There is no need to install Docker Compose separately.
+- Install Docker Engine https://docs.docker.com/engine/install/.
+- Install Docker Compose v2 or greater https://docs.docker.com/compose/cli-command/#install-on-linux
 - Install python3-virtualenv:
   Ubuntu: ``sudo apt -y install python3-virtualenv python3-venv``
 
