@@ -18,7 +18,7 @@ jobs:
               run: |
                   set -euxo pipefail
                   sudo apt-get update
-                  sudo apt -y install python3-virtualenv python3-venv
+                  sudo apt -y install python3-virtualenv python3-venv wait-for-it
                   docker --version
                   export CRATE_DOCKER_MYSQL_CRATE_HOST_PORT=3307
                   export CRATE_DOCKER_CONFIG_HOST_DIR=${HOME}/crate_config
@@ -41,7 +41,8 @@ jobs:
                   cd ${HOME}/crate/docker/dockerfiles
                   docker compose logs
                   SERVER_IP=$(docker inspect crate_crate_server --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
-                  curl -I -L --retry 100 --retry-all-errors --fail $SERVER_IP:8000/crate/
+                  wait-for-it $SERVER_IP:8000 --timeout=300
+                  curl -I -L --retry 10 --fail $SERVER_IP:8000/crate/
                   # Check static files collected
                   curl -I -L --fail $SERVER_IP:8000/crate_static/scrubber.png
                   cd ${HOME}/crate/docker/dockerfiles
