@@ -483,7 +483,7 @@ class Installer:
             "dest_db_password": os.getenv(
                 "CRATE_DOCKER_RESEARCH_DATABASE_USER_PASSWORD"
             ),
-            "django_site_root_absolute_url": "http://crate_server:8088",
+            "django_site_root_absolute_url": "http://mymachine.mydomain",
             "force_script_name": self.get_crate_server_path(),
             "crate_https": str(self.use_https()),
             "mysql_db": os.getenv("CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME"),
