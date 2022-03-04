@@ -32,4 +32,4 @@ source ${CRATE_INSTALLER_VENV}/bin/activate
 
 INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
 
-python $INSTALLER_HOME/installer.py enter_crate_container
+python $INSTALLER_HOME/installer.py enter_crate_container "$@"

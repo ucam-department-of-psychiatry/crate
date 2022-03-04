@@ -787,10 +787,16 @@ class Installer:
         os.chdir(DOCKERFILES_DIR)
         docker.compose.down()
 
-    def enter_crate_container(self) -> None:
+    def enter_crate_container(self, as_root: bool = False) -> None:
         # python_on_whales doesn't support docker compose exec yet
         os.chdir(DOCKERFILES_DIR)
-        run(["docker", "compose", "exec", "crate_server", "/bin/bash"])
+
+        command = ["docker", "compose", "exec"]
+        user_option = []
+        if as_root:
+            user_option = ["-u", "0"]
+
+        run(command + user_option + ["crate_server", "/bin/bash"])
 
 
 class Wsl2Installer(Installer):
@@ -866,7 +872,12 @@ def main() -> None:
     subparsers.add_parser("start")
     run_crate_command = subparsers.add_parser("run_crate_command")
     run_crate_command.add_argument("crate_command", type=str)
-    subparsers.add_parser("enter_crate_container")
+    enter_crate_container = subparsers.add_parser("enter_crate_container")
+    enter_crate_container.add_argument(
+        "--as_root", action="store_true",
+        help="Enter as the root user instead of 'crate' user",
+        default=False
+    )
 
     installer = get_installer()
 
@@ -885,7 +896,7 @@ def main() -> None:
         installer.run_crate_command(args.crate_command)
 
     if args.command == "enter_crate_container":
-        installer.enter_crate_container()
+        installer.enter_crate_container(args.as_root)
 
 
 def get_installer() -> Installer:
