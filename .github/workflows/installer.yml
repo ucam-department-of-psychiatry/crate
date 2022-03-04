@@ -35,7 +35,7 @@ jobs:
                   # . <(curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh)
                   # Development:
                   cd ${HOME}
-                  curl -L --retry 10 --fail https://github.com/RudolfCardinal/crate/releases/download/installer-test-8/installer.sh --output crate_docker_installer.sh
+                  curl -L --retry 10 --fail https://github.com/RudolfCardinal/crate/releases/download/installer-test-9/installer.sh --output crate_docker_installer.sh
                   chmod u+x crate_docker_installer.sh
                   ./crate_docker_installer.sh
                   # Check Django app is running
