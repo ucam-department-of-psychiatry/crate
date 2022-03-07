@@ -69,7 +69,7 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.1.16",  # RNC libraries
+    "cardinal_pythonlib==1.1.18",  # RNC libraries
     "cairosvg==2.5.1",  # work with SVG files
     "celery==5.2.3",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
@@ -95,7 +95,7 @@ INSTALL_REQUIRES = [
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa
     "openpyxl==3.0.7",  # read Excel
     "pendulum==2.1.1",  # dates/times
-    "pillow==9.0.1",  # image processing; import as PIL (Python Imaging Library)  # noqa
+    "Pillow==9.0.1",  # image processing; import as PIL (Python Imaging Library)  # noqa
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==0.7.2",  # pretty formating of text-based tables
     "psutil==5.7.2",  # process management

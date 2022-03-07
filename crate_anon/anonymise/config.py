@@ -585,24 +585,20 @@ class Config(object):
         # Anonymisation
         # ---------------------------------------------------------------------
 
+        cfg.require_absent(
+            AK.DEPRECATED_WHITELIST_FILENAMES,
+            f"Replace {AK.DEPRECATED_WHITELIST_FILENAMES!r} with "
+            f"{AK.ALLOWLIST_FILENAMES!r}"
+        )
+        cfg.require_absent(
+            AK.DEPRECATED_BLACKLIST_FILENAMES,
+            f"Replace {AK.DEPRECATED_BLACKLIST_FILENAMES!r} with "
+            f"{AK.DENYLIST_FILENAMES!r}"
+        )
+
         self.allow_no_patient_info = cfg.opt_bool(
             AK.ALLOW_NO_PATIENT_INFO, False)
-        self.replace_patient_info_with = cfg.opt_str(
-            AK.REPLACE_PATIENT_INFO_WITH)
-        self.replace_third_party_info_with = cfg.opt_str(
-            AK.REPLACE_THIRD_PARTY_INFO_WITH)
-        self.replace_nonspecific_info_with = cfg.opt_str(
-            AK.REPLACE_NONSPECIFIC_INFO_WITH)
-        self.thirdparty_xref_max_depth = cfg.opt_int(
-            AK.THIRDPARTY_XREF_MAX_DEPTH, 1)
-        self.string_max_regex_errors = cfg.opt_int(
-            AK.STRING_MAX_REGEX_ERRORS, 0)
-        self.min_string_length_for_errors = cfg.opt_int(
-            AK.MIN_STRING_LENGTH_FOR_ERRORS, 1)
-        self.min_string_length_to_scrub_with = cfg.opt_int(
-            AK.MIN_STRING_LENGTH_TO_SCRUB_WITH, 2)
-        self.scrub_all_uk_postcodes = cfg.opt_bool(
-            AK.SCRUB_ALL_UK_POSTCODES, False)
+        self.allowlist_filenames = cfg.opt_multiline(AK.ALLOWLIST_FILENAMES)
         self.anonymise_codes_at_word_boundaries_only = cfg.opt_bool(
             AK.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY, True)
         self.anonymise_dates_at_word_boundaries_only = cfg.opt_bool(
@@ -613,29 +609,35 @@ class Config(object):
             AK.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY, True)
         self.anonymise_strings_at_word_boundaries_only = cfg.opt_bool(
             AK.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY, True)
-
-        self.scrub_string_suffixes = cfg.opt_multiline(
-            AK.SCRUB_STRING_SUFFIXES)
-        cfg.require_absent(
-            AK.DEPRECATED_WHITELIST_FILENAMES,
-            f"Replace {AK.DEPRECATED_WHITELIST_FILENAMES!r} with "
-            f"{AK.ALLOWLIST_FILENAMES!r}"
-        )
-        self.allowlist_filenames = cfg.opt_multiline(AK.ALLOWLIST_FILENAMES)
-        cfg.require_absent(
-            AK.DEPRECATED_BLACKLIST_FILENAMES,
-            f"Replace {AK.DEPRECATED_BLACKLIST_FILENAMES!r} with "
-            f"{AK.DENYLIST_FILENAMES!r}"
-        )
         self.denylist_filenames = cfg.opt_multiline(AK.DENYLIST_FILENAMES)
         self.denylist_files_as_phrases = cfg.opt_bool(
             AK.DENYLIST_FILES_AS_PHRASES, False)
         self.denylist_phrases_flexible_whitespace = cfg.opt_bool(
             AK.DENYLIST_PHRASES_FLEXIBLE_WHITESPACE, False)
+        self.min_string_length_for_errors = cfg.opt_int(
+            AK.MIN_STRING_LENGTH_FOR_ERRORS, 1)
+        self.min_string_length_to_scrub_with = cfg.opt_int(
+            AK.MIN_STRING_LENGTH_TO_SCRUB_WITH, 2)
         self.phrase_alternative_word_filenames = cfg.opt_multiline(
             AK.PHRASE_ALTERNATIVE_WORD_FILENAMES)
+        self.replace_patient_info_with = cfg.opt_str(
+            AK.REPLACE_PATIENT_INFO_WITH)
+        self.replace_third_party_info_with = cfg.opt_str(
+            AK.REPLACE_THIRD_PARTY_INFO_WITH)
+        self.replace_nonspecific_info_with = cfg.opt_str(
+            AK.REPLACE_NONSPECIFIC_INFO_WITH)
+        self.scrub_all_dates = cfg.opt_bool(
+            AK.SCRUB_ALL_DATES, False)
         self.scrub_all_numbers_of_n_digits = cfg.opt_multiline_int(
             AK.SCRUB_ALL_NUMBERS_OF_N_DIGITS, minimum=1)
+        self.scrub_all_uk_postcodes = cfg.opt_bool(
+            AK.SCRUB_ALL_UK_POSTCODES, False)
+        self.scrub_string_suffixes = cfg.opt_multiline(
+            AK.SCRUB_STRING_SUFFIXES)
+        self.string_max_regex_errors = cfg.opt_int(
+            AK.STRING_MAX_REGEX_ERRORS, 0)
+        self.thirdparty_xref_max_depth = cfg.opt_int(
+            AK.THIRDPARTY_XREF_MAX_DEPTH, 1)
         self.timefield = cfg.opt_str(AK.TIMEFIELD_NAME)
 
         # Get all extra regexes
@@ -672,11 +674,14 @@ class Config(object):
             hasher=self.change_detection_hasher,
             anonymise_codes_at_word_boundaries_only=(
                 self.anonymise_codes_at_word_boundaries_only),
+            anonymise_dates_at_word_boundaries_only=(
+                self.anonymise_dates_at_word_boundaries_only),
             anonymise_numbers_at_word_boundaries_only=(
                 self.anonymise_numbers_at_word_boundaries_only),
             denylist=self.denylist,
             scrub_all_numbers_of_n_digits=self.scrub_all_numbers_of_n_digits,
             scrub_all_uk_postcodes=self.scrub_all_uk_postcodes,
+            scrub_all_dates=self.scrub_all_dates,
             extra_regexes=self.extra_regexes,
         )
         self.phrase_alternative_words = get_word_alternatives(

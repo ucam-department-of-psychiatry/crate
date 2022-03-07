@@ -28,7 +28,7 @@ crate_anon/common/regex_helpers.py
 
 """
 
-from typing import List
+from typing import Iterable, List, Union
 
 import regex  # sudo apt-get install python-regex
 
@@ -36,6 +36,11 @@ import regex  # sudo apt-get install python-regex
 # =============================================================================
 # Constants
 # =============================================================================
+
+# Reminders: ? zero or one, + one or more, * zero or more
+# Non-capturing groups: (?:...)
+# ... https://docs.python.org/2/howto/regex.html
+# ... https://stackoverflow.com/questions/3512471/non-capturing-group
 
 ASTERISK = r"\*"
 AT_LEAST_ONE_NONWORD = r"\W+"  # 1 or more non-alphanumeric character
@@ -72,6 +77,10 @@ RIGHT_BRACKET = r"\)"
 WB = r"\b"  # word boundary; escape the slash if not using a raw string
 WHITESPACE_CHARACTERS = [" ", "\t", "\n"]
 WORD_BOUNDARY = WB
+
+_NOT_EMPTY_WORD_ONLY_REGEX = regex.compile(r"^\w+$")
+_NOT_EMPTY_ALPHABETICAL_ONLY_REGEX = regex.compile("^[a-zA-Z]+$")
+# cf. https://stackoverflow.com/questions/336210/regular-expression-for-alphanumeric-and-underscores  # noqa
 
 
 # =============================================================================
@@ -156,6 +165,13 @@ def noncapture_group(regex_str: str) -> str:
     return f"(?:{regex_str})"
 
 
+def optional_noncapture_group(regex_str: str) -> str:
+    """
+    Wraps the string in an optional non-capture group, ``(?: ... )?``
+    """
+    return f"(?:{regex_str})?"
+
+
 def regex_or(*regex_strings: str,
              wrap_each_in_noncapture_group: bool = False,
              wrap_result_in_noncapture_group: bool = False) -> str:
@@ -185,3 +201,46 @@ def regex_or(*regex_strings: str,
         return noncapture_group(result)
     else:
         return result
+
+
+def assert_alphabetical(x: Union[str, Iterable[str]]) -> None:
+    """
+    Asserts that there are no regex metacharacters present in the string.
+    Args:
+        x:
+
+    Returns:
+
+    """
+    if isinstance(x, str):
+        assert _NOT_EMPTY_ALPHABETICAL_ONLY_REGEX.match(x), (
+            f"Should be non-empty and contain only alphabetical characters: "
+            f"{x!r}"
+        )
+    else:
+        for s in x:
+            assert _NOT_EMPTY_ALPHABETICAL_ONLY_REGEX.match(x), (
+                f"Should be non-empty and contain only alphabetical "
+                f"characters: {s!r} (part of {x!r})"
+            )
+
+
+def first_n_characters_required(x: str, n: int) -> str:
+    """
+    Returns a regex string that requires the first n characters, and then
+    allows the rest as optional as long as they are in sequence.
+
+    Args:
+        x:
+            String
+        n:
+            Minimum number of characters required at the start
+    """
+    assert _NOT_EMPTY_WORD_ONLY_REGEX.match(x)
+    assert n >= 0
+    start = x[0:n]
+    rest = x[n:]
+    rest_regex = ""
+    for c in reversed(rest):
+        rest_regex = optional_noncapture_group(c + rest_regex)
+    return start + rest_regex

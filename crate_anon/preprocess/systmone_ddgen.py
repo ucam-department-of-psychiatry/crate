@@ -654,7 +654,21 @@ def _flip_coldict(d: Dict[Tuple[str, str], str]) -> Dict[Tuple[str, str], str]:
 # Cosmetic
 # -----------------------------------------------------------------------------
 
-COMMENT_SEP = " // "
+COMMENT_SEP = " // "  # for combining parts of column comments
+
+
+# -----------------------------------------------------------------------------
+# Generic regular expression
+# -----------------------------------------------------------------------------
+
+ANYTHING = ".+"  # at least one character
+
+
+def terminate(x: str) -> str:
+    """
+    Apply an end-of-string terminator to a regex string.
+    """
+    return x + "$"
 
 
 # -----------------------------------------------------------------------------
@@ -1405,7 +1419,10 @@ _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     (".*Referral", ".*Reason"),
 
     # A bunch of explicitly free-text fields:
-    ("FreeText_", ".*"),
+    # - any not-otherwise-handled textual field in a table named "FreeText_..."
+    ("FreeText_", ANYTHING),
+    # - any field named "FreeText..." (e.g. S1_Honos_Scores.FreeText)
+    (ANYTHING, "FreeText"),
 
     # - S1_CYPFRS_TelephoneTriage links in a bunch of things from S1_FreeText.
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Assessment"),
@@ -1430,11 +1447,19 @@ FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = {
 _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
     # Things that look like free text, but aren't.
     ("AnsweredQuestionnaire$", "QuestionnaireName$"),
+    (ANYTHING, S1GenericCol.CTV3_CODE),  # common clinical coding
+    S1GenericCol.CTV3_TEXT,  # common clinical coding
 )
 _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
-    # These two contain non-patient data:
-    ("FreeText_Honos_Scoring_Answers", ".+"),
-    ("FreeText_Honos_Scoring_Questions", ".+"),
+    # These contain non-patient data -- instead, the stock text of
+    # questionnaires:
+    ("FreeText_Honos_Scoring_Answers", ANYTHING),
+    ("FreeText_Honos_Scoring_Questions", ANYTHING),
+    ("FreeText_SWEMWBS", ANYTHING),
+    ("FreeText_SWEMWBS_Scores", ANYTHING),
+    ("FreeText_WEMWBS", ANYTHING),
+    # Should not be identifying:
+    (ANYTHING, "Ethnicity$"),
 )
 EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.TPP_SRE:
@@ -1457,7 +1482,7 @@ FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
 _NORMAL_INDEX_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # S1_Patient.IDPatient: Added by CPFT. Duplicate of RowIdentifier.
     # But likely to be used by researchers, so should be indexed.
-    (S1Table.PATIENT + "$", S1GenericCol.PATIENT_ID + "$"),
+    (terminate(S1Table.PATIENT), terminate(S1GenericCol.PATIENT_ID)),
 )
 NORMAL_INDEX_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.TPP_SRE: (),
@@ -1491,7 +1516,7 @@ GENERIC_COLS_TO_INDEX = {
 
 _PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
     # If CRATE inserts its PK field somewhere, it's a PK.
-    (".*", CRATE_COL_PK + "$"),
+    (ANYTHING, terminate(CRATE_COL_PK)),
 )
 _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # Primary key fields with non-standard names.

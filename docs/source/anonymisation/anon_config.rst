@@ -620,6 +620,35 @@ See https://www.mrs.org.uk/pdf/postcodeformat.pdf; these can look like
     AANA NAA  EC1A 1BB
 
 
+.. _scrub_all_dates:
+scrub_all_dates
+###############
+
+*Boolean.* Default: false.
+
+Nonspecific scrubbing of *all* dates? Anything that looks like a date will be
+removed, including:
+
+.. code-block:: none
+
+    2/11/73
+    03.31.1991
+    13 11 2001
+    1976/02/28
+    19741213
+    2 Sep 1990
+    1st Sep 2000
+    Sep 2nd 1990
+
+(etc.)
+
+.. note::
+    At present, the ordinal suffixes ("st", "nd", "rd", "th") are fixed to
+    English, as are the month names ("January", "February", ...).
+
+See also anonymise_dates_at_word_boundaries_only_.
+
+
 .. _anon_config_anonymise_codes_at_word_boundaries_only:
 anonymise_codes_at_word_boundaries_only
 #######################################
@@ -638,6 +667,7 @@ prefix, e.g. if people write ``M123456`` or ``R123456``; in that case you will
 need ``anonymise_numbers_at_word_boundaries_only = False``.
 
 
+.. _anonymise_dates_at_word_boundaries_only:
 anonymise_dates_at_word_boundaries_only
 #######################################
 
@@ -645,7 +675,8 @@ anonymise_dates_at_word_boundaries_only
 
 As for :ref:`anonymise_codes_at_word_boundaries_only
 <anon_config_anonymise_codes_at_word_boundaries_only>`, but applies to the
-``date`` scrub method (see :ref:`scrub_method <dd_scrub_method>`).
+``date`` scrub method (see :ref:`scrub_method <dd_scrub_method>`). Also applies
+to scrub_all_dates_.
 
 
 .. _anon_config_anonymise_numbers_at_word_boundaries_only:

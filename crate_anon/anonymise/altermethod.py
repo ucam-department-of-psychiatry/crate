@@ -36,7 +36,7 @@ import traceback
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from cardinal_pythonlib.datetimefunc import (
-    coerce_to_datetime,
+    coerce_to_date,
     truncate_date_to_first_of_month,
 )
 from cardinal_pythonlib.extract_text import (
@@ -392,12 +392,12 @@ class AlterMethod(object):
         return patient.scrub(str(value))
 
     @staticmethod
-    def _truncate_date_func(value: Any) -> Optional[datetime.datetime]:
+    def _truncate_date_func(value: Any) -> Optional[datetime.date]:
         """
         Truncates a date-like object to the first of the month.
         """
         try:
-            value = coerce_to_datetime(value)
+            value = coerce_to_date(value)
             return truncate_date_to_first_of_month(value)
         except (ValueError, OverflowError):
             log.warning(

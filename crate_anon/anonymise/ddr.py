@@ -79,6 +79,7 @@ from crate_anon.common.sql import (
     is_sql_column_type_textual,
     matches_fielddef,
     matches_tabledef,
+    SQLTYPE_DATE,
 )
 
 if TYPE_CHECKING:
@@ -1454,6 +1455,9 @@ class DataDictionaryRow(object):
             # Date truncation
             self._alter_methods.append(AlterMethod(config=self.config,
                                                    truncate_date=True))
+            # If we're truncating a date, we should also encourage a DATE
+            # destination (as opposed to e.g. a DATETIME).
+            self.dest_datatype = SQLTYPE_DATE
 
         elif self.matches_fielddef(dbconf.ddgen_filename_to_text_fields):
             # Read filename from database, read file, convert to text

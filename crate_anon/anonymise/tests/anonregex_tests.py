@@ -45,6 +45,7 @@ from crate_anon.anonymise.anonregex import (
     get_anon_fragments_from_string,
     get_code_regex_elements,
     get_date_regex_elements,
+    get_generic_date_regex_elements,
     get_number_of_length_n_regex_elements,
     get_phrase_regex_elements,
     get_regex_from_elements,
@@ -205,6 +206,227 @@ class TestAnonRegexes(TestCase):
             get_phrase_regex_elements(testphrase)))
         self.report("10-digit-number regex", get_regex_string_from_elements(
             get_number_of_length_n_regex_elements(10)))
+
+    def test_generic_date(self) -> None:
+        # https://stackoverflow.com/questions/51224/regular-expression-to-match-valid-dates  # noqa
+        valid = (
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # From that StackOverflow set
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Day, month, year
+            "2/11/73",
+            "02/11/1973",
+            "2/1/73",
+            "02/01/73",
+            "31/1/1973",
+            "02/1/1973",
+            "31.1.2011",
+            "31-1-2001",
+            "29/2/1973",
+            "29/02/1976",
+            "03/06/2010",
+            "12/6/90",
+
+            # month, day, year
+            "02/24/1975",
+            "06/19/66",
+            "03.31.1991",
+            "2.29.2003",
+            "02-29-55",
+            "03-13-55",
+            "03-13-1955",
+            r"12\24\1974",
+            r"12\30\1974",
+            r"1\31\1974",
+            "03/31/2001",
+            "01/21/2001",
+            "12/13/2001",
+
+            # Match both DMY and MDY
+            "12/12/1978",
+            "6/6/78",
+            "06/6/1978",
+            "6/06/1978",
+
+            # using whitespace as a delimiter
+            "13 11 2001",
+            "11 13 2001",
+            "11 13 01",
+            "13 11 01",
+            "1 1 01",
+            "1 1 2001",
+
+            # Year Month Day order
+            "76/02/02",
+            "1976/02/29",
+            "1976/2/13",
+            "76/09/31",
+
+            # YYYYMMDD sortable format
+            "19741213",
+            "19750101",
+
+            # Valid dates before Epoch
+            "12/1/10",
+            "12/01/00",
+            "12/01/0000",
+
+            # Valid date after 2038
+            "01/01/2039",
+            "01/01/39",
+
+            # Dates with leading or trailing characters (but still word
+            # boundaries)
+            "12/31/21/",
+            "12/10/2016  8:26:00.39",
+            "31/12/1921.10:55",
+
+            # Dates that runs across two lines
+            "1/12/19\n74",
+            "01/12/19\n74/13/1946",
+            "31/12/20\n08:13",
+
+            # Odd but accepted
+            "2/12-73",
+
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Extras with our system supporting month words/ordinals
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            "2 Sep 1990",
+            "2nd Sep 1990",
+            "2 September 1990",
+            "02 September 90",
+            "2-Sep-90",
+            "1990-Sep-02",
+            "Sep 2 1990",
+            "Sep 2nd 1990",
+            "1st Sep 90",
+            "1st Sept 2000",
+        )
+        suboptimal_but_accepted = (
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # From that StackOverflow set
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Invalid, corrupted or nonsense dates
+            "74/2/29",  # wasn't a leap year
+
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Extras with our system supporting month words/ordinals
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            "1nd Sep 90",  # ordinal suffix-to-number mapping not checked
+        )
+        valid_only_without_word_boundaries = (
+            # Dates with leading or trailing characters (only recognized if
+            # word boundaries not required)
+            "31/12/1921AD",
+            "wfuwdf12/11/74iuhwf",
+            "fwefew13/11/1974",
+            "01/12/1974vdwdfwe",
+            "01/01/99werwer",
+        )
+        not_currently_valid_perhaps_should_be = (
+            # Valid dates before Epoch
+            "12/01/660",
+            # Valid date beyond the year 9999
+            "01/01/10000",
+        )
+        invalid = (
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # From that StackOverflow set
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Dates with leading or trailing characters that render it garbage
+            "12321301/01/99",
+
+            # Invalid, corrupted or nonsense dates
+            "00/01/2100",
+            "31/31/2001",
+            "101/12/1974",
+
+            # Invalid, corrupted or nonsense dates
+            "0/1/2001",
+            "1/0/2001",
+            "01/0/2001",
+            "0101/2001",
+            "01/131/2001",
+            "56/56/56",
+            "00/00/0000",
+            "0/0/1999",
+            "12/01/0",
+            "12/10/-100",
+            "12/32/45",
+            "20/12/194",
+
+            # Times that look like dates
+            "12:13:56",
+            "13:12:01",
+            "1:12:01PM",
+            "1:12:01 AM",
+
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Extras with our system supporting month words/ordinals
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            "1xx Sep 2000",
+            "1st Spt 2000",
+
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Irrelevant content
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            "The cat sat on the mat."
+            "He started haloperidol 5mg x7/week in 2009."
+        )
+        working_valid = valid + suboptimal_but_accepted
+        working_invalid = not_currently_valid_perhaps_should_be + invalid
+
+        date_regex_wb_elements = get_generic_date_regex_elements(
+            at_word_boundaries_only=True)
+        date_regex_wb_elements_str = "\n".join(date_regex_wb_elements)
+        date_regex_wb = get_regex_from_elements(date_regex_wb_elements)
+        date_regex_no_wb_elements = get_generic_date_regex_elements(
+            at_word_boundaries_only=False)
+        date_regex_no_wb_elements_str = "\n".join(date_regex_no_wb_elements)
+        date_regex_no_wb = get_regex_from_elements(date_regex_no_wb_elements)
+
+        # match() = at beginning of string
+        # search() = anywhere in string
+        for x in working_valid:
+            self.assertTrue(
+                date_regex_wb.search(x),
+                f"[#1] Should be recognized as a date (with word "
+                f"boundaries) but isn't: {x!r}; "
+                f"regex elements =\n{date_regex_wb_elements_str}"
+            )
+            self.assertTrue(
+                date_regex_no_wb.search(x),
+                f"[#2] Should be recognized as a date (without word "
+                f"boundaries) but isn't: {x!r}; "
+                f"regex elements =\n{date_regex_no_wb_elements_str}"
+            )
+        for x in valid_only_without_word_boundaries:
+            self.assertFalse(
+                date_regex_wb.search(x),
+                f"[#3] Should not be recognized as a date (with word "
+                f"boundaries) but is: {x!r}; "
+                f"regex elements =\n{date_regex_wb_elements_str}"
+            )
+            self.assertTrue(
+                date_regex_no_wb.search(x),
+                f"[#4] Should be recognized as a date (without word "
+                f"boundaries) but isn't: {x!r}; "
+                f"regex elements =\n{date_regex_no_wb_elements_str}"
+            )
+        for x in working_invalid:
+            self.assertFalse(
+                date_regex_wb.search(x),
+                f"[#5] Should not be recognized as a date (with word "
+                f"boundaries) but is: {x!r}; "
+                f"regex elements =\n{date_regex_wb_elements_str}"
+            )
+            self.assertFalse(
+                date_regex_no_wb.search(x),
+                f"[#6] Should not be recognized as a date (without word "
+                f"boundaries) but is: {x!r}; "
+                f"regex elements =\n{date_regex_no_wb_elements_str}"
+            )
 
 
 def examples_for_paper() -> None:

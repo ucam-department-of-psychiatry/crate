@@ -52,6 +52,7 @@ from crate_anon.anonymise.anonregex import (
     get_anon_fragments_from_string,
     get_code_regex_elements,
     get_date_regex_elements,
+    get_generic_date_regex_elements,
     get_number_of_length_n_regex_elements,
     get_phrase_regex_elements,
     get_regex_from_elements,
@@ -354,46 +355,62 @@ class NonspecificScrubber(ScrubberBase):
                  replacement_text: str,
                  hasher: GenericHasher,
                  anonymise_codes_at_word_boundaries_only: bool = True,
+                 anonymise_dates_at_word_boundaries_only: bool = True,
                  anonymise_numbers_at_word_boundaries_only: bool = True,
                  denylist: WordList = None,
                  scrub_all_numbers_of_n_digits: List[int] = None,
                  scrub_all_uk_postcodes: bool = False,
+                 scrub_all_dates: bool = False,
                  extra_regexes: Optional[List[str]] = None) -> None:
         """
         Args:
             replacement_text:
-                replace sensitive content with this string
+                Replace sensitive content with this string.
             hasher:
                 :class:`GenericHasher` to use to hash this scrubber (for
                 change-detection purposes); should be a secure hasher
             anonymise_codes_at_word_boundaries_only:
                 For codes: Boolean. Ensure that the regex begins and ends with
                 a word boundary requirement.
+            anonymise_dates_at_word_boundaries_only:
+                Scrub dates only if they occur at word boundaries. (Even if you
+                say no, there are *some* restrictions or very odd things would
+                happen; see
+                :func:`crate_anon.anonymise.anonregex.get_generic_date_regex_elements`.)
             anonymise_numbers_at_word_boundaries_only:
-               For numbers: Boolean. If set, ensure that the regex begins and
-               ends with a word boundary requirement. If not set, the regex
-               must be surrounded by non-digits. (If it were surrounded by more
-               digits, it wouldn't be an n-digit number!)
+                For numbers: Boolean. If set, ensure that the regex begins and
+                ends with a word boundary requirement. If not set, the regex
+                must be surrounded by non-digits. (If it were surrounded by
+                more digits, it wouldn't be an n-digit number!)
             denylist:
-                words to scrub
+                Words to scrub.
             scrub_all_numbers_of_n_digits:
-                list of values of n; number lengths to scrub
+                List of values of n; number lengths to scrub.
             scrub_all_uk_postcodes:
-                scrub all UK postcodes?
+                Scrub all UK postcodes?
+            scrub_all_dates:
+                Scrub all dates? (Currently assumes the default locale for
+                month names and ordinal suffixes.)
             extra_regexes:
-                list of user-defined extra regexes to scrub
-        """
+                List of user-defined extra regexes to scrub.
+        """  # noqa
         scrub_all_numbers_of_n_digits = scrub_all_numbers_of_n_digits or []
 
         super().__init__(hasher)
         self.replacement_text = replacement_text
         self.anonymise_codes_at_word_boundaries_only = (
-            anonymise_codes_at_word_boundaries_only)
+            anonymise_codes_at_word_boundaries_only
+        )
+        self.anonymise_dates_at_word_boundaries_only = (
+            anonymise_dates_at_word_boundaries_only
+        )
         self.anonymise_numbers_at_word_boundaries_only = (
-            anonymise_numbers_at_word_boundaries_only)
+            anonymise_numbers_at_word_boundaries_only
+        )
         self.denylist = denylist
         self.scrub_all_numbers_of_n_digits = scrub_all_numbers_of_n_digits
         self.scrub_all_uk_postcodes = scrub_all_uk_postcodes
+        self.scrub_all_dates = scrub_all_dates
         self.extra_regexes = extra_regexes
 
         self._cached_hash = None  # type: Optional[str]
@@ -443,6 +460,10 @@ class NonspecificScrubber(ScrubberBase):
                 n,
                 at_word_boundaries_only=(
                     self.anonymise_numbers_at_word_boundaries_only)
+            ))
+        if self.scrub_all_dates:
+            elements.extend(get_generic_date_regex_elements(
+                at_word_boundaries_only=self.anonymise_dates_at_word_boundaries_only  # noqa
             ))
         if self.extra_regexes:
             elements.extend(self.extra_regexes)
@@ -799,12 +820,15 @@ class PersonalizedScrubber(ScrubberBase):
         if not self.regexes_built:
             self.build_regexes()
 
-        if self.nonspecific_scrubber:
-            text = self.nonspecific_scrubber.scrub(text)
+        # Patient, then third party, then nonspecific. That makes the
+        # replacement text slightly more informative, assuming the user has
+        # chosen different replacement strings for each.
         if self.re_patient:
             text = self.re_patient.sub(self.replacement_text_patient, text)
         if self.re_tp:
             text = self.re_tp.sub(self.replacement_text_third_party, text)
+        if self.nonspecific_scrubber:
+            text = self.nonspecific_scrubber.scrub(text)
         return text
 
     def get_hash(self) -> str:

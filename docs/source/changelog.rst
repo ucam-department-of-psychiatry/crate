@@ -40,10 +40,12 @@ Quick links:
 - :ref:`2018 <changelog_2018>`
 - :ref:`2019 <changelog_2019>`
 - :ref:`2020 <changelog_2020>`
-- :ref:`2021 <changelog_2021>`
+- :ref:`2021-2022 <changelog_2021_2022>`
+
 
 Changes
 -------
+
 
 .. _changelog_2015:
 
@@ -1328,10 +1330,10 @@ Changes
   ``sodium (mM) 132`` as well as ``sodium 132 mM``.
 
 
-.. _changelog_2021:
+.. _changelog_2021_2022:
 
-2021
-~~~~
+2021-2022
+~~~~~~~~~
 
 **0.19.2, 2021-01-26**
 
@@ -1485,6 +1487,18 @@ Changes
   - Allow secret table PID/MPID types to be integer despite string source
     fields, giving a warning only. This is acceptable if the source fields do
     in fact contain only integers-as-strings, e.g. '123'.
+
+  - When dates are truncated, (a) ensure time fields are zero, and (b) default
+    (during data dictionary drafting) to a DATE field, in case the source is
+    DATETIME.
+
+  - Fix scrubber order (in
+    :meth:`crate_anon.anonymise.scrub.PersonalizedScrubber.scrub`). Was (1)
+    nonspecific, (2) patient, (3) third party. Now (1) patient, (2) third
+    party, (3) nonspecific. This provides some more information to the user
+    about the subject of a sentence.
+
+  - Option to scrub all dates: :ref:`scrub_all_dates <scrub_all_dates>`.
 
 
 To do

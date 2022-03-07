@@ -35,7 +35,7 @@ crate_anon/anonymise/anonregex.py
 import calendar
 import datetime
 import logging
-from typing import List, Optional, Pattern, Union
+from typing import Iterable, List, Optional, Pattern, Union
 
 from cardinal_pythonlib.lists import unique_list
 
@@ -46,18 +46,31 @@ import regex  # sudo apt-get install python-regex
 from regex import _regex_core
 
 from crate_anon.common.regex_helpers import (
+    assert_alphabetical,
     AT_LEAST_ONE_NONWORD,
     escape_literal_for_regex_giving_charlist,
     escape_literal_string_for_regex,
+    first_n_characters_required,
     NON_ALPHANUMERIC_SPLITTERS,
+    noncapture_group,
     NOT_DIGIT_LOOKAHEAD,
     NOT_DIGIT_LOOKBEHIND,
     OPTIONAL_NON_NEWLINE_WHITESPACE,
+    optional_noncapture_group,
     OPTIONAL_NONWORD,
     WORD_BOUNDARY as WB,
 )
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+ORDINAL_SUFFIXES_ENGLISH = ("st", "nd", "rd", "th")  # 1st, 2nd, 3rd, 4th...
+MONTHS_ENGLISH = tuple(calendar.month_name[_] for _ in range(1, 12 + 1))
+# https://docs.python.org/3/library/calendar.html
 
 
 # =============================================================================
@@ -74,7 +87,14 @@ def get_anon_fragments_from_string(s: str) -> List[str]:
       from ``"John D'Souza"``, return ``["John", "D", "Souza"]``;
       from ``"42 West Street"``, return ``["42", "West", "Street"]``.
 
-    - Try the examples listed below the function.
+    - Try these examples:
+
+      .. code-block:: python
+
+        get_anon_fragments_from_string("Bob D'Souza")
+        get_anon_fragments_from_string("Jemima Al-Khalaim")
+        get_anon_fragments_from_string("47 Russell Square")
+
     - Note that this is a LIBERAL algorithm, i.e. one prone to anonymise too
       much (e.g. all instances of ``"Street"`` if someone has that as part of
       their address).
@@ -86,42 +106,30 @@ def get_anon_fragments_from_string(s: str) -> List[str]:
     # The filter(None, ...) aspect removes empty strings, e.g. from
     # leading/trailing whitespace.
 
-    # smallfragments = []  # type: List[str]
-    # combinedsmallfragments = []  # type: List[str]
-    # for chunk in s.split():  # split on whitespace
-    #     for smallchunk in NON_WHITESPACE_SPLITTERS.split(chunk):
-    #         if smallchunk.lower() in config.words_not_to_scrub:
-    #             continue
-    #         smallfragments.append(smallchunk)
-    #         # OVERLAP here, but we need it for the combination bit, and
-    #         # we remove the overlap at the end.
-    # # Now we have chunks with e.g. apostrophes in, and all chunks split by
-    # # everything. Finally, we want all of these lumped together.
-    # for L in xrange(len(smallfragments) + 1):
-    #     for subset in itertools.combinations(smallfragments, L):
-    #         if subset:
-    #             combinedsmallfragments.append("".join(subset))
-    # return list(set(smallfragments + combinedsmallfragments))
-
-# EXAMPLES:
-# get_anon_fragments_from_string("Bob D'Souza")
-# get_anon_fragments_from_string("Jemima Al-Khalaim")
-# get_anon_fragments_from_string("47 Russell Square")
-
 
 # =============================================================================
 # Anonymisation regexes
 # =============================================================================
-# Note, for strings, several typo-detecting methods:
-#   http://en.wikipedia.org/wiki/Levenshtein_distance
-#   http://mwh.geek.nz/2009/04/26/python-damerau-levenshtein-distance/
-#   http://en.wikipedia.org/wiki/TRE_(computing)
-#   https://pypi.python.org/pypi/regex
-# ... let's go with the fuzzy regex method (Python regex module).
+
+# -----------------------------------------------------------------------------
+# Dates
+# -----------------------------------------------------------------------------
+
+def _month_word_regex_fragment(month_name: str) -> str:
+    """
+    Returns possibilities for the month word, allowing the first 3 characters,
+    or the whole month name -- e.g. converts ``September`` to
+    ``Sep(?:tember)?``, or indeed anything in between 3 and all of the
+    characters, e.g. ``Sept``.
+    """
+    return first_n_characters_required(month_name, 3)
+
 
 def get_date_regex_elements(
         dt: Union[datetime.datetime, datetime.date],
-        at_word_boundaries_only: bool = False) -> List[str]:
+        at_word_boundaries_only: bool = False,
+        ordinal_suffixes: Iterable[str] = ORDINAL_SUFFIXES_ENGLISH) \
+        -> List[str]:
     """
     Takes a datetime object and returns a list of regex strings with which
     to scrub.
@@ -130,32 +138,44 @@ def get_date_regex_elements(
     "13 Sep 2014", "September 13, 2014", "2014/09/13", and many more.
 
     Args:
-        dt: the datetime or date or similar object
+        dt:
+            The datetime or date or similar object.
         at_word_boundaries_only:
-            ensure that all regexes begin and end with a word boundary
-            requirement
+            Ensure that all regexes begin and end with a word boundary
+            requirement.
+        ordinal_suffixes:
+            Language-specific suffixes that may be appended to numbers to make
+            them ordinal. In English, "st", "nd", "rd", and "th".
 
     Returns:
         the list of regular expression strings, as above
     """
-    # Reminders: ? zero or one, + one or more, * zero or more
-    # Non-capturing groups: (?:...)
-    # ... https://docs.python.org/2/howto/regex.html
-    # ... https://stackoverflow.com/questions/3512471/non-capturing-group
-    # Day, allowing leading zeroes and e.g. "1st, 2nd"
-    day = "0*" + str(dt.day) + "(?:st|nd|rd|th)?"
-    # Month, allowing leading zeroes for numeric and e.g. Feb/February
+    # Day (numeric), allowing leading zeroes and e.g. "1st, 2nd"
+    assert_alphabetical(ordinal_suffixes)
+    assert not isinstance(ordinal_suffixes, str)
+    optional_suffixes = optional_noncapture_group("|".join(ordinal_suffixes))
+    day = "0*" + str(dt.day) + optional_suffixes
+
+    # Month
+    # ... numerically, allowing leading zeroes for numeric and e.g.
+    # Feb/February
     month_numeric = "0*" + str(dt.month)
+    # ... as a word
     # month_word = dt.strftime("%B")  # can't cope with years < 1900
-    month_word = calendar.month_name[dt.month]
-    month_word = month_word[0:3] + "(?:" + month_word[3:] + ")?"
+    month_name = calendar.month_name[dt.month]  # localized
+    # Allow first 3 characters, or whole month name:
+    month_word = _month_word_regex_fragment(month_name)
     month = "(?:" + month_numeric + "|" + month_word + ")"
+
     # Year
     year = str(dt.year)
     if len(year) == 4:
         year = "(?:" + year[0:2] + ")?" + year[2:4]
         # ... converts e.g. 1986 to (19)?86, to match 1986 or 86
+
+    # Separator
     sep = OPTIONAL_NONWORD
+
     # Regexes
     basic_regexes = [
         day + sep + month + sep + year,  # e.g. 13 Sep 2014
@@ -167,6 +187,72 @@ def get_date_regex_elements(
     else:
         return basic_regexes
 
+
+def get_generic_date_regex_elements(
+        at_word_boundaries_only: bool = True,
+        ordinal_suffixes: Iterable[str] = ORDINAL_SUFFIXES_ENGLISH,
+        all_month_names: Iterable[str] = MONTHS_ENGLISH) -> List[str]:
+    """
+    Returns a set of regex elements to scrub *any* date.
+
+    Word boundaries are strongly preferred! This will match some odd things
+    otherwise; see the associated unit tests.
+    """
+    # https://stackoverflow.com/questions/51224/regular-expression-to-match-valid-dates  # noqa
+
+    numeric_day = noncapture_group(r"0?[1-9]|[12]\d|30|31")  # range [1, 31]
+    numeric_month = noncapture_group(r"0?[1-9]|1[0-2]")  # range [1, 12]
+    year = noncapture_group(r"\d{4}|\d{2}")  # a 2-digit or 4-digit number
+    sep = r"[^\w\d\r\n:]"  # an active separator
+    # ^ = anything not in the set
+    # \w = word (alphanumeric and underscore)
+    # \d = digit [redundant, I think]
+    # \r = carriage return (code 13)
+    # \n = linefeed (code 10)
+    # : = colon
+
+    # For ordinal days:
+    day = numeric_day + optional_noncapture_group("|".join(ordinal_suffixes))
+
+    # To be able to capture ISO dates like "20010101", but not capture e.g.
+    # "31/12" as 3, 1, 12, we require separators normally and do a special for
+    # ISO dates:
+    two_digit_day = noncapture_group(r"0[1-9]|[12]\d|30|31")
+    two_digit_month = noncapture_group(r"0[1-9]|1[0-2]")
+    isodate_no_sep = year + two_digit_month + two_digit_day
+    # Then for months as words:
+    month = noncapture_group("|".join(
+        [numeric_month] + [
+            _month_word_regex_fragment(m)
+            for m in all_month_names
+        ]
+    ))
+
+    basic_regexes = [
+        day + sep + month + sep + year,  # e.g. UK
+        month + sep + day + sep + year,  # e.g. USA
+        year + sep + month + sep + day,  # e.g. ISO
+        isodate_no_sep  # ISO with no separators
+    ]
+    if at_word_boundaries_only:
+        return [WB + x + WB for x in basic_regexes]
+    else:
+        # Even if we don't require a strict word boundary, we can't allow just
+        # anything -- you get garbage if numbers precede numeric dates.
+        non_numeric_boundary = noncapture_group(r"\b|[\WA-Za-z_]")
+        # \b word boundary = change from word to non-word (or the reverse)
+        # \w = word = alphanumeric and underscore
+        # ... so we take the subset that is alphabetical and underscore
+        # \W = nonword = everything not in \w
+        return [
+            non_numeric_boundary + x + non_numeric_boundary
+            for x in basic_regexes
+        ]
+
+
+# -----------------------------------------------------------------------------
+# Generic codes
+# -----------------------------------------------------------------------------
 
 def get_code_regex_elements(
         s: str,
@@ -253,6 +339,10 @@ def get_code_regex_elements(
             return [s]
 
 
+# -----------------------------------------------------------------------------
+# Generic numbers
+# -----------------------------------------------------------------------------
+
 def get_number_of_length_n_regex_elements(
         n: int,
         liberal: bool = True,
@@ -294,6 +384,10 @@ def get_number_of_length_n_regex_elements(
         return [NOT_DIGIT_LOOKBEHIND + s + NOT_DIGIT_LOOKAHEAD]
         # ... if there was a digit before/after, it's not an n-digit number
 
+
+# -----------------------------------------------------------------------------
+# UK postcodes
+# -----------------------------------------------------------------------------
 
 def get_uk_postcode_regex_elements(
         at_word_boundaries_only: bool = True) -> List[str]:
@@ -355,6 +449,16 @@ def get_uk_postcode_regex_string(at_word_boundaries_only: bool = True) -> str:
     assert len(postcode_regexes) == 1  # as of 2020-04-28, this is true
     return postcode_regexes[0]
 
+
+# -----------------------------------------------------------------------------
+# Generic strings and phrases
+# -----------------------------------------------------------------------------
+# Note, for strings, several typo-detecting methods:
+#   http://en.wikipedia.org/wiki/Levenshtein_distance
+#   http://mwh.geek.nz/2009/04/26/python-damerau-levenshtein-distance/
+#   http://en.wikipedia.org/wiki/TRE_(computing)
+#   https://pypi.python.org/pypi/regex
+# ... let's go with the fuzzy regex method (Python regex module).
 
 def get_string_regex_elements(
         s: str,

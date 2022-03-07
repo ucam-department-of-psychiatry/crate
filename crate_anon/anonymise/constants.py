@@ -218,8 +218,8 @@ class AnonymiseConfigKeys:
     EXTRACT_TEXT_WIDTH = "extract_text_width"
 
     # Anonymisation
-    ALLOW_NO_PATIENT_INFO = "allow_no_patient_info"
     ALLOWLIST_FILENAMES = "allowlist_filenames"
+    ALLOW_NO_PATIENT_INFO = "allow_no_patient_info"
     ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY = "anonymise_codes_at_word_boundaries_only"  # noqa
     ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY = "anonymise_dates_at_word_boundaries_only"  # noqa
     ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY = "anonymise_numbers_at_numeric_boundaries_only"  # noqa
@@ -236,6 +236,7 @@ class AnonymiseConfigKeys:
     REPLACE_NONSPECIFIC_INFO_WITH = "replace_nonspecific_info_with"
     REPLACE_PATIENT_INFO_WITH = "replace_patient_info_with"
     REPLACE_THIRD_PARTY_INFO_WITH = "replace_third_party_info_with"
+    SCRUB_ALL_DATES = "scrub_all_dates"
     SCRUB_ALL_NUMBERS_OF_N_DIGITS = "scrub_all_numbers_of_n_digits"
     SCRUB_ALL_UK_POSTCODES = "scrub_all_uk_postcodes"
     SCRUB_STRING_SUFFIXES = "scrub_string_suffixes"
@@ -406,6 +407,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_AK.DENYLIST_FILES_AS_PHRASES} = False
 {_AK.DENYLIST_PHRASES_FLEXIBLE_WHITESPACE} = False
 {_AK.PHRASE_ALTERNATIVE_WORD_FILENAMES} =
+{_AK.SCRUB_ALL_DATES} = False
 {_AK.SCRUB_ALL_NUMBERS_OF_N_DIGITS} =
 {_AK.SCRUB_ALL_UK_POSTCODES} = False
 {_AK.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY} = True
