@@ -1489,7 +1489,7 @@ _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
     # Things that look like free text, but aren't.
     ("AnsweredQuestionnaire$", "QuestionnaireName$"),
     (ANYTHING, S1GenericCol.CTV3_CODE),  # common clinical coding
-    S1GenericCol.CTV3_TEXT,  # common clinical coding
+    (ANYTHING, S1GenericCol.CTV3_TEXT),  # common clinical coding
 )
 _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # These contain non-patient data -- instead, the stock text of

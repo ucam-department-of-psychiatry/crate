@@ -205,12 +205,8 @@ def regex_or(*regex_strings: str,
 
 def assert_alphabetical(x: Union[str, Iterable[str]]) -> None:
     """
-    Asserts that there are no regex metacharacters present in the string.
-    Args:
-        x:
-
-    Returns:
-
+    Asserts that the string is not empty and contains only alphabetical
+    characters.
     """
     if isinstance(x, str):
         assert _NOT_EMPTY_ALPHABETICAL_ONLY_REGEX.match(x), (
@@ -219,7 +215,8 @@ def assert_alphabetical(x: Union[str, Iterable[str]]) -> None:
         )
     else:
         for s in x:
-            assert _NOT_EMPTY_ALPHABETICAL_ONLY_REGEX.match(x), (
+            assert isinstance(s, str)
+            assert _NOT_EMPTY_ALPHABETICAL_ONLY_REGEX.match(s), (
                 f"Should be non-empty and contain only alphabetical "
                 f"characters: {s!r} (part of {x!r})"
             )

@@ -76,7 +76,10 @@ class SystmOneDDGenTests(TestCase):
         for context in [sre, cpft]:
             self.assertTrue(is_free_text("FreeText", "FreeText", context))
         # CPFT but not SRE environment:
-        self.assertTrue(is_free_text("FreeText_CYPFRS_TelephoneTriage", "RiskofAbsconding", cpft))  # noqa
-        self.assertFalse(is_free_text("FreeText_CYPFRS_TelephoneTriage", "RiskofAbsconding", sre))  # noqa
+        self.assertTrue(is_free_text(
+            "FreeText_CYPFRS_TelephoneTriage", "RiskofAbsconding", cpft))
+        self.assertFalse(is_free_text(
+            "FreeText_CYPFRS_TelephoneTriage", "RiskofAbsconding", sre))
         # Not even in CPFT:
-        self.assertFalse(is_free_text("FreeText_Honos_Scoring_Answers", "FreeText", cpft))  # noqa
+        self.assertFalse(is_free_text(
+            "FreeText_Honos_Scoring_Answers", "FreeText", cpft))
