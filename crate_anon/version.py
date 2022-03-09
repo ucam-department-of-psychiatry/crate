@@ -36,7 +36,7 @@ import sys
 # =============================================================================
 
 CRATE_VERSION = "0.19.3"
-CRATE_VERSION_DATE = "2021-11-29"
+CRATE_VERSION_DATE = "2022-03-09"
 
 MINIMUM_PYTHON_VERSION = (3, 7)
 # Only other place that has this: install_virtualenv.py (which can't import

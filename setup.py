@@ -94,7 +94,7 @@ INSTALL_REQUIRES = [
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa
     "openpyxl==3.0.7",  # read Excel
-    "pendulum==2.1.1",  # dates/times
+    "pendulum==2.1.2",  # dates/times
     "Pillow==9.0.1",  # image processing; import as PIL (Python Imaging Library)  # noqa
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==0.7.2",  # pretty formating of text-based tables
