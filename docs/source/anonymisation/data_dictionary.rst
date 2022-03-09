@@ -194,7 +194,10 @@ Character   Meaning
               database. Only those patients will be processed (for all tables
               containing patient info). Typically, this flag is applied to a
               SINGLE field in a SINGLE table, usually the principal patient
-              registration/demographics table.
+              registration/demographics table. CRATE will warn you if there is
+              more than one such field, and will raise an error if there are
+              none, unless :ref:`allow_no_patient_info <allow_no_patient_info>`
+              is set.
 
 ``M``       | **MASTER PID.**
             | Master ID (e.g. NHS number).

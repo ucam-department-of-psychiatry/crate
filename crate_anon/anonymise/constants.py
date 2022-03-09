@@ -103,7 +103,7 @@ MAX_TRID = 2 ** 31 - 1
 # https://dev.mysql.com/doc/refman/5.0/en/numeric-type-overview.html
 # Maximum INT UNSIGNED is              4294967295 == 2 ** 32 - 1.
 # INT range is                        -2147483648 == -(2 **  31) to
-#                                     +2147483647 == 2 ** 31 - 1
+#                                     +2147483647 == 2 ** 31 - 1 == 2.1 billion
 # ... note that this is inadequate for 10-digit NHS numbers.
 # Maximum BIGINT UNSIGNED is 18446744073709551615 == 2 ** 64 - 1.
 # BIGINT range is            -9223372036854775808 == -(2 ** 63) to

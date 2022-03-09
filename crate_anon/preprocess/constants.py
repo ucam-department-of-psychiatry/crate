@@ -28,11 +28,46 @@ crate_anon/preprocess/constants.py
 
 """
 
+# -----------------------------------------------------------------------------
+# Indexes in destination databases
+# -----------------------------------------------------------------------------
 # Prefix for index names:
 CRATE_IDX_PREFIX = "crate_idx"
 
+# -----------------------------------------------------------------------------
+# Columns for source databases
+# -----------------------------------------------------------------------------
 # If our preprocessors need to create a primary key (PK) column in a table as
 # part of preprocessing, we call it this:
 CRATE_COL_PK = "crate_pk"
 # Making it explicitly CRATE-related makes it distinctive from more generic
 # names like "id" or "pk" or "RowIdentifier".
+
+# -----------------------------------------------------------------------------
+# Columns in ONS Postcode Database (from CRATE import)
+# -----------------------------------------------------------------------------
+ONSPD_TABLE_POSTCODE = "postcode"
+DEFAULT_GEOG_COLS = [
+    # These are geographically "blurry" areas. The most specific is likely
+    # LSOA (or, equivalently, IMD).
+    # For details, see postcodes.py.
+
+    "pcon",  # Westminster parliamentary constituency
+    "pct",  # Primary Care Trust or equivalent
+    "nuts",  # EU Local Administrative Unit, level 2
+    "lea",  # todo: gone? (Local Education Authority in previous data?)
+    "statsward",  # Statistical ward
+    "casward",  # Census Area Statistics (CAS) ward
+    "lsoa01",  # 2001 Census Lower Layer Super Output Area (LSOA) or equivalent
+    "msoa01",  # 2001 Census Middle Layer Super Output Area (MSOA) or equiv.
+    "ur01ind",  # 2001 Census urban/rural indicator
+    "oac01",  # 2001 Census Output Area classification (OAC)
+    "lsoa11",  # 2011 Census Lower Layer Super Output Area (LSOA) or equiv.
+    "msoa11",  # 2011 Census Middle Layer Super Output Area (MSOA) or equiv.
+    "parish",   # Parish/community
+    "bua11",  # Built-up Area (BUA)
+    "buasd11",  # Built-up Area Sub-division (BUASD)
+    "ru11ind",  # 2011 Census rural-urban classification
+    "oac11",  # 2011 Census Output Area classification (OAC)
+    "imd",  # Index of Multiple Deprivation (IMD) [rank of LSOA/equivalent]
+]

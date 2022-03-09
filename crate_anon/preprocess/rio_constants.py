@@ -57,15 +57,6 @@ RCEP_COL_MANGLED_KEY = "Document_ID"
 # CPFT hacks (RiO tables added to RCEP output):
 CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES = "Progress_Notes_II"
 
-# Columns in ONS Postcode Database (from CRATE import):
-ONSPD_TABLE_POSTCODE = "postcode"
-DEFAULT_GEOG_COLS = [
-    "pcon", "pct", "nuts", "lea", "statsward", "casward",
-    "lsoa01", "msoa01", "ur01ind", "oac01", "lsoa11",
-    "msoa11", "parish", "bua11", "buasd11", "ru11ind",
-    "oac11", "imd",
-]
-
 # Columns added:
 CRATE_COL_RIO_NUMBER = "crate_rio_number"
 # "rio_number" is OK for RCEP + RiO, but clarity is good

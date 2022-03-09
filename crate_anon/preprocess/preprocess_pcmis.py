@@ -208,8 +208,9 @@ from crate_anon.common.sql import (
     set_print_not_execute,
     ViewMaker,
 )
-from crate_anon.preprocess.constants import CRATE_COL_PK, CRATE_IDX_PREFIX
-from crate_anon.preprocess.rio_constants import (
+from crate_anon.preprocess.constants import (
+    CRATE_COL_PK,
+    CRATE_IDX_PREFIX,
     DEFAULT_GEOG_COLS,
     ONSPD_TABLE_POSTCODE,
 )

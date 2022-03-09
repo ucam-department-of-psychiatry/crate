@@ -281,28 +281,35 @@ extract_text_plain
 
 Use the plainest possible layout for text extraction?
 
-``False`` = better for human layout. Table example from DOCX:
+``False`` = better for human layout. Table example (e.g. from a DOCX file):
 
 .. code-block:: none
 
-    ┼─────────────┼─────────────┼
-    │ Row 1 col 1 │ Row 1 col 2 │
-    ┼─────────────┼─────────────┼
-    │ Row 2 col 1 │ Row 2 col 2 │
-    ┼─────────────┼─────────────┼
+    ┼────────────────┼────────────────┼
+    │ Row 1 col 1    │ Row 1 col 2    │
+    │ R1C1 continued │ R1C2 continued │
+    ┼────────────────┼────────────────┼
+    │ Row 2 col 1    │ Row 2 col 2    │
+    │ R2C1 continued │ R2C2 continued │
+    ┼────────────────┼────────────────┼
 
-``True`` = good for natural language processing. Table example from DOCX:
+``True`` = good for natural language processing. Table example equivalent to
+that above:
 
 .. code-block:: none
 
     ╔═════════════════════════════════════════════════════════════════╗
     Row 1 col 1
+    R1C1 continued
     ───────────────────────────────────────────────────────────────────
     Row 1 col 2
+    R1C2 continued
     ═══════════════════════════════════════════════════════════════════
     Row 2 col 1
+    R2C1 continued
     ───────────────────────────────────────────────────────────────────
     Row 2 col 2
+    R2C2 continued
     ╚═════════════════════════════════════════════════════════════════╝
 
 ... note the absence of vertical interruptions, and that text from one cell
@@ -320,6 +327,7 @@ Default width (in columns) to word-wrap extracted text to.
 Anonymisation
 +++++++++++++
 
+.. _allow_no_patient_info:
 allow_no_patient_info
 #####################
 
@@ -371,7 +379,7 @@ replace_nonspecific_info_with
 
 Things to be removed irrespective of patient-specific information will be
 replaced by this (for example, if you opt to remove all things looking like
-telephone numbers). For example, ``ZZZZZZ`` or ``[~~~]``.
+telephone numbers). For example, ``[~~~]``.
 
 
 scrub_string_suffixes

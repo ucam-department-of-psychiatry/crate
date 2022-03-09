@@ -1500,6 +1500,14 @@ Changes
 
   - Option to scrub all dates: :ref:`scrub_all_dates <scrub_all_dates>`.
 
+    - This does not presently do generic date "blurring"; blurring to year is
+      very imprecise, while blurring to month is quite susceptible to
+      information discovery around month boundaries. However, if required, this
+      could be implemented -- likely not by a simple textual replace using
+      named capture groups for the parts to preserve, but by named capture
+      groups followed by date parsing followed by date-writing in a standard,
+      e.g. ISO, format.
+
 
 To do
 -----

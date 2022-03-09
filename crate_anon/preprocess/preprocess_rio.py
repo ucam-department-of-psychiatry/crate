@@ -453,7 +453,11 @@ from crate_anon.common.sql import (
     sql_fragment_cast_to_int,
     ViewMaker,
 )
-from crate_anon.preprocess.constants import CRATE_COL_PK
+from crate_anon.preprocess.constants import (
+    CRATE_COL_PK,
+    DEFAULT_GEOG_COLS,
+    ONSPD_TABLE_POSTCODE,
+)
 from crate_anon.preprocess.rio_constants import (
     CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES,
     CRATE_COL_LAST_DOC,
@@ -470,8 +474,6 @@ from crate_anon.preprocess.rio_constants import (
     CRATE_IDX_RIONUM,
     CRATE_IDX_RIONUM_NOTENUM,
     CRATE_IDX_RIONUM_SERIALNUM,
-    DEFAULT_GEOG_COLS,
-    ONSPD_TABLE_POSTCODE,
     RCEP_COL_NHS_NUMBER,
     RCEP_COL_PATIENT_ID,
     RCEP_COL_POSTCODE,

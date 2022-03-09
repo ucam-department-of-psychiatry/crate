@@ -40,7 +40,7 @@ from crate_anon.preprocess.systmone_ddgen import (
     eq_re,
     is_free_text,
     is_in_re,
-    OMIT_TABLES_REGEX,
+    OMIT_AND_IGNORE_TABLES_REGEX,
     SystmOneContext,
 )
 
@@ -63,7 +63,7 @@ class SystmOneDDGenTests(TestCase):
         )
         self.assertTrue(eq(test_referralsopen_core, "ReferralsOpen"))
         self.assertTrue(eq_re(test_referralsopen_core, "ReferralsOpen$"))
-        omit_tables = OMIT_TABLES_REGEX[cpft]
+        omit_tables = OMIT_AND_IGNORE_TABLES_REGEX[cpft]
         self.assertTrue(is_in_re(test_referralsopen_core, omit_tables))
         self.assertTrue(is_in_re("Accommodation_20210329", omit_tables))
         self.assertTrue(is_in_re("Accommodation_20210329_blah", omit_tables))

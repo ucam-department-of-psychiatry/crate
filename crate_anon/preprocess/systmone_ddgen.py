@@ -599,7 +599,6 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from cardinal_pythonlib.dicts import reversedict
 from cardinal_pythonlib.enumlike import CaseInsensitiveEnumMeta
-# from cardinal_pythonlib.sqlalchemy.schema import is_sqlatype_string
 
 from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.constants import (
@@ -609,6 +608,7 @@ from crate_anon.anonymise.constants import (
     ScrubSrc,
     SrcFlag,
 )
+from crate_anon.common.sql import SQLTYPE_DATE
 from crate_anon.anonymise.dd import DataDictionary, DataDictionaryRow
 from crate_anon.preprocess.constants import CRATE_COL_PK
 
@@ -662,6 +662,14 @@ COMMENT_SEP = " // "  # for combining parts of column comments
 # -----------------------------------------------------------------------------
 
 ANYTHING = ".+"  # at least one character
+
+
+def not_just_at_start(x: str) -> str:
+    """
+    Apply a prefix so that a regex string doesn't just work at the start of a
+    string.
+    """
+    return ".*" + x
 
 
 def terminate(x: str) -> str:
@@ -730,6 +738,8 @@ class S1Table:
     # - SROohTransport -- very structured.
     # - SROohVisit -- very structured.
 
+    FREETEXT = "FreeText"
+
 
 class CPFTTable:
     """
@@ -765,7 +775,7 @@ INCLUDE_TABLES_REGEX = {
 # Tables to omit
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-_OMIT_TABLES_S1 = (
+_OMIT_AND_IGNORE_TABLES_S1 = (
     "NomisNumber",  # Prison NOMIS numbers
     "SafeguardingAllegationDetails",  # sensitive and no patient ID column
 
@@ -773,19 +783,21 @@ _OMIT_TABLES_S1 = (
     "gr_workings",  # no idea
     "InpatientAvailableBeds",  # RowIdentifier very far from unique; ?no PK; no patient info  # noqa
 )
-_OMIT_TABLES_CPFT_EXTRAS = (
+_OMIT_AND_IGNORE_TABLES_CPFT = (
     # CPFT extras:
     "Deaths",  # has NHS number then multi-system ID but not consistent SystmOne patient ID  # noqa
     "gr_workings",  # no idea
     "InpatientAvailableBeds",  # RowIdentifier very far from unique; ?no PK; no patient info  # noqa
 )
-OMIT_TABLES = {
-    SystmOneContext.TPP_SRE: _OMIT_TABLES_S1,
-    SystmOneContext.CPFT_DW: _OMIT_TABLES_S1 + _OMIT_TABLES_CPFT_EXTRAS
+OMIT_AND_IGNORE_TABLES = {
+    SystmOneContext.TPP_SRE:
+        _OMIT_AND_IGNORE_TABLES_S1,
+    SystmOneContext.CPFT_DW:
+        _OMIT_AND_IGNORE_TABLES_S1 + _OMIT_AND_IGNORE_TABLES_CPFT
 }
 
-_OMIT_TABLES_REGEX_S1 = ()
-_OMIT_TABLES_REGEX_CPFT = (
+_OMIT_AND_IGNORE_TABLES_REGEX_S1 = ()
+_OMIT_AND_IGNORE_TABLES_REGEX_CPFT = (
     # CPFT extras:
 
     "Accommodation_",
@@ -840,9 +852,11 @@ _OMIT_TABLES_REGEX_CPFT = (
     # If a table has the suffix "_old", we probably don't want it!
     r"\w+_old",
 )
-OMIT_TABLES_REGEX = {
-    SystmOneContext.TPP_SRE: _OMIT_TABLES_REGEX_S1,
-    SystmOneContext.CPFT_DW: _OMIT_TABLES_REGEX_S1 + _OMIT_TABLES_REGEX_CPFT
+OMIT_AND_IGNORE_TABLES_REGEX = {
+    SystmOneContext.TPP_SRE:
+        _OMIT_AND_IGNORE_TABLES_REGEX_S1,
+    SystmOneContext.CPFT_DW:
+        _OMIT_AND_IGNORE_TABLES_REGEX_S1 + _OMIT_AND_IGNORE_TABLES_REGEX_CPFT
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -868,11 +882,14 @@ CONTEXT_TO_CORE_TABLE_TRANSLATIONS = {
 }  # type: TABLE_TRANSLATION_DICT_TYPE
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Tables that look like they have a proper PK, but don't
+# Tables that look like they have a proper PK, but don't, and we very much want
+# them to.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 TABLES_REQUIRING_CRATE_PK_REGEX = (
-    "FreeText",  # including FreeText (S1) and FreeText_* (CPFT)
+    # Tables go here if we have to add a PK-style column/index -- usually
+    # because we want to apply a FULLTEXT index.
+    S1Table.FREETEXT,  # unterminated, so includes  FreeText (S1) and FreeText_* (CPFT)  # noqa
 )
 
 
@@ -886,9 +903,13 @@ class S1GenericCol:
     """
     Columns used in many SystmOne tables.
     """
+    CTV3_CODE = "CTV3Code"  # Read code
+    CTV3_TEXT = "CTV3Text"  # ... and corresponding description
     EVENT_ID = "IDEvent"  # FK to SREvent.RowIdentifier
     EVENT_OCCURRED_WHEN = "DateEvent"  # when event happened
     EVENT_RECORDED_WHEN = "DateEventRecorded"  # when event recorded
+    FREETEXT = "FreeText"
+    NOTES_SUFFIX = "Notes"  # "Notes", but also "ends with 'Notes'", e.g. AdmissionNotes, IncidentNotes, LocationNotes  # noqa
     ORG_ID_DONE_AT = "IDOrganisationDoneAt"  # FK to SROrganisation.ID
     ORG_ID_ENTERED_AT = "IDOrganisation"  # org at which the data was entered
     ORG_ID_VISIBLE_TO = "IDOrganisationVisibleTo"  # FK to SROrganisation.ID
@@ -896,14 +917,11 @@ class S1GenericCol:
     PATIENT_ID = "IDPatient"  # FK to SRPatient.RowIdentifier
     PK = "RowIdentifier"  # PK for nearly all SystmOne original tables
     QUESTIONNAIRE_ID = "IDAnsweredQuestionnaire"  # FK to SRAnsweredQuestionnaire.RowIdentifier  # noqa
-    REFERRAL_ID = "IDReferralIn"  # FK to SRReferralIn.RowIdentifier  # noqa
-    STAFF_ID_DONE_BY = "IDDoneBy"  # FK to SRStaffMember.RowIdentifier
-    STAFF_PROFILE_ID_RECORDED_BY = "IDProfileEnteredBy"  # FK to SRStaffMemberProfile.RowIdentifier  # noqa
-
-    CTV3_CODE = "CTV3Code"  # Read code
-    CTV3_TEXT = "CTV3Text"  # ... and corresponding description
+    REFERRAL_ID = "IDReferralIn"  # FK to SRReferralIn.RowIdentifier
     SNOMED_CODE = "SNOMEDCode"  # SNOMED-CT code
     SNOMED_TEXT = "SNOMEDText"  # ... and corresponding description
+    STAFF_ID_DONE_BY = "IDDoneBy"  # FK to SRStaffMember.RowIdentifier
+    STAFF_PROFILE_ID_RECORDED_BY = "IDProfileEnteredBy"  # FK to SRStaffMemberProfile.RowIdentifier  # noqa
 
 
 class CPFTGenericCol:
@@ -1398,13 +1416,28 @@ COLS_RELATIONSHIP_NUMBERS = (
     S1RelCol.ADDRESS_FAX,
 )
 
+_COLS_TRUNCATE_DATE_S1 = (
+    S1PatientCol.DOB,
+)
+_COLS_TRUNCATE_DATE_CPFT = (
+    CPFTPatientCol.DOB,
+)
+COLS_TRUNCATE_DATE = {
+    SystmOneContext.TPP_SRE: _COLS_TRUNCATE_DATE_S1,
+    SystmOneContext.CPFT_DW:
+        _COLS_TRUNCATE_DATE_S1
+        + _COLS_TRUNCATE_DATE_CPFT,
+}
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Columns containing free text, which need to be scrubbed
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ... assuming they are of string type.
 
 _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
-    ("FreeText$", "FreeText$"),  # the bulk of free text; VARCHAR(MAX)
+    (terminate(S1Table.FREETEXT),
+     terminate(S1GenericCol.FREETEXT)),  # the bulk of free text; VARCHAR(MAX)
+    (ANYTHING, not_just_at_start(S1GenericCol.NOTES_SUFFIX)),
     ("PersonAtRisk$", "ReasonForPlan$"),  # free text re safeguarding
     ("ReferralIn$", "PrimaryReason$"),  # only 200 chars; may be OK
     ("SafeguardingAllegationDetails$", "Outcome$"),  # only 100 chars -- but OMIT whole table, as above  # noqa
@@ -1416,13 +1449,21 @@ _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # - SRReferralIn renamed to S1_ReferralsIn with extra columns,
     #   PrimaryReason, but there are several others, like
     #   ReferralReasonDescription1.
-    (".*Referral", ".*Reason"),
+    # - Actually, however, on review, e.g.
+    #   - S1_ReferralInReferralReason.ReferralReason is numeric
+    #   - S1_ReferralInReferralReason.ReferralReasonDescription is pick-list,
+    #     not free text
+    #   - Similarly for referrals out.
+    #   and "Other" is scrubbed by the generic scrubber, so that messes up
+    #   useful data in the descriptions. So not this:
+    #
+    # (".*Referral", ".*Reason"),
 
     # A bunch of explicitly free-text fields:
     # - any not-otherwise-handled textual field in a table named "FreeText_..."
-    ("FreeText_", ANYTHING),
+    (S1Table.FREETEXT, ANYTHING),  # table name not terminated so allows anything starting with this  # noqa
     # - any field named "FreeText..." (e.g. S1_Honos_Scores.FreeText)
-    (ANYTHING, "FreeText"),
+    (ANYTHING, S1GenericCol.FREETEXT),
 
     # - S1_CYPFRS_TelephoneTriage links in a bunch of things from S1_FreeText.
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Assessment"),
@@ -1584,7 +1625,7 @@ PK_TABLENAME_COLNAME_REGEX_PAIRS = {
 }
 
 _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
-    ("FreeText", S1GenericCol.PK),  # not unique; see TABLES_REQUIRING_CRATE_PK_REGEX above  # noqa
+    (S1Table.FREETEXT, S1GenericCol.PK),  # not unique; see TABLES_REQUIRING_CRATE_PK_REGEX above  # noqa
 )
 _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # These look like PKs, but gave rise to a "Violation of PRIMARY KEY
@@ -2036,7 +2077,7 @@ def process_generic_table_column(tablename: str,
                                  context: SystmOneContext) -> bool:
     """
     Performs operations applicable to columns any SystmOne table, except a few
-    very special ones like Patient. Modifies ssi in place.
+    very special ones like Patient. Modifies ``ssi`` in place.
 
     Returns: recognized and dealt with?
     """
@@ -2091,7 +2132,7 @@ def process_generic_table_column(tablename: str,
     # Other things
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if is_in(colname, COLS_GENERIC_EXCLUDE[context]):
-        # Columns that are never OK in a generic table, and are duplicated
+        # Columns that are never OK in a generic table, such as duplicated
         # direct identifiers (handled specially in the master patient ID table
         # etc.).
         ssi.omit()
@@ -2104,6 +2145,17 @@ def process_generic_table_column(tablename: str,
     elif is_free_text(tablename, colname, context, ddr):
         # Free text to be scrubbed.
         ssi.add_alter_method(AlterMethod(config=ddr.config, scrub=True))
+        ssi.include()
+
+    elif is_in(colname, COLS_TRUNCATE_DATE[context]):
+        # Truncate date?
+        # We don't do the scrub_src and scrub_method here; we already know the
+        # patient's DOB from the master patient table. This code is about
+        # making sure that DOBs (for example) elsewhere are truncated, and
+        # time information doesn't leak through.
+        ssi.add_alter_method(AlterMethod(config=ddr.config,
+                                         truncate_date=True))
+        ssi.dest_datatype = SQLTYPE_DATE
         ssi.include()
 
     else:
@@ -2145,10 +2197,10 @@ def get_scrub_alter_details(
     ssi = ScrubSrcAlterMethodInfo(decision=Decision.OMIT)  # omit by default
 
     # -------------------------------------------------------------------------
-    # Omit table entirely?
+    # Omit table entirely (and ignore its contents for scrubbing)?
     # -------------------------------------------------------------------------
-    if (is_in(tablename, OMIT_TABLES[context])
-            or is_in_re(tablename, OMIT_TABLES_REGEX[context])):
+    if (is_in(tablename, OMIT_AND_IGNORE_TABLES[context])
+            or is_in_re(tablename, OMIT_AND_IGNORE_TABLES_REGEX[context])):
         return ssi
 
     # -------------------------------------------------------------------------
@@ -2193,6 +2245,7 @@ def get_scrub_alter_details(
             ssi.scrub_method = ScrubMethod.DATE
             ssi.add_alter_method(AlterMethod(config=ddr.config,
                                              truncate_date=True))
+            ssi.dest_datatype = SQLTYPE_DATE
             ssi.include()
 
         elif eq(colname, S1PatientCol.DOD):
