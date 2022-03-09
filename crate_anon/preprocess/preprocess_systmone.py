@@ -30,7 +30,7 @@ crate_anon/preprocess/preprocess_systmone.py
 
 import argparse
 import logging
-from typing import TYPE_CHECKING
+from typing import List, TYPE_CHECKING
 
 from cardinal_pythonlib.enumlike import keys_descriptions_from_enum
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
@@ -45,19 +45,32 @@ from crate_anon.anonymise.constants import CHARSET
 from crate_anon.common.sql import (
     add_columns,
     add_indexes,
+    create_view,
     drop_columns,
     drop_indexes,
+    drop_view,
+    ensure_columns_present,
     IndexCreationInfo,
     set_print_not_execute,
 )
-from crate_anon.preprocess.constants import CRATE_COL_PK, CRATE_IDX_PREFIX
+from crate_anon.preprocess.constants import (
+    CRATE_COL_PK,
+    CRATE_IDX_PREFIX,
+    DEFAULT_GEOG_COLS,
+    ONSPD_TABLE_POSTCODE,
+)
+from crate_anon.preprocess.postcodes import COL_POSTCODE_VARIABLE_LENGTH_SPACE
 from crate_anon.preprocess.systmone_ddgen import (
+    contextual_tablename,
     core_tablename,
     DEFAULT_SYSTMONE_CONTEXT,
     is_in_re,
     is_mpid,
     is_pid,
     is_pk,
+    S1AddressCol,
+    S1GenericCol,
+    S1Table,
     SystmOneContext,
     TABLES_REQUIRING_CRATE_PK_REGEX,
 )
@@ -69,23 +82,128 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
+# Constants
+# =============================================================================
+
+VIEW_PREFIX = "vw"
+GEOGRAPHY_VIEW_NAME = "PatientAddressWithResearchGeography"
+
+
+# =============================================================================
 # Preprocessing
 # =============================================================================
+
+def add_postcode_geography_view(engine: Engine,
+                                address_table: str,
+                                postcode_db: str,
+                                geog_cols: List[str],
+                                view_name: str) -> None:
+    """
+    Creates a source view to add geography columns to an address table
+    including postcodes, linking in e.g. LSOA/IMD information from an ONS
+    postcode table (e.g. imported by CRATE; see postcodes.py).
+
+    Args:
+        engine:
+            An SQLAlchemy Engine.
+        address_table:
+            The name of the address table in the source SystmOne database.
+        postcode_db:
+            The name of the database (and, for SQL Server, the schema) in which
+            ONS postcode information is stored.
+        geog_cols:
+            Columns to merge in from the postcode database.
+        view_name:
+            The name of the view to create in the source SystmOne database.
+
+    Re SystmOne postcode encoding:
+    - CPFT creates PostCode_NoSpaces.
+    - However
+
+      .. code-block:: sql
+
+        SELECT COUNT(*) FROM S1_PatientAddress
+        WHERE CHARINDEX(' ', FullPostcode) > 0;
+        -- ... gives lots of hits (e.g. 593k); so they mostly have spaces in.
+
+        SELECT COUNT(*) FROM S1_PatientAddress
+        WHERE CHARINDEX(' ', FullPostcode) = 0;
+        -- ... a few (e.g. 20); all are just the first halves, and none are a
+        -- full postcode with space missing.
+
+        SELECT DISTINCT LEN(FullPostcode) FROM S1_PatientAddress
+        ORDER BY LEN(FullPostcode);
+        -- NULL, 4, 5, 6, 7, 8
+
+      So, with a bit more testing, we conclude that SystmOne uses STANDARD
+      VARIABLE-LENGTH FORMAT WITH SPACES.
+
+    """
+    a = "A"  # alias for address table
+    p = "P"  # alias for postcode table
+    geog_col_specs = [f"{p}.{col}"
+                      for col in sorted(geog_cols, key=lambda x: x.lower())]
+    s1_postcode_col = S1AddressCol.POSTCODE
+    ons_postcode_col = COL_POSTCODE_VARIABLE_LENGTH_SPACE
+    ensure_columns_present(engine, tablename=address_table,
+                           column_names=[s1_postcode_col])
+    colsep = ",\n            "
+    select_sql = f"""
+        SELECT
+            -- Original columns that are not identifying:
+
+            -- ... PK and patient ID:
+            {a}.{S1GenericCol.PK},
+            {a}.{S1GenericCol.PATIENT_ID},
+
+            -- ... Admin fields:
+            {a}.{S1GenericCol.EVENT_OCCURRED_WHEN},
+            {a}.{S1GenericCol.EVENT_RECORDED_WHEN},
+            -- [not in CPFT version] A.IDDoneBy,
+            -- [not in CPFT version] A.IDEvent,
+            -- [not in CPFT version] A.IDOrganisation,
+            -- [not in CPFT version] A.IDOrganisationDoneAt,
+            -- [not in CPFT version] A.IDOrganisationRegisteredAt,
+            -- [not in CPFT version] A.IDOrganisationVisibleTo,
+            -- [not in CPFT version] A.IDProfileEnteredBy,
+            -- [not in CPFT version] A.TextualEventDoneBy,
+
+            -- ... Non-identifying information about the address:
+            {a}.{S1AddressCol.ADDRESS_TYPE},
+            {a}.{S1AddressCol.CCG_OF_RESIDENCE},
+            {a}.{S1AddressCol.DATE_TO},
+
+            -- Geography columns (with nothing too specific):
+            {colsep.join(geog_col_specs)}
+
+        FROM
+            {address_table} AS {a}
+        INNER JOIN
+            {postcode_db}.{ONSPD_TABLE_POSTCODE} AS {p}
+            ON {p}.{ons_postcode_col} = {a}.{s1_postcode_col}
+    """
+    create_view(engine, view_name, select_sql)
+
 
 def preprocess_systmone(engine: Engine,
                         context: SystmOneContext,
                         allow_unprefixed_tables: bool = False,
-                        drop_danger_drop: bool = False) -> None:
+                        drop_danger_drop: bool = False,
+                        postcode_db_name: str = None,
+                        geog_cols: List[str] = None) -> None:
     """
     Add indexes to a SystmOne source database. Without this, anonymisation is
     very slow. Also adds pseudo-PK columns to selected tables.
     """
+    geog_cols = geog_cols or []  # type: List[str]
+
     log.info("Reflecting (inspecting) database...")
     metadata = MetaData()
     metadata.bind = engine
     metadata.reflect(engine)
     log.info("... inspection complete")
 
+    # Tables
     for table in sorted(metadata.tables.values(),
                         key=lambda t: t.name.lower()):  # type: Table
         ct = core_tablename(
@@ -138,6 +256,23 @@ def preprocess_systmone(engine: Engine,
         if drop_danger_drop and table_needs_pk:
             drop_columns(engine, table, [CRATE_COL_PK])
 
+    # Views
+    if postcode_db_name:
+        address_table = contextual_tablename(S1Table.ADDRESS_HISTORY, context)
+        viewname_geog = (
+            VIEW_PREFIX + contextual_tablename(GEOGRAPHY_VIEW_NAME, context)
+        )
+        if drop_danger_drop:
+            drop_view(engine, viewname_geog)
+        else:
+            add_postcode_geography_view(
+                engine=engine,
+                postcode_db=postcode_db_name,
+                address_table=address_table,
+                view_name=viewname_geog,
+                geog_cols=geog_cols,
+            )
+
 
 # =============================================================================
 # Main
@@ -174,6 +309,17 @@ def main() -> None:
              "get odd tables and views."
     )
     parser.add_argument(
+        "--postcodedb",
+        help='Specify database (schema) name for ONS Postcode Database (as '
+             'imported by CRATE) to link to addresses as a view. With SQL '
+             'Server, you will have to specify the schema as well as the '
+             'database; e.g. "--postcodedb ONS_PD.dbo"')
+    parser.add_argument(
+        "--geogcols", nargs="*", default=DEFAULT_GEOG_COLS,
+        help=f"List of geographical information columns to link in from ONS "
+             f"Postcode Database. BEWARE that you do not specify anything too "
+             f"identifying. Default: {' '.join(DEFAULT_GEOG_COLS)}")
+    parser.add_argument(
         "--drop_danger_drop", action="store_true",
         help="REMOVES new columns and indexes, rather than creating them. "
              "(There's not very much danger; no real information is lost, but "
@@ -197,6 +343,8 @@ def main() -> None:
         context=SystmOneContext[args.systmone_context],
         allow_unprefixed_tables=args.systmone_allow_unprefixed_tables,
         drop_danger_drop=args.drop_danger_drop,
+        postcode_db_name=args.postcodedb,
+        geog_cols=args.geogcols,
     )
 
 

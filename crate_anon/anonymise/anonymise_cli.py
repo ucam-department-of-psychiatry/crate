@@ -110,7 +110,10 @@ def inner_main() -> None:
              "opt-out tables.")
     action_options.add_argument(
         "--drop_all", action="store_true",
-        help="Drop all destination and admin tables, then stop.")
+        help="Drop all destination tables known to the data dictionary, and "
+             "all admin tables, then stop. (May also be helpful in revealing "
+             "leftover tables in the destination database, e.g. if the data "
+             "dictionary has changed.)")
     action_options.add_argument(
         "--optout", action="store_true",
         help="Update opt-out list in administrative database.")

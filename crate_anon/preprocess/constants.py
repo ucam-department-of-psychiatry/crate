@@ -52,22 +52,22 @@ DEFAULT_GEOG_COLS = [
     # LSOA (or, equivalently, IMD).
     # For details, see postcodes.py.
 
-    "pcon",  # Westminster parliamentary constituency
-    "pct",  # Primary Care Trust or equivalent
-    "nuts",  # EU Local Administrative Unit, level 2
-    "lea",  # todo: gone? (Local Education Authority in previous data?)
-    "statsward",  # Statistical ward
-    "casward",  # Census Area Statistics (CAS) ward
-    "lsoa01",  # 2001 Census Lower Layer Super Output Area (LSOA) or equivalent
-    "msoa01",  # 2001 Census Middle Layer Super Output Area (MSOA) or equiv.
-    "ur01ind",  # 2001 Census urban/rural indicator
-    "oac01",  # 2001 Census Output Area classification (OAC)
-    "lsoa11",  # 2011 Census Lower Layer Super Output Area (LSOA) or equiv.
-    "msoa11",  # 2011 Census Middle Layer Super Output Area (MSOA) or equiv.
-    "parish",   # Parish/community
     "bua11",  # Built-up Area (BUA)
     "buasd11",  # Built-up Area Sub-division (BUASD)
-    "ru11ind",  # 2011 Census rural-urban classification
-    "oac11",  # 2011 Census Output Area classification (OAC)
+    "casward",  # Census Area Statistics (CAS) ward
     "imd",  # Index of Multiple Deprivation (IMD) [rank of LSOA/equivalent]
+    "lea",  # todo: gone? (Local Education Authority in previous data?)
+    "lsoa01",  # 2001 Census Lower Layer Super Output Area (LSOA) or equivalent
+    "lsoa11",  # 2011 Census Lower Layer Super Output Area (LSOA) or equiv.
+    "msoa01",  # 2001 Census Middle Layer Super Output Area (MSOA) or equiv.
+    "msoa11",  # 2011 Census Middle Layer Super Output Area (MSOA) or equiv.
+    "nuts",  # EU Local Administrative Unit, level 2
+    "oac01",  # 2001 Census Output Area classification (OAC)
+    "oac11",  # 2011 Census Output Area classification (OAC)
+    "parish",   # Parish/community
+    "pcon",  # Westminster parliamentary constituency
+    "pct",  # Primary Care Trust or equivalent
+    "ru11ind",  # 2011 Census rural-urban classification
+    "statsward",  # Statistical ward
+    "ur01ind",  # 2001 Census urban/rural indicator
 ]

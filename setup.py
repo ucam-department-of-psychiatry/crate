@@ -72,7 +72,7 @@ INSTALL_REQUIRES = [
     "cardinal_pythonlib==1.1.18",  # RNC libraries
     "cairosvg==2.5.1",  # work with SVG files
     "celery==5.2.3",  # back-end scheduling
-    "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
+    "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution

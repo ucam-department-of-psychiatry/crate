@@ -61,70 +61,10 @@ The structure of the SRE is good from CRATE's perspective; it does not require
 reshaping for anonymisation.
 
 The :ref:`crate_preprocess_systmone <crate_preprocess_systmone>` will index a
-SystmOne source database (without which, anonymisation is very slow).
-
-One additional view is helpful to add blurred geographical information. Our
-team creates a table ``S1_PatientAddress`` from the source table
-``SRPatientAddressHistory``, creating also the column ``PostCode_NoSpaces``.
-We use
-the :ref:`crate_postcodes <crate_postcodes>` tool to import UK Office for
-National Statistics geography data into a database named ``onspd``. This view
-is then helpful:
-
-.. code-block:: sql
-
-    USE SystmOne;  -- or whatever your identifiable SystmOne database is named
-    CREATE VIEW vwS1_PatientAddressWithResearchGeography
-    AS (
-        SELECT
-            -- Original columns that are not identifying:
-
-            -- ... PK and patient ID:
-            A.RowIdentifier,
-            A.IDPatient,
-
-            -- ... Admin fields:
-            A.DateEvent,
-            A.DateEventRecorded,
-            -- [not in CPFT version] A.IDDoneBy,
-            -- [not in CPFT version] A.IDEvent,
-            -- [not in CPFT version] A.IDOrganisation,
-            -- [not in CPFT version] A.IDOrganisationDoneAt,
-            -- [not in CPFT version] A.IDOrganisationRegisteredAt,
-            -- [not in CPFT version] A.IDOrganisationVisibleTo,
-            -- [not in CPFT version] A.IDProfileEnteredBy,
-            -- [not in CPFT version] A.TextualEventDoneBy,
-
-            -- ... Non-identifying information about the address:
-            A.AddressType,
-            A.CcgOfResidence,
-            A.DateTo,
-
-            -- Geography columns (with nothing too specific):
-            P.bua11,
-            P.buasd11,
-            P.casward,
-            P.imd,
-            P.lea,
-            P.lsoa01,
-            P.lsoa11,
-            P.msoa01,
-            P.msoa11,
-            P.nuts,
-            P.oac01,
-            P.oac11,
-            P.parish,
-            P.pcon,
-            P.pct,
-            P.ru11ind,
-            P.statsward,
-            P.ur01ind
-
-        FROM
-            S1_PatientAddress AS A
-            INNER JOIN onspd.dbo.postcode AS P
-            ON P.pcd_nospace = A.PostCode_NoSpaces
-    )
+SystmOne source database (without which, anonymisation is very slow). It will
+also, optionally, create a view to add blurred geographical information, if you
+have used the the :ref:`crate_postcodes <crate_postcodes>` tool to import UK
+Office for National Statistics geography data into a database.
 
 Use the :ref:`crate_anon_draft_dd <crate_anon_draft_dd>` tool to create a data
 dictionary from SystmOne_. CRATE knows something about the structure of a

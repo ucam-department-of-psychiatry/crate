@@ -708,7 +708,7 @@ class S1Table:
     SystmOne "core" table names, with no prefix.
     """
     PATIENT = "Patient"  # e.g. SRPatient (SRE), S1_Patient (CPFT)
-    ADDRESS = "PatientAddressHistory"
+    ADDRESS_HISTORY = "PatientAddressHistory"
     CONTACT_DETAILS = "PatientContactDetails"
     RELATIONSHIPS = "PatientRelationship"
 
@@ -865,7 +865,7 @@ OMIT_AND_IGNORE_TABLES_REGEX = {
 
 _S1_TO_CPFT_TABLE_TRANSLATION = {
     # Where CPFT has renamed a S1 SRE table directly.
-    S1Table.ADDRESS: CPFTTable.ADDRESS,
+    S1Table.ADDRESS_HISTORY: CPFTTable.ADDRESS,
     # ... i.e. CPFT have renamed SRPatientAddressHistory to S1_PatientAddress.
     S1Table.CONTACT_DETAILS: CPFTTable.CONTACT_DETAILS,
 }
@@ -979,6 +979,9 @@ class S1AddressCol:
     """
     Columns in the PatientAddressHistory table.
     """
+    ADDRESS_TYPE = "AddressType"
+    CCG_OF_RESIDENCE = "CcgOfResidence"
+    DATE_TO = "DateTo"
     BUILDING_NAME = "NameOfBuilding"
     BUILDING_NUMBER = "NumberOfBuilding"
     ROAD = "NameOfRoad"
@@ -2296,7 +2299,7 @@ def get_scrub_alter_details(
         # Recognized and handled as a generic column.
         return ssi
 
-    if eq(tablename, S1Table.ADDRESS):
+    if eq(tablename, S1Table.ADDRESS_HISTORY):
         # ---------------------------------------------------------------------
         # Address table.
         # ---------------------------------------------------------------------

@@ -1068,10 +1068,9 @@ def add_postcode_geography_view(engine: Engine,
                                 configoptions: RioViewConfigOptions,
                                 ddhint: DDHint) -> None:
     """
-    Modifies a viewmaker to add geography columns to views on RiO tables. For
-    example, if you start with an address table including postcodes, and you're
-    building a view involving it, then you can link in LSOA or IMD information
-    with this function.
+    Creates a RiO source view to add geography columns to an address table
+    including postcodes, linking in e.g. LSOA/IMD information from an ONS
+    postcode table (e.g. imported by CRATE; see postcodes.py).
 
     Args:
         engine: an SQLAlchemy Engine
@@ -1112,6 +1111,7 @@ def add_postcode_geography_view(engine: Engine,
             f"overlap = {overlap}")
     ensure_columns_present(engine, tablename=addresstable, column_names=[
         rio_postcodecol])
+    colsep = ",\n            "
     select_sql = """
         SELECT {origcols},
             {geogcols}
@@ -1126,8 +1126,8 @@ def add_postcode_geography_view(engine: Engine,
         --            '') = {pdb}.{pcdtab}.pcd_nospace
     """.format(
         addresstable=addresstable,
-        origcols=",\n            ".join(orig_column_specs),
-        geogcols=",\n            ".join(geog_col_specs),
+        origcols=colsep.join(orig_column_specs),
+        geogcols=colsep.join(geog_col_specs),
         pdb=configoptions.postcodedb,
         pcdtab=ONSPD_TABLE_POSTCODE,
         rio_postcodecol=rio_postcodecol,
