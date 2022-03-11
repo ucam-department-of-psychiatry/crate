@@ -83,6 +83,7 @@ INSTALL_REQUIRES = [
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
     # "django-silk==4.0.1",  # Django profiler
+    "djangorestframework==3.13.1",
     "django-sslserver==0.22",  # SSL development server for Django
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==1.0.0",  # debug Celery; web server; only runs explicitly
@@ -103,7 +104,6 @@ INSTALL_REQUIRES = [
     "pygments==2.8.1",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
     "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]
-    "pytest==6.0.2",  # automatic testing
     "pytz==2021.3",  # timezones
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
@@ -131,8 +131,11 @@ INSTALL_REQUIRES = [
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
 
     # For development only:
+    "faker==13.3.1",  # test data creation
     "flake8==3.8.4",  # code checks
     "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
+    "pytest==6.0.2",  # automatic testing
+    "pytest-django==4.5.2",  # automatic testing
     "sphinx==3.1.2",  # documentation
     "sphinx_rtd_theme==0.5.0",  # documentation
 
