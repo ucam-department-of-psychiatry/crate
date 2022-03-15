@@ -84,6 +84,5 @@ class AnonymisationTests(TestCase):
         response = client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200)
 
-        self.assertIn("anonymised", response.data)
-        self.assertNotIn("denylist", response.data)
-        self.assertNotIn("text", response.data)
+        self.assertIn("anonymised", response.data.keys())
+        self.assertEqual(len(response.data), 1)
