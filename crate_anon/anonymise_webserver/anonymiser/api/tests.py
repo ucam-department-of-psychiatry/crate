@@ -39,7 +39,7 @@ class AnonymisationTests(TestCase):
 
         self.client = APIClient()
 
-        self.fake = Faker()
+        self.fake = Faker(["en-GB"])
         self.fake.seed_instance(1234)
 
     def test_denylist_replaced(self) -> None:
@@ -103,5 +103,28 @@ class AnonymisationTests(TestCase):
         anonymised = response.data["anonymised"]
 
         self.assertNotIn(date_of_birth, anonymised)
+
+        self.assertEqual(anonymised.count("[PPP]"), 1)
+
+    def test_patient_phrase_replaced(self) -> None:
+        address = self.fake.address()
+
+        text = (f"{address} {self.fake.text()}")
+
+        payload = {
+            "patient": {
+                "phrases": [address],
+            },
+            "text": text,
+        }
+
+        self.assertIn(address, text)
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertNotIn(address, anonymised)
 
         self.assertEqual(anonymised.count("[PPP]"), 1)
