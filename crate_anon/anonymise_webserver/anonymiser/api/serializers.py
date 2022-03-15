@@ -52,6 +52,7 @@ class PatientSerializer(Serializer):
     phrases = ListField(child=CharField(), required=False)
     words = ListField(child=CharField(), required=False)
     numbers = ListField(child=CharField(), required=False)
+    codes = ListField(child=CharField(), required=False)
 
 
 class ScrubSerializer(Serializer):
@@ -93,6 +94,7 @@ class ScrubSerializer(Serializer):
             "phrases": SCRUBMETHOD.PHRASE,
             "words": SCRUBMETHOD.WORDS,
             "numbers": SCRUBMETHOD.NUMERIC,
+            "codes": SCRUBMETHOD.CODE,
         }
 
         for name, values in data["patient"].items():
