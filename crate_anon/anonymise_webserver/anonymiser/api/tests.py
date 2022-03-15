@@ -157,3 +157,26 @@ class AnonymisationTests(TestCase):
         self.assertNotIn(address, anonymised)
 
         self.assertEqual(anonymised.count("[PPP]"), 1)
+
+    def test_patient_numeric_replaced(self) -> None:
+        phone = self.fake.phone_number()
+
+        text = f"{phone} {self.fake.text()}"
+
+        payload = {
+            "patient": {
+                "numbers": [phone],
+            },
+            "text": text,
+        }
+
+        self.assertIn(phone, text)
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertNotIn(phone, anonymised)
+
+        self.assertEqual(anonymised.count("[PPP]"), 1)
