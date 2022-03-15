@@ -37,12 +37,12 @@ class AnonymisationTests(TestCase):
     def setUp(self) -> None:
         super().setUp()
 
+        self.client = APIClient()
+
         self.fake = Faker()
         self.fake.seed_instance(1234)
 
     def test_denylist_replaced(self) -> None:
-        client = APIClient()
-
         name = self.fake.name()
         address = self.fake.address()
         nhs_number = generate_random_nhs_number()
@@ -59,9 +59,8 @@ class AnonymisationTests(TestCase):
         self.assertIn(address, text)
         self.assertIn(str(nhs_number), text)
 
-        response = client.post("/scrub/", payload, format="json")
-
-        self.assertEqual(response.status_code, 200)
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]
 
@@ -72,8 +71,6 @@ class AnonymisationTests(TestCase):
         self.assertEqual(anonymised.count("[---]"), 2)
 
     def test_expected_fields_returned(self) -> None:
-        client = APIClient()
-
         text = self.fake.text()
 
         payload = {
@@ -81,8 +78,30 @@ class AnonymisationTests(TestCase):
             "text": text,
         }
 
-        response = client.post("/scrub/", payload, format="json")
-        self.assertEqual(response.status_code, 200)
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
 
         self.assertIn("anonymised", response.data.keys())
         self.assertEqual(len(response.data), 1)
+
+    def test_patient_date_replaced(self) -> None:
+        date_of_birth = self.fake.date_of_birth().strftime("%d %b %Y")
+        text = (f"{date_of_birth} {self.fake.text()}")
+
+        payload = {
+            "patient": {
+                "dates": [date_of_birth],
+            },
+            "text": text,
+        }
+
+        self.assertIn(date_of_birth, text)
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertNotIn(date_of_birth, anonymised)
+
+        self.assertEqual(anonymised.count("[PPP]"), 1)

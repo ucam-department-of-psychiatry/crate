@@ -39,6 +39,7 @@ from rest_framework.serializers import (
     SerializerMethodField,
 )
 
+from crate_anon.anonymise.constants import SCRUBMETHOD
 from crate_anon.anonymise.scrub import (
     NonspecificScrubber,
     PersonalizedScrubber,
@@ -46,10 +47,15 @@ from crate_anon.anonymise.scrub import (
 )
 
 
+class PatientSerializer(Serializer):
+    dates = ListField(child=CharField(), required=False)
+
+
 class ScrubSerializer(Serializer):
     # Input fields. write_only means they aren't returned in the response
-    denylist = ListField(child=CharField(), write_only=True)
+    denylist = ListField(child=CharField(), required=False, write_only=True)
     text = CharField(write_only=True)
+    patient = PatientSerializer(required=False, write_only=True)
 
     # Output fields
     anonymised = SerializerMethodField()  # Read-only by default
@@ -57,16 +63,33 @@ class ScrubSerializer(Serializer):
     def get_anonymised(self, data: OrderedDict) -> str:
         hasher = make_hasher("HMAC_MD5", settings.HASH_KEY)
 
-        denylist = WordList(words=data["denylist"], hasher=hasher)
+        denylist = None
+        if "denylist" in data:
+            denylist = WordList(words=data["denylist"], hasher=hasher)
 
-        nonspecific_scrubber = NonspecificScrubber("[---]",  # TODO
+        nonspecific_scrubber = NonspecificScrubber("[---]",  # TODO configure
                                                    hasher,
                                                    denylist=denylist)
         scrubber = PersonalizedScrubber(
-            "[PPP]",  # TODO
-            "[TTT]",  # TODO
+            "[PPP]",  # TODO configure
+            "[TTT]",  # TODO configure
             hasher,
             nonspecific_scrubber=nonspecific_scrubber
         )
 
+        if "patient" in data:
+            self._add_patient_values_to_scrubber(scrubber, data)
+
         return scrubber.scrub(data["text"])
+
+    def _add_patient_values_to_scrubber(self,
+                                        scrubber: PersonalizedScrubber,
+                                        data: OrderedDict) -> None:
+        method_lookup = {
+            "dates": SCRUBMETHOD.DATE,
+        }
+
+        for name, values in data["patient"].items():
+            method = method_lookup[name]
+            for value in values:
+                scrubber.add_value(value, method)
