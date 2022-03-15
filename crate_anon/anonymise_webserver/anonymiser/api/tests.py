@@ -106,10 +106,39 @@ class AnonymisationTests(TestCase):
 
         self.assertEqual(anonymised.count("[PPP]"), 1)
 
+    def test_patient_words_replaced(self) -> None:
+        words = "one two three"
+
+        text = f"one {self.fake.text()} two {self.fake.text()} three"
+        payload = {
+            "patient": {
+                "words": [words],
+            },
+            "text": text,
+        }
+
+        all_words = text.split()
+
+        self.assertIn("one", all_words)
+        self.assertIn("two", all_words)
+        self.assertIn("three", all_words)
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+        anonymised_words = anonymised.split()
+
+        self.assertNotIn("one", anonymised_words)
+        self.assertNotIn("two", anonymised_words)
+        self.assertNotIn("three", anonymised_words)
+
+        self.assertEqual(anonymised.count("[PPP]"), 3)
+
     def test_patient_phrase_replaced(self) -> None:
         address = self.fake.address()
 
-        text = (f"{address} {self.fake.text()}")
+        text = f"{address} {self.fake.text()}"
 
         payload = {
             "patient": {

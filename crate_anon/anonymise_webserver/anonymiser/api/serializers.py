@@ -50,6 +50,7 @@ from crate_anon.anonymise.scrub import (
 class PatientSerializer(Serializer):
     dates = ListField(child=CharField(), required=False)
     phrases = ListField(child=CharField(), required=False)
+    words = ListField(child=CharField(), required=False)
 
 
 class ScrubSerializer(Serializer):
@@ -89,6 +90,7 @@ class ScrubSerializer(Serializer):
         method_lookup = {
             "dates": SCRUBMETHOD.DATE,
             "phrases": SCRUBMETHOD.PHRASE,
+            "words": SCRUBMETHOD.WORDS,
         }
 
         for name, values in data["patient"].items():
