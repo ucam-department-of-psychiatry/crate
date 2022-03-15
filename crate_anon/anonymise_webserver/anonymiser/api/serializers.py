@@ -47,7 +47,7 @@ from crate_anon.anonymise.scrub import (
 )
 
 
-class PatientSerializer(Serializer):
+class SpecificSerializer(Serializer):
     dates = ListField(child=CharField(), required=False)
     phrases = ListField(child=CharField(), required=False)
     words = ListField(child=CharField(), required=False)
@@ -59,7 +59,8 @@ class ScrubSerializer(Serializer):
     # Input fields. write_only means they aren't returned in the response
     denylist = ListField(child=CharField(), required=False, write_only=True)
     text = CharField(write_only=True)
-    patient = PatientSerializer(required=False, write_only=True)
+    patient = SpecificSerializer(required=False, write_only=True)
+    third_party = SpecificSerializer(required=False, write_only=True)
 
     # Output fields
     anonymised = SerializerMethodField()  # Read-only by default
@@ -81,14 +82,16 @@ class ScrubSerializer(Serializer):
             nonspecific_scrubber=nonspecific_scrubber
         )
 
-        if "patient" in data:
-            self._add_patient_values_to_scrubber(scrubber, data)
+        for label in ("patient", "third_party"):
+            if label in data:
+                self._add_values_to_scrubber(scrubber, label, data)
 
         return scrubber.scrub(data["text"])
 
-    def _add_patient_values_to_scrubber(self,
-                                        scrubber: PersonalizedScrubber,
-                                        data: OrderedDict) -> None:
+    def _add_values_to_scrubber(self,
+                                scrubber: PersonalizedScrubber,
+                                label: str,
+                                data: OrderedDict) -> None:
         method_lookup = {
             "dates": SCRUBMETHOD.DATE,
             "phrases": SCRUBMETHOD.PHRASE,
@@ -97,7 +100,9 @@ class ScrubSerializer(Serializer):
             "codes": SCRUBMETHOD.CODE,
         }
 
-        for name, values in data["patient"].items():
+        is_patient = label == "patient"
+
+        for name, values in data[label].items():
             method = method_lookup[name]
             for value in values:
-                scrubber.add_value(value, method)
+                scrubber.add_value(value, method, patient=is_patient)
