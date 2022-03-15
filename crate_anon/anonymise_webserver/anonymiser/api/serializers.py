@@ -39,12 +39,16 @@ from rest_framework.serializers import (
     SerializerMethodField,
 )
 
-from crate_anon.anonymise.scrub import WordList
+from crate_anon.anonymise.scrub import (
+    NonspecificScrubber,
+    PersonalizedScrubber,
+    WordList,
+)
 
 
 class ScrubSerializer(Serializer):
     # Input fields. write_only means they aren't returned in the response
-    scrub = ListField(child=CharField(), write_only=True)
+    denylist = ListField(child=CharField(), write_only=True)
     text = CharField(write_only=True)
 
     # Output fields
@@ -52,6 +56,17 @@ class ScrubSerializer(Serializer):
 
     def get_anonymised(self, data: OrderedDict) -> str:
         hasher = make_hasher("HMAC_MD5", settings.HASH_KEY)
-        scrubber = WordList(words=data["scrub"], hasher=hasher)
+
+        denylist = WordList(words=data["denylist"], hasher=hasher)
+
+        nonspecific_scrubber = NonspecificScrubber("[---]",  # TODO
+                                                   hasher,
+                                                   denylist=denylist)
+        scrubber = PersonalizedScrubber(
+            "[PPP]",  # TODO
+            "[TTT]",  # TODO
+            hasher,
+            nonspecific_scrubber=nonspecific_scrubber
+        )
 
         return scrubber.scrub(data["text"])

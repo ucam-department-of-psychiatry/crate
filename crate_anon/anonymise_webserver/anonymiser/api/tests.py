@@ -40,7 +40,7 @@ class AnonymisationTests(TestCase):
         self.fake = Faker()
         self.fake.seed_instance(1234)
 
-    def test_specified_fields_replaced(self) -> None:
+    def test_denylist_replaced(self) -> None:
         client = APIClient()
 
         name = self.fake.name()
@@ -51,7 +51,7 @@ class AnonymisationTests(TestCase):
                 f"{nhs_number} {self.fake.text()}")
 
         payload = {
-            "scrub": [name, address],
+            "denylist": [name, address],
             "text": text,
         }
 
@@ -77,7 +77,7 @@ class AnonymisationTests(TestCase):
         text = self.fake.text()
 
         payload = {
-            "scrub": [],
+            "denylist": [],
             "text": text,
         }
 
@@ -85,5 +85,5 @@ class AnonymisationTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
         self.assertIn("anonymised", response.data)
-        self.assertNotIn("scrub", response.data)
+        self.assertNotIn("denylist", response.data)
         self.assertNotIn("text", response.data)
