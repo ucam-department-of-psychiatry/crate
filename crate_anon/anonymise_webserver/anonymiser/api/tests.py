@@ -338,3 +338,24 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(word, anonymised)
         self.assertEqual(anonymised.count("[TTT]"), 1)
+
+    def test_string_max_regex_errors(self) -> None:
+        word = "secret"
+        typo = "sceret"
+        text = f"{typo}"
+
+        payload = {
+            "string_max_regex_errors": 2,  # delete 1, insert 1
+            "third_party": {
+                "words": [word],
+            },
+            "text": text,
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertNotIn(typo, anonymised)
+        self.assertEqual(anonymised.count("[TTT]"), 1)
