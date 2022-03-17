@@ -359,3 +359,29 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(typo, anonymised)
         self.assertEqual(anonymised.count("[TTT]"), 1)
+
+    def test_min_string_length_for_errors(self) -> None:
+        word1 = "secret"
+        typo1 = "sceret"
+
+        word2 = "private"
+        typo2 = "prviate"
+        text = f"{typo1} {typo2}"
+
+        payload = {
+            "string_max_regex_errors": 2,  # delete 1, insert 1
+            "min_string_length_for_errors": 7,
+            "third_party": {
+                "words": [word1, word2],
+            },
+            "text": text,
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertIn(typo1, anonymised)
+        self.assertNotIn(typo2, anonymised)
+        self.assertEqual(anonymised.count("[TTT]"), 1)
