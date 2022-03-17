@@ -247,3 +247,26 @@ class AnonymisationTests(TestCase):
         self.assertNotIn(postcode, anonymised)
 
         self.assertEqual(anonymised.count("[TTT]"), 1)
+
+    def test_anonymise_dates_anywhere(self) -> None:
+        date_of_birth = self.fake.date_of_birth().strftime("%d %b %Y")
+        text = (f"text{date_of_birth}text")
+
+        payload = {
+            "anonymise_dates_at_word_boundaries_only": False,
+            "third_party": {
+                "dates": [date_of_birth],
+            },
+            "text": text,
+        }
+
+        self.assertIn(date_of_birth, text)
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertNotIn(date_of_birth, anonymised)
+
+        self.assertEqual(anonymised.count("[TTT]"), 1)
