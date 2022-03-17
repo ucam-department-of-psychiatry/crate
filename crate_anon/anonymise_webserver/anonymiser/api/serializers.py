@@ -66,6 +66,8 @@ class ScrubSerializer(Serializer):
                                                            write_only=True)
     anonymise_dates_at_word_boundaries_only = BooleanField(required=False,
                                                            write_only=True)
+    anonymise_numbers_at_word_boundaries_only = BooleanField(required=False,
+                                                             write_only=True)
 
     # Output fields
     anonymised = SerializerMethodField()  # Read-only by default
@@ -84,6 +86,7 @@ class ScrubSerializer(Serializer):
         options = (
             "anonymise_codes_at_word_boundaries_only",
             "anonymise_dates_at_word_boundaries_only",
+            "anonymise_numbers_at_word_boundaries_only",
         )
 
         kwargs = {}
