@@ -316,3 +316,25 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(phone, anonymised)
         self.assertEqual(anonymised.count("[TTT]"), 1)
+
+    def test_anonymise_strings_ignoring_word_boundaries(self) -> None:
+        word = "secret"
+        text = (f"text{word}text")
+
+        payload = {
+            "anonymise_strings_at_word_boundaries_only": False,
+            "third_party": {
+                "words": [word],
+            },
+            "text": text,
+        }
+
+        self.assertIn(word, text)
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertNotIn(word, anonymised)
+        self.assertEqual(anonymised.count("[TTT]"), 1)
