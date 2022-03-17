@@ -33,6 +33,7 @@ from django.conf import settings
 
 from cardinal_pythonlib.hash import make_hasher
 from rest_framework.serializers import (
+    BooleanField,
     CharField,
     ListField,
     Serializer,
@@ -61,6 +62,8 @@ class ScrubSerializer(Serializer):
     text = CharField(write_only=True)
     patient = SpecificSerializer(required=False, write_only=True)
     third_party = SpecificSerializer(required=False, write_only=True)
+    anonymise_codes_at_word_boundaries_only = BooleanField(required=False,
+                                                           write_only=True)
 
     # Output fields
     anonymised = SerializerMethodField()  # Read-only by default
@@ -75,11 +78,21 @@ class ScrubSerializer(Serializer):
         nonspecific_scrubber = NonspecificScrubber("[---]",  # TODO configure
                                                    hasher,
                                                    denylist=denylist)
+
+        options = ("anonymise_codes_at_word_boundaries_only",)
+
+        kwargs = {}
+
+        for option in options:
+            if option in data:
+                kwargs[option] = data[option]
+
         scrubber = PersonalizedScrubber(
             "[PPP]",  # TODO configure
             "[TTT]",  # TODO configure
             hasher,
-            nonspecific_scrubber=nonspecific_scrubber
+            nonspecific_scrubber=nonspecific_scrubber,
+            **kwargs
         )
 
         for label in ("patient", "third_party"):
