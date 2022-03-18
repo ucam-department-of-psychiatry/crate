@@ -446,3 +446,22 @@ class AnonymisationTests(TestCase):
         self.assertNotIn("private", anonymised)
         self.assertNotIn("confidential", anonymised)
         self.assertEqual(anonymised.count("[TTT]"), 2)
+
+    def test_phrase_alternatives(self) -> None:
+        payload = {
+            "third_party": {
+                "phrases": ["22 Acacia Avenue"],
+            },
+            "alternatives": [
+                ["Avenue", "Ave"]
+            ],
+            "text": "22 Acacia Ave",
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertNotIn("22 Acacia Ave", anonymised)
+        self.assertEqual(anonymised.count("[TTT]"), 1)

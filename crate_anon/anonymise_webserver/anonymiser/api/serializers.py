@@ -90,6 +90,7 @@ class ScrubSerializer(Serializer):
                                       write_only=True)
     allowlist = AllowlistSerializer(required=False, write_only=True)
     denylist = DenylistSerializer(required=False, write_only=True)
+    alternatives = ListField(child=ListField(), required=False, write_only=True)
 
     # Output fields
     anonymised = SerializerMethodField()  # Read-only by default
@@ -113,6 +114,12 @@ class ScrubSerializer(Serializer):
                                                    hasher,
                                                    denylist=denylist)
 
+        try:
+            alternatives = [[word.upper() for word in words]
+                            for words in data["alternatives"]]
+        except KeyError:
+            alternatives = None
+
         options = (
             "anonymise_codes_at_word_boundaries_only",
             "anonymise_dates_at_word_boundaries_only",
@@ -122,7 +129,7 @@ class ScrubSerializer(Serializer):
             "string_max_regex_errors",
             "min_string_length_for_errors",
             "min_string_length_to_scrub_with",
-            "scrub_string_suffixes"
+            "scrub_string_suffixes",
         )
 
         kwargs = {}
@@ -137,6 +144,7 @@ class ScrubSerializer(Serializer):
             hasher,
             nonspecific_scrubber=nonspecific_scrubber,
             allowlist=allowlist,
+            alternatives=alternatives,
             **kwargs
         )
 
