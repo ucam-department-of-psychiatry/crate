@@ -422,3 +422,26 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn("secrets", anonymised)
         self.assertEqual(anonymised.count("[TTT]"), 1)
+
+    def test_allowlist_words(self) -> None:
+        # A bit of a contrived example but the allowlist should
+        # take precedence.
+        payload = {
+            "third_party": {
+                "words": ["secret", "private", "confidential"],
+            },
+            "allowlist": {
+                "words": ["secret"]
+            },
+            "text": "secret private confidential",
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertIn("secret", anonymised)
+        self.assertNotIn("private", anonymised)
+        self.assertNotIn("confidential", anonymised)
+        self.assertEqual(anonymised.count("[TTT]"), 2)

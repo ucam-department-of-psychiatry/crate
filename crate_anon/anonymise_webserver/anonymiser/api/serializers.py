@@ -57,6 +57,10 @@ class SpecificSerializer(Serializer):
     codes = ListField(child=CharField(), required=False)
 
 
+class AllowlistSerializer(Serializer):
+    words = ListField(child=CharField(), required=False, write_only=True)
+
+
 class ScrubSerializer(Serializer):
     # Input fields. write_only means they aren't returned in the response
     denylist = ListField(child=CharField(), required=False, write_only=True)
@@ -81,12 +85,19 @@ class ScrubSerializer(Serializer):
                                                    write_only=True)
     scrub_string_suffixes = ListField(child=CharField(), required=False,
                                       write_only=True)
+    allowlist = AllowlistSerializer(required=False, write_only=True)
 
     # Output fields
     anonymised = SerializerMethodField()  # Read-only by default
 
     def get_anonymised(self, data: OrderedDict) -> str:
         hasher = make_hasher("HMAC_MD5", settings.HASH_KEY)
+
+        try:
+            allowlist = WordList(words=data["allowlist"]["words"],
+                                 hasher=hasher)
+        except KeyError:
+            allowlist = None
 
         denylist = None
         if "denylist" in data:
@@ -119,6 +130,7 @@ class ScrubSerializer(Serializer):
             "[TTT]",  # TODO configure
             hasher,
             nonspecific_scrubber=nonspecific_scrubber,
+            allowlist=allowlist,
             **kwargs
         )
 
