@@ -28,10 +28,11 @@ Django REST Framework serializer to anonymise the data.
 
 
 from collections import OrderedDict
+from typing import Optional
 
 from django.conf import settings
 
-from cardinal_pythonlib.hash import make_hasher
+from cardinal_pythonlib.hash import GenericHasher, make_hasher
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -90,6 +91,7 @@ class ScrubSerializer(Serializer):
                                       write_only=True)
     allowlist = AllowlistSerializer(required=False, write_only=True)
     denylist = DenylistSerializer(required=False, write_only=True)
+    replace_nonspecific_info_with = CharField(required=False, write_only=True)
     alternatives = ListField(child=ListField(), required=False, write_only=True)
 
     # Output fields
@@ -104,21 +106,7 @@ class ScrubSerializer(Serializer):
         except KeyError:
             allowlist = None
 
-        try:
-            words = data["denylist"]["words"]
-
-            # TODO:
-            # replacement_text
-            # suffixes
-            # at_word_boundaries_only (for regex_method=True)
-            # max_errors
-            # regex_method: True
-            denylist = WordList(
-                words=words,
-                hasher=hasher
-            )
-        except KeyError:
-            denylist = None
+        denylist = self._get_denylist(data, hasher)
 
         # TODO:
         # scrub_all_numbers_of_n_digits
@@ -172,6 +160,29 @@ class ScrubSerializer(Serializer):
                 self._add_values_to_scrubber(scrubber, label, data)
 
         return scrubber.scrub(data["text"])
+
+    def _get_denylist(self,
+                      data: OrderedDict,
+                      hasher: GenericHasher) -> Optional[WordList]:
+        try:
+            words = data["denylist"]["words"]
+            kwargs = {}
+
+            try:
+                kwargs["replacement_text"] = data[
+                    "replace_nonspecific_info_with"
+                ]
+            except KeyError:
+                pass
+
+            # TODO:
+            # suffixes
+            # at_word_boundaries_only (for regex_method=True)
+            # max_errors
+            # regex_method: True
+            return WordList(words=words, hasher=hasher, **kwargs)
+        except KeyError:
+            return None
 
     def _add_values_to_scrubber(self,
                                 scrubber: PersonalizedScrubber,

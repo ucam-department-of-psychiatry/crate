@@ -72,6 +72,24 @@ class AnonymisationTests(TestCase):
 
         self.assertEqual(anonymised.count("[---]"), 2)
 
+    def test_denylist_replacement_text(self) -> None:
+        word = "secret"
+
+        payload = {
+            "denylist": {
+                "words": [word],
+            },
+            "replace_nonspecific_info_with": "[REDACTED]",
+            "text": word,
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertEqual(anonymised.count("[REDACTED]"), 1)
+
     def test_expected_fields_returned(self) -> None:
         text = self.fake.text()
 
