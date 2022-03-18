@@ -79,6 +79,8 @@ class ScrubSerializer(Serializer):
     min_string_length_for_errors = IntegerField(required=False, write_only=True)
     min_string_length_to_scrub_with = IntegerField(required=False,
                                                    write_only=True)
+    scrub_string_suffixes = ListField(child=CharField(), required=False,
+                                      write_only=True)
 
     # Output fields
     anonymised = SerializerMethodField()  # Read-only by default
@@ -103,6 +105,7 @@ class ScrubSerializer(Serializer):
             "string_max_regex_errors",
             "min_string_length_for_errors",
             "min_string_length_to_scrub_with",
+            "scrub_string_suffixes"
         )
 
         kwargs = {}

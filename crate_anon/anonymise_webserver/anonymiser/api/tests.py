@@ -403,3 +403,22 @@ class AnonymisationTests(TestCase):
         self.assertIn("Craig", anonymised)
         self.assertNotIn("Buchanan", anonymised)
         self.assertEqual(anonymised.count("[TTT]"), 1)
+
+    def test_scrub_string_suffixes(self) -> None:
+        word = "secret"
+
+        payload = {
+            "scrub_string_suffixes": ["s"],
+            "third_party": {
+                "words": [word],
+            },
+            "text": "secrets",
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertNotIn("secrets", anonymised)
+        self.assertEqual(anonymised.count("[TTT]"), 1)
