@@ -105,11 +105,27 @@ class ScrubSerializer(Serializer):
             allowlist = None
 
         try:
-            denylist = WordList(words=data["denylist"]["words"],
-                                hasher=hasher)
+            words = data["denylist"]["words"]
+
+            # TODO:
+            # replacement_text
+            # suffixes
+            # at_word_boundaries_only (for regex_method=True)
+            # max_errors
+            # regex_method: True
+            denylist = WordList(
+                words=words,
+                hasher=hasher
+            )
         except KeyError:
             denylist = None
 
+        # TODO:
+        # scrub_all_numbers_of_n_digits
+        # scrub_all_uk_postcodes
+        # anonymise_codes_at_word_boundaries_only (with scrub_all_uk_postcodes)
+        # anonymise_numbers_at_word_boundaries_only (with scrub_all_numbers...)
+        # extra_regexes (might be a security no-no)
         nonspecific_scrubber = NonspecificScrubber("[---]",  # TODO configure
                                                    hasher,
                                                    denylist=denylist)
@@ -138,9 +154,12 @@ class ScrubSerializer(Serializer):
             if option in data:
                 kwargs[option] = data[option]
 
+        # TODO:
+        # replacement_text_patient
+        # replacement_text_third_party
         scrubber = PersonalizedScrubber(
-            "[PPP]",  # TODO configure
-            "[TTT]",  # TODO configure
+            "[PPP]",
+            "[TTT]",
             hasher,
             nonspecific_scrubber=nonspecific_scrubber,
             allowlist=allowlist,

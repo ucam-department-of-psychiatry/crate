@@ -320,7 +320,7 @@ class AnonymisationTests(TestCase):
 
     def test_anonymise_strings_ignoring_word_boundaries(self) -> None:
         word = "secret"
-        text = (f"text{word}text")
+        text = f"text{word}text"
 
         payload = {
             "anonymise_strings_at_word_boundaries_only": False,
