@@ -61,9 +61,12 @@ class AllowlistSerializer(Serializer):
     words = ListField(child=CharField(), required=False, write_only=True)
 
 
+class DenylistSerializer(Serializer):
+    words = ListField(child=CharField(), required=False, write_only=True)
+
+
 class ScrubSerializer(Serializer):
     # Input fields. write_only means they aren't returned in the response
-    denylist = ListField(child=CharField(), required=False, write_only=True)
     text = CharField(write_only=True)
     patient = SpecificSerializer(required=False, write_only=True)
     third_party = SpecificSerializer(required=False, write_only=True)
@@ -86,6 +89,7 @@ class ScrubSerializer(Serializer):
     scrub_string_suffixes = ListField(child=CharField(), required=False,
                                       write_only=True)
     allowlist = AllowlistSerializer(required=False, write_only=True)
+    denylist = DenylistSerializer(required=False, write_only=True)
 
     # Output fields
     anonymised = SerializerMethodField()  # Read-only by default
@@ -99,9 +103,11 @@ class ScrubSerializer(Serializer):
         except KeyError:
             allowlist = None
 
-        denylist = None
-        if "denylist" in data:
-            denylist = WordList(words=data["denylist"], hasher=hasher)
+        try:
+            denylist = WordList(words=data["denylist"]["words"],
+                                hasher=hasher)
+        except KeyError:
+            denylist = None
 
         nonspecific_scrubber = NonspecificScrubber("[---]",  # TODO configure
                                                    hasher,

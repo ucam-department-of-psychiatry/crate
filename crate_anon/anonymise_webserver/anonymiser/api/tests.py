@@ -51,7 +51,9 @@ class AnonymisationTests(TestCase):
                 f"{nhs_number} {self.fake.text()}")
 
         payload = {
-            "denylist": [name, address],
+            "denylist": {
+                "words": [name, address],
+            },
             "text": text,
         }
 
@@ -74,7 +76,6 @@ class AnonymisationTests(TestCase):
         text = self.fake.text()
 
         payload = {
-            "denylist": [],
             "text": text,
         }
 
