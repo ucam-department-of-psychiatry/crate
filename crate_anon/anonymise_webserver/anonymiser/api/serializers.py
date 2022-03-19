@@ -92,6 +92,8 @@ class ScrubSerializer(Serializer):
     allowlist = AllowlistSerializer(required=False, write_only=True)
     denylist = DenylistSerializer(required=False, write_only=True)
     replace_nonspecific_info_with = CharField(required=False, write_only=True)
+    scrub_all_numbers_of_n_digits = ListField(child=IntegerField(),
+                                              required=False, write_only=True)
     alternatives = ListField(child=ListField(), required=False, write_only=True)
 
     # Output fields
@@ -106,17 +108,7 @@ class ScrubSerializer(Serializer):
         except KeyError:
             allowlist = None
 
-        denylist = self._get_denylist(data, hasher)
-
-        # TODO:
-        # scrub_all_numbers_of_n_digits
-        # scrub_all_uk_postcodes
-        # anonymise_codes_at_word_boundaries_only (with scrub_all_uk_postcodes)
-        # anonymise_numbers_at_word_boundaries_only (with scrub_all_numbers...)
-        # extra_regexes (might be a security no-no)
-        nonspecific_scrubber = NonspecificScrubber("[---]",  # TODO configure
-                                                   hasher,
-                                                   denylist=denylist)
+        nonspecific_scrubber = self._get_nonspecific_scrubber(data, hasher)
 
         try:
             alternatives = [[word.upper() for word in words]
@@ -160,6 +152,24 @@ class ScrubSerializer(Serializer):
                 self._add_values_to_scrubber(scrubber, label, data)
 
         return scrubber.scrub(data["text"])
+
+    def _get_nonspecific_scrubber(self,
+                                  data: OrderedDict,
+                                  hasher: GenericHasher) -> NonspecificScrubber:
+        denylist = self._get_denylist(data, hasher)
+        options = ("scrub_all_numbers_of_n_digits",)
+        kwargs = {k: v for (k, v) in data.items() if k in options}
+
+        # TODO:
+        # scrub_all_numbers_of_n_digits
+        # scrub_all_uk_postcodes
+        # anonymise_codes_at_word_boundaries_only (with scrub_all_uk_postcodes)
+        # anonymise_numbers_at_word_boundaries_only (with scrub_all_numbers...)
+        # extra_regexes (might be a security no-no)
+        return NonspecificScrubber("[---]",  # TODO configure
+                                   hasher,
+                                   denylist=denylist,
+                                   **kwargs)
 
     def _get_denylist(self,
                       data: OrderedDict,
