@@ -28,7 +28,7 @@ Django REST Framework serializer to anonymise the data.
 
 
 from collections import OrderedDict
-from typing import Optional
+from typing import List, Optional
 
 from django.conf import settings
 
@@ -100,21 +100,13 @@ class ScrubSerializer(Serializer):
     anonymised = SerializerMethodField()  # Read-only by default
 
     def get_anonymised(self, data: OrderedDict) -> str:
+        scrubber = self._get_personalized_scrubber(data)
+
+        return scrubber.scrub(data["text"])
+
+    def _get_personalized_scrubber(self,
+                                   data: OrderedDict) -> PersonalizedScrubber:
         hasher = make_hasher("HMAC_MD5", settings.HASH_KEY)
-
-        try:
-            allowlist = WordList(words=data["allowlist"]["words"],
-                                 hasher=hasher)
-        except KeyError:
-            allowlist = None
-
-        nonspecific_scrubber = self._get_nonspecific_scrubber(data, hasher)
-
-        try:
-            alternatives = [[word.upper() for word in words]
-                            for words in data["alternatives"]]
-        except KeyError:
-            alternatives = None
 
         options = (
             "anonymise_codes_at_word_boundaries_only",
@@ -128,12 +120,7 @@ class ScrubSerializer(Serializer):
             "scrub_string_suffixes",
         )
 
-        kwargs = {}
-
-        for option in options:
-            if option in data:
-                kwargs[option] = data[option]
-
+        kwargs = {k: v for (k, v) in data.items() if k in options}
         # TODO:
         # replacement_text_patient
         # replacement_text_third_party
@@ -141,9 +128,9 @@ class ScrubSerializer(Serializer):
             "[PPP]",
             "[TTT]",
             hasher,
-            nonspecific_scrubber=nonspecific_scrubber,
-            allowlist=allowlist,
-            alternatives=alternatives,
+            nonspecific_scrubber=self._get_nonspecific_scrubber(data, hasher),
+            allowlist=self._get_allowlist(data, hasher),
+            alternatives=self._get_alternatives(data),
             **kwargs
         )
 
@@ -151,7 +138,23 @@ class ScrubSerializer(Serializer):
             if label in data:
                 self._add_values_to_scrubber(scrubber, label, data)
 
-        return scrubber.scrub(data["text"])
+        return scrubber
+
+    def _get_alternatives(self, data: OrderedDict) -> List[List[str]]:
+        try:
+            return [[word.upper() for word in words]
+                    for words in data["alternatives"]]
+        except KeyError:
+            return None
+
+    def _get_allowlist(self,
+                       data: OrderedDict,
+                       hasher: GenericHasher) -> Optional[WordList]:
+        try:
+            return WordList(words=data["allowlist"]["words"],
+                            hasher=hasher)
+        except KeyError:
+            return None
 
     def _get_nonspecific_scrubber(self,
                                   data: OrderedDict,
