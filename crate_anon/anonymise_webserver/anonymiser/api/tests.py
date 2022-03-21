@@ -123,7 +123,7 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(date_of_birth, anonymised)
 
-        self.assertEqual(anonymised.count("[PPP]"), 1)
+        self.assertEqual(anonymised.count("[__PPP__]"), 1)
 
     def test_patient_words_replaced(self) -> None:
         words = "one two three"
@@ -152,7 +152,23 @@ class AnonymisationTests(TestCase):
         self.assertNotIn("two", anonymised_words)
         self.assertNotIn("three", anonymised_words)
 
-        self.assertEqual(anonymised.count("[PPP]"), 3)
+        self.assertEqual(anonymised.count("[__PPP__]"), 3)
+
+    def test_patient_replacement_text(self) -> None:
+        word = "secret"
+        payload = {
+            "patient": {
+                "words": [word],
+            },
+            "replace_patient_info_with": "[REDACTED]",
+            "text": word,
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+        self.assertEqual(anonymised.count("[REDACTED]"), 1)
 
     def test_patient_phrase_replaced(self) -> None:
         address = self.fake.address()
@@ -175,7 +191,7 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(address, anonymised)
 
-        self.assertEqual(anonymised.count("[PPP]"), 1)
+        self.assertEqual(anonymised.count("[__PPP__]"), 1)
 
     def test_patient_numeric_replaced(self) -> None:
         phone = self.fake.phone_number()
@@ -198,7 +214,7 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(phone, anonymised)
 
-        self.assertEqual(anonymised.count("[PPP]"), 1)
+        self.assertEqual(anonymised.count("[__PPP__]"), 1)
 
     def test_patient_code_replaced(self) -> None:
         postcode = self.fake.postcode()
@@ -220,7 +236,7 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(postcode, anonymised)
 
-        self.assertEqual(anonymised.count("[PPP]"), 1)
+        self.assertEqual(anonymised.count("[__PPP__]"), 1)
 
     def test_third_party_code_replaced(self) -> None:
         postcode = self.fake.postcode()

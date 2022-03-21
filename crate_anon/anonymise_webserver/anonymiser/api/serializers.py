@@ -92,6 +92,7 @@ class ScrubSerializer(Serializer):
     allowlist = AllowlistSerializer(required=False, write_only=True)
     denylist = DenylistSerializer(required=False, write_only=True)
     replace_nonspecific_info_with = CharField(required=False, write_only=True)
+    replace_patient_info_with = CharField(required=False, write_only=True)
     scrub_all_numbers_of_n_digits = ListField(child=IntegerField(),
                                               required=False, write_only=True)
     scrub_all_uk_postcodes = BooleanField(required=False, write_only=True)
@@ -122,11 +123,14 @@ class ScrubSerializer(Serializer):
         )
 
         kwargs = {k: v for (k, v) in data.items() if k in options}
+
         # TODO:
-        # replacement_text_patient
         # replacement_text_third_party
+        replacement_text_patient = data.get("replace_patient_info_with",
+                                            "[__PPP__]")
+
         scrubber = PersonalizedScrubber(
-            "[PPP]",
+            replacement_text_patient,
             "[TTT]",
             hasher,
             nonspecific_scrubber=self._get_nonspecific_scrubber(data, hasher),
