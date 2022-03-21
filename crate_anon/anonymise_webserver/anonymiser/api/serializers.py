@@ -164,6 +164,7 @@ class ScrubSerializer(Serializer):
         options = (
             "scrub_all_numbers_of_n_digits",
             "scrub_all_uk_postcodes",
+            "anonymise_codes_at_word_boundaries_only",
         )
         kwargs = {k: v for (k, v) in data.items() if k in options}
 
