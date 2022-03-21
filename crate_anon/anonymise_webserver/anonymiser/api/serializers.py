@@ -195,7 +195,9 @@ class ScrubSerializer(Serializer):
             except KeyError:
                 pass
 
-            # TODO:
+            # TODO: None of these are currently configurable
+            # from crate_anon/anonymise/config.py
+            # Do we care about them here?
             # suffixes
             # at_word_boundaries_only (for regex_method=True)
             # max_errors
