@@ -538,7 +538,7 @@ class AnonymisationTests(TestCase):
         anonymised = response.data["anonymised"]
 
         self.assertNotIn(nhs_number, anonymised)
-        self.assertEqual(anonymised.count("[---]"), 1)
+        self.assertEqual(anonymised.count("[~~~]"), 1)
 
     def test_scrub_all_numbers_of_n_digits_ignoring_word_boundaries(
             self) -> None:
@@ -560,7 +560,7 @@ class AnonymisationTests(TestCase):
         anonymised = response.data["anonymised"]
 
         self.assertNotIn(nhs_number, anonymised)
-        self.assertEqual(anonymised.count("[---]"), 1)
+        self.assertEqual(anonymised.count("[~~~]"), 1)
 
     def test_scrub_all_uk_postcodes(self) -> None:
         postcode = self.fake.postcode()
@@ -580,7 +580,7 @@ class AnonymisationTests(TestCase):
         anonymised = response.data["anonymised"]
 
         self.assertNotIn(postcode, anonymised)
-        self.assertEqual(anonymised.count("[---]"), 1)
+        self.assertEqual(anonymised.count("[~~~]"), 1)
 
     def test_scrub_all_uk_postcodes_ignoring_word_boundary(self) -> None:
         postcode = self.fake.postcode()
@@ -601,4 +601,21 @@ class AnonymisationTests(TestCase):
         anonymised = response.data["anonymised"]
 
         self.assertNotIn(postcode, anonymised)
-        self.assertEqual(anonymised.count("[---]"), 1)
+        self.assertEqual(anonymised.count("[~~~]"), 1)
+
+    def test_scrub_all_uk_postcodes_replacement_text(self) -> None:
+        postcode = self.fake.postcode()
+
+        payload = {
+            "scrub_all_uk_postcodes": True,
+            "replace_nonspecific_info_with": "[REDACTED]",
+            "text": postcode,
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertNotIn(postcode, anonymised)
+        self.assertEqual(anonymised.count("[REDACTED]"), 1)

@@ -175,7 +175,8 @@ class ScrubSerializer(Serializer):
         kwargs = {k: v for (k, v) in data.items() if k in options}
 
         # TODO: extra_regexes (might be a security no-no)
-        return NonspecificScrubber("[---]",  # TODO configure
+        replacement_text = data.get("replace_nonspecific_info_with", "[~~~]")
+        return NonspecificScrubber(replacement_text,
                                    hasher,
                                    denylist=denylist,
                                    **kwargs)
