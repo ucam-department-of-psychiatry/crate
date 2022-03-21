@@ -165,13 +165,11 @@ class ScrubSerializer(Serializer):
             "scrub_all_numbers_of_n_digits",
             "scrub_all_uk_postcodes",
             "anonymise_codes_at_word_boundaries_only",
+            "anonymise_numbers_at_word_boundaries_only",
         )
         kwargs = {k: v for (k, v) in data.items() if k in options}
 
-        # TODO:
-        # anonymise_codes_at_word_boundaries_only (with scrub_all_uk_postcodes)
-        # anonymise_numbers_at_word_boundaries_only (with scrub_all_numbers...)
-        # extra_regexes (might be a security no-no)
+        # TODO: extra_regexes (might be a security no-no)
         return NonspecificScrubber("[---]",  # TODO configure
                                    hasher,
                                    denylist=denylist,

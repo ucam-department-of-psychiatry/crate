@@ -504,6 +504,28 @@ class AnonymisationTests(TestCase):
         self.assertNotIn(nhs_number, anonymised)
         self.assertEqual(anonymised.count("[---]"), 1)
 
+    def test_scrub_all_numbers_of_n_digits_ignoring_word_boundaries(
+            self) -> None:
+        nhs_number = str(generate_random_nhs_number())
+
+        text = f"text{nhs_number}text"
+
+        self.assertIn(nhs_number, text)
+
+        payload = {
+            "scrub_all_numbers_of_n_digits": [10],
+            "anonymise_numbers_at_word_boundaries_only": False,
+            "text": text,
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertNotIn(nhs_number, anonymised)
+        self.assertEqual(anonymised.count("[---]"), 1)
+
     def test_scrub_all_uk_postcodes(self) -> None:
         postcode = self.fake.postcode()
 
