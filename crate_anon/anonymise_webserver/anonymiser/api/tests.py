@@ -503,3 +503,23 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(nhs_number, anonymised)
         self.assertEqual(anonymised.count("[---]"), 1)
+
+    def test_scrub_all_uk_postcodes(self) -> None:
+        postcode = self.fake.postcode()
+
+        text = f"{self.fake.text()} {postcode} {self.fake.text()}"
+
+        self.assertIn(postcode, text)
+
+        payload = {
+            "scrub_all_uk_postcodes": True,
+            "text": text,
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertNotIn(postcode, anonymised)
+        self.assertEqual(anonymised.count("[---]"), 1)

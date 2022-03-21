@@ -94,6 +94,7 @@ class ScrubSerializer(Serializer):
     replace_nonspecific_info_with = CharField(required=False, write_only=True)
     scrub_all_numbers_of_n_digits = ListField(child=IntegerField(),
                                               required=False, write_only=True)
+    scrub_all_uk_postcodes = BooleanField(required=False, write_only=True)
     alternatives = ListField(child=ListField(), required=False, write_only=True)
 
     # Output fields
@@ -160,12 +161,13 @@ class ScrubSerializer(Serializer):
                                   data: OrderedDict,
                                   hasher: GenericHasher) -> NonspecificScrubber:
         denylist = self._get_denylist(data, hasher)
-        options = ("scrub_all_numbers_of_n_digits",)
+        options = (
+            "scrub_all_numbers_of_n_digits",
+            "scrub_all_uk_postcodes",
+        )
         kwargs = {k: v for (k, v) in data.items() if k in options}
 
         # TODO:
-        # scrub_all_numbers_of_n_digits
-        # scrub_all_uk_postcodes
         # anonymise_codes_at_word_boundaries_only (with scrub_all_uk_postcodes)
         # anonymise_numbers_at_word_boundaries_only (with scrub_all_numbers...)
         # extra_regexes (might be a security no-no)
