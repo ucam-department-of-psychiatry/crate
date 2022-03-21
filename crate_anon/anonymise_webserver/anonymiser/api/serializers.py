@@ -91,9 +91,11 @@ class ScrubSerializer(Serializer):
                                       write_only=True)
     allowlist = AllowlistSerializer(required=False, write_only=True)
     denylist = DenylistSerializer(required=False, write_only=True)
-    replace_nonspecific_info_with = CharField(required=False, write_only=True)
-    replace_patient_info_with = CharField(required=False, write_only=True)
-    replace_third_party_info_with = CharField(required=False, write_only=True)
+    replace_nonspecific_info_with = CharField(write_only=True,
+                                              default="[~~~]")
+    replace_patient_info_with = CharField(write_only=True, default="[__PPP__]")
+    replace_third_party_info_with = CharField(write_only=True,
+                                              default="[__TTT__]")
     scrub_all_numbers_of_n_digits = ListField(child=IntegerField(),
                                               required=False, write_only=True)
     scrub_all_uk_postcodes = BooleanField(required=False, write_only=True)
@@ -125,10 +127,8 @@ class ScrubSerializer(Serializer):
 
         kwargs = {k: v for (k, v) in data.items() if k in options}
 
-        replacement_text_patient = data.get("replace_patient_info_with",
-                                            "[__PPP__]")
-        replacement_text_third_party = data.get("replace_third_party_info_with",
-                                                "[__TTT__]")
+        replacement_text_patient = data["replace_patient_info_with"]
+        replacement_text_third_party = data["replace_third_party_info_with"]
 
         scrubber = PersonalizedScrubber(
             replacement_text_patient,
@@ -175,7 +175,7 @@ class ScrubSerializer(Serializer):
         kwargs = {k: v for (k, v) in data.items() if k in options}
 
         # TODO: extra_regexes (might be a security no-no)
-        replacement_text = data.get("replace_nonspecific_info_with", "[~~~]")
+        replacement_text = data["replace_nonspecific_info_with"]
         return NonspecificScrubber(replacement_text,
                                    hasher,
                                    denylist=denylist,

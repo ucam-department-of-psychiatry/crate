@@ -70,7 +70,7 @@ class AnonymisationTests(TestCase):
         self.assertNotIn(address, anonymised)
         self.assertIn(str(nhs_number), anonymised)
 
-        self.assertEqual(anonymised.count("[---]"), 2)
+        self.assertEqual(anonymised.count("[~~~]"), 2)
 
     def test_denylist_replacement_text(self) -> None:
         word = "secret"
