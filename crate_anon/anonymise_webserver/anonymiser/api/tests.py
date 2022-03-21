@@ -258,7 +258,27 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(postcode, anonymised)
 
-        self.assertEqual(anonymised.count("[TTT]"), 1)
+        self.assertEqual(anonymised.count("[__TTT__]"), 1)
+
+    def test_third_party_replacement_text(self) -> None:
+        postcode = self.fake.postcode()
+
+        payload = {
+            "third_party": {
+                "codes": [postcode],
+            },
+            "text": postcode,
+            "replace_third_party_info_with": "[REDACTED]",
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]
+
+        self.assertNotIn(postcode, anonymised)
+
+        self.assertEqual(anonymised.count("[REDACTED]"), 1)
 
     def test_anonymise_codes_ignoring_word_boundaries(self) -> None:
         postcode = self.fake.postcode()
@@ -281,7 +301,7 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(postcode, anonymised)
 
-        self.assertEqual(anonymised.count("[TTT]"), 1)
+        self.assertEqual(anonymised.count("[__TTT__]"), 1)
 
     def test_anonymise_dates_ignoring_word_boundaries(self) -> None:
         date_of_birth = self.fake.date_of_birth().strftime("%d %b %Y")
@@ -304,7 +324,7 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(date_of_birth, anonymised)
 
-        self.assertEqual(anonymised.count("[TTT]"), 1)
+        self.assertEqual(anonymised.count("[__TTT__]"), 1)
 
     def test_anonymise_numbers_ignoring_word_boundaries(self) -> None:
         phone = self.fake.phone_number()
@@ -327,7 +347,7 @@ class AnonymisationTests(TestCase):
         anonymised = response.data["anonymised"]
 
         self.assertNotIn(phone, anonymised)
-        self.assertEqual(anonymised.count("[TTT]"), 1)
+        self.assertEqual(anonymised.count("[__TTT__]"), 1)
 
     def test_anonymise_numbers_ignoring_numeric_boundaries(self) -> None:
         phone = self.fake.phone_number()
@@ -350,7 +370,7 @@ class AnonymisationTests(TestCase):
         anonymised = response.data["anonymised"]
 
         self.assertNotIn(phone, anonymised)
-        self.assertEqual(anonymised.count("[TTT]"), 1)
+        self.assertEqual(anonymised.count("[__TTT__]"), 1)
 
     def test_anonymise_strings_ignoring_word_boundaries(self) -> None:
         word = "secret"
@@ -372,7 +392,7 @@ class AnonymisationTests(TestCase):
         anonymised = response.data["anonymised"]
 
         self.assertNotIn(word, anonymised)
-        self.assertEqual(anonymised.count("[TTT]"), 1)
+        self.assertEqual(anonymised.count("[__TTT__]"), 1)
 
     def test_string_max_regex_errors(self) -> None:
         word = "secret"
@@ -393,7 +413,7 @@ class AnonymisationTests(TestCase):
         anonymised = response.data["anonymised"]
 
         self.assertNotIn(typo, anonymised)
-        self.assertEqual(anonymised.count("[TTT]"), 1)
+        self.assertEqual(anonymised.count("[__TTT__]"), 1)
 
     def test_min_string_length_for_errors(self) -> None:
         word1 = "secret"
@@ -419,7 +439,7 @@ class AnonymisationTests(TestCase):
 
         self.assertIn(typo1, anonymised)
         self.assertNotIn(typo2, anonymised)
-        self.assertEqual(anonymised.count("[TTT]"), 1)
+        self.assertEqual(anonymised.count("[__TTT__]"), 1)
 
     def test_min_string_length_to_scrub_with(self) -> None:
         payload = {
@@ -437,7 +457,7 @@ class AnonymisationTests(TestCase):
 
         self.assertIn("Craig", anonymised)
         self.assertNotIn("Buchanan", anonymised)
-        self.assertEqual(anonymised.count("[TTT]"), 1)
+        self.assertEqual(anonymised.count("[__TTT__]"), 1)
 
     def test_scrub_string_suffixes(self) -> None:
         word = "secret"
@@ -456,7 +476,7 @@ class AnonymisationTests(TestCase):
         anonymised = response.data["anonymised"]
 
         self.assertNotIn("secrets", anonymised)
-        self.assertEqual(anonymised.count("[TTT]"), 1)
+        self.assertEqual(anonymised.count("[__TTT__]"), 1)
 
     def test_allowlist_words(self) -> None:
         # A bit of a contrived example but the allowlist should
@@ -479,7 +499,7 @@ class AnonymisationTests(TestCase):
         self.assertIn("secret", anonymised)
         self.assertNotIn("private", anonymised)
         self.assertNotIn("confidential", anonymised)
-        self.assertEqual(anonymised.count("[TTT]"), 2)
+        self.assertEqual(anonymised.count("[__TTT__]"), 2)
 
     def test_phrase_alternatives(self) -> None:
         payload = {
@@ -498,7 +518,7 @@ class AnonymisationTests(TestCase):
         anonymised = response.data["anonymised"]
 
         self.assertNotIn("22 Acacia Ave", anonymised)
-        self.assertEqual(anonymised.count("[TTT]"), 1)
+        self.assertEqual(anonymised.count("[__TTT__]"), 1)
 
     def test_scrub_all_numbers_of_n_digits(self) -> None:
         nhs_number = str(generate_random_nhs_number())
