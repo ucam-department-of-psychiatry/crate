@@ -85,6 +85,7 @@ INSTALL_REQUIRES = [
     # "django-silk==4.0.1",  # Django profiler
     "djangorestframework==3.13.1",
     "django-sslserver==0.22",  # SSL development server for Django
+    "drf-spectacular=0.22.0",  # Open API Schema and documentation
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==1.0.0",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
