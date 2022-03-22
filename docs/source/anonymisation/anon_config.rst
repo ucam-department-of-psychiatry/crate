@@ -1538,14 +1538,15 @@ to any tables listed in :ref:`debug_limited_tables
 <anon_config_debug_limited_tables>`. For those tables, only this many rows will
 be taken from the source database.
 
-Use this, for example, to reduce the number of large documents fetched.
+Use this, for example, to reduce the number of large documents fetched for
+testing.
 
 If you run a multiprocess/multithreaded anonymisation, this limit applies per
 *process* (or task), not overall.
 
-Note that these limits DO NOT APPLY to the fetching of patient- identifiable
-information for anonymisation -- when a patient is processed, all identifiable
-information for that patient is trawled.
+Note that these limits DO NOT APPLY to the fetching of patient-identifiable
+information to build "scrubbers" for anonymisation -- when a patient is
+processed, all identification information for that patient is trawled.
 
 
 .. _anon_config_debug_limited_tables:

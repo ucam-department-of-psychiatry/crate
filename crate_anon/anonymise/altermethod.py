@@ -413,7 +413,7 @@ class AlterMethod(object):
         # Lots of ways...
         # -- xml.etree, for well-formed XML
         #    https://stackoverflow.com/questions/9662346
-        # return ''.join(xml.etree.ElementTree.fromstring(text).itertext())
+        #    return ''.join(xml.etree.ElementTree.fromstring(text).itertext())
         # -- html.parser
         #    https://stackoverflow.com/questions/753052
         # -- lxml (but needs source build on Windows):
@@ -421,6 +421,7 @@ class AlterMethod(object):
         #    http://lxml.de/
         # -- regex/re
         #    https://stackoverflow.com/questions/3662142
+        #    ... as below.
         return HTML_TAG_RE.sub('', text)
 
     def _extract_text_func(
