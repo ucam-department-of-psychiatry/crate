@@ -34,6 +34,13 @@ from anonymiser.api.serializers import ScrubSerializer
 
 
 class ScrubView(APIView):
+    """
+    Main CRATE anonymisation end-point.
+    """
+
+    # Only needed by drf_spectacular to generate documentation
+    serializer_class = ScrubSerializer
+
     def post(self, request: Request) -> Response:
         serializer = ScrubSerializer(data=request.data)
 

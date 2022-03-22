@@ -51,60 +51,135 @@ from crate_anon.anonymise.scrub import (
 
 
 class SpecificSerializer(Serializer):
-    dates = ListField(child=CharField(), required=False)
-    phrases = ListField(child=CharField(), required=False)
-    words = ListField(child=CharField(), required=False)
-    numbers = ListField(child=CharField(), required=False)
-    codes = ListField(child=CharField(), required=False)
+    dates = ListField(child=CharField(), required=False,
+                      help_text="List of dates to be scrubbed.")
+    phrases = ListField(
+        child=CharField(), required=False,
+        help_text=("List of phrases (words appearing consecutively) to "
+                   "be scrubbed.")
+    )
+    words = ListField(child=CharField(), required=False,
+                      help_text="List of words to be scrubbed.")
+    numbers = ListField(child=CharField(), required=False,
+                        help_text="List of numbers to be scrubbed.")
+    codes = ListField(
+        child=CharField(), required=False,
+        help_text="List of codes (e.g. postcodes) to be scrubbed."
+    )
 
 
 class AllowlistSerializer(Serializer):
-    words = ListField(child=CharField(), required=False, write_only=True)
+    words = ListField(child=CharField(), required=False, write_only=True,
+                      help_text="Do not scrub these specific words.")
 
 
 class DenylistSerializer(Serializer):
-    words = ListField(child=CharField(), required=False, write_only=True)
+    words = ListField(child=CharField(), required=False, write_only=True,
+                      help_text="Scrub these specific words.")
 
 
 class ScrubSerializer(Serializer):
-    # Input fields. write_only means they aren't returned in the response
-    text = CharField(write_only=True)
-    patient = SpecificSerializer(required=False, write_only=True)
-    third_party = SpecificSerializer(required=False, write_only=True)
-    anonymise_codes_at_word_boundaries_only = BooleanField(required=False,
-                                                           write_only=True)
-    anonymise_dates_at_word_boundaries_only = BooleanField(required=False,
-                                                           write_only=True)
+    # Input fields
+    # write_only means they aren't returned in the response
+    # default implies required=False
+    text = CharField(write_only=True, help_text="The text to be scrubbed.")
+    patient = SpecificSerializer(
+        required=False, write_only=True,
+        help_text="Specific patient data to be scrubbed."
+    )
+    third_party = SpecificSerializer(
+        required=False, write_only=True,
+        help_text="Third party (e.g. family members') data to be scrubbed."
+    )
+    anonymise_codes_at_word_boundaries_only = BooleanField(
+        write_only=True, default=True,
+        help_text=("Ensure the codes to be scrubbed begin and end with a word "
+                   "boundary.")
+    )
+    anonymise_dates_at_word_boundaries_only = BooleanField(
+        write_only=True, default=True,
+        help_text=("Ensure the codes to be scrubbed begin and end with a word "
+                   "boundary.")
+    )
     # TODO: These can't both be True (in fact this is the default for
     # PersonalizedScrubber but word boundaries take precedence).
-    anonymise_numbers_at_word_boundaries_only = BooleanField(required=False,
-                                                             write_only=True)
-    anonymise_numbers_at_numeric_boundaries_only = BooleanField(required=False,
-                                                                write_only=True)
-    anonymise_strings_at_word_boundaries_only = BooleanField(required=False,
-                                                             write_only=True)
-    string_max_regex_errors = IntegerField(required=False, write_only=True)
-    min_string_length_for_errors = IntegerField(required=False, write_only=True)
-    min_string_length_to_scrub_with = IntegerField(required=False,
-                                                   write_only=True)
-    scrub_string_suffixes = ListField(child=CharField(), required=False,
-                                      write_only=True)
-    allowlist = AllowlistSerializer(required=False, write_only=True)
-    denylist = DenylistSerializer(required=False, write_only=True)
-    replace_nonspecific_info_with = CharField(write_only=True,
-                                              default="[~~~]")
-    replace_patient_info_with = CharField(write_only=True, default="[__PPP__]")
-    replace_third_party_info_with = CharField(write_only=True,
-                                              default="[__TTT__]")
-    scrub_all_numbers_of_n_digits = ListField(child=IntegerField(),
-                                              required=False, write_only=True)
-    scrub_all_uk_postcodes = BooleanField(required=False, write_only=True)
-    alternatives = ListField(child=ListField(), required=False, write_only=True)
+    anonymise_numbers_at_word_boundaries_only = BooleanField(
+        write_only=True, default=True,
+        help_text=("Ensure the numbers to be scrubbed begin and end with a "
+                   "word boundary.")
+    )
+    anonymise_numbers_at_numeric_boundaries_only = BooleanField(
+        write_only=True, default=False,
+        help_text=("Ensure the numbers to be scrubbed begin and end with a "
+                   "numeric boundary.")
+    )
+    anonymise_strings_at_word_boundaries_only = BooleanField(
+        write_only=True, default=True,
+        help_text=("Ensure the numbers to be scrubbed begin and end with a "
+                   "word boundary.")
+    )
+    string_max_regex_errors = IntegerField(
+        write_only=True, default=0,
+        help_text=("The maximum number of typographical insertion / deletion / "
+                   "substitution errors to permit.")
+    )
+    min_string_length_for_errors = IntegerField(
+        write_only=True, default=4,
+        help_text=("The minimum string length at which typographical "
+                   "errors will be permitted.")
+    )
+    min_string_length_to_scrub_with = IntegerField(
+        write_only=True, default=3,
+        help_text=("Do not scrub strings shorter than this length.")
+    )
+    scrub_string_suffixes = ListField(
+        child=CharField(), required=False,
+        write_only=True,
+        help_text=('A list of suffixes to permit on strings. e.g. ["s"] '
+                   'for plural forms.')
+    )
+    allowlist = AllowlistSerializer(required=False, write_only=True,
+                                    help_text="Allowlist options.")
+    denylist = DenylistSerializer(required=False, write_only=True,
+                                  help_text="Denylist options.")
+    replace_patient_info_with = CharField(
+        write_only=True, default="[__PPP__]",
+        help_text=("Replace sensitive patient content with this.")
+    )
+    replace_third_party_info_with = CharField(
+        write_only=True, default="[__TTT__]",
+        help_text=("Replace sensitive third party (e.g. family members') "
+                   "content with this.")
+    )
+    replace_nonspecific_info_with = CharField(
+        write_only=True, default="[~~~]",
+        help_text=("Replace any other sensitive content with this.")
+    )
+    scrub_all_numbers_of_n_digits = ListField(
+        child=IntegerField(),
+        required=False, write_only=True,
+        help_text=("Scrub all numbers with these lengths. "
+                   "e.g. [10] for all UK NHS numbers.")
+    )
+    scrub_all_uk_postcodes = BooleanField(
+        write_only=True, default=False,
+        help_text=("Scrub all UK postcodes.")
+    )
+    alternatives = ListField(
+        child=ListField(child=CharField()),
+        required=False, write_only=True,
+        help_text=(
+            'List of alternative words to scrub. '
+            'e.g.: [["Street", "St"], ["Road", "Rd"], ["Avenue", "Ave"]]'
+        )
+    )
 
     # Output fields
-    anonymised = SerializerMethodField()  # Read-only by default
+    # SerializerMethodField is read-only by default
+    anonymised = SerializerMethodField(help_text="The anonymised text.")
 
     def get_anonymised(self, data: OrderedDict) -> str:
+        """ Returns the anonymised text """
         scrubber = self._get_personalized_scrubber(data)
 
         return scrubber.scrub(data["text"])
