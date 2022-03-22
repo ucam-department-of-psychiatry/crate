@@ -2081,6 +2081,7 @@ def get_scrub_alter_details(
             ssi.add_src_flag(SrcFlag.MASTER_PID)  # automatically hashed
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.NUMERIC
+            ssi.dest_field = ddr.config.master_research_id_fieldname
             ssi.include()
 
         elif is_in(colname, COLS_PATIENT_WORDS):
@@ -2382,6 +2383,7 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
 
         # Destination -- mostly automatic
         ddr.dest_field = ssi.dest_field or ddr.dest_field
+        ddr.dest_datatype = ssi.dest_datatype or ddr.dest_datatype
 
     # Indexing
     ddr.index = get_index_flag(tablename, colname, ddr, context)
