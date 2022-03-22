@@ -214,19 +214,19 @@ Character   Meaning
               entirely. It must be in a table that also has a primary patient
               ID field (because that's the ID that will be omitted). If the
               opt-out field contains a value that's defined in the
-              ``optout_col_values`` setting (see :ref:`config file
-              <anon_config_file>`), that patient will be opted out entirely
-              from the anonymised database.
+              :ref:`optout_col_values <optout_col_values>` config setting, that
+              patient will be opted out entirely from the anonymised database.
 
 ``R``       | **REQUIRED SCRUBBER.**
-            | If this field is a ``scrub_src`` field (see below), and this flag
-              is set, then at least one non-NULL value for this field must be
-              present for each patient, or no information will be processed for
-              this patient. (Typical use: where you have a master patient index
-              separate from the patient name table, and data might have been
-              brought across partially, so there are some missing names. In
-              this situation, text might go unscrubbed because the names are
-              missing. Setting this flag for the name field will prevent this.)
+            | If this field is a :ref:`scrub_src <dd_scrub_src>` field (see
+              below), and this flag is set, then at least one non-NULL value
+              for this field must be present for each patient, or no
+              information will be processed for this patient. (Typical use:
+              where you have a master patient index separate from the patient
+              name table, and data might have been brought across partially, so
+              there are some missing names. In this situation, text might go
+              unscrubbed because the names are missing. Setting this flag for
+              the name field will prevent this.)
 
 =========== ===================================================================
 

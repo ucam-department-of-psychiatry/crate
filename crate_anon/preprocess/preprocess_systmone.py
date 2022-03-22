@@ -195,6 +195,16 @@ def add_testpatient_view(engine: Engine,
             The name of the patient table in the source SystmOne database.
         view_name:
             The name of the view to create in the source SystmOne database.
+
+    Test with:
+
+    .. code-block:: sql
+
+        SELECT t.IDPatient, p.FirstName, p.Surname
+        FROM vw_crate_FindExtraTestPatients t
+        INNER JOIN S1_Patient p
+            ON p.RowIdentifier = t.RowIdentifier
+
     """
     select_sql = f"""
         SELECT

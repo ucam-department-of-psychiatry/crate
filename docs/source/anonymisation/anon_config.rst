@@ -934,6 +934,7 @@ If you set this, each line of each named file is scanned for an integer, taken
 to be the MPID of a patient who wishes to opt out.
 
 
+.. _optout_col_values:
 optout_col_values
 #################
 

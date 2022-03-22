@@ -593,6 +593,7 @@ _INCLUDE_TABLES_REGEX_S1 = (
     CrateView.CRATE_VIEW_PREFIX,
 )
 _INCLUDE_TABLES_REGEX_CPFT = (
+    "vw",  # some other views
 )
 INCLUDE_TABLES_REGEX = {
     SystmOneContext.TPP_SRE: _INCLUDE_TABLES_REGEX_S1,
