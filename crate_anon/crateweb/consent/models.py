@@ -687,7 +687,8 @@ class PatientLookupBase(models.Model):
         verbose_name="Patient date of death (NULL if alive)")
     pt_dead = models.BooleanField(default=False,
                                   verbose_name="Patient is dead")
-    pt_discharged = models.NullBooleanField(verbose_name="Patient discharged")
+    pt_discharged = models.BooleanField(null=True,
+                                        verbose_name="Patient discharged")
     pt_discharge_date = models.DateField(
         null=True, blank=True,
         verbose_name="Patient date of discharge")

@@ -201,7 +201,7 @@ DEMO_CONFIG = r"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # Data dictionary
 # -----------------------------------------------------------------------------
 
-data_dictionary_filename = testdd.tsv
+data_dictionary_filename = @@data_dictionary_filename@@
 
 # -----------------------------------------------------------------------------
 # Critical field types
@@ -216,11 +216,11 @@ sqlatype_mpid =
 
 hash_method = HMAC_MD5
 
-per_table_patient_id_encryption_phrase = SOME_PASSPHRASE_REPLACE_ME
+per_table_patient_id_encryption_phrase = @@per_table_patient_id_encryption_phrase@@
 
-master_patient_id_encryption_phrase = SOME_OTHER_PASSPHRASE_REPLACE_ME
+master_patient_id_encryption_phrase = @@master_patient_id_encryption_phrase@@
 
-change_detection_encryption_phrase = YETANOTHER
+change_detection_encryption_phrase = @@change_detection_encryption_phrase@@
 
 extra_hash_config_sections =
 
@@ -302,12 +302,12 @@ temporary_tablename = _temp_table
 # -----------------------------------------------------------------------------
 
 source_databases =
-    mysourcedb1
-    mysourcedb2
+    sourcedb1
+#    sourcedb2
 
-destination_database = my_destination_database
+destination_database = destination_database
 
-admin_database = my_admin_database
+admin_database = admin_database
 
 # -----------------------------------------------------------------------------
 # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
@@ -338,18 +338,18 @@ optout_col_values =
 # Destination database details. User should have WRITE access.
 # =============================================================================
 
-[my_destination_database]
+[destination_database]
 
-url = mysql+mysqldb://username:password@127.0.0.1:3306/output_databasename?charset=utf8
+url = @@dest_db_engine@@://@@dest_db_user@@:@@dest_db_password@@@@@dest_db_host@@:@@dest_db_port@@/@@dest_db_name@@?charset=utf8
 
 
 # =============================================================================
 # Administrative database. User should have WRITE access.
 # =============================================================================
 
-[my_admin_database]
+[admin_database]
 
-url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charset=utf8
+url = @@admin_db_engine@@://@@admin_db_user@@:@@admin_db_password@@@@@admin_db_host@@:@@admin_db_port@@/@@admin_db_name@@?charset=utf8
 
 
 # =============================================================================
@@ -361,13 +361,13 @@ url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charse
 # Source database example 1
 # -----------------------------------------------------------------------------
 
-[mysourcedb1]
+[sourcedb1]
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # CONNECTION DETAILS
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-url = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?charset=utf8
+url = @@source_db1_engine@@://@@source_db1_user@@:@@source_db1_password@@@@@source_db1_host@@:@@source_db1_port@@/@@source_db1_name@@?charset=utf8
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
@@ -375,7 +375,7 @@ url = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?chars
 
 ddgen_omit_by_default = True
 ddgen_omit_fields =
-ddgen_include_fields =
+ddgen_include_fields = @@source_db1_ddgen_include_fields@@
 
 ddgen_allow_no_patient_info = False
 
@@ -406,7 +406,7 @@ ddgen_deletion_possible_tables =
 
 ddgen_pid_defining_fieldnames =
 
-ddgen_scrubsrc_patient_fields =
+ddgen_scrubsrc_patient_fields = @@source_db1_ddgen_scrubsrc_patient_fields@@
 ddgen_scrubsrc_thirdparty_fields =
 ddgen_scrubsrc_thirdparty_xref_pid_fields =
 

@@ -1,5 +1,5 @@
 usage: crate_anonymise [-h] [--config CONFIG] [--verbose] [--version]
-                       [--democonfig]
+                       [--democonfig] [--leave_placeholders]
                        [--checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]]
                        [--draftdd] [--incrementaldd] [--count] [-i | -f]
                        [--skipdelete] [--dropremake] [--optout]
@@ -24,6 +24,8 @@ optional arguments:
 Simple commands not requiring a config:
   --version             show program's version number and exit
   --democonfig          Print a demo config file (default: False)
+  --leave_placeholders  Don't substitute @@ placeholders with examples
+                        (default: False)
   --checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]
                         File extensions to check for availability of a text
                         extractor (use a '.' prefix, and use the special
