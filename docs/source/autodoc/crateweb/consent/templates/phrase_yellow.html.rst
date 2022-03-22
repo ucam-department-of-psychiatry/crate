@@ -23,4 +23,4 @@ crate_anon/crateweb/consent/templates/phrase_yellow.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/phrase_yellow.html
-    :language: HTML
+    :language: html+django

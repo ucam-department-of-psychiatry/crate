@@ -1,40 +1,12 @@
-# (Don't use a shebang; Lintian will complain "script-not-executable".)
+# **Site-specific Django settings for CRATE web front end.**
 
-"""
-crate_anon/crateweb/specimen_secret_local_settings/crateweb_local_settings.py
+# Put the secret stuff here.
 
-===============================================================================
+# SPECIMEN FILE ONLY - edit to your own requirements.
+# IT WILL NOT WORK until you've edited it.
 
-    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
-
-    This file is part of CRATE.
-
-    CRATE is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    CRATE is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
-
-===============================================================================
-
-**Site-specific Django settings for CRATE web front end.**
-
-Put the secret stuff here.
-
-SPECIMEN FILE ONLY - edit to your own requirements.
-IT WILL NOT WORK until you've edited it.
-
-For help, see
-https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html
-
-"""
+# For help, see
+# https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html
 
 import logging
 import os
@@ -61,10 +33,12 @@ log.critical(
 # =============================================================================
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
-DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"  # example for Apache  # noqa
+# DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"  # example for Apache  # noqa
 # DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://localhost:8000"  # for the Django dev server  # noqa
+DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"
 
 FORCE_SCRIPT_NAME = ""
+# FORCE_SCRIPT_NAME = ""  # example for Apache root hosting
 # FORCE_SCRIPT_NAME = "/crate"  # example for CherryPy or Apache non-root hosting  # noqa
 
 
@@ -81,7 +55,7 @@ SECRET_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  # CHANGE THIS
 DEBUG = False
 # ... when False, note that static files must be served properly
 
-CRATE_HTTPS = True  # require HTTPS and disallow plain HTTP
+CRATE_HTTPS = True  # True: require HTTPS and disallow plain HTTP
 
 
 # noinspection PyUnusedLocal
@@ -103,6 +77,7 @@ else:
 # =============================================================================
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
+BROKER_URL = ""
 
 # =============================================================================
 # Database configuration
@@ -125,8 +100,8 @@ DATABASES = {
     # Quick MySQL example:
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': '127.0.0.1',
-        'PORT': 3306,  # local
+        'HOST': '127.0.0.1',  # e.g. 127.0.0.1
+        'PORT': 3306,  # local e.g. 3306
         'NAME': 'crate_db',
         'USER': 'someuser',
         'PASSWORD': 'somepassword',
@@ -151,8 +126,8 @@ DATABASES = {
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': '127.0.0.1',
-        'PORT': 3306,  # local
+        'HOST': '127.0.0.1',  # e.g. 127.0.0.1
+        'PORT': 3306,  # local, e.g. 3306
         'NAME': 'anonymous_output',  # will be the default database; use None for no default database  # noqa
         'USER': 'researcher',
         'PASSWORD': 'somepassword',
@@ -163,7 +138,7 @@ DATABASES = {
     # -------------------------------------------------------------------------
     'secret_1': {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': '127.0.0.1',
+        'HOST': '127.0.0.1',  # e.g. 127.0.0.1
         'PORT': 3306,
         'NAME': 'anonymous_mapping',
         'USER': 'anonymiser_system',
@@ -196,10 +171,10 @@ RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 RESEARCH_DB_INFO = [
     {
-        # Unique name:
+        # Unique name e.g. 'myresearchdb':
         RDIKeys.NAME: 'myresearchdb',
 
-        # Human-friendly description:
+        # Human-friendly description e.g. 'My friendly research database':
         RDIKeys.DESCRIPTION: 'My friendly research database',
 
         # Database name as seen by the database engine:
@@ -216,84 +191,100 @@ RESEARCH_DB_INFO = [
 
         # Fields not in the database, but used for SELECT AS statements for
         # some clinician views:
+        # e.g. 'my_pid_field':
         RDIKeys.PID_PSEUDO_FIELD: 'my_pid_field',
+        # e.g. 'my_mpid_field':
         RDIKeys.MPID_PSEUDO_FIELD: 'my_mpid_field',
 
         # Fields and tables found within the database:
+        # e.g. 'trid'
         RDIKeys.TRID_FIELD: 'trid',
+        # e.g. 'brcid'
         RDIKeys.RID_FIELD: 'brcid',
+        # e.g. 1
         RDIKeys.RID_FAMILY: 1,
+        # e.g. 'patients'
         RDIKeys.MRID_TABLE: 'patients',
+        # e.g. 'nhshash'
         RDIKeys.MRID_FIELD: 'nhshash',
 
         # Descriptions, used for PID lookup and the like
+        # e.g. 'Patient ID (My ID Num; PID) for database X'
         RDIKeys.PID_DESCRIPTION: 'Patient ID (My ID Num; PID) for database X',
+        # e.g. 'Master patient ID (NHS number; MPID)'
         RDIKeys.MPID_DESCRIPTION: 'Master patient ID (NHS number; MPID)',
+        # e.g. 'Research ID (RID) for database X'
         RDIKeys.RID_DESCRIPTION: 'Research ID (RID) for database X',
+        # e.g. 'Master research ID (MRID)'
         RDIKeys.MRID_DESCRIPTION: 'Master research ID (MRID)',
+        # e.g. 'Transient research ID (TRID) for database X',
         RDIKeys.TRID_DESCRIPTION: 'Transient research ID (TRID) for database X',
 
         # To look up PID/RID mappings, provide a key for 'secret_lookup_db'
         # that is a database alias from DATABASES:
+        # e.g. 'secret_1'
         RDIKeys.SECRET_LOOKUP_DB: 'secret_1',
 
         # For the data finder: table-specific and default date column names
         RDIKeys.DATE_FIELDS_BY_TABLE: {},
+
+        # e.g. ['default_date_field']
         RDIKeys.DEFAULT_DATE_FIELDS: ['default_date_field'],
 
         # Column name giving time that record was updated
+        # e.g. '_when_fetched_utc'
         RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
     },
-    {
-        RDIKeys.NAME: 'similar_database',
-        RDIKeys.DESCRIPTION: 'A database sharing the RID with the first',
+    # {
+    #     RDIKeys.NAME: 'similar_database',
+    #     RDIKeys.DESCRIPTION: 'A database sharing the RID with the first',
 
-        RDIKeys.DATABASE: 'similar_database',
-        RDIKeys.SCHEMA: 'similar_schema',
-        RDIKeys.TRID_FIELD: 'trid',
-        RDIKeys.RID_FIELD: 'same_rid',
-        RDIKeys.RID_FAMILY: 1,
-        RDIKeys.MRID_TABLE: '',
-        RDIKeys.MRID_FIELD: '',
+    #     RDIKeys.DATABASE: 'similar_database',
+    #     RDIKeys.SCHEMA: 'similar_schema',
+    #     RDIKeys.TRID_FIELD: 'trid',
+    #     RDIKeys.RID_FIELD: 'same_rid',
+    #     RDIKeys.RID_FAMILY: 1,
+    #     RDIKeys.MRID_TABLE: '',
+    #     RDIKeys.MRID_FIELD: '',
 
-        RDIKeys.PID_DESCRIPTION: '',
-        RDIKeys.MPID_DESCRIPTION: '',
-        RDIKeys.RID_DESCRIPTION: '',
-        RDIKeys.MRID_DESCRIPTION: '',
-        RDIKeys.TRID_DESCRIPTION: '',
+    #     RDIKeys.PID_DESCRIPTION: '',
+    #     RDIKeys.MPID_DESCRIPTION: '',
+    #     RDIKeys.RID_DESCRIPTION: '',
+    #     RDIKeys.MRID_DESCRIPTION: '',
+    #     RDIKeys.TRID_DESCRIPTION: '',
 
-        RDIKeys.SECRET_LOOKUP_DB: '',
+    #     RDIKeys.SECRET_LOOKUP_DB: '',
 
-        RDIKeys.DATE_FIELDS_BY_TABLE: {},
-        RDIKeys.DEFAULT_DATE_FIELDS: [],
+    #     RDIKeys.DATE_FIELDS_BY_TABLE: {},
+    #     RDIKeys.DEFAULT_DATE_FIELDS: [],
 
-        RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
-    },
-    {
-        RDIKeys.NAME: 'different_database',
-        RDIKeys.DESCRIPTION: 'A database sharing only the MRID with the first',
+    #     RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
+    # },
+    # {
+    #     RDIKeys.NAME: 'different_database',
+    #     RDIKeys.DESCRIPTION: 'A database sharing only the MRID with the first',  # noqa: E501
 
-        RDIKeys.DATABASE: 'different_database',
-        RDIKeys.SCHEMA: 'different_schema',
-        RDIKeys.TRID_FIELD: 'trid',
-        RDIKeys.RID_FIELD: 'different_rid',
-        RDIKeys.RID_FAMILY: 2,
-        RDIKeys.MRID_TABLE: 'hashed_nhs_numbers',
-        RDIKeys.MRID_FIELD: 'nhshash',
+    #     RDIKeys.DATABASE: 'different_database',
+    #     RDIKeys.SCHEMA: 'different_schema',
+    #     RDIKeys.TRID_FIELD: 'trid',
+    #     RDIKeys.RID_FIELD: 'different_rid',
+    #     RDIKeys.RID_FAMILY: 2,
+    #     RDIKeys.MRID_TABLE: 'hashed_nhs_numbers',
+    #     RDIKeys.MRID_FIELD: 'nhshash',
 
-        RDIKeys.PID_DESCRIPTION: '',
-        RDIKeys.MPID_DESCRIPTION: '',
-        RDIKeys.RID_DESCRIPTION: '',
-        RDIKeys.MRID_DESCRIPTION: '',
-        RDIKeys.TRID_DESCRIPTION: '',
+    #     RDIKeys.PID_DESCRIPTION: '',
+    #     RDIKeys.MPID_DESCRIPTION: '',
+    #     RDIKeys.RID_DESCRIPTION: '',
+    #     RDIKeys.MRID_DESCRIPTION: '',
+    #     RDIKeys.TRID_DESCRIPTION: '',
 
-        RDIKeys.SECRET_LOOKUP_DB: '',
+    #     RDIKeys.SECRET_LOOKUP_DB: '',
 
-        RDIKeys.DATE_FIELDS_BY_TABLE: {},
-        RDIKeys.DEFAULT_DATE_FIELDS: [],
+    #     RDIKeys.DATE_FIELDS_BY_TABLE: {},
+    #     RDIKeys.DEFAULT_DATE_FIELDS: [],
 
-        RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
-    },
+    #     RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
+    # },
 ]
 
 # Which database (from those defined in RESEARCH_DB_INFO above) should be used
@@ -318,9 +309,14 @@ DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = True
 # =============================================================================
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
+# e.g. /home/somewhere/my_archive_templates
 ARCHIVE_TEMPLATE_DIR = "/home/somewhere/my_archive_templates"
+# e.g. /home/somewhere/my_archive_templates/cache
+ARCHIVE_TEMPLATE_CACHE_DIR = "/tmp/somewhere/my_archive_template_cache"
+# e.g. /home/somewhere/my_archive_templates/static
 ARCHIVE_STATIC_DIR = "/home/somewhere/my_archive_templates/static"
 ARCHIVE_ROOT_TEMPLATE = "root.mako"
+# e.g. /home/somewhere/my_archive_attachments
 ARCHIVE_ATTACHMENT_DIR = "/home/somewhere/my_archive_attachments"
 ARCHIVE_CONTEXT = {}
 CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS = 0
@@ -345,6 +341,7 @@ DATABASE_HELP_HTML_FILENAME = None
 
 # Where should we store the files? Make this directory (and don't let it
 # be served by a generic web server that doesn't check permissions).
+# e.g. /srv/crate_filestorage
 PRIVATE_FILE_STORAGE_ROOT = '/srv/crate_filestorage'
 
 # Serve files via Django (inefficient but useful for testing) or via Apache

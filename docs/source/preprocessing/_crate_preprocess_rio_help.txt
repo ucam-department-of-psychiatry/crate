@@ -56,9 +56,10 @@ optional arguments:
   --geogcols [GEOGCOLS [GEOGCOLS ...]]
                         List of geographical information columns to link in
                         from ONS Postcode Database. BEWARE that you do not
-                        specify anything too identifying. Default: pcon pct
-                        nuts lea statsward casward lsoa01 msoa01 ur01ind oac01
-                        lsoa11 msoa11 parish bua11 buasd11 ru11ind oac11 imd
+                        specify anything too identifying. Default: bua11
+                        buasd11 casward imd lea lsoa01 lsoa11 msoa01 msoa11
+                        nuts oac01 oac11 parish pcon pct ru11ind statsward
+                        ur01ind
   --settings_filename SETTINGS_FILENAME
                         Specify filename to write draft ddgen_* settings to,
                         for use in a CRATE anonymiser configuration file.

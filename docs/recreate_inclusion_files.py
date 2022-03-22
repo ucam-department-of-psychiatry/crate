@@ -30,10 +30,11 @@ That is, e.g. "command --help > somefile.txt".
 
 """
 
+import argparse
 import datetime
 import logging
 import os
-from os.path import dirname, join, realpath
+from os.path import join
 import shutil
 import stat
 import subprocess
@@ -175,6 +176,14 @@ def main():
       for the help.
     """
     # -------------------------------------------------------------------------
+    # Options
+    # -------------------------------------------------------------------------
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--skip_medex", action="store_true",
+                        help="Don't try to build Medex files", default=False)
+    args = parser.parse_args()
+
+    # -------------------------------------------------------------------------
     # Command-line index
     # -------------------------------------------------------------------------
     make_command_line_index_help(join(DevPath.DOCS_AUTODOC_DIR,
@@ -216,6 +225,8 @@ def main():
                  "_crate_anon_check_text_extractor.txt"))
     run_cmd(["crate_anon_demo_config", "--help"],
             join(DevPath.DOCS_ANON_DIR, "_crate_anon_demo_config_help.txt"))
+    run_cmd(["crate_anon_demo_config"],
+            join(DevPath.DOCS_ANON_DIR, "_specimen_anonymiser_config.ini"))
     run_cmd(["crate_anon_draft_dd", "--help"],
             join(DevPath.DOCS_ANON_DIR, "_crate_anon_draft_dd.txt"))
     run_cmd(["crate_anon_show_counts", "--help"],
@@ -224,8 +235,6 @@ def main():
             join(DevPath.DOCS_ANON_DIR, "_crate_anon_summarize_dd_help.txt"))
     run_cmd(["crate_anonymise", "--help"],
             join(DevPath.DOCS_ANON_DIR, "_crate_anonymise_help.txt"))
-    run_cmd(["crate_anonymise", "--democonfig"],
-            join(DevPath.DOCS_ANON_DIR, "_specimen_anonymiser_config.ini"))
     run_cmd(["crate_anonymise_multiprocess", "--help"],
             join(DevPath.DOCS_ANON_DIR,
                  "_crate_anonymise_multiprocess_help.txt"))
@@ -254,12 +263,17 @@ def main():
     run_cmd(["crate_nlp_build_gate_java_interface", "--help"],
             join(DevPath.DOCS_NLP_DIR,
                  "_crate_nlp_build_gate_java_interface_help.txt"))
-    run_cmd(["crate_nlp_build_medex_itself", "--help"],
-            join(DevPath.DOCS_NLP_DIR,
-                 "_crate_nlp_build_medex_itself_help.txt"))
-    run_cmd(["crate_nlp_build_medex_java_interface", "--help"],
-            join(DevPath.DOCS_NLP_DIR,
-                 "_crate_nlp_build_medex_java_interface_help.txt"))
+    if not args.skip_medex:
+        # When running from the GitHub action, it isn't possible to
+        # download and build Medex automatically, so we just skip this
+        # step.
+        run_cmd(["crate_nlp_build_medex_itself", "--help"],
+                join(DevPath.DOCS_NLP_DIR,
+                     "_crate_nlp_build_medex_itself_help.txt"))
+        run_cmd(["crate_nlp_build_medex_java_interface", "--help"],
+                join(DevPath.DOCS_NLP_DIR,
+                     "_crate_nlp_build_medex_java_interface_help.txt"))
+
     run_cmd(["crate_nlp_multiprocess", "--help"],
             join(DevPath.DOCS_NLP_DIR, "_crate_nlp_multiprocess_help.txt"))
     run_cmd(["crate_nlp_prepare_ymls_for_bioyodie", "--help"],
@@ -273,8 +287,9 @@ def main():
     # No help: crate_run_gate_kcl_pharmacotherapy_demo
     run_cmd(["crate_show_crate_gate_pipeline_options"],
             join(DevPath.DOCS_NLP_DIR, "_CrateGatePipeline_help.txt"))
-    run_cmd(["crate_show_crate_medex_pipeline_options"],
-            join(DevPath.DOCS_NLP_DIR, "_CrateMedexPipeline_help.txt"))
+    if not args.skip_medex:
+        run_cmd(["crate_show_crate_medex_pipeline_options"],
+                join(DevPath.DOCS_NLP_DIR, "_CrateMedexPipeline_help.txt"))
     shutil.copy(join(CratePath.NLP_MANAGER_DIR,
                      "specimen_gate_plugin_file.ini"),
                 join(DevPath.DOCS_NLP_DIR, "_specimen_gate_plugin_file.ini"))

@@ -66,6 +66,7 @@ crate_anon/crateweb
     consent/migrations/0014_contactrequest_rdbm_to_contact_pt.py.rst
     consent/migrations/0015_auto_20190104_1255.py.rst
     consent/migrations/0016_auto_20190212_1118.py.rst
+    consent/migrations/0017_replace_nullbooleanfield.py.rst
     consent/migrations/__init__.py.rst
     consent/models.py.rst
     consent/storage.py.rst
@@ -128,6 +129,7 @@ crate_anon/crateweb
     core/context_processors.py.rst
     core/management/__init__.py.rst
     core/management/commands/__init__.py.rst
+    core/management/commands/ensuresuperuser.py.rst
     core/management/commands/runcpserver.py.rst
     core/middleware.py.rst
     core/utils.py.rst
@@ -221,8 +223,6 @@ crate_anon/crateweb
     specimen_archives/basic/test_subpanel_1.mako.rst
     specimen_archives/basic/test_subpanel_2.mako.rst
     specimen_archives/static/archive.css.rst
-    specimen_archives/static/plotly-1.49.4.js.rst
-    specimen_archives/static/plotly-1.49.4.min.js.rst
     specimen_archives/static/tree.js.rst
     specimen_archives/tree/inherit/base.mako.rst
     specimen_archives/tree/inherit/plotting.mako.rst
@@ -239,8 +239,6 @@ crate_anon/crateweb
     specimen_archives/tree/snippets/results_table_nlp.mako.rst
     specimen_archives/tree/snippets/single_nlp_page.mako.rst
     specimen_archives/tree/snippets/subtree.mako.rst
-    specimen_secret_local_settings/__init__.py.rst
-    specimen_secret_local_settings/crateweb_local_settings.py.rst
     static/base.css.rst
     static/collapse.js.rst
     static/extra_styles.css.rst

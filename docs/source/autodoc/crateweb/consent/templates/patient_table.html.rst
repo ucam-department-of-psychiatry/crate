@@ -23,4 +23,4 @@ crate_anon/crateweb/consent/templates/patient_table.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/patient_table.html
-    :language: HTML
+    :language: html+django

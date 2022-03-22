@@ -23,4 +23,4 @@ crate_anon/crateweb/consent/templates/discharged_phrase.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/discharged_phrase.html
-    :language: HTML
+    :language: html+django

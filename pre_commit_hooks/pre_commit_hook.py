@@ -57,6 +57,7 @@ PyCharm finds more problems).
 
 import logging
 import os
+from shutil import which
 from subprocess import CalledProcessError, PIPE, run
 import sys
 from typing import List
@@ -68,8 +69,10 @@ EXIT_FAILURE = 1
 
 PRECOMMIT_DIR = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = os.path.join(PRECOMMIT_DIR, "..")
-PYTHON_SOURCE_DIR = os.path.join(PROJECT_ROOT, "crate_anon")
+PYTHON_SOURCE_DIR = PROJECT_ROOT
 CONFIG_FILE = os.path.abspath(os.path.join(PROJECT_ROOT, "setup.cfg"))
+GITHUB_ACTIONS_DIR = os.path.join(PROJECT_ROOT, ".github", "workflows")
+DOCKERFILES_DIR = os.path.join(PROJECT_ROOT, "docker", "dockerfiles")
 
 log = logging.getLogger(__name__)
 
@@ -88,6 +91,26 @@ def check_python_style() -> None:
         f"--config={CONFIG_FILE}",
         PYTHON_SOURCE_DIR,
     ])
+
+
+def check_yml() -> None:
+    if which("yamllint") is None:
+        log.warning("... could not find yamllint. Skipping.")
+        return
+
+    run_yamllint(GITHUB_ACTIONS_DIR)
+    run_yamllint(DOCKERFILES_DIR)
+
+    log.info("... OK")
+
+
+def run_yamllint(yaml_dir: str) -> None:
+    for name in os.listdir(yaml_dir):
+        if name.endswith((".yml", ".yaml")):
+            log.info(f"Checking {name}...")
+
+            yml_file = os.path.join(yaml_dir, name)
+            run_with_check(["yamllint", yml_file])
 
 
 # https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
@@ -120,9 +143,9 @@ def main() -> None:
         log.error("flake8 version must be 3.7.8 or higher for type hint support")  # noqa
         sys.exit(EXIT_FAILURE)
 
-    log.info("Checking Python style...")
-
     try:
+        check_yml()
+        log.info("Checking Python style...")
         check_python_style()
         log.info("... very stylish.")
     except CalledProcessError as e:

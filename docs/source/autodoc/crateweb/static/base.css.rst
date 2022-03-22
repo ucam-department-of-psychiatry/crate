@@ -23,4 +23,4 @@ crate_anon/crateweb/static/base.css
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/static/base.css
-    :language: CSS
+    :language: css+django

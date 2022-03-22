@@ -36,6 +36,15 @@ LABEL maintainer="Rudolf Cardinal <rudolf@pobox.com>"
 
 
 # -----------------------------------------------------------------------------
+# Permissions
+# -----------------------------------------------------------------------------
+# https://vsupalov.com/docker-shared-permissions/
+
+ARG USER_ID
+RUN adduser --disabled-password --gecos '' --uid $USER_ID crate
+
+
+# -----------------------------------------------------------------------------
 # ADD: files to copy
 # -----------------------------------------------------------------------------
 # - Syntax: ADD <host_file_spec> <container_dest_dir>
@@ -160,6 +169,7 @@ RUN echo "======================================================================
         poppler-utils \
         tdsodbc \
         unrtf \
+        wbritish \
     \
     && echo "- Adding repositories..." \
     && echo "  * Microsoft ODBC driver for SQL Server" \
@@ -252,6 +262,16 @@ RUN echo "======================================================================
         --launch_then_stop \
     \
     && echo "===============================================================================" \
+    && echo "Creating static files directory" \
+    && echo "===============================================================================" \
+    && mkdir -p /crate/static \
+    && chown -R crate:crate /crate/static \
+    && echo "===============================================================================" \
+    && echo "Creating temp files directory" \
+    && echo "===============================================================================" \
+    && mkdir -p /crate/tmp \
+    && chown -R crate:crate /crate/tmp \
+    && echo "===============================================================================" \
     && echo "Cleanup" \
     && echo "===============================================================================" \
     && echo "- Removing OS packages used only for the installation..." \
@@ -283,3 +303,5 @@ RUN echo "======================================================================
 # file.
 
 # CMD ["/bin/bash"]
+
+USER crate

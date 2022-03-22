@@ -359,7 +359,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # Data dictionary
 # -----------------------------------------------------------------------------
 
-{_AK.DATA_DICTIONARY_FILENAME} = testdd.tsv
+{_AK.DATA_DICTIONARY_FILENAME} = @@data_dictionary_filename@@
 
 # -----------------------------------------------------------------------------
 # Critical field types
@@ -373,9 +373,9 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # -----------------------------------------------------------------------------
 
 {_AK.HASH_METHOD} = HMAC_MD5
-{_AK.PER_TABLE_PATIENT_ID_ENCRYPTION_PHRASE} = SOME_PASSPHRASE_REPLACE_ME
-{_AK.MASTER_PATIENT_ID_ENCRYPTION_PHRASE} = SOME_OTHER_PASSPHRASE_REPLACE_ME
-{_AK.CHANGE_DETECTION_ENCRYPTION_PHRASE} = YETANOTHER
+{_AK.PER_TABLE_PATIENT_ID_ENCRYPTION_PHRASE} = @@per_table_patient_id_encryption_phrase@@
+{_AK.MASTER_PATIENT_ID_ENCRYPTION_PHRASE} = @@master_patient_id_encryption_phrase@@
+{_AK.CHANGE_DETECTION_ENCRYPTION_PHRASE} = @@change_detection_encryption_phrase@@
 {_AK.EXTRA_HASH_CONFIG_SECTIONS} =
 
 # -----------------------------------------------------------------------------
@@ -440,10 +440,10 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # -----------------------------------------------------------------------------
 
 {_AK.SOURCE_DATABASES} =
-    mysourcedb1
-    mysourcedb2
-{_AK.DESTINATION_DATABASE} = my_destination_database
-{_AK.ADMIN_DATABASE} = my_admin_database
+    sourcedb1
+#    sourcedb2
+{_AK.DESTINATION_DATABASE} = destination_database
+{_AK.ADMIN_DATABASE} = admin_database
 
 # -----------------------------------------------------------------------------
 # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
@@ -473,18 +473,18 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # Destination database details. User should have WRITE access.
 # =============================================================================
 
-[my_destination_database]
+[destination_database]
 
-{_DK.URL} = mysql+mysqldb://username:password@127.0.0.1:3306/output_databasename?charset=utf8
+{_DK.URL} = @@dest_db_engine@@://@@dest_db_user@@:@@dest_db_password@@@@@dest_db_host@@:@@dest_db_port@@/@@dest_db_name@@?charset=utf8
 
 
 # =============================================================================
 # Administrative database. User should have WRITE access.
 # =============================================================================
 
-[my_admin_database]
+[admin_database]
 
-{_DK.URL} = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charset=utf8
+{_DK.URL} = @@admin_db_engine@@://@@admin_db_user@@:@@admin_db_password@@@@@admin_db_host@@:@@admin_db_port@@/@@admin_db_name@@?charset=utf8
 
 
 # =============================================================================
@@ -496,13 +496,13 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # Source database example 1
 # -----------------------------------------------------------------------------
 
-[mysourcedb1]
+[sourcedb1]
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # CONNECTION DETAILS
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-{_DK.URL} = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?charset=utf8
+{_DK.URL} = @@source_db1_engine@@://@@source_db1_user@@:@@source_db1_password@@@@@source_db1_host@@:@@source_db1_port@@/@@source_db1_name@@?charset=utf8
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
@@ -510,7 +510,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 
 {_SK.DDGEN_OMIT_BY_DEFAULT} = True
 {_SK.DDGEN_OMIT_FIELDS} =
-{_SK.DDGEN_INCLUDE_FIELDS} =
+{_SK.DDGEN_INCLUDE_FIELDS} =  @@source_db1_ddgen_include_fields@@
 {_SK.DDGEN_PER_TABLE_PID_FIELD} = patient_id
 {_SK.DDGEN_TABLE_DEFINES_PIDS} = patient
 {_SK.DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER} = False
@@ -529,7 +529,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_SK.DDGEN_ADDITION_ONLY_TABLES} =
 {_SK.DDGEN_DELETION_POSSIBLE_TABLES} =
 {_SK.DDGEN_PID_DEFINING_FIELDNAMES} =
-{_SK.DDGEN_SCRUBSRC_PATIENT_FIELDS} =
+{_SK.DDGEN_SCRUBSRC_PATIENT_FIELDS} = @@source_db1_ddgen_scrubsrc_patient_fields@@
 {_SK.DDGEN_SCRUBSRC_THIRDPARTY_FIELDS} =
 {_SK.DDGEN_SCRUBSRC_THIRDPARTY_XREF_PID_FIELDS} =
 {_SK.DDGEN_REQUIRED_SCRUBSRC_FIELDS} =

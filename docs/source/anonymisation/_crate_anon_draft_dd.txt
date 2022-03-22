@@ -1,32 +1,66 @@
 usage: crate_anon_draft_dd [-h] [--config CONFIG] [--verbose] [--incremental]
-                           [--skip_dd_check] [--output OUTPUT] [--systmone]
+                           [--skip_dd_check] [--output OUTPUT]
+                           [--explicit_dest_datatype] [--systmone]
                            [--systmone_context {tpp_sre,cpft_dw}]
                            [--systmone_sre_spec SYSTMONE_SRE_SPEC]
+                           [--systmone_append_comments]
+                           [--systmone_include_generic]
+                           [--systmone_allow_unprefixed_tables]
+                           [--systmone_alter_loaded_rows]
 
-Draft a data dictionary for the anonymiser. (CRATE version 0.19.3, 2021-11-29.
+Draft a data dictionary for the anonymiser. (CRATE version 0.19.3, 2022-03-09.
 Created by Rudolf Cardinal.)
 
 optional arguments:
   -h, --help            show this help message and exit
   --config CONFIG       Config file (overriding environment variable
-                        CRATE_ANON_CONFIG). (default: None)
+                        CRATE_ANON_CONFIG). Note that the config file has
+                        several options governing the automatic generation of
+                        data dictionaries. (default: None)
   --verbose, -v         Be verbose (default: False)
   --incremental         Drafts an INCREMENTAL draft data dictionary
                         (containing fields in the database that aren't in the
                         existing data dictionary referred to by the config
                         file). (default: False)
-  --skip_dd_check       (For --incremental.) Skip validity check for the
-                        existing data dictionary. (default: False)
+  --skip_dd_check       Skip validity check (against the source database) for
+                        the data dictionary. (default: False)
   --output OUTPUT       File for output; use '-' for stdout. (default: -)
-  --systmone            Modify the data dictionary for SystmOne. (default:
-                        False)
+  --explicit_dest_datatype
+                        (Primarily for debugging.) CRATE will convert the
+                        source column data type (e.g. INTEGER, FLOAT,
+                        VARCHAR(25)) to a datatype for the destination
+                        database, sometimes with modifications. However, this
+                        is usually implicit: the draft data dictionary doesn't
+                        show these data types unless they require
+                        modification. Use this option to make them all
+                        explicit. (default: False)
+  --systmone            Modify the data dictionary for SystmOne. CRATE knows
+                        about some of the standard SystmOne data structure and
+                        can read a database and customize the data dictionary
+                        for SystmOne. (default: False)
 
 SystmOne options (for when --systmone is used):
   --systmone_context {tpp_sre,cpft_dw}
                         Context of the SystmOne database that you are reading.
-                        -- tpp_sre: TPP Strategic Reporting Extract //
-                        cpft_dw: CPFT Data Warehouse -- (default: CPFT_DW)
+                        [tpp_sre: TPP Strategic Reporting Extract // cpft_dw:
+                        CPFT Data Warehouse] (default: cpft_dw)
   --systmone_sre_spec SYSTMONE_SRE_SPEC
                         SystmOne Strategic Reporting Extract (SRE)
                         specification CSV filename (from TPP, containing
                         table/field comments). (default: None)
+  --systmone_append_comments
+                        Append to comments, rather than replacing them.
+                        (default: False)
+  --systmone_include_generic
+                        Include all 'generic' fields, overriding preferences
+                        set via the config file options. (default: False)
+  --systmone_allow_unprefixed_tables
+                        Permit tables that don't start with the expected
+                        prefix (which is e.g. 'SR' for the TPP SRE context,
+                        'S1_' for the CPFT Data Warehouse context). May add
+                        helpful content, but you may get odd tables and views.
+                        (default: False)
+  --systmone_alter_loaded_rows
+                        (For --incremental.) Alter rows that were loaded from
+                        disk (not read from a database)? The default is to
+                        leave such rows untouched. (default: False)

@@ -23,4 +23,4 @@ crate_anon/crateweb/specimen_archives/static/archive.css
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/specimen_archives/static/archive.css
-    :language: CSS
+    :language: css+django

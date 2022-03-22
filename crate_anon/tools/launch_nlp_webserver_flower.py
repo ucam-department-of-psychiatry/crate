@@ -30,7 +30,7 @@ crate_anon/tools/launch_nlp_webserver_flower.py
 
 import subprocess
 
-from crate_anon.nlp_webserver.tasks import NLP_WEBSERVER_CELERY_APP_NAME
+from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CELERY_APP_NAME
 
 
 def main() -> None:

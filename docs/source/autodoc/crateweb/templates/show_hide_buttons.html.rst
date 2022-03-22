@@ -23,4 +23,4 @@ crate_anon/crateweb/templates/show_hide_buttons.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/show_hide_buttons.html
-    :language: HTML
+    :language: html+django

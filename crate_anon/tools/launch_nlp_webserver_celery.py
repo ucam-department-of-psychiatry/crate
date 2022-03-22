@@ -36,7 +36,7 @@ import platform
 
 from cardinal_pythonlib.process import nice_call
 
-from crate_anon.nlp_webserver.tasks import NLP_WEBSERVER_CELERY_APP_NAME
+from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CELERY_APP_NAME
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))

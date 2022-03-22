@@ -23,4 +23,4 @@ crate_anon/crateweb/consent/templates/traffic_light_decision_form.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/traffic_light_decision_form.html
-    :language: HTML
+    :language: html+django

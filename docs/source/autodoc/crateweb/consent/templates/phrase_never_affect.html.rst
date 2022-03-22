@@ -23,4 +23,4 @@ crate_anon/crateweb/consent/templates/phrase_never_affect.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/phrase_never_affect.html
-    :language: HTML
+    :language: html+django

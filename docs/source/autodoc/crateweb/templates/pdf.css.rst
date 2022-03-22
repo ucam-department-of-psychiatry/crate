@@ -23,4 +23,4 @@ crate_anon/crateweb/templates/pdf.css
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/pdf.css
-    :language: CSS
+    :language: css+django

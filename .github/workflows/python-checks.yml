@@ -1,6 +1,6 @@
 ---
 # yamllint disable rule:line-length
-name: Build
+name: Python checks
 # yamllint disable-line rule:truthy
 on:
     push:

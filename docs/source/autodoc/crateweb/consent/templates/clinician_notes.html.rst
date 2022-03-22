@@ -23,4 +23,4 @@ crate_anon/crateweb/consent/templates/clinician_notes.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/clinician_notes.html
-    :language: HTML
+    :language: html+django

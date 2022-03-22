@@ -23,4 +23,4 @@ crate_anon/crateweb/research/templates/show_sitewide_queries.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/show_sitewide_queries.html
-    :language: HTML
+    :language: html+django

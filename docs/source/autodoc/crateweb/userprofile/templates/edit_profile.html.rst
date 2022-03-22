@@ -23,4 +23,4 @@ crate_anon/crateweb/userprofile/templates/edit_profile.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/userprofile/templates/edit_profile.html
-    :language: HTML
+    :language: html+django

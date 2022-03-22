@@ -23,4 +23,4 @@ crate_anon/crateweb/consent/templates/email_researcher_approval.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/email_researcher_approval.html
-    :language: HTML
+    :language: html+django

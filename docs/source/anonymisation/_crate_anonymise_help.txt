@@ -1,8 +1,9 @@
 usage: crate_anonymise [-h] [--config CONFIG] [--version] [--verbose]
-                       [-i | -f] [--skipdelete] [--dropremake] [--optout]
-                       [--nonpatienttables] [--patienttables] [--index]
-                       [--restrict RESTRICT] [--limits LIMITS LIMITS]
-                       [--file FILE] [--list LIST [LIST ...]]
+                       [-i | -f] [--skipdelete] [--dropremake] [--drop_all]
+                       [--optout] [--nonpatienttables] [--patienttables]
+                       [--index] [--restrict RESTRICT]
+                       [--limits LIMITS LIMITS] [--file FILE]
+                       [--list LIST [LIST ...]]
                        [--free_text_limit FREE_TEXT_LIMIT] [--excludescrubbed]
                        [--process [PROCESS]] [--nprocesses [NPROCESSES]]
                        [--processcluster PROCESSCLUSTER] [--skip_dd_check]
@@ -10,7 +11,7 @@ usage: crate_anonymise [-h] [--config CONFIG] [--version] [--verbose]
                        [--reportevery [REPORTEVERY]] [--debugscrubbers]
                        [--savescrubbers] [--echo]
 
-Database anonymiser. (CRATE version 0.19.3, 2021-11-29. Created by Rudolf
+Database anonymiser. (CRATE version 0.19.3, 2022-03-09. Created by Rudolf
 Cardinal.)
 
 optional arguments:
@@ -29,7 +30,13 @@ Mode options:
                         False)
 
 Action options (default is to do all, but if any are specified, only those are done):
-  --dropremake          Drop/remake destination tables. (default: False)
+  --dropremake          Drop/remake destination tables, and admin tables
+                        except opt-out tables. (default: False)
+  --drop_all            Drop all destination tables known to the data
+                        dictionary, and all admin tables, then stop. (May also
+                        be helpful in revealing leftover tables in the
+                        destination database, e.g. if the data dictionary has
+                        changed.) (default: False)
   --optout              Update opt-out list in administrative database.
                         (default: False)
   --nonpatienttables    Process non-patient tables only. (default: False)

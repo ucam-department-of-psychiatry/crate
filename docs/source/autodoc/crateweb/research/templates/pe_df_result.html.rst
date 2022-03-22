@@ -23,4 +23,4 @@ crate_anon/crateweb/research/templates/pe_df_result.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/pe_df_result.html
-    :language: HTML
+    :language: html+django

@@ -23,4 +23,4 @@ crate_anon/crateweb/consent/templates/consent_table.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/consent_table.html
-    :language: HTML
+    :language: html+django

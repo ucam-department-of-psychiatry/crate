@@ -30,7 +30,6 @@ Simple test server for the NLPRP interface.
 
 import argparse
 import logging
-import sys
 from typing import Any, Dict
 from wsgiref.simple_server import make_server
 
@@ -41,10 +40,11 @@ from pyramid.request import Request
 from pyramid.response import Response
 from semantic_version import Version
 
+from crate_anon.version import require_minimum_python_version
 from crate_anon.nlprp.constants import NlprpKeys
 from crate_anon.nlprp.api import NlprpRequest, NlprpResponse
 
-assert sys.version_info >= (3, 7), "Need Python 3.7+"
+require_minimum_python_version()
 
 log = logging.getLogger(__name__)
 

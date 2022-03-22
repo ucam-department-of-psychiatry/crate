@@ -1,3 +1,6 @@
+---
+# yamllint disable rule:line-length
+# yamllint disable rule:comments-indentation
 # server/docker/dockerfiles/docker-compose.yaml
 #
 # See the help!
@@ -9,22 +12,23 @@
 #
 # Those with defaults in the .env file in this directory:
 #
+#   COMPOSE_PROJECT_NAME -- used by Docker Compose itself
+#   CRATE_DOCKER_CRATE_ANON_CONFIG
 #   CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME
 #   CRATE_DOCKER_CRATEWEB_HOST_PORT
 #   CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
 #   CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY
 #   CRATE_DOCKER_FLOWER_HOST_PORT
 #   CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
+#   CRATE_DOCKER_MYSQL_CRATE_HOST_PORT
 #   CRATE_DOCKER_MYSQL_CRATE_USER_NAME
-#   CRATE_DOCKER_MYSQL_HOST_PORT
-#   COMPOSE_PROJECT_NAME -- used by Docker Compose itself
 #
 # Those without defaults:
 #
 #   CRATE_DOCKER_CONFIG_HOST_DIR
 #   CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR
 #   CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
-#   CRATE_DOCKER_MYSQL_ROOT_PASSWORD
+#   CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD
 
 
 # =============================================================================
@@ -43,10 +47,13 @@ volumes:
     # here is not the same as for "volumes:" within a service (container).
     # https://docs.docker.com/compose/compose-file/#volume-configuration-reference
 
-    db_data_volume:
+    crate_db_data_volume:
         # Without any options, the default driver (usually "local") is used.
         # This will probably create a volume at
         # /var/lib/docker/volumes/VOLUME/_data on the host.
+    research_db_data_volume:
+    secret_db_data_volume:
+    source_db_data_volume:
 
     rabbitmq_volume:
         # Again, we make it explicit (or we get Docker gibberish names).
@@ -60,13 +67,14 @@ volumes:
 
         driver: local
         driver_opts:
-            # It's quite hard to find docs for driver_opts for the 'local'
-            # driver! But using "ro" makes it read-only.
-            o: bind,ro
+            o: bind
             type: none
             # We use environment variable substitution.
             # https://docs.docker.com/compose/compose-file/#variable-substitution
             device: "${CRATE_DOCKER_CONFIG_HOST_DIR}"
+
+    crate_static_volume:
+        # Space to collect static files (Django STATIC_ROOT)
 
     crate_tmp_volume:
         # Space to put lock files, user downloads, etc., that need to be shared
@@ -77,7 +85,7 @@ volumes:
         # provide a script to process UMLS data. Here, we mount the results.
         driver: local
         driver_opts:
-            o: bind,ro
+            o: bind
             type: none
             device: "${CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR}"
 
@@ -89,15 +97,14 @@ volumes:
 services:
 
     # -------------------------------------------------------------------------
-    # MySQL container, providing database services
+    # MySQL containers, providing database services
     # -------------------------------------------------------------------------
 
-    mysql:
-
+    crate_db:
         # Base Docker image. We use a standard MySQL image; see
         # https://hub.docker.com/_/mysql
         image: mysql:5.7
-
+        container_name: crate_crate_db
         # Restart policy.
         # - I am slightly confused between "when the computer reboots" and
         #   "if the container crashes".
@@ -126,7 +133,13 @@ services:
             MYSQL_PASSWORD: "${CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD}"
 
             # Password for user "root" (set at first container startup).
-            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_MYSQL_ROOT_PASSWORD}"
+            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD}"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
+        networks:
+            - crateanon_network
 
         # Expose ports from the container, "publishing" them to the host.
         # For example, if you offer a MySQL server via "9999:3306", you should
@@ -139,7 +152,7 @@ services:
             # Short format is: "HOST_PORT:CONTAINER_PORT".
             # Should always use explicit string format here.
             # MySQL offers port 3306 by default.
-            - "${CRATE_DOCKER_MYSQL_HOST_PORT}:3306"
+            - "${CRATE_DOCKER_MYSQL_CRATE_HOST_PORT}:3306"
 
         # Expose ports to linked services without publishing them to the host.
         # Specify the container (internal) port.
@@ -148,12 +161,133 @@ services:
 
         # Note that if you do not specify mount points, some are created
         # anyway; for example, the MySQL image wants something at
-        # /var/lib/mysql (internally) and on the hose this might actually be
+        # /var/lib/mysql (internally) and on the host this might actually be
         # e.g. /var/lib/docker/volumes/<gibberish>/_data
         volumes:
             # Format is "[SOURCE:]TARGET[:MODE]", such as
             # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
-            - db_data_volume:/var/lib/mysql
+            - crate_db_data_volume:/var/lib/mysql
+            - "./mysqlconf:/etc/mysql/conf.d"
+
+    research_db:
+        image: mysql:5.7
+        container_name: crate_research_db
+        restart: "always"
+
+        environment:
+            # Create database with this name at first container startup.
+            MYSQL_DATABASE: "${CRATE_DOCKER_RESEARCH_DATABASE_NAME}"
+
+            # Create user with this name at first container startup, with
+            # GRANT ALL access to the database named in MYSQL_DATABASE.
+            MYSQL_USER: "${CRATE_DOCKER_RESEARCH_DATABASE_USER_NAME}"
+
+            # Password for MYSQL_USER (set at first container startup).
+            MYSQL_PASSWORD: "${CRATE_DOCKER_RESEARCH_DATABASE_USER_PASSWORD}"
+
+            # Password for user "root" (set at first container startup).
+            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_RESEARCH_DATABASE_ROOT_PASSWORD}"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
+        networks:
+            - crateanon_network
+
+        # Expose ports to linked services without publishing them to the host.
+        # Specify the container (internal) port.
+        expose:
+            - "3306"
+
+        # Note that if you do not specify mount points, some are created
+        # anyway; for example, the MySQL image wants something at
+        # /var/lib/mysql (internally) and on the host this might actually be
+        # e.g. /var/lib/docker/volumes/<gibberish>/_data
+        volumes:
+            # Format is "[SOURCE:]TARGET[:MODE]", such as
+            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
+            - research_db_data_volume:/var/lib/mysql
+            - "./mysqlconf:/etc/mysql/conf.d"
+
+    secret_db:
+        image: mysql:5.7
+        container_name: crate_secret_db
+        restart: "always"
+
+        environment:
+            # Create database with this name at first container startup.
+            MYSQL_DATABASE: "${CRATE_DOCKER_SECRET_DATABASE_NAME}"
+
+            # Create user with this name at first container startup, with
+            # GRANT ALL access to the database named in MYSQL_DATABASE.
+            MYSQL_USER: "${CRATE_DOCKER_SECRET_DATABASE_USER_NAME}"
+
+            # Password for MYSQL_USER (set at first container startup).
+            MYSQL_PASSWORD: "${CRATE_DOCKER_SECRET_DATABASE_USER_PASSWORD}"
+
+            # Password for user "root" (set at first container startup).
+            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_SECRET_DATABASE_ROOT_PASSWORD}"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
+        networks:
+            - crateanon_network
+
+        # Expose ports to linked services without publishing them to the host.
+        # Specify the container (internal) port.
+        expose:
+            - "3306"
+
+        # Note that if you do not specify mount points, some are created
+        # anyway; for example, the MySQL image wants something at
+        # /var/lib/mysql (internally) and on the host this might actually be
+        # e.g. /var/lib/docker/volumes/<gibberish>/_data
+        volumes:
+            # Format is "[SOURCE:]TARGET[:MODE]", such as
+            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
+            - secret_db_data_volume:/var/lib/mysql
+            - "./mysqlconf:/etc/mysql/conf.d"
+
+    source_db:
+        image: mysql:5.7
+        container_name: crate_source_db
+        restart: "always"
+
+        environment:
+            # Create database with this name at first container startup.
+            MYSQL_DATABASE: "${CRATE_DOCKER_SOURCE_DATABASE_NAME}"
+
+            # Create user with this name at first container startup, with
+            # GRANT ALL access to the database named in MYSQL_DATABASE.
+            MYSQL_USER: "${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME}"
+
+            # Password for MYSQL_USER (set at first container startup).
+            MYSQL_PASSWORD: "${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD}"
+
+            # Password for user "root" (set at first container startup).
+            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_SOURCE_DATABASE_ROOT_PASSWORD}"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
+        networks:
+            - crateanon_network
+
+        # Expose ports to linked services without publishing them to the host.
+        # Specify the container (internal) port.
+        expose:
+            - "3306"
+
+        # Note that if you do not specify mount points, some are created
+        # anyway; for example, the MySQL image wants something at
+        # /var/lib/mysql (internally) and on the host this might actually be
+        # e.g. /var/lib/docker/volumes/<gibberish>/_data
+        volumes:
+            # Format is "[SOURCE:]TARGET[:MODE]", such as
+            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
+            - source_db_data_volume:/var/lib/mysql
+            - "./mysqlconf:/etc/mysql/conf.d"
 
 
     # -------------------------------------------------------------------------
@@ -166,6 +300,7 @@ services:
 
         # Base Docker image.
         image: rabbitmq:3.8.5
+        container_name: crate_rabbitmq
 
         # Restart policy
         restart: "always"
@@ -182,6 +317,11 @@ services:
         volumes:
             - rabbitmq_volume:/var/lib/rabbitmq
 
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        networks:
+            - crateanon_network
+
 
     # -------------------------------------------------------------------------
     # CRATE image, with build commands (to create from the Dockerfile),
@@ -197,14 +337,21 @@ services:
             # Filename of the Dockerfile to use, relative to the context.
             dockerfile: docker/dockerfiles/crate.Dockerfile
 
+            args:
+                - USER_ID=${CRATE_DOCKER_INSTALL_USER_ID}
+
         # If you specify "image" as well as "build", Compose names the built
         # image. Syntax is "IMAGE[:TAG]".
         image: crate
+        container_name: crate_crate_workers
 
         # Start order. See docs -- note that this is "order to start", not
         # "wait for startup to complete".
         depends_on:
-            - mysql
+            - crate_db
+            - research_db
+            - secret_db
+            - source_db
             - rabbitmq
 
         # Restart policy
@@ -214,26 +361,37 @@ services:
         volumes:
             - bioyodie_resource_volume:/crate/bioyodie/bio-yodie-resources
             - crate_config_volume:/crate/cfg
+            - crate_static_volume:/crate/static
             - crate_tmp_volume:/crate/tmp
 
         environment:
+            CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
             CRATE_GATE_PLUGIN_FILE: "/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini"
             CRATE_PACKAGE_ROOT: "/crate/venv/lib/python3.7/site-packages/crate_anon"
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+            CRATE_WEB_STATIC_ROOT: "/crate/static"
             GATE_HOME: "/crate/gate"
             KCL_LEWY_BODY_DIAGNOSIS_DIR: "/crate/kcl_lewy_body_dementia"
             KCL_PHARMACOTHERAPY_DIR: "/crate/kcl_pharmacotherapy/brc-gate-pharmacotherapy"
             KCL_KCONNECT_DIR: "/crate/bioyodie"
+            DJANGO_SUPERUSER_USERNAME: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME}"
+            DJANGO_SUPERUSER_PASSWORD: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD}"
+            DJANGO_SUPERUSER_EMAIL: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL}"
 
         # Command to execute
         command: [
-            "wait-for-it", "--host=mysql", "--port=3306", "--timeout=0", "--strict", "--",
+            "wait-for-it", "--host=crate_db", "--port=3306", "--timeout=0", "--strict", "--",
             "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
             "bash", "-c", "
                 source /crate/venv/bin/activate &&
                 crate_launch_celery
             ",
         ]
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        networks:
+            - crateanon_network
 
 
     # -------------------------------------------------------------------------
@@ -243,6 +401,7 @@ services:
     crate_server:
         # Re-use the image built above.
         image: crate
+        container_name: crate_crate_server
 
         # Start order.
         depends_on:
@@ -250,6 +409,11 @@ services:
 
         # Restart policy
         restart: "always"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        networks:
+            - crateanon_network
 
         # Publish port to host.
         ports:
@@ -259,24 +423,28 @@ services:
         volumes:
             - bioyodie_resource_volume:/crate/bioyodie/bio-yodie-resources
             - crate_config_volume:/crate/cfg
+            - crate_static_volume:/crate/static
             - crate_tmp_volume:/crate/tmp
 
         environment:
+            CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+            CRATE_WEB_STATIC_ROOT: "/crate/static"
+            SSL_ARGS: ""
 
         # Command to execute
         # Can use shell-style or list-style syntax.
         command: [
-            "wait-for-it", "--host=mysql", "--port=3306", "--timeout=0", "--strict", "--",
+            "wait-for-it", "--host=crate_db", "--port=3306", "--timeout=0", "--strict", "--",
             "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
-            "bash", "-c", "
+            "bash", "-c", '
+                [[ "${CRATE_DOCKER_CRATEWEB_USE_HTTPS}" == "0" ]] && SSL_ARGS="" || SSL_ARGS="--ssl_certificate /crate/cfg/crate.crt --ssl_private_key /crate/cfg/crate.key" &&
                 source /crate/venv/bin/activate &&
                 crate_launch_cherrypy_server
                     --host 0.0.0.0
                     --port 8000
-                    --ssl_certificate ${CRATE_DOCKER_SSL_CERTIFICATE}
-                    --ssl_private_key ${CRATE_DOCKER_SSL_PRIVATE_KEY}
-            ",
+                    $${SSL_ARGS}
+            ',
             # - Re host 0.0.0.0:
             #   https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors
         ]
@@ -289,6 +457,7 @@ services:
     flower:
         # Re-use the image built above.
         image: crate
+        container_name: crate_flower
 
         # Start order.
         depends_on:
@@ -296,6 +465,11 @@ services:
 
         # Restart policy
         restart: "always"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        networks:
+            - crateanon_network
 
         # Publish port to host.
         ports:
@@ -308,7 +482,9 @@ services:
             - crate_tmp_volume:/crate/tmp
 
         environment:
+            CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
+            CRATE_WEB_STATIC_ROOT: "/crate/static"
 
         command: [
             "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
@@ -317,7 +493,6 @@ services:
                 crate_launch_flower
             ",
         ]
-
 
     # -------------------------------------------------------------------------
     # TODO: CRATE NLPRP server
@@ -332,7 +507,16 @@ services:
     # - https://pubmed.ncbi.nlm.nih.gov/29361077/
     # Note that Bio-YODIE is its core NLP component.
 
-    #semehr:
+    # semehr:
     #    image: semehr/core
     #
     #    restart: "always"
+
+
+# =============================================================================
+# Networks
+# =============================================================================
+
+networks:
+    crateanon_network:
+        driver: bridge

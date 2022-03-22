@@ -23,4 +23,4 @@ crate_anon/crateweb/consent/templates/email_rdbm_new_work_researcher.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/email_rdbm_new_work_researcher.html
-    :language: HTML
+    :language: html+django

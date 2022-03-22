@@ -23,4 +23,4 @@ crate_anon/crateweb/research/templates/pe_choose.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/pe_choose.html
-    :language: HTML
+    :language: html+django

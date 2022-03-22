@@ -23,4 +23,4 @@ crate_anon/crateweb/research/templates/sqlhelper_form_text_anywhere_choose_db.ht
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/sqlhelper_form_text_anywhere_choose_db.html
-    :language: HTML
+    :language: html+django
