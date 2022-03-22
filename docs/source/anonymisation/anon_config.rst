@@ -102,7 +102,7 @@ Critical field types
 sqlatype_pid
 ############
 
-*String.*
+*String.* Default: ``BigInteger``.
 
 See :ref:`sqlatype_mpid <anon_config_sqlatype_mpid>` below.
 
@@ -111,7 +111,7 @@ See :ref:`sqlatype_mpid <anon_config_sqlatype_mpid>` below.
 sqlatype_mpid
 #############
 
-*String.*
+*String.* Default: ``BigInteger``.
 
 We need to know PID and MPID types from the config so that we can set up our
 secret mapping tables. You can leave these blank, in which case they will be

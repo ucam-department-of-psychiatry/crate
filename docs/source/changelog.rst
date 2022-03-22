@@ -1371,6 +1371,8 @@ Changes
 
   - ``urllib3`` from 1.26.4 to 1.26.5 for CVE-2021-33503.
 
+  - ``waitress`` from 1.4.4 to 2.1.1 for CVE-2022-24761.
+
   - Remove need for ``xlrd`` (was only used for the postcode database and now
     redundant; all other Excel work uses ``openpyxl``), but add ``pyexcel-ods``
     for ODS files.

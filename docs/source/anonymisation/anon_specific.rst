@@ -70,14 +70,15 @@ Use the :ref:`crate_anon_draft_dd <crate_anon_draft_dd>` tool to create a data
 dictionary from SystmOne_. CRATE knows something about the structure of a
 typical SystmOne database.
 
-However, NHS numbers, which are `10-digit integers incorporating a checksum
+NHS numbers, which are `10-digit integers incorporating a checksum
 <https://www.datadictionary.nhs.uk/attributes/nhs_number.html>`_, are
-represented in the SRE by the ``VARCHAR(10)`` data type. Therefore, you should
-use these lines in your :ref:`anonymiser config file <anon_config_file>`:
+represented in our database copy of the SRE by the ``VARCHAR(10)`` data type
+(clearly a little suboptimal). It remains OK to use these in your
+:ref:`anonymiser config file <anon_config_file>`:
 
 .. code-block:: ini
 
-    sqlatype_mpid = String(10)
+    sqlatype_mpid = BigInteger
     #
     # Within CPFT, we have some locally created columns with string versions of
     # the primary SystmOne ID, and so forth, so we use:
@@ -85,7 +86,10 @@ use these lines in your :ref:`anonymiser config file <anon_config_file>`:
     # sqlatype_pid = String(100)
     # sqlatype_mpid = String(100)
 
-For your source database, use these settings:
+However, you will see some warnings during config checking.
+See :ref:`sqlatype_mpid <anon_config_sqlatype_mpid>`.
+
+When generating a data dictionary, use these settings for your source database:
 
 .. code-block:: ini
 
@@ -96,5 +100,3 @@ For your source database, use these settings:
     ddgen_per_table_pid_field = IDPatient
     # ... largely cosmetic; improves the warnings if your local database
     # modifications have an odd structure.
-
-See :ref:`sqlatype_mpid <anon_config_sqlatype_mpid>`.

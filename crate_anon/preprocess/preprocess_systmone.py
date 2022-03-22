@@ -63,6 +63,8 @@ from crate_anon.preprocess.postcodes import COL_POSTCODE_VARIABLE_LENGTH_SPACE
 from crate_anon.preprocess.systmone_ddgen import (
     contextual_tablename,
     core_tablename,
+    CrateS1ViewCol,
+    CrateView,
     DEFAULT_SYSTMONE_CONTEXT,
     is_in_re,
     is_mpid,
@@ -70,6 +72,7 @@ from crate_anon.preprocess.systmone_ddgen import (
     is_pk,
     S1AddressCol,
     S1GenericCol,
+    S1PatientCol,
     S1Table,
     SystmOneContext,
     TABLES_REQUIRING_CRATE_PK_REGEX,
@@ -79,14 +82,6 @@ if TYPE_CHECKING:
     from sqlalchemy.schema import Column, Table
 
 log = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Constants
-# =============================================================================
-
-VIEW_PREFIX = "vw"
-GEOGRAPHY_VIEW_NAME = "PatientAddressWithResearchGeography"
 
 
 # =============================================================================
@@ -159,14 +154,14 @@ def add_postcode_geography_view(engine: Engine,
             -- ... Admin fields:
             {a}.{S1GenericCol.EVENT_OCCURRED_WHEN},
             {a}.{S1GenericCol.EVENT_RECORDED_WHEN},
-            -- [not in CPFT version] A.IDDoneBy,
-            -- [not in CPFT version] A.IDEvent,
-            -- [not in CPFT version] A.IDOrganisation,
-            -- [not in CPFT version] A.IDOrganisationDoneAt,
-            -- [not in CPFT version] A.IDOrganisationRegisteredAt,
-            -- [not in CPFT version] A.IDOrganisationVisibleTo,
-            -- [not in CPFT version] A.IDProfileEnteredBy,
-            -- [not in CPFT version] A.TextualEventDoneBy,
+            -- [not in CPFT version] {a}.IDDoneBy,
+            -- [not in CPFT version] {a}.IDEvent,
+            -- [not in CPFT version] {a}.IDOrganisation,
+            -- [not in CPFT version] {a}.IDOrganisationDoneAt,
+            -- [not in CPFT version] {a}.IDOrganisationRegisteredAt,
+            -- [not in CPFT version] {a}.IDOrganisationVisibleTo,
+            -- [not in CPFT version] {a}.IDProfileEnteredBy,
+            -- [not in CPFT version] {a}.TextualEventDoneBy,
 
             -- ... Non-identifying information about the address:
             {a}.{S1AddressCol.ADDRESS_TYPE},
@@ -181,6 +176,36 @@ def add_postcode_geography_view(engine: Engine,
         INNER JOIN
             {postcode_db}.{ONSPD_TABLE_POSTCODE} AS {p}
             ON {p}.{ons_postcode_col} = {a}.{s1_postcode_col}
+    """
+    create_view(engine, view_name, select_sql)
+
+
+def add_testpatient_view(engine: Engine,
+                         patient_table: str,
+                         view_name: str) -> None:
+    """
+    Creates a source view to find extra test patients, where they have not been
+    correctly identified by the "official" method or caught by additional local
+    filters.
+
+    Args:
+        engine:
+            An SQLAlchemy Engine.
+        patient_table:
+            The name of the patient table in the source SystmOne database.
+        view_name:
+            The name of the view to create in the source SystmOne database.
+    """
+    select_sql = f"""
+        SELECT
+            {S1GenericCol.PK},
+            {S1GenericCol.PATIENT_ID},
+            1 AS {CrateS1ViewCol.IS_TEST_PATIENT}
+        FROM
+            {patient_table}
+        WHERE
+            {S1PatientCol.FORENAME} LIKE '%test%'
+            AND {S1PatientCol.SURNAME} LIKE '%test%'
     """
     create_view(engine, view_name, select_sql)
 
@@ -257,19 +282,23 @@ def preprocess_systmone(engine: Engine,
             drop_columns(engine, table, [CRATE_COL_PK])
 
     # Views
-    if postcode_db_name:
-        address_table = contextual_tablename(S1Table.ADDRESS_HISTORY, context)
-        viewname_geog = (
-            VIEW_PREFIX + contextual_tablename(GEOGRAPHY_VIEW_NAME, context)
+    if drop_danger_drop:
+        drop_view(engine, CrateView.TESTPATIENT_VIEW)
+        if postcode_db_name:
+            drop_view(engine, CrateView.GEOGRAPHY_VIEW)
+    else:
+        add_testpatient_view(
+            engine=engine,
+            patient_table=contextual_tablename(S1Table.PATIENT, context),
+            view_name=CrateView.TESTPATIENT_VIEW
         )
-        if drop_danger_drop:
-            drop_view(engine, viewname_geog)
-        else:
+        if postcode_db_name:
             add_postcode_geography_view(
                 engine=engine,
                 postcode_db=postcode_db_name,
-                address_table=address_table,
-                view_name=viewname_geog,
+                address_table=contextual_tablename(S1Table.ADDRESS_HISTORY,
+                                                   context),
+                view_name=CrateView.GEOGRAPHY_VIEW,
                 geog_cols=geog_cols,
             )
 
