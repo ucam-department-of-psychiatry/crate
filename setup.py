@@ -86,6 +86,7 @@ INSTALL_REQUIRES = [
     "djangorestframework==3.13.1",
     "django-sslserver==0.22",  # SSL development server for Django
     "drf-spectacular=0.22.0",  # Open API Schema and documentation
+    "drf-spectacular-sidecar=2022.3.21",  # Static files for drf-spectacular
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==1.0.0",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching

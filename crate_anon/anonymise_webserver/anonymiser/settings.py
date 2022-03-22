@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
+    "drf_spectacular_sidecar",
 ]
 
 MIDDLEWARE = [
@@ -146,9 +147,12 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'CRATE API',
-    'DESCRIPTION': 'Clinical Records Anonymisation and Text Extraction (CRATE)',
-    'VERSION': '1.0.0',
+    "SWAGGER_UI_DIST": "SIDECAR",  # shorthand to use the sidecar instead
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
+    "TITLE": "CRATE API",
+    "DESCRIPTION": "Clinical Records Anonymisation and Text Extraction (CRATE)",
+    "VERSION": "1.0.0",
 }
 
 # TODO: Override in local settings?
