@@ -12,6 +12,7 @@
 #
 # Those with defaults in the .env file in this directory:
 #
+#   COMPOSE_PROJECT_NAME -- used by Docker Compose itself
 #   CRATE_DOCKER_CRATE_ANON_CONFIG
 #   CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME
 #   CRATE_DOCKER_CRATEWEB_HOST_PORT
@@ -19,9 +20,8 @@
 #   CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY
 #   CRATE_DOCKER_FLOWER_HOST_PORT
 #   CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
-#   CRATE_DOCKER_MYSQL_CRATE_USER_NAME
 #   CRATE_DOCKER_MYSQL_CRATE_HOST_PORT
-#   COMPOSE_PROJECT_NAME -- used by Docker Compose itself
+#   CRATE_DOCKER_MYSQL_CRATE_USER_NAME
 #
 # Those without defaults:
 #
@@ -97,7 +97,7 @@ volumes:
 services:
 
     # -------------------------------------------------------------------------
-    # MySQL container, providing database services
+    # MySQL containers, providing database services
     # -------------------------------------------------------------------------
 
     crate_db:
@@ -288,6 +288,7 @@ services:
             # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
             - source_db_data_volume:/var/lib/mysql
             - "./mysqlconf:/etc/mysql/conf.d"
+
 
     # -------------------------------------------------------------------------
     # RabbitMQ container, providing a message queue.

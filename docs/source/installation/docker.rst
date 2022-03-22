@@ -39,7 +39,6 @@ Installing and running CRATE via Docker
     :depth: 3
 
 
-
 Overview
 --------
 
@@ -85,32 +84,46 @@ Quick start
 
 Windows
 ^^^^^^^
-- Install Windows Subsystem for Linux 2 (WSL2)
+
+- Install Windows Subsystem for Linux 2 (WSL2):
   https://docs.microsoft.com/en-us/windows/wsl/install. CRATE under WSL2 has
   been tested with Ubuntu 20.04.
-- Install Docker Desktop https://docs.docker.com/desktop/
-- Enable WSL2 in Docker Desktop https://docs.docker.com/desktop/windows/wsl/
+- Install Docker Desktop: https://docs.docker.com/desktop/
+- Enable WSL2 in Docker Desktop: https://docs.docker.com/desktop/windows/wsl/
 - From the Linux terminal install python3-virtualenv:
   Ubuntu: ``sudo apt -y install python3-virtualenv python3-venv``
+- See "All platforms" below.
+
 
 Linux
 ^^^^^
-- Install Docker Engine https://docs.docker.com/engine/install/.
-- Install Docker Compose v2 or greater https://docs.docker.com/compose/cli-command/#install-on-linux
+
+- Install Docker Engine: https://docs.docker.com/engine/install/
+- Install Docker Compose v2 or greater:
+  https://docs.docker.com/compose/cli-command/#install-on-linux
 - Install python3-virtualenv:
-  Ubuntu: ``sudo apt -y install python3-virtualenv python3-venv``
+
+  - Ubuntu: ``sudo apt -y install python3-virtualenv python3-venv``
+
+- See "All platforms" below.
 
 
 MacOS
 ^^^^^
-- Install Docker Desktop https://docs.docker.com/desktop/
+
+- Install Docker Desktop: https://docs.docker.com/desktop/
 - Install python3 and python3-virtualenv
+- See "All platforms" below.
+
+
+All platforms
+^^^^^^^^^^^^^
 
 The installer can be run interactively, where you will be prompted to enter
-settings specific to your CRATE installation. Alternatively you can
-supply this information by setting environment variables. This is best done by
-putting the settings in a file and executing them before running the installer
-(e.g. ``source ~/my_crate_settings``).
+settings specific to your CRATE installation. Alternatively you can supply this
+information by setting environment variables. This is best done by putting the
+settings in a file and executing them before running the installer (e.g.
+``source ~/my_crate_settings``).
 
 Here is an example settings file. See :ref:`environment_variables
 <docker_environment_variables>` for a description of each setting.
@@ -135,18 +148,14 @@ To start the installer on all platforms:
 
     .. code-block:: bash
 
-        curl -L https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh --output crate_docker_installer.sh
-        chmod u+x crate_docker_installer.sh
-        ./crate_docker_installer.sh
+        curl --location https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh --fail --output crate_docker_installer.sh && chmod u+x crate_docker_installer.sh && ./crate_docker_installer.sh
 
 
 .. _docker_environment_variables:
-
 Environment variables
 ---------------------
 
 .. _CRATE_DOCKER_CONFIG_HOST_DIR:
-
 CRATE_DOCKER_CONFIG_HOST_DIR
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -164,7 +173,6 @@ use a trailing slash.
 
 
 .. _CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME:
-
 CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -174,6 +182,7 @@ Base name of the CRATE web server config file (see
 CRATE_DOCKER_CONFIG_HOST_DIR_).
 
 
+.. _CRATE_DOCKER_CRATEWEB_HOST_PORT:
 CRATE_DOCKER_CRATEWEB_HOST_PORT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -182,8 +191,8 @@ CRATE_DOCKER_CRATEWEB_HOST_PORT
 The TCP/IP port number on the host computer that CRATE should provide an
 HTTP or HTTPS (SSL) connection on.
 
-It is strongly recommended that you run CRATE over HTTPS. The two ways of
-doing this are:
+It is strongly recommended that you make all connections to CRATE use HTTPS.
+The two ways of doing this are:
 
 - Have CRATE run plain HTTP, and connect it to another web server (e.g.
   Apache) that provides the HTTPS component.
@@ -208,39 +217,52 @@ doing this are:
     machine. Use the standard HTTPS port, 443, and expose it to the outside
     through your server's firewall. (You are running a firewall, right?)
 
-.. _CRATE_DOCKER_CRATEWEB_USE_HTTPS:
 
-Access the CRATE web app over HTTPS? (0=no, 1=yes)
+.. _CRATE_DOCKER_CRATEWEB_USE_HTTPS:
+CRATE_DOCKER_CRATEWEB_USE_HTTPS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Access the CRATE web app over HTTPS? (0 = no, 1 = yes)
+See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
+
 
 .. _CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE:
-
 CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default is blank.*
 
+Filename for an SSL public certificate for HTTPS.
+See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
+
 
 .. _CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY:
-
 CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default is blank.*
 
+Filename for an SSL private key file for HTTPS.
+See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
+
+
 CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-User name for the CRATE administrator.
+User name for the CRATE administrator, via CRATE's web application.
+
 
 CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Password for the CRATE administrator.
+Password for the CRATE administrator, via CRATE's web application.
+
 
 CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Email address for the CRATE administrator.
+
 
 CRATE_DOCKER_FLOWER_HOST_PORT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -264,7 +286,6 @@ On Windows, ensure this is within the Windows (not WSL2) file system.
 
 
 .. _CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME:
-
 CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -274,7 +295,6 @@ Name of the MySQL database to be used for CRATE web site data.
 
 
 .. _CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD:
-
 CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -290,7 +310,6 @@ CRATE_DOCKER_MYSQL_CRATE_USER_NAME_).
 
 
 .. _CRATE_DOCKER_MYSQL_CRATE_USER_NAME:
-
 CRATE_DOCKER_MYSQL_CRATE_USER_NAME
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -321,7 +340,6 @@ You should **not** expose this port to the "outside", beyond your host.
 
 
 .. _CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD:
-
 CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
