@@ -152,10 +152,12 @@ To start the installer on all platforms:
 
 
 .. _docker_environment_variables:
+
 Environment variables
 ---------------------
 
 .. _CRATE_DOCKER_CONFIG_HOST_DIR:
+
 CRATE_DOCKER_CONFIG_HOST_DIR
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -173,6 +175,7 @@ use a trailing slash.
 
 
 .. _CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME:
+
 CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -183,6 +186,7 @@ CRATE_DOCKER_CONFIG_HOST_DIR_).
 
 
 .. _CRATE_DOCKER_CRATEWEB_HOST_PORT:
+
 CRATE_DOCKER_CRATEWEB_HOST_PORT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -219,6 +223,7 @@ The two ways of doing this are:
 
 
 .. _CRATE_DOCKER_CRATEWEB_USE_HTTPS:
+
 CRATE_DOCKER_CRATEWEB_USE_HTTPS
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -227,6 +232,7 @@ See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
 
 
 .. _CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE:
+
 CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -237,6 +243,7 @@ See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
 
 
 .. _CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY:
+
 CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -286,6 +293,7 @@ On Windows, ensure this is within the Windows (not WSL2) file system.
 
 
 .. _CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME:
+
 CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -295,6 +303,7 @@ Name of the MySQL database to be used for CRATE web site data.
 
 
 .. _CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD:
+
 CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -310,6 +319,7 @@ CRATE_DOCKER_MYSQL_CRATE_USER_NAME_).
 
 
 .. _CRATE_DOCKER_MYSQL_CRATE_USER_NAME:
+
 CRATE_DOCKER_MYSQL_CRATE_USER_NAME
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -340,6 +350,7 @@ You should **not** expose this port to the "outside", beyond your host.
 
 
 .. _CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD:
+
 CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
