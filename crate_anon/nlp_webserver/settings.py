@@ -42,17 +42,19 @@ from crate_anon.nlp_webserver.constants import (
 
 SETTINGS_PATH = os.getenv(NLP_WEBSERVER_CONFIG_ENVVAR)
 
+_DOCGEN_DUMMY_SETTINGS = {
+    v: ""
+    for k, v in NlpServerConfigKeys.__dict__.items()
+    if not k.startswith("_") and k != "SQLALCHEMY_PREFIX"
+}
+_DOCGEN_DUMMY_SETTINGS[NlpServerConfigKeys.SQLALCHEMY_URL] = "sqlite://"
+_DOCGEN_DUMMY_SETTINGS[NlpServerConfigKeys.SQLALCHEMY_ECHO] = "false"
+_DOCGEN_DUMMY_SETTINGS[NlpServerConfigKeys.ENCRYPTION_KEY] = \
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
+
 if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     # Prevent errors whilst building docs, using dummy settings.
-    SETTINGS = {
-        v: ""
-        for k, v in NlpServerConfigKeys.__dict__.items()
-        if not k.startswith("_")
-    }
-    SETTINGS[NlpServerConfigKeys.SQLALCHEMY_URL] = "sqlite://"
-    SETTINGS[NlpServerConfigKeys.SQLALCHEMY_ECHO] = "false"
-    SETTINGS[NlpServerConfigKeys.ENCRYPTION_KEY] = \
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
+    SETTINGS = _DOCGEN_DUMMY_SETTINGS
     CONFIG = None  # type: Optional[Configurator]
 else:
     # Real settings.

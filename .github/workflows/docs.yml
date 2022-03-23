@@ -43,7 +43,7 @@ jobs:
                   test -z "$(git ls-files --exclude-standard --others)"
                   cd docs
                   echo Rebuilding docs
-                  python ./rebuild_docs.py --skip_medex
+                  python ./rebuild_docs.py --skip_medex --warnings_as_errors
                   git diff
                   git update-index --refresh
                   git diff-index --quiet HEAD --

@@ -81,6 +81,7 @@ Format of the configuration file
 
 
 .. _anon_config_main_section:
+
 [main] section
 ~~~~~~~~~~~~~~
 
@@ -108,6 +109,7 @@ See :ref:`sqlatype_mpid <anon_config_sqlatype_mpid>` below.
 
 
 .. _anon_config_sqlatype_mpid:
+
 sqlatype_mpid
 #############
 
@@ -170,6 +172,7 @@ Encryption phrases/passwords
 ++++++++++++++++++++++++++++
 
 .. _anon_config_hash_method:
+
 hash_method
 ###########
 
@@ -214,6 +217,7 @@ database), so that changes in content can be detected.
 
 
 .. _anon_config_extra_hash_config_sections:
+
 extra_hash_config_sections
 ##########################
 
@@ -231,6 +235,7 @@ Text extraction
 +++++++++++++++
 
 .. _anon_config_extract_text_extensions_permitted:
+
 extract_text_extensions_permitted
 #################################
 
@@ -328,6 +333,7 @@ Anonymisation
 +++++++++++++
 
 .. _allow_no_patient_info:
+
 allow_no_patient_info
 #####################
 
@@ -372,6 +378,7 @@ database cursor for each recursion).
 
 
 .. _anon_config_replace_nonspecific_info_with:
+
 replace_nonspecific_info_with
 #############################
 
@@ -397,6 +404,7 @@ Applies to scrub methods ``words``, but not to ``phrase`` (see
 
 
 .. _anon_config_string_max_regex_errors:
+
 string_max_regex_errors
 #######################
 
@@ -488,6 +496,7 @@ of how the allow/deny sequence works.
 
 
 .. _denylist_filenames:
+
 denylist_filenames
 ##################
 
@@ -533,6 +542,7 @@ of how the allow/deny sequence works.
 
 
 .. _denylist_files_as_phrases:
+
 denylist_files_as_phrases
 #########################
 
@@ -560,6 +570,7 @@ appear in a consistent format.
 
 
 .. _denylist_phrases_flexible_whitespace:
+
 denylist_phrases_flexible_whitespace
 ####################################
 
@@ -629,6 +640,7 @@ See https://www.mrs.org.uk/pdf/postcodeformat.pdf; these can look like
 
 
 .. _scrub_all_dates:
+
 scrub_all_dates
 ###############
 
@@ -658,6 +670,7 @@ See also anonymise_dates_at_word_boundaries_only_.
 
 
 .. _anon_config_anonymise_codes_at_word_boundaries_only:
+
 anonymise_codes_at_word_boundaries_only
 #######################################
 
@@ -676,6 +689,7 @@ need ``anonymise_numbers_at_word_boundaries_only = False``.
 
 
 .. _anonymise_dates_at_word_boundaries_only:
+
 anonymise_dates_at_word_boundaries_only
 #######################################
 
@@ -688,6 +702,7 @@ to scrub_all_dates_.
 
 
 .. _anon_config_anonymise_numbers_at_word_boundaries_only:
+
 anonymise_numbers_at_word_boundaries_only
 #########################################
 
@@ -780,6 +795,7 @@ source tables.
 
 
 .. _add_mrid_wherever_rid_added:
+
 add_mrid_wherever_rid_added
 ###########################
 
@@ -935,6 +951,7 @@ to be the MPID of a patient who wishes to opt out.
 
 
 .. _optout_col_values:
+
 optout_col_values
 #################
 
@@ -953,6 +970,7 @@ Specify a LIST OF PYTHON VALUES; for example:
 
 
 .. _anon_config_extra_regexes:
+
 [extra_regexes] section
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1063,6 +1081,7 @@ here. Settings here override :ref:`ddgen_include_fields
 
 
 .. _anon_config_ddgen_include_fields:
+
 ddgen_include_fields
 ####################
 
@@ -1204,6 +1223,7 @@ that the source database reports as a PK will be treated as such.
 
 
 .. _anon_config_ddgen_constant_content:
+
 ddgen_constant_content
 ######################
 
@@ -1222,6 +1242,7 @@ matches both).
 
 
 .. _anon_config_ddgen_constant_content_tables:
+
 ddgen_constant_content_tables
 #############################
 
@@ -1232,6 +1253,7 @@ Table-specific overrides for :ref:`ddgen_constant_content
 
 
 .. _anon_config_ddgen_nonconstant_content_tables:
+
 ddgen_nonconstant_content_tables
 ################################
 
@@ -1497,6 +1519,7 @@ Fields to apply an index to.
 
 
 .. _ddgen_allow_fulltext_indexing:
+
 ddgen_allow_fulltext_indexing
 #############################
 
@@ -1528,6 +1551,7 @@ Other options for source databases
 ++++++++++++++++++++++++++++++++++
 
 .. _anon_config_debug_row_limit:
+
 debug_row_limit
 ###############
 
@@ -1550,6 +1574,7 @@ processed, all identification information for that patient is trawled.
 
 
 .. _anon_config_debug_limited_tables:
+
 debug_limited_tables
 ####################
 
@@ -1560,6 +1585,7 @@ List of tables to which to apply :ref:`debug_row_limit
 
 
 .. _anon_config_hasher_definitions:
+
 Hasher definitions
 ~~~~~~~~~~~~~~~~~~
 
@@ -1592,6 +1618,7 @@ Secret key for the hasher.
 
 
 .. _anonymisation_sequence:
+
 Anonymisation sequence
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1641,6 +1668,9 @@ Many options are not shown and most comments have been removed.
 
 
 .. _specimen_anonymiser_config:
+
+.. _crate_anon_demo_config:
+
 Specimen config
 ~~~~~~~~~~~~~~~
 

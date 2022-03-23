@@ -48,6 +48,7 @@ to read the :ref:`Anonymisation <anonymisation>` section first.
 
 
 .. _crate_preprocess_pcmis:
+
 crate_preprocess_pcmis
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -58,6 +59,7 @@ Options:
 
 
 .. _crate_preprocess_rio:
+
 crate_preprocess_rio
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -87,6 +89,7 @@ Options:
 
 
 .. _crate_preprocess_systmone:
+
 crate_preprocess_systmone
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -100,6 +103,7 @@ Options:
 
 
 .. _crate_postcodes:
+
 crate_postcodes
 ~~~~~~~~~~~~~~~
 
@@ -110,6 +114,7 @@ Options:
 
 
 .. _crate_fetch_wordlists:
+
 crate_fetch_wordlists
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -130,6 +135,7 @@ Specimen usage:
 
 
 .. _crate_fuzzy_id_match:
+
 crate_fuzzy_id_match
 ~~~~~~~~~~~~~~~~~~~~
 

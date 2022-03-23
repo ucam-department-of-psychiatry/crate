@@ -335,6 +335,8 @@ A summary as of 2020-11-21 (ignoring validators) is:
 electrolytes.)
 
 
+.. _crate_run_crate_nlp_demo:
+
 **Testing the NLP**
 
 You can test these built-in NLP tools quickly via the command line:

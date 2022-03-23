@@ -795,6 +795,7 @@ SQL Server
 ----------
 
 .. _configure_odbc_mars:
+
 […] “Connection is busy with results for another command” […]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
