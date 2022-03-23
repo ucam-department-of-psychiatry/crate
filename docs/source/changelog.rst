@@ -1409,7 +1409,7 @@ Changes
     the existing TSV. (Uses the first spreadsheet of a potentially multi-sheet
     file when reading.)
 
-  - Work on SystmOne data dictionaries.
+  - Support SystmOne data dictionaries.
 
   - ``ddgen_force_lower_case`` default changed from True to False.
 
