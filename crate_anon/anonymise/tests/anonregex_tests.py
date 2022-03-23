@@ -651,6 +651,33 @@ class AnonRegexTests2(TestCase):
             ]
         )
 
+        number_boundaries = get_code_regex_elements(
+            code,
+            liberal=False, very_liberal=False,
+            at_word_boundaries_only=False,
+            at_numeric_boundaries_only=True
+        )
+        self._should_match_all(
+            number_boundaries,
+            [
+                f"pq {code} xy",
+                f"pq,{code},xy",
+                f"12 {code} 34",
+                f"12,{code},34",
+                f"pq{code}xy",
+                f"pq{code} xy",
+                f"pq {code}xy",
+            ]
+        )
+        self._should_not_match_any(
+            number_boundaries,
+            [
+                f"12{code}34",
+                f"12{code} 34",
+                f"12 {code}34",
+            ]
+        )
+
         anywhere = get_code_regex_elements(
             code,
             liberal=False, very_liberal=False,
