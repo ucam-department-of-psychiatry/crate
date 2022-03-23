@@ -624,6 +624,7 @@ class AnonRegexTests2(TestCase):
 
     def test_code_boundaries(self) -> None:
         code = "ABC123"
+
         word_boundaries = get_code_regex_elements(
             code,
             liberal=False, very_liberal=False,
@@ -649,14 +650,15 @@ class AnonRegexTests2(TestCase):
                 f"12 {code}34",
             ]
         )
-        number_boundaries = get_code_regex_elements(
+
+        anywhere = get_code_regex_elements(
             code,
             liberal=False, very_liberal=False,
             at_word_boundaries_only=False,
-            at_numeric_boundaries_only=True
+            at_numeric_boundaries_only=False
         )
         self._should_match_all(
-            number_boundaries,
+            anywhere,
             [
                 f"pq {code} xy",
                 f"pq,{code},xy",
@@ -665,11 +667,6 @@ class AnonRegexTests2(TestCase):
                 f"pq{code}xy",
                 f"pq{code} xy",
                 f"pq {code}xy",
-            ]
-        )
-        self._should_not_match_any(
-            number_boundaries,
-            [
                 f"12{code}34",
                 f"12{code} 34",
                 f"12 {code}34",
