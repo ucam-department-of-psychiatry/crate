@@ -1464,7 +1464,7 @@ Changes
     third-party PID field is marked for inclusion).
 
   - ``denylist_files_as_phrases`` option for anonymisation, and
-    ``denylist_phrases_flexible_whitespace``.
+    ``denylist_use_regex``.
 
   - Fix :class:`crate_anon.anonymise.scrub.WordList` to use its ``suffixes``
     parameter even if ``regex_method`` is False. (Was not being used.)
@@ -1494,11 +1494,13 @@ Changes
     (during data dictionary drafting) to a DATE field, in case the source is
     DATETIME.
 
-  - Fix scrubber order (in
+  - Provide option :ref:`nonspecific_scrubber_first
+    <nonspecific_scrubber_first>` to govern scrubber order (in
     :meth:`crate_anon.anonymise.scrub.PersonalizedScrubber.scrub`). Was (1)
-    nonspecific, (2) patient, (3) third party. Now (1) patient, (2) third
-    party, (3) nonspecific. This provides some more information to the user
-    about the subject of a sentence.
+    nonspecific, (2) patient, (3) third party. The new default is (1) patient,
+    (2) third party, (3) nonspecific. This provides some more information to
+    the user about the subject of a sentence, but it is a configurable minor
+    trade-off.
 
   - Option to scrub all dates: :ref:`scrub_all_dates <scrub_all_dates>`.
 
@@ -1510,13 +1512,29 @@ Changes
       groups followed by date parsing followed by date-writing in a standard,
       e.g. ISO, format.
 
+  - Document defaults for ``anonymise_numbers_at_word_boundaries_only`` and
+    ``anonymise_numbers_at_numeric_boundaries_only`` arguments to
+    :class:`crate_anon.anonymise.scrub.PersonalizedScrubber`, fixing
+    https://github.com/RudolfCardinal/crate/issues/67. Add
+    ``anonymise_codes_at_numeric_boundaries_only`` option for coherence.
+
+  - Document behaviour of ``anonymise_strings_at_word_boundaries_only`` for
+    FlashText-based wordlist scrubbing (controlled by ``denylist_use_regex``),
+    fixing https://github.com/RudolfCardinal/crate/issues/68.
+
+  - Default for :ref:`min_string_length_for_errors
+    <min_string_length_for_errors>` changed from 1 to 3.
+
+  - Added some more generally sensible details around CRATE table/field naming.
+
 
 To do
 -----
 
 - Fix promise for ``crate_anonymise_multiprocess``: it is launching *n* patient
   processes and *n* non-patient processes simultaneously. Attempts in progress
-  in ``cardinal_pythonlib.subproc.run_multiple_processes``.
+  in ``cardinal_pythonlib.subproc.run_multiple_processes``. But consider also
+  Ray (https://www.ray.io/).
 
 
 ===============================================================================

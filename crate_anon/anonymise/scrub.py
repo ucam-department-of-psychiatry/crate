@@ -47,7 +47,11 @@ from cardinal_pythonlib.text import get_unicode_characters
 from crate_anon.common.bugfix_flashtext import KeywordProcessorFixed
 # ... temp bugfix
 
-from crate_anon.anonymise.constants import ScrubMethod
+# noinspection PyPep8Naming
+from crate_anon.anonymise.constants import (
+    AnonymiseConfigDefaults as DA,
+    ScrubMethod,
+)
 from crate_anon.anonymise.anonregex import (
     get_anon_fragments_from_string,
     get_code_regex_elements,
@@ -192,10 +196,10 @@ class WordList(ScrubberBase):
                 deals with variable whitespace. If False: much faster (uses
                 FlashText), but whitespace is inflexible.
         """
-        if at_word_boundaries_only is False and not regex_method:
+        if not regex_method and at_word_boundaries_only is False:
             raise ValueError(
                 "FlashText (chosen by regex_method=False) will only work at "
-                "word boundaries")
+                "word boundaries, but at_word_boundaries_only is False")
         filenames = filenames or []
         words = words or []
 
@@ -351,17 +355,18 @@ class NonspecificScrubber(ScrubberBase):
     Scrubs a bunch of things that are independent of any patient-specific data,
     such as removing all UK postcodes, or numbers of a certain length.
     """
-    def __init__(self,
-                 replacement_text: str,
-                 hasher: GenericHasher,
-                 anonymise_codes_at_word_boundaries_only: bool = True,
-                 anonymise_dates_at_word_boundaries_only: bool = True,
-                 anonymise_numbers_at_word_boundaries_only: bool = True,
-                 denylist: WordList = None,
-                 scrub_all_numbers_of_n_digits: List[int] = None,
-                 scrub_all_uk_postcodes: bool = False,
-                 scrub_all_dates: bool = False,
-                 extra_regexes: Optional[List[str]] = None) -> None:
+    def __init__(
+            self,
+            replacement_text: str,
+            hasher: GenericHasher,
+            anonymise_codes_at_word_boundaries_only: bool = DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,  # noqa
+            anonymise_dates_at_word_boundaries_only: bool = DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,  # noqa
+            anonymise_numbers_at_word_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,  # noqa
+            denylist: WordList = None,
+            scrub_all_numbers_of_n_digits: List[int] = None,
+            scrub_all_uk_postcodes: bool = DA.SCRUB_ALL_UK_POSTCODES,
+            scrub_all_dates: bool = DA.SCRUB_ALL_DATES,
+            extra_regexes: Optional[List[str]] = None) -> None:
         """
         Args:
             replacement_text:
@@ -480,35 +485,45 @@ class PersonalizedScrubber(ScrubberBase):
     Accepts patient-specific (patient and third-party) information, and uses
     that to scrub text.
     """
-    def __init__(self,
-                 replacement_text_patient: str,
-                 replacement_text_third_party: str,
-                 hasher: GenericHasher,
-                 anonymise_codes_at_word_boundaries_only: bool = True,
-                 anonymise_dates_at_word_boundaries_only: bool = True,
-                 anonymise_numbers_at_word_boundaries_only: bool = True,
-                 anonymise_numbers_at_numeric_boundaries_only: bool = True,
-                 anonymise_strings_at_word_boundaries_only: bool = True,
-                 min_string_length_for_errors: int = 4,
-                 min_string_length_to_scrub_with: int = 3,
-                 scrub_string_suffixes: List[str] = None,
-                 string_max_regex_errors: int = 0,
-                 allowlist: WordList = None,
-                 alternatives: List[List[str]] = None,
-                 nonspecific_scrubber: NonspecificScrubber = None,
-                 debug: bool = False) -> None:
+    def __init__(
+            self,
+            hasher: GenericHasher,
+            replacement_text_patient: str = DA.REPLACE_PATIENT_INFO_WITH,
+            replacement_text_third_party: str = DA.REPLACE_THIRD_PARTY_INFO_WITH,  # noqa
+            anonymise_codes_at_word_boundaries_only: bool = DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,  # noqa
+            anonymise_codes_at_numeric_boundaries_only: bool = DA.ANONYMISE_CODES_AT_NUMERIC_BOUNDARIES_ONLY,  # noqa
+            anonymise_dates_at_word_boundaries_only: bool = DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,  # noqa
+            anonymise_numbers_at_word_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,  # noqa
+            anonymise_numbers_at_numeric_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY,  # noqa
+            anonymise_strings_at_word_boundaries_only: bool = DA.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY,  # noqa
+            min_string_length_for_errors: int = DA.MIN_STRING_LENGTH_FOR_ERRORS,  # noqa
+            min_string_length_to_scrub_with: int = DA.MIN_STRING_LENGTH_TO_SCRUB_WITH,  # noqa
+            scrub_string_suffixes: List[str] = None,
+            string_max_regex_errors: int = DA.STRING_MAX_REGEX_ERRORS,
+            allowlist: WordList = None,
+            alternatives: List[List[str]] = None,
+            nonspecific_scrubber: NonspecificScrubber = None,
+            nonspecific_scrubber_first: bool = DA.NONSPECIFIC_SCRUBBER_FIRST,
+            debug: bool = False) -> None:
         """
         Args:
-            replacement_text_patient:
-                replace sensitive "patient" content with this string
-            replacement_text_third_party:
-                replace sensitive "third party" content with this string
             hasher:
                 :class:`GenericHasher` to use to hash this scrubber (for
-                change-detection purposes); should be a secure hasher
+                change-detection purposes); should be a secure hasher.
+            replacement_text_patient:
+                Replace sensitive "patient" content with this string.
+            replacement_text_third_party:
+                Replace sensitive "third party" content with this string.
             anonymise_codes_at_word_boundaries_only:
                 For codes: Boolean. Ensure that the regex begins and ends with
                 a word boundary requirement.
+            anonymise_codes_at_numeric_boundaries_only:
+                For codes: Boolean. Only applicable if
+                anonymise_codes_at_word_boundaries_only is False. Ensure that
+                the code is only recognized when surrounded by non-numbers;
+                that is, only at the boundaries of numbers (at numeric
+                boundaries). See
+                :func:`crate_anon.anonymise.anonregex.get_code_regex_elements`.
             anonymise_dates_at_word_boundaries_only:
                 For dates: Boolean. Ensure that the regex begins and ends with
                 a word boundary requirement.
@@ -517,9 +532,11 @@ class PersonalizedScrubber(ScrubberBase):
                 with a word boundary requirement. See
                 :func:`crate_anon.anonymise.anonregex.get_code_regex_elements`.
             anonymise_numbers_at_numeric_boundaries_only:
-                For numbers: Boolean. Ensure that the number/code is only
-                recognized when surrounded by non-numbers; that is, only at the
-                boundaries of numbers (at numeric boundaries). See
+                For numbers: Boolean. Only applicable if
+                anonymise_numbers_at_word_boundaries_only is False. Ensure that
+                the number is only recognized when surrounded by
+                non-numbers; that is, only at the boundaries of numbers (at
+                numeric boundaries). See
                 :func:`crate_anon.anonymise.anonregex.get_code_regex_elements`.
             anonymise_strings_at_word_boundaries_only:
                 For strings: Boolean. Ensure that the regex begins and ends
@@ -531,38 +548,37 @@ class PersonalizedScrubber(ScrubberBase):
                 For strings: minimum string length at which the string will be
                 permitted to be scrubbed with.
             scrub_string_suffixes:
-                a list of suffixes to permit on strings
+                A list of suffixes to permit on strings.
             string_max_regex_errors:
-                the maximum number of typographical insertion / deletion /
-                substitution errors to permit
+                The maximum number of typographical insertion / deletion /
+                substitution errors to permit.
             allowlist:
-                :class:`WordList` of words to allow (not to scrub)
+                :class:`WordList` of words to allow (not to scrub).
             alternatives:
                 This allows words to be substituted by equivalents; such as
                 ``St`` for ``Street`` or ``Rd`` for ``Road``. The parameter is
                 a list of lists of equivalents; see
-                :func:`crate_anon.anonymise.config.get_word_alternatives`
+                :func:`crate_anon.anonymise.config.get_word_alternatives`.
             nonspecific_scrubber:
-                :class:`NonspecificScrubber` to apply (after the more specific
-                scrubbers) to remove information that is generic
+                :class:`NonspecificScrubber` to apply to remove information
+                that is generic.
+            nonspecific_scrubber_first:
+                If one is provided, run the nonspecific scrubber first (rather
+                than last)?
             debug:
-                show the final scrubber regex text as we compile our regexes
+                Show the final scrubber regex text as we compile our regexes.
         """
         scrub_string_suffixes = scrub_string_suffixes or []
 
         super().__init__(hasher)
         self.replacement_text_patient = replacement_text_patient
         self.replacement_text_third_party = replacement_text_third_party
-        self.anonymise_codes_at_word_boundaries_only = (
-            anonymise_codes_at_word_boundaries_only)
-        self.anonymise_dates_at_word_boundaries_only = (
-            anonymise_dates_at_word_boundaries_only)
-        self.anonymise_numbers_at_word_boundaries_only = (
-            anonymise_numbers_at_word_boundaries_only)
-        self.anonymise_numbers_at_numeric_boundaries_only = (
-            anonymise_numbers_at_numeric_boundaries_only)
-        self.anonymise_strings_at_word_boundaries_only = (
-            anonymise_strings_at_word_boundaries_only)
+        self.anonymise_codes_at_word_boundaries_only = anonymise_codes_at_word_boundaries_only  # noqa
+        self.anonymise_codes_at_numeric_boundaries_only = anonymise_codes_at_numeric_boundaries_only  # noqa
+        self.anonymise_dates_at_word_boundaries_only = anonymise_dates_at_word_boundaries_only  # noqa
+        self.anonymise_numbers_at_word_boundaries_only = anonymise_numbers_at_word_boundaries_only  # noqa
+        self.anonymise_numbers_at_numeric_boundaries_only = anonymise_numbers_at_numeric_boundaries_only  # noqa
+        self.anonymise_strings_at_word_boundaries_only = anonymise_strings_at_word_boundaries_only  # noqa
         self.min_string_length_for_errors = min_string_length_for_errors
         self.min_string_length_to_scrub_with = min_string_length_to_scrub_with
         self.scrub_string_suffixes = scrub_string_suffixes
@@ -570,6 +586,7 @@ class PersonalizedScrubber(ScrubberBase):
         self.allowlist = allowlist
         self.alternatives = alternatives
         self.nonspecific_scrubber = nonspecific_scrubber
+        self.nonspecific_scrubber_first = nonspecific_scrubber_first
         self.debug = debug
 
         # Regex information
@@ -764,9 +781,11 @@ class PersonalizedScrubber(ScrubberBase):
         return get_code_regex_elements(
             get_digit_string_from_vaguely_numeric_string(str(value)),
             at_word_boundaries_only=(
-                self.anonymise_numbers_at_word_boundaries_only),
+                self.anonymise_numbers_at_word_boundaries_only
+            ),
             at_numeric_boundaries_only=(
-                self.anonymise_numbers_at_numeric_boundaries_only)
+                self.anonymise_numbers_at_numeric_boundaries_only
+            )
         )
 
     def get_elements_code(self, value: Any) -> List[str]:
@@ -785,7 +804,11 @@ class PersonalizedScrubber(ScrubberBase):
         return get_code_regex_elements(
             reduce_to_alphanumeric(str(value)),
             at_word_boundaries_only=(
-                self.anonymise_codes_at_word_boundaries_only)
+                self.anonymise_codes_at_word_boundaries_only
+            ),
+            at_numeric_boundaries_only=(
+                self.anonymise_codes_at_numeric_boundaries_only
+            )
         )
 
     def get_patient_regex_string(self) -> str:
@@ -820,14 +843,17 @@ class PersonalizedScrubber(ScrubberBase):
         if not self.regexes_built:
             self.build_regexes()
 
-        # Patient, then third party, then nonspecific. That makes the
-        # replacement text slightly more informative, assuming the user has
-        # chosen different replacement strings for each.
+        # If nonspecific_scrubber_first:
+        #   (1) nonspecific, (2) patient, (3) third party.
+        # Otherwise:
+        #   (1) patient, (2) third party, (3) nonspecific.
+        if self.nonspecific_scrubber and self.nonspecific_scrubber_first:
+            text = self.nonspecific_scrubber.scrub(text)
         if self.re_patient:
             text = self.re_patient.sub(self.replacement_text_patient, text)
         if self.re_tp:
             text = self.re_tp.sub(self.replacement_text_third_party, text)
-        if self.nonspecific_scrubber:
+        if self.nonspecific_scrubber and not self.nonspecific_scrubber_first:
             text = self.nonspecific_scrubber.scrub(text)
         return text
 
@@ -851,10 +877,14 @@ class PersonalizedScrubber(ScrubberBase):
         d = (
             ('anonymise_codes_at_word_boundaries_only',
              self.anonymise_codes_at_word_boundaries_only),
+            ('anonymise_codes_at_numeric_boundaries_only',
+             self.anonymise_codes_at_numeric_boundaries_only),
             ('anonymise_dates_at_word_boundaries_only',
              self.anonymise_dates_at_word_boundaries_only),
             ('anonymise_numbers_at_word_boundaries_only',
              self.anonymise_numbers_at_word_boundaries_only),
+            ('anonymise_numbers_at_numeric_boundaries_only',
+             self.anonymise_numbers_at_numeric_boundaries_only),
             ('anonymise_strings_at_word_boundaries_only',
              self.anonymise_strings_at_word_boundaries_only),
             ('min_string_length_for_errors',

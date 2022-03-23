@@ -48,10 +48,7 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import MetaData
 
-from crate_anon.anonymise.constants import (
-    DEFAULT_MAX_BYTES_BEFORE_COMMIT,
-    DEFAULT_MAX_ROWS_BEFORE_COMMIT,
-)
+from crate_anon.anonymise.constants import AnonymiseConfigDefaults
 from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.common.constants import EnvVar
 from crate_anon.common.extendedconfigparser import (
@@ -196,10 +193,13 @@ def demo_nlp_config() -> str:
         cloud_request_data_dir = "/srv/crate/clouddata"
         gate_plugin_file = "/path/to/specimen_gate_plugin_file.ini"
 
+    _DA = AnonymiseConfigDefaults
+
     # -------------------------------------------------------------------------
     # The demo config itself
     # -------------------------------------------------------------------------
 
+    # noinspection HttpUrlsUsage
     return (
         f"""# Configuration file for CRATE NLP manager (crate_nlp).
 # Version {CRATE_VERSION} ({CRATE_VERSION_DATE}).
@@ -314,8 +314,8 @@ def demo_nlp_config() -> str:
 {NlpDefConfigKeys.HASHPHRASE} = {hashphrase}
 # {NlpDefConfigKeys.TRUNCATE_TEXT_AT} = {truncate_text_at}
 # {NlpDefConfigKeys.RECORD_TRUNCATED_VALUES} = False
-{NlpDefConfigKeys.MAX_ROWS_BEFORE_COMMIT} = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
-{NlpDefConfigKeys.MAX_BYTES_BEFORE_COMMIT} = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
+{NlpDefConfigKeys.MAX_ROWS_BEFORE_COMMIT} = {_DA.MAX_ROWS_BEFORE_COMMIT}
+{NlpDefConfigKeys.MAX_BYTES_BEFORE_COMMIT} = {_DA.MAX_BYTES_BEFORE_COMMIT}
 
 # -----------------------------------------------------------------------------
 # Cloud NLP demo
@@ -861,10 +861,10 @@ class NlpDefinition(object):
         self._hasher = HashClass(self._hashphrase)
         self._max_rows_before_commit = self._cfg.opt_int_positive(
             NlpDefConfigKeys.MAX_ROWS_BEFORE_COMMIT,
-            DEFAULT_MAX_ROWS_BEFORE_COMMIT)
+            AnonymiseConfigDefaults.MAX_ROWS_BEFORE_COMMIT)
         self._max_bytes_before_commit = self._cfg.opt_int_positive(
             NlpDefConfigKeys.MAX_BYTES_BEFORE_COMMIT,
-            DEFAULT_MAX_BYTES_BEFORE_COMMIT)
+            AnonymiseConfigDefaults.MAX_BYTES_BEFORE_COMMIT)
         self._now = get_now_utc_notz_datetime()
         self.truncate_text_at = self._cfg.opt_int_positive(
             NlpDefConfigKeys.TRUNCATE_TEXT_AT,
