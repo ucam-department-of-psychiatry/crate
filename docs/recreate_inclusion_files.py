@@ -186,7 +186,7 @@ def main():
     # -------------------------------------------------------------------------
     # Command-line index
     # -------------------------------------------------------------------------
-    make_command_line_index_help(join(DevPath.DOCS_AUTODOC_DIR,
+    make_command_line_index_help(join(DevPath.DOCS_AUTODOC_EXTRA_DIR,
                                       "_command_line_index.rst"))
 
     # Follow the sequence in setup.py for clarity:

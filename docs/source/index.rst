@@ -52,7 +52,7 @@ By Rudolf Cardinal <rudolf@pobox.com>.
     misc/index.rst
 
     autodoc/_index.rst
-    autodoc/_command_line_index.rst
+    autodoc_extra/_command_line_index.rst
 
     changelog.rst
     to_do.rst

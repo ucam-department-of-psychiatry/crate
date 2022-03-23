@@ -62,6 +62,7 @@ class DevPath:
     DOCS_ANCILLARY_DIR = join(DOCS_SOURCE_DIR, "ancillary")
     DOCS_ANON_DIR = join(DOCS_SOURCE_DIR, "anonymisation")
     DOCS_AUTODOC_DIR = join(DOCS_SOURCE_DIR, "autodoc")
+    DOCS_AUTODOC_EXTRA_DIR = join(DOCS_SOURCE_DIR, "autodoc_extra")
     DOCS_LINKAGE_DIR = join(DOCS_SOURCE_DIR, "linkage")
     DOCS_NLP_DIR = join(DOCS_SOURCE_DIR, "nlp")
     DOCS_PREPROC_DIR = join(DOCS_SOURCE_DIR, "preprocessing")
