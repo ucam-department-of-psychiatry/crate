@@ -1,4 +1,4 @@
-..  crate_anon/docs/source/anonymisation/index.rst
+..  crate_anon/docs/source/anonymisation/api.rst
 
 ..  Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -17,17 +17,8 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
-.. _anonymisation:
 
-Anonymisation
-=============
+Using CRATE's anonymisation API
+-------------------------------
 
-..  toctree::
-    :maxdepth: 2
-
-    overview.rst
-    data_prerequisites.rst
-    anon_config.rst
-    data_dictionary.rst
-    anonymise.rst
-    api.rst
+.. openapi:: _crate_api_schema.yaml

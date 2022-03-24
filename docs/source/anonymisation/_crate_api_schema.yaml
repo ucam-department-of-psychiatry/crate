@@ -1,0 +1,357 @@
+openapi: 3.0.3
+info:
+  title: CRATE API
+  version: 1.0.0
+  description: Clinical Records Anonymisation and Text Extraction (CRATE)
+paths:
+  /schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /scrub/:
+    post:
+      operationId: scrub_create
+      description: Main CRATE anonymisation end-point.
+      tags:
+      - scrub
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Scrub'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Scrub'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Scrub'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scrub'
+          description: ''
+components:
+  schemas:
+    Allowlist:
+      type: object
+      properties:
+        words:
+          type: array
+          items:
+            type: string
+          writeOnly: true
+          description: Do not scrub these specific words.
+    Denylist:
+      type: object
+      properties:
+        words:
+          type: array
+          items:
+            type: string
+          writeOnly: true
+          description: Scrub these specific words.
+    Scrub:
+      type: object
+      properties:
+        text:
+          type: string
+          writeOnly: true
+          description: The text to be scrubbed.
+        patient:
+          allOf:
+          - $ref: '#/components/schemas/Specific'
+          writeOnly: true
+          description: Specific patient data to be scrubbed.
+        third_party:
+          allOf:
+          - $ref: '#/components/schemas/Specific'
+          writeOnly: true
+          description: Third party (e.g. family members') data to be scrubbed.
+        anonymise_codes_at_word_boundaries_only:
+          type: boolean
+          writeOnly: true
+          default: true
+          description: Ensure the codes to be scrubbed begin and end with a word boundary.
+        anonymise_dates_at_word_boundaries_only:
+          type: boolean
+          writeOnly: true
+          default: true
+          description: Ensure the codes to be scrubbed begin and end with a word boundary.
+        anonymise_numbers_at_word_boundaries_only:
+          type: boolean
+          writeOnly: true
+          default: true
+          description: Ensure the numbers to be scrubbed begin and end with a word
+            boundary.
+        anonymise_numbers_at_numeric_boundaries_only:
+          type: boolean
+          writeOnly: true
+          default: false
+          description: Ensure the numbers to be scrubbed begin and end with a numeric
+            boundary.
+        anonymise_strings_at_word_boundaries_only:
+          type: boolean
+          writeOnly: true
+          default: true
+          description: Ensure the numbers to be scrubbed begin and end with a word
+            boundary.
+        string_max_regex_errors:
+          type: integer
+          writeOnly: true
+          default: 0
+          description: The maximum number of typographical insertion / deletion /
+            substitution errors to permit.
+        min_string_length_for_errors:
+          type: integer
+          writeOnly: true
+          default: 4
+          description: The minimum string length at which typographical errors will
+            be permitted.
+        min_string_length_to_scrub_with:
+          type: integer
+          writeOnly: true
+          default: 3
+          description: Do not scrub strings shorter than this length.
+        scrub_string_suffixes:
+          type: array
+          items:
+            type: string
+          writeOnly: true
+          description: A list of suffixes to permit on strings. e.g. ["s"] for plural
+            forms.
+        allowlist:
+          allOf:
+          - $ref: '#/components/schemas/Allowlist'
+          writeOnly: true
+          description: Allowlist options.
+        denylist:
+          allOf:
+          - $ref: '#/components/schemas/Denylist'
+          writeOnly: true
+          description: Denylist options.
+        replace_patient_info_with:
+          type: string
+          writeOnly: true
+          default: '[__PPP__]'
+          description: Replace sensitive patient content with this.
+        replace_third_party_info_with:
+          type: string
+          writeOnly: true
+          default: '[__TTT__]'
+          description: Replace sensitive third party (e.g. family members') content
+            with this.
+        replace_nonspecific_info_with:
+          type: string
+          writeOnly: true
+          default: '[~~~]'
+          description: Replace any other sensitive content with this.
+        scrub_all_numbers_of_n_digits:
+          type: array
+          items:
+            type: integer
+          writeOnly: true
+          description: Scrub all numbers with these lengths. e.g. [10] for all UK
+            NHS numbers.
+        scrub_all_uk_postcodes:
+          type: boolean
+          writeOnly: true
+          default: false
+          description: Scrub all UK postcodes.
+        alternatives:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+          writeOnly: true
+          description: 'List of alternative words to scrub. e.g.: [["Street", "St"],
+            ["Road", "Rd"], ["Avenue", "Ave"]]'
+        anonymised:
+          type: string
+          readOnly: true
+          description: The anonymised text.
+      required:
+      - anonymised
+      - text
+    Specific:
+      type: object
+      properties:
+        dates:
+          type: array
+          items:
+            type: string
+          description: List of dates to be scrubbed.
+        phrases:
+          type: array
+          items:
+            type: string
+          description: List of phrases (words appearing consecutively) to be scrubbed.
+        words:
+          type: array
+          items:
+            type: string
+          description: List of words to be scrubbed.
+        numbers:
+          type: array
+          items:
+            type: string
+          description: List of numbers to be scrubbed.
+        codes:
+          type: array
+          items:
+            type: string
+          description: List of codes (e.g. postcodes) to be scrubbed.
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

@@ -85,8 +85,8 @@ INSTALL_REQUIRES = [
     # "django-silk==4.0.1",  # Django profiler
     "djangorestframework==3.13.1",
     "django-sslserver==0.22",  # SSL development server for Django
-    "drf-spectacular=0.22.0",  # Open API Schema and documentation
-    "drf-spectacular-sidecar=2022.3.21",  # Static files for drf-spectacular
+    "drf-spectacular==0.22.0",  # Open API Schema and documentation
+    "drf-spectacular-sidecar==2022.3.21",  # Static files for drf-spectacular
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==1.0.0",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
@@ -136,10 +136,12 @@ INSTALL_REQUIRES = [
     "faker==13.3.1",  # test data creation
     "flake8==3.8.4",  # code checks
     "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
+    "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
     "pytest==6.0.2",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
     "sphinx==3.1.2",  # documentation
     "sphinx_rtd_theme==0.5.0",  # documentation
+    "sphinxcontrib-openapi==0.7.0",  # API documentation
 
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
@@ -255,6 +257,10 @@ setup(
             "crate_make_demo_database=crate_anon.anonymise.make_demo_database:main",  # noqa
             "crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main",  # noqa
             "crate_test_extract_text=crate_anon.anonymise.test_extract_text:main",  # noqa
+
+            # Anonimisation API
+
+            "crate_anon_web_django_manage=crate_anon.anonymise_webserver.manage:main",  # noqa: E501
 
             # NLP
 

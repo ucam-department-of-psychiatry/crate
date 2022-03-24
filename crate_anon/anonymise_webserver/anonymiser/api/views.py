@@ -30,7 +30,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from anonymiser.api.serializers import ScrubSerializer
+from crate_anon.anonymise_webserver.anonymiser.api.serializers import (
+    ScrubSerializer,
+)
 
 
 class ScrubView(APIView):

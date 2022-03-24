@@ -32,7 +32,7 @@ from drf_spectacular.views import (
     SpectacularRedocView,
 )
 
-from anonymiser.api.views import ScrubView
+from crate_anon.anonymise_webserver.anonymiser.api.views import ScrubView
 
 urlpatterns = [
     path("scrub/", ScrubView.as_view()),

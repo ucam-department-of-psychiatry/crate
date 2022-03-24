@@ -35,6 +35,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# TODO: Override in local settings
 SECRET_KEY = "django-insecure-he##k)+1fip%wmpv27vve)462o9*r35+3_w%u79iu76_6aa@s-"  # noqa: E501
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -67,7 +68,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "anonymiser.urls"
+ROOT_URLCONF = "crate_anon.anonymise_webserver.anonymiser.urls"
 
 TEMPLATES = [
     {

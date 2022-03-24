@@ -51,6 +51,7 @@ from crate_anon.common.constants import (
 log = logging.getLogger(__name__)
 
 THIS_DIR = dirname(realpath(__file__))
+ANON_SOURCE_DIR = join(THIS_DIR, "..", "crate_anon", "anonymise_webserver")
 DOCS_SOURCE_DIR = join(THIS_DIR, "source")
 ANCILLARY_DIR = join(DOCS_SOURCE_DIR, "ancillary")
 ANON_DIR = join(DOCS_SOURCE_DIR, "anonymisation")
@@ -147,6 +148,13 @@ def main():
             join(ANCILLARY_DIR, "_crate_test_extract_text_help.txt"))
 
     log.info("Manually generated: minimal_anonymiser_config.ini")
+
+    # -------------------------------------------------------------------------
+    # Anonymisation API
+    # -------------------------------------------------------------------------
+    os.chdir(ANON_SOURCE_DIR)
+    run_cmd(["crate_anon_web_django_manage", "spectacular"],
+            join(ANON_DIR, "_crate_api_schema.yaml"))
 
     # -------------------------------------------------------------------------
     # NLP
