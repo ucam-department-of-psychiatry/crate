@@ -3,7 +3,8 @@
 CrateMedexPipeline.java
 
 ===============================================================================
-    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+
+    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -19,6 +20,7 @@ CrateMedexPipeline.java
 
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
 ===============================================================================
 
 Implements a Java interface to MedEx-UIMA that receives "data is available"

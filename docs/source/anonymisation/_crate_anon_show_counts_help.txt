@@ -1,0 +1,10 @@
+usage: crate_anon_show_counts [-h] [--config CONFIG] [--verbose]
+
+Print record counts from source/destination databases. (CRATE version 0.19.3,
+2022-03-09. Created by Rudolf Cardinal.)
+
+optional arguments:
+  -h, --help       show this help message and exit
+  --config CONFIG  Config file (overriding environment variable
+                   CRATE_ANON_CONFIG). (default: None)
+  --verbose, -v    Be verbose (default: False)

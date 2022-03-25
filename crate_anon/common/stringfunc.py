@@ -104,7 +104,7 @@ def uprint(*objects: Any,
         file: file-like object to print to
 
     See
-    http://stackoverflow.com/questions/14630288/unicodeencodeerror-charmap-codec-cant-encode-character-maps-to-undefined
+    https://stackoverflow.com/questions/14630288/unicodeencodeerror-charmap-codec-cant-encode-character-maps-to-undefined
 
     Examples:
 

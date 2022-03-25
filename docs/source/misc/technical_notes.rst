@@ -111,7 +111,7 @@ you use the virtualenv’s ‘crate/bin/celeryd’ as the process). Services can
 be installed from Python. [Use ‘pip install pypiwin32’. (It’s a pip-only
 version of pywin32, I think.) That makes available the libraries pythoncom
 (unnecessary?), win32serviceutil, win32service, win32event, servicemanager.
-Then see http://stackoverflow.com/questions/32404 for how to install/run Python
+Then see https://stackoverflow.com/questions/32404 for how to install/run Python
 code as a service.]
 
 It did need some fixing, which was hard: key parameters to the “celery worker”
@@ -128,7 +128,7 @@ RabbitMQ supports Windows directly and runs as a service
 supervisord is used under Linux to control (a) celery and (b) gunicorn. It does
 not run under Windows
 (http://supervisord.org/introduction.html#platform-requirements ; though see
-http://stackoverflow.com/questions/7629813 as you can run supervisord under
+https://stackoverflow.com/questions/7629813 as you can run supervisord under
 Cygwin). Under Windows, we need to run (a) celery and (b) CherryPy. For Celery,
 this function is replaced by the Windows Task Scheduler. For CherryPy, there is
 also a daemon script. It can be run from the command line with ``python -c
@@ -199,18 +199,18 @@ See ``test_sqla_reflection.py``
   CursorStoreResultMixIn.fetchone() and CursorUseResultMixIn.fetchone(). The
   default, cursors.Cursor (used by Connection()), uses CursorStoreResultMixIn,
   which keeps the resultset on the client side. See also e.g.
-  http://stackoverflow.com/questions/18193825/python-how-to-use-a-generator-to-avoid-sql-memory-issue;
-  http://stackoverflow.com/questions/2067529/mysqldb-pulls-whole-query-result-in-one-chunk-always-even-if-i-just-do-a-fetchon;
+  https://stackoverflow.com/questions/18193825/python-how-to-use-a-generator-to-avoid-sql-memory-issue;
+  https://stackoverflow.com/questions/2067529/mysqldb-pulls-whole-query-result-in-one-chunk-always-even-if-i-just-do-a-fetchon;
   https://mail.python.org/pipermail/python-list/2006-June/370129.html;
-  http://stackoverflow.com/questions/1145905/sqlalchemy-scan-huge-tables-using-orm]
+  https://stackoverflow.com/questions/1145905/sqlalchemy-scan-huge-tables-using-orm]
 
 - INSERT... ON DUPLICATE KEY UPDATE: tricky
-  [http://stackoverflow.com/questions/6611563/sqlalchemy-on-duplicate-key-update;
+  [https://stackoverflow.com/questions/6611563/sqlalchemy-on-duplicate-key-update;
   https://gist.github.com/timtadh/7811458;
   https://www.reddit.com/r/Python/comments/p5grh/sqlalchemy_whats_the_idiomatic_way_of_writing/;
   https://groups.google.com/forum/#!topic/sqlalchemy/RJQHYOpmMCo;
   https://bitbucket.org/zzzeek/sqlalchemy/issues/3113/warning-for-custom-insert-mysql;
-  http://stackoverflow.com/questions/1382469/sqlalchemy-easy-way-to-insert-or-update
+  https://stackoverflow.com/questions/1382469/sqlalchemy-easy-way-to-insert-or-update
   https://bitbucket.org/zzzeek/sqlalchemy/issues/960]. Used a custom directive
   (with compile-specific-to-MySQL option) to append SQL.
 
@@ -224,11 +224,11 @@ See ``test_sqla_reflection.py``
   http://docs.sqlalchemy.org/en/latest/dialects/mysql.html . Specify options
   like mysql_charset either in the Table() definition (SQLAlchemy Core) or the
   __table_args__ dictionary (SQLAlchemy ORM):
-  http://stackoverflow.com/questions/8971960.] Database URLs should include
+  https://stackoverflow.com/questions/8971960.] Database URLs should include
   ‘?charset=utf8’ or similar, and the rest is handled internally.
 
 - CREATE FULLTEXT INDEX: MySQL-specific
-  [http://stackoverflow.com/questions/14971619/proper-use-of-mysql-full-text-search-with-sqlalchemy].
+  [https://stackoverflow.com/questions/14971619/proper-use-of-mysql-full-text-search-with-sqlalchemy].
   PostgreSQL supports full-text indexing but uses different methods
   [http://www.postgresql.org/docs/9.1/static/textsearch-tables.html]. Handled
   with dialect-specific code.
@@ -247,7 +247,7 @@ See ``test_sqla_reflection.py``
   default row format
   [https://dev.mysql.com/doc/refman/5.7/en/innodb-row-format-specification.html].
   You can dynamically change a table’s file and row format
-  [http://stackoverflow.com/questions/8112517/alter-row-format-to-dynamic].
+  [https://stackoverflow.com/questions/8112517/alter-row-format-to-dynamic].
 
   .. code-block:: none
 
@@ -269,8 +269,8 @@ See ``test_sqla_reflection.py``
     mysql> CREATE DATABASE somedb DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_unicode_ci;
 
     # To alter a table’s character set/collation:
-    # (http://stackoverflow.com/questions/742205)
-    # (http://stackoverflow.com/questions/766809)
+    # (https://stackoverflow.com/questions/742205)
+    # (https://stackoverflow.com/questions/766809)
     mysql> ALTER TABLE sometable CONVERT TO CHARACTER SET utf8 COLLATE utf8_unicode_ci;
 
 
@@ -425,7 +425,7 @@ See https://bitbucket.org/zzzeek/sqlalchemy/issues/1546/feature-request-commenti
 
         http://www.postgresql.org/docs/9.1/static/sql-createtable.html
         http://www.postgresql.org/docs/9.2/static/sql-comment.html
-        http://stackoverflow.com/questions/343138/retrieving-comments-from-a-postgresql-db
+        https://stackoverflow.com/questions/343138/retrieving-comments-from-a-postgresql-db
         http://www.postgresql.org/docs/8.3/static/catalog-pg-description.html
         http://www.postgresql.org/docs/9.2/static/monitoring-stats.html#PG-STATIO-ALL-TABLES-VIEW
 
@@ -486,7 +486,7 @@ See https://bitbucket.org/zzzeek/sqlalchemy/issues/1546/feature-request-commenti
 
     4. References
 
-        http://stackoverflow.com/questions/4586842/sql-comments-on-create-table-on-sql-server-2008
+        https://stackoverflow.com/questions/4586842/sql-comments-on-create-table-on-sql-server-2008
         https://msdn.microsoft.com/en-us/library/ms180047.aspx
         https://mrsql.wordpress.com/tag/sp_addextendedproperty/
 
@@ -547,7 +547,7 @@ webnotes.txt
 
     Using Apache's SetEnv and then reading the WSGI environment (as I currently do
     for CamCOPS, Sep 2015) can be flaky with Django, so should be avoided:
-        http://stackoverflow.com/questions/19754834/access-apache-setenv-variable-from-django-wsgi-py-file
+        https://stackoverflow.com/questions/19754834/access-apache-setenv-variable-from-django-wsgi-py-file
     Note that it appears possible, and lots of people advocate it, but Graham D.'s
     point is cautionary, and he wrote mod_wsgi.
 
@@ -689,7 +689,7 @@ webnotes.txt
     USER PROFILES
     -------------------------------------------------------------------------------
 
-    # http://stackoverflow.com/questions/19433630/how-to-use-user-as-foreign-key-in-django-1-5
+    # https://stackoverflow.com/questions/19433630/how-to-use-user-as-foreign-key-in-django-1-5
     # https://docs.djangoproject.com/en/dev/topics/auth/customizing/#referencing-the-user-model
     # https://www.youtube.com/watch?v=qLRxkStiaUg&list=PLxxA5z-8B2xk4szCgFmgonNcCboyNneMD&index=22
 
@@ -702,7 +702,7 @@ webnotes.txt
     -------------------------------------------------------------------------------
     Cheat sheet: http://www.mercurytide.co.uk/news/article/django-15-cheat-sheet/
 
-    Collected tips: http://stackoverflow.com/questions/550632/favorite-django-tips-features
+    Collected tips: https://stackoverflow.com/questions/550632/favorite-django-tips-features
     ... including:
 
         $CRATE_MANAGE graph_models -a -g -o crate_model_diagram.png
@@ -719,7 +719,7 @@ webnotes.txt
         http://zacharyvoase.com/2009/09/08/sendfile/
         http://django-private-files.readthedocs.org/en/0.1.2/serverconf.html
         ... Apache with mod_xsendfile
-        http://stackoverflow.com/questions/1156246/having-django-serve-downloadable-files
+        https://stackoverflow.com/questions/1156246/having-django-serve-downloadable-files
     - However, we do want to concatenate PDFs to make packages for clinicians.
       Though not necessarily very often.
     - Outbound e-mails can be stored as text (e.g. HTML).
@@ -729,7 +729,7 @@ webnotes.txt
 
 
     If you drop a table, or want to drop a table:
-        http://stackoverflow.com/questions/5328053/how-to-restore-dropped-table-with-django-south
+        https://stackoverflow.com/questions/5328053/how-to-restore-dropped-table-with-django-south
 
     ===============================================================================
     CSS MODEL
@@ -758,7 +758,7 @@ webnotes.txt
         - ... or could validate manually with a form, e.g.
             form = MyForm(request.GET, extraparam)
           using the style at
-            http://stackoverflow.com/questions/18769607/django-form-with-customer-parameter-and-validation-not-getting-clean-function  # noqa
+            https://stackoverflow.com/questions/18769607/django-form-with-customer-parameter-and-validation-not-getting-clean-function  # noqa
 
     2. Query parameters
         - can encode using urllib, e.g.
@@ -811,12 +811,12 @@ webnotes.txt
           not this:
             request.POST or None
 
-    http://stackoverflow.com/questions/2345708/how-can-i-get-the-full-absolute-url-with-domain-in-django  # noqa
-    http://stackoverflow.com/questions/150505/capturing-url-parameters-in-request-get  # noqa
-    http://stackoverflow.com/questions/2778247/how-do-i-construct-a-django-reverse-url-using-query-args  # noqa
+    https://stackoverflow.com/questions/2345708/how-can-i-get-the-full-absolute-url-with-domain-in-django  # noqa
+    https://stackoverflow.com/questions/150505/capturing-url-parameters-in-request-get  # noqa
+    https://stackoverflow.com/questions/2778247/how-do-i-construct-a-django-reverse-url-using-query-args  # noqa
     http://whippleit.blogspot.co.uk/2010/10/pretty-urls-vs-query-strings.html
-    http://stackoverflow.com/questions/3821663/querystring-in-rest-resource-url
-    http://stackoverflow.com/questions/9399147/django-form-validation-with-get
+    https://stackoverflow.com/questions/3821663/querystring-in-rest-resource-url
+    https://stackoverflow.com/questions/9399147/django-form-validation-with-get
 
     ===============================================================================
     Back-end processing: Celery
@@ -889,14 +889,14 @@ webnotes.txt
     # https://groups.google.com/forum/#!topic/django-users/xFdZnKq26H0
     # https://code.djangoproject.com/ticket/8906
 
-    # http://stackoverflow.com/questions/30566836/how-to-autostart-apachectl-script-that-mod-wsgi-express-made-for-django
+    # https://stackoverflow.com/questions/30566836/how-to-autostart-apachectl-script-that-mod-wsgi-express-made-for-django
 
     ===============================================================================
     Celery (etc.) as daemon, and overall stack
     ===============================================================================
 
     Most convenient to use supervisor/django-supervisor?
-        http://stackoverflow.com/questions/14275821/how-to-run-celery-as-a-daemon-in-production
+        https://stackoverflow.com/questions/14275821/how-to-run-celery-as-a-daemon-in-production
     Supervisor won't install via pip for Python 3. It's Python 2 only at present:
         http://supervisord.org
     However, it is an Ubuntu package (supervisor).
@@ -911,7 +911,7 @@ webnotes.txt
         http://www.apreche.net/complete-single-server-django-stack-tutorial/
 
     supervisord / PYTHONPATH
-        http://stackoverflow.com/questions/7930259/supervisor-running-a-python-script-pythonpath-issue
+        https://stackoverflow.com/questions/7930259/supervisor-running-a-python-script-pythonpath-issue
 
     ===============================================================================
     Overall stack
@@ -953,7 +953,7 @@ webnotes.txt
         ... restart Apache, if running
 
     - The other possibility might be to run a separate web server and proxy it from Apache, e.g.
-        http://stackoverflow.com/questions/6418016/gunicorn-via-mod-proxy-is-redirecting-outside-of-the-projects-scope-despite-pr
+        https://stackoverflow.com/questions/6418016/gunicorn-via-mod-proxy-is-redirecting-outside-of-the-projects-scope-despite-pr
         http://serverfault.com/questions/429404/help-me-understand-how-to-use-proxypass
         http://blog.endpoint.com/2013/04/making-ssl-work-with-django-behind.html
       It adds another thing to fall over, but it would allow Apache to run without
@@ -1122,7 +1122,7 @@ webnotes.txt
     # )
     #
     # An alternative is to set DEBUG_TOOLBAR_CONFIG as per
-    # http://stackoverflow.com/questions/28226940/django-debug-toolbar-wont-display-from-production-server  # noqa
+    # https://stackoverflow.com/questions/28226940/django-debug-toolbar-wont-display-from-production-server  # noqa
     # Like this:
 
     def always_show_toolbar(request):
@@ -1136,7 +1136,7 @@ webnotes.txt
     SQL Server
     ===============================================================================
 
-    http://stackoverflow.com/questions/13726670/using-jython-with-django
+    https://stackoverflow.com/questions/13726670/using-jython-with-django
 
     - Microsoft SQL Server drivers:
       OLD: ODBC: https://msdn.microsoft.com/en-us/library/hh568451(v=sql.110).aspx
@@ -1152,7 +1152,7 @@ webnotes.txt
 
     - Django (Python) support Microsoft SQL Server via django-mssql, but that is Windows only, and doesn't support Linux.
       http://django-mssql.readthedocs.org/en/latest/
-      http://stackoverflow.com/questions/22604732/linux-django-sqlserver
+      https://stackoverflow.com/questions/22604732/linux-django-sqlserver
 
     - Another Python route, looking dated:
       Django / django-sqlserver / python-tds
@@ -1171,8 +1171,8 @@ webnotes.txt
     - Another Python route, but not Python 3:
       Django / django-pyodbc
       https://github.com/lionheart/django-pyodbc/
-      http://stackoverflow.com/questions/24026608/sql-server-2008-2012-backend-module-for-django-on-linux
-      http://stackoverflow.com/questions/2791766/django-pyodbc-sql-server-freetds-server-connection-problems-on-linux
+      https://stackoverflow.com/questions/24026608/sql-server-2008-2012-backend-module-for-django-on-linux
+      https://stackoverflow.com/questions/2791766/django-pyodbc-sql-server-freetds-server-connection-problems-on-linux
 
     TO READ:
     http://blog.nguyenvq.com/blog/tag/jtds/
@@ -1188,8 +1188,8 @@ webnotes.txt
       http://www.freetds.org/
 
       +/- https://code.google.com/p/django-pyodbc/wiki/FreeTDS
-      +/- http://stackoverflow.com/questions/24906016/exception-value-08001-08001-unixodbcfreetdssql-serverunable-to-con
-      and http://stackoverflow.com/questions/20283199/django-pyodbc-azure-databaseerror-42000-42000-error-converting-data-type
+      +/- https://stackoverflow.com/questions/24906016/exception-value-08001-08001-unixodbcfreetdssql-serverunable-to-con
+      and https://stackoverflow.com/questions/20283199/django-pyodbc-azure-databaseerror-42000-42000-error-converting-data-type
       ... = how to set TDS protocol version with Django
 
     ... NB not old UnixODBC versions: https://github.com/michiya/django-pyodbc-azure/issues/4
@@ -1318,7 +1318,7 @@ webnotes.txt
             description = "CRATE test SQL Server 2005 database on Wombat VMXP"
             driver = FreeTDS
             TDS_Version = 8.0
-            ; which TDS version setting is read, of the several possibilities? See http://stackoverflow.com/questions/13066716
+            ; which TDS version setting is read, of the several possibilities? See https://stackoverflow.com/questions/13066716
             server = 192.168.1.13
             port = 1433
 
@@ -1404,9 +1404,9 @@ notes_on_database_schemas.txt
     However, Postgres doesn't allow you to query across databases, so "schema"
     becomes more important.
 
-    - http://stackoverflow.com/questions/1152405/postgresql-is-it-better-using-multiple-databases-with-1-schema-each-or-1-datab
-    - http://stackoverflow.com/questions/46324/possible-to-perform-cross-database-queries-with-postgres
-    - http://stackoverflow.com/questions/4678862/joining-results-from-two-separate-databases
+    - https://stackoverflow.com/questions/1152405/postgresql-is-it-better-using-multiple-databases-with-1-schema-each-or-1-datab
+    - https://stackoverflow.com/questions/46324/possible-to-perform-cross-database-queries-with-postgres
+    - https://stackoverflow.com/questions/4678862/joining-results-from-two-separate-databases
     - http://wiki.postgresql.org/wiki/FAQ#How_do_I_perform_queries_using_multiple_databases.3F
 
     The default PostgreSQL schema is 'public'.
@@ -1428,7 +1428,7 @@ notes_on_database_schemas.txt
 
     SCHEMA and DATABASE are synonymous.
 
-    - http://stackoverflow.com/questions/11618277/difference-between-schema-database-in-mysql
+    - https://stackoverflow.com/questions/11618277/difference-between-schema-database-in-mysql
     - https://dev.mysql.com/doc/refman/5.7/en/glossary.html#glos_schema
 
     The SELECT statement can go up to:
@@ -1461,13 +1461,13 @@ notes_on_database_schemas.txt
     - For MySQL, should we call the top level "database" or "schema"?
     - Well, the concept of schemas allows enforced foreign keys between two
       different schemas in the same database (in SQL Server).
-      - http://stackoverflow.com/questions/2095268/foreign-key-reference-to-table-in-another-schema
+      - https://stackoverflow.com/questions/2095268/foreign-key-reference-to-table-in-another-schema
     - SQL Server doesn't allow referential constraints across databases, except
       via manual triggers
-      - http://stackoverflow.com/questions/4452132/add-foreign-key-relationship-between-two-databases
+      - https://stackoverflow.com/questions/4452132/add-foreign-key-relationship-between-two-databases
     - What about MySQL?
       MySQL allows FKs between two different databases, I think:
-      - http://stackoverflow.com/questions/3905013/mysql-innodb-foreign-key-between-different-databases
+      - https://stackoverflow.com/questions/3905013/mysql-innodb-foreign-key-between-different-databases
       ... but are they properly enforced? I think so.
     - That would make a MySQL {database/schema} more like an SQL Server schema,
       rather than an SQL Server database.
@@ -1681,7 +1681,7 @@ old notes.txt
         ... but actually not relating to insertion at all, but to retrieval
         ... nrows=90060 then crash in gen_rows at the point of cursor.fetchone()
         ... This?
-            http://stackoverflow.com/questions/11657958
+            https://stackoverflow.com/questions/11657958
             https://code.google.com/p/pyodbc/issues/detail?id=346
             https://msdn.microsoft.com/en-us/library/hh568448.aspx
             https://code.google.com/p/pyodbc/issues/detail?id=188
@@ -1781,9 +1781,9 @@ old notes.txt
 
             ... NOT WORKING.
 
-        - http://stackoverflow.com/questions/27068092/jpype-java-initialize-with-or-get-remaining-heap-space
+        - https://stackoverflow.com/questions/27068092/jpype-java-initialize-with-or-get-remaining-heap-space
 
-        - http://stackoverflow.com/questions/1178736/mysql-maximum-memory-usage
+        - https://stackoverflow.com/questions/1178736/mysql-maximum-memory-usage
         - SHOW ENGINE INNODB STATUS
 
         USEFUL THINGS:
@@ -2174,7 +2174,7 @@ old notes.txt
           https://noamkremen.github.io/a-simple-threadsafe-caching-decorator.html
           http://codereview.stackexchange.com/questions/91656/thread-safe-memoizer
           https://pythonhosted.org/cachetools/#
-          http://stackoverflow.com/questions/213455/python-threadsafe-object-cache
+          https://stackoverflow.com/questions/213455/python-threadsafe-object-cache
           http://codereview.stackexchange.com/questions/91656/thread-safe-memoizer
 
         - Then, also, the Django cache system:

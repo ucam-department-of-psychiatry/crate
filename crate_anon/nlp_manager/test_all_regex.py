@@ -50,7 +50,7 @@ def test_all_regex_nlp(verbose: bool = False) -> None:
     # ... tests all parser classes
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     parser = argparse.ArgumentParser()
     parser.add_argument('--verbose', '-v', action="store_true", help="Verbose")

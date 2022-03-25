@@ -235,6 +235,10 @@ table.options, .options table {
 .rjust {
     text-align: right;
 }
+.rjust img {
+    /* The align tag on img is deprecated; https://stackoverflow.com/questions/23021145 */
+    float: right;
+}
 .signature {
     width: 100%;
     border: none;

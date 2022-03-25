@@ -48,6 +48,7 @@ import prettytable
 
 # noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser, TableMaker
+# noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.parse_gate import Gate
 from crate_anon.nlp_manager.parse_medex import Medex
@@ -108,8 +109,8 @@ def get_all_subclasses(cls: ClassType) -> List[ClassType]:
         list of classes
     """
     # Type hinting, but not quite:
-    #   http://stackoverflow.com/questions/35655257
-    # Getting derived subclasses: http://stackoverflow.com/questions/3862310
+    #   https://stackoverflow.com/questions/35655257
+    # Getting derived subclasses: https://stackoverflow.com/questions/3862310
     all_subclasses = []  # List[ClassType]
     # noinspection PyArgumentList
     for subclass in cls.__subclasses__():
@@ -320,6 +321,6 @@ def all_crate_python_processors_nlprp_processor_info(
     return allprocs
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all_processors()

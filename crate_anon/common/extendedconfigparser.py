@@ -369,7 +369,7 @@ class ExtendedConfigParser(configparser.ConfigParser):
             return default
         pyvalue = ast.literal_eval(strvalue)
         # Now, make sure it's a list:
-        # http://stackoverflow.com/questions/1835018
+        # https://stackoverflow.com/questions/1835018
         if not isinstance(pyvalue, list):
             configfail(f"Option {option} must evaluate to a Python list "
                        f"using ast.literal_eval()")

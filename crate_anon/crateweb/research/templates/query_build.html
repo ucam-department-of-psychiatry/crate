@@ -60,7 +60,7 @@
         <li>Inexact string comparison can be done in several ways:
             <ul>
                 {% if dialect_mysql %}
-                    <li><a href="http://dev.mysql.com/doc/refman/5.7/en/pattern-matching.html">LIKE</a>,
+                    <li><a href="https://dev.mysql.com/doc/refman/5.7/en/pattern-matching.html">LIKE</a>,
                         in which ‘%’ stands for any number of characters, and ‘_’
                         for one unknown character. For example, use
                         <span class="code">%schizophreni%</span> to find text
@@ -70,10 +70,10 @@
                         which is much faster than LIKE. MATCH can be used if there
                         is a full-text index on the column in question. You can
                         MATCH AGAINST words or phrases.</li>
-                    <li><a href="http://dev.mysql.com/doc/refman/5.7/en/pattern-matching.html">REGEXP</a>,
+                    <li><a href="https://dev.mysql.com/doc/refman/5.7/en/pattern-matching.html">REGEXP</a>,
                         using <a href="https://en.wikipedia.org/wiki/Regular_expression">regular expressions</a>.
-                        This is complicated; see a <a href="http://regexone.com/">tutorial</a>
-                        and use a <a href="http://regexr.com/">regular expression tester</a>.</li>
+                        This is complicated; see a <a href="https://regexone.com/">tutorial</a>
+                        and use a <a href="https://regexr.com/">regular expression tester</a>.</li>
                 {% endif %}
 
                 {% if dialect_mssql %}
@@ -112,7 +112,7 @@
 
         <li>Browsers: Firefox doesn’t support date pickers (as of
         version 50.0.2, Nov 2016). Chrome does. See
-        <a href="http://caniuse.com/#feat=input-datetime">http://caniuse.com/#feat=input-datetime</a>.
+        <a href="https://caniuse.com/#feat=input-datetime">https://caniuse.com/#feat=input-datetime</a>.
         This page hacks in date picker support for browsers as required.</li>
 
     </ul>

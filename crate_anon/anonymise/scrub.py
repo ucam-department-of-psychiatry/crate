@@ -36,6 +36,7 @@ from typing import (Any, Dict, Iterable, Generator, List, Optional, Pattern,
                     Set, Tuple, Union)
 
 from cardinal_pythonlib.datetimefunc import coerce_to_datetime
+from cardinal_pythonlib.file_io import gen_lines_without_comments
 from cardinal_pythonlib.hash import GenericHasher
 from cardinal_pythonlib.sql.validation import (
     is_sqltype_date,
@@ -46,11 +47,12 @@ from cardinal_pythonlib.text import get_unicode_characters
 from crate_anon.common.bugfix_flashtext import KeywordProcessorFixed
 # ... temp bugfix
 
-from crate_anon.anonymise.constants import SCRUBMETHOD
+from crate_anon.anonymise.constants import ScrubMethod
 from crate_anon.anonymise.anonregex import (
     get_anon_fragments_from_string,
     get_code_regex_elements,
     get_date_regex_elements,
+    get_generic_date_regex_elements,
     get_number_of_length_n_regex_elements,
     get_phrase_regex_elements,
     get_regex_from_elements,
@@ -109,14 +111,27 @@ class ScrubberBase(object):
 # WordList
 # =============================================================================
 
-def lower_case_words_from_file(fileobj: Iterable[str]) -> Generator[str, None,
-                                                                    None]:
+def lower_case_words_from_file(filename: str) \
+        -> Generator[str, None, None]:
     """
     Generates lower-case words from a file.
     """
-    for line in fileobj:
+    for line in gen_lines_without_comments(filename,
+                                           comment_at_start_only=True):
         for word in line.split():
-            yield word.lower()
+            if word:
+                yield word.lower()
+
+
+def lower_case_phrase_lines_from_file(filename: str) \
+        -> Generator[str, None, None]:
+    """
+    Generates lower-case phrases from a file, one per line.
+    """
+    for line in gen_lines_without_comments(filename,
+                                           comment_at_start_only=True):
+        # line is pre-stripped (left/right) and not empty
+        yield line.lower()
 
 
 FLASHTEXT_WORD_CHARACTERS = set(
@@ -140,6 +155,7 @@ class WordList(ScrubberBase):
     def __init__(self,
                  filenames: Iterable[str] = None,
                  words: Iterable[str] = None,
+                 as_phrases: bool = False,
                  replacement_text: str = '[---]',
                  hasher: GenericHasher = None,
                  suffixes: List[str] = None,
@@ -149,16 +165,20 @@ class WordList(ScrubberBase):
         """
         Args:
             filenames:
-                filenames to read words from
+                Filenames to read words from.
             words:
-                additional words to add
+                Additional words to add.
+            as_phrases:
+                Keep lines in the source file intact (as phrases), rather than
+                splitting them into individual words, and (if ``regex_method``
+                is True) scrub as phrases.
             replacement_text:
-                replace sensitive content with this string
+                Replace sensitive content with this string.
             hasher:
                 :class:`GenericHasher` to use to hash this scrubber (for
-                change-detection purposes); should be a secure hasher
+                change-detection purposes); should be a secure hasher.
             suffixes:
-                append each of these suffixes to each word
+                Append each of these suffixes to each word.
             at_word_boundaries_only:
                 Boolean. If set, ensure that the regex begins and ends with a
                 word boundary requirement. (If false: will scrub ``ANN`` from
@@ -166,17 +186,23 @@ class WordList(ScrubberBase):
             max_errors:
                 The maximum number of typographical insertion / deletion /
                 substitution errors to permit. Applicable only if
-                ``regex_method`` is true.
+                ``regex_method`` is True.
             regex_method:
-                Use regular expressions? Best not to; the alternative is
-                FlashText, which is much faster.
+                Use regular expressions? If True: slower, but phrase scrubbing
+                deals with variable whitespace. If False: much faster (uses
+                FlashText), but whitespace is inflexible.
         """
+        if at_word_boundaries_only is False and not regex_method:
+            raise ValueError(
+                "FlashText (chosen by regex_method=False) will only work at "
+                "word boundaries")
         filenames = filenames or []
         words = words or []
 
         super().__init__(hasher)
         self.replacement_text = replacement_text
-        self.suffixes = suffixes
+        self.as_phrases = as_phrases
+        self.suffixes = suffixes or []  # type: List[str]
         self.at_word_boundaries_only = at_word_boundaries_only
         self.max_errors = max_errors
         self.regex_method = regex_method
@@ -187,7 +213,7 @@ class WordList(ScrubberBase):
 
         self.words = set()  # type: Set[str]
         # Sets are faster than lists for "is x in s" operations:
-        # http://stackoverflow.com/questions/2831212/python-sets-vs-lists
+        # https://stackoverflow.com/questions/2831212/python-sets-vs-lists
         # noinspection PyTypeChecker
         for f in filenames:
             self.add_file(f, clear_cache=False)
@@ -225,13 +251,17 @@ class WordList(ScrubberBase):
         Add all words from a file.
 
         Args:
-            filename: file to read
-            clear_cache: also clear our cache?
+            filename:
+                File to read.
+            clear_cache:
+                Also clear our cache?
         """
-        with open(filename) as f:
-            wordgen = lower_case_words_from_file(f)
-            for w in wordgen:
-                self.words.add(w)
+        if self.as_phrases:
+            wordgen = lower_case_phrase_lines_from_file(filename)
+        else:
+            wordgen = lower_case_words_from_file(filename)
+        for w in wordgen:
+            self.words.add(w)
         if clear_cache:
             self.clear_cache()
 
@@ -264,6 +294,14 @@ class WordList(ScrubberBase):
                 return text
             return self._processor.replace_keywords(text)
 
+    def _gen_word_and_suffixed(self, w: str) -> Iterable[str]:
+        """
+        Yields the word supplied plus suffixed versions.
+        """
+        yield w
+        for s in self.suffixes:
+            yield w + s
+
     def build(self) -> None:
         """
         Compiles a high-speed scrubbing device, be it a regex or a FlashText
@@ -272,12 +310,20 @@ class WordList(ScrubberBase):
         if self.regex_method:
             elements = []  # type: List[str]
             for w in self.words:
-                elements.extend(get_string_regex_elements(
-                    w,
-                    suffixes=self.suffixes,
-                    at_word_boundaries_only=self.at_word_boundaries_only,
-                    max_errors=self.max_errors
-                ))
+                if self.as_phrases:
+                    elements.extend(get_phrase_regex_elements(
+                        w,
+                        suffixes=self.suffixes,
+                        at_word_boundaries_only=self.at_word_boundaries_only,
+                        max_errors=self.max_errors
+                    ))
+                else:
+                    elements.extend(get_string_regex_elements(
+                        w,
+                        suffixes=self.suffixes,
+                        at_word_boundaries_only=self.at_word_boundaries_only,
+                        max_errors=self.max_errors
+                    ))
             log.debug(f"Building regex with {len(elements)} elements")
             self._regex = get_regex_from_elements(elements)
         else:
@@ -289,7 +335,8 @@ class WordList(ScrubberBase):
                 log.debug(f"Building FlashText processor with "
                           f"{len(self.words)} keywords")
                 for w in self.words:
-                    self._processor.add_keyword(w, replacement)
+                    for sw in self._gen_word_and_suffixed(w):
+                        self._processor.add_keyword(sw, replacement)
             else:
                 self._processor = None  # type: Optional[KeywordProcessorFixed]
         self._built = True
@@ -308,46 +355,62 @@ class NonspecificScrubber(ScrubberBase):
                  replacement_text: str,
                  hasher: GenericHasher,
                  anonymise_codes_at_word_boundaries_only: bool = True,
+                 anonymise_dates_at_word_boundaries_only: bool = True,
                  anonymise_numbers_at_word_boundaries_only: bool = True,
                  denylist: WordList = None,
                  scrub_all_numbers_of_n_digits: List[int] = None,
                  scrub_all_uk_postcodes: bool = False,
+                 scrub_all_dates: bool = False,
                  extra_regexes: Optional[List[str]] = None) -> None:
         """
         Args:
             replacement_text:
-                replace sensitive content with this string
+                Replace sensitive content with this string.
             hasher:
                 :class:`GenericHasher` to use to hash this scrubber (for
                 change-detection purposes); should be a secure hasher
             anonymise_codes_at_word_boundaries_only:
                 For codes: Boolean. Ensure that the regex begins and ends with
                 a word boundary requirement.
+            anonymise_dates_at_word_boundaries_only:
+                Scrub dates only if they occur at word boundaries. (Even if you
+                say no, there are *some* restrictions or very odd things would
+                happen; see
+                :func:`crate_anon.anonymise.anonregex.get_generic_date_regex_elements`.)
             anonymise_numbers_at_word_boundaries_only:
-               For numbers: Boolean. If set, ensure that the regex begins and
-               ends with a word boundary requirement. If not set, the regex
-               must be surrounded by non-digits. (If it were surrounded by more
-               digits, it wouldn't be an n-digit number!)
+                For numbers: Boolean. If set, ensure that the regex begins and
+                ends with a word boundary requirement. If not set, the regex
+                must be surrounded by non-digits. (If it were surrounded by
+                more digits, it wouldn't be an n-digit number!)
             denylist:
-                words to scrub
+                Words to scrub.
             scrub_all_numbers_of_n_digits:
-                list of values of n; number lengths to scrub
+                List of values of n; number lengths to scrub.
             scrub_all_uk_postcodes:
-                scrub all UK postcodes?
+                Scrub all UK postcodes?
+            scrub_all_dates:
+                Scrub all dates? (Currently assumes the default locale for
+                month names and ordinal suffixes.)
             extra_regexes:
-                list of user-defined extra regexes to scrub
-        """
+                List of user-defined extra regexes to scrub.
+        """  # noqa
         scrub_all_numbers_of_n_digits = scrub_all_numbers_of_n_digits or []
 
         super().__init__(hasher)
         self.replacement_text = replacement_text
         self.anonymise_codes_at_word_boundaries_only = (
-            anonymise_codes_at_word_boundaries_only)
+            anonymise_codes_at_word_boundaries_only
+        )
+        self.anonymise_dates_at_word_boundaries_only = (
+            anonymise_dates_at_word_boundaries_only
+        )
         self.anonymise_numbers_at_word_boundaries_only = (
-            anonymise_numbers_at_word_boundaries_only)
+            anonymise_numbers_at_word_boundaries_only
+        )
         self.denylist = denylist
         self.scrub_all_numbers_of_n_digits = scrub_all_numbers_of_n_digits
         self.scrub_all_uk_postcodes = scrub_all_uk_postcodes
+        self.scrub_all_dates = scrub_all_dates
         self.extra_regexes = extra_regexes
 
         self._cached_hash = None  # type: Optional[str]
@@ -397,6 +460,10 @@ class NonspecificScrubber(ScrubberBase):
                 n,
                 at_word_boundaries_only=(
                     self.anonymise_numbers_at_word_boundaries_only)
+            ))
+        if self.scrub_all_dates:
+            elements.extend(get_generic_date_regex_elements(
+                at_word_boundaries_only=self.anonymise_dates_at_word_boundaries_only  # noqa
             ))
         if self.extra_regexes:
             elements.extend(self.extra_regexes)
@@ -513,7 +580,7 @@ class PersonalizedScrubber(ScrubberBase):
         self.re_tp_elements = []  # type: List[str]
         # ... both changed from set to list to reflect referee's point re
         #     potential importance of scrubber order
-        self.elements_tuplelist = []  # type: List[Tuple[bool, SCRUBMETHOD, str]]  # noqa
+        self.elements_tuplelist = []  # type: List[Tuple[bool, ScrubMethod, str]]  # noqa
         # ... list of tuples: (patient?, type, value)
         # ... used for get_raw_info(); since we've made the order important,
         #     we should detect changes in order here as well
@@ -527,7 +594,7 @@ class PersonalizedScrubber(ScrubberBase):
 
     @staticmethod
     def get_scrub_method(datatype_long: str,
-                         scrub_method: Optional[SCRUBMETHOD]) -> SCRUBMETHOD:
+                         scrub_method: Optional[ScrubMethod]) -> ScrubMethod:
         """
         Return the default scrub method for a given SQL datatype, unless
         overridden. For example, dates are scrubbed via a date method; numbers
@@ -543,15 +610,15 @@ class PersonalizedScrubber(ScrubberBase):
         if scrub_method is not None:
             return scrub_method
         elif is_sqltype_date(datatype_long):
-            return SCRUBMETHOD.DATE
+            return ScrubMethod.DATE
         elif is_sqltype_text_over_one_char(datatype_long):
-            return SCRUBMETHOD.WORDS
+            return ScrubMethod.WORDS
         else:
-            return SCRUBMETHOD.NUMERIC
+            return ScrubMethod.NUMERIC
 
     def add_value(self,
                   value: Any,
-                  scrub_method: SCRUBMETHOD,
+                  scrub_method: ScrubMethod,
                   patient: bool = True,
                   clear_cache: bool = True) -> None:
         """
@@ -576,15 +643,17 @@ class PersonalizedScrubber(ScrubberBase):
         # Note: object reference
         r = self.re_patient_elements if patient else self.re_tp_elements
 
-        if scrub_method is SCRUBMETHOD.DATE:
+        if scrub_method is ScrubMethod.DATE:
             elements = self.get_elements_date(value)
-        elif scrub_method is SCRUBMETHOD.WORDS:
+        elif scrub_method is ScrubMethod.WORDS:
             elements = self.get_elements_words(value)
-        elif scrub_method is SCRUBMETHOD.PHRASE:
+        elif scrub_method is ScrubMethod.PHRASE:
             elements = self.get_elements_phrase(value)
-        elif scrub_method is SCRUBMETHOD.NUMERIC:
+        elif scrub_method is ScrubMethod.PHRASE_UNLESS_NUMERIC:
+            elements = self.get_elements_phrase_unless_numeric(value)
+        elif scrub_method is ScrubMethod.NUMERIC:
             elements = self.get_elements_numeric(value)
-        elif scrub_method is SCRUBMETHOD.CODE:
+        elif scrub_method is ScrubMethod.CODE:
             elements = self.get_elements_code(value)
         else:
             raise ValueError(f"Bug: unknown scrub_method to add_value: "
@@ -648,7 +717,7 @@ class PersonalizedScrubber(ScrubberBase):
         """
         Returns a list of regex elements for a given phrase.
         """
-        value = str(value)
+        value = str(value).strip()
         if not value:
             return []
         length = len(value)
@@ -667,6 +736,17 @@ class PersonalizedScrubber(ScrubberBase):
                 self.anonymise_strings_at_word_boundaries_only),
             alternatives=self.alternatives
         )
+
+    def get_elements_phrase_unless_numeric(self, value: Any) -> List[str]:
+        """
+        If the value is numeric, return an empty list. Otherwise, returns a
+        list of regex elements for the given phrase.
+        """
+        try:
+            _ = float(value)
+            return []
+        except (TypeError, ValueError):
+            return self.get_elements_phrase(value)
 
     def get_elements_numeric(self, value: Any) -> List[str]:
         """
@@ -740,12 +820,15 @@ class PersonalizedScrubber(ScrubberBase):
         if not self.regexes_built:
             self.build_regexes()
 
-        if self.nonspecific_scrubber:
-            text = self.nonspecific_scrubber.scrub(text)
+        # Patient, then third party, then nonspecific. That makes the
+        # replacement text slightly more informative, assuming the user has
+        # chosen different replacement strings for each.
         if self.re_patient:
             text = self.re_patient.sub(self.replacement_text_patient, text)
         if self.re_tp:
             text = self.re_tp.sub(self.replacement_text_third_party, text)
+        if self.nonspecific_scrubber:
+            text = self.nonspecific_scrubber.scrub(text)
         return text
 
     def get_hash(self) -> str:
@@ -788,13 +871,3 @@ class PersonalizedScrubber(ScrubberBase):
             ('elements', self.elements_tuplelist),
         )
         return OrderedDict(d)
-
-
-_TEST_FLASHTEXT = r"""
-
-import flashtext
-replacement = "[~~~]"
-keywords = [
-
-
-"""

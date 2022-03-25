@@ -36,23 +36,17 @@ command-line input; uses a delayed import when starting anonymisation.
 import argparse
 import logging
 import os
-import pprint
-import re
-import sys
-from typing import Dict, List
+from typing import List
 
-from cardinal_pythonlib.extract_text import is_text_extractor_available
 from cardinal_pythonlib.logs import configure_logger_for_colour
 
 from crate_anon.anonymise.constants import (
     ANON_CONFIG_ENV_VAR,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
-    DEMO_CONFIG,
 )
-from crate_anon.common.constants import EXIT_FAILURE
 from crate_anon.common.exceptions import call_main_with_exception_reporting
-from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
+from crate_anon.version import CRATE_VERSION_PRETTY
 
 log = logging.getLogger(__name__)
 
@@ -74,52 +68,20 @@ def inner_main() -> None:
 
     Calls :func:`crate_anon.anonymise.anonymise.anonymise`.
     """
-    version = f"Version {CRATE_VERSION} ({CRATE_VERSION_DATE})"
-    description = f"Database anonymiser. {version}. By Rudolf Cardinal."
-
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        description=description,
+        description=f"Database anonymiser. ({CRATE_VERSION_PRETTY})",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
         "--config",
         help=f"Config file (overriding environment variable "
-             f"{ANON_CONFIG_ENV_VAR})")
+             f"{ANON_CONFIG_ENV_VAR}).")
+    parser.add_argument(
+        "--version", action="version", version=CRATE_VERSION_PRETTY)
     parser.add_argument(
         '--verbose', '-v', action="store_true",
         help="Be verbose")
-
-    # Group descriptions are not word-wrapped automatically.
-    simple_group_1 = parser.add_argument_group(
-        "Simple commands not requiring a config"
-    )
-    simple_group_1.add_argument(
-        "--version", action="version", version=version)
-    simple_group_1.add_argument(
-        "--democonfig", action="store_true",
-        help="Print a demo config file")
-    simple_group_1.add_argument(
-        "--leave_placeholders", action="store_true",
-        help="Don't substitute @@ placeholders with examples")
-    simple_group_1.add_argument(
-        "--checkextractor", nargs='*',
-        help="File extensions to check for availability of a text extractor "
-             "(use a '.' prefix, and use the special extension 'None' to "
-             "check the fallback processor")
-
-    simple_group_2 = parser.add_argument_group(
-        "Simple commands requiring a config"
-    )
-    simple_group_2.add_argument(
-        "--draftdd", action="store_true",
-        help="Print a draft data dictionary")
-    simple_group_2.add_argument(
-        "--incrementaldd", action="store_true",
-        help="Print an INCREMENTAL draft data dictionary")
-    simple_group_2.add_argument(
-        "--count", action="store_true",
-        help="Count records in source/destination databases, then stop")
 
     mode_options = parser.add_argument_group(
         "Mode options"
@@ -127,16 +89,16 @@ def inner_main() -> None:
     mode_group = mode_options.add_mutually_exclusive_group()
     mode_group.add_argument(
         "-i", "--incremental", dest="incremental", action="store_true",
-        help="Process only new/changed information, where possible",
+        help="Process only new/changed information, where possible.",
         default=True)
     mode_group.add_argument(
         "-f", "--full", dest="incremental", action="store_false",
-        help="Drop and remake everything",
+        help="Drop and remake everything.",
         default=False)
     mode_options.add_argument(
         "--skipdelete", dest="skipdelete", action="store_true",
         help="For incremental updates, skip deletion of rows present in the "
-             "destination but not the source")
+             "destination but not the source.")
 
     action_options = parser.add_argument_group(
         "Action options (default is to do all, but if any are specified, "
@@ -144,19 +106,26 @@ def inner_main() -> None:
     )
     action_options.add_argument(
         "--dropremake", action="store_true",
-        help="Drop/remake destination tables.")
+        help="Drop/remake destination tables, and admin tables except "
+             "opt-out tables.")
+    action_options.add_argument(
+        "--drop_all", action="store_true",
+        help="Drop all destination tables known to the data dictionary, and "
+             "all admin tables, then stop. (May also be helpful in revealing "
+             "leftover tables in the destination database, e.g. if the data "
+             "dictionary has changed.)")
     action_options.add_argument(
         "--optout", action="store_true",
         help="Update opt-out list in administrative database.")
     action_options.add_argument(
         "--nonpatienttables", action="store_true",
-        help="Process non-patient tables only")
+        help="Process non-patient tables only.")
     action_options.add_argument(
         "--patienttables", action="store_true",
-        help="Process patient tables only")
+        help="Process patient tables only.")
     action_options.add_argument(
         "--index", action="store_true",
-        help="Create indexes only")
+        help="Create indexes only.")
 
     restrict_options = parser.add_argument_group(
         "Restriction options"
@@ -168,15 +137,15 @@ def inner_main() -> None:
     restrict_options.add_argument(
         "--limits", nargs=2,
         help="Specify lower and upper limits of the field "
-             "specified in '--restrict'")
+             "specified in '--restrict'.")
     restrict_options.add_argument(
         "--file",
         help="Specify a file with a list of values for the field "
-             "specified in '--restrict'")
+             "specified in '--restrict'.")
     restrict_options.add_argument(
         "--list", nargs="+",
         help="Specify a list of values for the field "
-             "specified in '--restrict'")
+             "specified in '--restrict'.")
     restrict_options.add_argument(
         "--free_text_limit", type=int,
         help="Filter out all free text fields over the specified length. "
@@ -192,17 +161,17 @@ def inner_main() -> None:
     )
     processing_options.add_argument(
         "--process", nargs="?", type=int, default=0,
-        help="For multiprocess mode: specify process number")
+        help="For multiprocess mode: specify process number.")
     processing_options.add_argument(
         "--nprocesses", nargs="?", type=int, default=1,
         help="For multiprocess mode: specify total number of processes "
-             "(launched somehow, of which this is to be one)")
+             "(launched somehow, of which this is to be one).")
     processing_options.add_argument(
         "--processcluster", default="",
-        help="Process cluster name (used as part of log name)")
+        help="Process cluster name (used as part of log name).")
     processing_options.add_argument(
         "--skip_dd_check", action="store_true",
-        help="Skip data dictionary validity check")
+        help="Skip data dictionary validity check.")
     processing_options.add_argument(
         "--seed",
         help="String to use as the basis of the seed for the random number "
@@ -212,23 +181,23 @@ def inner_main() -> None:
         '--chunksize', nargs="?", type=int,
         default=DEFAULT_CHUNKSIZE,
         help="Number of records copied in a chunk when copying PKs from one "
-             "database to another")
+             "database to another.")
 
     debugging_options = parser.add_argument_group(
         "Reporting and debugging"
     )
     debugging_options.add_argument(
         '--reportevery', nargs="?", type=int, default=DEFAULT_REPORT_EVERY,
-        help="Report insert progress every n rows in verbose mode")
+        help="Report insert progress every n rows in verbose mode.")
     debugging_options.add_argument(
         "--debugscrubbers", action="store_true",
-        help="Report sensitive scrubbing information, for debugging")
+        help="Report sensitive scrubbing information, for debugging.")
     debugging_options.add_argument(
         "--savescrubbers", action="store_true",
         help="Saves sensitive scrubbing information in admin database, "
-             "for debugging")
+             "for debugging.")
     debugging_options.add_argument(
-        "--echo", action="store_true", help="Echo SQL")
+        "--echo", action="store_true", help="Echo SQL.")
 
     args = parser.parse_args()
 
@@ -246,26 +215,6 @@ def inner_main() -> None:
     configure_logger_for_colour(rootlogger, loglevel, extranames=mynames)
 
     # -------------------------------------------------------------------------
-    # Simple commands
-    # -------------------------------------------------------------------------
-
-    # Check text converters
-    if args.checkextractor:
-        for ext in args.checkextractor:
-            if ext.lower() == 'none':
-                ext = None
-            available = is_text_extractor_available(ext)
-            print(f"Text extractor for extension {ext} present: {available}")
-        return
-
-    # Demo config?
-    if args.democonfig:
-        if args.leave_placeholders:
-            return print(DEMO_CONFIG.strip())
-
-        return print_demo_config()
-
-    # -------------------------------------------------------------------------
     # Onwards
     # -------------------------------------------------------------------------
 
@@ -275,14 +224,11 @@ def inner_main() -> None:
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import
     anonymise(
-        draftdd=args.draftdd,
-        incrementaldd=args.incrementaldd,
-        count=args.count,
-
         incremental=args.incremental,
         skipdelete=args.skipdelete,
 
         dropremake=args.dropremake,
+        full_drop_only=args.drop_all,
         optout=args.optout,
         patienttables=args.patienttables,
         nonpatienttables=args.nonpatienttables,
@@ -308,63 +254,6 @@ def inner_main() -> None:
     )
 
 
-def print_demo_config() -> None:
-    replace_dict = {
-        "admin_db_engine": "mysql+mysqldb",
-        "admin_db_host": "127.0.0.1",
-        "admin_db_name": "admin_databasename",
-        "admin_db_password": "password",
-        "admin_db_port": "3306",
-        "admin_db_user": "username",
-        "change_detection_encryption_phrase": "YETANOTHER",
-        "data_dictionary_filename": "testdd.tsv",
-        "dest_db_engine": "mysql+mysqldb",
-        "dest_db_host": "127.0.0.1",
-        "dest_db_name": "output_databasename",
-        "dest_db_password": "password",
-        "dest_db_port": "3306",
-        "dest_db_user": "username",
-        "master_patient_id_encryption_phrase": "SOME_OTHER_PASSPHRASE_REPLACE_ME",  # noqa: E501
-        "per_table_patient_id_encryption_phrase": "SOME_PASSPHRASE_REPLACE_ME",
-        "source_db1_ddgen_include_fields": "",
-        "source_db1_ddgen_scrubsrc_patient_fields": "",
-        "source_db1_engine": "mysql+mysqldb",
-        "source_db1_host": "127.0.0.1",
-        "source_db1_name": "source_databasename",
-        "source_db1_password": "password",
-        "source_db1_port": "3306",
-        "source_db1_user": "username"
-    }
-
-    config = search_replace_text(DEMO_CONFIG, replace_dict)
-
-    missing_dict = {}
-
-    regex = r"@@([^@]*)@@"
-    for match in re.finditer(regex, config):
-        missing_dict[f"{match.group(1)}"] = ""
-
-    if missing_dict:
-        print("@@ Placeholders not substituted in DEMO_CONFIG:",
-              file=sys.stderr)
-        pprint.pprint(missing_dict, stream=sys.stderr)
-        sys.exit(EXIT_FAILURE)
-
-    print(config.strip())
-
-
-def search_replace_text(text: str,
-                        replace_dict: Dict[str, str]) -> str:
-    for (search, replace) in replace_dict.items():
-        if replace is None:
-            print(f"Can't replace '{search}' with None")
-            sys.exit(EXIT_FAILURE)
-
-        text = text.replace(f"@@{search}@@", replace)
-
-    return text
-
-
 def main() -> None:
     """
     Command-line entry point.
@@ -376,7 +265,7 @@ def main() -> None:
 # Command-line entry point
 # =============================================================================
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if DEBUG_RUN_WITH_PDB:
         pdb_run(main)
     else:

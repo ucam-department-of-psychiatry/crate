@@ -50,7 +50,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
     # don't call it login (name clash with django.contrib.auth.login)
     # https://www.fir3net.com/Web-Development/Django/django.html
     # http://www.flagonwiththedragon.com/2011/06/16/django-authenticationform-for-user-login/  # noqa
-    # http://stackoverflow.com/questions/16750464/django-redirect-after-login-not-working-next-not-posting  # noqa
+    # https://stackoverflow.com/questions/16750464/django-redirect-after-login-not-working-next-not-posting  # noqa
 
     # Where to after a successful login?
     # noinspection PyCallByClass,PyTypeChecker

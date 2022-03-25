@@ -1,8 +1,8 @@
 usage: crate_preprocess_pcmis [-h] --url URL [-v] [--print] [--echo]
-                              [--drop-danger-drop] [--debug-skiptables]
+                              [--drop_danger_drop] [--debug_skiptables]
                               [--postcodedb POSTCODEDB]
                               [--geogcols [GEOGCOLS [GEOGCOLS ...]]]
-                              [--settings-filename SETTINGS_FILENAME]
+                              [--settings_filename SETTINGS_FILENAME]
 
 Alters a PCMIS database to be suitable for CRATE.
 
@@ -11,14 +11,14 @@ optional arguments:
   --url URL             SQLAlchemy database URL (default: None)
   -v, --verbose         Verbose (default: False)
   --print               Print SQL but do not execute it. (You can redirect the
-                        printed output to create an SQL script. (default:
+                        printed output to create an SQL script.) (default:
                         False)
   --echo                Echo SQL (default: False)
-  --drop-danger-drop    REMOVES new columns and indexes, rather than creating
+  --drop_danger_drop    REMOVES new columns and indexes, rather than creating
                         them. (There's not very much danger; no real
                         information is lost, but it might take a while to
                         recalculate it.) (default: False)
-  --debug-skiptables    DEBUG-ONLY OPTION. Skip tables (view creation only)
+  --debug_skiptables    DEBUG-ONLY OPTION. Skip tables (view creation only)
                         (default: False)
   --postcodedb POSTCODEDB
                         Specify database (schema) name for ONS Postcode
@@ -29,12 +29,12 @@ optional arguments:
   --geogcols [GEOGCOLS [GEOGCOLS ...]]
                         List of geographical information columns to link in
                         from ONS Postcode Database. BEWARE that you do not
-                        specify anything too identifying. (default: ['pcon',
-                        'pct', 'nuts', 'lea', 'statsward', 'casward',
-                        'lsoa01', 'msoa01', 'ur01ind', 'oac01', 'lsoa11',
-                        'msoa11', 'parish', 'bua11', 'buasd11', 'ru11ind',
-                        'oac11', 'imd'])
-  --settings-filename SETTINGS_FILENAME
+                        specify anything too identifying. (default: ['bua11',
+                        'buasd11', 'casward', 'imd', 'lea', 'lsoa01',
+                        'lsoa11', 'msoa01', 'msoa11', 'nuts', 'oac01',
+                        'oac11', 'parish', 'pcon', 'pct', 'ru11ind',
+                        'statsward', 'ur01ind'])
+  --settings_filename SETTINGS_FILENAME
                         Specify filename to write draft ddgen_* settings to,
                         for use in a CRATE anonymiser configuration file.
                         (default: None)

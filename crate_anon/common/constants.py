@@ -56,20 +56,19 @@ ON_READTHEDOCS = os.environ.get('READTHEDOCS') == 'True'
 # Directories within CRATE
 # =============================================================================
 
-class CrateDir(object):
+class CratePath(object):
     """
-    Directories within CRATE.
+    Directories within the CRATE Python package.
     """
-    PACKAGE_ROOT = os.path.abspath(
+    CRATE_ANON_DIR = os.path.abspath(
         os.path.join(
             os.path.dirname(os.path.abspath(__file__)),  # this directory, common  # noqa
             os.pardir  # parent, crate_anon
         )
     )
-    NLP_MANAGER = os.path.join(PACKAGE_ROOT, "nlp_manager")
-    JAVA_CLASSES = os.path.join(
-        NLP_MANAGER, "compiled_nlp_classes")
-    NLPRP = os.path.join(PACKAGE_ROOT, "nlprp")
+    NLP_MANAGER_DIR = os.path.join(CRATE_ANON_DIR, "nlp_manager")
+    JAVA_CLASSES_DIR = os.path.join(NLP_MANAGER_DIR, "compiled_nlp_classes")
+    NLPRP_DIR = os.path.join(CRATE_ANON_DIR, "nlprp")
 
 
 # =============================================================================
@@ -244,8 +243,8 @@ class HelpUrl(object):
 RUNNING_WITHOUT_CONFIG = (
     ON_READTHEDOCS or
     (
-        EnvVar.RUN_WITHOUT_CONFIG in os.environ and
-        os.environ[EnvVar.RUN_WITHOUT_CONFIG].lower() in
+        EnvVar.RUN_WITHOUT_CONFIG in os.environ
+        and os.environ[EnvVar.RUN_WITHOUT_CONFIG].lower() in
         LOWER_CASE_STRINGS_MEANING_TRUE
     )
 )

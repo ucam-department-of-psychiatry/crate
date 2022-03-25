@@ -111,8 +111,8 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
 #   "Present: Nicola Adams (NA). 1.0. Minutes of the last meeting."
 #   ... which we don't want to be interpreted as "sodium 1.0".
 #   HOW BEST TO DO THIS?
-# - http://stackoverflow.com/questions/546433/regular-expression-to-match-outer-brackets  # noqa
-#   http://stackoverflow.com/questions/7898310/using-regex-to-balance-match-parenthesis  # noqa
+# - https://stackoverflow.com/questions/546433/regular-expression-to-match-outer-brackets  # noqa
+#   https://stackoverflow.com/questions/7898310/using-regex-to-balance-match-parenthesis  # noqa
 # - ... simplest is perhaps: base ignorables, or those with brackets, as above
 # - ... even better than a nested thing is just a list of alternatives
 
@@ -1583,6 +1583,6 @@ def test_all(verbose: bool = False) -> None:
     # learning_alternative_regex_groups()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all()

@@ -30,18 +30,18 @@ crate_anon/nlp_manager/launch_multiprocess_nlp.py
 
 # Previous bash version:
 #
-# http://stackoverflow.com/questions/356100
-# http://stackoverflow.com/questions/1644856
-# http://stackoverflow.com/questions/8903239
-# http://stackoverflow.com/questions/1951506
+# https://stackoverflow.com/questions/356100
+# https://stackoverflow.com/questions/1644856
+# https://stackoverflow.com/questions/8903239
+# https://stackoverflow.com/questions/1951506
 # Note: $! is the process ID of last process launched in background
-# http://stackoverflow.com/questions/59895
+# https://stackoverflow.com/questions/59895
 #
 # Python version:
 #
-# http://stackoverflow.com/questions/23611396/python-execute-cat-subprocess-in-parallel  # noqa
-# http://stackoverflow.com/questions/320232/ensuring-subprocesses-are-dead-on-exiting-python-program  # noqa
-# http://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python  # noqa
+# https://stackoverflow.com/questions/23611396/python-execute-cat-subprocess-in-parallel  # noqa
+# https://stackoverflow.com/questions/320232/ensuring-subprocesses-are-dead-on-exiting-python-program  # noqa
+# https://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python  # noqa
 
 import argparse
 import logging
@@ -179,5 +179,5 @@ def main() -> None:
     print(f"Time taken: {total_dur} s")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

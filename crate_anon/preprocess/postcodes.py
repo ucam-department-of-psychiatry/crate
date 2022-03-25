@@ -31,13 +31,13 @@ Code-Point Open, CSV, GB
 - https://www.ordnancesurvey.co.uk/business-and-government/products/opendata-products.html
 - https://www.ordnancesurvey.co.uk/business-and-government/products/code-point-open.html
 - https://www.ordnancesurvey.co.uk/opendatadownload/products.html
-- http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
+- https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
 
 Office for National Statistics Postcode Database (ONSPD):
 
 - https://geoportal.statistics.gov.uk/geoportal/catalog/content/filelist.page
 - e.g. ONSPD_MAY_2016_csv.zip
-- http://www.ons.gov.uk/methodology/geography/licences
+- https://www.ons.gov.uk/methodology/geography/licences
 
 Background:
 
@@ -99,7 +99,10 @@ from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
 from crate_anon.common.constants import EnvVar
 
 log = logging.getLogger(__name__)
-metadata = MetaData()
+
+# =============================================================================
+# Constants
+# =============================================================================
 
 if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     DEFAULT_ONSPD_DIR = "/path/to/unzipped/ONSPD/download"
@@ -107,12 +110,23 @@ else:
     DEFAULT_ONSPD_DIR = os.path.join(
         os.path.expanduser("~"), "dev", "ons", "ONSPD_Nov2019"
     )
+
 DEFAULT_REPORT_EVERY = 1000
 DEFAULT_COMMIT_EVERY = 10000
 YEAR_MONTH_FMT = "%Y%m"
 
 CODE_LEN = 9  # many ONSPD codes have this length
 NAME_LEN = 80  # seems about right; a bit more than the length of many
+
+COL_POSTCODE_NOSPACE = "pcd_nospace"
+COL_POSTCODE_VARIABLE_LENGTH_SPACE = "pcds"
+
+
+# =============================================================================
+# Metadata
+# =============================================================================
+
+metadata = MetaData()
 
 
 # =============================================================================
@@ -206,7 +220,7 @@ class ExtendedBase(object):
     as usual.
 
     See
-    http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/mixins.html
+    https://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/mixins.html
     """
     __table_args__ = TABLE_KWARGS
 
@@ -530,7 +544,7 @@ class Postcode(Base):
         convert_int(kwargs, 'streg')
         convert_int(kwargs, 'edind')
         convert_int(kwargs, 'imd')
-        kwargs['pcd_nospace'] = kwargs['pcd'].replace(" ", "")
+        kwargs[COL_POSTCODE_NOSPACE] = kwargs['pcd'].replace(" ", "")
         super().__init__(**kwargs)
 
 
@@ -1014,7 +1028,7 @@ _ = '''
 # =============================================================================
 # Models: centroids
 # =============================================================================
-# http://webarchive.nationalarchives.gov.uk/20160105160709/http://www.ons.gov.uk/ons/guide-method/geography/products/census/spatial/centroids/index.html  # noqa
+# https://webarchive.nationalarchives.gov.uk/20160105160709/https://www.ons.gov.uk/ons/guide-method/geography/products/census/spatial/centroids/index.html  # noqa
 #
 # Looking at lower_layer_super_output_areas_(e+w)_2011_population_weighted_centroids_v2.zip : # noqa
 # - LSOA_2011_EW_PWC.shp -- probably a Shape file;
@@ -1110,14 +1124,18 @@ def populate_postcode_table(filename: str,
     n = 0
     n_inserted = 0
     extra_fields = []  # type: List[str]
-    db_fields = sorted(k for k in table.columns.keys() if k != 'pcd_nospace')
+    db_fields = sorted(
+        k for k in table.columns.keys() if k != COL_POSTCODE_NOSPACE
+    )
     with open(filename) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             n += 1
             if n % reportevery == 0:
-                log.info(f"Processing row {n}: {row['pcds']} "
-                         f"({n_inserted} inserted)")
+                log.info(
+                    f"Processing row {n}: "
+                    f"{row[COL_POSTCODE_VARIABLE_LENGTH_SPACE]} "
+                    f"({n_inserted} inserted)")
                 # log.debug(row)
             if n == 1:
                 file_fields = sorted(row.keys())
@@ -1304,7 +1322,7 @@ def main() -> None:
     Tell this program which directory you used.
 
 -   Specify your database as an SQLAlchemy connection URL: see
-        http://docs.sqlalchemy.org/en/latest/core/engines.html
+        https://docs.sqlalchemy.org/en/latest/core/engines.html
     The general format is:
         dialect[+driver]://username:password@host[:port]/database[?key=value...]
 
@@ -1320,7 +1338,7 @@ def main() -> None:
     Contains Royal Mail data © Royal Mail copyright and database right [year]
     Contains National Statistics data © Crown copyright and database right [year]
 
-    See http://www.ons.gov.uk/methodology/geography/licences
+    See https://www.ons.gov.uk/methodology/geography/licences
     """)  # noqa: E501
     parser.add_argument(
         "--dir", default=DEFAULT_ONSPD_DIR,
@@ -1459,5 +1477,5 @@ def main() -> None:
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

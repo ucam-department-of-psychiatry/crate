@@ -28,5 +28,42 @@ crate_anon/version.py
 
 """
 
-CRATE_VERSION = "0.19.2"
-CRATE_VERSION_DATE = "2021-01-26"
+import sys
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+CRATE_VERSION = "0.19.3"
+CRATE_VERSION_DATE = "2022-03-09"
+
+MINIMUM_PYTHON_VERSION = (3, 7)
+# Only other place that has this: install_virtualenv.py (which can't import
+# CRATE packages).
+
+
+# =============================================================================
+# Derived constants
+# =============================================================================
+
+CRATE_VERSION_PRETTY = (
+    f"CRATE version {CRATE_VERSION}, {CRATE_VERSION_DATE}. "
+    f"Created by Rudolf Cardinal."
+)
+MINIMUM_PYTHON_VERSION_AS_DECIMAL = ".".join(
+    str(_) for _ in MINIMUM_PYTHON_VERSION
+)
+
+
+# =============================================================================
+# Helper functions
+# =============================================================================
+
+def require_minimum_python_version():
+    """
+    Checks that we are running the required minimum Python version.
+    """
+    assert sys.version_info >= MINIMUM_PYTHON_VERSION, (
+        f"Need Python {MINIMUM_PYTHON_VERSION_AS_DECIMAL}+"
+    )

@@ -21,6 +21,9 @@
 Run the anonymiser
 ------------------
 
+.. contents::
+   :local:
+
 Now you've created and edited your config file and data dictionary, you can run
 the anonymiser in one of the following ways:
 
@@ -41,6 +44,7 @@ Get more help with
 .. code-block:: bash
 
     crate_anonymise --help
+
 
 .. _crate_anonymise:
 
@@ -65,4 +69,41 @@ This runs multiple copies of ``crate_anonymise`` in parallel.
 Options:
 
 ..  literalinclude:: _crate_anonymise_multiprocess_help.txt
+    :language: none
+
+
+.. _crate_anon_show_counts:
+
+crate_anon_show_counts
+~~~~~~~~~~~~~~~~~~~~~~
+
+This ancillary tool prints record counts from your source and destination
+databases.
+
+..  literalinclude:: _crate_anon_show_counts_help.txt
+    :language: none
+
+
+.. _crate_anon_check_text_extractor:
+
+crate_anon_check_text_extractor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This ancillary tool checks that you have the text extraction software that you
+might want. See :ref:`third-party text extractors
+<third_party_text_extractors>`.
+
+..  literalinclude:: _crate_anon_check_text_extractor.txt
+    :language: none
+
+
+.. _crate_anon_summarize_dd:
+
+crate_anon_summarize_dd
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This ancillary tool reads your data dictionary and summarizes facts about
+each table. It may be helpful to find problems with large data dictionaries.
+
+..  literalinclude:: _crate_anon_summarize_dd_help.txt
     :language: none

@@ -783,7 +783,7 @@ class CloudRequestProcess(CloudRequest):
         for result in self.nlp_data[NKeys.RESULTS]:
             metadata = result[NKeys.METADATA]
             text = result.get(NKeys.TEXT)
-            for processor_data in result[NKeys.PROCESSORS]:
+            for processor_data in result[NKeys.PROCESSORS]:  # type: Dict
                 name = processor_data[NKeys.NAME]
                 version = processor_data[NKeys.VERSION]
                 is_default_version = processor_data.get(

@@ -116,5 +116,5 @@ Exit codes:
     return EXIT_TEXT if contains_text else EXIT_NO_TEXT
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

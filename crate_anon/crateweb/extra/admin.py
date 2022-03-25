@@ -74,8 +74,8 @@ class ReadOnlyModelAdmin(ModelAdmin):
     "Change".
 
     """
-    # http://stackoverflow.com/questions/3068843/permission-to-view-but-not-to-change-django  # noqa
-    # See also http://stackoverflow.com/questions/6680631/django-admin-separate-read-only-view-and-change-view  # noqa
+    # https://stackoverflow.com/questions/3068843/permission-to-view-but-not-to-change-django  # noqa
+    # See also https://stackoverflow.com/questions/6680631/django-admin-separate-read-only-view-and-change-view  # noqa
     # django/contrib/admin/templates/admin/change_form.html
     # django/contrib/admin/templatetags/admin_modify.py
     # https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.ModelAdmin.change_view  # noqa
@@ -146,7 +146,7 @@ class AddOnlyModelAdmin(ModelAdmin):
         return ReadOnlyChangeList
 
     # This is an add-but-not-edit class.
-    # http://stackoverflow.com/questions/7860612/django-admin-make-field-editable-in-add-but-not-edit  # noqa
+    # https://stackoverflow.com/questions/7860612/django-admin-make-field-editable-in-add-but-not-edit  # noqa
     def get_readonly_fields(self, request: HttpRequest, obj=None) -> List[str]:
         if obj:  # obj is not None, so this is an edit
             # self.__class__ is the derived class

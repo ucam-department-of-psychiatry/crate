@@ -29,6 +29,7 @@ crate_anon/common/sql.py
 """
 
 from collections import OrderedDict
+from dataclasses import dataclass
 import functools
 import logging
 import re
@@ -40,7 +41,6 @@ from cardinal_pythonlib.json.serialize import (
     register_for_json,
 )
 from cardinal_pythonlib.lists import unique_list
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.reprfunc import mapped_repr_stripping_underscores
 from cardinal_pythonlib.sizeformatter import sizeof_fmt
 from cardinal_pythonlib.sql.literals import (
@@ -84,6 +84,8 @@ TIMING_COMMIT = "commit"
 SQL_OPS_VALUE_UNNECESSARY = ['IS NULL', 'IS NOT NULL']
 SQL_OPS_MULTIPLE_VALUES = ['IN', 'NOT IN']
 
+SQLTYPE_DATE = "DATE"
+
 SQLTYPES_INTEGER = [
     "INT", "INTEGER",
     "TINYINT", "SMALLINT", "MEDIUMINT", "BIGINT",
@@ -97,7 +99,7 @@ SQLTYPES_TEXT = [
     "TINYTEXT", "TEXT", "NTEXT", "MEDIUMTEXT", "LONGTEXT",
 ]
 SQLTYPES_WITH_DATE = [
-    "DATE", "DATETIME", "TIMESTAMP",
+    SQLTYPE_DATE, "DATETIME", "TIMESTAMP",
 ]
 # SQLTYPES_BINARY = [
 #     "BINARY", "BLOB", "IMAGE", "LONGBLOB", "VARBINARY",
@@ -153,6 +155,26 @@ MSSQL_COLTYPE_TO_LEN = {
 #     if not table:
 #         raise ValueError("Missing table supplied to combine_db_schema_table")
 #     return ".".join(x for x in [db, schema, table] if x)
+
+
+# =============================================================================
+# Helper classes
+# =============================================================================
+
+@dataclass
+class IndexCreationInfo:
+    index_name: str  #: Name of the index
+    column: Union[str, List[str]]  #: Column name(s) to index
+    unique: bool = False  #: Make a unique index?
+
+    @property
+    def column_names(self) -> str:
+        if isinstance(self.column, str):
+            # Single column
+            return self.column
+        else:
+            # Multiple columns
+            return ", ".join(self.column)
 
 
 # =============================================================================
@@ -817,6 +839,9 @@ def get_first_from_table(parsed: ParseResults,
     """
     existing_tables = parsed.join_source.from_tables.asList()
     for t in existing_tables:
+        if isinstance(t, list):
+            assert len(t) == 1
+            t = t[0]
         table_id = split_db_schema_table(t)
         if match_db and table_id.db != match_db:
             continue
@@ -971,19 +996,19 @@ def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
     - ANSI SQL: add one column at a time: ``ALTER TABLE ADD [COLUMN] coldef``
 
       - i.e. "COLUMN" optional, one at a time, no parentheses
-      - http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
+      - https://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
 
     - MySQL: ``ALTER TABLE ADD [COLUMN] (a INT, b VARCHAR(32));``
 
       - i.e. "COLUMN" optional, parentheses required for >1, multiple OK
-      - http://dev.mysql.com/doc/refman/5.7/en/alter-table.html
+      - https://dev.mysql.com/doc/refman/5.7/en/alter-table.html
 
     - MS SQL Server: ``ALTER TABLE ADD COLUMN a INT, B VARCHAR(32);``
 
       - i.e. no "COLUMN", no parentheses, multiple OK
       - https://msdn.microsoft.com/en-us/library/ms190238.aspx
       - https://msdn.microsoft.com/en-us/library/ms190273.aspx
-      - http://stackoverflow.com/questions/2523676
+      - https://stackoverflow.com/questions/2523676
 
     This function therefore operates one at a time.
 
@@ -1037,8 +1062,9 @@ def drop_columns(engine: Engine, table: Table,
             execute(engine, sql)
 
 
-def add_indexes(engine: Engine, table: Table,
-                indexdictlist: Iterable[Dict[str, Any]]) -> None:
+def add_indexes(engine: Engine,
+                table: Table,
+                index_info_list: Iterable[IndexCreationInfo]) -> None:
     """
     Adds indexes to a table.
 
@@ -1046,35 +1072,23 @@ def add_indexes(engine: Engine, table: Table,
     :func:`set_print_not_execute`.
 
     Args:
-        engine: SQLAlchemy database Engine
-        table: SQLAlchemy Table object
-        indexdictlist:
-            indexes to add, specified as a list of dictionaries. Each
-            dictionary has the following keys:
-
-            =============== =================== ===============================
-            Key             Status              Contents
-            =============== =================== ===============================
-            ``index_name``  mandatory, str      Name of the index
-            ``column``      mandatory, str or   Column name(s) to index
-                            List[str]
-            ``unique``      optional, bool,     Make a unique index?
-                            default ``False``
-            =============== =================== ===============================
+        engine:
+            SQLAlchemy database Engine
+        table:
+            SQLAlchemy Table object
+        index_info_list:
+            Index(es) to create: list of :class:`IndexCreationInfo` objects.
     """
     existing_index_names = get_index_names(engine, tablename=table.name,
                                            to_lower=True)
-    for idxdefdict in indexdictlist:
-        index_name = idxdefdict['index_name']
-        column = idxdefdict['column']
-        if not isinstance(column, str):
-            column = ", ".join(column)  # must be a list
-        unique = idxdefdict.get('unique', False)
+    for i in index_info_list:
+        index_name = i.index_name
+        column = i.column_names
         if index_name.lower() not in existing_index_names:
             log.info(f"Table {table.name!r}: adding index {index_name!r} on "
                      f"column {column!r}")
             execute(engine, f"""
-                CREATE{" UNIQUE" if unique else ""} INDEX {index_name}
+                CREATE{" UNIQUE" if i.unique else ""} INDEX {index_name}
                     ON {table.name} ({column})
             """)
         else:
@@ -1264,7 +1278,7 @@ def create_view(engine: Engine,
         # MySQL has CREATE OR REPLACE VIEW.
         sql = f"CREATE OR REPLACE VIEW {viewname} AS {select_sql}"
     else:
-        # SQL Server doesn't: http://stackoverflow.com/questions/18534919
+        # SQL Server doesn't: https://stackoverflow.com/questions/18534919
         drop_view(engine, viewname, quiet=True)
         sql = f"CREATE VIEW {viewname} AS {select_sql}"
     log.info(f"Creating view: {repr(viewname)}")
@@ -1594,20 +1608,16 @@ class TransactionSizeLimiter(object):
             return
         self._bytes_in_transaction += n_bytes
         self._rows_in_transaction += n_rows
-        # log.critical(
-        #     f"adding {n_rows} rows, {n_bytes} bytes, to make "
-        #     f"{self._rows_in_transaction} rows, "
-        #     f"{self._bytes_in_transaction} bytes so far")
         if (self._max_bytes_before_commit is not None and
                 self._bytes_in_transaction >= self._max_bytes_before_commit):
-            log.info(
+            log.debug(
                 f"Triggering early commit based on byte count "
                 f"(reached {sizeof_fmt(self._bytes_in_transaction)}, "
                 f"limit is {sizeof_fmt(self._max_bytes_before_commit)})")
             self.commit()
         elif (self._max_rows_before_commit is not None and
                 self._rows_in_transaction >= self._max_rows_before_commit):
-            log.info(
+            log.debug(
                 f"Triggering early commit based on row count "
                 f"(reached {self._rows_in_transaction} rows, "
                 f"limit is {self._max_rows_before_commit})")
@@ -1716,9 +1726,9 @@ def sql_fragment_cast_to_int(expr: str,
 
     Conversion to INT:
 
-    - http://stackoverflow.com/questions/2000045
-    - http://stackoverflow.com/questions/14719760 (this one in particular!)
-    - http://stackoverflow.com/questions/14692131
+    - https://stackoverflow.com/questions/2000045
+    - https://stackoverflow.com/questions/14719760 (this one in particular!)
+    - https://stackoverflow.com/questions/14692131
 
       - see LIKE example.
       - see ISNUMERIC();
@@ -1729,7 +1739,7 @@ def sql_fragment_cast_to_int(expr: str,
       relates to the SQL Server Management Studio "Find and Replace"
       dialogue box, not to SQL itself!
 
-    - http://stackoverflow.com/questions/29206404/mssql-regular-expression
+    - https://stackoverflow.com/questions/29206404/mssql-regular-expression
 
     Note that the regex-like expression supported by LIKE is extremely limited.
 
@@ -1769,7 +1779,7 @@ def sql_fragment_cast_to_int(expr: str,
 
     LTRIM/RTRIM are not ANSI SQL.
     Nor are unusual LIKE clauses; see
-    http://stackoverflow.com/questions/712580/list-of-special-characters-for-sql-like-clause
+    https://stackoverflow.com/questions/712580/list-of-special-characters-for-sql-like-clause
 
     The other, for SQL Server 2012 or higher, is TRY_CAST:
 
@@ -2042,7 +2052,9 @@ def is_sql_column_type_textual(column_type: str,
       :meth:`crate_anon.crateweb.research.research_db_info._schema_query_microsoft`
       returns "NVARCHAR(-1)"
     """
-    column_type = column_type.upper()
+    if not column_type:
+        return False
+    column_type = column_type.upper().split()[0]
     if column_type in SQLTYPES_TEXT:
         # A text type without a specific length
         return True
@@ -2120,7 +2132,7 @@ def escape_percent_in_literal(sql: str) -> str:
     Escapes ``%`` by converting it to ``\%``.
     Use this for LIKE clauses.
 
-    - http://dev.mysql.com/doc/refman/5.7/en/string-literals.html
+    - https://dev.mysql.com/doc/refman/5.7/en/string-literals.html
     """
     return sql.replace('%', r'\%')
 
@@ -2215,43 +2227,3 @@ def translate_sql_qmark_to_percent(sql: str) -> str:
         else:
             newsql += c
     return newsql
-
-
-_ = """
-    _SQLTEST1 = "SELECT a FROM b WHERE c=? AND d LIKE 'blah%' AND e='?'"
-    _SQLTEST2 = "SELECT a FROM b WHERE c=%s AND d LIKE 'blah%%' AND e='?'"
-    _SQLTEST3 = translate_sql_qmark_to_percent(_SQLTEST1)
-"""
-
-
-# =============================================================================
-# Tests
-# =============================================================================
-
-def unit_tests() -> None:
-    """
-    Unit tests.
-    """
-    assert matches_tabledef("sometable", "sometable")
-    assert matches_tabledef("sometable", "some*")
-    assert matches_tabledef("sometable", "*table")
-    assert matches_tabledef("sometable", "*")
-    assert matches_tabledef("sometable", "s*e")
-    assert not matches_tabledef("sometable", "x*y")
-
-    assert matches_fielddef("sometable", "somefield", "*.somefield")
-    assert matches_fielddef("sometable", "somefield", "sometable.somefield")
-    assert matches_fielddef("sometable", "somefield", "sometable.*")
-    assert matches_fielddef("sometable", "somefield", "somefield")
-
-    grammar = make_grammar(SqlaDialectName.MYSQL)
-    sql = "SELECT t1.c1, t2.c2 " \
-          "FROM t1 INNER JOIN t2 ON t1.k = t2.k"
-    parsed = grammar.get_select_statement().parseString(sql, parseAll=True)
-    table_id = get_first_from_table(parsed)  # noqa
-    log.info(repr(table_id))
-
-
-if __name__ == '__main__':
-    main_only_quicksetup_rootlogger()
-    unit_tests()

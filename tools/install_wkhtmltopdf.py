@@ -51,9 +51,13 @@ import urllib.request
 
 import distro
 
-assert sys.version_info >= (3, 6), "Need Python 3.6+"
+from crate_anon.version import require_minimum_python_version
+
+
+require_minimum_python_version()
 if not platform.system() == 'Linux':
     raise AssertionError("Need Linux")
+
 
 # =============================================================================
 # What version do we have/need?
@@ -95,7 +99,7 @@ elif LINUX_DIST in ('fedora', 'rhel', 'centos'):
         raise AssertionError("Need yum")
     # installer = ['sudo', 'rpm', '-U']  # -U upgrade, equivalent to -i install
     installer = ['yum', '--nogpgcheck', 'localinstall']
-    # ... http://stackoverflow.com/questions/13876875
+    # ... https://stackoverflow.com/questions/13876875
     extension = 'rpm'
 else:
     raise AssertionError("Unsupported Linux distribution")

@@ -43,7 +43,7 @@ DJANGO_ROOT = os.path.abspath(os.path.join(THIS_DIR, os.pardir, "crateweb"))
 WINDOWS = platform.system() == 'Windows'
 
 
-# http://stackoverflow.com/questions/21666229/celery-auto-reload-on-any-changes
+# https://stackoverflow.com/questions/21666229/celery-auto-reload-on-any-changes
 # HOWEVER: autoreload appears (a) not to work, and (b) to prevent processing!
 
 
@@ -75,7 +75,7 @@ def inner_main() -> None:
     # os.chdir(DJANGO_ROOT)
     cmdargs = [
         "celery",
-        "-A", CRATEWEB_CELERY_APP_NAME,
+        "--app", CRATEWEB_CELERY_APP_NAME,
         args.command,
     ]
     if args.command == "worker":
@@ -117,5 +117,5 @@ def main() -> None:
     call_main_with_exception_reporting(inner_main)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

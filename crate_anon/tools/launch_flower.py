@@ -39,12 +39,12 @@ def main() -> None:
     """
     cmdargs = [
         "celery",
-        "-A", CRATEWEB_CELERY_APP_NAME,
+        "--app", CRATEWEB_CELERY_APP_NAME,
         "flower"
     ]
     print(f"Launching Flower: {cmdargs}")
     subprocess.call(cmdargs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

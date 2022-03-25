@@ -3,7 +3,7 @@
 {% extends "base.html" %}
 
 {% block extrahead %}
-    <style type="text/css">{{ sql_highlight_css }}</style>
+    <style>{{ sql_highlight_css }}</style>
 {% endblock %}
 
 {% block content %}
@@ -32,10 +32,10 @@
             the corner.</li>
 
         <li>If you’re new to SQL, try a tutorial such as those by
-            <a href="http://sqlzoo.net/">SQLZoo</a>,
+            <a href="https://sqlzoo.net/">SQLZoo</a>,
             <a href="http://www.sql-tutorial.net/">SQL-Tutorial</a>,
             <a href="https://www.codecademy.com/learn/learn-sql">Codecademy</a>, or
-            <a href="http://www.w3schools.com/sql/">W3Schools</a>.</li>
+            <a href="https://www.w3schools.com/sql/">W3Schools</a>.</li>
 
         {% if dialect_mysql %}
             <li>The research database runs MySQL.</li>

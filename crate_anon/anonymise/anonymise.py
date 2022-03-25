@@ -51,10 +51,12 @@ from sqlalchemy.sql import column, func, or_, select, table, text
 
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
+    AnonymiseConfigKeys,
+    AnonymiseDatabaseSafeConfigKeys,
     BIGSEP,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
-    INDEX,
+    IndexType,
     TABLE_KWARGS,
     SEP,
 )
@@ -70,7 +72,6 @@ from crate_anon.common.file_io import (
     gen_integers_from_file,
     gen_words_from_file,
 )
-from crate_anon.common.formatting import print_record_counts
 from crate_anon.common.parallel import is_my_job_by_hash, is_my_job_by_int
 from crate_anon.common.sql import matches_tabledef
 
@@ -121,23 +122,40 @@ def identical_record_exists_by_pk(dest_table: str,
 # Database actions
 # =============================================================================
 
-def wipe_and_recreate_destination_db(incremental: bool = False) -> None:
+def wipe_and_recreate_destination_db(incremental: bool = False,
+                                     full_drop_only: bool = False) -> None:
     """
     Drop and recreate all destination tables (as specified in the DD) in the
     destination database.
 
     Args:
-        incremental: don't drop the tables first
+        incremental:
+            Don't drop the tables first, just create them if they don't exist.
+        full_drop_only:
+            Drop everything, but don't rebuild. Incompatible with
+            ``incremental``.
     """
-    log.info(f"Rebuilding destination database (incremental={incremental})")
+    assert not (incremental and full_drop_only)
     engine = config.destdb.engine
-    for tablename in config.dd.get_dest_tables():
-        sqla_table = config.dd.get_dest_sqla_table(
-            tablename, config.timefield, config.add_mrid_wherever_rid_added)
-        # Drop
-        if not incremental:
+
+    if full_drop_only:
+        log.info("Dropping tables from destination database")
+    else:
+        log.info(f"Rebuilding destination database (incremental={incremental})")
+
+    # Drop (all tables that we know about -- this prevents orphan tables when
+    # we alter a data dictionary).
+    if not incremental:
+        for tablename in config.dd.get_dest_tables_all():
+            sqla_table = config.dd.get_dest_sqla_table(tablename)
             log.info(f"Dropping table: {tablename}")
             sqla_table.drop(engine, checkfirst=True)
+    if full_drop_only:
+        return
+
+    # Create and check (tables that will receive content).
+    for tablename in config.dd.get_dest_tables_included():
+        sqla_table = config.dd.get_dest_sqla_table(tablename)
         # Create
         log.info(f"Creating table: {tablename}")
         log.debug(repr(sqla_table))
@@ -193,8 +211,7 @@ def delete_dest_rows_with_no_src_row(
     metadata = MetaData()  # operate in isolation!
     destengine = config.destdb.engine
     destsession = config.destdb.session
-    dest_table = config.dd.get_dest_sqla_table(
-        dest_table_name, config.timefield, config.add_mrid_wherever_rid_added)
+    dest_table = config.dd.get_dest_sqla_table(dest_table_name)
     pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
 
     # If there's no source PK, we just delete everything
@@ -768,7 +785,8 @@ def get_pids_from_field_limits(field: str, low: int, high: int) -> List[Any]:
 def gen_patient_ids(
         tasknum: int = 0,
         ntasks: int = 1,
-        specified_pids: List[Any] = None) -> Generator[int, None, None]:
+        specified_pids: List[Union[int, str]] = None) \
+        -> Generator[Union[int, str], None, None]:
     """
     Generate patient IDs.
 
@@ -778,10 +796,11 @@ def gen_patient_ids(
         specified_pids: optional list of PIDs to restrict ourselves to
 
     Yields:
-        integer patient IDs (PIDs)
+        integer or string patient IDs (PIDs)
 
     - Assigns work to threads/processes, via the simple expedient of processing
-      only those patient ID numbers where ``patientnum % ntasks == tasknum``.
+      only those patient ID numbers where ``patientnum % ntasks == tasknum``
+      (for integers), or an equivalent method for string PIDs.
     """
 
     assert ntasks >= 1
@@ -798,12 +817,14 @@ def gen_patient_ids(
 
     # Debug option?
     if config.debug_pid_list:
-        log.warning("USING MANUALLY SPECIFIED INTEGER PATIENT ID LIST")
+        log.warning("USING MANUALLY SPECIFIED PATIENT ID LIST")
         for pid in config.debug_pid_list:
             if pid_is_integer:
-                if is_my_job_by_int(int(pid), tasknum=tasknum, ntasks=ntasks):
+                pid = int(pid)
+                if is_my_job_by_int(pid, tasknum=tasknum, ntasks=ntasks):
                     yield pid
             else:
+                pid = str(pid)
                 if is_my_job_by_hash(pid, tasknum=tasknum, ntasks=ntasks):
                     yield pid
         return
@@ -829,53 +850,66 @@ def gen_patient_ids(
     for ddr in config.dd.rows:
         if not ddr.defines_primary_pids:
             continue
-        pidcol = column(ddr.src_field)
+        log.debug(f"Looking for patient IDs in "
+                  f"{ddr.src_table}.{ddr.src_field}")
         session = config.sources[ddr.src_db].session
+        pidcol = column(ddr.src_field)
         query = (
-            select([pidcol]).
-            select_from(table(ddr.src_table)).
-            where(pidcol is not None).
-            distinct()
-            # order_by(pidcol)  # no need to order by
+            select([pidcol])
+            .select_from(table(ddr.src_table))
+            .where(pidcol is not None)
+            .distinct()
+            # .order_by(pidcol)  # no need to order by
         )
         if ntasks > 1 and pid_is_integer:
+            # With integers, we can take our slice of the workload through a
+            # restricted query.
             query = query.where(pidcol % ntasks == tasknum)
         result = session.execute(query)
-        log.debug(f"Looking for patient IDs in {ddr.src_table}.{ddr.src_field}")  # noqa
         for row in result:
-            # Extract ID
-            patient_id = row[0]
+            # Extract patient ID
+            pid = row[0]
 
             # Duff?
-            if patient_id is None:
+            if pid is None:
                 log.warning("Patient ID is NULL")
                 continue
 
-            # Operating on non-integer PIDs and not our job?
-            if distribute_by_hash and not is_my_job_by_hash(
-                    patient_id, tasknum=tasknum, ntasks=ntasks):
-                continue
+            # Ensure type is correct -- even if we are querying from an integer
+            # field and then behaving as if it is a string subsequently.
+            # Note that e.g. SELECT '123' = 123 gives 1 (true), i.e. strings
+            # can be compared to integers.
+            if pid_is_integer:
+                pid = int(pid)
+            else:
+                pid = str(pid)
+                # Operating on non-integer PIDs and not our job?
+                if distribute_by_hash and not is_my_job_by_hash(
+                        pid, tasknum=tasknum, ntasks=ntasks):
+                    continue
 
             # Duplicate?
             if keeping_track:
                 # Consider, for non-integer PIDs, storing the hash64 instead
                 # of the raw value.
-                if patient_id in processed_ids:
+                if pid in processed_ids:
                     # we've done this one already; skip it this time
                     continue
-                processed_ids.add(patient_id)
+                processed_ids.add(pid)
 
             # Valid one
-            log.debug(f"Found patient id: {patient_id}")
+            log.debug(f"Found patient id: {pid}")
             n_found += 1
-            yield patient_id
+            yield pid
 
             # Too many?
             if 0 < debuglimit <= n_found:
                 log.warning(
-                    f"Not fetching more than {debuglimit} patients (in total "
-                    f"for this process) due to debug_max_n_patients limit")
-                result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
+                    f"Not fetching more than {debuglimit} "
+                    f"patients (in total for this process) due to "
+                    f"{AnonymiseConfigKeys.DEBUG_MAX_N_PATIENTS} limit")
+                result.close()
+                # http://docs.sqlalchemy.org/en/latest/core/connections.html
                 return
 
 
@@ -953,15 +987,16 @@ def gen_rows(dbname: str,
             if not config.warned_re_limits[db_table_tuple]:
                 log.warning(
                     f"Table {dbname}.{sourcetable}: not fetching more than "
-                    f"{debuglimit} rows (in total for this process) "
-                    f"due to debugging limits")
+                    f"{debuglimit} rows (in total for this process) due to "
+                    f"{AnonymiseDatabaseSafeConfigKeys.DEBUG_ROW_LIMIT}")
                 config.warned_re_limits[db_table_tuple] = True
-            result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
+            result.close()
+            # http://docs.sqlalchemy.org/en/latest/core/connections.html
             return
         config.notify_src_bytes_read(sys.getsizeof(row))  # ... approximate!
         yield list(row)
         # yield dict(zip(row.keys(), row))
-        # see also http://stackoverflow.com/questions/19406859
+        # see also https://stackoverflow.com/questions/19406859
         config.rows_inserted_per_table[db_table_tuple] += 1
 
 
@@ -1007,7 +1042,7 @@ def gen_index_row_sets_by_table(
 
     """
     indexrows = [ddr for ddr in config.dd.rows
-                 if ddr.index and not ddr.omit]
+                 if ddr.index != IndexType.NONE and not ddr.omit]
     tables = SortedSet([r.dest_table for r in indexrows])
     # must sort for parallel processing consistency: set() order varies
     for i, t in enumerate(tables):
@@ -1145,22 +1180,30 @@ def process_table(sourcedbname: str,
     # If addhash or constant is true AND we are not omitting all rows, then
     # the non-omitted rows will include the source PK (by the data dictionary's
     # validation process).
-    ddrows = [ddr for ddr in ddrows
-              if (
-                  (not ddr.omit) or  # used for data
-                  (addhash and ddr.scrub_src) or  # used for hash
-                  ddr.inclusion_values or  # used for filter
-                  ddr.exclusion_values  # used for filter
-              )]
+    ddrows = [
+        ddr for ddr in ddrows
+        if (
+            (not ddr.omit)  # used for data
+            or (addhash and ddr.scrub_src)  # used for hash
+            or ddr.inclusion_values  # used for filter
+            or ddr.exclusion_values  # used for filter
+        )
+    ]
     # Exclude all text fields over a chosen length
     if free_text_limit is not None:
-        ddrows = [ddr for ddr in ddrows
-                  if (ddr.src_textlength is None) or
-                  (ddr.src_textlength <= free_text_limit)]
+        ddrows = [
+            ddr for ddr in ddrows
+            if (
+               ddr.src_textlength is None
+               or ddr.src_textlength <= free_text_limit
+            )
+        ]
     # Exclude all scrubbed fields if requested
     if exclude_scrubbed_fields:
-        ddrows = [ddr for ddr in ddrows
-                  if (not ddr.src_is_textual) or (not ddr.being_scrubbed)]
+        ddrows = [
+            ddr for ddr in ddrows
+            if (not ddr.src_is_textual) or (not ddr.being_scrubbed)
+        ]
     if not ddrows:
         # No columns to process at all.
         return
@@ -1180,8 +1223,7 @@ def process_table(sourcedbname: str,
     timefield = config.timefield
     add_mrid_wherever_rid_added = config.add_mrid_wherever_rid_added
     mrid_fieldname = config.master_research_id_fieldname
-    sqla_table = config.dd.get_dest_sqla_table(dest_table, timefield,
-                                               add_mrid_wherever_rid_added)
+    sqla_table = config.dd.get_dest_sqla_table(dest_table)
     session = config.destdb.session
 
     # Count what we'll do, so we can give a better indication of progress
@@ -1190,9 +1232,16 @@ def process_table(sourcedbname: str,
     recnum = tasknum or 0
 
     # Process the rows
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Generate data
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     for row in gen_rows(sourcedbname, sourcetable, sourcefields,
                         pid, debuglimit=debuglimit,
                         intpkname=intpkname, tasknum=tasknum, ntasks=ntasks):
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Reporting
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         n += 1
         if n % config.report_every_n_rows == 0:
             log.info(
@@ -1200,6 +1249,9 @@ def process_table(sourcedbname: str,
                 f"{' for this patient' if pid is not None else ''} "
                 f"({config.overall_progress()})")
         recnum += ntasks or 1
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Change detection: source hash and constant rows
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if addhash:
             srchash = config.hash_object(row)
             if incremental and identical_record_exists_by_hash(
@@ -1220,43 +1272,77 @@ def process_table(sourcedbname: str,
                     f"(destination) {dest_table}.{dest_pk_name} = "
                     f"{row[pkfield_index]}")
                 continue
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Iterate through values, altering them if necessary
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         destvalues = {}  # type: Dict[str, Any]
         skip_row = False
         for i, ddr in enumerate(ddrows):
             value = row[i]
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Skip row?
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             if ddr.skip_row_by_value(value):
                 # log.debug("skipping row based on inclusion/exclusion values")
                 skip_row = True
                 break  # skip row
             # NOTE: would be most efficient if ddrows were ordered with
             # inclusion/exclusion fields first. (Not yet done automatically.)
+
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Skip column?
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             if ddr.omit:
                 continue  # skip column
 
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Value alteration: "special" methods (PID, MPID) or other methods
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             if ddr.primary_pid:
-                assert(value == patient.pid)
+                assert str(value) == str(patient.pid), (
+                    # We compare using str() because we may have an integer and
+                    # a string version. These will hash to the same value (see
+                    # scrub_tests.py).
+                    f"PID mismatch from {ddr.src_signature}: "
+                    f"str(value) = {str(value)!r} but "
+                    f"str(patient.pid) = {str(patient.pid)!r}"
+                )
                 value = patient.rid
             elif ddr.master_pid:
                 value = config.encrypt_master_pid(value)
-
-            for alter_method in ddr.alter_methods:
-                value, skiprow = alter_method.alter(
-                    value=value, ddr=ddr, row=row,
-                    ddrows=ddrows, patient=patient)
-                if skiprow:
-                    break  # from alter method loop
+            elif ddr.third_party_pid:
+                # Third-party PID; we encrypt with the same hasher as for other
+                # PIDs, so that de-identified records remain linkable.
+                value = config.encrypt_primary_pid(value)
+            else:
+                # Value alteration: other methods
+                for alter_method in ddr.alter_methods:
+                    value, skiprow = alter_method.alter(
+                        value=value, ddr=ddr, row=row,
+                        ddrows=ddrows, patient=patient)
+                    if skiprow:
+                        break  # from alter method loop
 
             if skip_row:
                 break  # from data dictionary row (field) loop
 
             destvalues[ddr.dest_field] = value
 
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Special timestamp field
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             if timefield:
                 destvalues[timefield] = datetime.utcnow()
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Skip the row?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if skip_row or not destvalues:
             continue  # next row
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Add extra columns?
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if addhash:
             destvalues[config.source_hash_fieldname] = srchash
         if addtrid:
@@ -1264,6 +1350,9 @@ def process_table(sourcedbname: str,
             if add_mrid_wherever_rid_added:
                 destvalues[mrid_fieldname] = patient.mrid
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Insert values into database
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         q = sqla_table.insert_on_duplicate().values(destvalues)
         session.execute(q)
 
@@ -1290,12 +1379,11 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
     mssql_fulltext_columns_by_table = []  # type: List[List[Column]]
     for (tablename, tablerows) in gen_index_row_sets_by_table(tasknum=tasknum,
                                                               ntasks=ntasks):
-        sqla_table = config.dd.get_dest_sqla_table(
-            tablename, config.timefield, config.add_mrid_wherever_rid_added)
+        sqla_table = config.dd.get_dest_sqla_table(tablename)
         mssql_fulltext_columns = []  # type: List[Column]
         for tr in tablerows:
             sqla_column = sqla_table.columns[tr.dest_field]
-            fulltext = (tr.index is INDEX.FULLTEXT)
+            fulltext = (tr.index == IndexType.FULLTEXT)
             if fulltext and mssql:
                 # Special processing: we can only create one full-text index
                 # per table under SQL Server, but it can cover multiple
@@ -1304,13 +1392,13 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
             else:
                 add_index(engine=engine,
                           sqla_column=sqla_column,
-                          unique=(tr.index is INDEX.UNIQUE),
+                          unique=(tr.index == IndexType.UNIQUE),
                           fulltext=fulltext,
                           length=tr.indexlen)
             # Extra indexes for TRID, MRID?
             if tr.primary_pid:
                 add_index(engine, sqla_table.columns[config.trid_fieldname],
-                          unique=(tr.index is INDEX.UNIQUE))
+                          unique=(tr.index == IndexType.UNIQUE))
                 if config.add_mrid_wherever_rid_added:
                     add_index(
                         engine,
@@ -1400,7 +1488,8 @@ def patient_processing_fn(tasknum: int = 0,
                         patient=patient,
                         incremental=(incremental and patient_unchanged),
                         free_text_limit=free_text_limit,
-                        exclude_scrubbed_fields=exclude_scrubbed_fields)
+                        exclude_scrubbed_fields=exclude_scrubbed_fields
+                    )
                 except Exception:
                     log.critical("Error whilst processing - "
                                  f"db: {d} table: {t}, patient id: {pid}")
@@ -1437,7 +1526,7 @@ def wipe_destination_data_for_opt_out_patients(report_every: int = 1000,
     temptable = Table(
         config.temporary_tablename,
         metadata,
-        Column(pkfield, config.SqlTypeEncryptedPid, primary_key=True),
+        Column(pkfield, config.sqltype_encrypted_pid, primary_key=True),
         **TABLE_KWARGS
     )
     log.debug(start + ": 1. dropping temporary table")
@@ -1476,10 +1565,7 @@ def wipe_destination_data_for_opt_out_patients(report_every: int = 1000,
     log.debug(start + ": 5. deleting from destination table by opt-out RID")
     for dest_table_name in config.dd.get_dest_tables_with_patient_info():
         log.debug(start + f": ... {dest_table_name}")
-        dest_table = config.dd.get_dest_sqla_table(
-            dest_table_name,
-            config.timefield,
-            config.add_mrid_wherever_rid_added)
+        dest_table = config.dd.get_dest_sqla_table(dest_table_name)
         query = dest_table.delete().where(
             column(ridfield).in_(
                 select([temptable.columns[pkfield]])
@@ -1503,40 +1589,64 @@ def wipe_destination_data_for_opt_out_patients(report_every: int = 1000,
 
 
 def drop_remake(incremental: bool = False,
-                skipdelete: bool = False) -> None:
+                skipdelete: bool = False,
+                full_drop_only: bool = False) -> None:
     """
     Drop and rebuild (a) mapping table, (b) destination tables.
 
     Args:
         incremental:
-            doesn't drop tables; just deletes destination information where
+            Doesn't drop tables; just deletes destination information where
             source information no longer exists.
         skipdelete:
             For incremental updates, skip deletion of rows present in the
             destination but not the source
+        full_drop_only:
+            Performs a full drop (even opt-out tables) and does nothing else.
+            Incompatible with ``incremental``.
     """
+    assert not (full_drop_only and incremental)
     log.info(SEP + "Creating database structure +/- deleting dead data")
     engine = config.admindb.engine
-    if not incremental:
+
+    # -------------------------------------------------------------------------
+    # Mapping tables
+    # -------------------------------------------------------------------------
+
+    all_admin_tables = (OptOutMpid, OptOutPid, PatientInfo, TridRecord)
+    all_admin_except_opt_out = (PatientInfo, TridRecord)
+
+    # Drop
+    if full_drop_only:
+        log.info("Dropping all admin tables")
+        to_drop = all_admin_tables
+    elif not incremental:
         log.info("Dropping admin tables except opt-out")
-        # not OptOut
-
+        to_drop = all_admin_except_opt_out
+    else:
+        # Incremental mode
+        to_drop = ()
+    for drop_tableclass in to_drop:
         # noinspection PyUnresolvedReferences
-        PatientInfo.__table__.drop(engine, checkfirst=True)
-        # noinspection PyUnresolvedReferences
-        TridRecord.__table__.drop(engine, checkfirst=True)
-    log.info("Creating admin tables")
-    # noinspection PyUnresolvedReferences
-    OptOutPid.__table__.create(engine, checkfirst=True)
-    # noinspection PyUnresolvedReferences
-    OptOutMpid.__table__.create(engine, checkfirst=True)
-    # noinspection PyUnresolvedReferences
-    PatientInfo.__table__.create(engine, checkfirst=True)
-    # noinspection PyUnresolvedReferences
-    TridRecord.__table__.create(engine, checkfirst=True)
+        drop_tableclass.__table__.drop(engine, checkfirst=True)
 
-    wipe_and_recreate_destination_db(incremental=incremental)
-    if skipdelete or not incremental:
+    # Create
+    if full_drop_only:
+        to_create = ()
+    else:
+        log.info("Creating admin tables")
+        to_create = all_admin_tables
+    for create_tableclass in to_create:
+        # noinspection PyUnresolvedReferences
+        create_tableclass.__table__.create(engine, checkfirst=True)
+
+    # -------------------------------------------------------------------------
+    # Destination tables
+    # -------------------------------------------------------------------------
+
+    wipe_and_recreate_destination_db(incremental=incremental,
+                                     full_drop_only=full_drop_only)
+    if full_drop_only or skipdelete or not incremental:
         return
     for d in config.dd.get_source_databases():
         for t in config.dd.get_src_tables(d):
@@ -1774,43 +1884,14 @@ def process_patient_tables(tasknum: int = 0,
     commit_destdb()
 
 
-def show_source_counts() -> None:
-    """
-    Show (print to stdout) the number of records in all source tables.
-    """
-    print("SOURCE TABLE RECORD COUNTS:")
-    counts = []  # type: List[Tuple[str, int]]
-    for d in config.dd.get_source_databases():
-        session = config.sources[d].session
-        for t in config.dd.get_src_tables(d):
-            n = count_star(session, t)
-            counts.append((f"{d}.{t}", n))
-    print_record_counts(counts)
-
-
-def show_dest_counts() -> None:
-    """
-    Show (print to stout) the number of records in all destination tables.
-    """
-    print("DESTINATION TABLE RECORD COUNTS:")
-    counts = []  # type: List[Tuple[str, int]]
-    session = config.destdb.session
-    for t in config.dd.get_dest_tables():
-        n = count_star(session, t)
-        counts.append((f"DESTINATION: {t}", n))
-    print_record_counts(counts)
-
-
 # =============================================================================
 # Main
 # =============================================================================
 
-def anonymise(draftdd: bool = False,
-              incrementaldd: bool = False,
-              count: bool = False,
-              incremental: bool = False,
+def anonymise(incremental: bool = False,
               skipdelete: bool = False,
               dropremake: bool = False,
+              full_drop_only: bool = False,
               optout: bool = False,
               patienttables: bool = False,
               nonpatienttables: bool = False,
@@ -1834,13 +1915,6 @@ def anonymise(draftdd: bool = False,
     Main entry point for anonymisation.
 
     Args:
-        draftdd:
-            If true: print a data dictionary, then stop.
-        incrementaldd:
-            If true: print an incremental data dictionary, then stop.
-        count:
-            If true: show source/destination record counts, then stop.
-
         incremental:
             If true: incremental run, rather than full.
         skipdelete:
@@ -1849,6 +1923,9 @@ def anonymise(draftdd: bool = False,
 
         dropremake:
             If true: drop/remake destination tables.
+        full_drop_only:
+            If true: drop destination tables (even opt-out ones) and do nothing
+            else.
         optout:
             If true: update opt-out list.
         patienttables:
@@ -1909,8 +1986,6 @@ def anonymise(draftdd: bool = False,
             "--process argument must be from 0 to (nprocesses - 1) inclusive")
     if nprocesses > 1 and dropremake:
         raise ValueError("Can't use nprocesses > 1 with --dropremake")
-    if incrementaldd and draftdd:
-        raise ValueError("Can't use --incrementaldd and --draftdd")
 
     everything = not any([dropremake, optout, nonpatienttables,
                           patienttables, index])
@@ -1921,29 +1996,9 @@ def anonymise(draftdd: bool = False,
     config.debug_scrubbers = debugscrubbers
     config.save_scrubbers = savescrubbers
     config.set_echo(echo)
-    if not draftdd:
-        config.load_dd(check_against_source_db=not skip_dd_check)
-
-    # -------------------------------------------------------------------------
-    # One-off actions
-    # -------------------------------------------------------------------------
-
-    if draftdd or incrementaldd:
-        # Note: the difference is that for incrementaldd, the data dictionary
-        # will have been loaded from disk; for draftdd, it won't (so a
-        # completely fresh one will be generated).
-        config.dd.read_from_source_databases()
-        print(config.dd.get_tsv())
-        return
-
-    # If we are doing more than generating a data dictionary, the config must
-    # be valid.
+    config.load_dd(check_against_source_db=not skip_dd_check)
+    # The config must be valid:
     config.check_valid()
-
-    if count:
-        show_source_counts()
-        show_dest_counts()
-        return
 
     # -------------------------------------------------------------------------
     # Setup
@@ -1975,6 +2030,9 @@ def anonymise(draftdd: bool = False,
     start = get_now_utc_pendulum()
 
     # 1. Drop/remake tables. Single-tasking only.
+    if full_drop_only:
+        drop_remake(full_drop_only=True)
+        return
     if dropremake or everything:
         drop_remake(incremental=incremental, skipdelete=skipdelete)
 

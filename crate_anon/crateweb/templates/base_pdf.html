@@ -1,14 +1,14 @@
 {# crate_anon/crateweb/templates/base_pdf.html #}
 
 <!DOCTYPE html> <!-- HTML 5 -->
-<html>
+<html lang="en">
     <head>
         <title>
             {{ RESEARCH_DB_TITLE|default:"CRATE: Research Database" }}
             letter
         </title>
         <meta charset="utf-8">
-        <style type="text/css">{{ css|safe }}</style>
+        <style>{{ css|safe }}</style>
     </head>
 
     <body>

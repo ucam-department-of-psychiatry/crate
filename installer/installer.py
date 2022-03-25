@@ -650,7 +650,7 @@ class Installer:
             self.info(f"Creating {config}")
             Path(config).touch()
             self.run_crate_command(
-                "crate_anonymise --democonfig --leave_placeholders > "
+                "crate_anon_demo_config --leave_placeholders > "
                 "$CRATE_ANON_CONFIG"
             )
         self.configure_anon_config()
@@ -741,7 +741,7 @@ class Installer:
 
     def create_data_dictionary(self) -> None:
         data_dictionary = self.get_data_dictionary_filename()
-        self.run_crate_command(f"crate_anonymise --draftdd > {data_dictionary}")
+        self.run_crate_command(f"crate_anon_draft_dd > {data_dictionary}")
 
     def anonymise_demo_data(self) -> None:
         self.run_crate_command("crate_anonymise --full")

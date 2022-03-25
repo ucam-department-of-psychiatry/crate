@@ -67,7 +67,7 @@ NO_MINUS_SIGN_LOOKAHEAD = fr"(?!{MINUS_SIGN})"
 # ... (?<! something ) is a negative lookbehind assertion
 
 PLAIN_INTEGER = r"\d+"
-# Numbers with commas: http://stackoverflow.com/questions/5917082
+# Numbers with commas: https://stackoverflow.com/questions/5917082
 # ... then modified a little, because that fails with Python's regex module;
 # (a) the "\d+" grabs things like "12,000" and thinks "aha, 12", so we have to
 #     fix that by putting the "thousands" bit first; then

@@ -34,12 +34,13 @@ PROCTYPE_GATE = "GATE"
 # GATE_BASE_URL = "https://api.nhsta.gate.ac.uk/process-document"
 GATE_BASE_URL = "https://nhsta-api.slam-services.gate.ac.uk/process-document"
 NLP_WEBSERVER_CONFIG_ENVVAR = "CRATE_NLP_WEB_CONFIG"
+NLP_WEBSERVER_CELERY_APP_NAME = "crate_anon.nlp_webserver.tasks"
 SERVER_NAME = 'test_server'
 SERVER_VERSION = '0.1'
 
 
 class NlpServerConfigKeys(object):
-    _SQLALCHEMY_PREFIX = "sqlalchemy."
+    SQLALCHEMY_PREFIX = "sqlalchemy."  # not itself a key
 
     BACKEND_URL = "backend_url"
     BROKER_URL = "broker_url"
@@ -50,8 +51,8 @@ class NlpServerConfigKeys(object):
     REDIS_HOST = "redis_host"
     REDIS_PASSWORD = "redis_password"
     REDIS_PORT = "redis_port"
-    SQLALCHEMY_ECHO = _SQLALCHEMY_PREFIX + "echo"
-    SQLALCHEMY_URL = _SQLALCHEMY_PREFIX + "url"
+    SQLALCHEMY_ECHO = SQLALCHEMY_PREFIX + "echo"
+    SQLALCHEMY_URL = SQLALCHEMY_PREFIX + "url"
     USERS_FILE = "users_file"
 
 

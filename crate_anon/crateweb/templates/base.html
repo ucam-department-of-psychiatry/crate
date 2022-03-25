@@ -26,8 +26,8 @@
         {% block collapsejs %}
             <script>
                 //noinspection JSUnusedLocalSymbols
-                var PLUS_IMAGE = '{% static "plus.gif" %}',
-                    MINUS_IMAGE = '{% static "minus.gif" %}';
+                const PLUS_IMAGE = '{% static "plus.gif" %}';
+                const MINUS_IMAGE = '{% static "minus.gif" %}';
             </script>
             <script type="text/javascript" src="{% static 'collapse.js' %}"></script>
         {% endblock %}

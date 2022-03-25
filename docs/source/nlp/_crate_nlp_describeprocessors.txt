@@ -96,8 +96,8 @@
 |                           |                                                                                  |
 |                           |     - Refs include:                                                              |
 |                           |                                                                                  |
-|                           |       - http://www.ncbi.nlm.nih.gov/pubmed/7705110                               |
-|                           |       - http://emedicine.medscape.com/article/2086909-overview                   |
+|                           |       - https://www.ncbi.nlm.nih.gov/pubmed/7705110                              |
+|                           |       - https://emedicine.medscape.com/article/2086909-overview                  |
 |                           |                                                                                  |
 |                           |     - 1 mg/dL = 10 mg/L, so normal in mg/dL is <=1 roughly.                      |
 |                           |                                                                                  |
@@ -150,7 +150,7 @@
 |                           |       - named pipes:                                                             |
 |                           |                                                                                  |
 |                           |         - ``os.mkfifo()`` - Unix only.                                           |
-|                           |         - ``win32pipe`` - http://stackoverflow.com/questions/286614              |
+|                           |         - ``win32pipe`` - https://stackoverflow.com/questions/286614             |
 |                           |                                                                                  |
 |                           |       - ZeroMQ with some sort of security                                        |
 |                           |                                                                                  |
@@ -190,7 +190,7 @@
 |                           |                                                                                  |
 |                           |     - http://www.pathology.leedsth.nhs.uk/pathology/Portals/0/PDFs/BP-2013-02%20 |
 |                           | Hb%20units.pdf                                                                   |
-|                           |     - http://www.acb.org.uk/docs/default-                                        |
+|                           |     - https://www.acb.org.uk/docs/default-                                       |
 |                           | source/committees/scientific/guidelines/acb/pathology-harmony-haematology.pdf    |
 |                           |                                                                                  |
 |                           |     The *DANGER* remains that "Hb 9" may have been from someone assuming         |

@@ -219,7 +219,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     - for each table, make a temporary table in the same database
     - populate that table with (source PK integer/hash, source PK string) pairs
     - delete where pairs don't match -- is that portable SQL?
-      http://stackoverflow.com/questions/7356108/sql-query-for-deleting-rows-with-not-in-using-2-columns  # noqa
+      https://stackoverflow.com/questions/7356108/sql-query-for-deleting-rows-with-not-in-using-2-columns  # noqa
 
     More efficient would be to make one table per destination database.
 
@@ -243,13 +243,13 @@ def delete_where_no_source(nlpdef: NlpDefinition,
 
     - In SQLAlchemy, :func:`exists`:
 
-      - http://stackoverflow.com/questions/14600619
-      - http://docs.sqlalchemy.org/en/latest/core/selectable.html
+      - https://stackoverflow.com/questions/14600619
+      - https://docs.sqlalchemy.org/en/latest/core/selectable.html
 
     - Furthermore, in SQL ``NULL = NULL`` is false (it's null), and ``NULL <>
       NULL`` is also false (it's null), so we have to do an explicit null
       check. You do that with ``field == None``. See
-      http://stackoverflow.com/questions/21668606. We're aiming, therefore,
+      https://stackoverflow.com/questions/21668606. We're aiming, therefore,
       for:
 
       .. code-block:: sql
@@ -1313,5 +1313,5 @@ def main() -> None:
 # Command-line entry point
 # =============================================================================
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

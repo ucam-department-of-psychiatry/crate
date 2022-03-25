@@ -409,7 +409,7 @@ Done.
         AuditAction -- 2 = insert, 3 = update
         RowID -- row number -- how does that work?
             ... cheerfully, SQL Server doesn't have an automatic row ID;
-            http://stackoverflow.com/questions/909155/equivalent-of-oracles-rowid-in-sql-server  # noqa
+            https://stackoverflow.com/questions/909155/equivalent-of-oracles-rowid-in-sql-server  # noqa
             ... so is it the PK we've already identified and called crate_pk?
         TableNumber -- FK to GenTable.Code
         ClientID -- FK to ClientIndex.ClientID
@@ -422,17 +422,14 @@ import argparse
 import logging
 from typing import List
 
-from cardinal_pythonlib.debugging import pdb_run
+# from cardinal_pythonlib.debugging import pdb_run
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.sqlalchemy.schema import (
     get_effective_int_pk_col,
     hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
-from sqlalchemy import (
-    create_engine,
-    MetaData,
-)
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.schema import Column, Table
 from sqlalchemy.sql.sqltypes import BigInteger, Integer
@@ -451,9 +448,15 @@ from crate_anon.common.sql import (
     get_column_names,
     get_table_names,
     get_view_names,
+    IndexCreationInfo,
     set_print_not_execute,
     sql_fragment_cast_to_int,
     ViewMaker,
+)
+from crate_anon.preprocess.constants import (
+    CRATE_COL_PK,
+    DEFAULT_GEOG_COLS,
+    ONSPD_TABLE_POSTCODE,
 )
 from crate_anon.preprocess.rio_constants import (
     CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES,
@@ -462,7 +465,6 @@ from crate_anon.preprocess.rio_constants import (
     CRATE_COL_MAX_DOCVER,
     CRATE_COL_MAX_SUBNUM,
     CRATE_COL_NHS_NUMBER,
-    CRATE_COL_PK,
     CRATE_COL_RIO_NUMBER,
     CRATE_IDX_LAST_DOC,
     CRATE_IDX_LAST_NOTE,
@@ -472,8 +474,6 @@ from crate_anon.preprocess.rio_constants import (
     CRATE_IDX_RIONUM,
     CRATE_IDX_RIONUM_NOTENUM,
     CRATE_IDX_RIONUM_SERIALNUM,
-    DEFAULT_GEOG_COLS,
-    ONSPD_TABLE_POSTCODE,
     RCEP_COL_NHS_NUMBER,
     RCEP_COL_PATIENT_ID,
     RCEP_COL_POSTCODE,
@@ -627,15 +627,15 @@ def process_patient_table(table: Table, engine: Engine,
     # above, so it doesn't matter that we add these last. Their use is for
     # the subsequent CRATE anonymisation table scans.
     add_indexes(engine, table, [
-        {
-            'index_name': CRATE_IDX_PK,
-            'column': CRATE_COL_PK,
-            'unique': True,
-        },
-        {
-            'index_name': CRATE_IDX_RIONUM,
-            'column': CRATE_COL_RIO_NUMBER,
-        },
+        IndexCreationInfo(
+            index_name=CRATE_IDX_PK,
+            column=CRATE_COL_PK,
+            unique=True
+        ),
+        IndexCreationInfo(
+            index_name=CRATE_IDX_RIONUM,
+            column=CRATE_COL_RIO_NUMBER,
+        ),
     ])
 
 
@@ -684,9 +684,13 @@ def process_nonpatient_table(table: Table,
             UPDATE {table.name} SET {CRATE_COL_PK} = {other_pk_col}
             WHERE {CRATE_COL_PK} IS NULL
         """)
-    add_indexes(engine, table, [{'index_name': CRATE_IDX_PK,
-                                 'column': CRATE_COL_PK,
-                                 'unique': True}])
+    add_indexes(engine, table, [
+        IndexCreationInfo(
+            index_name=CRATE_IDX_PK,
+            column=CRATE_COL_PK,
+            unique=True
+        )
+    ])
 
 
 def drop_for_nonpatient_table(table: Table, engine: Engine) -> None:
@@ -773,18 +777,20 @@ def process_progress_notes(table: Table,
     add_columns(engine, table, [crate_col_max_subnum, crate_col_last_note])
     # We're always in "RiO land", not "RCEP land", for this one.
     add_indexes(engine, table, [
-        {  # Joint index, for JOIN in UPDATE statement below
-            'index_name': CRATE_IDX_RIONUM_NOTENUM,
-            'column': f'{CRATE_COL_RIO_NUMBER}, NoteNum',
-        },
-        {  # Speeds up WHERE below. (Much, much faster for second run.)
-            'index_name': CRATE_IDX_MAX_SUBNUM,
-            'column': CRATE_COL_MAX_SUBNUM,
-        },
-        {  # Speeds up WHERE below. (Much, much faster for second run.)
-            'index_name': CRATE_IDX_LAST_NOTE,
-            'column': CRATE_COL_LAST_NOTE,
-        },
+        IndexCreationInfo(  # Joint index, for JOIN in UPDATE statement below
+            index_name=CRATE_IDX_RIONUM_NOTENUM,
+            column=f'{CRATE_COL_RIO_NUMBER}, NoteNum',
+        ),
+        IndexCreationInfo(
+            # Speeds up WHERE below. (Much, much faster for second run.)
+            index_name=CRATE_IDX_MAX_SUBNUM,
+            column=CRATE_COL_MAX_SUBNUM,
+        ),
+        IndexCreationInfo(
+            # Speeds up WHERE below. (Much, much faster for second run.)
+            index_name=CRATE_IDX_LAST_NOTE,
+            column=CRATE_COL_LAST_NOTE,
+        ),
     ])
 
     ensure_columns_present(engine, tablename=table.name, column_names=[
@@ -873,18 +879,18 @@ def process_clindocs_table(table: Table, engine: Engine,
     table.append_column(crate_col_last_doc)
     add_columns(engine, table, [crate_col_max_docver, crate_col_last_doc])
     add_indexes(engine, table, [
-        {
-            'index_name': CRATE_IDX_RIONUM_SERIALNUM,
-            'column': f'{CRATE_COL_RIO_NUMBER}, SerialNumber',
-        },
-        {
-            'index_name': CRATE_IDX_MAX_DOCVER,
-            'column': CRATE_COL_MAX_DOCVER,
-        },
-        {
-            'index_name': CRATE_IDX_LAST_DOC,
-            'column': CRATE_COL_LAST_DOC,
-        },
+        IndexCreationInfo(
+            index_name=CRATE_IDX_RIONUM_SERIALNUM,
+            column=[CRATE_COL_RIO_NUMBER, "SerialNumber"],
+        ),
+        IndexCreationInfo(
+            index_name=CRATE_IDX_MAX_DOCVER,
+            column=CRATE_COL_MAX_DOCVER,
+        ),
+        IndexCreationInfo(
+            index_name=CRATE_IDX_LAST_DOC,
+            column=CRATE_COL_LAST_DOC,
+        ),
     ])
 
     required_cols = ["SerialNumber", "RevisionID"]
@@ -1062,10 +1068,9 @@ def add_postcode_geography_view(engine: Engine,
                                 configoptions: RioViewConfigOptions,
                                 ddhint: DDHint) -> None:
     """
-    Modifies a viewmaker to add geography columns to views on RiO tables. For
-    example, if you start with an address table including postcodes, and you're
-    building a view involving it, then you can link in LSOA or IMD information
-    with this function.
+    Creates a RiO source view to add geography columns to an address table
+    including postcodes, linking in e.g. LSOA/IMD information from an ONS
+    postcode table (e.g. imported by CRATE; see postcodes.py).
 
     Args:
         engine: an SQLAlchemy Engine
@@ -1106,6 +1111,7 @@ def add_postcode_geography_view(engine: Engine,
             f"overlap = {overlap}")
     ensure_columns_present(engine, tablename=addresstable, column_names=[
         rio_postcodecol])
+    colsep = ",\n            "
     select_sql = """
         SELECT {origcols},
             {geogcols}
@@ -1120,8 +1126,8 @@ def add_postcode_geography_view(engine: Engine,
         --            '') = {pdb}.{pcdtab}.pcd_nospace
     """.format(
         addresstable=addresstable,
-        origcols=",\n            ".join(orig_column_specs),
-        geogcols=",\n            ".join(geog_col_specs),
+        origcols=colsep.join(orig_column_specs),
+        geogcols=colsep.join(geog_col_specs),
         pdb=configoptions.postcodedb,
         pcdtab=ONSPD_TABLE_POSTCODE,
         rio_postcodecol=rio_postcodecol,
@@ -1235,7 +1241,7 @@ def main() -> None:
     parser.add_argument(
         "--print", action="store_true",
         help="Print SQL but do not execute it. (You can redirect the printed "
-             "output to create an SQL script.")
+             "output to create an SQL script.)")
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
 
     parser.add_argument(
@@ -1243,7 +1249,7 @@ def main() -> None:
         help="Treat the source database as the product of Servelec's RiO CRIS "
              "Extract Program v2 (instead of raw RiO)")
     parser.add_argument(
-        "--drop-danger-drop", action="store_true",
+        "--drop_danger_drop", action="store_true",
         help="REMOVES new columns and indexes, rather than creating them. "
              "(There's not very much danger; no real information is lost, but "
              "it might take a while to recalculate it.)")
@@ -1253,18 +1259,18 @@ def main() -> None:
              "Trust (CPFT) RCEP database. Only applicable with --rcep")
 
     parser.add_argument(
-        "--debug-skiptables", action="store_true",
+        "--debug_skiptables", action="store_true",
         help="DEBUG-ONLY OPTION. Skip tables (view creation only)")
 
     prog_curr_group = parser.add_mutually_exclusive_group()
     prog_curr_group.add_argument(
-        "--prognotes-current-only",
+        "--prognotes_current_only",
         dest="prognotes_current_only",
         action="store_true",
         help="Progress_Notes view restricted to current versions only "
              "(* default)")
     prog_curr_group.add_argument(
-        "--prognotes-all",
+        "--prognotes_all",
         dest="prognotes_current_only",
         action="store_false",
         help="Progress_Notes view shows old versions too")
@@ -1272,12 +1278,12 @@ def main() -> None:
 
     clindocs_curr_group = parser.add_mutually_exclusive_group()
     clindocs_curr_group.add_argument(
-        "--clindocs-current-only",
+        "--clindocs_current_only",
         dest="clindocs_current_only",
         action="store_true",
         help="Clinical_Documents view restricted to current versions only (*)")
     clindocs_curr_group.add_argument(
-        "--clindocs-all",
+        "--clindocs_all",
         dest="clindocs_current_only",
         action="store_false",
         help="Clinical_Documents view shows old versions too")
@@ -1285,12 +1291,12 @@ def main() -> None:
 
     allerg_curr_group = parser.add_mutually_exclusive_group()
     allerg_curr_group.add_argument(
-        "--allergies-current-only",
+        "--allergies_current_only",
         dest="allergies_current_only",
         action="store_true",
         help="Client_Allergies view restricted to current info only")
     allerg_curr_group.add_argument(
-        "--allergies-all",
+        "--allergies_all",
         dest="allergies_current_only",
         action="store_false",
         help="Client_Allergies view shows deleted allergies too (*)")
@@ -1298,12 +1304,12 @@ def main() -> None:
 
     audit_group = parser.add_mutually_exclusive_group()
     audit_group.add_argument(
-        "--audit-info",
+        "--audit_info",
         dest="audit_info",
         action="store_true",
         help="Audit information (creation/update times) added to views")
     audit_group.add_argument(
-        "--no-audit-info",
+        "--no_audit_info",
         dest="audit_info",
         action="store_false",
         help="No audit information added (*)")
@@ -1322,7 +1328,7 @@ def main() -> None:
              f"identifying. Default: {' '.join(DEFAULT_GEOG_COLS)}")
 
     parser.add_argument(
-        "--settings-filename",
+        "--settings_filename",
         help="Specify filename to write draft ddgen_* settings to, for use in "
              "a CRATE anonymiser configuration file.")
 
@@ -1363,8 +1369,7 @@ def main() -> None:
 
     hack_in_mssql_xml_type()
 
-    engine = create_engine(progargs.url, echo=progargs.echo,
-                           encoding=CHARSET)
+    engine = create_engine(progargs.url, echo=progargs.echo, encoding=CHARSET)
     metadata = MetaData()
     metadata.bind = engine
     log.info(f"Database: {repr(engine.url)}")  # ... repr hides p/w
@@ -1412,5 +1417,6 @@ def main() -> None:
             print(get_rio_dd_settings(ddhint), file=f)
 
 
-if __name__ == '__main__':
-    pdb_run(main)
+if __name__ == "__main__":
+    # pdb_run(main)
+    main()

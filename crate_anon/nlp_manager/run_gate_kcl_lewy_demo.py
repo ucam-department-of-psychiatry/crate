@@ -34,7 +34,7 @@ import os
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.constants import (
-    CrateDir,
+    CratePath,
     DEMO_NLP_INPUT_TERMINATOR,
     DEMO_NLP_OUTPUT_TERMINATOR,
     EnvVar,
@@ -53,7 +53,7 @@ def main() -> None:
     kcl_lewy_dir = get_envvar_or_die(EnvVar.KCL_LEWY_BODY_DIAGNOSIS_DIR)
     check_call_verbose([
         "java",
-        "-classpath", f"{CrateDir.JAVA_CLASSES}:{gate_home}/lib/*",
+        "-classpath", f"{CratePath.JAVA_CLASSES_DIR}:{gate_home}/lib/*",
         f"-Dgate.home={gate_home}",
         "CrateGatePipeline",
         "--pluginfile", plugin_file,

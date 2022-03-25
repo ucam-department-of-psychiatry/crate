@@ -30,7 +30,7 @@ and surnames.**
 See:
 
 - https://stackoverflow.com/questions/1803628/raw-list-of-person-names
-- http://www.dicts.info/dictionaries.php
+- https://www.dicts.info/dictionaries.php
 
 For the Moby project:
 
@@ -200,8 +200,8 @@ class NameInfo(object):
         Assert that the frequences are reasonable numbers.
         """
         assert (
-            isinstance(self.freq_pct, float) and
-            isinstance(self.cumfreq_pct, float)
+            isinstance(self.freq_pct, float)
+            and isinstance(self.cumfreq_pct, float)
         ), f"Bad frequencies in {self}"
 
     @property
@@ -1095,5 +1095,5 @@ def main() -> None:
                      min_line_length=args.min_word_length)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

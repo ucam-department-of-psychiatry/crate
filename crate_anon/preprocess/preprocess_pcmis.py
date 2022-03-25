@@ -191,7 +191,11 @@ from sqlalchemy import (
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.schema import Table
 
-from crate_anon.anonymise.constants import CHARSET
+from crate_anon.anonymise.constants import (
+    CHARSET,
+    AnonymiseDatabaseSafeConfigKeys,
+    HashConfigKeys,
+)
 from crate_anon.common.sql import (
     add_columns,
     add_indexes,
@@ -200,10 +204,13 @@ from crate_anon.common.sql import (
     ensure_columns_present,
     get_column_names,
     get_table_names,
+    IndexCreationInfo,
     set_print_not_execute,
     ViewMaker,
 )
-from crate_anon.preprocess.rio_constants import (
+from crate_anon.preprocess.constants import (
+    CRATE_COL_PK,
+    CRATE_IDX_PREFIX,
     DEFAULT_GEOG_COLS,
     ONSPD_TABLE_POSTCODE,
 )
@@ -216,9 +223,7 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-CRATE_COL_PK = "crate_pk"
-
-CRATE_IDX_PK = "crate_idx_pk"  # for any patient table
+CRATE_IDX_PK = f"{CRATE_IDX_PREFIX}_pk"  # for any patient table
 
 CRATE_VIEW_SUFFIX = "_crateview"
 
@@ -291,12 +296,15 @@ def get_pcmis_dd_settings(ddhint: DDHint) -> str:
     Returns:
         the config file settings, as a string
     """
-    return """
-ddgen_omit_by_default = True
+    suppress_tables = "\n    ".join(ddhint.get_suppressed_tables())
+    hk = HashConfigKeys
+    sk = AnonymiseDatabaseSafeConfigKeys
+    return f"""
+{sk.DDGEN_OMIT_BY_DEFAULT} = True
 
-ddgen_omit_fields =
+{sk.DDGEN_OMIT_FIELDS} =
 
-ddgen_include_fields = #
+{sk.DDGEN_INCLUDE_FIELDS} = #
     # -------------------------------------------------------------------------
     # PCMIS core tables
     # -------------------------------------------------------------------------
@@ -313,15 +321,13 @@ ddgen_include_fields = #
     Patient*{CRATE_VIEW_SUFFIX}.*
     ReferralDetails{CRATE_VIEW_SUFFIX}.*
 
-ddgen_allow_no_patient_info = False
+{sk.DDGEN_PER_TABLE_PID_FIELD} = {PCMIS_COL_PATIENT_ID}
 
-ddgen_per_table_pid_field = {PCMIS_COL_PATIENT_ID}
+{sk.DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER} = False
 
-ddgen_add_per_table_pids_to_scrubber = False
+{sk.DDGEN_MASTER_PID_FIELDNAME} = {PCMIS_COL_NHS_NUMBER}
 
-ddgen_master_pid_fieldname = {PCMIS_COL_NHS_NUMBER}
-
-ddgen_table_denylist = #
+{sk.DDGEN_TABLE_DENYLIST} = #
     # -------------------------------------------------------------------------
     # Denylist: Prefixes: groups of tables; individual tables
     # -------------------------------------------------------------------------
@@ -348,26 +354,26 @@ ddgen_table_denylist = #
     # -------------------------------------------------------------------------
     {suppress_tables}
 
-ddgen_table_allowlist =
+{sk.DDGEN_TABLE_ALLOWLIST} =
 
-ddgen_table_require_field_absolute = #
+{sk.DDGEN_TABLE_REQUIRE_FIELD_ABSOLUTE} = #
     # All tables/fields must have crate_pk
     {CRATE_COL_PK}
 
-ddgen_table_require_field_conditional =
-ddgen_field_denylist =
-ddgen_field_allowlist =
-ddgen_pk_fields = {CRATE_COL_PK}
-ddgen_constant_content = False
-ddgen_constant_content_tables =
-ddgen_nonconstant_content_tables =
-ddgen_addition_only = False
-ddgen_addition_only_tables =
-ddgen_deletion_possible_tables =
+{sk.DDGEN_TABLE_REQUIRE_FIELD_CONDITIONAL} =
+{sk.DDGEN_FIELD_DENYLIST} =
+{sk.DDGEN_FIELD_ALLOWLIST} =
+{sk.DDGEN_PK_FIELDS} = {CRATE_COL_PK}
+{sk.DDGEN_CONSTANT_CONTENT} = False
+{sk.DDGEN_CONSTANT_CONTENT_TABLES} =
+{sk.DDGEN_NONCONSTANT_CONTENT_TABLES} =
+{sk.DDGEN_ADDITION_ONLY} = False
+{sk.DDGEN_ADDITION_ONLY_TABLES} =
+{sk.DDGEN_DELETION_POSSIBLE_TABLES} =
 
-ddgen_pid_defining_fieldnames = {VIEW_PT_DETAIL_W_GEOG}.{PCMIS_COL_PATIENT_ID}
+{sk.DDGEN_PID_DEFINING_FIELDNAMES} = {VIEW_PT_DETAIL_W_GEOG}.{PCMIS_COL_PATIENT_ID}
 
-ddgen_scrubsrc_patient_fields = # several of these:
+{sk.DDGEN_SCRUBSRC_PATIENT_FIELDS} = # several of these:
     # ----------------------------------------------------------------------
     # Original PCMIS tables (some may be superseded by views; list both here;
     # if the table is denylisted anyway, it doesn't matter).
@@ -426,7 +432,7 @@ ddgen_scrubsrc_patient_fields = # several of these:
     # Views
     # ----------------------------------------------------------------------
 
-ddgen_scrubsrc_thirdparty_fields = # several:
+{sk.DDGEN_SCRUBSRC_THIRDPARTY_FIELDS} = # several:
     # ----------------------------------------------------------------------
     # Original PCMIS tables (some may be superseded by views; list both here)
     # ----------------------------------------------------------------------
@@ -490,27 +496,27 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     # CRATE views
     # ----------------------------------------------------------------------
 
-ddgen_scrubsrc_thirdparty_xref_pid_fields =
+{sk.DDGEN_SCRUBSRC_THIRDPARTY_XREF_PID_FIELDS} =
 
-ddgen_required_scrubsrc_fields = # several:
+{sk.DDGEN_REQUIRED_SCRUBSRC_FIELDS} = # several:
     PatientDetails{CRATE_VIEW_SUFFIX}.FirstName
     PatientDetails{CRATE_VIEW_SUFFIX}.LastName  # always present, but FamilyName can be NULL
     PatientDetails{CRATE_VIEW_SUFFIX}.DOB
 
-ddgen_scrubmethod_code_fields = # note: case-insensitive matching:
+{sk.DDGEN_SCRUBMETHOD_CODE_FIELDS} = # note: case-insensitive matching:
     *PostCode
 
-ddgen_scrubmethod_date_fields =
+{sk.DDGEN_SCRUBMETHOD_DATE_FIELDS} =
     *DOB*
 
-ddgen_scrubmethod_number_fields = #
+{sk.DDGEN_SCRUBMETHOD_NUMBER_FIELDS} = #
     *Tel*
     *Voicemail*
     *NHSNumber*
 
-ddgen_scrubmethod_phrase_fields = *Address*
+{sk.DDGEN_SCRUBMETHOD_PHRASE_FIELDS} = *Address*
 
-ddgen_safe_fields_exempt_from_scrubbing =
+{sk.DDGEN_SAFE_FIELDS_EXEMPT_FROM_SCRUBBING} =
 
     # PCMIS mostly uses string column lengths of 1, 20, 32, 50, 64, 100, 128,
     # 200, 250, 255, 256, 500, 1000, 2000, 4000, unlimited.
@@ -521,50 +527,39 @@ ddgen_safe_fields_exempt_from_scrubbing =
     #       Also includes CaseChildDetails.Impact
     # - 64: mostly codes; also e.g. ReferralDetails.EndOfCareReason
     # - 100: lots of generic things, like CaseAssessmentCustom1.Q1
-ddgen_min_length_for_scrubbing = 50
+{sk.DDGEN_MIN_LENGTH_FOR_SCRUBBING} = 50
 
-ddgen_truncate_date_fields =
+{sk.DDGEN_TRUNCATE_DATE_FIELDS} =
     CaseContactDetails.DOB
     PatientDetails.DOB
 
-ddgen_filename_to_text_fields =
-ddgen_binary_to_text_field_pairs =
-ddgen_skip_row_if_extract_text_fails_fields =
-ddgen_rename_tables_remove_suffixes = {CRATE_VIEW_SUFFIX}
-ddgen_patient_opt_out_fields =
+{sk.DDGEN_FILENAME_TO_TEXT_FIELDS} =
+{sk.DDGEN_BINARY_TO_TEXT_FIELD_PAIRS} =
+{sk.DDGEN_SKIP_ROW_IF_EXTRACT_TEXT_FAILS_FIELDS} =
+{sk.DDGEN_RENAME_TABLES_REMOVE_SUFFIXES} = {CRATE_VIEW_SUFFIX}
+{sk.DDGEN_PATIENT_OPT_OUT_FIELDS} =
 
-ddgen_extra_hash_fields = CaseNumber, pcmis_case_number_hashdef
+{sk.DDGEN_EXTRA_HASH_FIELDS} = CaseNumber, pcmis_case_number_hashdef
 
     # YOU WILL NEED TO DO THIS:
     # (1) add "pcmis_case_number_hashdef" to your "extra_hash_config_sections"
     #     setting;
     # (2) add a "pcmis_case_number_hashdef" section, like this:
     #       [pcmis_case_number_hashdef]
-    #       hash_method = HMAC_MD5
-    #       secret_key = my_special_secret_phrase_123
+    #       {hk.HASH_METHOD} = HMAC_MD5
+    #       {hk.SECRET_KEY} = my_special_secret_phrase_123
     # and obviously you should use your own secret phrase, not this one!
 
-ddgen_index_fields =
+{sk.DDGEN_INDEX_FIELDS} =
     {PCMIS_COL_CASE_NUMBER}
     {PCMIS_COL_CONTACT_NUMBER}
     GroupCode
 
-ddgen_allow_fulltext_indexing = True
+{sk.DDGEN_ALLOW_FULLTEXT_INDEXING} = True
 
-ddgen_force_lower_case = False
-ddgen_convert_odd_chars_to_underscore = True
-
-    """.format(  # noqa
-        CRATE_COL_PK=CRATE_COL_PK,
-        CRATE_VIEW_SUFFIX=CRATE_VIEW_SUFFIX,
-        PCMIS_COL_CASE_NUMBER=PCMIS_COL_CASE_NUMBER,
-        PCMIS_COL_CONTACT_NUMBER=PCMIS_COL_CONTACT_NUMBER,
-        PCMIS_COL_NHS_NUMBER=PCMIS_COL_NHS_NUMBER,
-        PCMIS_COL_PATIENT_ID=PCMIS_COL_PATIENT_ID,
-        PCMIS_TABLE_MASTER_PATIENT=PCMIS_TABLE_MASTER_PATIENT,
-        suppress_tables="\n    ".join(ddhint.get_suppressed_tables()),
-        VIEW_PT_DETAIL_W_GEOG=VIEW_PT_DETAIL_W_GEOG,
-    )
+{sk.DDGEN_FORCE_LOWER_CASE} = False
+{sk.DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE} = True
+"""  # noqa
 
 
 # =============================================================================
@@ -833,9 +828,13 @@ def process_table(table: Table, engine: Engine,
             add_columns(engine, table, [crate_pk_col])
         ensure_columns_present(engine, tablename=table.name,
                                column_names=required_cols)
-        add_indexes(engine, table, [{'index_name': CRATE_IDX_PK,
-                                     'column': CRATE_COL_PK,
-                                     'unique': True}])
+        add_indexes(engine, table, [
+            IndexCreationInfo(
+                index_name=CRATE_IDX_PK,
+                column=CRATE_COL_PK,
+                unique=True
+            )
+        ])
 
 
 def process_all_tables(engine: Engine,
@@ -871,17 +870,17 @@ def main() -> None:
     parser.add_argument(
         "--print", action="store_true",
         help="Print SQL but do not execute it. (You can redirect the printed "
-             "output to create an SQL script.")
+             "output to create an SQL script.)")
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
 
     parser.add_argument(
-        "--drop-danger-drop", action="store_true",
+        "--drop_danger_drop", action="store_true",
         help="REMOVES new columns and indexes, rather than creating them. "
              "(There's not very much danger; no real information is lost, but "
              "it might take a while to recalculate it.)")
 
     parser.add_argument(
-        "--debug-skiptables", action="store_true",
+        "--debug_skiptables", action="store_true",
         help="DEBUG-ONLY OPTION. Skip tables (view creation only)")
 
     parser.add_argument(
@@ -897,7 +896,7 @@ def main() -> None:
              "identifying.")
 
     parser.add_argument(
-        "--settings-filename",
+        "--settings_filename",
         help="Specify filename to write draft ddgen_* settings to, for use in "
              "a CRATE anonymiser configuration file.")
 
@@ -919,8 +918,7 @@ def main() -> None:
 
     hack_in_mssql_xml_type()
 
-    engine = create_engine(progargs.url, echo=progargs.echo,
-                           encoding=CHARSET)
+    engine = create_engine(progargs.url, echo=progargs.echo, encoding=CHARSET)
     metadata = MetaData()
     metadata.bind = engine
     log.info(f"Database: {repr(engine.url)}")  # ... repr hides p/w
@@ -954,5 +952,5 @@ def main() -> None:
             print(get_pcmis_dd_settings(ddhint), file=f)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pdb_run(main)

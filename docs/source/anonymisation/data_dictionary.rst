@@ -23,9 +23,21 @@
 Data dictionary (DD)
 --------------------
 
-The data dictionary is a TSV file with a single header row, and columns as
-defined below. (The DD columns can be in any order as long as the header row
-matches the data, and the column heading names are exactly as follows.)
+The data dictionary is a catalogue of tables and columns (fields) in a source
+database (typically containing identifiable data). It tells CRATE how to
+transform the data into a de-identified destination database.
+
+The data dictionary is a spreadsheet-style file: a tab-separated values (TSV)
+file, OpenOffice Spreadsheet (ODS) file, or Microsoft Excel XLSX (OpenXML,
+Excel 2007+) file.
+
+It has a single header row, and columns as defined below.
+
+
+.. _crate_anon_draft_dd:
+
+Drafting a data dictionary
+++++++++++++++++++++++++++
 
 Once you have edited your :ref:`anonymiser config file <anon_config_file>` to
 point to your source database, you can generate a **draft data dictionary**
@@ -33,29 +45,56 @@ like this:
 
 .. code-block:: bash
 
-    crate_anonymise --draftdd > mydd.tsv
+    crate_anon_draft_dd --output mydd.xlsx
 
-Now edit the data dictionary as required. Then make your config file point to
-the data dictionary you want to use.
+Now edit the data dictionary as required. (And then edit your config file so it
+points to the data dictionary you have created.)
+
+Full options for this tool are:
+
+..  literalinclude:: _crate_anon_draft_dd.txt
+    :language: none
+
+
+Columns in the data dictionary
+++++++++++++++++++++++++++++++
+
+- The DD columns can be in any order as long as the header row matches the
+  data, and the column headings include the headings shown here.
+
+- In TSV format, lines beginning with a hash (``#``) are treated as comments
+  and ignored, as are blank lines.
+
 
 src_db
 ~~~~~~
 
+*String.*
+
 This column specifies the source database, using a name that matches one from
 the ``source_databases`` list in the config file.
+
 
 src_table
 ~~~~~~~~~
 
+*String.*
+
 This column specifies the table name in the source database.
+
 
 src_field
 ~~~~~~~~~
 
+*String.*
+
 This column specifies the field (column) name in the source database.
+
 
 src_datatype
 ~~~~~~~~~~~~
+
+*String.*
 
 This column gives the source column's SQL data type (e.g. `INT`,
 `VARCHAR(50)`).
@@ -66,6 +105,8 @@ This column gives the source column's SQL data type (e.g. `INT`,
 src_flags
 ~~~~~~~~~
 
+*String.*
+
 This field can be blank or can contain a string made up of one or more
 characters. The characters have the following meanings:
 
@@ -75,7 +116,22 @@ Character   Meaning
 ``K``       | **PK.**
             | This field is the primary key (PK) for the table it's in.
 
-`H`         | **ADD SOURCE HASH.**
+``N``       | **NOT NULL.**
+            | This field should be set to ``NOT NULL`` in the destination.
+
+            - Primary key columns are usually NOT NULL. It is in principle
+              possible to have a NULL primary key but this is extremely rare
+              and not usually sensible.
+
+            - Primary PID columns (see below) are set to ``NOT NULL``
+              automatically by CRATE.
+
+            - NOT NULL status might not seem to matter for a read-only research
+              database, but having the correct NOT NULL status is required by
+              some database engines (e.g. SQL Server) for full-text indexing of
+              other fields (see below).
+
+``H``       | **ADD SOURCE HASH.**
             | Add source hash of the record, for incremental updates?
 
             - This flag may only be set for source PK (``K``) fields (which
@@ -83,12 +139,15 @@ Character   Meaning
               `index=U` setting, so that a unique index is created for this
               field).
 
-            - If set, a field is added to the destination table, with field
-              name as set by the config's ``source_hash_fieldname`` variable,
-              containing a hash of the contents of the source record -- all
-              fields that are not omitted, OR contain scrubbing information
-              (``scrub_src``). The field is of type VARCHAR and its length is
-              determined by the ``hash_method`` parameter (see below).
+            - If set, an additional column (field) is added to the destination
+              table. This extra column's name is the value of the config's
+              :ref:`source_hash_fieldname <source_hash_fieldname>` variable; it
+              is of type ``VARCHAR`` and its length is determined by the
+              :ref:`hash_method <anon_config_hash_method>` option. This field
+              will contain a hash of the contents of the source record
+              (specifically, a hash of a composite of all fields that are not
+              omitted, OR contain scrubbing information as determined by
+              ``scrub_src``).
 
             - This table is then capable of incremental updates.
 
@@ -129,7 +188,8 @@ Character   Meaning
 
             (b) If the field is not omitted: the field will be hashed as the
                 primary ID (database patient primary key) in the destination,
-                and a transient research ID (TRID) also added.
+                and a transient research ID (TRID) also added. You cannot
+                specify another :ref:`alter_method <dd_alter_method>`.
 
 ``*``       | **DEFINES PRIMARY PIDS.**
             | This field *defines* primary PIDs. If set, this row will be used
@@ -137,30 +197,39 @@ Character   Meaning
               database. Only those patients will be processed (for all tables
               containing patient info). Typically, this flag is applied to a
               SINGLE field in a SINGLE table, usually the principal patient
-              registration/demographics table.
+              registration/demographics table. CRATE will warn you if there is
+              more than one such field, and will raise an error if there are
+              none, unless :ref:`allow_no_patient_info <allow_no_patient_info>`
+              is set.
 
 ``M``       | **MASTER PID.**
             | Master ID (e.g. NHS number).
-            | The field will be hashed with the master PID hasher.
+
+            (a) The first such value encountered for any patient will be
+                recorded as their MPID.
+
+            (b) If the field is not omitted, it will be hashed with the MPID
+                hasher. You cannot specify another :ref:`alter_method
+                <dd_alter_method>`.
 
 ``!``       | **OPT OUT.**
             | This field is used to mark that the patient wishes to opt out
               entirely. It must be in a table that also has a primary patient
               ID field (because that's the ID that will be omitted). If the
               opt-out field contains a value that's defined in the
-              ``optout_col_values`` setting (see :ref:`config file
-              <anon_config_file>`), that patient will be opted out entirely
-              from the anonymised database.
+              :ref:`optout_col_values <optout_col_values>` config setting, that
+              patient will be opted out entirely from the anonymised database.
 
 ``R``       | **REQUIRED SCRUBBER.**
-            | If this field is a ``scrub_src`` field (see below), and this flag
-              is set, then at least one non-NULL value for this field must be
-              present for each patient, or no information will be processed for
-              this patient. (Typical use: where you have a master patient index
-              separate from the patient name table, and data might have been
-              brought across partially, so there are some missing names. In
-              this situation, text might go unscrubbed because the names are
-              missing. Setting this flag for the name field will prevent this.)
+            | If this field is a :ref:`scrub_src <dd_scrub_src>` field (see
+              below), and this flag is set, then at least one non-NULL value
+              for this field must be present for each patient, or no
+              information will be processed for this patient. (Typical use:
+              where you have a master patient index separate from the patient
+              name table, and data might have been brought across partially, so
+              there are some missing names. In this situation, text might go
+              unscrubbed because the names are missing. Setting this flag for
+              the name field will prevent this.)
 
 =========== ===================================================================
 
@@ -169,6 +238,8 @@ Character   Meaning
 
 scrub_src
 ~~~~~~~~~
+
+*String.*
 
 One of the following values, or blank:
 
@@ -186,6 +257,14 @@ Value                   Meaning
                         (such as a relative). The scrubber should recursively
                         include THAT patient's identifying information as
                         third-party information for THIS patient.
+
+                        Fields marked thus, if included in the destination
+                        database (see :ref:`decision <dd_decision>`), are
+                        automatically hashed with the "primary" PID hasher,
+                        allowing you to link connected records in the research
+                        database. You cannot specify another :ref:`alter_method
+                        <dd_alter_method>`.
+
 ======================= =======================================================
 
 
@@ -194,38 +273,60 @@ Value                   Meaning
 scrub_method
 ~~~~~~~~~~~~
 
+*String.*
+
 Applicable to `scrub_src` fields, this column determines the manner in which
 this field should be treated for scrubbing. It must be one of the following
 values (or blank):
 
-=========== ===================================================================
-Value       Meaning
-=========== ===================================================================
-``words``   Treat as a set of textual words. This is the default for all
-            textual fields (e.g. `CHAR`, `VARCHAR`, `TEXT`). Typically used for
-            names. Also OK for e-mail addresses.
+=========================== ===================================================
+Value                       Meaning
+=========================== ===================================================
+``words``                   Treat as a set of textual words. This is the
+                            default for all textual fields (e.g. `CHAR`,
+                            `VARCHAR`, `TEXT`). Typically used for names: for
+                            example, "John Smith" will scrub both "John" and
+                            "Smith" separately. Also OK for e-mail addresses.
 
-``phrase``  Treat as a textual phrase (a sequence of words to be replaced only
-            when they occur in sequence). Typically used for address
-            components.
+``phrase``                  Treat as a textual phrase (a sequence of words to
+                            be replaced only when they occur in sequence).
+                            Any superfluous whitespace at the start/end, or
+                            between words, is ignored. Typically used for
+                            address components: for example, "5 Tree Avenue"
+                            will not scrub "tree" or "avenue" by themselves,
+                            but this phrase will be scrubbed.
 
-``number``  Treat as a number. This is the default for all numeric fields (e.g.
-            `INTEGER`, `FLOAT`). If you have a phone number in a text field,
-            use this method; it will be scrubbed regardless of
-            spacing/punctuation.
+``phrase_unless_numeric``   If the value is numeric, ignore it. Otherwise,
+                            treat it as ``phrase``. For example, if you have
+                            an address field that is meant to be "building
+                            number" (e.g. "5") but someone might put a name
+                            (e.g. "Seaview") or an address line (e.g. "5 Tree
+                            Road"), this will remove the more complex pieces of
+                            information but will ignore "5" (preserving e.g.
+                            "haloperidol 5 mg" elsewhere).
 
-``code``    Teat as an alphanumeric code. Suited to postcodes. Very like the
-            numeric method, but permits non-digits.
+``number``                  Treat as a number. This is the default for all
+                            numeric fields (e.g. `INTEGER`, `FLOAT`). If you
+                            have a phone number in a text field, use this
+                            method; it will be scrubbed regardless of
+                            spacing/punctuation.
 
-``date``    Treat as a date. This is the default for all `DATE`/`DATETIME`
-            fields.
-=========== ===================================================================
+``code``                    Treat as an alphanumeric code. Suited to postcodes.
+                            Very like the numeric method, but permits
+                            non-digits.
+
+``date``                    Treat as a date, and scrub any recognizable
+                            representations of that date. This is the default
+                            for all `DATE`/`DATETIME` fields.
+=========================== ===================================================
 
 
 .. _dd_decision:
 
 decision
 ~~~~~~~~
+
+*String.*
 
 One of the following two values:
 
@@ -241,6 +342,8 @@ This is case sensitive, for safety.
 
 inclusion_values
 ~~~~~~~~~~~~~~~~
+
+*String.*
 
 Either blank, or an expression that evaluates to a Python iterable (e.g. list
 or tuple) with Python's `ast.literal_eval()` function (see
@@ -268,6 +371,8 @@ Examples:
 exclusion_values
 ~~~~~~~~~~~~~~~~
 
+*String.*
+
 As for ``inclusion_values``, but the row is excluded if the field's value is in
 the exclusion_values list.
 
@@ -277,8 +382,11 @@ the exclusion_values list.
 alter_method
 ~~~~~~~~~~~~
 
+*String.*
+
 Manner in which to alter the data. Blank, or a comma-separated list of one or
-more of:
+more of the following. (You should replace aspects in capitals with appropriate
+values.)
 
 =============================== ===============================================
 Component                       Meaning
@@ -294,19 +402,25 @@ Component                       Meaning
                                 fields.
 
 ``binary_to_text=EXTFIELDNAME`` **Convert a binary field (e.g. `VARBINARY`,
-                                `BLOB`) to text (e.g. `LONGTEXT`).** The binary
-                                data is taken to be the representation of a
-                                document. The field `EXTFIELDNAME`, which must
-                                be in the same source table, must contain the
-                                file extension (e.g. ``'pdf'``, ``'.pdf'``) or
-                                a filename with that extension (e.g.
+                                `BLOB`) to text (e.g. `LONGTEXT`).** Insert
+                                your chosen field name in place of
+                                `EXTFIELDNAME`. The binary data is taken to be
+                                the representation of a document. The field
+                                must be in the same source table, must contain
+                                the file extension (e.g. ``'pdf'``, ``'.pdf'``)
+                                or a filename with that extension (e.g.
                                 ``'/some/path/mything.pdf'``), so that the
                                 anonymiser knows how to treat the binary data
                                 to extract text from it.
 
+``filename_to_text``            As for the binary-to-text option, but the field
+                                contains a full filename (the contents of which
+                                is converted to text), rather than containing
+                                binary data directly.
+
 ``filename_format_to_text=FMT`` A more powerful way of specifying a filename
                                 that can be created using data from this table.
-                                The `FMT` parameter is an unquoted Python
+                                Replace `FMT` with an unquoted Python
                                 str.format() string; see
                                 https://docs.python.org/3.4/library/stdtypes.html#str.format.
                                 The dictionary passed to `format()` is created
@@ -314,9 +428,10 @@ Component                       Meaning
 
                                 Using an example from RiO: if your
                                 ClientDocuments table contains a `ClientID`
-                                column (e.g. ``999999``) and a `Path` column
-                                (e.g. ``'appointment_letter.pdf'``), and you
-                                know that the actual file will then be found at
+                                column (with a value like ``999999``) and a
+                                `Path` column (with a value like
+                                ``appointment_letter.pdf``), and you know that
+                                the actual file will then be found at
                                 ``C:\some\path\999999\docs\appointment_letter.pdf``,
                                 then you can specify this with
 
@@ -327,11 +442,6 @@ Component                       Meaning
                                 You probably want to apply this
                                 ``alter_method`` to the `Path` column in this
                                 example, though that's not mandatory.
-
-``filename_to_text``            As for the binary-to-text option, but the field
-                                contains a filename (the contents of which is
-                                converted to text), rather than containing
-                                binary data directly.
 
 ``skip_if_extract_fails``       If one of the text extraction methods is
                                 specified, and this flag is also specified,
@@ -352,7 +462,8 @@ Component                       Meaning
                                 ``<a href="http://somewhere">see link</a>``
                                 to ``see link``
 
-``hash=HASH_CONFIG_SECTION``    Hash this field,
+``hash=HASH_CONFIG_SECTION``    Hash this field, using the hasher specified in
+                                the config file section that you name.
 
 =============================== ===============================================
 
@@ -381,22 +492,33 @@ or:
 dest_table
 ~~~~~~~~~~
 
+*String.*
+
 Table name in the destination database.
+
 
 dest_field
 ~~~~~~~~~~
 
+*String.*
+
 Field (column) name in the destination database.
+
 
 dest_datatype
 ~~~~~~~~~~~~~
+
+*String.* Default: none.
 
 SQL data type in the destination database.
 
 If omitted, the source SQL data type is translated appropriately.
 
+
 index
 ~~~~~
+
+*String.*
 
 One of:
 
@@ -411,29 +533,39 @@ Value       Meaning
 
 ``F``       Create a `FULLTEXT` index, for rapid searching within long text
             fields. Only applicable to one field per table.
+
+            - Some database engines (e.g. Microsoft SQL Server) require a NOT
+              NULL column with a unique index (i.e. effectively a slightly more
+              restricted primary key) to be present in the same table before it
+              will permit a FULLTEXT index.
 =========== ===================================================================
+
 
 indexlen
 ~~~~~~~~
 
-Integer. Can be blank. If not, sets the prefix length of the index.
-This is mandatory in MySQL if you apply a normal (+/- unique) index to a `TEXT`
-or `BLOB` field. It is not required for `FULLTEXT` indexes.
+*Integer.* Default: none.
+
+Can be blank. If not, sets the prefix length of the index. This is mandatory in
+MySQL if you apply a normal (+/- unique) index to a `TEXT` or `BLOB` field. It
+is not required for `FULLTEXT` indexes.
+
 
 comment
 ~~~~~~~
+
+*String.*
 
 Field (column) comment, stored in the destination database.
 
 
 Minimal data dictionary example
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++++++++++++++++++++++++++++++++
 
 This illustrates a data dictionary for a fictional database.
 
 Some more specialist columns (``inclusion_values``, ``exclusion_values``) are
-not shown for clarity. Blank lines and comment lines (lines beginning with #)
-are ignored.
+not shown for clarity.
 
 .. code-block:: none
 

@@ -34,6 +34,7 @@ from sqlalchemy import Integer
 from cardinal_pythonlib.enumlike import StrEnum
 
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
+from crate_anon.nlp_manager.constants import DatabaseConfigKeys
 
 
 # =============================================================================
@@ -102,7 +103,7 @@ MAX_TRID = 2 ** 31 - 1
 # https://dev.mysql.com/doc/refman/5.0/en/numeric-type-overview.html
 # Maximum INT UNSIGNED is              4294967295 == 2 ** 32 - 1.
 # INT range is                        -2147483648 == -(2 **  31) to
-#                                     +2147483647 == 2 ** 31 - 1
+#                                     +2147483647 == 2 ** 31 - 1 == 2.1 billion
 # ... note that this is inadequate for 10-digit NHS numbers.
 # Maximum BIGINT UNSIGNED is 18446744073709551615 == 2 ** 64 - 1.
 # BIGINT range is            -9223372036854775808 == -(2 ** 63) to
@@ -110,7 +111,7 @@ MAX_TRID = 2 ** 31 - 1
 
 
 @unique
-class ALTERMETHOD(StrEnum):
+class AlterMethodType(StrEnum):
     BINARY_TO_TEXT = "binary_to_text"
     FILENAME_FORMAT_TO_TEXT = "filename_format_to_text"  # new in v0.18.18
     FILENAME_TO_TEXT = "filename_to_text"
@@ -124,37 +125,40 @@ class ALTERMETHOD(StrEnum):
 
 
 @unique
-class DECISION(StrEnum):
+class Decision(StrEnum):
     OMIT = "OMIT"
     INCLUDE = "include"
 
 
 @unique
-class INDEX(StrEnum):
+class IndexType(StrEnum):
+    NONE = ""
     NORMAL = "I"
     UNIQUE = "U"
     FULLTEXT = "F"
 
 
 @unique
-class SCRUBMETHOD(StrEnum):
+class ScrubMethod(StrEnum):
     WORDS = "words"
     PHRASE = "phrase"
+    PHRASE_UNLESS_NUMERIC = "phrase_unless_numeric"
     NUMERIC = "number"
     DATE = "date"
     CODE = "code"
 
 
 @unique
-class SCRUBSRC(StrEnum):
+class ScrubSrc(StrEnum):
     PATIENT = "patient"
     THIRDPARTY = "thirdparty"
     THIRDPARTY_XREF_PID = "thirdparty_xref_pid"
 
 
 @unique
-class SRCFLAG(StrEnum):
+class SrcFlag(StrEnum):
     PK = "K"
+    NOT_NULL = "N"
     ADD_SRC_HASH = "H"
     PRIMARY_PID = "P"
     DEFINES_PRIMARY_PIDS = "*"
@@ -176,8 +180,159 @@ TABLE_KWARGS = {
     'mysql_engine': 'InnoDB',
 }
 
-MAX_IDENTIFIER_LENGTH = 64
+MYSQL_MAX_IDENTIFIER_LENGTH = 64
 # MySQL: 64 -- http://dev.mysql.com/doc/refman/5.7/en/identifiers.html
+SQLSERVER_MAX_IDENTIFIER_LENGTH = 128
+# Microsoft SQL Server: 128 --
+# https://docs.microsoft.com/en-us/sql/relational-databases/databases/database-identifiers  # noqa
+
+
+# =============================================================================
+# Config keys
+# =============================================================================
+
+class AnonymiseConfigKeys:
+    # Sections
+    SECTION_MAIN = "main"
+    SECTION_EXTRA_REGEXES = "extra_regexes"
+
+    # Data dictionary
+    DATA_DICTIONARY_FILENAME = "data_dictionary_filename"
+
+    # Critical field types
+    SQLATYPE_MPID = "sqlatype_mpid"
+    SQLATYPE_PID = "sqlatype_pid"
+
+    # Encryption phrases/passwords
+    CHANGE_DETECTION_ENCRYPTION_PHRASE = "change_detection_encryption_phrase"
+    EXTRA_HASH_CONFIG_SECTIONS = "extra_hash_config_sections"
+    HASH_METHOD = "hash_method"
+    MASTER_PATIENT_ID_ENCRYPTION_PHRASE = "master_patient_id_encryption_phrase"
+    PER_TABLE_PATIENT_ID_ENCRYPTION_PHRASE = "per_table_patient_id_encryption_phrase"  # noqa
+
+    # Text extraction
+    EXTRACT_TEXT_EXTENSIONS_CASE_SENSITIVE = "extract_text_extensions_case_sensitive"  # noqa
+    EXTRACT_TEXT_EXTENSIONS_PERMITTED = "extract_text_extensions_permitted"
+    EXTRACT_TEXT_EXTENSIONS_PROHIBITED = "extract_text_extensions_prohibited"
+    EXTRACT_TEXT_PLAIN = "extract_text_plain"
+    EXTRACT_TEXT_WIDTH = "extract_text_width"
+
+    # Anonymisation
+    ALLOWLIST_FILENAMES = "allowlist_filenames"
+    ALLOW_NO_PATIENT_INFO = "allow_no_patient_info"
+    ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY = "anonymise_codes_at_word_boundaries_only"  # noqa
+    ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY = "anonymise_dates_at_word_boundaries_only"  # noqa
+    ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY = "anonymise_numbers_at_numeric_boundaries_only"  # noqa
+    ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY = "anonymise_numbers_at_word_boundaries_only"  # noqa
+    ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY = "anonymise_strings_at_word_boundaries_only"  # noqa
+    DENYLIST_FILENAMES = "denylist_filenames"
+    DENYLIST_FILES_AS_PHRASES = "denylist_files_as_phrases"
+    DENYLIST_PHRASES_FLEXIBLE_WHITESPACE = "denylist_phrases_flexible_whitespace"  # noqa
+    DEPRECATED_BLACKLIST_FILENAMES = "blacklist_filenames"
+    DEPRECATED_WHITELIST_FILENAMES = "whitelist_filenames"
+    MIN_STRING_LENGTH_FOR_ERRORS = "min_string_length_for_errors"
+    MIN_STRING_LENGTH_TO_SCRUB_WITH = "min_string_length_to_scrub_with"
+    PHRASE_ALTERNATIVE_WORD_FILENAMES = "phrase_alternative_word_filenames"
+    REPLACE_NONSPECIFIC_INFO_WITH = "replace_nonspecific_info_with"
+    REPLACE_PATIENT_INFO_WITH = "replace_patient_info_with"
+    REPLACE_THIRD_PARTY_INFO_WITH = "replace_third_party_info_with"
+    SCRUB_ALL_DATES = "scrub_all_dates"
+    SCRUB_ALL_NUMBERS_OF_N_DIGITS = "scrub_all_numbers_of_n_digits"
+    SCRUB_ALL_UK_POSTCODES = "scrub_all_uk_postcodes"
+    SCRUB_STRING_SUFFIXES = "scrub_string_suffixes"
+    STRING_MAX_REGEX_ERRORS = "string_max_regex_errors"
+    THIRDPARTY_XREF_MAX_DEPTH = "thirdparty_xref_max_depth"
+    TIMEFIELD_NAME = "timefield_name"
+
+    # Output fields and formatting
+    RESEARCH_ID_FIELDNAME = "research_id_fieldname"
+    TRID_FIELDNAME = "trid_fieldname"
+    MASTER_RESEARCH_ID_FIELDNAME = "master_research_id_fieldname"
+    ADD_MRID_WHEREVER_RID_ADDED = "add_mrid_wherever_rid_added"
+    SOURCE_HASH_FIELDNAME = "source_hash_fieldname"
+
+    # Destination database configuration
+    MAX_ROWS_BEFORE_COMMIT = "max_rows_before_commit"
+    MAX_BYTES_BEFORE_COMMIT = "max_bytes_before_commit"
+    TEMPORARY_TABLENAME = "temporary_tablename"
+
+    # Databases
+    ADMIN_DATABASE = "admin_database"
+    DESTINATION_DATABASE = "destination_database"
+    SOURCE_DATABASES = "source_databases"
+
+    # Processing options
+    DEBUG_MAX_N_PATIENTS = "debug_max_n_patients"
+    DEBUG_PID_LIST = "debug_pid_list"
+
+    # Opting out
+    OPTOUT_COL_VALUES = "optout_col_values"
+    OPTOUT_MPID_FILENAMES = "optout_mpid_filenames"
+    OPTOUT_PID_FILENAMES = "optout_pid_filenames"
+
+
+class AnonymiseDatabaseSafeConfigKeys:
+    """
+    Non-sensitive config keys relating to a specific database.
+    """
+    DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER = "ddgen_add_per_table_pids_to_scrubber"  # noqa
+    DDGEN_ADDITION_ONLY = "ddgen_addition_only"
+    DDGEN_ADDITION_ONLY_TABLES = "ddgen_addition_only_tables"
+    DDGEN_ALLOW_FULLTEXT_INDEXING = "ddgen_allow_fulltext_indexing"
+    DDGEN_APPEND_SOURCE_INFO_TO_COMMENT = "ddgen_append_source_info_to_comment"
+    DDGEN_BINARY_TO_TEXT_FIELD_PAIRS = "ddgen_binary_to_text_field_pairs"
+    DDGEN_CONSTANT_CONTENT = "ddgen_constant_content"
+    DDGEN_CONSTANT_CONTENT_TABLES = "ddgen_constant_content_tables"
+    DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE = "ddgen_convert_odd_chars_to_underscore"  # noqa
+    DDGEN_DELETION_POSSIBLE_TABLES = "ddgen_deletion_possible_tables"
+    DDGEN_EXTRA_HASH_FIELDS = "ddgen_extra_hash_fields"
+    DDGEN_FIELD_ALLOWLIST = "ddgen_field_allowlist"
+    DDGEN_FIELD_DENYLIST = "ddgen_field_denylist"
+    DDGEN_FILENAME_TO_TEXT_FIELDS = "ddgen_filename_to_text_fields"
+    DDGEN_FORCE_LOWER_CASE = "ddgen_force_lower_case"
+    DDGEN_FREETEXT_INDEX_MIN_LENGTH = "ddgen_freetext_index_min_length"
+    DDGEN_INCLUDE_FIELDS = "ddgen_include_fields"
+    DDGEN_INDEX_FIELDS = "ddgen_index_fields"
+    DDGEN_MASTER_PID_FIELDNAME = "ddgen_master_pid_fieldname"
+    DDGEN_MIN_LENGTH_FOR_SCRUBBING = "ddgen_min_length_for_scrubbing"
+    DDGEN_NONCONSTANT_CONTENT_TABLES = "ddgen_nonconstant_content_tables"
+    DDGEN_OMIT_BY_DEFAULT = "ddgen_omit_by_default"
+    DDGEN_OMIT_FIELDS = "ddgen_omit_fields"
+    DDGEN_PATIENT_OPT_OUT_FIELDS = "ddgen_patient_opt_out_fields"
+    DDGEN_PER_TABLE_PID_FIELD = "ddgen_per_table_pid_field"
+    DDGEN_PID_DEFINING_FIELDNAMES = "ddgen_pid_defining_fieldnames"
+    DDGEN_PK_FIELDS = "ddgen_pk_fields"
+    DDGEN_RENAME_TABLES_REMOVE_SUFFIXES = "ddgen_rename_tables_remove_suffixes"
+    DDGEN_REQUIRED_SCRUBSRC_FIELDS = "ddgen_required_scrubsrc_fields"
+    DDGEN_SAFE_FIELDS_EXEMPT_FROM_SCRUBBING = "ddgen_safe_fields_exempt_from_scrubbing"  # noqa
+    DDGEN_SCRUBMETHOD_CODE_FIELDS = "ddgen_scrubmethod_code_fields"
+    DDGEN_SCRUBMETHOD_DATE_FIELDS = "ddgen_scrubmethod_date_fields"
+    DDGEN_SCRUBMETHOD_NUMBER_FIELDS = "ddgen_scrubmethod_number_fields"
+    DDGEN_SCRUBMETHOD_PHRASE_FIELDS = "ddgen_scrubmethod_phrase_fields"
+    DDGEN_SCRUBSRC_PATIENT_FIELDS = "ddgen_scrubsrc_patient_fields"
+    DDGEN_SCRUBSRC_THIRDPARTY_FIELDS = "ddgen_scrubsrc_thirdparty_fields"
+    DDGEN_SCRUBSRC_THIRDPARTY_XREF_PID_FIELDS = "ddgen_scrubsrc_thirdparty_xref_pid_fields"  # noqa
+    DDGEN_SKIP_ROW_IF_EXTRACT_TEXT_FAILS_FIELDS = "ddgen_skip_row_if_extract_text_fails_fields"  # noqa
+    DDGEN_TABLE_ALLOWLIST = "ddgen_table_allowlist"
+    DDGEN_TABLE_DEFINES_PIDS = "ddgen_table_defines_pids"
+    DDGEN_TABLE_DENYLIST = "ddgen_table_denylist"
+    DDGEN_TABLE_REQUIRE_FIELD_ABSOLUTE = "ddgen_table_require_field_absolute"
+    DDGEN_TABLE_REQUIRE_FIELD_CONDITIONAL = "ddgen_table_require_field_conditional"  # noqa
+    DDGEN_TRUNCATE_DATE_FIELDS = "ddgen_truncate_date_fields"
+    DEBUG_LIMITED_TABLES = "debug_limited_tables"
+    DEBUG_ROW_LIMIT = "debug_row_limit"
+    DEPRECATED_DDGEN_FIELD_BLACKLIST = "ddgen_field_blacklist"
+    DEPRECATED_DDGEN_FIELD_WHITELIST = "ddgen_field_whitelist"
+    DEPRECATED_DDGEN_TABLE_BLACKLIST = "ddgen_table_blacklist"
+    DEPRECATED_DDGEN_TABLE_WHITELIST = "ddgen_table_whitelist"
+
+
+class HashConfigKeys:
+    """
+    Config file keys for defining extra hashers.
+    """
+    HASH_METHOD = "hash_method"
+    SECRET_KEY = "secret_key"
 
 
 # =============================================================================
@@ -185,9 +340,12 @@ MAX_IDENTIFIER_LENGTH = 64
 # =============================================================================
 # This does not need to vary with Docker status.
 
+_AK = AnonymiseConfigKeys
+_DK = DatabaseConfigKeys
+_SK = AnonymiseDatabaseSafeConfigKeys
 # noinspection PyPep8
-DEMO_CONFIG = r"""# Configuration file for CRATE anonymiser (crate_anonymise).
-# Version {VERSION} ({VERSION_DATE}).
+DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
+# Version {CRATE_VERSION} ({CRATE_VERSION_DATE}).
 #
 # SEE HELP FOR DETAILS.
 
@@ -195,135 +353,112 @@ DEMO_CONFIG = r"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # Main settings
 # =============================================================================
 
-[main]
+[{_AK.SECTION_MAIN}]
 
 # -----------------------------------------------------------------------------
 # Data dictionary
 # -----------------------------------------------------------------------------
 
-data_dictionary_filename = @@data_dictionary_filename@@
+{_AK.DATA_DICTIONARY_FILENAME} = @@data_dictionary_filename@@
 
 # -----------------------------------------------------------------------------
 # Critical field types
 # -----------------------------------------------------------------------------
 
-sqlatype_pid =
-sqlatype_mpid =
+{_AK.SQLATYPE_PID} =
+{_AK.SQLATYPE_MPID} =
 
 # -----------------------------------------------------------------------------
 # Encryption phrases/passwords
 # -----------------------------------------------------------------------------
 
-hash_method = HMAC_MD5
-
-per_table_patient_id_encryption_phrase = @@per_table_patient_id_encryption_phrase@@
-
-master_patient_id_encryption_phrase = @@master_patient_id_encryption_phrase@@
-
-change_detection_encryption_phrase = @@change_detection_encryption_phrase@@
-
-extra_hash_config_sections =
+{_AK.HASH_METHOD} = HMAC_MD5
+{_AK.PER_TABLE_PATIENT_ID_ENCRYPTION_PHRASE} = @@per_table_patient_id_encryption_phrase@@
+{_AK.MASTER_PATIENT_ID_ENCRYPTION_PHRASE} = @@master_patient_id_encryption_phrase@@
+{_AK.CHANGE_DETECTION_ENCRYPTION_PHRASE} = @@change_detection_encryption_phrase@@
+{_AK.EXTRA_HASH_CONFIG_SECTIONS} =
 
 # -----------------------------------------------------------------------------
 # Text extraction
 # -----------------------------------------------------------------------------
 
-extract_text_extensions_permitted =
-extract_text_extensions_prohibited =
-extract_text_extensions_case_sensitive = False
-
-extract_text_plain = False
-
-extract_text_width = 80
+{_AK.EXTRACT_TEXT_EXTENSIONS_PERMITTED} =
+{_AK.EXTRACT_TEXT_EXTENSIONS_PROHIBITED} =
+{_AK.EXTRACT_TEXT_EXTENSIONS_CASE_SENSITIVE} = False
+{_AK.EXTRACT_TEXT_PLAIN} = False
+{_AK.EXTRACT_TEXT_WIDTH} = 80
 
 # -----------------------------------------------------------------------------
 # Anonymisation
 # -----------------------------------------------------------------------------
 
-replace_patient_info_with = [__PPP__]
-
-replace_third_party_info_with = [__TTT__]
-
-thirdparty_xref_max_depth = 1
-
-replace_nonspecific_info_with = [~~~]
-
-scrub_string_suffixes =
+{_AK.ALLOW_NO_PATIENT_INFO} = False
+{_AK.REPLACE_PATIENT_INFO_WITH} = [__PPP__]
+{_AK.REPLACE_THIRD_PARTY_INFO_WITH} = [__TTT__]
+{_AK.REPLACE_NONSPECIFIC_INFO_WITH} = [~~~]
+{_AK.THIRDPARTY_XREF_MAX_DEPTH} = 1
+{_AK.SCRUB_STRING_SUFFIXES} =
     s
-
-string_max_regex_errors = 1
-
-min_string_length_for_errors = 4
-
-min_string_length_to_scrub_with = 2
-
-allowlist_filenames =
-
-denylist_filenames =
-
-phrase_alternative_word_filenames =
-
-scrub_all_numbers_of_n_digits =
-
-scrub_all_uk_postcodes = False
-
-anonymise_codes_at_word_boundaries_only = True
-anonymise_dates_at_word_boundaries_only = True
-anonymise_numbers_at_word_boundaries_only = False
-anonymise_numbers_at_numeric_boundaries_only = True
-anonymise_strings_at_word_boundaries_only = True
+{_AK.STRING_MAX_REGEX_ERRORS} = 1
+{_AK.MIN_STRING_LENGTH_FOR_ERRORS} = 4
+{_AK.MIN_STRING_LENGTH_TO_SCRUB_WITH} = 2
+{_AK.ALLOWLIST_FILENAMES} =
+{_AK.DENYLIST_FILENAMES} =
+{_AK.DENYLIST_FILES_AS_PHRASES} = False
+{_AK.DENYLIST_PHRASES_FLEXIBLE_WHITESPACE} = False
+{_AK.PHRASE_ALTERNATIVE_WORD_FILENAMES} =
+{_AK.SCRUB_ALL_DATES} = False
+{_AK.SCRUB_ALL_NUMBERS_OF_N_DIGITS} =
+{_AK.SCRUB_ALL_UK_POSTCODES} = False
+{_AK.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY} = True
+{_AK.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY} = True
+{_AK.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY} = False
+{_AK.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY} = True
+{_AK.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY} = True
 
 # -----------------------------------------------------------------------------
 # Output fields and formatting
 # -----------------------------------------------------------------------------
 
-timefield_name = _when_processed_utc
-
-research_id_fieldname = brcid
-trid_fieldname = trid
-master_research_id_fieldname = nhshash
-
-source_hash_fieldname = _src_hash
-
-ddgen_append_source_info_to_comment = True
+{_AK.TIMEFIELD_NAME} = _when_processed_utc
+{_AK.RESEARCH_ID_FIELDNAME} = brcid
+{_AK.TRID_FIELDNAME} = trid
+{_AK.MASTER_RESEARCH_ID_FIELDNAME} = nhshash
+{_AK.SOURCE_HASH_FIELDNAME} = _src_hash
 
 # -----------------------------------------------------------------------------
 # Destination database configuration
 # See the [destination_database] section for connection details.
 # -----------------------------------------------------------------------------
 
-max_rows_before_commit = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
-max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
-
-temporary_tablename = _temp_table
+{_AK.MAX_ROWS_BEFORE_COMMIT} = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
+{_AK.MAX_BYTES_BEFORE_COMMIT} = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
+{_AK.TEMPORARY_TABLENAME} = _temp_table
 
 # -----------------------------------------------------------------------------
 # Choose databases (defined in their own sections).
 # -----------------------------------------------------------------------------
 
-source_databases =
+{_AK.SOURCE_DATABASES} =
     sourcedb1
 #    sourcedb2
-
-destination_database = destination_database
-
-admin_database = admin_database
+{_AK.DESTINATION_DATABASE} = destination_database
+{_AK.ADMIN_DATABASE} = admin_database
 
 # -----------------------------------------------------------------------------
 # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
 # -----------------------------------------------------------------------------
 
-debug_max_n_patients =
-debug_pid_list =
+{_AK.DEBUG_MAX_N_PATIENTS} =
+{_AK.DEBUG_PID_LIST} =
 
 # -----------------------------------------------------------------------------
 # Opting out entirely
 # -----------------------------------------------------------------------------
 
-optout_pid_filenames =
-optout_mpid_filenames =
-
-optout_col_values =
+{_AK.OPTOUT_PID_FILENAMES} =
+{_AK.OPTOUT_MPID_FILENAMES} =
+{_AK.OPTOUT_COL_VALUES} =
 
 
 # =============================================================================
@@ -331,7 +466,7 @@ optout_col_values =
 # as nonspecific information. See help.
 # =============================================================================
 
-[extra_regexes]
+[{_AK.SECTION_EXTRA_REGEXES}]
 
 
 # =============================================================================
@@ -340,7 +475,7 @@ optout_col_values =
 
 [destination_database]
 
-url = @@dest_db_engine@@://@@dest_db_user@@:@@dest_db_password@@@@@dest_db_host@@:@@dest_db_port@@/@@dest_db_name@@?charset=utf8
+{_DK.URL} = @@dest_db_engine@@://@@dest_db_user@@:@@dest_db_password@@@@@dest_db_host@@:@@dest_db_port@@/@@dest_db_name@@?charset=utf8
 
 
 # =============================================================================
@@ -349,7 +484,7 @@ url = @@dest_db_engine@@://@@dest_db_user@@:@@dest_db_password@@@@@dest_db_host@
 
 [admin_database]
 
-url = @@admin_db_engine@@://@@admin_db_user@@:@@admin_db_password@@@@@admin_db_host@@:@@admin_db_port@@/@@admin_db_name@@?charset=utf8
+{_DK.URL} = @@admin_db_engine@@://@@admin_db_user@@:@@admin_db_password@@@@@admin_db_host@@:@@admin_db_port@@/@@admin_db_name@@?charset=utf8
 
 
 # =============================================================================
@@ -367,93 +502,71 @@ url = @@admin_db_engine@@://@@admin_db_user@@:@@admin_db_password@@@@@admin_db_h
     # CONNECTION DETAILS
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-url = @@source_db1_engine@@://@@source_db1_user@@:@@source_db1_password@@@@@source_db1_host@@:@@source_db1_port@@/@@source_db1_name@@?charset=utf8
+{_DK.URL} = @@source_db1_engine@@://@@source_db1_user@@:@@source_db1_password@@@@@source_db1_host@@:@@source_db1_port@@/@@source_db1_name@@?charset=utf8
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-ddgen_omit_by_default = True
-ddgen_omit_fields =
-ddgen_include_fields = @@source_db1_ddgen_include_fields@@
-
-ddgen_allow_no_patient_info = False
-
-ddgen_per_table_pid_field = patient_id
-ddgen_table_defines_pids = patient
-
-ddgen_add_per_table_pids_to_scrubber = False
-
-ddgen_master_pid_fieldname = nhsnum
-
-ddgen_table_denylist =
-ddgen_table_allowlist =
-
-ddgen_table_require_field_absolute =
-ddgen_table_require_field_conditional =
-
-ddgen_field_denylist =
-ddgen_field_allowlist =
-
-ddgen_pk_fields =
-
-ddgen_constant_content = False
-ddgen_constant_content_tables =
-ddgen_nonconstant_content_tables =
-ddgen_addition_only = False
-ddgen_addition_only_tables =
-ddgen_deletion_possible_tables =
-
-ddgen_pid_defining_fieldnames =
-
-ddgen_scrubsrc_patient_fields = @@source_db1_ddgen_scrubsrc_patient_fields@@
-ddgen_scrubsrc_thirdparty_fields =
-ddgen_scrubsrc_thirdparty_xref_pid_fields =
-
-ddgen_required_scrubsrc_fields =
-
-ddgen_scrubmethod_code_fields =
-ddgen_scrubmethod_date_fields =
-ddgen_scrubmethod_number_fields =
-ddgen_scrubmethod_phrase_fields =
-
-ddgen_safe_fields_exempt_from_scrubbing =
-
-ddgen_min_length_for_scrubbing = 4
-
-ddgen_truncate_date_fields =
-
-ddgen_filename_to_text_fields =
-ddgen_binary_to_text_field_pairs =
-
-ddgen_skip_row_if_extract_text_fails_fields =
-
-ddgen_rename_tables_remove_suffixes =
-
-ddgen_patient_opt_out_fields =
-
-ddgen_extra_hash_fields =
+{_SK.DDGEN_OMIT_BY_DEFAULT} = True
+{_SK.DDGEN_OMIT_FIELDS} =
+{_SK.DDGEN_INCLUDE_FIELDS} =  @@source_db1_ddgen_include_fields@@
+{_SK.DDGEN_PER_TABLE_PID_FIELD} = patient_id
+{_SK.DDGEN_TABLE_DEFINES_PIDS} = patient
+{_SK.DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER} = False
+{_SK.DDGEN_MASTER_PID_FIELDNAME} = nhsnum
+{_SK.DDGEN_TABLE_DENYLIST} =
+{_SK.DDGEN_TABLE_ALLOWLIST} =
+{_SK.DDGEN_TABLE_REQUIRE_FIELD_ABSOLUTE} =
+{_SK.DDGEN_TABLE_REQUIRE_FIELD_CONDITIONAL} =
+{_SK.DDGEN_FIELD_DENYLIST} =
+{_SK.DDGEN_FIELD_ALLOWLIST} =
+{_SK.DDGEN_PK_FIELDS} =
+{_SK.DDGEN_CONSTANT_CONTENT} = False
+{_SK.DDGEN_CONSTANT_CONTENT_TABLES} =
+{_SK.DDGEN_NONCONSTANT_CONTENT_TABLES} =
+{_SK.DDGEN_ADDITION_ONLY} = False
+{_SK.DDGEN_ADDITION_ONLY_TABLES} =
+{_SK.DDGEN_DELETION_POSSIBLE_TABLES} =
+{_SK.DDGEN_PID_DEFINING_FIELDNAMES} =
+{_SK.DDGEN_SCRUBSRC_PATIENT_FIELDS} = @@source_db1_ddgen_scrubsrc_patient_fields@@
+{_SK.DDGEN_SCRUBSRC_THIRDPARTY_FIELDS} =
+{_SK.DDGEN_SCRUBSRC_THIRDPARTY_XREF_PID_FIELDS} =
+{_SK.DDGEN_REQUIRED_SCRUBSRC_FIELDS} =
+{_SK.DDGEN_SCRUBMETHOD_CODE_FIELDS} =
+{_SK.DDGEN_SCRUBMETHOD_DATE_FIELDS} =
+{_SK.DDGEN_SCRUBMETHOD_NUMBER_FIELDS} =
+{_SK.DDGEN_SCRUBMETHOD_PHRASE_FIELDS} =
+{_SK.DDGEN_SAFE_FIELDS_EXEMPT_FROM_SCRUBBING} =
+{_SK.DDGEN_MIN_LENGTH_FOR_SCRUBBING} = 4
+{_SK.DDGEN_TRUNCATE_DATE_FIELDS} =
+{_SK.DDGEN_FILENAME_TO_TEXT_FIELDS} =
+{_SK.DDGEN_BINARY_TO_TEXT_FIELD_PAIRS} =
+{_SK.DDGEN_SKIP_ROW_IF_EXTRACT_TEXT_FAILS_FIELDS} =
+{_SK.DDGEN_RENAME_TABLES_REMOVE_SUFFIXES} =
+{_SK.DDGEN_PATIENT_OPT_OUT_FIELDS} =
+{_SK.DDGEN_EXTRA_HASH_FIELDS} =
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # DESTINATION INDEXING
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-ddgen_index_fields =
-ddgen_allow_fulltext_indexing = True
+{_SK.DDGEN_INDEX_FIELDS} =
+{_SK.DDGEN_ALLOW_FULLTEXT_INDEXING} = True
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # DATA DICTIONARY MANIPULATION TO DESTINATION TABLE/FIELD NAMES
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-ddgen_force_lower_case = True
-ddgen_convert_odd_chars_to_underscore = True
+{_SK.DDGEN_FORCE_LOWER_CASE} = False
+{_SK.DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE} = True
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-debug_row_limit =
-debug_limited_tables =
+{_SK.DEBUG_ROW_LIMIT} =
+{_SK.DEBUG_LIMITED_TABLES} =
 
 # -----------------------------------------------------------------------------
 # Source database example 2
@@ -461,28 +574,29 @@ debug_limited_tables =
 
 [mysourcedb2]
 
-url = mysql+mysqldb://username:password@127.0.0.1:3306/source2_databasename?charset=utf8
+{_DK.URL} = mysql+mysqldb://username:password@127.0.0.1:3306/source2_databasename?charset=utf8
 
-ddgen_force_lower_case = True
-ddgen_per_table_pid_field = patient_id
-ddgen_master_pid_fieldname = nhsnum
-ddgen_table_denylist =
-ddgen_field_denylist =
-ddgen_table_require_field_absolute =
-ddgen_table_require_field_conditional =
-ddgen_pk_fields =
-ddgen_constant_content = False
-ddgen_scrubsrc_patient_fields =
-ddgen_scrubsrc_thirdparty_fields =
-ddgen_scrubmethod_code_fields =
-ddgen_scrubmethod_date_fields =
-ddgen_scrubmethod_number_fields =
-ddgen_scrubmethod_phrase_fields =
-ddgen_safe_fields_exempt_from_scrubbing =
-ddgen_min_length_for_scrubbing = 4
-ddgen_truncate_date_fields =
-ddgen_filename_to_text_fields =
-ddgen_binary_to_text_field_pairs =
+{_SK.DDGEN_FORCE_LOWER_CASE} = False
+{_SK.DDGEN_APPEND_SOURCE_INFO_TO_COMMENT} = True
+{_SK.DDGEN_PER_TABLE_PID_FIELD} = patient_id
+{_SK.DDGEN_MASTER_PID_FIELDNAME} = nhsnum
+{_SK.DDGEN_TABLE_DENYLIST} =
+{_SK.DDGEN_FIELD_DENYLIST} =
+{_SK.DDGEN_TABLE_REQUIRE_FIELD_ABSOLUTE} =
+{_SK.DDGEN_TABLE_REQUIRE_FIELD_CONDITIONAL} =
+{_SK.DDGEN_PK_FIELDS} =
+{_SK.DDGEN_CONSTANT_CONTENT} = False
+{_SK.DDGEN_SCRUBSRC_PATIENT_FIELDS} =
+{_SK.DDGEN_SCRUBSRC_THIRDPARTY_FIELDS} =
+{_SK.DDGEN_SCRUBMETHOD_CODE_FIELDS} =
+{_SK.DDGEN_SCRUBMETHOD_DATE_FIELDS} =
+{_SK.DDGEN_SCRUBMETHOD_NUMBER_FIELDS} =
+{_SK.DDGEN_SCRUBMETHOD_PHRASE_FIELDS} =
+{_SK.DDGEN_SAFE_FIELDS_EXEMPT_FROM_SCRUBBING} =
+{_SK.DDGEN_MIN_LENGTH_FOR_SCRUBBING} = 4
+{_SK.DDGEN_TRUNCATE_DATE_FIELDS} =
+{_SK.DDGEN_FILENAME_TO_TEXT_FIELDS} =
+{_SK.DDGEN_BINARY_TO_TEXT_FIELD_PAIRS} =
 
 # -----------------------------------------------------------------------------
 # Source database example 3
@@ -491,17 +605,15 @@ ddgen_binary_to_text_field_pairs =
 [camcops]
 # Example for the CamCOPS anonymisation staging database
 
-url = mysql+mysqldb://username:password@127.0.0.1:3306/camcops_databasename?charset=utf8
+{_DK.URL} = mysql+mysqldb://username:password@127.0.0.1:3306/camcops_databasename?charset=utf8
 
 # FOR EXAMPLE:
-ddgen_force_lower_case = True
-ddgen_per_table_pid_field = _patient_idnum1
-ddgen_pid_defining_fieldnames = _patient_idnum1
-ddgen_master_pid_fieldname = _patient_idnum2
-
-ddgen_table_denylist =
-
-ddgen_field_denylist = _patient_iddesc1
+{_SK.DDGEN_FORCE_LOWER_CASE} = False
+{_SK.DDGEN_PER_TABLE_PID_FIELD} = _patient_idnum1
+{_SK.DDGEN_PID_DEFINING_FIELDNAMES} = _patient_idnum1
+{_SK.DDGEN_MASTER_PID_FIELDNAME} = _patient_idnum2
+{_SK.DDGEN_TABLE_DENYLIST} =
+{_SK.DDGEN_FIELD_DENYLIST} = _patient_iddesc1
     _patient_idshortdesc1
     _patient_iddesc2
     _patient_idshortdesc2
@@ -536,12 +648,11 @@ ddgen_field_denylist = _patient_iddesc1
     _removal_pending
     _move_off_tablet
 
-ddgen_table_require_field_absolute =
-ddgen_table_require_field_conditional =
-ddgen_pk_fields = _pk
-ddgen_constant_content = False
-
-ddgen_scrubsrc_patient_fields = _patient_forename
+{_SK.DDGEN_TABLE_REQUIRE_FIELD_ABSOLUTE} =
+{_SK.DDGEN_TABLE_REQUIRE_FIELD_CONDITIONAL} =
+{_SK.DDGEN_PK_FIELDS} = _pk
+{_SK.DDGEN_CONSTANT_CONTENT} = False
+{_SK.DDGEN_SCRUBSRC_PATIENT_FIELDS} = _patient_forename
     _patient_surname
     _patient_dob
     _patient_idnum1
@@ -552,15 +663,12 @@ ddgen_scrubsrc_patient_fields = _patient_forename
     _patient_idnum6
     _patient_idnum7
     _patient_idnum8
-
-ddgen_scrubsrc_thirdparty_fields =
-
-ddgen_scrubmethod_code_fields =
-ddgen_scrubmethod_date_fields = _patient_dob
-ddgen_scrubmethod_number_fields =
-ddgen_scrubmethod_phrase_fields =
-
-ddgen_safe_fields_exempt_from_scrubbing = _device
+{_SK.DDGEN_SCRUBSRC_THIRDPARTY_FIELDS} =
+{_SK.DDGEN_SCRUBMETHOD_CODE_FIELDS} =
+{_SK.DDGEN_SCRUBMETHOD_DATE_FIELDS} = _patient_dob
+{_SK.DDGEN_SCRUBMETHOD_NUMBER_FIELDS} =
+{_SK.DDGEN_SCRUBMETHOD_PHRASE_FIELDS} =
+{_SK.DDGEN_SAFE_FIELDS_EXEMPT_FROM_SCRUBBING} = _device
     _era
     _when_added_exact
     _adding_user
@@ -614,30 +722,16 @@ ddgen_safe_fields_exempt_from_scrubbing = _device
     gamble_start_time
     gamble_response_time
     likelihood
+{_SK.DDGEN_MIN_LENGTH_FOR_SCRUBBING} = 4
+{_SK.DDGEN_TRUNCATE_DATE_FIELDS} = _patient_dob
+{_SK.DDGEN_FILENAME_TO_TEXT_FIELDS} =
+{_SK.DDGEN_BINARY_TO_TEXT_FIELD_PAIRS} =
 
-ddgen_min_length_for_scrubbing = 4
-
-ddgen_truncate_date_fields = _patient_dob
-ddgen_filename_to_text_fields =
-ddgen_binary_to_text_field_pairs =
-
-""".format(  # noqa
-    SCRUBSRC=SCRUBSRC,
-    INDEX=INDEX,
-    SCRUBMETHOD=SCRUBMETHOD,
-    ALTERMETHOD=ALTERMETHOD,
-    SRCFLAG=SRCFLAG,
-    LONGTEXT=LONGTEXT,
-    DEFAULT_MAX_ROWS_BEFORE_COMMIT=DEFAULT_MAX_ROWS_BEFORE_COMMIT,
-    DEFAULT_MAX_BYTES_BEFORE_COMMIT=DEFAULT_MAX_BYTES_BEFORE_COMMIT,
-    DECISION=DECISION,
-    VERSION=CRATE_VERSION,
-    VERSION_DATE=CRATE_VERSION_DATE,
-)
+"""  # noqa
 
 # For the style:
 #       [source_databases]
 #       source1 = blah
 #       source2 = thing
 # ... you can't have multiple keys with the same name.
-# http://stackoverflow.com/questions/287757
+# https://stackoverflow.com/questions/287757

@@ -65,13 +65,11 @@ Glossary
 - **Master patient ID (MPID).** A number that uniquely identifies a patient
   across many databases. In the UK, the NHS number is the usual MPID.
 
-
 .. _mrid:
 
 - **Master research ID (MRID).** A research identifier that is unique to a
   de-identified patient's record across many linked research databases. A
   securely hashed version of the :ref:`MPID <mpid>`.
-
 
 .. _pid:
 
@@ -79,20 +77,17 @@ Glossary
   given database. For example, in a Servelec RiO database, the RiO number is
   the PID.
 
-
 .. _rdbm:
 
 - **Research database administrator (RDBM).** A person authorized to run a
   research database. They may also function as a member of the clinical
   administrative team, to whom clinicians may delegate work.
 
-
 .. _rid:
 
 - **Research ID (RID).** A research identifier that is unique to a
   de-identified patient's record in a research database. A securely hashed
   version of the :ref:`PID <pid>`.
-
 
 .. _trid:
 

@@ -28,6 +28,8 @@ crate_anon/preprocess/rio_constants.py
 
 """
 
+from crate_anon.preprocess.constants import CRATE_IDX_PREFIX
+
 # Tables in RiO v6.2 Core:
 RIO_TABLE_MASTER_PATIENT = "ClientIndex"
 RIO_TABLE_ADDRESS = "ClientAddress"
@@ -55,19 +57,7 @@ RCEP_COL_MANGLED_KEY = "Document_ID"
 # CPFT hacks (RiO tables added to RCEP output):
 CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES = "Progress_Notes_II"
 
-# Columns in ONS Postcode Database (from CRATE import):
-ONSPD_TABLE_POSTCODE = "postcode"
-DEFAULT_GEOG_COLS = [
-    "pcon", "pct", "nuts", "lea", "statsward", "casward",
-    "lsoa01", "msoa01", "ur01ind", "oac01", "lsoa11",
-    "msoa11", "parish", "bua11", "buasd11", "ru11ind",
-    "oac11", "imd",
-]
-
 # Columns added:
-CRATE_COL_PK = "crate_pk"
-# Do NOT use 'id'; this appears in RiO ClientAlternativeId /
-# RCEP Client_Alternative_ID. "pk" is OK for RCEP + RiO, but clarity is good
 CRATE_COL_RIO_NUMBER = "crate_rio_number"
 # "rio_number" is OK for RCEP + RiO, but clarity is good
 CRATE_COL_NHS_NUMBER = "crate_nhs_number_int"
@@ -87,16 +77,16 @@ CRATE_COL_MAX_DOCVER = "crate_max_docver_for_doc"
 CRATE_COL_LAST_DOC = "crate_last_doc_in_chain"
 
 # Indexes added... generic:
-CRATE_IDX_PK = "crate_idx_pk"  # for any patient table
-CRATE_IDX_RIONUM = "crate_idx_rionum"  # for any patient table
+CRATE_IDX_PK = f"{CRATE_IDX_PREFIX}_pk"  # for any patient table
+CRATE_IDX_RIONUM = f"{CRATE_IDX_PREFIX}_rionum"  # for any patient table
 # For progress notes:
-CRATE_IDX_RIONUM_NOTENUM = "crate_idx_rionum_notenum"
-CRATE_IDX_MAX_SUBNUM = "crate_idx_max_subnum"
-CRATE_IDX_LAST_NOTE = "crate_idx_last_note"
+CRATE_IDX_RIONUM_NOTENUM = f"{CRATE_IDX_PREFIX}_rionum_notenum"
+CRATE_IDX_MAX_SUBNUM = f"{CRATE_IDX_PREFIX}_max_subnum"
+CRATE_IDX_LAST_NOTE = f"{CRATE_IDX_PREFIX}_last_note"
 # For clinical documents:
-CRATE_IDX_RIONUM_SERIALNUM = "crateidx_rionum_serialnum"
-CRATE_IDX_MAX_DOCVER = "crate_idx_max_docver"
-CRATE_IDX_LAST_DOC = "crate_idx_last_doc"
+CRATE_IDX_RIONUM_SERIALNUM = f"{CRATE_IDX_PREFIX}_rionum_serialnum"
+CRATE_IDX_MAX_DOCVER = f"{CRATE_IDX_PREFIX}_max_docver"
+CRATE_IDX_LAST_DOC = f"{CRATE_IDX_PREFIX}_last_doc"
 
 # Views added:
 VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT = "progress_notes_current_crate"

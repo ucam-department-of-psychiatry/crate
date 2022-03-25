@@ -105,6 +105,8 @@ The following specimen scripts presuppose that you have set the environment
 variable `GATE_HOME`, and assume specific locations for the compiled Java (e.g.
 files like `CrateGatePipeline.class`); edit them as required.
 
+.. _crate_show_crate_gate_pipeline_options:
+
 Asking `CrateGatePipeline` to show its command-line options:
 
 .. code-block:: bash
@@ -115,6 +117,8 @@ The resulting output:
 
 ..  literalinclude:: _CrateGatePipeline_help.txt
     :language: none
+
+.. _crate_run_gate_annie_demo:
 
 Asking `CrateGatePipeline` to run the GATE “ANNIE” demonstration:
 
@@ -145,13 +149,17 @@ project.
 
 |specimen|
 
+.. _crate_run_gate_kcl_kconnect_demo:
+
 Script to test the app via the command line:
 
 .. code-block:: bash
 
     crate_run_gate_kcl_kconnect_demo
 
-This GATE application requires you to register and download UMLS_ data,
+.. _crate_nlp_prepare_ymls_for_bioyodie:
+
+The KConnect GATE application requires you to register and download UMLS_ data,
 containing disease vocabularies. Once you've done so, the
 ``crate_nlp_prepare_ymls_for_bioyodie`` tool will do some necessary
 preprocessing. Its help is:
@@ -174,6 +182,8 @@ This GATE application finds drugs (medications).
 |testapp|
 
 |specimen|
+
+.. _crate_run_gate_kcl_pharmacotherapy_demo:
 
 Script to test the app via the command line:
 
@@ -199,6 +209,8 @@ This GATE application finds references to Lewy body dementia.
 |testapp|
 
 |specimen|
+
+.. _crate_run_gate_kcl_lewy_demo:
 
 Script to test the app via the command line:
 

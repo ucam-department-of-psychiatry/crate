@@ -34,10 +34,10 @@ from crate_anon.common.sql import (
     sql_string_literal,
     ViewMaker,
 )
+from crate_anon.preprocess.constants import CRATE_COL_PK
 from crate_anon.preprocess.rio_constants import (
     CRATE_COL_LAST_DOC,
     CRATE_COL_LAST_NOTE,
-    CRATE_COL_PK,
     CRATE_COL_RIO_NUMBER,
 )
 
@@ -238,8 +238,8 @@ def lookup_from_fragment_first_row_outer_apply(lookup_fields: Iterable[str],
 
     See
 
-    - http://stackoverflow.com/questions/2043259/sql-server-how-to-join-to-first-row
-    - http://stackoverflow.com/questions/9275132/real-life-example-when-to-use-outer-cross-apply-in-sql
+    - https://stackoverflow.com/questions/2043259/sql-server-how-to-join-to-first-row
+    - https://stackoverflow.com/questions/9275132/real-life-example-when-to-use-outer-cross-apply-in-sql
     """  # noqa
     return (
         f"OUTER APPLY (SELECT TOP 1 {', '.join(lookup_fields)} "

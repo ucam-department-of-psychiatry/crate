@@ -25,5 +25,5 @@
     have a compiler, you will get errors relating to "query_vcvarsall". For
     Python 3.4, try Microsoft Visual Studio 2010 (Visual C++ 10.0) or Visual
     C++ Express 2010. Under 64-bit Windows, or if you have a later version of
-    Visual Studio, see also http://stackoverflow.com/questions/28251314; you’ll
+    Visual Studio, see also https://stackoverflow.com/questions/28251314; you’ll
     need to set the ``VS100COMNTOOLS`` environment variable.

@@ -24,12 +24,15 @@ crate_anon/nlp_manager/tests/cloud_request_process_tests.py
 
 ===============================================================================
 
+Unit tests.
+
 """
+
 import logging
 import sys
+from unittest import mock, TestCase
 
 from sqlalchemy.exc import OperationalError
-from unittest import mock, TestCase
 
 from crate_anon.nlp_manager.cloud_request import CloudRequestProcess
 

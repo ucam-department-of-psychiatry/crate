@@ -74,19 +74,19 @@ CRATE provides the following optional pre-processing steps:
 Data dictionary generation and editing
 --------------------------------------
 
-- CRATE removes identifiable information as it copies a database based on a
-  **data dictionary,** which is essentially a spreadsheet with one row for
-  every column in the source database.
+CRATE removes identifiable information as it copies a database based on a
+:ref:`data dictionary <data_dictionary>`, which is essentially a spreadsheet
+with one row for every column in the source database.
 
-- You can create this data dictionary manually, and edit it manually, but CRATE
-  also provides a way (via the :ref:`crate_anonymise <crate_anonymise>`
-  command) to autogenerate a draft of the data dictionary. Use the command
-  ``crate_anonymise --draftdd`` to start a data dictionary, or
-  ``crate_anonymise --incrementaldd`` to discover new database columns and add
-  them to an existing data dictionary. Both these commands refer to a CRATE
-  anonymiser configuration file, and that configuration file can contain
-  guidance on how to draft the data dictionary, in the form of options named
-  ``ddgen...``.
+You can create this data dictionary manually, and edit it manually, but CRATE
+also provides a way to generate a draft of the data dictionary automatically.
+Use the command :ref:`crate_anon_draft_dd <crate_anon_draft_dd>` to start a
+data dictionary or to discover new database columns and add them to an existing
+data dictionary.
+
+This command refers to a CRATE anonymiser :ref:`configuration file
+<anon_config_file>`, and you can use that configuration file to guide CRATE on
+how to draft the data dictionary, via options named ``ddgen...``.
 
 To be more helpful, preprocessors (including :ref:`crate_preprocess_rio
 <crate_preprocess_rio>`) can create these options for you; see the
@@ -110,10 +110,13 @@ existing tables and starting from scratch, or in an “incremental” way, looki
 for changes to the source database (with respect to the anonymised database)
 and changing the anonymised database accordingly.
 
-This tool uses a configuration file that you create and edit. Use
-``crate_anonymise --democonfig`` to generate a demonstration file. (For some
-database, like RiO, you can mix in the suggested options from
-:ref:`crate_preprocess_rio <crate_preprocess_rio>`.)
+This tool uses a :ref:`configuration file <anon_config_file>` that you create
+and edit. Use ``crate_anon_demo_config`` to generate a demonstration file.
+
+.. note::
+
+    For some databases, like RiO, you can mix in the suggested options from
+    :ref:`crate_preprocess_rio <crate_preprocess_rio>`.
 
 
 Natural language processing (NLP)

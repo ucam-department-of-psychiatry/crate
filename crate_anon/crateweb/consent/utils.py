@@ -248,7 +248,7 @@ def make_forename_surname_email_address(forename: str,
     # surname and CALT is Cambridge Adult Locality Team. This can map to
     # something unpredictable, like JohnSmithOT@cpft.nhs.uk, so we can't use
     # it.
-    # Formal definition is at http://stackoverflow.com/questions/2049502/what-characters-are-allowed-in-email-address  # noqa
+    # Formal definition is at https://stackoverflow.com/questions/2049502/what-characters-are-allowed-in-email-address  # noqa
     # See also: http://emailregex.com/
     attempt = f"{forename}.{surname}@{domain}"
     if APPROX_EMAIL_REGEX.match(attempt):
