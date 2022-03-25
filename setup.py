@@ -133,7 +133,11 @@ INSTALL_REQUIRES = [
     # For development only:
     "flake8==3.8.4",  # code checks
     "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
-    "sphinx==3.1.2",  # documentation
+
+    # Sphinx 4.4.0 gives "more than one target for cross-reference" warning
+    # when resolving crate_anon.anonymise.patient.Patient in
+    # crate_anon.anonymise.altermethod.py
+    "sphinx==4.2.0",  # documentation
     "sphinx_rtd_theme==0.5.0",  # documentation
 
     # ---------------------------------------------------------------------

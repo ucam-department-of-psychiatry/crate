@@ -91,7 +91,7 @@ def draft_dd(config: Config,
         systmone_append_comments:
             (For SystmOne.) Append, rather than replacing, existing comments?
             Usually better as False -- if you use
-            ``systmone_sre_spec_csv_filename`, this will provide better
+            ``systmone_sre_spec_csv_filename``, this will provide better
             comments.
         systmone_include_generic:
             (For SystmOne.) Include all fields that are not known about by this
@@ -100,7 +100,7 @@ def draft_dd(config: Config,
             included.
         systmone_allow_unprefixed_tables:
             (For SystmOne.) Permit tables that don't start with the expected
-            prefix? (That prefix is e.g. 'SR' for the TPP SRE context, 'S1_'
+            prefix? (That prefix is e.g. 'SR' for the TPP SRE context, 'S1\\_'
             for the CPFT Data Warehouse context.) Discouraged; you may get odd
             tables and views.
         systmone_alter_loaded_rows:
