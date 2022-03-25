@@ -73,7 +73,6 @@ if __name__ == "__main__":
 
     cmdargs = ["make", "html"]
     if args.warnings_as_errors:
-        # -W: Turn warnings into errors
         cmdargs.append('SPHINXOPTS="-W"')
     subprocess.check_call(cmdargs)
 

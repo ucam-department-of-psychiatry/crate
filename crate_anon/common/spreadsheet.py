@@ -185,7 +185,8 @@ def remove_none_values_from_spreadsheet(data: MULTIPLE_SPREADSHEET_TYPE) \
     """
     The ODS writer does not cope with ``None`` values, giving:
 
-    .. code-block:: none
+    .. code-block::
+
         AttributeError: 'NoneType' object has no attribute 'split'
 
     Here, we transform ``None`` values to the empty string.

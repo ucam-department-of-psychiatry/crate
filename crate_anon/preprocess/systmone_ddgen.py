@@ -112,7 +112,7 @@ v123.csv``, which is a full description of the SRE. Principles:
     for i, row in enumerate(csv.reader(open("Specification v123.csv"))):
         if i > 0:
             s.add(f"{row[0]} - {row[1]}")
-    
+
     print("\n".join((x for x in sorted(s))))
 
   Translating that to a single line: https://www.python.org/dev/peps/pep-0289/
@@ -275,10 +275,10 @@ This broadly follows the SRE, but is expanded. Some notable differences:
   (as the OptOut field, a text field) but is clearer in
   S1_ClinicalOutcome_ConsentResearch_OptOutCheck, which only contains patients
   opting out and has:
-  
+
   .. code-block:: none
 
-    IDPatient = <ID_of_patient_opting_out>  
+    IDPatient = <ID_of_patient_opting_out>
     SNOMEDCode = 1091881000000109
     CTV3Code = 'XaaDb'
     CTV3Text = 'Declined invitation to participate in research study'
@@ -286,9 +286,9 @@ This broadly follows the SRE, but is expanded. Some notable differences:
   So for CPFT, we will autodetect this table/column
   (S1_ClinicalOutcome_ConsentResearch_OptOutCheck.SNOMEDCode) and the config
   file should contain:
-  
+
   .. code-block:: ini
-  
+
     optout_col_values = [1091881000000109]
 
 - There seem to be quite a few extra tables, such as:
@@ -1746,15 +1746,6 @@ class SystmOneSRESpecRow:
                                       context)
         elements = [f"{tname}.{cname}", self.comment(context)]
         return COMMENT_SEP.join(elements)
-
-    # def matches(self, tablename_core: str, colname: str) -> bool:
-    #     """
-    #     Does this match a table/column name pair?
-    #     """
-    #     return (
-    #         eq(self.tablename_core, tablename_core)
-    #         and eq(self.column_name, colname)
-    #     )
 
 
 @dataclass

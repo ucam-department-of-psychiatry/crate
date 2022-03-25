@@ -39,7 +39,7 @@ import regex  # sudo apt-get install python-regex
 
 # Reminders: ? zero or one, + one or more, * zero or more
 # Non-capturing groups: (?:...)
-# ... https://docs.python.org/2/howto/regex.html
+# ... https://docs.python.org/3/howto/regex.html
 # ... https://stackoverflow.com/questions/3512471/non-capturing-group
 
 ASTERISK = r"\*"
