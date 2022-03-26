@@ -32,9 +32,6 @@ See https://en.wikipedia.org/wiki/Read_code.
 
 import logging
 from typing import List
-import unittest
-
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.regex_helpers import (
     at_start_wb,
@@ -594,34 +591,3 @@ def any_read_code_of(*read_codes: ReadCode) -> str:
         wrap_each_in_noncapture_group=True,
         wrap_result_in_noncapture_group=True
     )
-
-
-# =============================================================================
-# Unit tests
-# =============================================================================
-
-class TestReadCodeRegexes(unittest.TestCase):
-    def test_read_code_regexes(self) -> None:
-        spacer = "    "
-        for name, rc in ReadCodes.__dict__.items():
-            if name.startswith("_"):
-                continue
-            assert isinstance(rc, ReadCode)
-            phrases = "\n".join(
-                f"{spacer}{x}" for x in rc.phrases
-            )
-            regexes = "\n".join(
-                f"{spacer}{x}" for x in rc.component_regex_strings()
-            )
-            regex_str = rc.regex_str()
-            log.info(f"Name: {name!r}.\n"
-                     f"- Read code:\n{spacer}{rc.read_code}\n"
-                     f"- Phrases:\n{phrases}\n"
-                     f"- Regular expressions:\n{regexes}\n"
-                     f"- Single regex string:\n{spacer}{regex_str}")
-        log.warning("No testing performed; just printed.")
-
-
-if __name__ == '__main__':
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    unittest.main()

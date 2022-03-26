@@ -222,7 +222,7 @@ def query_context(request: HttpRequest) -> Dict[str, Any]:
       request.
 
       - This problem can be circumvented with a per-request cache; see
-        http://stackoverflow.com/questions/3151469/per-request-cache-in-django
+        https://stackoverflow.com/questions/3151469/per-request-cache-in-django
 
     """
     query_id = Query.get_active_query_id_or_none(request)
@@ -614,7 +614,7 @@ def get_identical_queries(request: HttpRequest, sql: str,
     #
     # [1] https://github.com/michiya/django-pyodbc-azure/blob/azure-1.10/sql_server/pyodbc/base.py  # noqa
     # [2] https://github.com/mkleehammer/pyodbc/blob/master/tests2/informixtests.py  # noqa
-    # [3] http://stackoverflow.com/questions/13090907
+    # [3] https://stackoverflow.com/questions/13090907
     # [4] https://docs.python.org/3/c-api/bytes.html
     # [5] https://docs.python.org/3/c-api/unicode.html
     # [6] https://documentation.progress.com/output/DataDirect/DataDirectCloud/index.html#page/queries/microsoft-sql-server-data-types.html  # noqa
@@ -1504,7 +1504,7 @@ def resultset_html_table(fieldnames: List[str],
     """  # noqa
     # Considered but not implemented: hiding table columns
     # ... see esp "tr > *:nth-child(n)" at
-    # http://stackoverflow.com/questions/5440657/how-to-hide-columns-in-html-table  # noqa
+    # https://stackoverflow.com/questions/5440657/how-to-hide-columns-in-html-table  # noqa
     nlptable = False
     if FN_NLPDEF in fieldnames:
         srcdb_ind = srctable_ind = srcfield_ind = None
@@ -2262,7 +2262,7 @@ def render_lookup(request: HttpRequest,
     """  # noqa
     # if not request.user.superuser:
     #    return HttpResponse('Forbidden', status=403)
-    #    # http://stackoverflow.com/questions/3297048/403-forbidden-vs-401-unauthorized-http-responses  # noqa
+    #    # https://stackoverflow.com/questions/3297048/403-forbidden-vs-401-unauthorized-http-responses  # noqa
     trids = [] if trids is None else trids
     rids = [] if rids is None else rids
     mrids = [] if mrids is None else mrids
@@ -3545,7 +3545,7 @@ def pe_tsv_zip(request: HttpRequest, pe_id: str) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
-    # http://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa
+    # https://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
         response = file_response(
@@ -3960,7 +3960,7 @@ def archive_template(request: HttpRequest) -> HttpResponse:
       context; see :ref:`the Python Mako context <archive_mako_context>`.
 
     - If we use DMP, it will add a ``request.dmp`` object; see
-      http://doconix.github.io/django-mako-plus/topics_variables.html.
+      https://doconix.github.io/django-mako-plus/topics_variables.html.
       (We won't use DMP.)
 
     """  # noqa

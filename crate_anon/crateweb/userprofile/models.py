@@ -68,7 +68,7 @@ class UserProfile(models.Model):
                                 primary_key=True,
                                 on_delete=models.CASCADE,
                                 related_name="profile")
-    # http://stackoverflow.com/questions/14345303/creating-a-profile-model-with-both-an-inlineadmin-and-a-post-save-signal-in-djan  # noqa
+    # https://stackoverflow.com/questions/14345303/creating-a-profile-model-with-both-an-inlineadmin-and-a-post-save-signal-in-djan  # noqa
 
     # first_name: in Django User model
     # last_name: in Django User model
@@ -118,7 +118,7 @@ class UserProfile(models.Model):
         verbose_name='SQL scratchpad for query builder')
     patient_multiquery_scratchpad = JsonClassField(
         verbose_name='PatientMultiQuery scratchpad (in JSON) for builder',
-        null=True)  # type: 'PatientMultiQuery'
+        null=True)  # type: PatientMultiQuery
 
     # -------------------------------------------------------------------------
     # Developer

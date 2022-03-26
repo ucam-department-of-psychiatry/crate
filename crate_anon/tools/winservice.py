@@ -138,5 +138,5 @@ def main() -> None:
     generic_service_main(CratewebService, 'CratewebService')
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -274,8 +274,8 @@ def main() -> None:
     main_only_quicksetup_rootlogger()
 
     if args.config:
-        print(demo_config())
+        print(demo_config().strip())
     elif args.processors:
-        print(demo_processors())
+        print(demo_processors().strip())
     else:
         log.error("One option required: '--config' or '--processors'.")

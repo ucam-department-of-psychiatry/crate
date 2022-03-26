@@ -1,0 +1,37 @@
+{# crate_anon/crateweb/templates/include_jquery.html #}
+
+{% comment %}
+- Use Modernizr to sort out date pickers.
+- From https://modernizr.com, choose Download.
+- Pick the "Form input types" option, then "Build", then save.
+- To use for date pickers, see http://stackoverflow.com/questions/30503195/html-5-input-type-date-not-working-in-firefox
+{% endcomment %}
+<script type="text/javascript" src="{% static 'modernizr.js' %}"></script>
+
+{# jQuery: https://jquery.com/ #}
+<script type="text/javascript" src="{% static 'jquery-3.6.0.min.js' %}"></script>
+
+{# jQuery UI: https://jqueryui.com/ #}
+<script type="text/javascript" src="{% static 'jquery-ui-1.13.0/jquery-ui.min.js' %}"></script>
+<link rel="stylesheet" href="{% static 'jquery-ui-1.13.0/jquery-ui.structure.min.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.13.0/jquery-ui.theme.min.css' %}">
+
+<script type="text/javascript">
+    $(function(){  // The $ stuff uses jQuery; http://stackoverflow.com/questions/7642442/what-does-function-do
+        console.log("Checking for HTML5 date picker support...");
+        if (Modernizr.inputtypes.date) {
+            console.log("... present");
+        } else {
+            console.log("... absent; adding it via jQuery...");
+            // If not native HTML5 support, fallback to jQuery datePicker
+            $('input[type=date]').datepicker({
+                    // Consistent format with the HTML5 picker
+                    dateFormat : 'yy-mm-dd'
+                },
+                // Localization
+                $.datepicker.regional['uk']
+            );
+            console.log("... done");
+        }
+    });
+</script>

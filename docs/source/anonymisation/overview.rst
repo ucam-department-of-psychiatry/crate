@@ -17,7 +17,7 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
-.. _anonymisation:
+.. _overview_of_anonymisation:
 
 Overview of anonymisation
 -------------------------

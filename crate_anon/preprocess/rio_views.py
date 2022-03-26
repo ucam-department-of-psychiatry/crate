@@ -2207,7 +2207,7 @@ RIO_VIEWS = OrderedDict([
             {
                 'function': simple_view_expr,
                 'kwargs': {
-                    # http://stackoverflow.com/questions/7778444
+                    # https://stackoverflow.com/questions/7778444
                     'expr': 'CAST((MovementTypeFlag & 1) AS BIT)',
                     'alias': 'Consultant_Change_Flag',
                 },

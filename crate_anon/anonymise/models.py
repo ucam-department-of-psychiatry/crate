@@ -29,13 +29,13 @@ stores in its admin database.**
 
 To create a SQLAlchemy Table programmatically:
 
-- http://docs.sqlalchemy.org/en/latest/core/schema.html
-- http://stackoverflow.com/questions/5424942/sqlalchemy-model-definition-at-execution
-- http://stackoverflow.com/questions/2580497/database-on-the-fly-with-scripting-languages/2580543#2580543
+- https://docs.sqlalchemy.org/en/latest/core/schema.html
+- https://stackoverflow.com/questions/5424942/sqlalchemy-model-definition-at-execution
+- https://stackoverflow.com/questions/2580497/database-on-the-fly-with-scripting-languages/2580543#2580543
 
 To create a SQLAlchemy ORM programmatically:
 
-- http://stackoverflow.com/questions/2574105/sqlalchemy-dynamic-mapping/2575016#2575016
+- https://stackoverflow.com/questions/2574105/sqlalchemy-dynamic-mapping/2575016#2575016
 """  # noqa
 
 import logging
@@ -95,8 +95,8 @@ class PatientInfo(AdminBase):
             mapping_patient_id_fieldname
             mapping_master_id_fieldname
 
-        - Note that these are still actively used, as they can be used to
-          set the names in the OUTPUT database (not the mapping database):
+        - Note that the following are still actively used, as they can be used
+          to set the names in the OUTPUT database (not the mapping database):
 
           .. code-block:: none
 
@@ -109,7 +109,7 @@ class PatientInfo(AdminBase):
 
         - the source PID type (e.g. INT, BIGINT, VARCHAR)
         - the source MPID type (e.g. BIGINT)
-        - the encrypted (RID, MRID) type (which is set by the encryption
+        - the encrypted (RID, MRID) type, which is set by the encryption
           algorithm; e.g. VARCHAR(128) for SHA-512.
     """
     __tablename__ = PatientInfoConstants.SECRET_MAP_TABLENAME
@@ -120,7 +120,7 @@ class PatientInfo(AdminBase):
         primary_key=True, autoincrement=False,
         comment="Patient ID (PID) (PK)")
     rid = Column(
-        PatientInfoConstants.RID_FIELDNAME, config.SqlTypeEncryptedPid,
+        PatientInfoConstants.RID_FIELDNAME, config.sqltype_encrypted_pid,
         nullable=False, unique=True,
         comment="Research ID (RID)")
     trid = Column(
@@ -131,10 +131,10 @@ class PatientInfo(AdminBase):
         PatientInfoConstants.MPID_FIELDNAME, config.mpidtype,
         comment="Master patient ID (MPID)")
     mrid = Column(
-        PatientInfoConstants.MRID_FIELDNAME, config.SqlTypeEncryptedPid,
+        PatientInfoConstants.MRID_FIELDNAME, config.sqltype_encrypted_pid,
         comment="Master research ID (MRID)")
     scrubber_hash = Column(
-        'scrubber_hash', config.SqlTypeEncryptedPid,
+        'scrubber_hash', config.sqltype_encrypted_pid,
         comment="Scrubber hash (for change detection)")
     patient_scrubber_text = Column(
         "_raw_scrubber_patient", Text,
@@ -301,7 +301,7 @@ class OptOutPid(AdminBase):
         # noinspection PyArgumentList
         newthing = cls(pid=pid)
         session.merge(newthing)
-        # http://stackoverflow.com/questions/12297156/fastest-way-to-insert-object-if-it-doesnt-exist-with-sqlalchemy  # noqa
+        # https://stackoverflow.com/questions/12297156/fastest-way-to-insert-object-if-it-doesnt-exist-with-sqlalchemy  # noqa
 
 
 class OptOutMpid(AdminBase):

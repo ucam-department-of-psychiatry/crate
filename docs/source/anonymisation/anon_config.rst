@@ -19,10 +19,12 @@
 
 .. |ddgen_only| replace::
     This section relates to **automatic creation of data dictionaries** only.
-    In normal use, none of these settings does anything.
+    In normal use, these settings do nothing.
 
+.. _FlashText: https://flashtext.readthedocs.io/en/latest/
 .. _fnmatch: https://docs.python.org/3.4/library/fnmatch.html
 .. _MD5: https://en.wikipedia.org/wiki/MD5
+.. _regex: https://pypi.org/project/regex/
 .. _SHA256: https://en.wikipedia.org/wiki/SHA-2
 .. _SHA512: https://en.wikipedia.org/wiki/SHA-2
 
@@ -43,7 +45,7 @@ You can generate a specimen config file with
 
 .. code-block:: bash
 
-    crate_anonymise --democonfig > test_anon_config.ini
+    crate_anon_demo_config > test_anon_config.ini
 
 You should save this, then edit it to your own needs. A copy is shown
 :ref:`below <specimen_anonymiser_config>`.
@@ -101,7 +103,7 @@ Critical field types
 sqlatype_pid
 ############
 
-*String.*
+*String.* Default: ``BigInteger``.
 
 See :ref:`sqlatype_mpid <anon_config_sqlatype_mpid>` below.
 
@@ -111,13 +113,59 @@ See :ref:`sqlatype_mpid <anon_config_sqlatype_mpid>` below.
 sqlatype_mpid
 #############
 
-*String.*
+*String.* Default: ``BigInteger``.
 
 We need to know PID and MPID types from the config so that we can set up our
 secret mapping tables. You can leave these blank, in which case they will be
 assumed to be large integers, using SQLAlchemy's ``BigInteger`` (e.g.
 SQL Server's ``BIGINT``). If you do specify them, you may specify EITHER
 ``BigInteger`` or a string type such as ``String(50)``.
+
+.. note::
+
+    Some databases have genuine string IDs, like "M123456", and you should of
+    course use a string type then. However, some databases have integers stored
+    in a variety of fields. For example, an NHS number is a 10-digit integer.
+    This might be stored in a ``BIGINT`` field, or a ``VARCHAR(10)`` field,
+    even if the latter is odd. What should you do?
+
+    Use ``BigInteger`` for preference.
+
+    First, note that it is very unusual to have PIDs going into your
+    destination database, so the only places these column types are likely to
+    be used are in your secret mapping database. (CRATE's :ref:`RIDs <rid>` in
+    the research database are typically alphanumeric, i.e. strings, and its
+    :ref:`TRIDs <trid>` are integer.)
+
+    Second, database autoconvert string values to integer and vice versa, with
+    varying flexibility. Here are two examples:
+
+    .. code-block:: sql
+
+        -- MySQL 5.7.30:
+        SELECT 123 = 123;  -- returns 1, meaning true
+        SELECT 123 = '123';  -- returns 1, meaning true
+        SELECT 123 = '123x';  -- returns 1, meaning true
+        SELECT 123 = 'x123';  -- returns 0, meaning false
+        DROP TABLE IF EXISTS rubbish;
+        CREATE TABLE rubbish (a INTEGER, b VARCHAR(10));
+        INSERT INTO rubbish (a, b) VALUES (123, '123'), (456, '456');
+        SELECT * FROM rubbish WHERE a = '123';  -- returns 1 row
+        SELECT * FROM rubbish WHERE a = '123x';  -- returns 1 row
+        SELECT * FROM rubbish WHERE b = 123;  -- returns 1 row
+
+        -- Microsoft SQL Server 14.0.1000.169:
+        SELECT 123 = 123;  -- Incorrect syntax near '='.
+        SELECT 123 = '123';  -- Incorrect syntax near '='.
+        SELECT 123 = '123x';  -- Incorrect syntax near '='.
+        SELECT 123 = 'x123';  -- Incorrect syntax near '='.
+        USE mydatabase;
+        DROP TABLE IF EXISTS rubbish;
+        CREATE TABLE rubbish (a INTEGER, b VARCHAR(10));
+        INSERT INTO rubbish (a, b) VALUES (123, '123'), (456, '456');
+        SELECT * FROM rubbish WHERE a = '123';  -- works
+        SELECT * FROM rubbish WHERE a = '123x';  -- Conversion failed when converting the varchar value '123x' to data type int.
+        SELECT * FROM rubbish WHERE b = 123;  -- works
 
 
 Encryption phrases/passwords
@@ -130,7 +178,13 @@ hash_method
 
 *String.*
 
-PID-to-RID hashing method. Options are:
+Hashing method, used for
+
+- PID to RID conversion;
+- MPID to MRID conversion;
+- hashing source data for change detection.
+
+Options are:
 
 - ``HMAC_MD5`` -- use MD5_ and produce a 32-character digest
 - ``HMAC_SHA256`` -- use SHA256_ and produce a 64-character digest
@@ -232,28 +286,35 @@ extract_text_plain
 
 Use the plainest possible layout for text extraction?
 
-``False`` = better for human layout. Table example from DOCX:
+``False`` = better for human layout. Table example (e.g. from a DOCX file):
 
 .. code-block:: none
 
-    ┼─────────────┼─────────────┼
-    │ Row 1 col 1 │ Row 1 col 2 │
-    ┼─────────────┼─────────────┼
-    │ Row 2 col 1 │ Row 2 col 2 │
-    ┼─────────────┼─────────────┼
+    ┼────────────────┼────────────────┼
+    │ Row 1 col 1    │ Row 1 col 2    │
+    │ R1C1 continued │ R1C2 continued │
+    ┼────────────────┼────────────────┼
+    │ Row 2 col 1    │ Row 2 col 2    │
+    │ R2C1 continued │ R2C2 continued │
+    ┼────────────────┼────────────────┼
 
-``True`` = good for natural language processing. Table example from DOCX:
+``True`` = good for natural language processing. Table example equivalent to
+that above:
 
 .. code-block:: none
 
     ╔═════════════════════════════════════════════════════════════════╗
     Row 1 col 1
+    R1C1 continued
     ───────────────────────────────────────────────────────────────────
     Row 1 col 2
+    R1C2 continued
     ═══════════════════════════════════════════════════════════════════
     Row 2 col 1
+    R2C1 continued
     ───────────────────────────────────────────────────────────────────
     Row 2 col 2
+    R2C2 continued
     ╚═════════════════════════════════════════════════════════════════╝
 
 ... note the absence of vertical interruptions, and that text from one cell
@@ -270,6 +331,20 @@ Default width (in columns) to word-wrap extracted text to.
 
 Anonymisation
 +++++++++++++
+
+.. _allow_no_patient_info:
+
+allow_no_patient_info
+#####################
+
+*Boolean.* Default: false.
+
+Allow the absence of patient info? Used to copy databases; WILL NOT ANONYMISE.
+Since this is usually (but not always) a mistake, this option exists as a
+safeguard: if you have it set to false and attempt to anonymise with a data
+dictionary that contains no "patient-defining" information (i.e. a table that
+lists all patients), CRATE will stop with an error.
+
 
 replace_patient_info_with
 #########################
@@ -311,7 +386,7 @@ replace_nonspecific_info_with
 
 Things to be removed irrespective of patient-specific information will be
 replaced by this (for example, if you opt to remove all things looking like
-telephone numbers). For example, ``ZZZZZZ`` or ``[~~~]``.
+telephone numbers). For example, ``[~~~]``.
 
 
 scrub_string_suffixes
@@ -416,6 +491,11 @@ Here's a suggestion for some of the sorts of words you might include:
     Formerly ``whitelist_filenames``; changed 2020-07-20 as part of neutral
     language review.
 
+See :ref:`anonymisation sequence <anonymisation_sequence>` for an explanation
+of how the allow/deny sequence works.
+
+
+.. _denylist_filenames:
 
 denylist_filenames
 ##################
@@ -435,9 +515,80 @@ Specify these as a list of filenames, e.g
         /some/path/girl_names.txt
         /some/path/common_surnames.txt
 
+The prototypical use is to remove all known names (pre-filtered to remove
+medical eponyms) -- see also :ref:`crate_fetch_wordlists
+<crate_fetch_wordlists>`.
+
+See denylist_files_as_phrases_, which governs how these files are
+interpreted.
+
+See :ref:`anonymisation sequence <anonymisation_sequence>` for an explanation
+of how the allow/deny sequence works.
+
+
 .. note::
     Formerly ``blacklist_filenames``; changed 2020-07-20 as part of neutral
     language review.
+
+.. note::
+    These words are removed only at word boundaries. So "Bob" won't scrub
+    "bobsleigh", for example.
+
+.. note::
+    Whitespace is removed at the start/end of lines, and any line starting with
+    a hash (``#``) is treated as a comment and ignored. (However, comments are
+    not permitted at the end of lines containing content; they are treated as
+    part of the content.)
+
+
+.. _denylist_files_as_phrases:
+
+denylist_files_as_phrases
+#########################
+
+*Boolean.* Default: false.
+
+(For denylist_filenames_.) Consider a "denylist" file like this:
+
+.. code-block:: none
+
+        Alice
+        Bob
+        Charlie Brown
+
+If ``denylist_files_as_phrases`` is false, then every *word* will be scrubbed
+-- ``Alice``, ``Bob``, ``Charlie``, and ``Brown``.
+
+If ``denylist_files_as_phrases`` is true, then every line is treated as a
+*phrase* to be scrubbed: ``Alice``, ``Bob``, and ``Charlie Brown``. That is,
+``Charlie`` and ``Brown`` will not be scrubbed, just the composite phrase. This
+option is further configurable via denylist_phrases_flexible_whitespace_.
+
+The prototypical use of this option is to provide a list of organizational
+(e.g. general practitioner) addresses that should be scrubbed, and always
+appear in a consistent format.
+
+
+.. _denylist_phrases_flexible_whitespace:
+
+denylist_phrases_flexible_whitespace
+####################################
+
+*Boolean.* Default: false.
+
+(For denylist_files_as_phrases_.)
+
+If false:
+
+- Replacements are very fast (they use FlashText_).
+- However, spacing matters and is exactly as provided: as a phrase, ``Charlie
+  Brown`` will not scrub ``Charlie  Brown`` (note the double-space).
+
+If true:
+
+- Replacements are not as fast (they use regex_).
+- However, spacing is flexible; the phrase ``Charlie Brown`` will scrub
+  ``Charlie   Brown`` and the like.
 
 
 phrase_alternative_word_filenames
@@ -488,6 +639,36 @@ See https://www.mrs.org.uk/pdf/postcodeformat.pdf; these can look like
     AANA NAA  EC1A 1BB
 
 
+.. _scrub_all_dates:
+
+scrub_all_dates
+###############
+
+*Boolean.* Default: false.
+
+Nonspecific scrubbing of *all* dates? Anything that looks like a date will be
+removed, including:
+
+.. code-block:: none
+
+    2/11/73
+    03.31.1991
+    13 11 2001
+    1976/02/28
+    19741213
+    2 Sep 1990
+    1st Sep 2000
+    Sep 2nd 1990
+
+(etc.)
+
+.. note::
+    At present, the ordinal suffixes ("st", "nd", "rd", "th") are fixed to
+    English, as are the month names ("January", "February", ...).
+
+See also anonymise_dates_at_word_boundaries_only_.
+
+
 .. _anon_config_anonymise_codes_at_word_boundaries_only:
 
 anonymise_codes_at_word_boundaries_only
@@ -507,6 +688,8 @@ prefix, e.g. if people write ``M123456`` or ``R123456``; in that case you will
 need ``anonymise_numbers_at_word_boundaries_only = False``.
 
 
+.. _anonymise_dates_at_word_boundaries_only:
+
 anonymise_dates_at_word_boundaries_only
 #######################################
 
@@ -514,7 +697,8 @@ anonymise_dates_at_word_boundaries_only
 
 As for :ref:`anonymise_codes_at_word_boundaries_only
 <anon_config_anonymise_codes_at_word_boundaries_only>`, but applies to the
-``date`` scrub method (see :ref:`scrub_method <dd_scrub_method>`).
+``date`` scrub method (see :ref:`scrub_method <dd_scrub_method>`). Also applies
+to scrub_all_dates_.
 
 
 .. _anon_config_anonymise_numbers_at_word_boundaries_only:
@@ -623,24 +807,20 @@ It will be indexed (non-uniquely; the MRID is not always guaranteed to be
 present just because the PID is present).
 
 
+.. _source_hash_fieldname:
+
 source_hash_fieldname
 #####################
 
 *String.*
 
-Change-detection hash fieldname for destination tables. This will be a
-``VARCHAR`` of length determined by :ref:`hash_method
-<anon_config_hash_method>`. Used to hash entire rows to see if they've changed
-later.
-
-
-ddgen_append_source_info_to_comment
-###################################
-
-*Boolean.* Default: true.
-
-When drafting a data dictionary, append the source table/field name to the
-column comment?
+Change-detection hash fieldname for destination tables, used to hash entire
+rows to see if they've changed later. To rephrase: this is a field (column)
+that CRATE will create in tables in the destination database, using it to store
+a "signature" of the source row (allowing changes to be detected). This column
+will be a ``VARCHAR`` of length determined by :ref:`hash_method
+<anon_config_hash_method>`. See also :ref:`src_flags <dd_src_flags>` in the
+data dictionary.
 
 
 Destination database configuration
@@ -720,7 +900,8 @@ debug_max_n_patients
 *Integer.* Default: 0.
 
 Limit the number of patients to be processed? Specify 0 (the default) for no
-limit.
+limit. The limit applies to each process separately, if you are using parallel
+processing.
 
 
 debug_pid_list
@@ -768,6 +949,8 @@ optout_mpid_filenames
 If you set this, each line of each named file is scanned for an integer, taken
 to be the MPID of a patient who wishes to opt out.
 
+
+.. _optout_col_values:
 
 optout_col_values
 #################
@@ -860,8 +1043,8 @@ You may need to install additional drivers, e.g.
 ... see :ref:`database drivers <database_drivers>`.
 
 
-Data dictionary generation: input fields
-++++++++++++++++++++++++++++++++++++++++
+Data dictionary generation: source fields
++++++++++++++++++++++++++++++++++++++++++
 
 |ddgen_only|
 
@@ -910,14 +1093,6 @@ You can specify additional fields to include (see :ref:`decision
 If a field contains scrubbing source information (see :ref:`scrub_src
 <dd_scrub_src>`), it will also be omitted pending human review, regardless of
 other settings.
-
-
-ddgen_allow_no_patient_info
-############################
-
-*Boolean.* Default: false.
-
-Allow the absence of patient info? Used to copy databases; WILL NOT ANONYMISE.
 
 
 ddgen_per_table_pid_field
@@ -1043,7 +1218,8 @@ ddgen_pk_fields
 
 *Multiline string.*
 
-Fieldnames assumed to be their table's PK.
+Fieldnames assumed to be their table's PK. In addition to these, any columns
+that the source database reports as a PK will be treated as such.
 
 
 .. _anon_config_ddgen_constant_content:
@@ -1206,11 +1382,14 @@ Known safe fields, exempt from scrubbing.
 ddgen_min_length_for_scrubbing
 ##############################
 
-*Integer.* Default: 0.
+*Integer.* Default: 50.
 
-Define minimum text column length for scrubbing (fields shorter than this value
-are assumed safe). For example, specifying 10 will mean that ``VARCHAR(9)``
-columns are assumed not to need scrubbing.
+Define minimum source text column length for scrubbing (fields shorter than
+this value are assumed safe). For example, specifying 10 will mean that
+``VARCHAR(9)`` columns are assumed not to need scrubbing.
+
+If you specify a number below 1 (e.g. 0), nothing will be marked for scrubbing.
+Be particularly careful with this!
 
 
 ddgen_truncate_date_fields
@@ -1298,10 +1477,38 @@ where ``case_number_hashdef`` is an extra hash definition (see
 :ref:`alter_method <dd_alter_method>` in the data dictionary).
 
 
-Data dictionary generation: destination indexing
-++++++++++++++++++++++++++++++++++++++++++++++++
+Data dictionary generation: destination fields
+++++++++++++++++++++++++++++++++++++++++++++++
 
 |ddgen_only|
+
+
+ddgen_force_lower_case
+######################
+
+*Boolean.* Default: false.
+
+Force all destination table/field names to lower case?
+
+(Default changed from true to false in v0.19.3.)
+
+
+ddgen_convert_odd_chars_to_underscore
+#####################################
+
+*Boolean.* Default: true.
+
+Convert spaces in table/fieldnames (yuk!) to underscores?
+
+
+ddgen_append_source_info_to_comment
+###################################
+
+*Boolean.* Default: true.
+
+When drafting a data dictionary, append the source table/field name to the
+column comment?
+
 
 ddgen_index_fields
 ##################
@@ -1310,6 +1517,8 @@ ddgen_index_fields
 
 Fields to apply an index to.
 
+
+.. _ddgen_allow_fulltext_indexing:
 
 ddgen_allow_fulltext_indexing
 #############################
@@ -1321,25 +1530,21 @@ Allow full-text index creation?
 (Disable for databases that don't support full-text indexes?)
 
 
-Data dictionary generation: altering destination table/field names
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ddgen_freetext_index_min_length
+###############################
 
-|ddgen_only|
+*Integer.* Default: 1000.
 
-ddgen_force_lower_case
-######################
+For full-text index creation (see ddgen_freetext_index_min_length_): what is
+the minimum (source) text field length that should have a free-text index
+applied?
 
-*Boolean.* Default: true.
+.. note::
 
-Force all destination table/field names to lower case?
-
-
-ddgen_convert_odd_chars_to_underscore
-#####################################
-
-*Boolean.* Default: true.
-
-Convert spaces in table/fieldnames (yuk!) to underscores?
+    This is applied to the length of the source field, not the destination,
+    because sometimes short source fields are expanded (to make room for
+    "anonymisation expansion"), so the source length is usually more
+    meaningful.
 
 
 Other options for source databases
@@ -1357,14 +1562,15 @@ to any tables listed in :ref:`debug_limited_tables
 <anon_config_debug_limited_tables>`. For those tables, only this many rows will
 be taken from the source database.
 
-Use this, for example, to reduce the number of large documents fetched.
+Use this, for example, to reduce the number of large documents fetched for
+testing.
 
 If you run a multiprocess/multithreaded anonymisation, this limit applies per
 *process* (or task), not overall.
 
-Note that these limits DO NOT APPLY to the fetching of patient- identifiable
-information for anonymisation -- when a patient is processed, all identifiable
-information for that patient is trawled.
+Note that these limits DO NOT APPLY to the fetching of patient-identifiable
+information to build "scrubbers" for anonymisation -- when a patient is
+processed, all identification information for that patient is trawled.
 
 
 .. _anon_config_debug_limited_tables:
@@ -1410,6 +1616,44 @@ secret_key
 Secret key for the hasher.
 
 
+
+.. _anonymisation_sequence:
+
+Anonymisation sequence
+~~~~~~~~~~~~~~~~~~~~~~
+
+When CRATE processes data and creates scrubbers, it follows the
+following sequence:
+
+- For every patient, a scrubber is built (see
+  :class:`crate_anon.anonymise.patient.Patient`).
+
+  - NONSPECIFIC options are set according to the config file.
+
+    - This can include generic options like removing all numbers with a certain
+      number of digits, or anything that looks like a UK postcode.
+
+    - It can also include words or phrases to remove, read from files specified
+      by denylist_filenames_.
+
+  - PATIENT and THIRD-PARTY information is added by scanning the source
+    database for all "scrub-source" information for that patient (optionally,
+    recursing into third-party records).
+
+    - Words and phrases are not added if they are in the "allowlist" (see
+      allowlist_filenames_).
+
+- For every data item for that patient that requires scrubbing, scrub using the
+  patient's scrubber.
+
+- That scrubber operates as follows (see
+  :meth:`crate_anon.anonymise.scrub.PersonalizedScrubber.scrub`):
+
+  - the NONSPECIFIC scrubber runs first;
+  - the PATIENT scrubber runs second;
+  - the THIRD-PARTY scrubber runs third.
+
+
 Minimal anonymiser config
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1425,13 +1669,19 @@ Many options are not shown and most comments have been removed.
 
 .. _specimen_anonymiser_config:
 
+.. _crate_anon_demo_config:
+
 Specimen config
 ~~~~~~~~~~~~~~~
 
-A specimen anonymiser config file is available by running ``crate_anonymise
---democonfig``.
+A specimen anonymiser config file is available by running
+``crate_anon_demo_config``. You can send its output to a file using ``>`` or
+the ``--output`` option:
 
-Here's the specimen NLP config:
+..  literalinclude:: _crate_anon_demo_config_help.txt
+    :language: none
+
+Here's the specimen anonymisation config file:
 
 ..  literalinclude:: _specimen_anonymiser_config.ini
     :language: ini

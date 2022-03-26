@@ -228,7 +228,7 @@ class Study(models.Model):
         max_upload_size=settings.MAX_UPLOAD_SIZE_BYTES,
         upload_to=study_form_upload_to)
     # http://nemesisdesign.net/blog/coding/django-private-file-upload-and-serving/  # noqa
-    # http://stackoverflow.com/questions/8609192/differentiate-null-true-blank-true-in-django  # noqa
+    # https://stackoverflow.com/questions/8609192/differentiate-null-true-blank-true-in-django  # noqa
     AUTODELETE_OLD_FILE_FIELDS = ['study_details_pdf',
                                   'subject_form_template_pdf']
 
@@ -687,7 +687,8 @@ class PatientLookupBase(models.Model):
         verbose_name="Patient date of death (NULL if alive)")
     pt_dead = models.BooleanField(default=False,
                                   verbose_name="Patient is dead")
-    pt_discharged = models.NullBooleanField(verbose_name="Patient discharged")
+    pt_discharged = models.BooleanField(null=True,
+                                        verbose_name="Patient discharged")
     pt_discharge_date = models.DateField(
         null=True, blank=True,
         verbose_name="Patient date of discharge")
@@ -1256,7 +1257,7 @@ class ConsentMode(Decision):
         (YELLOW, 'yellow'),
         (GREEN, 'green'),
     )
-    # ... http://stackoverflow.com/questions/12822847/best-practice-for-python-django-constants  # noqa
+    # ... https://stackoverflow.com/questions/12822847/best-practice-for-python-django-constants  # noqa
 
     SOURCE_USER_ENTRY = "crate_user_entry"
     SOURCE_AUTOCREATED = "crate_auto_created"
@@ -1318,7 +1319,7 @@ class ConsentMode(Decision):
         patient, order by patient/date, pick last one for each patient...).
 
         See
-        http://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django
+        https://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django
         """  # noqa
         if self.current:
             ConsentMode.objects\
@@ -1512,7 +1513,7 @@ class ConsentMode(Decision):
             # 'green_img_url': site_absolute_url(static('green.png')),
         }
         # 1. Building a static URL in code:
-        #    http://stackoverflow.com/questions/11721818/django-get-the-static-files-url-in-view  # noqa
+        #    https://stackoverflow.com/questions/11721818/django-get-the-static-files-url-in-view  # noqa
         # 2. Making it an absolute URL means that wkhtmltopdf will also see it
         #    (by fetching it from this web server).
         # 3. Works with Django testing server.
@@ -3563,10 +3564,10 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     We want to create these objects in memory, without saving to the DB.
     However, Django is less good at SQLAlchemy for this, and saves.
 
-    - http://stackoverflow.com/questions/7908349/django-making-relationships-in-memory-without-saving-to-db  # noqa
+    - https://stackoverflow.com/questions/7908349/django-making-relationships-in-memory-without-saving-to-db  # noqa
     - https://code.djangoproject.com/ticket/17253
-    - http://stackoverflow.com/questions/23372786/django-models-assigning-foreignkey-object-without-saving-to-database  # noqa
-    - http://stackoverflow.com/questions/7121341/django-adding-objects-to-a-related-set-without-saving-to-db  # noqa
+    - https://stackoverflow.com/questions/23372786/django-models-assigning-foreignkey-object-without-saving-to-database  # noqa
+    - https://stackoverflow.com/questions/7121341/django-adding-objects-to-a-related-set-without-saving-to-db  # noqa
 
     A simple method works for an SQLite backend database but fails with
     an IntegrityError for MySQL/SQL Server. For example:

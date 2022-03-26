@@ -45,6 +45,7 @@ TEST COMMAND:
 
 from argparse import ArgumentParser, Namespace
 import logging
+import os
 from typing import Any
 # import errno
 # import os
@@ -76,7 +77,7 @@ log = logging.getLogger(__name__)
 CRATE_STATIC_URL_PATH = settings.STATIC_URL.rstrip('/')
 NEED_UNIX = "Need UNIX for group/user operations"
 
-if EnvVar.GENERATING_CRATE_DOCS:
+if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     DEFAULT_ROOT = "/crate/root/path/"
 else:
     DEFAULT_ROOT = settings.FORCE_SCRIPT_NAME
@@ -383,5 +384,5 @@ def main() -> None:
     runcpserver(cmdargs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

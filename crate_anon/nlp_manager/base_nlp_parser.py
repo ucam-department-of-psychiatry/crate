@@ -48,7 +48,6 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 # https://github.com/zzzeek/sqlalchemy/blob/master/README.dialects.rst
 # noinspection PyProtectedMember
 from sqlalchemy.dialects import registry
-# from sqlalchemy.dialects.mssql.base import MSDialect
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm.session import Session
@@ -525,7 +524,7 @@ class TableMaker(ABC):
                 execute a COMMIT after we have deleted the records?
                 If you don't do this, we will get deadlocks in incremental mode.
                 See e.g.
-                http://dev.mysql.com/doc/refman/5.5/en/innodb-deadlocks.html
+                https://dev.mysql.com/doc/refman/5.5/en/innodb-deadlocks.html
         """  # noqa
         session = self.dest_session
         srcdb = ifconfig.srcdb

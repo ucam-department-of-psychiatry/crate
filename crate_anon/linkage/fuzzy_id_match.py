@@ -30,7 +30,7 @@ patient identifiers.**
 
 
 .. _TLSH: https://github.com/trendmicro/tlsh
-.. _sdhash: http://roussev.net/sdhash/sdhash.html
+.. _sdhash: https://roussev.net/sdhash/sdhash.html
 .. _Nilsimsa: https://en.wikipedia.org/wiki/Nilsimsa_Hash
 .. _ssdeep: https://ssdeep-project.github.io/ssdeep/index.html
 
@@ -327,7 +327,7 @@ def get_metaphone(x: str) -> str:
 
     See
 
-    - http://www.b-eye-network.com/view/1596
+    - https://www.b-eye-network.com/view/1596
     - https://dl.acm.org/citation.cfm?id=349132
 
     The implementation is from https://pypi.org/project/Fuzzy/.
@@ -572,56 +572,6 @@ class TemporalIdentifier(object):
             identifier=identifier,
             start_date=self.start_date,
             end_date=self.end_date
-        )
-
-
-class TestTemporalIdentifier(unittest.TestCase):
-    """
-    Unit tests for :class:`TemporalIdentifier`.
-    """
-
-    def test_overlap(self) -> None:
-        d1 = Date(2000, 1, 1)
-        d2 = Date(2000, 1, 2)
-        d3 = Date(2000, 1, 3)
-        d4 = Date(2000, 1, 4)
-        p = "dummypostcode"
-        # Overlaps
-        self.assertEqual(
-            TemporalIdentifier(p, d1, d2).overlaps(
-                TemporalIdentifier(p, d2, d3)),
-            True
-        )
-        self.assertEqual(
-            TemporalIdentifier(p, d2, d3).overlaps(
-                TemporalIdentifier(p, d1, d2)),
-            True
-        )
-        self.assertEqual(
-            TemporalIdentifier(p, d1, d4).overlaps(
-                TemporalIdentifier(p, d2, d3)),
-            True
-        )
-        self.assertEqual(
-            TemporalIdentifier(p, d1, None).overlaps(
-                TemporalIdentifier(p, None, d4)),
-            True
-        )
-        self.assertEqual(
-            TemporalIdentifier(p, None, None).overlaps(
-                TemporalIdentifier(p, None, None)),
-            True
-        )
-        # Non-overlaps
-        self.assertEqual(
-            TemporalIdentifier(p, d1, d2).overlaps(
-                TemporalIdentifier(p, d3, d4)),
-            False
-        )
-        self.assertEqual(
-            TemporalIdentifier(p, None, d1).overlaps(
-                TemporalIdentifier(p, d2, None)),
-            False
         )
 
 

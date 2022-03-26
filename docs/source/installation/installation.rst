@@ -175,6 +175,8 @@ Install GATE, for NLP.
 - Download and install GATE from https://gate.ac.uk/download/
 
 
+.. _third_party_text_extractors:
+
 Third-party text extractors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -208,12 +210,9 @@ For some, you will need an external tool:
 
 If you install any manually, check they run, as follows.
 
-Check that your text extractors are available and visible to CRATE via the
-PATH. Pass any extensions for which you want to see a report.
-
-.. code-block:: bash
-
-    crate_anonymise --checkextractor .doc .docx .odt .pdf .rtf .txt None
+To check that your text extractors are available and visible to CRATE via the
+``PATH``, you can use the :ref:`crate_anon_check_text_extractor
+<crate_anon_check_text_extractor>` tool.
 
 
 C/C++ compiler
@@ -415,7 +414,7 @@ go wrong, so retest that the web server and the e-mail transmission task work.
 .. rubric:: Footnotes
 
 .. [#servicedelayedstart]
-    http://stackoverflow.com/questions/11015189/automatic-vs-automatic-delayed-start
+    https://stackoverflow.com/questions/11015189/automatic-vs-automatic-delayed-start
 
 .. [#taskscheduler]
     See
@@ -454,8 +453,8 @@ go wrong, so retest that the web server and the e-mail transmission task work.
 
 .. [#vstudiogeneral]
     To map Visual C++/Studio versions to compiler numbers, see
-    http://stackoverflow.com/questions/2676763. For more detail see
-    http://stackoverflow.com/questions/2817869.
+    https://stackoverflow.com/questions/2676763. For more detail see
+    https://stackoverflow.com/questions/2817869.
 
 
 .. [#vscommunity]

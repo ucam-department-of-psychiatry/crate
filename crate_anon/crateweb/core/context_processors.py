@@ -57,5 +57,5 @@ def common_context(request: HttpRequest) -> Dict[str, Any]:
     # Try to minimize SQL here (ideally none!), as these calls will be used for
     # EVERY request.
     # This problem can partially be circumvented with a per-request cache; see
-    # http://stackoverflow.com/questions/3151469/per-request-cache-in-django
+    # https://stackoverflow.com/questions/3151469/per-request-cache-in-django
     # But good practice is: keep queries to a minimum.

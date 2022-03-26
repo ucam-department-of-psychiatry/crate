@@ -29,7 +29,7 @@ crate_anon/preprocess/ddhint.py
 """
 
 import logging
-from typing import Any, Dict, Iterable, List, Set, Union
+from typing import Dict, Iterable, List, Set, Union
 
 from cardinal_pythonlib.dicts import get_case_insensitive_dict_key
 from sqlalchemy import MetaData
@@ -38,6 +38,7 @@ from sqlalchemy.engine.base import Engine
 from crate_anon.common.sql import (
     add_indexes,
     drop_indexes,
+    IndexCreationInfo,
 )
 
 log = logging.getLogger(__name__)
@@ -53,7 +54,9 @@ class DDHint(object):
     """
     def __init__(self) -> None:
         self._suppressed_tables = set()  # type: Set[str]
-        self._index_requests = {}  # type: Dict[str, Dict[str, Any]]
+        self._index_requests = {}  # type: Dict[str, List[IndexCreationInfo]]
+        # ... key = table name
+        # ... value = list of IndexCreationInfo objects for that table
 
     def suppress_table(self, table: str) -> None:
         """
@@ -102,13 +105,13 @@ class DDHint(object):
         assert len(columns) == len(set(columns)), (
             f"Duplicate columns in: {columns!r}")
         index_name = 'crate_idx_' + '_'.join(columns)
-        index_requests_for_table = self._index_requests.setdefault(table, {})
+        index_requests_for_table = self._index_requests.setdefault(table, [])
         if index_name not in index_requests_for_table:
-            index_requests_for_table[index_name] = {
-                'index_name': index_name,
-                'column': ', '.join(columns),
-                'unique': False,
-            }
+            index_requests_for_table.append(IndexCreationInfo(
+                index_name=index_name,
+                column=columns,
+                unique=False,
+            ))
 
     def add_bulk_source_index_request(
             self,
@@ -140,10 +143,7 @@ class DDHint(object):
             engine: SQLAlchemy database Engine
             metadata: SQLAlchemy ORM Metadata
         """
-        for tablename, tabledict in self._index_requests.items():
-            indexdictlist = []  # type: List[Dict[str, Any]]
-            for indexname, indexdict in tabledict.items():
-                indexdictlist.append(indexdict)
+        for tablename, index_info_list in self._index_requests.items():
             tablename_casematch = get_case_insensitive_dict_key(
                 metadata.tables, tablename)
             if not tablename_casematch:
@@ -151,7 +151,7 @@ class DDHint(object):
                     f"add_indexes: Skipping index as table {tablename} absent")
                 continue
             table = metadata.tables[tablename_casematch]
-            add_indexes(engine, table, indexdictlist)
+            add_indexes(engine, table, index_info_list)
 
     def drop_indexes(self, engine: Engine, metadata: MetaData) -> None:
         """
@@ -162,8 +162,8 @@ class DDHint(object):
             engine: SQLAlchemy database Engine
             metadata: SQLAlchemy ORM Metadata
         """
-        for tablename, tabledict in self._index_requests.items():
-            index_names = list(tabledict.keys())
+        for tablename, index_info_list in self._index_requests.items():
+            index_names = [i.index_name for i in index_info_list]
             tablename_casematch = get_case_insensitive_dict_key(
                 metadata.tables, tablename)
             if not tablename_casematch:

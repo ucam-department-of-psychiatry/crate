@@ -503,7 +503,7 @@ class SingleResearchDatabase(object):
           https://msdn.microsoft.com/en-us/library/ms188348.aspx
         - Re fulltext indexes:
 
-          - http://stackoverflow.com/questions/16280918/how-to-find-full-text-indexing-on-database-in-sql-server-2008
+          - https://stackoverflow.com/questions/16280918/how-to-find-full-text-indexing-on-database-in-sql-server-2008
           - ``sys.fulltext_indexes``: https://msdn.microsoft.com/en-us/library/ms186903.aspx
           - ``sys.fulltext_catalogs``: https://msdn.microsoft.com/en-us/library/ms188779.aspx
           - ``sys.fulltext_index_columns``: https://msdn.microsoft.com/en-us/library/ms188335.aspx
@@ -710,9 +710,9 @@ ORDER BY
         Notes:
 
         - A PostgreSQL connection is always to a single database; see
-          http://stackoverflow.com/questions/10335561/use-database-name-command-in-postgresql
-        - http://dba.stackexchange.com/questions/75015
-        - http://stackoverflow.com/questions/14713774
+          https://stackoverflow.com/questions/10335561/use-database-name-command-in-postgresql
+        - https://dba.stackexchange.com/questions/75015
+        - https://stackoverflow.com/questions/14713774
         - Note that creating a GIN index looks like:
 
           .. code-block:: sql
@@ -863,7 +863,7 @@ ORDER BY
         # - Don't circumvent the parameter protection against SQL injection.
         # - Too much hassle to use Django's ORM model here, though that would
         #   also be possible.
-        # - http://stackoverflow.com/questions/907806
+        # - https://stackoverflow.com/questions/907806
         # - Similarly via SQLAlchemy reflection/inspection.
 
 

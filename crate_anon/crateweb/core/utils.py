@@ -210,7 +210,7 @@ def site_absolute_url(path: str) -> str:
 
     See also:
 
-    - http://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object
+    - https://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object
     - https://fragmentsofcode.wordpress.com/2009/02/24/django-fully-qualified-url/
 
     **IMPORTANT**
@@ -218,7 +218,7 @@ def site_absolute_url(path: str) -> str:
     BEWARE: :func:`reverse` will produce something different inside a request
     and outside it.
 
-    - http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell
+    - https://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell
 
     So the only moderately clean way of doing this is to do this in the Celery
     backend jobs, for anything that uses Django URLs (e.g. :func:`reverse`) --

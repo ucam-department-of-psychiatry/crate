@@ -585,5 +585,5 @@ on.
     subprocess.check_call(cmdargs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

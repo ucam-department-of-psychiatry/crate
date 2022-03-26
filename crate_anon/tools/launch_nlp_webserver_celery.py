@@ -36,7 +36,7 @@ import platform
 
 from cardinal_pythonlib.process import nice_call
 
-from crate_anon.nlp_webserver.tasks import NLP_WEBSERVER_CELERY_APP_NAME
+from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CELERY_APP_NAME
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -70,8 +70,8 @@ def main() -> None:
 
     cmdargs = [
         "celery",
+        "--app", NLP_WEBSERVER_CELERY_APP_NAME,
         args.command,
-        "-A", NLP_WEBSERVER_CELERY_APP_NAME,
     ]
     if args.command == "worker":
         cmdargs += ["-l", "debug" if args.debug else "info"]  # --loglevel
@@ -84,5 +84,5 @@ def main() -> None:
     nice_call(cmdargs, cleanup_timeout=args.cleanup_timeout_s)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

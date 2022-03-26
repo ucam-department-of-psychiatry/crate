@@ -20,6 +20,7 @@
 .. _ONS: https://www.ons.gov.uk/
 .. _PCMIS: https://www.york.ac.uk/healthsciences/pc-mis/
 .. _RiO: https://www.servelec.co.uk/product-range/rio-epr-system/
+.. _SystmOne: https://tpp-uk.com/products/
 
 
 Preprocessing tools
@@ -29,8 +30,9 @@ These tools:
 
 - reshape specific databases for CRATE:
 
-  - crate_preprocess_rio_ -- preprocess a RiO_ database
   - crate_preprocess_pcmis_ -- preprocess a PCMIS_ database
+  - crate_preprocess_rio_ -- preprocess a RiO_ database
+  - crate_preprocess_systmone_ -- index a SystmOne_ database
 
 - fetch external data used for anonymisation:
 
@@ -43,6 +45,17 @@ These tools:
 
 Although they are usually run before anonymisation, it's probably more helpful
 to read the :ref:`Anonymisation <anonymisation>` section first.
+
+
+.. _crate_preprocess_pcmis:
+
+crate_preprocess_pcmis
+~~~~~~~~~~~~~~~~~~~~~~
+
+Options:
+
+..  literalinclude:: _crate_preprocess_pcmis_help.txt
+    :language: none
 
 
 .. _crate_preprocess_rio:
@@ -75,14 +88,17 @@ Options:
     :language: none
 
 
-.. _crate_preprocess_pcmis:
+.. _crate_preprocess_systmone:
 
-crate_preprocess_pcmis
-~~~~~~~~~~~~~~~~~~~~~~
+crate_preprocess_systmone
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Preprocess SystmOne_ data, by indexing it. (It shouldn't need further
+reshaping.)
 
 Options:
 
-..  literalinclude:: _crate_preprocess_pcmis_help.txt
+..  literalinclude:: _crate_preprocess_systmone_help.txt
     :language: none
 
 

@@ -45,11 +45,11 @@ def main() -> None:
 
     cmdargs = [
         "celery",
+        "--app", CRATEWEB_CELERY_APP_NAME,
         "status",
-        "-A", CRATEWEB_CELERY_APP_NAME,
     ]
     subprocess.call(cmdargs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

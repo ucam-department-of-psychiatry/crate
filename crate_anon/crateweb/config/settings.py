@@ -56,7 +56,7 @@ from crate_anon.crateweb.config.constants import (
     UrlNames,
 )
 
-# http://stackoverflow.com/questions/2636536/how-to-make-django-work-with-unsupported-mysql-drivers-such-as-gevent-mysql-or-c  # noqa
+# https://stackoverflow.com/questions/2636536/how-to-make-django-work-with-unsupported-mysql-drivers-such-as-gevent-mysql-or-c  # noqa
 try:
     import pymysql
     pymysql.install_as_MySQLdb()
@@ -270,7 +270,12 @@ LOCAL_STATIC_DIR = os.path.join(BASE_DIR, 'static')
 STATICFILES_DIRS = (
     LOCAL_STATIC_DIR,
 )
-STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
+
+if RUNNING_UNDER_DOCKER:
+    STATIC_ROOT = os.getenv("CRATE_WEB_STATIC_ROOT")
+else:
+    STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
+
 # ... for collectstatic
 
 # NOTE that deriving from django.contrib.staticfiles.storage.StaticFilesStorage
@@ -295,6 +300,14 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
 #       https://code.djangoproject.com/ticket/27054
 #   ... fixed by adding allow_migrate() to PidLookupRouter
 
+
+# https://docs.djangoproject.com/en/4.0/releases/3.2/
+# When defining a model, if no field in a model is defined with
+# primary_key=True an implicit primary key is added. The type of this implicit
+# primary key can now be controlled via the DEFAULT_AUTO_FIELD
+# In a future Django release the default value of DEFAULT_AUTO_FIELD will be
+# changed to BigAutoField.
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # =============================================================================
 # Security; https://docs.djangoproject.com/en/1.8/topics/security/

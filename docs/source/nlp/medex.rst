@@ -118,6 +118,8 @@ Options:
     :language: none
 
 
+.. _crate_nlp_build_medex_itself:
+
 crate_nlp_build_medex_itself
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -135,6 +137,8 @@ CrateMedexPipeline
 
 The following specimen script assumes specific locations for the compiled Java
 (``CrateMedexPipeline.class``); edit it as required.
+
+.. _crate_show_crate_medex_pipeline_options:
 
 Asking `CrateMedexPipeline` to show its command-line options:
 

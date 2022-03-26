@@ -372,7 +372,7 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
     search_fields = ('recipient', 'subject')
     actions = ['resend']
     # ... alternative method (per instance):
-    # http://stackoverflow.com/questions/2805701/is-there-a-way-to-get-custom-django-admin-actions-to-appear-on-the-change-view  # noqa
+    # https://stackoverflow.com/questions/2805701/is-there-a-way-to-get-custom-django-admin-actions-to-appear-on-the-change-view  # noqa
 
     # - We can't use list_select_related for things that have a foreign key to
     #   us (rather than things we have an FK to).
@@ -1234,7 +1234,7 @@ class LetterDevAdmin(ReadOnlyModelAdmin):
         'contact_request',
     )
     date_hierarchy = 'created_at'
-    # ... see also http://stackoverflow.com/questions/991926/custom-filter-in-django-admin-on-django-1-3-or-below  # noqa
+    # ... see also https://stackoverflow.com/questions/991926/custom-filter-in-django-admin-on-django-1-3-or-below  # noqa
     actions = ['mark_sent']
 
     def mark_sent(self, request: HttpRequest, queryset: QuerySet) -> None:
@@ -1384,8 +1384,8 @@ class ExtendedUserMgrAdmin(UserAdmin):
 # =============================================================================
 # Assemble main admin site
 # =============================================================================
-# http://stackoverflow.com/questions/4938491/django-admin-change-header-django-administration-text  # noqa
-# http://stackoverflow.com/questions/3400641/how-do-i-inline-edit-a-django-user-profile-in-the-admin-interface  # noqa
+# https://stackoverflow.com/questions/4938491/django-admin-change-header-django-administration-text  # noqa
+# https://stackoverflow.com/questions/3400641/how-do-i-inline-edit-a-django-user-profile-in-the-admin-interface  # noqa
 
 class MgrAdminSite(admin.AdminSite):
     """
@@ -1427,8 +1427,8 @@ mgr_admin_site.register(User, ExtendedUserMgrAdmin)
 # =============================================================================
 # Assemble secondary (developer) admin site
 # =============================================================================
-# http://stackoverflow.com/questions/4938491/django-admin-change-header-django-administration-text  # noqa
-# http://stackoverflow.com/questions/3400641/how-do-i-inline-edit-a-django-user-profile-in-the-admin-interface  # noqa
+# https://stackoverflow.com/questions/4938491/django-admin-change-header-django-administration-text  # noqa
+# https://stackoverflow.com/questions/3400641/how-do-i-inline-edit-a-django-user-profile-in-the-admin-interface  # noqa
 
 class DevAdminSite(admin.AdminSite):
     """
@@ -1494,7 +1494,7 @@ res_admin_site.register(ContactRequest, ContactRequestResAdmin)
 
 """
 Problem with non-superusers not seeing any apps:
-- http://stackoverflow.com/questions/1929707/django-admin-not-seeing-any-app-permission-problem  # noqa
+- https://stackoverflow.com/questions/1929707/django-admin-not-seeing-any-app-permission-problem  # noqa
   ... but django.contrib.auth.backends.ModelBackend won't load in INSTALLED_APPS  # noqa
 - log.debug(f"registered: {res_admin_site.is_registered(Leaflet)!r}")
   ... OK

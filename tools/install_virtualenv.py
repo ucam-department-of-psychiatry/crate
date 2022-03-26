@@ -37,7 +37,7 @@ import sys
 from typing import List
 
 
-assert sys.version_info >= (3, 6), "Need Python 3.6+"
+assert sys.version_info >= (3, 7), "Need Python 3.7+"
 
 LINUX = platform.system() == 'Linux'
 # LINUX_DIST = platform.linux_distribution()[0].lower()
@@ -60,7 +60,7 @@ PYTHONBASE = os.path.basename(PYTHON)
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, os.pardir))
-PIP_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements.txt')
+# PIP_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements.txt')
 # DEB_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements-ubuntu.txt')
 # RPM_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements-rpm.txt')
 
@@ -164,5 +164,5 @@ def main() -> None:
           f"    {activate}\n\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

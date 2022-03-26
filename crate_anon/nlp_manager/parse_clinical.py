@@ -854,6 +854,6 @@ def test_all(verbose: bool = False) -> None:
         cls(None, None).test(verbose=verbose)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all(verbose=True)

@@ -27,17 +27,17 @@ crate_anon/nlp_manager/tests/nlp_parser_tests.py
 """
 import logging
 import sys
+from typing import Any, Dict, Generator, List, Tuple
+from unittest import mock, TestCase
 
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.schema import Column
-from typing import Any, Dict, Generator, List, Tuple
-from unittest import mock, TestCase
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 
 
 class FruitParser(BaseNlpParser):
-    def test(self) -> None:
+    def test(self, verbose: bool = False) -> None:
         pass
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
@@ -49,7 +49,7 @@ class FruitParser(BaseNlpParser):
 
         for word in text.split(" "):
             if word.lower() in fruits:
-                yield ("output", {"fruit": word.lower()})
+                yield "output", {"fruit": word.lower()}
 
 
 class NlpParserProcessTests(TestCase):

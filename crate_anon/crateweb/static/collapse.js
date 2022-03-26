@@ -4,7 +4,7 @@ crate_anon/crateweb/static/collapse.js
 
 ===============================================================================
 
-    Copyright (C) 2015-2019 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -28,6 +28,7 @@ Javascript for collapsible trees.
 PLUS_IMAGE, MINUS_IMAGE are defined in the HTML, for static file URLs.
 
 */
+
 
 var getElementsByClassName = function (className, tag, elm) {
     // http://robertnyman.com/2008/05/27/
@@ -128,7 +129,6 @@ var getElementsByClassName = function (className, tag, elm) {
     }
     return getElementsByClassName(className, tag, elm);
 };
-
 /*  There are two ways of doing this:
     (1) Each thing has a collapse_detail and a collapse_summary div,
         which are alternated;
@@ -186,52 +186,48 @@ function setSmall(div) {
 }
 
 function showAll() {
-    var elements = getElementsByClassName(CLASS_COLLAPSIBLE),
-        i;
-    for (i = 0; i < elements.length; ++i) {
+    let elements = getElementsByClassName(CLASS_COLLAPSIBLE);
+    for (let i = 0; i < elements.length; ++i) {
         setVisible(elements[i]);
     }
     elements = getElementsByClassName(CLASS_PLUSMINUS_IMAGE);
-    for (i = 0; i < elements.length; ++i) {
+    for (let i = 0; i < elements.length; ++i) {
         // noinspection Annotator
         elements[i].src = MINUS_IMAGE;
     }
 }
 
 function hideAll() {
-    var elements = getElementsByClassName(CLASS_COLLAPSIBLE),
-        i;
-    for (i = 0; i < elements.length; ++i) {
+    let elements = getElementsByClassName(CLASS_COLLAPSIBLE);
+    for (let i = 0; i < elements.length; ++i) {
         setInvisible(elements[i]);
     }
     elements = getElementsByClassName(CLASS_PLUSMINUS_IMAGE);
-    for (i = 0; i < elements.length; ++i) {
+    for (let i = 0; i < elements.length; ++i) {
         // noinspection Annotator
         elements[i].src = PLUS_IMAGE;
     }
 }
 
 function expandAll() {
-    var elements = getElementsByClassName(CLASS_COLLAPSIBLE),
-        i;
-    for (i = 0; i < elements.length; ++i) {
+    let elements = getElementsByClassName(CLASS_COLLAPSIBLE);
+    for (let i = 0; i < elements.length; ++i) {
         setBig(elements[i]);
     }
     elements = getElementsByClassName(CLASS_PLUSMINUS_IMAGE);
-    for (i = 0; i < elements.length; ++i) {
+    for (let i = 0; i < elements.length; ++i) {
         // noinspection Annotator
         elements[i].src = PLUS_IMAGE;
     }
 }
 
 function collapseAll() {
-    var elements = getElementsByClassName(CLASS_COLLAPSIBLE),
-        i;
-    for (i = 0; i < elements.length; ++i) {
+    let elements = getElementsByClassName(CLASS_COLLAPSIBLE);
+    for (let i = 0; i < elements.length; ++i) {
         setSmall(elements[i]);
     }
     elements = getElementsByClassName(CLASS_PLUSMINUS_IMAGE);
-    for (i = 0; i < elements.length; ++i) {
+    for (let i = 0; i < elements.length; ++i) {
         // noinspection Annotator
         elements[i].src = MINUS_IMAGE;
     }
@@ -239,7 +235,7 @@ function collapseAll() {
 
 // noinspection JSUnusedGlobalSymbols
 function toggleVisible(divId, imageId) {
-    var div = document.getElementById(divId),
+    let div = document.getElementById(divId),
         img = document.getElementById(imageId);
 
     if (hasClass(div, CLASS_VISIBLE)) {
@@ -255,7 +251,7 @@ function toggleVisible(divId, imageId) {
 
 // noinspection JSUnusedGlobalSymbols
 function toggleCollapsed(divId, imageId) {
-    var div = document.getElementById(divId),
+    let div = document.getElementById(divId),
         img = document.getElementById(imageId);
 
     if (hasClass(div, CLASS_BIG)) {

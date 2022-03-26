@@ -104,8 +104,8 @@ This error usually appears with encrypted, password-protected DOCX files. The
 anonymiser will not be able to read these, and this error can be ignored.
 
 
-“UnRtf: … has stopped working”
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+“UnRtf: ... has stopped working”
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If a third-party program is used by CRATE for text extraction and fails, you
 may get lots of messages from Windows like “UnRtf: convert document in RTF
@@ -128,6 +128,14 @@ entries [#disabledebugcloseapplication]_:
     HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting : “DontShowUI”=dword:00000001
     HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting : “DontSendAdditionalData”=dword:00000001
     HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\Consent : “DefaultConsent”=dword:00000002
+
+
+"UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can get this error when you try to use a config file in Windows, certainly
+by using Notepad to create/edit a CRATE config file. Notepad can default to
+"UTF-16 LE" encoding. Re-save the config file with UTF-8 encoding.
 
 
 CRATE NLP
@@ -665,7 +673,7 @@ or commit:
 
 How?
 
-- http://stackoverflow.com/questions/67093/how-do-i-quickly-rename-a-mysql-database-change-schema-name
+- https://stackoverflow.com/questions/67093/how-do-i-quickly-rename-a-mysql-database-change-schema-name
 - https://gist.github.com/michaelmior/1173781
 
 
@@ -686,7 +694,7 @@ Server instance. Use the "ODBC via connection string" option if other methods
 aren't working: ``DSN=XXX;UID=YYY;PWD=ZZZ``.
 
 If the schema definitions are not seen, it's a permissions issue
-(http://stackoverflow.com/questions/17038716), in which case you can also copy
+(https://stackoverflow.com/questions/17038716), in which case you can also copy
 copy the database using CRATE's anonymiser, treating all tables as non-patient
 tables (i.e. doing no actual anonymisation).
 
@@ -786,8 +794,12 @@ https://dev.mysql.com/doc/refman/5.0/en/fulltext-search.html
 SQL Server
 ----------
 
+.. _configure_odbc_mars:
+
 […] “Connection is busy with results for another command” […]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Or: configuring Windows ODBC for MARS.**
 
 If you see this with Microsoft SQL Server via ODBC/pyodbc, you need to enable
 Multiple Active Result Sets (MARS), because for some reason Microsoft think
@@ -801,12 +813,21 @@ query) to a single database at once. There are several ways:
   although this is documented [#enablingmars]_, it didn’t work via pyodbc
   [#enablingmarsmethodfailed]_!
 
-- (WORKS.) Run the command: ``odbcconf /a {CONFIGSYSDSN "SQL Server Native Client
-  11.0" "DSN=MY_DSN|MARS_Connection=Yes"}`` (replacing the driver and DSN names
-  with your own). You can re-run the ODBC configuration wizard, and it should
-  now say `Multiple Active Result Sets(MARS): YES` where it said `... NO`
-  before. This does work. Use ``CONFIGDSN`` instead of ``CONFIGSYSDSN`` if you
-  are using a user DSN. Your changes should be visible if you restart the ODBC
+- (WORKS.)
+
+  - Fire up an Administrator command prompt (e.g. press the Start button, start
+    typing "Command Prompt", and when it appears, right-click it and choose
+    "Run as Administrator").
+
+  - Run the command: ``odbcconf /a {CONFIGSYSDSN "SQL Server Native Client
+    11.0" "DSN=MY_DSN|MARS_Connection=Yes"}`` (replacing the driver and DSN
+    names with your own).
+
+  - You can re-run the ODBC configuration wizard, and it should now say
+    `Multiple Active Result Sets(MARS): YES` where it said `... NO` before.
+
+  This does work. Use ``CONFIGDSN`` instead of ``CONFIGSYSDSN`` if you are
+  using a user DSN. Your changes should be visible if you restart the ODBC
   control panel (e.g. with ``odbccp32.cpl``) and go through the configuration
   wizard again; the MARS option (which you can’t edit) should have changed from
   “No” to “Yes”.
@@ -888,6 +909,19 @@ try this:
 
     USE mydatabase;
     ALTER USER [myserver\RCardinal] WITH DEFAULT_SCHEMA = dbo;
+
+
+"Restricted data type attribute violation"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We've seen this whilst performing an initial scan (data dictionary
+autogeneration) of a source database using the ``SQL Server Native Client
+11.0`` ODBC driver with SQL Server 2012 (version series 11 per
+https://sqlserverbuilds.blogspot.com/; unsure of specific version), via
+``pyodbc==4.0.x``, default ODBC settings (except MARS enabled, as above), and a
+read-only connection. The SQLAlchemy URL for this setup is
+``mssql+pyodbc://@odbc_data_source_name``. The error went away by using the
+``ODBC Driver 17 for SQL Server`` driver instead.
 
 
 Windows
@@ -991,9 +1025,9 @@ your config file; see the example.
     http://chase-seibert.github.io/blog/2013/08/03/diagnosing-memory-leaks-python.html
 
 .. [#disabledebugcloseapplication]
-    http://stackoverflow.com/questions/396369/how-do-i-disable-the-debug-close-application-dialog-on-windows-vista;
+    https://stackoverflow.com/questions/396369/how-do-i-disable-the-debug-close-application-dialog-on-windows-vista;
     https://msdn.microsoft.com/en-us/library/windows/desktop/bb513638(v=vs.85).aspx;
-    http://stackoverflow.com/questions/3561545/how-to-terminate-a-program-when-it-crashes-which-should-just-fail-a-unit-test/3637710#3637710
+    https://stackoverflow.com/questions/3561545/how-to-terminate-a-program-when-it-crashes-which-should-just-fail-a-unit-test/3637710#3637710
 
 .. [#installapacheant]
     Apache Ant uses `build.xml` files to build Java `.jar` files from Java
@@ -1005,7 +1039,7 @@ your config file; see the example.
 
 .. [#amqp214bug]
     https://github.com/celery/py-amqp/issues/135;
-    http://stackoverflow.com/questions/41775353;
+    https://stackoverflow.com/questions/41775353;
     https://github.com/celery/py-amqp/issues/130
 
 .. [#mysqlidcasesens]

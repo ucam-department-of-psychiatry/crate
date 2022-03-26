@@ -31,9 +31,10 @@ The results should still be reviewed by a human!
 
 """
 
+from crate_anon.anonymise.constants import AnonymiseDatabaseSafeConfigKeys
 from crate_anon.preprocess.ddhint import DDHint
+from crate_anon.preprocess.constants import CRATE_COL_PK
 from crate_anon.preprocess.rio_constants import (
-    CRATE_COL_PK,
     CRATE_COL_RIO_NUMBER,
     RIO_COL_PATIENT_ID,
     VIEW_ADDRESS_WITH_GEOGRAPHY,
@@ -55,12 +56,14 @@ def get_rio_dd_settings(ddhint: DDHint) -> str:
     Returns:
         the config file settings, as a string
     """
-    return """
-ddgen_omit_by_default = True
+    suppress_tables = "\n    ".join(ddhint.get_suppressed_tables())
+    sk = AnonymiseDatabaseSafeConfigKeys
+    return f"""
+{sk.DDGEN_OMIT_BY_DEFAULT} = True
 
-ddgen_omit_fields =
+{sk.DDGEN_OMIT_FIELDS} =
 
-ddgen_include_fields = #
+{sk.DDGEN_INCLUDE_FIELDS} = #
     # -------------------------------------------------------------------------
     # RCEP core views:
     # -------------------------------------------------------------------------
@@ -100,16 +103,14 @@ ddgen_include_fields = #
     # -------------------------------------------------------------------------
     CPFT_*.*  # all fields in "CPFT_*" views
 
-ddgen_allow_no_patient_info = False
+{sk.DDGEN_PER_TABLE_PID_FIELD} = crate_rio_number
 
-ddgen_per_table_pid_field = crate_rio_number
+{sk.DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER} = False
 
-ddgen_add_per_table_pids_to_scrubber = False
-
-ddgen_master_pid_fieldname = crate_nhs_number_int
+{sk.DDGEN_MASTER_PID_FIELDNAME} = crate_nhs_number_int
     # ... is in Client_Demographic_Details view
 
-ddgen_table_denylist = #
+{sk.DDGEN_TABLE_DENYLIST} = #
     # -------------------------------------------------------------------------
     # Denylist: Prefixes: groups of tables; individual tables
     # -------------------------------------------------------------------------
@@ -153,7 +154,7 @@ ddgen_table_denylist = #
     GenPrinter*  # printers
     GenToDoList  # user to-do list items/notifications
     gridall  # same number of records as dtoElectoralWardPCLookup; also geography;
-    KP90ErrorLog  # error log for KP90 report; http://www.hscic.gov.uk/datacollections/kp90
+    KP90ErrorLog  # error log for KP90 report; https://www.hscic.gov.uk/datacollections/kp90
     LR*  # Legitimate Relationships module
     Meeting*  # Meetings module
     Mes*  # messaging
@@ -162,9 +163,9 @@ ddgen_table_denylist = #
     RioPerformanceTimings  # system
     RR*  # Results Reporting (e.g. laboratories, radiology)
     #   ... would be great, but we don't have it
-    RTT*  # RTT* = Referral-to-Treatment (RTT) data collection (see NHS England docs)
-    SAF*  # SAF* = system; looks like details of tablet devices
-    Scheduler*  # Scheduler* = Scheduler module (for RiO computing)
+    RTT*  # RTT* -- Referral-to-Treatment (RTT) data collection (see NHS England docs)
+    SAF*  # SAF* -- system; looks like details of tablet devices
+    Scheduler*  # Scheduler* -- Scheduler module (for RiO computing)
     Sec*  # Security? Definitely RiO internal stuff.
     SPINE*  # system
     SPRExternalNotification  # system?
@@ -196,12 +197,12 @@ ddgen_table_denylist = #
 
 # USEFUL TABLES (IN CPFT INSTANCE) INCLUDE:
 # =========================================
-# Assessment* = includes maps of non-core assessments (see e.g. AssessmentIndex)
-# CDL_OUTDATEDPATIENTS_TWI = map from TWI (trust-wide identifier) to old CPFT M number
-# UserAssess* = non-core assessments themselves
-# UserMaster* = lookup tables for non-core assessments
+# Assessment* -- includes maps of non-core assessments (see e.g. AssessmentIndex)
+# CDL_OUTDATEDPATIENTS_TWI -- map from TWI (trust-wide identifier) to old CPFT M number
+# UserAssess* -- non-core assessments themselves
+# UserMaster* -- lookup tables for non-core assessments
 
-ddgen_table_allowlist = #
+{sk.DDGEN_TABLE_ALLOWLIST} = #
     # -------------------------------------------------------------------------
     # Allowlist: Prefixes: groups of tables
     # -------------------------------------------------------------------------
@@ -215,39 +216,39 @@ ddgen_table_allowlist = #
     # -------------------------------------------------------------------------
     EPReactionType  # Allergy reaction type details within EP module
 
-ddgen_table_require_field_absolute = #
+{sk.DDGEN_TABLE_REQUIRE_FIELD_ABSOLUTE} = #
     # All tables/fields must have crate_pk
     {CRATE_COL_PK}
 
-ddgen_table_require_field_conditional = #
+{sk.DDGEN_TABLE_REQUIRE_FIELD_CONDITIONAL} = #
     # If a table/view has ClientID, it must have crate_rio_number
     {RIO_COL_PATIENT_ID}, {CRATE_COL_RIO_NUMBER}
 
-ddgen_field_denylist = #
+{sk.DDGEN_FIELD_DENYLIST} = #
     {RIO_COL_PATIENT_ID}  # replaced by crate_rio_number (which is then pseudonymised)
     *Soundex  # identifying 4-character code; https://msdn.microsoft.com/en-us/library/ms187384.aspx
     Spine*  # NHS Spine identifying codes
 
-ddgen_field_allowlist =
+{sk.DDGEN_FIELD_ALLOWLIST} =
 
-ddgen_pk_fields = crate_pk
+{sk.DDGEN_PK_FIELDS} = crate_pk
 
-ddgen_constant_content = False
+{sk.DDGEN_CONSTANT_CONTENT} = False
 
-ddgen_constant_content_tables =
+{sk.DDGEN_CONSTANT_CONTENT_TABLES} =
 
-ddgen_nonconstant_content_tables =
+{sk.DDGEN_NONCONSTANT_CONTENT_TABLES} =
 
-ddgen_addition_only = False
+{sk.DDGEN_ADDITION_ONLY} = False
 
-ddgen_addition_only_tables = #
+{sk.DDGEN_ADDITION_ONLY_TABLES} = #
     UserMaster*  # Lookup tables for non-core - addition only?
 
-ddgen_deletion_possible_tables =
+{sk.DDGEN_DELETION_POSSIBLE_TABLES} =
 
-ddgen_pid_defining_fieldnames = Client_Demographic_Details.crate_rio_number
+{sk.DDGEN_PID_DEFINING_FIELDNAMES} = Client_Demographic_Details.crate_rio_number
 
-ddgen_scrubsrc_patient_fields = # several of these:
+{sk.DDGEN_SCRUBSRC_PATIENT_FIELDS} = # several of these:
     # ----------------------------------------------------------------------
     # Original RiO tables (some may be superseded by views; list both here;
     # if the table is denylisted anyway, it doesn't matter).
@@ -303,7 +304,7 @@ ddgen_scrubsrc_patient_fields = # several of these:
     {VIEW_ADDRESS_WITH_GEOGRAPHY}.AddressLine*  # superseded by other view Client_Address_History
     {VIEW_ADDRESS_WITH_GEOGRAPHY}.PostCode  # superseded by other view Client_Address_History
 
-ddgen_scrubsrc_thirdparty_fields = # several:
+{sk.DDGEN_SCRUBSRC_THIRDPARTY_FIELDS} = # several:
     # ----------------------------------------------------------------------
     # Original RiO tables (some may be superseded by views; list both here)
     # ----------------------------------------------------------------------
@@ -328,7 +329,7 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     Client_Personal_Contacts.Email_Address
     Client_Personal_Contacts.NHS_Number
 
-ddgen_scrubsrc_thirdparty_xref_pid_fields = # several:
+{sk.DDGEN_SCRUBSRC_THIRDPARTY_XREF_PID_FIELDS} = # several:
     # ----------------------------------------------------------------------
     # Original RiO tables (some may be superseded by views; list both here)
     # ----------------------------------------------------------------------
@@ -343,12 +344,12 @@ ddgen_scrubsrc_thirdparty_xref_pid_fields = # several:
     Client_Demographic_Details.Other_Carer
     Client_Family.Related_Client_ID
 
-ddgen_required_scrubsrc_fields = # several:
+{sk.DDGEN_REQUIRED_SCRUBSRC_FIELDS} = # several:
     Client_Demographic_Details.Date_Of_Birth
     Client_Name_History.Given_Name_1
     Client_Name_History.Family_Name
 
-ddgen_scrubmethod_code_fields = # variants:
+{sk.DDGEN_SCRUBMETHOD_CODE_FIELDS} = # variants:
     *PostCode*
     *Post_Code*
     NINumber
@@ -356,43 +357,37 @@ ddgen_scrubmethod_code_fields = # variants:
     ClientAlternativeID.ID
     Client_Alternative_ID.ID
 
-ddgen_scrubmethod_date_fields = *Date*
+{sk.DDGEN_SCRUBMETHOD_DATE_FIELDS} = *Date*
 
-ddgen_scrubmethod_number_fields = #
+{sk.DDGEN_SCRUBMETHOD_NUMBER_FIELDS} = #
     *Phone*
     *NNN*
     *NHS_Number*
 
-ddgen_scrubmethod_phrase_fields = *Address*
+{sk.DDGEN_SCRUBMETHOD_PHRASE_FIELDS} = *Address*
 
-ddgen_safe_fields_exempt_from_scrubbing =
+{sk.DDGEN_SAFE_FIELDS_EXEMPT_FROM_SCRUBBING} =
 
     # RiO mostly uses string column lengths of 4, 10, 20, 40, 80, 500,
     # unlimited. So what length is the minimum for "free text"?
     # Comments are 500. Lots of 80-length fields are lookup descriptions.
     # (Note that many scrub-SOURCE fields are of length 80, e.g. address
     # fields, but they need different special handling.)
-ddgen_min_length_for_scrubbing = 81
+{sk.DDGEN_MIN_LENGTH_FOR_SCRUBBING} = 81
 
-ddgen_truncate_date_fields = Client_Demographic_Details.Date_Of_Birth
+{sk.DDGEN_TRUNCATE_DATE_FIELDS} = Client_Demographic_Details.Date_Of_Birth
 
-ddgen_filename_to_text_fields = Clinical_Documents.Path
+{sk.DDGEN_FILENAME_TO_TEXT_FIELDS} = Clinical_Documents.Path
 
-ddgen_binary_to_text_field_pairs =
+{sk.DDGEN_BINARY_TO_TEXT_FIELD_PAIRS} =
 
-ddgen_skip_row_if_extract_text_fails_fields = Clinical_Documents.Path
+{sk.DDGEN_SKIP_ROW_IF_EXTRACT_TEXT_FAILS_FIELDS} = Clinical_Documents.Path
 
-ddgen_index_fields =
+{sk.DDGEN_INDEX_FIELDS} =
 
-ddgen_allow_fulltext_indexing = True
+{sk.DDGEN_ALLOW_FULLTEXT_INDEXING} = True
 
-ddgen_force_lower_case = False
+{sk.DDGEN_FORCE_LOWER_CASE} = False
 
-ddgen_convert_odd_chars_to_underscore = True
-    """.format(  # noqa
-        CRATE_COL_PK=CRATE_COL_PK,
-        CRATE_COL_RIO_NUMBER=CRATE_COL_RIO_NUMBER,
-        RIO_COL_PATIENT_ID=RIO_COL_PATIENT_ID,
-        suppress_tables="\n    ".join(ddhint.get_suppressed_tables()),
-        VIEW_ADDRESS_WITH_GEOGRAPHY=VIEW_ADDRESS_WITH_GEOGRAPHY,
-    )
+{sk.DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE} = True
+"""  # noqa

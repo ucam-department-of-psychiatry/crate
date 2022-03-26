@@ -74,14 +74,14 @@ for logging.
 How do we clean up the temporary directories?
 
 - ``__del__`` is not the opposite of ``__init__``;
-  http://www.algorithm.co.il/blogs/programming/python-gotchas-1-__del__-is-not-the-opposite-of-__init__/
-- http://eli.thegreenplace.net/2009/06/12/safely-using-destructors-in-python
+  https://www.algorithm.co.il/blogs/programming/python-gotchas-1-__del__-is-not-the-opposite-of-__init__/
+- https://eli.thegreenplace.net/2009/06/12/safely-using-destructors-in-python
 
 PROBLEMS:
 
 - NLP works fine, but UK-style abbreviations e.g. "qds" not recognized where
   "q.i.d." is. US abbreviations: e.g.
-  http://www.d.umn.edu/medweb/Modules/Prescription/Abbreviations.html
+  https://www.d.umn.edu/medweb/Modules/Prescription/Abbreviations.html
 
   - Places to look, and things to try adding:
 
@@ -171,7 +171,7 @@ PROBLEMS:
 
       .. code-block:: java
 
-        // EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
+        // EXTRA FOR UK FREQUENCIES (see https://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
         // NB case-insensitive regexes in SemanticRuleEngine.java, so ignore case here
         regexlist.put("^(q\\.?q\\.?h\\.?)( |$)", "FREQ");  // qqh, quarta quaque hora (RNC)
         regexlist.put("^(q\\.?d\\.?s\\.?)( |$)", "FREQ");  // qds, quater die sumendum (RNC); must go before existing competing expression: regexlist.put("^q(\\.|)\\d+( |$)","FREQ");
@@ -193,7 +193,7 @@ PROBLEMS:
 
       .. code-block:: none
 
-        // EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
+        // EXTRA FOR UK FREQUENCIES (see https://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
         // NB case-sensitive regexes in Rule.java, so offer upper- and lower-case alternatives here
         // qqh, quarta quaque hora (RNC)
         expression="\b[Qq]\.?[Qq]\.?[Hh]\.?\b",val="R1P4H"
@@ -225,7 +225,7 @@ PROBLEMS:
 
   (c) source:
 
-      - http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations
+      - https://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations
 
 - How about routes of administration?
 
@@ -384,7 +384,7 @@ PROBLEMS:
     we don't have to do something daft like asking the Java to report its file
     encoding to Python through a pipe; instead, we can set the Java default
     encoding. It can't be done dynamically, but it can be done at JVM launch:
-    http://stackoverflow.com/questions/361975/setting-the-default-java-character-encoding.
+    https://stackoverflow.com/questions/361975/setting-the-default-java-character-encoding.
 
     Therefore, we should have a Java parameter specified in the config file as
     ``-Dfile.encoding=UTF-8``.
@@ -464,7 +464,7 @@ TIMEX3_MAX_LENGTH = 50  # guess
 # Then there are multivitamin things in brand_generic with length >600.
 # So we should use an unlimited field; SQLAlchemy helpfully seems to translate
 # Text to VARCHAR(MAX) under SQL Server, which is the more efficient:
-# http://stackoverflow.com/questions/834788/using-varcharmax-vs-text-on-sql-server  # noqa
+# https://stackoverflow.com/questions/834788/using-varcharmax-vs-text-on-sql-server  # noqa
 MEDEX_MAX_FORM_LENGTH = 255  # guess; "Powder For Oral Suspension" (26) is one
 MEDEX_MAX_STRENGTH_LENGTH = 50  # guess
 MEDEX_MAX_DOSE_AMOUNT_LENGTH = 50  # guess

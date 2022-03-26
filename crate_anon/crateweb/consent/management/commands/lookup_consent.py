@@ -100,5 +100,5 @@ def main() -> None:
     cli_lookup_consent(cmdargs.nhs_numbers)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

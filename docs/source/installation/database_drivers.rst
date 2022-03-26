@@ -47,8 +47,8 @@ Database engines
 
 Supported engines include:
 
-- MySQL_: free, open source, simple administration including via `MySQL
-  Workbench`_.
+- MySQL_: free, open source, simple administration including via
+  `MySQL Workbench`_.
 
 - PostgreSQL_: free, open source, emphasis on standards compliance, advanced
   column types.
@@ -76,7 +76,10 @@ Summarizing the discussion below:
   <django_mssql_backend>`, and with SQLAlchemy use pyodbc_, both via ODBC. For
   the ODBC drivers:
 
-  - under Windows, use native drivers (`Microsoft ODBC Driver for SQL Server`_);
+  - under Windows, use native drivers
+    (`Microsoft ODBC Driver for SQL Server`_), and :ref:`configure your ODBC
+    connection for MARS <configure_odbc_mars>`;
+
   - under Linux, use the `Microsoft ODBC Driver for SQL Server (Linux)`_ (and
     if you don't want to use that, use FreeTDS_ in a version that supports
     MARS_).
@@ -219,7 +222,7 @@ Licence             GPL [#gpldebate]_
 ==================  ===========================================================
 
 Installation: use ``pip`` with a custom URL. See
-http://stackoverflow.com/questions/34489271. They have a presence at
+https://stackoverflow.com/questions/34489271. They have a presence at
 https://pypi.python.org/pypi/mysql-connector-python, but you can’t do ``pip
 install mysql-connector-python``; the subpage for a given version (e.g. 2.0.4)
 advertises a URL that you can use with ``pip install <URL>``, and you can
@@ -267,8 +270,8 @@ PyMySQL can masquerade as MySQLdb upon explicit request. The Django ``ENGINE`` s
 remains ``django.db.backends.mysql``, but a short extra import statement is
 required in ``manage.py``. See:
 
-- http://stackoverflow.com/questions/2636536
-- http://stackoverflow.com/questions/13320343/
+- https://stackoverflow.com/questions/2636536
+- https://stackoverflow.com/questions/13320343/
 
 CRATE implements this fix, though actually if you want to run Celery as well,
 you need the fix via the Celery entry point, so it’s easier to put one fix in
@@ -298,12 +301,12 @@ Django doesn’t support SQL Server officially
 [https://docs.djangoproject.com/en/1.9/ref/databases/]; django-mssql is a
 third-party back-end, but it’s the semi-official one
 [http://django-mssql.readthedocs.org/en/latest/]. It is **Windows-only**
-[http://stackoverflow.com/questions/22604732].
+[https://stackoverflow.com/questions/22604732].
 
 With django-mssql==1.7 and Django==1.9.7, it doesn’t work (the error being “No
 module named ‘django.db.backends.util’). It’s possible to hack around this, but
 it doesn’t work out of the box
-[http://stackoverflow.com/questions/9944204/setting-up-django-mssql-issues].
+[https://stackoverflow.com/questions/9944204/setting-up-django-mssql-issues].
 Also, the SQL Server version supported appears
 to be somewhat specific to the django-mssql version [https://bitbucket.org/Manfre/django-mssql/].
 
@@ -311,7 +314,7 @@ With django-mssql==1.8 and Django==1.10.5, it works (tested with SQL Server
 2014), but you have to edit the ‘provider’ option, or you get errors like
 ‘ADODB.Connection’ / ‘Provider cannot be found. It may not be properly
 installed.’ [See also
-http://stackoverflow.com/questions/26406943/establishing-connection-to-ms-sql-server-2014-with-django-mssql-1-6.]
+https://stackoverflow.com/questions/26406943/establishing-connection-to-ms-sql-server-2014-with-django-mssql-1-6.]
 For compatibility with the way django-pyodbc-azure works, you also need to set
 ``use_legacy_date_fields``. Here’s an example:
 
@@ -361,8 +364,8 @@ Licence             MIT License
 
 - Doesn't work with Django 1.8. Using ‘sqlserver_pymssql’ engine leads to
   sqlserver_ado failing to import ‘django.db.backends.util’, etc. See
-  http://stackoverflow.com/questions/30051839;
-  http://stackoverflow.com/questions/9944204.
+  https://stackoverflow.com/questions/30051839;
+  https://stackoverflow.com/questions/9944204.
 
 
 .. _pymssql:
@@ -648,7 +651,7 @@ http://www.freetds.org/. (There is also a Java equivalent, `jTDS
   ``SELECT * FROM information_schema.tables``.
 
 - Remember to type ``GO`` (the default batch separator) to execute a command
-  (http://stackoverflow.com/questions/2299249). To specify a particular
+  (https://stackoverflow.com/questions/2299249). To specify a particular
   database on the server: add ``-D database`` to the ``tsql`` command (it
   should say “Default database being set to ...”).
 

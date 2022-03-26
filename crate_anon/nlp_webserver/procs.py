@@ -53,6 +53,7 @@ if EnvVar.GENERATING_CRATE_DOCS not in os.environ:
     # noinspection PyUnresolvedReferences
     _spec.loader.exec_module(_processors)
 
+    # noinspection PyUnresolvedReferences
     for proc in _processors.PROCESSORS:
         x = ServerProcessor(
             name=proc[NlprpKeys.NAME],

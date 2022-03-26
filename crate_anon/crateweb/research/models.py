@@ -167,7 +167,7 @@ if getattr(
         settings,
         SettingsKeys.DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET,
         True):
-    # http://stackoverflow.com/questions/5601590/how-to-define-a-default-value-for-a-custom-django-setting  # noqa
+    # https://stackoverflow.com/questions/5601590/how-to-define-a-default-value-for-a-custom-django-setting  # noqa
     hack_django_pyodbc_azure_cursorwrapper()
 
 
@@ -586,7 +586,7 @@ class Query(QueryBase):
         Custom save method. Ensures that only one :class:`Query` has ``active
         == True`` for a given user. Also sets the hash.
         """
-        # http://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa
+        # https://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa
         if self.active:
             Query.objects.filter(user=self.user, active=True)\
                          .update(active=False)
@@ -1391,7 +1391,7 @@ class PatientMultiQuery(object):
 
         Note that ``UNION`` gives only ``DISTINCT`` results by default (``UNION
         ALL`` gives everything); see
-        http://stackoverflow.com/questions/49925/what-is-the-difference-between-union-and-union-all.
+        https://stackoverflow.com/questions/49925/what-is-the-difference-between-union-and-union-all.
 
         .. code-block:: sql
 
@@ -1450,9 +1450,9 @@ class PatientMultiQuery(object):
       - store the TRIDs in Python, then pass them as arguments
 
         - at which point the SQL string/packet length becomes relevant;
-        - http://stackoverflow.com/questions/1869753/maximum-size-for-a-sql-server-query-in-clause-is-there-a-better-approach
-        - http://stackoverflow.com/questions/16335011/what-is-maximum-query-size-for-mysql
-        - http://stackoverflow.com/questions/96553/practical-limit-to-length-of-sql-query-specifically-mysql
+        - https://stackoverflow.com/questions/1869753/maximum-size-for-a-sql-server-query-in-clause-is-there-a-better-approach
+        - https://stackoverflow.com/questions/16335011/what-is-maximum-query-size-for-mysql
+        - https://stackoverflow.com/questions/96553/practical-limit-to-length-of-sql-query-specifically-mysql
 
       - let the database worry about it
 
@@ -2293,7 +2293,7 @@ class PatientExplorer(models.Model):
         Other notes:
 
         - cell size: see
-          http://stackoverflow.com/questions/13197574/python-openpyxl-column-width-size-adjust;
+          https://stackoverflow.com/questions/13197574/python-openpyxl-column-width-size-adjust;
           and the "auto_size" / "bestFit" options don't really do the job,
           according to the interweb.
 

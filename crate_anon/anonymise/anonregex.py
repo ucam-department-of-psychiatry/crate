@@ -34,13 +34,10 @@ crate_anon/anonymise/anonregex.py
 
 import calendar
 import datetime
-import dateutil.parser  # for unit tests
 import logging
-from typing import List, Optional, Pattern, Union
-import unittest
+from typing import Iterable, List, Optional, Pattern, Union
 
 from cardinal_pythonlib.lists import unique_list
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 # https://pypi.python.org/pypi/regex/
 # https://bitbucket.org/mrabarnett/mrab-regex
@@ -49,22 +46,31 @@ import regex  # sudo apt-get install python-regex
 from regex import _regex_core
 
 from crate_anon.common.regex_helpers import (
+    assert_alphabetical,
     AT_LEAST_ONE_NONWORD,
     escape_literal_for_regex_giving_charlist,
     escape_literal_string_for_regex,
+    first_n_characters_required,
     NON_ALPHANUMERIC_SPLITTERS,
+    noncapture_group,
     NOT_DIGIT_LOOKAHEAD,
     NOT_DIGIT_LOOKBEHIND,
     OPTIONAL_NON_NEWLINE_WHITESPACE,
+    optional_noncapture_group,
     OPTIONAL_NONWORD,
     WORD_BOUNDARY as WB,
 )
-from crate_anon.common.stringfunc import (
-    get_digit_string_from_vaguely_numeric_string,  # for unit testing
-    reduce_to_alphanumeric,  # for unit testing
-)
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+ORDINAL_SUFFIXES_ENGLISH = ("st", "nd", "rd", "th")  # 1st, 2nd, 3rd, 4th...
+MONTHS_ENGLISH = tuple(calendar.month_name[_] for _ in range(1, 12 + 1))
+# https://docs.python.org/3/library/calendar.html
 
 
 # =============================================================================
@@ -81,7 +87,14 @@ def get_anon_fragments_from_string(s: str) -> List[str]:
       from ``"John D'Souza"``, return ``["John", "D", "Souza"]``;
       from ``"42 West Street"``, return ``["42", "West", "Street"]``.
 
-    - Try the examples listed below the function.
+    - Try these examples:
+
+      .. code-block:: python
+
+        get_anon_fragments_from_string("Bob D'Souza")
+        get_anon_fragments_from_string("Jemima Al-Khalaim")
+        get_anon_fragments_from_string("47 Russell Square")
+
     - Note that this is a LIBERAL algorithm, i.e. one prone to anonymise too
       much (e.g. all instances of ``"Street"`` if someone has that as part of
       their address).
@@ -89,43 +102,34 @@ def get_anon_fragments_from_string(s: str) -> List[str]:
       treats apostrophes and hyphens as word boundaries.*
       Therefore, we don't need the largest-level chunks, like ``D'Souza``.
     """
-    return NON_ALPHANUMERIC_SPLITTERS.split(s)
-    # smallfragments = []  # type: List[str]
-    # combinedsmallfragments = []  # type: List[str]
-    # for chunk in s.split():  # split on whitespace
-    #     for smallchunk in NON_WHITESPACE_SPLITTERS.split(chunk):
-    #         if smallchunk.lower() in config.words_not_to_scrub:
-    #             continue
-    #         smallfragments.append(smallchunk)
-    #         # OVERLAP here, but we need it for the combination bit, and
-    #         # we remove the overlap at the end.
-    # # Now we have chunks with e.g. apostrophes in, and all chunks split by
-    # # everything. Finally, we want all of these lumped together.
-    # for L in xrange(len(smallfragments) + 1):
-    #     for subset in itertools.combinations(smallfragments, L):
-    #         if subset:
-    #             combinedsmallfragments.append("".join(subset))
-    # return list(set(smallfragments + combinedsmallfragments))
-
-# EXAMPLES:
-# get_anon_fragments_from_string("Bob D'Souza")
-# get_anon_fragments_from_string("Jemima Al-Khalaim")
-# get_anon_fragments_from_string("47 Russell Square")
+    return list(filter(None, NON_ALPHANUMERIC_SPLITTERS.split(s)))
+    # The filter(None, ...) aspect removes empty strings, e.g. from
+    # leading/trailing whitespace.
 
 
 # =============================================================================
 # Anonymisation regexes
 # =============================================================================
-# Note, for strings, several typo-detecting methods:
-#   http://en.wikipedia.org/wiki/Levenshtein_distance
-#   http://mwh.geek.nz/2009/04/26/python-damerau-levenshtein-distance/
-#   http://en.wikipedia.org/wiki/TRE_(computing)
-#   https://pypi.python.org/pypi/regex
-# ... let's go with the fuzzy regex method (Python regex module).
+
+# -----------------------------------------------------------------------------
+# Dates
+# -----------------------------------------------------------------------------
+
+def _month_word_regex_fragment(month_name: str) -> str:
+    """
+    Returns possibilities for the month word, allowing the first 3 characters,
+    or the whole month name -- e.g. converts ``September`` to
+    ``Sep(?:tember)?``, or indeed anything in between 3 and all of the
+    characters, e.g. ``Sept``.
+    """
+    return first_n_characters_required(month_name, 3)
+
 
 def get_date_regex_elements(
         dt: Union[datetime.datetime, datetime.date],
-        at_word_boundaries_only: bool = False) -> List[str]:
+        at_word_boundaries_only: bool = False,
+        ordinal_suffixes: Iterable[str] = ORDINAL_SUFFIXES_ENGLISH) \
+        -> List[str]:
     """
     Takes a datetime object and returns a list of regex strings with which
     to scrub.
@@ -134,32 +138,44 @@ def get_date_regex_elements(
     "13 Sep 2014", "September 13, 2014", "2014/09/13", and many more.
 
     Args:
-        dt: the datetime or date or similar object
+        dt:
+            The datetime or date or similar object.
         at_word_boundaries_only:
-            ensure that all regexes begin and end with a word boundary
-            requirement
+            Ensure that all regexes begin and end with a word boundary
+            requirement.
+        ordinal_suffixes:
+            Language-specific suffixes that may be appended to numbers to make
+            them ordinal. In English, "st", "nd", "rd", and "th".
 
     Returns:
         the list of regular expression strings, as above
     """
-    # Reminders: ? zero or one, + one or more, * zero or more
-    # Non-capturing groups: (?:...)
-    # ... https://docs.python.org/2/howto/regex.html
-    # ... http://stackoverflow.com/questions/3512471/non-capturing-group
-    # Day, allowing leading zeroes and e.g. "1st, 2nd"
-    day = "0*" + str(dt.day) + "(?:st|nd|rd|th)?"
-    # Month, allowing leading zeroes for numeric and e.g. Feb/February
+    # Day (numeric), allowing leading zeroes and e.g. "1st, 2nd"
+    assert_alphabetical(ordinal_suffixes)
+    assert not isinstance(ordinal_suffixes, str)
+    optional_suffixes = optional_noncapture_group("|".join(ordinal_suffixes))
+    day = "0*" + str(dt.day) + optional_suffixes
+
+    # Month
+    # ... numerically, allowing leading zeroes for numeric and e.g.
+    # Feb/February
     month_numeric = "0*" + str(dt.month)
+    # ... as a word
     # month_word = dt.strftime("%B")  # can't cope with years < 1900
-    month_word = calendar.month_name[dt.month]
-    month_word = month_word[0:3] + "(?:" + month_word[3:] + ")?"
+    month_name = calendar.month_name[dt.month]  # localized
+    # Allow first 3 characters, or whole month name:
+    month_word = _month_word_regex_fragment(month_name)
     month = "(?:" + month_numeric + "|" + month_word + ")"
+
     # Year
     year = str(dt.year)
     if len(year) == 4:
         year = "(?:" + year[0:2] + ")?" + year[2:4]
         # ... converts e.g. 1986 to (19)?86, to match 1986 or 86
+
+    # Separator
     sep = OPTIONAL_NONWORD
+
     # Regexes
     basic_regexes = [
         day + sep + month + sep + year,  # e.g. 13 Sep 2014
@@ -171,6 +187,72 @@ def get_date_regex_elements(
     else:
         return basic_regexes
 
+
+def get_generic_date_regex_elements(
+        at_word_boundaries_only: bool = True,
+        ordinal_suffixes: Iterable[str] = ORDINAL_SUFFIXES_ENGLISH,
+        all_month_names: Iterable[str] = MONTHS_ENGLISH) -> List[str]:
+    """
+    Returns a set of regex elements to scrub *any* date.
+
+    Word boundaries are strongly preferred! This will match some odd things
+    otherwise; see the associated unit tests.
+    """
+    # https://stackoverflow.com/questions/51224/regular-expression-to-match-valid-dates  # noqa
+
+    numeric_day = noncapture_group(r"0?[1-9]|[12]\d|30|31")  # range [1, 31]
+    numeric_month = noncapture_group(r"0?[1-9]|1[0-2]")  # range [1, 12]
+    year = noncapture_group(r"\d{4}|\d{2}")  # a 2-digit or 4-digit number
+    sep = r"[^\w\d\r\n:]"  # an active separator
+    # ^ = anything not in the set
+    # \w = word (alphanumeric and underscore)
+    # \d = digit [redundant, I think]
+    # \r = carriage return (code 13)
+    # \n = linefeed (code 10)
+    # : = colon
+
+    # For ordinal days:
+    day = numeric_day + optional_noncapture_group("|".join(ordinal_suffixes))
+
+    # To be able to capture ISO dates like "20010101", but not capture e.g.
+    # "31/12" as 3, 1, 12, we require separators normally and do a special for
+    # ISO dates:
+    two_digit_day = noncapture_group(r"0[1-9]|[12]\d|30|31")
+    two_digit_month = noncapture_group(r"0[1-9]|1[0-2]")
+    isodate_no_sep = year + two_digit_month + two_digit_day
+    # Then for months as words:
+    month = noncapture_group("|".join(
+        [numeric_month] + [
+            _month_word_regex_fragment(m)
+            for m in all_month_names
+        ]
+    ))
+
+    basic_regexes = [
+        day + sep + month + sep + year,  # e.g. UK
+        month + sep + day + sep + year,  # e.g. USA
+        year + sep + month + sep + day,  # e.g. ISO
+        isodate_no_sep  # ISO with no separators
+    ]
+    if at_word_boundaries_only:
+        return [WB + x + WB for x in basic_regexes]
+    else:
+        # Even if we don't require a strict word boundary, we can't allow just
+        # anything -- you get garbage if numbers precede numeric dates.
+        non_numeric_boundary = noncapture_group(r"\b|[\WA-Za-z_]")
+        # \b word boundary = change from word to non-word (or the reverse)
+        # \w = word = alphanumeric and underscore
+        # ... so we take the subset that is alphabetical and underscore
+        # \W = nonword = everything not in \w
+        return [
+            non_numeric_boundary + x + non_numeric_boundary
+            for x in basic_regexes
+        ]
+
+
+# -----------------------------------------------------------------------------
+# Generic codes
+# -----------------------------------------------------------------------------
 
 def get_code_regex_elements(
         s: str,
@@ -251,11 +333,15 @@ def get_code_regex_elements(
     else:
         if at_numeric_boundaries_only:
             # http://www.regular-expressions.info/lookaround.html
-            # http://stackoverflow.com/questions/15099150/regex-find-one-digit-number  # noqa
+            # https://stackoverflow.com/questions/15099150/regex-find-one-digit-number  # noqa
             return [NOT_DIGIT_LOOKBEHIND + s + NOT_DIGIT_LOOKAHEAD]
         else:
             return [s]
 
+
+# -----------------------------------------------------------------------------
+# Generic numbers
+# -----------------------------------------------------------------------------
 
 def get_number_of_length_n_regex_elements(
         n: int,
@@ -298,6 +384,10 @@ def get_number_of_length_n_regex_elements(
         return [NOT_DIGIT_LOOKBEHIND + s + NOT_DIGIT_LOOKAHEAD]
         # ... if there was a digit before/after, it's not an n-digit number
 
+
+# -----------------------------------------------------------------------------
+# UK postcodes
+# -----------------------------------------------------------------------------
 
 def get_uk_postcode_regex_elements(
         at_word_boundaries_only: bool = True) -> List[str]:
@@ -360,6 +450,16 @@ def get_uk_postcode_regex_string(at_word_boundaries_only: bool = True) -> str:
     return postcode_regexes[0]
 
 
+# -----------------------------------------------------------------------------
+# Generic strings and phrases
+# -----------------------------------------------------------------------------
+# Note, for strings, several typo-detecting methods:
+#   http://en.wikipedia.org/wiki/Levenshtein_distance
+#   http://mwh.geek.nz/2009/04/26/python-damerau-levenshtein-distance/
+#   http://en.wikipedia.org/wiki/TRE_(computing)
+#   https://pypi.python.org/pypi/regex
+# ... let's go with the fuzzy regex method (Python regex module).
+
 def get_string_regex_elements(
         s: str,
         suffixes: List[str] = None,
@@ -370,16 +470,16 @@ def get_string_regex_elements(
 
     Args:
         s:
-            the starting string
+            The starting string.
         suffixes:
-            a list of suffixes to permit, typically ``["s"]``
+            A list of suffixes to permit, typically ``["s"]``.
         at_word_boundaries_only:
             Boolean. If set, ensure that the regex begins and ends with a word
             boundary requirement.
             (If false: will scrub ``ANN`` from ``bANNed``.)
         max_errors:
-            the maximum number of typographical insertion/deletion/substitution
-            errors to permit
+            The maximum number of typographical insertion/deletion/substitution
+            errors to permit.
 
     Returns:
         a list of regular expression strings
@@ -415,6 +515,7 @@ def get_string_regex_elements(
 
 def get_phrase_regex_elements(
         phrase: str,
+        suffixes: List[str] = None,
         at_word_boundaries_only: bool = True,
         max_errors: int = 0,
         alternatives: List[List[str]] = None) -> List[str]:
@@ -424,16 +525,18 @@ def get_phrase_regex_elements(
 
     Args:
         phrase:
-            e.g. '4 Privet Drive'
+            E.g. '4 Privet Drive'.
+        suffixes:
+            A list of suffixes to permit (unusual).
         at_word_boundaries_only:
-            apply regex only at word boundaries
+            Apply regex only at word boundaries?
         max_errors:
-            maximum number of typos, as defined by the regex module
+            Maximum number of typos, as defined by the regex module.
         alternatives:
             This allows words to be substituted by equivalents; such as
             ``St`` for ``Street`` or ``Rd`` for ``Road``. The parameter is a
             list of lists of equivalents; see
-            :func:`crate_anon.anonymise.config.get_word_alternatives`
+            :func:`crate_anon.anonymise.config.get_word_alternatives`.
 
     Returns:
         A list of regex fragments.
@@ -472,10 +575,18 @@ def get_phrase_regex_elements(
     s = AT_LEAST_ONE_NONWORD.join(strings)
     if max_errors > 0:
         s = "(" + s + "){e<" + str(max_errors + 1) + "}"
-    if at_word_boundaries_only:
-        return [WB + s + WB]
+    if suffixes:
+        suffixstr = (
+            "(?:" +
+            "|".join([escape_literal_string_for_regex(x) for x in suffixes]) +
+            "|)"  # allows for no suffix at all
+        )
     else:
-        return [s]
+        suffixstr = ""
+    if at_word_boundaries_only:
+        return [WB + s + suffixstr + WB]
+    else:
+        return [s + suffixstr]
 
 
 # =============================================================================
@@ -513,236 +624,3 @@ def get_regex_from_elements(elementlist: List[str]) -> Optional[Pattern]:
     except _regex_core.error:
         log.exception(f"Failed regex: elementlist={elementlist}")
         raise
-
-
-# =============================================================================
-# Unit tests
-# =============================================================================
-
-class TestAnonRegexes(unittest.TestCase):
-    """
-    Unit tests.
-    """
-
-    STRING_1 = r"""
-        I was born on 07 Jan 2013, m'lud.
-        It was 7 January 13, or 7/1/13, or 1/7/13, or
-        Jan 7 2013, or 2013/01/07, or 2013-01-07,
-        or 7th January
-        13 (split over a line)
-        or Jan 7th 13
-        or 07.01.13 or 7.1.2013
-        or a host of other variations.
-        And ISO-8601 formats like 20130107T0123, or just 20130107.
-
-        BUT NOT 8 Jan 2013, or 2013/02/07, or 2013
-        Jan 17, or just a number like 7, or a month
-        like January, or a nonspecific date like
-        Jan 2013 or 7 January. And not ISO-8601-formatted other dates
-        like 20130108T0123, or just 20130108.
-
-        I am 34 years old. My mother was 348, or 834, or perhaps 8348.
-        Was she 34.6? Don't think so.
-
-        Her IDs include NHS#123456, or 123 456, or (123) 456, or 123456.
-
-        I am 34 years old. My mother was 348, or 834, or perhaps 8348.
-        She wasn't my step-mother, or my grandmother, or my mother-in-law.
-        She was my MOTHER!
-        A typo is mther.
-
-        Unicode apostrophe: the thread’s possession
-
-        E-mail: bob@pobox.com, mr.jones@somewhere.nhs.uk, blah@place.com
-        Mr.Jones@somewhere.nhs.uk
-
-        Some numbers by size:
-            1
-            12
-            123
-            1234
-            12345
-            123456
-            1234567
-            12345678
-            123456789
-            1234567890
-            12345678901
-            123456789012
-            1234567890123
-            12345678901234
-            123456789012345
-        Some postcodes (from https://www.mrs.org.uk/pdf/postcodeformat.pdf)
-            M1 1AA
-            M60 1NW
-            CR2 6XH
-            DN55 1PT
-            W1A 1HQ
-            EC1A 1BB
-    """
-
-    @staticmethod
-    def report(title: str, string: str) -> None:
-        print("=" * 79)
-        print(title)
-        print("=" * 79)
-        print(string)
-
-    def test_most(self) -> None:
-        s = self.STRING_1
-        testnumber = 34
-        testnumber_as_text = "123456"
-        testdate_str = "7 Jan 2013"
-        testdate = dateutil.parser.parse(testdate_str)
-        teststring = "mother"
-        testphrase = "348 or 834"
-        date_19th_c = "3 Sep 1847"
-        old_testdate = dateutil.parser.parse(date_19th_c)
-        testemail = "mr.jones@somewhere.nhs.uk"
-
-        regex_date = get_regex_from_elements(get_date_regex_elements(testdate))
-        regex_number = get_regex_from_elements(
-            get_code_regex_elements(str(testnumber)))
-        regex_number_as_text = get_regex_from_elements(
-            get_code_regex_elements(
-                get_digit_string_from_vaguely_numeric_string(
-                    testnumber_as_text)))
-        regex_string = get_regex_from_elements(
-            get_string_regex_elements(teststring))
-        regex_email = get_regex_from_elements(
-            get_string_regex_elements(testemail))
-        regex_phrase = get_regex_from_elements(
-            get_phrase_regex_elements(testphrase))
-        regex_10digit = get_regex_from_elements(
-            get_number_of_length_n_regex_elements(10))
-        regex_postcode = get_regex_from_elements(
-            get_uk_postcode_regex_elements())
-        all_elements = (
-            get_date_regex_elements(testdate) +
-            get_code_regex_elements(str(testnumber)) +
-            get_code_regex_elements(
-                get_digit_string_from_vaguely_numeric_string(
-                    testnumber_as_text)) +
-            get_string_regex_elements(teststring) +
-            get_string_regex_elements(testemail) +
-            get_phrase_regex_elements(testphrase) +
-            get_number_of_length_n_regex_elements(10) +
-            get_uk_postcode_regex_elements()
-        )
-        regex_all = get_regex_from_elements(all_elements)
-
-        self.report("Removing date: " + testdate_str,
-                    regex_date.sub("DATE_GONE", s))
-        self.report(f"Removing number: {testnumber}",
-                    regex_number.sub("NUMBER_GONE", s))
-        self.report("Removing numbers as text: " + testnumber_as_text,
-                    regex_number_as_text.sub("NUMBER_AS_TEXT_GONE", s))
-        self.report("Removing string: " + teststring,
-                    regex_string.sub("STRING_GONE", s))
-        self.report("Removing email: " + testemail,
-                    regex_email.sub("EMAIL_GONE", s))
-        self.report("Removing phrase: " + testphrase,
-                    regex_phrase.sub("PHRASE_GONE", s))
-        self.report("Removing 10-digit numbers",
-                    regex_10digit.sub("TEN_DIGIT_NUMBERS_GONE", s))
-        self.report("Removing postcodes",
-                    regex_postcode.sub("POSTCODES_GONE", s))
-        self.report("Removing everything", regex_all.sub("EVERYTHING_GONE", s))
-        self.report("All-elements regex",
-                    get_regex_string_from_elements(all_elements))
-        self.report("Date regex",
-                    get_regex_string_from_elements(
-                        get_date_regex_elements(testdate)))
-        self.report("Date regex for 19th century",
-                    get_regex_string_from_elements(
-                        get_date_regex_elements(old_testdate)))
-        self.report("Phrase regex", get_regex_string_from_elements(
-            get_phrase_regex_elements(testphrase)))
-        self.report("10-digit-number regex", get_regex_string_from_elements(
-            get_number_of_length_n_regex_elements(10)))
-
-
-def examples_for_paper() -> None:
-    """
-    Examples used in Cardinal (2017),
-    https://doi.org/10.1186/s12911-017-0437-1.
-    """
-    testwords = "John Al'Rahem"
-    min_string_length_to_scrub_with = 4
-    scrub_string_suffixes = []  # type: List[str]
-    max_errors = 0
-    at_word_boundaries_only = True
-    words_regexes = []  # type: List[str]
-    for s in get_anon_fragments_from_string(testwords):
-        length = len(s)
-        if length < min_string_length_to_scrub_with:
-            continue
-        words_regexes.extend(get_string_regex_elements(
-            s,
-            suffixes=scrub_string_suffixes,
-            at_word_boundaries_only=at_word_boundaries_only,
-            max_errors=max_errors
-        ))
-    print(f"--- For words {testwords}:")
-    for r in words_regexes:
-        print(r)
-
-    testphrase = "4 Privet Drive"
-    phrase_regexes = get_phrase_regex_elements(
-        testphrase,
-        max_errors=max_errors,
-        at_word_boundaries_only=at_word_boundaries_only
-    )
-    print(f"--- For phrase {testphrase}:")
-    for r in phrase_regexes:
-        print(r)
-
-    testnumber = "(01223) 123456"
-    anonymise_numbers_at_word_boundaries_only = False
-    anonymise_numbers_at_numeric_boundaries_only = True
-    number_regexes = get_code_regex_elements(
-        get_digit_string_from_vaguely_numeric_string(str(testnumber)),
-        at_word_boundaries_only=anonymise_numbers_at_word_boundaries_only,
-        at_numeric_boundaries_only=anonymise_numbers_at_numeric_boundaries_only
-    )
-    print(f"--- For number {testnumber}:")
-    for r in number_regexes:
-        print(r)
-
-    testcode = "CB12 3DE"
-    anonymise_codes_at_word_boundaries_only = True
-    code_regexes = get_code_regex_elements(
-        reduce_to_alphanumeric(str(testcode)),
-        at_word_boundaries_only=anonymise_codes_at_word_boundaries_only
-    )
-    print(f"--- For code {testcode}:")
-    for r in code_regexes:
-        print(r)
-
-    n_digits = 10
-    nonspec_10_digit_number_regexes = get_number_of_length_n_regex_elements(
-        n_digits,
-        at_word_boundaries_only=anonymise_numbers_at_word_boundaries_only
-    )
-    print(f"--- NONSPECIFIC: numbers of length {n_digits}:")
-    for r in nonspec_10_digit_number_regexes:
-        print(r)
-
-    uk_postcode_regexes = get_uk_postcode_regex_elements(
-        at_word_boundaries_only=anonymise_codes_at_word_boundaries_only
-    )
-    print("--- NONSPECIFIC: UK postcodes:")
-    for r in uk_postcode_regexes:
-        print(r)
-
-    testdate = datetime.date(year=2016, month=12, day=31)
-    date_regexes = get_date_regex_elements(testdate)
-    print(f"--- For date {testdate}:")
-    for r in date_regexes:
-        print(r)
-
-
-if __name__ == '__main__':
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    unittest.main()
-    examples_for_paper()

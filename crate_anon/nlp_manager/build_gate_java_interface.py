@@ -171,5 +171,5 @@ def main() -> None:
     # java -jar ./gatehandler.jar $PROG_ARGS
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

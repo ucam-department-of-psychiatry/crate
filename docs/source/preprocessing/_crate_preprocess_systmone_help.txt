@@ -1,0 +1,42 @@
+usage: crate_preprocess_systmone [-h] --url URL [-v] [--print] [--echo]
+                                 [--systmone_context {tpp_sre,cpft_dw}]
+                                 [--systmone_allow_unprefixed_tables]
+                                 [--postcodedb POSTCODEDB]
+                                 [--geogcols [GEOGCOLS [GEOGCOLS ...]]]
+                                 [--drop_danger_drop]
+
+Indexes a SystmOne database to be suitable for CRATE.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --url URL             SQLAlchemy database URL
+  -v, --verbose         Verbose
+  --print               Print SQL but do not execute it. (You can redirect the
+                        printed output to create an SQL script.)
+  --echo                Echo SQL
+  --systmone_context {tpp_sre,cpft_dw}
+                        Context of the SystmOne database that you are reading.
+                        [tpp_sre: TPP Strategic Reporting Extract // cpft_dw:
+                        CPFT Data Warehouse]
+  --systmone_allow_unprefixed_tables
+                        Permit tables that don't start with the expected
+                        prefix (which is e.g. 'SR' for the TPP SRE context,
+                        'S1_' for the CPFT Data Warehouse context). May add
+                        helpful content, but you may get odd tables and views.
+  --postcodedb POSTCODEDB
+                        Specify database (schema) name for ONS Postcode
+                        Database (as imported by CRATE) to link to addresses
+                        as a view. With SQL Server, you will have to specify
+                        the schema as well as the database; e.g. "--postcodedb
+                        ONS_PD.dbo"
+  --geogcols [GEOGCOLS [GEOGCOLS ...]]
+                        List of geographical information columns to link in
+                        from ONS Postcode Database. BEWARE that you do not
+                        specify anything too identifying. Default: bua11
+                        buasd11 casward imd lea lsoa01 lsoa11 msoa01 msoa11
+                        nuts oac01 oac11 parish pcon pct ru11ind statsward
+                        ur01ind
+  --drop_danger_drop    REMOVES new columns and indexes, rather than creating
+                        them. (There's not very much danger; no real
+                        information is lost, but it might take a while to
+                        recalculate it.)

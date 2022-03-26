@@ -106,8 +106,8 @@ class Crp(SimpleNumericalResultParser):
 
     - Refs include:
 
-      - http://www.ncbi.nlm.nih.gov/pubmed/7705110
-      - http://emedicine.medscape.com/article/2086909-overview
+      - https://www.ncbi.nlm.nih.gov/pubmed/7705110
+      - https://emedicine.medscape.com/article/2086909-overview
 
     - 1 mg/dL = 10 mg/L, so normal in mg/dL is <=1 roughly.
 
@@ -1974,6 +1974,6 @@ def test_all(verbose: bool = False) -> None:
         cls(None, None).test(verbose=verbose)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all(verbose=True)

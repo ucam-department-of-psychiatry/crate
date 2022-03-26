@@ -15,7 +15,7 @@ usage: crate_postcodes [-h] [--dir DIR] [--url URL] [--echo]
     Tell this program which directory you used.
 
 -   Specify your database as an SQLAlchemy connection URL: see
-        http://docs.sqlalchemy.org/en/latest/core/engines.html
+        https://docs.sqlalchemy.org/en/latest/core/engines.html
     The general format is:
         dialect[+driver]://username:password@host[:port]/database[?key=value...]
 
@@ -31,7 +31,7 @@ usage: crate_postcodes [-h] [--dir DIR] [--url URL] [--echo]
     Contains Royal Mail data © Royal Mail copyright and database right [year]
     Contains National Statistics data © Crown copyright and database right [year]
 
-    See http://www.ons.gov.uk/methodology/geography/licences
+    See https://www.ons.gov.uk/methodology/geography/licences
     
 
 optional arguments:

@@ -65,7 +65,7 @@ SVG METHOD 2:
 <script>
 
 // Default plotly config, which may be modified by inherited pages.
-var plotly_config = {
+let plotly_config = {
     // https://plot.ly/javascript/configuration-options/
     modeBarButtonsToRemove: ['sendDataToCloud'],
     scrollZoom: true,

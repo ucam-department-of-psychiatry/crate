@@ -45,11 +45,16 @@ from cardinal_pythonlib.file_io import (
 from cardinal_pythonlib.fileops import copy_tree_root, mkdir_p
 
 from crate_anon.common.constants import EnvVar
-from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
+from crate_anon.version import (
+    CRATE_VERSION,
+    CRATE_VERSION_DATE,
+    MINIMUM_PYTHON_VERSION_AS_DECIMAL,
+    require_minimum_python_version,
+)
 from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
 
-if sys.version_info[0] < 3:
-    raise AssertionError("Need Python 3")
+require_minimum_python_version()
+
 
 # =============================================================================
 # Constants including defaults
@@ -179,7 +184,7 @@ restart_supervisord()
 # =============================================================================
 # Check prerequisites
 # =============================================================================
-# http://stackoverflow.com/questions/2806897
+# https://stackoverflow.com/questions/2806897
 
 if os.geteuid() == 0:
     exit("This script should not be run using sudo or as the root user")
@@ -200,7 +205,7 @@ for cmd in PREREQUISITES:
 # Software
 # -----------------------------------------------------------------------------
 
-PYTHON_WITH_VER = "python3.6"
+PYTHON_WITH_VER = f"python{MINIMUM_PYTHON_VERSION_AS_DECIMAL}"
 
 # -----------------------------------------------------------------------------
 # Directory constants
@@ -548,7 +553,7 @@ with open(workpath(SPECIMEN_SUPERVISOR_CONF_FILE), 'w') as outfile:
 ;       sudo service supervisorctl status
 ; NOTES:
 ; - You can't put quotes around the directory variable
-;   http://stackoverflow.com/questions/10653590
+;   https://stackoverflow.com/questions/10653590
 ; - Programs like celery and gunicorn that are installed within a virtual
 ;   environment use the virtualenv's python via their shebang.
 
@@ -584,7 +589,7 @@ autorestart = true
 startsecs = 10
 stopwaitsecs = 60
 
-    """, file=outfile)
+    """, file=outfile)  # noqa:E501
 
 
 # -----------------------------------------------------------------------------

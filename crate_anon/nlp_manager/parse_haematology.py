@@ -90,7 +90,7 @@ class Haemoglobin(SimpleNumericalResultParser):
     e.g.
 
     - http://www.pathology.leedsth.nhs.uk/pathology/Portals/0/PDFs/BP-2013-02%20Hb%20units.pdf
-    - http://www.acb.org.uk/docs/default-source/committees/scientific/guidelines/acb/pathology-harmony-haematology.pdf
+    - https://www.acb.org.uk/docs/default-source/committees/scientific/guidelines/acb/pathology-harmony-haematology.pdf
 
     The *DANGER* remains that "Hb 9" may have been from someone assuming
     old-style units, 9 g/dL = 90 g/L, but this will be interpreted as 9 g/L.
@@ -1067,6 +1067,6 @@ def test_all(verbose: bool = False) -> None:
         cls(None, None).test(verbose=verbose)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all(verbose=True)

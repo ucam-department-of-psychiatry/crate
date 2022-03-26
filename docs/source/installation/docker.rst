@@ -39,7 +39,6 @@ Installing and running CRATE via Docker
     :depth: 3
 
 
-
 Overview
 --------
 
@@ -53,8 +52,8 @@ The core of Docker is called Docker Engine. The `Docker Compose`_ tool allows
 multiple containers to be created, started, and connected together
 automatically.
 
-CRATE provides a Docker setup to make installation easy. This uses Docker
-Compose to set up several containers, specifically:
+CRATE provides an installer script to make installation using Docker easy.
+The script uses Docker Compose to set up several containers, specifically:
 
 - a database system, via MySQL_ on Linux (internal container name ``mysql``);
 - a message queue, via RabbitMQ_ on Linux (``rabbitmq``);
@@ -62,6 +61,7 @@ Compose to set up several containers, specifically:
   (``crate_server``);
 - the CRATE web site back-end (``crate_workers``);
 - a background task monitor, using Flower_ (``crate_monitor``).
+- demonstration source and destination MySQL databases for anonymisation
 
 Additionally, you can run a number of important one-off command using the
 ``crate`` Docker image. Apart from CRATE itself, this image also includes:
@@ -82,105 +82,73 @@ Additionally, you can run a number of important one-off command using the
 Quick start
 -----------
 
-#.  Ensure you have Docker and Docker Compose installed (see
-    :ref:`prerequisites <docker_prerequisites>`).
+Windows
+^^^^^^^
 
-#.  Obtain the CRATE source code.
+- Install Windows Subsystem for Linux 2 (WSL2):
+  https://docs.microsoft.com/en-us/windows/wsl/install. CRATE under WSL2 has
+  been tested with Ubuntu 20.04.
+- Install Docker Desktop: https://docs.docker.com/desktop/
+- Enable WSL2 in Docker Desktop: https://docs.docker.com/desktop/windows/wsl/
+- From the Linux terminal install python3-virtualenv:
+  Ubuntu: ``sudo apt -y install python3-virtualenv python3-venv``
+- See "All platforms" below.
 
-    .. todo::
-        Docker/CRATE source: (a) is that the right method? Or should we be
-        using ``docker-app``? (Is that experimental?) (b) Document.
 
-#.  Set the :ref:`environment variables <docker_environment_variables>`
-    required for Docker operation. (You probably want to automate this with a
-    script.)
+Linux
+^^^^^
 
-#.  Change to the ``docker/linux`` directory within the CRATE source tree.
+- Install Docker Engine: https://docs.docker.com/engine/install/
+- Install Docker Compose v2 or greater:
+  https://docs.docker.com/compose/cli-command/#install-on-linux
+- Install python3-virtualenv:
 
-    .. note::
-        If you are using a Windows host, change to ``docker/windows``
-        instead, and for all the commands below, instead of ``./some_command``,
-        run ``some_command.bat``.
+  - Ubuntu: ``sudo apt -y install python3-virtualenv python3-venv``
 
-#.  Start the containers with:
+- See "All platforms" below.
 
-    .. code-block:: bash
 
-        ./start_crate_docker_interactive
+MacOS
+^^^^^
 
-    This gives you an interactive view. As this is the first run, it will also
-    create containers, volumes, the database, and so on. It will then encounter
-    errors (e.g. config file not specified properly, or the database doesn't
-    have the right structure), and will stop.
+- Install Docker Desktop: https://docs.docker.com/desktop/
+- Install python3 and python3-virtualenv
+- See "All platforms" below.
 
-#.  Run this command to create a demonstration config file with the standard
-    name:
 
-    .. todo:: fixme
+All platforms
+^^^^^^^^^^^^^
 
-    .. code-block:: bash
+The installer can be run interactively, where you will be prompted to enter
+settings specific to your CRATE installation. Alternatively you can supply this
+information by setting environment variables. This is best done by putting the
+settings in a file and executing them before running the installer (e.g.
+``source ~/my_crate_settings``).
 
-        ./within_docker_venv crate_print_demo_crateweb_config > "${CRATE_DOCKER_CONFIG_HOST_DIR}/crateweb_local_settings.py"
-
-#.  Edit that config file. See :ref:`here <web_config_file>` for a full
-    description and :ref:`here <web_config_file_docker>` for special Docker
-    requirements.
-
-#.  Create the database structure (tables):
-
-    .. code-block:: bash
-
-        ./within_docker_venv crate_django_manage migrate
-
-#.  Create a superuser:
+Here is an example settings file. See :ref:`environment_variables
+<docker_environment_variables>` for a description of each setting.
 
     .. code-block:: bash
 
-        ./within_docker_venv crate_django_manage createsuperuser
+        export CRATE_DOCKER_CONFIG_HOST_DIR=${HOME}/crate_config
+        export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=${HOME}/bioyodie_resources
+        export CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD=mysqluserpassword
+        export CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD=mysqlrootpassword
+        export CRATE_DOCKER_MYSQL_CRATE_HOST_PORT=43306
+        export CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME=admin
+        export CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD=adminpassword
+        export CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL=admin@example.com
+        export CRATE_DOCKER_CRATEWEB_USE_HTTPS=1
+        export CRATE_DOCKER_CRATEWEB_HOST_PORT=8100
+        export CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE=${HOME}/certs/crate.localhost.crt
+        export CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY=${HOME}/certs/crate.localhost.key
 
-#.  Time to test! Restart with
 
-    .. code-block:: bash
-
-        ./start_crate_docker_interactive
-
-    Everything should now be operational. Using any web browser, you should be
-    able to browse to the CRATE site at your chosen host port and protocol,
-    and log in using the account you have just created.
-
-#.  When you're satisfied everything is working well, you can stop interactive
-    mode (CTRL-C) and instead use
-
-    .. code-block:: bash
-
-        ./start_crate_docker_detached
-
-    which will fire up the containers in the background. To take them down
-    again, use
+To start the installer on all platforms:
 
     .. code-block:: bash
 
-        ./stop_crate_docker
-
-You should now be operational! If Docker is running as a service on your
-machine, CRATE should also be automatically restarted by Docker on reboot.
-
-
-.. _docker_prerequisites:
-
-Prerequisites
--------------
-
-You can run Docker on several operating systems. For example, you can run
-Docker under Linux (and CRATE will run in Linux-under-Docker-under-Linux).
-You can similarly run Docker under Windows (and CRATE will run in
-Linux-under-Docker-under-Windows).
-
-- You need Docker Engine installed. See
-  https://docs.docker.com/engine/install/.
-
-- You need Docker Compose installed. See
-  https://docs.docker.com/compose/install/.
+        curl --location https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh --fail --output crate_docker_installer.sh && chmod u+x crate_docker_installer.sh && ./crate_docker_installer.sh
 
 
 .. _docker_environment_variables:
@@ -188,41 +156,28 @@ Linux-under-Docker-under-Windows).
 Environment variables
 ---------------------
 
-Docker control files are in the ``docker`` directory of the CRATE
-source tree. Setup is controlled by the ``docker-compose`` application.
-
-.. note::
-
-    Default values are taken from ``docker/.env``. Unfortunately, this
-    name is fixed by Docker Compose, and this file is hidden under Linux (as
-    are any files starting with ``.``).
-
-
 .. _CRATE_DOCKER_CONFIG_HOST_DIR:
 
 CRATE_DOCKER_CONFIG_HOST_DIR
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **No default. Must be set.**
 
 Path to a directory on the host that contains key configuration files. Don't
 use a trailing slash.
 
-In this directory, there should be a file called
-``crateweb_local_settings.py``, the config file (or, if you have set
-CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME_, that filename!).
-
 .. note::
     **Under Windows,** don't use Windows paths like
     ``C:\Users\myuser\my_crate_dir``. Translate this to Docker notation as
     ``/host_mnt/c/Users/myuser/my_crate_dir``. As of 2020-07-21, this doesn't
-    seem easy to find in the Docker docs!
+    seem easy to find in the Docker docs! Ensure that this path is within the
+    Windows (not WSL2) file system.
 
 
 .. _CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME:
 
 CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default: crateweb_local_settings.py*
 
@@ -230,16 +185,18 @@ Base name of the CRATE web server config file (see
 CRATE_DOCKER_CONFIG_HOST_DIR_).
 
 
-CRATE_DOCKER_CRATEWEB_HOST_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _CRATE_DOCKER_CRATEWEB_HOST_PORT:
 
-*Default: 443*
+CRATE_DOCKER_CRATEWEB_HOST_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**No default: Must be set**
 
 The TCP/IP port number on the host computer that CRATE should provide an
 HTTP or HTTPS (SSL) connection on.
 
-It is strongly recommended that you run CRATE over HTTPS. The two ways of
-doing this are:
+It is strongly recommended that you make all connections to CRATE use HTTPS.
+The two ways of doing this are:
 
 - Have CRATE run plain HTTP, and connect it to another web server (e.g.
   Apache) that provides the HTTPS component.
@@ -265,24 +222,57 @@ doing this are:
     through your server's firewall. (You are running a firewall, right?)
 
 
+.. _CRATE_DOCKER_CRATEWEB_USE_HTTPS:
+
+CRATE_DOCKER_CRATEWEB_USE_HTTPS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Access the CRATE web app over HTTPS? (0 = no, 1 = yes)
+See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
+
+
 .. _CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE:
 
 CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default is blank.*
+
+Filename for an SSL public certificate for HTTPS.
+See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
 
 
 .. _CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY:
 
 CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default is blank.*
 
+Filename for an SSL private key file for HTTPS.
+See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
+
+
+CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+User name for the CRATE administrator, via CRATE's web application.
+
+
+CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Password for the CRATE administrator, via CRATE's web application.
+
+
+CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Email address for the CRATE administrator.
+
 
 CRATE_DOCKER_FLOWER_HOST_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default: 5555*
 
@@ -290,7 +280,7 @@ Host port on which to launch the Flower_ monitor.
 
 
 CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **No default. Must be set (even if to a dummy directory).**
 
@@ -299,12 +289,13 @@ Bio-YODIE NLP tool (which is part of KConnect/SemEHR, and which runs under
 GATE). (You need to download UMLS data and use the
 ``crate_nlp_prepare_ymls_for_bioyodie`` script to process it. The output
 directory used with that command is the directory you should specify here.)
+On Windows, ensure this is within the Windows (not WSL2) file system.
 
 
 .. _CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME:
 
 CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default: crate_web_db*
 
@@ -314,7 +305,7 @@ Name of the MySQL database to be used for CRATE web site data.
 .. _CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD:
 
 CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **No default. Must be set during MySQL container creation.**
 
@@ -330,7 +321,7 @@ CRATE_DOCKER_MYSQL_CRATE_USER_NAME_).
 .. _CRATE_DOCKER_MYSQL_CRATE_USER_NAME:
 
 CRATE_DOCKER_MYSQL_CRATE_USER_NAME
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default: crate_web_user*
 
@@ -339,8 +330,8 @@ the database named in CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME_. See also
 CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD_.
 
 
-CRATE_DOCKER_MYSQL_HOST_PORT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_MYSQL_CRATE_HOST_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Default: 3306*
 
@@ -358,10 +349,10 @@ else.
 You should **not** expose this port to the "outside", beyond your host.
 
 
-.. _CRATE_DOCKER_MYSQL_ROOT_PASSWORD:
+.. _CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD:
 
-CRATE_DOCKER_MYSQL_ROOT_PASSWORD
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **No default. Must be set during MySQL container creation.**
 
@@ -374,7 +365,7 @@ MySQL password for the ``root`` user.
 
 
 COMPOSE_PROJECT_NAME
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 *Default: crate*
 
@@ -391,11 +382,11 @@ containers in this project.
 Tools
 -----
 
-All live in the ``docker`` directory.
+All live in the ``installer`` directory.
 
 
-bash_within_docker
-~~~~~~~~~~~~~~~~~~
+enter_crate_container.sh
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Starts a container with the CRATE image and runs a Bash shell within it.
 
@@ -404,32 +395,22 @@ Starts a container with the CRATE image and runs a Bash shell within it.
     Running a shell within a container allows you to break things! Be careful.
 
 
-start_crate_docker_detached
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+start_crate.sh
+^^^^^^^^^^^^^^
 
-Shortcut for ``docker-compose up -d``. The ``-d`` switch is short for
+Shortcut for ``docker compose up -d``. The ``-d`` switch is short for
 ``--detach`` (or daemon mode).
 
 
-start_crate_docker_interactive
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Shortcut for ``docker-compose up --abort-on-container-exit``.
+stop_crate.sh
+^^^^^^^^^^^^^
 
-.. note::
-    The ``docker-compose`` command looks for a Docker Compose configuration
-    file with a default filename; one called ``docker-compose.yaml`` is
-    provided.
+Shortcut for ``docker compose down``.
 
 
-stop_crate_docker
-~~~~~~~~~~~~~~~~~
-
-Shortcut for ``docker-compose down``.
-
-
-within_docker
-~~~~~~~~~~~~~
+run_crate_command
+^^^^^^^^^^^^^^^^^
 
 This script starts a container with the CRATE image, activates the CRATE
 virtual environment, and runs a command within it. For example, to explore this
@@ -437,9 +418,9 @@ container, you can do
 
     .. code-block:: bash
 
-        ./within_docker /bin/bash
+        ./run_crate_command.sh /bin/bash
 
-... which is equivalent to the ``bash_within_docker`` script (see above and
+... which is equivalent to the ``enter_docker_container`` script (see above and
 note the warning).
 
 

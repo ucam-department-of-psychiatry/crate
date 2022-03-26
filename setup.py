@@ -43,11 +43,10 @@ from setuptools import find_packages, setup
 from codecs import open
 import os
 import platform
-import sys
 
-from crate_anon.version import CRATE_VERSION
+from crate_anon.version import CRATE_VERSION, require_minimum_python_version
 
-assert sys.version_info >= (3, 7), "Need Python 3.7+"
+require_minimum_python_version()
 
 
 # =============================================================================
@@ -70,10 +69,10 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.1.10",  # RNC libraries
+    "cardinal_pythonlib==1.1.18",  # RNC libraries
     "cairosvg==2.5.1",  # work with SVG files
     "celery==5.2.3",  # back-end scheduling
-    "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib  # noqa
+    "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
@@ -93,16 +92,17 @@ INSTALL_REQUIRES = [
     "gunicorn==20.0.4",  # UNIX only, though will install under Windows
     "kombu==5.2.3",  # AMQP library for Celery; requires VC++ under Windows
     "mako==1.1.3",  # templates with Python in
-    "MarkupSafe==1.1.1",  # for HTML escaping
+    "MarkupSafe==2.0.1",  # for HTML escaping
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa
     "openpyxl==3.0.7",  # read Excel
-    "pendulum==2.1.1",  # dates/times
-    "pillow==9.0.1",  # image processing; import as PIL (Python Imaging Library)  # noqa
+    "pendulum==2.1.2",  # dates/times
+    "Pillow==9.0.1",  # image processing; import as PIL (Python Imaging Library)  # noqa
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==0.7.2",  # pretty formating of text-based tables
     "psutil==5.7.2",  # process management
-    "pyexcel-ods==0.6.0",  # for reading ODS files
+    "pyexcel-ods==0.6.0",  # for reading/writing ODS files
+    "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.8.1",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
     "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]
@@ -129,7 +129,7 @@ INSTALL_REQUIRES = [
     "tornado==6.1",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==1.26.5",  # used by requests
-    "waitress==1.4.4",  # pure-Python WSGI server
+    "waitress==2.1.1",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
 
     # For development only:
@@ -137,9 +137,13 @@ INSTALL_REQUIRES = [
     "flake8==3.8.4",  # code checks
     "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
-    "pytest==6.0.2",  # automatic testing
+    "pytest==7.1.1",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
-    "sphinx==3.1.2",  # documentation
+
+    # Sphinx 4.4.0 gives "more than one target for cross-reference" warning
+    # when resolving crate_anon.anonymise.patient.Patient in
+    # crate_anon.anonymise.altermethod.py
+    "sphinx==4.2.0",  # documentation
     "sphinx_rtd_theme==0.5.0",  # documentation
     "sphinxcontrib-openapi==0.7.0",  # API documentation
 
@@ -213,6 +217,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3 :: Only",
 
         "Topic :: System :: Hardware",
@@ -244,6 +249,7 @@ setup(
             "crate_postcodes=crate_anon.preprocess.postcodes:main",
             "crate_preprocess_pcmis=crate_anon.preprocess.preprocess_pcmis:main",  # noqa
             "crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main",
+            "crate_preprocess_systmone=crate_anon.preprocess.preprocess_systmone:main",  # noqa
 
             # Linkage
 
@@ -252,6 +258,11 @@ setup(
 
             # Anonymisation
 
+            "crate_anon_check_text_extractor=crate_anon.anonymise.check_text_extractor:main",  # noqa
+            "crate_anon_demo_config=crate_anon.anonymise.demo_config:main",
+            "crate_anon_draft_dd=crate_anon.anonymise.draft_dd:main",
+            "crate_anon_show_counts=crate_anon.anonymise.show_counts:main",
+            "crate_anon_summarize_dd=crate_anon.anonymise.summarize_dd:main",
             "crate_anonymise=crate_anon.anonymise.anonymise_cli:main",
             "crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main",  # noqa
             "crate_make_demo_database=crate_anon.anonymise.make_demo_database:main",  # noqa

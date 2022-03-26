@@ -33,13 +33,16 @@ import os
 import shutil
 import subprocess
 
+from typing import List
+
 # Work out directories
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 BUILD_HTML_DIR = os.path.join(THIS_DIR, "build", "html")
 
 DEST_DIRS = []  # type: List[str]
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Remove anything old
     for destdir in [BUILD_HTML_DIR] + DEST_DIRS:
         print(f"Deleting directory {destdir!r}")
@@ -56,6 +59,8 @@ if __name__ == '__main__':
     parser.add_argument("--skip_medex", action="store_true",
                         help="Don't try to build Medex help files",
                         default=False)
+    parser.add_argument("--warnings_as_errors", action="store_true",
+                        help="Treat warnings as errors")
     args = parser.parse_args()
 
     recreate_args = ["python",
@@ -66,8 +71,10 @@ if __name__ == '__main__':
         recreate_args.append("--skip_medex")
     subprocess.check_call(recreate_args)
 
-    # -W: Turn warnings into errors
-    subprocess.check_call(["make", "html", 'SPHINXOPTS="-W"'])
+    cmdargs = ["make", "html"]
+    if args.warnings_as_errors:
+        cmdargs.append('SPHINXOPTS="-W"')
+    subprocess.check_call(cmdargs)
 
     # Copy
     for destdir in DEST_DIRS:

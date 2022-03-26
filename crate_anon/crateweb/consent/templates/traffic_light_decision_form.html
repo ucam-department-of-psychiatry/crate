@@ -11,7 +11,7 @@
 
     {% block logo %}
     <div class="logo">
-        <img src="{{ PDF_LOGO_ABS_URL }}" width="{{ PDF_LOGO_WIDTH }}">
+        <img src="{{ PDF_LOGO_ABS_URL }}" width="{{ PDF_LOGO_WIDTH }}" alt="Logo">
         {# CONSIDER "float:right" now we're using wkhtmltopdf #}
     </div>
     {% endblock %}
@@ -42,7 +42,7 @@
         <tbody>
             <tr>
                 <td class="tickbox"><b>( )</b></td>
-                <td><img src="{{ TRAFFIC_LIGHT_RED_ABS_URL }}" width="60"></td>
+                <td><img src="{{ TRAFFIC_LIGHT_RED_ABS_URL }}" width="60" alt="Red"></td>
                 <td>
                     <em><b>RED. I am not interested in being contacted about
                         research. Don’t pass my details on to any researchers
@@ -51,7 +51,7 @@
             </tr>
             <tr>
                 <td class="tickbox"><b>( )</b></td>
-                <td><img src="{{ TRAFFIC_LIGHT_YELLOW_ABS_URL }}" width="60"></td>
+                <td><img src="{{ TRAFFIC_LIGHT_YELLOW_ABS_URL }}" width="60" alt="Yellow"></td>
                 <td>
                     <em><b>YELLOW. I’m not sure yet. Please ask my CPFT
                         clinicians to consider any requests from research teams
@@ -66,7 +66,7 @@
             </tr>
             <tr>
                 <td class="tickbox"><b>( )</b></td>
-                <td><img src="{{ TRAFFIC_LIGHT_GREEN_ABS_URL }}" width="60"></td>
+                <td><img src="{{ TRAFFIC_LIGHT_GREEN_ABS_URL }}" width="60" alt="Green"></td>
                 <td>
                     <em><b>GREEN. I am happy to hear directly from approved
                         CPFT researchers inside or outside my clinical team.

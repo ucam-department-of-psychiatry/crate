@@ -139,5 +139,5 @@ def main() -> None:
         log.info(f"Output *.class files are in {args.builddir}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

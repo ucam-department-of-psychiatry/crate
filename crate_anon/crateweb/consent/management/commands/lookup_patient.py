@@ -110,5 +110,5 @@ def main() -> None:
     cli_lookup_patient(cmdargs.nhs_numbers)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

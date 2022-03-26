@@ -148,7 +148,7 @@ Optionally, this can be overridden. By default, it is ``amqp://``.
 - Overriding ``BROKER_URL`` will allow you to use multiple virtual hosts, to
   host multiple independent instances of CRATE (in the unlikely event you'd
   want to!). See
-  http://stackoverflow.com/questions/12209652/multi-celery-projects-with-same-rabbitmq-broker-backend-process
+  https://stackoverflow.com/questions/12209652/multi-celery-projects-with-same-rabbitmq-broker-backend-process
 - Similarly, override ``BROKER_URL`` to improve RabbitMQ security.
 
 
@@ -820,7 +820,7 @@ WKHTMLTOPDF_FILENAME
 Absolute path to the wkhtmltopdf_ executable.
 
 You must specify one that incorporates any need for an X Server (not the default
-``/usr/bin/wkhtmltopdf``). See http://stackoverflow.com/questions/9604625/. In
+``/usr/bin/wkhtmltopdf``). See https://stackoverflow.com/questions/9604625/. In
 brief, you can try
 
 .. code-block:: python
@@ -994,7 +994,7 @@ Examples:
 
 .. code-block:: python
 
-    # http://stackoverflow.com/questions/11948158/wkhtmltopdf-how-to-disable-header-on-the-first-page  # noqa
+    # https://stackoverflow.com/questions/11948158/wkhtmltopdf-how-to-disable-header-on-the-first-page  # noqa
     PDF_LETTER_FOOTER_HTML = '''
     <!DOCTYPE html>
     <html>

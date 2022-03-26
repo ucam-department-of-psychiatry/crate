@@ -667,6 +667,6 @@ def test_all(verbose: bool = False) -> None:
     test_unit_regexes(verbose=verbose)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     test_all(verbose=False)

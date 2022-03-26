@@ -286,7 +286,7 @@ class InputFieldConfig(object):
 
         See
 
-        - http://stackoverflow.com/questions/179085/multiple-indexes-vs-multi-column-indexes
+        - https://stackoverflow.com/questions/179085/multiple-indexes-vs-multi-column-indexes
         """  # noqa
         return [
             Index('_idx_srcref',
@@ -552,7 +552,7 @@ class InputFieldConfig(object):
             filter(NlpRecord.nlpdef == self._nlpdef.name)
             # Order not important (though the order of the index certainly
             # is; see NlpRecord.__table_args__).
-            # http://stackoverflow.com/questions/11436469/does-order-of-where-clauses-matter-in-sql  # noqa
+            # https://stackoverflow.com/questions/11436469/does-order-of-where-clauses-matter-in-sql  # noqa
         )
         if srcpkstr is not None:
             query = query.filter(NlpRecord.srcpkstr == srcpkstr)
