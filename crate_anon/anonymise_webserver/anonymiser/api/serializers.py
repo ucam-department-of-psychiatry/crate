@@ -42,7 +42,7 @@ from rest_framework.serializers import (
     SerializerMethodField,
 )
 
-from crate_anon.anonymise.constants import SCRUBMETHOD
+from crate_anon.anonymise.constants import ScrubMethod
 from crate_anon.anonymise.scrub import (
     NonspecificScrubber,
     PersonalizedScrubber,
@@ -286,11 +286,11 @@ class ScrubSerializer(Serializer):
                                 label: str,
                                 data: OrderedDict) -> None:
         method_lookup = {
-            "dates": SCRUBMETHOD.DATE,
-            "phrases": SCRUBMETHOD.PHRASE,
-            "words": SCRUBMETHOD.WORDS,
-            "numbers": SCRUBMETHOD.NUMERIC,
-            "codes": SCRUBMETHOD.CODE,
+            "dates": ScrubMethod.DATE,
+            "phrases": ScrubMethod.PHRASE,
+            "words": ScrubMethod.WORDS,
+            "numbers": ScrubMethod.NUMERIC,
+            "codes": ScrubMethod.CODE,
         }
 
         is_patient = label == "patient"
