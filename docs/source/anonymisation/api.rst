@@ -23,12 +23,12 @@
 Using CRATE's anonymisation web server
 --------------------------------------
 
+.. _crate_anon_web_django_manage:
+
 The CRATE anonymisation web front end uses Django_, which comes with a number of built-in
 management comments. These can be run from within the CRATE virtual environment using:
 
 .. code-block:: bash
-
-.. _crate_anon_web_django_manage:
 
     crate_anon_web_django_manage
 
