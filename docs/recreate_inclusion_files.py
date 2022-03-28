@@ -253,6 +253,9 @@ def main():
     # -------------------------------------------------------------------------
     # Anonymisation API
     # -------------------------------------------------------------------------
+    run_cmd(["crate_anon_web_django_manage", "--help"],
+            join(DevPath.DOCS_ANON_DIR,
+                 "_crate_anon_web_django_manage_help.txt"))
     run_cmd(["crate_anon_web_django_manage", "spectacular"],
             join(DevPath.DOCS_ANON_DIR, "_crate_api_schema.yaml"))
 

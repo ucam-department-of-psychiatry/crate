@@ -17,8 +17,28 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
+.. _Django: https://www.djangoproject.com/
 
-Using CRATE's anonymisation API
+
+Using CRATE's anonymisation web server
+--------------------------------------
+
+The CRATE anonymisation web front end uses Django_, which comes with a number of built-in
+management comments. These can be run from within the CRATE virtual environment using:
+
+.. code-block:: bash
+
+.. _crate_anon_web_django_manage:
+
+    crate_anon_web_django_manage
+
+The available commands are:
+
+..  literalinclude:: _crate_anon_web_django_manage_help.txt
+    :language: none
+
+
+Anonymisation API documentation
 -------------------------------
 
 .. openapi:: _crate_api_schema.yaml
