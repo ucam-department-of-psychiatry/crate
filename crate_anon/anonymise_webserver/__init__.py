@@ -1,5 +1,7 @@
+#!/usr/bin/env python
+
 """
-crate_anon/anonymise_webserver/anonymiser/urls.py
+crate_anon/anonymise_webserver/__init__.py
 
 ===============================================================================
 
@@ -22,26 +24,6 @@ crate_anon/anonymise_webserver/anonymiser/urls.py
 
 ===============================================================================
 
-**Django URL configuration for CRATE anonymiser project.**
+The mere existence of this file makes Python treat the directory as a package.
 
 """
-
-from django.contrib import admin
-from django.urls import include, path
-
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularRedocView,
-)
-
-from crate_anon.anonymise_webserver.anonymiser.api.views import ScrubView
-
-urlpatterns = [
-    path("scrub/", ScrubView.as_view()),
-    path("admin/", admin.site.urls),
-    path("api-auth/",
-         include("rest_framework.urls", namespace="rest_framework")),
-    path("schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("schema/doc/", SpectacularRedocView.as_view(url_name="schema"),
-         name="doc"),
-]

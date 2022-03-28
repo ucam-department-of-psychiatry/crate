@@ -22,6 +22,9 @@ crate_anon/anonymise_webserver/anonymiser/settings.py
 
 ===============================================================================
 
+**Django settings for CRATE anonymiser project.**
+
+
 """
 
 from pathlib import Path
