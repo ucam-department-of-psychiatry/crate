@@ -89,7 +89,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "anonymiser.wsgi.application"
+WSGI_APPLICATION = "crate_anon.anonymise_webserver.anonymiser.wsgi.application"
 
 
 # Database
