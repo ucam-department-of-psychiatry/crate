@@ -31,7 +31,8 @@ Send text to a cloud-based NLPRP server for processing.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Type
+import sys
+from typing import Any, Dict, List, Optional, TextIO, Type
 
 from cardinal_pythonlib.lists import chunks
 from sqlalchemy.schema import Column, Index
@@ -77,41 +78,57 @@ class Cloud(TableMaker):
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        assert nlpdef is not None  # not yet supported (does it need to be?)
         super().__init__(nlpdef, cfg_processor_name, commit,
                          friendly_name="Cloud")
         self.remote_processor_info = None  # type: Optional[ServerProcessor]
-        self.procname = self._cfgsection.opt_str(
-            ProcessorConfigKeys.PROCESSOR_NAME,
-            required=True)
-        self.procversion = self._cfgsection.opt_str(
-            ProcessorConfigKeys.PROCESSOR_VERSION,
-            default=None)
-        # Made format required so people are less likely to make mistakes
-        self.format = self._cfgsection.opt_str(
-            ProcessorConfigKeys.PROCESSOR_FORMAT,
-            required=True)
         self.schema_type = None
         self.sql_dialect = None
         self.schema = None  # type: Optional[Dict[str, Any]]
         self.available_remotely = False  # update later if available
-
         # Output section - bit of repetition from the 'Gate' parser
-        typepairs = self._cfgsection.opt_strlist(
-            ProcessorConfigKeys.OUTPUTTYPEMAP,
-            required=True, lower=False)
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
         self._type_to_tablename = {}  # type: Dict[str, str]
         self.tablename = None
-        # If typepairs is empty the following block won't execute
-        for output_type, outputsection in chunks(typepairs, 2):
-            output_type = output_type.lower()
-            c = OutputUserConfig(nlpdef.parser, outputsection,
-                                 schema_required=False)
-            self._outputtypemap[output_type] = c
-            self._type_to_tablename[output_type] = c.dest_tablename
-            if output_type == '""':
-                self.tablename = c.dest_tablename
+
+        if not nlpdef and not cfg_processor_name:
+            # Debugging only
+            self.procname = ""
+            self.procversion = ""
+            self.format = ""
+        else:
+            self.procname = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROCESSOR_NAME,
+                required=True)
+            self.procversion = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROCESSOR_VERSION,
+                default=None)
+            # Made format required so people are less likely to make mistakes
+            self.format = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROCESSOR_FORMAT,
+                required=True)
+
+            # Output section - bit of repetition from the 'Gate' parser
+            typepairs = self._cfgsection.opt_strlist(
+                ProcessorConfigKeys.OUTPUTTYPEMAP,
+                required=True, lower=False)
+            # If typepairs is empty the following block won't execute
+            for output_type, outputsection in chunks(typepairs, 2):
+                output_type = output_type.lower()
+                c = OutputUserConfig(nlpdef.parser, outputsection,
+                                     schema_required=False)
+                self._outputtypemap[output_type] = c
+                self._type_to_tablename[output_type] = c.dest_tablename
+                if output_type == '""':
+                    self.tablename = c.dest_tablename
+
+    @classmethod
+    def print_info(cls, file: TextIO = sys.stdout) -> None:
+        # docstring in superclass
+        print(
+            "NLP class to talk to cloud-based NLP apps via the NLPRP "
+            "protocol.",
+            file=file
+        )
 
     @staticmethod
     def get_coltype_parts(coltype_str: str) -> List[str]:
