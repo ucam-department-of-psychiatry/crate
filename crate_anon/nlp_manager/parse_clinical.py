@@ -50,7 +50,6 @@ import logging
 import sys
 from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
 
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy import Column, Integer, Float, String, Text
 
 from crate_anon.common.regex_helpers import WORD_BOUNDARY
@@ -586,13 +585,13 @@ class BmiValidator(ValidatorBase):
 class Bp(BaseNlpParser):
     """
     Blood pressure, in mmHg. (Systolic and diastolic.)
+    """
+    # Since we produce two variables, SBP and DBP, and we use something a
+    # little more complex than
+    # :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`,  # noqa
+    # we subclass :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
+    # directly.)
 
-    (Since we produce two variables, SBP and DBP, and we use something a little
-    more complex than
-    :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`;
-    we subclass :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
-    directly.)
-    """  # noqa
     BP = r"(?: \b blood \s+ pressure \b | \b B\.?P\.? \b )"
     SYSTOLIC_BP = fr"(?: \b systolic \s+ {BP} | \b S\.?B\.?P\.? \b )"
     DIASTOLIC_BP = fr"(?: \b diastolic \s+ {BP} | \b D\.?B\.?P\.? \b )"
@@ -834,20 +833,3 @@ ALL_CLINICAL_NLP_AND_VALIDATORS = [
     (Weight, WeightValidator),
 ]
 ALL_CLINICAL_NLP, ALL_CLINICAL_VALIDATORS = zip(*ALL_CLINICAL_NLP_AND_VALIDATORS)  # noqa
-
-
-# =============================================================================
-# Command-line entry point
-# =============================================================================
-
-def test_all(verbose: bool = False) -> None:
-    """
-    Test all parsers in this module.
-    """
-    for cls in ALL_CLINICAL_NLP:
-        cls(None, None).test(verbose=verbose)
-
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    test_all(verbose=True)

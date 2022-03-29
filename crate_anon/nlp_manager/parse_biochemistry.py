@@ -44,8 +44,6 @@ commit:
 import logging
 from typing import List, Optional, Tuple, Union
 
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-
 from crate_anon.common.regex_helpers import (
     regex_or,
     WORD_BOUNDARY,
@@ -1925,20 +1923,3 @@ ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS = [
     (Urea, UreaValidator),
 ]
 ALL_BIOCHEMISTRY_NLP, ALL_BIOCHEMISTRY_VALIDATORS = zip(*ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS)  # noqa
-
-
-# =============================================================================
-# Command-line entry point
-# =============================================================================
-
-def test_all(verbose: bool = False) -> None:
-    """
-    Test all parsers in this module.
-    """
-    for cls in ALL_BIOCHEMISTRY_NLP:
-        cls(None, None).test(verbose=verbose)
-
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    test_all(verbose=True)

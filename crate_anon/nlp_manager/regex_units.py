@@ -28,12 +28,8 @@ crate_anon/nlp_manager/regex_units.py
 
 """
 
-import logging
 from typing import List, Optional, Tuple
 
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-
-from crate_anon.nlp_manager.regex_test import test_text_regex
 from crate_anon.nlp_manager.regex_numbers import (
     BILLION,
     MULTIPLY_OR_SPACE,
@@ -50,8 +46,10 @@ from crate_anon.nlp_manager.regex_numbers import (
 OUT_OF_SEPARATOR = r"(?: \/ | \b out \s+ of \b )"
 
 
-def per(numerator: str, denominator: str,
-        include_power_minus1: bool = True) -> str:
+def per(numerator: str,
+        denominator: str,
+        include_power_minus1: bool = True,
+        numerator_optional: bool = False) -> str:
     """
     Returns regex text representing "X per Y"; e.g. "millimoles per litre",
     "cells per cubic millimetre".
@@ -60,19 +58,27 @@ def per(numerator: str, denominator: str,
         numerator: regex representing the numerator
         denominator: regex representing the denominator
         include_power_minus1: include the "n d -1" format for "n/d"
-
-    Returns:
-
+        numerator_optional: presence of the numerator is optional
     """
-    # Copes with blank/optional numerators, too.
+    if numerator:
+        if numerator_optional:
+            # ensure that the optional whitespace is captured as part of the
+            # "optional" bit, so there is no leftover whitespace that can remain
+            numerator_part = fr"(?: {numerator} \s* )?"
+        else:
+            # numerator, optional whitespace
+            numerator_part = fr"{numerator} \s*"
+        # Use of "\s* \b" rather than "\s+" is so we can have a BLANK numerator.
+    else:
+        # Blank numerator
+        numerator_part = ""
     options = [
-        fr"{numerator} \s* (?: \/ | \b per \b) \s* {denominator}",
+        fr"{numerator_part} (?: \/ | \b per \b) \s* {denominator}",
     ]
     if include_power_minus1:
         options.append(
-            fr"{numerator} \s* \b {denominator} \s* -1")
+            fr"{numerator_part} \b {denominator} \s* -1")
     return r"(?: {} )".format(r" | ".join(options))
-    # Use of "\s* \b" rather than "\s+" is so we can have a BLANK numerator.
 
 
 def _out_of_str(n_as_regex: str) -> str:
@@ -210,10 +216,10 @@ CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} | (?: \b cmm \b ) )""".for
 CUBIC_MM_OR_MICROLITRE = fr"(?: {MICROLITRE} | {CUBIC_MM} )"
 
 # -----------------------------------------------------------------------------
-# Inverse volume
+# Inverse (reciprocal) volume
 # -----------------------------------------------------------------------------
 
-PER_CUBIC_MM = per("", CUBIC_MM)
+PER_CUBIC_MM = per("", CUBIC_MM, numerator_optional=True)
 
 # -----------------------------------------------------------------------------
 # Time
@@ -222,7 +228,7 @@ PER_CUBIC_MM = per("", CUBIC_MM)
 HOUR = r"(?:h(?:rs?|ours?)?)"   # h, hr, hrs, hour, hours
 
 # -----------------------------------------------------------------------------
-# Counts, proportions
+# Proportions
 # -----------------------------------------------------------------------------
 
 PERCENT = r"""(?:%|pe?r?\s?ce?n?t)"""
@@ -234,7 +240,16 @@ PERCENT = r"""(?:%|pe?r?\s?ce?n?t)"""
 # -----------------------------------------------------------------------------
 
 CELLS = r"(?:\b cells? \b)"
-OPTIONAL_CELLS = CELLS + "?"
+
+UNITS = r"(?:[I]?U(?:nits?)?)"  # U units, IU international units, unit, units
+MICROUNITS = r"(?:(?:micro|μ|u)[I]?U(?:nits?)?)"
+MILLIUNITS = r"(?:m(?:illi)?[I]?U(?:nits?)?)"
+
+SCORE = r"(?:scored?)"  # score(d)
+
+# -----------------------------------------------------------------------------
+# Moles
+# -----------------------------------------------------------------------------
 
 MOLES = r"(?:\b mole?s? \b)"  # mol, mole, mols, moles
 MICROMOLES = r"(?: (?:micro|μ|u)mole?s? )"
@@ -243,36 +258,44 @@ MILLIMOLES = r"(?: m(?:illi)?mole?s? )"
 MICROEQ = r"(?: (?:micro|μ|u)Eq )"
 MILLIEQ = r"(?:m(?:illi)?Eq)"
 
-UNITS = r"(?:[I]?U)"  # U units, IU international units
-MICROUNITS = r"(?:(?:micro|μ|u)[I]?U)"
-MILLIUNITS = r"(?:m[I]?U)"
-
-SCORE = r"(?:scored?)"  # score(d)
-
 # -----------------------------------------------------------------------------
-# Concentration
+# Concentration (molarity)
 # -----------------------------------------------------------------------------
 
 MICROMOLAR = r"(?:[μu]M | micromolar)"
 MILLIMOLAR = r"(?:mM)"  # NB case-insensitive... confusable with millimetres
 
-BILLION_PER_L = per(BILLION, L)
-CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
-CELLS_PER_CUBIC_MM_OR_MICROLITRE = per(OPTIONAL_CELLS, CUBIC_MM_OR_MICROLITRE)
+MICROEQ_PER_L = per(MICROEQ, L)
+MICROMOLES_PER_L = per(MICROMOLES, L)
+MILLIEQ_PER_L = per(MILLIEQ, L)
+MILLIMOLES_PER_L = per(MILLIMOLES, L)
+
+# -----------------------------------------------------------------------------
+# Concentration (mass)
+# -----------------------------------------------------------------------------
+
 G_PER_DL = per(G, DL)
 G_PER_L = per(G, L)
 L_PER_L = per(L, L)
 MG_PER_DL = per(MG, DL)
 MG_PER_L = per(MG, L)
-MICROEQ_PER_L = per(MICROEQ, L)
-MICROMOLES_PER_L = per(MICROMOLES, L)
-MICROUNITS_PER_ML = per(MICROUNITS, ML)
-MILLIEQ_PER_L = per(MILLIEQ, L)
-MILLIMOLES_PER_L = per(MILLIMOLES, L)
-MILLIMOLES_PER_MOL = per(MILLIMOLES, MOLES)
-MILLIUNITS_PER_L = per(MILLIUNITS, L)
+
+# -----------------------------------------------------------------------------
+# Concentration (arbitrary count and dimensionless things)
+# -----------------------------------------------------------------------------
+
+BILLION_PER_L = per(BILLION, L)
 TRILLION_PER_L = per(TRILLION, L)
+
+CELLS_PER_CUBIC_MM = per(CELLS, CUBIC_MM, numerator_optional=True)
+CELLS_PER_CUBIC_MM_OR_MICROLITRE = per(CELLS, CUBIC_MM_OR_MICROLITRE,
+                                       numerator_optional=True)
+
+MICROUNITS_PER_ML = per(MICROUNITS, ML)
+MILLIUNITS_PER_L = per(MILLIUNITS, L)
 UNITS_PER_L = per(UNITS, L)
+
+MILLIMOLES_PER_MOL = per(MILLIMOLES, MOLES)
 
 # -----------------------------------------------------------------------------
 # Speed
@@ -288,7 +311,7 @@ MM_HG = r"(?: mm \s* Hg )"  # mmHg, mm Hg
 # ... likelihood of "millimetres of mercury" quite small?
 
 # -----------------------------------------------------------------------------
-# Things to powers
+# Area and related
 # -----------------------------------------------------------------------------
 
 SQ_M = r"""
@@ -444,229 +467,3 @@ def micromolar_from_mg_per_dl(mg_per_dl: float,
 
     """
     return mg_per_dl * factor_micromolar_from_mg_per_dl(molecular_mass_g_per_mol)  # noqa
-
-
-# =============================================================================
-#  Tests
-# =============================================================================
-
-def test_unit_regexes(verbose: bool = False) -> None:
-    """
-    Test all "unit" regexes.
-    """
-    test_text_regex("per(n, d)", per("n", "d"), [
-        ("blah n per d blah", ["n per d"]),
-        ("blah n/d blah", ["n/d"]),
-        ("n / d", ["n / d"]),
-        ("n d -1", ["n d -1"]),
-        ("n d -1", ["n d -1"]),
-        ("n blah d", []),
-    ], verbose=verbose)
-    test_text_regex("out_of(5)", out_of(5), [
-        ("4 out of 5", ["out of 5"]),
-        ("4/5", ["/5"]),
-        ("4 / 5", ["/ 5"]),
-    ], verbose=verbose)
-
-    test_text_regex("M", M, [
-        ("5 metres long", ["metres"]),
-        ("5 meters long", ["meters"]),
-        ("5m long", ["m"]),
-    ], verbose=verbose)
-    test_text_regex("CM", CM, [
-        ("5 centimetres long", ["centimetres"]),
-        ("5 centimeters long", ["centimeters"]),
-        ("5cm long", ["cm"]),
-    ], verbose=verbose)
-    test_text_regex("MM", MM, [
-        ("5 millimetres long", ["millimetres"]),
-        ("5 millimeters long", ["millimeters"]),
-        ("5mm long", ["mm"]),
-    ], verbose=verbose)
-    test_text_regex("FEET", FEET, [
-        ("5 feet long", ["feet"]),
-        ("5 foot long", ["foot"]),
-        ("5' long", ["'"]),  # ASCII apostrophe
-        ("5’ long", ["’"]),  # right single quote (U+2019)
-        ("5′ long", ["′"]),  # prime (U+2032)
-    ], verbose=verbose)
-    test_text_regex("INCHES", INCHES, [
-        ("5 inches long", ["inches"]),
-        ("5 in long", ["in"]),
-        ('5" long', ['"']),  # ASCII double quote
-        ("5” long", ["”"]),  # right double quote (U+2014)
-        ("5″ long", ["″"]),  # double prime (U+2033)
-    ], verbose=verbose)
-
-    test_text_regex("MCG", MCG, [
-        ("5 micrograms", ["micrograms"]),
-        ("5 mcg", ["mcg"]),
-        ("5 ug", ["ug"]),
-        ("5 μg", ["μg"]),
-    ], verbose=verbose)
-    test_text_regex("MG", MG, [
-        ("5 milligrams", ["milligrams"]),
-        ("5 mg", ["mg"]),
-    ], verbose=verbose)
-    test_text_regex("G", G, [
-        ("5 grams", ["grams"]),
-        ("5 g", ["g"]),
-    ], verbose=verbose)
-    test_text_regex("KG", KG, [
-        ("5 kilograms", ["kilograms"]),
-        ("5 kg", ["kg"]),
-    ], verbose=verbose)
-    test_text_regex("LB", LB, [
-        ("5 pounds", ["pounds"]),
-        ("5 lb", ["lb"]),
-    ], verbose=verbose)
-    test_text_regex("STONES", STONES, [
-        ("5 stones", ["stones"]),
-        ("5 stone", ["stone"]),
-        ("5 st", ["st"]),
-    ], verbose=verbose)
-
-    test_text_regex("L", L, [
-        ("5 litres", ["litres"]),
-        ("5 liters", ["liters"]),
-        ("5 l", ["l"]),
-        ("5 L", ["L"]),
-    ], verbose=verbose)
-    test_text_regex("DL", DL, [
-        ("5 decilitres", ["decilitres"]),
-        ("5 deciliters", ["deciliters"]),
-        ("5 dl", ["dl"]),
-        ("5 dL", ["dL"]),
-    ], verbose=verbose)
-    test_text_regex("ML", ML, [
-        ("5 millilitres", ["millilitres"]),
-        ("5 milliliters", ["milliliters"]),
-        ("5 ml", ["ml"]),
-        ("5 mL", ["mL"]),
-    ], verbose=verbose)
-    test_text_regex("CUBIC_MM", CUBIC_MM, [
-        ("5 mm^3", ["mm^3"]),
-        ("5 cubic mm", ["cubic mm"]),
-        ("5 cubic millimetres", ["cubic millimetres"]),
-    ], verbose=verbose)
-    test_text_regex("MICROLITRE", MICROLITRE, [
-        ("5 microlitre", ["microlitre"]),
-        ("5 microL", ["microL"]),
-        ("5 microliters", ["microliters"]),
-        ("5 μL", ["μL"]),
-        ("5 ul", ["ul"]),
-    ], verbose=verbose)
-    test_text_regex("CUBIC_MM_OR_MICROLITRE", CUBIC_MM_OR_MICROLITRE, [
-        ("5 mm^3", ["mm^3"]),
-        ("5 cubic mm", ["cubic mm"]),
-        ("5 cubic millimetres", ["cubic millimetres"]),
-        ("5 microlitre", ["microlitre"]),
-        ("5 microL", ["microL"]),
-        ("5 microliters", ["microliters"]),
-        ("5 μL", ["μL"]),
-        ("5 ul", ["ul"]),
-    ], verbose=verbose)
-
-    test_text_regex("HOUR", HOUR, [
-        ("5 hours", ["hours"]),
-        ("5 hr", ["hr"]),
-        ("5 h", ["h"]),
-    ], verbose=verbose)
-
-    test_text_regex("PERCENT", PERCENT, [
-        ("5 percent", ["percent"]),
-        ("5 per cent", ["per cent"]),
-        ("5 pct", ["pct"]),
-        ("5%", ["%"]),
-    ], verbose=verbose)
-
-    test_text_regex("CELLS", CELLS, [
-        ("5 cells", ["cells"]),
-        ("5 cell", ["cell"]),
-    ], verbose=verbose)
-    test_text_regex("CELLS_PER_CUBIC_MM", CELLS_PER_CUBIC_MM, [
-        ("9800 / mm3", [" / mm3"]),
-        ("9800 cell/mm3", ["cell/mm3"]),
-        ("9800 cells/mm3", ["cells/mm3"]),
-        ("9800 cells per cubic mm", ["cells per cubic mm"]),
-        ("9800 per cubic mm", [" per cubic mm"]),
-        ("9800 per cmm", [" per cmm"]),
-    ], verbose=verbose)
-    test_text_regex(
-        "CELLS_PER_CUBIC_MM_OR_MICROLITRE",
-        CELLS_PER_CUBIC_MM_OR_MICROLITRE, [
-            ("9800 / mm3", [" / mm3"]),
-            ("9800 cell/mm3", ["cell/mm3"]),
-            ("9800 cells/mm3", ["cells/mm3"]),
-            ("9800 cells per cubic mm", ["cells per cubic mm"]),
-            ("9800 per cubic mm", [" per cubic mm"]),
-            ("9800 per cmm", [" per cmm"]),
-            ("9800 per μL", [" per μL"]),
-            ("9800 per microliter", [" per microliter"]),
-            ("9800 / microlitre", [" / microlitre"]),
-        ],
-        verbose=verbose
-    )
-
-    test_text_regex("MILLIMOLES", MILLIMOLES, [
-        ("5 millimoles", ["millimoles"]),
-        ("5 millimol", ["millimol"]),
-        ("5 mmol", ["mmol"]),
-    ], verbose=verbose)
-    test_text_regex("MILLIEQ", MILLIEQ, [
-        ("5 mEq", ["mEq"]),
-    ], verbose=verbose)
-
-    test_text_regex("UNITS", UNITS, [
-        ("5 U", ["U"]),
-        ("5 IU", ["IU"]),
-    ], verbose=verbose)
-    test_text_regex("MILLIUNITS", MILLIUNITS, [
-        ("5 mU", ["mU"]),
-        ("5 mIU", ["mIU"]),
-    ], verbose=verbose)
-    test_text_regex("MICROUNITS", MICROUNITS, [
-        ("5 uU", ["uU"]),
-        ("5 μU", ["μU"]),
-        ("5 uIU", ["uIU"]),
-        ("5 μIU", ["μIU"]),
-    ], verbose=verbose)
-
-    test_text_regex("SCORE", SCORE, [
-        ("I scored 5", ["scored"]),
-        ("MMSE score 5", ["score"]),
-    ], verbose=verbose)
-
-    test_text_regex("MILLIMOLAR", MILLIMOLAR, [
-        ("5 mM", ["mM"]),
-    ], verbose=verbose)
-
-    test_text_regex("MM_HG", MM_HG, [
-        ("5 mmHg", ["mmHg"]),
-        ("5 mm Hg", ["mm Hg"]),
-    ], verbose=verbose)
-
-    test_text_regex("SQ_M", SQ_M, [
-        ("5 square metres", ["square metres"]),
-        ("5 sq m", ["sq m"]),
-        ("5 m^2", ["m^2"]),
-    ], verbose=verbose)
-
-    test_text_regex("KG_PER_SQ_M", KG_PER_SQ_M, [
-        ("5 kg per square metre", ["kg per square metre"]),
-        ("5 kg/sq m", ["kg/sq m"]),
-        ("5 kg/m^2", ["kg/m^2"]),
-        ("5 kg*m^-2", ["kg*m^-2"]),
-    ], verbose=verbose)
-
-
-def test_all(verbose: bool = False) -> None:
-    """
-    Test all regexes in this module.
-    """
-    test_unit_regexes(verbose=verbose)
-
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    test_all(verbose=False)

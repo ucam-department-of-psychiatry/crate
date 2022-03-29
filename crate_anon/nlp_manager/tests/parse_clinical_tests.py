@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/nlp_manager/test_all_regex.py
+crate_anon/nlp_manager/tests/parse_clinical_tests.py
 
 ===============================================================================
 
@@ -24,35 +24,29 @@ crate_anon/nlp_manager/test_all_regex.py
 
 ===============================================================================
 
-**Test all simple regexes and regex-based NLP parsers.**
+Unit tests.
 
 """
 
-import argparse
-import logging
+import unittest
 
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-
-from crate_anon.nlp_manager import (
-    all_processors,
-    regex_parser,
-    regex_units,
+from crate_anon.nlp_manager.parse_clinical import (
+    ALL_CLINICAL_NLP,
+    ALL_CLINICAL_VALIDATORS,
 )
 
 
-def test_all_regex_nlp(verbose: bool = False) -> None:
-    """
-    Test all NLP-related regular expressions.
-    """
-    regex_parser.test_all(verbose=verbose)  # basic regexes
-    regex_units.test_all(verbose=verbose)
-    all_processors.test_all_processors(verbose=verbose)
-    # ... tests all parser classes
+# =============================================================================
+# Unit tests
+# =============================================================================
 
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--verbose', '-v', action="store_true", help="Verbose")
-    args = parser.parse_args()
-    test_all_regex_nlp(verbose=args.verbose)
+class TestClinical(unittest.TestCase):
+    @staticmethod
+    def test_all_clinical() -> None:
+        """
+        Test all parsers in this module.
+        """
+        for cls in ALL_CLINICAL_NLP:
+            cls(None, None).test(verbose=True)
+        for cls in ALL_CLINICAL_VALIDATORS:
+            cls(None, None).test(verbose=True)

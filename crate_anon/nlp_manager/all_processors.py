@@ -34,16 +34,12 @@ crate_anon/nlp_manager/all_processors.py
 
 from inspect import isabstract
 # noinspection PyUnresolvedReferences
-import logging
-# noinspection PyUnresolvedReferences
 from typing import Any, List, Optional, Set, Type
 
 from cardinal_pythonlib.json.typing_helpers import (
     JsonArrayType,
     JsonObjectType,
 )
-# noinspection PyUnresolvedReferences
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 import prettytable
 
 # noinspection PyUnresolvedReferences
@@ -56,11 +52,7 @@ from crate_anon.nlp_manager.parse_biochemistry import *  # noqa: F403
 from crate_anon.nlp_manager.parse_clinical import *  # noqa: F403
 from crate_anon.nlp_manager.parse_cognitive import *  # noqa: F403
 from crate_anon.nlp_manager.parse_haematology import *  # noqa: F403
-from crate_anon.nlprp.constants import (
-    SqlDialects,
-)
 
-log = logging.getLogger(__name__)
 ClassType = Type[object]
 
 
@@ -116,8 +108,6 @@ def get_all_subclasses(cls: ClassType) -> List[ClassType]:
     for subclass in cls.__subclasses__():
         if not isabstract(subclass):
             all_subclasses.append(subclass)
-        # else:
-        #     log.critical(f"Skipping abstract class: {subclass.__name__}")
         all_subclasses.extend(get_all_subclasses(subclass))  # recursive
     all_subclasses.sort(key=lambda c: c.__name__.lower())
     return all_subclasses
@@ -255,45 +245,45 @@ def possible_processor_names_without_external_tools() -> List[str]:
     ]
 
 
+def _strip_docstring(x: str, indent: int = 4) -> str:
+    """
+    Removes some blank lines and leading whitespace from docstrings.
+    """
+    leading = " " * indent
+    # Remove left-hand spaces
+    lines = [
+        line[len(leading):] if line.startswith(leading) else line
+        for line in x.split("\n")
+    ]
+    # Remove initial and terminal blank lines
+    while lines and not lines[0]:
+        lines = lines[1:]
+    while lines and not lines[-1]:
+        lines = lines[:-1]
+    # Rejoin
+    return "\n".join(lines)
+
+
 def possible_processor_table() -> str:
     """
     Returns a pretty-formatted string containing a table of all NLP processors
     and their description (from their docstring).
     """
-    pt = prettytable.PrettyTable(["NLP name", "Description"],
-                                 header=True,
-                                 border=True)
+    pt = prettytable.PrettyTable(
+        ["NLP name", "Description"],
+        header=True,
+        border=True,
+        hrules=prettytable.ALL,
+    )
     pt.align = 'l'
     pt.valign = 't'
     pt.max_width = 80
     for cls in all_parser_classes():
         name = cls.classname()
         description = getattr(cls, '__doc__', "") or ""
-        ptrow = [name, description]
+        ptrow = [name, _strip_docstring(description)]
         pt.add_row(ptrow)
     return pt.get_string()
-
-
-def test_all_processors(verbose: bool = False,
-                        skip_validators: bool = False) -> None:
-    """
-    Self-tests all NLP processors.
-
-    Args:
-        verbose: be verbose?
-        skip_validators: skip validator classes?
-    """
-    for cls in all_parser_classes():
-        if skip_validators and cls.classname().endswith('Validator'):
-            continue
-        log.info("Testing parser class: {}".format(cls.classname()))
-        instance = cls(None, None)
-        log.info("... instantiated OK")
-        schema_json = instance.nlprp_processor_info_json(
-            indent=4, sort_keys=True, sql_dialect=SqlDialects.MYSQL)
-        log.info(f"NLPRP processor information:\n{schema_json}")
-        instance.test(verbose=verbose)
-    log.info("Tests completed successfully.")
 
 
 def all_crate_python_processors_nlprp_processor_info(
@@ -319,8 +309,3 @@ def all_crate_python_processors_nlprp_processor_info(
             proc_info.update(extra_dict)
         allprocs.append(proc_info)
     return allprocs
-
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    test_all_processors()

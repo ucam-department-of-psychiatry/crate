@@ -44,11 +44,9 @@ commit:
 import logging
 from typing import List, Optional, Tuple
 
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-
 from crate_anon.common.regex_helpers import WORD_BOUNDARY
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
-from crate_anon.nlp_manager.regex_numbers import UNSIGNED_INTEGER
+from crate_anon.nlp_manager.regex_numbers import IGNORESIGN_INTEGER
 from crate_anon.nlp_manager.regex_parser import (
     APOSTROPHE,
     NumeratorOutOfDenominatorParser,
@@ -127,7 +125,7 @@ class Ace(NumeratorOutOfDenominatorParser):
     """
     Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III) total score.
 
-    The default denominator is 100 but it support other values if given
+    The default denominator is 100 but it supports other values if given
     explicitly.
     """
     NAME = "ACE"
@@ -138,11 +136,11 @@ class Ace(NumeratorOutOfDenominatorParser):
             (?: \s* -? \s*
                 (?: R | III | 111
                     # or: 3 when not followed by an "out of X" expression
-                    | (?: 3 (?! \s* {OUT_OF_SEPARATOR} \s* {UNSIGNED_INTEGER}))
+                    | (?: 3 (?! \s* {OUT_OF_SEPARATOR} \s* {IGNORESIGN_INTEGER}))
                 ) \b
             )?+
         {WORD_BOUNDARY} )
-    """
+    """  # noqa
     # ... note the possessive "?+" above; see tests below.
 
     def __init__(self,
@@ -369,22 +367,3 @@ ALL_COGNITIVE_NLP_AND_VALIDATORS = [
     (Moca, MocaValidator),
 ]
 ALL_COGNITIVE_NLP, ALL_COGNITIVE_VALIDATORS = zip(*ALL_COGNITIVE_NLP_AND_VALIDATORS)  # noqa
-
-
-# =============================================================================
-# Command-line entry point
-# =============================================================================
-
-def test_all(verbose: bool = False) -> None:
-    """
-    Test all parsers in this module.
-    """
-    for cls in ALL_COGNITIVE_NLP:
-        cls(None, None).test(verbose=verbose)
-    for cls in ALL_COGNITIVE_VALIDATORS:  # we want the ACE validator in particular  # noqa
-        cls(None, None).test(verbose=verbose)
-
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    test_all(verbose=True)

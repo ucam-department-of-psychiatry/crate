@@ -45,8 +45,6 @@ from abc import ABC
 import logging
 from typing import List, Optional, Tuple
 
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-
 from crate_anon.common.regex_helpers import (
     regex_or,
     WORD_BOUNDARY,
@@ -1041,20 +1039,3 @@ ALL_HAEMATOLOGY_NLP_AND_VALIDATORS = [
     (Wbc, WbcValidator),
 ]
 ALL_HAEMATOLOGY_NLP, ALL_HAEMATOLOGY_VALIDATORS = zip(*ALL_HAEMATOLOGY_NLP_AND_VALIDATORS)  # noqa
-
-
-# =============================================================================
-# Command-line entry point
-# =============================================================================
-
-def test_all(verbose: bool = False) -> None:
-    """
-    Test all parsers in this module.
-    """
-    for cls in ALL_HAEMATOLOGY_NLP:
-        cls(None, None).test(verbose=verbose)
-
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    test_all(verbose=True)
