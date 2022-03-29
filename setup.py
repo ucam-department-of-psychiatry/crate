@@ -145,7 +145,6 @@ INSTALL_REQUIRES = [
     # crate_anon.anonymise.altermethod.py
     "sphinx==4.2.0",  # documentation
     "sphinx_rtd_theme==0.5.0",  # documentation
-    "sphinxcontrib-openapi==0.7.0",  # API documentation
 
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually

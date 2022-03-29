@@ -256,8 +256,34 @@ def main():
     run_cmd(["crate_anon_web_django_manage", "--help"],
             join(DevPath.DOCS_ANON_DIR,
                  "_crate_anon_web_django_manage_help.txt"))
-    run_cmd(["crate_anon_web_django_manage", "spectacular"],
-            join(DevPath.DOCS_ANON_DIR, "_crate_api_schema.yaml"))
+    api_schema_file = join(DevPath.DOCS_ANON_DIR, "_crate_api_schema.yaml")
+    run_cmd(["crate_anon_web_django_manage", "spectacular"], api_schema_file)
+
+    # Ideally we would use https://github.com/sphinx-contrib/openapi but it
+    # hasn't been maintained since 2020 and doesn't work with our schema.
+    # Plus the lead contributor is based in Ukraine and probably has more
+    # important things to worry about right now.
+
+    # So we create a static HTML page of the API docs and include this in
+    # docs/source/anonymisation/api.rst
+
+    # For this you'll need nvm installed:
+    # $ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash  # noqa: E501
+    # $ source ~/.bashrc
+    # $ nvm install lts/erbium
+    subprocess.run([
+        "npx", "redoc-cli",
+        "bundle", api_schema_file,
+        "-o", join(DevPath.DOCS_ANON_DIR, "_crate_api.html"),
+        # Don't display search box
+        "--options.disableSearch=true",
+        # Force single column layout
+        "--options.theme.breakpoints.small=999999rem",
+        "--options.theme.breakpoints.medium=1000000rem",
+        "--options.theme.breakpoints.large=1000000rem",
+        # do not inject Authentication section automatically.
+        "--options.noAutoAuth=true",
+    ], check=True)
 
     # -------------------------------------------------------------------------
     # NLP

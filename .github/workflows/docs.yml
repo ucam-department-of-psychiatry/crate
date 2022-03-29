@@ -13,6 +13,9 @@ jobs:
               run: |
                   set -xe
                   sudo apt-get install texlive-latex-extra dvipng
+                  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+                  source ${HOME}/.bashrc
+                  nvm install lts/erbium
                   python -m venv ${HOME}/venv
                   source ${HOME}/venv/bin/activate
                   python -VV

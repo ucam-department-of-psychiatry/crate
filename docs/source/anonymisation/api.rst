@@ -41,4 +41,5 @@ The available commands are:
 Anonymisation API documentation
 -------------------------------
 
-.. openapi:: _crate_api_schema.yaml
+.. raw:: html
+   :file: _crate_api.html
