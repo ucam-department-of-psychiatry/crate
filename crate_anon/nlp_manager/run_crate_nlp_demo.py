@@ -39,7 +39,7 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from crate_anon.common.constants import DEMO_NLP_INPUT_TERMINATOR
 from crate_anon.nlp_manager.all_processors import (
     get_nlp_parser_class,
-    possible_processor_names_without_external_tools,
+    possible_local_processor_names_without_external_tools,
 )
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 
@@ -151,7 +151,7 @@ def main() -> None:
     Command-line entry point.
     """
     all_processors = "all"
-    possible_proc_names = possible_processor_names_without_external_tools()
+    possible_proc_names = possible_local_processor_names_without_external_tools()  # noqa
     possible_processor_options = [all_processors] + possible_proc_names
 
     # noinspection PyTypeChecker

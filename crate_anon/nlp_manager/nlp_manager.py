@@ -96,7 +96,7 @@ from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.nlp_manager.all_processors import (
     make_nlp_parser_unconfigured,
-    possible_processor_names,
+    possible_processor_names_including_cloud,
     possible_processor_table,
 )
 from crate_anon.nlp_manager.base_nlp_parser import (
@@ -1175,7 +1175,7 @@ def inner_main() -> None:
 
     # List or describe processors?
     if args.listprocessors:
-        print("\n".join(possible_processor_names()))
+        print("\n".join(possible_processor_names_including_cloud()))
         return
     if args.describeprocessors:
         print(possible_processor_table())

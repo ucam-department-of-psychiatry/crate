@@ -113,7 +113,7 @@ def get_all_subclasses(cls: ClassType) -> List[ClassType]:
     return all_subclasses
 
 
-def all_parser_classes() -> List[Type[BaseNlpParser]]:
+def all_local_parser_classes() -> List[Type[BaseNlpParser]]:
     """
     Return all classes that are non-abstract subclasses of
     :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`.
@@ -227,20 +227,27 @@ def make_nlp_parser_unconfigured(classname: str,
     return None
 
 
-def possible_processor_names() -> List[str]:
+def possible_local_processor_names() -> List[str]:
+    """
+    Returns all NLP processor names that can run locally.
+    """
+    return [cls.classname() for cls in all_local_parser_classes()]
+
+
+def possible_processor_names_including_cloud() -> List[str]:
     """
     Returns all NLP processor names.
     """
-    return [cls.classname() for cls in all_parser_classes()]
+    return [cls.classname() for cls in all_tablemaker_classes()]
 
 
-def possible_processor_names_without_external_tools() -> List[str]:
+def possible_local_processor_names_without_external_tools() -> List[str]:
     """
     Returns all NLP processor names for processors that don't rely on external
     tools.
     """
     return [
-        cls.classname() for cls in all_parser_classes()
+        cls.classname() for cls in all_local_parser_classes()
         if not cls.uses_external_tool
     ]
 
@@ -278,7 +285,7 @@ def possible_processor_table() -> str:
     pt.align = 'l'
     pt.valign = 't'
     pt.max_width = 80
-    for cls in all_parser_classes():
+    for cls in all_tablemaker_classes():
         name = cls.classname()
         description = getattr(cls, '__doc__', "") or ""
         ptrow = [name, _strip_docstring(description)]
@@ -302,7 +309,7 @@ def all_crate_python_processors_nlprp_processor_info(
         list: list of processor information dictionaries
     """
     allprocs = []  # type: JsonArrayType
-    for cls in all_parser_classes():
+    for cls in all_local_parser_classes():
         instance = cls(None, None)
         proc_info = instance.nlprp_processor_info(sql_dialect=sql_dialect)
         if extra_dict:

@@ -679,7 +679,7 @@ class LithiumValidator(ValidatorBase):
 
 class Tsh(SimpleNumericalResultParser):
     """
-    Thyroid-stimulating hormone (TSH), in mU/L.
+    Thyroid-stimulating hormone (TSH), in mIU/L (or μIU/mL).
     """
     TSH_BASE = fr"""
         {WORD_BOUNDARY}

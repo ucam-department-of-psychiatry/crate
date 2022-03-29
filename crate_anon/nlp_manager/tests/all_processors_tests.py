@@ -31,7 +31,7 @@ crate_anon/nlp_manager/tests/all_processors_tests.py
 import logging
 import unittest
 
-from crate_anon.nlp_manager.all_processors import all_parser_classes
+from crate_anon.nlp_manager.all_processors import all_local_parser_classes
 from crate_anon.nlprp.constants import SqlDialects
 
 log = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ class TestNlpProcessors(unittest.TestCase):
         verbose = True
         skip_validators: bool = False
 
-        for cls in all_parser_classes():
+        for cls in all_local_parser_classes():
             if skip_validators and cls.classname().endswith('Validator'):
                 continue
             log.info("Testing parser class: {}".format(cls.classname()))

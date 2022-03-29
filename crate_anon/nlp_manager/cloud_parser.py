@@ -56,8 +56,9 @@ log = logging.getLogger(__name__)
 
 class Cloud(TableMaker):
     """
-    Class to hold information on remote processors and create the relavant
-    tables.
+    [SPECIAL.] Abstract NLP processor that passes information to a remote
+    (cloud-based) NLP system via the NLPRP protocol. The processor at the other
+    end might be of any kind.
     """
     # Index for anonymous tables
     i = 0
