@@ -66,6 +66,9 @@ log = logging.getLogger(__name__)
 class Mmse(NumeratorOutOfDenominatorParser):
     """
     Mini-mental state examination (MMSE).
+
+    The default denominator is 30, but it supports other values if given
+    explicitly.
     """
     MMSE = fr"""
         (?: {WORD_BOUNDARY}
@@ -109,9 +112,7 @@ class Mmse(NumeratorOutOfDenominatorParser):
 
 class MmseValidator(ValidatorBase):
     """
-    Validator for Mmse
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Mmse (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -125,6 +126,9 @@ class MmseValidator(ValidatorBase):
 class Ace(NumeratorOutOfDenominatorParser):
     """
     Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III) total score.
+
+    The default denominator is 100 but it support other values if given
+    explicitly.
     """
     NAME = "ACE"
     ACE = fr"""
@@ -210,9 +214,7 @@ class Ace(NumeratorOutOfDenominatorParser):
 
 class AceValidator(ValidatorBase):
     """
-    Validator for Ace
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Ace (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -242,6 +244,9 @@ class AceValidator(ValidatorBase):
 class MiniAce(NumeratorOutOfDenominatorParser):
     """
     Mini-Addenbrooke's Cognitive Examination (M-ACE).
+
+    The default denominator is 30, but it supports other values if given
+    explicitly.
     """
     MACE = fr"""
         (?: {WORD_BOUNDARY}
@@ -290,9 +295,7 @@ class MiniAce(NumeratorOutOfDenominatorParser):
 
 class MiniAceValidator(ValidatorBase):
     """
-    Validator for MiniAce
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for MiniAce (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -306,6 +309,9 @@ class MiniAceValidator(ValidatorBase):
 class Moca(NumeratorOutOfDenominatorParser):
     """
     Montreal Cognitive Assessment (MOCA).
+
+    The default denominator is 30, but it supports other values if given
+    explicitly.
     """
     # todo:: MOCA NLP parser: support also "scored X on the MOCA"?
     MOCA = fr"""
@@ -345,9 +351,7 @@ class Moca(NumeratorOutOfDenominatorParser):
 
 class MocaValidator(ValidatorBase):
     """
-    Validator for Moca
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Moca (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:

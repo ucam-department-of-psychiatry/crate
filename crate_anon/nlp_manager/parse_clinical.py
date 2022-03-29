@@ -321,9 +321,7 @@ class Height(NumericalResultParser):
 
 class HeightValidator(ValidatorBase):
     """
-    Validator for Height
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Height (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -337,6 +335,7 @@ class HeightValidator(ValidatorBase):
 class Weight(NumericalResultParser):
     """
     Weight. Handles metric (e.g. "57kg") and imperial (e.g. "10 st 2 lb").
+    Requires units to be specified.
     """
     METRIC_WEIGHT = fr"""
         (                           # capture group 4
@@ -483,6 +482,7 @@ class Weight(NumericalResultParser):
         self.test_numerical_parser([
             ("Weight", []),  # should fail; no values
             ("her weight was 60.2kg", [60.2]),
+            ("her weight was 60.2", []),  # needs units
             ("Weight = 52.3kg", [52.3]),
             ("Weight: 80.8kgs", [80.8]),
             ("she weighs 61kg", [61]),
@@ -510,9 +510,7 @@ class Weight(NumericalResultParser):
 
 class WeightValidator(ValidatorBase):
     """
-    Validator for Weight
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Weight (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -525,7 +523,7 @@ class WeightValidator(ValidatorBase):
 
 class Bmi(SimpleNumericalResultParser):
     """
-    Body mass index (BMI) (in kg / m^2).
+    Body mass index (BMI), in kg / m^2.
     """
     BMI = fr"""
         {WORD_BOUNDARY}
@@ -574,9 +572,7 @@ class Bmi(SimpleNumericalResultParser):
 
 class BmiValidator(ValidatorBase):
     """
-    Validator for Bmi
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Bmi (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -820,9 +816,7 @@ class Bp(BaseNlpParser):
 
 class BpValidator(ValidatorBase):
     """
-    Validator for Bp
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Bp (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:

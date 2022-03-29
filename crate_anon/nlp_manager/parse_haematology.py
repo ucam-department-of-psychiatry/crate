@@ -84,7 +84,7 @@ log = logging.getLogger(__name__)
 
 class Haemoglobin(SimpleNumericalResultParser):
     """
-    Haemoglobin (Hb).
+    Haemoglobin (Hb). Default units are g/L; also supports g/dL.
 
     UK reporting for haemoglobin switched in 2013 from g/dL to g/L; see
     e.g.
@@ -161,9 +161,7 @@ class Haemoglobin(SimpleNumericalResultParser):
 
 class HaemoglobinValidator(ValidatorBase):
     """
-    Validator for Haemoglobin
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Haemoglobin (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -177,6 +175,7 @@ class HaemoglobinValidator(ValidatorBase):
 class Haematocrit(SimpleNumericalResultParser):
     """
     Haematocrit (Hct).
+    A dimensionless quantity (but supports L/L notation).
     """
     HAEMATOCRIT_BASE = fr"""
         {WORD_BOUNDARY} (?: Ha?ematocrit | Hct ) {WORD_BOUNDARY}
@@ -233,9 +232,7 @@ class Haematocrit(SimpleNumericalResultParser):
 
 class HaematocritValidator(ValidatorBase):
     """
-    Validator for Haematocrit
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Haematocrit (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -249,8 +246,9 @@ class HaematocritValidator(ValidatorBase):
 class RBC(SimpleNumericalResultParser):
     """
     Red blood cell count.
+    Default units are 10^12/L; also supports cells/mm^3 = cells/μL.
 
-    Typical:
+    A typical excerpt from a FBC report:
 
     .. code-block:: none
 
@@ -352,9 +350,7 @@ class RBC(SimpleNumericalResultParser):
 
 class RBCValidator(ValidatorBase):
     """
-    Validator for RBC
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for RBC (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -367,7 +363,7 @@ class RBCValidator(ValidatorBase):
 
 class Esr(SimpleNumericalResultParser):
     """
-    Erythrocyte sedimentation rate (ESR).
+    Erythrocyte sedimentation rate (ESR), in mm/h.
     """
     ESR_BASE = fr"""
         {WORD_BOUNDARY}
@@ -446,9 +442,7 @@ class Esr(SimpleNumericalResultParser):
 
 class EsrValidator(ValidatorBase):
     """
-    Validator for Esr
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Esr (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -471,6 +465,7 @@ class EsrValidator(ValidatorBase):
 class WbcBase(SimpleNumericalResultParser, ABC):
     """
     DO NOT USE DIRECTLY. White cell count base class.
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
     PREFERRED_UNIT_COLUMN = "value_billion_per_l"
     UNIT_MAPPING = {
@@ -540,6 +535,7 @@ class WbcBase(SimpleNumericalResultParser, ABC):
 class Wbc(WbcBase):
     """
     White cell count (WBC, WCC).
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
     WBC_BASE = r"""
         \b (?:
@@ -609,9 +605,7 @@ class Wbc(WbcBase):
 
 class WbcValidator(ValidatorBase):
     """
-    Validator for Wbc
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Wbc (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -625,6 +619,7 @@ class WbcValidator(ValidatorBase):
 class Neutrophils(WbcBase):
     """
     Neutrophil (polymorphonuclear leukoocte) count (absolute).
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
     NEUTROPHILS_BASE = r"""
         (?: \b absolute \s* )?
@@ -680,9 +675,7 @@ class Neutrophils(WbcBase):
 
 class NeutrophilsValidator(ValidatorBase):
     """
-    Validator for Neutrophils
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Neutrophils (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -696,6 +689,7 @@ class NeutrophilsValidator(ValidatorBase):
 class Lymphocytes(WbcBase):
     """
     Lymphocyte count (absolute).
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
     LYMPHOCYTES_BASE = r"""
         (?: \b absolute \s* )?
@@ -751,9 +745,7 @@ class Lymphocytes(WbcBase):
 
 class LymphocytesValidator(ValidatorBase):
     """
-    Validator for Lymphocytes
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Lymphocytes (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -767,6 +759,7 @@ class LymphocytesValidator(ValidatorBase):
 class Monocytes(WbcBase):
     """
     Monocyte count (absolute).
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
     MONOCYTES_BASE = r"""
         (?: \b absolute \s* )?
@@ -820,9 +813,7 @@ class Monocytes(WbcBase):
 
 class MonocytesValidator(ValidatorBase):
     """
-    Validator for Monocytes
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Monocytes (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -836,6 +827,7 @@ class MonocytesValidator(ValidatorBase):
 class Basophils(WbcBase):
     """
     Basophil count (absolute).
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
     BASOPHILS_BASE = r"""
         (?: \b absolute \s* )?
@@ -889,9 +881,7 @@ class Basophils(WbcBase):
 
 class BasophilsValidator(ValidatorBase):
     """
-    Validator for Basophils
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Basophils (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -905,6 +895,7 @@ class BasophilsValidator(ValidatorBase):
 class Eosinophils(WbcBase):
     """
     Eosinophil count (absolute).
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
     EOSINOPHILS_BASE = r"""
         (?: \b absolute \s* )?
@@ -959,9 +950,7 @@ class Eosinophils(WbcBase):
 
 class EosinophilsValidator(ValidatorBase):
     """
-    Validator for Eosinophils
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Eosinophils (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -975,6 +964,7 @@ class EosinophilsValidator(ValidatorBase):
 class Platelets(WbcBase):
     """
     Platelet count.
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
 
     Not actually a white blood cell, of course, but can share the same base
     class; platelets are expressed in the same units, of 10^9 / L.
@@ -1026,9 +1016,7 @@ class Platelets(WbcBase):
 
 class PlateletsValidator(ValidatorBase):
     """
-    Validator for Platelets
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Platelets (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:

@@ -94,7 +94,7 @@ log = logging.getLogger(__name__)
 
 class Crp(SimpleNumericalResultParser):
     """
-    C-reactive protein (CRP).
+    C-reactive protein (CRP). Default units are mg/L; also supports mg/dL.
 
     CRP units:
 
@@ -196,9 +196,7 @@ class Crp(SimpleNumericalResultParser):
 
 class CrpValidator(ValidatorBase):
     """
-    Validator for CRP
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Crp (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -212,7 +210,7 @@ class CrpValidator(ValidatorBase):
 
 class Sodium(SimpleNumericalResultParser):
     """
-    Sodium (Na).
+    Sodium (Na), in mM.
     """
     SODIUM_BASE = fr"""
         {WORD_BOUNDARY} (?: Na | Sodium ) {WORD_BOUNDARY}
@@ -291,9 +289,7 @@ class Sodium(SimpleNumericalResultParser):
 
 class SodiumValidator(ValidatorBase):
     """
-    Validator for Sodium
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Sodium (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -306,7 +302,7 @@ class SodiumValidator(ValidatorBase):
 
 class Potassium(SimpleNumericalResultParser):
     """
-    Potassium (K).
+    Potassium (K), in mM.
     """
     POTASSIUM_BASE = fr"""
         {WORD_BOUNDARY} (?: K | Potassium ) {WORD_BOUNDARY}
@@ -385,9 +381,7 @@ class Potassium(SimpleNumericalResultParser):
 
 class PotassiumValidator(ValidatorBase):
     """
-    Validator for Potassium
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Potassium (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -400,7 +394,7 @@ class PotassiumValidator(ValidatorBase):
 
 class Urea(SimpleNumericalResultParser):
     """
-    Urea.
+    Urea, in mM.
     """
     UREA_BASE = fr"""
         {WORD_BOUNDARY} U(?:r(?:ea)?)? {WORD_BOUNDARY}
@@ -475,9 +469,7 @@ class Urea(SimpleNumericalResultParser):
 
 class UreaValidator(ValidatorBase):
     """
-    Validator for Urea
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Urea (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -490,7 +482,7 @@ class UreaValidator(ValidatorBase):
 
 class Creatinine(SimpleNumericalResultParser):
     """
-    Creatinine. Default units are micromolar (SI).
+    Creatinine. Default units are micromolar (SI); also supports mg/dL.
     """
     CREATININE_BASE = fr"""
         {WORD_BOUNDARY} Cr(?:eat(?:inine)?)? {WORD_BOUNDARY}
@@ -587,9 +579,7 @@ class Creatinine(SimpleNumericalResultParser):
 
 class CreatinineValidator(ValidatorBase):
     """
-    Validator for Creatinine
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Creatinine (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -602,7 +592,7 @@ class CreatinineValidator(ValidatorBase):
 
 class Lithium(SimpleNumericalResultParser):
     """
-    Lithium (Li) levels (for blood tests, not doses).
+    Lithium (Li) levels (for blood tests, not doses), in mM.
     """
     LITHIUM_BASE = fr"""
         {WORD_BOUNDARY} Li(?:thium)? {WORD_BOUNDARY}
@@ -678,9 +668,7 @@ class Lithium(SimpleNumericalResultParser):
 
 class LithiumValidator(ValidatorBase):
     """
-    Validator for Lithium
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Lithium (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -693,7 +681,7 @@ class LithiumValidator(ValidatorBase):
 
 class Tsh(SimpleNumericalResultParser):
     """
-    Thyroid-stimulating hormone (TSH).
+    Thyroid-stimulating hormone (TSH), in mU/L.
     """
     TSH_BASE = fr"""
         {WORD_BOUNDARY}
@@ -769,9 +757,7 @@ class Tsh(SimpleNumericalResultParser):
 
 class TshValidator(ValidatorBase):
     """
-    Validator for TSH
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for TSH (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -784,7 +770,7 @@ class TshValidator(ValidatorBase):
 
 class AlkPhos(SimpleNumericalResultParser):
     """
-    Alkaline phosphatase (ALP, AlkP, AlkPhos).
+    Alkaline phosphatase (ALP, AlkP, AlkPhos). Units are U/L.
     """
     ALKP_BASE = fr"""
         {WORD_BOUNDARY}
@@ -856,9 +842,7 @@ class AlkPhos(SimpleNumericalResultParser):
 
 class AlkPhosValidator(ValidatorBase):
     """
-    Validator for ALP
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for AlkPhos (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -872,6 +856,7 @@ class AlkPhosValidator(ValidatorBase):
 class ALT(SimpleNumericalResultParser):
     """
     Alanine aminotransferase (ALT), a.k.a. alanine transaminase (ALT).
+    Units are U/L.
 
     A.k.a. serum glutamate-pyruvate transaminase (SGPT), or serum
     glutamate-pyruvic transaminase (SGPT), but not a.k.a. those in recent
@@ -937,9 +922,7 @@ class ALT(SimpleNumericalResultParser):
 
 class ALTValidator(ValidatorBase):
     """
-    Validator for ALT
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for ALT (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -952,7 +935,7 @@ class ALTValidator(ValidatorBase):
 
 class GammaGT(SimpleNumericalResultParser):
     """
-    Gamma-glutamyl transferase (gGT).
+    Gamma-glutamyl transferase (gGT), in U/L.
     """
     GGT_BASE = fr"""
         {WORD_BOUNDARY}
@@ -1021,9 +1004,7 @@ class GammaGT(SimpleNumericalResultParser):
 
 class GammaGTValidator(ValidatorBase):
     """
-    Validator for gGT
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for GammaGT (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -1036,7 +1017,7 @@ class GammaGTValidator(ValidatorBase):
 
 class Bilirubin(SimpleNumericalResultParser):
     """
-    Total bilirubin.
+    Total bilirubin. Units are μM.
     """
     BILIRUBIN_BASE = fr"""
         {WORD_BOUNDARY}
@@ -1109,9 +1090,7 @@ class Bilirubin(SimpleNumericalResultParser):
 
 class BilirubinValidator(ValidatorBase):
     """
-    Validator for bilirubin.
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Bilirubin (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -1124,7 +1103,7 @@ class BilirubinValidator(ValidatorBase):
 
 class Albumin(SimpleNumericalResultParser):
     """
-    Albumin (Alb).
+    Albumin (Alb). Units are g/L.
     """
     ALBUMIN_BASE = fr"""
         {WORD_BOUNDARY}
@@ -1186,9 +1165,7 @@ class Albumin(SimpleNumericalResultParser):
 
 class AlbuminValidator(ValidatorBase):
     """
-    Validator for Albumin
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Albumin (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -1201,11 +1178,10 @@ class AlbuminValidator(ValidatorBase):
 
 class Glucose(SimpleNumericalResultParser):
     """
-    Glucose.
-
-    - By Emanuele Osimo, Feb 2019.
-    - Some modifications by Rudolf Cardinal, Feb 2019.
+    Glucose. Default units are mM; also supports mg/dL.
     """
+    # By Emanuele Osimo, Feb 2019.
+    # Some modifications by Rudolf Cardinal, Feb 2019.
     GLUCOSE_BASE = fr"""
         {WORD_BOUNDARY} glu(?:c(?:ose)?)? {WORD_BOUNDARY}
         # glu, gluc, glucose
@@ -1310,9 +1286,7 @@ class Glucose(SimpleNumericalResultParser):
 
 class GlucoseValidator(ValidatorBase):
     """
-    Validator for glucose
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Glucose (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -1326,10 +1300,10 @@ class GlucoseValidator(ValidatorBase):
 class LDLCholesterol(SimpleNumericalResultParser):
     """
     Low density lipoprotein (LDL) cholesterol.
-
-    - By Emanuele Osimo, Feb 2019.
-    - Some modifications by Rudolf Cardinal, Feb 2019.
+    Default units are mM; also supports mg/dL.
     """
+    # By Emanuele Osimo, Feb 2019.
+    # Some modifications by Rudolf Cardinal, Feb 2019.
     LDL_BASE = fr"""
         {WORD_BOUNDARY}
         LDL [-\s]*
@@ -1427,9 +1401,7 @@ class LDLCholesterol(SimpleNumericalResultParser):
 
 class LDLCholesterolValidator(ValidatorBase):
     """
-    Validator for LDL cholesterol
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for LDLCholesterol (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -1443,10 +1415,10 @@ class LDLCholesterolValidator(ValidatorBase):
 class HDLCholesterol(SimpleNumericalResultParser):
     """
     High-density lipoprotein (HDL) cholesterol.
-
-    - By Emanuele Osimo, Feb 2019.
-    - Some modifications by Rudolf Cardinal, Feb 2019.
+    Default units are mM; also supports mg/dL.
     """
+    # By Emanuele Osimo, Feb 2019.
+    # Some modifications by Rudolf Cardinal, Feb 2019.
     HDL_BASE = fr"""
         {WORD_BOUNDARY}
         HDL [-\s]*
@@ -1544,9 +1516,7 @@ class HDLCholesterol(SimpleNumericalResultParser):
 
 class HDLCholesterolValidator(ValidatorBase):
     """
-    Validator for HDL cholesterol
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for HDLCholesterol (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -1560,6 +1530,7 @@ class HDLCholesterolValidator(ValidatorBase):
 class TotalCholesterol(SimpleNumericalResultParser):
     """
     Total or undifferentiated cholesterol.
+    Default units are mM; also supports mg/dL.
     """
     CHOLESTEROL_BASE = fr"""
         {WORD_BOUNDARY}
@@ -1653,9 +1624,7 @@ class TotalCholesterol(SimpleNumericalResultParser):
 
 class TotalCholesterolValidator(ValidatorBase):
     """
-    Validator for total cholesterol
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for TotalCholesterol (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -1669,10 +1638,10 @@ class TotalCholesterolValidator(ValidatorBase):
 class Triglycerides(SimpleNumericalResultParser):
     """
     Triglycerides.
-
-    - By Emanuele Osimo, Feb 2019.
-    - Some modifications by Rudolf Cardinal, Feb 2019.
+    Default units are mM; also supports mg/dL.
     """
+    # By Emanuele Osimo, Feb 2019.
+    # Some modifications by Rudolf Cardinal, Feb 2019.
     TG_BASE = fr"""
         {WORD_BOUNDARY}
         (?: Triglyceride[s]? | TG )
@@ -1768,9 +1737,7 @@ class Triglycerides(SimpleNumericalResultParser):
 
 class TriglyceridesValidator(ValidatorBase):
     """
-    Validator for triglycerides
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Triglycerides (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
@@ -1830,13 +1797,13 @@ def hba1c_mmol_per_mol_from_percent(percent: Union[float, str]) \
 class HbA1c(SimpleNumericalResultParser):
     """
     Glycosylated (glycated) haemoglobin (HbA1c).
-
-    - By Emanuele Osimo, Feb 2019.
-    - Some modifications by Rudolf Cardinal, Feb 2019.
+    Default units are mmol/mol; also supports %.
 
     Note: HbA1 is different
     (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2541274).
     """
+    # By Emanuele Osimo, Feb 2019.
+    # Some modifications by Rudolf Cardinal, Feb 2019.
     HBA1C_BASE = fr"""
         {WORD_BOUNDARY}
         (?:
@@ -1926,9 +1893,7 @@ class HbA1c(SimpleNumericalResultParser):
 
 class HbA1cValidator(ValidatorBase):
     """
-    Validator for HbA1c
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for HbA1c (see help for explanation).
     """
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:

@@ -85,6 +85,9 @@ class Gate(BaseNlpParser):
     We send text to it, it parses the text, and it sends us back results, which
     we return as dictionaries. The specific text sought depends on the
     configuration file and the specific GATE program used.
+    """
+
+    _ = """
 
     Notes:
 
