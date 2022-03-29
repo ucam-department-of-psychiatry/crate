@@ -127,7 +127,6 @@ extensions = [
     # https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings  # noqa
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
-    'sphinxcontrib.openapi',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
