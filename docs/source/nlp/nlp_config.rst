@@ -700,6 +700,24 @@ processor_name
 Name of the remote processor; see :ref:`NLPRP list_processors
 <nlprp_list_processors>`.
 
+Note that this is **case sensitive**. To ask the remote server what processor
+names it offers, use the :ref:`crate_nlp <crate_nlp>` tool like this:
+
+.. code-block:: bash
+
+    crate_nlp --config MYCONFIG --nlpdef MYNLPDEF --print_cloud_processors
+
+That will, in sequence:
+
+- read the config called ``MYCONFIG``;
+- look for an NLP definition section marked ``[nlpdef:MYNLPDEF]``;
+- look for a cloud_config_ parameter in that section;
+- look up the corresponding :ref:`cloud server <nlp_config_section_cloud_nlp>`
+  definition, including the URL of the remote server;
+- ask the server for details of all its processors;
+- print the results (in NLPRP JSON format; see the NLPLP :ref:`list_processors
+  <nlprp_list_processors>` command for details).
+
 
 processor_version
 #################

@@ -89,6 +89,8 @@
 |                           | We send text to it, it parses the text, and it sends us back results, which      |
 |                           | we return as dictionaries. The specific text sought depends on the               |
 |                           | configuration file and the specific GATE program used.                           |
+|                           |                                                                                  |
+|                           | For details of GATE, see https://www.gate.ac.uk/.                                |
 +---------------------------+----------------------------------------------------------------------------------+
 | Glucose                   | Glucose. Default units are mM; also supports mg/dL.                              |
 +---------------------------+----------------------------------------------------------------------------------+
@@ -148,6 +150,9 @@
 +---------------------------+----------------------------------------------------------------------------------+
 | Medex                     | Class controlling a Medex-UIMA external process, via our custom Java             |
 |                           | interface, ``CrateMedexPipeline.java``.                                          |
+|                           |                                                                                  |
+|                           | MedEx-UIMA is a medication-finding tool:                                         |
+|                           | https://www.ncbi.nlm.nih.gov/pubmed/25954575.                                    |
 +---------------------------+----------------------------------------------------------------------------------+
 | MiniAce                   | Mini-Addenbrooke's Cognitive Examination (M-ACE).                                |
 |                           |                                                                                  |
