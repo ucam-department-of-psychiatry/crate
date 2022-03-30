@@ -42,6 +42,7 @@ from cardinal_pythonlib.json.typing_helpers import (
 )
 import prettytable
 
+from crate_anon.common.stringfunc import get_docstring, trim_docstring
 # noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser, TableMaker
 # noinspection PyUnresolvedReferences
@@ -252,43 +253,28 @@ def possible_local_processor_names_without_external_tools() -> List[str]:
     ]
 
 
-def _strip_docstring(x: str, indent: int = 4) -> str:
-    """
-    Removes some blank lines and leading whitespace from docstrings.
-    """
-    leading = " " * indent
-    # Remove left-hand spaces
-    lines = [
-        line[len(leading):] if line.startswith(leading) else line
-        for line in x.split("\n")
-    ]
-    # Remove initial and terminal blank lines
-    while lines and not lines[0]:
-        lines = lines[1:]
-    while lines and not lines[-1]:
-        lines = lines[:-1]
-    # Rejoin
-    return "\n".join(lines)
-
-
-def possible_processor_table() -> str:
+def possible_processor_table(description_width: int = 75) -> str:
     """
     Returns a pretty-formatted string containing a table of all NLP processors
     and their description (from their docstring).
     """
-    pt = prettytable.PrettyTable(
-        ["NLP name", "Description"],
+    col_name = "NLP name"
+    col_desc = "Description"
+    pt = prettytable.PrettyTable(  # For options, see source
+        [col_name, col_desc],
         header=True,
         border=True,
-        hrules=prettytable.ALL,
+        hrules=prettytable.ALL,  # horizontal rules between all cells
+        align="l",  # default alignment for all columns (left)
+        valign="t",  # default alignment for all rows (top)
     )
-    pt.align = 'l'
-    pt.valign = 't'
-    pt.max_width = 80
+    pt.max_width[col_desc] = description_width
+    # ... the docstrings are usually indented 4 and wrapped to 79, so up to 75
+    # wide.
     for cls in all_tablemaker_classes():
         name = cls.classname()
-        description = getattr(cls, '__doc__', "") or ""
-        ptrow = [name, _strip_docstring(description)]
+        description = get_docstring(cls)
+        ptrow = [name, trim_docstring(description)]
         pt.add_row(ptrow)
     return pt.get_string()
 

@@ -31,7 +31,7 @@ crate_anon/common/stringfunc.py
 import fnmatch
 from functools import lru_cache
 import sys
-from typing import Any, Pattern, TextIO
+from typing import Any, Pattern, TextIO, Type
 
 import regex
 
@@ -136,3 +136,70 @@ def does_text_contain_word_chars(text: str) -> bool:
     #   return bool(text and regex_any_word_char.match(text))
     # Faster:
     return bool(text and any(33 <= ord(c) <= 126 for c in text))
+
+
+# =============================================================================
+# Docstring manipulation
+# =============================================================================
+
+def get_docstring(cls: Type) -> str:
+    """
+    Fetches a docstring from a class.
+    """
+    # PyCharm thinks that __doc__ is bytes, but it's str!
+    # ... ah, no, now it's stopped believing that.
+    return cls.__doc__ or ""
+    # This is likely unnecessary: even integer variables have the __doc__
+    # attribute.
+    # return getattr(cls, '__doc__', "") or ""
+
+
+def compress_docstring(docstring: str) -> str:
+    """
+    Splats a docstring onto a single line, compressing all whitespace.
+    """
+    docstring = docstring.replace("\n", " ")
+    # https://stackoverflow.com/questions/2077897/substitute-multiple-whitespace-with-single-whitespace-in-python
+    return " ".join(docstring.split())
+
+
+def trim_docstring(docstring: str) -> str:
+    """
+    Removes initial/terminal blank lines and leading whitespace from
+    docstrings.
+
+    This is the PEP257 implementation (https://peps.python.org/pep-0257/),
+    except with ``sys.maxint`` replaced by ``sys.maxsize`` (see
+    https://docs.python.org/3.1/whatsnew/3.0.html#integers).
+
+    Demonstration:
+
+    .. code-block:: python
+
+        from crate_anon.common.stringfunc import trim_docstring
+        print(trim_docstring.__doc__)
+        print(trim_docstring(trim_docstring.__doc__))
+    """
+    if not docstring:
+        return ''
+    # Convert tabs to spaces (following the normal Python rules)
+    # and split into a list of lines:
+    lines = docstring.expandtabs().splitlines()
+    # Determine minimum indentation (first line doesn't count):
+    indent = sys.maxsize
+    for line in lines[1:]:
+        stripped = line.lstrip()
+        if stripped:
+            indent = min(indent, len(line) - len(stripped))
+    # Remove indentation (first line is special):
+    trimmed = [lines[0].strip()]
+    if indent < sys.maxsize:
+        for line in lines[1:]:
+            trimmed.append(line[indent:].rstrip())
+    # Strip off trailing and leading blank lines:
+    while trimmed and not trimmed[-1]:
+        trimmed.pop()
+    while trimmed and not trimmed[0]:
+        trimmed.pop(0)
+    # Return a single string:
+    return '\n'.join(trimmed)

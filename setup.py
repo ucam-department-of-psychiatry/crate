@@ -96,7 +96,7 @@ INSTALL_REQUIRES = [
     "pendulum==2.1.2",  # dates/times
     "Pillow==9.0.1",  # image processing; import as PIL (Python Imaging Library)  # noqa
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
-    "prettytable==0.7.2",  # pretty formating of text-based tables
+    "prettytable==3.2.0",  # pretty formating of text-based tables
     "psutil==5.7.2",  # process management
     "pyexcel-ods==0.6.0",  # for reading/writing ODS files
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)

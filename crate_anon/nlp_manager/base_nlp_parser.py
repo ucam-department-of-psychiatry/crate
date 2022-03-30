@@ -57,7 +57,11 @@ from sqlalchemy.sql.schema import MetaData
 from sqlalchemy.types import Integer, Text
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
-from crate_anon.common.stringfunc import does_text_contain_word_chars
+from crate_anon.common.stringfunc import (
+    compress_docstring,
+    does_text_contain_word_chars,
+    get_docstring,
+)
 from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
     FN_SRCPKVAL,
@@ -872,11 +876,7 @@ class BaseNlpParser(TableMaker):
 
         Uses each processor's docstring, and reformats it slightly.
         """
-        # PyCharm thinks that __doc__ is bytes, but it's str!
-        docstring = str(cls.__doc__)
-        docstring = docstring.replace("\n", " ")
-        # https://stackoverflow.com/questions/2077897/substitute-multiple-whitespace-with-single-whitespace-in-python
-        return " ".join(docstring.split())
+        return compress_docstring(get_docstring(cls))
 
     def nlprp_server_processor(self, sql_dialect: str = None) \
             -> NlprpServerProcessor:
