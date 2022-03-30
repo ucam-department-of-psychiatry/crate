@@ -107,6 +107,7 @@ from crate_anon.nlp_manager.constants import (
     DEFAULT_REPORT_EVERY_NLP,
     MAX_STRING_PK_LENGTH,
     NLP_CONFIG_ENV_VAR,
+    NlpDefConfigKeys,
 )
 from crate_anon.nlp_manager.input_field_config import (
     InputFieldConfig,
@@ -1093,10 +1094,10 @@ def inner_main() -> None:
         help="Print a demo config file")
     info_actions.add_argument(
         "--listprocessors", action="store_true",
-        help="Show possible built-in NLP processor names")
+        help="Show all possible built-in NLP processor names")
     info_actions.add_argument(
         "--describeprocessors", action="store_true",
-        help="Show details of built-in NLP processors")
+        help="Show details of all built-in NLP processors")
     info_actions.add_argument(
         "--test_nlp", action="store_true",
         help="Test the NLP processor(s) for the selected definition, "
@@ -1104,12 +1105,17 @@ def inner_main() -> None:
     )
     info_actions.add_argument(
         "--print_local_processors", action="store_true",
-        help="Show NLPRP JSON for local processors that are part of the "
-             "chosen NLP definition, then stop")
+        help="For the chosen NLP definition, establish which local NLP "
+             "processors are involved (if any). Show detailed information "
+             "about these processors (as NLPRP JSON), then stop")
     info_actions.add_argument(
         "--print_cloud_processors", action="store_true",
-        help="Show NLPRP JSON for cloud (remote) processors that are part of "
-             "the chosen NLP definition, then stop")
+        help=f"For the chosen NLP definition, establish the relevant cloud "
+             f"server, if applicable (from the "
+             f"{NlpDefConfigKeys.CLOUD_CONFIG!r} parameter). Ask that remote "
+             f"server about its available NLP processors. Show detailed "
+             f"information about these remote processors (as NLPRP JSON), "
+             f"then stop")
     info_actions.add_argument(
         "--count", action="store_true",
         help="Count records in source/destination databases, then stop")
