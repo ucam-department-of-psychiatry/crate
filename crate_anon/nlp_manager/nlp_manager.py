@@ -715,8 +715,9 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
                 records_exist = True
                 uncommitted_data = True
                 # 'metadata' is just 'other_values' from before
-                metadata = result[NKeys.METADATA]
-                pkval = metadata[FN_SRCPKVAL]  # type: int
+                metadata = result[NKeys.METADATA]  # type: Dict[str, Any]
+                # ... expected type because that's what we sent; see add_text()
+                pkval = metadata[FN_SRCPKVAL]
                 pkstr = metadata[FN_SRCPKSTR]
                 srchash = metadata[FN_SRCHASH]
                 progrec = None

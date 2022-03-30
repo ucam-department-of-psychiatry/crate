@@ -204,9 +204,7 @@ class CloudRequestSender(object):
 
         # Add the text to the cloud request with the appropriate metadata
         try:
-            self._request.add_text(
-                self._text, self._other_values
-            )
+            self._request.add_text(self._text, self._other_values)
 
             # added OK, request now has some text
             self._request_is_empty = False

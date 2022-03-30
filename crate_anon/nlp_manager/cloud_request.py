@@ -117,6 +117,22 @@ def to_json_str(json_structure: JsonValueType) -> str:
     # objects that may occur, such as datetimes in the metadata.
 
 
+def report_processor_errors(processor_data: Dict[str, Any]) -> None:
+    """
+    Should only be called if there has been an error. Reports the error(s) to
+    the log.
+    """
+    name = processor_data[NKeys.NAME]
+    version = processor_data[NKeys.VERSION]
+    error_messages = "\n".join(
+        f"{error[NKeys.CODE]} - {error[NKeys.MESSAGE]}: "
+        f"{error[NKeys.DESCRIPTION]}"
+        for error in processor_data[NKeys.ERRORS]
+    )
+    log.error(f"Processor {name!r} (version {version}) failed for this "
+              f"document. Errors:\n{error_messages}")
+
+
 # =============================================================================
 # Exceptions
 # =============================================================================
@@ -529,18 +545,18 @@ class CloudRequestProcess(CloudRequest):
                 self.add_processor_to_request(name, version)
 
     def add_text(self, text: str,
-                 other_values: Dict[str, Any]) -> None:
+                 metadata: Dict[str, Any]) -> None:
         """
         Adds text for analysis to the NLP request, with associated metadata.
 
         Tests the size of the request if the text and metadata was added, then
         adds it if it doesn't go over the size limit and there are word
-        characters in the text. Also checks if we've reached the maximum records
-        per request.
+        characters in the text. Also checks if we've reached the maximum
+        records per request.
 
         Args:
             text: the text
-            other_values: the metadata
+            metadata: the metadata (which we expect to get back later)
 
         Raises:
             - :exc:`RecordNotPrintable` if the record contains no printable
@@ -558,7 +574,7 @@ class CloudRequestProcess(CloudRequest):
             raise RecordsPerRequestExceeded
 
         new_content = {
-            NKeys.METADATA: other_values,
+            NKeys.METADATA: metadata,
             NKeys.TEXT: text
         }
         # Add all the identifying information.
@@ -686,28 +702,23 @@ class CloudRequestProcess(CloudRequest):
     @staticmethod
     def get_nlp_values_internal(
             processor_data: Dict[str, Any],
-            processor: Cloud,
             metadata: Dict[str, Any]) \
             -> Generator[Tuple[str, Dict[str, Any], str], None, None]:
         """
         Get result values from processed data from a CRATE server-side.
 
         Args:
-            processor_data: nlprp results for one processor
-            processor: the remote CRATE processor used
+            processor_data:
+                NLPRP results for one processor
             metadata:
-                the metadata for a particular document - it would have been
-                sent with the document and the server would have sent it back
+                The metadata for a particular document - it would have been
+                sent with the document and the server would have sent it back.
 
         Yields ``(output_tablename, formatted_result, processor_name)``.
 
         """
         if not processor_data[NKeys.SUCCESS]:
-            log.warning(
-                f"Processor {processor} failed for this document. Errors:")
-            errors = processor_data[NKeys.ERRORS]
-            for error in errors:
-                log.warning(f"{error[NKeys.CODE]} - {error[NKeys.MESSAGE]}")
+            report_processor_errors(processor_data)
             return
         for result in processor_data[NKeys.RESULTS]:
             result.update(metadata)
@@ -736,17 +747,8 @@ class CloudRequestProcess(CloudRequest):
 
         Yields ``(output_tablename, formatted_result, processor_name)``.
         """  # noqa
-        # type_to_tablename, outputtypemap = self.get_tablename_map(
-        #     processor.procname)
         if not processor_data[NKeys.SUCCESS]:
-            log.warning(
-                f"Processor {processor.procname} "
-                f"failed for this document. Errors:")
-            errors = processor_data[NKeys.ERRORS]
-            for error in errors:
-                log.warning(f"{error[NKeys.CODE]} - {error[NKeys.MESSAGE]}")
-                # in some cases the GATE 'errors' value was a string rather
-                # than a list - will check if still applies
+            report_processor_errors(processor_data)
             return
         for result in processor_data[NKeys.RESULTS]:
             # Assuming each set of results says what annotation type
@@ -781,7 +783,8 @@ class CloudRequestProcess(CloudRequest):
         assert self.nlp_data, ("Method 'get_nlp_values' must only be called "
                                "after nlp_data is obtained")
         for result in self.nlp_data[NKeys.RESULTS]:
-            metadata = result[NKeys.METADATA]
+            metadata = result[NKeys.METADATA]  # type: Dict[str, Any]
+            # ... expected type because that's what we sent; see add_text()
             text = result.get(NKeys.TEXT)
             for processor_data in result[NKeys.PROCESSORS]:  # type: Dict
                 name = processor_data[NKeys.NAME]
@@ -814,8 +817,8 @@ class CloudRequestProcess(CloudRequest):
                                                          text):
                         yield t, r, processor
                 else:
-                    for res in self.get_nlp_values_internal(
-                            processor_data, processor, metadata):
+                    for res in self.get_nlp_values_internal(processor_data,
+                                                            metadata):
                         # For non-GATE processors ther will only be one table
                         # name
                         yield processor.tablename, res, processor
