@@ -401,7 +401,8 @@ class InputFieldConfig(object):
                  ntasks: int = 1) -> \
             Generator[Tuple[str, Dict[str, Any]], None, None]:
         """
-        Generate text strings from the source database.
+        Generate text strings from the source database, for NLP. Text fields
+        that are NULL, empty, or contain only whitespace, are skipped.
 
         Yields:
             tuple: ``text, dict``, where ``text`` is the source text and
@@ -471,7 +472,7 @@ class InputFieldConfig(object):
         with MultiTimerContext(timer, TIMING_GEN_TEXT_SQL_SELECT):
             when_fetched = get_now_utc_notz_datetime()
             result = session.execute(query)
-            for row in result:  # ... a generator itself
+            for row in result:  # ... "result" is a generator
                 with MultiTimerContext(timer, TIMING_PROCESS_GEN_TEXT):
                     # Get PK value
                     pkval = row[colindex_pk]
@@ -498,8 +499,13 @@ class InputFieldConfig(object):
 
                     # Get text
                     text = row[colindex_text]
-                    if not text:
+
+                    # Skip text that is absent/empty/contains only whitespace:
+                    if text is None or not text.strip():
                         continue
+                    # We don't strip() all text, because our NLP processor may
+                    # return relevant character positions, so we want those to
+                    # be correct with respect to the source.
 
                     # Get everything else
                     other_values = dict(zip(self._copyfields,

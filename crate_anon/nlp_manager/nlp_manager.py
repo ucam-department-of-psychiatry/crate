@@ -471,10 +471,13 @@ def process_nlp(nlpdef: NlpDefinition,
         nlpdef:
             :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
         incremental:
-            incremental processing (skip previously processed records)
-        report_every: report to the log every *n* source rows
-        tasknum: which task number am I?
-        ntasks: how many tasks are there in total?
+            Incremental processing (skip previously processed records).
+        report_every:
+            Report to the log every *n* source rows.
+        tasknum:
+            Which task number am I?
+        ntasks:
+            How many tasks are there in total?
     """
     log.info(SEP + "NLP")
     session = nlpdef.progressdb_session
