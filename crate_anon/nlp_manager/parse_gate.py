@@ -35,8 +35,7 @@ import logging
 import os
 import shlex
 import subprocess
-import sys
-from typing import Any, Dict, Generator, List, TextIO, Tuple
+from typing import Any, Dict, Generator, List, Tuple
 
 from cardinal_pythonlib.cmdline import cmdline_quote
 from cardinal_pythonlib.dicts import (
@@ -85,6 +84,8 @@ class Gate(BaseNlpParser):
     We send text to it, it parses the text, and it sends us back results, which
     we return as dictionaries. The specific text sought depends on the
     configuration file and the specific GATE program used.
+
+    For details of GATE, see https://www.gate.ac.uk/.
     """
 
     _ = """
@@ -198,12 +199,6 @@ class Gate(BaseNlpParser):
         for ty, tn in self._type_to_tablename.items():
             assert len(tn) <= MAX_SQL_FIELD_LEN, (
                 f"Table name too long (max {MAX_SQL_FIELD_LEN} characters)")
-
-    @classmethod
-    def print_info(cls, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print("NLP class to talk to GATE apps (https://www.gate.ac.uk/).",
-              file=file)
 
     # -------------------------------------------------------------------------
     # External process control

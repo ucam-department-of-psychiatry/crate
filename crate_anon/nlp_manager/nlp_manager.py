@@ -95,7 +95,6 @@ from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.nlp_manager.all_processors import (
-    make_nlp_parser_unconfigured,
     possible_processor_names_including_cloud,
     possible_processor_table,
 )
@@ -716,7 +715,7 @@ def retrieve_nlp_data(crinfo: CloudRunInfo,
                 uncommitted_data = True
                 # 'metadata' is just 'other_values' from before
                 metadata = result[NKeys.METADATA]
-                pkval = metadata[FN_SRCPKVAL]
+                pkval = metadata[FN_SRCPKVAL]  # type: int
                 pkstr = metadata[FN_SRCPKSTR]
                 srchash = metadata[FN_SRCHASH]
                 progrec = None
@@ -1112,9 +1111,6 @@ def inner_main() -> None:
         help="Show NLPRP JSON for cloud (remote) processors that are part of "
              "the chosen NLP definition, then stop")
     info_actions.add_argument(
-        "--showinfo", metavar="NLP_CLASS_NAME",
-        help="Show detailed information for a parser")
-    info_actions.add_argument(
         "--count", action="store_true",
         help="Count records in source/destination databases, then stop")
 
@@ -1179,15 +1175,6 @@ def inner_main() -> None:
         return
     if args.describeprocessors:
         print(possible_processor_table())
-        return
-    if args.showinfo:
-        parser = make_nlp_parser_unconfigured(args.showinfo,
-                                              raise_if_absent=False)
-        if parser:
-            print(f"Info for class {args.showinfo}:\n")
-            parser.print_info()
-        else:
-            print(f"No such processor class: {args.showinfo}")
         return
 
     # Otherwise, we need a valid NLP definition.

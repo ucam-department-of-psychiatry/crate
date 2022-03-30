@@ -34,7 +34,7 @@ import json
 import logging
 import sys
 from typing import (
-    Any, Dict, Generator, Iterable, List, Optional, TextIO, Tuple,
+    Any, Dict, Generator, Iterable, List, Optional, Tuple,
     TYPE_CHECKING,
 )
 
@@ -183,16 +183,6 @@ class TableMaker(ABC):
         # https://www.python.org/dev/peps/pep-3155/
         return ".".join([cls.__module__,
                          cls.__qualname__])
-
-    @classmethod
-    def print_info(cls, file: TextIO = sys.stdout) -> None:
-        """
-        Print general information about this NLP processor.
-
-        Args:
-            file: file to print to (default: stdout)
-        """
-        print("Base class for all CRATE NLP parsers", file=file)
 
     @abstractmethod
     def dest_tables_columns(self) -> Dict[str, List[Column]]:

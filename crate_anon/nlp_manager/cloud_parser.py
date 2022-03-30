@@ -31,8 +31,7 @@ Send text to a cloud-based NLPRP server for processing.
 """
 
 import logging
-import sys
-from typing import Any, Dict, List, Optional, TextIO, Type
+from typing import Any, Dict, List, Optional, Type
 
 from cardinal_pythonlib.lists import chunks
 from sqlalchemy.schema import Column, Index
@@ -120,15 +119,6 @@ class Cloud(TableMaker):
                 self._type_to_tablename[output_type] = c.dest_tablename
                 if output_type == '""':
                     self.tablename = c.dest_tablename
-
-    @classmethod
-    def print_info(cls, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print(
-            "NLP class to talk to cloud-based NLP apps via the NLPRP "
-            "protocol.",
-            file=file
-        )
 
     @staticmethod
     def get_coltype_parts(coltype_str: str) -> List[str]:

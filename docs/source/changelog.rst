@@ -1510,6 +1510,13 @@ Changes
       groups followed by date parsing followed by date-writing in a standard,
       e.g. ISO, format.
 
+- NLP:
+
+  - Improve docstrings and documentation display for NLP processors, also
+    removing the relatively confusing ``--showinfo`` option.
+
+  - Improve internal regex testing.
+
 
 To do
 -----

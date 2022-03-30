@@ -47,8 +47,7 @@ debug:
 """
 
 import logging
-import sys
-from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from sqlalchemy import Column, Integer, Float, String, Text
 
@@ -658,12 +657,6 @@ class Bp(BaseNlpParser):
             self.tablename = self._cfgsection.opt_str(
                 ProcessorConfigKeys.DESTTABLE,
                 required=True)
-
-    @classmethod
-    def print_info(cls, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print(f"Blood pressure finder. Regular expression: \n{cls.REGEX}",
-              file=file)
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass

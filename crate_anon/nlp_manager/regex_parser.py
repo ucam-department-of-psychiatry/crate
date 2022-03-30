@@ -30,8 +30,7 @@ crate_anon/nlp_manager/regex_parser.py
 
 from abc import abstractmethod, ABC
 import logging
-import sys
-from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from sqlalchemy import Column, Integer, Float, String, Text
 
@@ -322,12 +321,6 @@ class NumericalResultParser(BaseNlpParser):
         # Sanity checks
         assert len(self.variable) <= MAX_SQL_FIELD_LEN, (
             f"Variable name too long (max {MAX_SQL_FIELD_LEN} characters)")
-
-    def print_info(self, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print(
-            f"NLP class to find numerical results. Regular expression: "
-            f"\n\n{self.regex_str_for_debugging}", file=file)
 
     def get_regex_str_for_debugging(self) -> str:
         """
@@ -895,12 +888,6 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
         self.regex_str = regex_str
         self.compiled_regex = compile_regex(regex_str)
 
-    def print_info(self, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print(
-            f"NLP class to find X-out-of-Y results. Regular expression: "
-            f"\n\n{self.regex_str}", file=file)
-
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass
         return {self.tablename: [
@@ -1217,14 +1204,10 @@ class ValidatorBase(BaseNlpParser):
         """
         raise NotImplementedError
 
-    def print_info(self, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print("NLP class to validate other NLP processors. Regular "
-              "expressions:\n\n", file=file)
-        print("\n\n".join(self.regex_str_list), file=file)
-
     def set_tablename(self, tablename: str) -> None:
-        """In case a friend class wants to override."""
+        """
+        In case a friend class wants to override.
+        """
         self.tablename = tablename
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
