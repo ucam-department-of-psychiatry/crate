@@ -31,8 +31,10 @@ crate_anon/common/stringfunc.py
 import fnmatch
 from functools import lru_cache
 import sys
-from typing import Any, Pattern, TextIO, Type
+from typing import Any, List, Pattern, TextIO, Type
 
+from cardinal_pythonlib.extract_text import wordwrap
+import prettytable
 import regex
 
 
@@ -203,3 +205,43 @@ def trim_docstring(docstring: str) -> str:
         trimmed.pop(0)
     # Return a single string:
     return '\n'.join(trimmed)
+
+
+# =============================================================================
+# Tabular
+# =============================================================================
+
+def make_twocol_table(
+        colnames: List[str],
+        rows: List[List[str]],
+        max_table_width: int = 79,
+        padding_width: int = 1,
+        vertical_lines: bool = True,
+        rewrap_right_col: bool = True) -> str:
+    """
+    Formats a two-column table. Tries not to split/wrap the left-hand column,
+    but resizes the right-hand column.
+    """
+    leftcol_width = max(len(r[0]) for r in [colnames] + rows)
+    pt = prettytable.PrettyTable(
+        colnames,
+        header=True,
+        border=True,
+        hrules=prettytable.ALL,
+        vrules=prettytable.ALL if vertical_lines else prettytable.NONE,
+        align="l",  # default alignment for all columns (left)
+        valign="t",  # default alignment for all rows (top)
+        max_table_width=max_table_width,
+        padding_width=padding_width,
+    )
+    rightcol_width = max_table_width - leftcol_width - (4 * padding_width) - 3
+    # ... 3 vertical lines (even if invisible); 4 paddings (2 per column)
+    pt.max_width[colnames[0]] = leftcol_width
+    pt.max_width[colnames[1]] = rightcol_width
+    for row in rows:
+        righttext = row[1]
+        if rewrap_right_col:
+            righttext = wordwrap(righttext, width=rightcol_width)
+        ptrow = [row[0], righttext]
+        pt.add_row(ptrow)
+    return pt.get_string()

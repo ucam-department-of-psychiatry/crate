@@ -40,9 +40,12 @@ from cardinal_pythonlib.json.typing_helpers import (
     JsonArrayType,
     JsonObjectType,
 )
-import prettytable
 
-from crate_anon.common.stringfunc import get_docstring, trim_docstring
+from crate_anon.common.stringfunc import (
+    get_docstring,
+    make_twocol_table,
+    trim_docstring,
+)
 # noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser, TableMaker
 # noinspection PyUnresolvedReferences
@@ -253,30 +256,18 @@ def possible_local_processor_names_without_external_tools() -> List[str]:
     ]
 
 
-def possible_processor_table(description_width: int = 75) -> str:
+def possible_processor_table() -> str:
     """
     Returns a pretty-formatted string containing a table of all NLP processors
     and their description (from their docstring).
     """
-    col_name = "NLP name"
-    col_desc = "Description"
-    pt = prettytable.PrettyTable(  # For options, see source
-        [col_name, col_desc],
-        header=True,
-        border=True,
-        hrules=prettytable.ALL,  # horizontal rules between all cells
-        align="l",  # default alignment for all columns (left)
-        valign="t",  # default alignment for all rows (top)
-    )
-    pt.max_width[col_desc] = description_width
-    # ... the docstrings are usually indented 4 and wrapped to 79, so up to 75
-    # wide.
+    colnames = ["NLP name", "Description"]
+    rows = []  # type: List[List[str]]
     for cls in all_tablemaker_classes():
         name = cls.classname()
         description = get_docstring(cls)
-        ptrow = [name, trim_docstring(description)]
-        pt.add_row(ptrow)
-    return pt.get_string()
+        rows.append([name, trim_docstring(description)])
+    return make_twocol_table(colnames, rows, rewrap_right_col=False)
 
 
 def all_crate_python_processors_nlprp_processor_info(
