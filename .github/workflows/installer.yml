@@ -31,6 +31,7 @@ jobs:
                   export CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL=admin@example.com
                   export CRATE_DOCKER_CRATEWEB_HOST_PORT=8000
                   export CRATE_DOCKER_CRATEWEB_USE_HTTPS=0
+                  mkdir ${CRATE_DOCKER_CONFIG_HOST_DIR}
                   cd ${HOME}
                   # Development:
                   # curl -L --retry 10 --fail https://github.com/RudolfCardinal/crate/releases/download/installer-test-9/installer.sh --output crate_docker_installer.sh
