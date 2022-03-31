@@ -40,7 +40,8 @@ Quick links:
 - :ref:`2018 <changelog_2018>`
 - :ref:`2019 <changelog_2019>`
 - :ref:`2020 <changelog_2020>`
-- :ref:`2021-2022 <changelog_2021_2022>`
+- :ref:`2021 <changelog_2021>`
+- :ref:`2022 <changelog_2022>`
 
 
 Changes
@@ -1330,16 +1331,21 @@ Changes
   ``sodium (mM) 132`` as well as ``sodium 132 mM``.
 
 
-.. _changelog_2021_2022:
+.. _changelog_2021:
 
-2021-2022
-~~~~~~~~~
+2021
+~~~~
 
 **0.19.2, 2021-01-26**
 
 - Handle errors when inserting rows in the destination table during NLP.
 
-**0.19.3, in progress**
+.. _changelog_2022:
+
+2022
+~~~~
+
+**0.19.3, 2022-03-31**
 
 - Migrating Travis CI.
 
@@ -1510,6 +1516,9 @@ Changes
       groups followed by date parsing followed by date-writing in a standard,
       e.g. ISO, format.
 
+- Installer for CRATE running within Docker
+
+  - The Docker version of CRATE can now be :ref:`installed with a single script <quick_start>`.
 
 To do
 -----
