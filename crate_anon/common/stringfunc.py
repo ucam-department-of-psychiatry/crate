@@ -31,7 +31,7 @@ crate_anon/common/stringfunc.py
 import fnmatch
 from functools import lru_cache
 import sys
-from typing import Any, List, Pattern, TextIO, Type
+from typing import Any, List, Optional, Pattern, TextIO, Type
 
 from cardinal_pythonlib.extract_text import wordwrap
 import prettytable
@@ -41,6 +41,7 @@ import regex
 # =============================================================================
 # Simple string manipulation
 # =============================================================================
+
 
 def get_digit_string_from_vaguely_numeric_string(s: str) -> str:
     """
@@ -71,6 +72,7 @@ def remove_whitespace(s: str) -> str:
 # Specification matching
 # =============================================================================
 
+
 @lru_cache(maxsize=None)
 def get_spec_match_regex(spec: str) -> Pattern:
     """
@@ -91,10 +93,10 @@ def get_spec_match_regex(spec: str) -> Pattern:
 # Printing/encoding
 # =============================================================================
 
-def uprint(*objects: Any,
-           sep: str = ' ',
-           end: str = '\n',
-           file: TextIO = sys.stdout) -> None:
+
+def uprint(
+    *objects: Any, sep: str = " ", end: str = "\n", file: TextIO = sys.stdout
+) -> None:
     """
     Prints strings to outputs that support UTF-8 encoding, but also to those
     that do not (e.g. Windows stdout, sometimes).
@@ -115,11 +117,13 @@ def uprint(*objects: Any,
     - Windows, Python 3.7.4, from script: ``sys.stdout.encoding == "cp1252"``
     """  # noqa
     enc = file.encoding.lower()
-    if enc == 'utf-8':
+    if enc == "utf-8":
         print(*objects, sep=sep, end=end, file=file)
     else:
+
         def f(obj: Any) -> str:
-            return str(obj).encode(enc, errors='backslashreplace').decode(enc)
+            return str(obj).encode(enc, errors="backslashreplace").decode(enc)
+
         # https://docs.python.org/3.5/library/codecs.html#codec-base-classes
         print(*map(f, objects), sep=sep, end=end, file=file)
 
@@ -127,6 +131,7 @@ def uprint(*objects: Any,
 # =============================================================================
 # String tests
 # =============================================================================
+
 
 def does_text_contain_word_chars(text: str) -> bool:
     """
@@ -143,6 +148,7 @@ def does_text_contain_word_chars(text: str) -> bool:
 # =============================================================================
 # Docstring manipulation
 # =============================================================================
+
 
 def get_docstring(cls: Type) -> str:
     """
@@ -183,7 +189,7 @@ def trim_docstring(docstring: str) -> str:
         print(trim_docstring(trim_docstring.__doc__))
     """
     if not docstring:
-        return ''
+        return ""
     # Convert tabs to spaces (following the normal Python rules)
     # and split into a list of lines:
     lines = docstring.expandtabs().splitlines()
@@ -204,20 +210,22 @@ def trim_docstring(docstring: str) -> str:
     while trimmed and not trimmed[0]:
         trimmed.pop(0)
     # Return a single string:
-    return '\n'.join(trimmed)
+    return "\n".join(trimmed)
 
 
 # =============================================================================
 # Tabular
 # =============================================================================
 
+
 def make_twocol_table(
-        colnames: List[str],
-        rows: List[List[str]],
-        max_table_width: int = 79,
-        padding_width: int = 1,
-        vertical_lines: bool = True,
-        rewrap_right_col: bool = True) -> str:
+    colnames: List[str],
+    rows: List[List[str]],
+    max_table_width: int = 79,
+    padding_width: int = 1,
+    vertical_lines: bool = True,
+    rewrap_right_col: bool = True,
+) -> str:
     """
     Formats a two-column table. Tries not to split/wrap the left-hand column,
     but resizes the right-hand column.
@@ -245,3 +253,26 @@ def make_twocol_table(
         ptrow = [row[0], righttext]
         pt.add_row(ptrow)
     return pt.get_string()
+
+
+# =============================================================================
+# Checking strings for NLP
+# =============================================================================
+
+_RELEVANT_FOR_NLP_REGEX_STR = r"\w"  # word character present
+RELEVANT_FOR_NLP_REGEX = regex.compile(
+    _RELEVANT_FOR_NLP_REGEX_STR, flags=regex.IGNORECASE
+)
+# regex deals with Unicode automatically, as verified in stringfunc_tests.py
+
+
+def relevant_for_nlp(x: Optional[str]) -> bool:
+    """
+    Does this string contain content that's relevant for NLP?
+    We want to eliminate ``None`` values, and strings that do not contain
+    relevant content. A string containing only whitespace is not relevant.
+    """
+    if not x:
+        # None, or empty string
+        return False
+    return RELEVANT_FOR_NLP_REGEX.search(x) is not None

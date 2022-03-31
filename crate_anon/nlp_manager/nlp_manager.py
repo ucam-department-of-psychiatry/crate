@@ -72,7 +72,6 @@ import sys
 from typing import (
     Any,
     Dict,
-    Generator,
     List,
     Optional,
     Set,
@@ -104,6 +103,7 @@ from crate_anon.common.constants import JSON_INDENT
 from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.common.inputfunc import gen_chunks_from_files
+from crate_anon.common.stringfunc import relevant_for_nlp
 from crate_anon.nlp_manager.all_processors import (
     possible_processor_names_including_cloud,
     possible_processor_table,
@@ -1035,14 +1035,6 @@ def show_dest_counts(nlpdef: NlpDefinition) -> None:
 # =============================================================================
 
 
-def gen_from_stdin() -> Generator[str, None, None]:
-    """
-    Not the only function that does this sort of thing... See also
-    Returns:
-
-    """
-
-
 def test_nlp_stdin(nlpdef: NlpDefinition) -> None:
     """
     Tests NLP processor(s) by sending stdin to it/them.
@@ -1068,8 +1060,7 @@ def test_nlp_stdin(nlpdef: NlpDefinition) -> None:
         "End with a blank line.",
         chunk_terminator_line="",
     ):
-        text = text.strip()
-        if text:
+        if relevant_for_nlp(text):
             log.info(f"INPUT: {text!r}")
             result_found = False
             for p in processors:  # type: BaseNlpParser
@@ -1102,7 +1093,7 @@ def test_nlp_stdin(nlpdef: NlpDefinition) -> None:
             if not result_found:
                 log.info("[No results.]")
         else:
-            log.info("Ignoring blank line.")
+            log.info("Ignoring irrelevant line.")
 
 
 # =============================================================================

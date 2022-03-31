@@ -29,6 +29,7 @@ crate_anon/nlp_manager/input_field_config.py
 """
 
 import logging
+
 # import sys
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
@@ -52,6 +53,7 @@ from sqlalchemy.sql import and_, column, exists, null, or_, select, table
 from sqlalchemy.sql.schema import MetaData
 
 from crate_anon.common.parallel import is_my_job_by_hash_prehashed
+from crate_anon.common.stringfunc import relevant_for_nlp
 from crate_anon.nlp_manager.constants import (
     FN_CRATE_VERSION_FIELD,
     FN_WHEN_FETCHED,
@@ -93,6 +95,7 @@ TIMING_PROGRESS_DB_DELETE = "progress_db_delete"
 # Input field definition
 # =============================================================================
 
+
 class InputFieldConfig(object):
     """
     Class defining an input field for NLP (containing text).
@@ -100,8 +103,7 @@ class InputFieldConfig(object):
     See the documentation for the :ref:`NLP config file <nlp_config>`.
     """
 
-    def __init__(self, nlpdef: NlpDefinition,
-                 cfg_input_name: str) -> None:
+    def __init__(self, nlpdef: NlpDefinition, cfg_input_name: str) -> None:
         """
         Read config from a configparser section, and also associate with a
         specific NLP definition.
@@ -126,16 +128,20 @@ class InputFieldConfig(object):
         self._srcpkfield = cfg.opt_str(InputFieldConfigKeys.SRCPKFIELD)
         self._srcfield = cfg.opt_str(InputFieldConfigKeys.SRCFIELD)
         self._srcdatetimefield = cfg.opt_str(
-            InputFieldConfigKeys.SRCDATETIMEFIELD, required=False)
+            InputFieldConfigKeys.SRCDATETIMEFIELD, required=False
+        )
         # ... new in v0.18.52
         # Make these case-sensitive to avoid our failure in renaming SQLA
         # Column objects to be lower-case:
         self._copyfields = cfg.opt_multiline(
-            InputFieldConfigKeys.COPYFIELDS)  # fieldnames
+            InputFieldConfigKeys.COPYFIELDS
+        )  # fieldnames
         self._indexed_copyfields = cfg.opt_multiline(
-            InputFieldConfigKeys.INDEXED_COPYFIELDS)
+            InputFieldConfigKeys.INDEXED_COPYFIELDS
+        )
         self._debug_row_limit = cfg.opt_int(
-            InputFieldConfigKeys.DEBUG_ROW_LIMIT, default=0)
+            InputFieldConfigKeys.DEBUG_ROW_LIMIT, default=0
+        )
         # self._fetch_sorted = opt_bool('fetch_sorted', default=True)
 
         ensure_valid_table_name(self._srctable)
@@ -146,16 +152,20 @@ class InputFieldConfig(object):
 
         if len(set(self._indexed_copyfields)) != len(self._indexed_copyfields):
             raise ValueError(
-                f"Redundant indexed_copyfields: {self._indexed_copyfields}")
+                f"Redundant indexed_copyfields: {self._indexed_copyfields}"
+            )
 
         if len(set(self._copyfields)) != len(self._copyfields):
             raise ValueError(f"Redundant copyfields: {self._copyfields}")
 
         indexed_not_copied = set(self._indexed_copyfields) - set(
-            self._copyfields)
+            self._copyfields
+        )
         if indexed_not_copied:
-            raise ValueError(f"Fields in index_copyfields but not in "
-                             f"copyfields: {indexed_not_copied}")
+            raise ValueError(
+                f"Fields in index_copyfields but not in "
+                f"copyfields: {indexed_not_copied}"
+            )
 
         # allfields = [self._srcpkfield, self._srcfield] + self._copyfields
         # if len(allfields) != len(set(allfields)):
@@ -243,36 +253,73 @@ class InputFieldConfig(object):
             a list of SQLAlchemy :class:`Column` objects
         """
         return [
-            Column(FN_PK, BigInteger, primary_key=True,
-                   autoincrement=True,
-                   comment="Arbitrary primary key (PK) of output record"),
-            Column(FN_NLPDEF, SqlTypeDbIdentifier,
-                   comment="Name of the NLP definition producing this row"),
-            Column(FN_SRCDB, SqlTypeDbIdentifier,
-                   comment="Source database name (from CRATE NLP config)"),
-            Column(FN_SRCTABLE, SqlTypeDbIdentifier,
-                   comment="Source table name"),
-            Column(FN_SRCPKFIELD, SqlTypeDbIdentifier,
-                   comment="PK field (column) name in source table"),
-            Column(FN_SRCPKVAL, BigInteger,
-                   comment="PK of source record (or integer hash of PK if the "
-                           "PK is a string)"),
-            Column(FN_SRCPKSTR, String(MAX_STRING_PK_LENGTH),
-                   comment=f"NULL if the table has an integer PK, but the PK "
-                           f"if the PK was a string, to deal with hash "
-                           f"collisions. Max length: {MAX_STRING_PK_LENGTH}"),
-            Column(FN_SRCFIELD, SqlTypeDbIdentifier,
-                   comment="Field (column) name of source text"),
-            Column(FN_SRCDATETIMEFIELD, SqlTypeDbIdentifier,
-                   comment="Date/time field (column) name in source table"),
-            Column(FN_SRCDATETIMEVAL, DateTime, nullable=True,
-                   comment="Date/time of source field"),
-            Column(FN_CRATE_VERSION_FIELD,
-                   String(MAX_SEMANTIC_VERSION_STRING_LENGTH), nullable=True,
-                   comment="Version of CRATE that generated this NLP record."),
-            Column(FN_WHEN_FETCHED, DateTime, nullable=True,
-                   comment="Date/time that the NLP processor fetched the "
-                           "record from the source database (in UTC)."),
+            Column(
+                FN_PK,
+                BigInteger,
+                primary_key=True,
+                autoincrement=True,
+                comment="Arbitrary primary key (PK) of output record",
+            ),
+            Column(
+                FN_NLPDEF,
+                SqlTypeDbIdentifier,
+                comment="Name of the NLP definition producing this row",
+            ),
+            Column(
+                FN_SRCDB,
+                SqlTypeDbIdentifier,
+                comment="Source database name (from CRATE NLP config)",
+            ),
+            Column(
+                FN_SRCTABLE, SqlTypeDbIdentifier, comment="Source table name"
+            ),
+            Column(
+                FN_SRCPKFIELD,
+                SqlTypeDbIdentifier,
+                comment="PK field (column) name in source table",
+            ),
+            Column(
+                FN_SRCPKVAL,
+                BigInteger,
+                comment="PK of source record (or integer hash of PK if the "
+                "PK is a string)",
+            ),
+            Column(
+                FN_SRCPKSTR,
+                String(MAX_STRING_PK_LENGTH),
+                comment=f"NULL if the table has an integer PK, but the PK "
+                f"if the PK was a string, to deal with hash "
+                f"collisions. Max length: {MAX_STRING_PK_LENGTH}",
+            ),
+            Column(
+                FN_SRCFIELD,
+                SqlTypeDbIdentifier,
+                comment="Field (column) name of source text",
+            ),
+            Column(
+                FN_SRCDATETIMEFIELD,
+                SqlTypeDbIdentifier,
+                comment="Date/time field (column) name in source table",
+            ),
+            Column(
+                FN_SRCDATETIMEVAL,
+                DateTime,
+                nullable=True,
+                comment="Date/time of source field",
+            ),
+            Column(
+                FN_CRATE_VERSION_FIELD,
+                String(MAX_SEMANTIC_VERSION_STRING_LENGTH),
+                nullable=True,
+                comment="Version of CRATE that generated this NLP record.",
+            ),
+            Column(
+                FN_WHEN_FETCHED,
+                DateTime,
+                nullable=True,
+                comment="Date/time that the NLP processor fetched the "
+                "record from the source database (in UTC).",
+            ),
         ]
 
     @staticmethod
@@ -289,24 +336,27 @@ class InputFieldConfig(object):
         - https://stackoverflow.com/questions/179085/multiple-indexes-vs-multi-column-indexes
         """  # noqa
         return [
-            Index('_idx_srcref',
-                  # Remember, order matters; more to less specific
-                  # See also BaseNlpParser.delete_dest_record
-                  FN_SRCPKVAL,
-                  FN_NLPDEF,
-                  FN_SRCFIELD,
-                  FN_SRCTABLE,
-                  FN_SRCDB,
-                  FN_SRCPKSTR),
-            Index('_idx_srcdate',
-                  FN_SRCDATETIMEVAL),
-            Index('_idx_deletion',
-                  # We sometimes delete just using the following; see
-                  # BaseNlpParser.delete_where_srcpk_not
-                  FN_NLPDEF,
-                  FN_SRCFIELD,
-                  FN_SRCTABLE,
-                  FN_SRCDB),
+            Index(
+                "_idx_srcref",
+                # Remember, order matters; more to less specific
+                # See also BaseNlpParser.delete_dest_record
+                FN_SRCPKVAL,
+                FN_NLPDEF,
+                FN_SRCFIELD,
+                FN_SRCTABLE,
+                FN_SRCDB,
+                FN_SRCPKSTR,
+            ),
+            Index("_idx_srcdate", FN_SRCDATETIMEVAL),
+            Index(
+                "_idx_deletion",
+                # We sometimes delete just using the following; see
+                # BaseNlpParser.delete_where_srcpk_not
+                FN_NLPDEF,
+                FN_SRCFIELD,
+                FN_SRCTABLE,
+                FN_SRCDB,
+            ),
         ]
 
     def _require_table_or_view_exists(self) -> None:
@@ -315,7 +365,8 @@ class InputFieldConfig(object):
         """
         if not table_or_view_exists(self._source_engine, self._srctable):
             raise RuntimeError(
-                f"Missing source table: {self._srcdb}.{self._srctable}")
+                f"Missing source table: {self._srcdb}.{self._srctable}"
+            )
 
     def get_copy_columns(self) -> List[Column]:
         """
@@ -350,7 +401,8 @@ class InputFieldConfig(object):
         if missing:
             raise RuntimeError(
                 f"The following fields were requested to be copied but are "
-                f"absent from the source (NB case-sensitive): {missing}")
+                f"absent from the source (NB case-sensitive): {missing}"
+            )
         # log.critical(copy_columns)
         return copy_columns
 
@@ -377,29 +429,34 @@ class InputFieldConfig(object):
                 copy_indexes.append(Index(idx_name, copied))
                 processed_copy_index_col_names.append(c.name)
         missing = set(self._indexed_copyfields) - set(
-            processed_copy_index_col_names)
+            processed_copy_index_col_names
+        )
         if missing:
             raise ValueError(
                 f"The following fields were requested to be copied/indexed but"
-                f" are absent from the source (NB case-sensitive): {missing}")
+                f" are absent from the source (NB case-sensitive): {missing}"
+            )
         return copy_indexes
 
     def is_pk_integer(self) -> bool:
         """
         Is the primary key (PK) of the source table an integer?
         """
-        pkcoltype = get_column_type(self._source_engine, self._srctable,
-                                    self._srcpkfield)
+        pkcoltype = get_column_type(
+            self._source_engine, self._srctable, self._srcpkfield
+        )
         if not pkcoltype:
-            raise ValueError(f"Unable to get column type for column "
-                             f"{self._srctable}.{self._srcpkfield}")
+            raise ValueError(
+                f"Unable to get column type for column "
+                f"{self._srctable}.{self._srcpkfield}"
+            )
         pk_is_integer = is_sqlatype_integer(pkcoltype)
         # log.debug(f"pk_is_integer: {repr(pkcoltype)} -> {pk_is_integer}")
         return pk_is_integer
 
-    def gen_text(self, tasknum: int = 0,
-                 ntasks: int = 1) -> \
-            Generator[Tuple[str, Dict[str, Any]], None, None]:
+    def gen_text(
+        self, tasknum: int = 0, ntasks: int = 1
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         """
         Generate text strings from the source database, for NLP. Text fields
         that are NULL, empty, or contain only whitespace, are skipped.
@@ -442,7 +499,9 @@ class InputFieldConfig(object):
         selectcols = [
             pkcol,
             column(self._srcfield),
-            column(self._srcdatetimefield) if self._srcdatetimefield else null()  # noqa
+            column(self._srcdatetimefield)
+            if self._srcdatetimefield
+            else null(),  # noqa
         ]
         # User-specified extra columns
         for extracol in self._copyfields:
@@ -479,12 +538,17 @@ class InputFieldConfig(object):
 
                     # Deal with non-integer PKs
                     if pk_is_integer:
-                        hashed_pk = None  # remove warning about reference before assignment  # noqa
+                        hashed_pk = (
+                            None
+                        )  # remove warning about reference before assignment  # noqa
                     else:
                         hashed_pk = hash64(pkval)
-                        if (distribute_by_hash and
-                                not is_my_job_by_hash_prehashed(
-                                    hashed_pk, tasknum, ntasks)):
+                        if (
+                            distribute_by_hash
+                            and not is_my_job_by_hash_prehashed(
+                                hashed_pk, tasknum, ntasks
+                            )
+                        ):
                             continue
 
                     # Optional debug limit on the number of rows
@@ -493,7 +557,8 @@ class InputFieldConfig(object):
                             f"Table {self._srcdb}.{self._srctable}: not "
                             f"fetching more than {self._debug_row_limit} rows "
                             f"(in total for this process) due to debugging "
-                            f"limits")
+                            f"limits"
+                        )
                         result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
                         return
 
@@ -501,15 +566,16 @@ class InputFieldConfig(object):
                     text = row[colindex_text]
 
                     # Skip text that is absent/empty/contains only whitespace:
-                    if text is None or not text.strip():
+                    if not relevant_for_nlp(text):
                         continue
-                    # We don't strip() all text, because our NLP processor may
-                    # return relevant character positions, so we want those to
-                    # be correct with respect to the source.
+                    # We don't modify (e.g. strip) the text, because our NLP
+                    # processor may return relevant character positions, so we
+                    # want those to be correct with respect to the source.
 
                     # Get everything else
-                    other_values = dict(zip(self._copyfields,
-                                            row[colindex_remainder_start:]))
+                    other_values = dict(
+                        zip(self._copyfields, row[colindex_remainder_start:])
+                    )
                     if pk_is_integer:
                         other_values[FN_SRCPKVAL] = pkval  # an integer
                         other_values[FN_SRCPKSTR] = None
@@ -519,9 +585,11 @@ class InputFieldConfig(object):
                     other_values[FN_SRCDATETIMEVAL] = row[colindex_datetime]
                     other_values[FN_WHEN_FETCHED] = when_fetched
                     other_values.update(base_dict)
-                    if (self._nlpdef.truncate_text_at
-                            and len(text) > self._nlpdef.truncate_text_at):
-                        text = text[:self._nlpdef.truncate_text_at]
+                    if (
+                        self._nlpdef.truncate_text_at
+                        and len(text) > self._nlpdef.truncate_text_at
+                    ):
+                        text = text[: self._nlpdef.truncate_text_at]
                         other_values[TRUNCATED_FLAG] = True
                     else:
                         other_values[TRUNCATED_FLAG] = False
@@ -536,12 +604,13 @@ class InputFieldConfig(object):
 
         Used for progress monitoring.
         """
-        return count_star(session=self.source_session,
-                          tablename=self._srctable)
+        return count_star(
+            session=self.source_session, tablename=self._srctable
+        )
 
-    def get_progress_record(self,
-                            srcpkval: int,
-                            srcpkstr: str = None) -> Optional[NlpRecord]:
+    def get_progress_record(
+        self, srcpkval: int, srcpkstr: str = None
+    ) -> Optional[NlpRecord]:
         """
         Fetch a progress record for the given source record, if one exists.
 
@@ -550,12 +619,12 @@ class InputFieldConfig(object):
         """
         session = self._progress_session
         query = (
-            session.query(NlpRecord).
-            filter(NlpRecord.srcdb == self._srcdb).
-            filter(NlpRecord.srctable == self._srctable).
-            filter(NlpRecord.srcpkval == srcpkval).
-            filter(NlpRecord.srcfield == self._srcfield).
-            filter(NlpRecord.nlpdef == self._nlpdef.name)
+            session.query(NlpRecord)
+            .filter(NlpRecord.srcdb == self._srcdb)
+            .filter(NlpRecord.srctable == self._srctable)
+            .filter(NlpRecord.srcpkval == srcpkval)
+            .filter(NlpRecord.srcfield == self._srcfield)
+            .filter(NlpRecord.nlpdef == self._nlpdef.name)
             # Order not important (though the order of the index certainly
             # is; see NlpRecord.__table_args__).
             # https://stackoverflow.com/questions/11436469/does-order-of-where-clauses-matter-in-sql  # noqa
@@ -579,9 +648,8 @@ class InputFieldConfig(object):
           ``TIMING_DELETE_WHERE_NO_SOURCE``.
         """
         session = self.source_session
-        query = (
-            select([column(self._srcpkfield)]).
-            select_from(table(self._srctable))
+        query = select([column(self._srcpkfield)]).select_from(
+            table(self._srctable)
         )
         result = session.execute(query)
         if self.is_pk_integer():
@@ -593,8 +661,8 @@ class InputFieldConfig(object):
                 yield hash64(pkval), pkval
 
     def delete_progress_records_where_srcpk_not(
-            self,
-            temptable: Optional[Table]) -> None:
+        self, temptable: Optional[Table]
+    ) -> None:
         """
         If ``temptable`` is None, deletes all progress records for this input
         field/NLP definition.
@@ -606,12 +674,15 @@ class InputFieldConfig(object):
 
         """
         progsession = self._progress_session
-        log.debug(f"delete_progress_records_where_srcpk_not... "
-                  f"{self._srcdb}.{self._srctable} -> progressdb")
+        log.debug(
+            f"delete_progress_records_where_srcpk_not... "
+            f"{self._srcdb}.{self._srctable} -> progressdb"
+        )
         prog_deletion_query = (
-            progsession.query(NlpRecord).
-            filter(NlpRecord.srcdb == self._srcdb).
-            filter(NlpRecord.srctable == self._srctable).
+            progsession.query(NlpRecord)
+            .filter(NlpRecord.srcdb == self._srcdb)
+            .filter(NlpRecord.srctable == self._srctable)
+            .
             # unnecessary # filter(NlpRecord.srcpkfield == self._srcpkfield).
             filter(NlpRecord.nlpdef == self._nlpdef.name)
         )
@@ -627,9 +698,9 @@ class InputFieldConfig(object):
                             NlpRecord.srcpkstr == temptable_pkstrcol,
                             and_(
                                 NlpRecord.srcpkstr.is_(None),
-                                temptable_pkstrcol.is_(None)
-                            )
-                        )
+                                temptable_pkstrcol.is_(None),
+                            ),
+                        ),
                     )
                 )
             )
@@ -646,12 +717,13 @@ class InputFieldConfig(object):
         definition (across all source tables/columns).
         """
         progsession = self._progress_session
-        prog_deletion_query = (
-            progsession.query(NlpRecord).
-            filter(NlpRecord.nlpdef == self._nlpdef.name)
+        prog_deletion_query = progsession.query(NlpRecord).filter(
+            NlpRecord.nlpdef == self._nlpdef.name
         )
-        log.debug(f"delete_all_progress_records for NLP definition: "
-                  f"{self._nlpdef.name}")
+        log.debug(
+            f"delete_all_progress_records for NLP definition: "
+            f"{self._nlpdef.name}"
+        )
         with MultiTimerContext(timer, TIMING_PROGRESS_DB_DELETE):
             prog_deletion_query.delete(synchronize_session=False)
         self._nlpdef.commit(progsession)

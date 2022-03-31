@@ -1518,10 +1518,12 @@ Changes
   - Improve internal regex testing.
 
   - When generating text from a source database for NLP, skip text that
-    contains only whitespace (not just text that is NULL or the empty string).
-    (We were getting errors from remote/cloud NLP processors, e.g. the GATE
-    error "document contains no tokens or sentences", and it's just a waste of
-    resources to process these records.)
+    contains only whitespace or is in other senses irrelevant (not just text
+    that is NULL or the empty string). (We were getting errors from
+    remote/cloud NLP processors, e.g. the GATE error "document contains no
+    tokens or sentences", and it's just a waste of resources to process these
+    records.) Relevance is controlled by
+    :func:`crate_anon.common.stringfunc.relevant_for_nlp`.
 
   - The ``crate_nlp --test_nlp`` option now supports cloud-based (remote)
     processors as well as local ones.
