@@ -60,14 +60,16 @@ FN_WHEN_FETCHED = "_when_fetched_utc"  # new in v0.18.53
 
 TRUNCATED_FLAG = "_truncated"  # NOT A FIELD/COLUMN NAME. INTERNAL USE ONLY.
 
-GATE_PIPELINE_CLASSNAME = 'CrateGatePipeline'
+GATE_PIPELINE_CLASSNAME = "CrateGatePipeline"
 
 HashClass = HmacMD5Hasher
 
 MAX_STRING_PK_LENGTH = 64  # trade-off; space versus capability
 MAX_SQL_FIELD_LEN = 64
 # ... http://dev.mysql.com/doc/refman/5.0/en/identifiers.html
-MAX_SEMANTIC_VERSION_STRING_LENGTH = 147  # https://github.com/mojombo/semver/issues/79  # noqa
+MAX_SEMANTIC_VERSION_STRING_LENGTH = (
+    147
+)  # https://github.com/mojombo/semver/issues/79
 MEDEX_PIPELINE_CLASSNAME = "CrateMedexPipeline"
 MEDEX_DATA_READY_SIGNAL = "data_ready"
 MEDEX_RESULTS_READY_SIGNAL = "results_ready"
@@ -82,10 +84,12 @@ SqlTypeDbIdentifier = String(MAX_SQL_FIELD_LEN)
 # Simple classes for string constant collections
 # =============================================================================
 
+
 class NlpConfigPrefixes(object):
     """
     Section name prefixes for the NLP config file.
     """
+
     NLPDEF = "nlpdef"
     PROCESSOR = "processor"
     ENV = "env"
@@ -99,6 +103,7 @@ class NlpDefConfigKeys(object):
     """
     Config file keys for NLP definitions.
     """
+
     INPUTFIELDDEFS = "inputfielddefs"
     PROCESSORS = "processors"
     PROGRESSDB = "progressdb"
@@ -116,7 +121,7 @@ class NlpDefValues(object):
     """
     Config file values for NLP definitions
     """
-    PROCTYPE_CLOUD = "Cloud"
+
     # Since any server with the same output format as CRATE's is compatible,
     # we call this format standard
     FORMAT_STANDARD = "Standard"
@@ -127,6 +132,7 @@ class InputFieldConfigKeys(object):
     """
     Config file keys for input database fields (columns).
     """
+
     SRCDB = "srcdb"
     SRCTABLE = "srctable"
     SRCPKFIELD = "srcpkfield"
@@ -141,6 +147,7 @@ class ProcessorConfigKeys(object):
     """
     Config file keys for NLP processors.
     """
+
     ASSUME_PREFERRED_UNIT = "assume_preferred_unit"
     DESTDB = "destdb"
     DESTTABLE = "desttable"
@@ -159,6 +166,7 @@ class NlpOutputConfigKeys(object):
     """
     Config file keys for output tables from GATE or Cloud NLP processors.
     """
+
     DESTTABLE = "desttable"
     RENAMES = "renames"
     NULL_LITERALS = "null_literals"
@@ -170,6 +178,7 @@ class DatabaseConfigKeys(object):
     """
     Config file keys for database definitions.
     """
+
     URL = "url"
     ECHO = "echo"
 
@@ -178,6 +187,7 @@ class CloudNlpConfigKeys(object):
     """
     Config file keys for cloud NLP.
     """
+
     CLOUD_URL = "cloud_url"
     VERIFY_SSL = "verify_ssl"
     COMPRESS = "compress"
@@ -221,6 +231,7 @@ class GateApiKeys(object):
           }
         }
     """
+
     ENTITIES = "entities"
     INDICES = "indices"
     TEXT = "text"
@@ -230,6 +241,7 @@ class GateResultKeys(object):
     """
     Dictionary keys to represent GATE results in our NLPRP server.
     """
+
     TYPE = "type"
     START = "start"
     END = "end"
@@ -242,12 +254,13 @@ class GateFieldNames(object):
     Field (column) names for results from GATE.
     These match KEY_* strings in ``CrateGatePipeline.java``.
     """
-    SET = '_set'
-    TYPE = '_type'
-    ID = '_id'
-    STARTPOS = '_start'
-    ENDPOS = '_end'
-    CONTENT = '_content'
+
+    SET = "_set"
+    TYPE = "_type"
+    ID = "_id"
+    STARTPOS = "_start"
+    ENDPOS = "_end"
+    CONTENT = "_content"
 
 
 # =============================================================================
@@ -255,8 +268,7 @@ class GateFieldNames(object):
 # =============================================================================
 
 _ALL_NLPRP_SECTION_PREFIXES = [
-    v for k, v in NlpConfigPrefixes.__dict__.items()
-    if not k.startswith("_")
+    v for k, v in NlpConfigPrefixes.__dict__.items() if not k.startswith("_")
 ]
 
 

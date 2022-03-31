@@ -38,7 +38,14 @@ import logging
 import os
 import sys
 from typing import (
-    Any, Dict, Iterable, List, Optional, Tuple, Type, TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
 )
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_notz_datetime
@@ -99,6 +106,7 @@ log = logging.getLogger(__name__)
 # Demo config
 # =============================================================================
 
+
 def demo_nlp_config() -> str:
     """
     Returns a demo NLP config file for CRATE.
@@ -107,35 +115,48 @@ def demo_nlp_config() -> str:
     # Imports
     # -------------------------------------------------------------------------
 
-    from crate_anon.nlp_manager.parse_biochemistry import ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS  # delayed import  # noqa
-    from crate_anon.nlp_manager.parse_clinical import ALL_CLINICAL_NLP_AND_VALIDATORS  # delayed import  # noqa
-    from crate_anon.nlp_manager.parse_cognitive import ALL_COGNITIVE_NLP_AND_VALIDATORS  # delayed import  # noqa
-    from crate_anon.nlp_manager.parse_haematology import ALL_HAEMATOLOGY_NLP_AND_VALIDATORS  # delayed import  # noqa
+    from crate_anon.nlp_manager.parse_biochemistry import (
+        ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS,
+    )  # delayed import
+    from crate_anon.nlp_manager.parse_clinical import (
+        ALL_CLINICAL_NLP_AND_VALIDATORS,
+    )  # delayed import
+    from crate_anon.nlp_manager.parse_cognitive import (
+        ALL_COGNITIVE_NLP_AND_VALIDATORS,
+    )  # delayed import
+    from crate_anon.nlp_manager.parse_haematology import (
+        ALL_HAEMATOLOGY_NLP_AND_VALIDATORS,
+    )  # delayed import
 
     # -------------------------------------------------------------------------
     # Helper functions
     # -------------------------------------------------------------------------
 
     def _make_procdef_pair(name: str) -> str:
-        return (f"""[{NlpConfigPrefixes.PROCESSOR}:procdef_{name}]
+        return f"""[{NlpConfigPrefixes.PROCESSOR}:procdef_{name}]
 {ProcessorConfigKeys.DESTDB} = {destdb}
 {ProcessorConfigKeys.DESTTABLE} = {name}
 [{NlpConfigPrefixes.PROCESSOR}:procdef_validate_{name}]
 {ProcessorConfigKeys.DESTDB} = {destdb}
-{ProcessorConfigKeys.DESTTABLE} = validate_{name}""")
+{ProcessorConfigKeys.DESTTABLE} = validate_{name}"""
 
     def _make_module_procdef_block(
-            nlp_and_validators: List[Tuple[Type["BaseNlpParser"],
-                                           Type["BaseNlpParser"]]]) -> str:
+        nlp_and_validators: List[
+            Tuple[Type["BaseNlpParser"], Type["BaseNlpParser"]]
+        ]
+    ) -> str:
         _procdeflist = []  # type: List[str]
         for nlpclass, validatorclass in nlp_and_validators:
             _procdeflist.append(
-                _make_procdef_pair(nlpclass.classname().lower()))
+                _make_procdef_pair(nlpclass.classname().lower())
+            )
         return "\n\n".join(_procdeflist)
 
     def _make_proclist(
-            nlp_and_validators: List[Tuple[Type["BaseNlpParser"],
-                                           Type["BaseNlpParser"]]]) -> str:
+        nlp_and_validators: List[
+            Tuple[Type["BaseNlpParser"], Type["BaseNlpParser"]]
+        ]
+    ) -> str:
         _proclist = []  # type: List[str]
         for nlpclass, validatorclass in nlp_and_validators:
             _name = nlpclass.classname().lower()
@@ -155,10 +176,7 @@ def demo_nlp_config() -> str:
     hashphrase = "doesnotmatter"
     if_clin_docs = "INPUT_FIELD_CLINICAL_DOCUMENTS"
     if_prog_notes = "INPUT_FIELD_PROGRESS_NOTES"
-    inputfields = (
-        f"{if_clin_docs}\n"
-        f"    {if_prog_notes}"
-    )
+    inputfields = f"{if_clin_docs}\n" f"    {if_prog_notes}"
     truncate_text_at = "32766"
     my_env = "MY_ENV_SECTION"
     my_src_db = "SOURCE_DATABASE"
@@ -168,10 +186,18 @@ def demo_nlp_config() -> str:
     nlp_input_terminator = "END_OF_TEXT_FOR_NLP"
     nlp_output_terminator = "END_OF_NLP_OUTPUT_RECORD"
 
-    procdefs_biochemistry = _make_module_procdef_block(ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS)  # noqa
-    procdefs_clinical = _make_module_procdef_block(ALL_CLINICAL_NLP_AND_VALIDATORS)  # noqa
-    procdefs_cognitive = _make_module_procdef_block(ALL_COGNITIVE_NLP_AND_VALIDATORS)  # noqa
-    procdefs_haematology = _make_module_procdef_block(ALL_HAEMATOLOGY_NLP_AND_VALIDATORS)  # noqa
+    procdefs_biochemistry = _make_module_procdef_block(
+        ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS
+    )
+    procdefs_clinical = _make_module_procdef_block(
+        ALL_CLINICAL_NLP_AND_VALIDATORS
+    )
+    procdefs_cognitive = _make_module_procdef_block(
+        ALL_COGNITIVE_NLP_AND_VALIDATORS
+    )
+    procdefs_haematology = _make_module_procdef_block(
+        ALL_HAEMATOLOGY_NLP_AND_VALIDATORS
+    )
 
     proclist_biochemistry = _make_proclist(ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS)
     proclist_clinical = _make_proclist(ALL_CLINICAL_NLP_AND_VALIDATORS)
@@ -181,7 +207,9 @@ def demo_nlp_config() -> str:
     if EnvVar.GENERATING_CRATE_DOCS in os.environ:
         nlp_prog_dir = "/path/to/crate_anon/nlp_manager/compiled_nlp_classes"
     else:
-        this_dir = os.path.abspath(os.path.dirname(__file__))  # crate_anon/nlp_manager  # noqa
+        this_dir = os.path.abspath(
+            os.path.dirname(__file__)
+        )  # crate_anon/nlp_manager
         nlp_prog_dir = os.path.join(this_dir, "compiled_nlp_classes")
 
     if for_docker:
@@ -189,7 +217,9 @@ def demo_nlp_config() -> str:
         gate_home = "/crate/gate"
         kcl_pharmacotherapy_dir = "/crate/brc-gate-pharmacotherapy"
         cloud_request_data_dir = "/crate/tmp/clouddata"
-        gate_plugin_file = "/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini"  # noqa
+        gate_plugin_file = (
+            "/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini"
+        )
     else:
         gate_home = "/path/to/GATE_Developer_8.6.1"
         kcl_pharmacotherapy_dir = "/path/to/brc-gate-pharmacotherapy"
@@ -200,8 +230,7 @@ def demo_nlp_config() -> str:
     # The demo config itself
     # -------------------------------------------------------------------------
 
-    return (
-        f"""# Configuration file for CRATE NLP manager (crate_nlp).
+    return f"""# Configuration file for CRATE NLP manager (crate_nlp).
 # Version {CRATE_VERSION} ({CRATE_VERSION_DATE}).
 #
 # PLEASE SEE THE HELP at https://crateanon.readthedocs.io/
@@ -771,12 +800,12 @@ OS_PATHSEP = {os.pathsep}
 {ProcessorConfigKeys.PROCESSOR_FORMAT} = {NlpDefValues.FORMAT_STANDARD}
 
 """  # noqa
-    )
 
 
 # =============================================================================
 # Get config filename (from environment variable)
 # =============================================================================
+
 
 def get_nlp_config_filename_or_exit() -> str:
     """
@@ -791,7 +820,8 @@ def get_nlp_config_filename_or_exit() -> str:
         print(
             f"You must set the {NLP_CONFIG_ENV_VAR} environment variable "
             f"to point to a CRATE NLP config file, or specify it on the "
-            f"command line.")
+            f"command line."
+        )
         sys.exit(1)
     return config_filename
 
@@ -799,6 +829,7 @@ def get_nlp_config_filename_or_exit() -> str:
 # =============================================================================
 # Config class
 # =============================================================================
+
 
 class NlpDefinition(object):
     """
@@ -841,7 +872,7 @@ class NlpDefinition(object):
         self._cfg = ConfigSection(
             section=full_sectionname(NlpConfigPrefixes.NLPDEF, nlpname),
             filename=self._config_filename,
-            case_sensitive=True
+            case_sensitive=True,
         )
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -849,61 +880,68 @@ class NlpDefinition(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self._databases = {}  # type: Dict[str, DatabaseHolder]
         self._progressdb_name = self._cfg.opt_str(
-            NlpDefConfigKeys.PROGRESSDB,
-            required=True)
+            NlpDefConfigKeys.PROGRESSDB, required=True
+        )
         self._progdb = self.get_database(self._progressdb_name)
         self._temporary_tablename = self._cfg.opt_str(
             NlpDefConfigKeys.TEMPORARY_TABLENAME,
-            default=DEFAULT_TEMPORARY_TABLENAME)
+            default=DEFAULT_TEMPORARY_TABLENAME,
+        )
         self._hashphrase = self._cfg.opt_str(
-            NlpDefConfigKeys.HASHPHRASE,
-            required=True)
+            NlpDefConfigKeys.HASHPHRASE, required=True
+        )
         self._hasher = HashClass(self._hashphrase)
         self._max_rows_before_commit = self._cfg.opt_int_positive(
             NlpDefConfigKeys.MAX_ROWS_BEFORE_COMMIT,
-            DEFAULT_MAX_ROWS_BEFORE_COMMIT)
+            DEFAULT_MAX_ROWS_BEFORE_COMMIT,
+        )
         self._max_bytes_before_commit = self._cfg.opt_int_positive(
             NlpDefConfigKeys.MAX_BYTES_BEFORE_COMMIT,
-            DEFAULT_MAX_BYTES_BEFORE_COMMIT)
+            DEFAULT_MAX_BYTES_BEFORE_COMMIT,
+        )
         self._now = get_now_utc_notz_datetime()
         self.truncate_text_at = self._cfg.opt_int_positive(
-            NlpDefConfigKeys.TRUNCATE_TEXT_AT,
-            default=0)
+            NlpDefConfigKeys.TRUNCATE_TEXT_AT, default=0
+        )
         self.record_truncated_values = self._cfg.opt_bool(
-            NlpDefConfigKeys.RECORD_TRUNCATED_VALUES,
-            default=False)
+            NlpDefConfigKeys.RECORD_TRUNCATED_VALUES, default=False
+        )
         self._cloud_config_name = self._cfg.opt_str(
-            NlpDefConfigKeys.CLOUD_CONFIG)
+            NlpDefConfigKeys.CLOUD_CONFIG
+        )
         self._cloud_request_data_dir = self._cfg.opt_str(
-             NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR)
+            NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR
+        )
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Input field definitions
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self._inputfielddefs = self._cfg.opt_strlist(
-            NlpDefConfigKeys.INPUTFIELDDEFS,
-            required=True, lower=False)
+            NlpDefConfigKeys.INPUTFIELDDEFS, required=True, lower=False
+        )
         self._inputfieldmap = {}  # type: Dict[str, InputFieldConfig]
         for cfg_input_name in self._inputfielddefs:
             if cfg_input_name in self._inputfieldmap:
                 continue
             self._inputfieldmap[cfg_input_name] = InputFieldConfig(
-                self, cfg_input_name)
+                self, cfg_input_name
+            )
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # NLP processors
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self._processors = []  # type: List[TableMaker]
         processorpairs = self._cfg.opt_strlist(
-            NlpDefConfigKeys.PROCESSORS,
-            required=True, lower=False)
+            NlpDefConfigKeys.PROCESSORS, required=True, lower=False
+        )
         # self._procstmp = {}
         try:
             for proctype, procname in chunks(processorpairs, 2):
                 processor = make_nlp_parser(
                     classname=proctype,
                     nlpdef=self,
-                    cfg_processor_name=procname)
+                    cfg_processor_name=procname,
+                )
                 self._processors.append(processor)
         except ValueError:
             log.critical(f"Bad {NlpDefConfigKeys.PROCESSORS} specification")
@@ -912,7 +950,9 @@ class NlpDefinition(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Transaction sizes, for early commit
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self._transaction_limiters = {}  # type: Dict[Session, TransactionSizeLimiter]  # noqa
+        self._transaction_limiters = (
+            {}
+        )  # type: Dict[Session, TransactionSizeLimiter]
         # dictionary of session -> TransactionSizeLimiter
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -972,9 +1012,10 @@ class NlpDefinition(object):
         return self._cfg.other_section(section)
 
     def get_env_dict(
-            self,
-            env_section_name: str,
-            parent_env: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+        self,
+        env_section_name: str,
+        parent_env: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, str]:
         """
         Gets an operating system environment variable dictionary (``variable:
         value`` mapping) from the config file.
@@ -989,13 +1030,16 @@ class NlpDefinition(object):
         """
         return self._cfg.parser.get_env_dict(
             full_sectionname(NlpConfigPrefixes.ENV, env_section_name),
-            parent_env=parent_env
+            parent_env=parent_env,
         )
 
-    def get_database(self, name_and_cfg_section: str,
-                     with_session: bool = True,
-                     with_conn: bool = False,
-                     reflect: bool = False) -> DatabaseHolder:
+    def get_database(
+        self,
+        name_and_cfg_section: str,
+        with_session: bool = True,
+        with_conn: bool = False,
+        reflect: bool = False,
+    ) -> DatabaseHolder:
         """
         Returns a :class:`crate_anon.anonymise.dbholder.DatabaseHolder` from
         the config file, containing information abuot a database.
@@ -1010,13 +1054,16 @@ class NlpDefinition(object):
         """
         if name_and_cfg_section in self._databases:
             return self._databases[name_and_cfg_section]
-        dbsection = full_sectionname(NlpConfigPrefixes.DATABASE,
-                                     name_and_cfg_section)
+        dbsection = full_sectionname(
+            NlpConfigPrefixes.DATABASE, name_and_cfg_section
+        )
         assert len(name_and_cfg_section) <= MAX_SQL_FIELD_LEN
-        db = self.parser.get_database(dbsection,
-                                      with_session=with_session,
-                                      with_conn=with_conn,
-                                      reflect=reflect)
+        db = self.parser.get_database(
+            dbsection,
+            with_session=with_session,
+            with_conn=with_conn,
+            reflect=reflect,
+        )
         self._databases[name_and_cfg_section] = db
         return db
 
@@ -1061,8 +1108,10 @@ class NlpDefinition(object):
             db.engine.echo = echo
         # Now, SQLAlchemy will mess things up by adding an additional handler.
         # So, bye-bye:
-        for logname in ('sqlalchemy.engine.base.Engine',
-                        'sqlalchemy.engine.base.OptionEngine'):
+        for logname in (
+            "sqlalchemy.engine.base.Engine",
+            "sqlalchemy.engine.base.OptionEngine",
+        ):
             logger = logging.getLogger(logname)
             logger.handlers = []  # ... of type: List[logging.Handler]
 
@@ -1103,8 +1152,9 @@ class NlpDefinition(object):
         for db in self._databases.values():
             self.commit(db.session)
 
-    def get_transation_limiter(self,
-                               session: Session) -> TransactionSizeLimiter:
+    def get_transation_limiter(
+        self, session: Session
+    ) -> TransactionSizeLimiter:
         """
         Returns (or creates and returns) a transaction limiter for a given
         SQLAlchemy session.
@@ -1120,12 +1170,17 @@ class NlpDefinition(object):
             self._transaction_limiters[session] = TransactionSizeLimiter(
                 session,
                 max_rows_before_commit=self._max_rows_before_commit,
-                max_bytes_before_commit=self._max_bytes_before_commit)
+                max_bytes_before_commit=self._max_bytes_before_commit,
+            )
         return self._transaction_limiters[session]
 
-    def notify_transaction(self, session: Session,
-                           n_rows: int, n_bytes: int,
-                           force_commit: bool = False) -> None:
+    def notify_transaction(
+        self,
+        session: Session,
+        n_rows: int,
+        n_bytes: int,
+        force_commit: bool = False,
+    ) -> None:
         """
         Tell our transaction limiter about a transaction that's occurred on
         one of our databases. This may trigger a COMMIT.
@@ -1154,7 +1209,7 @@ class NlpDefinition(object):
     # -------------------------------------------------------------------------
 
     @property
-    def inputfieldconfigs(self) -> Iterable['InputFieldConfig']:
+    def inputfieldconfigs(self) -> Iterable["InputFieldConfig"]:
         """
         Returns all input field configurations used by this NLP definition.
 
@@ -1171,7 +1226,7 @@ class NlpDefinition(object):
     # -------------------------------------------------------------------------
 
     @property
-    def processors(self) -> List['TableMaker']:
+    def processors(self) -> List["TableMaker"]:
         """
         Returns all NLP processors used by this NLP definition.
 
@@ -1183,7 +1238,7 @@ class NlpDefinition(object):
         return self._processors
 
     @property
-    def noncloud_processors(self) -> List['BaseNlpParser']:
+    def noncloud_processors(self) -> List["BaseNlpParser"]:
         """
         Returns all local (non-cloud) NLP processors used by this NLP
         definition.
@@ -1193,16 +1248,24 @@ class NlpDefinition(object):
             :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
 
         """
-        # noinspection PyTypeChecker
-        return [x for x in self._processors if
-                x.classname() != NlpDefValues.PROCTYPE_CLOUD]
+        return [
+            x for x in self._processors if not x.is_cloud_processor()
+        ]  # type: List["BaseNlpParser"]
+
+    @property
+    def uses_cloud_processors(self) -> bool:
+        """
+        Are any of our processors cloud-based?
+        """
+        return any(x.is_cloud_processor() for x in self._processors)
 
     # -------------------------------------------------------------------------
     # NLPRP info
     # -------------------------------------------------------------------------
 
-    def nlprp_local_processors(self,
-                               sql_dialect: str = None) -> Dict[str, Any]:
+    def nlprp_local_processors(
+        self, sql_dialect: str = None
+    ) -> Dict[str, Any]:
         """
         Returns a draft list of processors as per the NLPRP
         :ref:`list_processors <nlprp_list_processors>` command.
@@ -1210,14 +1273,11 @@ class NlpDefinition(object):
         processors = []  # type: List[Dict, str, Any]
         for proc in self.noncloud_processors:
             processors.append(proc.nlprp_processor_info(sql_dialect))
-        return {
-            NlprpKeys.PROCESSORS: processors,
-        }
+        return {NlprpKeys.PROCESSORS: processors}
 
-    def nlprp_local_processors_json(self,
-                                    indent: int = 4,
-                                    sort_keys: bool = True,
-                                    sql_dialect: str = None) -> str:
+    def nlprp_local_processors_json(
+        self, indent: int = 4, sort_keys: bool = True, sql_dialect: str = None
+    ) -> str:
         """
         Returns a formatted JSON string from :func:`nlprp_list_processors`.
         This is primarily for debugging.
@@ -1246,22 +1306,25 @@ class NlpDefinition(object):
             if not self._cloud_config_name:
                 raise ValueError(
                     f"No {NlpDefConfigKeys.CLOUD_CONFIG!r} parameter "
-                    f"specified for NLP definition {our_name!r}")
+                    f"specified for NLP definition {our_name!r}"
+                )
             if not self._cloud_request_data_dir:
                 raise ValueError(
-                    f"No {NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR!r} parameter "  # noqa
-                    f"specified for NLP definition {our_name!r}")
+                    f"No {NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR!r} "
+                    f"parameter specified for NLP definition {our_name!r}"
+                )
             req_root_dir = os.path.abspath(self._cloud_request_data_dir)
             if not os.path.isdir(req_root_dir):
                 raise ValueError(
                     f"Directory {req_root_dir!r}, specified by config "
                     f"parameter {NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR!r} "
-                    f"for NLP definition {our_name!r}")
+                    f"for NLP definition {our_name!r}"
+                )
             req_data_dir = os.path.join(req_root_dir, our_name)
             os.makedirs(req_data_dir, exist_ok=True)
-            self._cloudcfg = CloudConfig(self,
-                                         name=self._cloud_config_name,
-                                         req_data_dir=req_data_dir)
+            self._cloudcfg = CloudConfig(
+                self, name=self._cloud_config_name, req_data_dir=req_data_dir
+            )
         return self._cloudcfg
 
     def get_cloud_config_or_raise(self) -> CloudConfig:
@@ -1272,9 +1335,13 @@ class NlpDefinition(object):
         """
         cloudcfg = self.get_cloud_config()
         if cloudcfg is None:
-            raise ValueError(f"No cloud NLP configuration for NLP definition "
-                             f"{self.name!r}")
+            raise ValueError(
+                f"No cloud NLP configuration for NLP definition "
+                f"{self.name!r}"
+            )
         if not cloudcfg.remote_processors:
-            raise ValueError(f"No remote (cloud) processors configured for "
-                             f"NLP definition {self.name!r}")
+            raise ValueError(
+                f"No remote (cloud) processors configured for "
+                f"NLP definition {self.name!r}"
+            )
         return cloudcfg

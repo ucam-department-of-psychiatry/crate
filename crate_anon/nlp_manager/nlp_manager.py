@@ -1056,6 +1056,12 @@ def test_nlp_stdin(nlpdef: NlpDefinition) -> None:
         p.friendly_name_with_section for p in processors
     )
     log.info(f"Testing NLP processors: {processor_names}")
+    if nlpdef.uses_cloud_processors:
+        crinfo = CloudRunInfo(
+            nlpdef, debug_post_request=True, debug_post_response=True
+        )
+    else:
+        crinfo = None
     for text in gen_chunks_from_files(
         filenames=["-"],
         stdin_prompt="Please type lines of text to be processed. "
@@ -1068,19 +1074,10 @@ def test_nlp_stdin(nlpdef: NlpDefinition) -> None:
             result_found = False
             for p in processors:  # type: BaseNlpParser
 
-                if isinstance(p, BaseNlpParser):
-                    # Local (non-cloud) NLP processor.
-                    for tablename, valuedict in p.parse(text):
-                        result_found = True
-                        log.info(f"RESULT: {tablename}: {valuedict}")
-
-                elif isinstance(p, Cloud):
+                if p.is_cloud_processor():
                     # Cloud processor.
-                    crinfo = CloudRunInfo(
-                        nlpdef,
-                        debug_post_request=True,
-                        debug_post_response=True,
-                    )
+                    assert crinfo is not None
+                    assert isinstance(p, Cloud)
                     procreq = CloudRequestProcess(
                         crinfo=crinfo,
                         nlpdef=nlpdef,
@@ -1096,7 +1093,12 @@ def test_nlp_stdin(nlpdef: NlpDefinition) -> None:
                     log.info(f"RESULTS:\n{formatted_results}")
 
                 else:
-                    raise ValueError("Unknown processor type: {p!r}")
+                    # Local (non-cloud) NLP processor.
+                    assert isinstance(p, BaseNlpParser)
+                    for tablename, valuedict in p.parse(text):
+                        result_found = True
+                        log.info(f"RESULT: {tablename}: {valuedict}")
+
             if not result_found:
                 log.info("[No results.]")
         else:

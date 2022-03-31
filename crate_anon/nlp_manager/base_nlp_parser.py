@@ -34,7 +34,13 @@ import json
 import logging
 import sys
 from typing import (
-    Any, Dict, Generator, Iterable, List, Optional, Tuple,
+    Any,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
     TYPE_CHECKING,
 )
 
@@ -42,8 +48,9 @@ from cardinal_pythonlib.reprfunc import auto_repr
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 from cardinal_pythonlib.sqlalchemy.schema import (
     column_lists_equal,
-    index_lists_equal
+    index_lists_equal,
 )
+
 # OK to import "registry"; see
 # https://github.com/zzzeek/sqlalchemy/blob/master/README.dialects.rst
 # noinspection PyProtectedMember
@@ -74,9 +81,7 @@ from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
 )
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
-from crate_anon.nlp_manager.nlp_definition import (
-    NlpDefinition,
-)
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlprp.api import NlprpServerProcessor
 from crate_anon.nlprp.constants import (
     ALL_SQL_DIALECTS,
@@ -103,6 +108,7 @@ TIMING_HANDLE_PARSED = "handled_parsed"
 # Exception meaning "could not parse this piece of text"
 # =============================================================================
 
+
 class TextProcessingFailed(Exception):
     pass
 
@@ -111,19 +117,23 @@ class TextProcessingFailed(Exception):
 # Base class for all parser types
 # =============================================================================
 
+
 class TableMaker(ABC):
     """
     Base class for all CRATE NLP processors, local and cloud, including those
     that talk to third-party software. Manages the interface to databases for
     results storage, etc.
-
     """
 
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfg_processor_name: Optional[str],
-                 commit: bool = False,
-                 friendly_name: str = "?") -> None:
+    _is_cloud_processor = False  # overridden by cloud-based classes
+
+    def __init__(
+        self,
+        nlpdef: Optional[NlpDefinition],
+        cfg_processor_name: Optional[str],
+        commit: bool = False,
+        friendly_name: str = "?",
+    ) -> None:
         r"""
         ``__init__`` function for :class:`TableMaker`.
 
@@ -158,10 +168,12 @@ class TableMaker(ABC):
             self._destdb = None  # type: Optional[DatabaseHolder]
         else:
             self._sectionname = full_sectionname(
-                NlpConfigPrefixes.PROCESSOR, cfg_processor_name)
+                NlpConfigPrefixes.PROCESSOR, cfg_processor_name
+            )
             self._cfgsection = nlpdef.get_config_section(self._sectionname)
             self._destdb_name = self._cfgsection.opt_str(
-                ProcessorConfigKeys.DESTDB, required=True)
+                ProcessorConfigKeys.DESTDB, required=True
+            )
             self._destdb = nlpdef.get_database(self._destdb_name)
 
     def __str__(self) -> str:
@@ -185,8 +197,14 @@ class TableMaker(ABC):
         # This may be imperfect; see
         # https://stackoverflow.com/questions/2020014/get-fully-qualified-class-name-of-an-object-in-python  # noqa
         # https://www.python.org/dev/peps/pep-3155/
-        return ".".join([cls.__module__,
-                         cls.__qualname__])
+        return ".".join([cls.__module__, cls.__qualname__])
+
+    @classmethod
+    def is_cloud_processor(cls) -> bool:
+        """
+        Is this class a cloud-based (remote) NLP processor?
+        """
+        return cls._is_cloud_processor
 
     @abstractmethod
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
@@ -270,8 +288,12 @@ class TableMaker(ABC):
         return self._destdb_name
 
     @staticmethod
-    def _assert_no_overlap(description1: str, cols1: List[Column],
-                           description2: str, cols2: List[Column]) -> None:
+    def _assert_no_overlap(
+        description1: str,
+        cols1: List[Column],
+        description2: str,
+        cols2: List[Column],
+    ) -> None:
         """
         Asserts that the two column lists do not include overlapping column
         names.
@@ -294,7 +316,8 @@ class TableMaker(ABC):
 
     @staticmethod
     def _assert_column_lists_identical(
-            list_of_column_lists: List[List[Column]]) -> None:
+        list_of_column_lists: List[List[Column]]
+    ) -> None:
         """
         Ensure that every column list (in a list of column lists) is identical.
         """
@@ -319,8 +342,10 @@ class TableMaker(ABC):
                         a_list=a_list,
                         b_list=b_list,
                         all_lists=list_of_column_lists,
-                        all_colnames=[[c.name for c in columns]
-                                      for columns in list_of_column_lists],
+                        all_colnames=[
+                            [c.name for c in columns]
+                            for columns in list_of_column_lists
+                        ],
                     )
                 )
                 log.critical(msg)
@@ -328,7 +353,8 @@ class TableMaker(ABC):
 
     @staticmethod
     def _assert_index_lists_identical(
-            list_of_index_lists: List[List[Index]]) -> None:
+        list_of_index_lists: List[List[Index]]
+    ) -> None:
         """
         Ensure that every index list (in a list of index lists) is identical.
         """
@@ -353,8 +379,10 @@ class TableMaker(ABC):
                         a_list=a_list,
                         b_list=b_list,
                         all_lists=list_of_index_lists,
-                        all_colnames=[[c.name for c in columns]
-                                      for columns in list_of_index_lists],
+                        all_colnames=[
+                            [c.name for c in columns]
+                            for columns in list_of_index_lists
+                        ],
                     )
                 )
                 log.critical(msg)
@@ -368,18 +396,32 @@ class TableMaker(ABC):
         Returns standard columns for GATE output.
         """
         return [
-            Column(GateFN.SET, SqlTypeDbIdentifier,
-                   comment="GATE output set name"),
-            Column(GateFN.TYPE, SqlTypeDbIdentifier,
-                   comment="GATE annotation type name"),
-            Column(GateFN.ID, Integer,
-                   comment="GATE annotation ID (not clear this is very useful)"),  # noqa
-            Column(GateFN.STARTPOS, Integer,
-                   comment="Start position in the content"),
-            Column(GateFN.ENDPOS, Integer,
-                   comment="End position in the content"),
-            Column(GateFN.CONTENT, Text,
-                   comment="Full content marked as relevant."),
+            Column(
+                GateFN.SET, SqlTypeDbIdentifier, comment="GATE output set name"
+            ),
+            Column(
+                GateFN.TYPE,
+                SqlTypeDbIdentifier,
+                comment="GATE annotation type name",
+            ),
+            Column(
+                GateFN.ID,
+                Integer,
+                comment="GATE annotation ID (not clear this is very useful)",
+            ),  # noqa
+            Column(
+                GateFN.STARTPOS,
+                Integer,
+                comment="Start position in the content",
+            ),
+            Column(
+                GateFN.ENDPOS, Integer, comment="End position in the content"
+            ),
+            Column(
+                GateFN.CONTENT,
+                Text,
+                comment="Full content marked as relevant.",
+            ),
         ]
 
     @staticmethod
@@ -387,9 +429,7 @@ class TableMaker(ABC):
         """
         Returns standard indexes for GATE output.
         """
-        return [
-            Index('_idx__set', GateFN.SET, mysql_length=MAX_SQL_FIELD_LEN),
-        ]
+        return [Index("_idx__set", GateFN.SET, mysql_length=MAX_SQL_FIELD_LEN)]
 
     @lru_cache(maxsize=None)
     def tables(self) -> Dict[str, Table]:
@@ -408,23 +448,22 @@ class TableMaker(ABC):
         copy_columns = copycolumns_list[0]
 
         core_columns = InputFieldConfig.get_core_columns_for_dest()
-        self._assert_no_overlap("copy", copy_columns,
-                                "source", core_columns)
+        self._assert_no_overlap("copy", copy_columns, "source", core_columns)
 
         # Create one or more tables
         meta = self.dest_metadata
         tables = {}  # Dict[str, Table]
         t_columns = self.dest_tables_columns()
         for tablename, extra_dest_cols in t_columns.items():
-            self._assert_no_overlap("copy", copy_columns,
-                                    "destination", extra_dest_cols)
+            self._assert_no_overlap(
+                "copy", copy_columns, "destination", extra_dest_cols
+            )
             # And to check we haven't introduced any bugs internally:
-            self._assert_no_overlap("source", core_columns,
-                                    "destination", extra_dest_cols)
+            self._assert_no_overlap(
+                "source", core_columns, "destination", extra_dest_cols
+            )
 
-            columns = (core_columns +
-                       extra_dest_cols +
-                       copy_columns)
+            columns = core_columns + extra_dest_cols + copy_columns
             copy_of_cols = [c.copy() for c in columns]
 
             t_indexes = self.dest_tables_indexes()
@@ -437,10 +476,7 @@ class TableMaker(ABC):
             core_indexes = InputFieldConfig.get_core_indexes_for_dest()
 
             column_like_things = (
-                copy_of_cols +
-                core_indexes +
-                extra_dest_indexes +
-                copy_indexes
+                copy_of_cols + core_indexes + extra_dest_indexes + copy_indexes
             )
             # log.critical(repr(column_like_things))
             tables[tablename] = Table(tablename, meta, *column_like_things)
@@ -469,8 +505,10 @@ class TableMaker(ABC):
         try:
             return tables[tablename]
         except KeyError:
-            raise KeyError(f"No destination table for this NLP processor "
-                           f"named {tablename!r}")
+            raise KeyError(
+                f"No destination table for this NLP processor "
+                f"named {tablename!r}"
+            )
 
     def make_tables(self, drop_first: bool = False) -> List[str]:
         """
@@ -494,11 +532,13 @@ class TableMaker(ABC):
             pretty_names.append(pretty_name)
         return pretty_names
 
-    def delete_dest_record(self,
-                           ifconfig: InputFieldConfig,
-                           srcpkval: int,
-                           srcpkstr: Optional[str],
-                           commit: bool = False) -> None:
+    def delete_dest_record(
+        self,
+        ifconfig: InputFieldConfig,
+        srcpkval: int,
+        srcpkstr: Optional[str],
+        commit: bool = False,
+    ) -> None:
         """
         Deletes all destination records for a given source record.
 
@@ -527,16 +567,18 @@ class TableMaker(ABC):
         destdb_name = self._destdb.name
         nlpdef_name = self._nlpdef.name
         for tablename, desttable in self.tables().items():
-            log.debug(f"delete_from_dest_dbs... {srcdb}.{srctable} -> "
-                      f"{destdb_name}.{tablename}")
+            log.debug(
+                f"delete_from_dest_dbs... {srcdb}.{srctable} -> "
+                f"{destdb_name}.{tablename}"
+            )
             # noinspection PyProtectedMember,PyPropertyAccess
             delquery = (
-                desttable.delete().
-                where(desttable.c._srcdb == srcdb).
-                where(desttable.c._srctable == srctable).
-                where(desttable.c._srcfield == srcfield).
-                where(desttable.c._srcpkval == srcpkval).
-                where(desttable.c._nlpdef == nlpdef_name)
+                desttable.delete()
+                .where(desttable.c._srcdb == srcdb)
+                .where(desttable.c._srctable == srctable)
+                .where(desttable.c._srcfield == srcfield)
+                .where(desttable.c._srcpkval == srcpkval)
+                .where(desttable.c._nlpdef == nlpdef_name)
             )
             if srcpkstr is not None:
                 # noinspection PyProtectedMember,PyPropertyAccess
@@ -546,9 +588,9 @@ class TableMaker(ABC):
             if commit:
                 self._nlpdef.commit(session)
 
-    def delete_where_srcpk_not(self,
-                               ifconfig: InputFieldConfig,
-                               temptable: Optional[Table]) -> None:
+    def delete_where_srcpk_not(
+        self, ifconfig: InputFieldConfig, temptable: Optional[Table]
+    ) -> None:
         """
         Function to help with deleting NLP destination records whose source
         records have been deleted.
@@ -570,16 +612,18 @@ class TableMaker(ABC):
         srctable = ifconfig.srctable
         srcfield = ifconfig.srcfield
         for desttable_name, desttable in self.tables().items():
-            log.debug(f"delete_where_srcpk_not... {srcdb}.{srctable} -> "
-                      f"{self._destdb_name}.{desttable_name}")
+            log.debug(
+                f"delete_where_srcpk_not... {srcdb}.{srctable} -> "
+                f"{self._destdb_name}.{desttable_name}"
+            )
             # noinspection PyProtectedMember,PyPropertyAccess
             dest_deletion_query = (
                 # see get_core_indexes_for_dest
-                desttable.delete().
-                where(desttable.c._srcdb == srcdb).
-                where(desttable.c._srctable == srctable).
-                where(desttable.c._srcfield == srcfield).
-                where(desttable.c._nlpdef == self._nlpdef.name)
+                desttable.delete()
+                .where(desttable.c._srcdb == srcdb)
+                .where(desttable.c._srctable == srctable)
+                .where(desttable.c._srcfield == srcfield)
+                .where(desttable.c._nlpdef == self._nlpdef.name)
             )
             if temptable is not None:
                 log.debug("... deleting selectively")
@@ -602,9 +646,9 @@ class TableMaker(ABC):
                                 desttable.c._srcpkstr == temptable_pkstrcol,
                                 and_(
                                     desttable.c._srcpkstr.is_(None),
-                                    temptable_pkstrcol.is_(None)
-                                )
-                            )
+                                    temptable_pkstrcol.is_(None),
+                                ),
+                            ),
                         )
                     )
                 )
@@ -625,27 +669,33 @@ class TableMaker(ABC):
 # Base class for all local parser types
 # =============================================================================
 
+
 class BaseNlpParser(TableMaker):
     """
     Base class for all local CRATE NLP parsers.
     """
+
     uses_external_tool = False  # may be overridden
 
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfg_processor_name: Optional[str],
-                 commit: bool = False,
-                 friendly_name: str = "?") -> None:
-        super().__init__(nlpdef, cfg_processor_name, commit,
-                         friendly_name=friendly_name)
+    def __init__(
+        self,
+        nlpdef: Optional[NlpDefinition],
+        cfg_processor_name: Optional[str],
+        commit: bool = False,
+        friendly_name: str = "?",
+    ) -> None:
+        super().__init__(
+            nlpdef, cfg_processor_name, commit, friendly_name=friendly_name
+        )
 
     # -------------------------------------------------------------------------
     # NLP processing
     # -------------------------------------------------------------------------
 
     @abstractmethod
-    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
-                                            None, None]:
+    def parse(
+        self, text: str
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         """
         Main parsing function.
 
@@ -666,8 +716,9 @@ class BaseNlpParser(TableMaker):
         """
         raise NotImplementedError
 
-    def process(self, text: str,
-                starting_fields_values: Dict[str, Any]) -> None:
+    def process(
+        self, text: str, starting_fields_values: Dict[str, Any]
+    ) -> None:
         """
         The core function that takes a single piece of text and feeds it
         through a single NLP processor. This may produce zero, one, or many
@@ -714,8 +765,11 @@ class BaseNlpParser(TableMaker):
                     # InputFieldConfig.get_copy_columns and
                     # InputFieldConfig.get_copy_indexes
                     column_names = [c.name for c in sqla_table.columns]
-                    final_values = {k: v for k, v in nlp_values.items()
-                                    if k in column_names}
+                    final_values = {
+                        k: v
+                        for k, v in nlp_values.items()
+                        if k in column_names
+                    }
                     # log.critical(repr(sqla_table))
                     insertquery = sqla_table.insert().values(final_values)
                     try:
@@ -731,12 +785,13 @@ class BaseNlpParser(TableMaker):
                         session,
                         n_rows=1,
                         n_bytes=sys.getsizeof(final_values),
-                        force_commit=self._commit
+                        force_commit=self._commit,
                     )
                     n_values += 1
         log.debug(
             f"NLP processor {self.nlpdef_name}/{self.friendly_name}:"
-            f" found {n_values} values")
+            f" found {n_values} values"
+        )
 
     @abstractmethod
     def test(self, verbose: bool = False) -> None:
@@ -750,8 +805,9 @@ class BaseNlpParser(TableMaker):
         This is an abstract method that is subclassed.
         """
         # NB This docstring was associated with Sphinx errors!
-        raise NotImplementedError(f"No test function for regex class: "
-                                  f"{self.classname()}")
+        raise NotImplementedError(
+            f"No test function for regex class: " f"{self.classname()}"
+        )
 
     def test_parser(self, test_strings: List[str]) -> None:
         """
@@ -767,8 +823,9 @@ class BaseNlpParser(TableMaker):
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def describe_sqla_col(column: Column, sql_dialect: str = None) \
-            -> Dict[str, Any]:
+    def describe_sqla_col(
+        column: Column, sql_dialect: str = None
+    ) -> Dict[str, Any]:
         """
         Describes a single SQLAlchemy :class:`Column` in the :ref:`NLPRP
         <nlprp>` format, which follows ``INFORMATION_SCHEMA.COLUMNS`` closely.
@@ -878,8 +935,9 @@ class BaseNlpParser(TableMaker):
         """
         return compress_docstring(get_docstring(cls))
 
-    def nlprp_server_processor(self, sql_dialect: str = None) \
-            -> NlprpServerProcessor:
+    def nlprp_server_processor(
+        self, sql_dialect: str = None
+    ) -> NlprpServerProcessor:
         schema_info = self.nlprp_schema_info(sql_dialect)
         return NlprpServerProcessor(
             name=self.nlprp_name(),
@@ -889,7 +947,7 @@ class BaseNlpParser(TableMaker):
             description=self.nlprp_description(),
             schema_type=schema_info[NlprpKeys.SCHEMA_TYPE],
             sql_dialect=schema_info.get(NlprpKeys.SQL_DIALECT),
-            tabular_schema=schema_info.get(NlprpKeys.TABULAR_SCHEMA)
+            tabular_schema=schema_info.get(NlprpKeys.TABULAR_SCHEMA),
         )
 
     def nlprp_processor_info(self, sql_dialect: str = None) -> Dict[str, Any]:
@@ -906,10 +964,9 @@ class BaseNlpParser(TableMaker):
         """
         return self.nlprp_server_processor(sql_dialect).infodict
 
-    def nlprp_processor_info_json(self,
-                                  indent: int = 4,
-                                  sort_keys: bool = True,
-                                  sql_dialect: str = None) -> str:
+    def nlprp_processor_info_json(
+        self, indent: int = 4, sort_keys: bool = True, sql_dialect: str = None
+    ) -> str:
         """
         Returns a formatted JSON string from :func:`nlprp_schema_info`.
         This is primarily for debugging.

@@ -59,6 +59,8 @@ class Cloud(TableMaker):
     end might be of any kind.
     """
 
+    _is_cloud_processor = True
+
     def __init__(
         self,
         nlpdef: Optional[NlpDefinition],
