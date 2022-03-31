@@ -31,6 +31,7 @@ crate_anon/nlp_manager/tests/all_processors_tests.py
 import logging
 import unittest
 
+from crate_anon.common.constants import JSON_INDENT
 from crate_anon.nlp_manager.all_processors import all_local_parser_classes
 from crate_anon.nlprp.constants import SqlDialects
 
@@ -41,8 +42,8 @@ log = logging.getLogger(__name__)
 # Unit tests
 # =============================================================================
 
-class TestNlpProcessors(unittest.TestCase):
 
+class TestNlpProcessors(unittest.TestCase):
     @staticmethod
     def test_all_processors() -> None:
         """
@@ -52,13 +53,16 @@ class TestNlpProcessors(unittest.TestCase):
         skip_validators: bool = False
 
         for cls in all_local_parser_classes():
-            if skip_validators and cls.classname().endswith('Validator'):
+            if skip_validators and cls.classname().endswith("Validator"):
                 continue
             log.info("Testing parser class: {}".format(cls.classname()))
             instance = cls(None, None)
             log.info("... instantiated OK")
             schema_json = instance.nlprp_processor_info_json(
-                indent=4, sort_keys=True, sql_dialect=SqlDialects.MYSQL)
+                indent=JSON_INDENT,
+                sort_keys=True,
+                sql_dialect=SqlDialects.MYSQL,
+            )
             log.info(f"NLPRP processor information:\n{schema_json}")
             instance.test(verbose=verbose)
         log.info("Tests completed successfully.")

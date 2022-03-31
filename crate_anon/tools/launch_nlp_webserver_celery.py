@@ -31,7 +31,6 @@ Compare crate_anon/tools/launch_celery.py (for the main CRATE web site).
 """
 
 import argparse
-import os
 import platform
 
 from cardinal_pythonlib.process import nice_call
@@ -39,8 +38,6 @@ from cardinal_pythonlib.process import nice_call
 from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CELERY_APP_NAME
 
 
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-DJANGO_ROOT = os.path.abspath(os.path.join(THIS_DIR, os.pardir, "crateweb"))
 WINDOWS = platform.system() == 'Windows'
 
 

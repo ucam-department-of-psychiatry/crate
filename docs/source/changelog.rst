@@ -1523,6 +1523,12 @@ Changes
     error "document contains no tokens or sentences", and it's just a waste of
     resources to process these records.)
 
+  - The ``crate_nlp --test_nlp`` option now supports cloud-based (remote)
+    processors as well as local ones.
+
+  - The NLP cloud client checks that all requested processors are available
+    remotely, and fails overtly, rather than silently ignoring those.
+
 
 To do
 -----

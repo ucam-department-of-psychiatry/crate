@@ -60,9 +60,9 @@ def main() -> None:
 
     cmdargs = [
         "gunicorn",
+        # Launch with a PasteDeploy config file:
         "--paste", args.crate_config,
     ] + leftovers
-    cmdargs += leftovers
     print(f"Launching Gunicorn: {cmdargs}")
     subprocess.call(cmdargs)
 

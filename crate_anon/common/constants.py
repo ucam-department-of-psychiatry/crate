@@ -43,6 +43,7 @@ DEMO_NLP_OUTPUT_TERMINATOR = "END_OF_NLP_OUTPUT_RECORD"
 EXIT_FAILURE = 1
 EXIT_SUCCESS = 0
 
+JSON_INDENT = 4
 JSON_SEPARATORS_COMPACT = (',', ':')
 # ... see https://docs.python.org/3/library/json.html
 

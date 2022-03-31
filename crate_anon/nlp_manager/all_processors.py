@@ -33,6 +33,7 @@ crate_anon/nlp_manager/all_processors.py
 # "noinspection PyUnresolvedReferences" comments.
 
 from inspect import isabstract
+
 # noinspection PyUnresolvedReferences
 from typing import Any, List, Optional, Set, Type
 
@@ -46,8 +47,10 @@ from crate_anon.common.stringfunc import (
     make_twocol_table,
     trim_docstring,
 )
+
 # noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser, TableMaker
+
 # noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.parse_gate import Gate
@@ -125,7 +128,9 @@ def all_local_parser_classes() -> List[Type[BaseNlpParser]]:
     Checks that they all have unique names in lower case.
     """
     # noinspection PyTypeChecker
-    classes = get_all_subclasses(BaseNlpParser)  # type: List[Type[BaseNlpParser]]  # noqa
+    classes = get_all_subclasses(
+        BaseNlpParser
+    )  # type: List[Type[BaseNlpParser]]  # noqa
     lower_case_short_names = set()  # type: Set[str]
     lower_case_full_names = set()  # type: Set[str]
     for cls in classes:
@@ -133,14 +138,16 @@ def all_local_parser_classes() -> List[Type[BaseNlpParser]]:
         if lc_sname in lower_case_short_names:
             raise ValueError(
                 f"Trying to add NLP processor {lc_sname!r} but a processor "
-                f"with the same lower-case name already exists")
+                f"with the same lower-case name already exists"
+            )
         lower_case_short_names.add(lc_sname)
 
         lc_fname = cls.fully_qualified_classname().lower()
         if lc_fname in lower_case_full_names:
             raise ValueError(
                 f"Trying to add NLP processor {lc_fname!r} but a processor "
-                f"with the same lower-case fully-qualified name already exists")  # noqa
+                f"with the same lower-case fully-qualified name already exists"
+            )  # noqa
         lower_case_full_names.add(lc_fname)
     return classes
 
@@ -170,15 +177,17 @@ def get_nlp_parser_class(classname: str) -> Optional[Type[TableMaker]]:
     classname = classname.lower()
     classes = all_tablemaker_classes()
     for cls in classes:
-        if (cls.classname().lower() == classname or
-                cls.fully_qualified_classname().lower() == classname):
+        if (
+            cls.classname().lower() == classname
+            or cls.fully_qualified_classname().lower() == classname
+        ):
             return cls
     return None
 
 
-def make_nlp_parser(classname: str,
-                    nlpdef: NlpDefinition,
-                    cfg_processor_name: str) -> TableMaker:
+def make_nlp_parser(
+    classname: str, nlpdef: NlpDefinition, cfg_processor_name: str
+) -> TableMaker:
     """
     Fetch an NLP processor instance by name.
 
@@ -202,16 +211,13 @@ def make_nlp_parser(classname: str,
     """
     cls = get_nlp_parser_class(classname)
     if cls:
-        return cls(
-            nlpdef=nlpdef,
-            cfg_processor_name=cfg_processor_name
-        )
+        return cls(nlpdef=nlpdef, cfg_processor_name=cfg_processor_name)
     raise ValueError(f"Unknown NLP processor type: {classname!r}")
 
 
-def make_nlp_parser_unconfigured(classname: str,
-                                 raise_if_absent: bool = True) \
-        -> Optional[TableMaker]:
+def make_nlp_parser_unconfigured(
+    classname: str, raise_if_absent: bool = True
+) -> Optional[TableMaker]:
     """
     Get a debugging (unconfigured) instance of an NLP parser.
 
@@ -251,7 +257,8 @@ def possible_local_processor_names_without_external_tools() -> List[str]:
     tools.
     """
     return [
-        cls.classname() for cls in all_local_parser_classes()
+        cls.classname()
+        for cls in all_local_parser_classes()
         if not cls.uses_external_tool
     ]
 
@@ -271,8 +278,8 @@ def possible_processor_table() -> str:
 
 
 def all_crate_python_processors_nlprp_processor_info(
-        sql_dialect: str = None,
-        extra_dict: JsonObjectType = None) -> JsonArrayType:
+    sql_dialect: str = None, extra_dict: JsonObjectType = None
+) -> JsonArrayType:
     """
     Returns NLPRP processor information for all CRATE Python NLP processors.
 

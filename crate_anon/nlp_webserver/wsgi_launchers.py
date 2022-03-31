@@ -37,9 +37,9 @@ log = logging.getLogger(__name__)
 
 
 # noinspection PyUnusedLocal
-def cherrypy(wsgi_application: TYPE_WSGI_APP,
-             global_conf: Dict[str, Any],
-             **kwargs) -> int:
+def cherrypy(
+    wsgi_application: TYPE_WSGI_APP, global_conf: Dict[str, Any], **kwargs
+) -> int:
     """
     Start the CherryPy server.
 
@@ -53,7 +53,7 @@ def cherrypy(wsgi_application: TYPE_WSGI_APP,
         raise
 
     args_to_int = [  # Parameters that must be integer, not string
-        "server.socket_port",
+        "server.socket_port"
     ]
     for a in args_to_int:
         if a in kwargs:
@@ -72,9 +72,9 @@ def cherrypy(wsgi_application: TYPE_WSGI_APP,
     return 0
 
 
-def waitress(wsgi_application: TYPE_WSGI_APP,
-             global_conf: Dict[str, Any],
-             **kwargs) -> int:
+def waitress(
+    wsgi_application: TYPE_WSGI_APP, global_conf: Dict[str, Any], **kwargs
+) -> int:
     """
     Start the Waitress server.
 
@@ -86,6 +86,8 @@ def waitress(wsgi_application: TYPE_WSGI_APP,
     except ImportError:
         log.critical("You must install Waitress first (pip install waitress).")
         raise
-    log.debug(f"Launching Waitress with "
-              f"global_conf = {global_conf!r}, kwargs = {kwargs!r}")
+    log.debug(
+        f"Launching Waitress with "
+        f"global_conf = {global_conf!r}, kwargs = {kwargs!r}"
+    )
     return waitress.serve_paste(wsgi_application, global_conf, **kwargs)

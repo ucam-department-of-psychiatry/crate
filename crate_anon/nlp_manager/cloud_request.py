@@ -55,7 +55,7 @@ from requests import post, Response
 from requests.exceptions import HTTPError, RequestException
 from urllib3.exceptions import NewConnectionError
 
-from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
+from crate_anon.common.constants import JSON_INDENT, JSON_SEPARATORS_COMPACT
 from crate_anon.common.memsize import getsize
 from crate_anon.common.stringfunc import does_text_contain_word_chars
 from crate_anon.nlp_manager.cloud_parser import Cloud
@@ -68,9 +68,8 @@ from crate_anon.nlp_manager.constants import (
     # ProcessorConfigKeys,
     NlpDefValues,
 )
-from crate_anon.nlp_manager.nlp_definition import (
-    NlpDefinition,
-)
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+
 # from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 from crate_anon.nlprp.api import (
     json_get_array,
@@ -85,6 +84,7 @@ from crate_anon.nlprp.constants import (
     NlprpValues,
 )
 from crate_anon.nlp_webserver.server_processor import ServerProcessor
+
 # from crate_anon.common.profiling import do_cprofile
 
 if TYPE_CHECKING:
@@ -100,19 +100,21 @@ TIMING_INSERT = "CloudRequest_sql_insert"
 # Helper functions
 # =============================================================================
 
+
 def utf8len(text: str) -> int:
     """
     Returns the length of text once encoded in UTF-8.
     """
-    return len(text.encode('utf-8'))
+    return len(text.encode("utf-8"))
 
 
 def to_json_str(json_structure: JsonValueType) -> str:
     """
     Converts a Python object to a JSON string.
     """
-    return json.dumps(json_structure, default=str,
-                      separators=JSON_SEPARATORS_COMPACT)
+    return json.dumps(
+        json_structure, default=str, separators=JSON_SEPARATORS_COMPACT
+    )
     # This needs 'default=str' to deal with non-JSON-serializable
     # objects that may occur, such as datetimes in the metadata.
 
@@ -129,13 +131,16 @@ def report_processor_errors(processor_data: Dict[str, Any]) -> None:
         f"{error[NKeys.DESCRIPTION]}"
         for error in processor_data[NKeys.ERRORS]
     )
-    log.error(f"Processor {name!r} (version {version}) failed for this "
-              f"document. Errors:\n{error_messages}")
+    log.error(
+        f"Processor {name!r} (version {version}) failed for this "
+        f"document. Errors:\n{error_messages}"
+    )
 
 
 # =============================================================================
 # Exceptions
 # =============================================================================
+
 
 class RecordNotPrintable(Exception):
     pass
@@ -153,21 +158,25 @@ class RequestTooLong(Exception):
 # CloudRequest
 # =============================================================================
 
+
 class CloudRequest(object):
     """
     Class to send requests to the cloud processors and process the results.
     """
+
     # Set up standard information for all requests
-    HTTP_HEADERS = {
-        'charset': 'utf-8',
-        'Content-Type': 'application/json'
-    }
+    HTTP_HEADERS = {"charset": "utf-8", "Content-Type": "application/json"}
 
     # -------------------------------------------------------------------------
     # Initialization
     # -------------------------------------------------------------------------
 
-    def __init__(self, nlpdef: NlpDefinition) -> None:
+    def __init__(
+        self,
+        nlpdef: NlpDefinition,
+        debug_post_request: bool = False,
+        debug_post_response: bool = False,
+    ) -> None:
         """
         Args:
             nlpdef:
@@ -175,12 +184,15 @@ class CloudRequest(object):
         """
         self._nlpdef = nlpdef
         self._cloudcfg = nlpdef.get_cloud_config_or_raise()
-        self._nlpdef_sectionname = full_sectionname(NlpConfigPrefixes.NLPDEF,
-                                                    self._nlpdef.name)
+        self._nlpdef_sectionname = full_sectionname(
+            NlpConfigPrefixes.NLPDEF, self._nlpdef.name
+        )
         self._auth = (self._cloudcfg.username, self._cloudcfg.password)
         self._post = self._internal_post
 
         self.cookies = None  # type: Optional[CookieJar]
+        self._debug_post_request = debug_post_request
+        self._debug_post_response = debug_post_response
 
     # -------------------------------------------------------------------------
     # HTTP
@@ -202,8 +214,9 @@ class CloudRequest(object):
             # No limits!
             cls._post = cls._internal_post
 
-    def _internal_post(self, request_json: str,
-                       may_fail: bool = None) -> Optional[Response]:
+    def _internal_post(
+        self, request_json: str, may_fail: bool = None
+    ) -> Optional[Response]:
         """
         Submits an HTTP POST request to the remote.
         Tries up to a certain number of times.
@@ -243,14 +256,30 @@ class CloudRequest(object):
         while (not success) and tries <= self._cloudcfg.max_tries:
             try:
                 tries += 1
+                if self._debug_post_request:
+                    log.debug(
+                        f"Sending to {self._cloudcfg.url}:\n{request_json}"
+                    )
                 response = post(
                     url=self._cloudcfg.url,
                     data=data,
                     auth=self._auth,
                     headers=headers,
                     cookies=self.cookies,
-                    verify=self._cloudcfg.verify_ssl
+                    verify=self._cloudcfg.verify_ssl,
                 )
+                if self._debug_post_response:
+                    try:
+                        formatted_response = json.dumps(
+                            response.json(), indent=JSON_INDENT
+                        )
+                    except (AttributeError, json.decoder.JSONDecodeError):
+                        formatted_response = ""
+                    log.debug(
+                        f"Received from {self._cloudcfg.url}:\n"
+                        f"{response}\n"
+                        f"{formatted_response}"
+                    )
                 self.cookies = response.cookies
                 success = True
             except (RequestException, NewConnectionError) as e:
@@ -267,8 +296,9 @@ class CloudRequest(object):
         # Success
         return response
 
-    def _post_get_json(self, request_json: str,
-                       may_fail: bool = False) -> Optional[JsonObjectType]:
+    def _post_get_json(
+        self, request_json: str, may_fail: bool = False
+    ) -> Optional[JsonObjectType]:
         """
         Executes :meth:`_post`, then parses the result as JSON.
 
@@ -317,18 +347,19 @@ class CloudRequest(object):
 # CloudRequestListProcessors
 # =============================================================================
 
+
 class CloudRequestListProcessors(CloudRequest):
     """
     Request to get processors from the remote.
     """
 
-    def __init__(self, nlpdef: NlpDefinition) -> None:
+    def __init__(self, nlpdef: NlpDefinition, **kwargs) -> None:
         """
         Args:
             nlpdef:
                 :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
         """
-        super().__init__(nlpdef=nlpdef)
+        super().__init__(nlpdef=nlpdef, **kwargs)
 
     def get_remote_processors(self) -> List[ServerProcessor]:
         """
@@ -360,13 +391,15 @@ class CloudRequestListProcessors(CloudRequest):
                 title=procinfo[NKeys.TITLE],
                 version=procinfo[NKeys.VERSION],
                 is_default_version=procinfo.get(
-                    NKeys.IS_DEFAULT_VERSION, True),
+                    NKeys.IS_DEFAULT_VERSION, True
+                ),
                 description=procinfo[NKeys.DESCRIPTION],
                 # Optional:
-                schema_type=procinfo.get(NKeys.SCHEMA_TYPE,
-                                         NlprpValues.UNKNOWN),
+                schema_type=procinfo.get(
+                    NKeys.SCHEMA_TYPE, NlprpValues.UNKNOWN
+                ),
                 sql_dialect=procinfo.get(NKeys.SQL_DIALECT, ""),
-                tabular_schema=procinfo.get(NKeys.TABULAR_SCHEMA)
+                tabular_schema=procinfo.get(NKeys.TABULAR_SCHEMA),
             )
             processors.append(proc)
         return processors
@@ -376,16 +409,20 @@ class CloudRequestListProcessors(CloudRequest):
 # CloudRequestProcess
 # =============================================================================
 
+
 class CloudRequestProcess(CloudRequest):
     """
     Request to process text.
     """
 
-    def __init__(self,
-                 crinfo: "CloudRunInfo" = None,
-                 nlpdef: NlpDefinition = None,
-                 commit: bool = False,
-                 client_job_id: str = None) -> None:
+    def __init__(
+        self,
+        crinfo: "CloudRunInfo" = None,
+        nlpdef: NlpDefinition = None,
+        commit: bool = False,
+        client_job_id: str = None,
+        **kwargs,
+    ) -> None:
         """
         Args:
             crinfo:
@@ -401,7 +438,7 @@ class CloudRequestProcess(CloudRequest):
         assert nlpdef or crinfo
         if nlpdef is None:
             nlpdef = crinfo.nlpdef
-        super().__init__(nlpdef=nlpdef)
+        super().__init__(nlpdef=nlpdef, **kwargs)
         self._crinfo = crinfo
         self._commit = commit
         self._fetched = False
@@ -417,23 +454,27 @@ class CloudRequestProcess(CloudRequest):
             NKeys.QUEUE: True,
             NKeys.CLIENT_JOB_ID: self._client_job_id,
             NKeys.INCLUDE_TEXT: False,
-            NKeys.CONTENT: []  # type: List[str]
+            NKeys.CONTENT: [],  # type: List[str]
         }
         # Set up fetch_from_queue request
         self._fetch_request = make_nlprp_dict()
         self._fetch_request[NKeys.COMMAND] = NlprpCommands.FETCH_FROM_QUEUE
 
-        self.nlp_data = None  # type: Optional[JsonObjectType]  # the JSON response  # noqa
+        self.nlp_data = (
+            None
+        )  # type: Optional[JsonObjectType]  # the JSON response  # noqa
         self.queue_id = None  # type: Optional[str]
 
         self.request_failed = False
 
         # Of the form:
         #     {(procname, version): 'Cloud' object}
-        self.requested_processors = self._cloudcfg.remote_processors  # type: Dict[Tuple[str, Optional[str]], Cloud]  # noqa
+        self.requested_processors = (
+            self._cloudcfg.remote_processors
+        )  # type: Dict[Tuple[str, Optional[str]], Cloud]  # noqa
 
         if crinfo:
-            self._add_all_processors_to_request()
+            self._add_all_processors_to_request()  # may raise
 
     # -------------------------------------------------------------------------
     # Sending text to the server
@@ -520,7 +561,9 @@ class CloudRequestProcess(CloudRequest):
         # Is it too long?
         return length > max_length
 
-    def add_processor_to_request(self, procname: str, procversion: str) -> None:
+    def _add_processor_to_request(
+        self, procname: str, procversion: str
+    ) -> None:
         """
         Add a remote processor to the list of processors that we will request
         results from.
@@ -538,14 +581,22 @@ class CloudRequestProcess(CloudRequest):
         """
         Adds all requested processors.
         """
+        bad = []  # type: List[str]
         for name_version, cloudproc in self.requested_processors.items():
+            name = name_version[0]
+            version = name_version[1]
             if cloudproc.available_remotely:
-                name = name_version[0]
-                version = name_version[1]
-                self.add_processor_to_request(name, version)
+                self._add_processor_to_request(name, version)
+            else:
+                bad.append(f"- {name!r} (version {version})")
+        if bad:
+            raise RuntimeError(
+                f"The following NLP processors are not available from the "
+                f"NLPRP server at {self._crinfo.cloudcfg.url!r}:\n"
+                + "\n".join(bad)
+            )
 
-    def add_text(self, text: str,
-                 metadata: Dict[str, Any]) -> None:
+    def add_text(self, text: str, metadata: Dict[str, Any]) -> None:
         """
         Adds text for analysis to the NLP request, with associated metadata.
 
@@ -573,10 +624,7 @@ class CloudRequestProcess(CloudRequest):
         if self.number_of_records > self._cloudcfg.max_records_per_request:
             raise RecordsPerRequestExceeded
 
-        new_content = {
-            NKeys.METADATA: metadata,
-            NKeys.TEXT: text
-        }
+        new_content = {NKeys.METADATA: metadata, NKeys.TEXT: text}
         # Add all the identifying information.
         args = self._request_process[NKeys.ARGS]
         content_key = NKeys.CONTENT  # local copy for fractional speedup
@@ -591,9 +639,12 @@ class CloudRequestProcess(CloudRequest):
             args[content_key] = old_content
             raise RequestTooLong
 
-    def send_process_request(self, queue: bool,
-                             cookies: CookieJar = None,
-                             include_text_in_reply: bool = True) -> None:
+    def send_process_request(
+        self,
+        queue: bool,
+        cookies: CookieJar = None,
+        include_text_in_reply: bool = True,
+    ) -> None:
         """
         Sends a request to the server to process the text we have stored.
 
@@ -616,7 +667,8 @@ class CloudRequestProcess(CloudRequest):
             self.cookies = cookies
         self._request_process[NKeys.ARGS][NKeys.QUEUE] = queue
         self._request_process[NKeys.ARGS][
-            NKeys.INCLUDE_TEXT] = include_text_in_reply  # noqa
+            NKeys.INCLUDE_TEXT
+        ] = include_text_in_reply  # noqa
         request_json = to_json_str(self._request_process)
 
         # Send request; get response
@@ -649,7 +701,9 @@ class CloudRequestProcess(CloudRequest):
         """
         self.queue_id = queue_id
 
-    def _try_fetch(self, cookies: CookieJar = None) -> Optional[JsonObjectType]:
+    def _try_fetch(
+        self, cookies: CookieJar = None
+    ) -> Optional[JsonObjectType]:
         """
         Tries to fetch the response from the server. Assumes queued mode.
         Returns the JSON response.
@@ -687,12 +741,15 @@ class CloudRequestProcess(CloudRequest):
             return False
         elif status == HttpStatus.NOT_FOUND:
             # print(json_response)
-            log.error(f"Got HTTP status code {HttpStatus.NOT_FOUND} - "
-                      f"queue_id {self.queue_id} does not exist")
+            log.error(
+                f"Got HTTP status code {HttpStatus.NOT_FOUND} - "
+                f"queue_id {self.queue_id} does not exist"
+            )
             return False
         else:
             log.error(
-                f"Got HTTP status code {status} for queue_id {self.queue_id}.")
+                f"Got HTTP status code {status} for queue_id {self.queue_id}."
+            )
             return False
 
     # -------------------------------------------------------------------------
@@ -701,9 +758,8 @@ class CloudRequestProcess(CloudRequest):
 
     @staticmethod
     def get_nlp_values_internal(
-            processor_data: Dict[str, Any],
-            metadata: Dict[str, Any]) \
-            -> Generator[Tuple[str, Dict[str, Any], str], None, None]:
+        processor_data: Dict[str, Any], metadata: Dict[str, Any]
+    ) -> Generator[Tuple[str, Dict[str, Any], str], None, None]:
         """
         Get result values from processed data from a CRATE server-side.
 
@@ -726,11 +782,11 @@ class CloudRequestProcess(CloudRequest):
 
     @staticmethod
     def get_nlp_values_gate(
-            processor_data: Dict[str, Any],
-            processor: Cloud,
-            metadata: Dict[str, Any],
-            text: str = "") \
-            -> Generator[Tuple[Dict[str, Any], Cloud], None, None]:
+        processor_data: Dict[str, Any],
+        processor: Cloud,
+        metadata: Dict[str, Any],
+        text: str = "",
+    ) -> Generator[Tuple[Dict[str, Any], Cloud], None, None]:
         """
         Gets result values from processed GATE data which will originally
         be in the following format:
@@ -752,18 +808,17 @@ class CloudRequestProcess(CloudRequest):
             return
         for result in processor_data[NKeys.RESULTS]:
             # Assuming each set of results says what annotation type
-            # it is
-            # (annotation type is stored as lower case)
+            # it is (annotation type is stored as lower case)
             annottype = result[GateResultKeys.TYPE].lower()
             features = result[GateResultKeys.FEATURES]
             start = result[GateResultKeys.START]
             end = result[GateResultKeys.END]
             formatted_result = {
-                '_type': annottype,
-                '_set': result[GateResultKeys.SET],
-                '_start': start,
-                '_end': end,
-                '_content': "" if not text else text[start:end]
+                "_type": annottype,
+                "_set": result[GateResultKeys.SET],
+                "_start": start,
+                "_end": end,
+                "_content": "" if not text else text[start:end],
             }
 
             formatted_result.update(features)
@@ -774,51 +829,75 @@ class CloudRequestProcess(CloudRequest):
             tablename = processor.get_tablename_from_type(annottype)
             yield tablename, formatted_result
 
-    def get_nlp_values(self) -> Generator[Tuple[Dict[str, Any], Cloud],
-                                          None, None]:
+    def get_nlp_values(
+        self
+    ) -> Generator[Tuple[Dict[str, Any], Cloud], None, None]:
         """
-        Yields ``(tablename, results, processorname)`` for each set of results.
+        Process response data that we have already obtained from the server,
+        generating individual NLP results.
+
+        Yields:
+             ``(tablename, result, processor)`` for each result.
+
+        Raises:
+            :exc:`KeyError` if an unexpected processor turned up in the results
         """
         # Method should only be called if we already have the nlp data
-        assert self.nlp_data, ("Method 'get_nlp_values' must only be called "
-                               "after nlp_data is obtained")
+        assert self.nlp_data, (
+            "Method 'get_nlp_values' must only be called "
+            "after nlp_data is obtained"
+        )
         for result in self.nlp_data[NKeys.RESULTS]:
             metadata = result[NKeys.METADATA]  # type: Dict[str, Any]
             # ... expected type because that's what we sent; see add_text()
             text = result.get(NKeys.TEXT)
             for processor_data in result[NKeys.PROCESSORS]:  # type: Dict
+
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # Check that the processor was one we asked for.
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # Details of the server processor that has responded:
                 name = processor_data[NKeys.NAME]
                 version = processor_data[NKeys.VERSION]
                 is_default_version = processor_data.get(
-                    NKeys.IS_DEFAULT_VERSION, True)
+                    NKeys.IS_DEFAULT_VERSION, True
+                )
                 try:
+                    # Retrieve the Python object corresponding to the server
+                    # processor that has responded:
                     processor = self.requested_processors[(name, version)]
                 except KeyError:
+                    # We did not request this processor name/version.
                     failmsg = (
                         f"Server returned processor {name} version {version}, "
                         f"but this processor was not requested."
                     )  # we may use this message
-                    if is_default_version:
-                        try:
-                            processor = self.requested_processors.get(
-                                (name, None))
-                        except KeyError:
-                            log.error(failmsg)
-                            raise
-                    else:
-                        raise KeyError(
-                            f"Server returned processor {name} "
-                            f"version {version}, but this processor "
-                            f"was not requested.")
+                    if not is_default_version:
+                        # The server's processor is not the default version, so
+                        # we couldn't have obtained it by asking without a
+                        # version number.
+                        raise KeyError(failmsg)
+                    try:
+                        # Did we ask for this processor by name without caring
+                        # about its version number, and obtain it that way (as
+                        # default version)?
+                        processor = self.requested_processors.get((name, None))
+                    except KeyError:
+                        # No.
+                        raise KeyError(failmsg)
+
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # OK; we're happy with the processor. Process its results.
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 if processor.format == NlpDefValues.FORMAT_GATE:
-                    for t, r in self.get_nlp_values_gate(processor_data,
-                                                         processor,
-                                                         metadata,
-                                                         text):
+                    for t, r in self.get_nlp_values_gate(
+                        processor_data, processor, metadata, text
+                    ):
                         yield t, r, processor
                 else:
-                    for res in self.get_nlp_values_internal(processor_data,
-                                                            metadata):
+                    for res in self.get_nlp_values_internal(
+                        processor_data, metadata
+                    ):
                         # For non-GATE processors ther will only be one table
                         # name
                         yield processor.tablename, res, processor
@@ -844,11 +923,12 @@ class CloudRequestProcess(CloudRequest):
             # Convert string datetime back into datetime, using UTC
             for key in nlp_values:
                 if key == FN_WHEN_FETCHED:
-                    nlp_values[key] = (
-                        nlprp_datetime_to_datetime_utc_no_tzinfo(
-                            nlp_values[key]))
-            final_values = {k: v for k, v in nlp_values.items()
-                            if k in column_names}
+                    nlp_values[key] = nlprp_datetime_to_datetime_utc_no_tzinfo(
+                        nlp_values[key]
+                    )
+            final_values = {
+                k: v for k, v in nlp_values.items() if k in column_names
+            }
             insertquery = sqla_table.insert().values(final_values)
             try:
                 with MultiTimerContext(timer, TIMING_INSERT):
@@ -857,8 +937,11 @@ class CloudRequestProcess(CloudRequest):
                 log.error(e)
                 # ... but proceed.
             self._nlpdef.notify_transaction(
-                session, n_rows=1, n_bytes=sys.getsizeof(final_values),
-                force_commit=self._commit)
+                session,
+                n_rows=1,
+                n_bytes=sys.getsizeof(final_values),
+                force_commit=self._commit,
+            )
         for session in sessions:
             session.commit()
 
@@ -866,6 +949,7 @@ class CloudRequestProcess(CloudRequest):
 # =============================================================================
 # CloudRequestQueueManagement
 # =============================================================================
+
 
 class CloudRequestQueueManagement(CloudRequest):
     """
@@ -877,9 +961,7 @@ class CloudRequestQueueManagement(CloudRequest):
         Returns a list of the user's queued requests. Each list element is a
         dictionary as returned according to the :ref:`NLPRP <nlprp>`.
         """
-        show_request = make_nlprp_request(
-            command=NlprpCommands.SHOW_QUEUE
-        )
+        show_request = make_nlprp_request(command=NlprpCommands.SHOW_QUEUE)
         request_json = to_json_str(show_request)
         json_response = self._post_get_json(request_json, may_fail=False)
 
@@ -901,7 +983,7 @@ class CloudRequestQueueManagement(CloudRequest):
         """
         delete_request = make_nlprp_request(
             command=NlprpCommands.DELETE_FROM_QUEUE,
-            command_args={NKeys.DELETE_ALL: True}
+            command_args={NKeys.DELETE_ALL: True},
         )
         request_json = to_json_str(delete_request)
         response = self._post(request_json, may_fail=False)
@@ -910,8 +992,10 @@ class CloudRequestQueueManagement(CloudRequest):
 
         status = response.status_code
         if status == HttpStatus.NOT_FOUND:
-            log.warning("Queued request(s) not found. May have been cancelled "
-                        "already.")
+            log.warning(
+                "Queued request(s) not found. May have been cancelled "
+                "already."
+            )
         elif status != HttpStatus.OK and status != HttpStatus.NO_CONTENT:
             raise HTTPError(f"Response status was: {status}")
 
@@ -922,7 +1006,7 @@ class CloudRequestQueueManagement(CloudRequest):
         """
         delete_request = make_nlprp_request(
             command=NlprpCommands.DELETE_FROM_QUEUE,
-            command_args={NKeys.QUEUE_IDS: queue_ids}
+            command_args={NKeys.QUEUE_IDS: queue_ids},
         )
         request_json = to_json_str(delete_request)
         response = self._post(request_json, may_fail=False)
@@ -931,8 +1015,10 @@ class CloudRequestQueueManagement(CloudRequest):
 
         status = response.status_code
         if status == HttpStatus.NOT_FOUND:
-            log.warning("Queued request(s) not found. May have been cancelled "
-                        "already.")
+            log.warning(
+                "Queued request(s) not found. May have been cancelled "
+                "already."
+            )
         elif status != HttpStatus.OK and status != HttpStatus.NO_CONTENT:
             raise HTTPError(f"Response status was: {status}")
         self.cookies = response.cookies

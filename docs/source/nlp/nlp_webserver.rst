@@ -354,6 +354,11 @@ This is the standard Pyramid pserve_ command. At its most basic, it takes a
 single parameter, being the name of your NLP web server config file, and it
 starts the web server.
 
+Note that its help (provided by Pyramid's ``pserve`` itself) talks about a file
+URI, which might mislead you into thinking you need something like
+``file:///home/person/blah.ini``, but actually it wants a filename, like
+``/home/person/blah.ini``.
+
 .. literalinclude:: _crate_nlp_webserver_pserve_help.txt
     :language: none
 

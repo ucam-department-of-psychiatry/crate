@@ -51,41 +51,76 @@ log = logging.getLogger(__name__)
 
 # noinspection PyUnusedLocal
 def make_wsgi_app(global_config: Dict[Any, Any], **settings) -> Router:
+    """
+    Creates the WSGI application used for the CRATE NLPRP web server.
+    """
+    # This function is typically called from:
+    #
+    # - pyramid/scripts/pserve.py
+    # - to paste/deploy/loadwsgi.py
+    # - to paste/deploy/util.py
+    # - to here.
+
+    # -------------------------------------------------------------------------
     # Logging
-    main_only_quicksetup_rootlogger()
-    logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
+    # -------------------------------------------------------------------------
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
+    # ... necessary given our route in, as above.
+    logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
 
     # log.debug(f"global_config: {global_config!r}")
-    # log.debug(f"settings: {settings!r}")
+    # ... just contains e.g. 'here' (current directory) and '__file__' (config
+    # filename)
 
+    # log.debug(f"settings: {settings!r}")
+    # ... contains the "[app:main]" section of the config file, as a dict.
+
+    # -------------------------------------------------------------------------
     # Database
-    engine = engine_from_config(settings,
-                                NlpServerConfigKeys.SQLALCHEMY_PREFIX,
-                                **SQLALCHEMY_COMMON_OPTIONS)
+    # -------------------------------------------------------------------------
+    engine = engine_from_config(
+        settings,  # eventually reads e.g. "sqlalchemy.url"
+        NlpServerConfigKeys.SQLALCHEMY_PREFIX,
+        **SQLALCHEMY_COMMON_OPTIONS,
+    )
     # ... add to config - pool_recycle is set to create new sessions every 7h
     sqla_url = get_safe_url_from_engine(engine)
     log.info(f"Using database {sqla_url!r}")
     dbsession.configure(bind=engine)
     Base.metadata.bind = engine
 
-    # Pyramid
+    # -------------------------------------------------------------------------
+    # Pyramid setup
+    # -------------------------------------------------------------------------
     config = Configurator(settings=settings)
 
     # Security policies
     authn_policy = AuthTktAuthenticationPolicy(
         settings[NlpServerConfigKeys.NLP_WEBSERVER_SECRET],
         secure=True,  # only allow requests over HTTPS
-        hashalg='sha512')
+        hashalg="sha512",
+    )
     authz_policy = ACLAuthorizationPolicy()
     config.set_authentication_policy(authn_policy)
     config.set_authorization_policy(authz_policy)
 
     # Compression
-    config.add_tween("cardinal_pythonlib.pyramid.compression.CompressionTweenFactory")  # noqa
+    config.add_tween(
+        "cardinal_pythonlib.pyramid.compression.CompressionTweenFactory"
+    )  # noqa
 
     # Routes
-    config.add_route('index', '/')
-    config.scan('.views')
+    config.add_route("index", "/")  # route URL path / to a view named "index"
+    config.scan(".views")  # scan views.py in this directory for @view...
 
+    # -------------------------------------------------------------------------
     # Create WSGI app
-    return config.make_wsgi_app()
+    # -------------------------------------------------------------------------
+    app = config.make_wsgi_app()
+
+    # -------------------------------------------------------------------------
+    # Register processors
+    # -------------------------------------------------------------------------
+    from crate_anon.nlp_webserver.procs import ServerProcessor # noqa
+
+    return app
