@@ -272,12 +272,13 @@ def main():
     # $ source ~/.bashrc
     # $ nvm install lts/erbium
     subprocess.run([
-        "npx", "redoc-cli",
-        "bundle", api_schema_file,
+        "npx", "redoc-cli@0.13.10",
+        "build", api_schema_file,
         "-o", join(DevPath.DOCS_ANON_DIR, "_crate_api.html"),
         # Don't display search box
         "--options.disableSearch=true",
         # Force single column layout
+        # https://boyter.org/static/books/CfYA-8BXEAAtz2k.jpg
         "--options.theme.breakpoints.small=999999rem",
         "--options.theme.breakpoints.medium=1000000rem",
         "--options.theme.breakpoints.large=1000000rem",
