@@ -257,8 +257,12 @@ class CloudRequest(object):
             try:
                 tries += 1
                 if self._debug_post_request:
+                    formatted_request = json.dumps(
+                        json.loads(request_json), indent=JSON_INDENT
+                    )
                     log.debug(
-                        f"Sending to {self._cloudcfg.url}:\n{request_json}"
+                        f"Sending to {self._cloudcfg.url} :\n"
+                        f"{formatted_request}"
                     )
                 response = post(
                     url=self._cloudcfg.url,
@@ -276,7 +280,7 @@ class CloudRequest(object):
                     except (AttributeError, json.decoder.JSONDecodeError):
                         formatted_response = ""
                     log.debug(
-                        f"Received from {self._cloudcfg.url}:\n"
+                        f"Received from {self._cloudcfg.url} :\n"
                         f"{response}\n"
                         f"{formatted_response}"
                     )
