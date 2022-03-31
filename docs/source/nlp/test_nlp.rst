@@ -1,4 +1,4 @@
-..  crate_anon/docs/source/nlp/testing_nlp.rst
+..  crate_anon/docs/source/nlp/test_nlp.rst
 
 ..  Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -28,7 +28,7 @@ CRATE provides specific ways to test individual NLP tools:
 - :ref:`CRATE internal Python NLP <crate_run_crate_nlp_demo>`
 - Specific GATE tools:
 
-  - The :ref:`ANNIE <rate_run_gate_annie_demo>` demo
+  - The :ref:`ANNIE <crate_run_gate_annie_demo>` demo
   - :ref:`KConnect (Bio-YODIE) <crate_run_gate_kcl_kconnect_demo>`
   - :ref:`KCL pharmacotherapy <crate_run_gate_kcl_pharmacotherapy_demo>`
   - :ref:`KCL Lewy body dementia <crate_run_gate_kcl_lewy_demo>`
