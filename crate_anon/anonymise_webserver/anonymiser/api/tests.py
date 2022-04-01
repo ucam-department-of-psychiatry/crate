@@ -74,6 +74,30 @@ class AnonymisationTests(TestCase):
 
         self.assertEqual(anonymised.count("[~~~]"), 2)
 
+    @override_settings(CRATE={
+        "DENYLIST_FILENAMES": {
+            "test": os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 "test_denylist.txt")
+        }
+    })
+    def test_denylist_files(self) -> None:
+        payload = {
+            "denylist": {
+                "files": ["test"]
+            },
+            "text": {"test": "secret private confidential"},
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]["test"]
+
+        self.assertNotIn("secret", anonymised)
+        self.assertNotIn("private", anonymised)
+        self.assertNotIn("confidential", anonymised)
+        self.assertEqual(anonymised.count("[~~~]"), 3)
+
     def test_denylist_replacement_text(self) -> None:
         word = "secret"
 

@@ -89,6 +89,9 @@ class AllowlistSerializer(Serializer):
 class DenylistSerializer(Serializer):
     words = ListField(child=CharField(), required=False, write_only=True,
                       help_text="Scrub these specific words.")
+    files = ListField(child=CharField(), required=False, write_only=True,
+                      help_text=("Scrub words from these files "
+                                 "(aliased from Django settings)."))
 
 
 class ScrubSerializer(Serializer):
@@ -277,12 +280,7 @@ class ScrubSerializer(Serializer):
 
         options = ("words",)
 
-        try:
-            kwargs = {k: v for (k, v) in allowlist_data.items()
-                      if k in options}
-        except KeyError:
-            return None
-
+        kwargs = {k: v for (k, v) in allowlist_data.items() if k in options}
         try:
             files = allowlist_data["files"]
             filename_lookup = settings.CRATE["ALLOWLIST_FILENAMES"]
@@ -319,26 +317,39 @@ class ScrubSerializer(Serializer):
                       data: OrderedDict,
                       hasher: GenericHasher) -> Optional[WordList]:
         try:
-            words = data["denylist"]["words"]
-            kwargs = {}
-
-            try:
-                kwargs["replacement_text"] = data[
-                    "replace_nonspecific_info_with"
-                ]
-            except KeyError:
-                pass
-
-            # TODO: None of these are currently configurable
-            # from crate_anon/anonymise/config.py
-            # Do we care about them here?
-            # suffixes
-            # at_word_boundaries_only (for regex_method=True)
-            # max_errors
-            # regex_method: True
-            return WordList(words=words, hasher=hasher, **kwargs)
+            denylist_data = data["denylist"]
         except KeyError:
             return None
+
+        options = ("words",)
+
+        kwargs = {k: v for (k, v) in denylist_data.items() if k in options}
+
+        try:
+            kwargs["replacement_text"] = data[
+                "replace_nonspecific_info_with"
+            ]
+        except KeyError:
+            pass
+
+        try:
+            files = denylist_data["files"]
+            filename_lookup = settings.CRATE["DENYLIST_FILENAMES"]
+
+            filenames = [filename for label, filename in filename_lookup.items()
+                         if label in files]
+            kwargs.update(filenames=filenames)
+        except KeyError:
+            pass
+
+        # TODO: None of these are currently configurable
+        # from crate_anon/anonymise/config.py
+        # Do we care about them here?
+        # suffixes
+        # at_word_boundaries_only (for regex_method=True)
+        # max_errors
+        # regex_method: True
+        return WordList(hasher=hasher, **kwargs)
 
     def _add_values_to_scrubber(self,
                                 scrubber: PersonalizedScrubber,
