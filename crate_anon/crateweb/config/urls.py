@@ -49,12 +49,14 @@ Including another URLconf
 """
 
 import logging
+import os
 
 import debug_toolbar
 from django.conf import settings
 from django.conf.urls import include, url
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
+from crate_anon.common.constants import EnvVar
 from crate_anon.crateweb.config.constants import (
     DOWNLOAD_PRIVATESTORAGE_URL_STEM,
     UrlNames,
@@ -73,9 +75,10 @@ import crate_anon.crateweb.userprofile.views as userprofile_views
 # This is the place for one-time startup code.
 # https://stackoverflow.com/questions/6791911/execute-code-when-django-starts-once-only  # noqa
 # So we cache things here that we don't want the user to have to wait for:
-from crate_anon.crateweb.research.research_db_info import research_database_info  # noqa
+if EnvVar.GENERATING_CRATE_DOCS not in os.environ:
+    from crate_anon.crateweb.research.research_db_info import research_database_info  # noqa
 
-research_database_info.get_colinfolist()
+    research_database_info.get_colinfolist()
 
 log = logging.getLogger(__name__)
 
