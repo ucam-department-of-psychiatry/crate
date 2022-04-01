@@ -78,6 +78,7 @@ Additionally, you can run a number of important one-off command using the
   - GATE_ (for :ref:`GATE NLP applications <gate_nlp>`)
   - :ref:`KCL BRC Pharmacotherapy <kcl_pharmacotherapy>` tool
 
+.. _quick_start:
 
 Quick start
 -----------

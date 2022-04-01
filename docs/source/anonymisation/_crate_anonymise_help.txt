@@ -11,7 +11,7 @@ usage: crate_anonymise [-h] [--config CONFIG] [--version] [--verbose]
                        [--reportevery [REPORTEVERY]] [--debugscrubbers]
                        [--savescrubbers] [--echo]
 
-Database anonymiser. (CRATE version 0.19.3, 2022-03-09. Created by Rudolf
+Database anonymiser. (CRATE version 0.19.3, 2022-03-31. Created by Rudolf
 Cardinal.)
 
 optional arguments:

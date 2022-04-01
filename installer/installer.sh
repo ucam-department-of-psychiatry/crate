@@ -62,10 +62,14 @@ CRATE_INSTALLER_PYTHON=${CRATE_INSTALLER_PYTHON:-python3}
 
 CRATE_GITHUB_REPOSITORY=https://github.com/RudolfCardinal/crate
 CRATE_TAR_FILE=crate.tar.gz
-# Development:
-CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/archive/refs/tags/installer-test-9/${CRATE_TAR_FILE}
+# Development example:
+# CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/archive/refs/tags/installer-test-9/${CRATE_TAR_FILE}
 # Production:
+# TODO: This doesn't work with GitHub generated assets for some reason
 # CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/releases/latest/download/${CRATE_TAR_FILE}
+# for now, hardcode the version and remember to update
+CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/archive/refs/tags/v0.19.3/${CRATE_TAR_FILE}
+
 
 # -----------------------------------------------------------------------------
 # Bootstrap the installer
