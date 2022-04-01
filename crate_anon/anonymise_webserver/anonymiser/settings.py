@@ -159,5 +159,7 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
 }
 
-# TODO: Override in local settings?
-HASH_KEY = "swn4nio4uzV1iO6O"
+CRATE = {
+    # TODO: Override in local settings?
+    "HASH_KEY": "swn4nio4uzV1iO6O"
+}

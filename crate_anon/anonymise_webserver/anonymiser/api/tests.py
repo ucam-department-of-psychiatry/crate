@@ -75,6 +75,7 @@ class AnonymisationTests(TestCase):
         self.assertEqual(anonymised.count("[~~~]"), 2)
 
     @override_settings(CRATE={
+        "HASH_KEY": "swn4nio4uzV1iO6O",
         "DENYLIST_FILENAMES": {
             "test": os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "test_denylist.txt")
@@ -546,6 +547,7 @@ class AnonymisationTests(TestCase):
         self.assertEqual(anonymised.count("[__TTT__]"), 2)
 
     @override_settings(CRATE={
+        "HASH_KEY": "swn4nio4uzV1iO6O",
         "ALLOWLIST_FILENAMES": {
             "test": os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "test_allowlist.txt")

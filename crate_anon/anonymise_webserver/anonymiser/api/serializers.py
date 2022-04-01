@@ -80,18 +80,22 @@ class SpecificSerializer(Serializer):
 
 class AllowlistSerializer(Serializer):
     words = ListField(child=CharField(), required=False, write_only=True,
-                      help_text="Do not scrub these specific words.")
+                      help_text="Do not scrub these specific words.",
+                      default=[])
     files = ListField(child=CharField(), required=False, write_only=True,
                       help_text=("Do not scrub words from these files "
-                                 "(aliased from Django settings)."))
+                                 "(aliased from Django settings)."),
+                      default=[])
 
 
 class DenylistSerializer(Serializer):
     words = ListField(child=CharField(), required=False, write_only=True,
-                      help_text="Scrub these specific words.")
+                      help_text="Scrub these specific words.",
+                      default=[])
     files = ListField(child=CharField(), required=False, write_only=True,
                       help_text=("Scrub words from these files "
-                                 "(aliased from Django settings)."))
+                                 "(aliased from Django settings)."),
+                      default=[])
 
 
 class ScrubSerializer(Serializer):
@@ -227,7 +231,7 @@ class ScrubSerializer(Serializer):
 
     def _get_personalized_scrubber(self,
                                    data: OrderedDict) -> PersonalizedScrubber:
-        hasher = make_hasher("HMAC_MD5", settings.HASH_KEY)
+        hasher = make_hasher("HMAC_MD5", settings.CRATE["HASH_KEY"])
 
         options = (
             "anonymise_codes_at_word_boundaries_only",
@@ -262,7 +266,7 @@ class ScrubSerializer(Serializer):
 
         return scrubber
 
-    def _get_alternatives(self, data: OrderedDict) -> List[List[str]]:
+    def _get_alternatives(self, data: OrderedDict) -> Optional[List[List[str]]]:
         try:
             return [[word.upper() for word in words]
                     for words in data["alternatives"]]
@@ -281,15 +285,12 @@ class ScrubSerializer(Serializer):
         options = ("words",)
 
         kwargs = {k: v for (k, v) in allowlist_data.items() if k in options}
-        try:
-            files = allowlist_data["files"]
-            filename_lookup = settings.CRATE["ALLOWLIST_FILENAMES"]
+        files = allowlist_data["files"]
+        filename_lookup = settings.CRATE.get("ALLOWLIST_FILENAMES", {})
 
-            filenames = [filename for label, filename in filename_lookup.items()
-                         if label in files]
-            kwargs.update(filenames=filenames)
-        except KeyError:
-            pass
+        filenames = [filename for label, filename in filename_lookup.items()
+                     if label in files]
+        kwargs.update(filenames=filenames)
 
         return WordList(hasher=hasher, **kwargs)
 
@@ -324,23 +325,14 @@ class ScrubSerializer(Serializer):
         options = ("words",)
 
         kwargs = {k: v for (k, v) in denylist_data.items() if k in options}
+        kwargs["replacement_text"] = data["replace_nonspecific_info_with"]
 
-        try:
-            kwargs["replacement_text"] = data[
-                "replace_nonspecific_info_with"
-            ]
-        except KeyError:
-            pass
+        files = denylist_data["files"]
+        filename_lookup = settings.CRATE.get("DENYLIST_FILENAMES", {})
 
-        try:
-            files = denylist_data["files"]
-            filename_lookup = settings.CRATE["DENYLIST_FILENAMES"]
-
-            filenames = [filename for label, filename in filename_lookup.items()
-                         if label in files]
-            kwargs.update(filenames=filenames)
-        except KeyError:
-            pass
+        filenames = [filename for label, filename in filename_lookup.items()
+                     if label in files]
+        kwargs.update(filenames=filenames)
 
         # TODO: None of these are currently configurable
         # from crate_anon/anonymise/config.py

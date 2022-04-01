@@ -186,12 +186,14 @@ components:
           items:
             type: string
           writeOnly: true
+          default: []
           description: Do not scrub these specific words.
         files:
           type: array
           items:
             type: string
           writeOnly: true
+          default: []
           description: Do not scrub words from these files (aliased from Django settings).
     Denylist:
       type: object
@@ -201,12 +203,14 @@ components:
           items:
             type: string
           writeOnly: true
+          default: []
           description: Scrub these specific words.
         files:
           type: array
           items:
             type: string
           writeOnly: true
+          default: []
           description: Scrub words from these files (aliased from Django settings).
     Scrub:
       type: object
