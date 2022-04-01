@@ -81,6 +81,9 @@ class SpecificSerializer(Serializer):
 class AllowlistSerializer(Serializer):
     words = ListField(child=CharField(), required=False, write_only=True,
                       help_text="Do not scrub these specific words.")
+    files = ListField(child=CharField(), required=False, write_only=True,
+                      help_text=("Do not scrub words from these files "
+                                 "(aliased from Django settings)."))
 
 
 class DenylistSerializer(Serializer):
@@ -266,11 +269,31 @@ class ScrubSerializer(Serializer):
     def _get_allowlist(self,
                        data: OrderedDict,
                        hasher: GenericHasher) -> Optional[WordList]:
+
         try:
-            return WordList(words=data["allowlist"]["words"],
-                            hasher=hasher)
+            allowlist_data = data["allowlist"]
         except KeyError:
             return None
+
+        options = ("words",)
+
+        try:
+            kwargs = {k: v for (k, v) in allowlist_data.items()
+                      if k in options}
+        except KeyError:
+            return None
+
+        try:
+            files = allowlist_data["files"]
+            filename_lookup = settings.CRATE["ALLOWLIST_FILENAMES"]
+
+            filenames = [filename for label, filename in filename_lookup.items()
+                         if label in files]
+            kwargs.update(filenames=filenames)
+        except KeyError:
+            pass
+
+        return WordList(hasher=hasher, **kwargs)
 
     def _get_nonspecific_scrubber(self,
                                   data: OrderedDict,

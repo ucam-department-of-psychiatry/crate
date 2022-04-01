@@ -26,7 +26,9 @@ End-to-end API tests. Not an exhaustive test of anonymisation.
 
 """
 
-from django.test import TestCase
+import os
+
+from django.test import override_settings, TestCase
 
 from cardinal_pythonlib.nhs import generate_random_nhs_number
 from faker import Faker
@@ -505,6 +507,33 @@ class AnonymisationTests(TestCase):
             },
             "allowlist": {
                 "words": ["secret"]
+            },
+            "text": {"test": "secret private confidential"},
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]["test"]
+
+        self.assertIn("secret", anonymised)
+        self.assertNotIn("private", anonymised)
+        self.assertNotIn("confidential", anonymised)
+        self.assertEqual(anonymised.count("[__TTT__]"), 2)
+
+    @override_settings(CRATE={
+        "ALLOWLIST_FILENAMES": {
+            "test": os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 "test_allowlist.txt")
+        }
+    })
+    def test_allowlist_files(self) -> None:
+        payload = {
+            "third_party": {
+                "words": ["secret", "private", "confidential"],
+            },
+            "allowlist": {
+                "files": ["test"]
             },
             "text": {"test": "secret private confidential"},
         }

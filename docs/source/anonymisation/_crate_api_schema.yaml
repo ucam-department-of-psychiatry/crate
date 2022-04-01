@@ -187,6 +187,12 @@ components:
             type: string
           writeOnly: true
           description: Do not scrub these specific words.
+        files:
+          type: array
+          items:
+            type: string
+          writeOnly: true
+          description: Do not scrub words from these files (aliased from Django settings).
     Denylist:
       type: object
       properties:
