@@ -59,6 +59,12 @@ class SpecificSerializer(Serializer):
         help_text=("List of phrases (words appearing consecutively) to "
                    "be scrubbed.")
     )
+    non_numeric_phrases = ListField(
+        child=CharField(), required=False,
+        help_text=("List of phrases (words appearing consecutively) to "
+                   "be scrubbed. If a phrase is purely numeric it will be "
+                   "ignored.")
+    )
     words = ListField(child=CharField(), required=False,
                       help_text="List of words to be scrubbed.")
     numbers = ListField(child=CharField(), required=False,
@@ -310,6 +316,7 @@ class ScrubSerializer(Serializer):
         method_lookup = {
             "dates": ScrubMethod.DATE,
             "phrases": ScrubMethod.PHRASE,
+            "non_numeric_phrases": ScrubMethod.PHRASE_UNLESS_NUMERIC,
             "words": ScrubMethod.WORDS,
             "numbers": ScrubMethod.NUMERIC,
             "codes": ScrubMethod.CODE,

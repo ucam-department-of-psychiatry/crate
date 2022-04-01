@@ -193,6 +193,24 @@ class AnonymisationTests(TestCase):
 
         self.assertEqual(anonymised.count("[__PPP__]"), 1)
 
+    def test_patient_non_numeric_phrases_replaced(self) -> None:
+        non_numeric_phrase = "5 High Street"
+        numeric_phrase = "5"
+
+        payload = {
+            "patient": {
+                "non_numeric_phrases": [non_numeric_phrase, numeric_phrase],
+            },
+            "text": {"test": "Address is 5 High Street haloperidol 5 mg"},
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]["test"]
+
+        self.assertEqual(anonymised, "Address is [__PPP__] haloperidol 5 mg")
+
     def test_patient_numeric_replaced(self) -> None:
         phone = self.fake.phone_number()
 

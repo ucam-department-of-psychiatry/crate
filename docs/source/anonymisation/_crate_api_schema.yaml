@@ -345,6 +345,12 @@ components:
           items:
             type: string
           description: List of phrases (words appearing consecutively) to be scrubbed.
+        non_numeric_phrases:
+          type: array
+          items:
+            type: string
+          description: List of phrases (words appearing consecutively) to be scrubbed.
+            If a phrase is purely numeric it will be ignored.
         words:
           type: array
           items:
