@@ -26,7 +26,7 @@ End-to-end API tests. Not an exhaustive test of anonymisation.
 
 """
 
-import os
+from tempfile import NamedTemporaryFile
 
 from django.test import override_settings, TestCase
 
@@ -74,13 +74,6 @@ class AnonymisationTests(TestCase):
 
         self.assertEqual(anonymised.count("[~~~]"), 2)
 
-    @override_settings(CRATE={
-        "HASH_KEY": "swn4nio4uzV1iO6O",
-        "DENYLIST_FILENAMES": {
-            "test": os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                 "test_denylist.txt")
-        }
-    })
     def test_denylist_files(self) -> None:
         payload = {
             "denylist": {
@@ -89,7 +82,19 @@ class AnonymisationTests(TestCase):
             "text": {"test": "secret private confidential"},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        with NamedTemporaryFile(delete=False, mode="w") as f:
+            filename = f.name
+            f.write("secret\n")
+            f.write("private\n")
+            f.write("confidential\n")
+
+        with override_settings(CRATE={
+            "HASH_KEY": "swn4nio4uzV1iO6O",
+            "DENYLIST_FILENAMES": {
+                "test": filename,
+            }
+        }):
+            response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -546,13 +551,6 @@ class AnonymisationTests(TestCase):
         self.assertNotIn("confidential", anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 2)
 
-    @override_settings(CRATE={
-        "HASH_KEY": "swn4nio4uzV1iO6O",
-        "ALLOWLIST_FILENAMES": {
-            "test": os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                 "test_allowlist.txt")
-        }
-    })
     def test_allowlist_files(self) -> None:
         payload = {
             "third_party": {
@@ -564,7 +562,17 @@ class AnonymisationTests(TestCase):
             "text": {"test": "secret private confidential"},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        with NamedTemporaryFile(delete=False, mode="w") as f:
+            filename = f.name
+            f.write("secret\n")
+
+        with override_settings(CRATE={
+            "HASH_KEY": "swn4nio4uzV1iO6O",
+            "ALLOWLIST_FILENAMES": {
+                "test": filename
+            }
+        }):
+            response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
