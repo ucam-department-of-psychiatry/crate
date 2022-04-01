@@ -227,9 +227,9 @@ class ScrubSerializer(Serializer):
         replacement_text_third_party = data["replace_third_party_info_with"]
 
         scrubber = PersonalizedScrubber(
+            hasher,
             replacement_text_patient,
             replacement_text_third_party,
-            hasher,
             nonspecific_scrubber=self._get_nonspecific_scrubber(data, hasher),
             allowlist=self._get_allowlist(data, hasher),
             alternatives=self._get_alternatives(data),
