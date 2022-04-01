@@ -81,8 +81,6 @@ ANON_CONFIG_ENV_VAR = 'CRATE_ANON_CONFIG'
 
 DATEFORMAT_ISO8601 = "%Y-%m-%dT%H:%M:%S%z"  # e.g. 2013-07-24T20:04:07+0100
 DEFAULT_INDEX_LEN = 20  # for data types where it's mandatory
-DEFAULT_MAX_ROWS_BEFORE_COMMIT = 1000
-DEFAULT_MAX_BYTES_BEFORE_COMMIT = 80 * 1024 * 1024
 
 LONGTEXT = "LONGTEXT"
 
@@ -221,17 +219,19 @@ class AnonymiseConfigKeys:
     ALLOWLIST_FILENAMES = "allowlist_filenames"
     ALLOW_NO_PATIENT_INFO = "allow_no_patient_info"
     ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY = "anonymise_codes_at_word_boundaries_only"  # noqa
+    ANONYMISE_CODES_AT_NUMERIC_BOUNDARIES_ONLY = "anonymise_codes_at_numeric_boundaries_only"  # noqa
     ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY = "anonymise_dates_at_word_boundaries_only"  # noqa
     ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY = "anonymise_numbers_at_numeric_boundaries_only"  # noqa
     ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY = "anonymise_numbers_at_word_boundaries_only"  # noqa
     ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY = "anonymise_strings_at_word_boundaries_only"  # noqa
     DENYLIST_FILENAMES = "denylist_filenames"
     DENYLIST_FILES_AS_PHRASES = "denylist_files_as_phrases"
-    DENYLIST_PHRASES_FLEXIBLE_WHITESPACE = "denylist_phrases_flexible_whitespace"  # noqa
+    DENYLIST_USE_REGEX = "denylist_use_regex"
     DEPRECATED_BLACKLIST_FILENAMES = "blacklist_filenames"
     DEPRECATED_WHITELIST_FILENAMES = "whitelist_filenames"
     MIN_STRING_LENGTH_FOR_ERRORS = "min_string_length_for_errors"
     MIN_STRING_LENGTH_TO_SCRUB_WITH = "min_string_length_to_scrub_with"
+    NONSPECIFIC_SCRUBBER_FIRST = "nonspecific_scrubber_first"
     PHRASE_ALTERNATIVE_WORD_FILENAMES = "phrase_alternative_word_filenames"
     REPLACE_NONSPECIFIC_INFO_WITH = "replace_nonspecific_info_with"
     REPLACE_PATIENT_INFO_WITH = "replace_patient_info_with"
@@ -269,6 +269,57 @@ class AnonymiseConfigKeys:
     OPTOUT_COL_VALUES = "optout_col_values"
     OPTOUT_MPID_FILENAMES = "optout_mpid_filenames"
     OPTOUT_PID_FILENAMES = "optout_pid_filenames"
+
+
+class AnonymiseConfigDefaults:
+    # Critical field types
+    SQLATYPE_MPID = "BigInteger"
+    SQLATYPE_PID = "BigInteger"
+
+    # Encryption phrases/passwords
+    HASH_METHOD = "HMAC_MD5"
+
+    # Text extraction
+    EXTRACT_TEXT_EXTENSIONS_CASE_SENSITIVE = False
+    EXTRACT_TEXT_PLAIN = True
+    EXTRACT_TEXT_WIDTH = 80
+
+    # Anonymisation
+    ALLOW_NO_PATIENT_INFO = False
+    ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY = True
+    ANONYMISE_CODES_AT_NUMERIC_BOUNDARIES_ONLY = True
+    ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY = True
+    ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY = True
+    ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY = False
+    ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY = True
+    DENYLIST_FILES_AS_PHRASES = False
+    DENYLIST_USE_REGEX = False
+    MIN_STRING_LENGTH_FOR_ERRORS = 3
+    MIN_STRING_LENGTH_TO_SCRUB_WITH = 2
+    NONSPECIFIC_SCRUBBER_FIRST = False
+    REPLACE_NONSPECIFIC_INFO_WITH = "[~~~]"
+    REPLACE_PATIENT_INFO_WITH = "[__PPP__]"
+    REPLACE_THIRD_PARTY_INFO_WITH = "[__TTT__]"
+    SCRUB_ALL_DATES = False
+    SCRUB_ALL_UK_POSTCODES = False
+    STRING_MAX_REGEX_ERRORS = 0
+    THIRDPARTY_XREF_MAX_DEPTH = 1
+    TIMEFIELD_NAME = "_when_processed_utc"
+
+    # Output fields and formatting
+    RESEARCH_ID_FIELDNAME = "rid"
+    TRID_FIELDNAME = "trid"
+    MASTER_RESEARCH_ID_FIELDNAME = "mrid"
+    ADD_MRID_WHEREVER_RID_ADDED = True
+    SOURCE_HASH_FIELDNAME = "_src_hash"
+
+    # Destination database configuration
+    MAX_ROWS_BEFORE_COMMIT = 1000
+    MAX_BYTES_BEFORE_COMMIT = 80 * 1024 * 1024  # 80 Mb
+    TEMPORARY_TABLENAME = "_crate_temp_table"
+
+    # Processing options
+    DEBUG_MAX_N_PATIENTS = 0
 
 
 class AnonymiseDatabaseSafeConfigKeys:
@@ -327,6 +378,23 @@ class AnonymiseDatabaseSafeConfigKeys:
     DEPRECATED_DDGEN_TABLE_WHITELIST = "ddgen_table_whitelist"
 
 
+class AnonymiseDatabaseSafeConfigDefaults:
+    """
+    Defaults for the keys above
+    """
+    DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER = False
+    DDGEN_ADDITION_ONLY = False
+    DDGEN_ALLOW_FULLTEXT_INDEXING = True
+    DDGEN_APPEND_SOURCE_INFO_TO_COMMENT = True
+    DDGEN_CONSTANT_CONTENT = False
+    DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE = True
+    DDGEN_FORCE_LOWER_CASE = False
+    DDGEN_FREETEXT_INDEX_MIN_LENGTH = 1000
+    DDGEN_MIN_LENGTH_FOR_SCRUBBING = 50
+    DDGEN_OMIT_BY_DEFAULT = True
+    DEBUG_ROW_LIMIT = 0
+
+
 class HashConfigKeys:
     """
     Config file keys for defining extra hashers.
@@ -341,8 +409,10 @@ class HashConfigKeys:
 # This does not need to vary with Docker status.
 
 _AK = AnonymiseConfigKeys
+_DA = AnonymiseConfigDefaults
 _DK = DatabaseConfigKeys
 _SK = AnonymiseDatabaseSafeConfigKeys
+_DS = AnonymiseDatabaseSafeConfigDefaults
 # noinspection PyPep8
 DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # Version {CRATE_VERSION} ({CRATE_VERSION_DATE}).
@@ -372,7 +442,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # Encryption phrases/passwords
 # -----------------------------------------------------------------------------
 
-{_AK.HASH_METHOD} = HMAC_MD5
+{_AK.HASH_METHOD} = {_DA.HASH_METHOD}
 {_AK.PER_TABLE_PATIENT_ID_ENCRYPTION_PHRASE} = @@per_table_patient_id_encryption_phrase@@
 {_AK.MASTER_PATIENT_ID_ENCRYPTION_PHRASE} = @@master_patient_id_encryption_phrase@@
 {_AK.CHANGE_DETECTION_ENCRYPTION_PHRASE} = @@change_detection_encryption_phrase@@
@@ -384,56 +454,58 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 
 {_AK.EXTRACT_TEXT_EXTENSIONS_PERMITTED} =
 {_AK.EXTRACT_TEXT_EXTENSIONS_PROHIBITED} =
-{_AK.EXTRACT_TEXT_EXTENSIONS_CASE_SENSITIVE} = False
-{_AK.EXTRACT_TEXT_PLAIN} = False
-{_AK.EXTRACT_TEXT_WIDTH} = 80
+{_AK.EXTRACT_TEXT_EXTENSIONS_CASE_SENSITIVE} = {_DA.EXTRACT_TEXT_EXTENSIONS_CASE_SENSITIVE}
+{_AK.EXTRACT_TEXT_PLAIN} = {_DA.EXTRACT_TEXT_PLAIN}
+{_AK.EXTRACT_TEXT_WIDTH} = {_DA.EXTRACT_TEXT_WIDTH}
 
 # -----------------------------------------------------------------------------
 # Anonymisation
 # -----------------------------------------------------------------------------
 
-{_AK.ALLOW_NO_PATIENT_INFO} = False
-{_AK.REPLACE_PATIENT_INFO_WITH} = [__PPP__]
-{_AK.REPLACE_THIRD_PARTY_INFO_WITH} = [__TTT__]
-{_AK.REPLACE_NONSPECIFIC_INFO_WITH} = [~~~]
-{_AK.THIRDPARTY_XREF_MAX_DEPTH} = 1
+{_AK.ALLOW_NO_PATIENT_INFO} = {_DA.ALLOW_NO_PATIENT_INFO}
+{_AK.REPLACE_PATIENT_INFO_WITH} = {_DA.REPLACE_PATIENT_INFO_WITH}
+{_AK.REPLACE_THIRD_PARTY_INFO_WITH} = {_DA.REPLACE_THIRD_PARTY_INFO_WITH}
+{_AK.REPLACE_NONSPECIFIC_INFO_WITH} = {_DA.REPLACE_NONSPECIFIC_INFO_WITH}
+{_AK.THIRDPARTY_XREF_MAX_DEPTH} = {_DA.THIRDPARTY_XREF_MAX_DEPTH}
 {_AK.SCRUB_STRING_SUFFIXES} =
     s
-{_AK.STRING_MAX_REGEX_ERRORS} = 1
-{_AK.MIN_STRING_LENGTH_FOR_ERRORS} = 4
-{_AK.MIN_STRING_LENGTH_TO_SCRUB_WITH} = 2
+{_AK.STRING_MAX_REGEX_ERRORS} = {_DA.STRING_MAX_REGEX_ERRORS}
+{_AK.MIN_STRING_LENGTH_FOR_ERRORS} = {_DA.MIN_STRING_LENGTH_FOR_ERRORS}
+{_AK.MIN_STRING_LENGTH_TO_SCRUB_WITH} = {_DA.MIN_STRING_LENGTH_TO_SCRUB_WITH}
 {_AK.ALLOWLIST_FILENAMES} =
 {_AK.DENYLIST_FILENAMES} =
-{_AK.DENYLIST_FILES_AS_PHRASES} = False
-{_AK.DENYLIST_PHRASES_FLEXIBLE_WHITESPACE} = False
+{_AK.DENYLIST_FILES_AS_PHRASES} = {_DA.DENYLIST_FILES_AS_PHRASES}
+{_AK.DENYLIST_USE_REGEX} = {_DA.DENYLIST_USE_REGEX}
 {_AK.PHRASE_ALTERNATIVE_WORD_FILENAMES} =
-{_AK.SCRUB_ALL_DATES} = False
+{_AK.SCRUB_ALL_DATES} = {_DA.SCRUB_ALL_DATES}
 {_AK.SCRUB_ALL_NUMBERS_OF_N_DIGITS} =
-{_AK.SCRUB_ALL_UK_POSTCODES} = False
-{_AK.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY} = True
-{_AK.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY} = True
-{_AK.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY} = False
-{_AK.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY} = True
-{_AK.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY} = True
+{_AK.SCRUB_ALL_UK_POSTCODES} = {_DA.SCRUB_ALL_UK_POSTCODES}
+{_AK.NONSPECIFIC_SCRUBBER_FIRST} = {_DA.NONSPECIFIC_SCRUBBER_FIRST}
+{_AK.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY} = {_DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY}
+{_AK.ANONYMISE_CODES_AT_NUMERIC_BOUNDARIES_ONLY} = {_DA.ANONYMISE_CODES_AT_NUMERIC_BOUNDARIES_ONLY}
+{_AK.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY} = {_DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY}
+{_AK.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY} = {_DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY}
+{_AK.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY} = {_DA.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY}
+{_AK.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY} = {_DA.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY}
 
 # -----------------------------------------------------------------------------
 # Output fields and formatting
 # -----------------------------------------------------------------------------
 
-{_AK.TIMEFIELD_NAME} = _when_processed_utc
-{_AK.RESEARCH_ID_FIELDNAME} = brcid
-{_AK.TRID_FIELDNAME} = trid
-{_AK.MASTER_RESEARCH_ID_FIELDNAME} = nhshash
-{_AK.SOURCE_HASH_FIELDNAME} = _src_hash
+{_AK.TIMEFIELD_NAME} = {_DA.TIMEFIELD_NAME}
+{_AK.RESEARCH_ID_FIELDNAME} = {_DA.RESEARCH_ID_FIELDNAME}
+{_AK.TRID_FIELDNAME} = {_DA.TRID_FIELDNAME}
+{_AK.MASTER_RESEARCH_ID_FIELDNAME} = {_DA.MASTER_RESEARCH_ID_FIELDNAME}
+{_AK.SOURCE_HASH_FIELDNAME} = {_DA.SOURCE_HASH_FIELDNAME}
 
 # -----------------------------------------------------------------------------
 # Destination database configuration
 # See the [destination_database] section for connection details.
 # -----------------------------------------------------------------------------
 
-{_AK.MAX_ROWS_BEFORE_COMMIT} = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
-{_AK.MAX_BYTES_BEFORE_COMMIT} = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
-{_AK.TEMPORARY_TABLENAME} = _temp_table
+{_AK.MAX_ROWS_BEFORE_COMMIT} = {_DA.MAX_ROWS_BEFORE_COMMIT}
+{_AK.MAX_BYTES_BEFORE_COMMIT} = {_DA.MAX_BYTES_BEFORE_COMMIT}
+{_AK.TEMPORARY_TABLENAME} = {_DA.TEMPORARY_TABLENAME}
 
 # -----------------------------------------------------------------------------
 # Choose databases (defined in their own sections).
@@ -508,12 +580,12 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
     # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-{_SK.DDGEN_OMIT_BY_DEFAULT} = True
+{_SK.DDGEN_OMIT_BY_DEFAULT} = {_DS.DDGEN_OMIT_BY_DEFAULT}
 {_SK.DDGEN_OMIT_FIELDS} =
 {_SK.DDGEN_INCLUDE_FIELDS} =  @@source_db1_ddgen_include_fields@@
 {_SK.DDGEN_PER_TABLE_PID_FIELD} = patient_id
 {_SK.DDGEN_TABLE_DEFINES_PIDS} = patient
-{_SK.DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER} = False
+{_SK.DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER} = {_DS.DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER}
 {_SK.DDGEN_MASTER_PID_FIELDNAME} = nhsnum
 {_SK.DDGEN_TABLE_DENYLIST} =
 {_SK.DDGEN_TABLE_ALLOWLIST} =
@@ -522,10 +594,10 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_SK.DDGEN_FIELD_DENYLIST} =
 {_SK.DDGEN_FIELD_ALLOWLIST} =
 {_SK.DDGEN_PK_FIELDS} =
-{_SK.DDGEN_CONSTANT_CONTENT} = False
+{_SK.DDGEN_CONSTANT_CONTENT} = {_DS.DDGEN_CONSTANT_CONTENT}
 {_SK.DDGEN_CONSTANT_CONTENT_TABLES} =
 {_SK.DDGEN_NONCONSTANT_CONTENT_TABLES} =
-{_SK.DDGEN_ADDITION_ONLY} = False
+{_SK.DDGEN_ADDITION_ONLY} = {_DS.DDGEN_ADDITION_ONLY}
 {_SK.DDGEN_ADDITION_ONLY_TABLES} =
 {_SK.DDGEN_DELETION_POSSIBLE_TABLES} =
 {_SK.DDGEN_PID_DEFINING_FIELDNAMES} =
@@ -538,7 +610,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_SK.DDGEN_SCRUBMETHOD_NUMBER_FIELDS} =
 {_SK.DDGEN_SCRUBMETHOD_PHRASE_FIELDS} =
 {_SK.DDGEN_SAFE_FIELDS_EXEMPT_FROM_SCRUBBING} =
-{_SK.DDGEN_MIN_LENGTH_FOR_SCRUBBING} = 4
+{_SK.DDGEN_MIN_LENGTH_FOR_SCRUBBING} = {_DS.DDGEN_MIN_LENGTH_FOR_SCRUBBING}
 {_SK.DDGEN_TRUNCATE_DATE_FIELDS} =
 {_SK.DDGEN_FILENAME_TO_TEXT_FIELDS} =
 {_SK.DDGEN_BINARY_TO_TEXT_FIELD_PAIRS} =
@@ -552,14 +624,14 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 {_SK.DDGEN_INDEX_FIELDS} =
-{_SK.DDGEN_ALLOW_FULLTEXT_INDEXING} = True
+{_SK.DDGEN_ALLOW_FULLTEXT_INDEXING} = {_DS.DDGEN_ALLOW_FULLTEXT_INDEXING}
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # DATA DICTIONARY MANIPULATION TO DESTINATION TABLE/FIELD NAMES
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-{_SK.DDGEN_FORCE_LOWER_CASE} = False
-{_SK.DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE} = True
+{_SK.DDGEN_FORCE_LOWER_CASE} = {_DS.DDGEN_FORCE_LOWER_CASE}
+{_SK.DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE} = {_DS.DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE}
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
@@ -576,8 +648,8 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 
 {_DK.URL} = mysql+mysqldb://username:password@127.0.0.1:3306/source2_databasename?charset=utf8
 
-{_SK.DDGEN_FORCE_LOWER_CASE} = False
-{_SK.DDGEN_APPEND_SOURCE_INFO_TO_COMMENT} = True
+{_SK.DDGEN_FORCE_LOWER_CASE} = {_DS.DDGEN_FORCE_LOWER_CASE}
+{_SK.DDGEN_APPEND_SOURCE_INFO_TO_COMMENT} = {_DS.DDGEN_APPEND_SOURCE_INFO_TO_COMMENT}
 {_SK.DDGEN_PER_TABLE_PID_FIELD} = patient_id
 {_SK.DDGEN_MASTER_PID_FIELDNAME} = nhsnum
 {_SK.DDGEN_TABLE_DENYLIST} =
@@ -585,7 +657,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_SK.DDGEN_TABLE_REQUIRE_FIELD_ABSOLUTE} =
 {_SK.DDGEN_TABLE_REQUIRE_FIELD_CONDITIONAL} =
 {_SK.DDGEN_PK_FIELDS} =
-{_SK.DDGEN_CONSTANT_CONTENT} = False
+{_SK.DDGEN_CONSTANT_CONTENT} = {_DS.DDGEN_CONSTANT_CONTENT}
 {_SK.DDGEN_SCRUBSRC_PATIENT_FIELDS} =
 {_SK.DDGEN_SCRUBSRC_THIRDPARTY_FIELDS} =
 {_SK.DDGEN_SCRUBMETHOD_CODE_FIELDS} =
@@ -593,7 +665,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_SK.DDGEN_SCRUBMETHOD_NUMBER_FIELDS} =
 {_SK.DDGEN_SCRUBMETHOD_PHRASE_FIELDS} =
 {_SK.DDGEN_SAFE_FIELDS_EXEMPT_FROM_SCRUBBING} =
-{_SK.DDGEN_MIN_LENGTH_FOR_SCRUBBING} = 4
+{_SK.DDGEN_MIN_LENGTH_FOR_SCRUBBING} = {_DS.DDGEN_MIN_LENGTH_FOR_SCRUBBING}
 {_SK.DDGEN_TRUNCATE_DATE_FIELDS} =
 {_SK.DDGEN_FILENAME_TO_TEXT_FIELDS} =
 {_SK.DDGEN_BINARY_TO_TEXT_FIELD_PAIRS} =
@@ -722,7 +794,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
     gamble_start_time
     gamble_response_time
     likelihood
-{_SK.DDGEN_MIN_LENGTH_FOR_SCRUBBING} = 4
+{_SK.DDGEN_MIN_LENGTH_FOR_SCRUBBING} = {_DS.DDGEN_MIN_LENGTH_FOR_SCRUBBING}
 {_SK.DDGEN_TRUNCATE_DATE_FIELDS} = _patient_dob
 {_SK.DDGEN_FILENAME_TO_TEXT_FIELDS} =
 {_SK.DDGEN_BINARY_TO_TEXT_FIELD_PAIRS} =

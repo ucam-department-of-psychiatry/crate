@@ -524,6 +524,25 @@ class AnonRegexTests2(TestCase):
             f"Failed to match {string!r} against regexes {regexes}"
         )
 
+    def _should_match_all(self, regexes: List[str], strings: List[str]) -> None:
+        for s in strings:
+            self._should_match(regexes, s)
+
+    def _should_not_match(self, regexes: List[str], string: str) -> None:
+        self.assertFalse(
+            any(
+                # search (match anywhere), not match (match at start)
+                regex.search(pattern, string)
+                for pattern in regexes
+            ),
+            f"Inappropriately matched {string!r} against regexes {regexes}"
+        )
+
+    def _should_not_match_any(self, regexes: List[str],
+                              strings: List[str]) -> None:
+        for s in strings:
+            self._should_not_match(regexes, s)
+
     def test_fragments(self) -> None:
         self.assertEqual(
             get_anon_fragments_from_string("John Smith"),
@@ -577,7 +596,7 @@ class AnonRegexTests2(TestCase):
             for text in text_versions:
                 self._should_match(regexes, text)
 
-    def test_code(self) -> None:
+    def test_code_whitespace(self) -> None:
         tests = [
             (
                 "PE123AB",
@@ -602,6 +621,84 @@ class AnonRegexTests2(TestCase):
             )
             for text in text_versions:
                 self._should_match(regexes, text)
+
+    def test_code_boundaries(self) -> None:
+        code = "ABC123"
+
+        word_boundaries = get_code_regex_elements(
+            code,
+            liberal=False, very_liberal=False,
+            at_word_boundaries_only=True
+        )
+        self._should_match_all(
+            word_boundaries,
+            [
+                f"pq {code} xy",
+                f"pq,{code},xy",
+                f"12 {code} 34",
+                f"12,{code},34",
+            ]
+        )
+        self._should_not_match_any(
+            word_boundaries,
+            [
+                f"pq{code}xy",
+                f"pq{code} xy",
+                f"pq {code}xy",
+                f"12{code}34",
+                f"12{code} 34",
+                f"12 {code}34",
+            ]
+        )
+
+        number_boundaries = get_code_regex_elements(
+            code,
+            liberal=False, very_liberal=False,
+            at_word_boundaries_only=False,
+            at_numeric_boundaries_only=True
+        )
+        self._should_match_all(
+            number_boundaries,
+            [
+                f"pq {code} xy",
+                f"pq,{code},xy",
+                f"12 {code} 34",
+                f"12,{code},34",
+                f"pq{code}xy",
+                f"pq{code} xy",
+                f"pq {code}xy",
+            ]
+        )
+        self._should_not_match_any(
+            number_boundaries,
+            [
+                f"12{code}34",
+                f"12{code} 34",
+                f"12 {code}34",
+            ]
+        )
+
+        anywhere = get_code_regex_elements(
+            code,
+            liberal=False, very_liberal=False,
+            at_word_boundaries_only=False,
+            at_numeric_boundaries_only=False
+        )
+        self._should_match_all(
+            anywhere,
+            [
+                f"pq {code} xy",
+                f"pq,{code},xy",
+                f"12 {code} 34",
+                f"12,{code},34",
+                f"pq{code}xy",
+                f"pq{code} xy",
+                f"pq {code}xy",
+                f"12{code}34",
+                f"12{code} 34",
+                f"12 {code}34",
+            ]
+        )
 
 
 if __name__ == "__main__":
