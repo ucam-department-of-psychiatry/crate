@@ -22,7 +22,7 @@ crate_anon/anonymise_webserver/anonymiser/api/tests.py
 
 ===============================================================================
 
-End-to-end API tests
+End-to-end API tests. Not an exhaustive test of anonymisation.
 
 """
 
@@ -619,3 +619,23 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(postcode, anonymised)
         self.assertEqual(anonymised.count("[REDACTED]"), 1)
+
+    def test_scrub_all_dates(self) -> None:
+        dob = self.fake.date_of_birth().strftime("%d %b %Y")
+
+        text = f"{self.fake.text()} {dob} {self.fake.text()}"
+
+        self.assertIn(dob, text)
+
+        payload = {
+            "scrub_all_dates": True,
+            "text": {"test": text},
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]["test"]
+
+        self.assertNotIn(dob, anonymised)
+        self.assertEqual(anonymised.count("[~~~]"), 1)

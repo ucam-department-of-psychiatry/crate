@@ -307,6 +307,12 @@ components:
           writeOnly: true
           default: false
           description: Scrub all UK postcodes.
+        scrub_all_dates:
+          type: boolean
+          writeOnly: true
+          default: false
+          description: Scrub all dates. Currently assumes the default locale for month
+            names and ordinal suffixes.
         alternatives:
           type: array
           items:

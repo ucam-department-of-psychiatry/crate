@@ -170,6 +170,11 @@ class ScrubSerializer(Serializer):
         write_only=True, default=False,
         help_text=("Scrub all UK postcodes.")
     )
+    scrub_all_dates = BooleanField(
+        write_only=True, default=False,
+        help_text=("Scrub all dates. Currently assumes the default locale "
+                   "for month names and ordinal suffixes.")
+    )
     alternatives = ListField(
         child=ListField(child=CharField()),
         required=False, write_only=True,
@@ -260,6 +265,7 @@ class ScrubSerializer(Serializer):
         options = (
             "scrub_all_numbers_of_n_digits",
             "scrub_all_uk_postcodes",
+            "scrub_all_dates",
             "anonymise_codes_at_word_boundaries_only",
             "anonymise_numbers_at_word_boundaries_only",
         )
