@@ -54,7 +54,7 @@ class AnonymisationTests(TestCase):
             "denylist": {
                 "words": [name, address],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         self.assertIn(name, text)
@@ -64,7 +64,7 @@ class AnonymisationTests(TestCase):
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(name, anonymised)
         self.assertNotIn(address, anonymised)
@@ -80,13 +80,13 @@ class AnonymisationTests(TestCase):
                 "words": [word],
             },
             "replace_nonspecific_info_with": "[REDACTED]",
-            "text": word,
+            "text": {"test": word},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertEqual(anonymised.count("[REDACTED]"), 1)
 
@@ -94,7 +94,7 @@ class AnonymisationTests(TestCase):
         text = self.fake.text()
 
         payload = {
-            "text": text,
+            "text": {"test": text},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
@@ -111,7 +111,7 @@ class AnonymisationTests(TestCase):
             "patient": {
                 "dates": [date_of_birth],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         self.assertIn(date_of_birth, text)
@@ -119,7 +119,7 @@ class AnonymisationTests(TestCase):
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(date_of_birth, anonymised)
 
@@ -133,7 +133,7 @@ class AnonymisationTests(TestCase):
             "patient": {
                 "words": [words],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         all_words = text.split()
@@ -145,7 +145,7 @@ class AnonymisationTests(TestCase):
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
         anonymised_words = anonymised.split()
 
         self.assertNotIn("one", anonymised_words)
@@ -161,13 +161,13 @@ class AnonymisationTests(TestCase):
                 "words": [word],
             },
             "replace_patient_info_with": "[REDACTED]",
-            "text": word,
+            "text": {"test": word},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
         self.assertEqual(anonymised.count("[REDACTED]"), 1)
 
     def test_patient_phrase_replaced(self) -> None:
@@ -179,7 +179,7 @@ class AnonymisationTests(TestCase):
             "patient": {
                 "phrases": [address],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         self.assertIn(address, text)
@@ -187,7 +187,7 @@ class AnonymisationTests(TestCase):
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(address, anonymised)
 
@@ -202,7 +202,7 @@ class AnonymisationTests(TestCase):
             "patient": {
                 "numbers": [phone],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         self.assertIn(phone, text)
@@ -210,7 +210,7 @@ class AnonymisationTests(TestCase):
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(phone, anonymised)
 
@@ -224,7 +224,7 @@ class AnonymisationTests(TestCase):
             "patient": {
                 "codes": [postcode],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         self.assertIn(postcode, text)
@@ -232,7 +232,7 @@ class AnonymisationTests(TestCase):
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(postcode, anonymised)
 
@@ -246,7 +246,7 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "codes": [postcode],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         self.assertIn(postcode, text)
@@ -254,7 +254,7 @@ class AnonymisationTests(TestCase):
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(postcode, anonymised)
 
@@ -267,14 +267,14 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "codes": [postcode],
             },
-            "text": postcode,
+            "text": {"test": postcode},
             "replace_third_party_info_with": "[REDACTED]",
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(postcode, anonymised)
 
@@ -289,7 +289,7 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "codes": [postcode],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         self.assertIn(postcode, text)
@@ -297,7 +297,7 @@ class AnonymisationTests(TestCase):
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(postcode, anonymised)
 
@@ -312,7 +312,7 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "dates": [date_of_birth],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         self.assertIn(date_of_birth, text)
@@ -320,7 +320,7 @@ class AnonymisationTests(TestCase):
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(date_of_birth, anonymised)
 
@@ -336,7 +336,7 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "numbers": [phone],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         self.assertIn(phone, text)
@@ -344,7 +344,7 @@ class AnonymisationTests(TestCase):
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(phone, anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 1)
@@ -359,7 +359,7 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "numbers": [phone],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         self.assertIn(phone, text)
@@ -367,7 +367,7 @@ class AnonymisationTests(TestCase):
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(phone, anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 1)
@@ -381,7 +381,7 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "words": [word],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         self.assertIn(word, text)
@@ -389,7 +389,7 @@ class AnonymisationTests(TestCase):
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(word, anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 1)
@@ -404,13 +404,13 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "words": [word],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(typo, anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 1)
@@ -429,13 +429,13 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "words": [word1, word2],
             },
-            "text": text,
+            "text": {"test": text},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertIn(typo1, anonymised)
         self.assertNotIn(typo2, anonymised)
@@ -447,13 +447,13 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "words": ["Craig Buchanan"],
             },
-            "text": "Craig Buchanan",
+            "text": {"test": "Craig Buchanan"},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertIn("Craig", anonymised)
         self.assertNotIn("Buchanan", anonymised)
@@ -467,13 +467,13 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "words": [word],
             },
-            "text": "secrets",
+            "text": {"test": "secrets"},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn("secrets", anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 1)
@@ -488,13 +488,13 @@ class AnonymisationTests(TestCase):
             "allowlist": {
                 "words": ["secret"]
             },
-            "text": "secret private confidential",
+            "text": {"test": "secret private confidential"},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertIn("secret", anonymised)
         self.assertNotIn("private", anonymised)
@@ -509,13 +509,13 @@ class AnonymisationTests(TestCase):
             "alternatives": [
                 ["Avenue", "Ave"]
             ],
-            "text": "22 Acacia Ave",
+            "text": {"test": "22 Acacia Ave"},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn("22 Acacia Ave", anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 1)
@@ -529,13 +529,13 @@ class AnonymisationTests(TestCase):
 
         payload = {
             "scrub_all_numbers_of_n_digits": [10],
-            "text": text,
+            "text": {"test": text},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(nhs_number, anonymised)
         self.assertEqual(anonymised.count("[~~~]"), 1)
@@ -551,13 +551,13 @@ class AnonymisationTests(TestCase):
         payload = {
             "scrub_all_numbers_of_n_digits": [10],
             "anonymise_numbers_at_word_boundaries_only": False,
-            "text": text,
+            "text": {"test": text},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(nhs_number, anonymised)
         self.assertEqual(anonymised.count("[~~~]"), 1)
@@ -571,13 +571,13 @@ class AnonymisationTests(TestCase):
 
         payload = {
             "scrub_all_uk_postcodes": True,
-            "text": text,
+            "text": {"test": text},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(postcode, anonymised)
         self.assertEqual(anonymised.count("[~~~]"), 1)
@@ -592,13 +592,13 @@ class AnonymisationTests(TestCase):
         payload = {
             "anonymise_codes_at_word_boundaries_only": False,
             "scrub_all_uk_postcodes": True,
-            "text": text,
+            "text": {"test": text},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(postcode, anonymised)
         self.assertEqual(anonymised.count("[~~~]"), 1)
@@ -609,13 +609,13 @@ class AnonymisationTests(TestCase):
         payload = {
             "scrub_all_uk_postcodes": True,
             "replace_nonspecific_info_with": "[REDACTED]",
-            "text": postcode,
+            "text": {"test": postcode},
         }
 
         response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
-        anonymised = response.data["anonymised"]
+        anonymised = response.data["anonymised"]["test"]
 
         self.assertNotIn(postcode, anonymised)
         self.assertEqual(anonymised.count("[REDACTED]"), 1)

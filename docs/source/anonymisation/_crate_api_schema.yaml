@@ -200,9 +200,13 @@ components:
       type: object
       properties:
         text:
-          type: string
+          type: object
+          additionalProperties:
+            type: string
+            description: Text to be scrubbed
           writeOnly: true
-          description: The text to be scrubbed.
+          description: The lines of text to be scrubbed, each keyed on a unique ID
+            supplied by the caller
         patient:
           allOf:
           - $ref: '#/components/schemas/Specific'
@@ -313,9 +317,12 @@ components:
           description: 'List of alternative words to scrub. e.g.: [["Street", "St"],
             ["Road", "Rd"], ["Avenue", "Ave"]]'
         anonymised:
-          type: string
+          type: object
+          additionalProperties:
+            type: string
           readOnly: true
-          description: The anonymised text.
+          description: The anonymised text, keyed on the unique IDs supplied by the
+            caller in the 'text' parameter of the request.
       required:
       - anonymised
       - text

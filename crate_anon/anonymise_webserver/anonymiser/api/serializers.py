@@ -28,7 +28,7 @@ Django REST Framework serializer to anonymise the data.
 
 
 from collections import OrderedDict
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from django.conf import settings
 
@@ -36,6 +36,7 @@ from cardinal_pythonlib.hash import GenericHasher, make_hasher
 from rest_framework.serializers import (
     BooleanField,
     CharField,
+    DictField,
     IntegerField,
     ListField,
     Serializer,
@@ -82,7 +83,11 @@ class ScrubSerializer(Serializer):
     # Input fields
     # write_only means they aren't returned in the response
     # default implies required=False
-    text = CharField(write_only=True, help_text="The text to be scrubbed.")
+    text = DictField(
+        child=CharField(help_text=("Text to be scrubbed")), write_only=True,
+        help_text=("The lines of text to be scrubbed, each keyed on a unique "
+                   "ID supplied by the caller")
+    )
     patient = SpecificSerializer(
         required=False, write_only=True,
         help_text="Specific patient data to be scrubbed."
@@ -176,13 +181,24 @@ class ScrubSerializer(Serializer):
 
     # Output fields
     # SerializerMethodField is read-only by default
-    anonymised = SerializerMethodField(help_text="The anonymised text.")
+    anonymised = SerializerMethodField(
+        help_text=("The anonymised text, keyed on the unique IDs supplied by "
+                   "the caller in the 'text' parameter of the request.")
+    )
 
-    def get_anonymised(self, data: OrderedDict) -> str:
-        """ Returns the anonymised text """
+    def get_anonymised(self, data: OrderedDict) -> Dict[str, str]:
+        """
+        Returns the anonymised text keyed on the unique IDs supplied by the
+        caller.
+        """
         scrubber = self._get_personalized_scrubber(data)
 
-        return scrubber.scrub(data["text"])
+        anonymised = dict()
+
+        for key, value in data["text"].items():
+            anonymised[key] = scrubber.scrub(value)
+
+        return anonymised
 
     def _get_personalized_scrubber(self,
                                    data: OrderedDict) -> PersonalizedScrubber:
