@@ -284,6 +284,8 @@ def main():
         "--options.theme.breakpoints.large=1000000rem",
         # do not inject Authentication section automatically.
         "--options.noAutoAuth=true",
+        # do not collapse response documentation
+        "--options.expandResponses=all",
     ], check=True)
 
     # -------------------------------------------------------------------------
