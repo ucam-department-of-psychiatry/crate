@@ -176,7 +176,7 @@ Encryption phrases/passwords
 hash_method
 ###########
 
-*String.*
+*String.* Default ``HMAC_MD5``.
 
 Hashing method, used for
 
@@ -349,7 +349,7 @@ lists all patients), CRATE will stop with an error.
 replace_patient_info_with
 #########################
 
-*String.*
+*String.* Default: ``[__PPP__]``.
 
 Patient information will be replaced with this. For example, ``XXXXXX`` or
 ``[___]`` or ``[__PPP__]`` or ``[__ZZZ__]``; the bracketed forms can be a bit
@@ -359,7 +359,7 @@ easier to spot, and work better if they directly abut other text.
 replace_third_party_info_with
 #############################
 
-*String.*
+*String.* Default: ``[__TTT__]``.
 
 Third-party information (e.g. information about family members) will be
 replaced by this. For example, ``YYYYYY`` or ``[...]`` or ``[__TTT__]`` or
@@ -382,7 +382,7 @@ database cursor for each recursion).
 replace_nonspecific_info_with
 #############################
 
-*String.*
+*String.* Default: ``[~~~]``.
 
 Things to be removed irrespective of patient-specific information will be
 replaced by this (for example, if you opt to remove all things looking like
@@ -414,10 +414,12 @@ Specify maximum number of errors (insertions, deletions, substitutions) in
 string regex matching. Beware using a high number! Suggest 1-2.
 
 
+.. _min_string_length_for_errors:
+
 min_string_length_for_errors
 ############################
 
-*Integer.* Default: 1.
+*Integer.* Default: 3.
 
 Is there a minimum length to apply :ref:`string_max_regex_errors
 <anon_config_string_max_regex_errors>`? For example, if you allow one typo and
@@ -562,33 +564,35 @@ If ``denylist_files_as_phrases`` is false, then every *word* will be scrubbed
 If ``denylist_files_as_phrases`` is true, then every line is treated as a
 *phrase* to be scrubbed: ``Alice``, ``Bob``, and ``Charlie Brown``. That is,
 ``Charlie`` and ``Brown`` will not be scrubbed, just the composite phrase. This
-option is further configurable via denylist_phrases_flexible_whitespace_.
+option is further configurable via denylist_use_regex_.
 
 The prototypical use of this option is to provide a list of organizational
 (e.g. general practitioner) addresses that should be scrubbed, and always
 appear in a consistent format.
 
 
-.. _denylist_phrases_flexible_whitespace:
+.. _denylist_use_regex:
 
-denylist_phrases_flexible_whitespace
-####################################
+denylist_use_regex
+##################
 
 *Boolean.* Default: false.
-
-(For denylist_files_as_phrases_.)
 
 If false:
 
 - Replacements are very fast (they use FlashText_).
 - However, spacing matters and is exactly as provided: as a phrase, ``Charlie
   Brown`` will not scrub ``Charlie  Brown`` (note the double-space).
+- Word boundaries are always required, so ``blahCharlie Brownblah`` will not
+  be scrubbed.
 
 If true:
 
 - Replacements are not as fast (they use regex_).
-- However, spacing is flexible; the phrase ``Charlie Brown`` will scrub
-  ``Charlie   Brown`` and the like.
+- However, spacing is flexible; if you enable denylist_files_as_phrases_, the
+  phrase ``Charlie Brown`` will scrub ``Charlie   Brown`` and the like.
+- Word boundary behaviour is also flexible, governed by
+  anonymise_strings_at_word_boundaries_only_.
 
 
 phrase_alternative_word_filenames
@@ -618,6 +622,8 @@ numbers by specifying both numbers (in multiline format, as above); 10-digit
 numbers would include all NHS numbers. Avoid using this for short numbers; you
 may lose valuable numeric data!
 
+
+.. _scrub_all_uk_postcodes:
 
 scrub_all_uk_postcodes
 ######################
@@ -669,7 +675,58 @@ removed, including:
 See also anonymise_dates_at_word_boundaries_only_.
 
 
-.. _anon_config_anonymise_codes_at_word_boundaries_only:
+.. _nonspecific_scrubber_first:
+
+nonspecific_scrubber_first
+##########################
+
+*Boolean.* Default: false.
+
+This influences the :ref:`anonymisation sequence <anonymisation_sequence>`.
+
+Suppose you have a nonspecific scrubber that you have set up to scrub postcodes
+(see scrub_all_uk_postcodes_) but also names from a pre-built list (see
+denylist_filenames_). This knows about the names John and Smith. As it happens,
+your patient is also called John Smith, and your database tells CRATE that. So
+CRATE has two ways of removing this person's name. Do you want this patient's
+names to be treated as nonspecific sensitive information, or patient-specific
+sensitive information?
+
+Suppose we are scrubbing this:
+
+.. code-block:: none
+
+    Please send a letter to John Smith about the next appointment.
+
+    In his youth, this patient worked as a smith.
+
+If ``nonspecific_scrubber_first`` is False, then you will get something like
+
+.. code-block:: none
+
+    Please send a letter to [PATIENT] about the next appointment.
+
+    In his youth, this patient worked as a [PATIENT].
+
+but if it is True, you will get something like
+
+.. code-block:: none
+
+    Please send a letter to [GENERIC] about the next appointment.
+
+    In his youth, this patient worked as a [GENERIC].
+
+So using False provides you with a bit more information about the person being
+referred to -- (1) likely in a good way, so you know the first sentence is
+referring to the patient, but (2) potentially in a bad way, because (in this
+contrived example) you would be able to guess that the patient's surname is a
+word for a profession. In contrast, using True provides neither of those pieces
+of information. It's a trade-off. Since access to de-identified free text
+should be strictly controlled anyway, we opt for the slightly more informative
+default.
+
+
+.. _anonymise_codes_at_word_boundaries_only:
 
 anonymise_codes_at_word_boundaries_only
 #######################################
@@ -688,6 +745,20 @@ prefix, e.g. if people write ``M123456`` or ``R123456``; in that case you will
 need ``anonymise_numbers_at_word_boundaries_only = False``.
 
 
+.. _anonymise_codes_at_numeric_boundaries_only:
+
+anonymise_codes_at_numeric_boundaries_only
+##########################################
+
+*Boolean.* Default: true.
+
+Only applicable if anonymise_codes_at_word_boundaries_only_ is false. Requires
+that codes occur at a numeric boundary to be scrubbed. That is, if your code is
+``M123``, then using ``anonymise_codes_at_numeric_boundaries_only = True`` will
+not scrub ``M1234``. (See anonymise_numbers_at_numeric_boundaries_only_, which
+works in the same way.)
+
+
 .. _anonymise_dates_at_word_boundaries_only:
 
 anonymise_dates_at_word_boundaries_only
@@ -695,10 +766,9 @@ anonymise_dates_at_word_boundaries_only
 
 *Boolean.* Default: true.
 
-As for :ref:`anonymise_codes_at_word_boundaries_only
-<anon_config_anonymise_codes_at_word_boundaries_only>`, but applies to the
-``date`` scrub method (see :ref:`scrub_method <dd_scrub_method>`). Also applies
-to scrub_all_dates_.
+As for anonymise_codes_at_word_boundaries_only_, but applies to the ``date``
+scrub method (see :ref:`scrub_method <dd_scrub_method>`). Also applies to
+scrub_all_dates_.
 
 
 .. _anon_config_anonymise_numbers_at_word_boundaries_only:
@@ -708,15 +778,18 @@ anonymise_numbers_at_word_boundaries_only
 
 *Boolean.* Default: false.
 
-As for :ref:`anonymise_codes_at_word_boundaries_only
-<anon_config_anonymise_codes_at_word_boundaries_only>`, but applies to the
-``number`` scrub method (see :ref:`scrub_method <dd_scrub_method>`).
+As for anonymise_codes_at_word_boundaries_only_, but applies to the ``number``
+scrub method (see :ref:`scrub_method <dd_scrub_method>`).
 
+
+.. _anonymise_numbers_at_numeric_boundaries_only:
 
 anonymise_numbers_at_numeric_boundaries_only
 ############################################
 
 *Boolean.* Default: true.
+
+Only applicable if anonymise_numbers_at_word_boundaries_only_ is False.
 
 Similar to :ref:`anonymise_numbers_at_word_boundaries_only
 <anon_config_anonymise_numbers_at_word_boundaries_only>`, and similarly applies
@@ -726,18 +799,24 @@ boundaries.
 
 If ``True``, CRATE will not scrub "234" from "123456". Setting this to
 ``False`` is extremely conservative (all sorts of numbers may be scrubbed). You
-probably want this set to ``True``.
+probably want this set to ``True``. (See also
+anonymise_codes_at_numeric_boundaries_only_, which works in the same way.)
 
+
+.. _anonymise_strings_at_word_boundaries_only:
 
 anonymise_strings_at_word_boundaries_only
 #########################################
 
 *Boolean.* Default: true.
 
-As for :ref:`anonymise_codes_at_word_boundaries_only
-<anon_config_anonymise_codes_at_word_boundaries_only>`, but applies to the
-``words`` and the ``phrase`` scrub methods (see :ref:`scrub_method
-<dd_scrub_method>`).
+As for anonymise_codes_at_word_boundaries_only_, but applies to the ``words``
+and the ``phrase`` scrub methods (see :ref:`scrub_method <dd_scrub_method>`).
+
+This setting will only apply to pre-built wordlists (supplied via
+denylist_filenames_) if you enable denylist_use_regex_; otherwise, those
+wordlists will behave as if ``anonymise_strings_at_word_boundaries_only`` is
+true.
 
 
 Other anonymisation options
@@ -753,19 +832,17 @@ Output fields and formatting
 timefield_name
 ##############
 
-*String.*
+*String.* Default: ``_when_processed_utc``.
 
 Name of the ``DATETIME`` column to be created in every output table indicating
 when CRATE processed that row (see
 :func:`crate_anon.anonymise.anonymise.process_table`).
 
-An example might be ``_when_processed_utc``.
-
 
 research_id_fieldname
 #####################
 
-*String.*
+*String.* Default: ``rid``.
 
 Research ID (RID) field name for destination tables. This will be a ``VARCHAR``
 of length determined by :ref:`hash_method <anon_config_hash_method>`. Used to
@@ -775,7 +852,7 @@ replace patient ID fields from source tables.
 trid_fieldname
 ##############
 
-*String.*
+*String.* Default: ``trid``.
 
 Transient integer research ID (TRID) fieldname. An unsigned integer field with
 this name will be added to every table containing a primary patient ID (in the
@@ -786,7 +863,7 @@ that index is unique or not depends on the settings for the PID field).
 master_research_id_fieldname
 ############################
 
-*String.*
+*String.* Default: ``mrid``.
 
 Master research ID (MRID) field name for destination tables. This will be a
 ``VARCHAR`` of length determined by :ref:`hash_method
@@ -812,7 +889,7 @@ present just because the PID is present).
 source_hash_fieldname
 #####################
 
-*String.*
+*String.* Default: ``_src_hash``.
 
 Change-detection hash fieldname for destination tables, used to hash entire
 rows to see if they've changed later. To rephrase: this is a field (column)
@@ -851,7 +928,7 @@ transaction just before the limit takes the cumulative total over the limit.
 temporary_tablename
 ###################
 
-*String.*
+*String.* Default: ``_crate_temp_table``.
 
 We need a temporary table name for incremental updates. This can't be the name
 of a real destination table. It lives in the destination database.
@@ -1626,7 +1703,9 @@ When CRATE processes data and creates scrubbers, it follows the
 following sequence:
 
 - For every patient, a scrubber is built (see
-  :class:`crate_anon.anonymise.patient.Patient`).
+  :class:`crate_anon.anonymise.patient.Patient`). That scrubber can contain
+  patient-specific, third-party, and nonspecific (generic) information to
+  remove.
 
   - NONSPECIFIC options are set according to the config file.
 
@@ -1644,14 +1723,22 @@ following sequence:
       allowlist_filenames_).
 
 - For every data item for that patient that requires scrubbing, scrub using the
-  patient's scrubber.
+  scrubber we have built for that patient.
 
 - That scrubber operates as follows (see
   :meth:`crate_anon.anonymise.scrub.PersonalizedScrubber.scrub`):
 
-  - the NONSPECIFIC scrubber runs first;
-  - the PATIENT scrubber runs second;
-  - the THIRD-PARTY scrubber runs third.
+  - If nonspecific_scrubber_first_ is True:
+
+    - the NONSPECIFIC part of the scrubber runs first;
+    - the PATIENT part of the scrubber runs second;
+    - the THIRD-PARTY part of the scrubber runs third.
+
+  - If nonspecific_scrubber_first_ is False,
+
+    - the PATIENT part of the scrubber runs first;
+    - the THIRD-PARTY part of the scrubber runs second.
+    - the NONSPECIFIC part of the scrubber runs third;
 
 
 Minimal anonymiser config

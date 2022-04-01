@@ -120,6 +120,8 @@ class Patient(object):
         self.scrubber = PersonalizedScrubber(
             anonymise_codes_at_word_boundaries_only=(
                 config.anonymise_codes_at_word_boundaries_only),
+            anonymise_codes_at_numeric_boundaries_only=(
+                config.anonymise_codes_at_numeric_boundaries_only),
             anonymise_dates_at_word_boundaries_only=(
                 config.anonymise_dates_at_word_boundaries_only),
             anonymise_numbers_at_word_boundaries_only=(
