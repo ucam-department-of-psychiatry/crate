@@ -43,7 +43,10 @@ from rest_framework.serializers import (
     SerializerMethodField,
 )
 
-from crate_anon.anonymise.constants import ScrubMethod
+from crate_anon.anonymise.constants import (
+    AnonymiseConfigDefaults as Defaults,
+    ScrubMethod
+)
 from crate_anon.anonymise.scrub import (
     NonspecificScrubber,
     PersonalizedScrubber,
@@ -103,44 +106,49 @@ class ScrubSerializer(Serializer):
         help_text="Third party (e.g. family members') data to be scrubbed."
     )
     anonymise_codes_at_word_boundaries_only = BooleanField(
-        write_only=True, default=True,
+        write_only=True,
+        default=Defaults.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,
         help_text=("Ensure the codes to be scrubbed begin and end with a word "
                    "boundary.")
     )
     anonymise_dates_at_word_boundaries_only = BooleanField(
-        write_only=True, default=True,
+        write_only=True,
+        default=Defaults.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,
         help_text=("Ensure the codes to be scrubbed begin and end with a word "
                    "boundary.")
     )
     # TODO: These can't both be True (in fact this is the default for
     # PersonalizedScrubber but word boundaries take precedence).
     anonymise_numbers_at_word_boundaries_only = BooleanField(
-        write_only=True, default=True,
+        write_only=True,
+        default=Defaults.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,
         help_text=("Ensure the numbers to be scrubbed begin and end with a "
                    "word boundary.")
     )
     anonymise_numbers_at_numeric_boundaries_only = BooleanField(
-        write_only=True, default=False,
+        write_only=True,
+        default=Defaults.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY,
         help_text=("Ensure the numbers to be scrubbed begin and end with a "
                    "numeric boundary.")
     )
     anonymise_strings_at_word_boundaries_only = BooleanField(
-        write_only=True, default=True,
+        write_only=True,
+        default=Defaults.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY,
         help_text=("Ensure the numbers to be scrubbed begin and end with a "
                    "word boundary.")
     )
     string_max_regex_errors = IntegerField(
-        write_only=True, default=0,
+        write_only=True, default=Defaults.STRING_MAX_REGEX_ERRORS,
         help_text=("The maximum number of typographical insertion / deletion / "
                    "substitution errors to permit.")
     )
     min_string_length_for_errors = IntegerField(
-        write_only=True, default=4,
+        write_only=True, default=Defaults.MIN_STRING_LENGTH_FOR_ERRORS,
         help_text=("The minimum string length at which typographical "
                    "errors will be permitted.")
     )
     min_string_length_to_scrub_with = IntegerField(
-        write_only=True, default=3,
+        write_only=True, default=Defaults.MIN_STRING_LENGTH_TO_SCRUB_WITH,
         help_text=("Do not scrub strings shorter than this length.")
     )
     scrub_string_suffixes = ListField(
@@ -154,16 +162,16 @@ class ScrubSerializer(Serializer):
     denylist = DenylistSerializer(required=False, write_only=True,
                                   help_text="Denylist options.")
     replace_patient_info_with = CharField(
-        write_only=True, default="[__PPP__]",
+        write_only=True, default=Defaults.REPLACE_PATIENT_INFO_WITH,
         help_text=("Replace sensitive patient content with this.")
     )
     replace_third_party_info_with = CharField(
-        write_only=True, default="[__TTT__]",
+        write_only=True, default=Defaults.REPLACE_THIRD_PARTY_INFO_WITH,
         help_text=("Replace sensitive third party (e.g. family members') "
                    "content with this.")
     )
     replace_nonspecific_info_with = CharField(
-        write_only=True, default="[~~~]",
+        write_only=True, default=Defaults.REPLACE_NONSPECIFIC_INFO_WITH,
         help_text=("Replace any other sensitive content with this.")
     )
     scrub_all_numbers_of_n_digits = ListField(
@@ -173,11 +181,11 @@ class ScrubSerializer(Serializer):
                    "e.g. [10] for all UK NHS numbers.")
     )
     scrub_all_uk_postcodes = BooleanField(
-        write_only=True, default=False,
+        write_only=True, default=Defaults.SCRUB_ALL_UK_POSTCODES,
         help_text=("Scrub all UK postcodes.")
     )
     scrub_all_dates = BooleanField(
-        write_only=True, default=False,
+        write_only=True, default=Defaults.SCRUB_ALL_DATES,
         help_text=("Scrub all dates. Currently assumes the default locale "
                    "for month names and ordinal suffixes.")
     )

@@ -230,13 +230,13 @@ components:
         anonymise_numbers_at_word_boundaries_only:
           type: boolean
           writeOnly: true
-          default: true
+          default: false
           description: Ensure the numbers to be scrubbed begin and end with a word
             boundary.
         anonymise_numbers_at_numeric_boundaries_only:
           type: boolean
           writeOnly: true
-          default: false
+          default: true
           description: Ensure the numbers to be scrubbed begin and end with a numeric
             boundary.
         anonymise_strings_at_word_boundaries_only:
@@ -254,13 +254,13 @@ components:
         min_string_length_for_errors:
           type: integer
           writeOnly: true
-          default: 4
+          default: 3
           description: The minimum string length at which typographical errors will
             be permitted.
         min_string_length_to_scrub_with:
           type: integer
           writeOnly: true
-          default: 3
+          default: 2
           description: Do not scrub strings shorter than this length.
         scrub_string_suffixes:
           type: array
