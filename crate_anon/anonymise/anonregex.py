@@ -259,7 +259,7 @@ def get_code_regex_elements(
         liberal: bool = True,
         very_liberal: bool = True,
         at_word_boundaries_only: bool = True,
-        at_numeric_boundaries_only: bool = False) -> List[str]:
+        at_numeric_boundaries_only: bool = True) -> List[str]:
     """
     Takes a **string** representation of a number or an alphanumeric code,
     which may include leading zeros (as for phone numbers), and produces a list
@@ -294,9 +294,10 @@ def get_code_regex_elements(
             source.
         at_word_boundaries_only:
             Boolean. Ensure that the regex begins and ends with a word boundary
-            requirement.
+            requirement. So, if True, "123" will not be scrubbed from "M123".
         at_numeric_boundaries_only:
-            Boolean. Ensure that the number/code is only recognized when
+            Boolean. Only applicable if ``at_numeric_boundaries_only`` is
+            False. Ensure that the number/code is only recognized when
             surrounded by non-numbers; that is, only at the boundaries of
             numbers (at numeric boundaries).
 

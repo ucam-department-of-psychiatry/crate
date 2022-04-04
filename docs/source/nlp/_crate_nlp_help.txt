@@ -9,7 +9,7 @@ usage: crate_nlp [-h] [--config CONFIG] [--nlpdef NLPDEF] [-i | -f]
                  [--count] [--cloud] [--immediate] [--retrieve]
                  [--cancelrequest] [--cancelall] [--showqueue]
 
-NLP manager. Version 0.19.3 (2022-03-09). By Rudolf Cardinal.
+NLP manager. Version 0.19.3 (2022-03-31). By Rudolf Cardinal.
 
 optional arguments:
   -h, --help            show this help message and exit
