@@ -49,7 +49,7 @@ FORCE_SCRIPT_NAME = ""
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"  # CHANGE THIS!  # noqa
+SECRET_KEY = "aaaaaaaaaaaaaaaaaa CHANGE THIS! aaaaaaaaaaaaaaaaaa"
 # Run crate_generate_new_django_secret_key to generate a new one.
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -163,101 +163,101 @@ RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 RESEARCH_DB_INFO = [
     {
-        # Unique name e.g. 'myresearchdb':
+        # Unique name e.g. "myresearchdb":
         RDIKeys.NAME: "myresearchdb",
-        # Human-friendly description e.g. 'My friendly research database':
+        # Human-friendly description e.g. "My friendly research database":
         RDIKeys.DESCRIPTION: "My friendly research database",
         # Database name as seen by the database engine:
-        # - BLANK, i.e. '', for MySQL.
-        # - BLANK, i.e. '', for PostgreSQL.
+        # - BLANK, i.e. "", for MySQL.
+        # - BLANK, i.e. "", for PostgreSQL.
         # - The database name, for SQL Server.
         RDIKeys.DATABASE: "",
         # Schema name:
         # - The database=schema name, for MySQL.
-        # - The schema name, for PostgreSQL (usual default: 'public').
-        # - The schema name, for SQL Server (usual default: 'dbo').
+        # - The schema name, for PostgreSQL (usual default: "public").
+        # - The schema name, for SQL Server (usual default: "dbo").
         RDIKeys.SCHEMA: "dbo",
         # Fields not in the database, but used for SELECT AS statements for
         # some clinician views:
-        # e.g. 'my_pid_field':
+        # e.g. "my_pid_field":
         RDIKeys.PID_PSEUDO_FIELD: "my_pid_field",
-        # e.g. 'my_mpid_field':
+        # e.g. "my_mpid_field":
         RDIKeys.MPID_PSEUDO_FIELD: "my_mpid_field",
         # Fields and tables found within the database:
-        # e.g. 'trid'
+        # e.g. "trid"
         RDIKeys.TRID_FIELD: "trid",
-        # e.g. 'brcid'
+        # e.g. "brcid"
         RDIKeys.RID_FIELD: "brcid",
         # e.g. 1
         RDIKeys.RID_FAMILY: 1,
-        # e.g. 'patients'
+        # e.g. "patients"
         RDIKeys.MRID_TABLE: "patients",
-        # e.g. 'nhshash'
+        # e.g. "nhshash"
         RDIKeys.MRID_FIELD: "nhshash",
         # Descriptions, used for PID lookup and the like
-        # e.g. 'Patient ID (My ID Num; PID) for database X'
+        # e.g. "Patient ID (My ID Num; PID) for database X"
         RDIKeys.PID_DESCRIPTION: "Patient ID (My ID Num; PID) for database X",
-        # e.g. 'Master patient ID (NHS number; MPID)'
+        # e.g. "Master patient ID (NHS number; MPID)"
         RDIKeys.MPID_DESCRIPTION: "Master patient ID (NHS number; MPID)",
-        # e.g. 'Research ID (RID) for database X'
+        # e.g. "Research ID (RID) for database X"
         RDIKeys.RID_DESCRIPTION: "Research ID (RID) for database X",
-        # e.g. 'Master research ID (MRID)'
+        # e.g. "Master research ID (MRID)"
         RDIKeys.MRID_DESCRIPTION: "Master research ID (MRID)",
-        # e.g. 'Transient research ID (TRID) for database X',
+        # e.g. "Transient research ID (TRID) for database X",
         RDIKeys.TRID_DESCRIPTION: (
-            "Transient research ID (TRID) for database X"
+            "Transient research ID (TRID) for database X",
         ),
-        # To look up PID/RID mappings, provide a key for 'secret_lookup_db'
+        # To look up PID/RID mappings, provide a key for "secret_lookup_db"
         # that is a database alias from DATABASES:
-        # e.g. 'secret_1'
+        # e.g. "secret_1"
         RDIKeys.SECRET_LOOKUP_DB: "secret_1",
         # For the data finder: table-specific and default date column names
         RDIKeys.DATE_FIELDS_BY_TABLE: {},
-        # e.g. ['default_date_field']
+        # e.g. ["default_date_field"]
         RDIKeys.DEFAULT_DATE_FIELDS: ["default_date_field"],
         # Column name giving time that record was updated
-        # e.g. '_when_fetched_utc'
+        # e.g. "_when_fetched_utc"
         RDIKeys.UPDATE_DATE_FIELD: "_when_fetched_utc",
     },
     # {
-    #     RDIKeys.NAME: 'similar_database',
-    #     RDIKeys.DESCRIPTION: 'A database sharing the RID with the first',
-    #     RDIKeys.DATABASE: 'similar_database',
-    #     RDIKeys.SCHEMA: 'similar_schema',
-    #     RDIKeys.TRID_FIELD: 'trid',
-    #     RDIKeys.RID_FIELD: 'same_rid',
+    #     RDIKeys.NAME: "similar_database",
+    #     RDIKeys.DESCRIPTION: "A database sharing the RID with the first",
+    #     RDIKeys.DATABASE: "similar_database",
+    #     RDIKeys.SCHEMA: "similar_schema",
+    #     RDIKeys.TRID_FIELD: "trid",
+    #     RDIKeys.RID_FIELD: "same_rid",
     #     RDIKeys.RID_FAMILY: 1,
-    #     RDIKeys.MRID_TABLE: '',
-    #     RDIKeys.MRID_FIELD: '',
-    #     RDIKeys.PID_DESCRIPTION: '',
-    #     RDIKeys.MPID_DESCRIPTION: '',
-    #     RDIKeys.RID_DESCRIPTION: '',
-    #     RDIKeys.MRID_DESCRIPTION: '',
-    #     RDIKeys.TRID_DESCRIPTION: '',
-    #     RDIKeys.SECRET_LOOKUP_DB: '',
+    #     RDIKeys.MRID_TABLE: "",
+    #     RDIKeys.MRID_FIELD: "",
+    #     RDIKeys.PID_DESCRIPTION: "",
+    #     RDIKeys.MPID_DESCRIPTION: "",
+    #     RDIKeys.RID_DESCRIPTION: "",
+    #     RDIKeys.MRID_DESCRIPTION: "",
+    #     RDIKeys.TRID_DESCRIPTION: "",
+    #     RDIKeys.SECRET_LOOKUP_DB: "",
     #     RDIKeys.DATE_FIELDS_BY_TABLE: {},
     #     RDIKeys.DEFAULT_DATE_FIELDS: [],
-    #     RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
+    #     RDIKeys.UPDATE_DATE_FIELD: "_when_fetched_utc",
     # },
     # {
-    #     RDIKeys.NAME: 'different_database',
-    #     RDIKeys.DESCRIPTION: 'A database sharing only the MRID with the first',  # noqa: E501
-    #     RDIKeys.DATABASE: 'different_database',
-    #     RDIKeys.SCHEMA: 'different_schema',
-    #     RDIKeys.TRID_FIELD: 'trid',
-    #     RDIKeys.RID_FIELD: 'different_rid',
+    #     RDIKeys.NAME: "different_database",
+    #     RDIKeys.DESCRIPTION: "A database sharing only the MRID with the first",  # noqa: E501
+    #     RDIKeys.DATABASE: "different_database",
+    #     RDIKeys.SCHEMA: "different_schema",
+    #     RDIKeys.TRID_FIELD: "trid",
+    #     RDIKeys.RID_FIELD: "different_rid",
     #     RDIKeys.RID_FAMILY: 2,
-    #     RDIKeys.MRID_TABLE: 'hashed_nhs_numbers',
-    #     RDIKeys.MRID_FIELD: 'nhshash',
-    #     RDIKeys.PID_DESCRIPTION: '',
-    #     RDIKeys.MPID_DESCRIPTION: '',
-    #     RDIKeys.RID_DESCRIPTION: '',
-    #     RDIKeys.MRID_DESCRIPTION: '',
-    #     RDIKeys.TRID_DESCRIPTION: '',
-    #     RDIKeys.SECRET_LOOKUP_DB: '',
+    #     RDIKeys.MRID_TABLE: "hashed_nhs_numbers",
+    #     RDIKeys.MRID_FIELD: "nhshash",
+    #     RDIKeys.PID_DESCRIPTION: "",
+    #     RDIKeys.MPID_DESCRIPTION: "",
+    #     RDIKeys.RID_DESCRIPTION: "",
+    #     RDIKeys.MRID_DESCRIPTION: "",
+    #     RDIKeys.TRID_DESCRIPTION: "",
+    #     RDIKeys.SECRET_LOOKUP_DB: "",
     #     RDIKeys.DATE_FIELDS_BY_TABLE: {},
     #     RDIKeys.DEFAULT_DATE_FIELDS: [],
-    #     RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
+    #     RDIKeys.UPDATE_DATE_FIELD: "_when_fetched_utc",
     # },
 ]
 
@@ -272,8 +272,8 @@ NLP_SOURCEDB_MAP = {"SOURCE_DATABASE": "research"}
 
 # For the automatic query generator, we need to know the underlying SQL dialect
 # Options are
-# - 'mysql' => MySQL
-# - 'mssql' => Microsoft SQL Server
+# - "mysql" => MySQL
+# - "mssql" => Microsoft SQL Server
 RESEARCH_DB_DIALECT = "mysql"
 
 DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = True
@@ -338,9 +338,9 @@ MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 Mb
 # https://docs.djangoproject.com/en/1.8/ref/settings/#email-backend
 
 #   default backend:
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 #   bugfix for servers that only support TLSv1:
-# EMAIL_BACKEND = 'cardinal_pythonlib.django.mail.SmtpEmailBackendTls1'
+# EMAIL_BACKEND = "cardinal_pythonlib.django.mail.SmtpEmailBackendTls1"
 
 EMAIL_HOST = "smtp.somewhere.nhs.uk"
 EMAIL_PORT = 587  # usually 25 (plain SMTP) or 587 (STARTTLS)
@@ -378,7 +378,7 @@ RDBM_TELEPHONE = "01223-XXXXXX"
 RDBM_EMAIL = "research.database@somewhere.nhs.uk"
 RDBM_ADDRESS = [
     "FREEPOST SOMEWHERE_HOSPITAL RESEARCH DATABASE MANAGER"
-]  # a list  # noqa
+]  # a list
 
 
 # =============================================================================
@@ -398,8 +398,8 @@ ADMINS = [
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 WKHTMLTOPDF_FILENAME = ""
-# WKHTMLTOPDF_FILENAME = '/home/rudolf/dev/wkhtmltopdf/wkhtmltox/bin/wkhtmltopdf'  # noqa
-# WKHTMLTOPDF_FILENAME = '/usr/bin/wkhtmltopdf'
+# WKHTMLTOPDF_FILENAME = "/home/rudolf/dev/wkhtmltopdf/wkhtmltox/bin/wkhtmltopdf"  # noqa
+# WKHTMLTOPDF_FILENAME = "/usr/bin/wkhtmltopdf"
 
 WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
     "page-size": "A4",
@@ -414,7 +414,7 @@ WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
 PDF_LOGO_ABS_URL = "http://localhost/crate_logo"
 # ... path on local machine, read by wkhtmltopdf
 # Examples:
-#   [if you're running a web server] 'http://localhost/crate_logo'
+#   [if you're running a web server] "http://localhost/crate_logo"
 #   [Linux root path] file:///home/myuser/myfile.png
 #   [Windows root path] file:///c:/path/to/myfile.png
 
@@ -425,13 +425,13 @@ PDF_LOGO_WIDTH = "75%"
 # The PDF generator also needs to be able to find the traffic-light pictures,
 # on disk (not via your web site):
 TRAFFIC_LIGHT_RED_ABS_URL = (
-    "file:///somewhere/crate_anon/crateweb/static/red.png"  # noqa
+    "file:///somewhere/crate_anon/crateweb/static/red.png"
 )
 TRAFFIC_LIGHT_YELLOW_ABS_URL = (
-    "file:///somewhere/crate_anon/crateweb/static/yellow.png"  # noqa
+    "file:///somewhere/crate_anon/crateweb/static/yellow.png"
 )
 TRAFFIC_LIGHT_GREEN_ABS_URL = (
-    "file:///somewhere/crate_anon/crateweb/static/green.png"  # noqa
+    "file:///somewhere/crate_anon/crateweb/static/green.png"
 )
 
 
@@ -462,5 +462,5 @@ PDF_LETTER_FOOTER_HTML = ""
 CHARITY_URL = "http://www.cpft.nhs.uk/research.htm"
 CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = (
-    "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
+    "www.cpft.nhs.uk/research.htm > CPFT Research Database"
 )
