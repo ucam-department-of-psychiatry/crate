@@ -53,15 +53,17 @@ log = logging.getLogger(__name__)
 def make_wsgi_app(global_config: Dict[Any, Any], **settings) -> Router:
     # Logging
     main_only_quicksetup_rootlogger()
-    logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
 
     # log.debug(f"global_config: {global_config!r}")
     # log.debug(f"settings: {settings!r}")
 
     # Database
-    engine = engine_from_config(settings,
-                                NlpServerConfigKeys.SQLALCHEMY_PREFIX,
-                                **SQLALCHEMY_COMMON_OPTIONS)
+    engine = engine_from_config(
+        settings,
+        NlpServerConfigKeys.SQLALCHEMY_PREFIX,
+        **SQLALCHEMY_COMMON_OPTIONS,
+    )
     # ... add to config - pool_recycle is set to create new sessions every 7h
     sqla_url = get_safe_url_from_engine(engine)
     log.info(f"Using database {sqla_url!r}")
@@ -75,17 +77,20 @@ def make_wsgi_app(global_config: Dict[Any, Any], **settings) -> Router:
     authn_policy = AuthTktAuthenticationPolicy(
         settings[NlpServerConfigKeys.NLP_WEBSERVER_SECRET],
         secure=True,  # only allow requests over HTTPS
-        hashalg='sha512')
+        hashalg="sha512",
+    )
     authz_policy = ACLAuthorizationPolicy()
     config.set_authentication_policy(authn_policy)
     config.set_authorization_policy(authz_policy)
 
     # Compression
-    config.add_tween("cardinal_pythonlib.pyramid.compression.CompressionTweenFactory")  # noqa
+    config.add_tween(
+        "cardinal_pythonlib.pyramid.compression.CompressionTweenFactory"
+    )  # noqa
 
     # Routes
-    config.add_route('index', '/')
-    config.scan('.views')
+    config.add_route("index", "/")
+    config.scan(".views")
 
     # Create WSGI app
     return config.make_wsgi_app()

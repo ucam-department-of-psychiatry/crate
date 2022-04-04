@@ -46,14 +46,18 @@ def main() -> None:
     """
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     gate_home = get_envvar_or_die(EnvVar.GATE_HOME)
-    check_call_verbose([
-        "java",
-        "-classpath", f"{CratePath.JAVA_CLASSES_DIR}:{gate_home}/lib/*",
-        f"-Dgate.home={gate_home}",
-        "CrateGatePipeline",
-        "--help",
-        "-v", "-v",
-    ])
+    check_call_verbose(
+        [
+            "java",
+            "-classpath",
+            f"{CratePath.JAVA_CLASSES_DIR}:{gate_home}/lib/*",
+            f"-Dgate.home={gate_home}",
+            "CrateGatePipeline",
+            "--help",
+            "-v",
+            "-v",
+        ]
+    )
 
 
 if __name__ == "__main__":

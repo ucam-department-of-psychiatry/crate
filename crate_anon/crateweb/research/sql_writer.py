@@ -63,12 +63,15 @@ log = logging.getLogger(__name__)
 # Automatic SQL generation functions
 # =============================================================================
 
-def get_join_info(grammar: SqlGrammar,
-                  parsed: ParseResults,
-                  jointable: TableId,
-                  magic_join: bool = False,
-                  nonmagic_join_type: str = "INNER JOIN",
-                  nonmagic_join_condition: str = '') -> List[JoinInfo]:
+
+def get_join_info(
+    grammar: SqlGrammar,
+    parsed: ParseResults,
+    jointable: TableId,
+    magic_join: bool = False,
+    nonmagic_join_type: str = "INNER JOIN",
+    nonmagic_join_condition: str = "",
+) -> List[JoinInfo]:
     """
     Works out how to join a new table into an existing SQL ``SELECT`` query.
 
@@ -103,14 +106,14 @@ def get_join_info(grammar: SqlGrammar,
     """
     first_from_table = get_first_from_table(parsed)
     from_table_in_join_schema = get_first_from_table(
-        parsed,
-        match_db=jointable.db,
-        match_schema=jointable.schema)
+        parsed, match_db=jointable.db, match_schema=jointable.schema
+    )
     exact_match_table = get_first_from_table(
         parsed,
         match_db=jointable.db,
         match_schema=jointable.schema,
-        match_table=jointable.table)
+        match_table=jointable.table,
+    )
 
     if not first_from_table:
         # No tables in query yet.
@@ -126,94 +129,124 @@ def get_join_info(grammar: SqlGrammar,
 
     if not magic_join:
         # log.critical("get_join_info: non-magic join")
-        return [JoinInfo(join_type=nonmagic_join_type,
-                         table=jointable.identifier(grammar),
-                         join_condition=nonmagic_join_condition)]
+        return [
+            JoinInfo(
+                join_type=nonmagic_join_type,
+                table=jointable.identifier(grammar),
+                join_condition=nonmagic_join_condition,
+            )
+        ]
 
     if from_table_in_join_schema:
         # Another table from the same database is present. Link on the
         # TRID field.
         # log.critical("get_join_info: joining to another table in same DB")
-        return [JoinInfo(
-            join_type='INNER JOIN',
-            table=jointable.identifier(grammar),
-            join_condition="ON {new} = {existing}".format(
-                new=research_database_info.get_trid_column(
-                    jointable).identifier(grammar),
-                existing=research_database_info.get_trid_column(
-                    from_table_in_join_schema).identifier(grammar),
+        return [
+            JoinInfo(
+                join_type="INNER JOIN",
+                table=jointable.identifier(grammar),
+                join_condition="ON {new} = {existing}".format(
+                    new=research_database_info.get_trid_column(
+                        jointable
+                    ).identifier(grammar),
+                    existing=research_database_info.get_trid_column(
+                        from_table_in_join_schema
+                    ).identifier(grammar),
+                ),
             )
-        )]
+        ]
 
     # OK. So now we're building a cross-database join.
     existing_family = research_database_info.get_dbinfo_by_schema_id(
-        first_from_table.schema_id).rid_family
+        first_from_table.schema_id
+    ).rid_family
     new_family = research_database_info.get_dbinfo_by_schema_id(
-        jointable.schema_id).rid_family
+        jointable.schema_id
+    ).rid_family
     # log.critical("existing_family={}, new_family={}".format(
     #     existing_family, new_family))
     if existing_family and existing_family == new_family:
         # log.critical("get_join_info: new DB, same RID family")
-        return [JoinInfo(
-            join_type='INNER JOIN',
-            table=jointable.identifier(grammar),
-            join_condition="ON {new} = {existing}".format(
-                new=research_database_info.get_rid_column(
-                    jointable).identifier(grammar),
-                existing=research_database_info.get_rid_column(
-                    first_from_table).identifier(grammar),
+        return [
+            JoinInfo(
+                join_type="INNER JOIN",
+                table=jointable.identifier(grammar),
+                join_condition="ON {new} = {existing}".format(
+                    new=research_database_info.get_rid_column(
+                        jointable
+                    ).identifier(grammar),
+                    existing=research_database_info.get_rid_column(
+                        first_from_table
+                    ).identifier(grammar),
+                ),
             )
-        )]
+        ]
 
     # If we get here, we have to do a complicated join via the MRID.
     # log.critical("get_join_info: new DB, different RID family, using MRID")
     existing_mrid_column = research_database_info.get_mrid_column_from_table(
-        first_from_table)
+        first_from_table
+    )
     existing_mrid_table = existing_mrid_column.table_id
     if not existing_mrid_table:
         raise ValueError(
             f"No MRID table available (in the same database as table "
-            f"{first_from_table}; cannot link)")
+            f"{first_from_table}; cannot link)"
+        )
     new_mrid_column = research_database_info.get_mrid_column_from_table(
-        jointable)
+        jointable
+    )
     new_mrid_table = new_mrid_column.table_id
-    existing_mrid_table_in_query = bool(get_first_from_table(
-        parsed,
-        match_db=existing_mrid_table.db,
-        match_schema=existing_mrid_table.schema,
-        match_table=existing_mrid_table.table))
+    existing_mrid_table_in_query = bool(
+        get_first_from_table(
+            parsed,
+            match_db=existing_mrid_table.db,
+            match_schema=existing_mrid_table.schema,
+            match_table=existing_mrid_table.table,
+        )
+    )
 
     joins = []  # type: List[JoinInfo]
     if not existing_mrid_table_in_query:
-        joins.append(JoinInfo(
-            join_type='INNER JOIN',
-            table=existing_mrid_table.identifier(grammar),
-            join_condition="ON {m1_trid1} = {t1_trid1}".format(
-                m1_trid1=research_database_info.get_trid_column(
-                    existing_mrid_table).identifier(grammar),
-                t1_trid1=research_database_info.get_trid_column(
-                    first_from_table).identifier(grammar),
+        joins.append(
+            JoinInfo(
+                join_type="INNER JOIN",
+                table=existing_mrid_table.identifier(grammar),
+                join_condition="ON {m1_trid1} = {t1_trid1}".format(
+                    m1_trid1=research_database_info.get_trid_column(
+                        existing_mrid_table
+                    ).identifier(grammar),
+                    t1_trid1=research_database_info.get_trid_column(
+                        first_from_table
+                    ).identifier(grammar),
+                ),
             )
-        ))
-    joins.append(JoinInfo(
-        join_type='INNER JOIN',
-        table=new_mrid_table.identifier(grammar),
-        join_condition="ON {m2_mrid2} = {m1_mrid1}".format(
-            m2_mrid2=new_mrid_column.identifier(grammar),
-            m1_mrid1=existing_mrid_column.identifier(grammar),
         )
-    ))
+    joins.append(
+        JoinInfo(
+            join_type="INNER JOIN",
+            table=new_mrid_table.identifier(grammar),
+            join_condition="ON {m2_mrid2} = {m1_mrid1}".format(
+                m2_mrid2=new_mrid_column.identifier(grammar),
+                m1_mrid1=existing_mrid_column.identifier(grammar),
+            ),
+        )
+    )
     if jointable != new_mrid_table:
-        joins.append(JoinInfo(
-            join_type='INNER JOIN',
-            table=jointable.identifier(grammar),
-            join_condition="ON {t2_trid2} = {m2_trid2}".format(
-                t2_trid2=research_database_info.get_trid_column(
-                    jointable).identifier(grammar),
-                m2_trid2=research_database_info.get_trid_column(
-                    new_mrid_table).identifier(grammar),
+        joins.append(
+            JoinInfo(
+                join_type="INNER JOIN",
+                table=jointable.identifier(grammar),
+                join_condition="ON {t2_trid2} = {m2_trid2}".format(
+                    t2_trid2=research_database_info.get_trid_column(
+                        jointable
+                    ).identifier(grammar),
+                    m2_trid2=research_database_info.get_trid_column(
+                        new_mrid_table
+                    ).identifier(grammar),
+                ),
             )
-        ))
+        )
     return joins
 
 
@@ -221,11 +254,14 @@ class SelectElement(object):
     """
     Class to represent a result column in an SQL ``SELECT`` statement.
     """
-    def __init__(self,
-                 column_id: ColumnId = None,
-                 raw_select: str = '',
-                 from_table_for_raw_select: TableId = None,
-                 alias: str = ''):
+
+    def __init__(
+        self,
+        column_id: ColumnId = None,
+        raw_select: str = "",
+        from_table_for_raw_select: TableId = None,
+        alias: str = "",
+    ):
         """
         Args:
             column_id:
@@ -313,7 +349,7 @@ class SelectElement(object):
         """
         table_id = self.from_table()
         if not table_id:
-            return ''
+            return ""
         return table_id.identifier(grammar)
 
     def sql_select_from(self, grammar: SqlGrammar) -> str:
@@ -347,28 +383,29 @@ def reparse_select(p: ParseResults, grammar: SqlGrammar) -> ParseResults:
     - returns the resulting :class:`pyparsing.ParseResults`
     """
     return grammar.get_select_statement().parseString(
-        text_from_parsed(p, formatted=False),
-        parseAll=True
+        text_from_parsed(p, formatted=False), parseAll=True
     )
 
 
-def add_to_select(sql: str,
-                  grammar: SqlGrammar,
-                  select_elements: List[SelectElement] = None,
-                  where_conditions: List[WhereCondition] = None,
-                  # For SELECT:
-                  distinct: bool = None,
-                  # For WHERE:
-                  where_type: str = "AND",
-                  bracket_where: bool = False,
-                  # For either, for JOIN:
-                  magic_join: bool = True,
-                  join_type: str = "NATURAL JOIN",
-                  join_condition: str = '',
-                  # General:
-                  formatted: bool = True,
-                  debug: bool = False,
-                  debug_verbose: bool = False) -> str:
+def add_to_select(
+    sql: str,
+    grammar: SqlGrammar,
+    select_elements: List[SelectElement] = None,
+    where_conditions: List[WhereCondition] = None,
+    # For SELECT:
+    distinct: bool = None,
+    # For WHERE:
+    where_type: str = "AND",
+    bracket_where: bool = False,
+    # For either, for JOIN:
+    magic_join: bool = True,
+    join_type: str = "NATURAL JOIN",
+    join_condition: str = "",
+    # General:
+    formatted: bool = True,
+    debug: bool = False,
+    debug_verbose: bool = False,
+) -> str:
     """
     This function encapsulates our query builder's common operations.
 
@@ -447,8 +484,9 @@ def add_to_select(sql: str,
     # -------------------------------------------------------------------------
     if not sql:
         if not select_elements:
-            raise ValueError("Fresh SQL statements must include a SELECT "
-                             "element")
+            raise ValueError(
+                "Fresh SQL statements must include a SELECT " "element"
+            )
         # ---------------------------------------------------------------------
         # Fresh SQL statement
         # ---------------------------------------------------------------------
@@ -468,25 +506,28 @@ def add_to_select(sql: str,
     new_tables = []  # type: List[TableId]
 
     def add_new_table(_table_id: TableId) -> None:
-        if (_table_id and
-                _table_id not in new_tables and
-                _table_id.identifier(grammar) not in existing_tables):
+        if (
+            _table_id
+            and _table_id not in new_tables
+            and _table_id.identifier(grammar) not in existing_tables
+        ):
             new_tables.append(_table_id)
 
     # -------------------------------------------------------------------------
     # DISTINCT?
     # -------------------------------------------------------------------------
     if distinct is True:
-        set_distinct_within_parsed(p, action='set')
+        set_distinct_within_parsed(p, action="set")
     elif distinct is False:
-        set_distinct_within_parsed(p, action='clear')
+        set_distinct_within_parsed(p, action="clear")
 
     # -------------------------------------------------------------------------
     # Process all the (other?) SELECT clauses
     # -------------------------------------------------------------------------
     for se in select_elements:
-        p = parser_add_result_column(p, se.sql_select_column(grammar),
-                                     grammar=grammar)
+        p = parser_add_result_column(
+            p, se.sql_select_column(grammar), grammar=grammar
+        )
         add_new_table(se.from_table())
 
     # -------------------------------------------------------------------------
@@ -495,14 +536,15 @@ def add_to_select(sql: str,
     for wc in where_conditions:
         where_expression = wc.sql(grammar)
         if bracket_where:
-            where_expression = '(' + where_expression + ')'
+            where_expression = "(" + where_expression + ")"
 
         # The tricky bit: inserting it.
         # We use the [0] to overcome the effects of defining these things
         # as a pyparsing Group(), which encapsulates the results in a list.
         if p.where_clause:
-            cond = grammar.get_expr().parseString(where_expression,
-                                                  parseAll=True)[0]
+            cond = grammar.get_expr().parseString(
+                where_expression, parseAll=True
+            )[0]
             extra = [where_type, cond]
             p.where_clause.where_expr.extend(extra)
         else:
@@ -526,13 +568,16 @@ def add_to_select(sql: str,
     for table_id in new_tables:
         p = parser_add_from_tables(
             p,
-            get_join_info(grammar=grammar,
-                          parsed=p,
-                          jointable=table_id,
-                          magic_join=magic_join,
-                          nonmagic_join_type=join_type,
-                          nonmagic_join_condition=join_condition),
-            grammar=grammar)
+            get_join_info(
+                grammar=grammar,
+                parsed=p,
+                jointable=table_id,
+                magic_join=magic_join,
+                nonmagic_join_type=join_type,
+                nonmagic_join_condition=join_condition,
+            ),
+            grammar=grammar,
+        )
 
     if debug and debug_verbose:
         log.debug("end dump:\n" + p.dump())
@@ -548,56 +593,73 @@ def add_to_select(sql: str,
 # Unit tests
 # =============================================================================
 
+
 def unit_tests() -> None:
     """
     Unit tests.
     """
     grammar = make_grammar(SqlaDialectName.MYSQL)
-    log.info(add_to_select(
-        "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
-        grammar=grammar,
-        select_elements=[SelectElement(
-            column_id=ColumnId(table="t2", column="c")
-        )],
-        magic_join=False  # magic_join requires DB knowledge hence Django
-    ))
-    log.info(add_to_select(
-        "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
-        grammar=grammar,
-        select_elements=[SelectElement(
-            column_id=ColumnId(table="t1", column="a")
-        )]
-    ))
-    log.info(add_to_select(
-        "",
-        grammar=grammar,
-        select_elements=[SelectElement(
-            column_id=ColumnId(table="t2", column="c")
-        )]
-    ))
-    log.info(add_to_select(
-        "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
-        grammar=grammar,
-        where_conditions=[WhereCondition(raw_sql="t1.col2 < 3")]
-    ))
-    log.info(add_to_select(
-        "SELECT t1.a, t1.b FROM t1",
-        grammar=grammar,
-        where_conditions=[WhereCondition(raw_sql="t1.col1 > 5")]
-    ))
-    log.info(add_to_select(
-        "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5 AND t3.col99 = 100",
-        grammar=grammar,
-        where_conditions=[WhereCondition(raw_sql="t1.col2 < 3")]
-    ))
+    log.info(
+        add_to_select(
+            "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
+            grammar=grammar,
+            select_elements=[
+                SelectElement(column_id=ColumnId(table="t2", column="c"))
+            ],
+            magic_join=False,  # magic_join requires DB knowledge hence Django
+        )
+    )
+    log.info(
+        add_to_select(
+            "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
+            grammar=grammar,
+            select_elements=[
+                SelectElement(column_id=ColumnId(table="t1", column="a"))
+            ],
+        )
+    )
+    log.info(
+        add_to_select(
+            "",
+            grammar=grammar,
+            select_elements=[
+                SelectElement(column_id=ColumnId(table="t2", column="c"))
+            ],
+        )
+    )
+    log.info(
+        add_to_select(
+            "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
+            grammar=grammar,
+            where_conditions=[WhereCondition(raw_sql="t1.col2 < 3")],
+        )
+    )
+    log.info(
+        add_to_select(
+            "SELECT t1.a, t1.b FROM t1",
+            grammar=grammar,
+            where_conditions=[WhereCondition(raw_sql="t1.col1 > 5")],
+        )
+    )
+    log.info(
+        add_to_select(
+            "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5 AND t3.col99 = 100",
+            grammar=grammar,
+            where_conditions=[WhereCondition(raw_sql="t1.col2 < 3")],
+        )
+    )
 
     # Multiple WHEREs where before there were none:
-    log.info(add_to_select(
-        "SELECT t1.a, t1.b FROM t1",
-        grammar=grammar,
-        where_conditions=[WhereCondition(raw_sql="t1.col1 > 99"),
-                          WhereCondition(raw_sql="t1.col2 < 999")]
-    ))
+    log.info(
+        add_to_select(
+            "SELECT t1.a, t1.b FROM t1",
+            grammar=grammar,
+            where_conditions=[
+                WhereCondition(raw_sql="t1.col1 > 99"),
+                WhereCondition(raw_sql="t1.col2 < 999"),
+            ],
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -37,11 +37,11 @@ from crate_anon.version import CRATE_VERSION
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 SOURCE_ROOT = os.path.abspath(os.path.join(THIS_DIR, os.pardir))
 PACKAGE_DIR = os.path.join(SOURCE_ROOT, "built_packages")
-PACKAGE = 'crate'
-DEBVERSION = f'{CRATE_VERSION}-1'
+PACKAGE = "crate"
+DEBVERSION = f"{CRATE_VERSION}-1"
 # noinspection PyUnresolvedReferences
-PACKAGEFILE = os.path.join(PACKAGE_DIR, f'{PACKAGE}_{DEBVERSION}_all.deb')
+PACKAGEFILE = os.path.join(PACKAGE_DIR, f"{PACKAGE}_{DEBVERSION}_all.deb")
 
-subprocess.check_call([os.path.join(THIS_DIR, 'make_package.py')])
-subprocess.check_call(['sudo', 'apt-get', '--yes', 'remove', PACKAGE])
-subprocess.check_call(['sudo', 'gdebi', '--non-interactive', PACKAGEFILE])
+subprocess.check_call([os.path.join(THIS_DIR, "make_package.py")])
+subprocess.check_call(["sudo", "apt-get", "--yes", "remove", PACKAGE])
+subprocess.check_call(["sudo", "gdebi", "--non-interactive", PACKAGEFILE])

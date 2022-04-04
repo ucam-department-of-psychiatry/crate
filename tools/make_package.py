@@ -82,9 +82,9 @@ LEAVE_TEMPORARY_WORKSPACE_BEHIND = False  # set to True for debugging
 # Helper functions
 # =============================================================================
 
-FG_RED = '\033[0;31m'
-BG_GREY = '\033[2;47m'
-NO_COLOUR = '\033[0m'
+FG_RED = "\033[0;31m"
+BG_GREY = "\033[2;47m"
+NO_COLOUR = "\033[0m"
 
 
 def error(msg: str) -> None:
@@ -218,26 +218,32 @@ EGG_DIR = join(SOURCE_ROOT, "crate_anon.egg-info")
 PACKAGE_DIR = join(SOURCE_ROOT, "built_packages")
 
 # Destination, as seen on the final system
-DEST_ROOT = join('/usr/share', PACKAGE_FOR_DEB)
-DEST_VIRTUALENV = join(DEST_ROOT, 'crate_virtualenv')
-DEST_CRATE_ROOT = join(DEST_VIRTUALENV,
-                       'lib', PYTHON_WITH_VER, "site-packages",
-                       PACKAGE_DIR_FROM_SOURCE_ROOT)
-DEST_DJANGO_ROOT = join(DEST_CRATE_ROOT, 'crateweb')
+DEST_ROOT = join("/usr/share", PACKAGE_FOR_DEB)
+DEST_VIRTUALENV = join(DEST_ROOT, "crate_virtualenv")
+DEST_CRATE_ROOT = join(
+    DEST_VIRTUALENV,
+    "lib",
+    PYTHON_WITH_VER,
+    "site-packages",
+    PACKAGE_DIR_FROM_SOURCE_ROOT,
+)
+DEST_DJANGO_ROOT = join(DEST_CRATE_ROOT, "crateweb")
 # Lintian dislikes files/subdirectories in: /usr/bin/X, /usr/local/X, /opt/X
 # It dislikes images in /usr/lib
-DEST_PACKAGE_CONF_DIR = join('/etc', PACKAGE_FOR_DEB)
-DEST_SUPERVISOR_CONF_DIR = '/etc/supervisor/conf.d'
-INFO_DEST_DPKG_DIR = '/var/lib/dpkg/info'  # not written to directly
-DEST_DOC_DIR = join('/usr/share/doc', PACKAGE_FOR_DEB)
-DEST_COLLECTED_STATIC_DIR = join(DEST_DJANGO_ROOT, 'static_collected')
-DEST_PYTHON_CACHE = join(DEST_ROOT, '.cache')
+DEST_PACKAGE_CONF_DIR = join("/etc", PACKAGE_FOR_DEB)
+DEST_SUPERVISOR_CONF_DIR = "/etc/supervisor/conf.d"
+INFO_DEST_DPKG_DIR = "/var/lib/dpkg/info"  # not written to directly
+DEST_DOC_DIR = join("/usr/share/doc", PACKAGE_FOR_DEB)
+DEST_COLLECTED_STATIC_DIR = join(DEST_DJANGO_ROOT, "static_collected")
+DEST_PYTHON_CACHE = join(DEST_ROOT, ".cache")
 
 # Working/Debian
 WORK_DIR = tempfile.mkdtemp()
 print("Using working directory: " + WORK_DIR)
-DEB_DIR = workpath('DEBIAN')  # where Debian package control information lives  # noqa
-DEB_OVERRIDE_DIR = workpath('/usr/share/lintian/overrides')
+DEB_DIR = workpath(
+    "DEBIAN"
+)  # where Debian package control information lives  # noqa
+DEB_OVERRIDE_DIR = workpath("/usr/share/lintian/overrides")
 
 WORK_ROOT = workpath(DEST_ROOT)
 
@@ -245,30 +251,31 @@ WORK_ROOT = workpath(DEST_ROOT)
 # Version number etc.
 # -----------------------------------------------------------------------------
 
-DEBVERSION = f'{CRATE_VERSION}-1'
-PACKAGENAME = join(
-    PACKAGE_DIR,
-    f'{PACKAGE_FOR_DEB}_{DEBVERSION}_all.deb')
-print(f"Building .deb package for {PACKAGE_FOR_DEB} version "
-      f"{CRATE_VERSION} ({CRATE_VERSION_DATE})")
-CRATE_PIPFILE = f'{PACKAGE_FOR_PYPI}-{CRATE_VERSION}.tar.gz'
+DEBVERSION = f"{CRATE_VERSION}-1"
+PACKAGENAME = join(PACKAGE_DIR, f"{PACKAGE_FOR_DEB}_{DEBVERSION}_all.deb")
+print(
+    f"Building .deb package for {PACKAGE_FOR_DEB} version "
+    f"{CRATE_VERSION} ({CRATE_VERSION_DATE})"
+)
+CRATE_PIPFILE = f"{PACKAGE_FOR_PYPI}-{CRATE_VERSION}.tar.gz"
 
 # -----------------------------------------------------------------------------
 # Files
 # -----------------------------------------------------------------------------
 
-DEB_REQUIREMENTS_FILE = join(SOURCE_ROOT, 'requirements-ubuntu.txt')
+DEB_REQUIREMENTS_FILE = join(SOURCE_ROOT, "requirements-ubuntu.txt")
 SPECIMEN_SUPERVISOR_CONF_FILE = join(
-    DEST_ROOT, 'specimen_etc_supervisor_conf.d_crate.conf')
-DEST_SUPERVISOR_CONF_FILE = join(DEST_SUPERVISOR_CONF_DIR,
-                                 f'{PACKAGE_FOR_DEB}.conf')
-DEB_PACKAGE_FILE = join(PACKAGE_DIR,
-                        f'{PACKAGE_FOR_DEB}_{DEBVERSION}_all.deb')
+    DEST_ROOT, "specimen_etc_supervisor_conf.d_crate.conf"
+)
+DEST_SUPERVISOR_CONF_FILE = join(
+    DEST_SUPERVISOR_CONF_DIR, f"{PACKAGE_FOR_DEB}.conf"
+)
+DEB_PACKAGE_FILE = join(PACKAGE_DIR, f"{PACKAGE_FOR_DEB}_{DEBVERSION}_all.deb")
 LOCAL_CONFIG_BASENAME = "crateweb_local_settings.py"
 DEST_CRATEWEB_CONF_FILE = join(DEST_PACKAGE_CONF_DIR, LOCAL_CONFIG_BASENAME)
-INSTRUCTIONS = join(DEST_ROOT, 'instructions.txt')
-DEST_VENV_INSTALLER = join(DEST_ROOT, 'tools', 'install_virtualenv.py')
-DEST_WKHTMLTOPDF_INSTALLER = join(DEST_ROOT, 'tools', 'install_wkhtmltopdf.py')
+INSTRUCTIONS = join(DEST_ROOT, "instructions.txt")
+DEST_VENV_INSTALLER = join(DEST_ROOT, "tools", "install_virtualenv.py")
+DEST_WKHTMLTOPDF_INSTALLER = join(DEST_ROOT, "tools", "install_wkhtmltopdf.py")
 DEST_CRATE_PIPFILE = join(DEST_ROOT, CRATE_PIPFILE)
 
 # =============================================================================
@@ -289,16 +296,19 @@ mkdir_p(DEB_OVERRIDE_DIR)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-print("Creating preinst file. Will be installed as " +
-      join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.preinst'))
+print(
+    "Creating preinst file. Will be installed as "
+    + join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + ".preinst")
+)
 # -----------------------------------------------------------------------------
-with open(join(DEB_DIR, 'preinst'), 'w') as outfile:
+with open(join(DEB_DIR, "preinst"), "w") as outfile:
     # NB "#!/usr/bin/env bash" is refused by Lintian; it gives errors like
     # "unknown-control-interpreter" and "forbidden-postrm-interpreter".
     # On Debian, Bash is always /bin/bash.
     # See also
     # https://stackoverflow.com/questions/10376206/what-is-the-preferred-bash-shebang  # noqa
-    print(f"""#!/bin/bash
+    print(
+        f"""#!/bin/bash
 set -e  # Exit on any errors. (Lintian strongly advises this.)
 
 {BASHFUNC}
@@ -309,11 +319,15 @@ stop_supervisord
 
 echo '{PACKAGE_FOR_DEB}: preinst file finished'
 
-    """, file=outfile)
+    """,
+        file=outfile,
+    )
 
 # -----------------------------------------------------------------------------
-print("Creating postinst file. Will be installed as " +
-      join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.postinst'))
+print(
+    "Creating postinst file. Will be installed as "
+    + join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + ".postinst")
+)
 # -----------------------------------------------------------------------------
 
 if MAKE_GROUP:
@@ -325,11 +339,14 @@ else:
     MAKE_GROUP_COMMAND_2 = ""
 if MAKE_USER:
     MAKE_USER_COMMAND_1 = (
-        f"echo '=== Adding system user {CRATE_USER} in group {CRATE_GROUP}'")
+        f"echo '=== Adding system user {CRATE_USER} in group {CRATE_GROUP}'"
+    )
     # MAKE_USER_COMMAND_2 = (
     #     f"adduser --system --ingroup {CRATE_GROUP} "
     #     f"--home /home/{CRATE_USER} {CRATE_USER}")
-    MAKE_USER_COMMAND_2 = f"adduser --system --ingroup {CRATE_GROUP} {CRATE_USER}"  # noqa
+    MAKE_USER_COMMAND_2 = (
+        f"adduser --system --ingroup {CRATE_GROUP} {CRATE_USER}"  # noqa
+    )
     # MAKE_USER_COMMAND_2 = f"adduser --ingroup {CRATE_GROUP} {CRATE_USER}"
     # https://lintian.debian.org/tags/maintainer-script-should-not-use-adduser-system-without-home.html  # noqa
     # http://unix.stackexchange.com/questions/47880/how-debian-package-should-create-user-accounts  # noqa
@@ -337,9 +354,10 @@ else:
     MAKE_USER_COMMAND_1 = "# No need to add user"
     MAKE_USER_COMMAND_2 = ""
 
-with open(join(DEB_DIR, 'postinst'), 'w') as outfile:
+with open(join(DEB_DIR, "postinst"), "w") as outfile:
     # See above re Lintian and shebangs.
-    print(fr"""#!/bin/bash
+    print(
+        rf"""#!/bin/bash
 # Exit on any errors? (Lintian strongly advises this.)
 set -e
 {BASHFUNC}
@@ -403,15 +421,20 @@ echo '{PACKAGE_FOR_DEB}: postinst file finished'
 echo
 echo "Please read this file: {INSTRUCTIONS}"
 echo
-    """, file=outfile)
+    """,
+        file=outfile,
+    )
 
 # -----------------------------------------------------------------------------
-print("Creating prerm file. Will be installed as " +
-      join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.prerm'))
+print(
+    "Creating prerm file. Will be installed as "
+    + join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + ".prerm")
+)
 # -----------------------------------------------------------------------------
-with open(join(DEB_DIR, 'prerm'), 'w') as outfile:
+with open(join(DEB_DIR, "prerm"), "w") as outfile:
     # See above re Lintian and shebangs.
-    print(f"""#!/bin/bash
+    print(
+        f"""#!/bin/bash
 set -e
 {BASHFUNC}
 echo '{PACKAGE_FOR_DEB}: prerm file executing'
@@ -420,15 +443,20 @@ stop_supervisord
 rm -rf {DEST_VIRTUALENV}
 
 echo '{PACKAGE_FOR_DEB}: prerm file finished'
-    """, file=outfile)
+    """,
+        file=outfile,
+    )
 
 # -----------------------------------------------------------------------------
-print("Creating postrm file. Will be installed as " +
-      join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.postrm'))
+print(
+    "Creating postrm file. Will be installed as "
+    + join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + ".postrm")
+)
 # -----------------------------------------------------------------------------
-with open(join(DEB_DIR, 'postrm'), 'w') as outfile:
+with open(join(DEB_DIR, "postrm"), "w") as outfile:
     # See above re Lintian and shebangs.
-    print(f"""#!/bin/bash
+    print(
+        f"""#!/bin/bash
 set -e
 {BASHFUNC}
 echo '{PACKAGE_FOR_DEB}: postrm file executing'
@@ -436,16 +464,19 @@ echo '{PACKAGE_FOR_DEB}: postrm file executing'
 restart_supervisord
 
 echo '{PACKAGE_FOR_DEB}: postrm file finished'
-    """, file=outfile)
+    """,
+        file=outfile,
+    )
 
 # -----------------------------------------------------------------------------
 print("Creating control file")
 # -----------------------------------------------------------------------------
 DEPENDS_DEB = get_lines_without_comments(DEB_REQUIREMENTS_FILE)
 if MAKE_GROUP or MAKE_USER:
-    DEPENDS_DEB.append('adduser')
-with open(join(DEB_DIR, 'control'), 'w') as outfile:
-    print(f"""Package: {PACKAGE_FOR_DEB}
+    DEPENDS_DEB.append("adduser")
+with open(join(DEB_DIR, "control"), "w") as outfile:
+    print(
+        f"""Package: {PACKAGE_FOR_DEB}
 Version: {DEBVERSION}
 Section: science
 Priority: optional
@@ -459,15 +490,18 @@ Description: Clinical Records Anonymisation and Text Extraction (CRATE).
  (2) Run external natural language processing (NLP) tools over a database.
  (3) Provide a research web front end.
  (4) Manage a consent-to-contact framework that's anonymous to researchers.
-""", file=outfile)
+""",
+        file=outfile,
+    )
 
 # -----------------------------------------------------------------------------
-print("Creating conffiles file. Will be installed as " +
-      join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.conffiles'))
+print(
+    "Creating conffiles file. Will be installed as "
+    + join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + ".conffiles")
+)
 # -----------------------------------------------------------------------------
-configfiles = [DEST_CRATEWEB_CONF_FILE,
-               DEST_SUPERVISOR_CONF_FILE]
-with open(join(DEB_DIR, 'conffiles'), 'w') as outfile:
+configfiles = [DEST_CRATEWEB_CONF_FILE, DEST_SUPERVISOR_CONF_FILE]
+with open(join(DEB_DIR, "conffiles"), "w") as outfile:
     print("\n".join(configfiles), file=outfile)
 # If a configuration file is removed by the user, it won't be reinstalled:
 #   http://www.debian.org/doc/debian-policy/ap-pkg-conffiles.html
@@ -476,8 +510,9 @@ with open(join(DEB_DIR, 'conffiles'), 'w') as outfile:
 # -----------------------------------------------------------------------------
 print("Creating Lintian override file")
 # -----------------------------------------------------------------------------
-with open(join(DEB_OVERRIDE_DIR, PACKAGE_FOR_DEB), 'w') as outfile:
-    print(f"""
+with open(join(DEB_OVERRIDE_DIR, PACKAGE_FOR_DEB), "w") as outfile:
+    print(
+        f"""
 # Not an official new Debian package, so ignore this one.
 # If we did want to close a new-package ITP bug:
 # http://www.debian.org/doc/manuals/developers-reference/pkgs.html#upload-bugfix  # noqa
@@ -485,14 +520,19 @@ with open(join(DEB_OVERRIDE_DIR, PACKAGE_FOR_DEB), 'w') as outfile:
 {PACKAGE_FOR_DEB} binary: extra-license-file
 {PACKAGE_FOR_DEB} binary: embedded-javascript-library
 {PACKAGE_FOR_DEB} binary: non-standard-file-perm
-    """, file=outfile)
+    """,
+        file=outfile,
+    )
 
 # -----------------------------------------------------------------------------
-print("Creating copyright file. Will be installed as " +
-      join(DEST_DOC_DIR, 'copyright'))
+print(
+    "Creating copyright file. Will be installed as "
+    + join(DEST_DOC_DIR, "copyright")
+)
 # -----------------------------------------------------------------------------
-with open(workpath(DEST_DOC_DIR, 'copyright'), 'w') as outfile:
-    print(f"""{PACKAGE_FOR_DEB}
+with open(workpath(DEST_DOC_DIR, "copyright"), "w") as outfile:
+    print(
+        f"""{PACKAGE_FOR_DEB}
 
 CRATE
 
@@ -525,7 +565,9 @@ ADDITIONAL LIBRARY COMPONENTS
     see attribution in the source code and other license terms packaged with
     the source).
 
-    """, file=outfile)
+    """,
+        file=outfile,
+    )
 # ... reference to /usr/share/common-licenses is required by Lintian;
 # https://lintian.debian.org/tags/copyright-should-refer-to-common-license-file-for-gpl.html  # noqa
 
@@ -536,16 +578,19 @@ ADDITIONAL LIBRARY COMPONENTS
 print("Creating destination files")
 
 # -----------------------------------------------------------------------------
-print(f"Creating {DEST_SUPERVISOR_CONF_FILE} and "
-      f"{SPECIMEN_SUPERVISOR_CONF_FILE}")
+print(
+    f"Creating {DEST_SUPERVISOR_CONF_FILE} and "
+    f"{SPECIMEN_SUPERVISOR_CONF_FILE}"
+)
 # -----------------------------------------------------------------------------
 # Don't use a gunicorn_start script like this one:
 #   http://michal.karzynski.pl/blog/2013/06/09/django-nginx-gunicorn-virtualenv-supervisor/
 # ... it doesn't work (supervisord doesn't stop it properly)
 # Just use the supervisor conf file.
-with open(workpath(SPECIMEN_SUPERVISOR_CONF_FILE), 'w') as outfile:
+with open(workpath(SPECIMEN_SUPERVISOR_CONF_FILE), "w") as outfile:
     # noinspection PyPep8
-    print(f"""
+    print(
+        f"""
 
 ; IF YOU EDIT THIS FILE, run:
 ;       sudo service supervisor restart
@@ -589,13 +634,15 @@ autorestart = true
 startsecs = 10
 stopwaitsecs = 60
 
-    """, file=outfile)  # noqa:E501
+    """,  # noqa:E501
+        file=outfile,
+    )
 
 
 # -----------------------------------------------------------------------------
 print("Creating " + INSTRUCTIONS)
 # -----------------------------------------------------------------------------
-with open(workpath(INSTRUCTIONS), 'w') as outfile:
+with open(workpath(INSTRUCTIONS), "w") as outfile:
     # noinspection PyPep8
     print(
         f"""
@@ -827,7 +874,8 @@ OPTIMAL: proxy Apache through to Gunicorn
 </VirtualHost>
 
         """,  # noqa
-        file=outfile)
+        file=outfile,
+    )
 
 # http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass
 # http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypassreverse
@@ -861,11 +909,12 @@ OPTIMAL: proxy Apache through to Gunicorn
 # -----------------------------------------------------------------------------
 print("Copying Debian files")
 # -----------------------------------------------------------------------------
-shutil.copy(join(SOURCE_ROOT, 'changelog.Debian'), workpath(DEST_DOC_DIR))
-subprocess.check_call(['gzip', '-9',
-                       workpath(DEST_DOC_DIR, 'changelog.Debian')])
+shutil.copy(join(SOURCE_ROOT, "changelog.Debian"), workpath(DEST_DOC_DIR))
+subprocess.check_call(
+    ["gzip", "-9", workpath(DEST_DOC_DIR, "changelog.Debian")]
+)
 # ... must be compressed
-remove_gzip_timestamp(workpath(DEST_DOC_DIR, 'changelog.Debian.gz'))
+remove_gzip_timestamp(workpath(DEST_DOC_DIR, "changelog.Debian.gz"))
 # ... must not have timestamp
 
 # -----------------------------------------------------------------------------
@@ -875,64 +924,95 @@ print("Building Python package")
 shutil.rmtree(EGG_DIR, ignore_errors=True)
 # setup.py needs to be run from the right directory
 os.chdir(SOURCE_ROOT)
-subprocess.check_call([
-    PYTHON_WITH_VER, join(SOURCE_ROOT, 'setup.py'), 'sdist'
-])
+subprocess.check_call(
+    [PYTHON_WITH_VER, join(SOURCE_ROOT, "setup.py"), "sdist"]
+)
 
 # -----------------------------------------------------------------------------
 print("Copying package files")
 # -----------------------------------------------------------------------------
-shutil.copy(join(SOURCE_ROOT, 'dist', CRATE_PIPFILE),
-            workpath(DEST_CRATE_PIPFILE))
+shutil.copy(
+    join(SOURCE_ROOT, "dist", CRATE_PIPFILE), workpath(DEST_CRATE_PIPFILE)
+)
 remove_gzip_timestamp(workpath(DEST_CRATE_PIPFILE))
 # shutil.copy(join(SOURCE_ROOT, 'README.md'), WORK_ROOT)
-copy_tree_root(join(SOURCE_ROOT, 'tools'), join(WORK_ROOT))
-shutil.copy(join(SOURCE_ROOT, PACKAGE_DIR_FROM_SOURCE_ROOT, 'crateweb',
-                 'specimen_secret_local_settings', LOCAL_CONFIG_BASENAME),
-            workpath(DEST_CRATEWEB_CONF_FILE))
-shutil.copy(workpath(SPECIMEN_SUPERVISOR_CONF_FILE),
-            workpath(DEST_SUPERVISOR_CONF_FILE))
+copy_tree_root(join(SOURCE_ROOT, "tools"), join(WORK_ROOT))
+shutil.copy(
+    join(
+        SOURCE_ROOT,
+        PACKAGE_DIR_FROM_SOURCE_ROOT,
+        "crateweb",
+        "specimen_secret_local_settings",
+        LOCAL_CONFIG_BASENAME,
+    ),
+    workpath(DEST_CRATEWEB_CONF_FILE),
+)
+shutil.copy(
+    workpath(SPECIMEN_SUPERVISOR_CONF_FILE),
+    workpath(DEST_SUPERVISOR_CONF_FILE),
+)
 
 # =============================================================================
 print("Removing junk")
 # =============================================================================
 subprocess.check_call(
-    ['find', WORK_DIR, '-type', 'f', '-name', '*.py[co]', '-delete'])
+    ["find", WORK_DIR, "-type", "f", "-name", "*.py[co]", "-delete"]
+)
 subprocess.check_call(
-    ['find', WORK_DIR, '-type', 'd', '-name', '__pycache__', '-delete'])
+    ["find", WORK_DIR, "-type", "d", "-name", "__pycache__", "-delete"]
+)
 subprocess.check_call(
-    ['find', WORK_DIR, '-type', 'f', '-name', '.gitignore', '-delete'])
+    ["find", WORK_DIR, "-type", "f", "-name", ".gitignore", "-delete"]
+)
 
 # =============================================================================
 print("Setting ownership and permissions")
 # =============================================================================
 # Make directories executable (or all the subsequent recursions fail).
 subprocess.check_call(
-    ['find', WORK_DIR, '-type', 'd', '-exec', 'chmod', '755', '{}', ';'])
+    ["find", WORK_DIR, "-type", "d", "-exec", "chmod", "755", "{}", ";"]
+)
 # Default permissions
 subprocess.check_call(
-    ['find', WORK_DIR, '-type', 'f', '-exec', 'chmod', '644', '{}', ';'])
+    ["find", WORK_DIR, "-type", "f", "-exec", "chmod", "644", "{}", ";"]
+)
 # Executables
-subprocess.check_call([
-    "chmod",
-    "a+x",
-    # Debian (ignoring any that don't exist)
-    join(DEB_DIR, 'prerm'),
-    join(DEB_DIR, 'postrm'),
-    join(DEB_DIR, 'preinst'),
-    join(DEB_DIR, 'postinst'),
-    # Package
-    # --- all done via the "pip install ." equivalent
-])
 subprocess.check_call(
-    ['find', WORK_DIR, '-type', 'f', '-name', '*.sh',
-     '-exec', 'chmod', 'a+x', '{}', ';'])
+    [
+        "chmod",
+        "a+x",
+        # Debian (ignoring any that don't exist)
+        join(DEB_DIR, "prerm"),
+        join(DEB_DIR, "postrm"),
+        join(DEB_DIR, "preinst"),
+        join(DEB_DIR, "postinst"),
+        # Package
+        # --- all done via the "pip install ." equivalent
+    ]
+)
+subprocess.check_call(
+    [
+        "find",
+        WORK_DIR,
+        "-type",
+        "f",
+        "-name",
+        "*.sh",
+        "-exec",
+        "chmod",
+        "a+x",
+        "{}",
+        ";",
+    ]
+)
 # Secrets; requires Lintian non-standard-file-perm
-subprocess.check_call([
-    "chmod",
-    "600",
-    workpath(DEST_CRATEWEB_CONF_FILE),
-])
+subprocess.check_call(
+    [
+        "chmod",
+        "600",
+        workpath(DEST_CRATEWEB_CONF_FILE),
+    ]
+)
 
 # Ownership: everything is by default owned by root,
 # and we change that in the postinst file.
@@ -941,13 +1021,14 @@ subprocess.check_call([
 print("Building package")
 # =============================================================================
 subprocess.check_call(
-    ['fakeroot', 'dpkg-deb', '--build', WORK_DIR, PACKAGENAME])
+    ["fakeroot", "dpkg-deb", "--build", WORK_DIR, PACKAGENAME]
+)
 # ... "fakeroot" prefix makes all files installed as root:root
 
 # =============================================================================
 print("Checking with Lintian")
 # =============================================================================
-subprocess.check_call(['lintian', PACKAGENAME])
+subprocess.check_call(["lintian", PACKAGENAME])
 
 # =============================================================================
 # Clear up temporary workspace

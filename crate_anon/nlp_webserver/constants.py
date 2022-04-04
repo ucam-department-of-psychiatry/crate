@@ -35,8 +35,8 @@ PROCTYPE_GATE = "GATE"
 GATE_BASE_URL = "https://nhsta-api.slam-services.gate.ac.uk/process-document"
 NLP_WEBSERVER_CONFIG_ENVVAR = "CRATE_NLP_WEB_CONFIG"
 NLP_WEBSERVER_CELERY_APP_NAME = "crate_anon.nlp_webserver.tasks"
-SERVER_NAME = 'test_server'
-SERVER_VERSION = '0.1'
+SERVER_NAME = "test_server"
+SERVER_VERSION = "0.1"
 
 
 class NlpServerConfigKeys(object):
@@ -58,6 +58,6 @@ class NlpServerConfigKeys(object):
 
 SQLALCHEMY_COMMON_OPTIONS = {
     # https://docs.sqlalchemy.org/en/13/core/engines.html
-    'pool_recycle': 25200,  # in seconds; is 7 hours
-    'pool_pre_ping': True,
+    "pool_recycle": 25200,  # in seconds; is 7 hours
+    "pool_pre_ping": True,
 }

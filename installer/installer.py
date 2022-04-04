@@ -51,6 +51,7 @@ from prompt_toolkit.completion import PathCompleter
 from prompt_toolkit.document import Document
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import Validator, ValidationError
+
 # noinspection PyUnresolvedReferences
 from python_on_whales import docker, DockerException
 from semantic_version import Version
@@ -82,6 +83,7 @@ class HostPath:
     """
     Directories and filenames as seen from the host OS.
     """
+
     INSTALLER_DIR = os.path.dirname(os.path.realpath(__file__))
     PROJECT_ROOT = os.path.join(INSTALLER_DIR, "..")
     DOCKER_DIR = os.path.join(PROJECT_ROOT, "docker")
@@ -98,6 +100,7 @@ class DockerPath:
     """
     Directories and filenames as seen from the Docker containers.
     """
+
     BASH = "/bin/bash"
 
     ROOT_DIR = "/crate"
@@ -109,18 +112,21 @@ class DockerPath:
 
     TMP_DIR = os.path.join(ROOT_DIR, "tmp")
     ARCHIVE_TEMPLATE_CACHE_DIR = os.path.join(
-        TMP_DIR, "archive_template_cache")
+        TMP_DIR, "archive_template_cache"
+    )
     PRIVATE_FILE_STORAGE_ROOT = os.path.join(TMP_DIR, "files")
 
     VENV_DIR = os.path.join(ROOT_DIR, "venv")
-    CRATE_INSTALL_DIR = os.path.join(VENV_DIR, "lib", "python3.7",
-                                     "site-packages")
+    CRATE_INSTALL_DIR = os.path.join(
+        VENV_DIR, "lib", "python3.7", "site-packages"
+    )
 
 
 class DockerComposeServices:
     """
     Subset of services named in ``docker/dockerfiles/docker-compose.yaml``.
     """
+
     CRATE_SERVER = "crate_server"
     CRATE_WORKERS = "crate_workers"
 
@@ -129,6 +135,7 @@ class DockerEnvVar:
     """
     Environment variables governing the Docker setup.
     """
+
     PREFIX = "CRATE_DOCKER"
     PASSWORD_SUFFIX = "PASSWORD"
 
@@ -139,10 +146,14 @@ class DockerEnvVar:
     CRATEWEB_SSL_CERTIFICATE = f"{PREFIX}_CRATEWEB_SSL_CERTIFICATE"
     CRATEWEB_SSL_PRIVATE_KEY = f"{PREFIX}_CRATEWEB_SSL_PRIVATE_KEY"
     CRATEWEB_SUPERUSER_EMAIL = f"{PREFIX}_CRATEWEB_SUPERUSER_EMAIL"
-    CRATEWEB_SUPERUSER_PASSWORD = f"{PREFIX}_CRATEWEB_SUPERUSER_{PASSWORD_SUFFIX}"  # noqa
+    CRATEWEB_SUPERUSER_PASSWORD = (
+        f"{PREFIX}_CRATEWEB_SUPERUSER_{PASSWORD_SUFFIX}"  # noqa
+    )
     CRATEWEB_SUPERUSER_USERNAME = f"{PREFIX}_CRATEWEB_SUPERUSER_USERNAME"
     CRATEWEB_USE_HTTPS = f"{PREFIX}_CRATEWEB_USE_HTTPS"
-    GATE_BIOYODIE_RESOURCES_HOST_DIR = f"{PREFIX}_GATE_BIOYODIE_RESOURCES_HOST_DIR"  # noqa
+    GATE_BIOYODIE_RESOURCES_HOST_DIR = (
+        f"{PREFIX}_GATE_BIOYODIE_RESOURCES_HOST_DIR"  # noqa
+    )
     INSTALL_USER_ID = f"{PREFIX}_INSTALL_USER_ID"
 
     MYSQL_CRATE_DATABASE_NAME = f"{PREFIX}_MYSQL_CRATE_DATABASE_NAME"
@@ -155,30 +166,43 @@ class DockerEnvVar:
     RESEARCH_DATABASE_HOST = f"{PREFIX}_RESEARCH_DATABASE_HOST"
     RESEARCH_DATABASE_NAME = f"{PREFIX}_RESEARCH_DATABASE_NAME"
     RESEARCH_DATABASE_PORT = f"{PREFIX}_RESEARCH_DATABASE_PORT"
-    RESEARCH_DATABASE_ROOT_PASSWORD = f"{PREFIX}_RESEARCH_DATABASE_ROOT_{PASSWORD_SUFFIX}"  # noqa
+    RESEARCH_DATABASE_ROOT_PASSWORD = (
+        f"{PREFIX}_RESEARCH_DATABASE_ROOT_{PASSWORD_SUFFIX}"  # noqa
+    )
     RESEARCH_DATABASE_USER_NAME = f"{PREFIX}_RESEARCH_DATABASE_USER_NAME"
-    RESEARCH_DATABASE_USER_PASSWORD = f"{PREFIX}_RESEARCH_DATABASE_USER_{PASSWORD_SUFFIX}"  # noqa
+    RESEARCH_DATABASE_USER_PASSWORD = (
+        f"{PREFIX}_RESEARCH_DATABASE_USER_{PASSWORD_SUFFIX}"  # noqa
+    )
 
     SECRET_DATABASE_ENGINE = f"{PREFIX}_SECRET_DATABASE_ENGINE"
     SECRET_DATABASE_HOST = f"{PREFIX}_SECRET_DATABASE_HOST"
     SECRET_DATABASE_NAME = f"{PREFIX}_SECRET_DATABASE_NAME"
     SECRET_DATABASE_PORT = f"{PREFIX}_SECRET_DATABASE_PORT"
-    SECRET_DATABASE_ROOT_PASSWORD = f"{PREFIX}_SECRET_DATABASE_ROOT_{PASSWORD_SUFFIX}"  # noqa
+    SECRET_DATABASE_ROOT_PASSWORD = (
+        f"{PREFIX}_SECRET_DATABASE_ROOT_{PASSWORD_SUFFIX}"  # noqa
+    )
     SECRET_DATABASE_USER_NAME = f"{PREFIX}_SECRET_DATABASE_USER_NAME"
-    SECRET_DATABASE_USER_PASSWORD = f"{PREFIX}_SECRET_DATABASE_USER_{PASSWORD_SUFFIX}"  # noqa
+    SECRET_DATABASE_USER_PASSWORD = (
+        f"{PREFIX}_SECRET_DATABASE_USER_{PASSWORD_SUFFIX}"  # noqa
+    )
 
     SOURCE_DATABASE_ENGINE = f"{PREFIX}_SOURCE_DATABASE_ENGINE"
     SOURCE_DATABASE_HOST = f"{PREFIX}_SOURCE_DATABASE_HOST"
     SOURCE_DATABASE_NAME = f"{PREFIX}_SOURCE_DATABASE_NAME"
     SOURCE_DATABASE_PORT = f"{PREFIX}_SOURCE_DATABASE_PORT"
-    SOURCE_DATABASE_ROOT_PASSWORD = f"{PREFIX}_SOURCE_DATABASE_ROOT_{PASSWORD_SUFFIX}"  # noqa
+    SOURCE_DATABASE_ROOT_PASSWORD = (
+        f"{PREFIX}_SOURCE_DATABASE_ROOT_{PASSWORD_SUFFIX}"  # noqa
+    )
     SOURCE_DATABASE_USER_NAME = f"{PREFIX}_SOURCE_DATABASE_USER_NAME"
-    SOURCE_DATABASE_USER_PASSWORD = f"{PREFIX}_SOURCE_DATABASE_USER_{PASSWORD_SUFFIX}"  # noqa
+    SOURCE_DATABASE_USER_PASSWORD = (
+        f"{PREFIX}_SOURCE_DATABASE_USER_{PASSWORD_SUFFIX}"  # noqa
+    )
 
 
 # =============================================================================
 # Validators
 # =============================================================================
+
 
 class NotEmptyValidator(Validator):
     def validate(self, document: Document) -> None:
@@ -226,25 +250,36 @@ class EmailValidator(Validator):
 # Installer base class
 # =============================================================================
 
+
 class Installer:
     def __init__(self, verbose: bool = False) -> None:
         self.verbose = verbose
         self.title = "CRATE Setup"
-        self.intro_style = Style.from_dict({
-            "span": "#ffffff bg:#0000b8",
-        })
-        self.prompt_style = Style.from_dict({
-            "span": "#ffffff bg:#005eb8",
-        })
-        self.info_style = Style.from_dict({
-            "span": "#00cc00 bg:#000000",
-        })
-        self.error_style = Style.from_dict({
-            "span": "#ffffff bg:#b80000",
-        })
-        self.envvar_style = Style.from_dict({
-            "span": "#008800 bg:#000000",
-        })
+        self.intro_style = Style.from_dict(
+            {
+                "span": "#ffffff bg:#0000b8",
+            }
+        )
+        self.prompt_style = Style.from_dict(
+            {
+                "span": "#ffffff bg:#005eb8",
+            }
+        )
+        self.info_style = Style.from_dict(
+            {
+                "span": "#00cc00 bg:#000000",
+            }
+        )
+        self.error_style = Style.from_dict(
+            {
+                "span": "#ffffff bg:#b80000",
+            }
+        )
+        self.envvar_style = Style.from_dict(
+            {
+                "span": "#008800 bg:#000000",
+            }
+        )
 
     # -------------------------------------------------------------------------
     # Commands
@@ -288,8 +323,11 @@ class Installer:
         command = ["docker", "compose", "exec"]
         user_option = ["-u", "0"] if as_root else []
 
-        run(command + user_option +
-            [DockerComposeServices.CRATE_SERVER, DockerPath.BASH])
+        run(
+            command
+            + user_option
+            + [DockerComposeServices.CRATE_SERVER, DockerPath.BASH]
+        )
 
     def run_crate_command(self, crate_command: str) -> None:
         self.run_bash_command_inside_docker(
@@ -329,25 +367,29 @@ class Installer:
     def check_setup(self) -> None:
         info = docker.info()
         if info.id is None:
-            self.fail("Could not connect to Docker. Check that Docker is "
-                      "running and your user is in the 'docker' group.")
+            self.fail(
+                "Could not connect to Docker. Check that Docker is "
+                "running and your user is in the 'docker' group."
+            )
 
         try:
-            # python_on_whales doesn't support --short or --format so we do some
-            # parsing
+            # python_on_whales doesn't support --short or --format so we do
+            # some parsing
             version_string = docker.compose.version().split()[-1].lstrip("v")
         except DockerException:
             self.fail(
                 "It looks like you don't have Docker Compose installed. "
                 "Please install Docker Compose v2 or greater. See "
                 "https://github.com/docker/compose; "
-                "https://docs.docker.com/compose/cli-command/")
+                "https://docs.docker.com/compose/cli-command/"
+            )
 
         version = Version(version_string)
         if version.major < 2:
             self.fail(
                 f"The version of Docker Compose ({version}) is too old. "
-                "Please install v2 or greater.")
+                "Please install v2 or greater."
+            )
 
     def configure(self) -> None:
         try:
@@ -367,183 +409,116 @@ class Installer:
 
     def configure_user(self) -> None:
         self.setenv(
-            DockerEnvVar.INSTALL_USER_ID,
-            self.get_docker_install_user_id
+            DockerEnvVar.INSTALL_USER_ID, self.get_docker_install_user_id
         )
 
     def configure_config_files(self) -> None:
         self.setenv(
-            DockerEnvVar.CONFIG_HOST_DIR,
-            self.get_docker_config_host_dir
+            DockerEnvVar.CONFIG_HOST_DIR, self.get_docker_config_host_dir
         )
         self.setenv(
             DockerEnvVar.GATE_BIOYODIE_RESOURCES_HOST_DIR,
-            self.get_docker_gate_bioyodie_resources_host_dir
+            self.get_docker_gate_bioyodie_resources_host_dir,
         )
         self.setenv(
-            DockerEnvVar.CRATEWEB_CONFIG_FILENAME,
-            "crateweb_local_settings.py"
+            DockerEnvVar.CRATEWEB_CONFIG_FILENAME, "crateweb_local_settings.py"
         )
-        self.setenv(
-            DockerEnvVar.CRATE_ANON_CONFIG,
-            "crate_anon_config.ini"
-        )
+        self.setenv(DockerEnvVar.CRATE_ANON_CONFIG, "crate_anon_config.ini")
 
     def configure_crateweb(self) -> None:
         self.setenv(
-            DockerEnvVar.CRATEWEB_HOST_PORT,
-            self.get_docker_crateweb_host_port
+            DockerEnvVar.CRATEWEB_HOST_PORT, self.get_docker_crateweb_host_port
         )
         self.setenv(
-            DockerEnvVar.CRATEWEB_USE_HTTPS,
-            self.get_docker_crateweb_use_https
+            DockerEnvVar.CRATEWEB_USE_HTTPS, self.get_docker_crateweb_use_https
         )
         if self.use_https():
             self.setenv(
                 DockerEnvVar.CRATEWEB_SSL_CERTIFICATE,
-                self.get_docker_crateweb_ssl_certificate
+                self.get_docker_crateweb_ssl_certificate,
             )
             self.setenv(
                 DockerEnvVar.CRATEWEB_SSL_PRIVATE_KEY,
-                self.get_docker_crateweb_ssl_private_key
+                self.get_docker_crateweb_ssl_private_key,
             )
 
     def configure_crate_db(self) -> None:
         self.setenv(
             DockerEnvVar.MYSQL_CRATE_ROOT_PASSWORD,
             self.get_docker_mysql_crate_root_password,
-            obscure=True
+            obscure=True,
         )
-        self.setenv(
-            DockerEnvVar.MYSQL_CRATE_DATABASE_NAME,
-            "crate_web_db"
-        )
-        self.setenv(
-            DockerEnvVar.MYSQL_CRATE_USER_NAME,
-            "crate_web_user"
-        )
+        self.setenv(DockerEnvVar.MYSQL_CRATE_DATABASE_NAME, "crate_web_db")
+        self.setenv(DockerEnvVar.MYSQL_CRATE_USER_NAME, "crate_web_user")
         self.setenv(
             DockerEnvVar.MYSQL_CRATE_USER_PASSWORD,
             self.get_docker_mysql_crate_user_password,
-            obscure=True
+            obscure=True,
         )
         self.setenv(
             DockerEnvVar.MYSQL_CRATE_HOST_PORT,
-            self.get_docker_mysql_crate_host_port
+            self.get_docker_mysql_crate_host_port,
         )
 
     def configure_research_db(self) -> None:
         # TODO: Prompt user for these?
-        self.setenv(
-            DockerEnvVar.RESEARCH_DATABASE_ENGINE,
-            "mysql"
-        )
-        self.setenv(
-            DockerEnvVar.RESEARCH_DATABASE_HOST,
-            "research_db"
-        )
-        self.setenv(
-            DockerEnvVar.RESEARCH_DATABASE_PORT,
-            "3306"
-        )
+        self.setenv(DockerEnvVar.RESEARCH_DATABASE_ENGINE, "mysql")
+        self.setenv(DockerEnvVar.RESEARCH_DATABASE_HOST, "research_db")
+        self.setenv(DockerEnvVar.RESEARCH_DATABASE_PORT, "3306")
         self.setenv(
             DockerEnvVar.RESEARCH_DATABASE_ROOT_PASSWORD,
             "research",
-            obscure=True
+            obscure=True,
         )
-        self.setenv(
-            DockerEnvVar.RESEARCH_DATABASE_NAME,
-            "research"
-        )
-        self.setenv(
-            DockerEnvVar.RESEARCH_DATABASE_USER_NAME,
-            "research"
-        )
+        self.setenv(DockerEnvVar.RESEARCH_DATABASE_NAME, "research")
+        self.setenv(DockerEnvVar.RESEARCH_DATABASE_USER_NAME, "research")
         self.setenv(
             DockerEnvVar.RESEARCH_DATABASE_USER_PASSWORD,
             "research",
-            obscure=True
+            obscure=True,
         )
 
     def configure_secret_db(self) -> None:
         # TODO: Prompt user for these?
+        self.setenv(DockerEnvVar.SECRET_DATABASE_ENGINE, "mysql")
+        self.setenv(DockerEnvVar.SECRET_DATABASE_HOST, "secret_db")
+        self.setenv(DockerEnvVar.SECRET_DATABASE_PORT, "3306")
         self.setenv(
-            DockerEnvVar.SECRET_DATABASE_ENGINE,
-            "mysql"
+            DockerEnvVar.SECRET_DATABASE_ROOT_PASSWORD, "secret", obscure=True
         )
+        self.setenv(DockerEnvVar.SECRET_DATABASE_NAME, "secret")
+        self.setenv(DockerEnvVar.SECRET_DATABASE_USER_NAME, "secret")
         self.setenv(
-            DockerEnvVar.SECRET_DATABASE_HOST,
-            "secret_db"
-        )
-        self.setenv(
-            DockerEnvVar.SECRET_DATABASE_PORT,
-            "3306"
-        )
-        self.setenv(
-            DockerEnvVar.SECRET_DATABASE_ROOT_PASSWORD,
-            "secret",
-            obscure=True
-        )
-        self.setenv(
-            DockerEnvVar.SECRET_DATABASE_NAME,
-            "secret"
-        )
-        self.setenv(
-            DockerEnvVar.SECRET_DATABASE_USER_NAME,
-            "secret"
-        )
-        self.setenv(
-            DockerEnvVar.SECRET_DATABASE_USER_PASSWORD,
-            "secret",
-            obscure=True
+            DockerEnvVar.SECRET_DATABASE_USER_PASSWORD, "secret", obscure=True
         )
 
     def configure_source_db(self) -> None:
         # TODO: Prompt user for these?
+        self.setenv(DockerEnvVar.SOURCE_DATABASE_ENGINE, "mysql")
+        self.setenv(DockerEnvVar.SOURCE_DATABASE_HOST, "source_db")
+        self.setenv(DockerEnvVar.SOURCE_DATABASE_PORT, "3306")
         self.setenv(
-            DockerEnvVar.SOURCE_DATABASE_ENGINE,
-            "mysql"
+            DockerEnvVar.SOURCE_DATABASE_ROOT_PASSWORD, "source", obscure=True
         )
+        self.setenv(DockerEnvVar.SOURCE_DATABASE_NAME, "source")
+        self.setenv(DockerEnvVar.SOURCE_DATABASE_USER_NAME, "source")
         self.setenv(
-            DockerEnvVar.SOURCE_DATABASE_HOST,
-            "source_db"
-        )
-        self.setenv(
-            DockerEnvVar.SOURCE_DATABASE_PORT,
-            "3306"
-        )
-        self.setenv(
-            DockerEnvVar.SOURCE_DATABASE_ROOT_PASSWORD,
-            "source",
-            obscure=True
-        )
-        self.setenv(
-            DockerEnvVar.SOURCE_DATABASE_NAME,
-            "source"
-        )
-        self.setenv(
-            DockerEnvVar.SOURCE_DATABASE_USER_NAME,
-            "source"
-        )
-        self.setenv(
-            DockerEnvVar.SOURCE_DATABASE_USER_PASSWORD,
-            "source",
-            obscure=True
+            DockerEnvVar.SOURCE_DATABASE_USER_PASSWORD, "source", obscure=True
         )
 
     def configure_django(self) -> None:
         self.setenv(
             DockerEnvVar.CRATEWEB_SUPERUSER_USERNAME,
-            self.get_docker_crateweb_superuser_username
+            self.get_docker_crateweb_superuser_username,
         )
         self.setenv(
             DockerEnvVar.CRATEWEB_SUPERUSER_PASSWORD,
             self.get_docker_crateweb_superuser_password,
-            obscure=True
+            obscure=True,
         )
         self.setenv(
             DockerEnvVar.CRATEWEB_SUPERUSER_EMAIL,
-            self.get_docker_crateweb_superuser_email
+            self.get_docker_crateweb_superuser_email,
         )
 
     @staticmethod
@@ -552,7 +527,8 @@ class Installer:
         Path(crate_config_dir).mkdir(parents=True, exist_ok=True)
 
         bioyodie_resources_dir = os.environ.get(
-            DockerEnvVar.GATE_BIOYODIE_RESOURCES_HOST_DIR)
+            DockerEnvVar.GATE_BIOYODIE_RESOURCES_HOST_DIR
+        )
         Path(bioyodie_resources_dir).mkdir(parents=True, exist_ok=True)
 
     def create_local_settings(self) -> None:
@@ -570,14 +546,11 @@ class Installer:
         replace_dict = {
             "archive_attachment_dir": DockerPath.ARCHIVE_ATTACHMENT_DIR,
             "archive_static_dir": DockerPath.ARCHIVE_STATIC_DIR,
-            "archive_template_cache_dir": DockerPath.ARCHIVE_TEMPLATE_CACHE_DIR,
+            "archive_template_cache_dir": DockerPath.ARCHIVE_TEMPLATE_CACHE_DIR,  # noqa: E501
             "archive_template_dir": DockerPath.ARCHIVE_TEMPLATE_DIR,
-
             "broker_url": "amqp://rabbitmq:5672",
-
             "crate_https": str(self.use_https()),
             "crate_install_dir": DockerPath.CRATE_INSTALL_DIR,
-
             "dest_db_engine": self.get_django_engine(
                 os.getenv(DockerEnvVar.RESEARCH_DATABASE_ENGINE)
             ),
@@ -591,9 +564,7 @@ class Installer:
                 DockerEnvVar.RESEARCH_DATABASE_USER_PASSWORD
             ),
             "django_site_root_absolute_url": "http://mymachine.mydomain",
-
             "force_script_name": self.get_crate_server_path(),
-
             "mysql_db": os.getenv(DockerEnvVar.MYSQL_CRATE_DATABASE_NAME),
             "mysql_host": "crate_db",
             "mysql_password": os.getenv(
@@ -601,10 +572,8 @@ class Installer:
             ),
             "mysql_port": "3306",
             "mysql_user": os.getenv(DockerEnvVar.MYSQL_CRATE_USER_NAME),
-
             "pdf_logo_abs_url": "file:///crate/cfg/crate_logo.png",
             "private_file_storage_root": DockerPath.PRIVATE_FILE_STORAGE_ROOT,
-
             "rdi1_name": "research",
             "rdi1_description": "Demo research database",
             "rdi1_database": "",
@@ -626,7 +595,6 @@ class Installer:
             "rdi1_default_date_fields": "",
             "rdi1_update_date_field": "_when_fetched_utc",
             "research_db_for_contact_lookup": "research",
-
             "secret_key": secrets.token_urlsafe(),
             "secret_db1_engine": self.get_django_engine(
                 os.getenv(DockerEnvVar.SECRET_DATABASE_ENGINE)
@@ -698,7 +666,7 @@ class Installer:
             "source_db1_ddgen_include_fields": "Note.note",
             "source_db1_ddgen_scrubsrc_patient_fields": self.format_multiline(
                 ("forename", "surname")
-            )
+            ),
         }
 
         self.search_replace_file(self.anon_config_full_path(), replace_dict)
@@ -710,10 +678,10 @@ class Installer:
         cert_dest = os.path.join(config_dir, "crate.crt")
         key_dest = os.path.join(config_dir, "crate.key")
 
-        shutil.copy(os.getenv(DockerEnvVar.CRATEWEB_SSL_CERTIFICATE),
-                    cert_dest)
-        shutil.copy(os.getenv(DockerEnvVar.CRATEWEB_SSL_PRIVATE_KEY),
-                    key_dest)
+        shutil.copy(
+            os.getenv(DockerEnvVar.CRATEWEB_SSL_CERTIFICATE), cert_dest
+        )
+        shutil.copy(os.getenv(DockerEnvVar.CRATEWEB_SSL_PRIVATE_KEY), key_dest)
 
     def create_crate_database(self) -> None:
         self.run_crate_command("crate_django_manage migrate")
@@ -736,7 +704,9 @@ class Installer:
         host = os.getenv(DockerEnvVar.SOURCE_DATABASE_HOST)
         port = os.getenv(DockerEnvVar.SOURCE_DATABASE_PORT)
         name = os.getenv(DockerEnvVar.SOURCE_DATABASE_NAME)
-        url = self.get_sqlalchemy_url(dialect, user, password, host, port, name)
+        url = self.get_sqlalchemy_url(
+            dialect, user, password, host, port, name
+        )
         self.run_crate_command(f"crate_make_demo_database {url}")
 
     def create_data_dictionary(self) -> None:
@@ -767,27 +737,29 @@ class Installer:
     def local_settings_full_path() -> str:
         return os.path.join(
             os.getenv(DockerEnvVar.CONFIG_HOST_DIR),
-            os.getenv(DockerEnvVar.CRATEWEB_CONFIG_FILENAME)
+            os.getenv(DockerEnvVar.CRATEWEB_CONFIG_FILENAME),
         )
 
     @staticmethod
     def anon_config_full_path() -> str:
         return os.path.join(
             os.getenv(DockerEnvVar.CONFIG_HOST_DIR),
-            os.getenv(DockerEnvVar.CRATE_ANON_CONFIG)
+            os.getenv(DockerEnvVar.CRATE_ANON_CONFIG),
         )
 
     @staticmethod
     def get_data_dictionary_filename() -> str:
         return "/crate/cfg/data_dictionary.tsv"
 
-    def get_sqlalchemy_url(self,
-                           dialect: str,
-                           user: str,
-                           password: str,
-                           host: str,
-                           port: str,
-                           name: str) -> str:
+    def get_sqlalchemy_url(
+        self,
+        dialect: str,
+        user: str,
+        password: str,
+        host: str,
+        port: str,
+        name: str,
+    ) -> str:
         scheme = self.get_sqlalchemy_engine(dialect)
         netloc = f"{user}:{password}@{host}:{port}"
         path = name
@@ -834,7 +806,7 @@ class Installer:
         container = docker.container.inspect("crate_crate_server")
         network_settings = container.network_settings
 
-        return network_settings.networks['crate_crateanon_network'].ip_address
+        return network_settings.networks["crate_crateanon_network"].ip_address
 
     @staticmethod
     def get_crate_server_port_from_host() -> str:
@@ -848,21 +820,23 @@ class Installer:
         return self.get_user_dir(
             "Select the host directory where CRATE will store its "
             "configuration:",
-            default=HostPath.DEFAULT_HOST_CRATE_CONFIG_DIR
+            default=HostPath.DEFAULT_HOST_CRATE_CONFIG_DIR,
         )
 
     def get_docker_gate_bioyodie_resources_host_dir(self) -> str:
         return self.get_user_dir(
             "Select the host directory where CRATE will store Bio-YODIE "
             "resources:",
-            default=HostPath.DEFAULT_HOST_BIOYODIE_DIR
+            default=HostPath.DEFAULT_HOST_BIOYODIE_DIR,
         )
 
     def get_docker_crateweb_host_port(self) -> str:
         return self.get_user_input(
-            ("Enter the port where the CRATE web app will appear on the "
-             "host:"),
-            default="8000"
+            (
+                "Enter the port where the CRATE web app will appear on the "
+                "host:"
+            ),
+            default="8000",
         )
 
     def get_docker_crateweb_use_https(self) -> str:
@@ -871,14 +845,10 @@ class Installer:
         )
 
     def get_docker_crateweb_ssl_certificate(self) -> str:
-        return self.get_user_file(
-            "Select the SSL certificate file:"
-        )
+        return self.get_user_file("Select the SSL certificate file:")
 
     def get_docker_crateweb_ssl_private_key(self) -> str:
-        return self.get_user_file(
-            "Select the SSL private key file:"
-        )
+        return self.get_user_file("Select the SSL private key file:")
 
     def get_docker_mysql_crate_root_password(self) -> str:
         return self.get_user_password(
@@ -894,15 +864,17 @@ class Installer:
 
     def get_docker_mysql_crate_host_port(self) -> str:
         return self.get_user_input(
-            ("Enter the port where CRATE's internal MySQL database will appear "
-             "on the host:"),
-            default="43306"
+            (
+                "Enter the port where CRATE's internal MySQL database will "
+                "appear on the host:"
+            ),
+            default="43306",
         )
 
     def get_docker_crateweb_superuser_username(self) -> str:
         return self.get_user_input(
             "Enter the user name for the CRATE web app administrator:",
-            default="admin"
+            default="admin",
         )
 
     def get_docker_crateweb_superuser_password(self) -> str:
@@ -937,22 +909,23 @@ class Installer:
 
     def get_user_file(self, text: str) -> str:
         completer = PathCompleter(only_directories=False, expanduser=True)
-        file = self.prompt(text, completer=completer,
-                           complete_while_typing=True,
-                           validator=FileValidator())
+        file = self.prompt(
+            text,
+            completer=completer,
+            complete_while_typing=True,
+            validator=FileValidator(),
+        )
 
         return os.path.expanduser(file)
 
     def get_user_password(self, text: str) -> str:
         first = self.prompt(
-            text,
-            is_password=True,
-            validator=NotEmptyValidator()
+            text, is_password=True, validator=NotEmptyValidator()
         )
         self.prompt(
             "Enter the same password again:",
             is_password=True,
-            validator=PasswordMatchValidator(first)
+            validator=PasswordMatchValidator(first),
         )
         return first
 
@@ -974,17 +947,23 @@ class Installer:
         """
         Shows a prompt and returns user input.
         """
-        return prompt(HTML(f"\n<span>{text}</span> "),
-                      *args, **kwargs, style=self.prompt_style)
+        return prompt(
+            HTML(f"\n<span>{text}</span> "),
+            *args,
+            **kwargs,
+            style=self.prompt_style,
+        )
 
     # -------------------------------------------------------------------------
     # Generic environment variable handling
     # -------------------------------------------------------------------------
 
-    def setenv(self,
-               name: str,
-               value: Union[str, Callable[[], str]],
-               obscure: bool = False) -> None:
+    def setenv(
+        self,
+        name: str,
+        value: Union[str, Callable[[], str]],
+        obscure: bool = False,
+    ) -> None:
         """
         Set an environment variable if it is not already set.
         Reports the final value (pre-existing or new) if we are being verbose.
@@ -997,8 +976,9 @@ class Installer:
         self.envvar_info(f"{name}={value_shown}")
 
     @staticmethod
-    def _write_envvars_to_file(f: TextIO,
-                               include_passwords: bool = False) -> None:
+    def _write_envvars_to_file(
+        f: TextIO, include_passwords: bool = False
+    ) -> None:
         """
         We typically avoid saving passwords. Note that some of the config files
         do contain passwords.
@@ -1006,13 +986,15 @@ class Installer:
         for key, value in os.environ.items():
             if not key.startswith(DockerEnvVar.PREFIX):
                 continue
-            if (not include_passwords
-                    and key.endswith(DockerEnvVar.PASSWORD_SUFFIX)):
+            if not include_passwords and key.endswith(
+                DockerEnvVar.PASSWORD_SUFFIX
+            ):
                 continue
             f.write(f"export {key}={value}\n")
 
-    def write_environment_variables(self,
-                                    permit_cfg_dir_save: bool = True) -> None:
+    def write_environment_variables(
+        self, permit_cfg_dir_save: bool = True
+    ) -> None:
         config_dir = os.environ.get(DockerEnvVar.CONFIG_HOST_DIR)
         if config_dir and permit_cfg_dir_save:
             filename = os.path.join(config_dir, HostPath.ENVVAR_SAVE_FILE)
@@ -1022,8 +1004,10 @@ class Installer:
             with NamedTemporaryFile(delete=False, mode="w") as f:
                 filename = f.name
                 self._write_envvars_to_file(f)
-        self.info("Settings have been saved and can be loaded with "
-                  f"'source {filename}'.")
+        self.info(
+            "Settings have been saved and can be loaded with "
+            f"'source {filename}'."
+        )
 
     # -------------------------------------------------------------------------
     # Shell handling
@@ -1032,9 +1016,11 @@ class Installer:
     @staticmethod
     def run_bash_command_inside_docker(bash_command: str) -> None:
         os.chdir(HostPath.DOCKERFILES_DIR)
-        docker.compose.run(DockerComposeServices.CRATE_WORKERS,
-                           remove=True,
-                           command=[DockerPath.BASH, "-c", bash_command])
+        docker.compose.run(
+            DockerComposeServices.CRATE_WORKERS,
+            remove=True,
+            command=[DockerPath.BASH, "-c", bash_command],
+        )
 
     # -------------------------------------------------------------------------
     # Formatting
@@ -1049,9 +1035,9 @@ class Installer:
     # Local file handling
     # -------------------------------------------------------------------------
 
-    def search_replace_file(self,
-                            filename: str,
-                            replace_dict: Dict[str, str]) -> None:
+    def search_replace_file(
+        self, filename: str, replace_dict: Dict[str, str]
+    ) -> None:
         """
         Replace placeholders marked as ``@@key@@`` with the associated value,
         in the file specified.
@@ -1074,6 +1060,7 @@ class Installer:
 # Installer specializations
 # =============================================================================
 
+
 class Wsl2Installer(Installer):
     pass
 
@@ -1082,8 +1069,10 @@ class NativeLinuxInstaller(Installer):
     def report_status(self) -> None:
         server_url = self.get_crate_server_url()
         localhost_url = self.get_crate_server_localhost_url()
-        self.info(f"The CRATE application is running at {server_url} "
-                  f"or {localhost_url}")
+        self.info(
+            f"The CRATE application is running at {server_url} "
+            f"or {localhost_url}"
+        )
 
     def get_crate_server_url(self) -> str:
         scheme = self.get_crate_server_scheme()
@@ -1110,6 +1099,7 @@ class MacOsInstaller(Installer):
 # Retrieve an appropriate installer for the host OS
 # =============================================================================
 
+
 def get_installer(verbose: bool) -> Installer:
     sys_info = uname()
 
@@ -1123,10 +1113,12 @@ def get_installer(verbose: bool) -> Installer:
         return MacOsInstaller(verbose=verbose)
 
     if sys_info.system == "Windows":
-        print("The installer cannot be run under native Windows. Please "
-              "install Windows Subsystem for Linux 2 (WSL2) and run the "
-              "installer from there. Alternatively follow the instructions "
-              "to install CRATE manually.")
+        print(
+            "The installer cannot be run under native Windows. Please "
+            "install Windows Subsystem for Linux 2 (WSL2) and run the "
+            "installer from there. Alternatively follow the instructions "
+            "to install CRATE manually."
+        )
         sys.exit(EXIT_FAILURE)
 
     print(f"Sorry, the installer can't be run under {sys_info.system}.")
@@ -1136,6 +1128,7 @@ def get_installer(verbose: bool) -> Installer:
 # =============================================================================
 # Command-line entry point
 # =============================================================================
+
 
 class Command:
     INSTALL = "install"
@@ -1152,42 +1145,40 @@ def main() -> None:
         title="commands",
         description="Valid CRATE installer commands are:",
         help="Specify one command.",
-        dest="command"
+        dest="command",
     )
     subparsers.required = True
 
     subparsers.add_parser(
-        Command.INSTALL,
-        help="Install CRATE into a Docker Compose environment"
+        Command.INSTALL, help="Install CRATE into a Docker Compose environment"
     )
 
     subparsers.add_parser(
-        Command.START,
-        help="Start the Docker Compose application"
+        Command.START, help="Start the Docker Compose application"
     )
 
     subparsers.add_parser(
-        Command.STOP,
-        help="Stop the Docker Compose application"
+        Command.STOP, help="Stop the Docker Compose application"
     )
 
     run_crate_command = subparsers.add_parser(
         Command.RUN_COMMAND,
         help=f"Run a command within the CRATE Docker environment, in the "
-             f"{DockerComposeServices.CRATE_WORKERS!r} service/container"
+        f"{DockerComposeServices.CRATE_WORKERS!r} service/container",
     )
     run_crate_command.add_argument("crate_command", type=str)
 
     shell = subparsers.add_parser(
         Command.SHELL,
         help=f"Start a shell (command prompt) within a already-running CRATE "
-             f"Docker environment, in the "
-             f"{DockerComposeServices.CRATE_SERVER!r} container"
+        f"Docker environment, in the "
+        f"{DockerComposeServices.CRATE_SERVER!r} container",
     )
     shell.add_argument(
-        "--as_root", action="store_true",
+        "--as_root",
+        action="store_true",
         help="Enter as the 'root' user instead of the 'crate' user",
-        default=False
+        default=False,
     )
 
     args = parser.parse_args()

@@ -66,15 +66,19 @@ class KeywordProcessorFixed(KeywordProcessor):
             for i in range(0, len(a_sentence)):
                 char = a_sentence[i]
                 len_char_lower = len(char.lower())
-                for j in range(0, len_char_lower):  # in most cases it will work just one iteration and will add the same char  # noqa
-                    orig_sentence.append(char if j == 0 else '')  # but if it happens that X->yz, then for z it will add ''  # noqa
+                for j in range(
+                    0, len_char_lower
+                ):  # in most cases it will work just one iteration and will add the same char  # noqa
+                    orig_sentence.append(
+                        char if j == 0 else ""
+                    )  # but if it happens that X->yz, then for z it will add ''  # noqa
         else:
             sentence = a_sentence
             orig_sentence = a_sentence
 
-        current_word = ''
+        current_word = ""
         current_dict = self.keyword_trie_dict
-        current_white_space = ''
+        current_white_space = ""
         sequence_end_pos = 0
         idx = 0
         sentence_len = len(sentence)
@@ -103,14 +107,21 @@ class KeywordProcessorFixed(KeywordProcessor):
                         while idy < sentence_len:
                             inner_char = sentence[idy]
                             current_word_continued += orig_sentence[idy]
-                            if inner_char not in self.non_word_boundaries and self._keyword in current_dict_continued:  # noqa
+                            if (
+                                inner_char not in self.non_word_boundaries
+                                and self._keyword in current_dict_continued
+                            ):  # noqa
                                 # update longest sequence found
                                 current_white_space = inner_char
-                                longest_sequence_found = current_dict_continued[self._keyword]  # noqa
+                                longest_sequence_found = (
+                                    current_dict_continued[self._keyword]
+                                )  # noqa
                                 sequence_end_pos = idy
                                 is_longer_seq_found = True
                             if inner_char in current_dict_continued:
-                                current_dict_continued = current_dict_continued[inner_char]  # noqa
+                                current_dict_continued = (
+                                    current_dict_continued[inner_char]
+                                )  # noqa
                             else:
                                 break
                             idy += 1
@@ -118,8 +129,10 @@ class KeywordProcessorFixed(KeywordProcessor):
                             # end of sentence reached.
                             if self._keyword in current_dict_continued:
                                 # update longest sequence found
-                                current_white_space = ''
-                                longest_sequence_found = current_dict_continued[self._keyword]  # noqa
+                                current_white_space = ""
+                                longest_sequence_found = (
+                                    current_dict_continued[self._keyword]
+                                )  # noqa
                                 sequence_end_pos = idy
                                 is_longer_seq_found = True
                         if is_longer_seq_found:
@@ -129,18 +142,18 @@ class KeywordProcessorFixed(KeywordProcessor):
                     if longest_sequence_found:
                         new_sentence.append(longest_sequence_found)
                         new_sentence.append(current_white_space)
-                        current_word = ''
-                        current_white_space = ''
+                        current_word = ""
+                        current_white_space = ""
                     else:
                         new_sentence.append(current_word)
-                        current_word = ''
-                        current_white_space = ''
+                        current_word = ""
+                        current_white_space = ""
                 else:
                     # we reset current_dict
                     current_dict = self.keyword_trie_dict
                     new_sentence.append(current_word)
-                    current_word = ''
-                    current_white_space = ''
+                    current_word = ""
+                    current_white_space = ""
             elif char in current_dict:
                 # we can continue from this char
                 current_dict = current_dict[char]
@@ -157,8 +170,8 @@ class KeywordProcessorFixed(KeywordProcessor):
                     idy += 1
                 idx = idy
                 new_sentence.append(current_word)
-                current_word = ''
-                current_white_space = ''
+                current_word = ""
+                current_white_space = ""
             # if we are end of sentence and have a sequence discovered
             if idx + 1 >= sentence_len:
                 if self._keyword in current_dict:

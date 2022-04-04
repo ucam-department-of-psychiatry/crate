@@ -72,12 +72,14 @@ def gen_dummy_data(n: int, n_padding_chars: int) -> Iterable[str]:
         yield padding + str(i)
 
 
-def test_hash_speed(output_filename: str,
-                    hash_method: str,
-                    key: str,
-                    ntests: int,
-                    intended_possibilities: List[int],
-                    n_padding_chars: int):
+def test_hash_speed(
+    output_filename: str,
+    hash_method: str,
+    key: str,
+    ntests: int,
+    intended_possibilities: List[int],
+    n_padding_chars: int,
+):
     """
     Hash lines from one file to another.
 
@@ -119,8 +121,10 @@ def test_hash_speed(output_filename: str,
     log.info(f"Number of hash operations: {ntests}")
     for intended in intended_possibilities:
         estimated_time_s = intended * time_taken_s / ntests
-        log.info(f"For {intended} operations (on a single CPU), "
-                 f"estimated time (s): {estimated_time_s}")
+        log.info(
+            f"For {intended} operations (on a single CPU), "
+            f"estimated time (s): {estimated_time_s}"
+        )
 
 
 def main() -> None:
@@ -130,56 +134,72 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Hash IDs in bulk, using a cryptographic hash function.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        '--outfile', type=str, default="-",
-        help="Output file; can use '-' for stdout (and pipe to /dev/null)."
+        "--outfile",
+        type=str,
+        default="-",
+        help="Output file; can use '-' for stdout (and pipe to /dev/null).",
     )
     parser.add_argument(
-        '--key', type=str,
+        "--key",
+        type=str,
         help="Key for hasher. Ordinarily this would be secret, but this is "
-             "just for testing. Default is random."
+        "just for testing. Default is random.",
     )
     parser.add_argument(
-        '--keyfile', type=str,
+        "--keyfile",
+        type=str,
         help="File whose first noncomment line contains the secret key for "
-             "the hasher. (It will be whitespace-stripped right and left.)"
+        "the hasher. (It will be whitespace-stripped right and left.)",
     )
     parser.add_argument(
-        '--method', choices=[HashMethods.HMAC_MD5,
-                             HashMethods.HMAC_SHA256,
-                             HashMethods.HMAC_SHA512],
+        "--method",
+        choices=[
+            HashMethods.HMAC_MD5,
+            HashMethods.HMAC_SHA256,
+            HashMethods.HMAC_SHA512,
+        ],
         default=HashMethods.HMAC_MD5,
-        help="Hash method"
+        help="Hash method",
     )
     parser.add_argument(
-        '--ntests', type=int, default=100000,
-        help="Number of hash tests to time for real (a small number)."
+        "--ntests",
+        type=int,
+        default=100000,
+        help="Number of hash tests to time for real (a small number).",
     )
     parser.add_argument(
-        '--padding', type=int, default=9,
+        "--padding",
+        type=int,
+        default=9,
         help="Number of padding characters (appended to a string version of "
-             "a consecutive integer covering the range of --ntests)."
+        "a consecutive integer covering the range of --ntests).",
     )
     parser.add_argument(
-        '--intended', type=int, nargs="+",
+        "--intended",
+        type=int,
+        nargs="+",
         default=[1000000000, 7300000000000, 36500000000000],
         help="Number of hash tests to calculate time for (a big number). For"
-             "example, approx. 1000000000 (1e9) for NHS number; "
-             "36500000000000 (3.65e13) for NHS number "
-             "plus DOBs covering a century; "
-             "7300000000000 (7.3e12) for NHS number "
-             "plus DOBs covering two decades."
+        "example, approx. 1000000000 (1e9) for NHS number; "
+        "36500000000000 (3.65e13) for NHS number "
+        "plus DOBs covering a century; "
+        "7300000000000 (7.3e12) for NHS number "
+        "plus DOBs covering two decades.",
     )
     parser.add_argument(
-        '--verbose', '-v', action="store_true",
-        help="Be verbose (NB will write key to stderr)"
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Be verbose (NB will write key to stderr)",
     )
 
     args = parser.parse_args()
-    main_only_quicksetup_rootlogger(logging.DEBUG if args.verbose
-                                    else logging.INFO)
+    main_only_quicksetup_rootlogger(
+        logging.DEBUG if args.verbose else logging.INFO
+    )
 
     key = generate_random_string(length=64) if args.key is None else args.key
 

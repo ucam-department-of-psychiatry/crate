@@ -147,15 +147,17 @@ OPTIONAL_POC = r"""
 
 IS = "is"
 WAS = "was"
-TENSE_INDICATOR = fr"(?: \b {IS} \b | \b {WAS} \b )"
+TENSE_INDICATOR = rf"(?: \b {IS} \b | \b {WAS} \b )"
 
 # Standardized result values
 PAST = "past"
 PRESENT = "present"
-TENSE_LOOKUP = compile_regex_dict({
-    IS: PRESENT,
-    WAS: PAST,
-})
+TENSE_LOOKUP = compile_regex_dict(
+    {
+        IS: PRESENT,
+        WAS: PAST,
+    }
+)
 
 # -----------------------------------------------------------------------------
 # Mathematical relations
@@ -169,26 +171,28 @@ GE = ">="
 GT = r"(?: > | (?:more|greater) \s+ than )"
 # OF = "\b of \b"  # as in: "a BMI of 30"... but too likely to be mistaken for a target?  # noqa
 
-RELATION = fr"(?: {LE} | {LT} | {EQ} | {GE} | {GT} )"
+RELATION = rf"(?: {LE} | {LT} | {EQ} | {GE} | {GT} )"
 # ... ORDER MATTERS: greedier things first, i.e.
 # - LE before LT
 # - GE before GT
 
-RELATION_LOOKUP = compile_regex_dict({
-    # To standardize the output, so (for example) "=" and "equals" can both
-    # map to "=".
-    LT: "<",
-    LE: "<=",
-    EQ: "=",
-    GE: ">=",
-    GT: ">",
-})
+RELATION_LOOKUP = compile_regex_dict(
+    {
+        # To standardize the output, so (for example) "=" and "equals" can both
+        # map to "=".
+        LT: "<",
+        LE: "<=",
+        EQ: "=",
+        GE: ">=",
+        GT: ">",
+    }
+)
 
 # -----------------------------------------------------------------------------
 # Punctuation
 # -----------------------------------------------------------------------------
 
-APOSTROPHE = "[\'’]"  # ASCII apostrophe; right single quote (U+2019)
+APOSTROPHE = "['’]"  # ASCII apostrophe; right single quote (U+2019)
 
 
 # =============================================================================
@@ -200,8 +204,10 @@ APOSTROPHE = "[\'’]"  # ASCII apostrophe; right single quote (U+2019)
 # Functions to handle processed data
 # =============================================================================
 
-def common_tense(tense_text: Optional[str], relation_text: Optional[str]) \
-        -> Tuple[Optional[str], Optional[str]]:
+
+def common_tense(
+    tense_text: Optional[str], relation_text: Optional[str]
+) -> Tuple[Optional[str], Optional[str]]:
     """
     Takes strings potentially representing "tense" and "equality" concepts
     and unifies them.
@@ -231,17 +237,17 @@ def common_tense(tense_text: Optional[str], relation_text: Optional[str]) \
 # Constants for generic processors
 # =============================================================================
 
-FN_VARIABLE_NAME = 'variable_name'
-FN_CONTENT = '_content'
-FN_START = '_start'
-FN_END = '_end'
-FN_VARIABLE_TEXT = 'variable_text'
-FN_RELATION_TEXT = 'relation_text'
-FN_RELATION = 'relation'
-FN_VALUE_TEXT = 'value_text'
-FN_UNITS = 'units'
-FN_TENSE_TEXT = 'tense_text'
-FN_TENSE = 'tense'
+FN_VARIABLE_NAME = "variable_name"
+FN_CONTENT = "_content"
+FN_START = "_start"
+FN_END = "_end"
+FN_VARIABLE_TEXT = "variable_text"
+FN_RELATION_TEXT = "relation_text"
+FN_RELATION = "relation"
+FN_VALUE_TEXT = "value_text"
+FN_UNITS = "units"
+FN_TENSE_TEXT = "tense_text"
+FN_TENSE = "tense"
 
 HELP_VARIABLE_NAME = "Variable name"
 HELP_CONTENT = "Matching text contents"
@@ -278,19 +284,22 @@ MAX_TENSE_LENGTH = max(len(x) for x in TENSE_LOOKUP.values())
 # NumericalResultParser
 # -----------------------------------------------------------------------------
 
+
 class NumericalResultParser(BaseNlpParser):
     """
     DO NOT USE DIRECTLY. Base class for generic numerical results, where
     a SINGLE variable is produced.
     """
 
-    def __init__(self,
-                 nlpdef: NlpDefinition,
-                 cfg_processor_name: str,
-                 variable: str,
-                 target_unit: str,
-                 regex_str_for_debugging: str,
-                 commit: bool = False) -> None:
+    def __init__(
+        self,
+        nlpdef: NlpDefinition,
+        cfg_processor_name: str,
+        variable: str,
+        target_unit: str,
+        regex_str_for_debugging: str,
+        commit: bool = False,
+    ) -> None:
         r"""
         Init function for NumericalResultParser.
 
@@ -321,7 +330,7 @@ class NumericalResultParser(BaseNlpParser):
             nlpdef=nlpdef,
             cfg_processor_name=cfg_processor_name,
             commit=commit,
-            friendly_name=variable
+            friendly_name=variable,
         )
         self.variable = variable
         self.target_unit = target_unit
@@ -332,21 +341,24 @@ class NumericalResultParser(BaseNlpParser):
             self.assume_preferred_unit = True
         else:
             self.tablename = self._cfgsection.opt_str(
-                ProcessorConfigKeys.DESTTABLE,
-                required=True)
+                ProcessorConfigKeys.DESTTABLE, required=True
+            )
             self.assume_preferred_unit = self._cfgsection.opt_bool(
-                ProcessorConfigKeys.ASSUME_PREFERRED_UNIT,
-                default=True)
+                ProcessorConfigKeys.ASSUME_PREFERRED_UNIT, default=True
+            )
 
         # Sanity checks
-        assert len(self.variable) <= MAX_SQL_FIELD_LEN, (
-            f"Variable name too long (max {MAX_SQL_FIELD_LEN} characters)")
+        assert (
+            len(self.variable) <= MAX_SQL_FIELD_LEN
+        ), f"Variable name too long (max {MAX_SQL_FIELD_LEN} characters)"
 
     def print_info(self, file: TextIO = sys.stdout) -> None:
         # docstring in superclass
         print(
             f"NLP class to find numerical results. Regular expression: "
-            f"\n\n{self.regex_str_for_debugging}", file=file)
+            f"\n\n{self.regex_str_for_debugging}",
+            file=file,
+        )
 
     def get_regex_str_for_debugging(self) -> str:
         """
@@ -362,36 +374,52 @@ class NumericalResultParser(BaseNlpParser):
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass
-        return {self.tablename: [
-            Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
-                   comment=HELP_VARIABLE_NAME),
-            Column(FN_CONTENT, Text, comment=HELP_CONTENT),
-            Column(FN_START, Integer, comment=HELP_START),
-            Column(FN_END, Integer, comment=HELP_END),
-            Column(FN_VARIABLE_TEXT, Text, comment=HELP_VARIABLE_TEXT),
-            Column(FN_RELATION_TEXT, String(MAX_RELATION_TEXT_LENGTH),
-                   comment=HELP_RELATION_TEXT),
-            Column(FN_RELATION, String(MAX_RELATION_LENGTH),
-                   comment=HELP_RELATION),
-            Column(FN_VALUE_TEXT, Text, comment=HELP_VALUE_TEXT),
-            Column(FN_UNITS, String(MAX_UNITS_LENGTH), comment=HELP_UNITS),
-            Column(self.target_unit, Float, comment=HELP_TARGET_UNIT),
-            Column(FN_TENSE_TEXT, String(MAX_TENSE_TEXT_LENGTH),
-                   comment=HELP_TENSE_TEXT),
-            Column(FN_TENSE, String(MAX_TENSE_LENGTH), comment=HELP_TENSE),
-        ]}
+        return {
+            self.tablename: [
+                Column(
+                    FN_VARIABLE_NAME,
+                    SqlTypeDbIdentifier,
+                    comment=HELP_VARIABLE_NAME,
+                ),
+                Column(FN_CONTENT, Text, comment=HELP_CONTENT),
+                Column(FN_START, Integer, comment=HELP_START),
+                Column(FN_END, Integer, comment=HELP_END),
+                Column(FN_VARIABLE_TEXT, Text, comment=HELP_VARIABLE_TEXT),
+                Column(
+                    FN_RELATION_TEXT,
+                    String(MAX_RELATION_TEXT_LENGTH),
+                    comment=HELP_RELATION_TEXT,
+                ),
+                Column(
+                    FN_RELATION,
+                    String(MAX_RELATION_LENGTH),
+                    comment=HELP_RELATION,
+                ),
+                Column(FN_VALUE_TEXT, Text, comment=HELP_VALUE_TEXT),
+                Column(FN_UNITS, String(MAX_UNITS_LENGTH), comment=HELP_UNITS),
+                Column(self.target_unit, Float, comment=HELP_TARGET_UNIT),
+                Column(
+                    FN_TENSE_TEXT,
+                    String(MAX_TENSE_TEXT_LENGTH),
+                    comment=HELP_TENSE_TEXT,
+                ),
+                Column(FN_TENSE, String(MAX_TENSE_LENGTH), comment=HELP_TENSE),
+            ]
+        }
 
     @abstractmethod
-    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
-                                            None, None]:
+    def parse(
+        self, text: str
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         # docstring in superclass
         raise NotImplementedError
 
     def test_numerical_parser(
-            self,
-            test_expected_list: List[Tuple[str, List[float]]],
-            add_test_no_plain_number: bool = True,
-            verbose: bool = False) -> None:
+        self,
+        test_expected_list: List[Tuple[str, List[float]]],
+        add_test_no_plain_number: bool = True,
+        verbose: bool = False,
+    ) -> None:
         """
         Args:
             test_expected_list:
@@ -429,8 +457,9 @@ class NumericalResultParser(BaseNlpParser):
         log.info("... OK")
 
     # noinspection PyUnusedLocal
-    def detailed_test(self, text: str, expected: List[Dict[str, Any]],
-                      verbose: bool = False) -> None:
+    def detailed_test(
+        self, text: str, expected: List[Dict[str, Any]], verbose: bool = False
+    ) -> None:
         """
         Runs a more detailed check. Whereas :func:`test_numerical_parser` tests
         the primary numerical results, this function tests other key/value
@@ -456,17 +485,21 @@ class NumericalResultParser(BaseNlpParser):
         for _, values in self.parse(text):
             if i >= len(expected):
                 raise ValueError(
-                    f"Too few expected values. Extra result is: {values!r}")
+                    f"Too few expected values. Extra result is: {values!r}"
+                )
             expected_values = expected[i]
             for key, exp_val in expected_values.items():
                 if key not in values:
-                    raise ValueError(f"Test built wrong: expected key {key!r} "
-                                     f"missing; result was {values!r}")
+                    raise ValueError(
+                        f"Test built wrong: expected key {key!r} "
+                        f"missing; result was {values!r}"
+                    )
                 if values[key] != exp_val:
                     raise ValueError(
                         f"For key {key!r}, expected {exp_val!r}, "
                         f"got {values[key]!r}; full result is {values!r}; "
-                        f"test text is {text!r}")
+                        f"test text is {text!r}"
+                    )
             i += 1
         log.info("... detailed_test: pass")
 
@@ -485,13 +518,14 @@ GROUP_NAME_VALUE = "value"
 
 
 def make_simple_numeric_regex(
-        quantity: str,
-        units: str,
-        value: str = SIGNED_FLOAT,
-        tense_indicator: str = TENSE_INDICATOR,
-        relation: str = RELATION,
-        optional_results_ignorables: str = OPTIONAL_RESULTS_IGNORABLES,
-        optional_ignorable_after_quantity: str = "") -> str:
+    quantity: str,
+    units: str,
+    value: str = SIGNED_FLOAT,
+    tense_indicator: str = TENSE_INDICATOR,
+    relation: str = RELATION,
+    optional_results_ignorables: str = OPTIONAL_RESULTS_IGNORABLES,
+    optional_ignorable_after_quantity: str = "",
+) -> str:
     r"""
     Makes a regex with named groups to handle simple numerical results.
 
@@ -563,6 +597,7 @@ def make_simple_numeric_regex(
     ... so it's fine in that multiple groups can have the same name.
 
     """
+
     def group(groupname: str, contents: str, optional: bool = False) -> str:
         opt_str = "?" if optional else ""
         return f"(?P<{groupname}> {contents} ){opt_str}"
@@ -579,7 +614,7 @@ def make_simple_numeric_regex(
     group_value_bracketed = bracketed(group_value)
     value_units_all_bracketed = bracketed(rf"{group_value} \s+ {group_units}")
 
-    return fr"""
+    return rf"""
         # - Either: quantity [tense] [relation] value [units]
         #   or:     quantity (units value)
         #   or:     quantity (units) [tense] [relation] value
@@ -640,16 +675,19 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
     only do you have a single variable to produce, but you have a single regex
     (in a standard format) that can produce it.
     """
-    def __init__(self,
-                 nlpdef: NlpDefinition,
-                 cfg_processor_name: str,
-                 regex_str: str,
-                 variable: str,
-                 target_unit: str,
-                 units_to_factor: Dict[str, float],
-                 take_absolute: bool = False,
-                 commit: bool = False,
-                 debug: bool = False) -> None:
+
+    def __init__(
+        self,
+        nlpdef: NlpDefinition,
+        cfg_processor_name: str,
+        regex_str: str,
+        variable: str,
+        target_unit: str,
+        units_to_factor: Dict[str, float],
+        take_absolute: bool = False,
+        commit: bool = False,
+        debug: bool = False,
+    ) -> None:
         """
         Args:
 
@@ -727,7 +765,7 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
             variable=variable,
             target_unit=target_unit,
             regex_str_for_debugging=regex_str,
-            commit=commit
+            commit=commit,
         )
         if debug:
             log.debug(f"Regex for {self.classname()}: {regex_str}")
@@ -735,9 +773,9 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
         self.units_to_factor = compile_regex_dict(units_to_factor)
         self.take_absolute = take_absolute
 
-    def parse(self, text: str,
-              debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
-                                                None, None]:
+    def parse(
+        self, text: str, debug: bool = False
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         # docstring in superclass
         if not text:
             return
@@ -759,7 +797,8 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
             value_in_target_units = None
             if units:
                 matched_unit, multiple_or_fn = get_regex_dict_match(
-                    units, self.units_to_factor)
+                    units, self.units_to_factor
+                )
                 if not matched_unit:
                     # None of our units match. But there is a unit, and the
                     # regex matched. So this is a BAD unit. Skip the value.
@@ -768,8 +807,9 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
                 if callable(multiple_or_fn):
                     value_in_target_units = multiple_or_fn(value_text)
                 else:
-                    value_in_target_units = (to_float(value_text) *
-                                             multiple_or_fn)
+                    value_in_target_units = (
+                        to_float(value_text) * multiple_or_fn
+                    )
             elif self.assume_preferred_unit:  # unit is None or empty
                 value_in_target_units = to_float(value_text)
 
@@ -783,7 +823,6 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
                 FN_CONTENT: matching_text,
                 FN_START: startpos,
                 FN_END: endpos,
-
                 FN_VARIABLE_TEXT: variable_text,
                 FN_RELATION_TEXT: relation_text,
                 FN_RELATION: relation,
@@ -803,6 +842,7 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
 # NumeratorOutOfDenominatorParser
 # -----------------------------------------------------------------------------
 
+
 class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
     """
     Base class for X-out-of-Y numerical results, e.g. for MMSE/ACE.
@@ -810,20 +850,23 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
     - Integer denominator, expected to be positive.
     - Otherwise similar to :class:`SimpleNumericalResultParser`.
     """
-    def __init__(self,
-                 nlpdef: NlpDefinition,
-                 cfg_processor_name: str,
-                 variable_name: str,  # e.g. "MMSE"
-                 variable_regex_str: str,  # e.g. regex for MMSE
-                 expected_denominator: int,
-                 numerator_text_fieldname: str = "numerator_text",
-                 numerator_fieldname: str = "numerator",
-                 denominator_text_fieldname: str = "denominator_text",
-                 denominator_fieldname: str = "denominator",
-                 correct_numerator_fieldname: str = None,  # default below
-                 take_absolute: bool = True,
-                 commit: bool = False,
-                 debug: bool = False) -> None:
+
+    def __init__(
+        self,
+        nlpdef: NlpDefinition,
+        cfg_processor_name: str,
+        variable_name: str,  # e.g. "MMSE"
+        variable_regex_str: str,  # e.g. regex for MMSE
+        expected_denominator: int,
+        numerator_text_fieldname: str = "numerator_text",
+        numerator_fieldname: str = "numerator",
+        denominator_text_fieldname: str = "denominator_text",
+        denominator_fieldname: str = "denominator",
+        correct_numerator_fieldname: str = None,  # default below
+        take_absolute: bool = True,
+        commit: bool = False,
+        debug: bool = False,
+    ) -> None:
         """
         This class operates with compiled regexes having this group format:
           - quantity_regex_str: e.g. to find "MMSE"
@@ -871,30 +914,28 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
 
         """
         self.variable_name = variable_name
-        assert(expected_denominator > 0)
+        assert expected_denominator > 0
         self.expected_denominator = expected_denominator
         self.numerator_text_fieldname = numerator_text_fieldname
         self.numerator_fieldname = numerator_fieldname
         self.denominator_text_fieldname = denominator_text_fieldname
         self.denominator_fieldname = denominator_fieldname
         self.correct_numerator_fieldname = (
-            correct_numerator_fieldname or
-            f"out_of_{expected_denominator}")
+            correct_numerator_fieldname or f"out_of_{expected_denominator}"
+        )
         self.take_absolute = take_absolute
 
         super().__init__(
-            nlpdef=nlpdef,
-            cfg_processor_name=cfg_processor_name,
-            commit=commit
+            nlpdef=nlpdef, cfg_processor_name=cfg_processor_name, commit=commit
         )
         if nlpdef is None:  # only None for debugging!
             self.tablename = self.classname().lower()
         else:
             self.tablename = self._cfgsection.opt_str(
-                ProcessorConfigKeys.DESTTABLE,
-                required=True)
+                ProcessorConfigKeys.DESTTABLE, required=True
+            )
 
-        regex_str = fr"""
+        regex_str = rf"""
             ( {variable_regex_str} )           # 1. group for variable (thing being measured)
             {OPTIONAL_RESULTS_IGNORABLES}
             {SCORE}?                           # optional "score" or similar
@@ -918,42 +959,65 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
         # docstring in superclass
         print(
             f"NLP class to find X-out-of-Y results. Regular expression: "
-            f"\n\n{self.regex_str}", file=file)
+            f"\n\n{self.regex_str}",
+            file=file,
+        )
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass
-        return {self.tablename: [
-            Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
-                   comment=HELP_VARIABLE_NAME),
-            Column(FN_CONTENT, Text, comment=HELP_CONTENT),
-            Column(FN_START, Integer, comment=HELP_START),
-            Column(FN_END, Integer, comment=HELP_END),
-            Column(FN_VARIABLE_TEXT, Text, comment=HELP_VARIABLE_TEXT),
-            Column(FN_RELATION_TEXT, String(MAX_RELATION_TEXT_LENGTH),
-                   comment=HELP_RELATION_TEXT),
-            Column(FN_RELATION, String(MAX_RELATION_LENGTH),
-                   comment=HELP_RELATION),
-            Column(self.numerator_text_fieldname,
-                   String(MAX_VALUE_TEXT_LENGTH),
-                   comment="Numerator, as text"),
-            Column(self.numerator_fieldname, Float,
-                   comment="Numerator"),
-            Column(self.denominator_text_fieldname,
-                   String(MAX_VALUE_TEXT_LENGTH),
-                   comment="Denominator, as text"),
-            Column(self.denominator_fieldname, Float,
-                   comment="Denominator"),
-            Column(self.correct_numerator_fieldname, Float,
-                   comment="Numerator, if denominator is as expected (units "
-                           "are correct)"),
-            Column(FN_TENSE_TEXT, String(MAX_TENSE_TEXT_LENGTH),
-                   comment=HELP_TENSE_TEXT),
-            Column(FN_TENSE, String(MAX_TENSE_LENGTH), comment=HELP_TENSE),
-        ]}
+        return {
+            self.tablename: [
+                Column(
+                    FN_VARIABLE_NAME,
+                    SqlTypeDbIdentifier,
+                    comment=HELP_VARIABLE_NAME,
+                ),
+                Column(FN_CONTENT, Text, comment=HELP_CONTENT),
+                Column(FN_START, Integer, comment=HELP_START),
+                Column(FN_END, Integer, comment=HELP_END),
+                Column(FN_VARIABLE_TEXT, Text, comment=HELP_VARIABLE_TEXT),
+                Column(
+                    FN_RELATION_TEXT,
+                    String(MAX_RELATION_TEXT_LENGTH),
+                    comment=HELP_RELATION_TEXT,
+                ),
+                Column(
+                    FN_RELATION,
+                    String(MAX_RELATION_LENGTH),
+                    comment=HELP_RELATION,
+                ),
+                Column(
+                    self.numerator_text_fieldname,
+                    String(MAX_VALUE_TEXT_LENGTH),
+                    comment="Numerator, as text",
+                ),
+                Column(self.numerator_fieldname, Float, comment="Numerator"),
+                Column(
+                    self.denominator_text_fieldname,
+                    String(MAX_VALUE_TEXT_LENGTH),
+                    comment="Denominator, as text",
+                ),
+                Column(
+                    self.denominator_fieldname, Float, comment="Denominator"
+                ),
+                Column(
+                    self.correct_numerator_fieldname,
+                    Float,
+                    comment="Numerator, if denominator is as expected (units "
+                    "are correct)",
+                ),
+                Column(
+                    FN_TENSE_TEXT,
+                    String(MAX_TENSE_TEXT_LENGTH),
+                    comment=HELP_TENSE_TEXT,
+                ),
+                Column(FN_TENSE, String(MAX_TENSE_LENGTH), comment=HELP_TENSE),
+            ]
+        }
 
-    def parse(self, text: str,
-              debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
-                                                None, None]:
+    def parse(
+        self, text: str, debug: bool = False
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         # docstring in superclass
         for m in self.compiled_regex.finditer(text):
             startpos = m.start()
@@ -992,7 +1056,6 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
                 FN_CONTENT: matching_text,
                 FN_START: startpos,
                 FN_END: endpos,
-
                 FN_VARIABLE_TEXT: variable_text,
                 FN_RELATION_TEXT: relation_text,
                 FN_RELATION: relation,
@@ -1010,11 +1073,10 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
             yield self.tablename, result
 
     def test_numerator_denominator_parser(
-            self,
-            test_expected_list: List[
-                Tuple[str, List[Tuple[float, float]]]
-            ],
-            verbose: bool = False) -> None:
+        self,
+        test_expected_list: List[Tuple[str, List[Tuple[float, float]]]],
+        verbose: bool = False,
+    ) -> None:
         """
         Test the parser.
 
@@ -1054,6 +1116,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
 # =============================================================================
 # Validator base class (for testing regex NLP classes)
 # =============================================================================
+
 
 class ValidatorBase(BaseNlpParser):
     r"""
@@ -1173,10 +1236,12 @@ class ValidatorBase(BaseNlpParser):
 
     """
 
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfg_processor_name: Optional[str],
-                 commit: bool = False) -> None:
+    def __init__(
+        self,
+        nlpdef: Optional[NlpDefinition],
+        cfg_processor_name: Optional[str],
+        commit: bool = False,
+    ) -> None:
         """
         Args:
             nlpdef:
@@ -1190,13 +1255,16 @@ class ValidatorBase(BaseNlpParser):
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        validated_variable, regex_str_list = self.get_variablename_regexstrlist()  # noqa
+        (
+            validated_variable,
+            regex_str_list,
+        ) = self.get_variablename_regexstrlist()  # noqa
         vname = f"{validated_variable}_validator"
         super().__init__(
             nlpdef=nlpdef,
             cfg_processor_name=cfg_processor_name,
             commit=commit,
-            friendly_name=vname
+            friendly_name=vname,
         )
         self.regex_str_list = regex_str_list  # for debugging only
         self.compiled_regex_list = [compile_regex(r) for r in regex_str_list]
@@ -1207,8 +1275,8 @@ class ValidatorBase(BaseNlpParser):
             self.tablename = self.classname().lower()
         else:
             self.tablename = self._cfgsection.opt_str(
-                ProcessorConfigKeys.DESTTABLE,
-                required=True)
+                ProcessorConfigKeys.DESTTABLE, required=True
+            )
 
     @classmethod
     @abstractmethod
@@ -1238,8 +1306,11 @@ class ValidatorBase(BaseNlpParser):
 
     def print_info(self, file: TextIO = sys.stdout) -> None:
         # docstring in superclass
-        print("NLP class to validate other NLP processors. Regular "
-              "expressions:\n\n", file=file)
+        print(
+            "NLP class to validate other NLP processors. Regular "
+            "expressions:\n\n",
+            file=file,
+        )
         print("\n\n".join(self.regex_str_list), file=file)
 
     def set_tablename(self, tablename: str) -> None:
@@ -1248,16 +1319,22 @@ class ValidatorBase(BaseNlpParser):
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass
-        return {self.tablename: [
-            Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
-                   comment=HELP_VARIABLE_NAME),
-            Column(FN_CONTENT, Text, comment=HELP_CONTENT),
-            Column(FN_START, Integer, comment=HELP_START),
-            Column(FN_END, Integer, comment=HELP_END),
-        ]}
+        return {
+            self.tablename: [
+                Column(
+                    FN_VARIABLE_NAME,
+                    SqlTypeDbIdentifier,
+                    comment=HELP_VARIABLE_NAME,
+                ),
+                Column(FN_CONTENT, Text, comment=HELP_CONTENT),
+                Column(FN_START, Integer, comment=HELP_START),
+                Column(FN_END, Integer, comment=HELP_END),
+            ]
+        }
 
-    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
-                                            None, None]:
+    def parse(
+        self, text: str
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         # docstring in superclass
         for compiled_regex in self.compiled_regex_list:
             for m in compiled_regex.finditer(text):
@@ -1274,8 +1351,9 @@ class ValidatorBase(BaseNlpParser):
                     FN_END: endpos,
                 }
 
-    def test_validator(self, test_expected_list: List[Tuple[str, bool]],
-                       verbose: bool = False) -> None:
+    def test_validator(
+        self, test_expected_list: List[Tuple[str, bool]], verbose: bool = False
+    ) -> None:
         """
         The 'bool' part of test_expected_list is: should it match any?
         ... noting that "match anywhere" is the "search" function, whereas
@@ -1289,8 +1367,9 @@ class ValidatorBase(BaseNlpParser):
             for i, r in enumerate(self.regex_str_list):
                 log.debug(f"... regex #{i + 1}/{n}: {r}\n")
         for test_string, expected_match in test_expected_list:
-            actual_match = any(r.search(test_string)
-                               for r in self.compiled_regex_list)
+            actual_match = any(
+                r.search(test_string) for r in self.compiled_regex_list
+            )
             assert actual_match == expected_match, (
                 "Validator {name}: Expected 'any search'={expected}, got "
                 "{actual}, when parsing {test_string}; full={full}".format(
@@ -1298,20 +1377,21 @@ class ValidatorBase(BaseNlpParser):
                     expected=expected_match,
                     actual=actual_match,
                     test_string=repr(test_string),
-                    full=list(r.search(test_string)
-                              for r in self.compiled_regex_list),
+                    full=list(
+                        r.search(test_string) for r in self.compiled_regex_list
+                    ),
                 )
             )
         log.info("... OK")
 
     def test(self, verbose: bool = False) -> None:
-        log.info(
-            f"... no tests implemented for validator {self.classname()}")
+        log.info(f"... no tests implemented for validator {self.classname()}")
 
 
 # =============================================================================
 # More general testing
 # =============================================================================
+
 
 def learning_alternative_regex_groups() -> None:
     """
@@ -1346,65 +1426,105 @@ def test_base_regexes(verbose: bool = False) -> None:
     # -------------------------------------------------------------------------
     # Operators, etc.
     # -------------------------------------------------------------------------
-    test_text_regex("MULTIPLY", MULTIPLY, [
-        ("a * b", ["*"]),
-        ("a x b", ["x"]),
-        ("a × b", ["×"]),
-        ("a ⋅ b", ["⋅"]),
-        ("a blah b", []),
-    ], verbose=verbose)
-    test_text_regex("POWER", POWER, [
-        ("a ^ b", ["^"]),
-        ("a ** b", ["**"]),
-        ("10e5", []),
-        ("10E5", []),
-        ("a blah b", []),
-    ], verbose=verbose)
-    test_text_regex("POWER_INC_E", POWER_INC_E, [
-        ("a ^ b", ["^"]),
-        ("a ** b", ["**"]),
-        ("10e5", ["e"]),
-        ("10E5", ["E"]),
-        ("a blah b", []),
-    ], verbose=verbose)
-    test_text_regex("BILLION", BILLION, [
-        ("10 x 10^9/l", ["x 10^9"]),
-    ], verbose=verbose)
-    test_text_regex("PLUS_SIGN", PLUS_SIGN, [
-        ("a + b", ["+"]),
-        ("a blah b", []),
-    ], verbose=verbose)
-    test_text_regex("MINUS_SIGN", MINUS_SIGN, [
-        # good:
-        ("a - b", ["-"]),  # ASCII hyphen-minus
-        ("a − b", ["−"]),  # Unicode minus
-        ("a – b", ["–"]),  # en dash
-        # bad:
-        ("a — b", []),  # em dash
-        ("a ‐ b", []),  # Unicode formal hyphen
-        ("a blah b", []),
-    ], verbose=verbose)
+    test_text_regex(
+        "MULTIPLY",
+        MULTIPLY,
+        [
+            ("a * b", ["*"]),
+            ("a x b", ["x"]),
+            ("a × b", ["×"]),
+            ("a ⋅ b", ["⋅"]),
+            ("a blah b", []),
+        ],
+        verbose=verbose,
+    )
+    test_text_regex(
+        "POWER",
+        POWER,
+        [
+            ("a ^ b", ["^"]),
+            ("a ** b", ["**"]),
+            ("10e5", []),
+            ("10E5", []),
+            ("a blah b", []),
+        ],
+        verbose=verbose,
+    )
+    test_text_regex(
+        "POWER_INC_E",
+        POWER_INC_E,
+        [
+            ("a ^ b", ["^"]),
+            ("a ** b", ["**"]),
+            ("10e5", ["e"]),
+            ("10E5", ["E"]),
+            ("a blah b", []),
+        ],
+        verbose=verbose,
+    )
+    test_text_regex(
+        "BILLION",
+        BILLION,
+        [
+            ("10 x 10^9/l", ["x 10^9"]),
+        ],
+        verbose=verbose,
+    )
+    test_text_regex(
+        "PLUS_SIGN",
+        PLUS_SIGN,
+        [
+            ("a + b", ["+"]),
+            ("a blah b", []),
+        ],
+        verbose=verbose,
+    )
+    test_text_regex(
+        "MINUS_SIGN",
+        MINUS_SIGN,
+        [
+            # good:
+            ("a - b", ["-"]),  # ASCII hyphen-minus
+            ("a − b", ["−"]),  # Unicode minus
+            ("a – b", ["–"]),  # en dash
+            # bad:
+            ("a — b", []),  # em dash
+            ("a ‐ b", []),  # Unicode formal hyphen
+            ("a blah b", []),
+        ],
+        verbose=verbose,
+    )
     # Can't test optional regexes very easily! They match nothing.
-    test_text_regex("SIGN", SIGN, [
-        # good:
-        ("a + b", ["+"]),
-        ("a - b", ["-"]),  # ASCII hyphen-minus
-        ("a − b", ["−"]),  # Unicode minus
-        ("a – b", ["–"]),  # en dash
-        # bad:
-        ("a — b", []),  # em dash
-        ("a ‐ b", []),  # Unicode formal hyphen
-        ("a blah b", []),
-    ], verbose=verbose)
+    test_text_regex(
+        "SIGN",
+        SIGN,
+        [
+            # good:
+            ("a + b", ["+"]),
+            ("a - b", ["-"]),  # ASCII hyphen-minus
+            ("a − b", ["−"]),  # Unicode minus
+            ("a – b", ["–"]),  # en dash
+            # bad:
+            ("a — b", []),  # em dash
+            ("a ‐ b", []),  # Unicode formal hyphen
+            ("a blah b", []),
+        ],
+        verbose=verbose,
+    )
 
     # -------------------------------------------------------------------------
     # Number elements
     # -------------------------------------------------------------------------
-    test_text_regex("PLAIN_INTEGER", PLAIN_INTEGER, [
-        ("a 1234 b", ["1234"]),
-        ("a 1234.5 b", ["1234", "5"]),
-        ("a 12,000 b", ["12", "000"]),
-    ], verbose=verbose)
+    test_text_regex(
+        "PLAIN_INTEGER",
+        PLAIN_INTEGER,
+        [
+            ("a 1234 b", ["1234"]),
+            ("a 1234.5 b", ["1234", "5"]),
+            ("a 12,000 b", ["12", "000"]),
+        ],
+        verbose=verbose,
+    )
     test_text_regex(
         "PLAIN_INTEGER_W_THOUSAND_COMMAS",
         PLAIN_INTEGER_W_THOUSAND_COMMAS,
@@ -1413,7 +1533,7 @@ def test_base_regexes(verbose: bool = False) -> None:
             ("a 1234.5 b", ["1234", "5"]),
             ("a 12,000 b", ["12,000"]),
         ],
-        verbose=verbose
+        verbose=verbose,
     )
     test_text_regex(
         "SCIENTIFIC_NOTATION_EXPONENT",
@@ -1424,98 +1544,143 @@ def test_base_regexes(verbose: bool = False) -> None:
             ("e15", ["e15"]),
             ("e15.3", ["e15"]),
         ],
-        verbose=verbose
+        verbose=verbose,
     )
 
     # -------------------------------------------------------------------------
     # Number types
     # -------------------------------------------------------------------------
 
-    test_text_regex("UNSIGNED_INTEGER", UNSIGNED_INTEGER, [
-        ("1", ["1"]),
-        ("12345", ["12345"]),
-        ("-1", ["1"]),  # will drop sign
-        ("1.2", ["1", "2"]),
-        ("-3.4", ["3", "4"]),
-        ("+3.4", ["3", "4"]),
-        ("-3.4e27.3", ["3", "4", "27", "3"]),
-        ("3.4e-27", ["3", "4", "27"]),
-        ("9,800", ["9,800"]),
-        ("17,600.34", ["17,600", "34"]),
-        ("-17,300.6588", ["17,300", "6588"]),
-    ], verbose=verbose)
-    test_text_regex("SIGNED_INTEGER", SIGNED_INTEGER, [
-        ("1", ["1"]),
-        ("12345", ["12345"]),
-        ("-1", ["-1"]),
-        ("1.2", ["1", "2"]),
-        ("-3.4", ["-3", "4"]),
-        ("+3.4", ["+3", "4"]),
-        ("-3.4e27.3", ["-3", "4", "27", "3"]),
-        ("3.4e-27", ["3", "4", "-27"]),
-        ("9,800", ["9,800"]),
-        ("17,600.34", ["17,600", "34"]),
-        ("-17,300.6588", ["-17,300", "6588"]),
-    ], verbose=verbose)
-    test_text_regex("UNSIGNED_FLOAT", UNSIGNED_FLOAT, [
-        ("1", ["1"]),
-        ("12345", ["12345"]),
-        ("-1", ["1"]),
-        ("1.2", ["1.2"]),
-        ("-3.4", ["3.4"]),
-        ("+3.4", ["+3.4"]),
-        ("-3.4e27.3", ["3.4", "27.3"]),
-        ("3.4e-27", ["3.4", "27"]),
-        ("9,800", ["9,800"]),
-        ("17,600.34", ["17,600.34"]),
-        ("-17,300.6588", ["17,300.6588"]),
-    ], verbose=verbose)
-    test_text_regex("SIGNED_FLOAT", SIGNED_FLOAT, [
-        ("1", ["1"]),
-        ("12345", ["12345"]),
-        ("-1", ["-1"]),
-        ("1.2", ["1.2"]),
-        ("-3.4", ["-3.4"]),
-        ("+3.4", ["+3.4"]),
-        ("-3.4e27.3", ["-3.4", "27.3"]),
-        ("3.4e-27", ["3.4", "-27"]),
-        ("9,800", ["9,800"]),
-        ("17,600.34", ["17,600.34"]),
-        ("-17,300.6588", ["-17,300.6588"]),
-    ], verbose=verbose)
-    test_text_regex("LIBERAL_NUMBER", LIBERAL_NUMBER, [
-        ("1", ["1"]),
-        ("12345", ["12345"]),
-        ("-1", ["-1"]),
-        ("1.2", ["1.2"]),
-        ("-3.4", ["-3.4"]),
-        ("+3.4", ["+3.4"]),
-        ("-3.4e27.3", ["-3.4e27", "3"]),  # not valid scientific notation
-        ("3.4e-27", ["3.4e-27"]),
-        ("9,800", ["9,800"]),
-        ("17,600.34", ["17,600.34"]),
-        ("-17,300.6588", ["-17,300.6588"]),
-    ], verbose=verbose)
+    test_text_regex(
+        "UNSIGNED_INTEGER",
+        UNSIGNED_INTEGER,
+        [
+            ("1", ["1"]),
+            ("12345", ["12345"]),
+            ("-1", ["1"]),  # will drop sign
+            ("1.2", ["1", "2"]),
+            ("-3.4", ["3", "4"]),
+            ("+3.4", ["3", "4"]),
+            ("-3.4e27.3", ["3", "4", "27", "3"]),
+            ("3.4e-27", ["3", "4", "27"]),
+            ("9,800", ["9,800"]),
+            ("17,600.34", ["17,600", "34"]),
+            ("-17,300.6588", ["17,300", "6588"]),
+        ],
+        verbose=verbose,
+    )
+    test_text_regex(
+        "SIGNED_INTEGER",
+        SIGNED_INTEGER,
+        [
+            ("1", ["1"]),
+            ("12345", ["12345"]),
+            ("-1", ["-1"]),
+            ("1.2", ["1", "2"]),
+            ("-3.4", ["-3", "4"]),
+            ("+3.4", ["+3", "4"]),
+            ("-3.4e27.3", ["-3", "4", "27", "3"]),
+            ("3.4e-27", ["3", "4", "-27"]),
+            ("9,800", ["9,800"]),
+            ("17,600.34", ["17,600", "34"]),
+            ("-17,300.6588", ["-17,300", "6588"]),
+        ],
+        verbose=verbose,
+    )
+    test_text_regex(
+        "UNSIGNED_FLOAT",
+        UNSIGNED_FLOAT,
+        [
+            ("1", ["1"]),
+            ("12345", ["12345"]),
+            ("-1", ["1"]),
+            ("1.2", ["1.2"]),
+            ("-3.4", ["3.4"]),
+            ("+3.4", ["+3.4"]),
+            ("-3.4e27.3", ["3.4", "27.3"]),
+            ("3.4e-27", ["3.4", "27"]),
+            ("9,800", ["9,800"]),
+            ("17,600.34", ["17,600.34"]),
+            ("-17,300.6588", ["17,300.6588"]),
+        ],
+        verbose=verbose,
+    )
+    test_text_regex(
+        "SIGNED_FLOAT",
+        SIGNED_FLOAT,
+        [
+            ("1", ["1"]),
+            ("12345", ["12345"]),
+            ("-1", ["-1"]),
+            ("1.2", ["1.2"]),
+            ("-3.4", ["-3.4"]),
+            ("+3.4", ["+3.4"]),
+            ("-3.4e27.3", ["-3.4", "27.3"]),
+            ("3.4e-27", ["3.4", "-27"]),
+            ("9,800", ["9,800"]),
+            ("17,600.34", ["17,600.34"]),
+            ("-17,300.6588", ["-17,300.6588"]),
+        ],
+        verbose=verbose,
+    )
+    test_text_regex(
+        "LIBERAL_NUMBER",
+        LIBERAL_NUMBER,
+        [
+            ("1", ["1"]),
+            ("12345", ["12345"]),
+            ("-1", ["-1"]),
+            ("1.2", ["1.2"]),
+            ("-3.4", ["-3.4"]),
+            ("+3.4", ["+3.4"]),
+            ("-3.4e27.3", ["-3.4e27", "3"]),  # not valid scientific notation
+            ("3.4e-27", ["3.4e-27"]),
+            ("9,800", ["9,800"]),
+            ("17,600.34", ["17,600.34"]),
+            ("-17,300.6588", ["-17,300.6588"]),
+        ],
+        verbose=verbose,
+    )
 
     # -------------------------------------------------------------------------
     # Units
     # -------------------------------------------------------------------------
 
-    test_text_regex("CELLS", CELLS, [
-        ("cells", ["cells"]),
-        ("blibble", []),
-    ], verbose=verbose)
-    test_text_regex("CUBIC_MM", CUBIC_MM, [
-        ("mm3", ["mm3"]),
-        ("blibble", []),
-    ], verbose=verbose)
-    test_text_regex("PER_CUBIC_MM", PER_CUBIC_MM, [
-        ("per cubic mm", ["per cubic mm"]),
-    ], verbose=verbose)
-    test_text_regex("CELLS_PER_CUBIC_MM", CELLS_PER_CUBIC_MM, [
-        ("cells/mm3", ["cells/mm3"]),
-        ("blibble", []),
-    ], verbose=verbose)
+    test_text_regex(
+        "CELLS",
+        CELLS,
+        [
+            ("cells", ["cells"]),
+            ("blibble", []),
+        ],
+        verbose=verbose,
+    )
+    test_text_regex(
+        "CUBIC_MM",
+        CUBIC_MM,
+        [
+            ("mm3", ["mm3"]),
+            ("blibble", []),
+        ],
+        verbose=verbose,
+    )
+    test_text_regex(
+        "PER_CUBIC_MM",
+        PER_CUBIC_MM,
+        [
+            ("per cubic mm", ["per cubic mm"]),
+        ],
+        verbose=verbose,
+    )
+    test_text_regex(
+        "CELLS_PER_CUBIC_MM",
+        CELLS_PER_CUBIC_MM,
+        [
+            ("cells/mm3", ["cells/mm3"]),
+            ("blibble", []),
+        ],
+        verbose=verbose,
+    )
 
     # -------------------------------------------------------------------------
     # Things to ignore
@@ -1523,57 +1688,70 @@ def test_base_regexes(verbose: bool = False) -> None:
 
     test_text_regex(
         "OPTIONAL_RESULTS_IGNORABLES",
-        OPTIONAL_RESULTS_IGNORABLES, [
-            ("(H)", ['(H)', '']),
-            (" (H) ", [' (H) ', '']),
-            (" (H) mg/L", [' (H) ', '', '', '', 'L', '']),
-            ("(HH)", ['(HH)', '']),
-            ("(L)", ['(L)', '']),
-            ("(LL)", ['(LL)', '']),
-            ("(*)", ['(*)', '']),
-            ("  |  (H)  |  ", ['  |  (H)  |  ', '']),
+        OPTIONAL_RESULTS_IGNORABLES,
+        [
+            ("(H)", ["(H)", ""]),
+            (" (H) ", [" (H) ", ""]),
+            (" (H) mg/L", [" (H) ", "", "", "", "L", ""]),
+            ("(HH)", ["(HH)", ""]),
+            ("(L)", ["(L)", ""]),
+            ("(LL)", ["(LL)", ""]),
+            ("(*)", ["(*)", ""]),
+            ("  |  (H)  |  ", ["  |  (H)  |  ", ""]),
         ],
-        verbose=verbose
+        verbose=verbose,
     )
     test_text_regex(
         "OPTIONAL_POC",
-        OPTIONAL_POC, [
+        OPTIONAL_POC,
+        [
             (", POC", [", POC", ""]),
-        ]
+        ],
     )
 
     # -------------------------------------------------------------------------
     # Tense indicators
     # -------------------------------------------------------------------------
 
-    test_text_regex("TENSE_INDICATOR", TENSE_INDICATOR, [
-        ("a is b", ["is"]),
-        ("a was b", ["was"]),
-        ("a blah b", []),
-    ], verbose=verbose)
+    test_text_regex(
+        "TENSE_INDICATOR",
+        TENSE_INDICATOR,
+        [
+            ("a is b", ["is"]),
+            ("a was b", ["was"]),
+            ("a blah b", []),
+        ],
+        verbose=verbose,
+    )
 
     # -------------------------------------------------------------------------
     # Mathematical relations
     # -------------------------------------------------------------------------
 
-    test_text_regex("RELATION", RELATION, [
-        ("a < b", ["<"]),
-        ("a less than b", ["less than"]),
-        ("a <= b", ["<="]),
-        ("a = b", ["="]),
-        ("a equals b", ["equals"]),
-        ("a equal to b", ["equal to"]),
-        ("a >= b", [">="]),
-        ("a > b", [">"]),
-        ("a more than b", ["more than"]),
-        ("a greater than b", ["greater than"]),
-        ("a blah b", []),
-    ], verbose=verbose)
+    test_text_regex(
+        "RELATION",
+        RELATION,
+        [
+            ("a < b", ["<"]),
+            ("a less than b", ["less than"]),
+            ("a <= b", ["<="]),
+            ("a = b", ["="]),
+            ("a equals b", ["equals"]),
+            ("a equal to b", ["equal to"]),
+            ("a >= b", [">="]),
+            ("a > b", [">"]),
+            ("a more than b", ["more than"]),
+            ("a greater than b", ["greater than"]),
+            ("a blah b", []),
+        ],
+        verbose=verbose,
+    )
 
 
 # =============================================================================
 # Command-line entry point
 # =============================================================================
+
 
 def test_all(verbose: bool = False) -> None:
     """

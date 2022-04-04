@@ -37,13 +37,16 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('research', '0007_sitewidequery'),
+        ("research", "0007_sitewidequery"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='query',
-            name='display',
-            field=models.TextField(default='[]', verbose_name='Subset of output columns to be displayed'),  # nopep8
+            model_name="query",
+            name="display",
+            field=models.TextField(
+                default="[]",
+                verbose_name="Subset of output columns to be displayed",
+            ),  # nopep8
         ),
     ]

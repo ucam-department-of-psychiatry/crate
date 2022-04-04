@@ -29,6 +29,7 @@ crate_anon/crateweb/research/archive_backend.py
 """
 
 import logging
+
 # from os import DirEntry, scandir
 from os.path import abspath, getmtime, isfile, join
 from typing import Any, Dict, List
@@ -58,6 +59,7 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
+
 class ArchiveContextKeys(object):
     """
     Names of objects that become part of the context in which archive templates
@@ -66,6 +68,7 @@ class ArchiveContextKeys(object):
     The case here is to avoid confusion not to indicate "constness" within
     this class.
     """
+
     CRATE_HOME_URL = "CRATE_HOME_URL"
     execute = "execute"
     get_attachment_url = "get_attachment_url"
@@ -88,36 +91,41 @@ DEFAULT_GUESS_CONTENT_TYPE = True
 # Read from settings. Better to crash early than when a user asks.
 
 _archive_attachment_dir = getattr(
-    settings, SettingsKeys.ARCHIVE_ATTACHMENT_DIR, "")
+    settings, SettingsKeys.ARCHIVE_ATTACHMENT_DIR, ""
+)
 _archive_root_template = getattr(
-    settings, SettingsKeys.ARCHIVE_ROOT_TEMPLATE, "")
-_archive_static_dir = getattr(
-    settings, SettingsKeys.ARCHIVE_STATIC_DIR, "")
+    settings, SettingsKeys.ARCHIVE_ROOT_TEMPLATE, ""
+)
+_archive_static_dir = getattr(settings, SettingsKeys.ARCHIVE_STATIC_DIR, "")
 _archive_template_cache_dir = getattr(
-    settings, SettingsKeys.ARCHIVE_TEMPLATE_CACHE_DIR, "")
+    settings, SettingsKeys.ARCHIVE_TEMPLATE_CACHE_DIR, ""
+)
 _archive_template_dir = getattr(
-    settings, SettingsKeys.ARCHIVE_TEMPLATE_DIR, "")
+    settings, SettingsKeys.ARCHIVE_TEMPLATE_DIR, ""
+)
 
-ARCHIVE_CONTEXT = getattr(
-    settings, SettingsKeys.ARCHIVE_CONTEXT, {})
+ARCHIVE_CONTEXT = getattr(settings, SettingsKeys.ARCHIVE_CONTEXT, {})
 
 CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS = getattr(
-    settings, SettingsKeys.CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS, 0)
+    settings, SettingsKeys.CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS, 0
+)
 CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES = getattr(
-    settings, SettingsKeys.CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES, 0)
+    settings, SettingsKeys.CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES, 0
+)
 CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC = getattr(
-    settings, SettingsKeys.CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC, 0)
+    settings, SettingsKeys.CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC, 0
+)
 
 # =============================================================================
 # Configuration checks
 # =============================================================================
 
 ARCHIVE_IS_CONFIGURED = bool(
-    _archive_attachment_dir and
-    _archive_root_template and
-    _archive_static_dir and
-    _archive_template_cache_dir and
-    _archive_template_dir
+    _archive_attachment_dir
+    and _archive_root_template
+    and _archive_static_dir
+    and _archive_template_cache_dir
+    and _archive_template_dir
 )
 
 
@@ -138,7 +146,8 @@ def archive_misconfigured_response() -> HttpResponse:
     if not _archive_template_dir:
         missing.append(SettingsKeys.ARCHIVE_TEMPLATE_DIR)
     return HttpResponseBadRequest(
-        f"Archive not configured. Administrator has not set: {missing!r}")
+        f"Archive not configured. Administrator has not set: {missing!r}"
+    )
 
 
 # =============================================================================
@@ -160,8 +169,10 @@ else:
 # Auditing
 # =============================================================================
 
-def audit_archive_template(request: HttpRequest,
-                           patient_id: str, query_string: str) -> None:
+
+def audit_archive_template(
+    request: HttpRequest, patient_id: str, query_string: str
+) -> None:
     """
     Audits access to a template for a patient.
 
@@ -174,14 +185,15 @@ def audit_archive_template(request: HttpRequest,
             URL query string, which will include details of the template and
             any other arguments.
     """
-    auditor = ArchiveTemplateAudit(user=request.user,
-                                   patient_id=patient_id,
-                                   query_string=query_string)
+    auditor = ArchiveTemplateAudit(
+        user=request.user, patient_id=patient_id, query_string=query_string
+    )
     auditor.save()
 
 
-def audit_archive_attachment(request: HttpRequest,
-                             patient_id: str, filename: str) -> None:
+def audit_archive_attachment(
+    request: HttpRequest, patient_id: str, filename: str
+) -> None:
     """
     Audits access to an attachment via a patient's archive view.
 
@@ -193,15 +205,16 @@ def audit_archive_attachment(request: HttpRequest,
         filename:
             filename of attachment within archive
     """
-    auditor = ArchiveAttachmentAudit(user=request.user,
-                                     patient_id=patient_id,
-                                     filename=filename)
+    auditor = ArchiveAttachmentAudit(
+        user=request.user, patient_id=patient_id, filename=filename
+    )
     auditor.save()
 
 
 # =============================================================================
 # Generic paths
 # =============================================================================
+
 
 def safe_path(directory: str, filename: str) -> str:
     """
@@ -229,6 +242,7 @@ def safe_path(directory: str, filename: str) -> str:
 # =============================================================================
 # Archive paths
 # =============================================================================
+
 
 def get_archive_template_filepath(template_name: str) -> str:
     """
@@ -268,8 +282,10 @@ def get_archive_static_filepath(filename: str) -> str:
 # Generic URL generation
 # =============================================================================
 
-def add_file_timestamp_to_url_query(filepath: str,
-                                    qparams: Dict[str, Any]) -> None:
+
+def add_file_timestamp_to_url_query(
+    filepath: str, qparams: Dict[str, Any]
+) -> None:
     """
     Adds a file's timestamp to the query parameters that will make up a URL.
 
@@ -287,7 +303,8 @@ def add_file_timestamp_to_url_query(filepath: str,
     """
     if not isfile(filepath):
         log.error(
-            f"add_file_timestamp_to_url_query: nonexistent file {filepath!r}")
+            f"add_file_timestamp_to_url_query: nonexistent file {filepath!r}"
+        )
         return
     qparams[UrlKeys.MTIME] = str(getmtime(filepath))
 
@@ -296,8 +313,10 @@ def add_file_timestamp_to_url_query(filepath: str,
 # Archive URL generation
 # =============================================================================
 
-def archive_template_url(template_name: str = "", patient_id: str = "",
-                         **kwargs) -> str:
+
+def archive_template_url(
+    template_name: str = "", patient_id: str = "", **kwargs
+) -> str:
     """
     Creates a URL to inspect part of the archive.
 
@@ -336,11 +355,12 @@ def archive_root_url() -> str:
 
 
 def archive_attachment_url(
-        filename: str,
-        patient_id: str = "",
-        content_type: str = "",
-        offered_filename: str = "",
-        guess_content_type: bool = None) -> str:
+    filename: str,
+    patient_id: str = "",
+    content_type: str = "",
+    offered_filename: str = "",
+    guess_content_type: bool = None,
+) -> str:
     """
     Returns a URL to download an archive attachment (e.g. a PDF).
 
@@ -371,7 +391,8 @@ def archive_attachment_url(
     filepath = get_archive_attachment_filepath(filename)
     add_file_timestamp_to_url_query(filepath, qparams)
     return url_with_querystring(
-        reverse(UrlNames.ARCHIVE_ATTACHMENT), **qparams)
+        reverse(UrlNames.ARCHIVE_ATTACHMENT), **qparams
+    )
 
 
 def archive_static_url(filename: str) -> str:

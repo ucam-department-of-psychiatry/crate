@@ -439,22 +439,22 @@ log = logging.getLogger(__name__)
 # Typing
 # -----------------------------------------------------------------------------
 
-SRE_SPEC_TYPE = Dict[Tuple[str, str],
-                     "SystmOneSRESpecRow"]
+SRE_SPEC_TYPE = Dict[Tuple[str, str], "SystmOneSRESpecRow"]
 # ... maps (tablename, colname) tuples to SystmOneSRESpecRow objects.
 
-TABLE_TRANSLATION_DICT_TYPE = Dict["SystmOneContext",
-                                   Dict[str, str]]
+TABLE_TRANSLATION_DICT_TYPE = Dict["SystmOneContext", Dict[str, str]]
 # ... maps a SystmOneContext to a dictionary mapping one tablename to another
 
-COLUMN_TRANSLATION_DICT_TYPE = Dict["SystmOneContext",
-                                    Dict[Tuple[str, str], str]]
+COLUMN_TRANSLATION_DICT_TYPE = Dict[
+    "SystmOneContext", Dict[Tuple[str, str], str]
+]
 # ... maps a SystmOneContext to a dictionary mapping (table, col) to newcol
 
 
 # -----------------------------------------------------------------------------
 # Helper functions for constants
 # -----------------------------------------------------------------------------
+
 
 def _flip_coldict(d: Dict[Tuple[str, str], str]) -> Dict[Tuple[str, str], str]:
     """
@@ -499,10 +499,12 @@ def terminate(x: str) -> str:
 # Contexts and table naming
 # -----------------------------------------------------------------------------
 
+
 class SystmOneContext(Enum, metaclass=CaseInsensitiveEnumMeta):
     """
     Environments in which we might have SystmOne data.
     """
+
     TPP_SRE = "TPP Strategic Reporting Extract"
     CPFT_DW = "CPFT Data Warehouse"
 
@@ -519,10 +521,12 @@ TABLE_PREFIXES = {
 # -----------------------------------------------------------------------------
 # "Core" tablename, without the SR/S1_/... prefix.
 
+
 class S1Table:
     """
     SystmOne "core" table names, with no prefix.
     """
+
     PATIENT = "Patient"  # e.g. SRPatient (SRE), S1_Patient (CPFT)
     ADDRESS_HISTORY = "PatientAddressHistory"
     CONTACT_DETAILS = "PatientContactDetails"
@@ -561,6 +565,7 @@ class CPFTTable:
     """
     Selected tables that CPFT have renamed or created.
     """
+
     ADDRESS = "PatientAddress"
     CONTACT_DETAILS = "PatientContact"
     CYP_FRS_TELEPHONE_TRIAGE = "CYPFRS_TelephoneTriage"
@@ -572,6 +577,7 @@ class CrateView:
     """
     Views created by CRATE, which do not have contextual prefixes.
     """
+
     CRATE_VIEW_PREFIX = "vw_crate_"
 
     GEOGRAPHY_VIEW = CRATE_VIEW_PREFIX + "PatientAddressWithResearchGeography"
@@ -592,14 +598,11 @@ _INCLUDE_TABLES_REGEX_S1 = (
     # Include even if --systmone_allow_unprefixed_tables is not used.
     CrateView.CRATE_VIEW_PREFIX,
 )
-_INCLUDE_TABLES_REGEX_CPFT = (
-    "vw",  # some other views
-)
+_INCLUDE_TABLES_REGEX_CPFT = ("vw",)  # some other views
 INCLUDE_TABLES_REGEX = {
     SystmOneContext.TPP_SRE: _INCLUDE_TABLES_REGEX_S1,
-    SystmOneContext.CPFT_DW:
-        _INCLUDE_TABLES_REGEX_S1 +
-        _INCLUDE_TABLES_REGEX_CPFT
+    SystmOneContext.CPFT_DW: _INCLUDE_TABLES_REGEX_S1
+    + _INCLUDE_TABLES_REGEX_CPFT,
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -609,7 +612,6 @@ INCLUDE_TABLES_REGEX = {
 _OMIT_AND_IGNORE_TABLES_S1 = (
     "NomisNumber",  # Prison NOMIS numbers
     "SafeguardingAllegationDetails",  # sensitive and no patient ID column
-
     # CPFT extras:
     "gr_workings",  # no idea
     "InpatientAvailableBeds",  # RowIdentifier very far from unique; ?no PK; no patient info  # noqa
@@ -621,21 +623,17 @@ _OMIT_AND_IGNORE_TABLES_CPFT = (
     "InpatientAvailableBeds",  # RowIdentifier very far from unique; ?no PK; no patient info  # noqa
 )
 OMIT_AND_IGNORE_TABLES = {
-    SystmOneContext.TPP_SRE:
-        _OMIT_AND_IGNORE_TABLES_S1,
-    SystmOneContext.CPFT_DW:
-        _OMIT_AND_IGNORE_TABLES_S1 + _OMIT_AND_IGNORE_TABLES_CPFT
+    SystmOneContext.TPP_SRE: _OMIT_AND_IGNORE_TABLES_S1,
+    SystmOneContext.CPFT_DW: _OMIT_AND_IGNORE_TABLES_S1
+    + _OMIT_AND_IGNORE_TABLES_CPFT,
 }
 
 _OMIT_AND_IGNORE_TABLES_REGEX_S1 = ()
 _OMIT_AND_IGNORE_TABLES_REGEX_CPFT = (
     # CPFT extras:
-
     "Accommodation_",
     # ... e.g. Accommodation_20210329, Accommodation_Wendy
-
     "AuditLog",  # may have gone now! Was there for a while. Not relevant.
-
     # KEPT: ClinicalOutcome_NHS_Staff_LongCovid.
     # This one filters for CTV3 codes Y2c49 and Y2ca. As d/w NP 2021-12-14:
     # - These are "local" codes.
@@ -646,48 +644,39 @@ _OMIT_AND_IGNORE_TABLES_REGEX_CPFT = (
     #   infection.
     # - No detail suggesting identification (and they don't indicate e.g.
     #   membership of a specific Trust, or a specific job role).
-
     "Inpatients",
     # S1_Inpatients, S1_Inpatients_20201020: current inpatients -- but these
     # tables have NHSNumber as FLOAT. Exclude them.
-
     "Mortality",  # includes S1_Mortality, S1_MortalityAdditionalInfo
     # These contain (a) age (rather than DOB) information, and (b) information
     # from multiple systems -- some risk of including RiO patients with
     # coincidentally the same ClientID as a SystmOne IDPatient, unless
     # filtered, and is derived information anyway -- for now, we'll omit.
-
     "ReferralsOpen$",
     # This CPFT table is a non-patient table (but with potentially identifiable
     # information about referral reason? -- maybe not) -- skip it.
-
     "WaitList_",  # S1_Waitlist_*
     # Waiting list tables use a confusing blend of SystmOne "IDPatient" and
     # RiO "ClientID" columns, and it's not clear they add much.
-
     "UserSmartCard",
     # Not relevant clinically.
-
     # I considered excluding "vw.*" (views) and "zzz.*" (scratch tables) here,
     # but the user has the option to exclude all such tables via
     # --systmone_allow_unprefixed_tables if they desire. Views may be useful;
     # see also INCLUDE_TABLES_REGEX above. However, "zz" or "zzz" tables in
     # CPFT are scratch tables that should not be used:
     "zz",
-
     # Some have suffixes e.g. "S1_ReferralsIn_20200917", i.e. end with an
     # underscore then 8 digits. These are temporary copies that we should not
     # use. Some have more after that date.
     r"\w+_\d{8}",
-
     # If a table has the suffix "_old", we probably don't want it!
     r"\w+_old",
 )
 OMIT_AND_IGNORE_TABLES_REGEX = {
-    SystmOneContext.TPP_SRE:
-        _OMIT_AND_IGNORE_TABLES_REGEX_S1,
-    SystmOneContext.CPFT_DW:
-        _OMIT_AND_IGNORE_TABLES_REGEX_S1 + _OMIT_AND_IGNORE_TABLES_REGEX_CPFT
+    SystmOneContext.TPP_SRE: _OMIT_AND_IGNORE_TABLES_REGEX_S1,
+    SystmOneContext.CPFT_DW: _OMIT_AND_IGNORE_TABLES_REGEX_S1
+    + _OMIT_AND_IGNORE_TABLES_REGEX_CPFT,
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -730,10 +719,12 @@ TABLES_REQUIRING_CRATE_PK_REGEX = (
 # We work internally with TPP SRE column names. Any renaming (e.g. in CPFT) is
 # explicitly noted.
 
+
 class S1GenericCol:
     """
     Columns used in many SystmOne tables.
     """
+
     CTV3_CODE = "CTV3Code"  # Read code
     CTV3_TEXT = "CTV3Text"  # ... and corresponding description
     EVENT_ID = "IDEvent"  # FK to SREvent.RowIdentifier
@@ -756,9 +747,10 @@ class S1GenericCol:
 
 
 class CPFTGenericCol:
-    """"
+    """ "
     CPFT variants for generic column names.
     """
+
     AGE_YEARS = "AgeInYears"
     # ... usually "at the time of calculation, or death", i.e. unhelpful if you
     # are unsure when the data was extracted; see stored procedure
@@ -780,6 +772,7 @@ class CrateS1ViewCol:
     """
     Additional columns added by CRATE's preprocessor
     """
+
     IS_TEST_PATIENT = "is_test_patient"
 
 
@@ -787,6 +780,7 @@ class S1PatientCol:
     """
     Columns in the Patient table.
     """
+
     PK = S1GenericCol.PK  # RowIdentifier
     NHSNUM = "NHSNumber"
     TITLE = "Title"
@@ -809,6 +803,7 @@ class CPFTPatientCol:
     """
     CPFT variants for the patient table.
     """
+
     MIDDLE_NAMES = "GivenName2"
     DOB = "DOB"
 
@@ -817,6 +812,7 @@ class S1AddressCol:
     """
     Columns in the PatientAddressHistory table.
     """
+
     ADDRESS_TYPE = "AddressType"
     CCG_OF_RESIDENCE = "CcgOfResidence"
     DATE_TO = "DateTo"
@@ -833,6 +829,7 @@ class CPFTAddressCol:
     """
     CPFT variants for the address table.
     """
+
     POSTCODE_NOSPACE = "PostCode_NoSpaces"
 
 
@@ -840,6 +837,7 @@ class S1ContactCol:
     """
     Columns in the PatientContactDetails table.
     """
+
     NUMBER = "ContactNumber"
 
 
@@ -849,6 +847,7 @@ class S1RelCol:
     (This is also one for which we specify everything in detail, since CPFT add
     in extra identifiers.)
     """
+
     RELATED_ID_DEPRECATED = "IDRelationshipWithPatient"
     # ... replaced by IDPatientRelationshipWith
     RELATED_ID = "IDPatientRelationshipWith"
@@ -898,6 +897,7 @@ class CPFTOtherCol:
     """
     Other CPFT variants.
     """
+
     REL_MOTHER_COL_NHSNUM = S1PatientCol.NHSNUM
 
 
@@ -905,6 +905,7 @@ class S1HospNumCol:
     """
     Columns in the HospitalAAndENumber table.
     """
+
     HOSPNUM = "HospitalNumber"
     COMMENTS = "Comments"
 
@@ -921,11 +922,12 @@ _S1_TO_CPFT_COLUMN_TRANSLATION = {
     # Where CPFT has renamed a column.
     # - Key: (core_tablename, colname) tuple.
     # - Value: new CPFT column name.
-    (S1Table.PATIENT,
-     S1PatientCol.MIDDLE_NAMES): CPFTPatientCol.MIDDLE_NAMES,
+    (S1Table.PATIENT, S1PatientCol.MIDDLE_NAMES): CPFTPatientCol.MIDDLE_NAMES,
     (S1Table.PATIENT, S1PatientCol.DOB): CPFTPatientCol.DOB,
-    (S1Table.RELATIONSHIPS,
-     S1RelCol.RELATED_STAFFCODE_OR_RELNHSNUM): S1PatientCol.NHSNUM,
+    (
+        S1Table.RELATIONSHIPS,
+        S1RelCol.RELATED_STAFFCODE_OR_RELNHSNUM,
+    ): S1PatientCol.NHSNUM,
 }
 CORE_TO_CONTEXT_COLUMN_TRANSLATIONS = {
     # Key: destination context.
@@ -935,16 +937,14 @@ CORE_TO_CONTEXT_COLUMN_TRANSLATIONS = {
 }  # type: COLUMN_TRANSLATION_DICT_TYPE
 CONTEXT_TO_CORE_CONTEXT_COLUMN_TRANSLATIONS = {
     SystmOneContext.TPP_SRE: {},
-    SystmOneContext.CPFT_DW: _flip_coldict(_S1_TO_CPFT_COLUMN_TRANSLATION)
+    SystmOneContext.CPFT_DW: _flip_coldict(_S1_TO_CPFT_COLUMN_TRANSLATION),
 }  # type: COLUMN_TRANSLATION_DICT_TYPE
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # PID column names
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-_PID_SYNONYMS_S1 = (
-    S1GenericCol.PATIENT_ID,
-)
+_PID_SYNONYMS_S1 = (S1GenericCol.PATIENT_ID,)
 _PID_SYNONYMS_CPFT = (
     "PatientID",  # e.g. in CPFT: S1_eDSM (a CPFT table)
     "PatID",  # e.g. in CPFT: ASCRIBE_Statin
@@ -958,12 +958,8 @@ PID_SYNONYMS = {
 # MPID column names
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-_MPID_SYNONYMS_S1 = (
-    S1PatientCol.NHSNUM,
-)
-_MPID_SYNONYMS_CPFT = (
-    CPFTGenericCol.NHSNUM2,
-)
+_MPID_SYNONYMS_S1 = (S1PatientCol.NHSNUM,)
+_MPID_SYNONYMS_CPFT = (CPFTGenericCol.NHSNUM2,)
 MPID_SYNONYMS = {
     SystmOneContext.TPP_SRE: _MPID_SYNONYMS_S1,
     SystmOneContext.CPFT_DW: _MPID_SYNONYMS_S1 + _MPID_SYNONYMS_CPFT,
@@ -1027,9 +1023,8 @@ _COLS_PATIENT_TABLE_OK_UNMODIFIED_CPFT = (
 )
 COLS_PATIENT_TABLE_OK_UNMODIFIED = {
     SystmOneContext.TPP_SRE: _COLS_PATIENT_TABLE_OK_UNMODIFIED_S1,
-    SystmOneContext.CPFT_DW:
-        _COLS_PATIENT_TABLE_OK_UNMODIFIED_S1
-        + _COLS_PATIENT_TABLE_OK_UNMODIFIED_CPFT,
+    SystmOneContext.CPFT_DW: _COLS_PATIENT_TABLE_OK_UNMODIFIED_S1
+    + _COLS_PATIENT_TABLE_OK_UNMODIFIED_CPFT,
 }
 
 _COLS_RELATIONSHIP_OK_UNMODIFIED_S1 = (
@@ -1060,9 +1055,8 @@ _COLS_RELATIONSHIP_OK_UNMODIFIED_CPFT = (
 )
 COLS_RELATIONSHIP_OK_UNMODIFIED = {
     SystmOneContext.TPP_SRE: _COLS_RELATIONSHIP_OK_UNMODIFIED_S1,
-    SystmOneContext.CPFT_DW:
-        _COLS_RELATIONSHIP_OK_UNMODIFIED_S1
-        + _COLS_RELATIONSHIP_OK_UNMODIFIED_CPFT,
+    SystmOneContext.CPFT_DW: _COLS_RELATIONSHIP_OK_UNMODIFIED_S1
+    + _COLS_RELATIONSHIP_OK_UNMODIFIED_CPFT,
 }
 
 CPFT_REL_MOTHER_OK_UNMODIFIED = ()
@@ -1079,7 +1073,6 @@ _COLS_GENERIC_EXCLUDE_S1 = (
     # using them for scrubbing) since they are duplicates (for convenience) of
     # information in other tables like Patient, PatientContactDetails,
     # PatientAddressHistory.
-
     S1PatientCol.DOB,
     S1PatientCol.EMAIL,
     S1PatientCol.FORENAME,
@@ -1087,7 +1080,6 @@ _COLS_GENERIC_EXCLUDE_S1 = (
     S1PatientCol.PREV_SURNAME,
     S1PatientCol.SURNAME,
     S1PatientCol.TITLE,  # unnecessary -- and might be rare, e.g. Lord High Admiral  # noqa
-
     S1AddressCol.BUILDING_NAME,
     S1AddressCol.BUILDING_NUMBER,
     S1AddressCol.COUNTY,
@@ -1095,7 +1087,6 @@ _COLS_GENERIC_EXCLUDE_S1 = (
     S1AddressCol.POSTCODE,
     S1AddressCol.ROAD,
     S1AddressCol.TOWN,
-
     S1RelCol.ADDRESS_COUNTY,
     S1RelCol.ADDRESS_EMAIL,
     S1RelCol.ADDRESS_FAX,
@@ -1110,12 +1101,10 @@ _COLS_GENERIC_EXCLUDE_S1 = (
     S1RelCol.ADDRESS_WORK_TELEPHONE,
     S1RelCol.DOB,
     S1RelCol.NAME,
-
     S1HospNumCol.HOSPNUM,  # just in case
 )
 _COLS_GENERIC_EXCLUDE_CPFT = (
     CPFTAddressCol.POSTCODE_NOSPACE,
-
     CPFTGenericCol.AGE_YEARS,
     # ... age when? Unhelpful. (And also, potentially leads to DOB discovery;
     # a blurred age near a birthday might be un-blurred by this.)
@@ -1127,22 +1116,23 @@ _COLS_GENERIC_EXCLUDE_CPFT = (
     CPFTGenericCol.PATIENT_ADDRESS,
     CPFTGenericCol.PATIENT_NAME,
     CPFTGenericCol.POSTCODE,
-
     CPFTPatientCol.DOB,
     CPFTPatientCol.MIDDLE_NAMES,
 )
 COLS_GENERIC_EXCLUDE = {
     SystmOneContext.TPP_SRE: _COLS_GENERIC_EXCLUDE_S1,
-    SystmOneContext.CPFT_DW:
-        _COLS_GENERIC_EXCLUDE_S1
-        + _COLS_GENERIC_EXCLUDE_CPFT,
+    SystmOneContext.CPFT_DW: _COLS_GENERIC_EXCLUDE_S1
+    + _COLS_GENERIC_EXCLUDE_CPFT,
 }
 
 OMIT_TABLENAME_COLNAME_PAIRS_S1 = (
     # Other specific fields to omit.
     ("Contacts", "ContactWith"),
     (S1Table.HOSP_AE_NUMBERS, S1HospNumCol.COMMENTS),
-    ("OohAction", "Details"),  # Out-of-hours calls; details can sometimes contain phone numbers  # noqa
+    (
+        "OohAction",
+        "Details",
+    ),  # Out-of-hours calls; details can sometimes contain phone numbers  # noqa
     ("OohThirdPartyCall", "Contact"),  # free text
     ("SafeguardingIncidentDetails", "PoliceReference"),
 )
@@ -1208,9 +1198,8 @@ _COLS_RELATIONSHIP_WORDS_CPFT = (
 )
 COLS_RELATIONSHIP_WORDS = {
     SystmOneContext.TPP_SRE: _COLS_RELATIONSHIP_WORDS_S1,
-    SystmOneContext.CPFT_DW:
-        _COLS_RELATIONSHIP_WORDS_S1
-        + _COLS_RELATIONSHIP_WORDS_CPFT,
+    SystmOneContext.CPFT_DW: _COLS_RELATIONSHIP_WORDS_S1
+    + _COLS_RELATIONSHIP_WORDS_CPFT,
 }
 
 _COLS_RELATIONSHIP_DATES_S1 = (
@@ -1223,9 +1212,8 @@ _COLS_RELATIONSHIP_DATES_CPFT = (
 )
 COLS_RELATIONSHIP_DATES = {
     SystmOneContext.TPP_SRE: _COLS_RELATIONSHIP_DATES_S1,
-    SystmOneContext.CPFT_DW:
-        _COLS_RELATIONSHIP_DATES_S1
-        + _COLS_RELATIONSHIP_WORDS_CPFT,
+    SystmOneContext.CPFT_DW: _COLS_RELATIONSHIP_DATES_S1
+    + _COLS_RELATIONSHIP_WORDS_CPFT,
 }
 
 COLS_RELATIONSHIP_PHRASES = (
@@ -1257,17 +1245,11 @@ COLS_RELATIONSHIP_NUMBERS = (
     S1RelCol.ADDRESS_FAX,
 )
 
-_COLS_TRUNCATE_DATE_S1 = (
-    S1PatientCol.DOB,
-)
-_COLS_TRUNCATE_DATE_CPFT = (
-    CPFTPatientCol.DOB,
-)
+_COLS_TRUNCATE_DATE_S1 = (S1PatientCol.DOB,)
+_COLS_TRUNCATE_DATE_CPFT = (CPFTPatientCol.DOB,)
 COLS_TRUNCATE_DATE = {
     SystmOneContext.TPP_SRE: _COLS_TRUNCATE_DATE_S1,
-    SystmOneContext.CPFT_DW:
-        _COLS_TRUNCATE_DATE_S1
-        + _COLS_TRUNCATE_DATE_CPFT,
+    SystmOneContext.CPFT_DW: _COLS_TRUNCATE_DATE_S1 + _COLS_TRUNCATE_DATE_CPFT,
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1276,17 +1258,21 @@ COLS_TRUNCATE_DATE = {
 # ... assuming they are of string type.
 
 _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
-    (terminate(S1Table.FREETEXT),
-     terminate(S1GenericCol.FREETEXT)),  # the bulk of free text; VARCHAR(MAX)
+    (
+        terminate(S1Table.FREETEXT),
+        terminate(S1GenericCol.FREETEXT),
+    ),  # the bulk of free text; VARCHAR(MAX)
     (ANYTHING, not_just_at_start(S1GenericCol.NOTES_SUFFIX)),
     ("PersonAtRisk$", "ReasonForPlan$"),  # free text re safeguarding
     # ("ReferralIn$", "PrimaryReason$"),  # only 200 chars; may be OK -- yes
-    ("SafeguardingAllegationDetails$", "Outcome$"),  # only 100 chars -- but OMIT whole table, as above  # noqa
+    (
+        "SafeguardingAllegationDetails$",
+        "Outcome$",
+    ),  # only 100 chars -- but OMIT whole table, as above  # noqa
     ("SpecialNotes$", "Note$"),  # 8000 char free text
 )
 _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # CPFT:
-
     # - SRReferralIn renamed to S1_ReferralsIn with extra columns,
     #   PrimaryReason, but there are several others, like
     #   ReferralReasonDescription1.
@@ -1299,13 +1285,14 @@ _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     #   useful data in the descriptions. So not this:
     #
     # (".*Referral", ".*Reason"),
-
     # A bunch of explicitly free-text fields:
     # - any not-otherwise-handled textual field in a table named "FreeText_..."
-    (S1Table.FREETEXT, ANYTHING),  # table name not terminated so allows anything starting with this  # noqa
+    (
+        S1Table.FREETEXT,
+        ANYTHING,
+    ),  # table name not terminated so allows anything starting with this  # noqa
     # - any field named "FreeText..." (e.g. S1_Honos_Scores.FreeText)
     (ANYTHING, S1GenericCol.FREETEXT),
-
     # - S1_CYPFRS_TelephoneTriage links in a bunch of things from S1_FreeText.
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Assessment"),
     (CPFTTable.CYP_FRS_TELEPHONE_TRIAGE, ".*Presentation"),
@@ -1321,9 +1308,8 @@ _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
 )
 FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.TPP_SRE: _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1,
-    SystmOneContext.CPFT_DW:
-        _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1
-        + _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
+    SystmOneContext.CPFT_DW: _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1
+    + _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
 _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
@@ -1344,11 +1330,11 @@ _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     (ANYTHING, "Ethnicity$"),
 )
 EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS = {
-    SystmOneContext.TPP_SRE:
-        _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_S1,
-    SystmOneContext.CPFT_DW:
+    SystmOneContext.TPP_SRE: _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_S1,  # noqa: E501
+    SystmOneContext.CPFT_DW: (
         _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_S1
-        + _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
+        + _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_CPFT
+    ),
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1382,14 +1368,11 @@ _GENERIC_COLS_TO_INDEX_S1 = (
     S1GenericCol.SNOMED_CODE,  # common clinical coding
     S1GenericCol.SNOMED_TEXT,  # common clinical coding
 )
-_GENERIC_COLS_TO_INDEX_CPFT = (
-    CPFTGenericCol.PATIENT_ID_SYNONYM_1,
-)
+_GENERIC_COLS_TO_INDEX_CPFT = (CPFTGenericCol.PATIENT_ID_SYNONYM_1,)
 GENERIC_COLS_TO_INDEX = {
     SystmOneContext.TPP_SRE: _GENERIC_COLS_TO_INDEX_S1,
-    SystmOneContext.CPFT_DW:
-        _GENERIC_COLS_TO_INDEX_S1
-        + _GENERIC_COLS_TO_INDEX_CPFT,
+    SystmOneContext.CPFT_DW: _GENERIC_COLS_TO_INDEX_S1
+    + _GENERIC_COLS_TO_INDEX_CPFT,
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1408,7 +1391,10 @@ _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     ("ActivityEvent_EventDuration", S1GenericCol.EVENT_ID),
     # AQ_* -- no obvious PK.
     ("_CGAS_PairedScore_By_Referral", S1GenericCol.REFERRAL_ID),
-    ("CarePlan", "CarePlanID"),  # includes CarePlanDetail, modified from the source  # noqa
+    (
+        "CarePlan",
+        "CarePlanID",
+    ),  # includes CarePlanDetail, modified from the source  # noqa
     # ... CarePlanReview has IDCarePlan but that is not unique.
     ("Caseload", "IDReferralIn"),
     # ClinicalDashboard*: a bunch of CPFT things; no obvious PK.
@@ -1454,19 +1440,24 @@ _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # PatientSRCodeInformation: no PK
     # PhysicalHealthChecks*: no PK (IDPatient currently unique in S1_PhysicalHealthChecks_CQUIN but unlikely to remain so)  # noqa
     # QRisk: no PK
-    ("ReferralInIntervention", S1GenericCol.REFERRAL_ID), # modified from the source  # noqa
+    (
+        "ReferralInIntervention",
+        S1GenericCol.REFERRAL_ID,
+    ),  # modified from the source  # noqa
     ("Vanguard", "ReferralNumber"),
     # eDSM: no PK
 )
 PK_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.TPP_SRE: _PK_TABLENAME_COLNAME_REGEX_PAIRS_S1,
-    SystmOneContext.CPFT_DW:
-        _PK_TABLENAME_COLNAME_REGEX_PAIRS_S1
-        + _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
+    SystmOneContext.CPFT_DW: _PK_TABLENAME_COLNAME_REGEX_PAIRS_S1
+    + _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
 _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
-    (S1Table.FREETEXT, S1GenericCol.PK),  # not unique; see TABLES_REQUIRING_CRATE_PK_REGEX above  # noqa
+    (
+        S1Table.FREETEXT,
+        S1GenericCol.PK,
+    ),  # not unique; see TABLES_REQUIRING_CRATE_PK_REGEX above  # noqa
 )
 _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # These look like PKs, but gave rise to a "Violation of PRIMARY KEY
@@ -1478,9 +1469,8 @@ _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
 )
 NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.TPP_SRE: _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1,
-    SystmOneContext.CPFT_DW:
-        _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1
-        + _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
+    SystmOneContext.CPFT_DW: _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1
+    + _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
 
@@ -1499,9 +1489,8 @@ _OPT_OUT_TABLENAME_COLNAME_PAIRS_CPFT = (
 )
 OPT_OUT_TABLENAME_COLNAME_PAIRS = {
     SystmOneContext.TPP_SRE: _OPT_OUT_TABLENAME_COLNAME_PAIRS_S1,
-    SystmOneContext.CPFT_DW:
-        _OPT_OUT_TABLENAME_COLNAME_PAIRS_S1 +
-        _OPT_OUT_TABLENAME_COLNAME_PAIRS_CPFT,
+    SystmOneContext.CPFT_DW: _OPT_OUT_TABLENAME_COLNAME_PAIRS_S1
+    + _OPT_OUT_TABLENAME_COLNAME_PAIRS_CPFT,
 }
 
 
@@ -1530,6 +1519,7 @@ def warn_once(msg: str) -> None:
 # Plain strings
 # -----------------------------------------------------------------------------
 
+
 def eq(x: str, y: str) -> bool:
     """
     Case-insensitive string comparison.
@@ -1537,8 +1527,7 @@ def eq(x: str, y: str) -> bool:
     return x.lower() == y.lower()
 
 
-def tcmatch(table1: str, column1: str,
-            table2: str, column2: str) -> bool:
+def tcmatch(table1: str, column1: str, table2: str, column2: str) -> bool:
     """
     Equal (in case-insensitive fashion) for table and column?
     """
@@ -1556,15 +1545,13 @@ def is_pair_in(a: str, b: str, y: Iterable[Tuple[str, str]]) -> bool:
     """
     Case-insensitive version of "in", to replace "if a, b in y".
     """
-    return any(
-        eq(a, test_a) and eq(b, test_b)
-        for test_a, test_b in y
-    )
+    return any(eq(a, test_a) and eq(b, test_b) for test_a, test_b in y)
 
 
 # -----------------------------------------------------------------------------
 # Regular expressions
 # -----------------------------------------------------------------------------
+
 
 def eq_re(x: str, y_regex: str) -> bool:
     """
@@ -1580,19 +1567,21 @@ def is_in_re(x: str, y_regexes: Iterable[str]) -> bool:
     return any(eq_re(x, test) for test in y_regexes)
 
 
-def is_pair_in_re(a: str, b: str, y_regexes: Iterable[Tuple[str, str]]) -> bool:
+def is_pair_in_re(
+    a: str, b: str, y_regexes: Iterable[Tuple[str, str]]
+) -> bool:
     """
     Case-insensitive regex-based version of "in", to replace "if a, b in y".
     """
     return any(
-        eq_re(a, test_a) and eq_re(b, test_b)
-        for test_a, test_b in y_regexes
+        eq_re(a, test_a) and eq_re(b, test_b) for test_a, test_b in y_regexes
     )
 
 
 # =============================================================================
 # Table/column name interpretation
 # =============================================================================
+
 
 def tablename_prefix(context: SystmOneContext) -> str:
     """
@@ -1604,9 +1593,11 @@ def tablename_prefix(context: SystmOneContext) -> str:
         raise KeyError(f"Unknown SystmOne context: {context}")
 
 
-def core_tablename(tablename: str,
-                   from_context: SystmOneContext,
-                   allow_unprefixed: bool = False) -> str:
+def core_tablename(
+    tablename: str,
+    from_context: SystmOneContext,
+    allow_unprefixed: bool = False,
+) -> str:
     """
     Is this a table of an expected format that we will consider?
     - If so, returns the "core" part of the tablename, in the given context.
@@ -1623,15 +1614,16 @@ def core_tablename(tablename: str,
                 return tablename
             else:
                 return ""
-    rest = tablename[len(prefix):]
+    rest = tablename[len(prefix) :]
     if not rest:
         raise ValueError(f"Table name {tablename!r} only contains its prefix")
     xlate = CONTEXT_TO_CORE_TABLE_TRANSLATIONS[from_context]
     return xlate.get(rest) or rest
 
 
-def contextual_tablename(tablename_core: str,
-                         to_context: SystmOneContext) -> str:
+def contextual_tablename(
+    tablename_core: str, to_context: SystmOneContext
+) -> str:
     """
     Prefixes the "core" table name for a given context, and sometimes
     translates it too.
@@ -1643,41 +1635,39 @@ def contextual_tablename(tablename_core: str,
     return f"{prefix}{tablename}"
 
 
-def core_columnname(tablename_core: str,
-                    columnname_context: str,
-                    from_context: SystmOneContext) -> str:
+def core_columnname(
+    tablename_core: str, columnname_context: str, from_context: SystmOneContext
+) -> str:
     """
     Some contexts rename their column names. This function puts them back into
     the "core" (TPP SRE) name space.
     """
     xlate = CONTEXT_TO_CORE_CONTEXT_COLUMN_TRANSLATIONS[from_context]
     return (
-        xlate.get((tablename_core, columnname_context))
-        or columnname_context
+        xlate.get((tablename_core, columnname_context)) or columnname_context
     )
 
 
-def contextual_columnname(tablename_core: str,
-                          columname_core: str,
-                          to_context: SystmOneContext) -> str:
+def contextual_columnname(
+    tablename_core: str, columname_core: str, to_context: SystmOneContext
+) -> str:
     """
     Translates a "core" column name to its contextual variant, if applicable.
     """
     xlate = CORE_TO_CONTEXT_COLUMN_TRANSLATIONS[to_context]
-    return (
-        xlate.get((tablename_core, columname_core))
-        or columname_core
-    )
+    return xlate.get((tablename_core, columname_core)) or columname_core
 
 
 # =============================================================================
 # Helper classes
 # =============================================================================
 
+
 class SystmOneSRESpecRow:
     """
     Represents a row in the SystmOne SRE specification CSV file.
     """
+
     def __init__(self, d: Dict[str, Any]) -> None:
         """
         Initialize with a row dictionary from a :class:`csv.DictReader`.
@@ -1706,16 +1696,18 @@ class SystmOneSRESpecRow:
         """
         Core part of the tablename.
         """
-        return core_tablename(self.table_name,
-                              from_context=SystmOneContext.TPP_SRE)
+        return core_tablename(
+            self.table_name, from_context=SystmOneContext.TPP_SRE
+        )
 
     @property
     def linked_table_core(self) -> str:
         """
         Core part of the linked table name.
         """
-        return core_tablename(self.linked_table,
-                              from_context=SystmOneContext.TPP_SRE)
+        return core_tablename(
+            self.linked_table, from_context=SystmOneContext.TPP_SRE
+        )
 
     def comment(self, context: SystmOneContext) -> str:
         """
@@ -1723,15 +1715,17 @@ class SystmOneSRESpecRow:
         """
         elements = [
             f"TABLE: {self.table_description}",
-            f"COLUMN: {self.column_description}"
+            f"COLUMN: {self.column_description}",
         ]
         if self.linked_table:
             context_prefix = tablename_prefix(context)
             linked_table_ctx = f"{context_prefix}{self.linked_table_core}"
             links = []  # type: List[str]
             if self.linked_column_1:
-                links.append(f"FOREIGN KEY TO "
-                             f"{linked_table_ctx}.{self.linked_column_1}")
+                links.append(
+                    f"FOREIGN KEY TO "
+                    f"{linked_table_ctx}.{self.linked_column_1}"
+                )
             if self.linked_column_2:
                 links.append(f"WITH {linked_table_ctx}.{self.linked_column_2}")
             elements.append(" ".join(links))
@@ -1742,8 +1736,9 @@ class SystmOneSRESpecRow:
         Full description line.
         """
         tname = contextual_tablename(self.tablename_core, context)
-        cname = contextual_columnname(self.tablename_core, self.column_name,
-                                      context)
+        cname = contextual_columnname(
+            self.tablename_core, self.column_name, context
+        )
         elements = [f"{tname}.{cname}", self.comment(context)]
         return COMMENT_SEP.join(elements)
 
@@ -1753,6 +1748,7 @@ class ScrubSrcAlterMethodInfo:
     """
     For describing scrub-source and alter-method information.
     """
+
     change_comment_and_indexing_only: bool = False
     src_flags: str = ""
     scrub_src: Optional[ScrubSrc] = None
@@ -1800,6 +1796,7 @@ class ScrubSrcAlterMethodInfo:
 # Feature detection
 # =============================================================================
 
+
 def is_master_patient_table(tablename: str) -> bool:
     """
     Is this the master patient table?
@@ -1838,10 +1835,12 @@ def is_other_system_id(colname: str, context: SystmOneContext) -> bool:
     return is_in(colname, OTHER_SYSTEM_IDS[context])
 
 
-def is_pk(tablename: str,
-          colname: str,
-          context: SystmOneContext,
-          ddr: DataDictionaryRow = None) -> bool:
+def is_pk(
+    tablename: str,
+    colname: str,
+    context: SystmOneContext,
+    ddr: DataDictionaryRow = None,
+) -> bool:
     """
     Is this a primary key (PK) column within its table?
     """
@@ -1857,8 +1856,9 @@ def is_pk(tablename: str,
     # 1. If it's explicitly ruled out as a PK (e.g. it has the name that should
     #    mean it's a PK, but it's been messed with locally, or the TPP design
     #    team were having an off day), then it's not a PK.
-    if is_pair_in_re(tablename, colname,
-                     NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS[context]):
+    if is_pair_in_re(
+        tablename, colname, NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS[context]
+    ):
         return False
     # 2. If the source database says so (ours never does).
     if ddr and ddr.pk:
@@ -1868,14 +1868,17 @@ def is_pk(tablename: str,
     if eq(colname, S1GenericCol.PK):
         return True
     # 4. If it's a specifically noted PK.
-    return is_pair_in_re(tablename, colname,
-                         PK_TABLENAME_COLNAME_REGEX_PAIRS[context])
+    return is_pair_in_re(
+        tablename, colname, PK_TABLENAME_COLNAME_REGEX_PAIRS[context]
+    )
 
 
-def is_free_text(tablename: str,
-                 colname: str,
-                 context: SystmOneContext,
-                 ddr: DataDictionaryRow = None) -> bool:
+def is_free_text(
+    tablename: str,
+    colname: str,
+    context: SystmOneContext,
+    ddr: DataDictionaryRow = None,
+) -> bool:
     """
     Is this a free-text field requiring scrubbing?
 
@@ -1884,15 +1887,12 @@ def is_free_text(tablename: str,
     """
     if ddr and not ddr.src_is_textual:
         return False
-    return (
-        is_pair_in_re(
-            tablename, colname,
-            FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS[context]
-        )
-        and not is_pair_in_re(
-            tablename, colname,
-            EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS[context]
-        )
+    return is_pair_in_re(
+        tablename, colname, FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS[context]
+    ) and not is_pair_in_re(
+        tablename,
+        colname,
+        EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS[context],
     )
 
 
@@ -1902,19 +1902,23 @@ def should_be_fulltext_indexed(tablename: str, colname: str) -> bool:
     that contains free text and should be scrubbed", that is "a column with a
     lot of interesting free text that should get a special index".
     """
-    return is_pair_in_re(tablename, colname,
-                         FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS_S1)
+    return is_pair_in_re(
+        tablename, colname, FULLTEXT_INDEX_TABLENAME_COLNAME_REGEX_PAIRS_S1
+    )
 
 
 # =============================================================================
 # Deciding about columns
 # =============================================================================
 
-def process_generic_table_column(tablename: str,
-                                 colname: str,
-                                 ddr: DataDictionaryRow,
-                                 ssi: ScrubSrcAlterMethodInfo,
-                                 context: SystmOneContext) -> bool:
+
+def process_generic_table_column(
+    tablename: str,
+    colname: str,
+    ddr: DataDictionaryRow,
+    ssi: ScrubSrcAlterMethodInfo,
+    context: SystmOneContext,
+) -> bool:
     """
     Performs operations applicable to columns any SystmOne table, except a few
     very special ones like Patient. Modifies ``ssi`` in place.
@@ -1939,7 +1943,9 @@ def process_generic_table_column(tablename: str,
 
     # PKs can also be other things:
 
-    if is_pair_in(tablename, colname, OPT_OUT_TABLENAME_COLNAME_PAIRS[context]):
+    if is_pair_in(
+        tablename, colname, OPT_OUT_TABLENAME_COLNAME_PAIRS[context]
+    ):
         ssi.add_src_flag(SrcFlag.OPT_OUT)
         handled = True
 
@@ -1993,8 +1999,9 @@ def process_generic_table_column(tablename: str,
         # patient's DOB from the master patient table. This code is about
         # making sure that DOBs (for example) elsewhere are truncated, and
         # time information doesn't leak through.
-        ssi.add_alter_method(AlterMethod(config=ddr.config,
-                                         truncate_date=True))
+        ssi.add_alter_method(
+            AlterMethod(config=ddr.config, truncate_date=True)
+        )
         ssi.dest_datatype = SQLTYPE_DATE
         ssi.include()
 
@@ -2006,11 +2013,12 @@ def process_generic_table_column(tablename: str,
 
 
 def get_scrub_alter_details(
-        tablename: str,
-        colname: str,
-        ddr: DataDictionaryRow,
-        context: SystmOneContext,
-        include_generic: bool = False) -> ScrubSrcAlterMethodInfo:
+    tablename: str,
+    colname: str,
+    ddr: DataDictionaryRow,
+    context: SystmOneContext,
+    include_generic: bool = False,
+) -> ScrubSrcAlterMethodInfo:
     """
     The main "thinking" function.
 
@@ -2039,8 +2047,9 @@ def get_scrub_alter_details(
     # -------------------------------------------------------------------------
     # Omit table entirely (and ignore its contents for scrubbing)?
     # -------------------------------------------------------------------------
-    if (is_in(tablename, OMIT_AND_IGNORE_TABLES[context])
-            or is_in_re(tablename, OMIT_AND_IGNORE_TABLES_REGEX[context])):
+    if is_in(tablename, OMIT_AND_IGNORE_TABLES[context]) or is_in_re(
+        tablename, OMIT_AND_IGNORE_TABLES_REGEX[context]
+    ):
         return ssi
 
     # -------------------------------------------------------------------------
@@ -2084,8 +2093,9 @@ def get_scrub_alter_details(
             # Truncate and scrub dates of birth.
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.DATE
-            ssi.add_alter_method(AlterMethod(config=ddr.config,
-                                             truncate_date=True))
+            ssi.add_alter_method(
+                AlterMethod(config=ddr.config, truncate_date=True)
+            )
             ssi.dest_datatype = SQLTYPE_DATE
             ssi.include()
 
@@ -2127,11 +2137,7 @@ def get_scrub_alter_details(
     # Proceed for all other tables.
     # -------------------------------------------------------------------------
     handled = process_generic_table_column(
-        tablename=tablename,
-        colname=colname,
-        ddr=ddr,
-        ssi=ssi,
-        context=context
+        tablename=tablename, colname=colname, ddr=ddr, ssi=ssi, context=context
     )
     if handled:
         # Recognized and handled as a generic column.
@@ -2211,8 +2217,9 @@ def get_scrub_alter_details(
         else:
             pass  # omit anything unknown in the relationship table
 
-    elif (context == SystmOneContext.CPFT_DW
-            and eq(tablename, CPFTTable.REL_MOTHER)):
+    elif context == SystmOneContext.CPFT_DW and eq(
+        tablename, CPFTTable.REL_MOTHER
+    ):
         # ---------------------------------------------------------------------
         # A CPFT partial duplicate table: from the relationship table where
         # that relationship is "Mother".
@@ -2234,16 +2241,21 @@ def get_scrub_alter_details(
         else:
             pass  # omit anything unown
 
-    elif tcmatch(tablename, colname,
-                 S1Table.HOSP_AE_NUMBERS, S1HospNumCol.HOSPNUM):
+    elif tcmatch(
+        tablename, colname, S1Table.HOSP_AE_NUMBERS, S1HospNumCol.HOSPNUM
+    ):
         # ---------------------------------------------------------------------
         # A hospital number.
         # ---------------------------------------------------------------------
         ssi.scrub_src = ScrubSrc.PATIENT
         ssi.scrub_method = ScrubMethod.CODE  # can contain text
 
-    elif tcmatch(tablename, colname,
-                 S1Table.SAFEGUARDING_PERSON_AT_RISK, S1PatientCol.NHSNUM):
+    elif tcmatch(
+        tablename,
+        colname,
+        S1Table.SAFEGUARDING_PERSON_AT_RISK,
+        S1PatientCol.NHSNUM,
+    ):
         # ---------------------------------------------------------------------
         # Another person's NHS number.
         # ---------------------------------------------------------------------
@@ -2269,10 +2281,12 @@ def get_scrub_alter_details(
     return ssi
 
 
-def get_index_flag(tablename: str,
-                   colname: str,
-                   ddr: DataDictionaryRow,
-                   context: SystmOneContext) -> Optional[IndexType]:
+def get_index_flag(
+    tablename: str,
+    colname: str,
+    ddr: DataDictionaryRow,
+    context: SystmOneContext,
+) -> Optional[IndexType]:
     """
     Should this be indexed? Returns an indexing flag, or ``None`` if it should
     not be indexed.
@@ -2289,8 +2303,8 @@ def get_index_flag(tablename: str,
         # We index all patient IDs.
         return IndexType.NORMAL
     if is_pair_in_re(
-            tablename, colname,
-            NORMAL_INDEX_TABLENAME_COLNAME_REGEX_PAIRS[context]):
+        tablename, colname, NORMAL_INDEX_TABLENAME_COLNAME_REGEX_PAIRS[context]
+    ):
         # Additional columns to index
         return IndexType.NORMAL
     if colname in GENERIC_COLS_TO_INDEX[context]:
@@ -2305,12 +2319,15 @@ def get_index_flag(tablename: str,
 # Modify a data dictionary row according to detected features
 # =============================================================================
 
-def annotate_systmone_dd_row(ddr: DataDictionaryRow,
-                             context: SystmOneContext,
-                             specifications: SRE_SPEC_TYPE,
-                             append_comments: bool = False,
-                             include_generic: bool = False,
-                             allow_unprefixed_tables: bool = False) -> None:
+
+def annotate_systmone_dd_row(
+    ddr: DataDictionaryRow,
+    context: SystmOneContext,
+    specifications: SRE_SPEC_TYPE,
+    append_comments: bool = False,
+    include_generic: bool = False,
+    allow_unprefixed_tables: bool = False,
+) -> None:
     """
     Modifies (in place) a data dictionary row for SystmOne.
 
@@ -2337,9 +2354,11 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
             Discouraged; you may get odd tables and views.
             A few (see INCLUDE_TABLES_REGEX) are explicitly included anyway.
     """
-    tablename = core_tablename(ddr.src_table,
-                               from_context=context,
-                               allow_unprefixed=allow_unprefixed_tables)
+    tablename = core_tablename(
+        ddr.src_table,
+        from_context=context,
+        allow_unprefixed=allow_unprefixed_tables,
+    )
     if not tablename:
         # It didn't have the right prefix and allow_unprefixed_tables is False.
         ddr.decision = Decision.OMIT
@@ -2357,7 +2376,7 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
         colname=colname,
         ddr=ddr,
         include_generic=include_generic,
-        context=context
+        context=context,
     )
 
     if not ssi.change_comment_and_indexing_only:
@@ -2386,8 +2405,9 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
         # If we have no new comment, leave the old one alone.
         if spec_comment:
             if append_comments:
-                ddr.comment = COMMENT_SEP.join((ddr.comment or "",
-                                                spec_comment))
+                ddr.comment = COMMENT_SEP.join(
+                    (ddr.comment or "", spec_comment)
+                )
             else:
                 ddr.comment = spec_comment
 
@@ -2395,6 +2415,7 @@ def annotate_systmone_dd_row(ddr: DataDictionaryRow,
 # =============================================================================
 # Read a SystmOne SRE specification CSV file
 # =============================================================================
+
 
 def read_systmone_sre_spec(filename: str) -> SRE_SPEC_TYPE:
     """
@@ -2416,14 +2437,17 @@ def read_systmone_sre_spec(filename: str) -> SRE_SPEC_TYPE:
 # Modify a data dictionary
 # =============================================================================
 
-def modify_dd_for_systmone(dd: DataDictionary,
-                           context: SystmOneContext,
-                           sre_spec_csv_filename: str = "",
-                           debug_specs: bool = False,
-                           append_comments: bool = False,
-                           include_generic: bool = False,
-                           allow_unprefixed_tables: bool = False,
-                           alter_loaded_rows: bool = False) -> None:
+
+def modify_dd_for_systmone(
+    dd: DataDictionary,
+    context: SystmOneContext,
+    sre_spec_csv_filename: str = "",
+    debug_specs: bool = False,
+    append_comments: bool = False,
+    include_generic: bool = False,
+    allow_unprefixed_tables: bool = False,
+    alter_loaded_rows: bool = False,
+) -> None:
     """
     Modifies a data dictionary in place.
 
@@ -2460,10 +2484,11 @@ def modify_dd_for_systmone(dd: DataDictionary,
     log.info(f"Modifying data dictionary for SystmOne. Context = {context}")
     specs = (
         read_systmone_sre_spec(sre_spec_csv_filename)
-        if sre_spec_csv_filename else []
+        if sre_spec_csv_filename
+        else []
     )
     if debug_specs:
-        specs_str = '\n'.join(spec.description(context) for spec in specs)
+        specs_str = "\n".join(spec.description(context) for spec in specs)
         log.debug(f"SystmOne specs:\n{specs_str}")
     for ddr in dd.rows:
         if ddr.from_file and not alter_loaded_rows:

@@ -156,5 +156,5 @@ RIO_6_2_ATYPICAL_PKS = {  # SUPERSEDED by better PK detection
 """
 
 RIO_6_2_ATYPICAL_PATIENT_ID_COLS = {
-    'SNOMED_Client': 'SC_ClientID',
+    "SNOMED_Client": "SC_ClientID",
 }

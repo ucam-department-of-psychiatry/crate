@@ -49,6 +49,7 @@ log = logging.getLogger(__name__)
 # Fetch clinical team names
 # =============================================================================
 
+
 @django_cache_function(timeout=None)
 def get_teams() -> List[str]:
     """
@@ -58,10 +59,11 @@ def get_teams() -> List[str]:
     log.debug("Fetching/caching clinical teams")
     source_db = settings.CLINICAL_LOOKUP_DB
     if settings.CLINICAL_LOOKUP_DB in (
-            ClinicalDatabaseType.CPFT_RIO_RCEP,
-            ClinicalDatabaseType.CPFT_RIO_CRATE_PREPROCESSED):
+        ClinicalDatabaseType.CPFT_RIO_RCEP,
+        ClinicalDatabaseType.CPFT_RIO_CRATE_PREPROCESSED,
+    ):
         return get_rio_teams_rcep_crate(source_db=source_db)
-    elif settings.CLINICAL_LOOKUP_DB == 'dummy_clinical':
+    elif settings.CLINICAL_LOOKUP_DB == "dummy_clinical":
         return get_dummy_teams()
     else:
         return []

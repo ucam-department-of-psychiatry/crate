@@ -43,6 +43,7 @@ from crate_anon.linkage.fuzzy_id_match import TemporalIdentifier
 # Unit tests
 # =============================================================================
 
+
 class TestTemporalIdentifier(unittest.TestCase):
     """
     Unit tests for :class:`TemporalIdentifier`.
@@ -57,37 +58,44 @@ class TestTemporalIdentifier(unittest.TestCase):
         # Overlaps
         self.assertEqual(
             TemporalIdentifier(p, d1, d2).overlaps(
-                TemporalIdentifier(p, d2, d3)),
-            True
+                TemporalIdentifier(p, d2, d3)
+            ),
+            True,
         )
         self.assertEqual(
             TemporalIdentifier(p, d2, d3).overlaps(
-                TemporalIdentifier(p, d1, d2)),
-            True
+                TemporalIdentifier(p, d1, d2)
+            ),
+            True,
         )
         self.assertEqual(
             TemporalIdentifier(p, d1, d4).overlaps(
-                TemporalIdentifier(p, d2, d3)),
-            True
+                TemporalIdentifier(p, d2, d3)
+            ),
+            True,
         )
         self.assertEqual(
             TemporalIdentifier(p, d1, None).overlaps(
-                TemporalIdentifier(p, None, d4)),
-            True
+                TemporalIdentifier(p, None, d4)
+            ),
+            True,
         )
         self.assertEqual(
             TemporalIdentifier(p, None, None).overlaps(
-                TemporalIdentifier(p, None, None)),
-            True
+                TemporalIdentifier(p, None, None)
+            ),
+            True,
         )
         # Non-overlaps
         self.assertEqual(
             TemporalIdentifier(p, d1, d2).overlaps(
-                TemporalIdentifier(p, d3, d4)),
-            False
+                TemporalIdentifier(p, d3, d4)
+            ),
+            False,
         )
         self.assertEqual(
             TemporalIdentifier(p, None, d1).overlaps(
-                TemporalIdentifier(p, d2, None)),
-            False
+                TemporalIdentifier(p, d2, None)
+            ),
+            False,
         )

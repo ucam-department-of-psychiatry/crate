@@ -94,7 +94,7 @@ Base = declarative_base(metadata=metadata)
 # Constants
 # =============================================================================
 
-CONSOLE_ENCODING = 'utf8'
+CONSOLE_ENCODING = "utf8"
 REPORT_EVERY = 50
 BASE_DOB = datetime.date(day=1, month=10, year=1980)
 DT_FORMATS = [
@@ -128,10 +128,10 @@ else:
         os.path.join(CURRENT_DIR, os.pardir, "testdocs_for_text_extraction")
     )
 
-DEFAULT_DOCTEST_DOC = os.path.join(DEFAULT_DOCDIR, 'doctest.doc')
-DEFAULT_DOCTEST_DOCX = os.path.join(DEFAULT_DOCDIR, 'doctest.docx')
-DEFAULT_DOCTEST_ODT = os.path.join(DEFAULT_DOCDIR, 'doctest.odt')
-DEFAULT_DOCTEST_PDF = os.path.join(DEFAULT_DOCDIR, 'doctest.pdf')
+DEFAULT_DOCTEST_DOC = os.path.join(DEFAULT_DOCDIR, "doctest.doc")
+DEFAULT_DOCTEST_DOCX = os.path.join(DEFAULT_DOCDIR, "doctest.docx")
+DEFAULT_DOCTEST_ODT = os.path.join(DEFAULT_DOCDIR, "doctest.odt")
+DEFAULT_DOCTEST_PDF = os.path.join(DEFAULT_DOCDIR, "doctest.pdf")
 
 MAX_EXT_LENGTH_WITH_DOT = 10
 
@@ -142,9 +142,10 @@ MAX_EXT_LENGTH_WITH_DOT = 10
 
 # http://docs.sqlalchemy.org/en/latest/core/custom_types.html
 # noinspection PyUnusedLocal
-@compiles(LargeBinary, 'mysql')
-def compile_blob_mysql(type_: "TypeEngine",
-                       compiler: "SQLCompiler", **kw) -> str:
+@compiles(LargeBinary, "mysql")
+def compile_blob_mysql(
+    type_: "TypeEngine", compiler: "SQLCompiler", **kw
+) -> str:
     """
     Provides a custom type for the SQLAlchemy ``LargeBinary`` type under MySQL,
     by using ``LONGBLOB`` (which overrides the default of ``BLOB``).
@@ -194,10 +195,12 @@ def compile_blob_mysql(type_: "TypeEngine",
 # A silly enum
 # =============================================================================
 
+
 class EnumColours(enum.Enum):
     """
     A silly enum, for testing.
     """
+
     red = 1
     green = 2
     blue = 3
@@ -206,6 +209,7 @@ class EnumColours(enum.Enum):
 # =============================================================================
 # Randomness
 # =============================================================================
+
 
 def coin(p: float = 0.5) -> bool:
     """
@@ -218,11 +222,13 @@ def coin(p: float = 0.5) -> bool:
 # Tables
 # =============================================================================
 
+
 class Patient(Base):
     """
     SQLAlchemy ORM class for fictional patients.
     """
-    __tablename__ = 'patient'
+
+    __tablename__ = "patient"
     __table_args__ = TABLE_KWARGS
 
     patient_id = Column(Integer, primary_key=True, autoincrement=False)
@@ -242,11 +248,12 @@ class Note(Base):
     """
     SQLAlchemy ORM class for fictional notes.
     """
-    __tablename__ = 'note'
+
+    __tablename__ = "note"
     __table_args__ = TABLE_KWARGS
 
     note_id = Column(Integer, primary_key=True)
-    patient_id = Column(Integer, ForeignKey('patient.patient_id'))
+    patient_id = Column(Integer, ForeignKey("patient.patient_id"))
     note = Column(Text)
     note_datetime = Column(DateTime)
 
@@ -257,19 +264,21 @@ class BlobDoc(Base):
     """
     SQLAlchemy ORM class for fictional binary documents.
     """
-    __tablename__ = 'blobdoc'
+
+    __tablename__ = "blobdoc"
     __table_args__ = TABLE_KWARGS
 
     blob_doc_id = Column(Integer, primary_key=True)
-    patient_id = Column(Integer, ForeignKey('patient.patient_id'))
+    patient_id = Column(Integer, ForeignKey("patient.patient_id"))
     blob = Column(LargeBinary)  # modified as above!
     extension = Column(String(MAX_EXT_LENGTH_WITH_DOT))
     blob_datetime = Column(DateTime)
 
     patient = relationship("Patient")
 
-    def __init__(self, patient: Patient, filename: str,
-                 blob_datetime: datetime.datetime) -> None:
+    def __init__(
+        self, patient: Patient, filename: str, blob_datetime: datetime.datetime
+    ) -> None:
         """
         Args:
             patient: corresponding :class:`Patient` object
@@ -278,13 +287,15 @@ class BlobDoc(Base):
             blob_datetime: date/time value to give this BLOB
         """
         _, extension = os.path.splitext(filename)
-        with open(filename, 'rb') as f:
+        with open(filename, "rb") as f:
             contents = f.read()  # will be of type 'bytes'
         # noinspection PyArgumentList
-        super().__init__(patient=patient,
-                         blob=contents,
-                         extension=extension,
-                         blob_datetime=blob_datetime)
+        super().__init__(
+            patient=patient,
+            blob=contents,
+            extension=extension,
+            blob_datetime=blob_datetime,
+        )
 
 
 class FilenameDoc(Base):
@@ -292,11 +303,12 @@ class FilenameDoc(Base):
     SQLAlchemy ORM class for a table containing the filenames of binary
     documents.
     """
-    __tablename__ = 'filenamedoc'
+
+    __tablename__ = "filenamedoc"
     __table_args__ = TABLE_KWARGS
 
     filename_doc_id = Column(Integer, primary_key=True)
-    patient_id = Column(Integer, ForeignKey('patient.patient_id'))
+    patient_id = Column(Integer, ForeignKey("patient.patient_id"))
     filename = Column(Text)
     file_datetime = Column(DateTime)
 
@@ -320,28 +332,33 @@ def main() -> None:
             "mysql+mysqldb://root:password@127.0.0.1:3306/test?charset=utf8 ."
             " WARNING: If you get the error 'MySQL has gone away', increase "
             "the max_allowed_packet parameter in my.cnf (e.g. to 32M)."
-        )
+        ),
     )
     parser.add_argument(
-        "--size", type=int, default=default_size, choices=[0, 1, 2, 3],
-        help="Make tiny (0), small (1), medium (2), or large (3) database")
+        "--size",
+        type=int,
+        default=default_size,
+        choices=[0, 1, 2, 3],
+        help="Make tiny (0), small (1), medium (2), or large (3) database",
+    )
     parser.add_argument(
-        '--verbose', '-v', action='store_true',
-        help="Be verbose")
+        "--verbose", "-v", action="store_true", help="Be verbose"
+    )
+    parser.add_argument("--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
-        "--echo", action="store_true", help="Echo SQL")
+        "--doctest_doc", default=DEFAULT_DOCTEST_DOC, help="Test file for .DOC"
+    )
     parser.add_argument(
-        "--doctest_doc", default=DEFAULT_DOCTEST_DOC,
-        help="Test file for .DOC")
+        "--doctest_docx",
+        default=DEFAULT_DOCTEST_DOCX,
+        help="Test file for .DOCX",
+    )
     parser.add_argument(
-        "--doctest_docx", default=DEFAULT_DOCTEST_DOCX,
-        help="Test file for .DOCX")
+        "--doctest_odt", default=DEFAULT_DOCTEST_ODT, help="Test file for .ODT"
+    )
     parser.add_argument(
-        "--doctest_odt", default=DEFAULT_DOCTEST_ODT,
-        help="Test file for .ODT")
-    parser.add_argument(
-        "--doctest_pdf", default=DEFAULT_DOCTEST_PDF,
-        help="Test file for .PDF")
+        "--doctest_pdf", default=DEFAULT_DOCTEST_PDF, help="Test file for .PDF"
+    )
     args = parser.parse_args()
 
     nwords = 10000
@@ -370,19 +387,22 @@ def main() -> None:
 
     # 0. Announce intentions
 
-    log.info(f"n_patients={n_patients}, "
-             f"notes_per_patient={notes_per_patient}, "
-             f"words_per_note={words_per_note}")
+    log.info(
+        f"n_patients={n_patients}, "
+        f"notes_per_patient={notes_per_patient}, "
+        f"words_per_note={words_per_note}"
+    )
 
     # 1. Get words
 
     log.info("Fetching words.")
-    words = subprocess.check_output([
-        "grep",
-        "-v", "'s",
-        "-m", str(nwords),
-        "/usr/share/dict/words"
-    ]).decode(CONSOLE_ENCODING).splitlines()
+    words = (
+        subprocess.check_output(
+            ["grep", "-v", "'s", "-m", str(nwords), "/usr/share/dict/words"]
+        )
+        .decode(CONSOLE_ENCODING)
+        .splitlines()
+    )
 
     # 2. Open database
 
@@ -399,9 +419,11 @@ def main() -> None:
 
     # 4. Insert
 
-    log.info(f"Aiming for a total of "
-             f"{n_patients * notes_per_patient * words_per_note} "
-             f"words in notes.")
+    log.info(
+        f"Aiming for a total of "
+        f"{n_patients * notes_per_patient * words_per_note} "
+        f"words in notes."
+    )
 
     log.info("Inserting data.")
 
@@ -459,18 +481,22 @@ ESR 16 (H) mm/h.
 WBC 9.2; neutrophils 4.3; lymphocytes 2.6; eosinophils 0.4; monocytes 1.2;
 basophils 0.6.
             """,
-            note_datetime=incdatetime()
+            note_datetime=incdatetime(),
         )
         session.add(n1)
-    for filename in (args.doctest_doc,
-                     args.doctest_docx,
-                     args.doctest_odt,
-                     args.doctest_pdf):
-        bd = BlobDoc(patient=p1, filename=filename,
-                     blob_datetime=incdatetime())
+    for filename in (
+        args.doctest_doc,
+        args.doctest_docx,
+        args.doctest_odt,
+        args.doctest_pdf,
+    ):
+        bd = BlobDoc(
+            patient=p1, filename=filename, blob_datetime=incdatetime()
+        )
         session.add(bd)
-        fd = FilenameDoc(patient=p1, filename=filename,
-                         file_datetime=incdatetime())
+        fd = FilenameDoc(
+            patient=p1, filename=filename, file_datetime=incdatetime()
+        )
         session.add(fd)
 
     # noinspection PyTypeChecker
@@ -505,8 +531,8 @@ Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
 
     # A bunch of patients
     random.seed(1)
-    prev_forename = ''
-    prev_surname = ''
+    prev_forename = ""
+    prev_surname = ""
     for p in range(n_patients):
         if p % REPORT_EVERY == 0:
             log.info(f"patient {p}")
@@ -529,20 +555,24 @@ Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
         )
         session.add(patient)
         patient_id = patient.patient_id
-        dates = "DATES: " + (
-            " ".join([dob.strftime(fmt) for fmt in DT_FORMATS]) +
-            " ".join([ok_date.strftime(fmt) for fmt in DT_FORMATS])
-        ) + ". "
+        dates = (
+            "DATES: "
+            + (
+                " ".join([dob.strftime(fmt) for fmt in DT_FORMATS])
+                + " ".join([ok_date.strftime(fmt) for fmt in DT_FORMATS])
+            )
+            + ". "
+        )
         fname = "FORENAME: " + forename + ". "
         sname = "SURNAME: " + surname + ". "
         rname = "RELATIVE: " + prev_forename + " " + prev_surname + ". "
         numbers = f"NUMBERS: {patient_id}, {patient_id + 1}, {nhsnum}. "
         for n in range(notes_per_patient):
-            wstr = " ".join(words[p % nwords:(p + words_per_note) % nwords])
+            wstr = " ".join(words[p % nwords : (p + words_per_note) % nwords])
             note = Note(
                 patient=patient,
                 note=fname + sname + rname + numbers + dates + wstr,
-                note_datetime=incdatetime()
+                note_datetime=incdatetime(),
             )
             session.add(note)
         prev_forename = forename
@@ -556,7 +586,7 @@ Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
 
     # 6. Report size
 
-    if engine.dialect.name == 'mysql':
+    if engine.dialect.name == "mysql":
         log.info("Done. Database size:")
         sql = """
             SELECT

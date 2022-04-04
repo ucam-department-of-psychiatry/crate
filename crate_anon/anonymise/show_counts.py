@@ -48,6 +48,7 @@ log = logging.getLogger(__name__)
 # Show counts
 # =============================================================================
 
+
 def show_source_counts(config: Config) -> None:
     """
     Show (print to stdout) the number of records in all source tables.
@@ -91,6 +92,7 @@ def show_record_counts(config: Config) -> None:
 # Main
 # =============================================================================
 
+
 def main() -> None:
     """
     Command-line entry point.
@@ -98,16 +100,18 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=f"Print record counts from source/destination databases. "
-                    f"({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        f"({CRATE_VERSION_PRETTY})",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
 
     parser.add_argument(
         "--config",
         help=f"Config file (overriding environment variable "
-             f"{ANON_CONFIG_ENV_VAR}).")
+        f"{ANON_CONFIG_ENV_VAR}).",
+    )
     parser.add_argument(
-        '--verbose', '-v', action="store_true",
-        help="Be verbose")
+        "--verbose", "-v", action="store_true", help="Be verbose"
+    )
 
     args = parser.parse_args()
 
@@ -125,4 +129,5 @@ def main() -> None:
     if args.config:
         os.environ[ANON_CONFIG_ENV_VAR] = args.config
     from crate_anon.anonymise.config_singleton import config  # delayed import
+
     show_record_counts(config)

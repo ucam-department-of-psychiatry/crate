@@ -40,6 +40,7 @@ import regex
 # Simple string manipulation
 # =============================================================================
 
+
 def get_digit_string_from_vaguely_numeric_string(s: str) -> str:
     """
     Strips non-digit characters from a string.
@@ -69,6 +70,7 @@ def remove_whitespace(s: str) -> str:
 # Specification matching
 # =============================================================================
 
+
 @lru_cache(maxsize=None)
 def get_spec_match_regex(spec: str) -> Pattern:
     """
@@ -89,10 +91,10 @@ def get_spec_match_regex(spec: str) -> Pattern:
 # Printing/encoding
 # =============================================================================
 
-def uprint(*objects: Any,
-           sep: str = ' ',
-           end: str = '\n',
-           file: TextIO = sys.stdout) -> None:
+
+def uprint(
+    *objects: Any, sep: str = " ", end: str = "\n", file: TextIO = sys.stdout
+) -> None:
     """
     Prints strings to outputs that support UTF-8 encoding, but also to those
     that do not (e.g. Windows stdout, sometimes).
@@ -113,11 +115,13 @@ def uprint(*objects: Any,
     - Windows, Python 3.7.4, from script: ``sys.stdout.encoding == "cp1252"``
     """  # noqa
     enc = file.encoding.lower()
-    if enc == 'utf-8':
+    if enc == "utf-8":
         print(*objects, sep=sep, end=end, file=file)
     else:
+
         def f(obj: Any) -> str:
-            return str(obj).encode(enc, errors='backslashreplace').decode(enc)
+            return str(obj).encode(enc, errors="backslashreplace").decode(enc)
+
         # https://docs.python.org/3.5/library/codecs.html#codec-base-classes
         print(*map(f, objects), sep=sep, end=end, file=file)
 
@@ -125,6 +129,7 @@ def uprint(*objects: Any,
 # =============================================================================
 # String tests
 # =============================================================================
+
 
 def does_text_contain_word_chars(text: str) -> bool:
     """

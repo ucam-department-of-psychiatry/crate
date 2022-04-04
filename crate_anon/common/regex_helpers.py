@@ -65,10 +65,22 @@ OPTIONAL_NONWORD = r"\W*"  # zero or more non-alphanumeric characters...
 OPTIONAL_WHITESPACE = r"\s*"  # zero or more whitespace chars
 OPTIONAL_NON_NEWLINE_WHITESPACE = r"[ \t]*"  # zero or more spaces/tabs
 
-REGEX_METACHARS = ["\\", "^", "$", ".",
-                   "|", "?", "*", "+",
-                   "(", ")", "[", "{",
-                   "#", " "]
+REGEX_METACHARS = [
+    "\\",
+    "^",
+    "$",
+    ".",
+    "|",
+    "?",
+    "*",
+    "+",
+    "(",
+    ")",
+    "[",
+    "{",
+    "#",
+    " ",
+]
 # http://www.regular-expressions.info/characters.html
 # Start with \, for replacement.
 
@@ -86,6 +98,7 @@ _NOT_EMPTY_ALPHABETICAL_ONLY_REGEX = regex.compile("^[a-zA-Z]+$")
 # =============================================================================
 # Helper functions
 # =============================================================================
+
 
 def escape_literal_string_for_regex(s: str) -> str:
     r"""
@@ -172,9 +185,11 @@ def optional_noncapture_group(regex_str: str) -> str:
     return f"(?:{regex_str})?"
 
 
-def regex_or(*regex_strings: str,
-             wrap_each_in_noncapture_group: bool = False,
-             wrap_result_in_noncapture_group: bool = False) -> str:
+def regex_or(
+    *regex_strings: str,
+    wrap_each_in_noncapture_group: bool = False,
+    wrap_result_in_noncapture_group: bool = False,
+) -> str:
     """
     Returns a regex representing an "or" join of the components.
 

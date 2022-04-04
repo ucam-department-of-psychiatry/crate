@@ -526,9 +526,12 @@ def main() -> None:
     Command-line entry point.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--leave_placeholders", action="store_true",
-                        help="Don't substitute @@ placeholders with examples",
-                        default=False)
+    parser.add_argument(
+        "--leave_placeholders",
+        action="store_true",
+        help="Don't substitute @@ placeholders with examples",
+        default=False,
+    )
     args = parser.parse_args()
 
     if args.leave_placeholders:
@@ -597,16 +600,16 @@ def main() -> None:
         missing_dict[f"{match.group(1)}"] = ""
 
     if missing_dict:
-        print("@@ Placeholders not substituted in DEMO_CONFIG:",
-              file=sys.stderr)
+        print(
+            "@@ Placeholders not substituted in DEMO_CONFIG:", file=sys.stderr
+        )
         pprint.pprint(missing_dict, stream=sys.stderr)
         sys.exit(EXIT_FAILURE)
 
     print(config.strip())
 
 
-def search_replace_text(text: str,
-                        replace_dict: Dict[str, str]) -> str:
+def search_replace_text(text: str, replace_dict: Dict[str, str]) -> str:
     for (search, replace) in replace_dict.items():
         if replace is None:
             print(f"Can't replace '{search}' with None")

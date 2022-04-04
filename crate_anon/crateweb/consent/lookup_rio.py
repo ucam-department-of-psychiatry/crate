@@ -61,9 +61,10 @@ from crate_anon.preprocess.rio_constants import (
 # CPFT RiO (raw -> preprocessed by CRATE)
 # -----------------------------------------------------------------------------
 
-def lookup_cpft_rio_crate_preprocessed(lookup: PatientLookup,
-                                       decisions: List[str],
-                                       secret_decisions: List[str]) -> None:
+
+def lookup_cpft_rio_crate_preprocessed(
+    lookup: PatientLookup, decisions: List[str], secret_decisions: List[str]
+) -> None:
     """
     Look up patient details from a CRATE-preprocessed RiO database.
 
@@ -125,17 +126,19 @@ def lookup_cpft_rio_crate_preprocessed(lookup: PatientLookup,
 
         Client_Name_History.End_Date  -- not End_Date_
     """
-    lookup_cpft_rio_generic(lookup, decisions, secret_decisions,
-                            as_crate_not_rcep=True)
+    lookup_cpft_rio_generic(
+        lookup, decisions, secret_decisions, as_crate_not_rcep=True
+    )
 
 
 # -----------------------------------------------------------------------------
 # CPFT RiO as preprocessed by Servelec RCEP tool
 # -----------------------------------------------------------------------------
 
-def lookup_cpft_rio_rcep(lookup: PatientLookup,
-                         decisions: List[str],
-                         secret_decisions: List[str]) -> None:
+
+def lookup_cpft_rio_rcep(
+    lookup: PatientLookup, decisions: List[str], secret_decisions: List[str]
+) -> None:
     """
     Look up patient details from a RiO database that's been preprocessed
     through Servelec's RCEP (RiO CRIS Extraction Program) tool.
@@ -191,8 +194,9 @@ def lookup_cpft_rio_rcep(lookup: PatientLookup,
 
         -- CREATE INDEX _idx_rth_teamdesc ON Referral_Team_History (Team_Description);  # noqa
     """
-    lookup_cpft_rio_generic(lookup, decisions, secret_decisions,
-                            as_crate_not_rcep=False)
+    lookup_cpft_rio_generic(
+        lookup, decisions, secret_decisions, as_crate_not_rcep=False
+    )
 
 
 # -----------------------------------------------------------------------------
@@ -200,10 +204,13 @@ def lookup_cpft_rio_rcep(lookup: PatientLookup,
 # which are extremely similar.
 # -----------------------------------------------------------------------------
 
-def lookup_cpft_rio_generic(lookup: PatientLookup,
-                            decisions: List[str],
-                            secret_decisions: List[str],
-                            as_crate_not_rcep: bool) -> None:
+
+def lookup_cpft_rio_generic(
+    lookup: PatientLookup,
+    decisions: List[str],
+    secret_decisions: List[str],
+    as_crate_not_rcep: bool,
+) -> None:
     """
     Look up patient details from a RiO database, either as a CRATE-processed
     or an RCEP-processed version. (They are very similar.)
@@ -361,8 +368,9 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
 
     """
     cursor = connections[lookup.source_db].cursor()
-    rio_number_field = (CRATE_COL_RIO_NUMBER if as_crate_not_rcep
-                        else RCEP_COL_PATIENT_ID)
+    rio_number_field = (
+        CRATE_COL_RIO_NUMBER if as_crate_not_rcep else RCEP_COL_PATIENT_ID
+    )
 
     # -------------------------------------------------------------------------
     # RiO/RCEP: 1. Get RiO PK
@@ -383,7 +391,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 NHS_Number = %s -- CHAR comparison
                 AND (Deleted_Flag IS NULL OR Deleted_Flag = 0)
         """,
-        [str(lookup.nhs_number)]
+        [str(lookup.nhs_number)],
     )
     # Can't use "NOT Deleted_Flag" with SQL Server; you get
     # "An expression of non-boolean type specified in a context where a
@@ -393,7 +401,8 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     rows = dictfetchall(cursor)
     if not rows:
         decisions.append(
-            "NHS number not found in Client_Demographic_Details table.")
+            "NHS number not found in Client_Demographic_Details table."
+        )
         return
     if len(rows) > 1:
         decisions.append("Two patients found with that NHS number; aborting.")
@@ -403,10 +412,10 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     lookup.pt_local_id_description = "CPFT RiO number"
     lookup.pt_local_id_number = rio_client_id
     secret_decisions.append(f"RiO number: {rio_client_id}.")
-    lookup.pt_dob = to_date(row['Date_of_Birth'])
-    lookup.pt_dod = to_date(row['Date_of_Death'])
-    lookup.pt_dead = bool(lookup.pt_dod or row['Death_Flag'])
-    lookup.pt_sex = "?" if row['Gender_Code'] == "U" else row['Gender_Code']
+    lookup.pt_dob = to_date(row["Date_of_Birth"])
+    lookup.pt_dod = to_date(row["Date_of_Death"])
+    lookup.pt_dead = bool(lookup.pt_dod or row["Death_Flag"])
+    lookup.pt_sex = "?" if row["Gender_Code"] == "U" else row["Gender_Code"]
 
     # -------------------------------------------------------------------------
     # RiO/RCEP: 2. Name
@@ -426,17 +435,18 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 AND (Deleted_Flag IS NULL OR Deleted_Flag = 0)
             ORDER BY Name_Type_Code
         """,  # noqa
-        [rio_client_id]
+        [rio_client_id],
     )
     row = dictfetchone(cursor)
     if not row:
         decisions.append(
-            "No name/address information found in Client_Name_History.")
+            "No name/address information found in Client_Name_History."
+        )
         return
     lookup.pt_found = True
-    lookup.pt_title = row['title'] or ''
-    lookup.pt_first_name = row['Given_Name_1'] or ''
-    lookup.pt_last_name = row['Family_Name'] or ''
+    lookup.pt_title = row["title"] or ""
+    lookup.pt_first_name = row["Given_Name_1"] or ""
+    lookup.pt_last_name = row["Family_Name"] or ""
     # Deal with dodgy case
     lookup.pt_title = lookup.pt_title.title()
     lookup.pt_first_name = lookup.pt_first_name.title()
@@ -463,18 +473,18 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             ORDER BY CASE WHEN Address_Type_Code = 'PRIMARY' THEN '1'
                           ELSE Address_Type_Code END ASC
         """,
-        [rio_client_id]
+        [rio_client_id],
     )
     row = dictfetchone(cursor)
     if not row:
         decisions.append("No address found in Client_Address_History table.")
     else:
-        lookup.pt_address_1 = row['Address_Line_1'] or ''
-        lookup.pt_address_2 = row['Address_Line_2'] or ''
-        lookup.pt_address_3 = row['Address_Line_3'] or ''
-        lookup.pt_address_4 = row['Address_Line_4'] or ''
-        lookup.pt_address_5 = row['Address_Line_5'] or ''
-        lookup.pt_address_6 = row['Post_Code'] or ''
+        lookup.pt_address_1 = row["Address_Line_1"] or ""
+        lookup.pt_address_2 = row["Address_Line_2"] or ""
+        lookup.pt_address_3 = row["Address_Line_3"] or ""
+        lookup.pt_address_4 = row["Address_Line_4"] or ""
+        lookup.pt_address_5 = row["Address_Line_5"] or ""
+        lookup.pt_address_6 = row["Post_Code"] or ""
 
     # -------------------------------------------------------------------------
     # RiO/RCEP: 3b. Patient's e-mail address
@@ -498,12 +508,12 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 -- 6 = Emergency contact
                 -- 8 = Mobile device
         """,
-        [rio_client_id]
+        [rio_client_id],
     )
     rows = dictfetchall(cursor)
     if rows:
         row = rows[0]
-        lookup.pt_email = row['Contact_Details']
+        lookup.pt_email = row["Contact_Details"]
 
     # -------------------------------------------------------------------------
     # RiO/RCEP: 4. GP
@@ -527,22 +537,22 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                     AND GP_From_Date <= GETDATE()
                     AND (GP_To_Date IS NULL OR GP_To_Date > GETDATE())
             """,
-            [rio_client_id]
+            [rio_client_id],
         )
         row = dictfetchone(cursor)
         if not row:
             decisions.append("No GP found in Client_GP_History table.")
         else:
             lookup.gp_found = True
-            lookup.gp_title = row['GP_Title'] or 'Dr'
-            lookup.gp_first_name = row['GP_Forename'] or ''
-            lookup.gp_last_name = row['GP_Surname'] or ''
-            lookup.gp_address_1 = row['GP_Practice_Address_Line_1'] or ''
-            lookup.gp_address_2 = row['GP_Practice_Address_Line_2'] or ''
-            lookup.gp_address_3 = row['GP_Practice_Address_Line_3'] or ''
-            lookup.gp_address_4 = row['GP_Practice_Address_Line_4'] or ''
-            lookup.gp_address_5 = row['GP_Practice_Address_Line_5'] or ''
-            lookup.gp_address_6 = row['GP_Practice_Post_Code']
+            lookup.gp_title = row["GP_Title"] or "Dr"
+            lookup.gp_first_name = row["GP_Forename"] or ""
+            lookup.gp_last_name = row["GP_Surname"] or ""
+            lookup.gp_address_1 = row["GP_Practice_Address_Line_1"] or ""
+            lookup.gp_address_2 = row["GP_Practice_Address_Line_2"] or ""
+            lookup.gp_address_3 = row["GP_Practice_Address_Line_3"] or ""
+            lookup.gp_address_4 = row["GP_Practice_Address_Line_4"] or ""
+            lookup.gp_address_5 = row["GP_Practice_Address_Line_5"] or ""
+            lookup.gp_address_6 = row["GP_Practice_Post_Code"]
     else:
         cursor.execute(
             f"""
@@ -560,21 +570,22 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                     AND GP_From_Date <= GETDATE()
                     AND (GP_To_Date IS NULL OR GP_To_Date > GETDATE())
             """,
-            [rio_client_id]
+            [rio_client_id],
         )
         row = dictfetchone(cursor)
         if not row:
             decisions.append("No GP found in Client_GP_History table.")
         else:
             lookup.gp_found = True
-            lookup.set_gp_name_components(row['GP_Name'] or '',
-                                          decisions, secret_decisions)
-            lookup.gp_address_1 = row['GP_Practice_Address_Line1'] or ''
-            lookup.gp_address_2 = row['GP_Practice_Address_Line2'] or ''
-            lookup.gp_address_3 = row['GP_Practice_Address_Line3'] or ''
-            lookup.gp_address_4 = row['GP_Practice_Address_Line4'] or ''
-            lookup.gp_address_5 = row['GP_Practice_Address_Line5'] or ''
-            lookup.gp_address_6 = row['GP_Practice_Post_code']
+            lookup.set_gp_name_components(
+                row["GP_Name"] or "", decisions, secret_decisions
+            )
+            lookup.gp_address_1 = row["GP_Practice_Address_Line1"] or ""
+            lookup.gp_address_2 = row["GP_Practice_Address_Line2"] or ""
+            lookup.gp_address_3 = row["GP_Practice_Address_Line3"] or ""
+            lookup.gp_address_4 = row["GP_Practice_Address_Line4"] or ""
+            lookup.gp_address_5 = row["GP_Practice_Address_Line5"] or ""
+            lookup.gp_address_6 = row["GP_Practice_Post_code"]
 
     # -------------------------------------------------------------------------
     # RiO/RCEP: 5. Clinician, active v. discharged
@@ -585,19 +596,19 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # (a) Care coordinator?
     #
     if as_crate_not_rcep:
-        care_co_title_field = 'Care_Coordinator_Title'
-        care_co_forename_field = 'Care_Coordinator_First_Name'
-        care_co_surname_field = 'Care_Coordinator_Surname'
-        care_co_email_field = 'Care_Coordinator_Email'
-        care_co_consultant_flag_field = 'Care_Coordinator_Consultant_Flag'
-        care_co_table = 'CPA_Care_Coordinator'
+        care_co_title_field = "Care_Coordinator_Title"
+        care_co_forename_field = "Care_Coordinator_First_Name"
+        care_co_surname_field = "Care_Coordinator_Surname"
+        care_co_email_field = "Care_Coordinator_Email"
+        care_co_consultant_flag_field = "Care_Coordinator_Consultant_Flag"
+        care_co_table = "CPA_Care_Coordinator"
     else:
-        care_co_title_field = 'Care_Coordinator_User_title'
-        care_co_forename_field = 'Care_Coordinator_User_first_name'
-        care_co_surname_field = 'Care_Coordinator_User_surname'
-        care_co_email_field = 'Care_Coordinator_User_email'
-        care_co_consultant_flag_field = 'Care_Coordinator_User_Consultant_Flag'
-        care_co_table = 'CPA_CareCoordinator'
+        care_co_title_field = "Care_Coordinator_User_title"
+        care_co_forename_field = "Care_Coordinator_User_first_name"
+        care_co_surname_field = "Care_Coordinator_User_surname"
+        care_co_email_field = "Care_Coordinator_User_email"
+        care_co_consultant_flag_field = "Care_Coordinator_User_Consultant_Flag"
+        care_co_table = "CPA_CareCoordinator"
     cursor.execute(
         f"""
             SELECT
@@ -613,37 +624,39 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
         """,
-        [rio_client_id]
+        [rio_client_id],
     )
     for row in dictfetchall(cursor):
-        clinicians.append(ClinicianInfoHolder(
-            clinician_type=ClinicianInfoHolder.CARE_COORDINATOR,
-            title=row[care_co_title_field] or '',
-            first_name=row[care_co_forename_field] or '',
-            surname=row[care_co_surname_field] or '',
-            email=row[care_co_email_field] or '',
-            signatory_title="Care coordinator",
-            is_consultant=bool(row[care_co_consultant_flag_field]),
-            start_date=row['Start_Date'],
-            end_date=row['End_Date'],
-        ))
+        clinicians.append(
+            ClinicianInfoHolder(
+                clinician_type=ClinicianInfoHolder.CARE_COORDINATOR,
+                title=row[care_co_title_field] or "",
+                first_name=row[care_co_forename_field] or "",
+                surname=row[care_co_surname_field] or "",
+                email=row[care_co_email_field] or "",
+                signatory_title="Care coordinator",
+                is_consultant=bool(row[care_co_consultant_flag_field]),
+                start_date=row["Start_Date"],
+                end_date=row["End_Date"],
+            )
+        )
     #
     # (b) Active named consultant referral?
     #
     if as_crate_not_rcep:
-        cons_title_field = 'Referred_Consultant_Title'
-        cons_forename_field = 'Referred_Consultant_First_Name'
-        cons_surname_field = 'Referred_Consultant_Surname'
-        cons_email_field = 'Referred_Consultant_Email'
-        cons_consultant_flag_field = 'Referred_Consultant_Consultant_Flag'
-        referral_table = 'Referral'
+        cons_title_field = "Referred_Consultant_Title"
+        cons_forename_field = "Referred_Consultant_First_Name"
+        cons_surname_field = "Referred_Consultant_Surname"
+        cons_email_field = "Referred_Consultant_Email"
+        cons_consultant_flag_field = "Referred_Consultant_Consultant_Flag"
+        referral_table = "Referral"
     else:
-        cons_title_field = 'Referred_Consultant_User_title'
-        cons_forename_field = 'Referred_Consultant_User_first_name'
-        cons_surname_field = 'Referred_Consultant_User_surname'
-        cons_email_field = 'Referred_Consultant_User_email'
-        cons_consultant_flag_field = 'Referred_Consultant_User_Consultant_Flag'
-        referral_table = 'Main_Referral_Data'
+        cons_title_field = "Referred_Consultant_User_title"
+        cons_forename_field = "Referred_Consultant_User_first_name"
+        cons_surname_field = "Referred_Consultant_User_surname"
+        cons_email_field = "Referred_Consultant_User_email"
+        cons_consultant_flag_field = "Referred_Consultant_User_Consultant_Flag"
+        referral_table = "Main_Referral_Data"
     cursor.execute(
         f"""
             SELECT
@@ -659,36 +672,38 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 {rio_number_field} = %s
                 AND Referral_Received_Date <= GETDATE()
         """,
-        [rio_client_id]
+        [rio_client_id],
     )
     for row in dictfetchall(cursor):
-        clinicians.append(ClinicianInfoHolder(
-            clinician_type=ClinicianInfoHolder.CONSULTANT,
-            title=row[cons_title_field] or '',
-            first_name=row[cons_forename_field] or '',
-            surname=row[cons_surname_field] or '',
-            email=row[cons_email_field] or '',
-            signatory_title="Consultant psychiatrist",
-            is_consultant=bool(row[cons_consultant_flag_field]),
-            # ... would be odd if this were not true!
-            start_date=row['Referral_Received_Date'],
-            end_date=row['Removal_DateTime'],
-        ))
+        clinicians.append(
+            ClinicianInfoHolder(
+                clinician_type=ClinicianInfoHolder.CONSULTANT,
+                title=row[cons_title_field] or "",
+                first_name=row[cons_forename_field] or "",
+                surname=row[cons_surname_field] or "",
+                email=row[cons_email_field] or "",
+                signatory_title="Consultant psychiatrist",
+                is_consultant=bool(row[cons_consultant_flag_field]),
+                # ... would be odd if this were not true!
+                start_date=row["Referral_Received_Date"],
+                end_date=row["Removal_DateTime"],
+            )
+        )
     #
     # (c) Active other named staff referral?
     #
     if as_crate_not_rcep:
-        hcp_title_field = 'HCP_Title'
-        hcp_forename_field = 'HCP_First_Name'
-        hcp_surname_field = 'HCP_Surname'
-        hcp_email_field = 'HCP_Email'
-        hcp_consultant_flag_field = 'HCP_Consultant_Flag'
+        hcp_title_field = "HCP_Title"
+        hcp_forename_field = "HCP_First_Name"
+        hcp_surname_field = "HCP_Surname"
+        hcp_email_field = "HCP_Email"
+        hcp_consultant_flag_field = "HCP_Consultant_Flag"
     else:
-        hcp_title_field = 'HCP_User_title'
-        hcp_forename_field = 'HCP_User_first_name'
-        hcp_surname_field = 'HCP_User_surname'
-        hcp_email_field = 'HCP_User_email'
-        hcp_consultant_flag_field = 'HCP_User_Consultant_Flag'
+        hcp_title_field = "HCP_User_title"
+        hcp_forename_field = "HCP_User_first_name"
+        hcp_surname_field = "HCP_User_surname"
+        hcp_email_field = "HCP_User_email"
+        hcp_consultant_flag_field = "HCP_User_Consultant_Flag"
     cursor.execute(
         f"""
             SELECT
@@ -704,20 +719,22 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
         """,
-        [rio_client_id]
+        [rio_client_id],
     )
     for row in dictfetchall(cursor):
-        clinicians.append(ClinicianInfoHolder(
-            clinician_type=ClinicianInfoHolder.HCP,
-            title=row[hcp_title_field] or '',
-            first_name=row[hcp_forename_field] or '',
-            surname=row[hcp_surname_field] or '',
-            email=row[hcp_email_field] or '',
-            signatory_title="Clinician",
-            is_consultant=bool(row[hcp_consultant_flag_field]),
-            start_date=row['Start_Date'],
-            end_date=row['End_Date'],
-        ))
+        clinicians.append(
+            ClinicianInfoHolder(
+                clinician_type=ClinicianInfoHolder.HCP,
+                title=row[hcp_title_field] or "",
+                first_name=row[hcp_forename_field] or "",
+                surname=row[hcp_surname_field] or "",
+                email=row[hcp_email_field] or "",
+                signatory_title="Clinician",
+                is_consultant=bool(row[hcp_consultant_flag_field]),
+                start_date=row["Start_Date"],
+                end_date=row["End_Date"],
+            )
+        )
     #
     # (d) Active team referral?
     #
@@ -732,22 +749,22 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
         """,
-        [rio_client_id]
+        [rio_client_id],
     )
     for row in dictfetchall(cursor):
         team_info = ClinicianInfoHolder(
             clinician_type=ClinicianInfoHolder.TEAM,
-            title='',
-            first_name='',
-            surname='',
-            email='',
+            title="",
+            first_name="",
+            surname="",
+            email="",
             signatory_title="Clinical team member",
             is_consultant=False,
-            start_date=row['Start_Date'],
-            end_date=row['End_Date'],
+            start_date=row["Start_Date"],
+            end_date=row["End_Date"],
         )
         # We know a team - do we have a team representative?
-        team_description = row['Team_Description']
+        team_description = row["Team_Description"]
         team_summary = "{status} team {desc}".format(
             status="active" if team_info.end_date is None else "previous",
             desc=repr(team_description),
@@ -764,10 +781,12 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             team_info.is_consultant = profile.is_consultant
         except ObjectDoesNotExist:
             decisions.append(
-                f"No team representative found for {team_summary}.")
+                f"No team representative found for {team_summary}."
+            )
         except MultipleObjectsReturned:
             decisions.append(
-                f"Confused: >1 team representative found for {team_summary}.")
+                f"Confused: >1 team representative found for {team_summary}."
+            )
         clinicians.append(team_info)
         # We append it even if we can't find a representative, because it still
         # carries information about whether the patient is discharged or not.
@@ -797,28 +816,37 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # from which the patient has been discharged, and ones that are active.
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    decisions.append(f"{len(clinicians)} total past/present "
-                     f"clinician(s)/team(s) found: {clinicians!r}.")
+    decisions.append(
+        f"{len(clinicians)} total past/present "
+        f"clinician(s)/team(s) found: {clinicians!r}."
+    )
     current_clinicians = [c for c in clinicians if c.current()]
     if current_clinicians:
         lookup.pt_discharged = False
         lookup.pt_discharge_date = None
         decisions.append("Patient not discharged.")
-        contactable_curr_clin = [c for c in current_clinicians
-                                 if c.contactable()]
+        contactable_curr_clin = [
+            c for c in current_clinicians if c.contactable()
+        ]
         # Sorting by two keys: https://stackoverflow.com/questions/11206884
         # LOW priority: most recent clinician. (Goes first in sort.)
         # HIGH priority: preferred type of clinician. (Goes last in sort.)
         # Sort order is: most preferred first.
-        contactable_curr_clin.sort(key=attrgetter('start_date'), reverse=True)
-        contactable_curr_clin.sort(key=attrgetter('clinician_preference_order'))  # noqa
-        decisions.append(f"{len(contactable_curr_clin)} contactable active "
-                         f"clinician(s) found.")
+        contactable_curr_clin.sort(key=attrgetter("start_date"), reverse=True)
+        contactable_curr_clin.sort(
+            key=attrgetter("clinician_preference_order")
+        )  # noqa
+        decisions.append(
+            f"{len(contactable_curr_clin)} contactable active "
+            f"clinician(s) found."
+        )
         if contactable_curr_clin:
             chosen_clinician = contactable_curr_clin[0]
             lookup.set_from_clinician_info_holder(chosen_clinician)
-            decisions.append(f"Found active clinician of type: "
-                             f"{chosen_clinician.clinician_type}")
+            decisions.append(
+                f"Found active clinician of type: "
+                f"{chosen_clinician.clinician_type}"
+            )
             return  # All done!
         # If we get here, the patient is not discharged, but we haven't found
         # a contactable active clinician.
@@ -835,15 +863,19 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # LOW priority: preferred type of clinician. (Goes first in sort.)
     # HIGH priority: most recent end date. (Goes last in sort.)
     # Sort order is: most preferred first.
-    contactable_old_clin.sort(key=attrgetter('clinician_preference_order'))
-    contactable_old_clin.sort(key=attrgetter('end_date'), reverse=True)
-    decisions.append(f"{len(contactable_old_clin)} contactable previous "
-                     f"clinician(s) found.")
+    contactable_old_clin.sort(key=attrgetter("clinician_preference_order"))
+    contactable_old_clin.sort(key=attrgetter("end_date"), reverse=True)
+    decisions.append(
+        f"{len(contactable_old_clin)} contactable previous "
+        f"clinician(s) found."
+    )
     if contactable_old_clin:
         chosen_clinician = contactable_old_clin[0]
         lookup.set_from_clinician_info_holder(chosen_clinician)
-        decisions.append(f"Found previous clinician of type: "
-                         f"{chosen_clinician.clinician_type}")
+        decisions.append(
+            f"Found previous clinician of type: "
+            f"{chosen_clinician.clinician_type}"
+        )
 
     if not lookup.clinician_found:
         decisions.append("Failed to establish contactable clinician.")
@@ -872,11 +904,12 @@ NOT_APPLICABLE_UPPER = "N/A"
 
 
 def get_latest_consent_mode_from_rio_generic(
-        nhs_number: int,
-        source_db: str,
-        decisions: List[str],
-        raw_rio: bool = False,
-        cpft_datamart: bool = False) -> Optional[ConsentMode]:
+    nhs_number: int,
+    source_db: str,
+    decisions: List[str],
+    raw_rio: bool = False,
+    cpft_datamart: bool = False,
+) -> Optional[ConsentMode]:
     """
     Returns the latest consent mode for a patient, from some style of RiO
     database.
@@ -992,9 +1025,9 @@ def get_latest_consent_mode_from_rio_generic(
         FROM [dbo].ClientIndex]
 
     """
-    assert sum([raw_rio, cpft_datamart]) == 1, (
-        "Specify exactly one database type to look up from"
-    )
+    assert (
+        sum([raw_rio, cpft_datamart]) == 1
+    ), "Specify exactly one database type to look up from"
     if raw_rio:
         sql = """
             SELECT TOP 1  -- guaranteed to be running SQL Server
@@ -1083,40 +1116,42 @@ def get_latest_consent_mode_from_rio_generic(
         traffic_light = traffic_light.lower()
         if traffic_light not in ConsentMode.VALID_CONSENT_MODES:
             decisions.append(
-                f"Invalid traffic light {traffic_light!r}; ignoring")
+                f"Invalid traffic light {traffic_light!r}; ignoring"
+            )
             return None
 
     if raw_rio:
         # Raw RiO contains codes.
         dmc = row["decision_method_code"]
         if dmc not in DECISION_METHOD_CODE_TO_TEXT.keys():
-            decisions.append(
-                f"Decision method code {dmc!r} unknown; ignoring")
+            decisions.append(f"Decision method code {dmc!r} unknown; ignoring")
             return None
         dm = DECISION_METHOD_CODE_TO_TEXT[dmc]
     else:
         # The CPFT Data Warehouse version contains text.
         dm = row["decision_method"]
         if dm not in DECISION_METHOD_CODE_TO_TEXT.values():
-            decisions.append(
-                f"Decision method {dm!r} unknown; ignoring")
+            decisions.append(f"Decision method {dm!r} unknown; ignoring")
             return None
 
     decision_by_other = (
-        representative_name and
-        representative_name.upper() != NOT_APPLICABLE_UPPER
+        representative_name
+        and representative_name.upper() != NOT_APPLICABLE_UPPER
     )
     # Compare what follows with decision_valid()
     decision_signed_by_patient = False
-    decision_otherwise_directly_authorized_by_patient = (
-        dm in [ADULT_WITH_CAPACITY_TEXT, CHILD_GILLICK_TEXT, CHILD_PARENT_TEXT]
-    )
-    decision_under16_signed_by_parent = (dm == CHILD_PARENT_TEXT)
-    decision_under16_signed_by_clinician = (dm == CHILD_GILLICK_TEXT)
+    decision_otherwise_directly_authorized_by_patient = dm in [
+        ADULT_WITH_CAPACITY_TEXT,
+        CHILD_GILLICK_TEXT,
+        CHILD_PARENT_TEXT,
+    ]
+    decision_under16_signed_by_parent = dm == CHILD_PARENT_TEXT
+    decision_under16_signed_by_clinician = dm == CHILD_GILLICK_TEXT
     # ... the clinician has had to verify Gillick competence
     decision_lack_capacity_signed_by_representative = (
         # not strictly "signed", but authorized directly by
-        dm == ADULT_LACKS_CAPACITY_TEXT and decision_by_other
+        dm == ADULT_LACKS_CAPACITY_TEXT
+        and decision_by_other
     )
     decision_lack_capacity_signed_by_clinician = (
         dm == ADULT_LACKS_CAPACITY_TEXT
@@ -1144,9 +1179,8 @@ def get_latest_consent_mode_from_rio_generic(
 
 
 def get_latest_consent_mode_from_rio_cpft_datamart(
-        nhs_number: int,
-        source_db: str,
-        decisions: List[str]) -> Optional[ConsentMode]:
+    nhs_number: int, source_db: str, decisions: List[str]
+) -> Optional[ConsentMode]:
     """
     Returns the latest consent mode for a patient from the copy of RiO in
     the CPFT data warehouse.
@@ -1170,9 +1204,8 @@ def get_latest_consent_mode_from_rio_cpft_datamart(
 
 
 def get_latest_consent_mode_from_rio_raw(
-        nhs_number: int,
-        source_db: str,
-        decisions: List[str]) -> Optional[ConsentMode]:
+    nhs_number: int, source_db: str, decisions: List[str]
+) -> Optional[ConsentMode]:
     """
     Returns the latest consent mode for a patient from a raw copy of RiO.
 
@@ -1195,10 +1228,8 @@ def get_latest_consent_mode_from_rio_raw(
 
 
 def gen_opt_out_pids_mpids_rio_generic(
-        source_db: str,
-        raw_rio: bool = False,
-        cpft_datamart: bool = False) -> Generator[Tuple[str, str],
-                                                  None, None]:
+    source_db: str, raw_rio: bool = False, cpft_datamart: bool = False
+) -> Generator[Tuple[str, str], None, None]:
     """
     Generates PIDs/MPIDs from all patients opting out, from a RiO database of
     some sort.
@@ -1214,9 +1245,9 @@ def gen_opt_out_pids_mpids_rio_generic(
         tuple: ``rio_number, nhs_number`` for each patient opting out; both are
         in string format
     """
-    assert sum([raw_rio, cpft_datamart]) == 1, (
-        "Specify exactly one database type to look up from"
-    )
+    assert (
+        sum([raw_rio, cpft_datamart]) == 1
+    ), "Specify exactly one database type to look up from"
     if raw_rio:
         sql = """
             SELECT
@@ -1258,8 +1289,9 @@ def gen_opt_out_pids_mpids_rio_generic(
         yield pid, mpid
 
 
-def gen_opt_out_pids_mpids_rio_cpft_datamart(source_db: str) -> Generator[
-        Tuple[str, str], None, None]:
+def gen_opt_out_pids_mpids_rio_cpft_datamart(
+    source_db: str,
+) -> Generator[Tuple[str, str], None, None]:
     """
     Generates PIDs/MPIDs from all patients opting out, from a RiO database that
     is the version in the CPFT data warehouse.
@@ -1273,13 +1305,13 @@ def gen_opt_out_pids_mpids_rio_cpft_datamart(source_db: str) -> Generator[
         in string format
     """
     return gen_opt_out_pids_mpids_rio_generic(
-        source_db=source_db,
-        cpft_datamart=True
+        source_db=source_db, cpft_datamart=True
     )
 
 
-def gen_opt_out_pids_mpids_rio_raw(source_db: str) -> Generator[
-        Tuple[str, str], None, None]:
+def gen_opt_out_pids_mpids_rio_raw(
+    source_db: str,
+) -> Generator[Tuple[str, str], None, None]:
     """
     Generates PIDs/MPIDs from all patients opting out, from a raw RiO database.
 
@@ -1292,6 +1324,5 @@ def gen_opt_out_pids_mpids_rio_raw(source_db: str) -> Generator[
         in string format
     """
     return gen_opt_out_pids_mpids_rio_generic(
-        source_db=source_db,
-        raw_rio=True
+        source_db=source_db, raw_rio=True
     )

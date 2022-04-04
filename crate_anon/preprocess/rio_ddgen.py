@@ -45,6 +45,7 @@ from crate_anon.preprocess.rio_constants import (
 # Default settings for CRATE anonymiser "ddgen_*" fields, for RiO
 # =============================================================================
 
+
 def get_rio_dd_settings(ddhint: DDHint) -> str:
     """
     Draft CRATE config file settings that will allow CRATE to create a RiO

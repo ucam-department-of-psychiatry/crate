@@ -35,6 +35,7 @@ but bear in mind.
 from typing import Any, Dict, Optional, Pattern, Tuple
 
 import regex
+
 # noinspection PyProtectedMember
 from regex import _regex_core
 
@@ -48,8 +49,9 @@ from regex import _regex_core
 # - (?: XXX ) makes XXX into an unnamed group.
 
 
-REGEX_COMPILE_FLAGS = (regex.IGNORECASE | regex.MULTILINE | regex.VERBOSE |
-                       regex.UNICODE)
+REGEX_COMPILE_FLAGS = (
+    regex.IGNORECASE | regex.MULTILINE | regex.VERBOSE | regex.UNICODE
+)
 
 
 def compile_regex(regex_str: str) -> Pattern:
@@ -63,22 +65,21 @@ def compile_regex(regex_str: str) -> Pattern:
         raise
 
 
-def compile_regex_dict(regexstr_to_value_dict: Dict[str, Any]) \
-        -> Dict[Pattern, Any]:
+def compile_regex_dict(
+    regexstr_to_value_dict: Dict[str, Any]
+) -> Dict[Pattern, Any]:
     """
     Converts a dictionary ``{regex_str: value}`` to a dictionary
     ``{compiled_regex: value}``.
     """
-    return {
-        compile_regex(k): v
-        for k, v in regexstr_to_value_dict.items()
-    }
+    return {compile_regex(k): v for k, v in regexstr_to_value_dict.items()}
 
 
-def get_regex_dict_match(text: Optional[str],
-                         regex_to_value_dict: Dict[Pattern, Any],
-                         default: Any = None) \
-        -> Tuple[bool, Any]:
+def get_regex_dict_match(
+    text: Optional[str],
+    regex_to_value_dict: Dict[Pattern, Any],
+    default: Any = None,
+) -> Tuple[bool, Any]:
     """
     Checks text against a set of regular expressions. Returns whether there is
     a match, and if there was a match, the value that was associated (in the

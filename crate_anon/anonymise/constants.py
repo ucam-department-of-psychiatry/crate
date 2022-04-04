@@ -41,14 +41,14 @@ from crate_anon.nlp_manager.constants import DatabaseConfigKeys
 # Logging
 # =============================================================================
 
-LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
+LOG_DATEFMT = "%Y-%m-%d %H:%M:%S"
 
 LOG_COLORS = {
-    'DEBUG': 'cyan',
-    'INFO': 'green',
-    'WARNING': 'yellow',
-    'ERROR': 'red',
-    'CRITICAL': 'red,bg_white',
+    "DEBUG": "cyan",
+    "INFO": "green",
+    "WARNING": "yellow",
+    "ERROR": "red",
+    "CRITICAL": "red,bg_white",
 }
 
 
@@ -72,7 +72,7 @@ DEFAULT_CHUNKSIZE = 100000  # 100k
 # Environment
 # =============================================================================
 
-ANON_CONFIG_ENV_VAR = 'CRATE_ANON_CONFIG'
+ANON_CONFIG_ENV_VAR = "CRATE_ANON_CONFIG"
 
 
 # =============================================================================
@@ -88,16 +88,16 @@ MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 
 # Better overall than string.maketrans:
 ODD_CHARS_TRANSLATE = [chr(x) for x in range(0, 256)]
-for c in '()/ ':
-    ODD_CHARS_TRANSLATE[ord(c)] = '_'
+for c in "()/ ":
+    ODD_CHARS_TRANSLATE[ord(c)] = "_"
 for i in range(0, 32):
-    ODD_CHARS_TRANSLATE[i] = '_'
+    ODD_CHARS_TRANSLATE[i] = "_"
 for i in range(127, 256):
-    ODD_CHARS_TRANSLATE[i] = '_'
+    ODD_CHARS_TRANSLATE[i] = "_"
 ODD_CHARS_TRANSLATE = "".join(ODD_CHARS_TRANSLATE)
 
 TridType = Integer
-MAX_TRID = 2 ** 31 - 1
+MAX_TRID = 2**31 - 1
 # https://dev.mysql.com/doc/refman/5.0/en/numeric-type-overview.html
 # Maximum INT UNSIGNED is              4294967295 == 2 ** 32 - 1.
 # INT range is                        -2147483648 == -(2 **  31) to
@@ -171,11 +171,11 @@ class SrcFlag(StrEnum):
 # Databases
 # =============================================================================
 
-CHARSET = 'utf8'
+CHARSET = "utf8"
 TABLE_KWARGS = {
     # MySQL:
-    'mysql_charset': CHARSET,
-    'mysql_engine': 'InnoDB',
+    "mysql_charset": CHARSET,
+    "mysql_engine": "InnoDB",
 }
 
 MYSQL_MAX_IDENTIFIER_LENGTH = 64
@@ -188,6 +188,7 @@ SQLSERVER_MAX_IDENTIFIER_LENGTH = 128
 # =============================================================================
 # Config keys
 # =============================================================================
+
 
 class AnonymiseConfigKeys:
     # Sections
@@ -206,10 +207,14 @@ class AnonymiseConfigKeys:
     EXTRA_HASH_CONFIG_SECTIONS = "extra_hash_config_sections"
     HASH_METHOD = "hash_method"
     MASTER_PATIENT_ID_ENCRYPTION_PHRASE = "master_patient_id_encryption_phrase"
-    PER_TABLE_PATIENT_ID_ENCRYPTION_PHRASE = "per_table_patient_id_encryption_phrase"  # noqa
+    PER_TABLE_PATIENT_ID_ENCRYPTION_PHRASE = (
+        "per_table_patient_id_encryption_phrase"  # noqa
+    )
 
     # Text extraction
-    EXTRACT_TEXT_EXTENSIONS_CASE_SENSITIVE = "extract_text_extensions_case_sensitive"  # noqa
+    EXTRACT_TEXT_EXTENSIONS_CASE_SENSITIVE = (
+        "extract_text_extensions_case_sensitive"  # noqa
+    )
     EXTRACT_TEXT_EXTENSIONS_PERMITTED = "extract_text_extensions_permitted"
     EXTRACT_TEXT_EXTENSIONS_PROHIBITED = "extract_text_extensions_prohibited"
     EXTRACT_TEXT_PLAIN = "extract_text_plain"
@@ -218,12 +223,24 @@ class AnonymiseConfigKeys:
     # Anonymisation
     ALLOWLIST_FILENAMES = "allowlist_filenames"
     ALLOW_NO_PATIENT_INFO = "allow_no_patient_info"
-    ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY = "anonymise_codes_at_word_boundaries_only"  # noqa
-    ANONYMISE_CODES_AT_NUMERIC_BOUNDARIES_ONLY = "anonymise_codes_at_numeric_boundaries_only"  # noqa
-    ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY = "anonymise_dates_at_word_boundaries_only"  # noqa
-    ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY = "anonymise_numbers_at_numeric_boundaries_only"  # noqa
-    ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY = "anonymise_numbers_at_word_boundaries_only"  # noqa
-    ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY = "anonymise_strings_at_word_boundaries_only"  # noqa
+    ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY = (
+        "anonymise_codes_at_word_boundaries_only"  # noqa
+    )
+    ANONYMISE_CODES_AT_NUMERIC_BOUNDARIES_ONLY = (
+        "anonymise_codes_at_numeric_boundaries_only"  # noqa
+    )
+    ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY = (
+        "anonymise_dates_at_word_boundaries_only"  # noqa
+    )
+    ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY = (
+        "anonymise_numbers_at_numeric_boundaries_only"  # noqa
+    )
+    ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY = (
+        "anonymise_numbers_at_word_boundaries_only"  # noqa
+    )
+    ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY = (
+        "anonymise_strings_at_word_boundaries_only"  # noqa
+    )
     DENYLIST_FILENAMES = "denylist_filenames"
     DENYLIST_FILES_AS_PHRASES = "denylist_files_as_phrases"
     DENYLIST_USE_REGEX = "denylist_use_regex"
@@ -326,7 +343,10 @@ class AnonymiseDatabaseSafeConfigKeys:
     """
     Non-sensitive config keys relating to a specific database.
     """
-    DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER = "ddgen_add_per_table_pids_to_scrubber"  # noqa
+
+    DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER = (
+        "ddgen_add_per_table_pids_to_scrubber"  # noqa
+    )
     DDGEN_ADDITION_ONLY = "ddgen_addition_only"
     DDGEN_ADDITION_ONLY_TABLES = "ddgen_addition_only_tables"
     DDGEN_ALLOW_FULLTEXT_INDEXING = "ddgen_allow_fulltext_indexing"
@@ -334,7 +354,9 @@ class AnonymiseDatabaseSafeConfigKeys:
     DDGEN_BINARY_TO_TEXT_FIELD_PAIRS = "ddgen_binary_to_text_field_pairs"
     DDGEN_CONSTANT_CONTENT = "ddgen_constant_content"
     DDGEN_CONSTANT_CONTENT_TABLES = "ddgen_constant_content_tables"
-    DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE = "ddgen_convert_odd_chars_to_underscore"  # noqa
+    DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE = (
+        "ddgen_convert_odd_chars_to_underscore"  # noqa
+    )
     DDGEN_DELETION_POSSIBLE_TABLES = "ddgen_deletion_possible_tables"
     DDGEN_EXTRA_HASH_FIELDS = "ddgen_extra_hash_fields"
     DDGEN_FIELD_ALLOWLIST = "ddgen_field_allowlist"
@@ -355,20 +377,28 @@ class AnonymiseDatabaseSafeConfigKeys:
     DDGEN_PK_FIELDS = "ddgen_pk_fields"
     DDGEN_RENAME_TABLES_REMOVE_SUFFIXES = "ddgen_rename_tables_remove_suffixes"
     DDGEN_REQUIRED_SCRUBSRC_FIELDS = "ddgen_required_scrubsrc_fields"
-    DDGEN_SAFE_FIELDS_EXEMPT_FROM_SCRUBBING = "ddgen_safe_fields_exempt_from_scrubbing"  # noqa
+    DDGEN_SAFE_FIELDS_EXEMPT_FROM_SCRUBBING = (
+        "ddgen_safe_fields_exempt_from_scrubbing"  # noqa
+    )
     DDGEN_SCRUBMETHOD_CODE_FIELDS = "ddgen_scrubmethod_code_fields"
     DDGEN_SCRUBMETHOD_DATE_FIELDS = "ddgen_scrubmethod_date_fields"
     DDGEN_SCRUBMETHOD_NUMBER_FIELDS = "ddgen_scrubmethod_number_fields"
     DDGEN_SCRUBMETHOD_PHRASE_FIELDS = "ddgen_scrubmethod_phrase_fields"
     DDGEN_SCRUBSRC_PATIENT_FIELDS = "ddgen_scrubsrc_patient_fields"
     DDGEN_SCRUBSRC_THIRDPARTY_FIELDS = "ddgen_scrubsrc_thirdparty_fields"
-    DDGEN_SCRUBSRC_THIRDPARTY_XREF_PID_FIELDS = "ddgen_scrubsrc_thirdparty_xref_pid_fields"  # noqa
-    DDGEN_SKIP_ROW_IF_EXTRACT_TEXT_FAILS_FIELDS = "ddgen_skip_row_if_extract_text_fails_fields"  # noqa
+    DDGEN_SCRUBSRC_THIRDPARTY_XREF_PID_FIELDS = (
+        "ddgen_scrubsrc_thirdparty_xref_pid_fields"  # noqa
+    )
+    DDGEN_SKIP_ROW_IF_EXTRACT_TEXT_FAILS_FIELDS = (
+        "ddgen_skip_row_if_extract_text_fails_fields"  # noqa
+    )
     DDGEN_TABLE_ALLOWLIST = "ddgen_table_allowlist"
     DDGEN_TABLE_DEFINES_PIDS = "ddgen_table_defines_pids"
     DDGEN_TABLE_DENYLIST = "ddgen_table_denylist"
     DDGEN_TABLE_REQUIRE_FIELD_ABSOLUTE = "ddgen_table_require_field_absolute"
-    DDGEN_TABLE_REQUIRE_FIELD_CONDITIONAL = "ddgen_table_require_field_conditional"  # noqa
+    DDGEN_TABLE_REQUIRE_FIELD_CONDITIONAL = (
+        "ddgen_table_require_field_conditional"  # noqa
+    )
     DDGEN_TRUNCATE_DATE_FIELDS = "ddgen_truncate_date_fields"
     DEBUG_LIMITED_TABLES = "debug_limited_tables"
     DEBUG_ROW_LIMIT = "debug_row_limit"
@@ -382,6 +412,7 @@ class AnonymiseDatabaseSafeConfigDefaults:
     """
     Defaults for the keys above
     """
+
     DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER = False
     DDGEN_ADDITION_ONLY = False
     DDGEN_ALLOW_FULLTEXT_INDEXING = True
@@ -399,6 +430,7 @@ class HashConfigKeys:
     """
     Config file keys for defining extra hashers.
     """
+
     HASH_METHOD = "hash_method"
     SECRET_KEY = "secret_key"
 

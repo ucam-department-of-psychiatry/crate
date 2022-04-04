@@ -53,6 +53,7 @@ log = logging.getLogger(__name__)
 # User tests/user profile
 # =============================================================================
 
+
 def is_superuser(user: settings.AUTH_USER_MODEL) -> bool:
     """
     Is the user a superuser?
@@ -95,9 +96,12 @@ def is_clinician(user: settings.AUTH_USER_MODEL) -> bool:
 # Forms
 # =============================================================================
 
-def paginate(request: HttpRequest,
-             all_items: Union[QuerySet, List[Any]],
-             per_page: int = None) -> Page:
+
+def paginate(
+    request: HttpRequest,
+    all_items: Union[QuerySet, List[Any]],
+    per_page: int = None,
+) -> Page:
     """
     Paginate a list or a Django QuerySet.
 
@@ -114,7 +118,7 @@ def paginate(request: HttpRequest,
         per_page = get_per_page(request)
     paginator = Paginator(all_items, per_page)
     # noinspection PyCallByClass,PyArgumentList
-    requested_page = request.GET.get('page')
+    requested_page = request.GET.get("page")
     try:
         return paginator.page(requested_page)
     except PageNotAnInteger:
@@ -127,9 +131,10 @@ def paginate(request: HttpRequest,
 # URL creation
 # =============================================================================
 
-def url_with_querystring(path: str,
-                         querydict: QueryDict = None,
-                         **kwargs: Any) -> str:
+
+def url_with_querystring(
+    path: str, querydict: QueryDict = None, **kwargs: Any
+) -> str:
     """
     Add GET arguments to a URL from named arguments or a QueryDict.
 
@@ -243,6 +248,7 @@ def site_absolute_url(path: str) -> str:
 # Formatting
 # =============================================================================
 
+
 def get_friendly_date(date: datetime.datetime) -> str:
     """
     Returns a string form of a date/datetime.
@@ -252,12 +258,13 @@ def get_friendly_date(date: datetime.datetime) -> str:
     try:
         return date.strftime("%d %B %Y")  # e.g. 03 December 2013
     except Exception as e:
-        raise type(e)(str(e) + f' [value was {date!r}]')
+        raise type(e)(str(e) + f" [value was {date!r}]")
 
 
 # =============================================================================
 # Date/time
 # =============================================================================
+
 
 def string_time_now() -> str:
     """
@@ -269,6 +276,7 @@ def string_time_now() -> str:
 # =============================================================================
 # HTTP Content-Type and MIME types
 # =============================================================================
+
 
 def guess_mimetype(filename: str, default: str = None) -> Optional[str]:
     """
@@ -296,8 +304,10 @@ def javascript_quoted_string_from_html(html: str) -> str:
     We elect to use double-quotes.
     """
     # log.error(f"Before: {html}")
-    x = " ".join(HTML_WHITESPACE.split(html))  # Remove extra whitespace/newlines  # noqa
-    x = x.replace('"', r'\"')  # Escape double quotes
+    x = " ".join(
+        HTML_WHITESPACE.split(html)
+    )  # Remove extra whitespace/newlines  # noqa
+    x = x.replace('"', r"\"")  # Escape double quotes
     x = f'"{x}"'  # Enclose string in double quotes
     # log.critical(f"After: {x}")
     return x
@@ -307,14 +317,18 @@ def javascript_quoted_string_from_html(html: str) -> str:
 # Javascript tree
 # =============================================================================
 
+
 class JavascriptTreeNode(ABC):
     """
     Represents a node of a :class:`JavascriptTree`.
     """
-    def __init__(self,
-                 text: str = "",
-                 node_id: str = "",
-                 children: List["JavascriptTreeNode"] = None) -> None:
+
+    def __init__(
+        self,
+        text: str = "",
+        node_id: str = "",
+        children: List["JavascriptTreeNode"] = None,
+    ) -> None:
         """
         Args:
             text: text to display
@@ -357,9 +371,8 @@ class JavascriptLeafNode(JavascriptTreeNode):
     Represents a leaf node of a :class:`JavascriptTree`, i.e. one that launches
     some action.
     """
-    def __init__(self,
-                 text: str,
-                 action_html: str) -> None:
+
+    def __init__(self, text: str, action_html: str) -> None:
         """
         Args:
             text: text to display
@@ -386,11 +399,14 @@ class JavascriptBranchNode(JavascriptTreeNode):
     Represents a leaf node of a :class:`JavascriptTree`, i.e. one that has
     children but does not itself perform an action.
     """
-    def __init__(self,
-                 text: str,
-                 children: List[JavascriptTreeNode] = None,
-                 branch_class: str = "caret",
-                 child_ul_class: str = "nested") -> None:
+
+    def __init__(
+        self,
+        text: str,
+        children: List[JavascriptTreeNode] = None,
+        branch_class: str = "caret",
+        child_ul_class: str = "nested",
+    ) -> None:
         """
         Args:
             text: text to display
@@ -405,12 +421,12 @@ class JavascriptBranchNode(JavascriptTreeNode):
     def html(self) -> str:
         child_html = "".join(node.html() for node in self.children)
         return (
-            f'<li>'
+            f"<li>"
             f'<span class="{self.branch_class}">{self.text}</span>'
             f'<ul class="{self.child_ul_class}">'
-            f'{child_html}'
-            f'</ul>'
-            f'</li>'
+            f"{child_html}"
+            f"</ul>"
+            f"</li>"
         )
 
     def add_child(self, child: JavascriptTreeNode) -> None:
@@ -456,11 +472,14 @@ class JavascriptTree(JavascriptTreeNode):
         print(t.js_data())
 
     """  # noqa
-    def __init__(self,
-                 tree_id: str,
-                 child_id_prefix: str,
-                 children: List[JavascriptTreeNode] = None,
-                 tree_class: str = "tree") -> None:
+
+    def __init__(
+        self,
+        tree_id: str,
+        child_id_prefix: str,
+        children: List[JavascriptTreeNode] = None,
+        tree_class: str = "tree",
+    ) -> None:
         """
         Args:
             tree_id: CSS ID for this tree
@@ -498,8 +517,8 @@ class JavascriptTree(JavascriptTreeNode):
         child_html = "".join(node.html() for node in self.children)
         return (
             f'<ul class="{self.tree_class}" id="{self.node_id}">'
-            f'{child_html}'
-            f'</ul>'
+            f"{child_html}"
+            f"</ul>"
         )
 
     def js_str_html(self) -> str:

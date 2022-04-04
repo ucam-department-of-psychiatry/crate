@@ -49,6 +49,7 @@ class Command(BaseCommand):
     clinical consent-mode lookup database, and store them in a file (e.g. for
     use by the CRATE anonymiser).
     """
+
     help = (
         "Fetch patient IDs (PIDs) and master patient IDs (MPIDs, e.g. NHS "
         "numbers) from the clinical consent-mode lookup database, and store "
@@ -58,11 +59,15 @@ class Command(BaseCommand):
     def add_arguments(self, parser: ArgumentParser) -> None:
         # docstring in superclass
         parser.add_argument(
-            "--pidfile", required=True,
-            help="Filename to store PIDs in (one line per PID)")
+            "--pidfile",
+            required=True,
+            help="Filename to store PIDs in (one line per PID)",
+        )
         parser.add_argument(
-            "--mpidfile", required=True,
-            help="Filename to store MPIDs in (one line per PID)")
+            "--mpidfile",
+            required=True,
+            help="Filename to store MPIDs in (one line per PID)",
+        )
 
     def handle(self, *args: str, **options: Any) -> None:
         # docstring in superclass
@@ -91,7 +96,8 @@ def fetch_optouts(pid_filename: str, mpid_filename: str) -> None:
     """
     log.info(
         f"Fetching opt-outs from database to files. Storing PIDs to "
-        f"{pid_filename!r}, MPIDs to {mpid_filename!r}.")
+        f"{pid_filename!r}, MPIDs to {mpid_filename!r}."
+    )
     source_db = settings.CLINICAL_LOOKUP_CONSENT_DB
     with open(pid_filename, "w") as pf:
         with open(mpid_filename, "w") as mf:

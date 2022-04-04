@@ -70,16 +70,18 @@ class SqlTests(TestCase):
         assert not matches_tabledef("sometable", "x*y")
 
         assert matches_fielddef("sometable", "somefield", "*.somefield")
-        assert matches_fielddef("sometable", "somefield", "sometable.somefield")
+        assert matches_fielddef(
+            "sometable", "somefield", "sometable.somefield"
+        )
         assert matches_fielddef("sometable", "somefield", "sometable.*")
         assert matches_fielddef("sometable", "somefield", "somefield")
 
         grammar = make_grammar(SqlaDialectName.MYSQL)
-        sql = ("""
+        sql = """
             -- noinspection SqlResolve
             SELECT t1.c1, t2.c2
             FROM t1 INNER JOIN t2 ON t1.k = t2.k
-        """)
+        """
         parsed = grammar.get_select_statement().parseString(sql, parseAll=True)
         log.critical(repr(parsed))
         table_id = get_first_from_table(parsed)
@@ -87,17 +89,17 @@ class SqlTests(TestCase):
 
     def test_text_detection(self) -> None:
         text_types = [
-            'LONGTEXT',
+            "LONGTEXT",
             'NVARCHAR COLLATE "Latin1_General_CI_AS"',
-            'NVARCHAR(5)',
+            "NVARCHAR(5)",
             'NVARCHAR(7) COLLATE "Latin1_General_CI_AS"',
-            'NVARCHAR',  # the result of NVARCHAR(MAX)
-            'TEXT',
+            "NVARCHAR",  # the result of NVARCHAR(MAX)
+            "TEXT",
             'VARCHAR COLLATE "Latin1_General_CI_AS"',
             'VARCHAR(25) COLLATE "Latin1_General_CI_AS"',
-            'VARCHAR(5)',
+            "VARCHAR(5)",
             'VARCHAR(7) COLLATE "Latin1_General_CI_AS"',
-            'VARCHAR',  # the result of VARCHAR(MAX)
+            "VARCHAR",  # the result of VARCHAR(MAX)
         ]
         nontext_types = [
             "BIGINT",
@@ -105,8 +107,12 @@ class SqlTests(TestCase):
             "DATETIME",
         ]
         for sqltype in text_types:
-            self.assertTrue(is_sql_column_type_textual(sqltype),
-                            f"Should be detected as textual: {sqltype}")
+            self.assertTrue(
+                is_sql_column_type_textual(sqltype),
+                f"Should be detected as textual: {sqltype}",
+            )
         for sqltype in nontext_types:
-            self.assertFalse(is_sql_column_type_textual(sqltype),
-                             f"Should be detected as non-textual: {sqltype}")
+            self.assertFalse(
+                is_sql_column_type_textual(sqltype),
+                f"Should be detected as non-textual: {sqltype}",
+            )

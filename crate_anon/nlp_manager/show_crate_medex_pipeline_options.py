@@ -46,14 +46,17 @@ def main() -> None:
     """
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     medex_home = get_envvar_or_die(EnvVar.MEDEX_HOME)
-    check_call_verbose([
-        "java",
-        "-classpath",
-        f"{CratePath.JAVA_CLASSES_DIR}:{medex_home}/bin:{medex_home}/lib/*",
-        "CrateMedexPipeline",
-        "--help",
-        "-v", "-v",
-    ])
+    check_call_verbose(
+        [
+            "java",
+            "-classpath",
+            f"{CratePath.JAVA_CLASSES_DIR}:{medex_home}/bin:{medex_home}/lib/*",  # noqa: E501
+            "CrateMedexPipeline",
+            "--help",
+            "-v",
+            "-v",
+        ]
+    )
 
 
 if __name__ == "__main__":

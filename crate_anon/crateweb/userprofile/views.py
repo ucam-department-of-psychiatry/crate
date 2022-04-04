@@ -47,6 +47,7 @@ if TYPE_CHECKING:
 # http://www.slideshare.net/pydanny/advanced-django-forms-usage
 # ... e.g. slide 72
 
+
 def edit_profile(request: HttpRequest) -> HttpResponse:
     """
     View to edit an extended user profile.
@@ -60,11 +61,13 @@ def edit_profile(request: HttpRequest) -> HttpResponse:
     """
     # noinspection PyUnresolvedReferences
     profile = request.user.profile  # type: UserProfile
-    form = UserProfileForm(request.POST if request.method == 'POST' else None,
-                           instance=profile)
+    form = UserProfileForm(
+        request.POST if request.method == "POST" else None, instance=profile
+    )
     if form.is_valid():
         profile = form.save()
         profile.save()
         return redirect(UrlNames.HOME)
-    return render(request, 'edit_profile.html',
-                  {'form': form, 'profile': profile})
+    return render(
+        request, "edit_profile.html", {"form": form, "profile": profile}
+    )

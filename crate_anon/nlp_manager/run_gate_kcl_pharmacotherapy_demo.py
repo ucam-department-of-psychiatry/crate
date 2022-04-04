@@ -51,22 +51,31 @@ def main() -> None:
     gate_home = get_envvar_or_die(EnvVar.GATE_HOME)
     plugin_file = get_envvar_or_die(EnvVar.CRATE_GATE_PLUGIN_FILE)
     kcl_pharmacotherapy_dir = get_envvar_or_die(EnvVar.KCL_PHARMACOTHERAPY_DIR)
-    check_call_verbose([
-        "java",
-        "-classpath", f"{CratePath.JAVA_CLASSES_DIR}:{gate_home}/lib/*",
-        f"-Dgate.home={gate_home}",
-        "CrateGatePipeline",
-        "--pluginfile", plugin_file,
-        "--gate_app", os.path.join(kcl_pharmacotherapy_dir,
-                                   "application.xgapp"),
-        "--include_set", "Output",
-        "--annotation", "Prescription",
-        "--input_terminator", DEMO_NLP_INPUT_TERMINATOR,
-        "--output_terminator", DEMO_NLP_OUTPUT_TERMINATOR,
-        "--suppress_gate_stdout",
-        "--show_contents_on_crash",
-        "-v", "-v",
-    ])
+    check_call_verbose(
+        [
+            "java",
+            "-classpath",
+            f"{CratePath.JAVA_CLASSES_DIR}:{gate_home}/lib/*",
+            f"-Dgate.home={gate_home}",
+            "CrateGatePipeline",
+            "--pluginfile",
+            plugin_file,
+            "--gate_app",
+            os.path.join(kcl_pharmacotherapy_dir, "application.xgapp"),
+            "--include_set",
+            "Output",
+            "--annotation",
+            "Prescription",
+            "--input_terminator",
+            DEMO_NLP_INPUT_TERMINATOR,
+            "--output_terminator",
+            DEMO_NLP_OUTPUT_TERMINATOR,
+            "--suppress_gate_stdout",
+            "--show_contents_on_crash",
+            "-v",
+            "-v",
+        ]
+    )
 
 
 if __name__ == "__main__":

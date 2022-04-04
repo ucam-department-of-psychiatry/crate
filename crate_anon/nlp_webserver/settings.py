@@ -49,8 +49,9 @@ _DOCGEN_DUMMY_SETTINGS = {
 }
 _DOCGEN_DUMMY_SETTINGS[NlpServerConfigKeys.SQLALCHEMY_URL] = "sqlite://"
 _DOCGEN_DUMMY_SETTINGS[NlpServerConfigKeys.SQLALCHEMY_ECHO] = "false"
-_DOCGEN_DUMMY_SETTINGS[NlpServerConfigKeys.ENCRYPTION_KEY] = \
-    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
+_DOCGEN_DUMMY_SETTINGS[
+    NlpServerConfigKeys.ENCRYPTION_KEY
+] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
 
 if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     # Prevent errors whilst building docs, using dummy settings.
@@ -58,7 +59,8 @@ if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     CONFIG = None  # type: Optional[Configurator]
 else:
     # Real settings.
-    assert SETTINGS_PATH, (
-        f"Missing environment variable {NLP_WEBSERVER_CONFIG_ENVVAR}")
+    assert (
+        SETTINGS_PATH
+    ), f"Missing environment variable {NLP_WEBSERVER_CONFIG_ENVVAR}"
     SETTINGS = get_appsettings(SETTINGS_PATH)  # type: Dict[str, Any]
     CONFIG = Configurator(settings=SETTINGS)

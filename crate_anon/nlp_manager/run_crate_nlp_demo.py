@@ -50,8 +50,10 @@ log = logging.getLogger(__name__)
 # Input
 # =============================================================================
 
-def gen_chunks_from_files(filenames: List[str],
-                          chunk_terminator_line: str) -> Iterable[str]:
+
+def gen_chunks_from_files(
+    filenames: List[str], chunk_terminator_line: str
+) -> Iterable[str]:
     """
     Iterates through filenames (also permitting '-' for stdin).
     Generates multi-line chunks, separated by a terminator.
@@ -93,6 +95,7 @@ def gen_chunks_from_files(filenames: List[str],
 # Processors
 # =============================================================================
 
+
 def get_processors(processor_names: List[str]) -> List[BaseNlpParser]:
     """
     Fetches CRATE NLP processors by name.
@@ -102,10 +105,7 @@ def get_processors(processor_names: List[str]) -> List[BaseNlpParser]:
         cls = get_nlp_parser_class(name)
         if not cls:
             raise ValueError(f"Unknown processor: {name}")
-        processor = cls(
-            nlpdef=None,
-            cfg_processor_name=None
-        )
+        processor = cls(nlpdef=None, cfg_processor_name=None)
         if isinstance(processor, BaseNlpParser):
             processors.append(processor)
         else:
@@ -119,8 +119,8 @@ def get_processors(processor_names: List[str]) -> List[BaseNlpParser]:
 # Do the work
 # =============================================================================
 
-def process_text(text: str,
-                 processors: List[BaseNlpParser]) -> None:
+
+def process_text(text: str, processors: List[BaseNlpParser]) -> None:
     """
     Runs a single pieces of text through multiple NLP processors, and reports
     the output.
@@ -135,16 +135,14 @@ def process_text(text: str,
             results_this_proc = results.setdefault(tablename, [])
             results_this_proc.append(nlp_values)
     pretty = pformat(results)
-    log.info(
-        f"Results:\n"
-        f"{pretty}"
-    )
+    log.info(f"Results:\n" f"{pretty}")
     log.debug("- Text processing complete.")
 
 
 # =============================================================================
 # Main
 # =============================================================================
+
 
 def main() -> None:
     """
@@ -157,26 +155,30 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Demonstrate CRATE's built-in Python NLP tools",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "inputs", type=str, nargs="+",
-        help="Input files (use '-' for stdin)"
+        "inputs", type=str, nargs="+", help="Input files (use '-' for stdin)"
     )
     parser.add_argument(
-        "--terminator", type=str, default=DEMO_NLP_INPUT_TERMINATOR,
-        help="Single-line terminator separating input chunks in an input file."
+        "--terminator",
+        type=str,
+        default=DEMO_NLP_INPUT_TERMINATOR,
+        help=(
+            "Single-line terminator separating input chunks in an input file."
+        ),
     )
     parser.add_argument(
-        "--processors", type=str, required=True, nargs="+",
-        metavar="PROCESSOR", choices=possible_processor_options,
+        "--processors",
+        type=str,
+        required=True,
+        nargs="+",
+        metavar="PROCESSOR",
+        choices=possible_processor_options,
         help=f"NLP processor(s) to apply. Possibilities: "
-             f"{','.join(possible_processor_options)}"
+        f"{','.join(possible_processor_options)}",
     )
-    parser.add_argument(
-        "--verbose", action="store_true",
-        help="Be verbose"
-    )
+    parser.add_argument("--verbose", action="store_true", help="Be verbose")
 
     args = parser.parse_args()
     main_only_quicksetup_rootlogger(
@@ -189,8 +191,8 @@ def main() -> None:
     else:
         processors = get_processors(args.processors)
     for text in gen_chunks_from_files(
-            filenames=args.inputs,
-            chunk_terminator_line=args.terminator):
+        filenames=args.inputs, chunk_terminator_line=args.terminator
+    ):
         if not text:
             continue
         process_text(text, processors)

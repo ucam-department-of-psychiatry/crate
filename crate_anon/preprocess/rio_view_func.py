@@ -46,24 +46,28 @@ from crate_anon.preprocess.rio_constants import (
 # RiO view creators: generic
 # =============================================================================
 
+
 class RioViewConfigOptions(object):
     """
     Simple class to store some command-line options for RiO view creation
     """
-    def __init__(self,
-                 rio: bool,
-                 rcep: bool,
-                 cpft: bool,
-                 print_sql_only: bool,
-                 drop_not_create: bool,
-                 master_patient_table: str,
-                 full_prognotes_table: str,
-                 prognotes_current_only: bool = True,
-                 clindocs_current_only: bool = True,
-                 allergies_current_only: bool = True,
-                 audit_info: bool = False,
-                 postcodedb: str = "",
-                 geogcols: List[str] = None) -> None:
+
+    def __init__(
+        self,
+        rio: bool,
+        rcep: bool,
+        cpft: bool,
+        print_sql_only: bool,
+        drop_not_create: bool,
+        master_patient_table: str,
+        full_prognotes_table: str,
+        prognotes_current_only: bool = True,
+        clindocs_current_only: bool = True,
+        allergies_current_only: bool = True,
+        audit_info: bool = False,
+        postcodedb: str = "",
+        geogcols: List[str] = None,
+    ) -> None:
         """
         Args:
             rio:
@@ -114,11 +118,13 @@ class RioViewConfigOptions(object):
         self.geogcols = geogcols or []  # type: List[str]
 
 
-def lookup_from_fragment(lookup_table: str,
-                         aliased_lookup_table: str,
-                         lookup_pk: str,
-                         basetable: str,
-                         basecolumn: str) -> str:
+def lookup_from_fragment(
+    lookup_table: str,
+    aliased_lookup_table: str,
+    lookup_pk: str,
+    basetable: str,
+    basecolumn: str,
+) -> str:
     """
     Returns ``LEFT JOIN`` SQL to implement a lookup from a system lookup
     table.
@@ -143,12 +149,14 @@ def lookup_from_fragment(lookup_table: str,
     )
 
 
-def lookup_from_fragment_first_row(lookup_table: str,
-                                   aliased_lookup_table: str,
-                                   lookup_key: str,
-                                   lookup_unique_field: str,
-                                   basetable: str,
-                                   basecolumn: str) -> str:
+def lookup_from_fragment_first_row(
+    lookup_table: str,
+    aliased_lookup_table: str,
+    lookup_key: str,
+    lookup_unique_field: str,
+    basetable: str,
+    basecolumn: str,
+) -> str:
     """
     Returns ``LEFT JOIN`` SQL to look up values from a lookup table that might
     give us multiple values and we only want the first. See below.
@@ -214,12 +222,14 @@ def lookup_from_fragment_first_row(lookup_table: str,
     )
 
 
-def lookup_from_fragment_first_row_outer_apply(lookup_fields: Iterable[str],
-                                               lookup_table: str,
-                                               aliased_lookup_table: str,
-                                               lookup_key: str,
-                                               basetable: str,
-                                               basecolumn: str) -> str:
+def lookup_from_fragment_first_row_outer_apply(
+    lookup_fields: Iterable[str],
+    lookup_table: str,
+    aliased_lookup_table: str,
+    lookup_key: str,
+    basetable: str,
+    basecolumn: str,
+) -> str:
     """
     As for :func:`lookup_from_fragment_first_row` (q.v.), but works without a
     unique field in the lookup table.
@@ -249,12 +259,14 @@ def lookup_from_fragment_first_row_outer_apply(lookup_fields: Iterable[str],
     )
 
 
-def simple_lookup_join(viewmaker: ViewMaker,
-                       basecolumn: str,
-                       lookup_table: str,
-                       lookup_pk: str,
-                       lookup_fields_aliases: Dict[str, str],
-                       internal_alias_prefix: str) -> None:
+def simple_lookup_join(
+    viewmaker: ViewMaker,
+    basecolumn: str,
+    lookup_table: str,
+    lookup_pk: str,
+    lookup_fields_aliases: Dict[str, str],
+    internal_alias_prefix: str,
+) -> None:
     """
     Modifies the ViewMaker to add a simple lookup join.
 
@@ -276,24 +288,27 @@ def simple_lookup_join(viewmaker: ViewMaker,
     assert internal_alias_prefix, "Missing internal_alias_prefix"
     aliased_lookup_table = internal_alias_prefix + "_" + lookup_table
     for column, alias in lookup_fields_aliases.items():
-        viewmaker.add_select(
-            f"{aliased_lookup_table}.{column} AS {alias}")
-    viewmaker.add_from(lookup_from_fragment_first_row_outer_apply(
-        lookup_fields=lookup_fields_aliases.keys(),
-        lookup_table=lookup_table,
-        aliased_lookup_table=aliased_lookup_table,
-        lookup_key=lookup_pk,
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn
-    ))
+        viewmaker.add_select(f"{aliased_lookup_table}.{column} AS {alias}")
+    viewmaker.add_from(
+        lookup_from_fragment_first_row_outer_apply(
+            lookup_fields=lookup_fields_aliases.keys(),
+            lookup_table=lookup_table,
+            aliased_lookup_table=aliased_lookup_table,
+            lookup_key=lookup_pk,
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+        )
+    )
     viewmaker.record_lookup_table_keyfield(lookup_table, lookup_pk)
 
 
-def standard_rio_code_lookup(viewmaker: ViewMaker,
-                             basecolumn: str,
-                             lookup_table: str,
-                             column_prefix: str,
-                             internal_alias_prefix: str) -> None:
+def standard_rio_code_lookup(
+    viewmaker: ViewMaker,
+    basecolumn: str,
+    lookup_table: str,
+    column_prefix: str,
+    internal_alias_prefix: str,
+) -> None:
     """
     Implements a standard RiO lookup using a lookup table with ``Code`` /
     ``CodeDescription`` fields.
@@ -313,28 +328,33 @@ def standard_rio_code_lookup(viewmaker: ViewMaker,
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
     aliased_lookup_table = internal_alias_prefix + "_" + lookup_table
-    viewmaker.add_select(f"""
+    viewmaker.add_select(
+        f"""
         {viewmaker.basetable}.{basecolumn} AS {column_prefix}_Code,
         {aliased_lookup_table}.CodeDescription AS {column_prefix}_Description
-    """)
-    lookup_pk = 'Code'
-    viewmaker.add_from(lookup_from_fragment_first_row_outer_apply(
-        lookup_fields=['CodeDescription'],
-        lookup_table=lookup_table,
-        aliased_lookup_table=aliased_lookup_table,
-        lookup_key=lookup_pk,
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn
-    ))
+    """
+    )
+    lookup_pk = "Code"
+    viewmaker.add_from(
+        lookup_from_fragment_first_row_outer_apply(
+            lookup_fields=["CodeDescription"],
+            lookup_table=lookup_table,
+            aliased_lookup_table=aliased_lookup_table,
+            lookup_key=lookup_pk,
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+        )
+    )
     viewmaker.record_lookup_table_keyfield(lookup_table, lookup_pk)
 
 
 def standard_rio_code_lookup_with_national_code(
-        viewmaker: ViewMaker,
-        basecolumn: str,
-        lookup_table: str,
-        column_prefix: str,
-        internal_alias_prefix: str) -> None:
+    viewmaker: ViewMaker,
+    basecolumn: str,
+    lookup_table: str,
+    column_prefix: str,
+    internal_alias_prefix: str,
+) -> None:
     """
     Implements a standard RiO lookup using a lookup table with ``Code``,
     ``CodeDescription``, and ``NationalCode`` fields.
@@ -354,20 +374,24 @@ def standard_rio_code_lookup_with_national_code(
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
     aliased_lookup_table = internal_alias_prefix + "_" + lookup_table
-    viewmaker.add_select(f"""
+    viewmaker.add_select(
+        f"""
         {viewmaker.basetable}.{basecolumn} AS {column_prefix}_Code,
         {aliased_lookup_table}.CodeDescription AS {column_prefix}_Description,
         {aliased_lookup_table}.NationalCode AS {column_prefix}_National_Code
-    """)
-    lookup_pk = 'Code'
-    viewmaker.add_from(lookup_from_fragment_first_row_outer_apply(
-        lookup_fields=['CodeDescription', 'NationalCode'],
-        lookup_table=lookup_table,
-        aliased_lookup_table=aliased_lookup_table,
-        lookup_key=lookup_pk,
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn
-    ))
+    """
+    )
+    lookup_pk = "Code"
+    viewmaker.add_from(
+        lookup_from_fragment_first_row_outer_apply(
+            lookup_fields=["CodeDescription", "NationalCode"],
+            lookup_table=lookup_table,
+            aliased_lookup_table=aliased_lookup_table,
+            lookup_key=lookup_pk,
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+        )
+    )
     viewmaker.record_lookup_table_keyfield(lookup_table, lookup_pk)
 
 
@@ -390,13 +414,11 @@ def view_formatting_dict(viewmaker: ViewMaker) -> Dict[str, str]:
 
     """
     return {
-        'basetable': viewmaker.basetable,
+        "basetable": viewmaker.basetable,
     }
 
 
-def simple_view_expr(viewmaker: ViewMaker,
-                     expr: str,
-                     alias: str) -> None:
+def simple_view_expr(viewmaker: ViewMaker, expr: str, alias: str) -> None:
     """
     Adds a simple SQL expression to a viewmaker.
 
@@ -412,9 +434,9 @@ def simple_view_expr(viewmaker: ViewMaker,
     viewmaker.add_select(formatted_expr + f" AS {alias}")
 
 
-def simple_view_where(viewmaker: ViewMaker,
-                      where_clause: str,
-                      index_cols: Iterable[str] = None) -> None:
+def simple_view_where(
+    viewmaker: ViewMaker, where_clause: str, index_cols: Iterable[str] = None
+) -> None:
     """
     Applies a simple ``WHERE`` clause to a viewmaker.
 
@@ -433,9 +455,11 @@ def simple_view_where(viewmaker: ViewMaker,
         viewmaker.record_lookup_table_keyfield(viewmaker.basetable, col)
 
 
-def add_index_only(viewmaker: ViewMaker,
-                   table: str,
-                   column_or_columns: Union[str, Iterable[str]]) -> None:
+def add_index_only(
+    viewmaker: ViewMaker,
+    table: str,
+    column_or_columns: Union[str, Iterable[str]],
+) -> None:
     """
     Adds an index request to a viewmaker.
 
@@ -452,10 +476,13 @@ def add_index_only(viewmaker: ViewMaker,
 # RiO view creators: specific
 # =============================================================================
 
-def rio_add_user_lookup(viewmaker: ViewMaker,
-                        basecolumn: str,
-                        column_prefix: str = None,
-                        internal_alias_prefix: str = None) -> None:
+
+def rio_add_user_lookup(
+    viewmaker: ViewMaker,
+    basecolumn: str,
+    column_prefix: str = None,
+    internal_alias_prefix: str = None,
+) -> None:
     """
     Adds a user lookup. For example, RiO tables tend to have columns like
     "modified_by_user" with a cryptic ID; this function adds views so we can
@@ -476,7 +503,8 @@ def rio_add_user_lookup(viewmaker: ViewMaker,
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
     # ... table alias
-    viewmaker.add_select("""
+    viewmaker.add_select(
+        """
         {basetable}.{basecolumn} AS {cp}_Code,
 
         {ap}_genhcp.ConsultantFlag AS {cp}_Consultant_Flag,
@@ -502,11 +530,12 @@ def rio_add_user_lookup(viewmaker: ViewMaker,
         {ap}_genorg.Code AS {cp}_Organisation_Type_Code,
         {ap}_genorg.CodeDescription AS {cp}_Organisation_Type_Description
     """.format(  # noqa
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        cp=column_prefix,
-        ap=internal_alias_prefix,
-    ))
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            cp=column_prefix,
+            ap=internal_alias_prefix,
+        )
+    )
     # - RECP had "speciality" / "specialty" inconsistency.
     # - {cp}_location... ?? Presumably from GenLocation, but via what? Seems
     #   meaningless. In our snapshut, all are NULL anyway.
@@ -514,7 +543,8 @@ def rio_add_user_lookup(viewmaker: ViewMaker,
     #   tables, e.g. GenHCP.GenHCPCode; GenPerson.GenPersonID
     # - We use unique table aliases here, so that overall we can make >1 sets
     #   of different "user" joins simultaneously.
-    viewmaker.add_from("""
+    viewmaker.add_from(
+        """
         LEFT JOIN (
             GenUser {ap}_genuser
             LEFT JOIN GenPerson {ap}_genperson
@@ -533,10 +563,11 @@ def rio_add_user_lookup(viewmaker: ViewMaker,
                 ON {ap}_genorg.Code = {ap}_genuser.OrganisationType
         ) ON {ap}_genuser.GenUserID = {basetable}.{basecolumn}
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        ap=internal_alias_prefix,
-    ))
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            ap=internal_alias_prefix,
+        )
+    )
     # OTHER THINGS:
     # - GenHCP.Occupation is listed in the RiO docs but doesn't actually seem
     #   to exist. (Perhaps explaining why it's not linked in the RCEP output.)
@@ -547,22 +578,26 @@ def rio_add_user_lookup(viewmaker: ViewMaker,
     #       WHERE column_name LIKE '%Occup%'
     #   you only get Client_Demographic_Details.Occupation and
     #   Client_Demographic_Details.Partner_Occupation
-    viewmaker.record_lookup_table_keyfields([
-        ('GenHCP', 'GenHCPCode'),
-        ('GenUser', 'GenUserID'),
-        ('GenPerson', 'GenPersonID'),
-        ('GenHCPRCProfession', 'Code'),
-        ('GenServiceTeam', 'Code'),
-        ('GenSpecialty', 'Code'),
-        ('GenStaffProfessionalGroup', 'Code'),
-        ('GenOrganisationType', 'Code'),
-    ])
+    viewmaker.record_lookup_table_keyfields(
+        [
+            ("GenHCP", "GenHCPCode"),
+            ("GenUser", "GenUserID"),
+            ("GenPerson", "GenPersonID"),
+            ("GenHCPRCProfession", "Code"),
+            ("GenServiceTeam", "Code"),
+            ("GenSpecialty", "Code"),
+            ("GenStaffProfessionalGroup", "Code"),
+            ("GenOrganisationType", "Code"),
+        ]
+    )
 
 
-def rio_add_consultant_lookup(viewmaker: ViewMaker,
-                              basecolumn: str,
-                              column_prefix: str = None,
-                              internal_alias_prefix: str = None) -> None:
+def rio_add_consultant_lookup(
+    viewmaker: ViewMaker,
+    basecolumn: str,
+    column_prefix: str = None,
+    internal_alias_prefix: str = None,
+) -> None:
     """
     Adds a user lookup where that lookup is a hospital consultant.
     Compare :func:`rio_add_user_lookup`.
@@ -578,39 +613,47 @@ def rio_add_consultant_lookup(viewmaker: ViewMaker,
     assert basecolumn, "Missing basecolumn"
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
-    viewmaker.add_select("""
+    viewmaker.add_select(
+        """
         {basetable}.{basecolumn} AS {cp}_ID,
         {ap}_cons.Firstname AS {cp}_First_Name,
         {ap}_cons.Surname AS {cp}_Surname,
         {ap}_cons.SpecialtyID AS {cp}_Specialty_Code,
         {ap}_spec.CodeDescription AS {cp}_Specialty_Description
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        cp=column_prefix,
-        ap=internal_alias_prefix,
-    ))
-    viewmaker.add_from("""
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            cp=column_prefix,
+            ap=internal_alias_prefix,
+        )
+    )
+    viewmaker.add_from(
+        """
         LEFT JOIN (
             GenHospitalConsultant {ap}_cons
             LEFT JOIN GenSpecialty {ap}_spec
                 ON {ap}_spec.Code = {ap}_cons.SpecialtyID
         ) ON {ap}_cons.ConsultantID = {basetable}.{basecolumn}
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        ap=internal_alias_prefix,
-    ))
-    viewmaker.record_lookup_table_keyfields([
-        ('GenHospitalConsultant', 'ConsultantID'),
-        ('GenSpecialty', 'Code'),
-    ])
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            ap=internal_alias_prefix,
+        )
+    )
+    viewmaker.record_lookup_table_keyfields(
+        [
+            ("GenHospitalConsultant", "ConsultantID"),
+            ("GenSpecialty", "Code"),
+        ]
+    )
 
 
-def rio_add_team_lookup(viewmaker: ViewMaker,
-                        basecolumn: str,
-                        column_prefix: str = None,
-                        internal_alias_prefix: str = None) -> None:
+def rio_add_team_lookup(
+    viewmaker: ViewMaker,
+    basecolumn: str,
+    column_prefix: str = None,
+    internal_alias_prefix: str = None,
+) -> None:
     """
     Adds a team lookup (from team ID to team details).
 
@@ -625,38 +668,46 @@ def rio_add_team_lookup(viewmaker: ViewMaker,
     assert basecolumn, "Missing basecolumn"
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
-    viewmaker.add_select("""
+    viewmaker.add_select(
+        """
         {basetable}.{basecolumn} AS {cp}_Code,
         {ap}_team.CodeDescription AS {cp}_Description,
         {ap}_classif.Code AS {cp}_Classification_Group_Code,
         {ap}_classif.CodeDescription AS {cp}_Classification_Group_Description
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        cp=column_prefix,
-        ap=internal_alias_prefix,
-    ))
-    viewmaker.add_from("""
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            cp=column_prefix,
+            ap=internal_alias_prefix,
+        )
+    )
+    viewmaker.add_from(
+        """
         LEFT JOIN (
             GenServiceTeam {ap}_team
             INNER JOIN GenServiceTeamClassification {ap}_classif
                 ON {ap}_classif.Code = {ap}_team.ClassificationGroup
         ) ON {basetable}.{basecolumn} = {ap}_team.Code
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        ap=internal_alias_prefix,
-    ))
-    viewmaker.record_lookup_table_keyfields([
-        ('GenServiceTeam', 'Code'),
-        ('GenServiceTeamClassification', 'Code'),
-    ])
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            ap=internal_alias_prefix,
+        )
+    )
+    viewmaker.record_lookup_table_keyfields(
+        [
+            ("GenServiceTeam", "Code"),
+            ("GenServiceTeamClassification", "Code"),
+        ]
+    )
 
 
-def rio_add_carespell_lookup(viewmaker: ViewMaker,
-                             basecolumn: str,
-                             column_prefix: str = None,
-                             internal_alias_prefix: str = None) -> None:
+def rio_add_carespell_lookup(
+    viewmaker: ViewMaker,
+    basecolumn: str,
+    column_prefix: str = None,
+    internal_alias_prefix: str = None,
+) -> None:
     """
     Adds a care spell lookup.
 
@@ -671,7 +722,8 @@ def rio_add_carespell_lookup(viewmaker: ViewMaker,
     assert basecolumn, "Missing basecolumn"
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
-    viewmaker.add_select("""
+    viewmaker.add_select(
+        """
         {basetable}.{basecolumn} AS {cp}_Number,
         {ap}_spell.StartDate AS {cp}_Start_Date,
         {ap}_spell.EndDate AS {cp}_End_Date,
@@ -680,35 +732,42 @@ def rio_add_carespell_lookup(viewmaker: ViewMaker,
         {ap}_spec.CodeDescription AS {cp}_Specialty_Description,
         {ap}_spec.NationalCode AS {cp}_Specialty_National_Code
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        cp=column_prefix,
-        ap=internal_alias_prefix,
-    ))
-    viewmaker.add_from("""
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            cp=column_prefix,
+            ap=internal_alias_prefix,
+        )
+    )
+    viewmaker.add_from(
+        """
         LEFT JOIN (
             ClientCareSpell {ap}_spell
             INNER JOIN GenSpecialty {ap}_spec
                 ON {ap}_spec.Code = {ap}_spell.GenSpecialtyCode
         ) ON {basetable}.{basecolumn} = {ap}_spell.CareSpellNum
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        ap=internal_alias_prefix,
-    ))
-    viewmaker.record_lookup_table_keyfields([
-        ('ClientCareSpell', 'CareSpellNum'),
-        ('GenSpecialty', 'Code'),
-    ])
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            ap=internal_alias_prefix,
+        )
+    )
+    viewmaker.record_lookup_table_keyfields(
+        [
+            ("ClientCareSpell", "CareSpellNum"),
+            ("GenSpecialty", "Code"),
+        ]
+    )
 
 
-def rio_add_diagnosis_lookup(viewmaker: ViewMaker,
-                             basecolumn_scheme: str,
-                             basecolumn_code: str,
-                             alias_scheme: str,
-                             alias_code: str,
-                             alias_description: str,
-                             internal_alias_prefix: str = None) -> None:
+def rio_add_diagnosis_lookup(
+    viewmaker: ViewMaker,
+    basecolumn_scheme: str,
+    basecolumn_code: str,
+    alias_scheme: str,
+    alias_code: str,
+    alias_description: str,
+    internal_alias_prefix: str = None,
+) -> None:
     """
     Adds a diagnosis lookup.
 
@@ -733,19 +792,21 @@ def rio_add_diagnosis_lookup(viewmaker: ViewMaker,
     assert alias_description, "Missing alias_description"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
     internal_alias_prefix = internal_alias_prefix or "t"
-    viewmaker.add_select("""
+    viewmaker.add_select(
+        """
         {basetable}.{basecolumn_scheme} AS {alias_scheme},
         {basetable}.{basecolumn_code} AS {alias_code},
         {ap}_diag.CodeDescription AS {alias_description}
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn_scheme=basecolumn_scheme,
-        alias_scheme=alias_scheme,
-        basecolumn_code=basecolumn_code,
-        alias_code=alias_code,
-        ap=internal_alias_prefix,
-        alias_description=alias_description,
-    ))
+            basetable=viewmaker.basetable,
+            basecolumn_scheme=basecolumn_scheme,
+            alias_scheme=alias_scheme,
+            basecolumn_code=basecolumn_code,
+            alias_code=alias_code,
+            ap=internal_alias_prefix,
+            alias_description=alias_description,
+        )
+    )
     # - RECP had "speciality" / "specialty" inconsistency.
     # - {cp}_location... ?? Presumably from GenLocation, but via what? Seems
     #   meaningless. In our snapshut, all are NULL anyway.
@@ -753,24 +814,29 @@ def rio_add_diagnosis_lookup(viewmaker: ViewMaker,
     #   tables, e.g. GenHCP.GenHCPCode; GenPerson.GenPersonID
     # - We use unique table aliases here, so that overall we can make >1 sets
     #   of different "user" joins simultaneously.
-    viewmaker.add_from("""
+    viewmaker.add_from(
+        """
         LEFT JOIN DiagnosisCode {ap}_diag
             ON {ap}_diag.CodingScheme = {basetable}.{basecolumn_scheme}
             AND {ap}_diag.Code = {basetable}.{basecolumn_code}
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn_scheme=basecolumn_scheme,
-        basecolumn_code=basecolumn_code,
-        ap=internal_alias_prefix,
-    ))
-    viewmaker.record_lookup_table_keyfield('DiagnosisCode', ['CodingScheme',
-                                                             'Code'])
+            basetable=viewmaker.basetable,
+            basecolumn_scheme=basecolumn_scheme,
+            basecolumn_code=basecolumn_code,
+            ap=internal_alias_prefix,
+        )
+    )
+    viewmaker.record_lookup_table_keyfield(
+        "DiagnosisCode", ["CodingScheme", "Code"]
+    )
 
 
-def rio_add_ims_event_lookup(viewmaker: ViewMaker,
-                             basecolumn_event_num: str,
-                             column_prefix: str,
-                             internal_alias_prefix: str) -> None:
+def rio_add_ims_event_lookup(
+    viewmaker: ViewMaker,
+    basecolumn_event_num: str,
+    column_prefix: str,
+    internal_alias_prefix: str,
+) -> None:
     """
     Adds an IMS event lookup. (?)
 
@@ -788,34 +854,41 @@ def rio_add_ims_event_lookup(viewmaker: ViewMaker,
     assert basecolumn_event_num, "Missing basecolumn_event_num"
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
-    viewmaker.add_select("""
+    viewmaker.add_select(
+        """
         {basetable}.{basecolumn_event_num} AS {cp}_Event_Number,
         {ap}_evt.{CRATE_COL_PK} AS {cp}_Inpatient_Stay_PK
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn_event_num=basecolumn_event_num,
-        cp=column_prefix,
-        ap=internal_alias_prefix,
-        CRATE_COL_PK=CRATE_COL_PK,
-    ))
-    viewmaker.add_from("""
+            basetable=viewmaker.basetable,
+            basecolumn_event_num=basecolumn_event_num,
+            cp=column_prefix,
+            ap=internal_alias_prefix,
+            CRATE_COL_PK=CRATE_COL_PK,
+        )
+    )
+    viewmaker.add_from(
+        """
         LEFT JOIN ImsEvent {ap}_evt
             ON {ap}_evt.{CRATE_COL_RIO_NUMBER} = {basetable}.{CRATE_COL_RIO_NUMBER}
             AND {ap}_evt.EventNumber = {basetable}.{basecolumn_event_num}
     """.format(  # noqa
-        basetable=viewmaker.basetable,
-        ap=internal_alias_prefix,
-        CRATE_COL_RIO_NUMBER=CRATE_COL_RIO_NUMBER,
-        basecolumn_event_num=basecolumn_event_num,
-    ))
-    viewmaker.record_lookup_table_keyfield('ImsEvent', [CRATE_COL_RIO_NUMBER,
-                                                        'EventNumber'])
+            basetable=viewmaker.basetable,
+            ap=internal_alias_prefix,
+            CRATE_COL_RIO_NUMBER=CRATE_COL_RIO_NUMBER,
+            basecolumn_event_num=basecolumn_event_num,
+        )
+    )
+    viewmaker.record_lookup_table_keyfield(
+        "ImsEvent", [CRATE_COL_RIO_NUMBER, "EventNumber"]
+    )
 
 
-def rio_add_gp_lookup(viewmaker: ViewMaker,
-                      basecolumn: str,
-                      column_prefix: str,
-                      internal_alias_prefix: str) -> None:
+def rio_add_gp_lookup(
+    viewmaker: ViewMaker,
+    basecolumn: str,
+    column_prefix: str,
+    internal_alias_prefix: str,
+) -> None:
     """
     Adds a general practitioner (GP) lookup.
 
@@ -830,7 +903,8 @@ def rio_add_gp_lookup(viewmaker: ViewMaker,
     assert basecolumn, "Missing basecolumn"
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
-    viewmaker.add_select("""
+    viewmaker.add_select(
+        """
         {basetable}.{basecolumn} AS {cp}_Code,
         {ap}_gp.CodeDescription AS {cp}_Description,
         {ap}_gp.NationalCode AS {cp}_National_Code,
@@ -838,26 +912,31 @@ def rio_add_gp_lookup(viewmaker: ViewMaker,
         {ap}_gp.Forename AS {cp}_Forename,
         {ap}_gp.Surname AS {cp}_Surname
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        cp=column_prefix,
-        ap=internal_alias_prefix,
-    ))
-    viewmaker.add_from("""
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            cp=column_prefix,
+            ap=internal_alias_prefix,
+        )
+    )
+    viewmaker.add_from(
+        """
         LEFT JOIN GenGP {ap}_gp
             ON {ap}_gp.Code = {basetable}.{basecolumn}
     """.format(
-        ap=internal_alias_prefix,
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-    ))
-    viewmaker.record_lookup_table_keyfield('GenGP', 'Code')
+            ap=internal_alias_prefix,
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+        )
+    )
+    viewmaker.record_lookup_table_keyfield("GenGP", "Code")
 
 
-def rio_add_gp_practice_lookup(viewmaker: ViewMaker,
-                               basecolumn: str,
-                               column_prefix: str,
-                               internal_alias_prefix: str) -> None:
+def rio_add_gp_practice_lookup(
+    viewmaker: ViewMaker,
+    basecolumn: str,
+    column_prefix: str,
+    internal_alias_prefix: str,
+) -> None:
     """
     Adds a GP practice lookup.
 
@@ -872,7 +951,8 @@ def rio_add_gp_practice_lookup(viewmaker: ViewMaker,
     assert basecolumn, "Missing basecolumn"
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
-    viewmaker.add_select("""
+    viewmaker.add_select(
+        """
         {basetable}.{basecolumn} AS {cp}_Code,
         {ap}_prac.CodeDescription AS {cp}_Description,
         {ap}_prac.AddressLine1 AS {cp}_Address_Line_1,
@@ -883,26 +963,31 @@ def rio_add_gp_practice_lookup(viewmaker: ViewMaker,
         {ap}_prac.PostCode AS {cp}_Post_Code,
         {ap}_prac.NationalCode AS {cp}_National_Code
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        cp=column_prefix,
-        ap=internal_alias_prefix,
-    ))
-    viewmaker.add_from("""
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            cp=column_prefix,
+            ap=internal_alias_prefix,
+        )
+    )
+    viewmaker.add_from(
+        """
         LEFT JOIN GenGPPractice {ap}_prac
             ON {ap}_prac.Code = {basetable}.{basecolumn}
     """.format(
-        ap=internal_alias_prefix,
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-    ))
-    viewmaker.record_lookup_table_keyfield('GenGPPractice', 'Code')
+            ap=internal_alias_prefix,
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+        )
+    )
+    viewmaker.record_lookup_table_keyfield("GenGPPractice", "Code")
 
 
-def rio_add_gp_lookup_with_practice(viewmaker: ViewMaker,
-                                    basecolumn: str,
-                                    column_prefix: str,
-                                    internal_alias_prefix: str) -> None:
+def rio_add_gp_lookup_with_practice(
+    viewmaker: ViewMaker,
+    basecolumn: str,
+    column_prefix: str,
+    internal_alias_prefix: str,
+) -> None:
     """
     Adds a GP-with-their-practice lookup.
 
@@ -917,8 +1002,9 @@ def rio_add_gp_lookup_with_practice(viewmaker: ViewMaker,
     assert basecolumn, "Missing basecolumn"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
     if column_prefix:
-        column_prefix += '_'
-    viewmaker.add_select("""
+        column_prefix += "_"
+    viewmaker.add_select(
+        """
         {basetable}.{basecolumn} AS {cp}GP_Code,
         {ap}_gp.CodeDescription AS {cp}GP_Description,
         {ap}_gp.NationalCode AS {cp}GP_National_Code,
@@ -935,12 +1021,14 @@ def rio_add_gp_lookup_with_practice(viewmaker: ViewMaker,
         {ap}_prac.PostCode AS {cp}Practice_Post_Code,
         {ap}_prac.NationalCode AS {cp}Practice_National_Code
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        cp=column_prefix,
-        ap=internal_alias_prefix,
-    ))
-    viewmaker.add_from("""
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            cp=column_prefix,
+            ap=internal_alias_prefix,
+        )
+    )
+    viewmaker.add_from(
+        """
         LEFT JOIN (
             GenGP {ap}_gp
             INNER JOIN GenGPGPPractice  -- linking table
@@ -949,15 +1037,18 @@ def rio_add_gp_lookup_with_practice(viewmaker: ViewMaker,
                 ON {ap}_prac.Code = GenGPPractice.GenPracticeCode
         ) ON {ap}_gp.Code = {basetable}.{basecolumn}
     """.format(
-        ap=internal_alias_prefix,
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-    ))
-    viewmaker.record_lookup_table_keyfields([
-        ('GenGP', 'Code'),
-        ('GenGPPractice', 'Code'),
-        ('GenGPGPPractice', 'GenGPCode'),
-    ])
+            ap=internal_alias_prefix,
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+        )
+    )
+    viewmaker.record_lookup_table_keyfields(
+        [
+            ("GenGP", "Code"),
+            ("GenGPPractice", "Code"),
+            ("GenGPGPPractice", "GenGPCode"),
+        ]
+    )
 
 
 def where_prognotes_current(viewmaker: ViewMaker) -> None:
@@ -974,10 +1065,12 @@ def where_prognotes_current(viewmaker: ViewMaker) -> None:
     viewmaker.add_where(
         "({bt}.EnteredInError <> 1 OR {bt}.EnteredInError IS NULL) "
         "AND {bt}.{last_note_col} = 1".format(
-            bt=viewmaker.basetable,
-            last_note_col=CRATE_COL_LAST_NOTE))
-    viewmaker.record_lookup_table_keyfield(viewmaker.basetable,
-                                           'EnteredInError')
+            bt=viewmaker.basetable, last_note_col=CRATE_COL_LAST_NOTE
+        )
+    )
+    viewmaker.record_lookup_table_keyfield(
+        viewmaker.basetable, "EnteredInError"
+    )
     viewmaker.enforce_same_n_rows_as_base = False
     # CRATE_COL_LAST_NOTE already indexed
 
@@ -995,9 +1088,10 @@ def where_clindocs_current(viewmaker: ViewMaker) -> None:
         return
     viewmaker.add_where(
         "{bt}.{last_doc_col} = 1 AND {bt}.DeletedDate IS NULL".format(
-            bt=viewmaker.basetable,
-            last_doc_col=CRATE_COL_LAST_DOC))
-    viewmaker.record_lookup_table_keyfield(viewmaker.basetable, 'DeletedDate')
+            bt=viewmaker.basetable, last_doc_col=CRATE_COL_LAST_DOC
+        )
+    )
+    viewmaker.record_lookup_table_keyfield(viewmaker.basetable, "DeletedDate")
     viewmaker.enforce_same_n_rows_as_base = False
     # CRATE_COL_LAST_DOC already indexed
 
@@ -1013,7 +1107,7 @@ def where_allergies_current(viewmaker: ViewMaker) -> None:
     configoptions = viewmaker.userobj  # type: RioViewConfigOptions
     if not configoptions.allergies_current_only:
         return
-    where_not_deleted_flag(viewmaker, 'Deleted')
+    where_not_deleted_flag(viewmaker, "Deleted")
 
 
 def where_not_deleted_flag(viewmaker: ViewMaker, basecolumn: str) -> None:
@@ -1027,16 +1121,20 @@ def where_not_deleted_flag(viewmaker: ViewMaker, basecolumn: str) -> None:
     assert basecolumn, "Missing basecolumn"
     viewmaker.add_where(
         "({table}.{col} IS NULL OR {table}.{col} = 0)".format(
-            table=viewmaker.basetable, col=basecolumn))
+            table=viewmaker.basetable, col=basecolumn
+        )
+    )
     viewmaker.record_lookup_table_keyfield(viewmaker.basetable, basecolumn)
     viewmaker.enforce_same_n_rows_as_base = False
 
 
-def rio_add_bay_lookup(viewmaker: ViewMaker,
-                       basecolumn_ward: str,
-                       basecolumn_bay: str,
-                       column_prefix: str,
-                       internal_alias_prefix: str) -> None:
+def rio_add_bay_lookup(
+    viewmaker: ViewMaker,
+    basecolumn_ward: str,
+    basecolumn_bay: str,
+    column_prefix: str,
+    internal_alias_prefix: str,
+) -> None:
     """
     Adds a ward bed-bay lookup.
 
@@ -1053,20 +1151,23 @@ def rio_add_bay_lookup(viewmaker: ViewMaker,
     assert basecolumn_bay, "Missing basecolumn_bay"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
     if column_prefix:
-        column_prefix += '_'
-    viewmaker.add_select("""
+        column_prefix += "_"
+    viewmaker.add_select(
+        """
         {basetable}.{basecolumn_ward} AS {cp}Ward_Code,
         {ap}_ward.WardDescription AS {cp}Ward_Description,
         {basetable}.{basecolumn_bay} AS {cp}Bay_Code,
         {ap}_bay.BayDescription AS {cp}Bay_Description
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn_ward=basecolumn_ward,
-        basecolumn_bay=basecolumn_bay,
-        cp=column_prefix,
-        ap=internal_alias_prefix,
-    ))
-    viewmaker.add_from("""
+            basetable=viewmaker.basetable,
+            basecolumn_ward=basecolumn_ward,
+            basecolumn_bay=basecolumn_bay,
+            cp=column_prefix,
+            ap=internal_alias_prefix,
+        )
+    )
+    viewmaker.add_from(
+        """
         LEFT JOIN (
             ImsBay {ap}_bay
             INNER JOIN ImsWard {ap}_ward
@@ -1074,19 +1175,22 @@ def rio_add_bay_lookup(viewmaker: ViewMaker,
         ) ON {ap}_bay.WardCode = {basetable}.{basecolumn_ward}
             AND {ap}_bay.BayCode = {basetable}.{basecolumn_bay}
     """.format(
-        ap=internal_alias_prefix,
-        basetable=viewmaker.basetable,
-        basecolumn_ward=basecolumn_ward,
-        basecolumn_bay=basecolumn_bay,
-    ))
-    viewmaker.record_lookup_table_keyfield('ImsBay', ['WardCode', 'BayCode'])
-    viewmaker.record_lookup_table_keyfield('ImsWard', ['WardCode'])
+            ap=internal_alias_prefix,
+            basetable=viewmaker.basetable,
+            basecolumn_ward=basecolumn_ward,
+            basecolumn_bay=basecolumn_bay,
+        )
+    )
+    viewmaker.record_lookup_table_keyfield("ImsBay", ["WardCode", "BayCode"])
+    viewmaker.record_lookup_table_keyfield("ImsWard", ["WardCode"])
 
 
-def rio_add_location_lookup(viewmaker: ViewMaker,
-                            basecolumn: str,
-                            column_prefix: str,
-                            internal_alias_prefix: str) -> None:
+def rio_add_location_lookup(
+    viewmaker: ViewMaker,
+    basecolumn: str,
+    column_prefix: str,
+    internal_alias_prefix: str,
+) -> None:
     """
     Adds a location (institutional address) lookup.
 
@@ -1101,7 +1205,8 @@ def rio_add_location_lookup(viewmaker: ViewMaker,
     assert basecolumn, "Missing basecolumn"
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
-    viewmaker.add_select("""
+    viewmaker.add_select(
+        """
         {basetable}.{basecolumn} AS {cp}_Code,
         {ap}_loc.CodeDescription AS {cp}_Description,
         {ap}_loc.NationalCode AS {cp}_National_Code,
@@ -1115,30 +1220,35 @@ def rio_add_location_lookup(viewmaker: ViewMaker,
         {ap}_loctype.CodeDescription as {cp}_Type_Description,
         {ap}_loctype.NationalCode as {cp}_Type_National_Code
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        cp=column_prefix,
-        ap=internal_alias_prefix,
-    ))
-    viewmaker.add_from("""
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            cp=column_prefix,
+            ap=internal_alias_prefix,
+        )
+    )
+    viewmaker.add_from(
+        """
         LEFT JOIN (
             GenLocation {ap}_loc
             INNER JOIN GenLocationType {ap}_loctype
                 ON {ap}_loctype.Code = {ap}_loc.LocationType
         ) ON {ap}_loc.Code = {basetable}.{basecolumn}
     """.format(  # noqa
-        ap=internal_alias_prefix,
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-    ))
-    viewmaker.record_lookup_table_keyfield('GenLocation', ['Code'])
-    viewmaker.record_lookup_table_keyfield('GenLocationType', ['Code'])
+            ap=internal_alias_prefix,
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+        )
+    )
+    viewmaker.record_lookup_table_keyfield("GenLocation", ["Code"])
+    viewmaker.record_lookup_table_keyfield("GenLocationType", ["Code"])
 
 
-def rio_add_org_contact_lookup(viewmaker: ViewMaker,
-                               basecolumn: str,
-                               column_prefix: str,
-                               internal_alias_prefix: str) -> None:
+def rio_add_org_contact_lookup(
+    viewmaker: ViewMaker,
+    basecolumn: str,
+    column_prefix: str,
+    internal_alias_prefix: str,
+) -> None:
     """
     Adds an organisation lookup.
 
@@ -1153,7 +1263,8 @@ def rio_add_org_contact_lookup(viewmaker: ViewMaker,
     """
     assert basecolumn, "Missing basecolumn"
     assert column_prefix, "Missing column_prefix"
-    viewmaker.add_select("""
+    viewmaker.add_select(
+        """
         {basetable}.{basecolumn} AS {cp}_ID,
         {ap}_con.ContactType AS {cp}_Contact_Type_Code,
         {ap}_ct.CodeDescription AS {cp}_Contact_Type_Description,
@@ -1184,13 +1295,15 @@ def rio_add_org_contact_lookup(viewmaker: ViewMaker,
         {ap}_org.AddressLine5 AS {cp}_Organisation_Address_Line_5,
         {ap}_org.PostCode AS {cp}_Organisation_Post_Code
     """.format(
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-        cp=column_prefix,
-        ap=internal_alias_prefix,
-    ))
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            cp=column_prefix,
+            ap=internal_alias_prefix,
+        )
+    )
     # Phone/fax/email/comments not in RCEP
-    viewmaker.add_from("""
+    viewmaker.add_from(
+        """
         LEFT JOIN (
             OrgContact {ap}_con
             INNER JOIN OrgContactType {ap}_ct
@@ -1201,16 +1314,19 @@ def rio_add_org_contact_lookup(viewmaker: ViewMaker,
                 ON {ap}_orgtype.Code = {ap}_org.OrganisationType
         ) ON {ap}_con.OrganisationID = {basetable}.{basecolumn}
     """.format(
-        ap=internal_alias_prefix,
-        basetable=viewmaker.basetable,
-        basecolumn=basecolumn,
-    ))
-    viewmaker.record_lookup_table_keyfields([
-        ('OrgContact', 'OrganisationID'),
-        ('OrgContactType', 'Code'),
-        ('OrgOrganisation', 'SequenceID'),
-        ('OrgType', 'Code'),
-    ])
+            ap=internal_alias_prefix,
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+        )
+    )
+    viewmaker.record_lookup_table_keyfields(
+        [
+            ("OrgContact", "OrganisationID"),
+            ("OrgContactType", "Code"),
+            ("OrgOrganisation", "SequenceID"),
+            ("OrgType", "Code"),
+        ]
+    )
 
 
 def rio_amend_standard_noncore(viewmaker: ViewMaker) -> None:
@@ -1225,19 +1341,25 @@ def rio_amend_standard_noncore(viewmaker: ViewMaker) -> None:
         viewmaker: :class:`crate_anon.common.sql.ViewMaker`; will be modified
     """
     # Add user:
-    rio_add_user_lookup(viewmaker, "type12_UpdatedBy",
-                        column_prefix="Updated_By", internal_alias_prefix="ub")
+    rio_add_user_lookup(
+        viewmaker,
+        "type12_UpdatedBy",
+        column_prefix="Updated_By",
+        internal_alias_prefix="ub",
+    )
     # Omit deleted:
-    viewmaker.add_where("{bt}.type12_DeletedDate IS NULL".format(
-        bt=viewmaker.basetable))
-    viewmaker.record_lookup_table_keyfield(viewmaker.basetable,
-                                           'type12_DeletedDate')
+    viewmaker.add_where(
+        "{bt}.type12_DeletedDate IS NULL".format(bt=viewmaker.basetable)
+    )
+    viewmaker.record_lookup_table_keyfield(
+        viewmaker.basetable, "type12_DeletedDate"
+    )
     viewmaker.enforce_same_n_rows_as_base = False
 
 
-def rio_noncore_yn(viewmaker: ViewMaker,
-                   basecolumn: str,
-                   result_alias: str) -> None:
+def rio_noncore_yn(
+    viewmaker: ViewMaker, basecolumn: str, result_alias: str
+) -> None:
     """
     Modifies a standard RiO "non-core" table to map a field using "1 = yes,
     2 = no" encoding to a more conventional Boolean (1 = yes, 0 = no).
@@ -1279,14 +1401,17 @@ def rio_add_audit_info(viewmaker: ViewMaker) -> None:
     """
     ap1 = "_au_cr"
     ap2 = "_au_up"
-    viewmaker.add_select("""
+    viewmaker.add_select(
+        """
         {ap1}_subq.Audit_Created_Date AS Audit_Created_Date,
         {ap2}_subq.Audit_Updated_Date AS Audit_Updated_Date
     """.format(
-        ap1=ap1,
-        ap2=ap2,
-    ))
-    viewmaker.add_from("""
+            ap1=ap1,
+            ap2=ap2,
+        )
+    )
+    viewmaker.add_from(
+        """
         LEFT JOIN (
             SELECT {ap1}_audit.RowID,
                 MIN({ap1}_audit.ActionDateTime) AS Audit_Created_Date
@@ -1310,16 +1435,19 @@ def rio_add_audit_info(viewmaker: ViewMaker) -> None:
         ) {ap2}_subq
             ON {ap2}_subq.RowID = {basetable}.{CRATE_COL_PK}
     """.format(
-        ap1=ap1,
-        ap2=ap2,
-        basetable=viewmaker.basetable,
-        literal=sql_string_literal(viewmaker.basetable),
-        CRATE_COL_PK=CRATE_COL_PK,
-    ))
-    viewmaker.record_lookup_table_keyfields([
-        ('AuditTrail', ['AuditAction', 'RowID', 'TableNumber']),
-        ('GenTable', 'GenTableCode'),
-    ])
+            ap1=ap1,
+            ap2=ap2,
+            basetable=viewmaker.basetable,
+            literal=sql_string_literal(viewmaker.basetable),
+            CRATE_COL_PK=CRATE_COL_PK,
+        )
+    )
+    viewmaker.record_lookup_table_keyfields(
+        [
+            ("AuditTrail", ["AuditAction", "RowID", "TableNumber"]),
+            ("GenTable", "GenTableCode"),
+        ]
+    )
     # AuditTrail indexes based on SQL Server recommendations (Query -> Analyze
     # Query in Database Engine Tuning Advisor -> ... -> Recommendations ->
     # Index Recommendations -> Definition). Specifically:

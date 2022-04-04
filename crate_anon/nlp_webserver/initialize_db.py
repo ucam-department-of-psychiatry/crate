@@ -49,12 +49,13 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(
         description="Tool to initialize the database used by CRATE's "
-                    "implementation of an NLPRP server."
+        "implementation of an NLPRP server."
     )
     parser.add_argument(
-        "config_uri", type=str,
+        "config_uri",
+        type=str,
         help="Config file to read (e.g. 'development.ini'); URL of database "
-             "is found here."
+        "is found here.",
     )
     args = parser.parse_args()
     main_only_quicksetup_rootlogger()
@@ -62,8 +63,9 @@ def main() -> None:
     config_file = args.config_uri
     log.debug(f"Settings file: {config_file}")
     settings = get_appsettings(config_file)
-    engine = engine_from_config(settings,
-                                NlpServerConfigKeys.SQLALCHEMY_PREFIX)
+    engine = engine_from_config(
+        settings, NlpServerConfigKeys.SQLALCHEMY_PREFIX
+    )
     sqla_url = get_safe_url_from_engine(engine)
     log.info(f"Using database {sqla_url!r}")
     dbsession.configure(bind=engine)

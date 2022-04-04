@@ -6,13 +6,16 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('research', '0008_query_display'),
+        ("research", "0008_query_display"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='query',
-            name='no_null',
-            field=models.BooleanField(default=False, verbose_name='Omit Null columns for this query when displayed'),  # nopep8
+            model_name="query",
+            name="no_null",
+            field=models.BooleanField(
+                default=False,
+                verbose_name="Omit Null columns for this query when displayed",
+            ),  # nopep8
         ),
     ]

@@ -39,6 +39,7 @@ class Command(BaseCommand):
     """
     Django management command to populate the database with leaflet entries.
     """
+
     help = "Populate the database with leaflet entries if necessary"
 
     def handle(self, *args: str, **options: Any) -> None:

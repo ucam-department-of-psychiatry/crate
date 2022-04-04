@@ -55,10 +55,12 @@ N_STAGES = 6
 # TimelyDDFilter
 # =============================================================================
 
+
 class TimelyDDFilter:
     """
     Base class for specific data dictionary filters to inherit from.
     """
+
     def __init__(self) -> None:
         # Tables to exclude at all times:
         self.exclude_tables = []  # type: List[TableCriterion]

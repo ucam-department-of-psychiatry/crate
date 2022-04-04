@@ -36,7 +36,13 @@ class UserProfileForm(ModelForm):
     """
     Form to edit a :class:`crate_anon.crateweb.userprofile.models.UserProfile`.
     """
+
     class Meta:
         model = UserProfile
-        fields = ['per_page', 'patients_per_page',
-                  'line_length', 'collapse_at_len', 'collapse_at_n_lines']
+        fields = [
+            "per_page",
+            "patients_per_page",
+            "line_length",
+            "collapse_at_len",
+            "collapse_at_n_lines",
+        ]

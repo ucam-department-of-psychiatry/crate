@@ -478,11 +478,13 @@ MEDEX_MAX_NECESSITY_LENGTH = 50  # guess
 # Medex
 # =============================================================================
 
+
 class PseudoTempDir(object):
     """
     This class exists so that a TemporaryDirectory and a manually specified
     directory can be addressed via the same (very simple!) interface.
     """
+
     def __init__(self, name: str) -> None:
         self.name = name
 
@@ -492,12 +494,15 @@ class Medex(BaseNlpParser):
     Class controlling a Medex-UIMA external process, via our custom Java
     interface, ``CrateMedexPipeline.java``.
     """
+
     uses_external_tool = True
 
-    def __init__(self,
-                 nlpdef: NlpDefinition,
-                 cfg_processor_name: str,
-                 commit: bool = False) -> None:
+    def __init__(
+        self,
+        nlpdef: NlpDefinition,
+        cfg_processor_name: str,
+        commit: bool = False,
+    ) -> None:
         """
         Args:
             nlpdef:
@@ -513,7 +518,7 @@ class Medex(BaseNlpParser):
             nlpdef=nlpdef,
             cfg_processor_name=cfg_processor_name,
             commit=commit,
-            friendly_name="MedEx"
+            friendly_name="MedEx",
         )
 
         if nlpdef is None:  # only None for debugging!
@@ -527,29 +532,31 @@ class Medex(BaseNlpParser):
             self._debug_mode = False
 
             self._tablename = self._cfgsection.opt_str(
-                ProcessorConfigKeys.DESTTABLE,
-                required=True)
+                ProcessorConfigKeys.DESTTABLE, required=True
+            )
 
             self._max_external_prog_uses = self._cfgsection.opt_int_positive(
-                ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
-                default=0)
+                ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES, default=0
+            )
 
             self._progenvsection = self._cfgsection.opt_str(
-                ProcessorConfigKeys.PROGENVSECTION)
+                ProcessorConfigKeys.PROGENVSECTION
+            )
 
             if self._progenvsection:
                 # noinspection PyTypeChecker
-                self._env = nlpdef.get_env_dict(self._progenvsection,
-                                                os.environ)
+                self._env = nlpdef.get_env_dict(
+                    self._progenvsection, os.environ
+                )
             else:
                 self._env = os.environ.copy()
-            self._env["NLPLOGTAG"] = nlpdef.logtag or '.'
+            self._env["NLPLOGTAG"] = nlpdef.logtag or "."
             # ... because passing a "-lt" switch with no parameter will make
             # CrateGatePipeline.java complain and stop
 
             progargs = self._cfgsection.opt_str(
-                ProcessorConfigKeys.PROGARGS,
-                required=True)
+                ProcessorConfigKeys.PROGARGS, required=True
+            )
 
         if USE_TEMP_DIRS:
             self._inputdir = tempfile.TemporaryDirectory()
@@ -561,35 +568,47 @@ class Medex(BaseNlpParser):
         else:
             homedir = os.path.expanduser("~")
             self._inputdir = PseudoTempDir(
-                os.path.join(homedir, "medextemp", "input"))
+                os.path.join(homedir, "medextemp", "input")
+            )
             mkdir_p(self._inputdir.name)
             self._outputdir = PseudoTempDir(
-                os.path.join(homedir, "medextemp", "output"))
+                os.path.join(homedir, "medextemp", "output")
+            )
             mkdir_p(self._outputdir.name)
             self._workingdir = PseudoTempDir(
-                os.path.join(homedir, "medextemp", "working"))
+                os.path.join(homedir, "medextemp", "working")
+            )
             mkdir_p(self._workingdir.name)
 
         formatted_progargs = progargs.format(**self._env)
         self._progargs = shlex.split(formatted_progargs)
-        self._progargs.extend([
-            "-data_ready_signal", MEDEX_DATA_READY_SIGNAL,
-            "-results_ready_signal", MEDEX_RESULTS_READY_SIGNAL,
-            "-i", self._inputdir.name,
-            "-o", self._outputdir.name,
-        ])
+        self._progargs.extend(
+            [
+                "-data_ready_signal",
+                MEDEX_DATA_READY_SIGNAL,
+                "-results_ready_signal",
+                MEDEX_RESULTS_READY_SIGNAL,
+                "-i",
+                self._inputdir.name,
+                "-o",
+                self._outputdir.name,
+            ]
+        )
 
         self._n_uses = 0
-        self._pipe_encoding = 'utf8'
-        self._file_encoding = 'utf8'
+        self._pipe_encoding = "utf8"
+        self._file_encoding = "utf8"
         self._p = None  # the subprocess
         self._started = False
 
     @classmethod
     def print_info(cls, file: TextIO = sys.stdout) -> None:
         # docstring in superclass
-        print("NLP class to talk to MedEx-UIMA, a medication-finding tool "
-              "(https://www.ncbi.nlm.nih.gov/pubmed/25954575).", file=file)
+        print(
+            "NLP class to talk to MedEx-UIMA, a medication-finding tool "
+            "(https://www.ncbi.nlm.nih.gov/pubmed/25954575).",
+            file=file,
+        )
 
     # -------------------------------------------------------------------------
     # External process control
@@ -606,8 +625,10 @@ class Medex(BaseNlpParser):
 
         # Nasty MedEx hacks
         cwd = os.getcwd()
-        log.info(f"For MedEx's benefit, changing to directory: "
-                 f"{self._workingdir.name}")
+        log.info(
+            f"For MedEx's benefit, changing to directory: "
+            f"{self._workingdir.name}"
+        )
         os.chdir(self._workingdir.name)
         sentsdir = os.path.join(self._workingdir.name, "sents")
         log.info(f"Making temporary sentences directory: {sentsdir}")
@@ -617,12 +638,14 @@ class Medex(BaseNlpParser):
         mkdir_p(logdir)
 
         log.info(f"Launching command: {cmdline_quote(args)}")
-        self._p = subprocess.Popen(args,
-                                   stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE,
-                                   # stderr=subprocess.PIPE,
-                                   shell=False,
-                                   bufsize=1)
+        self._p = subprocess.Popen(
+            args,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            # stderr=subprocess.PIPE,
+            shell=False,
+            bufsize=1,
+        )
         # ... don't ask for stderr to be piped if you don't want it; firstly,
         # there's a risk that if you don't consume it, something hangs, and
         # secondly if you don't consume it, you see it on the console, which is
@@ -662,7 +685,7 @@ class Medex(BaseNlpParser):
         """
         if not self._started:
             return
-        self._p.communicate()  # close p.stdout, wait for the subprocess to exit
+        self._p.communicate()  # close p.stdout, wait for the subprocess to exit  # noqa: E501
         self._started = False
 
     def _signal_data_ready(self) -> bool:
@@ -714,8 +737,9 @@ class Medex(BaseNlpParser):
     # Input processing
     # -------------------------------------------------------------------------
 
-    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
-                                            None, None]:
+    def parse(
+        self, text: str
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         """
         - Send text to the external process, and receive the result.
         - Note that associated data is not passed into this function, and is
@@ -738,13 +762,16 @@ class Medex(BaseNlpParser):
         # ... MedEx gives output files the SAME NAME as input files.
 
         try:
-            with open(inputfilename, mode='w',
-                      encoding=self._file_encoding) as infile:
+            with open(
+                inputfilename, mode="w", encoding=self._file_encoding
+            ) as infile:
                 # log.critical(f"text: {repr(text)}")
                 infile.write(text)
 
-            if (not self._signal_data_ready() or  # send
-                    not self._await_results_ready()):  # receive
+            if (
+                not self._signal_data_ready()
+                or not self._await_results_ready()  # send
+            ):  # receive
                 log.critical("Subprocess terminated unexpectedly")
                 os.remove(inputfilename)
                 # We were using "log.critical()" and "return", but if the Medex
@@ -752,10 +779,12 @@ class Medex(BaseNlpParser):
                 # over thousands of records over many hours before the failure
                 # is obvious. Changed 2017-03-17.
                 raise ValueError(
-                    "Java interface to Medex failed - miconfigured?")
+                    "Java interface to Medex failed - miconfigured?"
+                )
 
-            with open(outputfilename, mode='r',
-                      encoding=self._file_encoding) as infile:
+            with open(
+                outputfilename, mode="r", encoding=self._file_encoding
+            ) as infile:
                 resultlines = infile.readlines()
             for line in resultlines:
                 # log.critical(f"received: {line}")
@@ -771,7 +800,7 @@ class Medex(BaseNlpParser):
                 # NOTE that the text can contain | characters. So work from the
                 # right.
                 line = line.rstrip()  # remove any trailing newline
-                fields = line.split('|')
+                fields = line.split("|")
                 if len(fields) < 14:
                     log.warning(f"Bad result received: {line!r}")
                     continue
@@ -781,74 +810,88 @@ class Medex(BaseNlpParser):
                 generic_code = self.int_or_none(fields[-2])
                 rx_code = self.int_or_none(fields[-3])
                 umls_code = self.str_or_none(fields[-4])
-                (necessity, necessity_startpos, necessity_endpos) = \
-                    self.get_text_start_end(fields[-5])
-                (duration, duration_startpos, duration_endpos) = \
-                    self.get_text_start_end(fields[-6])
-                (_freq_text, frequency_startpos, frequency_endpos) = \
-                    self.get_text_start_end(fields[-7])
-                frequency, frequency_timex = \
-                    self.frequency_and_timex(_freq_text)
-                (route, route_startpos, route_endpos) = \
-                    self.get_text_start_end(fields[-8])
-                (dose_amount, dose_amount_startpos, dose_amount_endpos) = \
-                    self.get_text_start_end(fields[-9])
-                (strength, strength_startpos, strength_endpos) = \
-                    self.get_text_start_end(fields[-10])
-                (form, form_startpos, form_endpos) = \
-                    self.get_text_start_end(fields[-11])
-                (brand, brand_startpos, brand_endpos) = \
-                    self.get_text_start_end(fields[-12])
-                (drug, drug_startpos, drug_endpos) = \
-                    self.get_text_start_end(fields[-13])
-                _start_bit = '|'.join(fields[0:-13])
-                _index_text, sent_text = _start_bit.split('\t', maxsplit=1)
+                (
+                    necessity,
+                    necessity_startpos,
+                    necessity_endpos,
+                ) = self.get_text_start_end(fields[-5])
+                (
+                    duration,
+                    duration_startpos,
+                    duration_endpos,
+                ) = self.get_text_start_end(fields[-6])
+                (
+                    _freq_text,
+                    frequency_startpos,
+                    frequency_endpos,
+                ) = self.get_text_start_end(fields[-7])
+                frequency, frequency_timex = self.frequency_and_timex(
+                    _freq_text
+                )
+                (
+                    route,
+                    route_startpos,
+                    route_endpos,
+                ) = self.get_text_start_end(fields[-8])
+                (
+                    dose_amount,
+                    dose_amount_startpos,
+                    dose_amount_endpos,
+                ) = self.get_text_start_end(fields[-9])
+                (
+                    strength,
+                    strength_startpos,
+                    strength_endpos,
+                ) = self.get_text_start_end(fields[-10])
+                (form, form_startpos, form_endpos) = self.get_text_start_end(
+                    fields[-11]
+                )
+                (
+                    brand,
+                    brand_startpos,
+                    brand_endpos,
+                ) = self.get_text_start_end(fields[-12])
+                (drug, drug_startpos, drug_endpos) = self.get_text_start_end(
+                    fields[-13]
+                )
+                _start_bit = "|".join(fields[0:-13])
+                _index_text, sent_text = _start_bit.split("\t", maxsplit=1)
                 index = self.int_or_none(_index_text)
                 yield self._tablename, {
-                    'sentence_index': index,
-                    'sentence_text': sent_text,
-
-                    'drug': drug,
-                    'drug_startpos': drug_startpos,
-                    'drug_endpos': drug_endpos,
-
-                    'brand': brand,
-                    'brand_startpos': brand_startpos,
-                    'brand_endpos': brand_endpos,
-
-                    'form': form,
-                    'form_startpos': form_startpos,
-                    'form_endpos': form_endpos,
-
-                    'strength': strength,
-                    'strength_startpos': strength_startpos,
-                    'strength_endpos': strength_endpos,
-
-                    'dose_amount': dose_amount,
-                    'dose_amount_startpos': dose_amount_startpos,
-                    'dose_amount_endpos': dose_amount_endpos,
-
-                    'route': route,
-                    'route_startpos': route_startpos,
-                    'route_endpos': route_endpos,
-
-                    'frequency': frequency,
-                    'frequency_startpos': frequency_startpos,
-                    'frequency_endpos': frequency_endpos,
-                    'frequency_timex3': frequency_timex,
-
-                    'duration': duration,
-                    'duration_startpos': duration_startpos,
-                    'duration_endpos': duration_endpos,
-
-                    'necessity': necessity,
-                    'necessity_startpos': necessity_startpos,
-                    'necessity_endpos': necessity_endpos,
-
-                    'umls_code': umls_code,
-                    'rx_code': rx_code,
-                    'generic_code': generic_code,
-                    'generic_name': generic_name,
+                    "sentence_index": index,
+                    "sentence_text": sent_text,
+                    "drug": drug,
+                    "drug_startpos": drug_startpos,
+                    "drug_endpos": drug_endpos,
+                    "brand": brand,
+                    "brand_startpos": brand_startpos,
+                    "brand_endpos": brand_endpos,
+                    "form": form,
+                    "form_startpos": form_startpos,
+                    "form_endpos": form_endpos,
+                    "strength": strength,
+                    "strength_startpos": strength_startpos,
+                    "strength_endpos": strength_endpos,
+                    "dose_amount": dose_amount,
+                    "dose_amount_startpos": dose_amount_startpos,
+                    "dose_amount_endpos": dose_amount_endpos,
+                    "route": route,
+                    "route_startpos": route_startpos,
+                    "route_endpos": route_endpos,
+                    "frequency": frequency,
+                    "frequency_startpos": frequency_startpos,
+                    "frequency_endpos": frequency_endpos,
+                    "frequency_timex3": frequency_timex,
+                    "duration": duration,
+                    "duration_startpos": duration_startpos,
+                    "duration_endpos": duration_endpos,
+                    "necessity": necessity,
+                    "necessity_startpos": necessity_startpos,
+                    "necessity_endpos": necessity_endpos,
+                    "umls_code": umls_code,
+                    "rx_code": rx_code,
+                    "generic_code": generic_code,
+                    "generic_name": generic_name,
                 }
 
             # Since MedEx scans all files in the input directory, then if we're
@@ -857,10 +900,14 @@ class Medex(BaseNlpParser):
             os.remove(inputfilename)
 
             # Restart subprocess?
-            if (self._max_external_prog_uses > 0 and
-                    self._n_uses % self._max_external_prog_uses == 0):
-                log.info(f"relaunching app after "
-                         f"{self._max_external_prog_uses} uses")
+            if (
+                self._max_external_prog_uses > 0
+                and self._n_uses % self._max_external_prog_uses == 0
+            ):
+                log.info(
+                    f"relaunching app after "
+                    f"{self._max_external_prog_uses} uses"
+                )
                 self._restart()
 
         except BrokenPipeError:
@@ -869,9 +916,9 @@ class Medex(BaseNlpParser):
             raise TextProcessingFailed()
 
     @staticmethod
-    def get_text_start_end(medex_str: Optional[str]) -> Tuple[Optional[str],
-                                                              Optional[int],
-                                                              Optional[int]]:
+    def get_text_start_end(
+        medex_str: Optional[str],
+    ) -> Tuple[Optional[str], Optional[int], Optional[int]]:
         """
         MedEx returns "drug", "strength", etc. as ``aspirin[7,14]``, where the
         text is followed by the start position (zero-indexed) and the end
@@ -887,15 +934,15 @@ class Medex(BaseNlpParser):
         """
         if not medex_str:
             return None, None, None
-        lbracket = medex_str.rfind('[')  # -1 for not found
-        comma = medex_str.rfind(',')
-        rbracket = medex_str.rfind(']')
+        lbracket = medex_str.rfind("[")  # -1 for not found
+        comma = medex_str.rfind(",")
+        rbracket = medex_str.rfind("]")
         try:
             if lbracket == -1 or not (lbracket < comma < rbracket):
                 raise ValueError()
             text = medex_str[:lbracket]
-            lpos = int(medex_str[lbracket + 1:comma])
-            rpos = int(medex_str[comma + 1:rbracket])
+            lpos = int(medex_str[lbracket + 1 : comma])
+            rpos = int(medex_str[comma + 1 : rbracket])
             return text, lpos, rpos
         except (TypeError, ValueError):
             log.warning(f"Bad string[left, right] format: {medex_str!r}")
@@ -927,13 +974,15 @@ class Medex(BaseNlpParser):
         """
         if not text:
             return None, None
-        lbracket = text.rfind('(')
-        rbracket = text.rfind(')')
-        if (lbracket == -1 or
-                not (lbracket < rbracket) or
-                rbracket != len(text) - 1):
+        lbracket = text.rfind("(")
+        rbracket = text.rfind(")")
+        if (
+            lbracket == -1
+            or not (lbracket < rbracket)
+            or rbracket != len(text) - 1
+        ):
             return None, None
-        return text[0:lbracket], text[lbracket + 1:rbracket]
+        return text[0:lbracket], text[lbracket + 1 : rbracket]
 
     # -------------------------------------------------------------------------
     # Test
@@ -945,10 +994,12 @@ class Medex(BaseNlpParser):
         """
         if self._debug_mode:
             return
-        self.test_parser([
-            "Bob Hope visited Seattle and took venlafaxine M/R 375mg od.",
-            "James Joyce wrote Ulysses whilst taking aspirin 75mg mane."
-        ])
+        self.test_parser(
+            [
+                "Bob Hope visited Seattle and took venlafaxine M/R 375mg od.",
+                "James Joyce wrote Ulysses whilst taking aspirin 75mg mane.",
+            ]
+        )
 
     # -------------------------------------------------------------------------
     # Database structure
@@ -958,88 +1009,143 @@ class Medex(BaseNlpParser):
         # docstring in superclass
         startposdef = "Start position (zero-based) of "
         endposdef = (
-            "End position (zero-based index of one beyond last character) of ")
+            "End position (zero-based index of one beyond last character) of "
+        )
         return {
             self._tablename: [
-                Column('sentence_index', Integer,
-                       comment="One-based index of sentence in text"),
-                Column('sentence_text', Text,
-                       comment="Text recognized as a sentence by MedEx"),
-
-                Column('drug', Text,
-                       comment="Drug name, as in the text"),
-                Column('drug_startpos', Integer,
-                       comment=startposdef + "drug"),
-                Column('drug_endpos', Integer,
-                       comment=endposdef + "drug"),
-
-                Column('brand', Text,
-                       comment="Drug brand name (?lookup ?only if given)"),
-                Column('brand_startpos', Integer,
-                       comment=startposdef + "brand"),
-                Column('brand_endpos', Integer,
-                       comment=endposdef + "brand"),
-
-                Column('form', String(MEDEX_MAX_FORM_LENGTH),
-                       comment="Drug/dose form (e.g. 'tablet')"),
-                Column('form_startpos', Integer,
-                       comment=startposdef + "form"),
-                Column('form_endpos', Integer,
-                       comment=endposdef + "form"),
-
-                Column('strength', String(MEDEX_MAX_STRENGTH_LENGTH),
-                       comment="Strength (e.g. '75mg')"),
-                Column('strength_startpos', Integer,
-                       comment=startposdef + "strength"),
-                Column('strength_endpos', Integer,
-                       comment=endposdef + "strength"),
-
-                Column('dose_amount', String(MEDEX_MAX_DOSE_AMOUNT_LENGTH),
-                       comment="Dose amount (e.g. '2 tablets')"),
-                Column('dose_amount_startpos', Integer,
-                       comment=startposdef + "dose_amount"),
-                Column('dose_amount_endpos', Integer,
-                       comment=endposdef + "dose_amount"),
-
-                Column('route', String(MEDEX_MAX_ROUTE_LENGTH),
-                       comment="Route (e.g. 'by mouth')"),
-                Column('route_startpos', Integer,
-                       comment=startposdef + "route"),
-                Column('route_endpos', Integer,
-                       comment=endposdef + "route"),
-
-                Column('frequency', String(MEDEX_MAX_FREQUENCY_LENGTH),
-                       comment="Frequency (e.g. 'b.i.d.')"),
-                Column('frequency_startpos', Integer,
-                       comment=startposdef + "frequency"),
-                Column('frequency_endpos', Integer,
-                       comment=endposdef + "frequency"),
-                Column('frequency_timex3', String(TIMEX3_MAX_LENGTH),
-                       comment=("Normalized frequency in TIMEX3 format "
-                                "(e.g. 'R1P12H')")),
-
-                Column('duration', String(MEDEX_MAX_DURATION_LENGTH),
-                       comment="Duration (e.g. 'for 10 days')"),
-                Column('duration_startpos', Integer,
-                       comment=startposdef + "duration"),
-                Column('duration_endpos', Integer,
-                       comment=endposdef + "duration"),
-
-                Column('necessity', String(MEDEX_MAX_NECESSITY_LENGTH),
-                       comment="Necessity (e.g. 'prn')"),
-                Column('necessity_startpos', Integer,
-                       comment=startposdef + "necessity"),
-                Column('necessity_endpos', Integer,
-                       comment=endposdef + "necessity"),
-
-                Column('umls_code', String(UMLS_CUI_MAX_LENGTH),
-                       comment="UMLS CUI"),
-                Column('rx_code', Integer,
-                       comment="RxNorm RxCUI for drug"),
-                Column('generic_code', Integer,
-                       comment="RxNorm RxCUI for generic name"),
-                Column('generic_name', Text,
-                       comment="Generic drug name (associated with RxCUI code)"),  # noqa
+                Column(
+                    "sentence_index",
+                    Integer,
+                    comment="One-based index of sentence in text",
+                ),
+                Column(
+                    "sentence_text",
+                    Text,
+                    comment="Text recognized as a sentence by MedEx",
+                ),
+                Column("drug", Text, comment="Drug name, as in the text"),
+                Column("drug_startpos", Integer, comment=startposdef + "drug"),
+                Column("drug_endpos", Integer, comment=endposdef + "drug"),
+                Column(
+                    "brand",
+                    Text,
+                    comment="Drug brand name (?lookup ?only if given)",
+                ),
+                Column(
+                    "brand_startpos", Integer, comment=startposdef + "brand"
+                ),
+                Column("brand_endpos", Integer, comment=endposdef + "brand"),
+                Column(
+                    "form",
+                    String(MEDEX_MAX_FORM_LENGTH),
+                    comment="Drug/dose form (e.g. 'tablet')",
+                ),
+                Column("form_startpos", Integer, comment=startposdef + "form"),
+                Column("form_endpos", Integer, comment=endposdef + "form"),
+                Column(
+                    "strength",
+                    String(MEDEX_MAX_STRENGTH_LENGTH),
+                    comment="Strength (e.g. '75mg')",
+                ),
+                Column(
+                    "strength_startpos",
+                    Integer,
+                    comment=startposdef + "strength",
+                ),
+                Column(
+                    "strength_endpos", Integer, comment=endposdef + "strength"
+                ),
+                Column(
+                    "dose_amount",
+                    String(MEDEX_MAX_DOSE_AMOUNT_LENGTH),
+                    comment="Dose amount (e.g. '2 tablets')",
+                ),
+                Column(
+                    "dose_amount_startpos",
+                    Integer,
+                    comment=startposdef + "dose_amount",
+                ),
+                Column(
+                    "dose_amount_endpos",
+                    Integer,
+                    comment=endposdef + "dose_amount",
+                ),
+                Column(
+                    "route",
+                    String(MEDEX_MAX_ROUTE_LENGTH),
+                    comment="Route (e.g. 'by mouth')",
+                ),
+                Column(
+                    "route_startpos", Integer, comment=startposdef + "route"
+                ),
+                Column("route_endpos", Integer, comment=endposdef + "route"),
+                Column(
+                    "frequency",
+                    String(MEDEX_MAX_FREQUENCY_LENGTH),
+                    comment="Frequency (e.g. 'b.i.d.')",
+                ),
+                Column(
+                    "frequency_startpos",
+                    Integer,
+                    comment=startposdef + "frequency",
+                ),
+                Column(
+                    "frequency_endpos",
+                    Integer,
+                    comment=endposdef + "frequency",
+                ),
+                Column(
+                    "frequency_timex3",
+                    String(TIMEX3_MAX_LENGTH),
+                    comment=(
+                        "Normalized frequency in TIMEX3 format "
+                        "(e.g. 'R1P12H')"
+                    ),
+                ),
+                Column(
+                    "duration",
+                    String(MEDEX_MAX_DURATION_LENGTH),
+                    comment="Duration (e.g. 'for 10 days')",
+                ),
+                Column(
+                    "duration_startpos",
+                    Integer,
+                    comment=startposdef + "duration",
+                ),
+                Column(
+                    "duration_endpos", Integer, comment=endposdef + "duration"
+                ),
+                Column(
+                    "necessity",
+                    String(MEDEX_MAX_NECESSITY_LENGTH),
+                    comment="Necessity (e.g. 'prn')",
+                ),
+                Column(
+                    "necessity_startpos",
+                    Integer,
+                    comment=startposdef + "necessity",
+                ),
+                Column(
+                    "necessity_endpos",
+                    Integer,
+                    comment=endposdef + "necessity",
+                ),
+                Column(
+                    "umls_code",
+                    String(UMLS_CUI_MAX_LENGTH),
+                    comment="UMLS CUI",
+                ),
+                Column("rx_code", Integer, comment="RxNorm RxCUI for drug"),
+                Column(
+                    "generic_code",
+                    Integer,
+                    comment="RxNorm RxCUI for generic name",
+                ),
+                Column(
+                    "generic_name",
+                    Text,
+                    comment="Generic drug name (associated with RxCUI code)",
+                ),  # noqa
             ]
         }
 

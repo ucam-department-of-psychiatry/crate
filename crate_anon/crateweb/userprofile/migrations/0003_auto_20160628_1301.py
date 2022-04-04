@@ -37,18 +37,21 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('userprofile', '0002_userprofile_sql_scratchpad'),
+        ("userprofile", "0002_userprofile_sql_scratchpad"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='userprofile',
-            old_name='collapse_at',
-            new_name='collapse_at_len',
+            model_name="userprofile",
+            old_name="collapse_at",
+            new_name="collapse_at_len",
         ),
         migrations.AddField(
-            model_name='userprofile',
-            name='collapse_at_n_lines',
-            field=models.PositiveSmallIntegerField(default=5, verbose_name='Number of lines beyond which result/query field starts collapsed (0 for none)'),  # noqa
+            model_name="userprofile",
+            name="collapse_at_n_lines",
+            field=models.PositiveSmallIntegerField(
+                default=5,
+                verbose_name="Number of lines beyond which result/query field starts collapsed (0 for none)",
+            ),  # noqa
         ),
     ]

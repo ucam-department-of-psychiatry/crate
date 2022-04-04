@@ -50,6 +50,7 @@ log = logging.getLogger(__name__)
 # Represent a Read code
 # =============================================================================
 
+
 class ReadCode(object):
     r"""
     Represents information about the way a quantity is represented as a Read
@@ -73,9 +74,8 @@ class ReadCode(object):
     Since we absolutely want case-insensitive matching for the most part, I
     think we'll live with this limitation.
     """
-    def __init__(self,
-                 read_code: str,
-                 phrases: List[str] = None) -> None:
+
+    def __init__(self, read_code: str, phrases: List[str] = None) -> None:
         """
         Args:
             read_code:
@@ -120,13 +120,14 @@ class ReadCode(object):
         return regex_or(
             *self.component_regex_strings(),
             wrap_each_in_noncapture_group=True,
-            wrap_result_in_noncapture_group=True
+            wrap_result_in_noncapture_group=True,
         )
 
 
 # =============================================================================
 # Some known values used by our NLP parsers
 # =============================================================================
+
 
 class ReadCodes(object):
     """
@@ -140,436 +141,298 @@ class ReadCodes(object):
     # -------------------------------------------------------------------------
 
     ALBUMIN_PLASMA = ReadCode(
-        read_code="XaIRc",
-        phrases=["Plasma albumin level"]
+        read_code="XaIRc", phrases=["Plasma albumin level"]
     )
     ALBUMIN_SERUM = ReadCode(
-        read_code="XE2eA",
-        phrases=["Serum albumin level"]
+        read_code="XE2eA", phrases=["Serum albumin level"]
     )
     ALKPHOS = ReadCode(
-        read_code="44F3.",
-        phrases=["Alkaline phosphatase level"]
+        read_code="44F3.", phrases=["Alkaline phosphatase level"]
     )
     ALKPHOS_PLASMA = ReadCode(
-        read_code="XaIRj",
-        phrases=["Plasma alkaline phosphatase level"]
+        read_code="XaIRj", phrases=["Plasma alkaline phosphatase level"]
     )
     ALKPHOS_SERUM = ReadCode(
-        read_code="XE2px",
-        phrases=["Serum alkaline phosphatase level"]
+        read_code="XE2px", phrases=["Serum alkaline phosphatase level"]
     )
-    ALT = ReadCode(
-        read_code="44G3.",
-        phrases=["ALT/SGPT serum level"]
-    )
+    ALT = ReadCode(read_code="44G3.", phrases=["ALT/SGPT serum level"])
 
     BILIRUBIN_PLASMA_TOTAL = ReadCode(
-        read_code="XaETf",
-        phrases=["Plasma total bilirubin level"]
+        read_code="XaETf", phrases=["Plasma total bilirubin level"]
     )
     BILIRUBIN_SERUM = ReadCode(
-        read_code="44E..",
-        phrases=["Serum bilirubin level"]
+        read_code="44E..", phrases=["Serum bilirubin level"]
     )
     BILIRUBIN_SERUM_TOTAL = ReadCode(
-        read_code="XaERu",
-        phrases=["Serum total bilirubin level"]
+        read_code="XaERu", phrases=["Serum total bilirubin level"]
     )
     BILIRUBIN_TOTAL = ReadCode(
-        read_code="XE2qu",
-        phrases=["Total bilirubin level"]
+        read_code="XE2qu", phrases=["Total bilirubin level"]
     )
 
     CHOLESTEROL_SERUM = ReadCode(
-        read_code="XE2eD",
-        phrases=["Serum cholesterol level"]
+        read_code="XE2eD", phrases=["Serum cholesterol level"]
     )
     CHOLESTEROL_TOTAL_PLASMA = ReadCode(
-        read_code="XaIRd",
-        phrases=["Plasma total cholesterol level"]
+        read_code="XaIRd", phrases=["Plasma total cholesterol level"]
     )
     CHOLESTEROL_TOTAL_SERUM = ReadCode(
-        read_code="XaJe9",
-        phrases=["Serum total cholesterol level"]
+        read_code="XaJe9", phrases=["Serum total cholesterol level"]
     )
-    CREATININE = ReadCode(
-        read_code="X771Q",
-        phrases=["Creatinine level"]
-    )
+    CREATININE = ReadCode(read_code="X771Q", phrases=["Creatinine level"])
     CREATININE_PLASMA = ReadCode(
-        read_code="XaETQ",
-        phrases=["Plasma creatinine level"]
+        read_code="XaETQ", phrases=["Plasma creatinine level"]
     )
     CREATININE_PLASMA_CORRECTED = ReadCode(
-        read_code="XaERX",
-        phrases=["Cor plasma creatinine level"]
+        read_code="XaERX", phrases=["Cor plasma creatinine level"]
     )
     CREATININE_SERUM = ReadCode(
-        read_code="XE2q5",
-        phrases=["Serum creatinine level"]
+        read_code="XE2q5", phrases=["Serum creatinine level"]
     )
     CREATININE_SERUM_CORRECTED = ReadCode(
-        read_code="XaERc",
-        phrases=["Cor serum creatinine level"]
+        read_code="XaERc", phrases=["Cor serum creatinine level"]
     )
     CRP_PLASMA = ReadCode(
-        read_code="XE2dy",
-        phrases=["Plasma C-reactive protein level"]
+        read_code="XE2dy", phrases=["Plasma C-reactive protein level"]
     )
     CRP_SERUM = ReadCode(
-        read_code="XaINL",
-        phrases=["Serum C reactive protein level"]
+        read_code="XaINL", phrases=["Serum C reactive protein level"]
     )
 
     GAMMA_GT = ReadCode(
-        read_code="44G4.",
-        phrases=["Gamma-glutamyl transferase lev"]
+        read_code="44G4.", phrases=["Gamma-glutamyl transferase lev"]
     )
     GAMMA_GT_PLASMA = ReadCode(
-        read_code="XaES4",
-        phrases=["Plasma gamma-glutamyl transferase level"]
+        read_code="XaES4", phrases=["Plasma gamma-glutamyl transferase level"]
     )
     GAMMA_GT_SERUM = ReadCode(
-        read_code="XaES3",
-        phrases=["Serum gamma-glutamyl transferase level"]
+        read_code="XaES3", phrases=["Serum gamma-glutamyl transferase level"]
     )
-    GLUCOSE = ReadCode(
-        read_code="X772y",
-        phrases=["Glucose level"]
-    )
+    GLUCOSE = ReadCode(read_code="X772y", phrases=["Glucose level"])
     GLUCOSE_BLOOD = ReadCode(
-        read_code="X772z",
-        phrases=["Blood glucose level"]
+        read_code="X772z", phrases=["Blood glucose level"]
     )
     GLUCOSE_BLOOD_2H_POSTPRANDIAL = ReadCode(
-        read_code="44U7.",
-        phrases=["2 hour post-prand blood gluc"]
+        read_code="44U7.", phrases=["2 hour post-prand blood gluc"]
     )
     GLUCOSE_BLOOD_150_MIN = ReadCode(
-        read_code="XaEOS",
-        phrases=["150 minute blood glucose level"]
+        read_code="XaEOS", phrases=["150 minute blood glucose level"]
     )
     GLUCOSE_PLASMA_RANDOM = ReadCode(
-        read_code="44g0.",
-        phrases=["Plasma random glucose level"]
+        read_code="44g0.", phrases=["Plasma random glucose level"]
     )
     GLUCOSE_PLASMA_FASTING = ReadCode(
-        read_code="44g1.",
-        phrases=["Plasma fasting glucose level"]
+        read_code="44g1.", phrases=["Plasma fasting glucose level"]
     )
     GLUCOSE_PLASMA_30_MIN = ReadCode(
-        read_code="XaEOT",
-        phrases=["30 minute plasma glucose level"]
+        read_code="XaEOT", phrases=["30 minute plasma glucose level"]
     )
     GLUCOSE_PLASMA_60_MIN = ReadCode(
-        read_code="XaEOU",
-        phrases=["60 minute plasma glucose level"]
+        read_code="XaEOU", phrases=["60 minute plasma glucose level"]
     )
     GLUCOSE_PLASMA_90_MIN = ReadCode(
-        read_code="XaEPc",
-        phrases=["90 minute plasma glucose level"]
+        read_code="XaEPc", phrases=["90 minute plasma glucose level"]
     )
     GLUCOSE_PLASMA_120_MIN = ReadCode(
-        read_code="XaEOV",
-        phrases=["120 minute plasma glucose level"]
+        read_code="XaEOV", phrases=["120 minute plasma glucose level"]
     )
     GLUCOSE_PLASMA_2H_POSTPRANDIAL = ReadCode(
-        read_code="44g2.",
-        phrases=["Plasma 2-hr post-pran gluc lev"]
+        read_code="44g2.", phrases=["Plasma 2-hr post-pran gluc lev"]
     )
     GLUCOSE_PLASMA_150_MIN = ReadCode(
-        read_code="XaEOW",
-        phrases=["150 min plasma glucose level"]
+        read_code="XaEOW", phrases=["150 min plasma glucose level"]
     )
     GLUCOSE_SERUM = ReadCode(
-        read_code="44f..",
-        phrases=["Serum glucose level"]
+        read_code="44f..", phrases=["Serum glucose level"]
     )
     GLUCOSE_SERUM_RANDOM = ReadCode(
-        read_code="44f0.",
-        phrases=["Serum random glucose level"]
+        read_code="44f0.", phrases=["Serum random glucose level"]
     )
     GLUCOSE_SERUM_FASTING = ReadCode(
-        read_code="44f1.",
-        phrases=["Serum fasting glucose level"]
+        read_code="44f1.", phrases=["Serum fasting glucose level"]
     )
     GLUCOSE_SERUM_30_MIN = ReadCode(
-        read_code="XaEOX",
-        phrases=["30 minute serum glucose level"]
+        read_code="XaEOX", phrases=["30 minute serum glucose level"]
     )
     GLUCOSE_SERUM_60_MIN = ReadCode(
-        read_code="XaEOY",
-        phrases=["60 minute serum glucose level"]
+        read_code="XaEOY", phrases=["60 minute serum glucose level"]
     )
     GLUCOSE_SERUM_90_MIN = ReadCode(
-        read_code="XaEPd",
-        phrases=["90 minute serum glucose level"]
+        read_code="XaEPd", phrases=["90 minute serum glucose level"]
     )
     GLUCOSE_SERUM_120_MIN = ReadCode(
-        read_code="XaEOZ",
-        phrases=["120 minute serum glucose level"]
+        read_code="XaEOZ", phrases=["120 minute serum glucose level"]
     )
     GLUCOSE_SERUM_2H_POSTPRANDIAL = ReadCode(
-        read_code="44f2.",
-        phrases=["Serum 2-hr post-prand gluc lev"]
+        read_code="44f2.", phrases=["Serum 2-hr post-prand gluc lev"]
     )
     GLUCOSE_SERUM_150_MIN = ReadCode(
-        read_code="XaERQ",
-        phrases=["150 minute serum glucose level"]
+        read_code="XaERQ", phrases=["150 minute serum glucose level"]
     )
 
-    HBA1C = ReadCode(
-        read_code="X772q",
-        phrases=["Haemoglobin A1c level"]
-    )
+    HBA1C = ReadCode(read_code="X772q", phrases=["Haemoglobin A1c level"])
     HBA1C_DCCT = ReadCode(
-        read_code="XaERp",
-        phrases=["HbA1c level (DCCT aligned)"]
+        read_code="XaERp", phrases=["HbA1c level (DCCT aligned)"]
     )
     HBA1C_IFCC = ReadCode(
-        read_code="XaPbt",
-        phrases=["HbA1c levl - IFCC standardised"]
+        read_code="XaPbt", phrases=["HbA1c levl - IFCC standardised"]
     )
     HDL_PLASMA = ReadCode(
-        read_code="XaEVr",
-        phrases=["Plasma HDL cholesterol level"]
+        read_code="XaEVr", phrases=["Plasma HDL cholesterol level"]
     )
     HDL_PLASMA_RANDOM = ReadCode(
-        read_code="44d2.",
-        phrases=["Plasma rndm HDL cholest level"]
+        read_code="44d2.", phrases=["Plasma rndm HDL cholest level"]
     )
     HDL_PLASMA_FASTING = ReadCode(
-        read_code="44d3.",
-        phrases=["Plasma fast HDL cholest level"]
+        read_code="44d3.", phrases=["Plasma fast HDL cholest level"]
     )
     HDL_SERUM = ReadCode(
-        read_code="44P5.",
-        phrases=["Serum HDL cholesterol level"]
+        read_code="44P5.", phrases=["Serum HDL cholesterol level"]
     )
     HDL_SERUM_FASTING = ReadCode(
-        read_code="44PB.",
-        phrases=["Serum fast HDL cholesterol lev"]
+        read_code="44PB.", phrases=["Serum fast HDL cholesterol lev"]
     )
     HDL_SERUM_RANDOM = ReadCode(
-        read_code="44PC.",
-        phrases=["Ser random HDL cholesterol lev"]
+        read_code="44PC.", phrases=["Ser random HDL cholesterol lev"]
     )
 
     LITHIUM_SERUM = ReadCode(
-        read_code="XE25g",
-        phrases=["Serum lithium level"]
+        read_code="XE25g", phrases=["Serum lithium level"]
     )
     LDL_PLASMA = ReadCode(
-        read_code="XaEVs",
-        phrases=["Plasma LDL cholesterol level"]
+        read_code="XaEVs", phrases=["Plasma LDL cholesterol level"]
     )
     LDL_PLASMA_RANDOM = ReadCode(
-        read_code="44d4.",
-        phrases=["Plasma rndm LDL cholest level"]
+        read_code="44d4.", phrases=["Plasma rndm LDL cholest level"]
     )
     LDL_PLASMA_FASTING = ReadCode(
-        read_code="44d5.",
-        phrases=["Plasma fast LDL cholest level"]
+        read_code="44d5.", phrases=["Plasma fast LDL cholest level"]
     )
     LDL_SERUM = ReadCode(
-        read_code="44P6.",
-        phrases=["Serum LDL cholesterol level"]
+        read_code="44P6.", phrases=["Serum LDL cholesterol level"]
     )
     LDL_SERUM_FASTING = ReadCode(
-        read_code="44PD.",
-        phrases=["Serum fast LDL cholesterol lev"]
+        read_code="44PD.", phrases=["Serum fast LDL cholesterol lev"]
     )
     LDL_SERUM_RANDOM = ReadCode(
-        read_code="44PE.",
-        phrases=["Ser random LDL cholesterol lev"]
+        read_code="44PE.", phrases=["Ser random LDL cholesterol lev"]
     )
 
-    POTASSIUM = ReadCode(
-        read_code="X771S",
-        phrases=["Potassium level"]
-    )
+    POTASSIUM = ReadCode(read_code="X771S", phrases=["Potassium level"])
     POTASSIUM_BLOOD = ReadCode(
-        read_code="XaDvZ",
-        phrases=["Blood potassium level"]
+        read_code="XaDvZ", phrases=["Blood potassium level"]
     )
     POTASSIUM_PLASMA = ReadCode(
-        read_code="XaIRl",
-        phrases=["Plasma potassium level"]
+        read_code="XaIRl", phrases=["Plasma potassium level"]
     )
     POTASSIUM_SERUM = ReadCode(
-        read_code="XE2pz",
-        phrases=["Serum potassium level"]
+        read_code="XE2pz", phrases=["Serum potassium level"]
     )
 
-    TG = ReadCode(
-        read_code="X772O",
-        phrases=["Triglyceride level"]
-    )
+    TG = ReadCode(read_code="X772O", phrases=["Triglyceride level"])
     TG_PLASMA = ReadCode(
-        read_code="44e..",
-        phrases=["Plasma triglyceride level"]
+        read_code="44e..", phrases=["Plasma triglyceride level"]
     )
     TG_PLASMA_RANDOM = ReadCode(
-        read_code="44e0.",
-        phrases=["Plasma rndm triglyceride level"]
+        read_code="44e0.", phrases=["Plasma rndm triglyceride level"]
     )
     TG_PLASMA_FASTING = ReadCode(
-        read_code="44e1.",
-        phrases=["Plasma fast triglyceride level"]
+        read_code="44e1.", phrases=["Plasma fast triglyceride level"]
     )
     TG_SERUM = ReadCode(
-        read_code="XE2q9",
-        phrases=["Serum triglyceride levels"]
+        read_code="XE2q9", phrases=["Serum triglyceride levels"]
     )
     TG_SERUM_FASTING = ReadCode(
-        read_code="44Q4.",
-        phrases=["Serum fasting triglyceride lev"]
+        read_code="44Q4.", phrases=["Serum fasting triglyceride lev"]
     )
     TG_SERUM_RANDOM = ReadCode(
-        read_code="44Q5.",
-        phrases=["Serum random triglyceride lev"]
+        read_code="44Q5.", phrases=["Serum random triglyceride lev"]
     )
-    TSH_PLASMA = ReadCode(
-        read_code="XaELW",
-        phrases=["Plasma TSH level"]
-    )
+    TSH_PLASMA = ReadCode(read_code="XaELW", phrases=["Plasma TSH level"])
     TSH_PLASMA_30_MIN = ReadCode(
-        read_code="XaET7",
-        phrases=["30 minute plasma TSH level"]
+        read_code="XaET7", phrases=["30 minute plasma TSH level"]
     )
     TSH_PLASMA_60_MIN = ReadCode(
-        read_code="XaESa",
-        phrases=["60 minute plasma TSH level"]
+        read_code="XaESa", phrases=["60 minute plasma TSH level"]
     )
     TSH_PLASMA_90_MIN = ReadCode(
-        read_code="XaET2",
-        phrases=["90 minute plasma TSH level"]
+        read_code="XaET2", phrases=["90 minute plasma TSH level"]
     )
     TSH_PLASMA_120_MIN = ReadCode(
-        read_code="XaESb",
-        phrases=["120 minute plasma TSH level"]
+        read_code="XaESb", phrases=["120 minute plasma TSH level"]
     )
     TSH_PLASMA_150_MIN = ReadCode(
-        read_code="XaESc",
-        phrases=["150 minute plasma TSH level"]
+        read_code="XaESc", phrases=["150 minute plasma TSH level"]
     )
-    TSH_SERUM = ReadCode(
-        read_code="XaELV",
-        phrases=["Serum TSH level"]
-    )
+    TSH_SERUM = ReadCode(read_code="XaELV", phrases=["Serum TSH level"])
     TSH_SERUM_60_MIN = ReadCode(
-        read_code="XaESX",
-        phrases=["60 minute serum TSH level"]
+        read_code="XaESX", phrases=["60 minute serum TSH level"]
     )
     TSH_SERUM_90_MIN = ReadCode(
-        read_code="XaESY",
-        phrases=["90 minute serum TSH level"]
+        read_code="XaESY", phrases=["90 minute serum TSH level"]
     )
     TSH_SERUM_120_MIN = ReadCode(
-        read_code="XaET1",
-        phrases=["120 minute serum TSH level"]
+        read_code="XaET1", phrases=["120 minute serum TSH level"]
     )
     TSH_SERUM_150_MIN = ReadCode(
-        read_code="XaESZ",
-        phrases=["150 minute serum TSH level"]
+        read_code="XaESZ", phrases=["150 minute serum TSH level"]
     )
 
-    SODIUM = ReadCode(
-        read_code="X771T",
-        phrases=["Sodium level"]
-    )
-    SODIUM_BLOOD = ReadCode(
-        read_code="XaDva",
-        phrases=["Blood sodium level"]
-    )
+    SODIUM = ReadCode(read_code="X771T", phrases=["Sodium level"])
+    SODIUM_BLOOD = ReadCode(read_code="XaDva", phrases=["Blood sodium level"])
     SODIUM_PLASMA = ReadCode(
-        read_code="XaIRf",
-        phrases=["Plasma sodium level"]
+        read_code="XaIRf", phrases=["Plasma sodium level"]
     )
-    SODIUM_SERUM = ReadCode(
-        read_code="XE2q0",
-        phrases=["Serum sodium level"]
-    )
+    SODIUM_SERUM = ReadCode(read_code="XE2q0", phrases=["Serum sodium level"])
 
-    UREA_BLOOD = ReadCode(
-        read_code="X771P",
-        phrases=["Blood urea"]
-    )
-    UREA_PLASMA = ReadCode(
-        read_code="XaDvl",
-        phrases=["Plasma urea level"]
-    )
-    UREA_SERUM = ReadCode(
-        read_code="XM0lt",
-        phrases=["Serum urea level"]
-    )
+    UREA_BLOOD = ReadCode(read_code="X771P", phrases=["Blood urea"])
+    UREA_PLASMA = ReadCode(read_code="XaDvl", phrases=["Plasma urea level"])
+    UREA_SERUM = ReadCode(read_code="XM0lt", phrases=["Serum urea level"])
 
     # -------------------------------------------------------------------------
     # Haematology
     # -------------------------------------------------------------------------
 
-    BASOPHIL_COUNT = ReadCode(
-        read_code="42L..",
-        phrases=["Basophil count"]
-    )
+    BASOPHIL_COUNT = ReadCode(read_code="42L..", phrases=["Basophil count"])
 
     EOSINOPHIL_COUNT = ReadCode(
-        read_code="42K..",
-        phrases=["Eosinophil count"]
+        read_code="42K..", phrases=["Eosinophil count"]
     )
     ESR = ReadCode(
-        read_code="XE2m7",
-        phrases=["Erythrocyte sedimentation rate"]
+        read_code="XE2m7", phrases=["Erythrocyte sedimentation rate"]
     )
 
-    HAEMATOCRIT = ReadCode(
-        read_code="X76tb",
-        phrases=["Haematocrit"]
-    )
+    HAEMATOCRIT = ReadCode(read_code="X76tb", phrases=["Haematocrit"])
     HAEMOGLOBIN_CONCENTRATION = ReadCode(
-        read_code="Xa96v",
-        phrases=["Haemoglobin concentration"]
+        read_code="Xa96v", phrases=["Haemoglobin concentration"]
     )
 
     LYMPHOCYTE_COUNT = ReadCode(
-        read_code="42M..",
-        phrases=["Lymphocyte count"]
+        read_code="42M..", phrases=["Lymphocyte count"]
     )
 
-    MONOCYTE_COUNT = ReadCode(
-        read_code="42N..",
-        phrases=["Monocyte count"]
-    )
+    MONOCYTE_COUNT = ReadCode(read_code="42N..", phrases=["Monocyte count"])
 
     NEUTROPHIL_COUNT = ReadCode(
-        read_code="42J..",
-        phrases=["Neutrophil count"]
+        read_code="42J..", phrases=["Neutrophil count"]
     )
 
-    PLATELET_COUNT = ReadCode(
-        read_code="42P..",
-        phrases=["Platelet count"]
-    )
+    PLATELET_COUNT = ReadCode(read_code="42P..", phrases=["Platelet count"])
     POLYMORPH_COUNT = ReadCode(  # = neutrophils
-        read_code="XaIao",
-        phrases=["Polymorph count"]
+        read_code="XaIao", phrases=["Polymorph count"]
     )
 
-    RBC_COUNT = ReadCode(
-        read_code="426..",
-        phrases=["Red blood cell count"]
-    )
+    RBC_COUNT = ReadCode(read_code="426..", phrases=["Red blood cell count"])
 
     WBC_COUNT = ReadCode(
-        read_code="XaIdY",
-        phrases=["Total white blood count"]
+        read_code="XaIdY", phrases=["Total white blood count"]
     )
 
 
 # =============================================================================
 # Combiner function
 # =============================================================================
+
 
 def regex_components_from_read_codes(*read_codes: ReadCode) -> List[str]:
     """
@@ -589,5 +452,5 @@ def any_read_code_of(*read_codes: ReadCode) -> str:
     return regex_or(
         *code_strings,
         wrap_each_in_noncapture_group=True,
-        wrap_result_in_noncapture_group=True
+        wrap_result_in_noncapture_group=True,
     )

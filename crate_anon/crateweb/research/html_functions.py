@@ -47,9 +47,7 @@ log = logging.getLogger(__name__)
 
 
 N_CSS_HIGHLIGHT_CLASSES = 3  # named highlight0, highlight1, ... highlight<n-1>
-REGEX_METACHARS = ["\\", "^", "$", ".",
-                   "|", "?", "*", "+",
-                   "(", ")", "[", "{"]
+REGEX_METACHARS = ["\\", "^", "$", ".", "|", "?", "*", "+", "(", ")", "[", "{"]
 # http://www.regular-expressions.info/characters.html
 # Start with \, for replacement.
 
@@ -58,9 +56,14 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 # Collapsible div, etc.
 # =============================================================================
 
-def visibility_button(tag: str, small: bool = True,
-                      title_html: str = '', as_span: bool = False,
-                      as_visibility: bool = True) -> str:
+
+def visibility_button(
+    tag: str,
+    small: bool = True,
+    title_html: str = "",
+    as_span: bool = False,
+    as_visibility: bool = True,
+) -> str:
     """
     Returns HTML for a "(+)/(-)" button. Used for:
 
@@ -85,7 +88,7 @@ def visibility_button(tag: str, small: bool = True,
     eltype = "span" if as_span else "div"
     togglefunc = "toggleVisible" if as_visibility else "toggleCollapsed"
     tag = str(tag)
-    img = static('plus.gif') if small else static('minus.gif')
+    img = static("plus.gif") if small else static("minus.gif")
     return f"""
 <{eltype} class="expandcollapse" onclick="{togglefunc}('collapsible_{tag}', 'collapse_img_{tag}');">
     <img class="plusminus_image" id="collapse_img_{tag}" alt="" src="{img}">
@@ -94,11 +97,13 @@ def visibility_button(tag: str, small: bool = True,
     """  # noqa
 
 
-def visibility_contentdiv(tag: str,
-                          contents: str,
-                          extra_div_classes: Iterable[str] = None,
-                          small: bool = True,
-                          as_visibility: bool = True) -> str:
+def visibility_contentdiv(
+    tag: str,
+    contents: str,
+    extra_div_classes: Iterable[str] = None,
+    small: bool = True,
+    as_visibility: bool = True,
+) -> str:
     """
     Returns HTML for a content ``<div>`` that can be collapsed by a button
     (for which, see :func:`visibility_button`).
@@ -136,11 +141,13 @@ def visibility_contentdiv(tag: str,
     """
 
 
-def visibility_div_with_divbutton(tag: str,
-                                  contents: str,
-                                  title_html: str = '',
-                                  extra_div_classes: Iterable[str] = None,
-                                  small: bool = True) -> str:
+def visibility_div_with_divbutton(
+    tag: str,
+    contents: str,
+    title_html: str = "",
+    extra_div_classes: Iterable[str] = None,
+    small: bool = True,
+) -> str:
     """
     Returns an HTML ``<div>`` with a show/hide button and contents.
 
@@ -159,18 +166,25 @@ def visibility_div_with_divbutton(tag: str,
     - The HTML pre-hides, rather than using an onload method.
 
     """
-    button = visibility_button(tag=tag, small=small,
-                               title_html=title_html, as_visibility=True)
-    contents = visibility_contentdiv(tag=tag, contents=contents,
-                                     extra_div_classes=extra_div_classes,
-                                     small=small, as_visibility=True)
+    button = visibility_button(
+        tag=tag, small=small, title_html=title_html, as_visibility=True
+    )
+    contents = visibility_contentdiv(
+        tag=tag,
+        contents=contents,
+        extra_div_classes=extra_div_classes,
+        small=small,
+        as_visibility=True,
+    )
     return "<div>" + button + contents + "</div>"
 
 
-def overflow_div(tag: str,
-                 contents: str,
-                 extra_div_classes: Iterable[str] = None,
-                 small: bool = True) -> str:
+def overflow_div(
+    tag: str,
+    contents: str,
+    extra_div_classes: Iterable[str] = None,
+    small: bool = True,
+) -> str:
     """
     Returns an HTML ``<div>`` with an expand/collapse button and contents.
 
@@ -185,11 +199,14 @@ def overflow_div(tag: str,
     Returns:
         str: HTML
     """
-    button = visibility_button(tag=tag, small=small,
-                               as_visibility=False)
-    contentdiv = visibility_contentdiv(tag=tag, contents=contents,
-                                       extra_div_classes=extra_div_classes,
-                                       small=small, as_visibility=False)
+    button = visibility_button(tag=tag, small=small, as_visibility=False)
+    contentdiv = visibility_contentdiv(
+        tag=tag,
+        contents=contents,
+        extra_div_classes=extra_div_classes,
+        small=small,
+        as_visibility=False,
+    )
     return f"""
 <div class="expandcollapsewrapper">
     {button}
@@ -202,12 +219,14 @@ def overflow_div(tag: str,
 # HtmlElementCounter
 # =============================================================================
 
+
 class HtmlElementCounter(object):
     """
     Class to maintain element counters, for use with pages having lots of
     collapsible divs (or other HTML elements requiring individual numbering).
     """
-    def __init__(self, prefix: str = '') -> None:
+
+    def __init__(self, prefix: str = "") -> None:
         """
         Args:
             prefix: text to be prefixed to the tag used for HTML elements
@@ -227,11 +246,13 @@ class HtmlElementCounter(object):
         """
         return self.prefix + str(self.elementnum)
 
-    def visibility_div_with_divbutton(self,
-                                      contents: str,
-                                      title_html: str = '',
-                                      extra_div_classes: Iterable[str] = None,
-                                      small: bool = True) -> str:
+    def visibility_div_with_divbutton(
+        self,
+        contents: str,
+        title_html: str = "",
+        extra_div_classes: Iterable[str] = None,
+        small: bool = True,
+    ) -> str:
         """
         Returns a "visibility" ``<div>`` with a show/hide button.
 
@@ -249,7 +270,8 @@ class HtmlElementCounter(object):
             contents=contents,
             title_html=title_html,
             extra_div_classes=extra_div_classes,
-            small=small)
+            small=small,
+        )
         self.next()
         return result
 
@@ -264,13 +286,16 @@ class HtmlElementCounter(object):
             str: HTML
 
         """
-        return visibility_button(tag=self.tag(), as_visibility=True,
-                                 small=small, as_span=True)
+        return visibility_button(
+            tag=self.tag(), as_visibility=True, small=small, as_span=True
+        )
 
-    def visibility_div_contentdiv(self,
-                                  contents: str,
-                                  extra_div_classes: Iterable[str] = None,
-                                  small: bool = True) -> str:
+    def visibility_div_contentdiv(
+        self,
+        contents: str,
+        extra_div_classes: Iterable[str] = None,
+        small: bool = True,
+    ) -> str:
         """
         Returns a "visibility" content ``<div>``.
 
@@ -288,14 +313,17 @@ class HtmlElementCounter(object):
             contents=contents,
             extra_div_classes=extra_div_classes,
             small=small,
-            as_visibility=True)
+            as_visibility=True,
+        )
         self.next()
         return result
 
-    def collapsible_div_contentdiv(self,
-                                   contents: str,
-                                   extra_div_classes: Iterable[str] = None,
-                                   small: bool = True) -> str:
+    def collapsible_div_contentdiv(
+        self,
+        contents: str,
+        extra_div_classes: Iterable[str] = None,
+        small: bool = True,
+    ) -> str:
         """
         Returns a "collapsible" content ``<div>``
 
@@ -312,14 +340,17 @@ class HtmlElementCounter(object):
             contents=contents,
             extra_div_classes=extra_div_classes,
             small=small,
-            as_visibility=False)
+            as_visibility=False,
+        )
         self.next()
         return result
 
-    def overflow_div(self,
-                     contents: str,
-                     extra_div_classes: Iterable[str] = None,
-                     small: bool = True) -> str:
+    def overflow_div(
+        self,
+        contents: str,
+        extra_div_classes: Iterable[str] = None,
+        small: bool = True,
+    ) -> str:
         """
         Returns a "overflow" ``<div>`` with content and an expand/collapse
         button.
@@ -332,10 +363,12 @@ class HtmlElementCounter(object):
         Returns:
             str: HTML
         """
-        result = overflow_div(tag=self.tag(),
-                              contents=contents,
-                              extra_div_classes=extra_div_classes,
-                              small=small)
+        result = overflow_div(
+            tag=self.tag(),
+            contents=contents,
+            extra_div_classes=extra_div_classes,
+            small=small,
+        )
         self.next()
         return result
 
@@ -359,9 +392,10 @@ def escape_literal_string_for_regex(s: str) -> str:
     return s
 
 
-def get_regex_from_highlights(highlight_list: Iterable[HIGHLIGHT_FWD_REF],
-                              at_word_boundaries_only: bool = False) \
-        -> Pattern:
+def get_regex_from_highlights(
+    highlight_list: Iterable[HIGHLIGHT_FWD_REF],
+    at_word_boundaries_only: bool = False,
+) -> Pattern:
     """
     Takes a list of the user's chosen highlights to apply to results, and
     builds a compiled regular expression for (any of) them.
@@ -384,7 +418,7 @@ def get_regex_from_highlights(highlight_list: Iterable[HIGHLIGHT_FWD_REF],
             elements.append(wb + h + wb)
         else:
             elements.append(h)
-    regexstring = u"(" + "|".join(elements) + ")"  # group required, to replace
+    regexstring = "(" + "|".join(elements) + ")"  # group required, to replace
     return re.compile(regexstring, re.IGNORECASE | re.UNICODE)
 
 
@@ -400,7 +434,7 @@ def highlight_text(x: str, n: int = 0) -> str:
 
     """
     n %= N_CSS_HIGHLIGHT_CLASSES
-    return fr'<span class="highlight{n}">{x}</span>'
+    return rf'<span class="highlight{n}">{x}</span>'
 
 
 def make_highlight_replacement_regex(n: int = 0) -> str:
@@ -418,16 +452,17 @@ def make_highlight_replacement_regex(n: int = 0) -> str:
     return highlight_text(r"\1", n=n)
 
 
-def make_result_element(x: Any,
-                        element_counter: HtmlElementCounter,
-                        highlight_dict: Dict[int,
-                                             List[HIGHLIGHT_FWD_REF]] = None,
-                        collapse_at_len: int = None,
-                        collapse_at_n_lines: int = None,
-                        line_length: int = None,
-                        keep_existing_newlines: bool = True,
-                        collapsed: bool = True,
-                        null: str = '<i>NULL</i>') -> str:
+def make_result_element(
+    x: Any,
+    element_counter: HtmlElementCounter,
+    highlight_dict: Dict[int, List[HIGHLIGHT_FWD_REF]] = None,
+    collapse_at_len: int = None,
+    collapse_at_n_lines: int = None,
+    line_length: int = None,
+    keep_existing_newlines: bool = True,
+    collapsed: bool = True,
+    null: str = "<i>NULL</i>",
+) -> str:
     """
     Returns a collapsible HTML ``<div>`` for a result cell, with optional
     highlighting of results.
@@ -470,7 +505,7 @@ def make_result_element(x: Any,
             if line:
                 output_lines.extend(textwrap.wrap(line, width=line_length))
             else:  # blank line; textwrap.wrap will swallow it
-                output_lines.append('')
+                output_lines.append("")
     else:
         output_lines = input_lines
     n_lines = len(output_lines)
@@ -481,17 +516,17 @@ def make_result_element(x: Any,
         find = get_regex_from_highlights(highlight_list)
         replace = make_highlight_replacement_regex(n)
         output = find.sub(replace, output)
-    if ((collapse_at_len and xlen >= collapse_at_len) or
-            (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):
-        result = element_counter.overflow_div(contents=output,
-                                              small=collapsed)
+    if (collapse_at_len and xlen >= collapse_at_len) or (
+        collapse_at_n_lines and n_lines >= collapse_at_n_lines
+    ):
+        result = element_counter.overflow_div(contents=output, small=collapsed)
         element_counter.next()
     else:
         result = output
     return result
 
 
-def pre(x: str = '') -> str:
+def pre(x: str = "") -> str:
     """
     Applies an HTML ``<pre>...</pre>`` tag.
 
@@ -514,9 +549,9 @@ SQL_FORMATTER = HtmlFormatter(cssclass=SQL_BASE_CSS_CLASS)
 SQL_LEXER = SqlLexer()
 
 
-def prettify_sql_html(sql: str,
-                      reformat: bool = False,
-                      indent_width: int = 4) -> str:
+def prettify_sql_html(
+    sql: str, reformat: bool = False, indent_width: int = 4
+) -> str:
     """
     Formats SQL (optionally), and highlights it with Pygments.
 
@@ -542,11 +577,13 @@ def prettify_sql_css() -> str:
     return SQL_FORMATTER.get_style_defs()
 
 
-def prettify_sql_and_args(sql: str,
-                          args: List[Any] = None,
-                          sql_not_formatted: bool = True,
-                          reformat: bool = False,
-                          indent_width: int = 4) -> str:
+def prettify_sql_and_args(
+    sql: str,
+    args: List[Any] = None,
+    sql_not_formatted: bool = True,
+    reformat: bool = False,
+    indent_width: int = 4,
+) -> str:
     """
     Returns HTML for both some SQL and its arguments.
 
@@ -562,8 +599,9 @@ def prettify_sql_and_args(sql: str,
 
     """
     if sql_not_formatted:
-        sql = prettify_sql_html(sql, reformat=reformat,
-                                indent_width=indent_width)
+        sql = prettify_sql_html(
+            sql, reformat=reformat, indent_width=indent_width
+        )
     if args:
         formatted_args = "\n".join(textwrap.wrap(repr(args)))
         return sql + f"<div>Args:</div><pre>{formatted_args}</pre>"
@@ -571,12 +609,14 @@ def prettify_sql_and_args(sql: str,
         return sql
 
 
-def make_collapsible_sql_query(sql: Optional[str],
-                               element_counter: HtmlElementCounter,
-                               sql_not_formatted: bool = False,
-                               args: List[Any] = None,
-                               collapse_at_len: int = 400,
-                               collapse_at_n_lines: int = 5) -> str:
+def make_collapsible_sql_query(
+    sql: Optional[str],
+    element_counter: HtmlElementCounter,
+    sql_not_formatted: bool = False,
+    args: List[Any] = None,
+    collapse_at_len: int = 400,
+    collapse_at_n_lines: int = 5,
+) -> str:
     """
     Formats an SQL query (and its arguments, if any) in a collapsible HTML
     ``<div>``.
@@ -595,15 +635,16 @@ def make_collapsible_sql_query(sql: Optional[str],
         str: HTML
 
     """
-    sql = sql or ''
+    sql = sql or ""
     sql = str(sql)
     xlen = len(sql)
-    n_lines = len(sql.split('\n'))
-    formatted = prettify_sql_and_args(sql, args,
-                                      sql_not_formatted=sql_not_formatted,
-                                      reformat=False)
+    n_lines = len(sql.split("\n"))
+    formatted = prettify_sql_and_args(
+        sql, args, sql_not_formatted=sql_not_formatted, reformat=False
+    )
     # x = linebreaksbr(escape(x))
-    if ((collapse_at_len and xlen >= collapse_at_len) or
-            (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):
+    if (collapse_at_len and xlen >= collapse_at_len) or (
+        collapse_at_n_lines and n_lines >= collapse_at_n_lines
+    ):
         return element_counter.overflow_div(contents=formatted)
     return formatted

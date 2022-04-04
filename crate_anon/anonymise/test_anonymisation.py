@@ -90,6 +90,7 @@ DEFAULT_LIMIT = 100
 # Specific tests
 # =============================================================================
 
+
 class FieldInfo(object):
     """
     Fetches useful subsets from the data dictionary (DD), for tables that have
@@ -97,6 +98,7 @@ class FieldInfo(object):
 
     Reads the singleton :class:`crate_anon.anonymise.config.Config`.
     """
+
     def __init__(self, table: str, field: str) -> None:
         """
         Reads the data dictionary and populates:
@@ -116,7 +118,8 @@ class FieldInfo(object):
         ddrows = config.dd.get_rows_for_dest_table(table)
         if not ddrows:
             raise ValueError(
-                f"No data dictionary rows for destination table {table}")
+                f"No data dictionary rows for destination table {table}"
+            )
         try:
             textrow = next(x for x in ddrows if x.dest_field == field)
         except StopIteration:
@@ -140,9 +143,9 @@ class FieldInfo(object):
         )
 
 
-def get_patientnum_rawtext(docid: int,
-                           fieldinfo: FieldInfo) -> Tuple[Optional[int],
-                                                          Optional[str]]:
+def get_patientnum_rawtext(
+    docid: int, fieldinfo: FieldInfo
+) -> Tuple[Optional[int], Optional[str]]:
     """
     Fetches the original text for a given document PK, plus the associated
     patient ID (PID).
@@ -194,9 +197,9 @@ def get_patientnum_rawtext(docid: int,
     return pid, text
 
 
-def get_patientnum_anontext(docid: int,
-                            fieldinfo: FieldInfo) -> Tuple[Optional[int],
-                                                           Optional[str]]:
+def get_patientnum_anontext(
+    docid: int, fieldinfo: FieldInfo
+) -> Tuple[Optional[int], Optional[str]]:
     """
     Fetches the anonymised text for a given document PK, plus the associated
     research ID (RID).
@@ -226,13 +229,15 @@ def get_patientnum_anontext(docid: int,
     return rid, text
 
 
-def process_doc(docid: int,
-                rawdir: str,
-                anondir: str,
-                fieldinfo: FieldInfo,
-                csvwriter: CSVWriterType,
-                first: bool,
-                scrubdict: Dict[int, Dict[str, Any]]) -> int:
+def process_doc(
+    docid: int,
+    rawdir: str,
+    anondir: str,
+    fieldinfo: FieldInfo,
+    csvwriter: CSVWriterType,
+    first: bool,
+    scrubdict: Dict[int, Dict[str, Any]],
+) -> int:
     """
     For a given document ID, write the original and anonymised documents to
     disk, plus some counts to a CSV file. Also saves scrubber information for
@@ -269,10 +274,10 @@ def process_doc(docid: int,
     common_filename_stem = f"{pid}_{docid}.txt"
     rawfilename = os.path.join(rawdir, common_filename_stem)
     anonfilename = os.path.join(anondir, common_filename_stem)
-    with open(rawfilename, 'w') as f:
+    with open(rawfilename, "w") as f:
         if rawtext:
             f.write(rawtext)
-    with open(anonfilename, 'w') as f:
+    with open(anonfilename, "w") as f:
         if anontext:
             f.write(anontext)
 
@@ -318,10 +323,12 @@ def process_doc(docid: int,
     return pid
 
 
-def get_docids(fieldinfo: FieldInfo,
-               uniquepatients: bool = True,
-               limit: int = DEFAULT_LIMIT,
-               from_src: bool = True) -> List[int]:
+def get_docids(
+    fieldinfo: FieldInfo,
+    uniquepatients: bool = True,
+    limit: int = DEFAULT_LIMIT,
+    from_src: bool = True,
+) -> List[int]:
     """
     Returns a limited number of document PKs (which we will use to summarize
     anonymisation performance).
@@ -370,15 +377,17 @@ def get_docids(fieldinfo: FieldInfo,
         return db.fetchallfirstvalues(query)
 
 
-def test_anon(uniquepatients: bool,
-              limit: int,
-              from_src: bool,
-              rawdir: str,
-              anondir: str,
-              scrubfile: str,
-              resultsfile: str,
-              dsttable: str,
-              dstfield: str) -> None:
+def test_anon(
+    uniquepatients: bool,
+    limit: int,
+    from_src: bool,
+    rawdir: str,
+    anondir: str,
+    scrubfile: str,
+    resultsfile: str,
+    dsttable: str,
+    dstfield: str,
+) -> None:
     """
     Fetch raw and anonymised documents and store them in files for comparison,
     along with some summary information.
@@ -410,14 +419,14 @@ def test_anon(uniquepatients: bool,
         fieldinfo=fieldinfo,
         uniquepatients=uniquepatients,
         limit=limit,
-        from_src=from_src
+        from_src=from_src,
     )
     mkdir_p(rawdir)
     mkdir_p(anondir)
     scrubdict = {}  # type: Dict[int, Dict[str, Any]]
     pidset = set()  # type: Set[int]
-    with open(resultsfile, 'w') as csvfile:
-        csvwriter = csv.writer(csvfile, delimiter='\t')
+    with open(resultsfile, "w") as csvfile:
+        csvwriter = csv.writer(csvfile, delimiter="\t")
         first = True
         for docid in docids:
             # noinspection PyTypeChecker
@@ -428,16 +437,14 @@ def test_anon(uniquepatients: bool,
                 fieldinfo=fieldinfo,
                 csvwriter=csvwriter,
                 first=first,
-                scrubdict=scrubdict
+                scrubdict=scrubdict,
             )
             first = False
             pidset.add(pid)
-    with open(scrubfile, 'w') as f:
+    with open(scrubfile, "w") as f:
         f.write(json.dumps(scrubdict, indent=4))
     log.info(f"Finished. See {resultsfile} for a summary.")
-    log.info(
-        f"Use meld to compare directories {rawdir} and {anondir}"
-    )
+    log.info(f"Use meld to compare directories {rawdir} and {anondir}")
     log.info("To install meld on Debian/Ubuntu: sudo apt-get install meld")
     log.info(f"{len(docids)} documents, {len(pidset)} patients")
 
@@ -446,47 +453,77 @@ def test_anon(uniquepatients: bool,
 # Main
 # =============================================================================
 
+
 def main() -> None:
     """
     Command-line entry point. See command-line help.
     """
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        description='Test anonymisation',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--config', required=True,
-                        help='Configuration file name (input)')
-    parser.add_argument('--dsttable', required=True,
-                        help='Destination table')
-    parser.add_argument('--dstfield', required=True,
-                        help='Destination column')
-    parser.add_argument('--limit', type=int, default=DEFAULT_LIMIT,
-                        help='Limit on number of documents')
-    parser.add_argument('--rawdir', default='raw',
-                        help='Directory for raw output text files')
-    parser.add_argument('--anondir', default='anon',
-                        help='Directory for anonymised output text files')
-    parser.add_argument('--resultsfile', default='testanon_results.csv',
-                        help='Results output CSV file name')
-    parser.add_argument('--scrubfile', default='testanon_scrubber.txt',
-                        help='Scrubbing information text file name')
-    parser.add_argument('--verbose', '-v', action='store_true',
-                        help="Be verbose")
+        description="Test anonymisation",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--config", required=True, help="Configuration file name (input)"
+    )
+    parser.add_argument("--dsttable", required=True, help="Destination table")
+    parser.add_argument("--dstfield", required=True, help="Destination column")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=DEFAULT_LIMIT,
+        help="Limit on number of documents",
+    )
+    parser.add_argument(
+        "--rawdir", default="raw", help="Directory for raw output text files"
+    )
+    parser.add_argument(
+        "--anondir",
+        default="anon",
+        help="Directory for anonymised output text files",
+    )
+    parser.add_argument(
+        "--resultsfile",
+        default="testanon_results.csv",
+        help="Results output CSV file name",
+    )
+    parser.add_argument(
+        "--scrubfile",
+        default="testanon_scrubber.txt",
+        help="Scrubbing information text file name",
+    )
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Be verbose"
+    )
 
     pkgroup = parser.add_mutually_exclusive_group(required=False)
-    pkgroup.add_argument('--pkfromsrc', dest='from_src', action='store_true',
-                         help='Fetch PKs (document IDs) from source (default)')
-    pkgroup.add_argument('--pkfromdest', dest='from_src', action='store_false',
-                         help='Fetch PKs (document IDs) from destination')
+    pkgroup.add_argument(
+        "--pkfromsrc",
+        dest="from_src",
+        action="store_true",
+        help="Fetch PKs (document IDs) from source (default)",
+    )
+    pkgroup.add_argument(
+        "--pkfromdest",
+        dest="from_src",
+        action="store_false",
+        help="Fetch PKs (document IDs) from destination",
+    )
     parser.set_defaults(from_src=True)
 
     uniquegroup = parser.add_mutually_exclusive_group(required=False)
     uniquegroup.add_argument(
-        '--uniquepatients', dest='uniquepatients', action='store_true',
-        help='Only one document per patient (the first by PK) (default)')
+        "--uniquepatients",
+        dest="uniquepatients",
+        action="store_true",
+        help="Only one document per patient (the first by PK) (default)",
+    )
     uniquegroup.add_argument(
-        '--nonuniquepatients', dest='uniquepatients', action='store_false',
-        help='Documents in sequence, with potentially >1 document/patient')
+        "--nonuniquepatients",
+        dest="uniquepatients",
+        action="store_false",
+        help="Documents in sequence, with potentially >1 document/patient",
+    )
     parser.set_defaults(uniquepatients=True)
 
     args = parser.parse_args()

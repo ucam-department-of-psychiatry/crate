@@ -53,6 +53,6 @@ def test_all_regex_nlp(verbose: bool = False) -> None:
 if __name__ == "__main__":
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--verbose', '-v', action="store_true", help="Verbose")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose")
     args = parser.parse_args()
     test_all_regex_nlp(verbose=args.verbose)

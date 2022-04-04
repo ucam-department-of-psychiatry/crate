@@ -59,7 +59,7 @@ from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 log = logging.getLogger(__name__)
 
-ANONYMISER = 'crate_anon.anonymise.anonymise_cli'
+ANONYMISER = "crate_anon.anonymise.anonymise_cli"
 
 CPUCOUNT = multiprocessing.cpu_count()
 
@@ -67,6 +67,7 @@ CPUCOUNT = multiprocessing.cpu_count()
 # =============================================================================
 # Main
 # =============================================================================
+
 
 def main() -> None:
     """
@@ -81,12 +82,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument(
-        "--nproc", "-n", nargs="?", type=int, default=CPUCOUNT,
+        "--nproc",
+        "-n",
+        nargs="?",
+        type=int,
+        default=CPUCOUNT,
         help="Number of processes "
-             "(default is the number of CPUs on this machine)")
+        "(default is the number of CPUs on this machine)",
+    )
     parser.add_argument(
-        "--verbose", "-v", action="store_true",
-        help="Be verbose")
+        "--verbose", "-v", action="store_true", help="Be verbose"
+    )
     args, unknownargs = parser.parse_known_args()
 
     loglevel = logging.DEBUG if args.verbose else logging.INFO
@@ -118,20 +124,21 @@ def main() -> None:
     # system module), it might import "regex.py" from the same directory (which
     # it wouldn't normally do, because Python 3 uses absolute not relative
     # imports).
-    procargs = common_launcher + [
-        '--dropremake',
-        '--processcluster=STRUCTURE'
-    ] + common_options
+    procargs = (
+        common_launcher
+        + ["--dropremake", "--processcluster=STRUCTURE"]
+        + common_options
+    )
     check_call_process(procargs)
 
     # -------------------------------------------------------------------------
     # Build opt-out lists. Only run one copy of this!
     # -------------------------------------------------------------------------
-    procargs = common_launcher + [
-        '--optout',
-        '--processcluster=OPTOUT',
-        '--skip_dd_check'
-    ] + common_options
+    procargs = (
+        common_launcher
+        + ["--optout", "--processcluster=OPTOUT", "--skip_dd_check"]
+        + common_options
+    )
     check_call_process(procargs)
 
     # -------------------------------------------------------------------------
@@ -146,23 +153,31 @@ def main() -> None:
     # (a) patient tables
     args_list = []  # type: List[List[str]]
     for procnum in range(nprocesses_patient):
-        procargs = common_launcher + [
-            '--patienttables',
-            '--processcluster=PATIENT',
-            f'--nprocesses={nprocesses_patient}',
-            f'--process={procnum}',
-            '--skip_dd_check'
-        ] + common_options
+        procargs = (
+            common_launcher
+            + [
+                "--patienttables",
+                "--processcluster=PATIENT",
+                f"--nprocesses={nprocesses_patient}",
+                f"--process={procnum}",
+                "--skip_dd_check",
+            ]
+            + common_options
+        )
         args_list.append(procargs)
     # (b) non-patient tables
     for procnum in range(nprocesses_nonpatient):
-        procargs = common_launcher + [
-            '--nonpatienttables',
-            '--processcluster=NONPATIENT',
-            f'--nprocesses={nprocesses_nonpatient}',
-            f'--process={procnum}',
-            '--skip_dd_check'
-        ] + common_options
+        procargs = (
+            common_launcher
+            + [
+                "--nonpatienttables",
+                "--processcluster=NONPATIENT",
+                f"--nprocesses={nprocesses_nonpatient}",
+                f"--process={procnum}",
+                "--skip_dd_check",
+            ]
+            + common_options
+        )
         args_list.append(procargs)
     run_multiple_processes(args_list)  # Wait for them all to finish
     # todo: fix cardinal_pythonlib to allow requesting e.g. n processes in
@@ -175,13 +190,16 @@ def main() -> None:
     # (Always fastest to index last.)
     # -------------------------------------------------------------------------
     args_list = [
-        common_launcher + [
-            '--index',
-            '--processcluster=INDEX',
-            f'--nprocesses={nprocesses_index}',
-            f'--process={procnum}',
-            '--skip_dd_check'
-        ] + common_options for procnum in range(nprocesses_index)
+        common_launcher
+        + [
+            "--index",
+            "--processcluster=INDEX",
+            f"--nprocesses={nprocesses_index}",
+            f"--process={procnum}",
+            "--skip_dd_check",
+        ]
+        + common_options
+        for procnum in range(nprocesses_index)
     ]
     run_multiple_processes(args_list)
 
@@ -192,8 +210,10 @@ def main() -> None:
     main_dur = time_middle - time_start
     index_dur = time_end - time_middle
     total_dur = time_end - time_start
-    print(f"Time taken: main {main_dur} s, indexing {index_dur} s, "
-          f"total {total_dur} s")
+    print(
+        f"Time taken: main {main_dur} s, indexing {index_dur} s, "
+        f"total {total_dur} s"
+    )
 
 
 if __name__ == "__main__":

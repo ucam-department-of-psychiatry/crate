@@ -46,9 +46,8 @@ class CloudRunInfo(object):
     Represents session-wide information about an NLP cloud run, including
     details of the server and our chosen processors and config.
     """
-    def __init__(self,
-                 nlpdef: NlpDefinition) \
-            -> None:
+
+    def __init__(self, nlpdef: NlpDefinition) -> None:
         """
         Args:
             nlpdef:
@@ -78,8 +77,7 @@ class CloudRunInfo(object):
         """
         if self._local_processors is None:
             self._local_processors = [
-                p for p in self.nlpdef.processors
-                if isinstance(p, Cloud)
+                p for p in self.nlpdef.processors if isinstance(p, Cloud)
             ]
         return self._local_processors
 
@@ -104,11 +102,13 @@ class CloudRunInfo(object):
                 requested.append(name_version)
         return requested
 
-    def delete_dest_records(self,
-                            ifconfig: InputFieldConfig,
-                            pkval: int,
-                            pkstr: Optional[str],
-                            commit: bool = True):
+    def delete_dest_records(
+        self,
+        ifconfig: InputFieldConfig,
+        pkval: int,
+        pkstr: Optional[str],
+        commit: bool = True,
+    ):
         """
         Used for incremental updates. Deletes old destination records.
         """

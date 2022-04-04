@@ -28,9 +28,9 @@ crate_anon/crateweb/config/constants.py
 
 """
 
-CRATEWEB_CONFIG_ENV_VAR = 'CRATE_WEB_LOCAL_SETTINGS'
-CHERRYPY_EXTRA_ARGS_ENV_VAR = 'CRATE_CHERRYPY_ARGS'
-CRATEWEB_CELERY_APP_NAME = 'crate_anon.crateweb.consent'
+CRATEWEB_CONFIG_ENV_VAR = "CRATE_WEB_LOCAL_SETTINGS"
+CHERRYPY_EXTRA_ARGS_ENV_VAR = "CRATE_CHERRYPY_ARGS"
+CRATEWEB_CELERY_APP_NAME = "crate_anon.crateweb.consent"
 
 
 class ResearchDbInfoKeys(object):
@@ -38,31 +38,32 @@ class ResearchDbInfoKeys(object):
     Keys for each dictionary within ``settings.RESEARCH_DB_INFO``, representing
     a description of a research database that CRATE will provide a view on.
     """
-    NAME = 'name'
-    DESCRIPTION = 'description'
 
-    DATABASE = 'database'
-    SCHEMA = 'schema'
+    NAME = "name"
+    DESCRIPTION = "description"
 
-    PID_PSEUDO_FIELD = 'pid_pseudo_field'
-    MPID_PSEUDO_FIELD = 'mpid_pseudo_field'
-    TRID_FIELD = 'trid_field'
-    RID_FIELD = 'rid_field'
-    RID_FAMILY = 'rid_family'
-    MRID_TABLE = 'mrid_table'
-    MRID_FIELD = 'mrid_field'
+    DATABASE = "database"
+    SCHEMA = "schema"
 
-    PID_DESCRIPTION = 'pid_description'
-    MPID_DESCRIPTION = 'mpid_description'
-    RID_DESCRIPTION = 'rid_description'
-    MRID_DESCRIPTION = 'mrid_description'
-    TRID_DESCRIPTION = 'trid_description'
+    PID_PSEUDO_FIELD = "pid_pseudo_field"
+    MPID_PSEUDO_FIELD = "mpid_pseudo_field"
+    TRID_FIELD = "trid_field"
+    RID_FIELD = "rid_field"
+    RID_FAMILY = "rid_family"
+    MRID_TABLE = "mrid_table"
+    MRID_FIELD = "mrid_field"
 
-    SECRET_LOOKUP_DB = 'secret_lookup_db'
+    PID_DESCRIPTION = "pid_description"
+    MPID_DESCRIPTION = "mpid_description"
+    RID_DESCRIPTION = "rid_description"
+    MRID_DESCRIPTION = "mrid_description"
+    TRID_DESCRIPTION = "trid_description"
 
-    DATE_FIELDS_BY_TABLE = 'date_fields_by_table'
-    DEFAULT_DATE_FIELDS = 'default_date_fields'
-    UPDATE_DATE_FIELD = 'update_date_field'
+    SECRET_LOOKUP_DB = "secret_lookup_db"
+
+    DATE_FIELDS_BY_TABLE = "date_fields_by_table"
+    DEFAULT_DATE_FIELDS = "default_date_fields"
+    UPDATE_DATE_FIELD = "update_date_field"
 
 
 SOURCE_DB_NAME_MAX_LENGTH = 20
@@ -73,32 +74,33 @@ class ClinicalDatabaseType(object):
     Possible source clinical database types that CRATE knows about, and can
     look up patient details for the consent-to-contact system.
     """
+
     # NB the following strings mustn't be longer than SOURCE_DB_NAME_MAX_LENGTH
-    DUMMY_CLINICAL = 'dummy_clinical'
-    CPFT_CRS = 'cpft_crs'
-    CPFT_PCMIS = 'cpft_pcmis'
-    CPFT_RIO_CRATE_PREPROCESSED = 'cpft_rio_crate'
-    CPFT_RIO_DATAMART = 'cpft_rio_datamart'
-    CPFT_RIO_RAW = 'cpft_rio_raw'
-    CPFT_RIO_RCEP = 'cpft_rio_rcep'
+    DUMMY_CLINICAL = "dummy_clinical"
+    CPFT_CRS = "cpft_crs"
+    CPFT_PCMIS = "cpft_pcmis"
+    CPFT_RIO_CRATE_PREPROCESSED = "cpft_rio_crate"
+    CPFT_RIO_DATAMART = "cpft_rio_datamart"
+    CPFT_RIO_RAW = "cpft_rio_raw"
+    CPFT_RIO_RCEP = "cpft_rio_rcep"
 
     # For Django fields, using the above:
     DATABASE_CHOICES = (
         # First key must match a database entry in Django local settings.
-        (DUMMY_CLINICAL,
-         'Dummy clinical database for testing'),
+        (DUMMY_CLINICAL, "Dummy clinical database for testing"),
         # (ClinicalDatabaseType.CPFT_PCMIS,
         #  'CPFT Psychological Wellbeing Service (IAPT) PC-MIS'),
-        (CPFT_CRS,
-         'CPFT Care Records System (CRS) 2005-2012'),
-        (CPFT_RIO_RCEP,
-         'CPFT RiO 2013- (preprocessed by Servelec RCEP tool)'),
-        (CPFT_RIO_RAW,
-         'CPFT RiO 2013- (raw)'),
-        (CPFT_RIO_CRATE_PREPROCESSED,
-         'CPFT RiO 2013- (preprocessed by CRATE)'),
-        (CPFT_RIO_DATAMART,
-         'CPFT RiO 2013- (data warehouse processed version)'),
+        (CPFT_CRS, "CPFT Care Records System (CRS) 2005-2012"),
+        (CPFT_RIO_RCEP, "CPFT RiO 2013- (preprocessed by Servelec RCEP tool)"),
+        (CPFT_RIO_RAW, "CPFT RiO 2013- (raw)"),
+        (
+            CPFT_RIO_CRATE_PREPROCESSED,
+            "CPFT RiO 2013- (preprocessed by CRATE)",
+        ),
+        (
+            CPFT_RIO_DATAMART,
+            "CPFT RiO 2013- (data warehouse processed version)",
+        ),
     )
 
 
@@ -245,7 +247,9 @@ class UrlNames(object):
     DRAFT_CLINICIAN_EMAIL = "draft_clinician_email"
     DRAFT_CONFIRM_TRAFFIC_LIGHT_LETTER = "draft_confirm_traffic_light_letter"
     DRAFT_FIRST_TRAFFIC_LIGHT_LETTER = "draft_first_traffic_light_letter"
-    DRAFT_LETTER_CLINICIAN_TO_PT_RE_STUDY = "draft_letter_clinician_to_pt_re_study"  # noqa
+    DRAFT_LETTER_CLINICIAN_TO_PT_RE_STUDY = (
+        "draft_letter_clinician_to_pt_re_study"  # noqa
+    )
     DRAFT_TRAFFIC_LIGHT_DECISION_FORM = "draft_traffic_light_decision_form"
     DRAFT_WITHDRAWAL_EMAIL = "draft_withdrawal_email"
     DRAFT_WITHDRAWAL_LETTER = "draft_withdrawal_letter"
@@ -265,6 +269,7 @@ class UrlKeys(object):
     Keys used in GET parameters as part of a query string:
     ```...path?a=1&b=2``, etc.
     """
+
     # Generic
     NEXT = "next"
     # ... used for login redirectionmust match
