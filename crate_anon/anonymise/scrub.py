@@ -339,7 +339,7 @@ class WordList(ScrubberBase):
                         get_phrase_regex_elements(
                             w,
                             suffixes=self.suffixes,
-                            at_word_boundaries_only=self.at_word_boundaries_only,
+                            at_word_boundaries_only=self.at_word_boundaries_only,  # noqa: E501
                             max_errors=self.max_errors,
                         )
                     )
@@ -348,7 +348,7 @@ class WordList(ScrubberBase):
                         get_string_regex_elements(
                             w,
                             suffixes=self.suffixes,
-                            at_word_boundaries_only=self.at_word_boundaries_only,
+                            at_word_boundaries_only=self.at_word_boundaries_only,  # noqa: E501
                             max_errors=self.max_errors,
                         )
                     )

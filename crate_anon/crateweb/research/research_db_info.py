@@ -604,8 +604,8 @@ ORDER BY
     table_schema,
     table_name,
     column_name
-        """
-        )  # noqa
+        """  # noqa: E501
+        )
         args = [db_name] + schema_names
         return sql, args
 

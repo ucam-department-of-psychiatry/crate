@@ -495,7 +495,7 @@ def examples_for_paper() -> None:
     number_regexes = get_code_regex_elements(
         get_digit_string_from_vaguely_numeric_string(str(testnumber)),
         at_word_boundaries_only=anonymise_numbers_at_word_boundaries_only,
-        at_numeric_boundaries_only=anonymise_numbers_at_numeric_boundaries_only,
+        at_numeric_boundaries_only=anonymise_numbers_at_numeric_boundaries_only,  # noqa: E501
     )
     print(f"--- For number {testnumber}:")
     for r in number_regexes:

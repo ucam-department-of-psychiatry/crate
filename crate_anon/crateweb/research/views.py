@@ -2908,7 +2908,9 @@ def common_find_text(
         fk_options.append(
             FieldPickerInfo(
                 value=dbinfo.pid_pseudo_field,
-                description=f"{dbinfo.pid_pseudo_field}: {dbinfo.pid_description}",
+                description=(
+                    f"{dbinfo.pid_pseudo_field}: {dbinfo.pid_description}"
+                ),
                 type_=PatientFieldPythonTypes.PID,
                 permits_empty_id=False,
             )
@@ -2916,7 +2918,9 @@ def common_find_text(
         fk_options.append(
             FieldPickerInfo(
                 value=dbinfo.mpid_pseudo_field,
-                description=f"{dbinfo.mpid_pseudo_field}: {dbinfo.mpid_description}",  # noqa
+                description=(
+                    f"{dbinfo.mpid_pseudo_field}: {dbinfo.mpid_description}"
+                ),
                 type_=PatientFieldPythonTypes.MPID,
                 permits_empty_id=False,
             )
@@ -3730,7 +3734,8 @@ def pe_submit(
     Args:
         request: the :class:`django.http.request.HttpRequest`
         pmq: a :class:`crate_anon.crateweb.research.models.PatientMultiQuery`
-        run: run and show results? Otherwise, save and return to the choice view
+        run: run and show results? Otherwise, save and return to the choice
+             view
 
     Returns:
         a :class:`django.http.response.HttpResponse`
@@ -4235,11 +4240,11 @@ def archive_template(request: HttpRequest) -> HttpResponse:
     context = copy.copy(ARCHIVE_CONTEXT)
     context.update(
         {
-            ArchiveContextKeys.get_patient_template_url: same_patient_template_url,
+            ArchiveContextKeys.get_patient_template_url: same_patient_template_url,  # noqa: E501
             ArchiveContextKeys.get_template_url: archive_template_url,
             ArchiveContextKeys.get_attachment_url: same_patient_attachment_url,
             ArchiveContextKeys.CRATE_HOME_URL: reverse("home"),
-            ArchiveContextKeys.execute: get_executed_researchdb_cursor_qmark_placeholders,  # noqa
+            ArchiveContextKeys.execute: get_executed_researchdb_cursor_qmark_placeholders,  # noqa: E501
             ArchiveContextKeys.patient_id: patient_id,
             ArchiveContextKeys.query_params: request.GET,
             ArchiveContextKeys.request: request,

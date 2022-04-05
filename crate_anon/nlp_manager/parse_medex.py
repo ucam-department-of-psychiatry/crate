@@ -678,7 +678,7 @@ class Medex(BaseNlpParser):
         """
         if not self._started:
             return
-        self._p.communicate()  # close p.stdout, wait for the subprocess to exit
+        self._p.communicate()  # close p.stdout, wait for the subprocess to exit  # noqa: E501
         self._started = False
 
     def _signal_data_ready(self) -> bool:

@@ -2197,8 +2197,8 @@ class PatientExplorer(models.Model):
                 active=False
             )
         self.pmq_hash = self.patient_multiquery.hash64
-        # Beware: Python's hash() function will downconvert to 32 bits on 32-bit
-        # machines; use pmq.hash64() directly, not hash(pmq).
+        # Beware: Python's hash() function will downconvert to 32 bits on
+        # 32-bit machines; use pmq.hash64() directly, not hash(pmq).
         super().save(*args, **kwargs)
 
     # -------------------------------------------------------------------------

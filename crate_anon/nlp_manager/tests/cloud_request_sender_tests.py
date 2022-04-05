@@ -79,7 +79,8 @@ class CloudRequestSenderTests(TestCase):
             max_content_length=50000,
             has_gate_processors=True,
         )
-        # can't set name attribute in constructor here as it has special meaning
+        # can't set name attribute in constructor here as it has special
+        # meaning
         self.nlpdef = mock.Mock(
             get_cloud_config_or_raise=mock.Mock(return_value=self.cloud_config)
         )
@@ -309,12 +310,12 @@ class CloudRequestSenderTests(TestCase):
         )
         mock_send_1.assert_called_once_with(
             queue=True,
-            cookies=mock_cookies,  # Should remember cookies from first response
+            cookies=mock_cookies,  # Should remember cookies from first response  # noqa: E501
             include_text_in_reply=True,  # has_gate_processors from config
         )
         mock_send_2.assert_called_once_with(
             queue=True,
-            cookies=mock_cookies,  # Should remember cookies from first response
+            cookies=mock_cookies,  # Should remember cookies from first response  # noqa: E501
             include_text_in_reply=True,  # has_gate_processors from config
         )
 

@@ -85,11 +85,29 @@ def run_with_check(args: List[str]) -> None:
     run(args, check=True)
 
 
-def check_python_style() -> None:
+def check_python_style_and_errors() -> None:
     run_with_check(
         [
             "flake8",
             f"--config={CONFIG_FILE}",
+            PYTHON_SOURCE_DIR,
+        ]
+    )
+
+
+def check_python_formatting() -> None:
+    # Black does not support setup.cfg so we specify the options
+    # on the command line (need to keep consistent with flake8)
+    # TODO: Consider replacing setup.py and setup.cfg with pyproject.toml
+    run_with_check(
+        [
+            "black",
+            "--line-length",
+            "79",
+            "--diff",
+            "--check",
+            "--exclude",
+            "working",
             PYTHON_SOURCE_DIR,
         ]
     )
@@ -148,8 +166,11 @@ def main() -> None:
 
     try:
         check_yml()
-        log.info("Checking Python style...")
-        check_python_style()
+        log.info("Checking Python formatting...")
+        check_python_formatting()
+        log.info("... done.")
+        log.info("Checking for Python style and errors...")
+        check_python_style_and_errors()
         log.info("... very stylish.")
     except CalledProcessError as e:
         log.error(str(e))

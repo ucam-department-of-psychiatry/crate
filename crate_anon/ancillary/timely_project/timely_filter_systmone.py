@@ -211,13 +211,14 @@ class TimelySystmOneFilter(TimelyDDFilter):
             self.staged_include_tables,
             stage=4,
             regex_strings=[
-                "AnsweredQuestionnaire",  # fact of questionnaires being answered
+                # fact of questionnaires being answered
+                "AnsweredQuestionnaire",
                 "AssistiveTechnologyToSupportDisability",
                 "ClinicalMeasure_.*",
                 "ClinicalOutcome_.*",
-                "Coded_.*",  # finding, observations, [procedures: see 2], scored assessments  # noqa
+                "Coded_.*",  # finding, observations, [procedures: see 2], scored assessments  # noqa: E501
                 "Falls_AtRiskState.*",
-                "Inpatient_NorthwickParkIndex",  # may be current inpatients only
+                "Inpatient_NorthwickParkIndex",  # may be current inpatients only  # noqa: E501
                 "InpatientLeave",
                 "MentalHealthAct.*",
                 "PatientAnsweredQuestionnaireInformation",

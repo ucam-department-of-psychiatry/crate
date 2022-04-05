@@ -61,7 +61,8 @@ class NlpParserProcessTests(TestCase):
         self.mock_session = mock.Mock(execute=self.mock_execute_method)
         self.mock_db = mock.Mock(session=self.mock_session)
 
-        # can't set name attribute in constructor here as it has special meaning
+        # can't set name attribute in constructor here as it has special
+        # meaning
         mock_column = mock.Mock()
         mock_column.name = "fruit"  # so set it here
 
@@ -124,7 +125,7 @@ class NlpParserProcessTests(TestCase):
 
         logger_name = "crate_anon.nlp_manager.base_nlp_parser"
         self.assertIn(
-            f"DEBUG:{logger_name}:NLP processor fruitdef/Fruit: found 3 values",
+            f"DEBUG:{logger_name}:NLP processor fruitdef/Fruit: found 3 values",  # noqa: E501
             logging_cm.output,
         )
 

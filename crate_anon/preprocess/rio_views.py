@@ -246,7 +246,7 @@ RIO_VIEWS = OrderedDict(
         # -------------------------------------------------------------------------
         # Core: views provided by RCEP (with some extensions)
         # -------------------------------------------------------------------------
-        # 'assessmentsCRISSpec' is RCEP internal for CRIS tree/form/field/... info
+        # 'assessmentsCRISSpec' is RCEP internal for CRIS tree/form/field/... info  # noqa: E501
         (
             "Care_Plan_Index",
             {
@@ -296,7 +296,9 @@ RIO_VIEWS = OrderedDict(
                 "rename": {
                     # RCEP: Created_Date: see our Audit_Created_Date
                     # RCEP: Updated_Date: see our Audit_Updated_Date
-                    "ProblemID": "Problem_FK_Care_Plan_Problems",  # RCEP: Problem_Key
+                    "ProblemID": (
+                        "Problem_FK_Care_Plan_Problems"
+                    ),  # RCEP: Problem_Key
                     "InterventionID": "Intervention_Key",  # RCEP; non-unique
                     "Box1": "Box_1",  # not in RCEP
                     "Box2": "Box_2",  # not in RCEP
@@ -312,11 +314,17 @@ RIO_VIEWS = OrderedDict(
                     "OutCome": None,  # lookup below
                     # Comment: unchanged
                     "Picklist1Code": "Picklist_1_Code",  # not in RCEP
-                    "Picklist1Description": "Picklist_1_Description",  # not in RCEP
+                    "Picklist1Description": (
+                        "Picklist_1_Description"
+                    ),  # not in RCEP
                     "Picklist2Code": "Picklist_2_Code",  # not in RCEP
-                    "Picklist2Description": "Picklist_2_Description",  # not in RCEP
+                    "Picklist2Description": (
+                        "Picklist_2_Description"
+                    ),  # not in RCEP
                     "Picklist3Code": "Picklist_3_Code",  # not in RCEP
-                    "Picklist3Description": "Picklist_3_Description",  # not in RCEP
+                    "Picklist3Description": (
+                        "Picklist_3_Description"
+                    ),  # not in RCEP
                     "DateField1": "Date_Field_1",  # not in RCEP
                     "DateField2": "Date_Field_2",  # not in RCEP
                     "LibraryID": "Library_ID",  # not in RCEP
@@ -336,7 +344,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "InterventionType",
                             "lookup_table": "CarePlanInterventionTypes",
@@ -372,7 +380,9 @@ RIO_VIEWS = OrderedDict(
                 "basetable": "CarePlanProblems",
                 "rename": {
                     "ProblemID": "Problem_ID",  # RCEP
-                    "CarePlanID": "Care_Plan_ID_FK_Care_Plan_Index",  # RCEP: was Care_Plan_ID  # noqa
+                    "CarePlanID": (
+                        "Care_Plan_ID_FK_Care_Plan_Index"
+                    ),  # RCEP: was Care_Plan_ID
                     "Text": "Text",  # RCEP
                     "StartDate": "Start_Date",  # RCEP
                     "EndDate": "End_Date",  # RCEP
@@ -429,7 +439,7 @@ RIO_VIEWS = OrderedDict(
         (
             "Client_Address_History",
             {
-                "basetable": VIEW_ADDRESS_WITH_GEOGRAPHY,  # original: 'ClientAddress'
+                "basetable": VIEW_ADDRESS_WITH_GEOGRAPHY,  # original: 'ClientAddress'  # noqa: E501
                 "rename": {
                     # RCEP: Created_Date: see our Audit_Created_Date
                     # RCEP: Updated_Date: see our Audit_Updated_Date
@@ -449,7 +459,9 @@ RIO_VIEWS = OrderedDict(
                     "LastUpdated": "Last_Updated",  # RCEP
                     "AddressType": None,  # lookup below
                     "AccommodationType": None,  # lookup below
-                    "AddressGroup": "Address_Group",  # RCEP; ?nature; RiO docs wrong
+                    "AddressGroup": (
+                        "Address_Group"
+                    ),  # RCEP; ?nature; RiO docs wrong
                     "PAFKey": None,  # NHS Spine interaction field
                     "SpineID": None,  # NHS Spine interaction field
                 },
@@ -461,7 +473,8 @@ RIO_VIEWS = OrderedDict(
                             "lookup_table": "GenElectoralWard",
                             "column_prefix": "Electoral_Ward",
                             "internal_alias_prefix": "ew",
-                            # ... RCEP: code was Electoral_Ward and description absent
+                            # ... RCEP: code was Electoral_Ward and
+                            # description absent
                         },
                     },
                     {
@@ -470,7 +483,8 @@ RIO_VIEWS = OrderedDict(
                             "basecolumn": "PrimaryCareGroup",
                             "lookup_table": "GenPCG",
                             "column_prefix": "Primary_Care_Group",
-                            # ... RCEP: code was Primary_Care_Group and descr. absent
+                            # ... RCEP: code was Primary_Care_Group
+                            # and descr. absent
                             "internal_alias_prefix": "pcg",
                         },
                     },
@@ -480,7 +494,8 @@ RIO_VIEWS = OrderedDict(
                             "basecolumn": "HealthAuthority",
                             "lookup_table": "GenHealthAuthority",
                             "column_prefix": "Health_Authority",
-                            # ... RCEP: code was Health_Authority and descr. absent
+                            # ... RCEP: code was Health_Authority
+                            # and descr. absent
                             "internal_alias_prefix": "ha",
                         },
                     },
@@ -494,7 +509,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "AccommodationType",
                             "lookup_table": "GenAccommodationType",
@@ -542,13 +557,21 @@ RIO_VIEWS = OrderedDict(
                     "ReactionID": "Unique_Key",  # RCEP; INT
                     "UserID": None,  # user lookup; VARCHAR(15)
                     # Substance: unchanged, RCEP; VARCHAR(255)
-                    "ReactionType": "Reaction_Type_ID",  # and lookup below; INT
+                    "ReactionType": (
+                        "Reaction_Type_ID"
+                    ),  # and lookup below; INT
                     # Reaction: unchanged, RCEP; VARCHAR(255)
-                    "ReactionSeverity": "Reaction_Severity_ID",  # not RCEP; lookup below; INT  # noqa
+                    "ReactionSeverity": (
+                        "Reaction_Severity_ID"
+                    ),  # not RCEP; lookup below; INT
                     "ReportedBy": "Reported_By_ID",  # and lookup below; INT
-                    "Name": "Name",  # RCEP; think this is "reported by" name; VARCHAR(50)  # noqa
+                    "Name": (
+                        "Name"
+                    ),  # RCEP; think this is "reported by" name; VARCHAR(50)
                     "WitnessingHCP": "Witnessing_HCP",  # RCEP; VARCHAR(50)
-                    "YearOfIdentification": "Year_Of_Identification",  # RCEP; INT
+                    "YearOfIdentification": (
+                        "Year_Of_Identification"
+                    ),  # RCEP; INT
                     # Comment: unchanged, RCEP; VARCHAR(500)
                     # Deleted: unchanged, RCEP; BIT
                     "DeletionReason": "Deletion_Reason_ID",  # not in RCEP; INT
@@ -586,7 +609,9 @@ RIO_VIEWS = OrderedDict(
                             "lookup_pk": "SeverityID",
                             "lookup_fields_aliases": {
                                 "Code": "Reaction_Severity_Code",
-                                "CodeDescription": "Reaction_Severity_Description",
+                                "CodeDescription": (
+                                    "Reaction_Severity_Description"
+                                ),
                                 # ... all RCEP
                             },
                             "internal_alias_prefix": "rs",
@@ -596,7 +621,8 @@ RIO_VIEWS = OrderedDict(
                         "function": simple_lookup_join,
                         "kwargs": {
                             "basecolumn": "ReportedBy",
-                            # RCEP code is Reported_By; NB error in RiO docs AND RCEP;
+                            # RCEP code is Reported_By;
+                            # NB error in RiO docs AND RCEP;
                             # code is INT ranging from 1-4
                             "lookup_table": "EPReportedBy",
                             "lookup_pk": "ReportedID",  # not Code!
@@ -615,7 +641,9 @@ RIO_VIEWS = OrderedDict(
                             "lookup_pk": "RemovalID",
                             "lookup_fields_aliases": {
                                 "Code": "Deletion_Reason_Code",  # not in RCEP
-                                "Reason": "Deletion_Reason_Description",  # not in RCEP
+                                "Reason": (
+                                    "Deletion_Reason_Description"
+                                ),  # not in RCEP
                             },
                             "internal_alias_prefix": "dr",
                         },
@@ -643,7 +671,9 @@ RIO_VIEWS = OrderedDict(
                     # RCEP: Created_Date: see our Audit_Created_Date
                     # RCEP: Updated_Date: see our Audit_Updated_Date
                     "ClientTelecomID": "Unique_Key",  # RCEP
-                    "Detail": "Contact_Details",  # RCEP; may be phone no. or email addr
+                    "Detail": (
+                        "Contact_Details"
+                    ),  # RCEP; may be phone no. or email addr
                     "ContactMethod": None,  # lookup below
                     "Context": None,  # lookup below
                     "StartDate": "Valid_From",  # RCEP
@@ -673,8 +703,11 @@ RIO_VIEWS = OrderedDict(
                     {
                         "function": simple_view_expr,
                         "kwargs": {
-                            "expr": "CASE WHEN (ContactMethod = 1 OR ContactMethod = 2"
-                            " OR ContactMethod = 4) THEN Detail ELSE NULL END",
+                            "expr": (
+                                "CASE WHEN (ContactMethod = 1 OR "
+                                "ContactMethod = 2 OR "
+                                "ContactMethod = 4) THEN Detail ELSE NULL END"
+                            ),
                             # 1 = telephone; 2 = fax; 4 = minicom/textphone
                             "alias": "crate_telephone",
                         },
@@ -728,7 +761,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "CPALevel",
                             "lookup_table": "CPALevel",
@@ -747,13 +780,16 @@ RIO_VIEWS = OrderedDict(
                     # RCEP: Created_Date: see our Audit_Created_Date
                     # RCEP: Updated_Date: see our Audit_Updated_Date
                     "NNN": "NHS_Number",  # RCEP
-                    # RCEP: Shared_ID = hashed NHS number (CRATE does this); skipped
+                    # RCEP: Shared_ID = hashed NHS number
+                    # (CRATE does this); skipped
                     "NNNStatus": None,  # lookup below
-                    "AlternativeID": "Alternative_RiO_Number",  # may always be NULL
+                    "AlternativeID": (
+                        "Alternative_RiO_Number"
+                    ),  # may always be NULL
                     "Surname": None,  # always NULL; see ClientName instead
-                    "SurnameSoundex": None,  # always NULL; see ClientName instead
+                    "SurnameSoundex": None,  # always NULL; see ClientName instead  # noqa: E501
                     "Firstname": None,  # always NULL; see ClientName instead
-                    "FirstnameSoundex": None,  # always NULL; see ClientName instead
+                    "FirstnameSoundex": None,  # always NULL; see ClientName instead  # noqa: E501
                     "Title": None,  # always NULL; see ClientName instead
                     "Gender": None,  # lookup below
                     # RCEP: CAMHS_National_Gender_Code: ?source
@@ -770,12 +806,12 @@ RIO_VIEWS = OrderedDict(
                     "Nationality": None,  # lookup below
                     "DateOfDeath": "Date_Of_Death",  # RCEP
                     # RCEP: comment: ?source
-                    "OtherAddress": None,  # Not in RCEP. Occasional (0.34%) confused mismash e.g. "Temporary Address: 1 Thing Lane, ..."; so unhelpful for anon. but identifying  # noqa
-                    "MotherLink": None,  # Not in RCEP. ?Always NULL. See ClientFamilyLink instead  # noqa
-                    "FatherLink": None,  # Not in RCEP. ?Always NULL. See ClientFamilyLink instead  # noqa
+                    "OtherAddress": None,  # Not in RCEP. Occasional (0.34%) confused mismash e.g. "Temporary Address: 1 Thing Lane, ..."; so unhelpful for anon. but identifying  # noqa: E501
+                    "MotherLink": None,  # Not in RCEP. ?Always NULL. See ClientFamilyLink instead  # noqa: E501
+                    "FatherLink": None,  # Not in RCEP. ?Always NULL. See ClientFamilyLink instead  # noqa: E501
                     "DateRegistered": "Date_Registered",  # RCEP
-                    "EMailAddress": None,  # always NULL; see ClientTelecom instead
-                    "MobilePhone": None,  # always NULL; see ClientTelecom instead
+                    "EMailAddress": None,  # always NULL; see ClientTelecom instead  # noqa: E501
+                    "MobilePhone": None,  # always NULL; see ClientTelecom instead  # noqa: E501
                     "FirstLanguage": None,  # lookup below
                     "School": None,  # always NULL; see ClientSchool instead
                     "NonClient": "Non_Client",  # RCEP; 0/1 indicator
@@ -783,15 +819,19 @@ RIO_VIEWS = OrderedDict(
                     "MainCarer": None,  # see CAST below
                     "NINumber": "National_Insurance_Number",  # RCEP
                     "DeathFlag": "Death_Flag",  # RCEP; 0/1 indicator
-                    "TimeStamps": None,  # RiO internal system record-locking field (!)
-                    "FirstCareDate": "Date_Of_First_Mental_Health_Care",  # RCEP
-                    "NNNLastTape": None,  # Not in RCEP. May refer to tape storage of NHS numbers, i.e. system internal; see NNNTape.  # noqa
+                    "TimeStamps": None,  # RiO internal system record-locking field (!)  # noqa: E501
+                    "FirstCareDate": (
+                        "Date_Of_First_Mental_Health_Care"
+                    ),  # RCEP
+                    "NNNLastTape": None,  # Not in RCEP. May refer to tape storage of NHS numbers, i.e. system internal; see NNNTape.  # noqa: E501
                     "OtherCarer": None,  # see CAST below
                     "LastUpdated": "Last_Updated",  # RCEP
                     "ReportsFile": "Reports_File",  # RCEP; 0/1 flag
                     "SENFile": "SEN_File",  # RCEP; 0/1 flag
                     "Interpreter": "Interpreter_Required",  # RCEP; 0/1 flag
-                    "OutPatMedAdminRecord": "Outpatient_Medical_Admin_Record",  # 0/1 flag; RCEP was OutPatMedAdminRecord  # noqa
+                    "OutPatMedAdminRecord": (
+                        "Outpatient_Medical_Admin_Record"
+                    ),  # 0/1 flag; RCEP was OutPatMedAdminRecord
                     "SpineID": None,  # omitted from RCEP
                     "SpineSyncDate": None,  # omitted from RCEP
                     "SensitiveFlag": "Sensitive_Flag",  # RCEP
@@ -828,11 +868,13 @@ RIO_VIEWS = OrderedDict(
                             # ... RCEP except code was NNN_Status
                             "internal_alias_prefix": "ns",
                         },
-                        # PROBLEM HERE 2017-01-23: RiO has multiple entries in the
-                        # NNNStatus table for some Code values, differing by
-                        # NationalCode (but Code is what's looked up from ClientIndex).
-                        # They all have the same CodeDescription. So we only want the
-                        # first, or we get duplicate rows from the LEFT JOIN.
+                        # PROBLEM HERE 2017-01-23: RiO has multiple entries in
+                        # the NNNStatus table for some Code values, differing
+                        # by NationalCode (but Code is what's looked up from
+                        # ClientIndex).
+                        # They all have the same CodeDescription. So we only
+                        # want the first, or we get duplicate rows from the
+                        # LEFT JOIN.
                         # See standard_rio_code_lookup, thus modified.
                     },
                     {
@@ -845,17 +887,18 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "MaritalStatus",
                             "lookup_table": "GenMaritalStatus",
                             "column_prefix": "Marital_Status",
-                            # RCEP, except national was National_Marital_Status_Code
+                            # RCEP, except national was
+                            # National_Marital_Status_Code
                             "internal_alias_prefix": "ms",
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "Ethnicity",
                             "lookup_table": "GenEthnicity",
@@ -865,7 +908,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "Religion",
                             "lookup_table": "GenReligion",
@@ -875,7 +918,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "Nationality",
                             "lookup_table": "GenNationality",
@@ -884,7 +927,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "FirstLanguage",
                             "lookup_table": "GenLanguage",
@@ -916,7 +959,7 @@ RIO_VIEWS = OrderedDict(
                     "Relationship": None,  # lookup below
                     "ParentalResponsibility": None,  # lookup below
                     "LegalStatus": None,  # lookup below
-                    "TempVal": None,  # Temporary_Value in RCEP, but who cares!?
+                    "TempVal": None,  # Temporary_Value in RCEP, but who cares!?  # noqa: E501
                     # RCEP: Comment: ?the comment from ClientFamily -- ignored
                 },
                 "add": [
@@ -931,7 +974,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "Relationship",
                             "lookup_table": "GenFamilyRelationship",
@@ -983,7 +1026,7 @@ RIO_VIEWS = OrderedDict(
                         "function": rio_add_gp_lookup,
                         "kwargs": {
                             "basecolumn": "GPCode",
-                            "column_prefix": "GP",  # RCEP with some modifications
+                            "column_prefix": "GP",  # RCEP with some modifications  # noqa: E501
                             "internal_alias_prefix": "gp",
                         },
                     },
@@ -1027,7 +1070,9 @@ RIO_VIEWS = OrderedDict(
                     "MedicationType": None,  # lookup below
                     "EndDate": "End_Date",  # RCEP: was EndDate
                     # Incomplete: unchanged, in RCEP
-                    "EndDateCommit": "End_Date_Commit",  # RCEP: was EndDateCommit; 1/0
+                    "EndDateCommit": (
+                        "End_Date_Commit"
+                    ),  # RCEP: was EndDateCommit; 1/0
                     "StartBy": None,  # user lookup
                     "EndBy": None,  # user lookup
                     "MinDose": "Min_Dose",  # RCEP
@@ -1037,13 +1082,21 @@ RIO_VIEWS = OrderedDict(
                     "ConfirmText": "Confirm_Text",  # RCEP
                     "HourlyStartTime": "Hourly_Start_Time",  # RCEP
                     "DRCWarning": "DRC_Warning",  # RCEP
-                    "DailyFrequency": "Daily_Frequency_Code",  # RCEP; also lookup
-                    "ReasonID": "DRC_Override_Reason_ID",  # INT; not RCEP; also lookup
-                    "AdministeredInError": "Administered_In_Error_Flag",  # RCEP
+                    "DailyFrequency": (
+                        "Daily_Frequency_Code"
+                    ),  # RCEP; also lookup
+                    "ReasonID": (
+                        "DRC_Override_Reason_ID"
+                    ),  # INT; not RCEP; also lookup
+                    "AdministeredInError": (
+                        "Administered_In_Error_Flag"
+                    ),  # RCEP
                     # Deleted: unchanged, in RCEP
                     # Confirmed: unchanged, in RCEP
                     "NumOfDays": "Num_Of_Days",  # in RCEP
-                    "VTMFormulation": "VTMFormulation",  # RCEP; VTM = Virtual Therapeutic Moieties  # noqa
+                    "VTMFormulation": (
+                        "VTMFormulation"
+                    ),  # RCEP; VTM = Virtual Therapeutic Moieties
                 },
                 "add": [
                     {
@@ -1068,9 +1121,9 @@ RIO_VIEWS = OrderedDict(
                             "basecolumn": "Units",
                             "lookup_table": "EPMedicationBaseUnits",
                             "column_prefix": "Units",
-                            # RiO docs: EPClientMedication.Units is VARCHAR(100) but
-                            # also FK to EPMedicationBaseUnits.Code; is 100 a typo for
-                            # 10?
+                            # RiO docs: EPClientMedication.Units is
+                            # VARCHAR(100) but also FK to
+                            # EPMedicationBaseUnits.Code; is 100 a typo for 10?
                             # RCEP: Units VARCHAR(200) so who knows.
                             "internal_alias_prefix": "un",
                         },
@@ -1107,14 +1160,20 @@ RIO_VIEWS = OrderedDict(
                             "lookup_table": "EPMedicationDailyFrequency",
                             "lookup_pk": "Code",
                             "lookup_fields_aliases": {
-                                "CodeDescription": "Daily_Frequency_Description",
+                                "CodeDescription": (
+                                    "Daily_Frequency_Description"
+                                ),
                                 "AdminNum": "Daily_Frequency_Admin_Number",
-                                "AdvancedMed": "Daily_Frequency_Advanced_Med_Flag",
+                                "AdvancedMed": (
+                                    "Daily_Frequency_Advanced_Med_Flag"
+                                ),
                                 "HourlyMed": "Daily_Frequency_Hourly_Med_Flag",
-                                "HourlyMedIntervalMinutes": "Daily_Frequency_Hourly_Med_Interval_Minutes",  # noqa
-                                # 'DisplayOrder': 'Daily_Frequency_Display_Order',
-                                # ... all RCEP except AdminNum, DisplayOrder not RCEP
-                                # DisplayOrder just governs order in picklist
+                                "HourlyMedIntervalMinutes": (
+                                    "Daily_Frequency_Hourly_Med_Interval_Minutes"  # noqa: E501
+                                ),
+                                # 'DisplayOrder': 'Daily_Frequency_Display_Order',  # noqa: E501
+                                # ... all RCEP except AdminNum, DisplayOrder not RCEP  # noqa: E501
+                                # DisplayOrder just governs order in picklist  # noqa: E501
                             },
                             "internal_alias_prefix": "df",
                         },
@@ -1123,7 +1182,9 @@ RIO_VIEWS = OrderedDict(
                         "function": simple_lookup_join,
                         "kwargs": {
                             "basecolumn": "ReasonID",
-                            "lookup_table": "EPDRCOverride",  # not EPDRCOverRide
+                            "lookup_table": (
+                                "EPDRCOverride"
+                            ),  # not EPDRCOverRide
                             "lookup_pk": "ReasonID",  # not Code (also present)
                             "lookup_fields_aliases": {
                                 "Code": "DRC_Override_Reason_Code",
@@ -1196,8 +1257,12 @@ RIO_VIEWS = OrderedDict(
                     "PostCode": "Post_Code",  # RCEP
                     "MainPhone": "Main_Phone",  # RCEP
                     "OtherPhone": "Other_Phone",  # RCEP
-                    "EMailAddress": "Email_Address",  # RCEP was Email (inconsistent)
-                    "Relationship": "Contact_Relationship_Code",  # RCEP + lookup
+                    "EMailAddress": (
+                        "Email_Address"
+                    ),  # RCEP was Email (inconsistent)
+                    "Relationship": (
+                        "Contact_Relationship_Code"
+                    ),  # RCEP + lookup
                     "ContactComment": "Comment",  # RCEP
                     "Organisation": "Organisation",  # VARCHAR(40); SEE NOTE 1.
                     "Deleted": "Deleted_Flag",  # RCEP
@@ -1216,24 +1281,24 @@ RIO_VIEWS = OrderedDict(
                     "OtherContext": None,  # lookup below
                     # [1] RiO's ClientContact.Organisation is VARCHAR(40).
                     #   Unclear what it links to.
-                    #   Typical data: NULL, 'CPFT', 'Independent Living Service',
+                    #   Typical data: NULL, 'CPFT', 'Independent Living Service',  # noqa: E501
                     #       'Solicitors'  - which makes it look like free text.
                     #   RCEP has:
-                    #       - Organisation_ID VARCHAR(40)  -- looks like the link field
-                    #       - Organisation_Name VARCHAR(80) } all NULL in our snapshot
+                    #       - Organisation_ID VARCHAR(40)  -- looks like the link field  # noqa: E501
+                    #       - Organisation_Name VARCHAR(80) } all NULL in our snapshot  # noqa: E501
                     #       - Organisation_Code VARCHAR(20) }
                     #   Candidate RiO lookup tables are
-                    #       - GenOrganisation  -- only content maps RT1 to "Cambrigeshire and Peterborough..."  # noqa
+                    #       - GenOrganisation  -- only content maps RT1 to "Cambrigeshire and Peterborough..."  # noqa: E501
                     #       - OrgOrganisation  -- empty for us
-                    #   So I think they've screwed it up, and it's free text that
+                    #   So I think they've screwed it up, and it's free text that  # noqa: E501
                     #   RCEP is incorrectly trying to link.
                     # [2] PAF Key = PAF address key, postal address file key
                     #   = unique ID keyed to Royal Mail PAF Directory
-                    #   http://systems.hscic.gov.uk/demographics/spineconnect/spineconnectpds.pdf  # noqa
+                    #   http://systems.hscic.gov.uk/demographics/spineconnect/spineconnectpds.pdf  # noqa: E501
                 },
                 "add": [
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "ContactType",
                             "lookup_table": "ClientContactType",
@@ -1248,9 +1313,15 @@ RIO_VIEWS = OrderedDict(
                             "lookup_table": "ClientContactRelationship",
                             "lookup_pk": "Code",
                             "lookup_fields_aliases": {
-                                "CodeDescription": "Contact_Relationship_Description",
-                                "NationalCode": "Contact_Relationship_National_Code",
-                                "FamilyRelationship": "Family_Relationship_Flag",
+                                "CodeDescription": (
+                                    "Contact_Relationship_Description"
+                                ),
+                                "NationalCode": (
+                                    "Contact_Relationship_National_Code"
+                                ),
+                                "FamilyRelationship": (
+                                    "Family_Relationship_Flag"
+                                ),
                                 # ... all RCEP except was
                                 # National_Contact_Relationship_Code
                             },
@@ -1258,7 +1329,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "LanguageCommunication",
                             "lookup_table": "GenLanguage",
@@ -1273,7 +1344,7 @@ RIO_VIEWS = OrderedDict(
                             "basecolumn": "LanguageProficiencyLevel",
                             "lookup_table": "GenLanguageProficiencyLevel",
                             "column_prefix": "Language_Proficiency",
-                            # ... RCEP: code = Language_Proficiency, desc absent
+                            # ... RCEP: code = Language_Proficiency, desc absent  # noqa: E501
                             "internal_alias_prefix": "la",
                         },
                     },
@@ -1282,7 +1353,9 @@ RIO_VIEWS = OrderedDict(
                         "kwargs": {
                             "basecolumn": "PreferredContactMethod",
                             "lookup_table": "GenPreferredContactMethod",
-                            "column_prefix": "Preferred_Contact_Method",  # RCEP
+                            "column_prefix": (
+                                "Preferred_Contact_Method"
+                            ),  # RCEP
                             "internal_alias_prefix": "pcm",
                         },
                     },
@@ -1334,26 +1407,33 @@ RIO_VIEWS = OrderedDict(
                     # RCEP: Updated_Date: see our Audit_Updated_Date
                     # RCEP: From_Date: ?source
                     # RCEP: Last_Updated: ?source
-                    "Height": "Height_m",  # RCEP was Height; definitely not cm...
+                    "Height": (
+                        "Height_m"
+                    ),  # RCEP was Height; definitely not cm...
                     "Weight": "Weight_kg",  # RCEP was Weight
                     "Comment": "Extra_Comment",  # RCEP
                     "BloodGroup": None,  # lookup below
                     "SequenceID": "Unique_Key",  # RCEP
                     "BSA": "BSA",  # RCEP
                     "BMI": "BMI",  # RCEP
-                    "HeadCircumference": "Head_Circumference",  # RCEP: HeadCircumference  # noqa
+                    "HeadCircumference": (
+                        "Head_Circumference"
+                    ),  # RCEP: HeadCircumference
                     "RecordedBy": None,  # user lookup
                     "Area": None,  # lookup below
                     "DateTaken": "Date_Taken",  # RCEP
                     "DateRecorded": "Date_Recorded",  # RCEP
                     "DateDeleted": "Date_Deleted",  # RCEP
-                    "ParentSeqID": "Preceding_Entry_Key",  # RCEP: ParentSeqID [1]
+                    "ParentSeqID": "Preceding_Entry_Key",  # RCEP: ParentSeqID [1]  # noqa: E501
                     "FieldName": "System_Field_Name",  # RCEP: Field_Name
                     "BSAFormulaID": "BSA_Formula_ID",  # RCEP
-                    "BSAFormulaAlterationReasonID": "BSA_Formula_Alteration_Reason_ID",  # RCEP # noqa
-                    # [1] ParentSeqID a silly name because (a) we've named SequenceID
-                    #     to UniqueKey, so users won't know what "SeqID" is, and
-                    #     (b) because "preceding" isn't a "parent" relationship.
+                    "BSAFormulaAlterationReasonID": (
+                        "BSA_Formula_Alteration_Reason_ID"
+                    ),  # RCEP
+                    # [1] ParentSeqID a silly name because (a) we've named
+                    #     SequenceID to UniqueKey, so users won't know what
+                    #     "SeqID" is, and (b) because "preceding" isn't a
+                    #     "parent" relationship.
                 },
                 "add": [
                     {
@@ -1406,7 +1486,9 @@ RIO_VIEWS = OrderedDict(
                             # ... documentation error in RiO 6.2 docs
                             "lookup_pk": "SequenceID",
                             "lookup_fields_aliases": {
-                                "Reason": "BSA_Formula_Alteration_Reason",  # RCEP
+                                "Reason": (
+                                    "BSA_Formula_Alteration_Reason"
+                                ),  # RCEP
                             },
                             "internal_alias_prefix": "bsaf",
                         },
@@ -1430,7 +1512,8 @@ RIO_VIEWS = OrderedDict(
                     "NonIssueReason": None,  # lookup below
                     "ReprintReason": "Reprint_Reason",  # RCEP
                     # 'Prescriber': None,  # user lookup
-                    # [1] Looks like it should be an FK, but can't see any link.
+                    # [1] Looks like it should be an FK, but can't see any
+                    # link.
                     # [2] ? FK to Referral? Unclear and not in docs.
                 },
                 "add": [
@@ -1464,8 +1547,8 @@ RIO_VIEWS = OrderedDict(
                         "kwargs": {
                             "basecolumn": "Prescriber",
                             "column_prefix": "Prescriber",  # RCEP
-                            # .. keys to GenPerson and GenUser should be equivalent,
-                            # I think
+                            # .. keys to GenPerson and GenUser should be
+                            # equivalent, I think
                             "internal_alias_prefix": "pr",
                         },
                     },
@@ -1563,7 +1646,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "EndReason",
                             "lookup_table": "CPAReviewCareSpellEnd",
@@ -1597,10 +1680,16 @@ RIO_VIEWS = OrderedDict(
                     "ReviewType": "Review_Type",  # RCEP
                     "SWInvolved": "Social_Worker_Involved_Flag",  # RCEP
                     "DayCentreInvolved": "Day_Centre_Involved_Flag",  # RCEP
-                    "ShelteredWorkInvolved": "Sheltered_Work_Involved_Flag",  # RCEP
-                    "NonNHSResAccom": "Non_NHS_Residential_Accommodation",  # RCEP
+                    "ShelteredWorkInvolved": (
+                        "Sheltered_Work_Involved_Flag"
+                    ),  # RCEP
+                    "NonNHSResAccom": (
+                        "Non_NHS_Residential_Accommodation"
+                    ),  # RCEP
                     "DomicilCareInvolved": "Domicile_Care_Involved",  # RCEP
-                    "ReviewDiagnosis1": "Review_Diagnosis_1_FK_Diagnosis",  # in RCEP, Review_Diagnosis_1, etc.  # noqa
+                    "ReviewDiagnosis1": (
+                        "Review_Diagnosis_1_FK_Diagnosis"
+                    ),  # in RCEP, Review_Diagnosis_1, etc.
                     "ReviewDiagnosis2": "Review_Diagnosis_2_FK_Diagnosis",
                     "ReviewDiagnosis3": "Review_Diagnosis_3_FK_Diagnosis",
                     "ReviewDiagnosis4": "Review_Diagnosis_4_FK_Diagnosis",
@@ -1614,7 +1703,9 @@ RIO_VIEWS = OrderedDict(
                     "ReviewDiagnosis12": "Review_Diagnosis_12_FK_Diagnosis",
                     "ReviewDiagnosis13": "Review_Diagnosis_13_FK_Diagnosis",
                     "ReviewDiagnosis14": "Review_Diagnosis_14_FK_Diagnosis",
-                    "ReviewDiagnosisConfirmed": "Review_Diagnosis_Confirmed_Date",  # RCEP  # noqa
+                    "ReviewDiagnosisConfirmed": (
+                        "Review_Diagnosis_Confirmed_Date"
+                    ),  # RCEP
                     "ReviewDiagnosisBy": None,  # user lookup
                     "ReferralSource": None,  # lookup below
                     "CareSpellEndCode": None,  # lookup below
@@ -1624,7 +1715,9 @@ RIO_VIEWS = OrderedDict(
                     "OtherReviewOutcome": None,  # lookup below
                     "ReviewLength": "Review_Length",  # RCEP was ReviewLength
                     "Validated": "Validated",  # RCEP
-                    "ThirdPartyInformation": "Third_Party_Information",  # RCEP: was ThirdPartyInformation  # noqa
+                    "ThirdPartyInformation": (
+                        "Third_Party_Information"
+                    ),  # RCEP: was ThirdPartyInformation
                     "Text1": "Notes_Text_1",  # not in RCEP
                     "Text2": "Notes_Text_2",  # not in RCEP
                     "Text3": "Notes_Text_3",  # not in RCEP
@@ -1635,17 +1728,23 @@ RIO_VIEWS = OrderedDict(
                     "Text8": "Notes_Text_8",  # not in RCEP
                     "Text9": "Notes_Text_9",  # not in RCEP
                     "Text10": "Notes_Text_10",  # not in RCEP
-                    "ScheduledRecord": "Scheduled_Record",  # RCEP was ScheduledRecord
+                    "ScheduledRecord": (
+                        "Scheduled_Record"
+                    ),  # RCEP was ScheduledRecord
                     "LastUpdatedBy": None,  # user lookup
                     "LastUpdatedDate": "Last_Updated_Date",  # RCEP
                     "ParentSequenceID": "Parent_Key",  # RCEP
                     "AppointmentSequenceID": "Appointment_Key",  # RCEP
-                    "CPAReviewPackFilename": "CPA_Review_Pack_Filename",  # RCEP
+                    "CPAReviewPackFilename": (
+                        "CPA_Review_Pack_Filename"
+                    ),  # RCEP
                     "LocationDescription": "Location_Description_Text",  # RCEP
                     "Section117StartDate": "Section117_Start_Date",  # RCEP
                     "Section117Continue": "Section117_Continue",  # RCEP
                     "Section117Decision": "Section117_Decision",  # RCEP
-                    "ProgSequenceID": "Progress_Note_Key",  # RCEP: was Progress__Note_Key  # noqa
+                    "ProgSequenceID": (
+                        "Progress_Note_Key"
+                    ),  # RCEP: was Progress__Note_Key
                     "CancellationDateTime": "Cancellation_Date_Time",  # RCEP
                     "CancellationReason": None,  # lookup below
                     "CancellationBy": None,  # user lookup
@@ -1659,7 +1758,7 @@ RIO_VIEWS = OrderedDict(
                 },
                 "add": [
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "EndReason",
                             "lookup_table": "CPAReviewOutcomes",
@@ -1675,9 +1774,15 @@ RIO_VIEWS = OrderedDict(
                             "lookup_table": "CPAReviewCareSpellEnd",
                             "lookup_pk": "Code",
                             "lookup_fields_aliases": {
-                                "CodeDescription": "CPA_Review_Outcome_Description",
-                                "NationalCode": "CPA_Review_Outcome_National_Code",
-                                "DischargeFromCPA": "CPA_Review_Outcome_Is_Discharge",
+                                "CodeDescription": (
+                                    "CPA_Review_Outcome_Description"
+                                ),
+                                "NationalCode": (
+                                    "CPA_Review_Outcome_National_Code"
+                                ),
+                                "DischargeFromCPA": (
+                                    "CPA_Review_Outcome_Is_Discharge"
+                                ),
                                 # ... all RCEP
                             },
                             "internal_alias_prefix": "ro",
@@ -1692,7 +1797,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "ReferralSource",
                             "lookup_table": "AmsReferralSource",
@@ -1701,7 +1806,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "CareSpellEndCode",
                             "lookup_table": "CPAReviewCareSpellEnd",
@@ -1720,7 +1825,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "OtherReviewOutcome",
                             "lookup_table": "CPAReviewOutcomes",
@@ -1741,10 +1846,10 @@ RIO_VIEWS = OrderedDict(
                         "kwargs": {
                             "basecolumn": "CancellationReason",
                             # 'lookup_table': 'CPACancellationReasons',
-                            # CPACancellationReasons has a single column, Code, which
-                            # is a key to GenCancellationReason, thus making it
-                            # entirely pointless (except, presumably, as a filter for
-                            # data entry).
+                            # CPACancellationReasons has a single column, Code,
+                            # which is a key to GenCancellationReason, thus
+                            # making it entirely pointless (except, presumably,
+                            # as a filter for data entry).
                             "lookup_table": "GenCancellationReason",
                             "column_prefix": "Cancellation_Reason",  # RCEP
                             "internal_alias_prefix": "cr",
@@ -1759,7 +1864,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "EmploymentStatus",
                             "lookup_table": "GenEmpStatus",
@@ -1768,17 +1873,19 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "WeeklyHoursWorked",
                             "lookup_table": "GenWeeklyHoursWorked",
-                            "column_prefix": "Weekly_Hours_Worked",  # not in RCEP
+                            "column_prefix": (
+                                "Weekly_Hours_Worked"
+                            ),  # not in RCEP
                             # RCEP code was Weekly_Hours_Worked
                             "internal_alias_prefix": "whw",
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "AccommodationStatus",
                             "lookup_table": "GenAccommodationStatus",
@@ -1787,11 +1894,13 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "SettledAccommodationIndicator",
                             "lookup_table": "GenSettledAccommodation",
-                            "column_prefix": "Settled_Accommodation_Indicator",  # RCEP
+                            "column_prefix": (
+                                "Settled_Accommodation_Indicator"
+                            ),  # RCEP
                             "internal_alias_prefix": "sa",
                         },
                     },
@@ -1829,7 +1938,9 @@ RIO_VIEWS = OrderedDict(
                         "kwargs": {
                             "basecolumn_scheme": "CodingScheme",
                             "basecolumn_code": "Diagnosis",
-                            "alias_scheme": "Coding_Scheme",  # RCEP: CodingScheme
+                            "alias_scheme": (
+                                "Coding_Scheme"
+                            ),  # RCEP: CodingScheme
                             "alias_code": "Diagnosis_Code",  # RCEP
                             "alias_description": "Diagnosis",  # RCEP
                             "internal_alias_prefix": "d",
@@ -1878,32 +1989,72 @@ RIO_VIEWS = OrderedDict(
                     "AdmissionSource": None,  # lookup below
                     "ClientClassification": None,  # lookup below
                     "DecideToAdmitDate": "Decide_To_Admit_Date",  # RCEP
-                    "DischargeAddressLine1": "Discharge_Address_Line_1",  # RCEP
-                    "DischargeAddressLine2": "Discharge_Address_Line_2",  # RCEP
-                    "DischargeAddressLine3": "Discharge_Address_Line_3",  # RCEP
-                    "DischargeAddressLine4": "Discharge_Address_Line_4",  # RCEP
-                    "DischargeAddressLine5": "Discharge_Address_Line_5",  # RCEP
+                    "DischargeAddressLine1": (
+                        "Discharge_Address_Line_1"
+                    ),  # RCEP
+                    "DischargeAddressLine2": (
+                        "Discharge_Address_Line_2"
+                    ),  # RCEP
+                    "DischargeAddressLine3": (
+                        "Discharge_Address_Line_3"
+                    ),  # RCEP
+                    "DischargeAddressLine4": (
+                        "Discharge_Address_Line_4"
+                    ),  # RCEP
+                    "DischargeAddressLine5": (
+                        "Discharge_Address_Line_5"
+                    ),  # RCEP
                     "DischargeAllocation": None,  # lookup below
                     "DischargeAwaitedReason": None,  # lookup below
                     "DischargeComment": "Discharge_Comment",  # RCEP
                     "DischargeDate": "Discharge_Date",  # RCEP
                     "DischargeDestination": None,  # lookup below
-                    "DischargeDiagnosis1": "Discharge_Diagnosis_1_FK_Diagnosis",  # in RCEP, DischargeDiagnosis1, etc.  # noqa
-                    "DischargeDiagnosis10": "Discharge_Diagnosis_10_FK_Diagnosis",
-                    "DischargeDiagnosis11": "Discharge_Diagnosis_11_FK_Diagnosis",
-                    "DischargeDiagnosis12": "Discharge_Diagnosis_12_FK_Diagnosis",
-                    "DischargeDiagnosis13": "Discharge_Diagnosis_13_FK_Diagnosis",
-                    "DischargeDiagnosis14": "Discharge_Diagnosis_14_FK_Diagnosis",
-                    "DischargeDiagnosis2": "Discharge_Diagnosis_2_FK_Diagnosis",
-                    "DischargeDiagnosis3": "Discharge_Diagnosis_3_FK_Diagnosis",
-                    "DischargeDiagnosis4": "Discharge_Diagnosis_4_FK_Diagnosis",
-                    "DischargeDiagnosis5": "Discharge_Diagnosis_5_FK_Diagnosis",
-                    "DischargeDiagnosis6": "Discharge_Diagnosis_6_FK_Diagnosis",
-                    "DischargeDiagnosis7": "Discharge_Diagnosis_7_FK_Diagnosis",
-                    "DischargeDiagnosis8": "Discharge_Diagnosis_8_FK_Diagnosis",
-                    "DischargeDiagnosis9": "Discharge_Diagnosis_9_FK_Diagnosis",
+                    "DischargeDiagnosis1": (
+                        "Discharge_Diagnosis_1_FK_Diagnosis"
+                    ),  # in RCEP, DischargeDiagnosis1, etc.
+                    "DischargeDiagnosis10": (
+                        "Discharge_Diagnosis_10_FK_Diagnosis"
+                    ),
+                    "DischargeDiagnosis11": (
+                        "Discharge_Diagnosis_11_FK_Diagnosis"
+                    ),
+                    "DischargeDiagnosis12": (
+                        "Discharge_Diagnosis_12_FK_Diagnosis"
+                    ),
+                    "DischargeDiagnosis13": (
+                        "Discharge_Diagnosis_13_FK_Diagnosis"
+                    ),
+                    "DischargeDiagnosis14": (
+                        "Discharge_Diagnosis_14_FK_Diagnosis"
+                    ),
+                    "DischargeDiagnosis2": (
+                        "Discharge_Diagnosis_2_FK_Diagnosis"
+                    ),
+                    "DischargeDiagnosis3": (
+                        "Discharge_Diagnosis_3_FK_Diagnosis"
+                    ),
+                    "DischargeDiagnosis4": (
+                        "Discharge_Diagnosis_4_FK_Diagnosis"
+                    ),
+                    "DischargeDiagnosis5": (
+                        "Discharge_Diagnosis_5_FK_Diagnosis"
+                    ),
+                    "DischargeDiagnosis6": (
+                        "Discharge_Diagnosis_6_FK_Diagnosis"
+                    ),
+                    "DischargeDiagnosis7": (
+                        "Discharge_Diagnosis_7_FK_Diagnosis"
+                    ),
+                    "DischargeDiagnosis8": (
+                        "Discharge_Diagnosis_8_FK_Diagnosis"
+                    ),
+                    "DischargeDiagnosis9": (
+                        "Discharge_Diagnosis_9_FK_Diagnosis"
+                    ),
                     "DischargeDiagnosisBy": None,  # user lookup
-                    "DischargeDiagnosisConfirmed": "Discharge_Diagnosis_Confirmed_Date",  # RCEP  # noqa
+                    "DischargeDiagnosisConfirmed": (
+                        "Discharge_Diagnosis_Confirmed_Date"
+                    ),  # RCEP
                     "DischargeMethod": None,  # lookup below
                     "DischargePostCode": "Discharge_Post_Code",  # RCEP
                     "DischargeReadyDate": "Discharge_Ready_Date",  # RCEP
@@ -1913,11 +2064,13 @@ RIO_VIEWS = OrderedDict(
                     "IntendedDischargeDate": "Intended_Discharge_Date",  # RCEP
                     "IntendedManagement": None,  # lookup below
                     "LegalStatus": None,  # lookup below
-                    "ReferralID": "Referral_ID_FK_Referral",  # Referral_ID in RCEP
+                    "ReferralID": (
+                        "Referral_ID_FK_Referral"
+                    ),  # Referral_ID in RCEP
                     "ReferralReason": "Referral_Reason",  # RCEP
-                    "ReferralRequest": None,  # present in RCEP but "no longer used" in docs  # noqa
+                    "ReferralRequest": None,  # present in RCEP but "no longer used" in docs  # noqa: E501
                     "ReferralSource": None,  # lookup below
-                    "ReferringConsultant": None,  # not in RCEP; see lookup below
+                    "ReferringConsultant": None,  # not in RCEP; see lookup below  # noqa: E501
                     "ReferringGP": None,  # see lookup below
                     "WaitingStartDateA": "Waiting_Start_Date_A",  # RCEP
                     "WaitingStartDateB": "Waiting_Start_Date_B",  # RCEP
@@ -1949,7 +2102,7 @@ RIO_VIEWS = OrderedDict(
                             "basecolumn": "ClientClassification",
                             "lookup_table": "ImsClientClassification",
                             "column_prefix": "Client_Classification",
-                            # ... in RCEP, code absent, desc = Client_Classification
+                            # ... in RCEP, code absent, desc = Client_Classification  # noqa: E501
                             "internal_alias_prefix": "cc",
                         },
                     },
@@ -1959,7 +2112,7 @@ RIO_VIEWS = OrderedDict(
                             "basecolumn": "DischargeAwaitedReason",
                             "lookup_table": "ImsClientClassification",
                             "column_prefix": "Discharge_Awaited_Reason",
-                            # ... in RCEP, code absent, desc = Discharge_Awaited_Reason
+                            # ... in RCEP, code absent, desc = Discharge_Awaited_Reason  # noqa: E501
                             "internal_alias_prefix": "dar",
                         },
                     },
@@ -1969,7 +2122,7 @@ RIO_VIEWS = OrderedDict(
                             "basecolumn": "DischargeDestination",
                             "lookup_table": "ImsDischargeDestination",
                             "column_prefix": "Discharge_Destination",
-                            # ... in RCEP, code absent, desc = Discharge_Destination
+                            # ... in RCEP, code absent, desc = Discharge_Destination  # noqa: E501
                             "internal_alias_prefix": "dd",
                         },
                     },
@@ -1989,7 +2142,7 @@ RIO_VIEWS = OrderedDict(
                             "basecolumn": "IntendedManagement",
                             "lookup_table": "ImsIntendedManagement",
                             "column_prefix": "Intended_Management",
-                            # ... in RCEP, code absent, desc = Intended_Management
+                            # ... in RCEP, code absent, desc = Intended_Management  # noqa: E501
                             "internal_alias_prefix": "im",
                         },
                     },
@@ -1999,7 +2152,7 @@ RIO_VIEWS = OrderedDict(
                             "basecolumn": "AdministrativeCategory",
                             "lookup_table": "GenAdministrativeCategory",
                             "column_prefix": "Administrative_Category",
-                            # ... in RCEP, code absent, desc = Administrative_Category
+                            # ... in RCEP, code absent, desc = Administrative_Category  # noqa: E501
                             "internal_alias_prefix": "ac",
                         },
                     },
@@ -2045,7 +2198,7 @@ RIO_VIEWS = OrderedDict(
                             "basecolumn": "AdmissionAllocation",
                             "lookup_table": "GenPCG",
                             "column_prefix": "Admission_Allocation_PCT",
-                            # ... in RCEP, code = Admission_Allocation, desc absent
+                            # ... in RCEP, code = Admission_Allocation, desc absent  # noqa: E501
                             "internal_alias_prefix": "aa",
                         },
                     },
@@ -2055,7 +2208,7 @@ RIO_VIEWS = OrderedDict(
                             "basecolumn": "DischargeAllocation",
                             "lookup_table": "GenPCG",
                             "column_prefix": "Discharge_Allocation_PCT",
-                            # ... in RCEP, code = Discharge_Allocation, desc absent
+                            # ... in RCEP, code = Discharge_Allocation, desc absent  # noqa: E501
                             "internal_alias_prefix": "da",
                         },
                     },
@@ -2099,8 +2252,11 @@ RIO_VIEWS = OrderedDict(
                     "EndDateTime": "End_Date_Time",  # RCEP
                     "EndedByAWOL": "Ended_By_AWOL",  # RCEP
                     "EventNumber": "Event_Number",
-                    # ... RCEP; event number within this admission? Clusters near 1.
-                    "ExpectedReturnDateTime": "Expected_Return_Date_Time",  # RCEP
+                    # ... RCEP; event number within this admission?
+                    # Clusters near 1.
+                    "ExpectedReturnDateTime": (
+                        "Expected_Return_Date_Time"
+                    ),  # RCEP
                     "LeaveEndReason": None,  # lookup below
                     "LeaveType": None,  # lookup below
                     "OtherInformation": "Other_Information",  # RCEP
@@ -2168,8 +2324,9 @@ RIO_VIEWS = OrderedDict(
                     "Specialty": None,  # lookup below
                     "OtherConsultant": None,  # user lookup
                     "MovementTypeFlag": "Movement_Type_Flag",  # RCEP
-                    # RCEP: Initial_Movement_Flag ?source ?extra bit flag in new RiO
-                    "Diagnosis1": "Diagnosis_1_FK_Diagnosis",  # in RCEP, DischargeDiagnosis1, etc.  # noqa
+                    # RCEP: Initial_Movement_Flag
+                    # ?source ?extra bit flag in new RiO
+                    "Diagnosis1": "Diagnosis_1_FK_Diagnosis",  # in RCEP, DischargeDiagnosis1, etc.  # noqa: E501
                     "Diagnosis10": "Diagnosis_10_FK_Diagnosis",
                     "Diagnosis11": "Diagnosis_11_FK_Diagnosis",
                     "Diagnosis12": "Diagnosis_12_FK_Diagnosis",
@@ -2183,7 +2340,9 @@ RIO_VIEWS = OrderedDict(
                     "Diagnosis7": "Diagnosis_7_FK_Diagnosis",
                     "Diagnosis8": "Diagnosis_8_FK_Diagnosis",
                     "Diagnosis9": "Diagnosis_9_FK_Diagnosis",
-                    "DiagnosisConfirmed": "Diagnosis_Confirmed_Date_Time",  # RCEP
+                    "DiagnosisConfirmed": (
+                        "Diagnosis_Confirmed_Date_Time"
+                    ),  # RCEP
                     "DiagnosisBy": None,  # user lookup
                     "Service": None,  # lookup below
                     "ServiceChargeRate": "Service_Charge_Rate",  # RCEP
@@ -2216,7 +2375,7 @@ RIO_VIEWS = OrderedDict(
                             "basecolumn": "PsychiatricPatientStatus",
                             "lookup_table": "ImsPsychiatricPatientStatus",
                             "column_prefix": "Psychiatric_Patient_Status",
-                            # in RCEP, code = Psychiatric_Patient_Status, desc absent
+                            # in RCEP, code = Psychiatric_Patient_Status, desc absent  # noqa: E501
                             "internal_alias_prefix": "pp",
                         },
                     },
@@ -2237,7 +2396,7 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "Specialty",
                             "lookup_table": "GenSpecialty",
@@ -2346,7 +2505,9 @@ RIO_VIEWS = OrderedDict(
                 "rename": {
                     # RCEP: Created_Date: see our Audit_Created_Date
                     # RCEP: Updated_Date: see our Audit_Updated_Date
-                    "SequenceID": "Event_Key",  # RCEP; not sure this one is worthwhile
+                    "SequenceID": (
+                        "Event_Key"
+                    ),  # RCEP; not sure this one is worthwhile
                     "EventID": "Event_ID",  # RCEP
                     "StartDate": "Start_Date",  # StartDate in RCEP
                     "ExpectedEndDate": "Expected_End_Date",  # RCEP
@@ -2380,25 +2541,40 @@ RIO_VIEWS = OrderedDict(
                 "rename": {
                     # EnquiryNumber: unchanged
                     # Referrer: unchanged; not in RCEP; missing?
-                    # Referral_Reason_National_Code: RCEP; ?source. Only AmsReferralSource.NationalCode  # noqa
+                    # Referral_Reason_National_Code: RCEP; ?source.
+                    # Only AmsReferralSource.NationalCode
                     "AdministrativeCategory": None,  # lookup below
                     "CABReferral": "CAB_Referral",  # RCEP
                     "ClientCareSpell": None,  # see lookup below
-                    "DischargeAddressLine1": "Discharge_Address_Line_1",  # RCEP
-                    "DischargeAddressLine2": "Discharge_Address_Line_2",  # RCEP
-                    "DischargeAddressLine3": "Discharge_Address_Line_3",  # RCEP
-                    "DischargeAddressLine4": "Discharge_Address_Line_4",  # RCEP
-                    "DischargeAddressLine5": "Discharge_Address_Line_5",  # RCEP
+                    "DischargeAddressLine1": (
+                        "Discharge_Address_Line_1"
+                    ),  # RCEP
+                    "DischargeAddressLine2": (
+                        "Discharge_Address_Line_2"
+                    ),  # RCEP
+                    "DischargeAddressLine3": (
+                        "Discharge_Address_Line_3"
+                    ),  # RCEP
+                    "DischargeAddressLine4": (
+                        "Discharge_Address_Line_4"
+                    ),  # RCEP
+                    "DischargeAddressLine5": (
+                        "Discharge_Address_Line_5"
+                    ),  # RCEP
                     "DischargeAllocation": "Discharge_Allocation",  # RCEP
                     "DischargeComment": "Discharge_Comment",  # RCEP
-                    "DischargeDateTime": "Discharge_DateTime",  # not in RCEP; missing?
+                    "DischargeDateTime": (
+                        "Discharge_DateTime"
+                    ),  # not in RCEP; missing?
                     "DischargedOnAdmission": "Discharged_On_Admission",  # RCEP
                     "DischargeHCP": None,  # RCEP; user lookup
                     "DischargePostCode": "Discharge_Post_Code",  # RCEP
-                    "DischargeReason": "Discharge_Reason",  # not in RCEP; missing?
+                    "DischargeReason": (
+                        "Discharge_Reason"
+                    ),  # not in RCEP; missing?
                     "ExternalReferralId": "External_Referral_Id",
-                    # ... RCEP (field is not VARCHAR(8000) as docs suggest; 25 in RiO,
-                    #     50 in RCEP)
+                    # ... RCEP (field is not VARCHAR(8000) as docs suggest;
+                    #     25 in RiO, 50 in RCEP)
                     "HCPAllocationDate": "HCP_Allocation_Date",  # RCEP
                     "HCPReferredTo": None,  # not in RCEP; lookup added below
                     "IWSComment": "IWS_Comment",  # RCEP
@@ -2407,12 +2583,20 @@ RIO_VIEWS = OrderedDict(
                     "LikelyLegalStatus": "Likely_Legal_Status",  # RCEP
                     "PatientArea": None,  # lookup below
                     "ReferralAcceptedDate": "Referral_Accepted_Date",  # RCEP
-                    "ReferralActionDate": "Referral_ActionDate",  # not in RCEP; missing?  # noqa
+                    "ReferralActionDate": (
+                        "Referral_ActionDate"
+                    ),  # not in RCEP; missing?
                     "ReferralAllocation": "Referral_Allocation",  # RCEP
-                    "ReferralComment": "Referral_Comment",  # not in RCEP; missing?
-                    "ReferralDateTime": "Referral_DateTime",  # not in RCEP; missing?
+                    "ReferralComment": (
+                        "Referral_Comment"
+                    ),  # not in RCEP; missing?
+                    "ReferralDateTime": (
+                        "Referral_DateTime"
+                    ),  # not in RCEP; missing?
                     "ReferralNumber": "Referral_Number",  # RCEP
-                    "ReferralReason": "Referral_Reason_Code",  # RCEP, + lookup below
+                    "ReferralReason": (
+                        "Referral_Reason_Code"
+                    ),  # RCEP, + lookup below
                     "ReferralReceivedDate": "Referral_Received_Date",  # RCEP
                     "ReferralSource": "Referral_Source",  # RCEP
                     "ReferredConsultant": None,  # RCEP; user lookup
@@ -2420,16 +2604,22 @@ RIO_VIEWS = OrderedDict(
                     "ReferrerOther": "Referrer_Other",  # RCEP
                     "ReferringConsultant": None,  # tricky lookup; see below
                     "ReferringGP": "Referring_GP_Code",  # RCEP
-                    "ReferringGPPracticeCode": "Referring_GP_Practice_Code",  # RCEP
+                    "ReferringGPPracticeCode": (
+                        "Referring_GP_Practice_Code"
+                    ),  # RCEP
                     "RemovalCode": "Removal_Code",  # RCEP
                     "RemovalDateTime": "Removal_DateTime",  # RCEP
                     "RemovalUser": None,  # RCEP; user lookup
-                    "RTTCode": "RTT_Code",  # RCEP; FK to RTTPathwayConfig.RTTCode (ignored)  # noqa
+                    "RTTCode": (
+                        "RTT_Code"
+                    ),  # RCEP; FK to RTTPathwayConfig.RTTCode (ignored)
                     "ServiceReferredTo": None,  # lookup below
                     "SpecialtyReferredTo": None,  # lookup below
                     "TeamReferredTo": None,  # not in RCEP; lookup added below
                     "Urgency": None,  # lookup below
-                    "WaitingListID": "Waiting_List_ID",  # RCEP; FK to WLConfig.WLCode (ignored)  # noqa
+                    "WaitingListID": (
+                        "Waiting_List_ID"
+                    ),  # RCEP; FK to WLConfig.WLCode (ignored)
                 },
                 "add": [
                     {  # not in RCEP
@@ -2469,12 +2659,18 @@ RIO_VIEWS = OrderedDict(
                             "lookup_table": "GenReferralReason",
                             "lookup_pk": "Code",
                             "lookup_fields_aliases": {
-                                "CodeDescription": "Referral_Reason_Description",
-                                "NationalCode_CIDS": "Referral_Reason_National_Code_CIDS",  # noqa
-                                "NationalCode_CAMHS": "Referral_Reason_National_Code_CAMHS",  # noqa
-                                # ... RCEP, except Referral_Reason_National_Code;
+                                "CodeDescription": (
+                                    "Referral_Reason_Description"
+                                ),
+                                "NationalCode_CIDS": (
+                                    "Referral_Reason_National_Code_CIDS"
+                                ),
+                                "NationalCode_CAMHS": (
+                                    "Referral_Reason_National_Code_CAMHS"
+                                ),
+                                # ... RCEP, except Referral_Reason_National_Code;  # noqa: E501
                                 # unsure which it refers to! Probably *_CIDS;
-                                # http://www.datadictionary.nhs.uk/data_dictionary/messages/clinical_data_sets/data_sets/community_information_data_set_fr.asp?shownav=1  # noqa
+                                # http://www.datadictionary.nhs.uk/data_dictionary/messages/clinical_data_sets/data_sets/community_information_data_set_fr.asp?shownav=1  # noqa: E501
                             },
                             "internal_alias_prefix": "rr",
                         },
@@ -2486,7 +2682,9 @@ RIO_VIEWS = OrderedDict(
                             "lookup_table": "ImsWard",
                             "lookup_pk": "WardCode",
                             "lookup_fields_aliases": {
-                                "WardDescription": "Referred_Ward_Description",  # RCEP
+                                "WardDescription": (
+                                    "Referred_Ward_Description"
+                                ),  # RCEP
                             },
                             "internal_alias_prefix": "rw",
                         },
@@ -2584,13 +2782,19 @@ RIO_VIEWS = OrderedDict(
                 "basetable": "PrgProgressNote",
                 "rename": {
                     # create:
-                    "DateAndTime": "Created_Date",  # RCEP; RCEP synonym: 'Date'
+                    "DateAndTime": (
+                        "Created_Date"
+                    ),  # RCEP; RCEP synonym: 'Date'
                     "UserID": None,  # RCEP; user lookup
                     # update:
-                    "EnterDatetime": "Updated_Date",  # RCEP; later than DateAndTime
+                    "EnterDatetime": (
+                        "Updated_Date"
+                    ),  # RCEP; later than DateAndTime
                     "EnteredBy": None,  # not in RCEP; user lookup
                     # verify:
-                    "VerifyDate": "Verified_Date",  # RCEP was: Validate_This_Note
+                    "VerifyDate": (
+                        "Verified_Date"
+                    ),  # RCEP was: Validate_This_Note
                     "VerifyUserID": None,  # RCEP; user lookup
                     # other:
                     # 'HTMLIncludedFlag': None,  # RCEP
@@ -2601,7 +2805,9 @@ RIO_VIEWS = OrderedDict(
                     "NoteText": "Text",  # RCEP
                     "NoteType": None,  # lookup below
                     "Problem": None,  # RCEP; "obsolete"
-                    "RiskRelated": "Risk_Related",  # RCEP was: Add_To_Risk_History
+                    "RiskRelated": (
+                        "Risk_Related"
+                    ),  # RCEP was: Add_To_Risk_History
                     "RiskType": None,  # lookup below
                     "SubNoteType": None,  # lookup below
                     "ThirdPartyInfo": "Third_Party_Info",
@@ -2613,8 +2819,10 @@ RIO_VIEWS = OrderedDict(
                     {  # not in RCEP
                         "function": simple_view_expr,
                         "kwargs": {
-                            "expr": "CASE WHEN {basetable}.VerifyDate IS NULL THEN 0 "
-                            "ELSE 1 END",
+                            "expr": (
+                                "CASE WHEN {basetable}.VerifyDate IS NULL "
+                                "THEN 0 ELSE 1 END"
+                            ),
                             "alias": "validated",
                         },
                     },
@@ -2705,7 +2913,8 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        # Restrict to current progress notes using CRATE extra info?
+                        # Restrict to current progress notes using CRATE
+                        # extra info?
                         "function": where_prognotes_current,
                     },
                 ],
@@ -2719,7 +2928,7 @@ RIO_VIEWS = OrderedDict(
                     # Comment: unchanged
                     "CurrentAtDischarge": "Current_At_Discharge",
                     "EndDate": "End_Date",  # RCEP
-                    "HCPCode": None,  # RCEP was HCPCode but this is in user lookup
+                    "HCPCode": None,  # RCEP was HCPCode but this is in user lookup  # noqa: E501
                     "ReferralID": "Referral_Key",  # RCEP
                     "StartDate": "Start_Date",  # RCEP
                     "TransferDate": "Transfer_Date",  # RCEP
@@ -2748,7 +2957,7 @@ RIO_VIEWS = OrderedDict(
                     "EndDate": "End_Date",  # RCEP
                     "ReferralID": "Referral_Key",  # RCEP
                     "StartDate": "Start_Date",  # RCEP
-                    "TeamCode": None,  # Team_Code (as per RCEP) from lookup below
+                    "TeamCode": None,  # Team_Code (as per RCEP) from lookup below  # noqa: E501
                 },
                 "add": [
                     {
@@ -2809,8 +3018,12 @@ RIO_VIEWS = OrderedDict(
                     "UserID": None,  # user lookup
                     "Type": None,  # lookup below
                     "DateCreated": "Date_Created",
-                    "SerialNumber": "Serial_Number",  # can repeat across ClientID
-                    "Path": "Path",  # ... no path, just filename (but CONTAINS ID)
+                    "SerialNumber": (
+                        "Serial_Number"
+                    ),  # can repeat across ClientID
+                    "Path": (
+                        "Path"
+                    ),  # ... no path, just filename (but CONTAINS ID)
                     # ... filename format is e.g.:
                     #   46-1-20130903-XXXXXXX-OC.pdf
                     # where 46 = SerialNumber; 1 = RevisionID; 20130903 = date;
@@ -2821,7 +3034,9 @@ RIO_VIEWS = OrderedDict(
                     "DocumentDate": "Document_Date",
                     "InsertedDate": "Inserted_Date",
                     "RevisionID": "Document_Version",  # starts from 1 for each
-                    "FinalRevFlag": "Is_Final_Version",  # 0 (draft) or 1 (final)
+                    "FinalRevFlag": (
+                        "Is_Final_Version"
+                    ),  # 0 (draft) or 1 (final)
                     "DeletedDate": "Deleted_Date",
                     "DeletedBy": None,  # user lookup
                     "DeletedReason": None,  # lookup below
@@ -2863,7 +3078,8 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        # Restrict to current progress notes using CRATE extra info?
+                        # Restrict to current progress notes using CRATE extra
+                        # info?
                         "function": where_clindocs_current,
                     },
                 ],
@@ -2875,7 +3091,7 @@ RIO_VIEWS = OrderedDict(
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # CPFT Core Assessment v2
         #
-        # 1. Getting form and table names (prepend 'UserAssess' to table names):
+        # 1. Getting form and table names (prepend 'UserAssess' to table names):  # noqa: E501
         #
         #    USE rio_data_raw;
         #
@@ -2980,7 +3196,8 @@ RIO_VIEWS = OrderedDict(
                     {
                         "CapIssCon": "Capacity_Issues_Consent",
                         "Safeguard": "Safeguarding",
-                        # "Please indicate whether any issues were identified..."
+                        # "Please indicate whether any issues were
+                        # identified..."
                         "sovayn": "Risk_SOVA",
                         "childprotyn": "Risk_Child_Protection",
                         "sshyn": "Risk_Suicide_Self_Harm",
@@ -3004,7 +3221,9 @@ RIO_VIEWS = OrderedDict(
                 "rename": merge_dicts(
                     DEFAULT_NONCORE_RENAMES,
                     {
-                        "ServStre": "Service_User_Strengths_Needs_Expectations",
+                        "ServStre": (
+                            "Service_User_Strengths_Needs_Expectations"
+                        ),
                         "CareView": "Carer_Views_Needs",
                         "SummForm": "Summary_Formulation",
                         "Plan1": "Initial_Plan",
@@ -3035,7 +3254,7 @@ RIO_VIEWS = OrderedDict(
                 "add": [
                     {"function": rio_amend_standard_noncore},
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "Social06",
                             # ... range 1-50, and field order
@@ -3045,17 +3264,19 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "Social07",
                             # ... range 1-5, and field order
                             "lookup_table": "GenSettledAccommodation",
-                            "column_prefix": "Settled_Accommodation_Indicator",  # RCEP
+                            "column_prefix": (
+                                "Settled_Accommodation_Indicator"
+                            ),  # RCEP
                             "internal_alias_prefix": "sa",
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "Social16",
                             # ... range 1-12, and field order
@@ -3065,12 +3286,14 @@ RIO_VIEWS = OrderedDict(
                         },
                     },
                     {
-                        "function": standard_rio_code_lookup_with_national_code,
+                        "function": standard_rio_code_lookup_with_national_code,  # noqa: E501
                         "kwargs": {
                             "basecolumn": "Social17",
                             # ... by elimination, and field order
                             "lookup_table": "GenWeeklyHoursWorked",
-                            "column_prefix": "Weekly_Hours_Worked",  # not in RCEP
+                            "column_prefix": (
+                                "Weekly_Hours_Worked"
+                            ),  # not in RCEP
                             # RCEP code was Weekly_Hours_Worked
                             "internal_alias_prefix": "whw",
                         },
@@ -3082,14 +3305,14 @@ RIO_VIEWS = OrderedDict(
             "CPFT_Core_Assessment_v2_Keeping_Children_Safe_Assessment",
             {
                 # Stem was kcsahyper, so you'd expect the table to be
-                # UserAssesskcsahyper; however, that doesn't exist. For '%kcsa%', there
-                # are:
+                # UserAssesskcsahyper; however, that doesn't exist.
+                # For '%kcsa%', there are:
                 # - UserAssesstfkcsa
                 #       ... this is the main one
                 # - UserAssesstfkcsa_childs
                 #       ... this is the list of children in current household
                 # - UserAssesstfkcsa_childprev
-                #       ... this is the list of children from prev. relationships
+                #       ... this is the list of children from prev. relationships  # noqa: E501
                 "basetable": "UserAssesstfkcsa",
                 "rename": merge_dicts(
                     DEFAULT_NONCORE_RENAMES,
@@ -3100,28 +3323,31 @@ RIO_VIEWS = OrderedDict(
                         # - If so, what is the EDD?
                         # - Children in household:
                         #   - List of: {name of child, date of birth, gender}
-                        #     (with minimum list size, with child name = "N/A" if none)
-                        # - Does the SU have contact with children (not living in the same
-                        #   household) from previous relationships?
+                        #     (with minimum list size, with child name = "N/A" if none)  # noqa: E501
+                        # - Does the SU have contact with children (not living
+                        #   in the same household) from previous relationships?
                         #   - If yes, specify (LIST as above)
                         # - Comments
-                        # - Does the SU have significant contact with other children?
+                        # - Does the SU have significant contact with other
+                        #   children?
                         # - If yes, please specify
                         #
                         # [FAMILY/ENVIRONMENTAL FACTORS]
                         # - Does the SU experience any family and environmental
-                        #   difficulties that could impact on their ability to care for
-                        #   children?
-                        # - Please use this space to support your assessment outcome
+                        #   difficulties that could impact on their ability to
+                        #   care for children?
+                        # - Please use this space to support your assessment
+                        #   outcome
                         # [PARENTING CAPACITY]
-                        # - "Consider the outcomes of the adult assessment. Can the service
-                        #   user demonstrate their ability to care for children or do they
-                        #   require any additional support with parenting?"
+                        # - "Consider the outcomes of the adult assessment.
+                        #   Can the service user demonstrate their ability to
+                        #   care for children or do they require any
+                        #   additional support with parenting?"
                         #   ... Exceptionally bad phrasing! Field is "DemAb"
                         # - comments
                         # [CHILD DEVELOPMENTAL NEEDS]
-                        # - Does info suggest there could be... difficulties with child's
-                        #   developmental needs?
+                        # - Does info suggest there could be... difficulties
+                        #   with child's developmental needs?
                         # - comments
                         # [DOMESTIC ABUSE]
                         # - Is this person affected by domestic abuse?
@@ -3129,16 +3355,16 @@ RIO_VIEWS = OrderedDict(
                         # [SUBSTANCE MISUSE#
                         # - Any concerns in relation to substance misuse?
                         # - comments
-                        # [MENTAL HEALTH, DELUSIONAL IDEATION, SUICIDE PLANNING]
-                        # - does risk profile indicate delusional beliefs involving
-                        #   children?
-                        # - does... indicat suicidal ideation and/or suicide plan involving
-                        #   children?
-                        # - are there any other MH concerns which may impact on SU's
-                        #   ability to care for children?
+                        # [MENTAL HEALTH, DELUSIONAL IDEATION, SUICIDE PLANNING]  # noqa: E501
+                        # - does risk profile indicate delusional beliefs
+                        #   involving children?
+                        # - does... indicat suicidal ideation and/or suicide
+                        #   plan involving children?
+                        # - are there any other MH concerns which may impact
+                        #   on SU's ability to care for children?
                         # - comments
                         #
-                        # - CURRENT RISK/NEED STATUS (1 low to 4 serious+imminent)
+                        # - CURRENT RISK/NEED STATUS (1 low to 4 serious+imminent)  # noqa: E501
                         "ChildHous": None,  # transform below
                         "Relation": "Children_In_Household_Relationship",
                         "expectQ": None,  # transform below
@@ -3146,11 +3372,15 @@ RIO_VIEWS = OrderedDict(
                         "ChildCon": None,  # transform below
                         "commts": "Comments",
                         "SigCon": None,  # transform below
-                        "SigConSpec": "Significant_Contact_Other_Children_Specify",
+                        "SigConSpec": (
+                            "Significant_Contact_Other_Children_Specify"
+                        ),
                         "EnvDiff": None,  # transform below
                         "EnvDiffSpec": "Family_Environment_Difficulty_Specify",
                         "DemAb": None,  # transform below
-                        "DemAbSpec": "Demonstrate_Ability_Care_Children_Specify",
+                        "DemAbSpec": (
+                            "Demonstrate_Ability_Care_Children_Specify"
+                        ),
                         "DevNeeds": None,  # transform below
                         "DevNeedsSpec": "Child_Developmental_Needs_Specify",
                         "domab1": None,  # transform below
@@ -3184,36 +3414,47 @@ RIO_VIEWS = OrderedDict(
                         "function": rio_noncore_yn,
                         "kwargs": {
                             "basecolumn": "ChildCon",
-                            "result_alias": "Contact_Children_Prev_Relationship_Other_Household",  # noqa
+                            "result_alias": (
+                                "Contact_Children_Prev_Relationship_Other_Household"  # noqa: E501
+                            ),
                         },
                     },
                     {
                         "function": rio_noncore_yn,
                         "kwargs": {
                             "basecolumn": "SigCon",
-                            "result_alias": "Significant_Contact_Other_Children",
+                            "result_alias": (
+                                "Significant_Contact_Other_Children"
+                            ),
                         },
                     },
                     {
                         "function": rio_noncore_yn,
                         "kwargs": {
                             "basecolumn": "EnvDiff",
-                            "result_alias": "Family_Environment_Difficulty_Concern",
+                            "result_alias": (
+                                "Family_Environment_Difficulty_Concern"
+                            ),
                         },
                     },
                     {
                         "function": rio_noncore_yn,
                         "kwargs": {
                             "basecolumn": "DemAb",
-                            "result_alias": "Demonstrate_Ability_Care_Children_Or_Requires_Support",  # noqa
-                            #  ... not safe to fail to allude to ambiguity of this
+                            "result_alias": (
+                                "Demonstrate_Ability_Care_Children_Or_Requires_Support"  # noqa: E501
+                            ),
+                            #  ... not safe to fail to allude to ambiguity of
+                            #  this
                         },
                     },
                     {
                         "function": rio_noncore_yn,
                         "kwargs": {
                             "basecolumn": "DevNeeds",
-                            "result_alias": "Child_Developmental_Needs_Concern",
+                            "result_alias": (
+                                "Child_Developmental_Needs_Concern"
+                            ),
                         },
                     },
                     {
@@ -3234,21 +3475,27 @@ RIO_VIEWS = OrderedDict(
                         "function": rio_noncore_yn,
                         "kwargs": {
                             "basecolumn": "Q1",
-                            "result_alias": "Mental_Health_Delusional_Beliefs_Re_Children",  # noqa
+                            "result_alias": (
+                                "Mental_Health_Delusional_Beliefs_Re_Children"
+                            ),
                         },
                     },
                     {
                         "function": rio_noncore_yn,
                         "kwargs": {
                             "basecolumn": "Q2",
-                            "result_alias": "Mental_Health_Suicidal_Or_Suicide_Plan_Re_Children",  # noqa
+                            "result_alias": (
+                                "Mental_Health_Suicidal_Or_Suicide_Plan_Re_Children"  # noqa: E501
+                            ),
                         },
                     },
                     {
                         "function": rio_noncore_yn,
                         "kwargs": {
                             "basecolumn": "Q3",
-                            "result_alias": "Mental_Health_Other_Concern_Affecting_Child_Care",  # noqa
+                            "result_alias": (
+                                "Mental_Health_Other_Concern_Affecting_Child_Care"  # noqa: E501
+                            ),
                         },
                     },
                     {

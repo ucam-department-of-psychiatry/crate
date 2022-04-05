@@ -44,6 +44,7 @@ EXIT_FAILURE = 1
 EXIT_SUCCESS = 0
 
 JSON_INDENT = 4
+
 JSON_SEPARATORS_COMPACT = (",", ":")
 # ... see https://docs.python.org/3/library/json.html
 
@@ -108,8 +109,9 @@ class EnvVar(object):
     """
 
     CRATE_GATE_PLUGIN_FILE = "CRATE_GATE_PLUGIN_FILE"
+    # ... environment variable whose presence shows that we are generating
+    # docs.
     GENERATING_CRATE_DOCS = "GENERATING_CRATE_DOCS"
-    # ... environment variable whose presence shows that we are generating docs.
     GATE_HOME = "GATE_HOME"
     JAVA_HOME = "JAVA_HOME"
     KCL_LEWY_BODY_DIAGNOSIS_DIR = "KCL_LEWY_BODY_DIAGNOSIS_DIR"
@@ -176,44 +178,44 @@ class HelpUrl(object):
     @classmethod
     def find_text_anywhere(cls) -> str:
         return cls.make_url(
-            "website_using/clinician_privileged.html#clinician-privileged-find-text-anywhere"
-        )  # noqa
+            "website_using/clinician_privileged.html#clinician-privileged-find-text-anywhere"  # noqa: E501
+        )
 
     @classmethod
     def clinician_lookup_rid(cls) -> str:
         return cls.make_url(
-            "website_using/clinician_privileged.html#look-up-research-id-from-patient-id"
-        )  # noqa
+            "website_using/clinician_privileged.html#look-up-research-id-from-patient-id"  # noqa: E501
+        )
 
     @classmethod
     def clinician_submit_contact_request(cls) -> str:
         return cls.make_url(
-            "website_using/clinician_privileged.html#submit-patient-contact-request"
-        )  # noqa
+            "website_using/clinician_privileged.html#submit-patient-contact-request"  # noqa: E501
+        )
 
     @classmethod
     def querybuilder(cls) -> str:
         return cls.make_url(
             "website_using/research_queries.html#query-builder"
-        )  # noqa
+        )
 
     @classmethod
     def sql(cls) -> str:
         return cls.make_url(
             "website_using/research_queries.html#research-query-sql"
-        )  # noqa
+        )
 
     @classmethod
     def highlighting(cls) -> str:
         return cls.make_url(
             "website_using/research_queries.html#highlighting-text-in-results"
-        )  # noqa
+        )
 
     @classmethod
     def results(cls) -> str:
         return cls.make_url(
             "website_using/research_queries.html#results-table-view"
-        )  # noqa
+        )
 
     @classmethod
     def patient_explorer(cls) -> str:
@@ -223,13 +225,13 @@ class HelpUrl(object):
     def sqlhelper_find_text_anywhere(cls) -> str:
         return cls.make_url(
             "website_using/sql_helpers.html#find-text-anywhere"
-        )  # noqa
+        )
 
     @classmethod
     def sqlhelper_find_drugs_anywhere(cls) -> str:
         return cls.make_url(
-            "website_using/sql_helpers.html#find-drugs-of-a-given-type-anywhere"
-        )  # noqa
+            "website_using/sql_helpers.html#find-drugs-of-a-given-type-anywhere"  # noqa: E501
+        )
 
     @classmethod
     def sitewide_queries(cls) -> str:
@@ -243,7 +245,7 @@ class HelpUrl(object):
     def submit_contact_request(cls) -> str:
         return cls.make_url(
             "website_using/contact_patients.html#submit-a-contact-request"
-        )  # noqa
+        )
 
     @classmethod
     def rdbm(cls) -> str:
@@ -257,13 +259,13 @@ class HelpUrl(object):
     def user_settings(cls) -> str:
         return cls.make_url(
             "website_using/clinician_researcher_overview.html#your-settings"
-        )  # noqa
+        )
 
     @classmethod
     def about_crate(cls) -> str:
         return cls.make_url(
             "website_using/clinician_researcher_overview.html#about-crate"
-        )  # noqa
+        )
 
     @classmethod
     def archive(cls) -> str:

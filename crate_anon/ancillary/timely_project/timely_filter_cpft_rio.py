@@ -81,10 +81,11 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
                 "Client_Address_History",  # addresses blurred to LSOAs
                 "Deceased",
                 # Safeguarding
-                "Client_Family",  # legal status codes, parental responsibility, etc.  # noqa
+                "Client_Family",  # legal status codes, parental responsibility, etc.  # noqa: E501
                 "ClientAlert",
-                # ClientAlertRemovalReason is an example of a system table -- it
-                # doesn't relate to a patient. We include those automatically.
+                # ClientAlertRemovalReason is an example of a system table --
+                # it doesn't relate to a patient. We include those
+                # automatically.
                 "RskRelatedIncidents",  # BUT SEE field exclusions
                 "RskRelatedIncidentsRiskType",
                 # Basic contacts, e.g. start/end of care plan
@@ -99,7 +100,7 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
                 "Diagnosis",  # ICD-10 diagnoses
                 "SNOMED.*",  # SNOMED-coded problems
                 # Referrals (basic info)
-                "Referral.*",  # includes ReferralCoding = diagnosis for referral (+ teams etc.)  # noqa
+                "Referral.*",  # includes ReferralCoding = diagnosis for referral (+ teams etc.)  # noqa: E501
             ],
         )
 
@@ -217,7 +218,8 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
                     "SNOMED_Client",
                     "SC_WrapperXML",
                 ),  # unlikely to be free text but unsure  # noqa
-                # More generally, anything that says "Comment" should be filtered:
+                # More generally, anything that says "Comment" should be
+                # filtered:
                 (".+", ".*Comment"),
             ],
         )

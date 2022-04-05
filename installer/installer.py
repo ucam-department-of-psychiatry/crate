@@ -373,8 +373,8 @@ class Installer:
             )
 
         try:
-            # python_on_whales doesn't support --short or --format so we do some
-            # parsing
+            # python_on_whales doesn't support --short or --format so we do
+            # some parsing
             version_string = docker.compose.version().split()[-1].lstrip("v")
         except DockerException:
             self.fail(
@@ -546,7 +546,7 @@ class Installer:
         replace_dict = {
             "archive_attachment_dir": DockerPath.ARCHIVE_ATTACHMENT_DIR,
             "archive_static_dir": DockerPath.ARCHIVE_STATIC_DIR,
-            "archive_template_cache_dir": DockerPath.ARCHIVE_TEMPLATE_CACHE_DIR,
+            "archive_template_cache_dir": DockerPath.ARCHIVE_TEMPLATE_CACHE_DIR,  # noqa: E501
             "archive_template_dir": DockerPath.ARCHIVE_TEMPLATE_DIR,
             "broker_url": "amqp://rabbitmq:5672",
             "crate_https": str(self.use_https()),
@@ -865,8 +865,8 @@ class Installer:
     def get_docker_mysql_crate_host_port(self) -> str:
         return self.get_user_input(
             (
-                "Enter the port where CRATE's internal MySQL database will appear "
-                "on the host:"
+                "Enter the port where CRATE's internal MySQL database will "
+                "appear on the host:"
             ),
             default="43306",
         )

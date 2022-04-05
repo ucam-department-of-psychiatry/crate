@@ -50,7 +50,7 @@ def main() -> None:
         [
             "java",
             "-classpath",
-            f"{CratePath.JAVA_CLASSES_DIR}:{medex_home}/bin:{medex_home}/lib/*",
+            f"{CratePath.JAVA_CLASSES_DIR}:{medex_home}/bin:{medex_home}/lib/*",  # noqa: E501
             "CrateMedexPipeline",
             "--help",
             "-v",

@@ -65,12 +65,14 @@ def per(
     if numerator:
         if numerator_optional:
             # ensure that the optional whitespace is captured as part of the
-            # "optional" bit, so there is no leftover whitespace that can remain
+            # "optional" bit, so there is no leftover whitespace that can
+            # remain
             numerator_part = rf"(?: {numerator} \s* )?"
         else:
             # numerator, optional whitespace
             numerator_part = rf"{numerator} \s*"
-        # Use of "\s* \b" rather than "\s+" is so we can have a BLANK numerator.
+        # Use of "\s* \b" rather than "\s+" is so we can have a BLANK
+        # numerator.
     else:
         # Blank numerator
         numerator_part = ""

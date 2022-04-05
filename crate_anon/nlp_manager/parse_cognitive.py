@@ -197,8 +197,8 @@ class Ace(NumeratorOutOfDenominatorParser):
                     "ACE 111 99",
                     [(99, None)],
                 ),  # "ACE 111" (for III) from real data
-                # Note the difficulties created by the "ACE-3" representation of
-                # the task's name. We have to get these right:
+                # Note the difficulties created by the "ACE-3" representation
+                # of the task's name. We have to get these right:
                 ("ACE-3 79", [(79, None)]),
                 ("ACE 3 79", [(79, None)]),
                 ("ACE 3 79/100", [(79, 100)]),
@@ -208,9 +208,10 @@ class Ace(NumeratorOutOfDenominatorParser):
                 ("ACE 3/100", [(3, 100)]),
                 ("ACE 3 out of 100", [(3, 100)]),
                 # - This next one is ambiguous. Reference to new task? To old
-                #   score? Making the "3" optional as part of the task name means
-                #   that this will be accepted by the regex as a score.
-                # - We need a special exception to get "ACE 3" not to give a score.
+                #   score? Making the "3" optional as part of the task name
+                #   means that this will be accepted by the regex as a score.
+                # - We need a special exception to get "ACE 3" not to give a
+                #   score.
                 # - We do this with a "possessive" quantifier on the "3" (or
                 #   similar) part of the ACE descriptor.
                 # - http://www.rexegg.com/regex-quantifiers.html
@@ -218,8 +219,8 @@ class Ace(NumeratorOutOfDenominatorParser):
                 #   https://pypi.python.org/pypi/regex
                 #   https://docs.python.org/3.5/library/re.html
                 # - Ah, no. That makes "ACE 3/100" fail.
-                # - But if we combine a possessive "3" with saying "3 unless it's
-                #   "3 out of...", then we win.
+                # - But if we combine a possessive "3" with saying "3 unless
+                #   it's "3 out of...", then we win.
                 ("ACE 3", []),
                 ("ACE 3/MOCA", []),
                 ("ACE 3 / MOCA", []),

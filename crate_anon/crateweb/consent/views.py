@@ -594,10 +594,10 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
             {
                 "db_description": dbinfo.description,
                 "form": form,
-                "permitted_to_contact_discharged_patients_for_n_days": settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS,
-                "permitted_to_contact_discharged_patients_for_n_years": days_to_years(
-                    settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS
-                ),  # noqa
+                "permitted_to_contact_discharged_patients_for_n_days": settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS,  # noqa: E501
+                "permitted_to_contact_discharged_patients_for_n_years": days_to_years(  # noqa: E501
+                    settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS  # noqa: E501
+                ),
             },
         )
     study = form.cleaned_data["study"]
@@ -856,15 +856,15 @@ def clinician_response_view(
             "study": study,
             "form": form,
             "clinician_involvement_requested": clinician_involvement_requested,
-            "clinician_involvement_required_yellow": clinician_involvement_required_yellow,
-            "clinician_involvement_required_unknown": clinician_involvement_required_unknown,
+            "clinician_involvement_required_yellow": clinician_involvement_required_yellow,  # noqa: E501
+            "clinician_involvement_required_unknown": clinician_involvement_required_unknown,  # noqa: E501
             # 'option_c_available': clinician_involvement_requested,
             "option_c_available": True,
             "option_r_available": not extra_form,
             "extra_form": extra_form,
             "unknown_consent_mode": contact_request.is_consent_mode_unknown(),
-            "permitted_to_contact_discharged_patients_for_n_days": settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS,
-            "permitted_to_contact_discharged_patients_for_n_years": days_to_years(
+            "permitted_to_contact_discharged_patients_for_n_days": settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS,  # noqa: E501
+            "permitted_to_contact_discharged_patients_for_n_years": days_to_years(  # noqa: E501
                 settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS
             ),
         },

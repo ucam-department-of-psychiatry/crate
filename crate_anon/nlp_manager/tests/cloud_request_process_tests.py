@@ -43,7 +43,8 @@ class CloudRequestProcessTests(TestCase):
         self.mock_session = mock.Mock(execute=self.mock_execute_method)
         self.mock_db = mock.Mock(session=self.mock_session)
 
-        # can't set name attribute in constructor here as it has special meaning
+        # can't set name attribute in constructor here as it has special
+        # meaning
         mock_column = mock.Mock()
         mock_column.name = "fruit"  # so set it here
 

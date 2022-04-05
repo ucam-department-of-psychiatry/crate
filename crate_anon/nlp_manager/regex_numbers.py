@@ -68,7 +68,7 @@ SIGN = rf"(?: {PLUS_SIGN} | {MINUS_SIGN} )"
 
 # NO_MINUS_SIGN = _negative_lookahead(MINUS_SIGN)
 # NO_PRECEDING_MINUS_SIGN = _negative_lookbehind(MINUS_SIGN)
-# NO_PRECEDING_MINUS_SIGN_OR_DIGIT = _negative_lookbehind(fr"{MINUS_SIGN} | \d")
+# NO_PRECEDING_MINUS_SIGN_OR_DIGIT = _negative_lookbehind(fr"{MINUS_SIGN} | \d")  # noqa: E501
 NO_PRECEDING_MINUS_SIGN_OR_DIGITCOMMA_OR_DOT = _negative_lookbehind(
     rf"{MINUS_SIGN} | \d,? | \."
 )

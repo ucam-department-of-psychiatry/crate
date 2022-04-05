@@ -908,7 +908,9 @@ def main() -> NoReturn:
     parser.add_argument(
         "--scala_url",
         help="URL for Scala .tgz file",
-        default="https://downloads.lightbend.com/scala/2.11.7/scala-2.11.7.tgz",
+        default=(
+            "https://downloads.lightbend.com/scala/2.11.7/scala-2.11.7.tgz"
+        ),
     )
 
     args = parser.parse_args()

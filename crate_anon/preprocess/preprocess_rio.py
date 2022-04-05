@@ -812,7 +812,8 @@ def process_progress_notes(
         engine,
         table,
         [
-            IndexCreationInfo(  # Joint index, for JOIN in UPDATE statement below
+            IndexCreationInfo(
+                # Joint index, for JOIN in UPDATE statement below
                 index_name=CRATE_IDX_RIONUM_NOTENUM,
                 column=f"{CRATE_COL_RIO_NUMBER}, NoteNum",
             ),

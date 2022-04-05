@@ -303,7 +303,7 @@ class SQLHelperFindAnywhereForm(forms.Form):
 #     :class:`ClinicianAllTextFromPidForm`.
 #     """
 #     fkname = ChoiceField(required=True)
-#     patient_id = CharField(label="ID value (to restrict to a single patient)",
+#     patient_id = CharField(label="ID value (to restrict to a single patient)",  # noqa: E501
 #                            required=False)
 #     fragment = CharField(label="String fragment to find", required=True)
 #     use_fulltext_index = BooleanField(
@@ -354,7 +354,7 @@ class SQLHelperFindAnywhereForm(forms.Form):
 #
 #     def _check_permits_empty_id_for_blank_id(self,
 #                                              opt: FieldPickerInfo) -> None:
-#         # Exists as a function so ClinicianAllTextFromPidForm can override it.
+#         # Exists as a function so ClinicianAllTextFromPidForm can override it.  # noqa: E501
 #         if not opt.permits_empty_id:
 #             raise forms.ValidationError(
 #                 "For this ID type ({}), you must specify an ID "

@@ -114,6 +114,7 @@ class Gate(BaseNlpParser):
         - Implemented and exposed as ``--suppress_gate_stdout``.
 
     """
+
     uses_external_tool = True
 
     def __init__(
@@ -262,7 +263,8 @@ class Gate(BaseNlpParser):
         """
         if not self._started:
             return
-        self._p.communicate()  # close p.stdout, wait for the subprocess to exit
+        # close p.stdout, wait for the subprocess to exit
+        self._p.communicate()
         self._started = False
         self._n_uses = 0
 

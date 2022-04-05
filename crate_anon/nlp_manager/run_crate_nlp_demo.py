@@ -121,7 +121,9 @@ def main() -> None:
         "--terminator",
         type=str,
         default=DEMO_NLP_INPUT_TERMINATOR,
-        help="Single-line terminator separating input chunks in an input file.",
+        help=(
+            "Single-line terminator separating input chunks in an input file."
+        ),
     )
     parser.add_argument(
         "--processors",

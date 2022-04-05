@@ -1991,7 +1991,7 @@ class Person(object):
             other:
                 Dictionary of other attributes (only used for validation
                 research, e.g. ensuring linkage is not biased by ethnicity).
-        """
+        """  # noqa: E501
         # ---------------------------------------------------------------------
         # Store info
         # ---------------------------------------------------------------------
@@ -2146,11 +2146,11 @@ class Person(object):
                     FuzzyIdFreq(
                         comparison_name=f"middle_name_{n}",
                         exact_identifier=self.hashed_middle_names[i],
-                        exact_identifier_frequency=self.middle_name_frequencies[
+                        exact_identifier_frequency=self.middle_name_frequencies[  # noqa: E501
                             i
                         ],
                         fuzzy_identifier=self.hashed_middle_name_metaphones[i],
-                        fuzzy_identifier_frequency=self.middle_name_metaphone_frequencies[
+                        fuzzy_identifier_frequency=self.middle_name_metaphone_frequencies[  # noqa: E501
                             i
                         ],  # noqa
                         p_error=cfg.p_minor_forename_error,
@@ -2183,13 +2183,13 @@ class Person(object):
                         exact_identifier=self.hashed_postcode_units[
                             i
                         ].identifier,
-                        exact_identifier_frequency=self.postcode_unit_frequencies[
+                        exact_identifier_frequency=self.postcode_unit_frequencies[  # noqa: E501
                             i
                         ],  # noqa
                         fuzzy_identifier=self.hashed_postcode_sectors[
                             i
                         ].identifier,  # noqa
-                        fuzzy_identifier_frequency=self.postcode_sector_frequencies[
+                        fuzzy_identifier_frequency=self.postcode_sector_frequencies[  # noqa: E501
                             i
                         ],  # noqa
                         p_error=cfg.p_minor_postcode_error,
@@ -3581,8 +3581,8 @@ def selftest(
     log.warning("Running basic unit tests...")
     # https://stackoverflow.com/questions/19087189/python-unittest-testcase-object-has-no-attribute-runtest  # noqa
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-        TestTemporalIdentifier
-    )  # noqa
+        TestTemporalIdentifier  # noqa: F821
+    )
     result = unittest.TextTestRunner().run(suite)
     assert not result.failures
 
@@ -3843,7 +3843,9 @@ def selftest(
         t = (
             microsec_per_sec
             * timeit.timeit(
-                "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_1930)",
+                (
+                    "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_1930)"  # noqa: E501
+                ),
                 number=n_for_speedtest,
                 globals=locals(),
             )
@@ -3857,7 +3859,9 @@ def selftest(
         t = (
             microsec_per_sec
             * timeit.timeit(
-                "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_2000)",
+                (
+                    "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_2000)"  # noqa: E501
+                ),
                 number=n_for_speedtest,
                 globals=locals(),
             )
@@ -5000,7 +5004,9 @@ def main() -> int:
     hasher_group.add_argument(
         "--allow_default_hash_key",
         action="store_true",
-        help="Allow the default hash key to be used beyond tests. INADVISABLE!",
+        help=(
+            "Allow the default hash key to be used beyond tests. INADVISABLE!"
+        ),
     )
     hasher_group.add_argument(
         "--rounding_sf",
@@ -5398,7 +5404,9 @@ def main() -> int:
             default=None,
             # The cache might contain sensitive information; don't offer it by
             # default.
-            help="File in which to store cached sample info (to speed loading)",
+            help=(
+                "File in which to store cached sample info (to speed loading)"
+            ),
         )
         p.add_argument(
             "--output",
@@ -5464,9 +5472,11 @@ def main() -> int:
 
     compare_h2h_parser = subparsers.add_parser(
         "compare_hashed_to_hashed",
-        help="STEP 2 OF DE-IDENTIFIED LINKAGE (for when you have de-identified "
-        "both sides in advance). "
-        "Compare a list of probands against a sample (both hashed).",
+        help=(
+            "STEP 2 OF DE-IDENTIFIED LINKAGE (for when you have de-identified "
+            "both sides in advance). "
+            "Compare a list of probands against a sample (both hashed)."
+        ),
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
         description=HELP_COMPARISON,
     )

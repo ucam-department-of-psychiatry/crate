@@ -294,8 +294,8 @@ class DataDictionaryRow(object):
     @property
     def not_null(self) -> bool:
         """
-        Defaults to False. But if the DD row was created by database reflection,
-        and the source field was set NOT NULL, will return True.
+        Defaults to False. But if the DD row was created by database
+        reflection, and the source field was set NOT NULL, will return True.
         """
         return self._not_null
 

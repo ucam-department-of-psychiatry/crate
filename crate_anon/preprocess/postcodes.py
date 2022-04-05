@@ -69,6 +69,7 @@ import datetime
 import logging
 import os
 import sys
+
 from typing import (
     Any,
     Dict,
@@ -1419,8 +1420,8 @@ def main() -> None:
     Contains National Statistics data © Crown copyright and database right [year]
 
     See https://www.ons.gov.uk/methodology/geography/licences
-    """,
-    )  # noqa: E501
+    """,  # noqa: E501
+    )
     parser.add_argument(
         "--dir",
         default=DEFAULT_ONSPD_DIR,

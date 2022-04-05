@@ -233,8 +233,8 @@ class TableMaker(ABC):
     @property
     def dest_metadata(self) -> MetaData:
         """
-        Returns the SQLAlchemy metadata for the destination database (which this
-        NLP processor was told about at construction).
+        Returns the SQLAlchemy metadata for the destination database (which
+        this NLP processor was told about at construction).
         """
         return self._destdb.metadata
 

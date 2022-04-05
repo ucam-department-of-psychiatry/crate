@@ -116,7 +116,7 @@ def main() -> None:
         help="Minimum version of virtualenv tool",
     )
     # parser.add_argument("--skippackagechecks", action="store_true",
-    #                     help="Skip verification of system packages (use this "
+    #                     help="Skip verification of system packages (use this "  # noqa: E501
     #                          "when calling script from a yum install, for "
     #                          "example).")
     args = parser.parse_args()

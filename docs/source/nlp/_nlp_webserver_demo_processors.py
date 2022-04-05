@@ -36,8 +36,10 @@ PROCESSORS = all_crate_python_processors_nlprp_processor_info() + [
         NKeys.TITLE: "GATE processor: Medication tagger",
         NKeys.VERSION: "0.1",
         NKeys.IS_DEFAULT_VERSION: True,
-        NKeys.DESCRIPTION: "Finds mentions of drug prescriptions, "
-        "including the dose, route and frequency.",
+        NKeys.DESCRIPTION: (
+            "Finds mentions of drug prescriptions, including the dose, "
+            "route and frequency."
+        ),
         KEY_PROCTYPE: PROCTYPE_GATE,
         NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN,
     },
@@ -46,8 +48,9 @@ PROCESSORS = all_crate_python_processors_nlprp_processor_info() + [
         NKeys.TITLE: "GATE processor: Diagnosis finder",
         NKeys.VERSION: "0.1",
         NKeys.IS_DEFAULT_VERSION: True,
-        NKeys.DESCRIPTION: "Finds mentions of diagnoses, in words or "
-        "in coded form.",
+        NKeys.DESCRIPTION: (
+            "Finds mentions of diagnoses, in words or in coded form."
+        ),
         KEY_PROCTYPE: PROCTYPE_GATE,
         NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN,
     },
@@ -65,8 +68,10 @@ PROCESSORS = all_crate_python_processors_nlprp_processor_info() + [
         NKeys.TITLE: "GATE processor: Cognitive Behavioural Therapy",
         NKeys.VERSION: "0.1",
         NKeys.IS_DEFAULT_VERSION: True,
-        NKeys.DESCRIPTION: "Identifies mentions of cases where the patient "
-        "has attended CBT sessions.",
+        NKeys.DESCRIPTION: (
+            "Identifies mentions of cases where the patient has attended "
+            "CBT sessions."
+        ),
         KEY_PROCTYPE: PROCTYPE_GATE,
         NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN,
     },
@@ -84,10 +89,11 @@ PROCESSORS = all_crate_python_processors_nlprp_processor_info() + [
         NKeys.TITLE: "GATE processor: Mini-Mental State Exam Result Extractor",
         NKeys.VERSION: "0.1",
         NKeys.IS_DEFAULT_VERSION: True,
-        NKeys.DESCRIPTION: "The Mini-Mental State Exam (MMSE) Results "
-        "Extractor finds the results of this common "
-        "dementia screening test within documents along "
-        "with the date on which the test was administered.",
+        NKeys.DESCRIPTION: (
+            "The Mini-Mental State Exam (MMSE) Results Extractor finds the "
+            "results of this common dementia screening test within documents "
+            "along with the date on which the test was administered."
+        ),
         KEY_PROCTYPE: PROCTYPE_GATE,
         NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN,
     },
@@ -105,9 +111,10 @@ PROCESSORS = all_crate_python_processors_nlprp_processor_info() + [
         NKeys.TITLE: "GATE processor: Smoking Status Annotator",
         NKeys.VERSION: "0.1",
         NKeys.IS_DEFAULT_VERSION: True,
-        NKeys.DESCRIPTION: "Identifies instances of smoking being discussed "
-        "and determines the status and subject (patient or "
-        "someone else).",
+        NKeys.DESCRIPTION: (
+            "Identifies instances of smoking being discussed and determines "
+            "the status and subject (patient or someone else)."
+        ),
         KEY_PROCTYPE: PROCTYPE_GATE,
         NKeys.SCHEMA_TYPE: NlprpValues.UNKNOWN,
     },

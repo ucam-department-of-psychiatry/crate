@@ -20,6 +20,7 @@ jobs:
                   python-version: ${{ matrix.python-version }}
             - name: Pip install and tests
               run: |
+                  cd ${GITHUB_WORKSPACE}
                   set -xe
                   python -m venv ${HOME}/venv
                   source ${HOME}/venv/bin/activate
@@ -40,7 +41,9 @@ jobs:
                   # 44716 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/19000
                   # 44717 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/18993
                   safety check --full-report -i 44715 -i 44716 -i 44717
+                  echo checking python formatting
+                  black --line-length 79 --diff --check .
                   echo checking python for style and errors
-                  flake8 --config=setup.cfg crate_anon
+                  flake8 --config=setup.cfg .
                   echo running tests
                   pytest -v

@@ -2339,10 +2339,10 @@ class ContactRequest(models.Model):
                 Q(decided_send_to_clinician=True)
                 & (
                     Q(
-                        clinician_response__response=ClinicianResponse.RESPONSE_A
+                        clinician_response__response=ClinicianResponse.RESPONSE_A  # noqa: E501
                     )
                     | Q(
-                        clinician_response__response=ClinicianResponse.RESPONSE_R
+                        clinician_response__response=ClinicianResponse.RESPONSE_R  # noqa: E501
                     )
                 )
             ),  # noqa
@@ -2434,7 +2434,7 @@ class ContactRequest(models.Model):
             {
                 "id": self.id,
                 "response": self.clinician_response.response,
-                "explanation": self.clinician_response.get_response_explanation(),
+                "explanation": self.clinician_response.get_response_explanation(),  # noqa: E501
             },
         )
         email = Email.create_rdbm_email(subject, html)
@@ -2454,7 +2454,7 @@ class ContactRequest(models.Model):
             {
                 "id": self.id,
                 "response": self.clinician_response.response,
-                "explanation": self.clinician_response.get_response_explanation(),
+                "explanation": self.clinician_response.get_response_explanation(),  # noqa: E501
             },
         )
         email = Email.create_rdbm_email(subject, html)
@@ -2493,10 +2493,10 @@ class ContactRequest(models.Model):
             "url_yes": clinician_response.get_abs_url_yes(),
             "url_no": clinician_response.get_abs_url_no(),
             "url_maybe": clinician_response.get_abs_url_maybe(),
-            "permitted_to_contact_discharged_patients_for_n_days": settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS,
-            "permitted_to_contact_discharged_patients_for_n_years": days_to_years(
+            "permitted_to_contact_discharged_patients_for_n_days": settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS,  # noqa: E501
+            "permitted_to_contact_discharged_patients_for_n_years": days_to_years(  # noqa: E501
                 settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS
-            ),  # noqa
+            ),
         }
         return render_email_html_to_string("email_clinician.html", context)
 
@@ -2563,10 +2563,10 @@ class ContactRequest(models.Model):
             "study": self.study,
             "patient_lookup": self.patient_lookup,
             "consent_mode": self.consent_mode,
-            "permitted_to_contact_discharged_patients_for_n_days": settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS,
-            "permitted_to_contact_discharged_patients_for_n_years": days_to_years(
+            "permitted_to_contact_discharged_patients_for_n_days": settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS,  # noqa: E501
+            "permitted_to_contact_discharged_patients_for_n_years": days_to_years(  # noqa: E501
                 settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS
-            ),  # noqa
+            ),
             "RDBM_ADDRESS": settings.RDBM_ADDRESS,
         }
         return render_pdf_html_to_string(
@@ -2779,7 +2779,7 @@ class ContactRequest(models.Model):
             #     email_rdbm_task.delay(
             #         subject="ERROR FROM RESEARCH DATABASE COMPUTER",
             #         text=(
-            #             "Missing traffic-light leaflet! Incomplete clinician "
+            #             "Missing traffic-light leaflet! Incomplete clinician "  # noqa: E501
             #             "pack accessed for contact request {}.".format(
             #                 self.id)
             #         )
@@ -3522,7 +3522,7 @@ class Email(models.Model):
         subject = (
             "RESEARCH REQUEST on behalf of {researcher}, contact request "
             "code {contact_req_code}".format(
-                researcher=contact_request.study.lead_researcher.profile.get_title_forename_surname(),
+                researcher=contact_request.study.lead_researcher.profile.get_title_forename_surname(),  # noqa: E501
                 contact_req_code=contact_request.id,
             )
         )

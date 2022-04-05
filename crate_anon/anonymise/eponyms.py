@@ -755,7 +755,8 @@ SIMPLE_EPONYM_LIST = [
     "Hansen",
     # Hardikar Syndrome – Winita Hardikar
     "Hardikar",
-    # Hartnup disease (a.k.a. Hartnup disorder) – Hartnup family of London, U.K.
+    # Hartnup disease (a.k.a. Hartnup disorder) – Hartnup family of London,
+    # U.K.
     "Hartnup",
     # Hashimoto thyroiditis – Hakaru Hashimoto
     "Hashimoto",
