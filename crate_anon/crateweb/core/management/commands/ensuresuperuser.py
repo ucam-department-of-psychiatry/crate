@@ -40,8 +40,10 @@ class Command(BaseCommand):
     # Unfortunately the 'createsuperuser' command isn't written in a way that
     # makes it easily extendable
 
-    help = ("Creates an admin user in the default database if it doesn't "
-            "already exist")
+    help = (
+        "Creates an admin user in the default database if it doesn't "
+        "already exist"
+    )
 
     def handle(self, *args, **options):
         User = get_user_model()
@@ -64,7 +66,7 @@ class Command(BaseCommand):
         user.email = email
         user.save()
 
-        if options['verbosity'] >= 1:
+        if options["verbosity"] >= 1:
             if created:
                 self.stdout.write("Superuser created successfully.")
             else:

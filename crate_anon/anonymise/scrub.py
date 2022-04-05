@@ -32,8 +32,18 @@ from collections import OrderedDict
 import datetime
 import logging
 import string
-from typing import (Any, Dict, Iterable, Generator, List, Optional, Pattern,
-                    Set, Tuple, Union)
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Generator,
+    List,
+    Optional,
+    Pattern,
+    Set,
+    Tuple,
+    Union,
+)
 
 from cardinal_pythonlib.datetimefunc import coerce_to_datetime
 from cardinal_pythonlib.file_io import gen_lines_without_comments
@@ -43,8 +53,10 @@ from cardinal_pythonlib.sql.validation import (
     is_sqltype_text_over_one_char,
 )
 from cardinal_pythonlib.text import get_unicode_characters
+
 # from flashtext import KeywordProcessor
 from crate_anon.common.bugfix_flashtext import KeywordProcessorFixed
+
 # ... temp bugfix
 
 # noinspection PyPep8Naming
@@ -75,6 +87,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 # Generic scrubber base class
 # =============================================================================
+
 
 class ScrubberBase(object):
     """
@@ -115,34 +128,37 @@ class ScrubberBase(object):
 # WordList
 # =============================================================================
 
-def lower_case_words_from_file(filename: str) \
-        -> Generator[str, None, None]:
+
+def lower_case_words_from_file(filename: str) -> Generator[str, None, None]:
     """
     Generates lower-case words from a file.
     """
-    for line in gen_lines_without_comments(filename,
-                                           comment_at_start_only=True):
+    for line in gen_lines_without_comments(
+        filename, comment_at_start_only=True
+    ):
         for word in line.split():
             if word:
                 yield word.lower()
 
 
-def lower_case_phrase_lines_from_file(filename: str) \
-        -> Generator[str, None, None]:
+def lower_case_phrase_lines_from_file(
+    filename: str,
+) -> Generator[str, None, None]:
     """
     Generates lower-case phrases from a file, one per line.
     """
-    for line in gen_lines_without_comments(filename,
-                                           comment_at_start_only=True):
+    for line in gen_lines_without_comments(
+        filename, comment_at_start_only=True
+    ):
         # line is pre-stripped (left/right) and not empty
         yield line.lower()
 
 
 FLASHTEXT_WORD_CHARACTERS = set(
-    string.digits +  # part of flashtext default
-    string.ascii_letters +  # part of flashtext default
-    '_' +  # part of flashtext default
-    get_unicode_characters('Latin_Alphabetic')
+    string.digits
+    + string.ascii_letters  # part of flashtext default
+    + "_"  # part of flashtext default
+    + get_unicode_characters("Latin_Alphabetic")  # part of flashtext default
 )
 # Why do we do this? So e.g. "naïve" isn't truncated to "naï[~~~]".
 # Check: FLASHTEXT_WORDCHAR_STR = "".join(sorted(FLASHTEXT_WORD_CHARACTERS))
@@ -156,16 +172,19 @@ class WordList(ScrubberBase):
     This serves a dual function as an allowlist (is a word in the list?) and a
     denylist (scrub text using the wordlist).
     """
-    def __init__(self,
-                 filenames: Iterable[str] = None,
-                 words: Iterable[str] = None,
-                 as_phrases: bool = False,
-                 replacement_text: str = '[---]',
-                 hasher: GenericHasher = None,
-                 suffixes: List[str] = None,
-                 at_word_boundaries_only: bool = True,
-                 max_errors: int = 0,
-                 regex_method: bool = False) -> None:
+
+    def __init__(
+        self,
+        filenames: Iterable[str] = None,
+        words: Iterable[str] = None,
+        as_phrases: bool = False,
+        replacement_text: str = "[---]",
+        hasher: GenericHasher = None,
+        suffixes: List[str] = None,
+        at_word_boundaries_only: bool = True,
+        max_errors: int = 0,
+        regex_method: bool = False,
+    ) -> None:
         """
         Args:
             filenames:
@@ -199,7 +218,8 @@ class WordList(ScrubberBase):
         if not regex_method and at_word_boundaries_only is False:
             raise ValueError(
                 "FlashText (chosen by regex_method=False) will only work at "
-                "word boundaries, but at_word_boundaries_only is False")
+                "word boundaries, but at_word_boundaries_only is False"
+            )
         filenames = filenames or []
         words = words or []
 
@@ -315,29 +335,36 @@ class WordList(ScrubberBase):
             elements = []  # type: List[str]
             for w in self.words:
                 if self.as_phrases:
-                    elements.extend(get_phrase_regex_elements(
-                        w,
-                        suffixes=self.suffixes,
-                        at_word_boundaries_only=self.at_word_boundaries_only,
-                        max_errors=self.max_errors
-                    ))
+                    elements.extend(
+                        get_phrase_regex_elements(
+                            w,
+                            suffixes=self.suffixes,
+                            at_word_boundaries_only=self.at_word_boundaries_only,
+                            max_errors=self.max_errors,
+                        )
+                    )
                 else:
-                    elements.extend(get_string_regex_elements(
-                        w,
-                        suffixes=self.suffixes,
-                        at_word_boundaries_only=self.at_word_boundaries_only,
-                        max_errors=self.max_errors
-                    ))
+                    elements.extend(
+                        get_string_regex_elements(
+                            w,
+                            suffixes=self.suffixes,
+                            at_word_boundaries_only=self.at_word_boundaries_only,
+                            max_errors=self.max_errors,
+                        )
+                    )
             log.debug(f"Building regex with {len(elements)} elements")
             self._regex = get_regex_from_elements(elements)
         else:
             if self.words:
                 self._processor = KeywordProcessorFixed(case_sensitive=False)
                 self._processor.set_non_word_boundaries(
-                    FLASHTEXT_WORD_CHARACTERS)
+                    FLASHTEXT_WORD_CHARACTERS
+                )
                 replacement = self.replacement_text
-                log.debug(f"Building FlashText processor with "
-                          f"{len(self.words)} keywords")
+                log.debug(
+                    f"Building FlashText processor with "
+                    f"{len(self.words)} keywords"
+                )
                 for w in self.words:
                     for sw in self._gen_word_and_suffixed(w):
                         self._processor.add_keyword(sw, replacement)
@@ -350,23 +377,26 @@ class WordList(ScrubberBase):
 # NonspecificScrubber
 # =============================================================================
 
+
 class NonspecificScrubber(ScrubberBase):
     """
     Scrubs a bunch of things that are independent of any patient-specific data,
     such as removing all UK postcodes, or numbers of a certain length.
     """
+
     def __init__(
-            self,
-            replacement_text: str,
-            hasher: GenericHasher,
-            anonymise_codes_at_word_boundaries_only: bool = DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,  # noqa
-            anonymise_dates_at_word_boundaries_only: bool = DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,  # noqa
-            anonymise_numbers_at_word_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,  # noqa
-            denylist: WordList = None,
-            scrub_all_numbers_of_n_digits: List[int] = None,
-            scrub_all_uk_postcodes: bool = DA.SCRUB_ALL_UK_POSTCODES,
-            scrub_all_dates: bool = DA.SCRUB_ALL_DATES,
-            extra_regexes: Optional[List[str]] = None) -> None:
+        self,
+        replacement_text: str,
+        hasher: GenericHasher,
+        anonymise_codes_at_word_boundaries_only: bool = DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,  # noqa
+        anonymise_dates_at_word_boundaries_only: bool = DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,  # noqa
+        anonymise_numbers_at_word_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,  # noqa
+        denylist: WordList = None,
+        scrub_all_numbers_of_n_digits: List[int] = None,
+        scrub_all_uk_postcodes: bool = DA.SCRUB_ALL_UK_POSTCODES,
+        scrub_all_dates: bool = DA.SCRUB_ALL_DATES,
+        extra_regexes: Optional[List[str]] = None,
+    ) -> None:
         """
         Args:
             replacement_text:
@@ -426,14 +456,16 @@ class NonspecificScrubber(ScrubberBase):
     def get_hash(self) -> str:
         # docstring in parent class
         if not self._cached_hash:
-            self._cached_hash = self.hasher.hash([
-                # signature, used for hashing:
-                self.anonymise_codes_at_word_boundaries_only,
-                self.anonymise_numbers_at_word_boundaries_only,
-                self.denylist.get_hash() if self.denylist else None,
-                self.scrub_all_numbers_of_n_digits,
-                self.scrub_all_uk_postcodes,
-            ])
+            self._cached_hash = self.hasher.hash(
+                [
+                    # signature, used for hashing:
+                    self.anonymise_codes_at_word_boundaries_only,
+                    self.anonymise_numbers_at_word_boundaries_only,
+                    self.denylist.get_hash() if self.denylist else None,
+                    self.scrub_all_numbers_of_n_digits,
+                    self.scrub_all_uk_postcodes,
+                ]
+            )
         return self._cached_hash
 
     def scrub(self, text: str) -> str:
@@ -461,15 +493,20 @@ class NonspecificScrubber(ScrubberBase):
             )
         # noinspection PyTypeChecker
         for n in self.scrub_all_numbers_of_n_digits:
-            elements.extend(get_number_of_length_n_regex_elements(
-                n,
-                at_word_boundaries_only=(
-                    self.anonymise_numbers_at_word_boundaries_only)
-            ))
+            elements.extend(
+                get_number_of_length_n_regex_elements(
+                    n,
+                    at_word_boundaries_only=(
+                        self.anonymise_numbers_at_word_boundaries_only
+                    ),
+                )
+            )
         if self.scrub_all_dates:
-            elements.extend(get_generic_date_regex_elements(
-                at_word_boundaries_only=self.anonymise_dates_at_word_boundaries_only  # noqa
-            ))
+            elements.extend(
+                get_generic_date_regex_elements(
+                    at_word_boundaries_only=self.anonymise_dates_at_word_boundaries_only  # noqa
+                )
+            )
         if self.extra_regexes:
             elements.extend(self.extra_regexes)
         self._regex = get_regex_from_elements(elements)
@@ -480,31 +517,34 @@ class NonspecificScrubber(ScrubberBase):
 # PersonalizedScrubber
 # =============================================================================
 
+
 class PersonalizedScrubber(ScrubberBase):
     """
     Accepts patient-specific (patient and third-party) information, and uses
     that to scrub text.
     """
+
     def __init__(
-            self,
-            hasher: GenericHasher,
-            replacement_text_patient: str = DA.REPLACE_PATIENT_INFO_WITH,
-            replacement_text_third_party: str = DA.REPLACE_THIRD_PARTY_INFO_WITH,  # noqa
-            anonymise_codes_at_word_boundaries_only: bool = DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,  # noqa
-            anonymise_codes_at_numeric_boundaries_only: bool = DA.ANONYMISE_CODES_AT_NUMERIC_BOUNDARIES_ONLY,  # noqa
-            anonymise_dates_at_word_boundaries_only: bool = DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,  # noqa
-            anonymise_numbers_at_word_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,  # noqa
-            anonymise_numbers_at_numeric_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY,  # noqa
-            anonymise_strings_at_word_boundaries_only: bool = DA.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY,  # noqa
-            min_string_length_for_errors: int = DA.MIN_STRING_LENGTH_FOR_ERRORS,  # noqa
-            min_string_length_to_scrub_with: int = DA.MIN_STRING_LENGTH_TO_SCRUB_WITH,  # noqa
-            scrub_string_suffixes: List[str] = None,
-            string_max_regex_errors: int = DA.STRING_MAX_REGEX_ERRORS,
-            allowlist: WordList = None,
-            alternatives: List[List[str]] = None,
-            nonspecific_scrubber: NonspecificScrubber = None,
-            nonspecific_scrubber_first: bool = DA.NONSPECIFIC_SCRUBBER_FIRST,
-            debug: bool = False) -> None:
+        self,
+        hasher: GenericHasher,
+        replacement_text_patient: str = DA.REPLACE_PATIENT_INFO_WITH,
+        replacement_text_third_party: str = DA.REPLACE_THIRD_PARTY_INFO_WITH,  # noqa
+        anonymise_codes_at_word_boundaries_only: bool = DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,  # noqa
+        anonymise_codes_at_numeric_boundaries_only: bool = DA.ANONYMISE_CODES_AT_NUMERIC_BOUNDARIES_ONLY,  # noqa
+        anonymise_dates_at_word_boundaries_only: bool = DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,  # noqa
+        anonymise_numbers_at_word_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,  # noqa
+        anonymise_numbers_at_numeric_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY,  # noqa
+        anonymise_strings_at_word_boundaries_only: bool = DA.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY,  # noqa
+        min_string_length_for_errors: int = DA.MIN_STRING_LENGTH_FOR_ERRORS,  # noqa
+        min_string_length_to_scrub_with: int = DA.MIN_STRING_LENGTH_TO_SCRUB_WITH,  # noqa
+        scrub_string_suffixes: List[str] = None,
+        string_max_regex_errors: int = DA.STRING_MAX_REGEX_ERRORS,
+        allowlist: WordList = None,
+        alternatives: List[List[str]] = None,
+        nonspecific_scrubber: NonspecificScrubber = None,
+        nonspecific_scrubber_first: bool = DA.NONSPECIFIC_SCRUBBER_FIRST,
+        debug: bool = False,
+    ) -> None:
         """
         Args:
             hasher:
@@ -573,12 +613,24 @@ class PersonalizedScrubber(ScrubberBase):
         super().__init__(hasher)
         self.replacement_text_patient = replacement_text_patient
         self.replacement_text_third_party = replacement_text_third_party
-        self.anonymise_codes_at_word_boundaries_only = anonymise_codes_at_word_boundaries_only  # noqa
-        self.anonymise_codes_at_numeric_boundaries_only = anonymise_codes_at_numeric_boundaries_only  # noqa
-        self.anonymise_dates_at_word_boundaries_only = anonymise_dates_at_word_boundaries_only  # noqa
-        self.anonymise_numbers_at_word_boundaries_only = anonymise_numbers_at_word_boundaries_only  # noqa
-        self.anonymise_numbers_at_numeric_boundaries_only = anonymise_numbers_at_numeric_boundaries_only  # noqa
-        self.anonymise_strings_at_word_boundaries_only = anonymise_strings_at_word_boundaries_only  # noqa
+        self.anonymise_codes_at_word_boundaries_only = (
+            anonymise_codes_at_word_boundaries_only  # noqa
+        )
+        self.anonymise_codes_at_numeric_boundaries_only = (
+            anonymise_codes_at_numeric_boundaries_only  # noqa
+        )
+        self.anonymise_dates_at_word_boundaries_only = (
+            anonymise_dates_at_word_boundaries_only  # noqa
+        )
+        self.anonymise_numbers_at_word_boundaries_only = (
+            anonymise_numbers_at_word_boundaries_only  # noqa
+        )
+        self.anonymise_numbers_at_numeric_boundaries_only = (
+            anonymise_numbers_at_numeric_boundaries_only  # noqa
+        )
+        self.anonymise_strings_at_word_boundaries_only = (
+            anonymise_strings_at_word_boundaries_only  # noqa
+        )
         self.min_string_length_for_errors = min_string_length_for_errors
         self.min_string_length_to_scrub_with = min_string_length_to_scrub_with
         self.scrub_string_suffixes = scrub_string_suffixes
@@ -597,7 +649,9 @@ class PersonalizedScrubber(ScrubberBase):
         self.re_tp_elements = []  # type: List[str]
         # ... both changed from set to list to reflect referee's point re
         #     potential importance of scrubber order
-        self.elements_tuplelist = []  # type: List[Tuple[bool, ScrubMethod, str]]  # noqa
+        self.elements_tuplelist = (
+            []
+        )  # type: List[Tuple[bool, ScrubMethod, str]]  # noqa
         # ... list of tuples: (patient?, type, value)
         # ... used for get_raw_info(); since we've made the order important,
         #     we should detect changes in order here as well
@@ -610,8 +664,9 @@ class PersonalizedScrubber(ScrubberBase):
         self.regexes_built = False
 
     @staticmethod
-    def get_scrub_method(datatype_long: str,
-                         scrub_method: Optional[ScrubMethod]) -> ScrubMethod:
+    def get_scrub_method(
+        datatype_long: str, scrub_method: Optional[ScrubMethod]
+    ) -> ScrubMethod:
         """
         Return the default scrub method for a given SQL datatype, unless
         overridden. For example, dates are scrubbed via a date method; numbers
@@ -633,11 +688,13 @@ class PersonalizedScrubber(ScrubberBase):
         else:
             return ScrubMethod.NUMERIC
 
-    def add_value(self,
-                  value: Any,
-                  scrub_method: ScrubMethod,
-                  patient: bool = True,
-                  clear_cache: bool = True) -> None:
+    def add_value(
+        self,
+        value: Any,
+        scrub_method: ScrubMethod,
+        patient: bool = True,
+        clear_cache: bool = True,
+    ) -> None:
         """
         Add a specific value via a specific scrub_method.
 
@@ -673,15 +730,16 @@ class PersonalizedScrubber(ScrubberBase):
         elif scrub_method is ScrubMethod.CODE:
             elements = self.get_elements_code(value)
         else:
-            raise ValueError(f"Bug: unknown scrub_method to add_value: "
-                             f"{scrub_method}")
+            raise ValueError(
+                f"Bug: unknown scrub_method to add_value: " f"{scrub_method}"
+            )
         r.extend(elements)
         if clear_cache:
             self.clear_cache()
 
-    def get_elements_date(self,
-                          value: Union[datetime.datetime,
-                                       datetime.date]) -> Optional[List[str]]:
+    def get_elements_date(
+        self, value: Union[datetime.datetime, datetime.date]
+    ) -> Optional[List[str]]:
         """
         Returns a list of regex elements for a given date value.
         """
@@ -690,12 +748,14 @@ class PersonalizedScrubber(ScrubberBase):
         except Exception as e:
             log.warning(
                 f"Invalid date received to PersonalizedScrubber. "
-                f"get_elements_date(): value={value}, exception={e}")
+                f"get_elements_date(): value={value}, exception={e}"
+            )
             return
         return get_date_regex_elements(
             value,
             at_word_boundaries_only=(
-                self.anonymise_dates_at_word_boundaries_only)
+                self.anonymise_dates_at_word_boundaries_only
+            ),
         )
 
     def get_elements_words(self, value: str) -> List[str]:
@@ -721,13 +781,16 @@ class PersonalizedScrubber(ScrubberBase):
                 max_errors = self.string_max_regex_errors
             else:
                 max_errors = 0
-            elements.extend(get_string_regex_elements(
-                s,
-                self.scrub_string_suffixes,
-                max_errors=max_errors,
-                at_word_boundaries_only=(
-                    self.anonymise_strings_at_word_boundaries_only)
-            ))
+            elements.extend(
+                get_string_regex_elements(
+                    s,
+                    self.scrub_string_suffixes,
+                    max_errors=max_errors,
+                    at_word_boundaries_only=(
+                        self.anonymise_strings_at_word_boundaries_only
+                    ),
+                )
+            )
         return elements
 
     def get_elements_phrase(self, value: Any) -> List[str]:
@@ -750,8 +813,9 @@ class PersonalizedScrubber(ScrubberBase):
             value,
             max_errors=max_errors,
             at_word_boundaries_only=(
-                self.anonymise_strings_at_word_boundaries_only),
-            alternatives=self.alternatives
+                self.anonymise_strings_at_word_boundaries_only
+            ),
+            alternatives=self.alternatives,
         )
 
     def get_elements_phrase_unless_numeric(self, value: Any) -> List[str]:
@@ -785,7 +849,7 @@ class PersonalizedScrubber(ScrubberBase):
             ),
             at_numeric_boundaries_only=(
                 self.anonymise_numbers_at_numeric_boundaries_only
-            )
+            ),
         )
 
     def get_elements_code(self, value: Any) -> List[str]:
@@ -808,7 +872,7 @@ class PersonalizedScrubber(ScrubberBase):
             ),
             at_numeric_boundaries_only=(
                 self.anonymise_codes_at_numeric_boundaries_only
-            )
+            ),
         )
 
     def get_patient_regex_string(self) -> str:
@@ -875,29 +939,50 @@ class PersonalizedScrubber(ScrubberBase):
         """
         # We use a list of tuples to make an OrderedDict.
         d = (
-            ('anonymise_codes_at_word_boundaries_only',
-             self.anonymise_codes_at_word_boundaries_only),
-            ('anonymise_codes_at_numeric_boundaries_only',
-             self.anonymise_codes_at_numeric_boundaries_only),
-            ('anonymise_dates_at_word_boundaries_only',
-             self.anonymise_dates_at_word_boundaries_only),
-            ('anonymise_numbers_at_word_boundaries_only',
-             self.anonymise_numbers_at_word_boundaries_only),
-            ('anonymise_numbers_at_numeric_boundaries_only',
-             self.anonymise_numbers_at_numeric_boundaries_only),
-            ('anonymise_strings_at_word_boundaries_only',
-             self.anonymise_strings_at_word_boundaries_only),
-            ('min_string_length_for_errors',
-             self.min_string_length_for_errors),
-            ('min_string_length_to_scrub_with',
-             self.min_string_length_to_scrub_with),
-            ('scrub_string_suffixes', sorted(self.scrub_string_suffixes)),
-            ('string_max_regex_errors', self.string_max_regex_errors),
-            ('allowlist_hash',
-             self.allowlist.get_hash() if self.allowlist else None),
-            ('nonspecific_scrubber_hash',
-             self.nonspecific_scrubber.get_hash() if self.nonspecific_scrubber
-             else None),
-            ('elements', self.elements_tuplelist),
+            (
+                "anonymise_codes_at_word_boundaries_only",
+                self.anonymise_codes_at_word_boundaries_only,
+            ),
+            (
+                "anonymise_codes_at_numeric_boundaries_only",
+                self.anonymise_codes_at_numeric_boundaries_only,
+            ),
+            (
+                "anonymise_dates_at_word_boundaries_only",
+                self.anonymise_dates_at_word_boundaries_only,
+            ),
+            (
+                "anonymise_numbers_at_word_boundaries_only",
+                self.anonymise_numbers_at_word_boundaries_only,
+            ),
+            (
+                "anonymise_numbers_at_numeric_boundaries_only",
+                self.anonymise_numbers_at_numeric_boundaries_only,
+            ),
+            (
+                "anonymise_strings_at_word_boundaries_only",
+                self.anonymise_strings_at_word_boundaries_only,
+            ),
+            (
+                "min_string_length_for_errors",
+                self.min_string_length_for_errors,
+            ),
+            (
+                "min_string_length_to_scrub_with",
+                self.min_string_length_to_scrub_with,
+            ),
+            ("scrub_string_suffixes", sorted(self.scrub_string_suffixes)),
+            ("string_max_regex_errors", self.string_max_regex_errors),
+            (
+                "allowlist_hash",
+                self.allowlist.get_hash() if self.allowlist else None,
+            ),
+            (
+                "nonspecific_scrubber_hash",
+                self.nonspecific_scrubber.get_hash()
+                if self.nonspecific_scrubber
+                else None,
+            ),
+            ("elements", self.elements_tuplelist),
         )
         return OrderedDict(d)

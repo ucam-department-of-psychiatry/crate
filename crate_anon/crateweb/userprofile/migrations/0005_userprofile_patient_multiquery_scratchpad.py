@@ -31,6 +31,7 @@ crate_anon/crateweb/userprofile/migrations/0005_userprofile_patient_multiquery_s
 from __future__ import unicode_literals
 
 from django.db import migrations
+
 # noinspection PyPackageRequirements
 import picklefield.fields
 
@@ -38,13 +39,17 @@ import picklefield.fields
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('userprofile', '0004_userprofile_patients_per_page'),
+        ("userprofile", "0004_userprofile_patients_per_page"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userprofile',
-            name='patient_multiquery_scratchpad',
-            field=picklefield.fields.PickledObjectField(editable=False, null=True, verbose_name='PatientMultiQuery scratchpad (pickled) for builder'),  # noqa
+            model_name="userprofile",
+            name="patient_multiquery_scratchpad",
+            field=picklefield.fields.PickledObjectField(
+                editable=False,
+                null=True,
+                verbose_name="PatientMultiQuery scratchpad (pickled) for builder",
+            ),  # noqa
         ),
     ]

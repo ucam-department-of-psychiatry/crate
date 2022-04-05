@@ -40,6 +40,7 @@ from crate_anon.nlp_manager.parse_clinical import (
 # Unit tests
 # =============================================================================
 
+
 class TestClinical(unittest.TestCase):
     @staticmethod
     def test_all_clinical() -> None:

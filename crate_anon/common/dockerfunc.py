@@ -43,14 +43,17 @@ log = logging.getLogger(__name__)
 # Helper functions
 # =============================================================================
 
-def warn_if_not_within_docker_dir(param_name: str,
-                                  filespec: str,
-                                  permit_cfg: bool = False,
-                                  permit_venv: bool = False,
-                                  permit_tmp: bool = False,
-                                  param_contains_not_is: bool = False,
-                                  is_env_var: bool = False,
-                                  as_file_url: bool = False) -> None:
+
+def warn_if_not_within_docker_dir(
+    param_name: str,
+    filespec: str,
+    permit_cfg: bool = False,
+    permit_venv: bool = False,
+    permit_tmp: bool = False,
+    param_contains_not_is: bool = False,
+    is_env_var: bool = False,
+    as_file_url: bool = False,
+) -> None:
     """
     If the specified filename isn't within a relevant directory that will be
     used by CRATE when operating within a Docker Compose application, warn
@@ -91,10 +94,7 @@ def warn_if_not_within_docker_dir(param_name: str,
         permitted_dirs.append(DockerConstants.VENV_DIR)
     if permit_tmp:
         permitted_dirs.append(DockerConstants.TMP_DIR)
-    ok = any(
-        relative_filename_within_dir(filepath, d)
-        for d in permitted_dirs
-    )
+    ok = any(relative_filename_within_dir(filepath, d) for d in permitted_dirs)
     if not ok:
         log.warning(
             f"{param_descriptor} {param_name} {is_phrase} {filespec!r}, "

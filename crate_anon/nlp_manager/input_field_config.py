@@ -538,9 +538,7 @@ class InputFieldConfig(object):
 
                     # Deal with non-integer PKs
                     if pk_is_integer:
-                        hashed_pk = (
-                            None
-                        )  # remove warning about reference before assignment  # noqa
+                        hashed_pk = None  # remove warning about reference before assignment  # noqa
                     else:
                         hashed_pk = hash64(pkval)
                         if (

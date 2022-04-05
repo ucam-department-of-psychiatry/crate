@@ -40,7 +40,7 @@ from crate_anon.crateweb.config.constants import CRATEWEB_CELERY_APP_NAME
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 DJANGO_ROOT = os.path.abspath(os.path.join(THIS_DIR, os.pardir, "crateweb"))
-WINDOWS = platform.system() == 'Windows'
+WINDOWS = platform.system() == "Windows"
 
 
 # https://stackoverflow.com/questions/21666229/celery-auto-reload-on-any-changes
@@ -54,20 +54,18 @@ def inner_main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Launch CRATE Celery processes. "
-                    "(Any leftover arguments will be passed to Celery.)",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        "(Any leftover arguments will be passed to Celery.)",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("--command", default="worker", help="Celery command")
+    parser.add_argument(
+        "--cleanup_timeout_s",
+        type=float,
+        default=10.0,
+        help="Time to wait when shutting down Celery via Ctrl-C",
     )
     parser.add_argument(
-        "--command", default="worker",
-        help="Celery command"
-    )
-    parser.add_argument(
-        "--cleanup_timeout_s", type=float, default=10.0,
-        help="Time to wait when shutting down Celery via Ctrl-C"
-    )
-    parser.add_argument(
-        "--debug", action="store_true",
-        help="Ask Celery to be verbose"
+        "--debug", action="store_true", help="Ask Celery to be verbose"
     )
     args, leftovers = parser.parse_known_args()
 
@@ -75,7 +73,8 @@ def inner_main() -> None:
     # os.chdir(DJANGO_ROOT)
     cmdargs = [
         "celery",
-        "--app", CRATEWEB_CELERY_APP_NAME,
+        "--app",
+        CRATEWEB_CELERY_APP_NAME,
         args.command,
     ]
     if args.command == "worker":

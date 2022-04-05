@@ -48,20 +48,28 @@ class RestrictAdminMiddleware(MiddlewareMixin):
     A middleware that restricts the different admin sites depending on user
     privileges.
     """
+
     @staticmethod
     def process_request(request: HttpRequest) -> HttpResponse:
-        if not hasattr(request, 'user'):
+        if not hasattr(request, "user"):
             raise ImproperlyConfigured(
                 "Authentication middleware required. Edit your"
                 " MIDDLEWARE_CLASSES setting to insert"
                 " 'django.contrib.auth.middleware.AuthenticationMiddleware'"
-                " before the RestrictDevAdminMiddleware class.")
-        if request.path.startswith(reverse(f"{AdminSiteNames.DEVADMIN}:index")):  # noqa
+                " before the RestrictDevAdminMiddleware class."
+            )
+        if request.path.startswith(
+            reverse(f"{AdminSiteNames.DEVADMIN}:index")
+        ):  # noqa
             if not is_developer(request.user):
                 return HttpResponseForbidden(
-                    "Non-developers cannot access the devadmin")
-        if request.path.startswith(reverse(f"{AdminSiteNames.MGRADMIN}:index")):  # noqa
+                    "Non-developers cannot access the devadmin"
+                )
+        if request.path.startswith(
+            reverse(f"{AdminSiteNames.MGRADMIN}:index")
+        ):  # noqa
             if not request.user.is_superuser:
                 return HttpResponseForbidden(
-                    "Non-superusers cannot access the mgradmin")
+                    "Non-superusers cannot access the mgradmin"
+                )
         # Django requires the staff flag for any admin.

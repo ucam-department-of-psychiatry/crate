@@ -43,10 +43,13 @@ class Command(BaseCommand):
     Django management command to resubmit unprocessed tasks (in case Celery
     jobs have been lost).
     """
+
     help = "Resubmit unprocessed tasks (in case Celery jobs have been lost)"
 
     def handle(self, *args: str, **options: Any) -> None:
         # docstring in superclass
         resubmit_unprocessed_tasks_task.delay()
-        log.info("Initial Celery task submitted; this will trigger "
-                 "more tasks for any unprocessed work.")
+        log.info(
+            "Initial Celery task submitted; this will trigger "
+            "more tasks for any unprocessed work."
+        )

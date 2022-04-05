@@ -92,9 +92,9 @@ def is_my_job_by_hash(value: Any, tasknum: int, ntasks: int) -> bool:
     return hash64(value) % ntasks == tasknum
 
 
-def is_my_job_by_hash_prehashed(hashed_value: int,
-                                tasknum: int,
-                                ntasks: int) -> bool:
+def is_my_job_by_hash_prehashed(
+    hashed_value: int, tasknum: int, ntasks: int
+) -> bool:
     """
     A version of :func:`is_my_job_by_hash` for use when you have pre-hashed
     the value, and ``ntasks`` is guaranteed to be >1.

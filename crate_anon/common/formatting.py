@@ -36,6 +36,7 @@ from operator import itemgetter
 # Ancillary functions
 # =============================================================================
 
+
 def print_record_counts(counts: List[Tuple[str, int]]) -> None:
     """
     Prints (to stdout) record counts for tables, firstly in alphabetical

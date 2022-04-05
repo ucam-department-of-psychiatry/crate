@@ -44,6 +44,7 @@ log = logging.getLogger(__name__)
 # Home
 # =============================================================================
 
+
 def home(request: HttpRequest) -> HttpResponse:
     """
     The home (main menu) view.
@@ -53,27 +54,28 @@ def home(request: HttpRequest) -> HttpResponse:
     # log.critical("IP Address for debug-toolbar: " + request.META['REMOTE_ADDR'])  # noqa
     # log.critical(f"MIDDLEWARE_CLASSES: {repr(MIDDLEWARE_CLASSES)}")
     context = {
-        'nav_on_main_menu': True,
-        'is_clinician': is_clinician(request.user),
-        'is_developer': is_developer(request.user),
-        'safety_catch_on': settings.SAFETY_CATCH_ON,
-        'developer_email': settings.DEVELOPER_EMAIL,
+        "nav_on_main_menu": True,
+        "is_clinician": is_clinician(request.user),
+        "is_developer": is_developer(request.user),
+        "safety_catch_on": settings.SAFETY_CATCH_ON,
+        "developer_email": settings.DEVELOPER_EMAIL,
         # 'leaflets': leaflets,
     }
     context.update(query_context(request))
-    return render(request, 'home.html', context)
+    return render(request, "home.html", context)
 
 
 # =============================================================================
 # About
 # =============================================================================
 
+
 def about(request: HttpRequest) -> HttpResponse:
     """
     The "about CRATE" view.
     """
     context = {
-        'VERSION': CRATE_VERSION,
-        'VERSION_DATE': CRATE_VERSION_DATE,
+        "VERSION": CRATE_VERSION,
+        "VERSION_DATE": CRATE_VERSION_DATE,
     }
-    return render(request, 'about.html', context)
+    return render(request, "about.html", context)

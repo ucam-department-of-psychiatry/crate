@@ -54,13 +54,14 @@ if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     DEFAULT_MEDEX_DIR = "/path/to/Medex/installation"
 else:
     THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-    DEFAULT_MEDEX_DIR = os.path.join(os.path.expanduser('~'), 'dev',
-                                     'Medex_UIMA_1.3.6')
+    DEFAULT_MEDEX_DIR = os.path.join(
+        os.path.expanduser("~"), "dev", "Medex_UIMA_1.3.6"
+    )
 
-DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, 'compiled_nlp_classes')
-SOURCE_FILE = os.path.join(THIS_DIR, MEDEX_PIPELINE_CLASSNAME + '.java')
-DEFAULT_JAVA = 'java'
-DEFAULT_JAVAC = 'javac'
+DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, "compiled_nlp_classes")
+SOURCE_FILE = os.path.join(THIS_DIR, MEDEX_PIPELINE_CLASSNAME + ".java")
+DEFAULT_JAVA = "java"
+DEFAULT_JAVAC = "javac"
 
 
 def main() -> None:
@@ -70,26 +71,33 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Compile Java classes for CRATE's interface to MedEx-UIMA",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
-        '--builddir', default=DEFAULT_BUILD_DIR,
-        help="Output directory for compiled .class files")
+        "--builddir",
+        default=DEFAULT_BUILD_DIR,
+        help="Output directory for compiled .class files",
+    )
     parser.add_argument(
-        '--medexdir', default=DEFAULT_MEDEX_DIR,
-        help="Root directory of MedEx installation")
+        "--medexdir",
+        default=DEFAULT_MEDEX_DIR,
+        help="Root directory of MedEx installation",
+    )
+    parser.add_argument("--java", default=DEFAULT_JAVA, help="Java executable")
+    parser.add_argument("--javac", default=DEFAULT_JAVAC, help="Java compiler")
     parser.add_argument(
-        '--java', default=DEFAULT_JAVA,
-        help="Java executable")
+        "--verbose",
+        "-v",
+        action="count",
+        default=0,
+        help="Be verbose (use twice for extra verbosity)",
+    )
     parser.add_argument(
-        '--javac', default=DEFAULT_JAVAC,
-        help="Java compiler")
-    parser.add_argument(
-        '--verbose', '-v', action='count', default=0,
-        help="Be verbose (use twice for extra verbosity)")
-    parser.add_argument(
-        '--launch', action='store_true',
+        "--launch",
+        action="store_true",
         help="Launch script in demonstration mode (having previously "
-             "compiled it)")
+        "compiled it)",
+    )
     args = parser.parse_args()
 
     loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
@@ -97,42 +105,48 @@ def main() -> None:
     configure_logger_for_colour(rootlogger, level=loglevel)
 
     if not os.path.exists(args.medexdir):
-        log.error(f"Could not find Medex installation at {args.medexdir}. "
-                  f"Is Medex installed? Have you set --medexdir correctly?")
+        log.error(
+            f"Could not find Medex installation at {args.medexdir}. "
+            f"Is Medex installed? Have you set --medexdir correctly?"
+        )
         sys.exit(EXIT_FAILURE)
 
-    medexclasses = os.path.join(args.medexdir, 'bin')
-    medexlibjars = os.path.join(args.medexdir, 'lib', '*')
+    medexclasses = os.path.join(args.medexdir, "bin")
+    medexlibjars = os.path.join(args.medexdir, "lib", "*")
     classpath = os.pathsep.join([args.builddir, medexclasses, medexlibjars])
-    classpath_options = ['-classpath', classpath]
+    classpath_options = ["-classpath", classpath]
 
     if args.launch:
         inputdir = tempfile.TemporaryDirectory()
         outputdir = tempfile.TemporaryDirectory()
         prog_args = [
-            "-data_ready_signal", MEDEX_DATA_READY_SIGNAL,
-            "-results_ready_signal", MEDEX_RESULTS_READY_SIGNAL,
-            "-i", inputdir.name,
-            "-o", outputdir.name,
+            "-data_ready_signal",
+            MEDEX_DATA_READY_SIGNAL,
+            "-results_ready_signal",
+            MEDEX_RESULTS_READY_SIGNAL,
+            "-i",
+            inputdir.name,
+            "-o",
+            outputdir.name,
         ]
         if args.verbose > 0:
-            prog_args += ['-v', '-v']
+            prog_args += ["-v", "-v"]
         cmdargs = (
-            [args.java] +
-            classpath_options +
-            [MEDEX_PIPELINE_CLASSNAME] +
-            prog_args
+            [args.java]
+            + classpath_options
+            + [MEDEX_PIPELINE_CLASSNAME]
+            + prog_args
         )
         log.info(f"Executing command: {cmdargs}")
         subprocess.check_call(cmdargs)
     else:
         os.makedirs(args.builddir, exist_ok=True)
         cmdargs = (
-            [args.javac, '-Xlint:unchecked'] +
-            (['-verbose'] if args.verbose > 0 else []) +
-            classpath_options +
-            ['-d', args.builddir] +
-            [SOURCE_FILE]
+            [args.javac, "-Xlint:unchecked"]
+            + (["-verbose"] if args.verbose > 0 else [])
+            + classpath_options
+            + ["-d", args.builddir]
+            + [SOURCE_FILE]
         )
         log.info(f"Executing command: {cmdargs}")
         subprocess.check_call(cmdargs)

@@ -9,28 +9,40 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('research', '0011_auto_20190521_2109'),
+        ("research", "0011_auto_20190521_2109"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ArchiveAttachmentAudit',
+            name="ArchiveAttachmentAudit",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('when', models.DateTimeField(auto_now_add=True)),
-                ('patient_id', models.CharField(max_length=255)),
-                ('filename', models.CharField(max_length=255)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),  # noqa
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("when", models.DateTimeField(auto_now_add=True)),
+                ("patient_id", models.CharField(max_length=255)),
+                ("filename", models.CharField(max_length=255)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),  # noqa
             ],
         ),
         migrations.CreateModel(
-            name='ArchiveTemplateAudit',
+            name="ArchiveTemplateAudit",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('when', models.DateTimeField(auto_now_add=True)),
-                ('patient_id', models.CharField(max_length=255)),
-                ('query_string', models.TextField()),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),  # noqa
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("when", models.DateTimeField(auto_now_add=True)),
+                ("patient_id", models.CharField(max_length=255)),
+                ("query_string", models.TextField()),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),  # noqa
             ],
         ),
     ]

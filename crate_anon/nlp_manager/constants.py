@@ -68,8 +68,8 @@ MAX_STRING_PK_LENGTH = 64  # trade-off; space versus capability
 MAX_SQL_FIELD_LEN = 64
 # ... http://dev.mysql.com/doc/refman/5.0/en/identifiers.html
 MAX_SEMANTIC_VERSION_STRING_LENGTH = (
-    147
-)  # https://github.com/mojombo/semver/issues/79
+    147  # https://github.com/mojombo/semver/issues/79
+)
 MEDEX_PIPELINE_CLASSNAME = "CrateMedexPipeline"
 MEDEX_DATA_READY_SIGNAL = "data_ready"
 MEDEX_RESULTS_READY_SIGNAL = "results_ready"

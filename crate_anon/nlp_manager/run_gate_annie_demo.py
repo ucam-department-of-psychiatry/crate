@@ -50,21 +50,32 @@ def main() -> None:
     """
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     gate_home = get_envvar_or_die(EnvVar.GATE_HOME)
-    log.info(f"Note the unrealistic use of {DEMO_NLP_INPUT_TERMINATOR!r} as "
-             f"an end-of-input marker. Don't use that for real!")
-    check_call_verbose([
-        "java",
-        "-classpath", f"{CratePath.JAVA_CLASSES_DIR}:{gate_home}/lib/*",
-        f"-Dgate.home={gate_home}",
-        "CrateGatePipeline",
-        "--annotation", "Person",
-        "--annotation", "Location",
-        "--input_terminator", DEMO_NLP_INPUT_TERMINATOR,
-        "--output_terminator", DEMO_NLP_OUTPUT_TERMINATOR,
-        "--log_tag", ".",
-        "-v", "-v",
-        "--demo"
-    ])
+    log.info(
+        f"Note the unrealistic use of {DEMO_NLP_INPUT_TERMINATOR!r} as "
+        f"an end-of-input marker. Don't use that for real!"
+    )
+    check_call_verbose(
+        [
+            "java",
+            "-classpath",
+            f"{CratePath.JAVA_CLASSES_DIR}:{gate_home}/lib/*",
+            f"-Dgate.home={gate_home}",
+            "CrateGatePipeline",
+            "--annotation",
+            "Person",
+            "--annotation",
+            "Location",
+            "--input_terminator",
+            DEMO_NLP_INPUT_TERMINATOR,
+            "--output_terminator",
+            DEMO_NLP_OUTPUT_TERMINATOR,
+            "--log_tag",
+            ".",
+            "-v",
+            "-v",
+            "--demo",
+        ]
+    )
 
 
 if __name__ == "__main__":

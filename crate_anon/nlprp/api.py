@@ -86,6 +86,7 @@ DEFAULT_SERVER_INFO = {
 # Date/time conversion to/from NLPRP format
 # =============================================================================
 
+
 def nlprp_datetime_to_pendulum(ndt: str) -> Pendulum:
     """
     The NLPRP date/time format is ISO-8601 with all three of: date, time,
@@ -121,8 +122,7 @@ def nlprp_datetime_to_datetime_with_tz(ndt: str) -> datetime.datetime:
     return pendulum_to_datetime(p)
 
 
-def nlprp_datetime_to_datetime_utc_no_tzinfo(ndt: str) -> \
-        datetime.datetime:
+def nlprp_datetime_to_datetime_utc_no_tzinfo(ndt: str) -> datetime.datetime:
     """
     Converts a NLPRP date/time (see :func:`nlprp_iso_datetime_to_pendulum`) to
     a :class:`datetime.datetime` in UTC with no timezone information.
@@ -147,8 +147,9 @@ def pendulum_to_nlprp_datetime(p: Pendulum, to_utc: bool = True) -> str:
     return p.isoformat()
 
 
-def datetime_to_nlprp_datetime(dt: datetime.datetime,
-                               assume_utc: bool = True) -> str:
+def datetime_to_nlprp_datetime(
+    dt: datetime.datetime, assume_utc: bool = True
+) -> str:
     """
     Converts a :class:`datetime.datetime` to the ISO string format (with
     timezone) used by the NLPRP.
@@ -175,8 +176,10 @@ def nlprp_datetime_now(as_local: bool = True) -> str:
 # Get arguments from JSON objects
 # =============================================================================
 
-def json_get_bool(x: JsonObjectType, key: str, default: bool = None,
-                  required: bool = False) -> bool:
+
+def json_get_bool(
+    x: JsonObjectType, key: str, default: bool = None, required: bool = False
+) -> bool:
     """
     Gets a boolean parameter from part of the JSON request.
 
@@ -203,8 +206,9 @@ def json_get_bool(x: JsonObjectType, key: str, default: bool = None,
     return value
 
 
-def json_get_int(x: JsonObjectType, key: str, default: int = None,
-                 required: bool = False) -> int:
+def json_get_int(
+    x: JsonObjectType, key: str, default: int = None, required: bool = False
+) -> int:
     """
     Gets an integer parameter from part of the JSON request.
 
@@ -231,8 +235,9 @@ def json_get_int(x: JsonObjectType, key: str, default: int = None,
     return value
 
 
-def json_get_float(x: JsonObjectType, key: str, default: int = None,
-                   required: bool = False) -> int:
+def json_get_float(
+    x: JsonObjectType, key: str, default: int = None, required: bool = False
+) -> int:
     """
     Gets a float (or int) parameter from part of the JSON request.
 
@@ -259,8 +264,9 @@ def json_get_float(x: JsonObjectType, key: str, default: int = None,
     return value
 
 
-def json_get_str(x: JsonObjectType, key: str, default: str = None,
-                 required: bool = False) -> str:
+def json_get_str(
+    x: JsonObjectType, key: str, default: str = None, required: bool = False
+) -> str:
     """
     Gets a string parameter from part of the JSON request.
 
@@ -287,8 +293,9 @@ def json_get_str(x: JsonObjectType, key: str, default: str = None,
     return value
 
 
-def json_get_array(x: JsonObjectType, key: str,
-                   required: bool = False) -> JsonArrayType:
+def json_get_array(
+    x: JsonObjectType, key: str, required: bool = False
+) -> JsonArrayType:
     """
     Gets a array (list) parameter from part of the JSON request.
 
@@ -315,8 +322,9 @@ def json_get_array(x: JsonObjectType, key: str,
     return value
 
 
-def json_get_array_of_str(x: JsonObjectType, key: str,
-                          required: bool = False) -> List[str]:
+def json_get_array_of_str(
+    x: JsonObjectType, key: str, required: bool = False
+) -> List[str]:
     """
     Gets an array of strings from part of the JSON request.
 
@@ -345,8 +353,9 @@ def json_get_array_of_str(x: JsonObjectType, key: str,
     return value
 
 
-def json_get_object(x: JsonObjectType, key: str,
-                    required: bool = False) -> JsonObjectType:
+def json_get_object(
+    x: JsonObjectType, key: str, required: bool = False
+) -> JsonObjectType:
     """
     Gets an object (dictionary) parameter from part of the JSON request.
 
@@ -369,13 +378,18 @@ def json_get_object(x: JsonObjectType, key: str,
         else:
             return {}  # type: JsonArrayType
     if not isinstance(value, dict):
-        mkerror(BAD_REQUEST,
-                f"{key!r} parameter not a JSON object (dictionary)")
+        mkerror(
+            BAD_REQUEST, f"{key!r} parameter not a JSON object (dictionary)"
+        )
     return value
 
 
-def json_get_value(x: JsonValueType, key: str, default: JsonValueType = None,
-                   required: bool = False) -> JsonValueType:
+def json_get_value(
+    x: JsonValueType,
+    key: str,
+    default: JsonValueType = None,
+    required: bool = False,
+) -> JsonValueType:
     """
     Gets an JSON value (object, array, or literal) parameter from part of the
     JSON request.
@@ -400,13 +414,13 @@ def json_get_value(x: JsonValueType, key: str, default: JsonValueType = None,
             return default
     if not isinstance(value, (dict, list, str, int, float, bool)):
         # None is covered above
-        mkerror(BAD_REQUEST,
-                f"{key!r} parameter not a JSON value")
+        mkerror(BAD_REQUEST, f"{key!r} parameter not a JSON value")
     return value
 
 
-def json_get_toplevel_args(nlprp_request: JsonObjectType,
-                           required: bool = True) -> JsonObjectType:
+def json_get_toplevel_args(
+    nlprp_request: JsonObjectType, required: bool = True
+) -> JsonObjectType:
     """
     Returns the top-level arguments for a NLPRP request.
 
@@ -427,8 +441,10 @@ def json_get_toplevel_args(nlprp_request: JsonObjectType,
         else:
             return {}  # type: JsonArrayType
     if not isinstance(value, dict):
-        mkerror(BAD_REQUEST,
-                f"{NlprpKeys.ARGS!r} parameter not a JSON object (dictionary)")
+        mkerror(
+            BAD_REQUEST,
+            f"{NlprpKeys.ARGS!r} parameter not a JSON object (dictionary)",
+        )
     return value
 
 
@@ -436,9 +452,10 @@ def json_get_toplevel_args(nlprp_request: JsonObjectType,
 # Validity checkers
 # =============================================================================
 
-def is_nlprp_protocol_valid(x: JsonObjectType,
-                            min_version: Version = None,
-                            max_version: Version = None) -> bool:
+
+def is_nlprp_protocol_valid(
+    x: JsonObjectType, min_version: Version = None, max_version: Version = None
+) -> bool:
     """
     Is the parameter a valid NLPRP request/response object?
 
@@ -463,9 +480,9 @@ def is_nlprp_protocol_valid(x: JsonObjectType,
     return True
 
 
-def is_valid_nlprp_request(x: JsonObjectType,
-                           min_version: Version = None,
-                           max_version: Version = None) -> bool:
+def is_valid_nlprp_request(
+    x: JsonObjectType, min_version: Version = None, max_version: Version = None
+) -> bool:
     """
     Is the parameter a valid NLPRP request (client to server)?
 
@@ -476,7 +493,8 @@ def is_valid_nlprp_request(x: JsonObjectType,
     """
     try:
         assert is_nlprp_protocol_valid(
-            x, min_version=min_version, max_version=max_version)
+            x, min_version=min_version, max_version=max_version
+        )
         command = x[NlprpKeys.COMMAND].lower()  # case-insensitive
         assert command in ALL_NLPRP_COMMANDS
     except (AssertionError, AttributeError, KeyError, TypeError, ValueError):
@@ -484,9 +502,9 @@ def is_valid_nlprp_request(x: JsonObjectType,
     return True
 
 
-def is_valid_nlprp_response(x: JsonObjectType,
-                            min_version: Version = None,
-                            max_version: Version = None) -> bool:
+def is_valid_nlprp_response(
+    x: JsonObjectType, min_version: Version = None, max_version: Version = None
+) -> bool:
     """
     Is the parameter a valid NLPRP response (server to client)?
 
@@ -497,7 +515,8 @@ def is_valid_nlprp_response(x: JsonObjectType,
     """
     try:
         assert is_nlprp_protocol_valid(
-            x, min_version=min_version, max_version=max_version)
+            x, min_version=min_version, max_version=max_version
+        )
     except (AssertionError, AttributeError, KeyError, TypeError, ValueError):
         return False
     return True
@@ -507,17 +526,17 @@ def is_valid_nlprp_response(x: JsonObjectType,
 # Dictionary creators
 # =============================================================================
 
+
 def make_nlprp_dict() -> JsonObjectType:
     """
     Creates the basic dictionary used by the NLPRP protocol.
     """
-    return {
-        NlprpKeys.PROTOCOL: DEFAULT_PROTOCOL_INFO
-    }
+    return {NlprpKeys.PROTOCOL: DEFAULT_PROTOCOL_INFO}
 
 
-def make_nlprp_request(command: str,
-                       command_args: Any = None) -> JsonObjectType:
+def make_nlprp_request(
+    command: str, command_args: Any = None
+) -> JsonObjectType:
     """
     Creates a NLPRP request (client to server) dictionary.
 
@@ -533,9 +552,11 @@ def make_nlprp_request(command: str,
     return d
 
 
-def make_nlprp_response(http_status: int,
-                        reply_args: JsonObjectType = None,
-                        server_info: JsonObjectType = None) -> JsonObjectType:
+def make_nlprp_response(
+    http_status: int,
+    reply_args: JsonObjectType = None,
+    server_info: JsonObjectType = None,
+) -> JsonObjectType:
     """
     Creates a NLPRP response (server to client) dictionary.
 
@@ -558,15 +579,18 @@ def make_nlprp_response(http_status: int,
 # Generic object
 # =============================================================================
 
+
 class NlprpMessage(object):
     """
     Represents an NLPRP (natural language processing request protocol) message,
     be it a request (client to server) or a response (server to client).
     """
 
-    def __init__(self,
-                 data: Union[str, bytes, JsonObjectType],
-                 data_is_gzipped: bool = False) -> None:
+    def __init__(
+        self,
+        data: Union[str, bytes, JsonObjectType],
+        data_is_gzipped: bool = False,
+    ) -> None:
         """
         Initialize with data as either
 
@@ -622,9 +646,9 @@ class NlprpMessage(object):
         """
         return gzip.compress(self.data_bytes)
 
-    def protocol_valid(self,
-                       min_version: Version = None,
-                       max_version: Version = None) -> bool:
+    def protocol_valid(
+        self, min_version: Version = None, max_version: Version = None
+    ) -> bool:
         """
         Is the protocol valid?
 
@@ -632,13 +656,13 @@ class NlprpMessage(object):
             min_version: minimum NLPRP version to accept; None for no minimum
             max_version: maximum NLPRP version to accept; None for no maximum
         """
-        return is_nlprp_protocol_valid(self._data,
-                                       min_version=min_version,
-                                       max_version=max_version)
+        return is_nlprp_protocol_valid(
+            self._data, min_version=min_version, max_version=max_version
+        )
 
-    def valid(self,
-              min_version: Version = None,
-              max_version: Version = None) -> bool:
+    def valid(
+        self, min_version: Version = None, max_version: Version = None
+    ) -> bool:
         """
         Is the message valid?
 
@@ -648,8 +672,9 @@ class NlprpMessage(object):
             min_version: minimum NLPRP version to accept; None for no minimum
             max_version: maximum NLPRP version to accept; None for no maximum
         """
-        return self.protocol_valid(min_version=min_version,
-                                   max_version=max_version)
+        return self.protocol_valid(
+            min_version=min_version, max_version=max_version
+        )
 
 
 class NlprpRequest(NlprpMessage):
@@ -657,11 +682,13 @@ class NlprpRequest(NlprpMessage):
     Represents an NLPRP request (client to server).
     """
 
-    def __init__(self,
-                 command: str = None,
-                 command_args: JsonObjectType = None,
-                 data: Union[str, bytes, JsonObjectType] = None,
-                 data_is_gzipped: bool = False) -> None:
+    def __init__(
+        self,
+        command: str = None,
+        command_args: JsonObjectType = None,
+        data: Union[str, bytes, JsonObjectType] = None,
+        data_is_gzipped: bool = False,
+    ) -> None:
         """
         Initialize with one of the following sets of parameters:
 
@@ -682,9 +709,9 @@ class NlprpRequest(NlprpMessage):
             assert command, "data not specified, so must specify command"
             self._data = make_nlprp_request(command, command_args)
 
-    def valid(self,
-              min_version: Version = None,
-              max_version: Version = None) -> bool:
+    def valid(
+        self, min_version: Version = None, max_version: Version = None
+    ) -> bool:
         """
         Is the request valid?
 
@@ -692,9 +719,9 @@ class NlprpRequest(NlprpMessage):
             min_version: minimum NLPRP version to accept; None for no minimum
             max_version: maximum NLPRP version to accept; None for no maximum
         """
-        return is_valid_nlprp_request(self._data,
-                                      min_version=min_version,
-                                      max_version=max_version)
+        return is_valid_nlprp_request(
+            self._data, min_version=min_version, max_version=max_version
+        )
 
     @property
     def command(self) -> str:
@@ -716,12 +743,14 @@ class NlprpResponse(NlprpMessage):
     Represents an NLPRP response (server to client).
     """
 
-    def __init__(self,
-                 data: Union[str, bytes, JsonObjectType] = None,
-                 data_is_gzipped: bool = False,
-                 http_status: int = HttpStatus.OK,
-                 reply_args: Dict[str, Any] = None,
-                 server_info: Dict[str, Any] = None) -> None:
+    def __init__(
+        self,
+        data: Union[str, bytes, JsonObjectType] = None,
+        data_is_gzipped: bool = False,
+        http_status: int = HttpStatus.OK,
+        reply_args: Dict[str, Any] = None,
+        server_info: Dict[str, Any] = None,
+    ) -> None:
         """
         Initialize with one of the following sets of parameters:
 
@@ -757,8 +786,9 @@ class NlprpResponse(NlprpMessage):
         """
         Returns the ``server_info`` part of the NLPRP response.
         """
-        return json_get_object(self._data, NlprpKeys.SERVER_INFO,
-                               required=False)
+        return json_get_object(
+            self._data, NlprpKeys.SERVER_INFO, required=False
+        )
 
 
 class NlprpServerProcessor(object):
@@ -767,18 +797,21 @@ class NlprpServerProcessor(object):
     server.
     """
 
-    def __init__(self,
-                 name: str,
-                 title: str,
-                 version: str,
-                 is_default_version: bool,
-                 description: str,
-                 schema_type: str = NlprpValues.UNKNOWN,
-                 sql_dialect: Optional[str] = None,
-                 tabular_schema: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        title: str,
+        version: str,
+        is_default_version: bool,
+        description: str,
+        schema_type: str = NlprpValues.UNKNOWN,
+        sql_dialect: Optional[str] = None,
+        tabular_schema: Optional[Dict[str, Any]] = None,
+    ) -> None:
         assert schema_type in (NlprpValues.UNKNOWN, NlprpValues.TABULAR), (
             "'schema_type' must be one of '{NlprpValues.UNKNOWN}', "
-            "'{NlprpValues.TABULAR}' for each processor.")
+            "'{NlprpValues.TABULAR}' for each processor."
+        )
         self.name = name
         self.title = title
         self.version = version

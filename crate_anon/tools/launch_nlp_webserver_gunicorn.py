@@ -36,7 +36,7 @@ import sys
 
 from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CONFIG_ENVVAR
 
-WINDOWS = platform.system() == 'Windows'
+WINDOWS = platform.system() == "Windows"
 
 
 def main() -> None:
@@ -45,12 +45,13 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(
         description="Launch CRATE NLP web server via Gunicorn."
-                    " (Any leftover arguments will be passed to Gunicorn.)"
+        " (Any leftover arguments will be passed to Gunicorn.)"
     )
     parser.add_argument(
-        "--crate_config", default=os.getenv(NLP_WEBSERVER_CONFIG_ENVVAR),
+        "--crate_config",
+        default=os.getenv(NLP_WEBSERVER_CONFIG_ENVVAR),
         help=f"CRATE NLP web server config file (default is read from "
-             f"environment variable {NLP_WEBSERVER_CONFIG_ENVVAR})"
+        f"environment variable {NLP_WEBSERVER_CONFIG_ENVVAR})",
     )
     args, leftovers = parser.parse_known_args()
 
@@ -61,7 +62,8 @@ def main() -> None:
     cmdargs = [
         "gunicorn",
         # Launch with a PasteDeploy config file:
-        "--paste", args.crate_config,
+        "--paste",
+        args.crate_config,
     ] + leftovers
     print(f"Launching Gunicorn: {cmdargs}")
     subprocess.call(cmdargs)

@@ -51,18 +51,21 @@ log = logging.getLogger(__name__)
 # Draft a data dictionary
 # =============================================================================
 
-def draft_dd(config: Config,
-             dd_output_filename: str,
-             incremental: bool = False,
-             skip_dd_check: bool = False,
-             explicit_dest_datatype: bool = False,
-             systmone: bool = False,
-             systmone_context: SystmOneContext = None,
-             systmone_sre_spec_csv_filename: str = None,
-             systmone_append_comments: bool = False,
-             systmone_include_generic: bool = False,
-             systmone_allow_unprefixed_tables: bool = False,
-             systmone_alter_loaded_rows: bool = False) -> None:
+
+def draft_dd(
+    config: Config,
+    dd_output_filename: str,
+    incremental: bool = False,
+    skip_dd_check: bool = False,
+    explicit_dest_datatype: bool = False,
+    systmone: bool = False,
+    systmone_context: SystmOneContext = None,
+    systmone_sre_spec_csv_filename: str = None,
+    systmone_append_comments: bool = False,
+    systmone_include_generic: bool = False,
+    systmone_allow_unprefixed_tables: bool = False,
+    systmone_alter_loaded_rows: bool = False,
+) -> None:
     """
     Draft a data dictionary.
 
@@ -144,6 +147,7 @@ def draft_dd(config: Config,
 # Main
 # =============================================================================
 
+
 def main() -> None:
     """
     Command-line entry point.
@@ -151,89 +155,98 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=f"Draft a data dictionary for the anonymiser. "
-                    f"({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        f"({CRATE_VERSION_PRETTY})",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     parser.add_argument(
         "--config",
         help=f"Config file (overriding environment variable "
-             f"{ANON_CONFIG_ENV_VAR}). Note that the config file has several "
-             f"options governing the automatic generation of data "
-             f"dictionaries."
+        f"{ANON_CONFIG_ENV_VAR}). Note that the config file has several "
+        f"options governing the automatic generation of data "
+        f"dictionaries.",
     )
     parser.add_argument(
-        '--verbose', '-v', action="store_true",
-        help="Be verbose"
+        "--verbose", "-v", action="store_true", help="Be verbose"
     )
     parser.add_argument(
-        "--incremental", action="store_true",
+        "--incremental",
+        action="store_true",
         help="Drafts an INCREMENTAL draft data dictionary (containing fields "
-             "in the database that aren't in the existing data dictionary "
-             "referred to by the config file)."
+        "in the database that aren't in the existing data dictionary "
+        "referred to by the config file).",
     )
     parser.add_argument(
-        "--skip_dd_check", action="store_true",
+        "--skip_dd_check",
+        action="store_true",
         help="Skip validity check (against the source database) for the "
-             "data dictionary."
+        "data dictionary.",
     )
     parser.add_argument(
-        "--output", default="-",
-        help="File for output; use '-' for stdout."
+        "--output", default="-", help="File for output; use '-' for stdout."
     )
     parser.add_argument(
-        "--explicit_dest_datatype", action="store_true",
+        "--explicit_dest_datatype",
+        action="store_true",
         help="(Primarily for debugging.) CRATE will convert the source column "
-             "data type (e.g. INTEGER, FLOAT, VARCHAR(25)) to a datatype for "
-             "the destination database, sometimes with modifications. "
-             "However, this is usually implicit: the draft data dictionary "
-             "doesn't show these data types unless they require modification. "
-             "Use this option to make them all explicit."
+        "data type (e.g. INTEGER, FLOAT, VARCHAR(25)) to a datatype for "
+        "the destination database, sometimes with modifications. "
+        "However, this is usually implicit: the draft data dictionary "
+        "doesn't show these data types unless they require modification. "
+        "Use this option to make them all explicit.",
     )
     parser.add_argument(
-        "--systmone", action="store_true",
+        "--systmone",
+        action="store_true",
         help="Modify the data dictionary for SystmOne. CRATE knows about some "
-             "of the standard SystmOne data structure and can read a "
-             "database and customize the data dictionary for SystmOne."
+        "of the standard SystmOne data structure and can read a "
+        "database and customize the data dictionary for SystmOne.",
     )
 
     s1_options = parser.add_argument_group(
         "SystmOne options (for when --systmone is used)"
     )
     context_k, context_d = keys_descriptions_from_enum(
-        SystmOneContext, keys_to_lower=True)
+        SystmOneContext, keys_to_lower=True
+    )
     s1_options.add_argument(
-        "--systmone_context", type=str, choices=context_k,
+        "--systmone_context",
+        type=str,
+        choices=context_k,
         default=DEFAULT_SYSTMONE_CONTEXT.name.lower(),
         help="Context of the SystmOne database that you are reading. "
-             f"[{context_d}]"
+        f"[{context_d}]",
     )
     s1_options.add_argument(
         "--systmone_sre_spec",
         help="SystmOne Strategic Reporting Extract (SRE) specification CSV "
-             "filename (from TPP, containing table/field comments)."
+        "filename (from TPP, containing table/field comments).",
     )
     s1_options.add_argument(
-        "--systmone_append_comments", action="store_true",
-        help="Append to comments, rather than replacing them."
+        "--systmone_append_comments",
+        action="store_true",
+        help="Append to comments, rather than replacing them.",
     )
     s1_options.add_argument(
-        "--systmone_include_generic", action="store_true",
+        "--systmone_include_generic",
+        action="store_true",
         help="Include all 'generic' fields, overriding preferences set via "
-             "the config file options."
+        "the config file options.",
     )
     s1_options.add_argument(
-        "--systmone_allow_unprefixed_tables", action="store_true",
+        "--systmone_allow_unprefixed_tables",
+        action="store_true",
         help="Permit tables that don't start with the expected prefix "
-             "(which is e.g. 'SR' for the TPP SRE context, 'S1_' for the CPFT "
-             "Data Warehouse context). May add helpful content, but you may "
-             "get odd tables and views."
+        "(which is e.g. 'SR' for the TPP SRE context, 'S1_' for the CPFT "
+        "Data Warehouse context). May add helpful content, but you may "
+        "get odd tables and views.",
     )
     s1_options.add_argument(
-        "--systmone_alter_loaded_rows", action="store_true",
+        "--systmone_alter_loaded_rows",
+        action="store_true",
         help="(For --incremental.) Alter rows that were loaded from disk "
-             "(not read from a database)? The default is to leave such rows "
-             "untouched."
+        "(not read from a database)? The default is to leave such rows "
+        "untouched.",
     )
 
     args = parser.parse_args()

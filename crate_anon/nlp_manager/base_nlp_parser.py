@@ -316,7 +316,7 @@ class TableMaker(ABC):
 
     @staticmethod
     def _assert_column_lists_identical(
-        list_of_column_lists: List[List[Column]]
+        list_of_column_lists: List[List[Column]],
     ) -> None:
         """
         Ensure that every column list (in a list of column lists) is identical.
@@ -353,7 +353,7 @@ class TableMaker(ABC):
 
     @staticmethod
     def _assert_index_lists_identical(
-        list_of_index_lists: List[List[Index]]
+        list_of_index_lists: List[List[Index]],
     ) -> None:
         """
         Ensure that every index list (in a list of index lists) is identical.

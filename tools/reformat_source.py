@@ -77,6 +77,7 @@ CORRECT_COPYRIGHT_LINES = """
 # Top-level functions
 # =============================================================================
 
+
 def main() -> None:
     """
     Command-line entry point. See command-line help.
@@ -84,15 +85,17 @@ def main() -> None:
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     parser = argparse.ArgumentParser(description="Reformat source files")
     parser.add_argument(
-        "--rewrite", action="store_true",
-        help="Rewrite the files")
+        "--rewrite", action="store_true", help="Rewrite the files"
+    )
     parser.add_argument(
-        "--show", action="store_true",
-        help="Show the files to stdout")
+        "--show", action="store_true", help="Show the files to stdout"
+    )
     parser.add_argument(
-        "--process_only_filenum", type=int,
+        "--process_only_filenum",
+        type=int,
         help="Only process this file number (1-based index) in each "
-             "directory; for debugging only")
+        "directory; for debugging only",
+    )
 
     args = parser.parse_args()
 
@@ -101,15 +104,17 @@ def main() -> None:
     process_only_filenum = args.process_only_filenum
 
     if not rewrite and not show_only:
-        log.info("Not rewriting and not showing; will just catalogue files "
-                 "and report things it's changing")
+        log.info(
+            "Not rewriting and not showing; will just catalogue files "
+            "and report things it's changing"
+        )
 
     reformat_python_docstrings(
         top_dirs=[CRATE_ROOT_DIR],
         show_only=show_only,
         rewrite=rewrite,
         process_only_filenum=process_only_filenum,
-        correct_copyright_lines=CORRECT_COPYRIGHT_LINES
+        correct_copyright_lines=CORRECT_COPYRIGHT_LINES,
     )
 
 

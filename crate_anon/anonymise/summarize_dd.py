@@ -48,8 +48,8 @@ log = logging.getLogger(__name__)
 # Summarize a data dictionary
 # =============================================================================
 
-def summarize_dd(config: Config,
-                 output_filename: str) -> None:
+
+def summarize_dd(config: Config, output_filename: str) -> None:
     """
     Produces a summary report about a data dictionary.
 
@@ -73,6 +73,7 @@ def summarize_dd(config: Config,
 # Main
 # =============================================================================
 
+
 def main() -> None:
     """
     Command-line entry point.
@@ -80,22 +81,20 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=f"Draft a data dictionary for the anonymiser. "
-                    f"({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        f"({CRATE_VERSION_PRETTY})",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     parser.add_argument(
         "--config",
         help=f"Config file (overriding environment variable "
-             f"{ANON_CONFIG_ENV_VAR})."
+        f"{ANON_CONFIG_ENV_VAR}).",
     )
     parser.add_argument(
-        '--verbose', '-v', action="store_true",
-        help="Be verbose"
+        "--verbose", "-v", action="store_true", help="Be verbose"
     )
     parser.add_argument(
-        "--output", default="-",
-        help="File for output; use '-' for stdout."
+        "--output", default="-", help="File for output; use '-' for stdout."
     )
 
     args = parser.parse_args()

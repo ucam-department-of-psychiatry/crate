@@ -45,8 +45,8 @@ from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
 # Unit tests
 # =============================================================================
 
-class TestParserRegexes(unittest.TestCase):
 
+class TestParserRegexes(unittest.TestCase):
     @staticmethod
     def test_parser_regexes() -> None:
         verbose = True
@@ -57,49 +57,61 @@ class TestParserRegexes(unittest.TestCase):
 
         assert_text_regex(
             "OPTIONAL_RESULTS_IGNORABLES",
-            OPTIONAL_RESULTS_IGNORABLES, [
-                ("(H)", ['(H)', '']),
-                (" (H) ", [' (H) ', '']),
-                (" (H) mg/L", [' (H) ', '', '', '', 'L', '']),
-                ("(HH)", ['(HH)', '']),
-                ("(L)", ['(L)', '']),
-                ("(LL)", ['(LL)', '']),
-                ("(*)", ['(*)', '']),
-                ("  |  (H)  |  ", ['  |  (H)  |  ', '']),
+            OPTIONAL_RESULTS_IGNORABLES,
+            [
+                ("(H)", ["(H)", ""]),
+                (" (H) ", [" (H) ", ""]),
+                (" (H) mg/L", [" (H) ", "", "", "", "L", ""]),
+                ("(HH)", ["(HH)", ""]),
+                ("(L)", ["(L)", ""]),
+                ("(LL)", ["(LL)", ""]),
+                ("(*)", ["(*)", ""]),
+                ("  |  (H)  |  ", ["  |  (H)  |  ", ""]),
             ],
-            verbose=verbose
+            verbose=verbose,
         )
         assert_text_regex(
             "OPTIONAL_POC",
-            OPTIONAL_POC, [
+            OPTIONAL_POC,
+            [
                 (", POC", [", POC", ""]),
-            ]
+            ],
         )
 
         # ---------------------------------------------------------------------
         # Tense indicators
         # ---------------------------------------------------------------------
 
-        assert_text_regex("TENSE_INDICATOR", TENSE_INDICATOR, [
-            ("a is b", ["is"]),
-            ("a was b", ["was"]),
-            ("a blah b", []),
-        ], verbose=verbose)
+        assert_text_regex(
+            "TENSE_INDICATOR",
+            TENSE_INDICATOR,
+            [
+                ("a is b", ["is"]),
+                ("a was b", ["was"]),
+                ("a blah b", []),
+            ],
+            verbose=verbose,
+        )
 
         # ---------------------------------------------------------------------
         # Mathematical relations
         # ---------------------------------------------------------------------
 
-        assert_text_regex("RELATION", RELATION, [
-            ("a < b", ["<"]),
-            ("a less than b", ["less than"]),
-            ("a <= b", ["<="]),
-            ("a = b", ["="]),
-            ("a equals b", ["equals"]),
-            ("a equal to b", ["equal to"]),
-            ("a >= b", [">="]),
-            ("a > b", [">"]),
-            ("a more than b", ["more than"]),
-            ("a greater than b", ["greater than"]),
-            ("a blah b", []),
-        ], verbose=verbose)
+        assert_text_regex(
+            "RELATION",
+            RELATION,
+            [
+                ("a < b", ["<"]),
+                ("a less than b", ["less than"]),
+                ("a <= b", ["<="]),
+                ("a = b", ["="]),
+                ("a equals b", ["equals"]),
+                ("a equal to b", ["equal to"]),
+                ("a >= b", [">="]),
+                ("a > b", [">"]),
+                ("a more than b", ["more than"]),
+                ("a greater than b", ["greater than"]),
+                ("a blah b", []),
+            ],
+            verbose=verbose,
+        )

@@ -36,7 +36,7 @@ from typing import Dict, List
 from cardinal_pythonlib.sql.validation import (
     ensure_valid_field_name,
     ensure_valid_table_name,
-    is_sqltype_valid
+    is_sqltype_valid,
 )
 from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.sqlalchemy.schema import (
@@ -63,6 +63,7 @@ log = logging.getLogger(__name__)
 # OutputUserConfig
 # =============================================================================
 
+
 class OutputUserConfig(object):
     """
     Class defining configuration for the output of a given GATE app.
@@ -70,10 +71,12 @@ class OutputUserConfig(object):
     See the documentation for the :ref:`NLP config file <nlp_config>`.
     """
 
-    def __init__(self,
-                 parser: ExtendedConfigParser,
-                 cfg_output_name: str,
-                 schema_required: bool = True) -> None:
+    def __init__(
+        self,
+        parser: ExtendedConfigParser,
+        cfg_output_name: str,
+        schema_required: bool = True,
+    ) -> None:
         """
         Read config from a configparser section.
 
@@ -95,19 +98,18 @@ class OutputUserConfig(object):
                definition.
         """  # noqa
 
-        sectionname = full_sectionname(NlpConfigPrefixes.OUTPUT,
-                                       cfg_output_name)
-        cfg = ConfigSection(
-            section=sectionname,
-            parser=parser
+        sectionname = full_sectionname(
+            NlpConfigPrefixes.OUTPUT, cfg_output_name
         )
+        cfg = ConfigSection(section=sectionname, parser=parser)
 
         # ---------------------------------------------------------------------
         # desttable
         # ---------------------------------------------------------------------
 
         self._desttable = cfg.opt_str(
-            NlpOutputConfigKeys.DESTTABLE, required=True)
+            NlpOutputConfigKeys.DESTTABLE, required=True
+        )
         ensure_valid_table_name(self._desttable)
 
         # ---------------------------------------------------------------------
@@ -116,7 +118,8 @@ class OutputUserConfig(object):
 
         self._renames = {}  # type: Dict[str, str]
         rename_lines = cfg.opt_strlist(
-            NlpOutputConfigKeys.RENAMES, required=False, as_words=False)
+            NlpOutputConfigKeys.RENAMES, required=False, as_words=False
+        )
         for line in rename_lines:
             if not line.strip():
                 continue
@@ -125,7 +128,8 @@ class OutputUserConfig(object):
                 raise ValueError(
                     f"Bad {NlpOutputConfigKeys.RENAMES!r} option in config "
                     f"section {sectionname!r}; line was {line!r} but should "
-                    f"have contained two things")
+                    f"have contained two things"
+                )
             annotation_name = words[0]
             field_name = words[1]
             ensure_valid_field_name(field_name)
@@ -136,8 +140,8 @@ class OutputUserConfig(object):
         # ---------------------------------------------------------------------
 
         null_literal_lines = cfg.opt_strlist(
-            NlpOutputConfigKeys.NULL_LITERALS,
-            required=False, as_words=False)
+            NlpOutputConfigKeys.NULL_LITERALS, required=False, as_words=False
+        )
         self._null_literals = []  # type: List[str]
         for line in null_literal_lines:
             self._null_literals += shlex.split(line)
@@ -151,7 +155,9 @@ class OutputUserConfig(object):
         self._dest_comments = []  # type: List[str]
         dest_field_lines = cfg.opt_strlist(
             NlpOutputConfigKeys.DESTFIELDS,
-            required=schema_required, as_words=False)
+            required=schema_required,
+            as_words=False,
+        )
         # ... comments will be removed during that process.
         # log.critical(dest_field_lines)
         # If dest_field_lines is empty (as it may be for a Cloud processor)
@@ -170,17 +176,21 @@ class OutputUserConfig(object):
             self._dest_datatypes.append(datatype)
             self._dest_comments.append(comment)
 
-        src_fields = [c.name for c in
-                      InputFieldConfig.get_core_columns_for_dest()]
+        src_fields = [
+            c.name for c in InputFieldConfig.get_core_columns_for_dest()
+        ]
         for sf in src_fields:
             if sf in self._destfields:
                 raise ValueError(
                     f"For section {sectionname}, destination field {sf} is "
-                    f"auto-supplied; do not add it manually")
+                    f"auto-supplied; do not add it manually"
+                )
 
         if len(set(self._destfields)) != len(self._destfields):
-            raise ValueError(f"Duplicate fields exist in destination fields: "
-                             f"{self._destfields}")
+            raise ValueError(
+                f"Duplicate fields exist in destination fields: "
+                f"{self._destfields}"
+            )
 
         # ---------------------------------------------------------------------
         # indexdefs
@@ -196,14 +206,14 @@ class OutputUserConfig(object):
                 if indexfieldname not in self._destfields:
                     raise ValueError(
                         f"Index field {indexfieldname} not in "
-                        f"destination fields {self._destfields}")
+                        f"destination fields {self._destfields}"
+                    )
                 try:
                     length = ast.literal_eval(lengthstr)
                     if length is not None:
                         length = int(length)
                 except ValueError:
-                    raise ValueError(
-                        f"Bad index length: {lengthstr}")
+                    raise ValueError(f"Bad index length: {lengthstr}")
                 self._indexfields.append(indexfieldname)
                 self._indexlengths.append(length)
 
@@ -237,11 +247,15 @@ class OutputUserConfig(object):
         for i, field in enumerate(self._destfields):
             datatype = self._dest_datatypes[i]
             comment = self._dest_comments[i]
-            columns.append(Column(
-                field,
-                get_sqla_coltype_from_dialect_str(datatype, engine.dialect),
-                comment=comment
-            ))
+            columns.append(
+                Column(
+                    field,
+                    get_sqla_coltype_from_dialect_str(
+                        datatype, engine.dialect
+                    ),
+                    comment=comment,
+                )
+            )
         return columns
 
     @property

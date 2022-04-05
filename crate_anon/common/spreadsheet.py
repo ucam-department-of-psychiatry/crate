@@ -63,6 +63,7 @@ MULTIPLE_SPREADSHEET_TYPE = Dict[str, SINGLE_SPREADSHEET_TYPE]
 # Enums
 # =============================================================================
 
+
 class SpreadsheetFileExtensions(Enum):
     CSV = ".csv"
     TSV = ".tsv"
@@ -73,6 +74,7 @@ class SpreadsheetFileExtensions(Enum):
 # =============================================================================
 # Reading methods
 # =============================================================================
+
 
 def skip_spreadsheet_row(row: SPREADSHEET_ROW_TYPE) -> bool:
     """
@@ -91,7 +93,7 @@ def gen_rows_from_csv(filename: str) -> SINGLE_SPREADSHEET_GENERATOR_TYPE:
     Generates rows from a CSV file.
     """
     log.debug(f"Loading as CSV: {filename}")
-    with open(filename, 'r') as csvfile:
+    with open(filename, "r") as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
             if skip_spreadsheet_row(row):
@@ -104,8 +106,8 @@ def gen_rows_from_tsv(filename: str) -> SINGLE_SPREADSHEET_GENERATOR_TYPE:
     Generates rows from a TSV file.
     """
     log.debug(f"Loading as TSV: {filename}")
-    with open(filename, 'r') as tsvfile:
-        reader = csv.reader(tsvfile, delimiter='\t')
+    with open(filename, "r") as tsvfile:
+        reader = csv.reader(tsvfile, delimiter="\t")
         for row in reader:
             if skip_spreadsheet_row(row):
                 continue
@@ -121,10 +123,7 @@ def gen_rows_from_xlsx(filename: str) -> SINGLE_SPREADSHEET_GENERATOR_TYPE:
     # ... NB potential bug using read_only; see postcodes.py
     worksheet = workbook.active  # first sheet, by default
     for sheet_row in worksheet.iter_rows():
-        row = [
-            "" if cell.value is None else cell.value
-            for cell in sheet_row
-        ]
+        row = ["" if cell.value is None else cell.value for cell in sheet_row]
         if skip_spreadsheet_row(row):
             continue
         yield row
@@ -145,8 +144,9 @@ def gen_rows_from_ods(filename: str) -> SINGLE_SPREADSHEET_GENERATOR_TYPE:
         yield row
 
 
-def gen_rows_from_spreadsheet(filename: str) \
-        -> SINGLE_SPREADSHEET_GENERATOR_TYPE:
+def gen_rows_from_spreadsheet(
+    filename: str,
+) -> SINGLE_SPREADSHEET_GENERATOR_TYPE:
     """
     Generates rows from a spreadsheet-type file, autodetecting it.
 
@@ -173,6 +173,7 @@ def gen_rows_from_spreadsheet(filename: str) \
 # Writing methods
 # =============================================================================
 
+
 def make_safe_for_spreadsheet(x: Any) -> Any:
     """
     Helper function for :func:`remove_none_values_from_spreadsheet`.
@@ -180,8 +181,9 @@ def make_safe_for_spreadsheet(x: Any) -> Any:
     return "" if x is None else x
 
 
-def remove_none_values_from_spreadsheet(data: MULTIPLE_SPREADSHEET_TYPE) \
-        -> MULTIPLE_SPREADSHEET_TYPE:
+def remove_none_values_from_spreadsheet(
+    data: MULTIPLE_SPREADSHEET_TYPE,
+) -> MULTIPLE_SPREADSHEET_TYPE:
     """
     The ODS writer does not cope with ``None`` values, giving:
 
@@ -195,9 +197,7 @@ def remove_none_values_from_spreadsheet(data: MULTIPLE_SPREADSHEET_TYPE) \
     for sheetname, sheetdata in data.items():
         converted_sheetdata = []  # type: List[List[Any]]
         for row in sheetdata:
-            converted_row = [
-                make_safe_for_spreadsheet(x) for x in row
-            ]
+            converted_row = [make_safe_for_spreadsheet(x) for x in row]
             converted_sheetdata.append(converted_row)
         result[sheetname] = converted_sheetdata
     return result
@@ -235,7 +235,7 @@ def write_tsv(filename: str, rows: SINGLE_SPREADSHEET_TYPE) -> None:
     """
     log.info(f"Saving as TSV: {filename}")
     with smart_open(filename, "wt") as f:  # type: TextIO
-        writer = csv.writer(f, delimiter='\t')
+        writer = csv.writer(f, delimiter="\t")
         writer.writerows(rows)
 
 
@@ -267,9 +267,9 @@ def write_xlsx(filename: str, data: MULTIPLE_SPREADSHEET_TYPE) -> None:
     pyexcel_xlsx.save_data(filename, data)
 
 
-def write_spreadsheet(filename: str,
-                      data: MULTIPLE_SPREADSHEET_TYPE,
-                      filetype: str = None) -> None:
+def write_spreadsheet(
+    filename: str, data: MULTIPLE_SPREADSHEET_TYPE, filetype: str = None
+) -> None:
     """
     Writes to a spreadsheet-style file, autodetecting it.
 

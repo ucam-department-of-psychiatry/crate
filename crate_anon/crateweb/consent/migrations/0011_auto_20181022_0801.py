@@ -38,19 +38,25 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('consent', '0010_auto_20180629_1238'),
+        ("consent", "0010_auto_20180629_1238"),
     ]
 
     # noinspection PyProtectedMember
     operations = [
         migrations.AddField(
-            model_name='study',
-            name='summary_is_html',
-            field=models.BooleanField(default=False, verbose_name='Is the summary in HTML (not plain text) format?'),  # nopep8
+            model_name="study",
+            name="summary_is_html",
+            field=models.BooleanField(
+                default=False,
+                verbose_name="Is the summary in HTML (not plain text) format?",
+            ),  # nopep8
         ),
         migrations.AlterField(
-            model_name='email',
-            name='sender',
-            field=models.CharField(default=crate_anon.crateweb.consent.models._get_default_email_sender, max_length=255),  # nopep8
+            model_name="email",
+            name="sender",
+            field=models.CharField(
+                default=crate_anon.crateweb.consent.models._get_default_email_sender,
+                max_length=255,
+            ),  # nopep8
         ),
     ]

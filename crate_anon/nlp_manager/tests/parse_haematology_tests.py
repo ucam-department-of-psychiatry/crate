@@ -40,6 +40,7 @@ from crate_anon.nlp_manager.parse_haematology import (
 # Unit tests
 # =============================================================================
 
+
 class TestHaematology(unittest.TestCase):
     @staticmethod
     def test_all_haematology() -> None:

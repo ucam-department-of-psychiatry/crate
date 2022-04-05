@@ -25,7 +25,8 @@ log = logging.getLogger(__name__)
 log.critical(
     "Well done - CRATE has found your crate_local_settings.py file at {}. "
     "However, you need to configure it for your institution's set-up, and "
-    "remove this line.".format(os.path.abspath(__file__)))
+    "remove this line.".format(os.path.abspath(__file__))
+)
 
 
 # =============================================================================
@@ -48,7 +49,7 @@ FORCE_SCRIPT_NAME = ""
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  # CHANGE THIS!  # noqa
+SECRET_KEY = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"  # CHANGE THIS!  # noqa
 # Run crate_generate_new_django_secret_key to generate a new one.
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -66,10 +67,10 @@ def always_show_toolbar(request: "HttpRequest") -> bool:
 if DEBUG:
     ALLOWED_HOSTS = []  # type: List[str]
     DEBUG_TOOLBAR_CONFIG = {
-        'SHOW_TOOLBAR_CALLBACK': always_show_toolbar,
+        "SHOW_TOOLBAR_CALLBACK": always_show_toolbar,
     }
 else:
-    ALLOWED_HOSTS = ['*']
+    ALLOWED_HOSTS = ["*"]
 
 
 # =============================================================================
@@ -86,32 +87,27 @@ BROKER_URL = ""
 
 DATABASES = {
     # See https://docs.djangoproject.com/en/1.8/ref/settings/#databases
-
     # -------------------------------------------------------------------------
     # Django database for web site (inc. users, audit).
     # -------------------------------------------------------------------------
-
     # Quick SQLite example:
     # 'default': {
     #     'ENGINE': 'django.db.backends.sqlite3',
     #     'NAME': '/home/myuser/somewhere/crate_db.sqlite3',
     # },
-
     # Quick MySQL example:
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'HOST': '127.0.0.1',  # e.g. 127.0.0.1
-        'PORT': 3306,  # local e.g. 3306
-        'NAME': 'crate_db',
-        'USER': 'someuser',
-        'PASSWORD': 'somepassword',
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "HOST": "127.0.0.1",  # e.g. 127.0.0.1
+        "PORT": 3306,  # local e.g. 3306
+        "NAME": "crate_db",
+        "USER": "someuser",
+        "PASSWORD": "somepassword",
     },
-
     # -------------------------------------------------------------------------
     # Anonymised research database
     # -------------------------------------------------------------------------
-    'research': {
-
+    "research": {
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # IT IS CRITICALLY IMPORTANT THAT THIS CONNECTION (i.e. its user's
         # access) IS READ-ONLY FOR THE RESEARCH DATABASES [1] AND HAS NO
@@ -124,31 +120,27 @@ DATABASES = {
         # [1] ... so researchers can't alter/delete research data
         # [2] ... so researchers can't see secrets
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-        'ENGINE': 'django.db.backends.mysql',
-        'HOST': '127.0.0.1',  # e.g. 127.0.0.1
-        'PORT': 3306,  # local, e.g. 3306
-        'NAME': 'anonymous_output',  # will be the default database; use None for no default database  # noqa
-        'USER': 'researcher',
-        'PASSWORD': 'somepassword',
+        "ENGINE": "django.db.backends.mysql",
+        "HOST": "127.0.0.1",  # e.g. 127.0.0.1
+        "PORT": 3306,  # local, e.g. 3306
+        "NAME": "anonymous_output",  # will be the default database; use None for no default database  # noqa
+        "USER": "researcher",
+        "PASSWORD": "somepassword",
     },
-
     # -------------------------------------------------------------------------
     # One or more secret databases for RID/PID mapping
     # -------------------------------------------------------------------------
-    'secret_1': {
-        'ENGINE': 'django.db.backends.mysql',
-        'HOST': '127.0.0.1',  # e.g. 127.0.0.1
-        'PORT': 3306,
-        'NAME': 'anonymous_mapping',
-        'USER': 'anonymiser_system',
-        'PASSWORD': 'somepassword',
+    "secret_1": {
+        "ENGINE": "django.db.backends.mysql",
+        "HOST": "127.0.0.1",  # e.g. 127.0.0.1
+        "PORT": 3306,
+        "NAME": "anonymous_mapping",
+        "USER": "anonymiser_system",
+        "PASSWORD": "somepassword",
     },
-
     # -------------------------------------------------------------------------
     # Others, for consent lookup
     # -------------------------------------------------------------------------
-
     # Optional: 'cpft_crs'
     # Optional: 'cpft_pcmis'
     # Optional: 'cpft_rio_crate'
@@ -159,10 +151,10 @@ DATABASES = {
 }
 
 # Which database should be used to look up demographic details?
-CLINICAL_LOOKUP_DB = 'dummy_clinical'
+CLINICAL_LOOKUP_DB = "dummy_clinical"
 
 # Which database should be used to look up consent modes?
-CLINICAL_LOOKUP_CONSENT_DB = 'dummy_clinical'
+CLINICAL_LOOKUP_CONSENT_DB = "dummy_clinical"
 
 # Research database title (displayed in web site)
 RESEARCH_DB_TITLE = "My NHS Trust Research Database"
@@ -172,73 +164,62 @@ RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 RESEARCH_DB_INFO = [
     {
         # Unique name e.g. 'myresearchdb':
-        RDIKeys.NAME: 'myresearchdb',
-
+        RDIKeys.NAME: "myresearchdb",
         # Human-friendly description e.g. 'My friendly research database':
-        RDIKeys.DESCRIPTION: 'My friendly research database',
-
+        RDIKeys.DESCRIPTION: "My friendly research database",
         # Database name as seen by the database engine:
         # - BLANK, i.e. '', for MySQL.
         # - BLANK, i.e. '', for PostgreSQL.
         # - The database name, for SQL Server.
-        RDIKeys.DATABASE: '',
-
+        RDIKeys.DATABASE: "",
         # Schema name:
         # - The database=schema name, for MySQL.
         # - The schema name, for PostgreSQL (usual default: 'public').
         # - The schema name, for SQL Server (usual default: 'dbo').
-        RDIKeys.SCHEMA: 'dbo',
-
+        RDIKeys.SCHEMA: "dbo",
         # Fields not in the database, but used for SELECT AS statements for
         # some clinician views:
         # e.g. 'my_pid_field':
-        RDIKeys.PID_PSEUDO_FIELD: 'my_pid_field',
+        RDIKeys.PID_PSEUDO_FIELD: "my_pid_field",
         # e.g. 'my_mpid_field':
-        RDIKeys.MPID_PSEUDO_FIELD: 'my_mpid_field',
-
+        RDIKeys.MPID_PSEUDO_FIELD: "my_mpid_field",
         # Fields and tables found within the database:
         # e.g. 'trid'
-        RDIKeys.TRID_FIELD: 'trid',
+        RDIKeys.TRID_FIELD: "trid",
         # e.g. 'brcid'
-        RDIKeys.RID_FIELD: 'brcid',
+        RDIKeys.RID_FIELD: "brcid",
         # e.g. 1
         RDIKeys.RID_FAMILY: 1,
         # e.g. 'patients'
-        RDIKeys.MRID_TABLE: 'patients',
+        RDIKeys.MRID_TABLE: "patients",
         # e.g. 'nhshash'
-        RDIKeys.MRID_FIELD: 'nhshash',
-
+        RDIKeys.MRID_FIELD: "nhshash",
         # Descriptions, used for PID lookup and the like
         # e.g. 'Patient ID (My ID Num; PID) for database X'
-        RDIKeys.PID_DESCRIPTION: 'Patient ID (My ID Num; PID) for database X',
+        RDIKeys.PID_DESCRIPTION: "Patient ID (My ID Num; PID) for database X",
         # e.g. 'Master patient ID (NHS number; MPID)'
-        RDIKeys.MPID_DESCRIPTION: 'Master patient ID (NHS number; MPID)',
+        RDIKeys.MPID_DESCRIPTION: "Master patient ID (NHS number; MPID)",
         # e.g. 'Research ID (RID) for database X'
-        RDIKeys.RID_DESCRIPTION: 'Research ID (RID) for database X',
+        RDIKeys.RID_DESCRIPTION: "Research ID (RID) for database X",
         # e.g. 'Master research ID (MRID)'
-        RDIKeys.MRID_DESCRIPTION: 'Master research ID (MRID)',
+        RDIKeys.MRID_DESCRIPTION: "Master research ID (MRID)",
         # e.g. 'Transient research ID (TRID) for database X',
-        RDIKeys.TRID_DESCRIPTION: 'Transient research ID (TRID) for database X',
-
+        RDIKeys.TRID_DESCRIPTION: "Transient research ID (TRID) for database X",
         # To look up PID/RID mappings, provide a key for 'secret_lookup_db'
         # that is a database alias from DATABASES:
         # e.g. 'secret_1'
-        RDIKeys.SECRET_LOOKUP_DB: 'secret_1',
-
+        RDIKeys.SECRET_LOOKUP_DB: "secret_1",
         # For the data finder: table-specific and default date column names
         RDIKeys.DATE_FIELDS_BY_TABLE: {},
-
         # e.g. ['default_date_field']
-        RDIKeys.DEFAULT_DATE_FIELDS: ['default_date_field'],
-
+        RDIKeys.DEFAULT_DATE_FIELDS: ["default_date_field"],
         # Column name giving time that record was updated
         # e.g. '_when_fetched_utc'
-        RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
+        RDIKeys.UPDATE_DATE_FIELD: "_when_fetched_utc",
     },
     # {
     #     RDIKeys.NAME: 'similar_database',
     #     RDIKeys.DESCRIPTION: 'A database sharing the RID with the first',
-
     #     RDIKeys.DATABASE: 'similar_database',
     #     RDIKeys.SCHEMA: 'similar_schema',
     #     RDIKeys.TRID_FIELD: 'trid',
@@ -246,24 +227,19 @@ RESEARCH_DB_INFO = [
     #     RDIKeys.RID_FAMILY: 1,
     #     RDIKeys.MRID_TABLE: '',
     #     RDIKeys.MRID_FIELD: '',
-
     #     RDIKeys.PID_DESCRIPTION: '',
     #     RDIKeys.MPID_DESCRIPTION: '',
     #     RDIKeys.RID_DESCRIPTION: '',
     #     RDIKeys.MRID_DESCRIPTION: '',
     #     RDIKeys.TRID_DESCRIPTION: '',
-
     #     RDIKeys.SECRET_LOOKUP_DB: '',
-
     #     RDIKeys.DATE_FIELDS_BY_TABLE: {},
     #     RDIKeys.DEFAULT_DATE_FIELDS: [],
-
     #     RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
     # },
     # {
     #     RDIKeys.NAME: 'different_database',
     #     RDIKeys.DESCRIPTION: 'A database sharing only the MRID with the first',  # noqa: E501
-
     #     RDIKeys.DATABASE: 'different_database',
     #     RDIKeys.SCHEMA: 'different_schema',
     #     RDIKeys.TRID_FIELD: 'trid',
@@ -271,18 +247,14 @@ RESEARCH_DB_INFO = [
     #     RDIKeys.RID_FAMILY: 2,
     #     RDIKeys.MRID_TABLE: 'hashed_nhs_numbers',
     #     RDIKeys.MRID_FIELD: 'nhshash',
-
     #     RDIKeys.PID_DESCRIPTION: '',
     #     RDIKeys.MPID_DESCRIPTION: '',
     #     RDIKeys.RID_DESCRIPTION: '',
     #     RDIKeys.MRID_DESCRIPTION: '',
     #     RDIKeys.TRID_DESCRIPTION: '',
-
     #     RDIKeys.SECRET_LOOKUP_DB: '',
-
     #     RDIKeys.DATE_FIELDS_BY_TABLE: {},
     #     RDIKeys.DEFAULT_DATE_FIELDS: [],
-
     #     RDIKeys.UPDATE_DATE_FIELD: '_when_fetched_utc',
     # },
 ]
@@ -291,16 +263,16 @@ RESEARCH_DB_INFO = [
 # to look up patients when contact requests are made?
 # Give the 'name' attribute of one of the databases in RESEARCH_DB_INFO.
 # Its secret_lookup_db will be used for the actual lookup process.
-RESEARCH_DB_FOR_CONTACT_LOOKUP = 'myresearchdb'
+RESEARCH_DB_FOR_CONTACT_LOOKUP = "myresearchdb"
 
 # Definitions of source database names in CRATE NLP tables
-NLP_SOURCEDB_MAP = {'SOURCE_DATABASE': 'research'}
+NLP_SOURCEDB_MAP = {"SOURCE_DATABASE": "research"}
 
 # For the automatic query generator, we need to know the underlying SQL dialect
 # Options are
 # - 'mysql' => MySQL
 # - 'mssql' => Microsoft SQL Server
-RESEARCH_DB_DIALECT = 'mysql'
+RESEARCH_DB_DIALECT = "mysql"
 
 DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = True
 
@@ -342,7 +314,7 @@ DATABASE_HELP_HTML_FILENAME = None
 # Where should we store the files? Make this directory (and don't let it
 # be served by a generic web server that doesn't check permissions).
 # e.g. /srv/crate_filestorage
-PRIVATE_FILE_STORAGE_ROOT = '/srv/crate_filestorage'
+PRIVATE_FILE_STORAGE_ROOT = "/srv/crate_filestorage"
 
 # Serve files via Django (inefficient but useful for testing) or via Apache
 # with mod_xsendfile (or other web server configured for the X-SendFile
@@ -368,11 +340,11 @@ MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 Mb
 #   bugfix for servers that only support TLSv1:
 # EMAIL_BACKEND = 'cardinal_pythonlib.django.mail.SmtpEmailBackendTls1'
 
-EMAIL_HOST = 'smtp.somewhere.nhs.uk'
+EMAIL_HOST = "smtp.somewhere.nhs.uk"
 EMAIL_PORT = 587  # usually 25 (plain SMTP) or 587 (STARTTLS)
 # ... see https://www.fastmail.com/help/technical/ssltlsstarttls.html
-EMAIL_HOST_USER = 'myuser'
-EMAIL_HOST_PASSWORD = 'mypassword'
+EMAIL_HOST_USER = "myuser"
+EMAIL_HOST_PASSWORD = "mypassword"
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 
@@ -402,7 +374,9 @@ RDBM_NAME = "John Doe"
 RDBM_TITLE = "Research Database Manager"
 RDBM_TELEPHONE = "01223-XXXXXX"
 RDBM_EMAIL = "research.database@somewhere.nhs.uk"
-RDBM_ADDRESS = ["FREEPOST SOMEWHERE_HOSPITAL RESEARCH DATABASE MANAGER"]  # a list  # noqa
+RDBM_ADDRESS = [
+    "FREEPOST SOMEWHERE_HOSPITAL RESEARCH DATABASE MANAGER"
+]  # a list  # noqa
 
 
 # =============================================================================
@@ -412,7 +386,7 @@ RDBM_ADDRESS = ["FREEPOST SOMEWHERE_HOSPITAL RESEARCH DATABASE MANAGER"]  # a li
 
 # Exceptions get sent to these people.
 ADMINS = [
-    ('Mr Administrator', 'mr_admin@somewhere.domain'),
+    ("Mr Administrator", "mr_admin@somewhere.domain"),
 ]
 
 
@@ -421,7 +395,7 @@ ADMINS = [
 # =============================================================================
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
-WKHTMLTOPDF_FILENAME = ''
+WKHTMLTOPDF_FILENAME = ""
 # WKHTMLTOPDF_FILENAME = '/home/rudolf/dev/wkhtmltopdf/wkhtmltox/bin/wkhtmltopdf'  # noqa
 # WKHTMLTOPDF_FILENAME = '/usr/bin/wkhtmltopdf'
 
@@ -435,7 +409,7 @@ WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
     "footer-spacing": "3",  # mm, from content down to top of footer
 }
 
-PDF_LOGO_ABS_URL = 'http://localhost/crate_logo'
+PDF_LOGO_ABS_URL = "http://localhost/crate_logo"
 # ... path on local machine, read by wkhtmltopdf
 # Examples:
 #   [if you're running a web server] 'http://localhost/crate_logo'
@@ -448,9 +422,15 @@ PDF_LOGO_WIDTH = "75%"
 
 # The PDF generator also needs to be able to find the traffic-light pictures,
 # on disk (not via your web site):
-TRAFFIC_LIGHT_RED_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/red.png'  # noqa
-TRAFFIC_LIGHT_YELLOW_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/yellow.png'  # noqa
-TRAFFIC_LIGHT_GREEN_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/green.png'  # noqa
+TRAFFIC_LIGHT_RED_ABS_URL = (
+    "file:///somewhere/crate_anon/crateweb/static/red.png"  # noqa
+)
+TRAFFIC_LIGHT_YELLOW_ABS_URL = (
+    "file:///somewhere/crate_anon/crateweb/static/yellow.png"  # noqa
+)
+TRAFFIC_LIGHT_GREEN_ABS_URL = (
+    "file:///somewhere/crate_anon/crateweb/static/green.png"  # noqa
+)
 
 
 # =============================================================================
@@ -468,8 +448,8 @@ CHARITY_AMOUNT_CLINICIAN_RESPONSE = 1.0  # in local currency, e.g. GBP
 # Note that using headers/footers requires a version of wkhtmltopdf built using
 # "patched Qt". See above.
 # Fetch one from http://wkhtmltopdf.org/, e.g. v0.12.4 for your OS.
-PDF_LETTER_HEADER_HTML = ''
-PDF_LETTER_FOOTER_HTML = ''
+PDF_LETTER_HEADER_HTML = ""
+PDF_LETTER_FOOTER_HTML = ""
 
 
 # =============================================================================
@@ -479,4 +459,6 @@ PDF_LETTER_FOOTER_HTML = ''
 
 CHARITY_URL = "http://www.cpft.nhs.uk/research.htm"
 CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
-LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
+LEAFLET_URL_CPFTRD_CLINRES_SHORT = (
+    "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
+)

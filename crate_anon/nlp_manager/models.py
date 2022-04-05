@@ -56,23 +56,25 @@ SqlTypeHash = HashClass("dummysalt").sqla_column_type()
 # Record of progress
 # =============================================================================
 
+
 class NlpRecord(ProgressBase):
     """
     Class to record the fact of processing a source record for a particular
     kind of NLP (and to keep a hash allowing identification of altered source
     contents later).
     """
-    __tablename__ = 'crate_nlp_progress'
+
+    __tablename__ = "crate_nlp_progress"
     __table_args__ = (
         Index(
-            '_idx1',  # index name
+            "_idx1",  # index name
             #  index fields:
-            'srcpkval',   # integer and most specific
-            'nlpdef',     # usually >1 NLP def to 1 db/table/field combo
-            'srcfield',   # } roughly, more to less specific?
-            'srctable',   # }
-            'srcdb',      # }
-            'srcpkstr',   # last as we may not use it
+            "srcpkval",  # integer and most specific
+            "nlpdef",  # usually >1 NLP def to 1 db/table/field combo
+            "srcfield",  # } roughly, more to less specific?
+            "srctable",  # }
+            "srcdb",  # }
+            "srcpkstr",  # last as we may not use it
             # - performance is critical here
             # - put them in descending order of specificity
             #   https://stackoverflow.com/questions/2292662/how-important-is-the-order-of-columns-in-indexes  # noqa
@@ -88,53 +90,71 @@ class NlpRecord(ProgressBase):
             # SQL Server 2008+ (https://stackoverflow.com/questions/767657) and
             # MySQL also seems happy.
         ),
-        TABLE_KWARGS
+        TABLE_KWARGS,
     )
     # https://stackoverflow.com/questions/6626810/multiple-columns-index-when-using-the-declarative-orm-extension-of-sqlalchemy  # noqa
     # http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/table_config.html  # noqa
 
     pk = Column(
-        'pk', BigInteger, primary_key=True, autoincrement=True,
-        comment="PK of NLP record (no specific use)")
+        "pk",
+        BigInteger,
+        primary_key=True,
+        autoincrement=True,
+        comment="PK of NLP record (no specific use)",
+    )
     srcdb = Column(
-        'srcdb', SqlTypeDbIdentifier, comment="Source database"
+        "srcdb",
+        SqlTypeDbIdentifier,
+        comment="Source database"
         # primary_key=True
     )
     srctable = Column(
-        'srctable', SqlTypeDbIdentifier, comment="Source table name"
+        "srctable",
+        SqlTypeDbIdentifier,
+        comment="Source table name"
         # primary_key=True
     )
     srcpkfield = Column(
-        'srcpkfield', SqlTypeDbIdentifier,
-        comment="Primary key column name in source table (for info only)")
+        "srcpkfield",
+        SqlTypeDbIdentifier,
+        comment="Primary key column name in source table (for info only)",
+    )
     srcpkval = Column(
-        'srcpkval', BigInteger,
+        "srcpkval",
+        BigInteger,
         comment="Primary key value in source table (or hash if PK is a string)"
         # primary_key=True
     )
     srcpkstr = Column(
-        'srcpkstr', String(MAX_STRING_PK_LENGTH),
+        "srcpkstr",
+        String(MAX_STRING_PK_LENGTH),
         comment=f"Original string PK, used when the table has a string PK, to "
-                f"deal with hash collisions. Max length: "
-                f"{MAX_STRING_PK_LENGTH}"
+        f"deal with hash collisions. Max length: "
+        f"{MAX_STRING_PK_LENGTH}"
         # primary_key=True, default=''  # can't have a NULL in a composite PK
     )
     srcfield = Column(
-        'srcfield', SqlTypeDbIdentifier,
+        "srcfield",
+        SqlTypeDbIdentifier,
         comment="Name of column in source field containing actual data"
         # primary_key=True
     )
     nlpdef = Column(
-        'nlpdef', SqlTypeDbIdentifier,
+        "nlpdef",
+        SqlTypeDbIdentifier,
         comment="Name of natural language processing definition that source "
-                "was processed for"
+        "was processed for"
         # primary_key=True
     )
     whenprocessedutc = Column(
-        'whenprocessedutc', DateTime,
+        "whenprocessedutc",
+        DateTime,
         comment="Time that NLP record was processed (batch time that the run "
-                "was commenced for that NLP definition; UTC)")
+        "was commenced for that NLP definition; UTC)",
+    )
     srchash = Column(
-        FN_SRCHASH, SqlTypeHash,
-        comment='Secure hash of source field contents at the time of '
-                'processing')
+        FN_SRCHASH,
+        SqlTypeHash,
+        comment="Secure hash of source field contents at the time of "
+        "processing",
+    )

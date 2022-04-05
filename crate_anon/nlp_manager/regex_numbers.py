@@ -34,12 +34,13 @@ numbers (e.g. integers, floating-point, scientific notation...).**
 # Helper functions
 # =============================================================================
 
+
 def _negative_lookahead(x: str) -> str:
     """
     Regex for: x does not occur here.
     """
     # (?! something ) is a negative lookahead assertion
-    return fr"(?! {x} )"
+    return rf"(?! {x} )"
 
 
 def _negative_lookbehind(x: str) -> str:
@@ -47,7 +48,7 @@ def _negative_lookbehind(x: str) -> str:
     Regex for: x does not immediately precede what's here.
     """
     # (?<! something ) is a negative lookbehind assertion
-    return fr"(?<! {x} )"
+    return rf"(?<! {x} )"
 
 
 # =============================================================================
@@ -63,24 +64,26 @@ POWER_INC_E_ASTERISK = r"(?: e | \^ | \*\* | \*)"  # e, ^, **, *
 
 PLUS_SIGN = r"\+"  # don't forget to escape it
 MINUS_SIGN = r"[-−–]"  # any of: ASCII hyphen-minus, Unicode minus, en dash
-SIGN = fr"(?: {PLUS_SIGN} | {MINUS_SIGN} )"
+SIGN = rf"(?: {PLUS_SIGN} | {MINUS_SIGN} )"
 
 # NO_MINUS_SIGN = _negative_lookahead(MINUS_SIGN)
 # NO_PRECEDING_MINUS_SIGN = _negative_lookbehind(MINUS_SIGN)
 # NO_PRECEDING_MINUS_SIGN_OR_DIGIT = _negative_lookbehind(fr"{MINUS_SIGN} | \d")
 NO_PRECEDING_MINUS_SIGN_OR_DIGITCOMMA_OR_DOT = _negative_lookbehind(
-    fr"{MINUS_SIGN} | \d,? | \.")
+    rf"{MINUS_SIGN} | \d,? | \."
+)
 
 
 # =============================================================================
 # Quantities
 # =============================================================================
 
+
 def times_ten_to_power(n: int) -> str:
     """
     For a power *n*, returns a regex to capture "10^n" and similar notations.
     """
-    return fr"(?: {MULTIPLY}? \s* 10 \s* {POWER_INC_E_ASTERISK} \s* {n})"
+    return rf"(?: {MULTIPLY}? \s* 10 \s* {POWER_INC_E_ASTERISK} \s* {n})"
 
 
 BILLION = times_ten_to_power(9)
@@ -108,7 +111,7 @@ PLAIN_INTEGER_W_THOUSAND_COMMAS = r"(?: (?: \d{1,3} (?:,\d{3})+ ) | \d+ )"
 # thousands separators
 
 FLOATING_POINT_GROUP = r"(?: \. \d+ )"  # decimal point and further digits
-SCIENTIFIC_NOTATION_EXPONENT = fr"(?: E {SIGN}? \d+ )"
+SCIENTIFIC_NOTATION_EXPONENT = rf"(?: E {SIGN}? \d+ )"
 # ... Scientific notation does NOT offer non-integer exponents.
 # Specifically, float("-3.4e-27") is fine, but float("-3.4e-27.1") isn't.
 

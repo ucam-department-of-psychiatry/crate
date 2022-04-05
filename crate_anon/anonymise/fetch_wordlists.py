@@ -81,6 +81,7 @@ log = logging.getLogger(__name__)
 # Output
 # =============================================================================
 
+
 def write_words_to_file(filename: str, words: Iterable[str]) -> None:
     """
     Write all the words to a file, one per line.
@@ -100,11 +101,13 @@ def write_words_to_file(filename: str, words: Iterable[str]) -> None:
 # English words
 # =============================================================================
 
-def gen_valid_words_from_words(words: Iterable[str],
-                               valid_word_regex_text: str,
-                               min_word_length: int = 1,
-                               show_rejects: bool = False) -> \
-        Generator[str, None, None]:
+
+def gen_valid_words_from_words(
+    words: Iterable[str],
+    valid_word_regex_text: str,
+    min_word_length: int = 1,
+    show_rejects: bool = False,
+) -> Generator[str, None, None]:
     """
     Generates valid words from an iterable of words.
 
@@ -131,10 +134,13 @@ def gen_valid_words_from_words(words: Iterable[str],
             print(word)
 
 
-def fetch_english_words(url: str, filename: str,
-                        valid_word_regex_text: str,
-                        min_word_length: int = 1,
-                        show_rejects: bool = False) -> None:
+def fetch_english_words(
+    url: str,
+    filename: str,
+    valid_word_regex_text: str,
+    min_word_length: int = 1,
+    show_rejects: bool = False,
+) -> None:
     """
     Fetch English words and write them to a file.
 
@@ -151,12 +157,10 @@ def fetch_english_words(url: str, filename: str,
             report rejected words to the Python debug log
     """
     pipeline = gen_valid_words_from_words(
-        words=gen_lines_from_binary_files(
-            gen_binary_files_from_urls([url])
-        ),
+        words=gen_lines_from_binary_files(gen_binary_files_from_urls([url])),
         valid_word_regex_text=valid_word_regex_text,
         min_word_length=min_word_length,
-        show_rejects=show_rejects
+        show_rejects=show_rejects,
     )
     words = list(pipeline)
     words.sort()
@@ -167,12 +171,15 @@ def fetch_english_words(url: str, filename: str,
 # Names in general
 # =============================================================================
 
+
 class NameInfo(object):
     """
     Information about a human name.
     """
-    def __init__(self, name: str, freq_pct: float = None,
-                 cumfreq_pct: float = None) -> None:
+
+    def __init__(
+        self, name: str, freq_pct: float = None, cumfreq_pct: float = None
+    ) -> None:
         """
         Args:
             name:
@@ -199,9 +206,8 @@ class NameInfo(object):
         """
         Assert that the frequences are reasonable numbers.
         """
-        assert (
-            isinstance(self.freq_pct, float)
-            and isinstance(self.cumfreq_pct, float)
+        assert isinstance(self.freq_pct, float) and isinstance(
+            self.cumfreq_pct, float
         ), f"Bad frequencies in {self}"
 
     @property
@@ -212,11 +218,12 @@ class NameInfo(object):
         return self.freq_pct / 100
 
 
-def gen_sufficiently_frequent_names(infolist: Iterable[NameInfo],
-                                    min_cumfreq_pct: float = 0,
-                                    max_cumfreq_pct: float = 100,
-                                    show_rejects: bool = False) -> \
-        Generator[NameInfo, None, None]:
+def gen_sufficiently_frequent_names(
+    infolist: Iterable[NameInfo],
+    min_cumfreq_pct: float = 0,
+    max_cumfreq_pct: float = 100,
+    show_rejects: bool = False,
+) -> Generator[NameInfo, None, None]:
     """
     Generate names of a chosen kind of frequency.
 
@@ -240,7 +247,8 @@ def gen_sufficiently_frequent_names(infolist: Iterable[NameInfo],
     if min_cumfreq_pct > 0 or max_cumfreq_pct < 100:
         log.info(
             f"Restricting to surnames with "
-            f"{min_cumfreq_pct} <= cumfreq_pct <= {max_cumfreq_pct}")
+            f"{min_cumfreq_pct} <= cumfreq_pct <= {max_cumfreq_pct}"
+        )
         for info in infolist:
             info.assert_freq_info()
             if min_cumfreq_pct <= info.cumfreq_pct <= max_cumfreq_pct:
@@ -253,9 +261,9 @@ def gen_sufficiently_frequent_names(infolist: Iterable[NameInfo],
             yield info
 
 
-def gen_name_info_via_min_length(info_iter: Iterable[NameInfo],
-                                 min_name_length: int = 1) -> \
-        Generator[NameInfo, None, None]:
+def gen_name_info_via_min_length(
+    info_iter: Iterable[NameInfo], min_name_length: int = 1
+) -> Generator[NameInfo, None, None]:
     """
     Generates :class:`NameInfo` objects matching a name length criterion.
 
@@ -274,8 +282,9 @@ def gen_name_info_via_min_length(info_iter: Iterable[NameInfo],
             yield info
 
 
-def gen_name_from_name_info(info_iter: Iterable[NameInfo]) -> \
-        Generator[str, None, None]:
+def gen_name_from_name_info(
+    info_iter: Iterable[NameInfo],
+) -> Generator[str, None, None]:
     """
     Generates names from :class:`NameInfo` objects.
 
@@ -295,10 +304,12 @@ def gen_name_from_name_info(info_iter: Iterable[NameInfo]) -> \
 # US forenames
 # =============================================================================
 
+
 class UsForenameInfo(NameInfo):
     """
     Information about a forename in the United States of America.
     """
+
     def __init__(self, name: str, sex: str, count: str) -> None:
         """
         Args:
@@ -312,8 +323,9 @@ class UsForenameInfo(NameInfo):
         self.count = int(count)
 
 
-def gen_us_forename_info(lines: Iterable[str]) -> \
-        Generator[UsForenameInfo, None, None]:
+def gen_us_forename_info(
+    lines: Iterable[str],
+) -> Generator[UsForenameInfo, None, None]:
     """
     Generate US forenames from an iterable of lines in a specific textfile
     format, where each line looks like:
@@ -348,7 +360,7 @@ def gen_us_forename_info(lines: Iterable[str]) -> \
     # Now sort in descending order of frequency
     log.info(f"Seen names for {total} people")
     infolist = list(seen.values())
-    infolist.sort(key=attrgetter('count'), reverse=True)
+    infolist.sort(key=attrgetter("count"), reverse=True)
     cumfreq_pct = 0.0
     for info in infolist:
         info.freq_pct = 100.0 * info.count / total
@@ -357,8 +369,9 @@ def gen_us_forename_info(lines: Iterable[str]) -> \
         yield info
 
 
-def gen_us_forename_info_by_sex(lines: Iterable[str]) -> \
-        Generator[UsForenameInfo, None, None]:
+def gen_us_forename_info_by_sex(
+    lines: Iterable[str],
+) -> Generator[UsForenameInfo, None, None]:
     """
     Generate US forenames from an iterable of lines in a specific textfile
     format, where each line looks like:
@@ -408,7 +421,7 @@ def gen_us_forename_info_by_sex(lines: Iterable[str]) -> \
     log.info(f"Seen names for {male_total} males, {female_total} females")
 
     male_infolist = list(male_seen.values())
-    male_infolist.sort(key=attrgetter('count'), reverse=True)
+    male_infolist.sort(key=attrgetter("count"), reverse=True)
     male_cumfreq_pct = 0.0
     for info in male_infolist:
         info.freq_pct = 100.0 * info.count / male_total
@@ -417,7 +430,7 @@ def gen_us_forename_info_by_sex(lines: Iterable[str]) -> \
         yield info
 
     female_infolist = list(female_seen.values())
-    female_infolist.sort(key=attrgetter('count'), reverse=True)
+    female_infolist.sort(key=attrgetter("count"), reverse=True)
     female_cumfreq_pct = 0.0
     for info in female_infolist:
         info.freq_pct = 100.0 * info.count / female_total
@@ -426,14 +439,16 @@ def gen_us_forename_info_by_sex(lines: Iterable[str]) -> \
         yield info
 
 
-def fetch_us_forenames(url: str,
-                       filename: str,
-                       freq_csv_filename: str = "",
-                       freq_sex_csv_filename: str = "",
-                       min_cumfreq_pct: float = 0,
-                       max_cumfreq_pct: float = 100,
-                       min_name_length: int = 1,
-                       show_rejects: bool = False) -> None:
+def fetch_us_forenames(
+    url: str,
+    filename: str,
+    freq_csv_filename: str = "",
+    freq_sex_csv_filename: str = "",
+    min_cumfreq_pct: float = 0,
+    max_cumfreq_pct: float = 100,
+    min_name_length: int = 1,
+    show_rejects: bool = False,
+) -> None:
     """
     Fetch US forenames and store them in a file, one per line.
 
@@ -457,26 +472,24 @@ def fetch_us_forenames(url: str,
         show_rejects:
             report rejected words to the Python debug log
     """
-    pipeline = (
-        gen_name_info_via_min_length(
-            gen_sufficiently_frequent_names(
-                gen_us_forename_info(
-                    gen_lines_from_binary_files(
-                        gen_files_from_zipfiles(
-                            gen_binary_files_from_urls([url], on_disk=True),
-                            # The zip file contains a README and then a
-                            # bunch of files named yob<year>.txt (e.g.
-                            # yob1997.txt).
-                            filespec="*.txt"
-                        )
+    pipeline = gen_name_info_via_min_length(
+        gen_sufficiently_frequent_names(
+            gen_us_forename_info(
+                gen_lines_from_binary_files(
+                    gen_files_from_zipfiles(
+                        gen_binary_files_from_urls([url], on_disk=True),
+                        # The zip file contains a README and then a
+                        # bunch of files named yob<year>.txt (e.g.
+                        # yob1997.txt).
+                        filespec="*.txt",
                     )
-                ),
-                min_cumfreq_pct=min_cumfreq_pct,
-                max_cumfreq_pct=max_cumfreq_pct,
-                show_rejects=show_rejects
+                )
             ),
-            min_name_length=min_name_length,
-        )
+            min_cumfreq_pct=min_cumfreq_pct,
+            max_cumfreq_pct=max_cumfreq_pct,
+            show_rejects=show_rejects,
+        ),
+        min_name_length=min_name_length,
     )
     names = SortedSet()
     freq = {}  # type: Dict[str, float]
@@ -502,14 +515,16 @@ def fetch_us_forenames(url: str,
                     gen_us_forename_info_by_sex(
                         gen_lines_from_binary_files(
                             gen_files_from_zipfiles(
-                                gen_binary_files_from_urls([url], on_disk=True),
-                                filespec="*.txt"
+                                gen_binary_files_from_urls(
+                                    [url], on_disk=True
+                                ),
+                                filespec="*.txt",
                             )
                         )
                     ),
                     min_cumfreq_pct=min_cumfreq_pct,
                     max_cumfreq_pct=max_cumfreq_pct,
-                    show_rejects=show_rejects
+                    show_rejects=show_rejects,
                 ),
                 min_name_length=min_name_length,
             )
@@ -527,9 +542,9 @@ def fetch_us_forenames(url: str,
         with open(freq_sex_csv_filename, "wt") as f:
             csvwriter = csv.writer(f)
             for name_sex in name_sex_pairs:
-                csvwriter.writerow([name_sex[0],
-                                    name_sex[1],
-                                    sexfreq[name_sex]])
+                csvwriter.writerow(
+                    [name_sex[0], name_sex[1], sexfreq[name_sex]]
+                )
         log.info(f"... finished writing to: {freq_sex_csv_filename}")
 
 
@@ -537,12 +552,15 @@ def fetch_us_forenames(url: str,
 # US surnames
 # =============================================================================
 
+
 class UsSurname1990Info(NameInfo):
     """
     Represents US surnames from the 1990 census.
     """
-    def __init__(self, name: str, freq_pct: str, cumfreq_pct: str,
-                 rank: int) -> None:
+
+    def __init__(
+        self, name: str, freq_pct: str, cumfreq_pct: str, rank: int
+    ) -> None:
         """
         Args:
             name: the name
@@ -550,9 +568,9 @@ class UsSurname1990Info(NameInfo):
             cumfreq_pct: cumulative frequency (%) in string form
             rank: integer rank of frequency, in string form
         """
-        super().__init__(name=name,
-                         freq_pct=float(freq_pct),
-                         cumfreq_pct=float(cumfreq_pct))
+        super().__init__(
+            name=name, freq_pct=float(freq_pct), cumfreq_pct=float(cumfreq_pct)
+        )
         self.rank = int(rank)
 
 
@@ -578,17 +596,29 @@ def float_or_na_for_us_surnames(x: Union[float, str]) -> Optional[float]:
         if x == "(S)":  # suppressed for small numbers
             return None
         raise ValueError(
-            f"Unknown value to float_or_na_for_us_surnames: {x!r}")
+            f"Unknown value to float_or_na_for_us_surnames: {x!r}"
+        )
 
 
 class UsSurname2010Info(NameInfo):
     """
     Represents US surnames from the 2010 census.
     """
-    def __init__(self, name: str, rank: str, count: str, prop100k: str,
-                 cum_prop100k: str, pct_white: str, pct_black: str,
-                 pct_api: str, pct_aian: str, pct_2prace: str,
-                 pct_hispanic: str) -> None:
+
+    def __init__(
+        self,
+        name: str,
+        rank: str,
+        count: str,
+        prop100k: str,
+        cum_prop100k: str,
+        pct_white: str,
+        pct_black: str,
+        pct_api: str,
+        pct_aian: str,
+        pct_2prace: str,
+        pct_hispanic: str,
+    ) -> None:
         """
         Args:
             name:
@@ -634,13 +664,16 @@ class UsSurname2010Info(NameInfo):
         self.pct_2prace = float_or_na_for_us_surnames(pct_2prace)
         self.pct_hispanic = float_or_na_for_us_surnames(pct_hispanic)
         # And calculated:
-        super().__init__(name,
-                         freq_pct=self.prop100k / 1000,
-                         cumfreq_pct=self.cum_prop100k / 1000)
+        super().__init__(
+            name,
+            freq_pct=self.prop100k / 1000,
+            cumfreq_pct=self.cum_prop100k / 1000,
+        )
 
 
-def gen_us_surname_1990_info(lines: Iterable[str]) -> \
-        Generator[UsSurname1990Info, None, None]:
+def gen_us_surname_1990_info(
+    lines: Iterable[str],
+) -> Generator[UsSurname1990Info, None, None]:
     """
     Process a series of lines from a textfile and generate US surname
     information from the 1990 census data.
@@ -665,8 +698,9 @@ def gen_us_surname_1990_info(lines: Iterable[str]) -> \
         yield UsSurname1990Info(*parts)
 
 
-def gen_us_surname_2010_info(rows: Iterable[Iterable[str]]) -> \
-        Generator[UsSurname2010Info, None, None]:
+def gen_us_surname_2010_info(
+    rows: Iterable[Iterable[str]],
+) -> Generator[UsSurname2010Info, None, None]:
     """
     Process a series of rows and generate US surname information from the 2010
     census data.
@@ -684,14 +718,16 @@ def gen_us_surname_2010_info(rows: Iterable[Iterable[str]]) -> \
         yield UsSurname2010Info(*row)
 
 
-def fetch_us_surnames(url_1990: str,
-                      url_2010: str,
-                      filename: str,
-                      freq_csv_filename: str = "",
-                      min_cumfreq_pct: float = 0,
-                      max_cumfreq_pct: float = 100,
-                      min_word_length: int = 1,
-                      show_rejects: bool = False) -> None:
+def fetch_us_surnames(
+    url_1990: str,
+    url_2010: str,
+    filename: str,
+    freq_csv_filename: str = "",
+    min_cumfreq_pct: float = 0,
+    max_cumfreq_pct: float = 100,
+    min_word_length: int = 1,
+    show_rejects: bool = False,
+) -> None:
     """
     Fetches US surnames from the 1990 and 2010 census data. Writes them to a
     file.
@@ -716,42 +752,39 @@ def fetch_us_surnames(url_1990: str,
         show_rejects:
             report rejected words to the Python debug log
     """
-    nameinfo_p1 = (
-        gen_name_info_via_min_length(
-            gen_sufficiently_frequent_names(
-                gen_us_surname_1990_info(
-                    gen_lines_from_binary_files(
-                        gen_binary_files_from_urls([url_1990])
-                    )
-                ),
-                min_cumfreq_pct=min_cumfreq_pct,
-                max_cumfreq_pct=max_cumfreq_pct,
-                show_rejects=show_rejects
+    nameinfo_p1 = gen_name_info_via_min_length(
+        gen_sufficiently_frequent_names(
+            gen_us_surname_1990_info(
+                gen_lines_from_binary_files(
+                    gen_binary_files_from_urls([url_1990])
+                )
             ),
-            min_name_length=min_word_length
-        )
+            min_cumfreq_pct=min_cumfreq_pct,
+            max_cumfreq_pct=max_cumfreq_pct,
+            show_rejects=show_rejects,
+        ),
+        min_name_length=min_word_length,
     )
-    nameinfo_p2 = (
-        gen_name_info_via_min_length(
-            gen_sufficiently_frequent_names(
-                gen_us_surname_2010_info(
-                    gen_rows_from_csv_binfiles(
-                        gen_files_from_zipfiles(
-                            gen_binary_files_from_urls([url_2010],
-                                                       on_disk=True),  # a zip
-                            #  The zip file contains a .CSV and a .XLS
-                            filespec="*.csv",
-                            on_disk=True
-                        ),
-                        skip_header=True
-                    )
-                ),
-                min_cumfreq_pct=min_cumfreq_pct,
-                max_cumfreq_pct=max_cumfreq_pct,
-                show_rejects=show_rejects
+    nameinfo_p2 = gen_name_info_via_min_length(
+        gen_sufficiently_frequent_names(
+            gen_us_surname_2010_info(
+                gen_rows_from_csv_binfiles(
+                    gen_files_from_zipfiles(
+                        gen_binary_files_from_urls(
+                            [url_2010], on_disk=True
+                        ),  # a zip
+                        #  The zip file contains a .CSV and a .XLS
+                        filespec="*.csv",
+                        on_disk=True,
+                    ),
+                    skip_header=True,
+                )
             ),
-            min_name_length=min_word_length
-        )
+            min_cumfreq_pct=min_cumfreq_pct,
+            max_cumfreq_pct=max_cumfreq_pct,
+            show_rejects=show_rejects,
+        ),
+        min_name_length=min_word_length,
     )
     pipeline = itertools.chain(nameinfo_p1, nameinfo_p2)
     names = SortedSet()
@@ -775,6 +808,7 @@ def fetch_us_surnames(url_1990: str,
 # Medical eponyms
 # =============================================================================
 
+
 def fetch_eponyms(filename: str, add_unaccented_versions: bool) -> None:
     """
     Writes medical eponyms to a file.
@@ -794,10 +828,13 @@ def fetch_eponyms(filename: str, add_unaccented_versions: bool) -> None:
 # File processing: A-not-B
 # =============================================================================
 
-def filter_files(input_filenames: List[str],  # "A"
-                 exclusion_filenames: List[str],  # "B"
-                 output_filename: str,  # "OUT"
-                 min_line_length: int = 0) -> None:
+
+def filter_files(
+    input_filenames: List[str],  # "A"
+    exclusion_filenames: List[str],  # "B"
+    output_filename: str,  # "OUT"
+    min_line_length: int = 0,
+) -> None:
     """
     Provides an "A-not-B" file filtering function.
 
@@ -813,10 +850,13 @@ def filter_files(input_filenames: List[str],  # "A"
     """
     # Check inputs
     input_output_overlap = set(input_filenames).intersection(
-        set(exclusion_filenames))
+        set(exclusion_filenames)
+    )
     if len(input_output_overlap) > 0:
-        raise ValueError(f"Input and exclusion files cannot overlap; "
-                         f"overlap is {input_output_overlap}")
+        raise ValueError(
+            f"Input and exclusion files cannot overlap; "
+            f"overlap is {input_output_overlap}"
+        )
         # ... because it's pointless, and/or it's unsafe to use stdin for
         # both A and B
     if output_filename != "-":
@@ -833,7 +873,8 @@ def filter_files(input_filenames: List[str],  # "A"
     log.info(
         f"Finding lines in A={input_filenames} that are not in "
         f"B={exclusion_filenames} (in case-insensitive fashion); "
-        f"writing to OUT={output_filename}")
+        f"writing to OUT={output_filename}"
+    )
     # Do it
     a_count = 0
     output_count = 0
@@ -848,9 +889,9 @@ def filter_files(input_filenames: List[str],  # "A"
     log.debug("... finished reading from B")
     b_count = len(exclusion_lines_lower)
     log.debug("... reading from A, writing to OUT")
-    with smart_open(output_filename, 'w') as outfile:
+    with smart_open(output_filename, "w") as outfile:
         for ifilename in input_filenames:
-            with smart_open(ifilename, 'r') as a_file:
+            with smart_open(ifilename, "r") as a_file:
                 for a_line in a_file:
                     a_count += 1
                     if len(a_line) < min_line_length:
@@ -859,8 +900,10 @@ def filter_files(input_filenames: List[str],  # "A"
                         continue
                     outfile.write(a_line)
                     output_count += 1
-    log.info(f"... done (line counts: A {a_count}, B {b_count}, "
-             f"OUT {output_count})")
+    log.info(
+        f"... done (line counts: A {a_count}, B {b_count}, "
+        f"OUT {output_count})"
+    )
 
 
 # =============================================================================
@@ -895,129 +938,166 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
-        '--verbose', '-v', action='store_true',
-        help="Be verbose")
-    parser.add_argument(
-        '--min_word_length', type=positive_int, default=2,
-        help="Minimum word (or name) length to allow"
+        "--verbose", "-v", action="store_true", help="Be verbose"
     )
     parser.add_argument(
-        '--show_rejects', action='store_true',
+        "--min_word_length",
+        type=positive_int,
+        default=2,
+        help="Minimum word (or name) length to allow",
+    )
+    parser.add_argument(
+        "--show_rejects",
+        action="store_true",
         help="Print to stdout (and, in verbose mode, log) the words being "
-             "rejected"
+        "rejected",
     )
 
     english_group = parser.add_argument_group("English words")
     english_group.add_argument(
-        '--english_words', action='store_true',
+        "--english_words",
+        action="store_true",
         help="Fetch English words (to remove from the nonspecific denylist, "
-             "not to add to an allowlist; consider words like smith)")
+        "not to add to an allowlist; consider words like smith)",
+    )
     english_group.add_argument(
-        '--english_words_output', type=str, default="english_words.txt",
-        help="Output file for English words")
+        "--english_words_output",
+        type=str,
+        default="english_words.txt",
+        help="Output file for English words",
+    )
     english_group.add_argument(
-        '--english_words_url', type=str,
+        "--english_words_url",
+        type=str,
         # default="https://www.gutenberg.org/files/3201/files/SINGLE.TXT",
         # ... contains all sorts of names like "cheung"
         default="https://www.gutenberg.org/files/3201/files/CROSSWD.TXT",
         # ... much better; all possible Scrabble words
         help="URL for a textfile containing all English words (will then be "
-             "filtered)"
+        "filtered)",
     )
     english_group.add_argument(
-        '--valid_word_regex', type=str,
+        "--valid_word_regex",
+        type=str,
         default=r"^[a-z](?:[A-Za-z'-]*[a-z])*$",
         # ... must start with lower-case letter (removes proper nouns and some
         #     abbreviations like "'twas")
         # ... restrict content to letters/apostrophe/hyphen (removes e.g. "&c",
         #     "c/o")
         # ... must end with letter (removes some prefixes)
-        help="Regular expression to determine valid English words"
+        help="Regular expression to determine valid English words",
     )
 
     us_forename_group = parser.add_argument_group("US forenames")
     us_forename_group.add_argument(
-        '--us_forenames', action='store_true',
-        help="Fetch US forenames (for denylist)"
+        "--us_forenames",
+        action="store_true",
+        help="Fetch US forenames (for denylist)",
     )
     us_forename_group.add_argument(
-        '--us_forenames_freq_output', type=str, default="us_forename_freq.csv",
+        "--us_forenames_freq_output",
+        type=str,
+        default="us_forename_freq.csv",
         help="Output CSV file for US forename with frequencies (columns are: "
-             "name, frequency)"
+        "name, frequency)",
     )
     us_forename_group.add_argument(
-        '--us_forenames_sex_freq_output', type=str,
+        "--us_forenames_sex_freq_output",
+        type=str,
         default="us_forename_sex_freq.csv",
         help="Output CSV file for US forename with sex and frequencies "
-             "(columns are: name, gender, frequency)"
+        "(columns are: name, gender, frequency)",
     )
     us_forename_group.add_argument(
-        '--us_forenames_url', type=str,
+        "--us_forenames_url",
+        type=str,
         default="https://www.ssa.gov/OACT/babynames/names.zip",
         help="URL to Zip file of US Census-derived forenames lists (excludes "
-             "names with national frequency <5; see "
-             "https://www.ssa.gov/OACT/babynames/limits.html)"
+        "names with national frequency <5; see "
+        "https://www.ssa.gov/OACT/babynames/limits.html)",
     )
     us_forename_group.add_argument(
-        '--us_forenames_min_cumfreq_pct', type=percentage, default=0,
-        help=MIN_CUMFREQ_PCT_HELP
+        "--us_forenames_min_cumfreq_pct",
+        type=percentage,
+        default=0,
+        help=MIN_CUMFREQ_PCT_HELP,
     )
     us_forename_group.add_argument(
-        '--us_forenames_max_cumfreq_pct', type=percentage, default=100,
-        help=MAX_CUMFREQ_PCT_HELP
+        "--us_forenames_max_cumfreq_pct",
+        type=percentage,
+        default=100,
+        help=MAX_CUMFREQ_PCT_HELP,
     )
     us_forename_group.add_argument(
-        '--us_forenames_output', type=str,
+        "--us_forenames_output",
+        type=str,
         default="us_forenames.txt",
-        help="Output file for US forenames"
+        help="Output file for US forenames",
     )
 
     us_surname_group = parser.add_argument_group("US surnames")
     us_surname_group.add_argument(
-        '--us_surnames', action='store_true',
-        help="Fetch US surnames (for denylist)"
+        "--us_surnames",
+        action="store_true",
+        help="Fetch US surnames (for denylist)",
     )
     us_surname_group.add_argument(
-        '--us_surnames_output', type=str, default="us_surnames.txt",
-        help="Output text file for US surnames"
+        "--us_surnames_output",
+        type=str,
+        default="us_surnames.txt",
+        help="Output text file for US surnames",
     )
     us_surname_group.add_argument(
-        '--us_surnames_freq_output', type=str, default="us_surname_freq.csv",
+        "--us_surnames_freq_output",
+        type=str,
+        default="us_surname_freq.csv",
         help="Output CSV file for US surnames with frequencies (columns are: "
-             "name, frequency)"
+        "name, frequency)",
     )
     us_surname_group.add_argument(
-        '--us_surnames_1990_census_url', type=str,
+        "--us_surnames_1990_census_url",
+        type=str,
         default="http://www2.census.gov/topics/genealogy/1990surnames/dist.all.last",  # noqa
-        help="URL for textfile of US 1990 Census surnames"
+        help="URL for textfile of US 1990 Census surnames",
     )
     us_surname_group.add_argument(
-        '--us_surnames_2010_census_url', type=str,
+        "--us_surnames_2010_census_url",
+        type=str,
         default="https://www2.census.gov/topics/genealogy/2010surnames/names.zip",  # noqa
-        help="URL for zip of US 2010 Census surnames"
+        help="URL for zip of US 2010 Census surnames",
     )
     us_surname_group.add_argument(
-        '--us_surnames_min_cumfreq_pct', type=percentage, default=0,
-        help=MIN_CUMFREQ_PCT_HELP
+        "--us_surnames_min_cumfreq_pct",
+        type=percentage,
+        default=0,
+        help=MIN_CUMFREQ_PCT_HELP,
     )
     us_surname_group.add_argument(
-        '--us_surnames_max_cumfreq_pct', type=percentage, default=100,
-        help=MAX_CUMFREQ_PCT_HELP
+        "--us_surnames_max_cumfreq_pct",
+        type=percentage,
+        default=100,
+        help=MAX_CUMFREQ_PCT_HELP,
     )
 
     eponyms_group = parser.add_argument_group("Medical eponyms")
     eponyms_group.add_argument(
-        '--eponyms', action='store_true',
-        help="Write medical eponyms (to remove from denylist)"
+        "--eponyms",
+        action="store_true",
+        help="Write medical eponyms (to remove from denylist)",
     )
     eponyms_group.add_argument(
-        '--eponyms_output', type=str, default="medical_eponyms.txt",
-        help="Output file for medical eponyms"
+        "--eponyms_output",
+        type=str,
+        default="medical_eponyms.txt",
+        help="Output file for medical eponyms",
     )
     eponyms_group.add_argument(
-        '--eponyms_add_unaccented_versions', type=str2bool, nargs='?',
-        const=True, default=True,
-        help="Add unaccented versions (e.g. Sjogren as well as Sjögren)"
+        "--eponyms_add_unaccented_versions",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=True,
+        help="Add unaccented versions (e.g. Sjogren as well as Sjögren)",
     )
 
     filter_group = parser.add_argument_group(
@@ -1028,18 +1108,24 @@ def main() -> None:
         "output file. You can use '-' for the output file to mean 'stdout', "
         "and for one input file to mean 'stdin'. No filenames (other than "
         "'-' for input and output) may overlap. The --min_line_length option "
-        "also applies. Duplicates are not removed."
+        "also applies. Duplicates are not removed.",
     )
     filter_group.add_argument(
-        '--filter_input', type=str, nargs='*',
+        "--filter_input",
+        type=str,
+        nargs="*",
         help="Input file(s). See above.",
     )
     filter_group.add_argument(
-        '--filter_exclude', type=str, nargs='*',
+        "--filter_exclude",
+        type=str,
+        nargs="*",
         help="Exclusion file(s). See above.",
     )
     filter_group.add_argument(
-        '--filter_output', type=str, nargs='?',
+        "--filter_output",
+        type=str,
+        nargs="?",
         help="Exclusion file(s). See above.",
     )
     args = parser.parse_args()
@@ -1057,42 +1143,51 @@ def main() -> None:
         log.info(f"Restricting to words of length >= {args.min_word_length}")
 
     if args.english_words:
-        fetch_english_words(url=args.english_words_url,
-                            filename=args.english_words_output,
-                            valid_word_regex_text=args.valid_word_regex,
-                            min_word_length=args.min_word_length,
-                            show_rejects=args.show_rejects)
+        fetch_english_words(
+            url=args.english_words_url,
+            filename=args.english_words_output,
+            valid_word_regex_text=args.valid_word_regex,
+            min_word_length=args.min_word_length,
+            show_rejects=args.show_rejects,
+        )
 
     if args.us_forenames:
-        fetch_us_forenames(url=args.us_forenames_url,
-                           filename=args.us_forenames_output,
-                           freq_csv_filename=args.us_forenames_freq_output,
-                           freq_sex_csv_filename=args.us_forenames_sex_freq_output,  # noqa
-                           min_cumfreq_pct=args.us_forenames_min_cumfreq_pct,
-                           max_cumfreq_pct=args.us_forenames_max_cumfreq_pct,
-                           min_name_length=args.min_word_length,
-                           show_rejects=args.show_rejects)
+        fetch_us_forenames(
+            url=args.us_forenames_url,
+            filename=args.us_forenames_output,
+            freq_csv_filename=args.us_forenames_freq_output,
+            freq_sex_csv_filename=args.us_forenames_sex_freq_output,  # noqa
+            min_cumfreq_pct=args.us_forenames_min_cumfreq_pct,
+            max_cumfreq_pct=args.us_forenames_max_cumfreq_pct,
+            min_name_length=args.min_word_length,
+            show_rejects=args.show_rejects,
+        )
 
     if args.us_surnames:
-        fetch_us_surnames(url_1990=args.us_surnames_1990_census_url,
-                          url_2010=args.us_surnames_2010_census_url,
-                          filename=args.us_surnames_output,
-                          freq_csv_filename=args.us_surnames_freq_output,
-                          min_cumfreq_pct=args.us_surnames_min_cumfreq_pct,
-                          max_cumfreq_pct=args.us_surnames_max_cumfreq_pct,
-                          min_word_length=args.min_word_length,
-                          show_rejects=args.show_rejects)
+        fetch_us_surnames(
+            url_1990=args.us_surnames_1990_census_url,
+            url_2010=args.us_surnames_2010_census_url,
+            filename=args.us_surnames_output,
+            freq_csv_filename=args.us_surnames_freq_output,
+            min_cumfreq_pct=args.us_surnames_min_cumfreq_pct,
+            max_cumfreq_pct=args.us_surnames_max_cumfreq_pct,
+            min_word_length=args.min_word_length,
+            show_rejects=args.show_rejects,
+        )
 
     if args.eponyms:
         fetch_eponyms(
             filename=args.eponyms_output,
-            add_unaccented_versions=args.eponyms_add_unaccented_versions)
+            add_unaccented_versions=args.eponyms_add_unaccented_versions,
+        )
 
     if args.filter_input:
-        filter_files(input_filenames=args.filter_input,
-                     exclusion_filenames=args.filter_exclude,
-                     output_filename=args.filter_output,
-                     min_line_length=args.min_word_length)
+        filter_files(
+            input_filenames=args.filter_input,
+            exclusion_filenames=args.filter_exclude,
+            output_filename=args.filter_output,
+            min_line_length=args.min_word_length,
+        )
 
 
 if __name__ == "__main__":

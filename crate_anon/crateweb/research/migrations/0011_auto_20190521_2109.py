@@ -6,18 +6,26 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('research', '0010_query_last_run'),
+        ("research", "0010_query_last_run"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='query',
-            name='formatted_sql',
-            field=models.TextField(default=None, null=True, verbose_name='SQL with highlighting and formatting'),  # noqa
+            model_name="query",
+            name="formatted_sql",
+            field=models.TextField(
+                default=None,
+                null=True,
+                verbose_name="SQL with highlighting and formatting",
+            ),  # noqa
         ),
         migrations.AddField(
-            model_name='sitewidequery',
-            name='formatted_sql',
-            field=models.TextField(default=None, null=True, verbose_name='SQL with highlighting and formatting'),  # noqa
+            model_name="sitewidequery",
+            name="formatted_sql",
+            field=models.TextField(
+                default=None,
+                null=True,
+                verbose_name="SQL with highlighting and formatting",
+            ),  # noqa
         ),
     ]

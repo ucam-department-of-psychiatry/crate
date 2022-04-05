@@ -29,6 +29,7 @@ crate_anon/crateweb/research/research_db_info.py
 """
 
 from collections import OrderedDict
+
 # from functools import lru_cache
 import logging
 import re
@@ -83,7 +84,7 @@ log = BraceStyleAdapter(logging.getLogger(__name__))
 # Constants
 # =============================================================================
 
-RESEARCH_DB_CONNECTION_NAME = 'research'
+RESEARCH_DB_CONNECTION_NAME = "research"
 
 SUPPORTED_DIALECTS = [
     SqlaDialectName.MSSQL,
@@ -96,6 +97,7 @@ class PatientFieldPythonTypes(object):
     """
     Represents Python types for each type of patient ID field.
     """
+
     PID = int
     MPID = int
     RID = str
@@ -107,6 +109,7 @@ class PatientFieldPythonTypes(object):
 # Information about the research database
 # =============================================================================
 
+
 class ColumnInfo(object):
     """
     Represents information about a database column, reflected from the
@@ -116,15 +119,15 @@ class ColumnInfo(object):
     """
 
     def __init__(self, **kwargs) -> None:
-        self.table_catalog = kwargs.pop('table_catalog')  # type: str
-        self.table_schema = kwargs.pop('table_schema')  # type: str
-        self.table_name = kwargs.pop('table_name')  # type: str
-        self.column_name = kwargs.pop('column_name')  # type: str
-        self.is_nullable = bool(kwargs.pop('is_nullable'))
-        self.column_type = kwargs.pop('column_type')  # type: str
-        self.column_comment = kwargs.pop('column_comment')  # type: str
-        self.indexed = bool(kwargs.pop('indexed'))
-        self.indexed_fulltext = bool(kwargs.pop('indexed_fulltext'))
+        self.table_catalog = kwargs.pop("table_catalog")  # type: str
+        self.table_schema = kwargs.pop("table_schema")  # type: str
+        self.table_name = kwargs.pop("table_name")  # type: str
+        self.column_name = kwargs.pop("column_name")  # type: str
+        self.is_nullable = bool(kwargs.pop("is_nullable"))
+        self.column_type = kwargs.pop("column_type")  # type: str
+        self.column_comment = kwargs.pop("column_comment")  # type: str
+        self.indexed = bool(kwargs.pop("indexed"))
+        self.indexed_fulltext = bool(kwargs.pop("indexed_fulltext"))
 
     @property
     def basetype(self) -> str:
@@ -159,10 +162,12 @@ class ColumnInfo(object):
         Returns a :class:`crate_anon.common.sql.ColumnId` describing this
         column.
         """
-        return ColumnId(db=self.table_catalog,
-                        schema=self.table_schema,
-                        table=self.table_name,
-                        column=self.column_name)
+        return ColumnId(
+            db=self.table_catalog,
+            schema=self.table_schema,
+            table=self.table_name,
+            column=self.column_name,
+        )
 
     @property
     def table_id(self) -> TableId:
@@ -170,9 +175,11 @@ class ColumnInfo(object):
         Returns a :class:`crate_anon.common.sql.TableId` describing this
         column's table.
         """
-        return TableId(db=self.table_catalog,
-                       schema=self.table_schema,
-                       table=self.table_name)
+        return TableId(
+            db=self.table_catalog,
+            schema=self.table_schema,
+            table=self.table_name,
+        )
 
     def __repr__(self) -> str:
         return auto_repr(self, sort_attrs=False)
@@ -187,12 +194,15 @@ class SingleResearchDatabase(object):
     ``RESEARCH_DB_INFO`` list: that is, a research database. (It's a list
     because it's ordered.)
     """
-    def __init__(self,
-                 index: int,
-                 grammar: SqlGrammar,
-                 rdb_info: "ResearchDatabaseInfo",
-                 connection: BaseDatabaseWrapper,
-                 vendor: str) -> None:
+
+    def __init__(
+        self,
+        index: int,
+        grammar: SqlGrammar,
+        rdb_info: "ResearchDatabaseInfo",
+        connection: BaseDatabaseWrapper,
+        vendor: str,
+    ) -> None:
         """
         Instantiates, reading database information as follows:
 
@@ -229,28 +239,45 @@ class SingleResearchDatabase(object):
 
         try:
             self.name = infodict[ResearchDbInfoKeys.NAME]  # type: str
-            self.description = infodict[ResearchDbInfoKeys.DESCRIPTION]  # type: str  # noqa
+            self.description = infodict[
+                ResearchDbInfoKeys.DESCRIPTION
+            ]  # type: str  # noqa
             self.database = infodict[ResearchDbInfoKeys.DATABASE]  # type: str
             self.schema_name = infodict[ResearchDbInfoKeys.SCHEMA]  # type: str
-            self.trid_field = infodict[ResearchDbInfoKeys.TRID_FIELD]  # type: str  # noqa
-            self.rid_field = infodict[ResearchDbInfoKeys.RID_FIELD]  # type: str  # noqa
-            self.rid_family = infodict[ResearchDbInfoKeys.RID_FAMILY]  # type: int  # noqa
-            self.mrid_table = infodict[ResearchDbInfoKeys.MRID_TABLE]  # type: str  # noqa
-            self.mrid_field = infodict[ResearchDbInfoKeys.MRID_FIELD]  # type: str  # noqa
+            self.trid_field = infodict[
+                ResearchDbInfoKeys.TRID_FIELD
+            ]  # type: str  # noqa
+            self.rid_field = infodict[
+                ResearchDbInfoKeys.RID_FIELD
+            ]  # type: str  # noqa
+            self.rid_family = infodict[
+                ResearchDbInfoKeys.RID_FAMILY
+            ]  # type: int  # noqa
+            self.mrid_table = infodict[
+                ResearchDbInfoKeys.MRID_TABLE
+            ]  # type: str  # noqa
+            self.mrid_field = infodict[
+                ResearchDbInfoKeys.MRID_FIELD
+            ]  # type: str  # noqa
         except KeyError as e:
             raise KeyError(
                 f"Key {e} is missing from settings.RESEARCH_DB_INFO "
-                f"for this dict: {infodict!r}")
+                f"for this dict: {infodict!r}"
+            )
 
         assert isinstance(self.name, str) and self.name  # no blanks
-        assert re.match(r'^\w+$', self.name), (
+        assert re.match(r"^\w+$", self.name), (
             f"Database name {self.name!r} should contain only "
             f"alphanumeric/underscore characters"
         )
-        assert isinstance(self.description, str) and self.description  # no blanks  # noqa
+        assert (
+            isinstance(self.description, str) and self.description
+        )  # no blanks  # noqa
 
         assert isinstance(self.database, str)  # may be blank
-        assert isinstance(self.schema_name, str) and self.schema_name  # no blanks  # noqa
+        assert (
+            isinstance(self.schema_name, str) and self.schema_name
+        )  # no blanks  # noqa
 
         assert isinstance(self.trid_field, str)  # may be blank
         assert isinstance(self.rid_field, str) and self.rid_field  # no blanks
@@ -260,31 +287,35 @@ class SingleResearchDatabase(object):
         assert isinstance(self.mrid_field, str)  # may be blank
 
         self.pid_pseudo_field = infodict.get(
-            ResearchDbInfoKeys.PID_PSEUDO_FIELD, '')  # type: str
+            ResearchDbInfoKeys.PID_PSEUDO_FIELD, ""
+        )  # type: str
         self.mpid_pseudo_field = infodict.get(
-            ResearchDbInfoKeys.MPID_PSEUDO_FIELD, '')  # type: str
-        assert isinstance(self.pid_pseudo_field, str)  # may be blank unless it's a lookup DB  # noqa
-        assert isinstance(self.mpid_pseudo_field, str)  # may be blank unless it's a lookup DB  # noqa
+            ResearchDbInfoKeys.MPID_PSEUDO_FIELD, ""
+        )  # type: str
+        assert isinstance(
+            self.pid_pseudo_field, str
+        )  # may be blank unless it's a lookup DB  # noqa
+        assert isinstance(
+            self.mpid_pseudo_field, str
+        )  # may be blank unless it's a lookup DB  # noqa
 
         self.pid_description = infodict.get(
             ResearchDbInfoKeys.PID_DESCRIPTION,
-            'Patient ID (PID) for database ' + self.description
+            "Patient ID (PID) for database " + self.description,
         )  # type: str
         self.mpid_description = infodict.get(
-            ResearchDbInfoKeys.MPID_DESCRIPTION,
-            'Master patient ID (MPID)'
+            ResearchDbInfoKeys.MPID_DESCRIPTION, "Master patient ID (MPID)"
         )  # type: str
         self.rid_description = infodict.get(
             ResearchDbInfoKeys.RID_DESCRIPTION,
-            'Research ID (RID) for database ' + self.description
+            "Research ID (RID) for database " + self.description,
         )  # type: str
         self.mrid_description = infodict.get(
-            ResearchDbInfoKeys.MRID_DESCRIPTION,
-            'Master research ID (MRID)'
+            ResearchDbInfoKeys.MRID_DESCRIPTION, "Master research ID (MRID)"
         )  # type: str
         self.trid_description = infodict.get(
             ResearchDbInfoKeys.TRID_DESCRIPTION,
-            'Transient research ID (TRID) for database ' + self.description
+            "Transient research ID (TRID) for database " + self.description,
         )  # type: str
         assert isinstance(self.pid_description, str)
         assert isinstance(self.mpid_description, str)
@@ -293,7 +324,8 @@ class SingleResearchDatabase(object):
         assert isinstance(self.trid_description, str)
 
         self.secret_lookup_db = infodict.get(
-            ResearchDbInfoKeys.SECRET_LOOKUP_DB, '')
+            ResearchDbInfoKeys.SECRET_LOOKUP_DB, ""
+        )
         assert isinstance(self.secret_lookup_db, str)
         if self.secret_lookup_db:
             assert self.secret_lookup_db in settings.DATABASES, (
@@ -301,12 +333,12 @@ class SingleResearchDatabase(object):
                 f"settings.RESEARCH_DB_INFO has an invalid "
                 f"secret_lookup_db: {self.secret_lookup_db!r}"
             )
-            assert re.match(r'^\w+$', self.pid_pseudo_field), (
+            assert re.match(r"^\w+$", self.pid_pseudo_field), (
                 f"The research database named {self.name!r} should have a "
                 f"pid_pseudo_field containing only alphanumeric/underscore "
                 f"characters (it's {self.pid_pseudo_field!r})"
             )
-            assert re.match(r'^\w+$', self.mpid_pseudo_field), (
+            assert re.match(r"^\w+$", self.mpid_pseudo_field), (
                 f"The research database named {self.name!r} should have a "
                 f"mpid_pseudo_field containing only alphanumeric/underscore "
                 f"characters (it's {self.mpid_pseudo_field!r})"
@@ -319,11 +351,13 @@ class SingleResearchDatabase(object):
         for k, v in self.date_fields_by_table.items():
             assert isinstance(k, str) and k, (
                 f"Bad key {k!r} for {ResearchDbInfoKeys.DATE_FIELDS_BY_TABLE} "
-                f"for database named {self.name!r}")
+                f"for database named {self.name!r}"
+            )
             assert isinstance(v, str) and v, (
                 f"Bad value {v!r} for "
                 f"{ResearchDbInfoKeys.DATE_FIELDS_BY_TABLE} "
-                f"for database named {self.name!r}")
+                f"for database named {self.name!r}"
+            )
 
         self.default_date_fields = infodict.get(
             ResearchDbInfoKeys.DEFAULT_DATE_FIELDS, []
@@ -332,7 +366,8 @@ class SingleResearchDatabase(object):
         for v in self.default_date_fields:
             assert isinstance(v, str) and v, (
                 f"Bad item {v!r} for {ResearchDbInfoKeys.DEFAULT_DATE_FIELDS} "
-                f"for database named {self.name!r}")
+                f"for database named {self.name!r}"
+            )
 
         # Field for when the record was last updated in db
         self.update_date_field = infodict.get(
@@ -344,7 +379,9 @@ class SingleResearchDatabase(object):
         assert self.schema_id
 
         # Now discover the schema
-        self._schema_infodictlist = None  # type: Optional[List[Dict[str, Any]]]  # noqa
+        self._schema_infodictlist = (
+            None
+        )  # type: Optional[List[Dict[str, Any]]]  # noqa
         self._colinfolist = None  # type: Optional[List[ColumnInfo]]  # noqa
 
     @property
@@ -356,7 +393,8 @@ class SingleResearchDatabase(object):
         """
         if self._schema_infodictlist is None:
             self._schema_infodictlist = self.get_schema_infodictlist(
-                self.connection, self.vendor)
+                self.connection, self.vendor
+            )
         return self._schema_infodictlist
 
     @property
@@ -366,8 +404,9 @@ class SingleResearchDatabase(object):
         database.
         """
         if self._colinfolist is None:
-            self._colinfolist = [ColumnInfo(**d)
-                                 for d in self.schema_infodictlist]
+            self._colinfolist = [
+                ColumnInfo(**d) for d in self.schema_infodictlist
+            ]
         return self._colinfolist
 
     @property
@@ -392,9 +431,8 @@ class SingleResearchDatabase(object):
             return True
         first_db = self.rdb_info.first_dbinfo
         return (
-            (first_db.talks_to_world and self.talks_to_world) or
-            self.can_communicate_directly(first_db)
-        )
+            first_db.talks_to_world and self.talks_to_world
+        ) or self.can_communicate_directly(first_db)
 
     @property
     def talks_to_world(self) -> bool:
@@ -411,8 +449,9 @@ class SingleResearchDatabase(object):
         """
         return bool(self.mrid_table and self.mrid_field)
 
-    def can_communicate_directly(self,
-                                 other: "SingleResearchDatabase") -> bool:
+    def can_communicate_directly(
+        self, other: "SingleResearchDatabase"
+    ) -> bool:
         """
         Can this database "talk" (link, join) to another?
 
@@ -444,7 +483,7 @@ class SingleResearchDatabase(object):
                 db=table_id.db,
                 schema=table_id.schema,
                 table=table_id.table,
-                column=self.date_fields_by_table[table_id.table]
+                column=self.date_fields_by_table[table_id.table],
             )
             # Now, does it actually exist?
             if self.column_present(column_id):
@@ -456,7 +495,7 @@ class SingleResearchDatabase(object):
                 db=table_id.db,
                 schema=table_id.schema,
                 table=table_id.table,
-                column=datecolname
+                column=datecolname,
             )
             if self.column_present(column_id):
                 return column_id
@@ -480,9 +519,8 @@ class SingleResearchDatabase(object):
 
     @classmethod
     def _schema_query_microsoft(
-            cls,
-            db_name: str,
-            schema_names: List[str]) -> SqlArgsTupleType:
+        cls, db_name: str, schema_names: List[str]
+    ) -> SqlArgsTupleType:
         """
         Returns a query to fetche the database structure from an SQL Server
         database.
@@ -510,10 +548,12 @@ class SingleResearchDatabase(object):
 
         """  # noqa
         if not schema_names:
-            raise ValueError("No schema_names specified (for SQL Server "
-                             "database)")
+            raise ValueError(
+                "No schema_names specified (for SQL Server " "database)"
+            )
         schema_placeholder = ",".join(["?"] * len(schema_names))
-        sql = translate_sql_qmark_to_percent(f"""
+        sql = translate_sql_qmark_to_percent(
+            f"""
 SELECT
     ? AS table_catalog,
     d.table_schema,
@@ -564,7 +604,8 @@ ORDER BY
     table_schema,
     table_name,
     column_name
-        """)  # noqa
+        """
+        )  # noqa
         args = [db_name] + schema_names
         return sql, args
 
@@ -638,7 +679,8 @@ ORDER BY
         # columns for non-indexed fields.
         # However, you can have more than one index on a column, in which
         # case the column appears in two rows.
-        sql = translate_sql_qmark_to_percent("""
+        sql = translate_sql_qmark_to_percent(
+            """
 SELECT
     '' AS table_catalog,
     d.table_schema,
@@ -687,13 +729,15 @@ ORDER BY
     table_schema,
     table_name,
     column_name
-        """)
+        """
+        )
         args = [db_and_schema_name]
         return sql, args
 
     @classmethod
-    def _schema_query_postgres(cls,
-                               schema_names: List[str]) -> SqlArgsTupleType:
+    def _schema_query_postgres(
+        cls, schema_names: List[str]
+    ) -> SqlArgsTupleType:
         """
         Returns a query to fetche the database structure from an SQL Server
         database.
@@ -726,10 +770,12 @@ ORDER BY
 
         """  # noqa
         if not schema_names:
-            raise ValueError("No schema_names specified (for PostgreSQL "
-                             "database)")
+            raise ValueError(
+                "No schema_names specified (for PostgreSQL " "database)"
+            )
         schema_placeholder = ",".join(["?"] * len(schema_names))
-        sql = translate_sql_qmark_to_percent(f"""
+        sql = translate_sql_qmark_to_percent(
+            f"""
 SELECT
     '' AS table_catalog,
     d.table_schema,
@@ -788,14 +834,14 @@ ORDER BY
     table_schema,
     table_name,
     column_name
-        """)
+        """
+        )
         args = schema_names
         return sql, args
 
-    def get_schema_infodictlist(self,
-                                connection: BaseDatabaseWrapper,
-                                vendor: str,
-                                debug: bool = False) -> List[Dict[str, Any]]:
+    def get_schema_infodictlist(
+        self, connection: BaseDatabaseWrapper, vendor: str, debug: bool = False
+    ) -> List[Dict[str, Any]]:
         """
         Fetch structure information for a specific database, by asking the
         database.
@@ -818,31 +864,44 @@ ORDER BY
         """
         db_name = self.database
         schema_name = self.schema_name
-        log.debug(f"Fetching/caching database structure (for database "
-                  f"{db_name!r}, schema {schema_name!r})...")
+        log.debug(
+            f"Fetching/caching database structure (for database "
+            f"{db_name!r}, schema {schema_name!r})..."
+        )
         # The db/schema names are guaranteed to be strings by __init__().
         if vendor == ConnectionVendors.MICROSOFT:
             if not db_name:
                 raise ValueError("No db_name specified; required for MSSQL")
             if not schema_name:
-                raise ValueError("No schema_name specified; required for MSSQL")  # noqa
+                raise ValueError(
+                    "No schema_name specified; required for MSSQL"
+                )  # noqa
             sql, args = self._schema_query_microsoft(db_name, [schema_name])
         elif vendor == ConnectionVendors.POSTGRESQL:
             if db_name:
-                raise ValueError("db_name specified; must be '' for PostgreSQL")  # noqa
+                raise ValueError(
+                    "db_name specified; must be '' for PostgreSQL"
+                )  # noqa
             if not schema_name:
-                raise ValueError("No schema_name specified; required for PostgreSQL")  # noqa
+                raise ValueError(
+                    "No schema_name specified; required for PostgreSQL"
+                )  # noqa
             sql, args = self._schema_query_postgres([schema_name])
         elif vendor == ConnectionVendors.MYSQL:
             if db_name:
                 raise ValueError("db_name specified; must be '' for MySQL")
             if not schema_name:
-                raise ValueError("No schema_name specified; required for MySQL")  # noqa
-            sql, args = self._schema_query_mysql(db_and_schema_name=schema_name)  # noqa
+                raise ValueError(
+                    "No schema_name specified; required for MySQL"
+                )  # noqa
+            sql, args = self._schema_query_mysql(
+                db_and_schema_name=schema_name
+            )  # noqa
         else:
             raise ValueError(
                 f"Don't know how to get metadata for "
-                f"connection.vendor=='{vendor}'")
+                f"connection.vendor=='{vendor}'"
+            )
         # We execute this one directly, rather than using the Query class,
         # since this is a system rather than a per-user query.
         cursor = connection.cursor()
@@ -857,7 +916,8 @@ ORDER BY
             log.warning(
                 f"SingleResearchDatabase.get_schema_infodictlist(): no "
                 f"results for database/schema {self.schema_identifier!r} "
-                f"database - misconfigured?")
+                f"database - misconfigured?"
+            )
         return results
         # Re passing multiple values to SQL via args:
         # - Don't circumvent the parameter protection against SQL injection.
@@ -880,6 +940,7 @@ class ResearchDatabaseInfo(object):
       - ... replaced by ``@lru_cache``
       - ... replaced by ``@django_cache_function``
     """
+
     # We fetch the dialect at first request; this enables us to import the
     # class without Django configured.
 
@@ -889,13 +950,15 @@ class ResearchDatabaseInfo(object):
         if RUNNING_WITHOUT_CONFIG:
             self.dialect = ""
             self.grammar = None  # type: Optional[SqlGrammar]
-            self.dbinfo_for_contact_lookup = None  # type: Optional[SingleResearchDatabase]  # noqa
+            self.dbinfo_for_contact_lookup = (
+                None
+            )  # type: Optional[SingleResearchDatabase]  # noqa
 
         else:
             self.dialect = settings.RESEARCH_DB_DIALECT  # type: str
-            assert self.dialect in SUPPORTED_DIALECTS, (
-                f"Unsupported dialect: {self.dialect!r}"
-            )
+            assert (
+                self.dialect in SUPPORTED_DIALECTS
+            ), f"Unsupported dialect: {self.dialect!r}"
 
             self.grammar = make_grammar(self.dialect)  # not expensive
 
@@ -903,30 +966,34 @@ class ResearchDatabaseInfo(object):
             vendor = connection.vendor
 
             for index in range(len(settings.RESEARCH_DB_INFO)):
-                self.dbinfolist.append(SingleResearchDatabase(
-                    index=index,
-                    grammar=self.grammar,
-                    rdb_info=self,
-                    connection=connection,
-                    vendor=vendor
-                ))
-            assert len(self.dbinfolist) > 0, (
-                "No research databases configured in RESEARCH_DB_INFO"
-            )
+                self.dbinfolist.append(
+                    SingleResearchDatabase(
+                        index=index,
+                        grammar=self.grammar,
+                        rdb_info=self,
+                        connection=connection,
+                        vendor=vendor,
+                    )
+                )
+            assert (
+                len(self.dbinfolist) > 0
+            ), "No research databases configured in RESEARCH_DB_INFO"
             names = [x.name for x in self.dbinfolist]
-            assert len(names) == len(set(names)), (
-                f"Duplicate database names in {names!r}"
-            )
+            assert len(names) == len(
+                set(names)
+            ), f"Duplicate database names in {names!r}"
 
             try:
                 self.dbinfo_for_contact_lookup = self.get_dbinfo_by_name(
-                    settings.RESEARCH_DB_FOR_CONTACT_LOOKUP)
+                    settings.RESEARCH_DB_FOR_CONTACT_LOOKUP
+                )
             except ValueError:
                 raise ValueError(
                     f"In your settings, RESEARCH_DB_FOR_CONTACT_LOOKUP "
                     f"specifies {settings.RESEARCH_DB_FOR_CONTACT_LOOKUP!r} "
                     f"but there is no database with that name in "
-                    f"RESEARCH_DB_INFO")
+                    f"RESEARCH_DB_INFO"
+                )
             assert self.dbinfo_for_contact_lookup.secret_lookup_db, (
                 f"Research database {self.dbinfo_for_contact_lookup.name!r} "
                 f"is set as your RESEARCH_DB_FOR_CONTACT_LOOKUP but has no "
@@ -934,7 +1001,8 @@ class ResearchDatabaseInfo(object):
             )
 
             self.nlp_sourcedb_map = getattr(
-                settings, SettingsKeys.NLP_SOURCEDB_MAP, {})  # type: Dict[str, str]  # noqa
+                settings, SettingsKeys.NLP_SOURCEDB_MAP, {}
+            )  # type: Dict[str, str]  # noqa
             try:
                 assert isinstance(self.nlp_sourcedb_map, dict)
                 for k, v in self.nlp_sourcedb_map.items():
@@ -942,7 +1010,8 @@ class ResearchDatabaseInfo(object):
                     assert isinstance(v, str)
             except AssertionError:
                 raise ValueError(
-                    "settings.NLP_SOURCEDB_MAP is not a Dict[str, str]")
+                    "settings.NLP_SOURCEDB_MAP is not a Dict[str, str]"
+                )
 
     # -------------------------------------------------------------------------
     # Classmethods, staticmethods
@@ -1062,8 +1131,9 @@ class ResearchDatabaseInfo(object):
         except StopIteration:
             raise ValueError(f"No research database named {name!r}")
 
-    def get_dbinfo_by_schema_id(self,
-                                schema_id: SchemaId) -> SingleResearchDatabase:
+    def get_dbinfo_by_schema_id(
+        self, schema_id: SchemaId
+    ) -> SingleResearchDatabase:
         """
         Returns the first database representing the specified schema.
 
@@ -1119,11 +1189,11 @@ class ResearchDatabaseInfo(object):
         """
         dialect = self.dialect
         if dialect == SqlaDialectName.MSSQL:
-            return settings.DATABASES[RESEARCH_DB_CONNECTION_NAME]['NAME']
+            return settings.DATABASES[RESEARCH_DB_CONNECTION_NAME]["NAME"]
         elif dialect == SqlaDialectName.POSTGRES:
-            return ''
+            return ""
         elif dialect == SqlaDialectName.MYSQL:
-            return ''
+            return ""
         else:
             raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
 
@@ -1142,7 +1212,7 @@ class ResearchDatabaseInfo(object):
         elif dialect == SqlaDialectName.POSTGRES:
             return POSTGRES_DEFAULT_SCHEMA
         elif dialect == SqlaDialectName.MYSQL:
-            return settings.DATABASES[RESEARCH_DB_CONNECTION_NAME]['NAME']
+            return settings.DATABASES[RESEARCH_DB_CONNECTION_NAME]["NAME"]
         else:
             raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
 
@@ -1166,8 +1236,10 @@ class ResearchDatabaseInfo(object):
         try:
             return next(d for d in self.dbinfolist if d.schema_id == schema_id)
         except StopIteration:
-            raise ValueError(f"No such database/schema: "
-                             f"{schema_id.identifier(self.grammar)!r}")
+            raise ValueError(
+                f"No such database/schema: "
+                f"{schema_id.identifier(self.grammar)!r}"
+            )
 
     # -------------------------------------------------------------------------
     # Database-wide fields and descriptions
@@ -1216,8 +1288,9 @@ class ResearchDatabaseInfo(object):
 
         """
         dbinfo = self._get_db_info(schema)
-        return schema.column_id(table=dbinfo.mrid_table,
-                                column=dbinfo.mrid_field)
+        return schema.column_id(
+            table=dbinfo.mrid_table, column=dbinfo.mrid_field
+        )
 
     def get_mrid_column_from_table(self, table: TableId) -> ColumnId:
         """
@@ -1255,8 +1328,9 @@ class ResearchDatabaseInfo(object):
         first_db = self.first_dbinfo
         if not first_db.talks_to_world:
             return None
-        if (table_db.talks_to_world or
-                table_db.can_communicate_directly(first_db)):
+        if table_db.talks_to_world or table_db.can_communicate_directly(
+            first_db
+        ):
             return self.get_mrid_column_from_schema(first_db.schema_id)
 
     def get_default_date_column(self, table: TableId) -> Optional[ColumnId]:
@@ -1370,8 +1444,9 @@ class ResearchDatabaseInfo(object):
                     results.append(table_id)
         return results
 
-    def text_columns(self, table_id: TableId,
-                     min_length: int = 1) -> List[ColumnInfo]:
+    def text_columns(
+        self, table_id: TableId, min_length: int = 1
+    ) -> List[ColumnInfo]:
         """
         Returns all text columns from the specified table.
 
@@ -1387,8 +1462,7 @@ class ResearchDatabaseInfo(object):
         for column in self.get_colinfolist():
             if column.table_id != table_id:
                 continue
-            if not is_sql_column_type_textual(column.column_type,
-                                              min_length):
+            if not is_sql_column_type_textual(column.column_type, min_length):
                 # log.debug("Skipping {!r}", column)
                 continue
             results.append(column)
@@ -1440,19 +1514,37 @@ class ResearchDatabaseInfo(object):
         schema_colinfolist_dict = self.get_colinfolist_by_schema()
         for schema, colinfolist in schema_colinfolist_dict.items():
             ws = wb.create_sheet(title=schema.identifier(self.grammar))
-            ws.append([
-                "table_catalog", "table_schema", "table_name", "column_name",
-                "is_nullable", "column_type", "column_comment",
-                "indexed", "indexed_fulltext",
-                "basetype", "full_identifier"
-            ])
+            ws.append(
+                [
+                    "table_catalog",
+                    "table_schema",
+                    "table_name",
+                    "column_name",
+                    "is_nullable",
+                    "column_type",
+                    "column_comment",
+                    "indexed",
+                    "indexed_fulltext",
+                    "basetype",
+                    "full_identifier",
+                ]
+            )
             for c in colinfolist:  # type: ColumnInfo
-                ws.append([
-                    c.table_catalog, c.table_schema, c.table_name,
-                    c.column_name, c.is_nullable, c.column_type,
-                    c.column_comment, c.indexed, c.indexed_fulltext,
-                    c.basetype, c.column_id.identifier(self.grammar),
-                ])
+                ws.append(
+                    [
+                        c.table_catalog,
+                        c.table_schema,
+                        c.table_name,
+                        c.column_name,
+                        c.is_nullable,
+                        c.column_type,
+                        c.column_comment,
+                        c.indexed,
+                        c.indexed_fulltext,
+                        c.basetype,
+                        c.column_id.identifier(self.grammar),
+                    ]
+                )
         return excel_to_bytes(wb)
 
     @django_cache_function(timeout=None)

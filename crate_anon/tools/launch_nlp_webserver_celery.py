@@ -38,7 +38,7 @@ from cardinal_pythonlib.process import nice_call
 from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CELERY_APP_NAME
 
 
-WINDOWS = platform.system() == 'Windows'
+WINDOWS = platform.system() == "Windows"
 
 
 def main() -> None:
@@ -48,26 +48,25 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Launch CRATE NLP web server Celery processes. "
-                    "(Any leftover arguments will be passed to Celery.)",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        "(Any leftover arguments will be passed to Celery.)",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("--command", default="worker", help="Celery command")
+    parser.add_argument(
+        "--cleanup_timeout_s",
+        type=float,
+        default=10.0,
+        help="Time to wait when shutting down Celery via Ctrl-C",
     )
     parser.add_argument(
-        "--command", default="worker",
-        help="Celery command"
-    )
-    parser.add_argument(
-        "--cleanup_timeout_s", type=float, default=10.0,
-        help="Time to wait when shutting down Celery via Ctrl-C"
-    )
-    parser.add_argument(
-        "--debug", action="store_true",
-        help="Ask Celery to be verbose"
+        "--debug", action="store_true", help="Ask Celery to be verbose"
     )
     args, leftovers = parser.parse_known_args()
 
     cmdargs = [
         "celery",
-        "--app", NLP_WEBSERVER_CELERY_APP_NAME,
+        "--app",
+        NLP_WEBSERVER_CELERY_APP_NAME,
         args.command,
     ]
     if args.command == "worker":

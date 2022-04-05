@@ -56,6 +56,7 @@ class EponymInfo(object):
     how rare or common (a) the eponymous disease is, and (b) the name itself
     is.
     """
+
     pass
 
 
@@ -87,9 +88,9 @@ def get_plain_eponyms(add_unaccented_versions: bool = True) -> List[str]:
         return sorted(eponyms)
 
 
-def _add_eponym(composite: str,
-                sep: str = "–",
-                info: EponymInfo = None) -> None:
+def _add_eponym(
+    composite: str, sep: str = "–", info: EponymInfo = None
+) -> None:
     """
     Adds an eponym to the global eponym dictionary.
     If a composite eponym is supplied, adds each part of it.
@@ -216,7 +217,6 @@ SIMPLE_EPONYM_LIST = [
     # Ayerza–Arrillaga syndrome (a.k.a. Ayerza–Arrillaga disease, Ayerza
     # syndrome, Ayerza disease) – Abel Ayerza, Francisco Arrillaga
     "Ayerza–Arrillaga",
-
     # -------------------------------------------------------------------------
     # B
     # -------------------------------------------------------------------------
@@ -420,7 +420,6 @@ SIMPLE_EPONYM_LIST = [
     "Burnett",
     # Bywaters syndrome – Eric Bywaters
     "Bywaters",
-
     # -------------------------------------------------------------------------
     # C
     # -------------------------------------------------------------------------
@@ -553,7 +552,6 @@ SIMPLE_EPONYM_LIST = [
     "Cushing",
     # Cushing's ulcer – Harvey Cushing
     "Cushing",
-
     # -------------------------------------------------------------------------
     # D
     # -------------------------------------------------------------------------
@@ -626,7 +624,6 @@ SIMPLE_EPONYM_LIST = [
     "Dupuytren",
     # Duroziez disease – Paul Louis Duroziez
     "Duroziez",
-
     # -------------------------------------------------------------------------
     # E
     # -------------------------------------------------------------------------
@@ -660,7 +657,6 @@ SIMPLE_EPONYM_LIST = [
     "Evans",
     # Extramammary Paget's disease – Sir James Paget
     "Paget",
-
     # -------------------------------------------------------------------------
     # F
     # -------------------------------------------------------------------------
@@ -697,7 +693,6 @@ SIMPLE_EPONYM_LIST = [
     "Fritsch–Asherman",
     # Fuchs' dystrophy – Ernst Fuchs
     "Fuchs",
-
     # -------------------------------------------------------------------------
     # G
     # -------------------------------------------------------------------------
@@ -746,7 +741,6 @@ SIMPLE_EPONYM_LIST = [
     "Guillain–Barré",
     # Gunther's disease – Hans Gunther
     "Gunther",
-
     # -------------------------------------------------------------------------
     # H
     # -------------------------------------------------------------------------
@@ -795,7 +789,6 @@ SIMPLE_EPONYM_LIST = [
     # Hutchinson–Gilford progeria syndrome
     # – Jonathan Hutchinson, Hastings Gilford
     "Hutchinson–Gilford",
-
     # -------------------------------------------------------------------------
     # I
     # -------------------------------------------------------------------------
@@ -803,7 +796,6 @@ SIMPLE_EPONYM_LIST = [
     "Illig",
     # Irvine–Gass syndrome – S. Rodman Irvine, J. Donald M. Gass
     "Irvine–Gass",
-
     # -------------------------------------------------------------------------
     # J
     # -------------------------------------------------------------------------
@@ -817,7 +809,6 @@ SIMPLE_EPONYM_LIST = [
     "Johanson–Blizzard",
     # Julian syndrome – Frankie Julian, Ron Kendall, Abe Charara
     "Julian",
-
     # -------------------------------------------------------------------------
     # K
     # -------------------------------------------------------------------------
@@ -880,7 +871,6 @@ SIMPLE_EPONYM_LIST = [
     "Kugelberg–Welander",
     # Kuttner's tumor – Hermann Küttner
     "Kuttner",
-
     # -------------------------------------------------------------------------
     # L
     # -------------------------------------------------------------------------
@@ -943,7 +933,6 @@ SIMPLE_EPONYM_LIST = [
     "Ludwig",
     # Lynch syndrome – Henry T. Lynch
     "Lynch",
-
     # -------------------------------------------------------------------------
     # M
     # -------------------------------------------------------------------------
@@ -1024,7 +1013,6 @@ SIMPLE_EPONYM_LIST = [
     # Munchausen syndrome by proxy – Baron Munchausen
     # Myhre–Riley–Smith syndrome – S. Myhre, Harris D. Riley, Jr.
     "Myhre–Riley–Smith",
-
     # -------------------------------------------------------------------------
     # N
     # -------------------------------------------------------------------------
@@ -1034,7 +1022,6 @@ SIMPLE_EPONYM_LIST = [
     "Hodgkin",
     # Noonan syndrome – Jacqueline Noonan
     "Noonan",
-
     # -------------------------------------------------------------------------
     # O
     # -------------------------------------------------------------------------
@@ -1045,7 +1032,6 @@ SIMPLE_EPONYM_LIST = [
     # Osler–Weber–Rendu syndrome
     # – William Osler, Frederick Parkes Weber, Henri Jules Louis Marie Rendu
     "Osler–Weber–Rendu",
-
     # -------------------------------------------------------------------------
     # P
     # -------------------------------------------------------------------------
@@ -1112,13 +1098,11 @@ SIMPLE_EPONYM_LIST = [
     "Prinzmetal",
     # Purtilo syndrome (a.k.a. Duncan disease and Duncan syndrome) –
     "Purtilo",
-
     # -------------------------------------------------------------------------
     # Q
     # -------------------------------------------------------------------------
     # Quarelli syndrome – G.Quarelli
     "Quarelli",
-
     # -------------------------------------------------------------------------
     # R
     # -------------------------------------------------------------------------
@@ -1171,7 +1155,6 @@ SIMPLE_EPONYM_LIST = [
     "Ruvalcaba–Myhre–Smith",
     # Ruzicka–Goerz–Anton syndrome – T. Ruzicka, G. Goerz, I. Anton-Lamprecht
     "Ruzicka–Goerz–Anton",
-
     # -------------------------------------------------------------------------
     # S
     # -------------------------------------------------------------------------
@@ -1235,7 +1218,6 @@ SIMPLE_EPONYM_LIST = [
     "Susac",
     # Sutton's disease – Richard Lightburn Sutton
     "Sutton",
-
     # -------------------------------------------------------------------------
     # T
     # -------------------------------------------------------------------------
@@ -1262,7 +1244,6 @@ SIMPLE_EPONYM_LIST = [
     "Turcot",
     # Turner's syndrome – Henry Turner
     "Turner",
-
     # -------------------------------------------------------------------------
     # U
     # -------------------------------------------------------------------------
@@ -1271,7 +1252,6 @@ SIMPLE_EPONYM_LIST = [
     "Unverricht–Lundborg",
     # Usher syndrome – Charles Usher
     "Usher",
-
     # -------------------------------------------------------------------------
     # V
     # -------------------------------------------------------------------------
@@ -1291,7 +1271,6 @@ SIMPLE_EPONYM_LIST = [
     "von Recklinghausen",
     # Von Willebrand's disease – Erik Adolf von Willebrand
     "von Willebrand",
-
     # -------------------------------------------------------------------------
     # W
     # -------------------------------------------------------------------------
@@ -1359,13 +1338,11 @@ SIMPLE_EPONYM_LIST = [
     "Wolff–Parkinson–White",
     # Wolman disease – Moshe Wolman
     "Wolman",
-
     # -------------------------------------------------------------------------
     # Y
     # -------------------------------------------------------------------------
     # Yesudian syndrome – Paul Yesudian
     "Yesudian",
-
     # -------------------------------------------------------------------------
     # Z
     # -------------------------------------------------------------------------
@@ -1403,7 +1380,6 @@ SIMPLE_EPONYM_LIST = [
     # Zumbusch syndrome (a.k.a. Csillag disease, Csillag syndrome, Hallopeau
     # disease, von Zumbusch syndrome) – Leo Ritter von Zumbusch
     "Zumbusch",
-
 ]
 
 

@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('research', '0009_query_no_null'),
+        ("research", "0009_query_no_null"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='query',
-            name='last_run',
+            model_name="query",
+            name="last_run",
             field=models.DateTimeField(default=None, null=True),
         ),
     ]

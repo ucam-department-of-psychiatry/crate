@@ -44,8 +44,9 @@ from crate_anon.crateweb.config.constants import CHERRYPY_EXTRA_ARGS_ENV_VAR
 log = logging.getLogger(__name__)
 
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE",
-                      "crate_anon.crateweb.config.settings")
+os.environ.setdefault(
+    "DJANGO_SETTINGS_MODULE", "crate_anon.crateweb.config.settings"
+)
 
 # from crate_anon.crateweb.config.settings import MIDDLEWARE_CLASSES
 # print(f"1. MIDDLEWARE_CLASSES: {id(MIDDLEWARE_CLASSES)}")
@@ -79,7 +80,7 @@ def runserver() -> None:
     Modifies ``argv`` and calls :func:`main`.
     """
     argv = sys.argv[:]  # copy
-    argv.insert(1, 'runserver')
+    argv.insert(1, "runserver")
     main(argv)
 
 
@@ -90,8 +91,8 @@ def runcpserver() -> None:
     Modifies ``argv`` and calls :func:`main`.
     """
     argv = sys.argv[:]  # copy
-    argv.insert(1, 'runcpserver')
-    extraargs = shlex.split(os.environ.get(CHERRYPY_EXTRA_ARGS_ENV_VAR, ''))
+    argv.insert(1, "runcpserver")
+    extraargs = shlex.split(os.environ.get(CHERRYPY_EXTRA_ARGS_ENV_VAR, ""))
     # log.critical(extraargs)
     argv.extend(extraargs)
     main(argv)
@@ -120,7 +121,7 @@ def email_rdbm() -> None:
     Modifies ``argv`` and calls :func:`main`.
     """
     argv = sys.argv[:]  # copy
-    argv.insert(1, 'email_rdbm')
+    argv.insert(1, "email_rdbm")
     main(argv)
 
 

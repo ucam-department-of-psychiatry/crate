@@ -47,11 +47,11 @@ def report_exception(exc: Exception) -> None:
     """
     log.critical(exc)  # the exception message
     # log.critical(exc, exc_info=True)  # message + traceback
-    traceback_msg = "".join(traceback.format_exception(
-        None,  # etype: ignored
-        exc,
-        exc.__traceback__
-    ))  # https://www.python.org/dev/peps/pep-3134/
+    traceback_msg = "".join(
+        traceback.format_exception(
+            None, exc, exc.__traceback__  # etype: ignored
+        )
+    )  # https://www.python.org/dev/peps/pep-3134/
     log.error(traceback_msg)
 
 

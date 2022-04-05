@@ -834,7 +834,7 @@ class CloudRequestProcess(CloudRequest):
             yield tablename, formatted_result
 
     def get_nlp_values(
-        self
+        self,
     ) -> Generator[Tuple[Dict[str, Any], Cloud], None, None]:
         """
         Process response data that we have already obtained from the server,

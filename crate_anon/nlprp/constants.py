@@ -35,10 +35,12 @@ from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 # NLPRP strings
 # =============================================================================
 
+
 class NlprpKeys(object):
     """
     JSON dictionary keys used by the NLPRP.
     """
+
     ARGS = "args"  # request
     CLIENT_JOB_ID = "client_job_id"  # bidirectional
     CLIENT_JOB_IDS = "client_job_ids"  # request
@@ -82,6 +84,7 @@ class NlprpValues(object):
     """
     JSON dictionary values used by the NLPRP.
     """
+
     BUSY = "busy"
     NLPRP_PROTOCOL_NAME = "nlprp"
     READY = "ready"
@@ -93,6 +96,7 @@ class NlprpCommands(object):
     """
     NLPRP commands.
     """
+
     LIST_PROCESSORS = "list_processors"
     PROCESS = "process"
     SHOW_QUEUE = "show_queue"
@@ -100,14 +104,16 @@ class NlprpCommands(object):
     DELETE_FROM_QUEUE = "delete_from_queue"
 
 
-ALL_NLPRP_COMMANDS = [v for k, v in NlprpCommands.__dict__.items()
-                      if not k.startswith("_")]
+ALL_NLPRP_COMMANDS = [
+    v for k, v in NlprpCommands.__dict__.items() if not k.startswith("_")
+]
 
 
 class SqlDialects(object):
     """
     SQL dialects supported by the NLPRP.
     """
+
     MSSQL = SqlaDialectName.MSSQL
     MYSQL = SqlaDialectName.MYSQL
     ORACLE = SqlaDialectName.ORACLE
@@ -115,5 +121,6 @@ class SqlDialects(object):
     SQLITE = SqlaDialectName.SQLITE
 
 
-ALL_SQL_DIALECTS = [v for k, v in SqlDialects.__dict__.items()
-                    if not k.startswith("_")]
+ALL_SQL_DIALECTS = [
+    v for k, v in SqlDialects.__dict__.items() if not k.startswith("_")
+]

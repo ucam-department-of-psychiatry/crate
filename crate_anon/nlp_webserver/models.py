@@ -68,8 +68,8 @@ MAX_QUEUE_ID_LEN = UUID64_LEN
 MAX_JOB_ID_LEN = 255  # specified by client
 MAX_USERNAME_LEN = 255  # arbitrary
 MAX_PROCESSOR_ID_LEN = (
-    255
-)  # e.g. Python fully-qualified name, underscore, version  # noqa
+    255  # e.g. Python fully-qualified name, underscore, version  # noqa
+)
 
 
 # =============================================================================

@@ -46,10 +46,12 @@ from crate_anon.nlp_manager.regex_numbers import (
 OUT_OF_SEPARATOR = r"(?: \/ | \b out \s+ of \b )"
 
 
-def per(numerator: str,
-        denominator: str,
-        include_power_minus1: bool = True,
-        numerator_optional: bool = False) -> str:
+def per(
+    numerator: str,
+    denominator: str,
+    include_power_minus1: bool = True,
+    numerator_optional: bool = False,
+) -> str:
     """
     Returns regex text representing "X per Y"; e.g. "millimoles per litre",
     "cells per cubic millimetre".
@@ -64,20 +66,19 @@ def per(numerator: str,
         if numerator_optional:
             # ensure that the optional whitespace is captured as part of the
             # "optional" bit, so there is no leftover whitespace that can remain
-            numerator_part = fr"(?: {numerator} \s* )?"
+            numerator_part = rf"(?: {numerator} \s* )?"
         else:
             # numerator, optional whitespace
-            numerator_part = fr"{numerator} \s*"
+            numerator_part = rf"{numerator} \s*"
         # Use of "\s* \b" rather than "\s+" is so we can have a BLANK numerator.
     else:
         # Blank numerator
         numerator_part = ""
     options = [
-        fr"{numerator_part} (?: \/ | \b per \b) \s* {denominator}",
+        rf"{numerator_part} (?: \/ | \b per \b) \s* {denominator}",
     ]
     if include_power_minus1:
-        options.append(
-            fr"{numerator_part} \b {denominator} \s* -1")
+        options.append(rf"{numerator_part} \b {denominator} \s* -1")
     return r"(?: {} )".format(r" | ".join(options))
 
 
@@ -90,7 +91,7 @@ def _out_of_str(n_as_regex: str) -> str:
     """
     # / n
     # out of n
-    return fr"(?: {OUT_OF_SEPARATOR} \s* {n_as_regex} \b)"
+    return rf"(?: {OUT_OF_SEPARATOR} \s* {n_as_regex} \b)"
 
 
 def out_of(n: int) -> str:
@@ -137,11 +138,13 @@ def units_times(*args: str) -> str:
     """
     multiply = MULTIPLY_OR_SPACE + "?"
     joined = multiply.join(args)
-    return fr"(?: {joined} )"
+    return rf"(?: {joined} )"
 
 
-def units_by_dimension(*args: Tuple[str, int],  # specify type of *one* arg!
-                       allow_no_operator: bool = False) -> str:
+def units_by_dimension(
+    *args: Tuple[str, int],  # specify type of *one* arg!
+    allow_no_operator: bool = False,
+) -> str:
     """
     Returns regex text for a unit where we specify them by their dimensions.
 
@@ -153,17 +156,17 @@ def units_by_dimension(*args: Tuple[str, int],  # specify type of *one* arg!
     power_elements = []  # type: List[str]
     for i, unit_exponent in enumerate(args):
         unit, exponent = unit_exponent
-        assert(exponent != 0)
+        assert exponent != 0
         power_elements.append(
-            power(unit, exponent, allow_no_operator=allow_no_operator))
+            power(unit, exponent, allow_no_operator=allow_no_operator)
+        )
     joined_power_elements = multiply.join(power_elements)
-    power_style = fr"(?: {joined_power_elements} )"
+    power_style = rf"(?: {joined_power_elements} )"
     options = [power_style]
     # noinspection PyChainedComparisons
     if len(args) == 2 and args[0][1] > 0 and args[1][1] < 0:
         # x per y
-        options.append(per(args[0][0], args[1][0],
-                           include_power_minus1=False))
+        options.append(per(args[0][0], args[1][0], include_power_minus1=False))
     return r"(?: {} )".format(r" | ".join(options))
 
 
@@ -172,13 +175,13 @@ def units_by_dimension(*args: Tuple[str, int],  # specify type of *one* arg!
 # -----------------------------------------------------------------------------
 
 M = r"(?: met(?:re|er)s? | m )"  # m, metre(s), meter(s)
-CM = r"(?: cm | centimet(?:re|er)s? )"   # cm, centimetre(s), centimeter(s)
-MM = r"(?: mm | millimet(?:re|er)s? )"   # mm, millimetre(s), millimeter(s)
+CM = r"(?: cm | centimet(?:re|er)s? )"  # cm, centimetre(s), centimeter(s)
+MM = r"(?: mm | millimet(?:re|er)s? )"  # mm, millimetre(s), millimeter(s)
 
 FEET = r"""(?: f(?:ee|oo)?t | \' | ’ | ′ )"""
 # ... feet, foot, ft
 # ... apostrophe, right single quote (U+2019), prime (U+2032)
-INCHES = r'''(?: in(?:ch(?:e)?)?s? | \" | ” | ″)'''
+INCHES = r"""(?: in(?:ch(?:e)?)?s? | \" | ” | ″)"""
 # ... in, ins, inch, inches, [inchs = typo but clear]
 # ... ", right double quote (U+2014), double prime (U+2033)
 
@@ -198,22 +201,21 @@ STONES = r"(?: stones? | st\.? )"  # stone(s), st, st.
 # -----------------------------------------------------------------------------
 
 L = r"(?: lit(?:re|er)s? | L )"  # L, litre(s), liter(s)
-DL = fr"(?: d(?:eci)?{L} )"  # 10^-1
-ML = fr"(?: m(?:illi)?{L} )"  # 10^-3
-MICROLITRE = fr"(?: micro{L} | [μu]L )"  # 10^-6: microL, microliter(s), microlitre(s), μL, uL  # noqa
-NANOLITRE = fr"(?: nano{L} | nL )"  # 10^-9: nanoL, nanoliter(s), nanolitre(s), nL  # noqa
-PICOLITRE = fr"(?: pico{L} | pL )"  # 10^-12: picoL, picoliter(s), picolitre(s), pL  # noqa
-FEMTOLITRE = fr"(?: femto{L} | fL )"  # 10^-15: femtoL, femtoliter(s), femtolitre(s), fL  # noqa
+DL = rf"(?: d(?:eci)?{L} )"  # 10^-1
+ML = rf"(?: m(?:illi)?{L} )"  # 10^-3
+MICROLITRE = rf"(?: micro{L} | [μu]L )"  # 10^-6: microL, microliter(s), microlitre(s), μL, uL  # noqa
+NANOLITRE = rf"(?: nano{L} | nL )"  # 10^-9: nanoL, nanoliter(s), nanolitre(s), nL  # noqa
+PICOLITRE = rf"(?: pico{L} | pL )"  # 10^-12: picoL, picoliter(s), picolitre(s), pL  # noqa
+FEMTOLITRE = rf"(?: femto{L} | fL )"  # 10^-15: femtoL, femtoliter(s), femtolitre(s), fL  # noqa
 # CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} )""".format(  # noqa
 CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} | (?: \b cmm \b ) )""".format(  # noqa
-    mm=MM,
-    mm_cubed=power(MM, 3, allow_no_operator=True)
+    mm=MM, mm_cubed=power(MM, 3, allow_no_operator=True)
 )
 # cubic mm, etc. | mm^3, mm3, mm 3, etc. | cmm
 # "cmm" added 2018-09-07 having seen this in the wild (albeit urinary results).
 
 # A microlitre is of course the same as a cubic millimetre:
-CUBIC_MM_OR_MICROLITRE = fr"(?: {MICROLITRE} | {CUBIC_MM} )"
+CUBIC_MM_OR_MICROLITRE = rf"(?: {MICROLITRE} | {CUBIC_MM} )"
 
 # -----------------------------------------------------------------------------
 # Inverse (reciprocal) volume
@@ -225,7 +227,7 @@ PER_CUBIC_MM = per("", CUBIC_MM, numerator_optional=True)
 # Time
 # -----------------------------------------------------------------------------
 
-HOUR = r"(?:h(?:rs?|ours?)?)"   # h, hr, hrs, hour, hours
+HOUR = r"(?:h(?:rs?|ours?)?)"  # h, hr, hrs, hour, hours
 
 # -----------------------------------------------------------------------------
 # Proportions
@@ -288,8 +290,9 @@ BILLION_PER_L = per(BILLION, L)
 TRILLION_PER_L = per(TRILLION, L)
 
 CELLS_PER_CUBIC_MM = per(CELLS, CUBIC_MM, numerator_optional=True)
-CELLS_PER_CUBIC_MM_OR_MICROLITRE = per(CELLS, CUBIC_MM_OR_MICROLITRE,
-                                       numerator_optional=True)
+CELLS_PER_CUBIC_MM_OR_MICROLITRE = per(
+    CELLS, CUBIC_MM_OR_MICROLITRE, numerator_optional=True
+)
 
 MICROUNITS_PER_ML = per(MICROUNITS, ML)
 MILLIUNITS_PER_L = per(MILLIUNITS, L)
@@ -320,7 +323,9 @@ SQ_M = r"""
         | (?: {m} \s+ sq(?:uared?)? )   # m sq, metres square(d), etc.
         | {m_sq}                        # m ^ 2, etc.
     )
-""".format(m=M, m_sq=power(M, 2))
+""".format(
+    m=M, m_sq=power(M, 2)
+)
 
 # BMI
 KG_PER_SQ_M = r"(?: {kg_per_sqm} | {kg_sqm_pow_minus2} )".format(
@@ -333,9 +338,10 @@ KG_PER_SQ_M = r"(?: {kg_per_sqm} | {kg_sqm_pow_minus2} )".format(
 #  Generic conversion functions
 # =============================================================================
 
-def kg_from_st_lb_oz(stones: float = 0,
-                     pounds: float = 0,
-                     ounces: float = 0) -> Optional[float]:
+
+def kg_from_st_lb_oz(
+    stones: float = 0, pounds: float = 0, ounces: float = 0
+) -> Optional[float]:
     """
     Convert Imperial to metric mass.
 
@@ -437,8 +443,9 @@ def factor_micromolar_from_mg_per_dl(molecular_mass_g_per_mol: float) -> float:
     return 1000 * factor_millimolar_from_mg_per_dl(molecular_mass_g_per_mol)
 
 
-def millimolar_from_mg_per_dl(mg_per_dl: float,
-                              molecular_mass_g_per_mol: float) -> float:
+def millimolar_from_mg_per_dl(
+    mg_per_dl: float, molecular_mass_g_per_mol: float
+) -> float:
     """
     Converts a concentration from mg/dL to mM (mmol/L).
 
@@ -450,11 +457,14 @@ def millimolar_from_mg_per_dl(mg_per_dl: float,
         value in mM = mmol/L
 
     """
-    return mg_per_dl * factor_millimolar_from_mg_per_dl(molecular_mass_g_per_mol)  # noqa
+    return mg_per_dl * factor_millimolar_from_mg_per_dl(
+        molecular_mass_g_per_mol
+    )  # noqa
 
 
-def micromolar_from_mg_per_dl(mg_per_dl: float,
-                              molecular_mass_g_per_mol: float) -> float:
+def micromolar_from_mg_per_dl(
+    mg_per_dl: float, molecular_mass_g_per_mol: float
+) -> float:
     """
     Converts a concentration from mg/dL to μM (μmol/L).
 
@@ -466,4 +476,6 @@ def micromolar_from_mg_per_dl(mg_per_dl: float,
         value in μM = μmol/L
 
     """
-    return mg_per_dl * factor_micromolar_from_mg_per_dl(molecular_mass_g_per_mol)  # noqa
+    return mg_per_dl * factor_micromolar_from_mg_per_dl(
+        molecular_mass_g_per_mol
+    )  # noqa

@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('consent', '0013_auto_20181223_1124'),
+        ("consent", "0013_auto_20181223_1124"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='contactrequest',
-            name='rdbm_to_contact_pt',
+            model_name="contactrequest",
+            name="rdbm_to_contact_pt",
             field=models.BooleanField(default=False),
         ),
     ]

@@ -51,7 +51,6 @@ DEFAULT_GEOG_COLS = [
     # These are geographically "blurry" areas. The most specific is likely
     # LSOA (or, equivalently, IMD).
     # For details, see postcodes.py.
-
     "bua11",  # Built-up Area (BUA)
     "buasd11",  # Built-up Area Sub-division (BUASD)
     "casward",  # Census Area Statistics (CAS) ward
@@ -64,7 +63,7 @@ DEFAULT_GEOG_COLS = [
     "nuts",  # EU Local Administrative Unit, level 2
     "oac01",  # 2001 Census Output Area classification (OAC)
     "oac11",  # 2011 Census Output Area classification (OAC)
-    "parish",   # Parish/community
+    "parish",  # Parish/community
     "pcon",  # Westminster parliamentary constituency
     "pct",  # Primary Care Trust or equivalent
     "ru11ind",  # 2011 Census rural-urban classification

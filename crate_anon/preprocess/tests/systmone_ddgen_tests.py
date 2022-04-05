@@ -49,6 +49,7 @@ from crate_anon.preprocess.systmone_ddgen import (
 # Unit tests
 # =============================================================================
 
+
 class SystmOneDDGenTests(TestCase):
     def test_excluded_tables(self) -> None:
         """
@@ -59,7 +60,7 @@ class SystmOneDDGenTests(TestCase):
         test_referralsopen_core = core_tablename(
             tablename=test_referralsopen,
             from_context=cpft,
-            allow_unprefixed=True
+            allow_unprefixed=True,
         )
         self.assertTrue(eq(test_referralsopen_core, "ReferralsOpen"))
         self.assertTrue(eq_re(test_referralsopen_core, "ReferralsOpen$"))
@@ -76,10 +77,17 @@ class SystmOneDDGenTests(TestCase):
         for context in [sre, cpft]:
             self.assertTrue(is_free_text("FreeText", "FreeText", context))
         # CPFT but not SRE environment:
-        self.assertTrue(is_free_text(
-            "FreeText_CYPFRS_TelephoneTriage", "RiskofAbsconding", cpft))
-        self.assertFalse(is_free_text(
-            "FreeText_CYPFRS_TelephoneTriage", "RiskofAbsconding", sre))
+        self.assertTrue(
+            is_free_text(
+                "FreeText_CYPFRS_TelephoneTriage", "RiskofAbsconding", cpft
+            )
+        )
+        self.assertFalse(
+            is_free_text(
+                "FreeText_CYPFRS_TelephoneTriage", "RiskofAbsconding", sre
+            )
+        )
         # Not even in CPFT:
-        self.assertFalse(is_free_text(
-            "FreeText_Honos_Scoring_Answers", "FreeText", cpft))
+        self.assertFalse(
+            is_free_text("FreeText_Honos_Scoring_Answers", "FreeText", cpft)
+        )

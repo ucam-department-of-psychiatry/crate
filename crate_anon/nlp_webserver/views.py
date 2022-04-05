@@ -227,7 +227,7 @@ class NlprpProcessRequest(object):
         )
 
     def gen_text_metadataobj(
-        self
+        self,
     ) -> Generator[Tuple[str, JsonValueType], None, None]:
         """
         Generates text and metadata pairs from the request, with the metadata

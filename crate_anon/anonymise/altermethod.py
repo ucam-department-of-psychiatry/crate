@@ -61,12 +61,13 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-HTML_TAG_RE = regex.compile('<[^>]*>')
+HTML_TAG_RE = regex.compile("<[^>]*>")
 
 
 # =============================================================================
 # AlterMethod
 # =============================================================================
+
 
 class AlterMethod(object):
     """
@@ -81,22 +82,25 @@ class AlterMethod(object):
     instances of :class:`crate_anon.anonymise.altermethod.AlterMethod` in a
     sequence.
     """
-    def __init__(self,
-                 config: "Config",
-                 text_value: str = None,
-                 scrub: bool = False,
-                 truncate_date: bool = False,
-                 extract_from_filename: bool = False,
-                 extract_from_file_format: bool = False,  # new in v0.18.18
-                 file_format_str: str = "",  # new in v0.18.18
-                 extract_from_blob: bool = False,
-                 skip_if_text_extract_fails: bool = False,
-                 extract_ext_field: str = "",
-                 hash_: bool = False,
-                 hash_config_section: str = "",
-                 # html_escape: bool = False,
-                 html_unescape: bool = False,
-                 html_untag: bool = False) -> None:
+
+    def __init__(
+        self,
+        config: "Config",
+        text_value: str = None,
+        scrub: bool = False,
+        truncate_date: bool = False,
+        extract_from_filename: bool = False,
+        extract_from_file_format: bool = False,  # new in v0.18.18
+        file_format_str: str = "",  # new in v0.18.18
+        extract_from_blob: bool = False,
+        skip_if_text_extract_fails: bool = False,
+        extract_ext_field: str = "",
+        hash_: bool = False,
+        hash_config_section: str = "",
+        # html_escape: bool = False,
+        html_unescape: bool = False,
+        html_untag: bool = False,
+    ) -> None:
         """
         Args:
             config:
@@ -155,15 +159,18 @@ class AlterMethod(object):
         self.html_unescape = html_unescape
         self.html_untag = html_untag
 
-        self.extract_text = (extract_from_filename or
-                             extract_from_file_format or
-                             extract_from_blob)
+        self.extract_text = (
+            extract_from_filename
+            or extract_from_file_format
+            or extract_from_blob
+        )
 
         if text_value is not None:
             self.set_from_text(text_value)
         if hash_:
             self.hasher = self.config.get_extra_hasher(
-                self.hash_config_section)
+                self.hash_config_section
+            )
 
         self._assert_valid()
 
@@ -192,12 +199,12 @@ class AlterMethod(object):
 
         def get_second_part(missing_description: str) -> str:
             if "=" not in value:
-                raise ValueError(
-                    f"Bad format for alter method: {value}")
-            secondhalf = value[value.index("=") + 1:]
+                raise ValueError(f"Bad format for alter method: {value}")
+            secondhalf = value[value.index("=") + 1 :]
             if not secondhalf:
                 raise ValueError(
-                    f"Missing {missing_description} in alter method: {value}")
+                    f"Missing {missing_description} in alter method: {value}"
+                )
             return secondhalf
 
         if value == AlterMethodType.TRUNCATEDATE.value:
@@ -208,12 +215,12 @@ class AlterMethod(object):
             self.extract_text = True
             self.extract_from_blob = True
             self.extract_ext_field = get_second_part(
-                "filename/extension field")
+                "filename/extension field"
+            )
         elif value.startswith(AlterMethodType.FILENAME_FORMAT_TO_TEXT.value):
             self.extract_text = True
             self.extract_from_file_format = True
-            self.file_format_str = get_second_part(
-                "filename format field")
+            self.file_format_str = get_second_part("filename format field")
         elif value == AlterMethodType.FILENAME_TO_TEXT.value:
             self.extract_text = True
             self.extract_from_filename = True
@@ -223,7 +230,8 @@ class AlterMethod(object):
             self.hash = True
             self.hash_config_section = get_second_part("hash config section")
             self.hasher = self.config.get_extra_hasher(
-                self.hash_config_section)
+                self.hash_config_section
+            )
         # elif value == ALTERMETHOD.HTML_ESCAPE:
         #     self.html_escape = True
         elif value == AlterMethodType.HTML_UNESCAPE.value:
@@ -239,6 +247,7 @@ class AlterMethod(object):
         Return the ``alter_method`` fragment from the working fields;
         effectively the reverse of :func:`set_from_text`.
         """
+
         def two_part(altermethod: str, parameter: str) -> str:
             return altermethod + "=" + parameter
 
@@ -248,18 +257,23 @@ class AlterMethod(object):
             return AlterMethodType.SCRUBIN.value
         if self.extract_text:
             if self.extract_from_blob:
-                return two_part(AlterMethodType.BINARY_TO_TEXT.value,
-                                self.extract_ext_field)
+                return two_part(
+                    AlterMethodType.BINARY_TO_TEXT.value,
+                    self.extract_ext_field,
+                )
             elif self.extract_from_file_format:
-                return two_part(AlterMethodType.FILENAME_FORMAT_TO_TEXT.value,
-                                self.file_format_str)
+                return two_part(
+                    AlterMethodType.FILENAME_FORMAT_TO_TEXT.value,
+                    self.file_format_str,
+                )
             else:  # plain filename
                 return AlterMethodType.FILENAME_TO_TEXT.value
         if self.skip_if_text_extract_fails:
             return AlterMethodType.SKIP_IF_TEXT_EXTRACT_FAILS.value
         if self.hash:
-            return two_part(AlterMethodType.HASH.value,
-                            self.hash_config_section)
+            return two_part(
+                AlterMethodType.HASH.value, self.hash_config_section
+            )
         # if self.html_escape:
         #     return ALTERMETHOD.HTML_ESCAPE.value
         if self.html_unescape:
@@ -288,19 +302,23 @@ class AlterMethod(object):
         }
         n_methods = sum(int(v) for v in methods_map.values())
         if n_methods != 1:
-            raise ValueError(f"AlterMethod: should be exactly one method, but "
-                             f"there are {n_methods}: {methods_map}")
+            raise ValueError(
+                f"AlterMethod: should be exactly one method, but "
+                f"there are {n_methods}: {methods_map}"
+            )
 
     # -------------------------------------------------------------------------
     # Perform the transformation: master method
     # -------------------------------------------------------------------------
 
-    def alter(self,
-              value: Any,
-              ddr: "DataDictionaryRow",  # corresponding DataDictionaryRow
-              row: List[Any],  # all values in row
-              ddrows: List["DataDictionaryRow"],  # all of them
-              patient: "Patient" = None) -> Tuple[Any, bool]:
+    def alter(
+        self,
+        value: Any,
+        ddr: "DataDictionaryRow",  # corresponding DataDictionaryRow
+        row: List[Any],  # all values in row
+        ddrows: List["DataDictionaryRow"],  # all of them
+        patient: "Patient" = None,
+    ) -> Tuple[Any, bool]:
         """
         Performs the alteration.
 
@@ -402,7 +420,8 @@ class AlterMethod(object):
         except (ValueError, OverflowError):
             log.warning(
                 f"Invalid date received to "
-                f"{AlterMethodType.TRUNCATEDATE} method: {value}")
+                f"{AlterMethodType.TRUNCATEDATE} method: {value}"
+            )
             return None
 
     @staticmethod
@@ -422,11 +441,11 @@ class AlterMethod(object):
         # -- regex/re
         #    https://stackoverflow.com/questions/3662142
         #    ... as below.
-        return HTML_TAG_RE.sub('', text)
+        return HTML_TAG_RE.sub("", text)
 
     def _extract_text_func(
-            self, value: Any, row: List[Any],
-            ddrows: List["DataDictionaryRow"]) -> Tuple[Optional[str], bool]:
+        self, value: Any, row: List[Any], ddrows: List["DataDictionaryRow"]
+    ) -> Tuple[Optional[str], bool]:
         """
         Take a field's value and return extracted text, for file-related
         fields, where the DD row indicated that this field contains a filename
@@ -475,7 +494,8 @@ class AlterMethod(object):
             # Use that dictionary with the format string to make the filename
             log.debug(
                 f"extract_text: file_format_str={repr(self.file_format_str)}, "
-                f"ffdict={repr(ffdict)}")
+                f"ffdict={repr(ffdict)}"
+            )
             use_filename = True
             filename = self.file_format_str.format(**ffdict)
             _, extension = os.path.splitext(filename)
@@ -488,14 +508,19 @@ class AlterMethod(object):
             # alter_method.extract_ext_field in the data dictionary.
             blob = value
             extindex = next(
-                (i for i, ddr in enumerate(ddrows)
-                    if ddr.src_field == self.extract_ext_field),
-                None)
+                (
+                    i
+                    for i, ddr in enumerate(ddrows)
+                    if ddr.src_field == self.extract_ext_field
+                ),
+                None,
+            )
             if extindex is None:
                 # Configuration error
                 raise ValueError(
                     f"Bug: missing extension field for "
-                    f"alter_method={self.as_text}")
+                    f"alter_method={self.as_text}"
+                )
             extension = row[extindex]
             log.info(f"extract_text: database BLOB, extension={extension}")
 
@@ -519,10 +544,12 @@ class AlterMethod(object):
                 plain=self.config.extract_text_plain,
                 width=self.config.extract_text_width,
             )
-            value = document_to_text(filename=filename,
-                                     blob=blob,
-                                     extension=extension,
-                                     config=textconfig)
+            value = document_to_text(
+                filename=filename,
+                blob=blob,
+                extension=extension,
+                config=textconfig,
+            )
         except Exception as e:
             # Runtime error
             traceback.print_exc()  # full details, please

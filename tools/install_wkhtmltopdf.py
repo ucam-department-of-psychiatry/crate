@@ -55,7 +55,7 @@ from crate_anon.version import require_minimum_python_version
 
 
 require_minimum_python_version()
-if not platform.system() == 'Linux':
+if not platform.system() == "Linux":
     raise AssertionError("Need Linux")
 
 
@@ -68,13 +68,14 @@ MINOR_VERSION = "0.12.2.1"
 
 INTENDED_VERSION = f"wkhtmltopdf {MINOR_VERSION} (with patched qt)"
 
-existing_cmd = shutil.which('wkhtmltopdf')
+existing_cmd = shutil.which("wkhtmltopdf")
 if existing_cmd:
     print(f"existing wkhtmltopdf is {existing_cmd}")
-    proc = subprocess.Popen([existing_cmd, '--version'],
-                            stdout=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [existing_cmd, "--version"], stdout=subprocess.PIPE
+    )
     out, err = proc.communicate()
-    existing_version = out.decode('ascii').strip()
+    existing_version = out.decode("ascii").strip()
     print(f"existing version: {existing_version}")
     if existing_version == INTENDED_VERSION:
         print(f"wkhtmltopdf {MINOR_VERSION} already installed")
@@ -87,20 +88,20 @@ if existing_cmd:
 LINUX_DIST, LINUX_VERSION, LINUX_ID = distro.linux_distribution()
 LINUX_DIST = LINUX_DIST.lower()
 
-BITS_64 = platform.architecture()[0] == '64bit'
+BITS_64 = platform.architecture()[0] == "64bit"
 
-if LINUX_DIST in ('ubuntu', 'debian'):
-    if not shutil.which('gdebi'):
+if LINUX_DIST in ("ubuntu", "debian"):
+    if not shutil.which("gdebi"):
         raise AssertionError("Need gdebi (try: sudo apt-get install gdebi)")
-    installer = ['sudo', 'gdebi']
-    extension = 'deb'
-elif LINUX_DIST in ('fedora', 'rhel', 'centos'):
-    if not shutil.which('yum'):
+    installer = ["sudo", "gdebi"]
+    extension = "deb"
+elif LINUX_DIST in ("fedora", "rhel", "centos"):
+    if not shutil.which("yum"):
         raise AssertionError("Need yum")
     # installer = ['sudo', 'rpm', '-U']  # -U upgrade, equivalent to -i install
-    installer = ['yum', '--nogpgcheck', 'localinstall']
+    installer = ["yum", "--nogpgcheck", "localinstall"]
     # ... https://stackoverflow.com/questions/13876875
-    extension = 'rpm'
+    extension = "rpm"
 else:
     raise AssertionError("Unsupported Linux distribution")
 
@@ -109,30 +110,30 @@ else:
 # =============================================================================
 
 if BITS_64:
-    arch = 'amd64'
+    arch = "amd64"
 else:
-    arch = 'i386'
+    arch = "i386"
 
-if LINUX_DIST == 'ubuntu':
-    if LINUX_VERSION == 'precise':
-        distro = 'precise'
+if LINUX_DIST == "ubuntu":
+    if LINUX_VERSION == "precise":
+        distro = "precise"
     else:
-        distro = 'trusty'
-elif LINUX_DIST == 'centos':
-    if LINUX_VERSION == '5' or LINUX_VERSION.startswith('5.'):
-        distro = 'centos5'
-    elif LINUX_VERSION == '6' or LINUX_VERSION.startswith('6.'):
-        distro = 'centos6'
+        distro = "trusty"
+elif LINUX_DIST == "centos":
+    if LINUX_VERSION == "5" or LINUX_VERSION.startswith("5."):
+        distro = "centos5"
+    elif LINUX_VERSION == "6" or LINUX_VERSION.startswith("6."):
+        distro = "centos6"
     else:
-        distro = 'centos7'
-        arch = 'amd64'
+        distro = "centos7"
+        arch = "amd64"
 else:
-    distro = 'UNKNOWN'
+    distro = "UNKNOWN"
 
 url_stem = (
-    f'http://download.gna.org/wkhtmltopdf/{MAJOR_VERSION}/{MINOR_VERSION}/'
+    f"http://download.gna.org/wkhtmltopdf/{MAJOR_VERSION}/{MINOR_VERSION}/"
 )
-filename = f'wkhtmltox-{MINOR_VERSION}_linux-{distro}-{arch}.{extension}'
+filename = f"wkhtmltox-{MINOR_VERSION}_linux-{distro}-{arch}.{extension}"
 url = url_stem + filename
 
 # =============================================================================
@@ -144,7 +145,7 @@ with tempfile.TemporaryDirectory() as tmpdirname:
 
     print(f"Downloading {url} -> {localfilename}")
     req = urllib.request.urlopen(url)
-    with open(localfilename, 'wb') as f:
+    with open(localfilename, "wb") as f:
         f.write(req.read())
 
     print(f"Installing {localfilename}")

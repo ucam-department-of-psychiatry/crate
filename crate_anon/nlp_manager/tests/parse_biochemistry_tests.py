@@ -40,6 +40,7 @@ from crate_anon.nlp_manager.parse_biochemistry import (
 # Unit tests
 # =============================================================================
 
+
 class TestBiochemistry(unittest.TestCase):
     @staticmethod
     def test_all_biochemistry() -> None:

@@ -37,25 +37,29 @@ class ConsentAppConfig(AppConfig):
     """
     Django :class:`django.apps.AppConfig` for the consent system.
     """
-    name = 'crate_anon.crateweb.consent'
+
+    name = "crate_anon.crateweb.consent"
 
 
 class ResearchAppConfig(AppConfig):
     """
     Django :class:`django.apps.AppConfig` for the researcher's views.
     """
-    name = 'crate_anon.crateweb.research'
+
+    name = "crate_anon.crateweb.research"
 
 
 class UserProfileAppConfig(AppConfig):
     """
     Django :class:`django.apps.AppConfig` for extended user profiles.
     """
-    name = 'crate_anon.crateweb.userprofile'
+
+    name = "crate_anon.crateweb.userprofile"
 
 
 class CoreAppConfig(AppConfig):
     """
     Django :class:`django.apps.AppConfig` for the core app.
     """
-    name = 'crate_anon.crateweb.core'
+
+    name = "crate_anon.crateweb.core"

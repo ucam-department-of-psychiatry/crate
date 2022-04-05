@@ -40,6 +40,7 @@ from crate_anon.nlp_manager.parse_cognitive import (
 # Unit tests
 # =============================================================================
 
+
 class TestCognitive(unittest.TestCase):
     @staticmethod
     def test_all_cognitive() -> None:

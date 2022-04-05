@@ -35,13 +35,15 @@ crate_anon/crateweb/consent/migrations/0010_auto_20180629_1238.py
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('consent', '0011_auto_20181022_0801'),
+        ("consent", "0011_auto_20181022_0801"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='teamrep',
-            name='team',
-            field=models.CharField(max_length=100, unique=True, verbose_name='Team description'),  # noqa
+            model_name="teamrep",
+            name="team",
+            field=models.CharField(
+                max_length=100, unique=True, verbose_name="Team description"
+            ),  # noqa
         ),
     ]

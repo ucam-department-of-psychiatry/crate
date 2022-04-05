@@ -43,8 +43,9 @@ class FruitParser(BaseNlpParser):
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         return {}
 
-    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
-                                            None, None]:
+    def parse(
+        self, text: str
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         fruits = ("apple", "banana", "cherry", "fig")
 
         for word in text.split(" "):
@@ -67,8 +68,9 @@ class NlpParserProcessTests(TestCase):
         self.mock_values_method = mock.Mock()
         mock_insert_object = mock.Mock(values=self.mock_values_method)
         mock_insert_method = mock.Mock(return_value=mock_insert_object)
-        mock_sqla_table = mock.Mock(columns=[mock_column],
-                                    insert=mock_insert_method)
+        mock_sqla_table = mock.Mock(
+            columns=[mock_column], insert=mock_insert_method
+        )
         self.mock_get_table = mock.Mock(return_value=mock_sqla_table)
 
         self.mock_notify_transaction_method = mock.Mock()
@@ -79,17 +81,19 @@ class NlpParserProcessTests(TestCase):
 
     def test_inserts_values(self) -> None:
         with self.assertLogs(level=logging.DEBUG) as logging_cm:
-            with mock.patch.multiple(self.parser,
-                                     _nlpdef=self.mock_nlpdef,
-                                     _destdb=self.mock_db,
-                                     get_table=self.mock_get_table,
-                                     _friendly_name="Fruit"):
+            with mock.patch.multiple(
+                self.parser,
+                _nlpdef=self.mock_nlpdef,
+                _destdb=self.mock_db,
+                get_table=self.mock_get_table,
+                _friendly_name="Fruit",
+            ):
 
                 starting_fields_values = {}
 
                 self.parser.process(
                     "Apple Banana Cabbage Dandelion Edelweiss Fig",
-                    starting_fields_values
+                    starting_fields_values,
                 )
 
         self.mock_values_method.assert_any_call({"fruit": "apple"})
@@ -99,29 +103,29 @@ class NlpParserProcessTests(TestCase):
         self.assertEqual(self.mock_execute_method.call_count, 3)
 
         self.mock_notify_transaction_method.assert_any_call(
-            self.mock_session, n_rows=1, n_bytes=sys.getsizeof(
-                {"fruit": "apple"}
-            ),
-            force_commit=mock.ANY
+            self.mock_session,
+            n_rows=1,
+            n_bytes=sys.getsizeof({"fruit": "apple"}),
+            force_commit=mock.ANY,
         )
         self.mock_notify_transaction_method.assert_any_call(
-            self.mock_session, n_rows=1, n_bytes=sys.getsizeof(
-                {"fruit": "banana"}
-            ),
-            force_commit=mock.ANY
+            self.mock_session,
+            n_rows=1,
+            n_bytes=sys.getsizeof({"fruit": "banana"}),
+            force_commit=mock.ANY,
         )
         self.mock_notify_transaction_method.assert_any_call(
-            self.mock_session, n_rows=1, n_bytes=sys.getsizeof(
-                {"fruit": "fig"}
-            ),
-            force_commit=mock.ANY
+            self.mock_session,
+            n_rows=1,
+            n_bytes=sys.getsizeof({"fruit": "fig"}),
+            force_commit=mock.ANY,
         )
         self.assertEqual(self.mock_notify_transaction_method.call_count, 3)
 
         logger_name = "crate_anon.nlp_manager.base_nlp_parser"
         self.assertIn(
             f"DEBUG:{logger_name}:NLP processor fruitdef/Fruit: found 3 values",
-            logging_cm.output
+            logging_cm.output,
         )
 
     def test_handles_failed_insert(self) -> None:
@@ -129,32 +133,25 @@ class NlpParserProcessTests(TestCase):
             "Insert failed", None, None, None
         )
         with self.assertLogs(level=logging.ERROR) as logging_cm:
-            with mock.patch.multiple(self.parser,
-                                     _nlpdef=self.mock_nlpdef,
-                                     _destdb=self.mock_db,
-                                     get_table=self.mock_get_table,
-                                     _friendly_name="Fruit"):
+            with mock.patch.multiple(
+                self.parser,
+                _nlpdef=self.mock_nlpdef,
+                _destdb=self.mock_db,
+                get_table=self.mock_get_table,
+                _friendly_name="Fruit",
+            ):
 
                 starting_fields_values = {}
 
-                self.parser.process(
-                    "Apple",
-                    starting_fields_values
-                )
+                self.parser.process("Apple", starting_fields_values)
 
         self.mock_notify_transaction_method.assert_any_call(
-            self.mock_session, n_rows=1, n_bytes=sys.getsizeof(
-                {"fruit": "apple"}
-            ),
-            force_commit=mock.ANY
+            self.mock_session,
+            n_rows=1,
+            n_bytes=sys.getsizeof({"fruit": "apple"}),
+            force_commit=mock.ANY,
         )
         logger_name = "crate_anon.nlp_manager.base_nlp_parser"
 
-        self.assertIn(
-            f"ERROR:{logger_name}",
-            logging_cm.output[0]
-        )
-        self.assertIn(
-            "Insert failed",
-            logging_cm.output[0]
-        )
+        self.assertIn(f"ERROR:{logger_name}", logging_cm.output[0])
+        self.assertIn("Insert failed", logging_cm.output[0])

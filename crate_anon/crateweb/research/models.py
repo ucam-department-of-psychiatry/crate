@@ -108,7 +108,7 @@ log = logging.getLogger(__name__)
 # Related:
 # - https://github.com/pymssql/pymssql/issues/98
 
-DJANGO_PYODBC_AZURE_ENGINE = 'sql_server.pyodbc'
+DJANGO_PYODBC_AZURE_ENGINE = "sql_server.pyodbc"
 
 
 def replacement_sqlserver_pyodbc_cursorwrapper_fetchone(self) -> List[Any]:
@@ -156,17 +156,23 @@ def hack_django_pyodbc_azure_cursorwrapper() -> None:
     try:
         # noinspection PyUnresolvedReferences
         from sql_server.pyodbc.base import CursorWrapper
-        log.info("Monkey-patching sql_server.pyodbc.base.CursorWrapper."
-                 "fetchone to disable automatic call to cursor.nextset()")
-        CursorWrapper.fetchone = replacement_sqlserver_pyodbc_cursorwrapper_fetchone  # noqa
+
+        log.info(
+            "Monkey-patching sql_server.pyodbc.base.CursorWrapper."
+            "fetchone to disable automatic call to cursor.nextset()"
+        )
+        CursorWrapper.fetchone = (
+            replacement_sqlserver_pyodbc_cursorwrapper_fetchone  # noqa
+        )
     except ImportError:
         return
 
 
 if getattr(
-        settings,
-        SettingsKeys.DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET,
-        True):
+    settings,
+    SettingsKeys.DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET,
+    True,
+):
     # https://stackoverflow.com/questions/5601590/how-to-define-a-default-value-for-a-custom-django-setting  # noqa
     hack_django_pyodbc_azure_cursorwrapper()
 
@@ -184,8 +190,7 @@ def database_last_updated(dbname: str) -> Optional[datetime.datetime]:
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
-        raise ValueError(
-            f"Database {dbname} is not specified in config file")
+        raise ValueError(f"Database {dbname} is not specified in config file")
     tables_with_timecol = []  # type: List[str]
     for col in dbinfo.colinfolist:
         if col.column_name == dbinfo.update_date_field:
@@ -195,7 +200,7 @@ def database_last_updated(dbname: str) -> Optional[datetime.datetime]:
     latest_time = mindate = datetime.datetime.min
     for table in tables_with_timecol:
         # Not quite sure about the different dialects ...
-        if dbinfo.rdb_info.dialect == 'mysql':
+        if dbinfo.rdb_info.dialect == "mysql":
             sql = (
                 f"SELECT {dbinfo.update_date_field} "
                 f"FROM {dbinfo.schema_name}.{table}"
@@ -238,6 +243,7 @@ def last_updated_all_dbs() -> datetime.datetime:
 # Cursors
 # =============================================================================
 
+
 def debug_query() -> None:
     """
     Executes a test query that just selects a constant, using the research
@@ -247,8 +253,9 @@ def debug_query() -> None:
     cursor.execute("SELECT 'debug'")
 
 
-def get_executed_researchdb_cursor(sql: str,
-                                   args: List[Any] = None) -> CursorWrapper:
+def get_executed_researchdb_cursor(
+    sql: str, args: List[Any] = None
+) -> CursorWrapper:
     """
     Executes a query on the research database. Returns a wrapped cursor that
     can be used as a context manager that will close the cursor on completion.
@@ -275,18 +282,20 @@ def get_executed_researchdb_cursor(sql: str,
 
     """  # noqa
     args = args or []
-    cursor = connections[RESEARCH_DB_CONNECTION_NAME].cursor()  # type: CursorWrapper  # noqa
+    cursor = connections[
+        RESEARCH_DB_CONNECTION_NAME
+    ].cursor()  # type: CursorWrapper  # noqa
     try:
         cursor.execute(sql, args or None)
     except DatabaseError as exception:
-        add_info_to_exception(exception, {'sql': sql, 'args': args})
+        add_info_to_exception(exception, {"sql": sql, "args": args})
         raise
     return cursor
 
 
 def get_executed_researchdb_cursor_qmark_placeholders(
-        sql: str,
-        args: List[Any] = None) -> CursorWrapper:
+    sql: str, args: List[Any] = None
+) -> CursorWrapper:
     """
     As for :func:`get_executed_researchdb_cursor`, but assumes its SQL may
     contain question-mark parameter placeholders (``?``) and translates these
@@ -303,8 +312,9 @@ def get_executed_researchdb_cursor_qmark_placeholders(
 ILLEGAL_CHARACTERS_REPLACED_WITH = ""
 
 
-def gen_excel_row_elements(worksheet: Worksheet,
-                           row: Iterable) -> Generator[Any, None, None]:
+def gen_excel_row_elements(
+    worksheet: Worksheet, row: Iterable
+) -> Generator[Any, None, None]:
     r"""
     Given an Excel worksheet row, generate individual cell contents, cell by
     cell.
@@ -372,8 +382,9 @@ def gen_excel_row_elements(worksheet: Worksheet,
             # ... or: str(element, encoding)
 
         if isinstance(element, str):
-            yield ILLEGAL_CHARACTERS_RE.sub(ILLEGAL_CHARACTERS_REPLACED_WITH,
-                                            element)
+            yield ILLEGAL_CHARACTERS_RE.sub(
+                ILLEGAL_CHARACTERS_REPLACED_WITH, element
+            )
         else:
             yield element
 
@@ -389,9 +400,11 @@ class Highlight(models.Model):
     """
     Represents the highlighting of a query.
     """
+
     id = models.AutoField(primary_key=True)  # automatic
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,
-                             on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
     colour = models.PositiveSmallIntegerField(verbose_name="Colour number")
     text = models.CharField(max_length=255, verbose_name="Text to highlight")
     active = models.BooleanField(default=True)
@@ -409,8 +422,9 @@ class Highlight(models.Model):
         return max(0, min(self.colour, N_CSS_HIGHLIGHT_CLASSES - 1))
 
     @staticmethod
-    def as_ordered_dict(highlight_list: Iterable[HIGHLIGHT_FWD_REF]) \
-            -> Dict[int, List[HIGHLIGHT_FWD_REF]]:
+    def as_ordered_dict(
+        highlight_list: Iterable[HIGHLIGHT_FWD_REF],
+    ) -> Dict[int, List[HIGHLIGHT_FWD_REF]]:
         """
         Converts a iterable of :class:`Highlight` objects into a dictionary
         that collects them by highlight number.
@@ -474,37 +488,44 @@ class QueryBase(models.Model):
     """
     Abstract base class for the two query classes.
     """
+
     class Meta:
         abstract = True
         app_label = "research"
 
     id = models.AutoField(primary_key=True)  # automatic
 
-    sql = models.TextField(verbose_name='SQL query')
+    sql = models.TextField(verbose_name="SQL query")
     sql_hash = models.BigIntegerField(
-        verbose_name='64-bit non-cryptographic hash of SQL query')
-    args = JsonClassField(verbose_name='SQL arguments (as JSON)', null=True)
+        verbose_name="64-bit non-cryptographic hash of SQL query"
+    )
+    args = JsonClassField(verbose_name="SQL arguments (as JSON)", null=True)
     # ... https://github.com/shrubberysoft/django-picklefield
     raw = models.BooleanField(
-        default=False, verbose_name='SQL is raw, not parameter-substituted')
+        default=False, verbose_name="SQL is raw, not parameter-substituted"
+    )
     qmark = models.BooleanField(
         default=True,
-        verbose_name='Parameter-substituted SQL uses ?, not %s, '
-        'as placeholders')
+        verbose_name="Parameter-substituted SQL uses ?, not %s, "
+        "as placeholders",
+    )
     # active = models.BooleanField(default=True)  # see save() below
     created = models.DateTimeField(auto_now_add=True)
     deleted = models.BooleanField(
         default=False,
         verbose_name="Deleted from the user's perspective. "
-                     "Audited queries are never properly deleted.")
+        "Audited queries are never properly deleted.",
+    )
     formatted_sql = models.TextField(
         default=None,
         null=True,
-        verbose_name='SQL with highlighting and formatting')
+        verbose_name="SQL with highlighting and formatting",
+    )
 
     def __repr__(self) -> str:
-        return simple_repr(self, ['id', 'sql', 'args', 'raw', 'qmark',
-                                  'created', 'deleted'])
+        return simple_repr(
+            self, ["id", "sql", "args", "raw", "qmark", "created", "deleted"]
+        )
 
     # -------------------------------------------------------------------------
     # SQL queries
@@ -542,18 +563,21 @@ class Query(QueryBase):
     """
     Class to query the research database.
     """
+
     NO_NULL = "_no_null"  # special output
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,
-                             on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
     active = models.BooleanField(default=True)  # see save() below
     audited = models.BooleanField(default=False)
     display = models.TextField(
-        default="[]",
-        verbose_name="Subset of output columns to be displayed")
+        default="[]", verbose_name="Subset of output columns to be displayed"
+    )
     no_null = models.BooleanField(
         default=False,
-        verbose_name="Omit Null columns for this query when displayed")
+        verbose_name="Omit Null columns for this query when displayed",
+    )
     last_run = models.DateTimeField(null=True, default=None)
 
     def __init__(self, *args, **kwargs) -> None:
@@ -578,8 +602,21 @@ class Query(QueryBase):
         self.save()
 
     def __repr__(self) -> str:
-        return simple_repr(self, ['id', 'user', 'sql', 'args', 'raw', 'qmark',
-                                  'active', 'created', 'deleted', 'audited'])
+        return simple_repr(
+            self,
+            [
+                "id",
+                "user",
+                "sql",
+                "args",
+                "raw",
+                "qmark",
+                "active",
+                "created",
+                "deleted",
+                "audited",
+            ],
+        )
 
     def save(self, *args, **kwargs) -> None:
         """
@@ -588,8 +625,9 @@ class Query(QueryBase):
         """
         # https://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa
         if self.active:
-            Query.objects.filter(user=self.user, active=True)\
-                         .update(active=False)
+            Query.objects.filter(user=self.user, active=True).update(
+                active=False
+            )
         self.set_formatted_sql()
         self.sql_hash = hash64(self.sql)
         super().save(*args, **kwargs)
@@ -653,8 +691,10 @@ class Query(QueryBase):
             #     self._n_times_executed))
             # log.debug("\n" + "".join(traceback.format_stack()))
             if self._n_times_executed > 1:
-                log.warning(f"Inefficient: Query executed "
-                            f"{self._n_times_executed} times")
+                log.warning(
+                    f"Inefficient: Query executed "
+                    f"{self._n_times_executed} times"
+                )
             try:
                 # noinspection PyTypeChecker
                 self._column_names = get_fieldnames_from_cursor(cursor)
@@ -663,7 +703,8 @@ class Query(QueryBase):
             self._rowcount = cursor.rowcount
             self._executed_cursor = cursor
             self._finalizer = weakref.finalize(
-                self, _close_cursor, self._executed_cursor)
+                self, _close_cursor, self._executed_cursor
+            )
         return self._executed_cursor
 
     def _invalidate_executed_cursor(self) -> None:
@@ -767,10 +808,7 @@ class Query(QueryBase):
         else:
             # Cache
             columns = self._column_names
-            return [
-                OrderedDict(zip(columns, row))
-                for row in self._rows
-            ]
+            return [OrderedDict(zip(columns, row)) for row in self._rows]
 
     def update_last_run(self) -> None:
         self.last_run = datetime.datetime.now()
@@ -795,8 +833,9 @@ class Query(QueryBase):
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def get_active_query_or_none(request: HttpRequest) \
-            -> Optional[QUERY_FWD_REF]:
+    def get_active_query_or_none(
+        request: HttpRequest,
+    ) -> Optional[QUERY_FWD_REF]:
         """
         Returns the active query for this user, or ``None``.
 
@@ -868,8 +907,13 @@ class Query(QueryBase):
         self.audited = True
         self.save()
 
-    def audit(self, count_only: bool = False, n_records: int = 0,
-              failed: bool = False, fail_msg: str = "") -> None:
+    def audit(
+        self,
+        count_only: bool = False,
+        n_records: int = 0,
+        failed: bool = False,
+        fail_msg: str = "",
+    ) -> None:
         """
         Audit the execution of this query:
 
@@ -883,11 +927,13 @@ class Query(QueryBase):
             failed: did the query fail?
             fail_msg: if the query failed, the associated failure message
         """
-        a = QueryAudit(query=self,
-                       count_only=count_only,
-                       n_records=n_records,
-                       failed=failed,
-                       fail_msg=fail_msg)
+        a = QueryAudit(
+            query=self,
+            count_only=count_only,
+            n_records=n_records,
+            failed=failed,
+            fail_msg=fail_msg,
+        )
         a.save()
         self.mark_audited()
 
@@ -922,8 +968,9 @@ class Query(QueryBase):
         Args:
             display_list: list of columns to display
         """
-        self.display = json.dumps(display_list,
-                                  separators=JSON_SEPARATORS_COMPACT)
+        self.display = json.dumps(
+            display_list, separators=JSON_SEPARATORS_COMPACT
+        )
         self._display_list = None  # clear cache
 
     def _get_display_list(self) -> List[str]:
@@ -943,8 +990,9 @@ class Query(QueryBase):
             log.warning("Query.display field: not a list, returning []")
             return []
         if not all(isinstance(x, str) for x in result):
-            log.warning("Query.display field: contains non-strings, "
-                        "returning []")
+            log.warning(
+                "Query.display field: contains non-strings, " "returning []"
+            )
             return []
         return result
 
@@ -1085,8 +1133,9 @@ class SitewideQuery(QueryBase):
 
     """
 
-    description = models.TextField(verbose_name='query description',
-                                   default="")
+    description = models.TextField(
+        verbose_name="query description", default=""
+    )
 
     @property
     def sql_chunks(self) -> List[str]:
@@ -1128,11 +1177,11 @@ class SitewideQuery(QueryBase):
             # get bit of sql up to next '[['
             chunk = sql_string[:index1]
             # get bit of sql between '[[' and ']]'
-            placeholder = sql_string[index1 + startlen:index2]
+            placeholder = sql_string[index1 + startlen : index2]
             chunks.append(chunk)
             chunks.append(placeholder)
             # get bit of sql after '[[' - this forms new substring to check
-            sql_string = sql_string[index2 + endlen:]
+            sql_string = sql_string[index2 + endlen :]
             index1 = sql_string.find(placeholder_start)
             index2 = sql_string.find(placeholder_end)
         # Deal with any remainder
@@ -1149,7 +1198,7 @@ class SitewideQuery(QueryBase):
         """
         prettified_chunks = []  # type: List[str]
         for i, chunk in enumerate(self.sql_chunks):
-            if (i+1) % 2 == 1:
+            if (i + 1) % 2 == 1:
                 chunk = prettify_sql_html(chunk)
             prettified_chunks.append(chunk)
         return prettified_chunks
@@ -1167,12 +1216,14 @@ class SitewideQuery(QueryBase):
 # Query auditing class
 # =============================================================================
 
+
 class QueryAudit(models.Model):
     """
     Audit log for a query.
     """
+
     id = models.AutoField(primary_key=True)  # automatic
-    query = models.ForeignKey('Query', on_delete=models.PROTECT)
+    query = models.ForeignKey("Query", on_delete=models.PROTECT)
     # ... contains information about which user
     when = models.DateTimeField(auto_now_add=True)
     count_only = models.BooleanField(default=False)
@@ -1229,19 +1280,24 @@ class PidLookup(models.Model):
     - Use as e.g. ``Lookup(pid=XXX)``.
 
     """
+
     pid = models.PositiveIntegerField(
-        primary_key=True,
-        db_column=PatientInfoConstants.PID_FIELDNAME)
+        primary_key=True, db_column=PatientInfoConstants.PID_FIELDNAME
+    )
     mpid = models.PositiveIntegerField(
-        db_column=PatientInfoConstants.MPID_FIELDNAME)
+        db_column=PatientInfoConstants.MPID_FIELDNAME
+    )
     rid = models.CharField(
         db_column=PatientInfoConstants.RID_FIELDNAME,
-        max_length=get_longest_supported_hasher_output_length())
+        max_length=get_longest_supported_hasher_output_length(),
+    )
     mrid = models.CharField(
         db_column=PatientInfoConstants.MRID_FIELDNAME,
-        max_length=get_longest_supported_hasher_output_length())
+        max_length=get_longest_supported_hasher_output_length(),
+    )
     trid = models.PositiveIntegerField(
-        db_column=PatientInfoConstants.TRID_FIELDNAME)
+        db_column=PatientInfoConstants.TRID_FIELDNAME
+    )
 
     class Meta:
         managed = False
@@ -1255,12 +1311,14 @@ class PidLookup(models.Model):
         return
 
 
-def get_pid_lookup(dbinfo: SingleResearchDatabase,
-                   pid: Union[int, str] = None,
-                   mpid: Union[int, str] = None,
-                   trid: int = None,
-                   rid: str = None,
-                   mrid: str = None) -> Optional[PidLookup]:
+def get_pid_lookup(
+    dbinfo: SingleResearchDatabase,
+    pid: Union[int, str] = None,
+    mpid: Union[int, str] = None,
+    trid: int = None,
+    rid: str = None,
+    mrid: str = None,
+) -> Optional[PidLookup]:
     """
     Looks up a patient in the secret lookup database associated with a
     database, from one of several possible identifiers.
@@ -1299,10 +1357,12 @@ def get_pid_lookup(dbinfo: SingleResearchDatabase,
     return lookup
 
 
-def get_mpid(dbinfo: SingleResearchDatabase,
-             trid: int = None,
-             rid: str = None,
-             mrid: str = None) -> int:
+def get_mpid(
+    dbinfo: SingleResearchDatabase,
+    trid: int = None,
+    rid: str = None,
+    mrid: str = None,
+) -> int:
     """
     Returns the MPID for a patient, looked up from one of the research IDs.
 
@@ -1324,10 +1384,12 @@ def get_mpid(dbinfo: SingleResearchDatabase,
     return lookup.mpid
 
 
-def get_pid(dbinfo: SingleResearchDatabase,
-            trid: int = None,
-            rid: str = None,
-            mrid: str = None) -> int:
+def get_pid(
+    dbinfo: SingleResearchDatabase,
+    trid: int = None,
+    rid: str = None,
+    mrid: str = None,
+) -> int:
     """
     Returns the PID for a patient, looked up from one of the research IDs.
 
@@ -1353,15 +1415,14 @@ def get_pid(dbinfo: SingleResearchDatabase,
 # Patient Explorer multi-query classes
 # =============================================================================
 
+
 class TableQueryArgs(object):
     """
     Represents SQL for a specific table, with arguments for the SQL. Used by
     :class:`PatientMultiQuery`.
     """
-    def __init__(self,
-                 table_id: TableId,
-                 sql: str,
-                 args: List[Any]) -> None:
+
+    def __init__(self, table_id: TableId, sql: str, args: List[Any]) -> None:
         """
         Args:
             table_id: a :class:`crate_anon.common.sql.TableId` that this query
@@ -1467,10 +1528,13 @@ class PatientMultiQuery(object):
       - ... within
 
     """  # noqa
-    def __init__(self,
-                 output_columns: List[ColumnId] = None,
-                 patient_conditions: List[WhereCondition] = None,
-                 manual_patient_id_query: str = ''):
+
+    def __init__(
+        self,
+        output_columns: List[ColumnId] = None,
+        patient_conditions: List[WhereCondition] = None,
+        manual_patient_id_query: str = "",
+    ):
         """
         Args:
             output_columns:
@@ -1486,8 +1550,10 @@ class PatientMultiQuery(object):
                 :func:`set_override_query`
         """
         self._output_columns = output_columns or []  # type: List[ColumnId]
-        self._patient_conditions = patient_conditions or []  # type: List[WhereCondition]  # noqa
-        self._manual_patient_id_query = manual_patient_id_query or ''
+        self._patient_conditions = (
+            patient_conditions or []
+        )  # type: List[WhereCondition]  # noqa
+        self._manual_patient_id_query = manual_patient_id_query or ""
 
     def __repr__(self) -> str:
         return (
@@ -1503,11 +1569,11 @@ class PatientMultiQuery(object):
             )
         )
 
-    def __eq__(self, other: 'PatientMultiQuery') -> bool:
+    def __eq__(self, other: "PatientMultiQuery") -> bool:
         return (
-            self._output_columns == other._output_columns and
-            self._patient_conditions == other._patient_conditions and
-            self._manual_patient_id_query == other._manual_patient_id_query
+            self._output_columns == other._output_columns
+            and self._patient_conditions == other._patient_conditions
+            and self._manual_patient_id_query == other._manual_patient_id_query
         )
 
     def __hash__(self) -> int:
@@ -1631,7 +1697,8 @@ class PatientMultiQuery(object):
         if not self._patient_conditions:
             return None
         return research_database_info.get_linked_mrid_column(
-            self._patient_conditions[0].table_id)
+            self._patient_conditions[0].table_id
+        )
 
     @property
     def has_patient_id_query(self) -> bool:
@@ -1671,29 +1738,37 @@ class PatientMultiQuery(object):
             return self._manual_patient_id_query
 
         if not self._patient_conditions:
-            return ''
+            return ""
 
         grammar = research_database_info.grammar
         select_mrid_column = self._get_select_mrid_column()
         if not select_mrid_column.is_valid:
             log.warning(
                 f"PatientMultiQuery.patient_id_query(): invalid"
-                f" select_mrid_column: {select_mrid_column!r}")
+                f" select_mrid_column: {select_mrid_column!r}"
+            )
             # One way this can happen: (1) a user saves a PMQ; (2) the
             # administrator removes one of the databases!
-            return ''
+            return ""
         mrid_alias = "_mrid"
         sql = add_to_select(
-            '',
+            "",
             grammar=grammar,
-            select_elements=[SelectElement(column_id=select_mrid_column,
-                                           alias=mrid_alias)],
+            select_elements=[
+                SelectElement(column_id=select_mrid_column, alias=mrid_alias)
+            ],
             distinct=True,
-            where_conditions=(self._patient_conditions + [WhereCondition(
-                column_id=select_mrid_column, op="IS NOT NULL")]),
+            where_conditions=(
+                self._patient_conditions
+                + [
+                    WhereCondition(
+                        column_id=select_mrid_column, op="IS NOT NULL"
+                    )
+                ]
+            ),
             where_type="AND",
             magic_join=True,
-            formatted=False
+            formatted=False,
         )
         if with_order_by:
             sql += " ORDER BY " + mrid_alias
@@ -1717,8 +1792,8 @@ class PatientMultiQuery(object):
         return self.all_queries(mrids=None)
 
     def all_queries_specific_patients(
-            self,
-            mrids: List[int]) -> List[TableQueryArgs]:
+        self, mrids: List[int]
+    ) -> List[TableQueryArgs]:
         """
         Returns all final queries. This is a list of multiple SQL queries, each
         retrieving information from one table, and all retrieving information
@@ -1735,8 +1810,7 @@ class PatientMultiQuery(object):
         """
         return self.all_queries(mrids=mrids)
 
-    def all_queries(self,
-                    mrids: List[Any] = None) -> List[TableQueryArgs]:
+    def all_queries(self, mrids: List[Any] = None) -> List[TableQueryArgs]:
         """
         Returns all final queries. This is a list of multiple SQL queries, each
         retrieving information from one table, and all retrieving information
@@ -1755,17 +1829,18 @@ class PatientMultiQuery(object):
         """
         queries = []  # type: List[TableQueryArgs]
         table_columns_map = columns_to_table_column_hierarchy(
-            self._output_columns, sort=True)
+            self._output_columns, sort=True
+        )
         for table, columns in table_columns_map:
-            table_sql_args = self.make_query(table_id=table,
-                                             columns=columns,
-                                             mrids=mrids)
+            table_sql_args = self.make_query(
+                table_id=table, columns=columns, mrids=mrids
+            )
             queries.append(table_sql_args)
         return queries
 
-    def where_patient_clause(self, table_id: TableId,
-                             grammar: SqlGrammar,
-                             mrids: List[Any] = None) -> SqlArgsTupleType:
+    def where_patient_clause(
+        self, table_id: TableId, grammar: SqlGrammar, mrids: List[Any] = None
+    ) -> SqlArgsTupleType:
         """
         Returns an SQL WHERE clauses similar to ``sometable.mrid IN (1, 2, 3)``
         or ``sometable.mridcol IN (SELECT mrid FROM masterpatienttable)``. The
@@ -1783,7 +1858,8 @@ class PatientMultiQuery(object):
             tuple: ``sql, args``
         """
         mrid_column = research_database_info.get_mrid_column_from_table(
-            table_id)
+            table_id
+        )
         if mrids:
             in_clause = ",".join(["?"] * len(mrids))
             # ... see notes for translate_sql_qmark_to_percent()
@@ -1800,10 +1876,12 @@ class PatientMultiQuery(object):
         sql = f"{mrid_column.identifier(grammar)} IN ({in_clause})"
         return sql, args
 
-    def make_query(self,
-                   table_id: TableId,
-                   columns: List[ColumnId],
-                   mrids: List[Any] = None) -> TableQueryArgs:
+    def make_query(
+        self,
+        table_id: TableId,
+        columns: List[ColumnId],
+        mrids: List[Any] = None,
+    ) -> TableQueryArgs:
         """
         Returns an SQL query to retrieve information from a single table for
         certain patients. This query is similar to ``SELECT a, b, c FROM
@@ -1830,22 +1908,25 @@ class PatientMultiQuery(object):
             raise ValueError("No columns specified")
         grammar = research_database_info.grammar
         mrid_column = research_database_info.get_mrid_column_from_table(
-            table_id)
+            table_id
+        )
         all_columns = [mrid_column]
         for c in columns:
             if c not in all_columns:
                 all_columns.append(c)
-        where_clause, args = self.where_patient_clause(table_id, grammar,
-                                                       mrids)
-        select_elements = [SelectElement(column_id=col)
-                           for col in all_columns]
+        where_clause, args = self.where_patient_clause(
+            table_id, grammar, mrids
+        )
+        select_elements = [SelectElement(column_id=col) for col in all_columns]
         where_conditions = [WhereCondition(raw_sql=where_clause)]
-        sql = add_to_select('',
-                            grammar=grammar,
-                            select_elements=select_elements,
-                            where_conditions=where_conditions,
-                            magic_join=True,
-                            formatted=True)
+        sql = add_to_select(
+            "",
+            grammar=grammar,
+            select_elements=select_elements,
+            where_conditions=where_conditions,
+            magic_join=True,
+            formatted=True,
+        )
         return TableQueryArgs(table_id, sql, args)
 
     # -------------------------------------------------------------------------
@@ -1858,9 +1939,14 @@ class PatientMultiQuery(object):
         Returns all our output columns in HTML format.
         """
         grammar = research_database_info.grammar
-        return prettify_sql_html("\n".join(
-            [column_id.identifier(grammar)
-             for column_id in self.output_columns]))
+        return prettify_sql_html(
+            "\n".join(
+                [
+                    column_id.identifier(grammar)
+                    for column_id in self.output_columns
+                ]
+            )
+        )
 
     @property
     def pt_conditions_html(self) -> str:
@@ -1868,8 +1954,9 @@ class PatientMultiQuery(object):
         Returns all our patient WHERE conditions in HTML format.
         """
         grammar = research_database_info.grammar
-        return prettify_sql_html("\nAND ".join([
-            wc.sql(grammar) for wc in self.patient_conditions]))
+        return prettify_sql_html(
+            "\nAND ".join([wc.sql(grammar) for wc in self.patient_conditions])
+        )
 
     def summary_html(self, element_counter: HtmlElementCounter) -> str:
         """
@@ -1907,8 +1994,9 @@ class PatientMultiQuery(object):
     # Data finder: COUNT(*) for all patient tables
     # -------------------------------------------------------------------------
 
-    def gen_data_finder_queries(self, mrids: List[Any] = None) \
-            -> Generator[TableQueryArgs, None, None]:
+    def gen_data_finder_queries(
+        self, mrids: List[Any] = None
+    ) -> Generator[TableQueryArgs, None, None]:
         """
         Generates a set of queries that, when executed, return the following
         summary columns from each of our tables, filtered for patients by our
@@ -1935,16 +2023,20 @@ class PatientMultiQuery(object):
 
         """
         grammar = research_database_info.grammar
-        mrid_alias = 'master_research_id'
-        table_name_alias = 'table_name'
-        n_records_alias = 'n_records'
-        min_date_alias = 'min_date'
-        max_date_alias = 'max_date'
-        for table_id in research_database_info.get_mrid_linkable_patient_tables():  # noqa
+        mrid_alias = "master_research_id"
+        table_name_alias = "table_name"
+        n_records_alias = "n_records"
+        min_date_alias = "min_date"
+        max_date_alias = "max_date"
+        for (
+            table_id
+        ) in research_database_info.get_mrid_linkable_patient_tables():  # noqa
             mrid_col = research_database_info.get_mrid_column_from_table(
-                table=table_id)
+                table=table_id
+            )
             date_col = research_database_info.get_default_date_column(
-                table=table_id)
+                table=table_id
+            )
             if date_col:
                 min_date = f"MIN({date_col.identifier(grammar)})"
                 max_date = f"MAX({date_col.identifier(grammar)})"
@@ -1954,29 +2046,40 @@ class PatientMultiQuery(object):
                 # ... OK (at least in MySQL) to do:
                 # SELECT col1, COUNT(*), NULL FROM table GROUP BY col1;
             where_clause, args = self.where_patient_clause(
-                table_id, grammar, mrids)
+                table_id, grammar, mrids
+            )
             table_identifier = table_id.identifier(grammar)
             select_elements = [
                 SelectElement(column_id=mrid_col, alias=mrid_alias),
-                SelectElement(raw_select=sql_string_literal(table_identifier),
-                              alias=table_name_alias),
-                SelectElement(raw_select='COUNT(*)',
-                              from_table_for_raw_select=table_id,
-                              alias=n_records_alias),
-                SelectElement(raw_select=min_date,
-                              from_table_for_raw_select=table_id,
-                              alias=min_date_alias),
-                SelectElement(raw_select=max_date,
-                              from_table_for_raw_select=table_id,
-                              alias=max_date_alias),
+                SelectElement(
+                    raw_select=sql_string_literal(table_identifier),
+                    alias=table_name_alias,
+                ),
+                SelectElement(
+                    raw_select="COUNT(*)",
+                    from_table_for_raw_select=table_id,
+                    alias=n_records_alias,
+                ),
+                SelectElement(
+                    raw_select=min_date,
+                    from_table_for_raw_select=table_id,
+                    alias=min_date_alias,
+                ),
+                SelectElement(
+                    raw_select=max_date,
+                    from_table_for_raw_select=table_id,
+                    alias=max_date_alias,
+                ),
             ]
             where_conditions = [WhereCondition(raw_sql=where_clause)]
-            sql = add_to_select('',
-                                grammar=grammar,
-                                select_elements=select_elements,
-                                where_conditions=where_conditions,
-                                magic_join=True,
-                                formatted=False)
+            sql = add_to_select(
+                "",
+                grammar=grammar,
+                select_elements=select_elements,
+                where_conditions=where_conditions,
+                magic_join=True,
+                formatted=False,
+            )
             sql += "\nGROUP BY " + mrid_col.identifier(grammar)
             sql += "\nORDER BY " + mrid_alias
             sql = format_sql(sql)
@@ -1986,8 +2089,9 @@ class PatientMultiQuery(object):
     # Monster data: SELECT * for all patient tables
     # -------------------------------------------------------------------------
 
-    def gen_monster_queries(self, mrids: List[int] = None) \
-            -> Generator[TableQueryArgs, None, None]:
+    def gen_monster_queries(
+        self, mrids: List[int] = None
+    ) -> Generator[TableQueryArgs, None, None]:
         """
         Generates a set of queries that, when executed, return ``SELECT *``
         from each of our tables, filtered for patients by our
@@ -2005,28 +2109,36 @@ class PatientMultiQuery(object):
 
         """
         grammar = research_database_info.grammar
-        for table_id in research_database_info.get_mrid_linkable_patient_tables():  # noqa
+        for (
+            table_id
+        ) in research_database_info.get_mrid_linkable_patient_tables():  # noqa
             mrid_col = research_database_info.get_mrid_column_from_table(
-                table=table_id)
+                table=table_id
+            )
             where_clause, args = self.where_patient_clause(
-                table_id, grammar, mrids)
+                table_id, grammar, mrids
+            )
             # We add the WHERE using our magic query machine, to get the joins
             # right:
             select_elements = [
-                SelectElement(raw_select='*',
-                              from_table_for_raw_select=table_id),
+                SelectElement(
+                    raw_select="*", from_table_for_raw_select=table_id
+                ),
             ]
             where_conditions = [
-                WhereCondition(raw_sql=where_clause,
-                               from_table_for_raw_sql=mrid_col.table_id),
+                WhereCondition(
+                    raw_sql=where_clause,
+                    from_table_for_raw_sql=mrid_col.table_id,
+                ),
             ]
             sql = add_to_select(
-                '',
+                "",
                 grammar=grammar,
                 select_elements=select_elements,
                 where_conditions=where_conditions,
                 magic_join=True,
-                formatted=False)
+                formatted=False,
+            )
             sql += " ORDER BY " + mrid_col.identifier(grammar)
             sql = format_sql(sql)
             yield TableQueryArgs(table_id, sql, args)
@@ -2043,24 +2155,28 @@ class PatientExplorer(models.Model):
     """
     Class to explore the research database on a per-patient basis.
     """
+
     class Meta:
         app_label = "research"
 
     id = models.AutoField(primary_key=True)  # automatic
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,
-                             on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
     patient_multiquery = JsonClassField(
-        verbose_name='PatientMultiQuery as JSON',
-        null=True)  # type: PatientMultiQuery
+        verbose_name="PatientMultiQuery as JSON", null=True
+    )  # type: PatientMultiQuery
     pmq_hash = models.BigIntegerField(
-        verbose_name='64-bit non-cryptographic hash of JSON of '
-                     'patient_multiquery')
+        verbose_name="64-bit non-cryptographic hash of JSON of "
+        "patient_multiquery"
+    )
     active = models.BooleanField(default=True)  # see save() below
     created = models.DateTimeField(auto_now_add=True)
     deleted = models.BooleanField(
         default=False,
         verbose_name="Deleted from the user's perspective. "
-                     "Audited queries are never properly deleted.")
+        "Audited queries are never properly deleted.",
+    )
     audited = models.BooleanField(default=False)
 
     def __init__(self, *args, **kwargs) -> None:
@@ -2077,9 +2193,9 @@ class PatientExplorer(models.Model):
         ``active == True`` for a given user. Also sets the hash.
         """
         if self.active:
-            PatientExplorer.objects\
-                .filter(user=self.user, active=True)\
-                .update(active=False)
+            PatientExplorer.objects.filter(user=self.user, active=True).update(
+                active=False
+            )
         self.pmq_hash = self.patient_multiquery.hash64
         # Beware: Python's hash() function will downconvert to 32 bits on 32-bit
         # machines; use pmq.hash64() directly, not hash(pmq).
@@ -2090,8 +2206,9 @@ class PatientExplorer(models.Model):
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def get_active_pe_or_none(request: HttpRequest) \
-            -> Optional[PATIENT_EXPLORER_FWD_REF]:
+    def get_active_pe_or_none(
+        request: HttpRequest,
+    ) -> Optional[PATIENT_EXPLORER_FWD_REF]:
         """
         Args:
             request: the :class:`django.http.request.HttpRequest`
@@ -2184,8 +2301,13 @@ class PatientExplorer(models.Model):
             log.debug("actually deleting")
             self.delete()
 
-    def audit(self, count_only: bool = False, n_records: int = 0,
-              failed: bool = False, fail_msg: str = "") -> None:
+    def audit(
+        self,
+        count_only: bool = False,
+        n_records: int = 0,
+        failed: bool = False,
+        fail_msg: str = "",
+    ) -> None:
         """
         Audit the execution of this query:
 
@@ -2199,11 +2321,13 @@ class PatientExplorer(models.Model):
             failed: did the query fail?
             fail_msg: if the query failed, the associated failure message
         """
-        a = PatientExplorerAudit(patient_explorer=self,
-                                 count_only=count_only,
-                                 n_records=n_records,
-                                 failed=failed,
-                                 fail_msg=fail_msg)
+        a = PatientExplorerAudit(
+            patient_explorer=self,
+            count_only=count_only,
+            n_records=n_records,
+            failed=failed,
+            fail_msg=fail_msg,
+        )
         a.save()
         self.mark_audited()
 
@@ -2211,8 +2335,7 @@ class PatientExplorer(models.Model):
     # Using the internal PatientMultiQuery
     # -------------------------------------------------------------------------
 
-    def all_queries(self,
-                    mrids: List[Any] = None) -> List[TableQueryArgs]:
+    def all_queries(self, mrids: List[Any] = None) -> List[TableQueryArgs]:
         """
         Returns all queries from our :attr:`patient_multiquery`. See
         :meth:`PatientMultiQuery.all_queries`
@@ -2305,8 +2428,9 @@ class PatientExplorer(models.Model):
             table_id = tsa.table_id
             sql = tsa.sql
             args = tsa.args
-            sqlsheet_rows.append([str(table_id), sql, repr(args),
-                                  datetime.datetime.now()])
+            sqlsheet_rows.append(
+                [str(table_id), sql, repr(args), datetime.datetime.now()]
+            )
             ws = wb.create_sheet(title=str(table_id))
             with self.get_executed_cursor(sql, args) as cursor:
                 try:
@@ -2336,7 +2460,8 @@ class PatientExplorer(models.Model):
             with_order_by: see :meth:`PatientMultiQuery.patient_id_query`
         """
         return self.patient_multiquery.patient_id_query(
-            with_order_by=with_order_by)
+            with_order_by=with_order_by
+        )
 
     # -------------------------------------------------------------------------
     # Display
@@ -2355,7 +2480,8 @@ class PatientExplorer(models.Model):
         # So we can hack it a bit:
         element_counter = HtmlElementCounter(prefix=f"pe_{self.id}_")
         return self.patient_multiquery.summary_html(
-            element_counter=element_counter)
+            element_counter=element_counter
+        )
 
     @property
     def has_patient_id_query(self) -> bool:
@@ -2398,10 +2524,14 @@ class PatientExplorer(models.Model):
             table_identifier = tsa.table_id
             sql = tsa.sql
             args = tsa.args
-            sql_ws.append([table_identifier,
-                           format_sql(sql),
-                           repr(args),
-                           datetime.datetime.now()])
+            sql_ws.append(
+                [
+                    table_identifier,
+                    format_sql(sql),
+                    repr(args),
+                    datetime.datetime.now(),
+                ]
+            )
             with self.get_executed_cursor(sql, args) as cursor:
                 if not fieldnames:
                     try:
@@ -2428,13 +2558,16 @@ class PatientExplorer(models.Model):
 # PatientExplorer auditing class
 # =============================================================================
 
+
 class PatientExplorerAudit(models.Model):
     """
     Audit log for a PatientExplorer.
     """
+
     id = models.AutoField(primary_key=True)  # automatic
-    patient_explorer = models.ForeignKey('PatientExplorer',
-                                         on_delete=models.PROTECT)
+    patient_explorer = models.ForeignKey(
+        "PatientExplorer", on_delete=models.PROTECT
+    )
     # ... contains information on which user
     when = models.DateTimeField(auto_now_add=True)
     count_only = models.BooleanField(default=False)
@@ -2459,9 +2592,11 @@ class ArchiveTemplateAudit(models.Model):
     """
     Audit log for access to an archive template.
     """
+
     id = models.AutoField(primary_key=True)  # automatic
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,
-                             on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
     when = models.DateTimeField(auto_now_add=True)
     patient_id = models.CharField(max_length=ARCHIVE_PATIENT_ID_MAX_LENGTH)
     query_string = models.TextField()
@@ -2476,12 +2611,16 @@ class ArchiveAttachmentAudit(models.Model):
     """
     Audit log for access to an archive attachment.
     """
+
     id = models.AutoField(primary_key=True)  # automatic
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,
-                             on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
     when = models.DateTimeField(auto_now_add=True)
     patient_id = models.CharField(max_length=ARCHIVE_PATIENT_ID_MAX_LENGTH)
-    filename = models.CharField(max_length=ARCHIVE_ATTACHMENT_FILENAME_MAX_LENGTH)  # noqa
+    filename = models.CharField(
+        max_length=ARCHIVE_ATTACHMENT_FILENAME_MAX_LENGTH
+    )  # noqa
 
     def __str__(self) -> str:
         return f"<ArchiveAttachmentAudit id={self.id}>"
