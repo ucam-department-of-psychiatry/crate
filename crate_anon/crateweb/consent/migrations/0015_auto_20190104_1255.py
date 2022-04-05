@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('consent', '0014_contactrequest_rdbm_to_contact_pt'),
+        ("consent", "0014_contactrequest_rdbm_to_contact_pt"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='contactrequest',
-            name='clinician_signatory_name',
+            model_name="contactrequest",
+            name="clinician_signatory_name",
             field=models.TextField(default=None, null=True),
         ),
         migrations.AddField(
-            model_name='contactrequest',
-            name='clinician_signatory_title',
+            model_name="contactrequest",
+            name="clinician_signatory_title",
             field=models.TextField(default=None, null=True),
         ),
     ]

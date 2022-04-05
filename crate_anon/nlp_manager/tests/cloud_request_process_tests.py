@@ -43,19 +43,20 @@ class CloudRequestProcessTests(TestCase):
         self.mock_session = mock.Mock(execute=self.mock_execute_method)
         self.mock_db = mock.Mock(session=self.mock_session)
 
-        # can't set name attribute in constructor here as it has special meaning
+        # can't set name attribute in constructor here as it has special
+        # meaning
         mock_column = mock.Mock()
         mock_column.name = "fruit"  # so set it here
 
         self.mock_values_method = mock.Mock()
         mock_insert_object = mock.Mock(values=self.mock_values_method)
         mock_insert_method = mock.Mock(return_value=mock_insert_object)
-        mock_sqla_table = mock.Mock(columns=[mock_column],
-                                    insert=mock_insert_method)
+        mock_sqla_table = mock.Mock(
+            columns=[mock_column], insert=mock_insert_method
+        )
         mock_get_table_method = mock.Mock(return_value=mock_sqla_table)
         self.mock_processor = mock.Mock(
-            get_table=mock_get_table_method,
-            dest_session=self.mock_session
+            get_table=mock_get_table_method, dest_session=self.mock_session
         )
 
         self.mock_notify_transaction_method = mock.Mock()
@@ -74,8 +75,9 @@ class CloudRequestProcessTests(TestCase):
 
         mock_get_nlp_values_method = mock.Mock(return_value=iter(nlp_values))
 
-        with mock.patch.multiple(self.process,
-                                 get_nlp_values=mock_get_nlp_values_method):
+        with mock.patch.multiple(
+            self.process, get_nlp_values=mock_get_nlp_values_method
+        ):
             self.process.process_all()
 
         self.mock_values_method.assert_any_call({"fruit": "apple"})
@@ -85,22 +87,22 @@ class CloudRequestProcessTests(TestCase):
         self.assertEqual(self.mock_execute_method.call_count, 3)
 
         self.mock_notify_transaction_method.assert_any_call(
-            self.mock_session, n_rows=1, n_bytes=sys.getsizeof(
-                {"fruit": "apple"}
-            ),
-            force_commit=mock.ANY
+            self.mock_session,
+            n_rows=1,
+            n_bytes=sys.getsizeof({"fruit": "apple"}),
+            force_commit=mock.ANY,
         )
         self.mock_notify_transaction_method.assert_any_call(
-            self.mock_session, n_rows=1, n_bytes=sys.getsizeof(
-                {"fruit": "banana"}
-            ),
-            force_commit=mock.ANY
+            self.mock_session,
+            n_rows=1,
+            n_bytes=sys.getsizeof({"fruit": "banana"}),
+            force_commit=mock.ANY,
         )
         self.mock_notify_transaction_method.assert_any_call(
-            self.mock_session, n_rows=1, n_bytes=sys.getsizeof(
-                {"fruit": "fig"}
-            ),
-            force_commit=mock.ANY
+            self.mock_session,
+            n_rows=1,
+            n_bytes=sys.getsizeof({"fruit": "fig"}),
+            force_commit=mock.ANY,
         )
         self.assertEqual(self.mock_notify_transaction_method.call_count, 3)
 
@@ -115,23 +117,18 @@ class CloudRequestProcessTests(TestCase):
 
         mock_get_nlp_values_method = mock.Mock(return_value=iter(nlp_values))
         with self.assertLogs(level=logging.ERROR) as logging_cm:
-            with mock.patch.multiple(self.process,
-                                     get_nlp_values=mock_get_nlp_values_method):
+            with mock.patch.multiple(
+                self.process, get_nlp_values=mock_get_nlp_values_method
+            ):
                 self.process.process_all()
 
         self.mock_notify_transaction_method.assert_any_call(
-            self.mock_session, n_rows=1, n_bytes=sys.getsizeof(
-                {"fruit": "apple"}
-            ),
-            force_commit=mock.ANY
+            self.mock_session,
+            n_rows=1,
+            n_bytes=sys.getsizeof({"fruit": "apple"}),
+            force_commit=mock.ANY,
         )
         logger_name = "crate_anon.nlp_manager.cloud_request"
 
-        self.assertIn(
-            f"ERROR:{logger_name}",
-            logging_cm.output[0]
-        )
-        self.assertIn(
-            "Insert failed",
-            logging_cm.output[0]
-        )
+        self.assertIn(f"ERROR:{logger_name}", logging_cm.output[0])
+        self.assertIn("Insert failed", logging_cm.output[0])

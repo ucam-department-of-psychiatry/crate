@@ -50,9 +50,9 @@ def get_users() -> Dict[str, str]:
     Reads the user file and returns a dictionary mapping usernames to hashed
     passwords.
     """
-    with open(USERS_FILENAME, 'r') as user_file:
+    with open(USERS_FILENAME, "r") as user_file:
         user_lines = user_file.readlines()
-    user_elements = [x.split(',') for x in user_lines]
+    user_elements = [x.split(",") for x in user_lines]
     users = {x[0]: x[1].strip() for x in user_elements}
     return users
 
@@ -64,14 +64,16 @@ def add_user(username: str, password: str) -> None:
     """
     users = get_users()
     if username in users:
-        proceed = input(f"User {username} already exists. "
-                        f"Overwrite (change password)? [yes/no] ")
+        proceed = input(
+            f"User {username} already exists. "
+            f"Overwrite (change password)? [yes/no] "
+        )
         if proceed.lower() == "yes":
             change_password(username, password)
             return
         else:
             return
-    with open(USERS_FILENAME, 'a') as user_file:
+    with open(USERS_FILENAME, "a") as user_file:
         user_file.write(f"{username},{hash_password(password)}\n")
     log.info(f"User {username} added.")
 
@@ -86,7 +88,7 @@ def rm_user(username: str) -> None:
     copyfile(USERS_FILENAME, backup_filename)
     users = get_users()
     try:
-        with open(USERS_FILENAME, 'w') as user_file:
+        with open(USERS_FILENAME, "w") as user_file:
             for user in users:
                 if user != username:
                     user_file.write(f"{user},{users[user]}\n")
@@ -96,7 +98,8 @@ def rm_user(username: str) -> None:
         log.error(
             f"An error occured in opening the file {USERS_FILENAME}. If the "
             f"integrity of this file is compromised, the backup is "
-            f"{backup_filename}.")
+            f"{backup_filename}."
+        )
         raise
     if user_found:
         log.info(f"User {username} removed.")
@@ -114,7 +117,7 @@ def change_password(username: str, password: str) -> None:
     copyfile(USERS_FILENAME, backup_filename)
     users = get_users()
     try:
-        with open(USERS_FILENAME, 'w') as user_file:
+        with open(USERS_FILENAME, "w") as user_file:
             for user in users:
                 if user != username:
                     user_file.write(f"{user},{users[user]}\n")
@@ -125,7 +128,8 @@ def change_password(username: str, password: str) -> None:
         log.error(
             f"An error occured in opening the file {USERS_FILENAME}. If the "
             f"integrity of this file is compromised, the backup is "
-            f"{backup_filename}.")
+            f"{backup_filename}."
+        )
         raise
     if user_found:
         log.info(f"Password changed for user {username}.")
@@ -142,24 +146,35 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=description,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     arg_group = parser.add_mutually_exclusive_group()
     arg_group.add_argument(
-        "--adduser", nargs=2, metavar=("USERNAME", "PASSWORD"),
-        help="Add a user and associated password.")
+        "--adduser",
+        nargs=2,
+        metavar=("USERNAME", "PASSWORD"),
+        help="Add a user and associated password.",
+    )
     arg_group.add_argument(
-        "--rmuser", nargs=1, metavar="USERNAME",
-        help="Remove a user by specifying their username.")
+        "--rmuser",
+        nargs=1,
+        metavar="USERNAME",
+        help="Remove a user by specifying their username.",
+    )
     arg_group.add_argument(
-        "--changepw", nargs=2, metavar=("USERNAME", "PASSWORD"),
-        help="Change a user's password.")
+        "--changepw",
+        nargs=2,
+        metavar=("USERNAME", "PASSWORD"),
+        help="Change a user's password.",
+    )
     args = parser.parse_args()
 
     main_only_quicksetup_rootlogger()
 
     if not args.adduser and not args.rmuser and not args.changepw:
         log.error(
-            "One option required: '--adduser', '--rmuser' or '--changepw'.")
+            "One option required: '--adduser', '--rmuser' or '--changepw'."
+        )
         return
 
     log.debug(f"Settings file: {SETTINGS_PATH}")
@@ -179,7 +194,8 @@ def main() -> None:
         username = args.changepw[0]
         new_password = args.changepw[1]
         proceed = input(
-            f"Confirm change password for user: {username} ? [yes/no] ")
+            f"Confirm change password for user: {username} ? [yes/no] "
+        )
         if proceed.lower() == "yes":
             change_password(username, new_password)
         else:

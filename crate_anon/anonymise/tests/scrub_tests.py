@@ -64,6 +64,7 @@ THIRD_PARTY_REPLACEMENT = "[YYY]"
 # Test hashing
 # =============================================================================
 
+
 class HashTests(TestCase):
     def test_str_int_hash_equivalent(self) -> None:
         """
@@ -76,13 +77,14 @@ class HashTests(TestCase):
         self.assertEqual(
             hasher.hash(x),
             hasher.hash(y),
-            "Hasher providing different answer for str and int"
+            "Hasher providing different answer for str and int",
         )
 
 
 # =============================================================================
 # Test WordList
 # =============================================================================
+
 
 class WordListTests(TestCase):
     def setUp(self) -> None:
@@ -96,12 +98,12 @@ class WordListTests(TestCase):
         self.assertEqual(
             # FlashText will replace at word boundaries:
             ft.replace_keywords(f"x {target} x"),
-            f"x {anon_text} x"
+            f"x {anon_text} x",
         )
         self.assertEqual(
             # But only at word boundaries, so this won't replace:
             ft.replace_keywords(f"x{target}x"),
-            f"x{target}x"
+            f"x{target}x",
         )
 
     def test_flashtext_word_boundaries(self) -> None:
@@ -147,8 +149,9 @@ class WordListTests(TestCase):
         for element in denylist_phrases:
             # https://stackoverflow.com/questions/919056/case-insensitive-replace  # noqa
             element_re = re.compile(re.escape(element), re.IGNORECASE)
-            expected_result_phrases = element_re.sub(anon_text,
-                                                     expected_result_phrases)
+            expected_result_phrases = element_re.sub(
+                anon_text, expected_result_phrases
+            )
         if regex_method:
             # Regexes handle whitespace flexibly.
             expected_result_phrases = expected_result_phrases.replace(
@@ -158,8 +161,9 @@ class WordListTests(TestCase):
         expected_result_words = test_source_text
         for element in denylist_words:
             element_re = re.compile(re.escape(element), re.IGNORECASE)
-            expected_result_words = element_re.sub(anon_text,
-                                                   expected_result_words)
+            expected_result_words = element_re.sub(
+                anon_text, expected_result_words
+            )
 
         filename = os.path.join(self.tempdir.name, "badwords.txt")
         with open(filename, "wt") as f:
@@ -169,13 +173,13 @@ class WordListTests(TestCase):
             filenames=[filename],
             as_phrases=True,
             replacement_text=anon_text,
-            regex_method=regex_method
+            regex_method=regex_method,
         )
         wordlist_words = WordList(
             filenames=[filename],
             as_phrases=False,
             replacement_text=anon_text,
-            regex_method=regex_method
+            regex_method=regex_method,
         )
 
         log.info(f"test_source_text: {test_source_text}")
@@ -197,19 +201,16 @@ class WordListTests(TestCase):
             words=["one", "two"],
             suffixes=["dog", "cat"],
             replacement_text=anon_text,
-            regex_method=regex_method
+            regex_method=regex_method,
         )
         self.assertEqual(
-            wordlist_suffixes.scrub("x one x"),
-            f"x {anon_text} x"
+            wordlist_suffixes.scrub("x one x"), f"x {anon_text} x"
         )
         self.assertEqual(
-            wordlist_suffixes.scrub("x onedog x"),
-            f"x {anon_text} x"
+            wordlist_suffixes.scrub("x onedog x"), f"x {anon_text} x"
         )
         self.assertEqual(
-            wordlist_suffixes.scrub("x one dog x"),
-            f"x {anon_text} dog x"
+            wordlist_suffixes.scrub("x one dog x"), f"x {anon_text} dog x"
         )
 
     def test_wordlist(self) -> None:
@@ -221,6 +222,7 @@ class WordListTests(TestCase):
 # Test PersonalizedScrubber
 # =============================================================================
 
+
 class PersonalizedScrubberTests(TestCase):
     def setUp(self) -> None:
         self.key = TEST_KEY
@@ -230,33 +232,54 @@ class PersonalizedScrubberTests(TestCase):
 
     def test_phrase_unless_numeric(self) -> None:
         tests = [
-            ("5", {
-                "blah 5 blah": "blah 5 blah",
-            }),
-            (" 5 ", {
-                "blah 5 blah": "blah 5 blah",
-            }),
-            (" 5.0 ", {
-                "blah 5 blah": "blah 5 blah",
-                "blah 5. blah": "blah 5. blah",
-                "blah 5.0 blah": "blah 5.0 blah",
-            }),
-            (" 5. ", {
-                "blah 5 blah": "blah 5 blah",
-                "blah 5. blah": "blah 5. blah",
-                "blah 5.0 blah": "blah 5.0 blah",
-            }),
-            ("5 Tree Road", {
-                "blah 5 blah": "blah 5 blah",
-                "blah 5 Tree Road blah": f"blah {self.anonpatient} blah",
-            }),
-            (" 5 Tree Road ", {
-                "blah 5 blah": "blah 5 blah",
-                "blah 5 Tree Road blah": f"blah {self.anonpatient} blah",
-            }),
-            (" 5b ", {
-                "blah 5b blah": f"blah {self.anonpatient} blah",
-            }),
+            (
+                "5",
+                {
+                    "blah 5 blah": "blah 5 blah",
+                },
+            ),
+            (
+                " 5 ",
+                {
+                    "blah 5 blah": "blah 5 blah",
+                },
+            ),
+            (
+                " 5.0 ",
+                {
+                    "blah 5 blah": "blah 5 blah",
+                    "blah 5. blah": "blah 5. blah",
+                    "blah 5.0 blah": "blah 5.0 blah",
+                },
+            ),
+            (
+                " 5. ",
+                {
+                    "blah 5 blah": "blah 5 blah",
+                    "blah 5. blah": "blah 5. blah",
+                    "blah 5.0 blah": "blah 5.0 blah",
+                },
+            ),
+            (
+                "5 Tree Road",
+                {
+                    "blah 5 blah": "blah 5 blah",
+                    "blah 5 Tree Road blah": f"blah {self.anonpatient} blah",
+                },
+            ),
+            (
+                " 5 Tree Road ",
+                {
+                    "blah 5 blah": "blah 5 blah",
+                    "blah 5 Tree Road blah": f"blah {self.anonpatient} blah",
+                },
+            ),
+            (
+                " 5b ",
+                {
+                    "blah 5b blah": f"blah {self.anonpatient} blah",
+                },
+            ),
         ]
         for scrubvalue, mapping in tests:
             scrubber = PersonalizedScrubber(
@@ -264,14 +287,15 @@ class PersonalizedScrubberTests(TestCase):
                 replacement_text_third_party=self.anonthird,
                 hasher=self.hasher,
                 min_string_length_to_scrub_with=1,
-                debug=True
+                debug=True,
             )
-            scrubber.add_value(scrubvalue,
-                               scrub_method=ScrubMethod.PHRASE_UNLESS_NUMERIC)
+            scrubber.add_value(
+                scrubvalue, scrub_method=ScrubMethod.PHRASE_UNLESS_NUMERIC
+            )
             for start, end in mapping.items():
                 self.assertEqual(
                     scrubber.scrub(start),
                     end,
                     f"Failure for scrubvalue: {scrubvalue!r}; regex elements "
-                    f"are {scrubber.re_patient_elements}"
+                    f"are {scrubber.re_patient_elements}",
                 )

@@ -55,6 +55,7 @@ if TYPE_CHECKING:
 # User profile information
 # =============================================================================
 
+
 class UserProfile(models.Model):
     """
     User profile information.
@@ -64,10 +65,13 @@ class UserProfile(models.Model):
     - stuff the user might edit, e.g. per_page
     - a representation of the user as a researcher (or maybe clinician)
     """
-    user = models.OneToOneField(settings.AUTH_USER_MODEL,
-                                primary_key=True,
-                                on_delete=models.CASCADE,
-                                related_name="profile")
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        primary_key=True,
+        on_delete=models.CASCADE,
+        related_name="profile",
+    )
     # https://stackoverflow.com/questions/14345303/creating-a-profile-model-with-both-an-inlineadmin-and-a-post-save-signal-in-djan  # noqa
 
     # first_name: in Django User model
@@ -75,76 +79,98 @@ class UserProfile(models.Model):
     # email: in Django User model
 
     N_PAGE_CHOICES = (
-        (10, '10'),
-        (20, '20'),
-        (50, '50'),
-        (100, '100'),
-        (200, '200'),
-        (500, '500'),
-        (1000, '1000'),
+        (10, "10"),
+        (20, "20"),
+        (50, "50"),
+        (100, "100"),
+        (200, "200"),
+        (500, "500"),
+        (1000, "1000"),
     )
     N_PATIENT_PAGE_CHOICES = (
-        (1, '1'),
-        (5, '5'),
-        (10, '10'),
-        (20, '20'),
-        (50, '50'),
-        (100, '100'),
+        (1, "1"),
+        (5, "5"),
+        (10, "10"),
+        (20, "20"),
+        (50, "50"),
+        (100, "100"),
     )
 
     # -------------------------------------------------------------------------
     # Web site personal settings
     # -------------------------------------------------------------------------
     per_page = models.PositiveSmallIntegerField(
-        choices=N_PAGE_CHOICES, default=50,
-        verbose_name="Number of items to show per page")
+        choices=N_PAGE_CHOICES,
+        default=50,
+        verbose_name="Number of items to show per page",
+    )
     patients_per_page = models.PositiveSmallIntegerField(
-        choices=N_PATIENT_PAGE_CHOICES, default=1,
+        choices=N_PATIENT_PAGE_CHOICES,
+        default=1,
         verbose_name="Number of patients to show per page "
-                     "(for Patient Explorer view)")
+        "(for Patient Explorer view)",
+    )
     line_length = models.PositiveSmallIntegerField(
         default=80,
         verbose_name="Characters to word-wrap text at in results "
-                     "display (0 for no wrap)")
+        "display (0 for no wrap)",
+    )
     collapse_at_len = models.PositiveSmallIntegerField(
         default=400,
         verbose_name="Number of characters beyond which results field starts "
-                     "collapsed (0 for none)")
+        "collapsed (0 for none)",
+    )
     collapse_at_n_lines = models.PositiveSmallIntegerField(
         default=5,
         verbose_name="Number of lines beyond which result/query field starts "
-                     "collapsed (0 for none)")
+        "collapsed (0 for none)",
+    )
     sql_scratchpad = models.TextField(
-        verbose_name='SQL scratchpad for query builder')
+        verbose_name="SQL scratchpad for query builder"
+    )
     patient_multiquery_scratchpad = JsonClassField(
-        verbose_name='PatientMultiQuery scratchpad (in JSON) for builder',
-        null=True)  # type: PatientMultiQuery
+        verbose_name="PatientMultiQuery scratchpad (in JSON) for builder",
+        null=True,
+    )  # type: PatientMultiQuery
 
     # -------------------------------------------------------------------------
     # Developer
     # -------------------------------------------------------------------------
     is_developer = models.BooleanField(
-        default=False,
-        verbose_name="Enable developer functions?")
+        default=False, verbose_name="Enable developer functions?"
+    )
 
     # -------------------------------------------------------------------------
     # Contact details
     # -------------------------------------------------------------------------
     title = models.CharField(max_length=LEN_TITLE, blank=True)
-    address_1 = models.CharField(max_length=LEN_ADDRESS, blank=True,
-                                 verbose_name="Address line 1")
-    address_2 = models.CharField(max_length=LEN_ADDRESS, blank=True,
-                                 verbose_name="Address line 2")
-    address_3 = models.CharField(max_length=LEN_ADDRESS, blank=True,
-                                 verbose_name="Address line 3")
-    address_4 = models.CharField(max_length=LEN_ADDRESS, blank=True,
-                                 verbose_name="Address line 4")
-    address_5 = models.CharField(max_length=LEN_ADDRESS, blank=True,
-                                 verbose_name="Address line 5 (county)")
-    address_6 = models.CharField(max_length=LEN_ADDRESS, blank=True,
-                                 verbose_name="Address line 6 (postcode)")
-    address_7 = models.CharField(max_length=LEN_ADDRESS, blank=True,
-                                 verbose_name="Address line 7 (country)")
+    address_1 = models.CharField(
+        max_length=LEN_ADDRESS, blank=True, verbose_name="Address line 1"
+    )
+    address_2 = models.CharField(
+        max_length=LEN_ADDRESS, blank=True, verbose_name="Address line 2"
+    )
+    address_3 = models.CharField(
+        max_length=LEN_ADDRESS, blank=True, verbose_name="Address line 3"
+    )
+    address_4 = models.CharField(
+        max_length=LEN_ADDRESS, blank=True, verbose_name="Address line 4"
+    )
+    address_5 = models.CharField(
+        max_length=LEN_ADDRESS,
+        blank=True,
+        verbose_name="Address line 5 (county)",
+    )
+    address_6 = models.CharField(
+        max_length=LEN_ADDRESS,
+        blank=True,
+        verbose_name="Address line 6 (postcode)",
+    )
+    address_7 = models.CharField(
+        max_length=LEN_ADDRESS,
+        blank=True,
+        verbose_name="Address line 7 (country)",
+    )
     telephone = models.CharField(max_length=LEN_PHONE, blank=True)
 
     # -------------------------------------------------------------------------
@@ -153,14 +179,17 @@ class UserProfile(models.Model):
     is_clinician = models.BooleanField(
         default=False,
         verbose_name="User is a clinician (with implied permission to look "
-                     "up RIDs)")
+        "up RIDs)",
+    )
     is_consultant = models.BooleanField(
         default=False,
         verbose_name="User is an NHS consultant "
-                     "(relevant for clinical trials)")
+        "(relevant for clinical trials)",
+    )
     signatory_title = models.CharField(
         max_length=255,
-        verbose_name='Title for signature (e.g. "Consultant psychiatrist")')
+        verbose_name='Title for signature (e.g. "Consultant psychiatrist")',
+    )
 
     # -------------------------------------------------------------------------
     # Functions
@@ -169,26 +198,41 @@ class UserProfile(models.Model):
         """
         Returns the user's address lines.
         """
-        return list(filter(None,
-                           [self.address_1, self.address_2, self.address_3,
-                            self.address_4, self.address_5, self.address_6,
-                            self.address_7]))
+        return list(
+            filter(
+                None,
+                [
+                    self.address_1,
+                    self.address_2,
+                    self.address_3,
+                    self.address_4,
+                    self.address_5,
+                    self.address_6,
+                    self.address_7,
+                ],
+            )
+        )
 
     def get_title_forename_surname(self) -> str:
         """
         Returns the user's name in the form "Dr Joe Bloggs".
         """
         # noinspection PyTypeChecker,PyUnresolvedReferences
-        return title_forename_surname(self.title, self.user.first_name,
-                                      self.user.last_name)
+        return title_forename_surname(
+            self.title, self.user.first_name, self.user.last_name
+        )
 
     def get_salutation(self) -> str:
         """
         Returns a salutation for the user (e.g. "Dr Bloggs").
         """
         # noinspection PyTypeChecker,PyUnresolvedReferences
-        return salutation(self.title, self.user.first_name,
-                          self.user.last_name, assume_dr=True)
+        return salutation(
+            self.title,
+            self.user.first_name,
+            self.user.last_name,
+            assume_dr=True,
+        )
 
     def get_forename_surname(self) -> str:
         """
@@ -200,10 +244,12 @@ class UserProfile(models.Model):
 
 # noinspection PyUnusedLocal
 @receiver(models.signals.post_save, sender=settings.AUTH_USER_MODEL)
-def user_saved_so_create_profile(sender: Type[settings.AUTH_USER_MODEL],
-                                 instance: settings.AUTH_USER_MODEL,
-                                 created: bool,
-                                 **kwargs: Any) -> None:
+def user_saved_so_create_profile(
+    sender: Type[settings.AUTH_USER_MODEL],
+    instance: settings.AUTH_USER_MODEL,
+    created: bool,
+    **kwargs: Any
+) -> None:
     """
     Django signal receiver.
 

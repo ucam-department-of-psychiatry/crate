@@ -36,18 +36,24 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('userprofile', '0006_auto_20170212_0137'),
+        ("userprofile", "0006_auto_20170212_0137"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userprofile',
-            name='is_clinician',
-            field=models.BooleanField(default=False, verbose_name='User is a clinician (with implied permission to look up RIDs)'),  # noqa
+            model_name="userprofile",
+            name="is_clinician",
+            field=models.BooleanField(
+                default=False,
+                verbose_name="User is a clinician (with implied permission to look up RIDs)",
+            ),  # noqa
         ),
         migrations.AlterField(
-            model_name='userprofile',
-            name='is_consultant',
-            field=models.BooleanField(default=False, verbose_name='User is an NHS consultant (relevant for clinical trials)'),  # noqa
+            model_name="userprofile",
+            name="is_consultant",
+            field=models.BooleanField(
+                default=False,
+                verbose_name="User is an NHS consultant (relevant for clinical trials)",
+            ),  # noqa
         ),
     ]

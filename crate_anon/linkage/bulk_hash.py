@@ -78,11 +78,13 @@ def get_first_noncomment_line(filename: str) -> Optional[str]:
         return None
 
 
-def bulk_hash(input_filename: str,
-              output_filename: str,
-              hash_method: str,
-              key: str,
-              keep_id: bool = True):
+def bulk_hash(
+    input_filename: str,
+    output_filename: str,
+    hash_method: str,
+    key: str,
+    keep_id: bool = True,
+):
     """
     Hash lines from one file to another.
 
@@ -124,46 +126,66 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Hash IDs in bulk, using a cryptographic hash function.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
-        'infile', type=str,
+        "infile",
+        type=str,
         help="Input file, or '-' for stdin. "
-             "Use one line per thing to be hashed. "
-             "Comments (marked with '#') and blank lines are ignored. "
-             "Lines have whitespace stripped left and right.")
+        "Use one line per thing to be hashed. "
+        "Comments (marked with '#') and blank lines are ignored. "
+        "Lines have whitespace stripped left and right.",
+    )
     parser.add_argument(
-        '--outfile', type=str, default="-",
+        "--outfile",
+        type=str,
+        default="-",
         help="Output file, or '-' for stdout. "
-             "One line will be written for every input line. "
-             "Blank lines will be written for commented or blank input.")
+        "One line will be written for every input line. "
+        "Blank lines will be written for commented or blank input.",
+    )
     parser.add_argument(
-        '--key', type=str,
+        "--key",
+        type=str,
         help="Secret key for hasher (warning: may be visible in process list; "
-             "see also --keyfile)")
+        "see also --keyfile)",
+    )
     parser.add_argument(
-        '--keyfile', type=str,
+        "--keyfile",
+        type=str,
         help="File whose first noncomment line contains the secret key for "
-             "the hasher. (It will be whitespace-stripped right and left.)")
+        "the hasher. (It will be whitespace-stripped right and left.)",
+    )
     parser.add_argument(
-        '--method', choices=[HashMethods.HMAC_MD5,
-                             HashMethods.HMAC_SHA256,
-                             HashMethods.HMAC_SHA512],
+        "--method",
+        choices=[
+            HashMethods.HMAC_MD5,
+            HashMethods.HMAC_SHA256,
+            HashMethods.HMAC_SHA512,
+        ],
         default=HashMethods.HMAC_MD5,
-        help="Hash method")
+        help="Hash method",
+    )
     parser.add_argument(
-        '--keepid', action="store_true",
-        help="Produce CSV output with (hash,id) rather than just the hash")
+        "--keepid",
+        action="store_true",
+        help="Produce CSV output with (hash,id) rather than just the hash",
+    )
     parser.add_argument(
-        '--verbose', '-v', action="store_true",
-        help="Be verbose (NB will write key to stderr)")
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Be verbose (NB will write key to stderr)",
+    )
 
     args = parser.parse_args()
-    main_only_quicksetup_rootlogger(logging.DEBUG if args.verbose
-                                    else logging.INFO)
-
-    assert bool(args.key) != bool(args.keyfile), (
-        "Specify either --key or --keyfile (and not both)."
+    main_only_quicksetup_rootlogger(
+        logging.DEBUG if args.verbose else logging.INFO
     )
+
+    assert bool(args.key) != bool(
+        args.keyfile
+    ), "Specify either --key or --keyfile (and not both)."
     if args.keyfile:
         key = get_first_noncomment_line(args.keyfile)
         assert key, f"No key found in keyfile: {args.keyfile}"

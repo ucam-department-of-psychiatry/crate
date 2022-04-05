@@ -92,9 +92,10 @@ log = logging.getLogger(__name__)
 # Helper functions
 # =============================================================================
 
-def warn_if_identifier_long(table: str,
-                            column: str,
-                            dest_dialect: Optional[str]) -> None:
+
+def warn_if_identifier_long(
+    table: str, column: str, dest_dialect: Optional[str]
+) -> None:
     """
     Warns about identifiers that are too long for specific database engines.
     """
@@ -116,17 +117,20 @@ def warn_if_identifier_long(table: str,
                 log.warning(
                     f"{description} name in {table!r}.{column!r} "
                     f"is too long for {prettyname} "
-                    f"({len(value)} characters > {maxlen} maximum)")
+                    f"({len(value)} characters > {maxlen} maximum)"
+                )
 
 
 # =============================================================================
 # DataDictionaryRow
 # =============================================================================
 
+
 class DataDictionaryRow(object):
     """
     Class representing a single row of a data dictionary (a DDR).
     """
+
     # For attribute/config references:
     SRC_DB = "src_db"
     SRC_TABLE = "src_table"
@@ -155,15 +159,12 @@ class DataDictionaryRow(object):
         SRC_FIELD,
         SRC_DATAFILE,
         SRC_FLAGS,
-
         SCRUB_SRC,
         SCRUB_METHOD,
-
         DECISION,
         INCLUSION_VALUES,
         EXCLUSION_VALUES,
         ALTER_METHOD,
-
         DEST_TABLE,
         DEST_FIELD,
         DEST_DATATYPE,
@@ -186,7 +187,9 @@ class DataDictionaryRow(object):
         self.src_db = None  # type: Optional[str]
         self.src_table = None  # type: Optional[str]
         self.src_field = None  # type: Optional[str]
-        self.src_datatype = None    # type: Optional[str]  # in SQL string format  # noqa
+        self.src_datatype = (
+            None
+        )  # type: Optional[str]  # in SQL string format  # noqa
         # src_flags: a property; see below
 
         self.scrub_src = None  # type: Optional[str]
@@ -202,7 +205,7 @@ class DataDictionaryRow(object):
         self.dest_datatype = None  # type: Optional[str]
         self.index = IndexType.NONE  # type: IndexType
         self.indexlen = None  # type: Optional[int]
-        self.comment = ''
+        self.comment = ""
 
         # For src_flags:
         self._pk = False
@@ -243,9 +246,8 @@ class DataDictionaryRow(object):
         Returns the SQLAlchemy :class:`Dialect` (e.g. MySQL, SQL Server...) for
         the source database.
         """
-        return (
-            self._src_override_dialect
-            or self.config.get_src_dialect(self.src_db)
+        return self._src_override_dialect or self.config.get_src_dialect(
+            self.src_db
         )
 
     @property
@@ -292,8 +294,8 @@ class DataDictionaryRow(object):
     @property
     def not_null(self) -> bool:
         """
-        Defaults to False. But if the DD row was created by database reflection,
-        and the source field was set NOT NULL, will return True.
+        Defaults to False. But if the DD row was created by database
+        reflection, and the source field was set NOT NULL, will return True.
         """
         return self._not_null
 
@@ -391,11 +393,7 @@ class DataDictionaryRow(object):
         """
         Fields for which the alter method is fixed.
         """
-        return (
-            self.primary_pid
-            or self.master_pid
-            or self.third_party_pid
-        )
+        return self.primary_pid or self.master_pid or self.third_party_pid
 
     @property
     def constant(self) -> bool:
@@ -431,18 +429,23 @@ class DataDictionaryRow(object):
         """
         Returns a string representation of the source flags.
         """
-        return ''.join(str(x) for x in (
-            SrcFlag.PK if self._pk else '',
-            SrcFlag.NOT_NULL if self._not_null else '',
-            SrcFlag.ADD_SRC_HASH if self._add_src_hash else '',
-            SrcFlag.PRIMARY_PID if self._primary_pid else '',
-            SrcFlag.DEFINES_PRIMARY_PIDS if self._defines_primary_pids else '',
-            SrcFlag.MASTER_PID if self._master_pid else '',
-            SrcFlag.CONSTANT if self._constant else '',
-            SrcFlag.ADDITION_ONLY if self._addition_only else '',
-            SrcFlag.OPT_OUT if self._opt_out_info else '',
-            SrcFlag.REQUIRED_SCRUBBER if self._required_scrubber else '',
-        ))
+        return "".join(
+            str(x)
+            for x in (
+                SrcFlag.PK if self._pk else "",
+                SrcFlag.NOT_NULL if self._not_null else "",
+                SrcFlag.ADD_SRC_HASH if self._add_src_hash else "",
+                SrcFlag.PRIMARY_PID if self._primary_pid else "",
+                SrcFlag.DEFINES_PRIMARY_PIDS
+                if self._defines_primary_pids
+                else "",
+                SrcFlag.MASTER_PID if self._master_pid else "",
+                SrcFlag.CONSTANT if self._constant else "",
+                SrcFlag.ADDITION_ONLY if self._addition_only else "",
+                SrcFlag.OPT_OUT if self._opt_out_info else "",
+                SrcFlag.REQUIRED_SCRUBBER if self._required_scrubber else "",
+            )
+        )
 
     @src_flags.setter
     def src_flags(self, flags: str) -> None:
@@ -454,7 +457,9 @@ class DataDictionaryRow(object):
         self._not_null = SrcFlag.NOT_NULL.value in flags
         self._add_src_hash = SrcFlag.ADD_SRC_HASH.value in flags
         self._primary_pid = SrcFlag.PRIMARY_PID.value in flags
-        self._defines_primary_pids = SrcFlag.DEFINES_PRIMARY_PIDS.value in flags
+        self._defines_primary_pids = (
+            SrcFlag.DEFINES_PRIMARY_PIDS.value in flags
+        )
         self._master_pid = SrcFlag.MASTER_PID.value in flags
         self._constant = SrcFlag.CONSTANT.value in flags
         self._addition_only = SrcFlag.ADDITION_ONLY.value in flags
@@ -472,7 +477,7 @@ class DataDictionaryRow(object):
         inclusion values (see
         :func:`crate_anon.anonymise.anonymise.process_table`).
         """
-        return self._inclusion_values or ''  # for TSV output
+        return self._inclusion_values or ""  # for TSV output
 
     @inclusion_values.setter
     def inclusion_values(self, value: str) -> None:
@@ -490,7 +495,9 @@ class DataDictionaryRow(object):
 
         """
         if value:
-            self._inclusion_values = ast.literal_eval(value) or []  # type: List[Any]  # noqa
+            self._inclusion_values = (
+                ast.literal_eval(value) or []
+            )  # type: List[Any]  # noqa
         else:
             self._inclusion_values = []  # type: List[Any]
 
@@ -505,7 +512,7 @@ class DataDictionaryRow(object):
         exclusion values (see
         :func:`crate_anon.anonymise.anonymise.process_table`).
         """
-        return self._exclusion_values or ''  # for TSV output
+        return self._exclusion_values or ""  # for TSV output
 
     @exclusion_values.setter
     def exclusion_values(self, value: str) -> None:
@@ -523,7 +530,9 @@ class DataDictionaryRow(object):
 
         """
         if value:
-            self._exclusion_values = ast.literal_eval(value) or []  # type: List[Any]  # noqa
+            self._exclusion_values = (
+                ast.literal_eval(value) or []
+            )  # type: List[Any]  # noqa
         else:
             self._exclusion_values = []  # type: List[Any]
 
@@ -544,8 +553,7 @@ class DataDictionaryRow(object):
         """
         Return the ``alter_method`` string from the working fields.
         """
-        return ",".join(filter(
-            None, (x.as_text for x in self._alter_methods)))
+        return ",".join(filter(None, (x.as_text for x in self._alter_methods)))
         # This removes any AlterMethod objects that are doing nothing, because
         # they return blank strings.
 
@@ -576,11 +584,14 @@ class DataDictionaryRow(object):
         have_truncate_date = False
         for am in self._alter_methods:
             if not am.truncate_date and have_truncate_date:
-                raise ValueError(f"Date truncation must stand alone in "
-                                 f"alter_method: {value}")
+                raise ValueError(
+                    f"Date truncation must stand alone in "
+                    f"alter_method: {value}"
+                )
             if am.extract_text and have_text_extraction:
-                raise ValueError(f"Can only have one text extraction method "
-                                 f"in {value}")
+                raise ValueError(
+                    f"Can only have one text extraction method " f"in {value}"
+                )
             if am.truncate_date:
                 have_truncate_date = True
             if am.extract_text:
@@ -627,8 +638,11 @@ class DataDictionaryRow(object):
                 e = Decision.lookup(value)
             self.omit = e is Decision.OMIT
         except ValueError:
-            raise ValueError("decision was {}; must be one of {}".format(
-                value, [Decision.OMIT.value, Decision.INCLUDE.value]))
+            raise ValueError(
+                "decision was {}; must be one of {}".format(
+                    value, [Decision.OMIT.value, Decision.INCLUDE.value]
+                )
+            )
 
     @property
     def include(self) -> bool:
@@ -675,8 +689,9 @@ class DataDictionaryRow(object):
         """
         Returns a string representation of the DDR.
         """
-        return ", ".join([f"{a}: {getattr(self, a)!r}"
-                          for a in DataDictionaryRow.ROWNAMES])
+        return ", ".join(
+            [f"{a}: {getattr(self, a)!r}" for a in DataDictionaryRow.ROWNAMES]
+        )
 
     @property
     def src_signature(self) -> str:
@@ -700,9 +715,7 @@ class DataDictionaryRow(object):
         Get a string used to describe this DDR (in terms of its
         source/destination fields) if it does something wrong.
         """
-        offenderdest = (
-            "" if not self.omit else f" -> {self.dest_signature}"
-        )
+        offenderdest = "" if not self.omit else f" -> {self.dest_signature}"
         return f"{self.src_signature}{offenderdest}"
 
     @classmethod
@@ -734,8 +747,9 @@ class DataDictionaryRow(object):
     # Setting
     # -------------------------------------------------------------------------
 
-    def set_from_dict(self, valuedict: Dict[str, Any],
-                      override_dialect: Dialect = None) -> None:
+    def set_from_dict(
+        self, valuedict: Dict[str, Any], override_dialect: Dialect = None
+    ) -> None:
         """
         Set internal fields from a dict of elements representing a row from the
         TSV data dictionary file.
@@ -751,31 +765,33 @@ class DataDictionaryRow(object):
                 textual column types in the source database). By default, the
                 source database's own dialect is used.
         """
-        self.src_db = valuedict['src_db']
-        self.src_table = valuedict['src_table']
-        self.src_field = valuedict['src_field']
-        self.src_datatype = valuedict['src_datatype'].upper()
+        self.src_db = valuedict["src_db"]
+        self.src_table = valuedict["src_table"]
+        self.src_field = valuedict["src_field"]
+        self.src_datatype = valuedict["src_datatype"].upper()
         self._src_override_dialect = override_dialect
         # noinspection PyAttributeOutsideInit
-        self.src_flags = valuedict['src_flags']  # a property
-        self.scrub_src = ScrubSrc.lookup(valuedict['scrub_src'],
-                                         allow_none=True)
-        self.scrub_method = ScrubMethod.lookup(valuedict['scrub_method'],
-                                               allow_none=True)
+        self.src_flags = valuedict["src_flags"]  # a property
+        self.scrub_src = ScrubSrc.lookup(
+            valuedict["scrub_src"], allow_none=True
+        )
+        self.scrub_method = ScrubMethod.lookup(
+            valuedict["scrub_method"], allow_none=True
+        )
         # noinspection PyAttributeOutsideInit
-        self.decision = valuedict['decision']  # a property; sets self.omit
+        self.decision = valuedict["decision"]  # a property; sets self.omit
         # noinspection PyAttributeOutsideInit
-        self.inclusion_values = valuedict['inclusion_values']  # a property
+        self.inclusion_values = valuedict["inclusion_values"]  # a property
         # noinspection PyAttributeOutsideInit
-        self.exclusion_values = valuedict['exclusion_values']  # a property
+        self.exclusion_values = valuedict["exclusion_values"]  # a property
         # noinspection PyAttributeOutsideInit
-        self.alter_method = valuedict['alter_method']  # a property
-        self.dest_table = valuedict['dest_table']
-        self.dest_field = valuedict['dest_field']
-        self.dest_datatype = valuedict['dest_datatype'].upper()
-        self.index = IndexType.lookup(valuedict['index'], allow_none=True)
-        self.indexlen = convert_to_int(valuedict['indexlen'])
-        self.comment = valuedict['comment']
+        self.alter_method = valuedict["alter_method"]  # a property
+        self.dest_table = valuedict["dest_table"]
+        self.dest_field = valuedict["dest_field"]
+        self.dest_datatype = valuedict["dest_datatype"].upper()
+        self.index = IndexType.lookup(valuedict["index"], allow_none=True)
+        self.indexlen = convert_to_int(valuedict["indexlen"])
+        self.comment = valuedict["comment"]
         self._from_file = True
 
     # -------------------------------------------------------------------------
@@ -909,7 +925,8 @@ class DataDictionaryRow(object):
         Returns the SQLAlchemy column type of the source column.
         """
         return self._src_sqla_coltype or get_sqla_coltype_from_dialect_str(
-            self.src_datatype, self.config.get_src_dialect(self.src_db))
+            self.src_datatype, self.config.get_src_dialect(self.src_db)
+        )
 
     def set_src_sqla_coltype(self, sqla_coltype: TypeEngine) -> None:
         """
@@ -939,8 +956,7 @@ class DataDictionaryRow(object):
             # User (or our autogeneration process) wants to override
             # the type.
             return get_sqla_coltype_from_dialect_str(
-                self.dest_datatype,
-                self.dest_dialect
+                self.dest_datatype, self.dest_dialect
             )
         else:
             # Destination data type is not explicitly specified.
@@ -955,7 +971,7 @@ class DataDictionaryRow(object):
                 return convert_sqla_type_for_dialect(
                     coltype=self.src_sqla_coltype,
                     dialect=self.dest_dialect,
-                    expand_for_scrubbing=self.being_scrubbed
+                    expand_for_scrubbing=self.being_scrubbed,
                 )
 
     @property
@@ -966,17 +982,17 @@ class DataDictionaryRow(object):
         """
         name = self.dest_field
         coltype = self.dest_sqla_coltype
-        comment = self.comment or ''
+        comment = self.comment or ""
         kwargs = {
-            'doc': comment,  # Python side
-            'comment': comment,  # SQL side; supported from SQLAlchemy 1.2:
+            "doc": comment,  # Python side
+            "comment": comment,  # SQL side; supported from SQLAlchemy 1.2:
             # https://docs.sqlalchemy.org/en/14/core/metadata.html#sqlalchemy.schema.Column.params.comment  # noqa
         }
         if self.pk:
-            kwargs['primary_key'] = True
-            kwargs['autoincrement'] = False
+            kwargs["primary_key"] = True
+            kwargs["autoincrement"] = False
         if self.not_null or self.primary_pid:
-            kwargs['nullable'] = False
+            kwargs["nullable"] = False
         return Column(name, coltype, **kwargs)
 
     def make_dest_datatype_explicit(self) -> None:
@@ -1005,11 +1021,13 @@ class DataDictionaryRow(object):
         except (AssertionError, ValueError):
             log.exception(
                 f"Offending DD row [{self.offender_description}]: "
-                f"{str(self)}")
+                f"{str(self)}"
+            )
             raise
 
     def check_prohibited_fieldnames(
-            self, prohibited_fieldnames: Iterable[str]) -> None:
+        self, prohibited_fieldnames: Iterable[str]
+    ) -> None:
         """
         Check that the destination field isn't a prohibited one.
 
@@ -1023,7 +1041,8 @@ class DataDictionaryRow(object):
         if self.dest_field in prohibited_fieldnames:
             log.exception(
                 f"Offending DD row [{self.offender_description}]: "
-                f"{str(self)}")
+                f"{str(self)}"
+            )
             raise ValueError("Prohibited dest_field name")
 
     def _check_valid(self) -> None:
@@ -1053,7 +1072,8 @@ class DataDictionaryRow(object):
         if self.src_db not in self.config.source_db_names:
             raise ValueError(
                 "Data dictionary row references non-existent source "
-                "database")
+                "database"
+            )
 
         srccfg = self.config.sources[self.src_db].srccfg
 
@@ -1062,8 +1082,9 @@ class DataDictionaryRow(object):
 
         if self.include:
             # Ensure the destination table/column names are OK for the dialect.
-            warn_if_identifier_long(self.dest_table, self.dest_field,
-                                    self.dest_dialect_name)
+            warn_if_identifier_long(
+                self.dest_table, self.dest_field, self.dest_dialect_name
+            )
 
         # REMOVED 2016-06-04; fails with complex SQL Server types, which can
         # look like 'NVARCHAR(10) COLLATE "Latin1_General_CI_AS"'.
@@ -1080,18 +1101,27 @@ class DataDictionaryRow(object):
             raise ValueError(
                 f"All fields with "
                 f"{self.SRC_FLAGS}={SrcFlag.DEFINES_PRIMARY_PIDS} "
-                f"set must have {self.SRC_FLAGS}={SrcFlag.PRIMARY_PID} set")
+                f"set must have {self.SRC_FLAGS}={SrcFlag.PRIMARY_PID} set"
+            )
 
         if self.opt_out_info and not self.config.optout_col_values:
             raise ValueError(
                 f"Fields with {self.SRC_FLAGS}={SrcFlag.OPT_OUT} "
                 f"exist, but config's {AnonymiseConfigKeys.OPTOUT_COL_VALUES} "
-                f"setting is empty")
+                f"setting is empty"
+            )
 
-        if count_bool([self.primary_pid,
-                       self.master_pid,
-                       self.third_party_pid,
-                       bool(self.alter_method)]) > 1:
+        if (
+            count_bool(
+                [
+                    self.primary_pid,
+                    self.master_pid,
+                    self.third_party_pid,
+                    bool(self.alter_method),
+                ]
+            )
+            > 1
+        ):
             raise ValueError(
                 f"Field can be any ONE of: "
                 f"{self.SRC_FLAGS}={SrcFlag.PRIMARY_PID}, "
@@ -1099,49 +1129,58 @@ class DataDictionaryRow(object):
                 f"{self.SCRUB_SRC}={ScrubSrc.THIRDPARTY_XREF_PID}, or "
                 f"{self.ALTER_METHOD} "
                 f"(because those flags all imply a certain "
-                f"{self.ALTER_METHOD})")
+                f"{self.ALTER_METHOD})"
+            )
 
         if self.required_scrubber and not self.scrub_src:
             raise ValueError(
                 f"If you specify "
                 f"{self.SRC_FLAGS}={SrcFlag.REQUIRED_SCRUBBER}, "
-                f"you must specify {self.SCRUB_SRC}")
+                f"you must specify {self.SCRUB_SRC}"
+            )
 
         if self.add_src_hash:
             if not self.pk:
                 raise ValueError(
                     f"{self.SRC_FLAGS}={SrcFlag.ADD_SRC_HASH} "
                     f"can only be set on "
-                    f"{self.SRC_FLAGS}={SrcFlag.PK} fields")
+                    f"{self.SRC_FLAGS}={SrcFlag.PK} fields"
+                )
             if self.omit:
                 raise ValueError(
                     f"Cannot omit fields with "
-                    f"{self.SRC_FLAGS}={SrcFlag.ADD_SRC_HASH} set")
+                    f"{self.SRC_FLAGS}={SrcFlag.ADD_SRC_HASH} set"
+                )
             if self.index != IndexType.UNIQUE:
                 raise ValueError(
                     f"{self.SRC_FLAGS}={SrcFlag.ADD_SRC_HASH} fields require "
-                    f"{self.INDEX}=={IndexType.UNIQUE}")
+                    f"{self.INDEX}=={IndexType.UNIQUE}"
+                )
             if self.constant:
                 raise ValueError(
                     f"cannot mix {SrcFlag.ADD_SRC_HASH} flag with "
-                    f"{SrcFlag.CONSTANT} flag")
+                    f"{SrcFlag.CONSTANT} flag"
+                )
 
         if self.constant:
             if not self.pk:
                 raise ValueError(
                     f"{self.SRC_FLAGS}={SrcFlag.CONSTANT} can only be set on "
-                    f"{self.SRC_FLAGS}={SrcFlag.PK} fields")
+                    f"{self.SRC_FLAGS}={SrcFlag.PK} fields"
+                )
             if self.index != IndexType.UNIQUE:
                 raise ValueError(
                     f"{self.SRC_FLAGS}={SrcFlag.CONSTANT} fields require "
-                    f"{self.INDEX}=={IndexType.UNIQUE}")
+                    f"{self.INDEX}=={IndexType.UNIQUE}"
+                )
 
         if self.addition_only:
             if not self.pk:
                 raise ValueError(
                     f"{self.SRC_FLAGS}={SrcFlag.ADDITION_ONLY} "
                     f"can only be set on "
-                    f"{self.SRC_FLAGS}={SrcFlag.PK} fields")
+                    f"{self.SRC_FLAGS}={SrcFlag.PK} fields"
+                )
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # No more checks required if field will be omitted.
@@ -1159,7 +1198,8 @@ class DataDictionaryRow(object):
                 f"Destination tables can't be named "
                 f"{self.config.temporary_tablename}, as that's the name set "
                 f"in the config's {AnonymiseConfigKeys.TEMPORARY_TABLENAME} "
-                f"variable")
+                f"variable"
+            )
         # Field
         ensure_valid_field_name(self.dest_field)
         if self.dest_field == self.config.source_hash_fieldname:
@@ -1167,18 +1207,21 @@ class DataDictionaryRow(object):
                 f"Destination fields can't be named "
                 f"{self.config.source_hash_fieldname}, as that's the name set "
                 f"in the config's {AnonymiseConfigKeys.SOURCE_HASH_FIELDNAME} "
-                f"variable")
+                f"variable"
+            )
         elif self.dest_field == self.config.trid_fieldname:
             raise ValueError(
                 f"Destination fields can't be named "
                 f"{self.config.trid_fieldname}, as that's the name set "
                 f"in the config's {AnonymiseConfigKeys.TRID_FIELDNAME} "
-                f"variable")
+                f"variable"
+            )
         # Datatype
         if self.dest_datatype and not is_sqltype_valid(self.dest_datatype):
             raise ValueError(
                 f"Field has invalid {self.DEST_DATATYPE}: "
-                f"{self.dest_datatype}")
+                f"{self.dest_datatype}"
+            )
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check destination flags/special fields
@@ -1189,24 +1232,30 @@ class DataDictionaryRow(object):
                 raise ValueError(
                     f"All fields with {self.SRC_FIELD}={self.src_field!r} "
                     f"used in output should have "
-                    f"{self.SRC_FLAGS}={SrcFlag.PRIMARY_PID} set")
+                    f"{self.SRC_FLAGS}={SrcFlag.PRIMARY_PID} set"
+                )
             if self.dest_field != self.config.research_id_fieldname:
                 raise ValueError(
                     f"Primary PID field should have {self.DEST_FIELD} = "
-                    f"{self.config.research_id_fieldname}")
+                    f"{self.config.research_id_fieldname}"
+                )
         # MPID/MRID
-        if (self.matches_fielddef(srccfg.ddgen_master_pid_fieldname) and
-                not self.master_pid):
+        if (
+            self.matches_fielddef(srccfg.ddgen_master_pid_fieldname)
+            and not self.master_pid
+        ):
             raise ValueError(
                 f"All fields with {self.SRC_FIELD} = "
                 f"{srccfg.ddgen_master_pid_fieldname} used in output should "
-                f"have {self.SRC_FLAGS}={SrcFlag.MASTER_PID} set")
+                f"have {self.SRC_FLAGS}={SrcFlag.MASTER_PID} set"
+            )
         # Anything that is hashed (but not self._add_src_hash -- added
         # separately):
-        if (self.dest_should_be_encrypted_pid_type
-                and self.dest_datatype
-                and self.dest_datatype !=
-                self.config.sqltype_encrypted_pid_as_sql):
+        if (
+            self.dest_should_be_encrypted_pid_type
+            and self.dest_datatype
+            and self.dest_datatype != self.config.sqltype_encrypted_pid_as_sql
+        ):
             raise ValueError(
                 f"All {self.SRC_FLAGS}={SrcFlag.PRIMARY_PID}/"
                 f"{self.SRC_FLAGS}={SrcFlag.MASTER_PID}/"
@@ -1214,7 +1263,8 @@ class DataDictionaryRow(object):
                 f"fields used in output must have {self.DEST_DATATYPE} = "
                 f"{self.config.sqltype_encrypted_pid_as_sql} "
                 f"(determined by the config parameter "
-                f"{AnonymiseConfigKeys.HASH_METHOD!r})")
+                f"{AnonymiseConfigKeys.HASH_METHOD!r})"
+            )
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check alteration methods
@@ -1227,24 +1277,29 @@ class DataDictionaryRow(object):
             )
         for am in self._alter_methods:
             if am.truncate_date:
-                if not (is_sqlatype_date(src_sqla_coltype) or
-                        is_sqlatype_text_over_one_char(src_sqla_coltype)):
+                if not (
+                    is_sqlatype_date(src_sqla_coltype)
+                    or is_sqlatype_text_over_one_char(src_sqla_coltype)
+                ):
                     raise ValueError(
                         f"Can't set {AlterMethodType.TRUNCATEDATE.value} "
-                        f"for non-date/non-text field")
+                        f"for non-date/non-text field"
+                    )
             if am.extract_from_filename:
                 if not is_sqlatype_text_over_one_char(src_sqla_coltype):
                     raise ValueError(
                         f"For {self.ALTER_METHOD} = "
                         f"{AlterMethodType.FILENAME_TO_TEXT}, "
                         f"source field must contain a filename and therefore "
-                        f"must be text type of >1 character")
+                        f"must be text type of >1 character"
+                    )
             if am.extract_from_blob:
                 if not is_sqlatype_binary(src_sqla_coltype):
                     raise ValueError(
                         f"For {self.ALTER_METHOD} = "
                         f"{AlterMethodType.BINARY_TO_TEXT}, "
-                        f"source field must be of binary type")
+                        f"source field must be of binary type"
+                    )
 
         # This error/warning too hard to be sure of with SQL Server odd
         # string types:
@@ -1256,27 +1311,32 @@ class DataDictionaryRow(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check indexing
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        if (self.index in (IndexType.NORMAL, IndexType.UNIQUE) and
-                self.indexlen is None and
-                does_sqlatype_require_index_len(dest_sqla_coltype)):
+        if (
+            self.index in (IndexType.NORMAL, IndexType.UNIQUE)
+            and self.indexlen is None
+            and does_sqlatype_require_index_len(dest_sqla_coltype)
+        ):
             raise ValueError(
                 f"Must specify {self.INDEXLEN} "
-                f"to index a TEXT or BLOB field")
+                f"to index a TEXT or BLOB field"
+            )
 
     # -------------------------------------------------------------------------
     # Other stuff requiring config or database info
     # -------------------------------------------------------------------------
 
-    def set_from_src_db_info(self,
-                             src_db: str,
-                             src_table: str,
-                             src_field: str,
-                             src_datatype_sqltext: str,
-                             src_sqla_coltype: TypeEngine,
-                             dbconf: "DatabaseSafeConfig",
-                             comment: str = None,
-                             nullable: bool = True,
-                             primary_key: bool = False) -> None:
+    def set_from_src_db_info(
+        self,
+        src_db: str,
+        src_table: str,
+        src_field: str,
+        src_datatype_sqltext: str,
+        src_sqla_coltype: TypeEngine,
+        dbconf: "DatabaseSafeConfig",
+        comment: str = None,
+        nullable: bool = True,
+        primary_key: bool = False,
+    ) -> None:
         """
         Set up this DDR from a field in the source database, using options set
         in the config file. Used to draft a data dictionary. This is the
@@ -1327,25 +1387,17 @@ class DataDictionaryRow(object):
             # Table primary key (e.g. arbitrary integer).
             self._pk = True
             self._constant = (
-                (
-                    dbconf.ddgen_constant_content
-                    or self.matches_tabledef(
-                        dbconf.ddgen_constant_content_tables
-                    )
-                )
-                and not self.matches_tabledef(
-                    dbconf.ddgen_nonconstant_content_tables
-                )
+                dbconf.ddgen_constant_content
+                or self.matches_tabledef(dbconf.ddgen_constant_content_tables)
+            ) and not self.matches_tabledef(
+                dbconf.ddgen_nonconstant_content_tables
             )
             self._add_src_hash = not self._constant
             self._addition_only = (
-                (
-                    dbconf.ddgen_addition_only
-                    or self.matches_tabledef(dbconf.ddgen_addition_only_tables)
-                )
-                and not self.matches_tabledef(
-                    dbconf.ddgen_deletion_possible_tables
-                )
+                dbconf.ddgen_addition_only
+                or self.matches_tabledef(dbconf.ddgen_addition_only_tables)
+            ) and not self.matches_tabledef(
+                dbconf.ddgen_deletion_possible_tables
             )
 
         if self.matches_fielddef(dbconf.ddgen_per_table_pid_field):
@@ -1371,18 +1423,23 @@ class DataDictionaryRow(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ddgen: Does the field contain sensitive data?
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        if (self.master_pid
-                or self.defines_primary_pids
-                or (self.primary_pid
-                    and dbconf.ddgen_add_per_table_pids_to_scrubber)
-                or self.matches_fielddef(dbconf.ddgen_scrubsrc_patient_fields)):  # noqa
+        if (
+            self.master_pid
+            or self.defines_primary_pids
+            or (
+                self.primary_pid
+                and dbconf.ddgen_add_per_table_pids_to_scrubber
+            )
+            or self.matches_fielddef(dbconf.ddgen_scrubsrc_patient_fields)
+        ):  # noqa
             self.scrub_src = ScrubSrc.PATIENT
 
         elif self.matches_fielddef(dbconf.ddgen_scrubsrc_thirdparty_fields):
             self.scrub_src = ScrubSrc.THIRDPARTY
 
         elif self.matches_fielddef(
-                dbconf.ddgen_scrubsrc_thirdparty_xref_pid_fields):
+            dbconf.ddgen_scrubsrc_thirdparty_xref_pid_fields
+        ):
             self.scrub_src = ScrubSrc.THIRDPARTY_XREF_PID
 
         else:
@@ -1400,15 +1457,18 @@ class DataDictionaryRow(object):
         if not self.scrub_src:
             self.scrub_method = ""
 
-        elif (self.scrub_src is ScrubSrc.THIRDPARTY_XREF_PID
-              or is_sqlatype_numeric(src_sqla_coltype)
-              or self.matches_fielddef(dbconf.ddgen_per_table_pid_field)
-              or self.matches_fielddef(dbconf.ddgen_master_pid_fieldname)
-              or self.matches_fielddef(dbconf.ddgen_scrubmethod_number_fields)):  # noqa
+        elif (
+            self.scrub_src is ScrubSrc.THIRDPARTY_XREF_PID
+            or is_sqlatype_numeric(src_sqla_coltype)
+            or self.matches_fielddef(dbconf.ddgen_per_table_pid_field)
+            or self.matches_fielddef(dbconf.ddgen_master_pid_fieldname)
+            or self.matches_fielddef(dbconf.ddgen_scrubmethod_number_fields)
+        ):  # noqa
             self.scrub_method = ScrubMethod.NUMERIC
 
-        elif (is_sqlatype_date(src_sqla_coltype)
-              or self.matches_fielddef(dbconf.ddgen_scrubmethod_date_fields)):
+        elif is_sqlatype_date(src_sqla_coltype) or self.matches_fielddef(
+            dbconf.ddgen_scrubmethod_date_fields
+        ):
             self.scrub_method = ScrubMethod.DATE
 
         elif self.matches_fielddef(dbconf.ddgen_scrubmethod_code_fields):
@@ -1443,7 +1503,7 @@ class DataDictionaryRow(object):
         if self.dest_should_be_encrypted_pid_type:
             self.dest_datatype = self.config.sqltype_encrypted_pid_as_sql
         else:
-            self.dest_datatype = ''
+            self.dest_datatype = ""
         # ... and see also potential changes made below
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1453,16 +1513,18 @@ class DataDictionaryRow(object):
 
         if self.matches_fielddef(dbconf.ddgen_truncate_date_fields):
             # Date truncation
-            self._alter_methods.append(AlterMethod(config=self.config,
-                                                   truncate_date=True))
+            self._alter_methods.append(
+                AlterMethod(config=self.config, truncate_date=True)
+            )
             # If we're truncating a date, we should also encourage a DATE
             # destination (as opposed to e.g. a DATETIME).
             self.dest_datatype = SQLTYPE_DATE
 
         elif self.matches_fielddef(dbconf.ddgen_filename_to_text_fields):
             # Read filename from database, read file, convert to text
-            self._alter_methods.append(AlterMethod(config=self.config,
-                                                   extract_from_filename=True))
+            self._alter_methods.append(
+                AlterMethod(config=self.config, extract_from_filename=True)
+            )
             self.dest_datatype = giant_text_sqltype(self.dest_dialect)
             extracting_text = True
 
@@ -1470,45 +1532,60 @@ class DataDictionaryRow(object):
             # Read binary data from database, convert to text
             for binfielddef, extfield in dbconf.bin2text_dict.items():
                 if self.matches_fielddef(binfielddef):
-                    self._alter_methods.append(AlterMethod(
-                        config=self.config,
-                        extract_from_blob=True,
-                        extract_ext_field=extfield))
+                    self._alter_methods.append(
+                        AlterMethod(
+                            config=self.config,
+                            extract_from_blob=True,
+                            extract_ext_field=extfield,
+                        )
+                    )
             self.dest_datatype = giant_text_sqltype(self.dest_dialect)
             extracting_text = True
 
-        elif (not self.primary_pid
-              and not self.master_pid
-              and not self.matches_fielddef(
-                    dbconf.ddgen_safe_fields_exempt_from_scrubbing)
-              and dbconf.ddgen_min_length_for_scrubbing >= 1
-              and is_sqlatype_text_of_length_at_least(
-                  src_sqla_coltype, dbconf.ddgen_min_length_for_scrubbing)):
+        elif (
+            not self.primary_pid
+            and not self.master_pid
+            and not self.matches_fielddef(
+                dbconf.ddgen_safe_fields_exempt_from_scrubbing
+            )
+            and dbconf.ddgen_min_length_for_scrubbing >= 1
+            and is_sqlatype_text_of_length_at_least(
+                src_sqla_coltype, dbconf.ddgen_min_length_for_scrubbing
+            )
+        ):
             # Text field meeting the criteria to scrub
-            self._alter_methods.append(AlterMethod(config=self.config,
-                                                   scrub=True))
+            self._alter_methods.append(
+                AlterMethod(config=self.config, scrub=True)
+            )
 
         if extracting_text:
             # Scrub all extract-text fields, unless asked not to
-            if (not self.matches_fielddef(
-                    dbconf.ddgen_safe_fields_exempt_from_scrubbing)):
-                self._alter_methods.append(AlterMethod(config=self.config,
-                                                       scrub=True))
+            if not self.matches_fielddef(
+                dbconf.ddgen_safe_fields_exempt_from_scrubbing
+            ):
+                self._alter_methods.append(
+                    AlterMethod(config=self.config, scrub=True)
+                )
             # Set skip_if_text_extract_fails flag?
             if self.matches_fielddef(
-                    dbconf.ddgen_skip_row_if_extract_text_fails_fields):
-                self._alter_methods.append(AlterMethod(
-                    config=self.config,
-                    skip_if_text_extract_fails=True))
+                dbconf.ddgen_skip_row_if_extract_text_fails_fields
+            ):
+                self._alter_methods.append(
+                    AlterMethod(
+                        config=self.config, skip_if_text_extract_fails=True
+                    )
+                )
 
         for fieldspec, cfg_section in dbconf.ddgen_extra_hash_fields.items():
             # Hash something using an "extra" hasher.
             if self.matches_fielddef(fieldspec):
-                self._alter_methods.append(AlterMethod(
-                    config=self.config,
-                    hash_=True,
-                    hash_config_section=cfg_section
-                ))
+                self._alter_methods.append(
+                    AlterMethod(
+                        config=self.config,
+                        hash_=True,
+                        hash_config_section=cfg_section,
+                    )
+                )
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ddgen: Manipulate the destination table name?
@@ -1526,7 +1603,7 @@ class DataDictionaryRow(object):
 
         for suffix in dbconf.ddgen_rename_tables_remove_suffixes:
             if self.dest_table.endswith(suffix):
-                self.dest_table = self.dest_table[:-len(suffix)]  # remove it
+                self.dest_table = self.dest_table[: -len(suffix)]  # remove it
                 break  # only remove one suffix!
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1537,16 +1614,21 @@ class DataDictionaryRow(object):
         if self._pk:
             self.index = IndexType.UNIQUE
 
-        elif (self.primary_pid
-              or self.master_pid
-              or self.defines_primary_pids
-              or self.dest_field == self.config.research_id_fieldname):
+        elif (
+            self.primary_pid
+            or self.master_pid
+            or self.defines_primary_pids
+            or self.dest_field == self.config.research_id_fieldname
+        ):
             self.index = IndexType.NORMAL
 
-        elif (dbconf.ddgen_allow_fulltext_indexing and
-              does_sqlatype_merit_fulltext_index(
-                  src_sqla_coltype,
-                  min_length=dbconf.ddgen_freetext_index_min_length)):
+        elif (
+            dbconf.ddgen_allow_fulltext_indexing
+            and does_sqlatype_merit_fulltext_index(
+                src_sqla_coltype,
+                min_length=dbconf.ddgen_freetext_index_min_length,
+            )
+        ):
             self.index = IndexType.FULLTEXT
 
         elif self.matches_fielddef(dbconf.ddgen_index_fields):
@@ -1557,9 +1639,11 @@ class DataDictionaryRow(object):
 
         self.indexlen = (
             DEFAULT_INDEX_LEN
-            if (self.index != IndexType.NONE
+            if (
+                self.index != IndexType.NONE
                 and self.index != IndexType.FULLTEXT
-                and does_sqlatype_require_index_len(dest_sqla_type))
+                and does_sqlatype_require_index_len(dest_sqla_type)
+            )
             else None
         )
 

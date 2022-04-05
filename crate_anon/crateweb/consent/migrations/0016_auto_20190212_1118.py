@@ -10,33 +10,66 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('consent', '0015_auto_20190104_1255'),
+        ("consent", "0015_auto_20190104_1255"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='emailattachment',
-            name='file',
-            field=models.FileField(storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='C:/srv/crate/crate_filestorage'), upload_to=''),  # nopep8
+            model_name="emailattachment",
+            name="file",
+            field=models.FileField(
+                storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(
+                    base_url="download_privatestorage",
+                    location="C:/srv/crate/crate_filestorage",
+                ),
+                upload_to="",
+            ),  # nopep8
         ),
         migrations.AlterField(
-            model_name='leaflet',
-            name='pdf',
-            field=cardinal_pythonlib.django.fields.restrictedcontentfile.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='C:/srv/crate/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.leaflet_upload_to),  # nopep8
+            model_name="leaflet",
+            name="pdf",
+            field=cardinal_pythonlib.django.fields.restrictedcontentfile.ContentTypeRestrictedFileField(
+                blank=True,
+                storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(
+                    base_url="download_privatestorage",
+                    location="C:/srv/crate/crate_filestorage",
+                ),
+                upload_to=crate_anon.crateweb.consent.models.leaflet_upload_to,
+            ),  # nopep8
         ),
         migrations.AlterField(
-            model_name='letter',
-            name='pdf',
-            field=models.FileField(storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='C:/srv/crate/crate_filestorage'), upload_to=''),  # nopep8
+            model_name="letter",
+            name="pdf",
+            field=models.FileField(
+                storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(
+                    base_url="download_privatestorage",
+                    location="C:/srv/crate/crate_filestorage",
+                ),
+                upload_to="",
+            ),  # nopep8
         ),
         migrations.AlterField(
-            model_name='study',
-            name='study_details_pdf',
-            field=cardinal_pythonlib.django.fields.restrictedcontentfile.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='C:/srv/crate/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.study_details_upload_to),  # nopep8
+            model_name="study",
+            name="study_details_pdf",
+            field=cardinal_pythonlib.django.fields.restrictedcontentfile.ContentTypeRestrictedFileField(
+                blank=True,
+                storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(
+                    base_url="download_privatestorage",
+                    location="C:/srv/crate/crate_filestorage",
+                ),
+                upload_to=crate_anon.crateweb.consent.models.study_details_upload_to,
+            ),  # nopep8
         ),
         migrations.AlterField(
-            model_name='study',
-            name='subject_form_template_pdf',
-            field=cardinal_pythonlib.django.fields.restrictedcontentfile.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='C:/srv/crate/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.study_form_upload_to),  # nopep8
+            model_name="study",
+            name="subject_form_template_pdf",
+            field=cardinal_pythonlib.django.fields.restrictedcontentfile.ContentTypeRestrictedFileField(
+                blank=True,
+                storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(
+                    base_url="download_privatestorage",
+                    location="C:/srv/crate/crate_filestorage",
+                ),
+                upload_to=crate_anon.crateweb.consent.models.study_form_upload_to,
+            ),  # nopep8
         ),
     ]

@@ -55,13 +55,15 @@ log = logging.getLogger(__name__)
 # CloudConfig
 # =============================================================================
 
+
 class CloudConfig(object):
     """
     Common config object for cloud NLP.
     """
 
-    def __init__(self, nlpdef: "NlpDefinition", name: str,
-                 req_data_dir: str) -> None:
+    def __init__(
+        self, nlpdef: "NlpDefinition", name: str, req_data_dir: str
+    ) -> None:
         """
         Reads the config from the NLP definition's config file.
 
@@ -74,7 +76,9 @@ class CloudConfig(object):
             req_data_dir:
                 directory in which to store temporary request files
         """
-        from crate_anon.nlp_manager.cloud_parser import Cloud  # delayed import  # noqa
+        from crate_anon.nlp_manager.cloud_parser import (
+            Cloud,
+        )  # delayed import  # noqa
 
         self._nlpdef = nlpdef
         self.req_data_dir = req_data_dir
@@ -90,41 +94,52 @@ class CloudConfig(object):
         self.password = cfg.opt_str(CloudNlpConfigKeys.PASSWORD, default="")
         self.max_content_length = cfg.opt_int(
             CloudNlpConfigKeys.MAX_CONTENT_LENGTH,
-            DEFAULT_CLOUD_MAX_CONTENT_LENGTH)
+            DEFAULT_CLOUD_MAX_CONTENT_LENGTH,
+        )
         self.limit_before_commit = cfg.opt_int(
             CloudNlpConfigKeys.LIMIT_BEFORE_COMMIT,
-            DEFAULT_CLOUD_LIMIT_BEFORE_COMMIT)
+            DEFAULT_CLOUD_LIMIT_BEFORE_COMMIT,
+        )
         self.max_records_per_request = cfg.opt_int(
             CloudNlpConfigKeys.MAX_RECORDS_PER_REQUEST,
-            DEFAULT_CLOUD_MAX_RECORDS_PER_REQUEST)
+            DEFAULT_CLOUD_MAX_RECORDS_PER_REQUEST,
+        )
         self.stop_at_failure = cfg.opt_bool(
-            CloudNlpConfigKeys.STOP_AT_FAILURE, True)
+            CloudNlpConfigKeys.STOP_AT_FAILURE, True
+        )
         self.wait_on_conn_err = cfg.opt_int(
             CloudNlpConfigKeys.WAIT_ON_CONN_ERR,
-            DEFAULT_CLOUD_WAIT_ON_CONN_ERR_S)
+            DEFAULT_CLOUD_WAIT_ON_CONN_ERR_S,
+        )
         self.max_tries = cfg.opt_int(
-            CloudNlpConfigKeys.MAX_TRIES, DEFAULT_CLOUD_MAX_TRIES)
+            CloudNlpConfigKeys.MAX_TRIES, DEFAULT_CLOUD_MAX_TRIES
+        )
         self.rate_limit_hz = cfg.opt_int(
-            CloudNlpConfigKeys.RATE_LIMIT_HZ, DEFAULT_CLOUD_RATE_LIMIT_HZ)
+            CloudNlpConfigKeys.RATE_LIMIT_HZ, DEFAULT_CLOUD_RATE_LIMIT_HZ
+        )
         self.test_length_function_speed = cfg.opt_bool(
-            CloudNlpConfigKeys.TEST_LENGTH_FUNCTION_SPEED, True)
+            CloudNlpConfigKeys.TEST_LENGTH_FUNCTION_SPEED, True
+        )
         self.remote_processors = {}  # type: Dict[Tuple[str, str], 'Cloud']
         for processor in self._nlpdef.processors:
             if not isinstance(processor, Cloud):
                 # ... only add 'Cloud' processors
                 log.warning(
                     f"Skipping NLP processor of non-cloud (e.g. local) "
-                    f"type: {processor.friendly_name}")
+                    f"type: {processor.friendly_name}"
+                )
                 continue
-            self.remote_processors[(
-                processor.procname, processor.procversion)] = processor
+            self.remote_processors[
+                (processor.procname, processor.procversion)
+            ] = processor
             # NOTE: KEY IS A TUPLE!
         # We need the following in order to decide whether to ask to include
         # text in reply - if a processor is GATE we need to, as it does not
         # send back the content of the nlp snippet
         self.has_gate_processors = any(
             (x.format == NlpDefValues.FORMAT_GATE)
-            for x in self.remote_processors.values())
+            for x in self.remote_processors.values()
+        )
 
     @property
     def data_filename(self) -> str:
@@ -132,5 +147,6 @@ class CloudConfig(object):
         Returns the filename to be used for storing data.
         """
         nlpname = self._nlpdef.name
-        return os.path.abspath(os.path.join(
-            self.req_data_dir, f"request_data_{nlpname}.csv"))
+        return os.path.abspath(
+            os.path.join(self.req_data_dir, f"request_data_{nlpname}.csv")
+        )

@@ -36,13 +36,24 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('userprofile', '0003_auto_20160628_1301'),
+        ("userprofile", "0003_auto_20160628_1301"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userprofile',
-            name='patients_per_page',
-            field=models.PositiveSmallIntegerField(choices=[(1, '1'), (5, '5'), (10, '10'), (20, '20'), (50, '50'), (100, '100')], default=1, verbose_name='Number of patients to show per page (for Patient Explorer view)'),  # noqa
+            model_name="userprofile",
+            name="patients_per_page",
+            field=models.PositiveSmallIntegerField(
+                choices=[
+                    (1, "1"),
+                    (5, "5"),
+                    (10, "10"),
+                    (20, "20"),
+                    (50, "50"),
+                    (100, "100"),
+                ],
+                default=1,
+                verbose_name="Number of patients to show per page (for Patient Explorer view)",
+            ),  # noqa
         ),
     ]

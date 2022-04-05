@@ -60,10 +60,11 @@ MINIMUM_PYTHON_VERSION_AS_DECIMAL = ".".join(
 # Helper functions
 # =============================================================================
 
+
 def require_minimum_python_version():
     """
     Checks that we are running the required minimum Python version.
     """
-    assert sys.version_info >= MINIMUM_PYTHON_VERSION, (
-        f"Need Python {MINIMUM_PYTHON_VERSION_AS_DECIMAL}+"
-    )
+    assert (
+        sys.version_info >= MINIMUM_PYTHON_VERSION
+    ), f"Need Python {MINIMUM_PYTHON_VERSION_AS_DECIMAL}+"

@@ -47,12 +47,14 @@ log = logging.getLogger(__name__)
 # Generate identifiable values for a patient
 # =============================================================================
 
+
 def gen_all_values_for_patient(
-        session: Session,
-        tablename: str,
-        scrub_src_fieldinfo: List[ScrubSourceFieldInfo],
-        pid_field: str,
-        pid: Union[int, str]) -> Generator[List[Any], None, None]:
+    session: Session,
+    tablename: str,
+    scrub_src_fieldinfo: List[ScrubSourceFieldInfo],
+    pid_field: str,
+    pid: Union[int, str],
+) -> Generator[List[Any], None, None]:
     """
     Generate all sensitive (``scrub_src``) values for a given patient, from a
     given source table. Used to build the scrubber.
@@ -88,6 +90,7 @@ def gen_all_values_for_patient(
 # Patient class, which hosts the patient-specific scrubber
 # =============================================================================
 
+
 class Patient(object):
     """
     Class representing a patient with patient-specific information, such as
@@ -119,22 +122,29 @@ class Patient(object):
         # Scrubber
         self.scrubber = PersonalizedScrubber(
             anonymise_codes_at_word_boundaries_only=(
-                config.anonymise_codes_at_word_boundaries_only),
+                config.anonymise_codes_at_word_boundaries_only
+            ),
             anonymise_codes_at_numeric_boundaries_only=(
-                config.anonymise_codes_at_numeric_boundaries_only),
+                config.anonymise_codes_at_numeric_boundaries_only
+            ),
             anonymise_dates_at_word_boundaries_only=(
-                config.anonymise_dates_at_word_boundaries_only),
+                config.anonymise_dates_at_word_boundaries_only
+            ),
             anonymise_numbers_at_word_boundaries_only=(
-                config.anonymise_numbers_at_word_boundaries_only),
+                config.anonymise_numbers_at_word_boundaries_only
+            ),
             anonymise_numbers_at_numeric_boundaries_only=(
-                config.anonymise_numbers_at_numeric_boundaries_only),
+                config.anonymise_numbers_at_numeric_boundaries_only
+            ),
             anonymise_strings_at_word_boundaries_only=(
-                config.anonymise_strings_at_word_boundaries_only),
+                config.anonymise_strings_at_word_boundaries_only
+            ),
             debug=debug,
             hasher=config.change_detection_hasher,
             min_string_length_for_errors=config.min_string_length_for_errors,
             min_string_length_to_scrub_with=(
-                config.min_string_length_to_scrub_with),
+                config.min_string_length_to_scrub_with
+            ),
             nonspecific_scrubber=config.nonspecific_scrubber,
             replacement_text_patient=config.replace_patient_info_with,
             replacement_text_third_party=config.replace_third_party_info_with,
@@ -150,11 +160,12 @@ class Patient(object):
         log.debug(f"Building scrubber: pid = {pid!r}")
         self._third_party_pids_seen = set()
         self._db_table_pair_list = config.dd.get_scrub_from_db_table_pairs()
-        self._mandatory_scrubbers_unfulfilled = \
+        self._mandatory_scrubbers_unfulfilled = (
             config.dd.get_mandatory_scrubber_sigs().copy()
-        self._build_scrubber(pid,
-                             depth=0,
-                             max_depth=config.thirdparty_xref_max_depth)
+        )
+        self._build_scrubber(
+            pid, depth=0, max_depth=config.thirdparty_xref_max_depth
+        )
         self._unchanged = self.scrubber_hash == self._info.scrubber_hash
         self._info.set_scrubber_info(self.scrubber)
         self._session.commit()
@@ -162,10 +173,9 @@ class Patient(object):
         # promptly. Otherwise, might get:
         #   Deadlock found when trying to get lock; try restarting transaction
 
-    def _build_scrubber(self,
-                        pid: Union[int, str],
-                        depth: int,
-                        max_depth: int) -> None:
+    def _build_scrubber(
+        self, pid: Union[int, str], depth: int, max_depth: int
+    ) -> None:
         """
         Build the scrubber for this patient.
 
@@ -203,25 +213,29 @@ class Patient(object):
             pid_field = config.dd.get_pid_name(src_db, src_table)
             if not pid_field:
                 # Shouldn't happen -- part of the data dictionary checks.
-                raise ValueError(f"Scrub-source table {src_db}.{src_table} "
-                                 f"has no identifiable patient ID field")
+                raise ValueError(
+                    f"Scrub-source table {src_db}.{src_table} "
+                    f"has no identifiable patient ID field"
+                )
             # -----------------------------------------------------------------
             # Collect the actual patient-specific values for this table.
             # -----------------------------------------------------------------
             for values in gen_all_values_for_patient(
-                    session=session,
-                    tablename=src_table,
-                    scrub_src_fieldinfo=scrubsrc_infolist,
-                    pid_field=pid_field,
-                    pid=pid):
+                session=session,
+                tablename=src_table,
+                scrub_src_fieldinfo=scrubsrc_infolist,
+                pid_field=pid_field,
+                pid=pid,
+            ):
                 # The order of "values" matches that of "scrubsrc_infolist".
                 for i, val in enumerate(values):
                     # ---------------------------------------------------------
                     # Add a value to the scrubber
                     # ---------------------------------------------------------
                     info = scrubsrc_infolist[i]
-                    self.scrubber.add_value(val, info.scrub_method,
-                                            patient=info.is_patient)
+                    self.scrubber.add_value(
+                        val, info.scrub_method, patient=info.is_patient
+                    )
 
                     if info.is_mpid and self.mpid is None:
                         # -----------------------------------------------------

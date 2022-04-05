@@ -55,7 +55,9 @@ log = logging.getLogger(__name__)
 THIS_DIR = abspath(dirname(__file__))  # .../crate/tools
 DOCS_DIR = abspath(join(THIS_DIR, pardir, "docs"))  # .../crate/docs/
 
-CRATE_ROOT_DIR = abspath(join(THIS_DIR, pardir, "crate_anon"))  # .../crate/crate_anon/  # noqa
+CRATE_ROOT_DIR = abspath(
+    join(THIS_DIR, pardir, "crate_anon")
+)  # .../crate/crate_anon/  # noqa
 CRATEWEB_STATIC_DIR = join(CRATE_ROOT_DIR, "crateweb", "static")
 
 DOCS_SOURCE_IMAGES_DIR = join(DOCS_DIR, "source", "images")
@@ -79,6 +81,7 @@ PNG_TARGETS = [
 # Create the favicon
 # =============================================================================
 
+
 def make_favicon() -> None:
     """
     Creates a ``favicon.ico`` file, and other associated images.
@@ -97,16 +100,22 @@ def make_favicon() -> None:
         svg2png(url=source, write_to=big_png_filename)
         for png_filename, width, height in PNG_TARGETS:
             log.info(f"Writing 48x48 PNG to: {png_filename}")
-            svg2png(url=source, write_to=png_filename,
-                    output_width=width, output_height=height)
+            svg2png(
+                url=source,
+                write_to=png_filename,
+                output_width=width,
+                output_height=height,
+            )
 
         # ---------------------------------------------------------------------
         # PNG to ICO
         # ---------------------------------------------------------------------
         img = Image.open(big_png_filename)
         for favicon_filename in FAVICON_TARGETS:
-            log.info(f"Writing multi-size icon to destination: "
-                     f"{favicon_filename}")
+            log.info(
+                f"Writing multi-size icon to destination: "
+                f"{favicon_filename}"
+            )
             # https://stackoverflow.com/questions/45507/is-there-a-python-library-for-generating-ico-files
             # https://pillow.readthedocs.io/en/3.1.x/handbook/image-file-formats.html#ico
             # ... default sizes are good

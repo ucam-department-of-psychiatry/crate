@@ -55,6 +55,7 @@ from crate_anon.nlp_webserver.security import (
     get_auth_credentials,
     encrypt_password,
 )
+
 # from crate_anon.common.profiling import do_cprofile
 from crate_anon.nlprp.api import (
     json_get_array,
@@ -120,7 +121,7 @@ if DEBUG_SHOW_REQUESTS:
 # Constants
 # =============================================================================
 
-COOKIE_SESSION_TOKEN = 'session_token'
+COOKIE_SESSION_TOKEN = "session_token"
 
 DEFAULT_REDIS_HOST = "localhost"
 DEFAULT_REDIS_PORT = 6379  # https://redis.io/topics/quickstart
@@ -128,15 +129,19 @@ DEFAULT_REDIS_DB_NUMBER = 0  # https://redis.io/commands/select
 
 REDIS_HOST = SETTINGS.get(NlpServerConfigKeys.REDIS_HOST, DEFAULT_REDIS_HOST)
 REDIS_PORT = SETTINGS.get(NlpServerConfigKeys.REDIS_PORT, DEFAULT_REDIS_PORT)
-REDIS_DB_NUMBER = SETTINGS.get(NlpServerConfigKeys.REDIS_DB_NUMBER,
-                               DEFAULT_REDIS_DB_NUMBER)
+REDIS_DB_NUMBER = SETTINGS.get(
+    NlpServerConfigKeys.REDIS_DB_NUMBER, DEFAULT_REDIS_DB_NUMBER
+)
 REDIS_PASSWORD = SETTINGS.get(NlpServerConfigKeys.REDIS_PASSWORD, None)
 # If the redis server doesn't require a password, it's fine to pass
 # 'password=None' to StrictRedis.
 
-REDIS_SESSIONS = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT,
-                                   db=REDIS_DB_NUMBER,
-                                   password=REDIS_PASSWORD)
+REDIS_SESSIONS = redis.StrictRedis(
+    host=REDIS_HOST,
+    port=REDIS_PORT,
+    db=REDIS_DB_NUMBER,
+    password=REDIS_PASSWORD,
+)
 
 SESSION_TOKEN_EXPIRY_S = 300
 
@@ -144,6 +149,7 @@ SESSION_TOKEN_EXPIRY_S = 300
 # =============================================================================
 # SQLAlchemy context
 # =============================================================================
+
 
 @contextmanager
 def sqla_transaction_commit():
@@ -160,6 +166,7 @@ def sqla_transaction_commit():
 # NlprpProcessRequest
 # =============================================================================
 
+
 class NlprpProcessRequest(object):
     """
     Represents an NLPRP :ref:`process <nlprp_process>` command. Takes the
@@ -168,6 +175,7 @@ class NlprpProcessRequest(object):
     Uses the global :class:`crate_anon.nlp_server.procs.Processors` class to
     find processors.
     """
+
     def __init__(self, nlprp_request: JsonObjectType) -> None:
         """
         Args:
@@ -182,17 +190,21 @@ class NlprpProcessRequest(object):
 
         # The processors being requested. We fetch all of them now, so they
         # can be iterated through fast for each document.
-        requested_processors = json_get_array(args, NKeys.PROCESSORS,
-                                              required=True)
-        self.processors = [ServerProcessor.get_processor_nlprp(d)
-                           for d in requested_processors]
+        requested_processors = json_get_array(
+            args, NKeys.PROCESSORS, required=True
+        )
+        self.processors = [
+            ServerProcessor.get_processor_nlprp(d)
+            for d in requested_processors
+        ]
 
         # Queue?
         self.queue = json_get_bool(args, NKeys.QUEUE, default=False)
 
         # Client job ID
-        self.client_job_id = json_get_str(args, NKeys.CLIENT_JOB_ID,
-                                          default="")
+        self.client_job_id = json_get_str(
+            args, NKeys.CLIENT_JOB_ID, default=""
+        )
 
         # Include the source text in the reply?
         self.include_text = json_get_bool(args, NKeys.INCLUDE_TEXT)
@@ -210,11 +222,13 @@ class NlprpProcessRequest(object):
         """
         Returns the IDs of all processors as a string of JSON-encoded IDs.
         """
-        return json.dumps(self.processor_ids(),
-                          separators=JSON_SEPARATORS_COMPACT)
+        return json.dumps(
+            self.processor_ids(), separators=JSON_SEPARATORS_COMPACT
+        )
 
-    def gen_text_metadataobj(self) -> Generator[Tuple[str, JsonValueType],
-                                                None, None]:
+    def gen_text_metadataobj(
+        self,
+    ) -> Generator[Tuple[str, JsonValueType], None, None]:
         """
         Generates text and metadata pairs from the request, with the metadata
         in JSON object (Python dictionary) format.
@@ -224,12 +238,12 @@ class NlprpProcessRequest(object):
         """
         for document in self.content:
             text = json_get_str(document, NKeys.TEXT, required=True)
-            metadata = json_get_value(document, NKeys.METADATA,
-                                      default=None, required=False)
+            metadata = json_get_value(
+                document, NKeys.METADATA, default=None, required=False
+            )
             yield text, metadata
 
-    def gen_text_metadatastr(self) -> Generator[Tuple[str, str],
-                                                None, None]:
+    def gen_text_metadatastr(self) -> Generator[Tuple[str, str], None, None]:
         """
         Generates text and metadata pairs from the request, with the metadata
         in string (serialized JSON) format.
@@ -240,10 +254,12 @@ class NlprpProcessRequest(object):
         try:
             for document in self.content:
                 text = json_get_str(document, NKeys.TEXT, required=True)
-                metadata = json_get_value(document, NKeys.METADATA,
-                                          default=None, required=False)
-                metadata_str = json.dumps(metadata,
-                                          separators=JSON_SEPARATORS_COMPACT)
+                metadata = json_get_value(
+                    document, NKeys.METADATA, default=None, required=False
+                )
+                metadata_str = json.dumps(
+                    metadata, separators=JSON_SEPARATORS_COMPACT
+                )
                 yield text, metadata_str
         except KeyError:
             raise key_missing_error(key=NKeys.TEXT)
@@ -253,7 +269,8 @@ class NlprpProcessRequest(object):
 # NlpWebViews
 # =============================================================================
 
-@view_defaults(renderer='json')  # all views can now return JsonObjectType
+
+@view_defaults(renderer="json")  # all views can now return JsonObjectType
 class NlpWebViews(object):
     """
     Class to provide HTTP views (via Pyramid) for our NLPRP server.
@@ -293,9 +310,9 @@ class NlpWebViews(object):
         """
         self.request.response.status = status
 
-    def create_response(self,
-                        status: int,
-                        extra_info: JsonObjectType = None) -> JsonObjectType:
+    def create_response(
+        self, status: int, extra_info: JsonObjectType = None
+    ) -> JsonObjectType:
         """
         Returns a JSON HTTP response with some standard information for a given
         HTTP status and extra information to add to the response.
@@ -308,12 +325,12 @@ class NlpWebViews(object):
             NKeys.STATUS: status,
             NKeys.PROTOCOL: {
                 NKeys.NAME: NlprpValues.NLPRP_PROTOCOL_NAME,
-                NKeys.VERSION: NLPRP_VERSION_STRING
+                NKeys.VERSION: NLPRP_VERSION_STRING,
             },
             NKeys.SERVER_INFO: {
                 NKeys.NAME: SERVER_NAME,
-                NKeys.VERSION: SERVER_VERSION
-            }
+                NKeys.VERSION: SERVER_VERSION,
+            },
         }
         if extra_info is not None:
             response_dict.update(extra_info)
@@ -328,11 +345,13 @@ class NlpWebViews(object):
         # Turned 'errors' into array
         # Should this allow for multiple errors?
         error_info = {
-            NKeys.ERRORS: [{
-                NKeys.CODE: error.code,
-                NKeys.MESSAGE: error.message,
-                NKeys.DESCRIPTION: error.description
-            }]
+            NKeys.ERRORS: [
+                {
+                    NKeys.CODE: error.code,
+                    NKeys.MESSAGE: error.message,
+                    NKeys.DESCRIPTION: error.description,
+                }
+            ]
         }
         return self.create_response(error.http_status, error_info)
 
@@ -350,7 +369,8 @@ class NlpWebViews(object):
         except redis.exceptions.ConnectionError:
             log.critical(
                 f"Could not connect to Redis (host={REDIS_HOST!r}, "
-                f"port={REDIS_PORT!r}, password not shown)")
+                f"port={REDIS_PORT!r}, password not shown)"
+            )
             raise
         if redis_token:
             redis_token = redis_token.decode()
@@ -365,7 +385,7 @@ class NlpWebViews(object):
     # -------------------------------------------------------------------------
 
     # @do_cprofile
-    @view_config(route_name='index')
+    @view_config(route_name="index")
     def index(self) -> JsonObjectType:
         """
         The top-level "index" view. Passes all the work to
@@ -383,7 +403,8 @@ class NlpWebViews(object):
         if self.credentials is None:
             raise mkerror(
                 BAD_REQUEST,
-                "Credentials were absent or not in the correct format")
+                "Credentials were absent or not in the correct format",
+            )
         # See if the user exists
         users = get_users()
         self.username = self.credentials.username
@@ -399,8 +420,9 @@ class NlpWebViews(object):
         elif check_password(pw, hashed_pw):
             self.password = pw
             token = make_unique_id()
-            self.request.response.set_cookie(name=COOKIE_SESSION_TOKEN,
-                                             value=token)
+            self.request.response.set_cookie(
+                name=COOKIE_SESSION_TOKEN, value=token
+            )
             REDIS_SESSIONS.set(self.username, token)
             REDIS_SESSIONS.expire(self.username, SESSION_TOKEN_EXPIRY_S)
         else:
@@ -417,7 +439,8 @@ class NlpWebViews(object):
         except (json.decoder.JSONDecodeError, AssertionError):
             raise mkerror(
                 BAD_REQUEST,
-                "Request body was absent or not in JSON object format")
+                "Request body was absent or not in JSON object format",
+            )
         self.body = body  # type: JsonObjectType
 
     def handle_nlprp_request(self) -> JsonObjectType:
@@ -429,8 +452,10 @@ class NlpWebViews(object):
         self._authenticate()
         self._set_body_json_from_request()
         command = json_get_str(self.body, NKeys.COMMAND, required=True)
-        log.debug(f"NLPRP request received from {self.request.remote_addr}: "
-                  f"username={self.username}, command={command}")
+        log.debug(
+            f"NLPRP request received from {self.request.remote_addr}: "
+            f"username={self.username}, command={command}"
+        )
         if DEBUG_SHOW_REQUESTS:
             log.debug(f"Request: {self.body!r}")
         return self.parse_command(command)
@@ -469,11 +494,12 @@ class NlpWebViews(object):
                     proc.infodict
                     for proc in ServerProcessor.processors.values()
                 ]
-            }
+            },
         )
 
-    def process_now(self, process_request: NlprpProcessRequest) \
-            -> JsonObjectType:
+    def process_now(
+        self, process_request: NlprpProcessRequest
+    ) -> JsonObjectType:
         """
         Processes the text supplied by the user immediately, without putting
         it in the queue.
@@ -490,7 +516,7 @@ class NlpWebViews(object):
                     text=text,
                     processor=processor,
                     username=self.username,
-                    password=self.password
+                    password=self.password,
                 )
                 # proc_dict = procresult.nlprp_processor_dict(processor)
                 if procresult[NKeys.NAME] is None:
@@ -501,7 +527,7 @@ class NlpWebViews(object):
 
             doc_result = {
                 NKeys.METADATA: metadata,
-                NKeys.PROCESSORS: processor_data
+                NKeys.PROCESSORS: processor_data,
             }
             if process_request.include_text:
                 doc_result[NKeys.TEXT] = text
@@ -511,11 +537,13 @@ class NlpWebViews(object):
             NKeys.CLIENT_JOB_ID: process_request.client_job_id,
             NKeys.RESULTS: results,
         }
-        return self.create_response(status=HttpStatus.OK,
-                                    extra_info=response_info)
+        return self.create_response(
+            status=HttpStatus.OK, extra_info=response_info
+        )
 
-    def put_in_queue(self,
-                     process_request: NlprpProcessRequest) -> JsonObjectType:
+    def put_in_queue(
+        self, process_request: NlprpProcessRequest
+    ) -> JsonObjectType:
         """
         Puts the document-processor pairs specified by the user into a celery
         queue to be processed.
@@ -546,7 +574,7 @@ class NlpWebViews(object):
                     queue_id=queue_id,
                     username=self.username,
                     client_metadata=metadata,
-                    include_text=process_request.include_text
+                    include_text=process_request.include_text,
                 )
                 dbsession.add(doc)  # add to database
                 # Iterate through processors...
@@ -557,7 +585,7 @@ class NlpWebViews(object):
                     docprocreq = DocProcRequest(
                         docprocrequest_id=docprocreq_id,
                         document_id=doc_id,
-                        processor_id=processor.processor_id
+                        processor_id=processor.processor_id,
                     )
                     dbsession.add(docprocreq)  # add to database
                     docprocrequest_ids.append(docprocreq_id)
@@ -569,7 +597,7 @@ class NlpWebViews(object):
                 # unlike delay(), this allows us to specify task_id, and
                 # then the Celery task ID is the same as the DocProcRequest
                 # ID.
-                args=(dpr_id, ),  # docprocrequest_id
+                args=(dpr_id,),  # docprocrequest_id
                 kwargs=dict(
                     username=self.username,
                     crypt_pass=crypt_pass,
@@ -578,8 +606,9 @@ class NlpWebViews(object):
             )
 
         response_info = {NKeys.QUEUE_ID: queue_id}
-        return self.create_response(status=HttpStatus.ACCEPTED,
-                                    extra_info=response_info)
+        return self.create_response(
+            status=HttpStatus.ACCEPTED, extra_info=response_info
+        )
 
     def fetch_from_queue(self) -> JsonObjectType:
         """
@@ -636,7 +665,9 @@ class NlpWebViews(object):
             try:
                 return processor_cache[_processor_id]
             except KeyError:
-                _processor = ServerProcessor.get_processor_from_id(_processor_id)  # may raise  # noqa
+                _processor = ServerProcessor.get_processor_from_id(
+                    _processor_id
+                )  # may raise  # noqa
                 processor_cache[_processor_id] = _processor
                 return _processor
 
@@ -663,7 +694,7 @@ class NlpWebViews(object):
             metadata = json.loads(doc.client_metadata)
             doc_result = {
                 NKeys.METADATA: metadata,
-                NKeys.PROCESSORS: processor_data
+                NKeys.PROCESSORS: processor_data,
             }
             if doc.include_text:
                 doc_result[NKeys.TEXT] = doc.doctext
@@ -681,10 +712,11 @@ class NlpWebViews(object):
             NKeys.CLIENT_JOB_ID: (
                 client_job_id if client_job_id is not None else ""
             ),
-            NKeys.RESULTS: doc_results
+            NKeys.RESULTS: doc_results,
         }
-        return self.create_response(status=HttpStatus.OK,
-                                    extra_info=response_info)
+        return self.create_response(
+            status=HttpStatus.OK, extra_info=response_info
+        )
 
     # @do_cprofile
     def show_queue(self) -> JsonObjectType:
@@ -694,13 +726,16 @@ class NlpWebViews(object):
         """
         args = json_get_toplevel_args(self.body, required=False)
         if args:
-            client_job_id = json_get_str(args, NKeys.CLIENT_JOB_ID,
-                                         default="", required=False)
+            client_job_id = json_get_str(
+                args, NKeys.CLIENT_JOB_ID, default="", required=False
+            )
         else:
             client_job_id = ""
 
         # Queue IDs that are of interest
-        queue_id_wheres = [Document.username == self.username]  # type: List[ClauseElement]  # noqa: E501
+        queue_id_wheres = [
+            Document.username == self.username
+        ]  # type: List[ClauseElement]  # noqa: E501
         if client_job_id:
             queue_id_wheres.append(Document.client_job_id == client_job_id)
         # noinspection PyUnresolvedReferences
@@ -710,7 +745,7 @@ class NlpWebViews(object):
             .select_from(Document.__table__)
             .where(and_(*queue_id_wheres))
             .distinct()
-            .order_by(Document.queue_id)
+            .order_by(Document.queue_id),
         )  # type: List[str]
 
         queue_answer = []  # type: JsonArrayType
@@ -730,19 +765,26 @@ class NlpWebViews(object):
             assert dprs, "No DocProcRequests found; bug?"
             dt_submitted = dprs[0].document.datetime_submitted_pendulum
 
-            queue_answer.append({
-                NKeys.QUEUE_ID: queue_id,
-                NKeys.CLIENT_JOB_ID: client_job_id,
-                NKeys.STATUS: NlprpValues.BUSY if busy else NlprpValues.READY,
-                NKeys.DATETIME_SUBMITTED: pendulum_to_nlprp_datetime(
-                    dt_submitted, to_utc=True),
-                NKeys.DATETIME_COMPLETED: (
-                    None if busy else pendulum_to_nlprp_datetime(
-                        max_time, to_utc=True)
-                )
-            })
-        return self.create_response(status=HttpStatus.OK,
-                                    extra_info={NKeys.QUEUE: queue_answer})
+            queue_answer.append(
+                {
+                    NKeys.QUEUE_ID: queue_id,
+                    NKeys.CLIENT_JOB_ID: client_job_id,
+                    NKeys.STATUS: NlprpValues.BUSY
+                    if busy
+                    else NlprpValues.READY,
+                    NKeys.DATETIME_SUBMITTED: pendulum_to_nlprp_datetime(
+                        dt_submitted, to_utc=True
+                    ),
+                    NKeys.DATETIME_COMPLETED: (
+                        None
+                        if busy
+                        else pendulum_to_nlprp_datetime(max_time, to_utc=True)
+                    ),
+                }
+            )
+        return self.create_response(
+            status=HttpStatus.OK, extra_info={NKeys.QUEUE: queue_answer}
+        )
 
     def delete_from_queue(self) -> JsonObjectType:
         """
@@ -762,10 +804,7 @@ class NlpWebViews(object):
             q_dpr = q_dpr.filter(Document.client_job_id.in_(client_job_ids))
 
         # Remove from Celery queue (cancel ongoing jobs)
-        task_ids_to_cancel = [
-            dpr.docprocrequest_id
-            for dpr in q_dpr.all()
-        ]
+        task_ids_to_cancel = [dpr.docprocrequest_id for dpr in q_dpr.all()]
         # Quicker to use ResultSet than forget them all separately
         results = []  # type: List[AsyncResult]
         for task_id in task_ids_to_cancel:
@@ -775,9 +814,8 @@ class NlpWebViews(object):
         res_set.revoke()  # will hang if backend not operational
         log.debug("... jobs revoked.")
 
-        q_docs = (
-            dbsession.query(Document)
-            .filter(Document.username == self.username)
+        q_docs = dbsession.query(Document).filter(
+            Document.username == self.username
         )
         if not delete_all:
             q_docs = q_docs.filter(Document.client_job_id.in_(client_job_ids))

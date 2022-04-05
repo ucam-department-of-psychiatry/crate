@@ -45,22 +45,23 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
+    parser.add_argument("filename", type=str, help="Filename to read")
     parser.add_argument(
-        "filename", type=str,
-        help="Filename to read"
-    )
-    parser.add_argument(
-        "--as_text", action="store_true",
-        help="Read the file as text, not binary"
+        "--as_text",
+        action="store_true",
+        help="Read the file as text, not binary",
     )
     tg = parser.add_argument_group("For text")
     tg.add_argument(
-        "--encoding", type=str, default=sys.getdefaultencoding(),
-        help="Encoding to use for reading text"
+        "--encoding",
+        type=str,
+        default=sys.getdefaultencoding(),
+        help="Encoding to use for reading text",
     )
     tg.add_argument(
-        "--strip_whitespace", action="store_true",
-        help="Replace spaces/newlines with single spaces"
+        "--strip_whitespace",
+        action="store_true",
+        help="Replace spaces/newlines with single spaces",
     )
     args = parser.parse_args()
 

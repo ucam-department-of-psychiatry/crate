@@ -64,7 +64,7 @@ if EnvVar.GENERATING_CRATE_DOCS not in os.environ:
             proctype=proc.get(KEY_PROCTYPE),  # may be None
             schema_type=proc[NlprpKeys.SCHEMA_TYPE],  # 'unknown' or 'tabular'
             sql_dialect=proc.get(NlprpKeys.SQL_DIALECT),
-            tabular_schema=proc.get(NlprpKeys.TABULAR_SCHEMA)
+            tabular_schema=proc.get(NlprpKeys.TABULAR_SCHEMA),
         )
         # Doing this here saves time per request
         x.set_parser()

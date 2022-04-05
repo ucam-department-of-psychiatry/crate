@@ -35,66 +35,76 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('consent', '0008_auto_20170507_1218'),
+        ("consent", "0008_auto_20170507_1218"),
     ]
 
     operations = [
         # ClinicianResponse
         migrations.AddField(
-            model_name='clinicianresponse',
-            name='processed',
+            model_name="clinicianresponse",
+            name="processed",
             field=models.BooleanField(default=False),
         ),
-        migrations.RunSQL("""
+        migrations.RunSQL(
+            """
             UPDATE consent_clinicianresponse
             SET processed = 1
             WHERE created_at < '2018-06-01'
-        """),
+        """
+        ),
         migrations.AddField(
-            model_name='clinicianresponse',
-            name='processed_at',
+            model_name="clinicianresponse",
+            name="processed_at",
             field=models.DateTimeField(null=True),
         ),
-
         # ContactRequest
         migrations.AddField(
-            model_name='patientresponse',
-            name='processed',
+            model_name="patientresponse",
+            name="processed",
             field=models.BooleanField(default=False),
         ),
-        migrations.RunSQL("""
+        migrations.RunSQL(
+            """
             UPDATE consent_patientresponse
             SET processed = 1
             WHERE created_at < '2018-06-01'
-        """),
+        """
+        ),
         migrations.AddField(
-            model_name='contactrequest',
-            name='processed_at',
+            model_name="contactrequest",
+            name="processed_at",
             field=models.DateTimeField(null=True),
         ),
-
         # PatientResponse
         migrations.AddField(
-            model_name='patientresponse',
-            name='processed_at',
+            model_name="patientresponse",
+            name="processed_at",
             field=models.DateTimeField(null=True),
         ),
-
         # Other trivial changes
         migrations.AlterField(
-            model_name='patientlookup',
-            name='source_db',
+            model_name="patientlookup",
+            name="source_db",
             field=models.CharField(
                 choices=[
-                    ('dummy_clinical', 'Dummy clinical database for testing'),
-                    ('cpft_crs', 'CPFT Care Records System (CRS) 2005-2012'),
-                    ('cpft_rio_rcep', 'CPFT RiO 2013- (preprocessed by Servelec RCEP tool)'),  # noqa
-                    ('cpft_rio_raw', 'CPFT RiO 2013- (raw)'),
-                    ('cpft_rio_crate', 'CPFT RiO 2013- (preprocessed by CRATE)'),  # noqa
-                    ('cpft_rio_datamart', 'CPFT RiO 2013- (data warehouse processed version)')  # noqa
+                    ("dummy_clinical", "Dummy clinical database for testing"),
+                    ("cpft_crs", "CPFT Care Records System (CRS) 2005-2012"),
+                    (
+                        "cpft_rio_rcep",
+                        "CPFT RiO 2013- (preprocessed by Servelec RCEP tool)",
+                    ),  # noqa
+                    ("cpft_rio_raw", "CPFT RiO 2013- (raw)"),
+                    (
+                        "cpft_rio_crate",
+                        "CPFT RiO 2013- (preprocessed by CRATE)",
+                    ),  # noqa
+                    (
+                        "cpft_rio_datamart",
+                        "CPFT RiO 2013- (data warehouse processed version)",
+                    ),  # noqa
                 ],
                 max_length=20,
-                verbose_name='Source database used for lookup'
+                verbose_name="Source database used for lookup",
             ),
         ),
     ]

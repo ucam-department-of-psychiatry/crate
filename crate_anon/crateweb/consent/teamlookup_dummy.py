@@ -39,6 +39,7 @@ from typing import List
 # Dummy clinical database (part of CRATE)
 # =============================================================================
 
+
 def get_dummy_teams() -> List[str]:
     """
     Returns a fictional list of clinical teams.

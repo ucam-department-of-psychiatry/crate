@@ -49,15 +49,16 @@ class CratePdfPlan(PdfPlan):
     Specializes :class:`cardinal_pythonlib.pdf.PdfPlan` for our default
     header/footer.
     """
+
     def __init__(self, *args, **kwargs) -> None:
-        if 'header_html' not in kwargs:
-            kwargs['header_html'] = settings.PDF_LETTER_HEADER_HTML
-        if 'footer_html' not in kwargs:
-            kwargs['footer_html'] = settings.PDF_LETTER_FOOTER_HTML
-        if 'wkhtmltopdf_filename' not in kwargs:  # added 2018-06-28
-            kwargs['wkhtmltopdf_filename'] = settings.WKHTMLTOPDF_FILENAME
-        if 'wkhtmltopdf_options' not in kwargs:  # added 2018-06-28
-            kwargs['wkhtmltopdf_options'] = settings.WKHTMLTOPDF_OPTIONS
+        if "header_html" not in kwargs:
+            kwargs["header_html"] = settings.PDF_LETTER_HEADER_HTML
+        if "footer_html" not in kwargs:
+            kwargs["footer_html"] = settings.PDF_LETTER_FOOTER_HTML
+        if "wkhtmltopdf_filename" not in kwargs:  # added 2018-06-28
+            kwargs["wkhtmltopdf_filename"] = settings.WKHTMLTOPDF_FILENAME
+        if "wkhtmltopdf_options" not in kwargs:  # added 2018-06-28
+            kwargs["wkhtmltopdf_options"] = settings.WKHTMLTOPDF_OPTIONS
         super().__init__(*args, **kwargs)
 
 
@@ -65,15 +66,17 @@ class CratePdfPlan(PdfPlan):
 # Create PDFs from HTML
 # =============================================================================
 
+
 def get_pdf_from_html_with_django_settings(
-        html: str,
-        header_html: str = None,
-        footer_html: str = None,
-        wkhtmltopdf_filename: str = None,
-        wkhtmltopdf_options: Dict[str, Any] = None,
-        debug_content: bool = False,
-        debug_options: bool = False,
-        fix_pdfkit_encoding_bug: bool = None) -> bytes:
+    html: str,
+    header_html: str = None,
+    footer_html: str = None,
+    wkhtmltopdf_filename: str = None,
+    wkhtmltopdf_options: Dict[str, Any] = None,
+    debug_content: bool = False,
+    debug_options: bool = False,
+    fix_pdfkit_encoding_bug: bool = None,
+) -> bytes:
     """
     Applies our ``settings.WKHTMLTOPDF_OPTIONS`` and then makes a PDF from the
     supplied HTML.
@@ -84,12 +87,15 @@ def get_pdf_from_html_with_django_settings(
         a binary PDF
     """
     # Customized for this Django site
-    wkhtmltopdf_filename = wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME  # noqa
+    wkhtmltopdf_filename = (
+        wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME
+    )  # noqa
     if wkhtmltopdf_options is None:
         wkhtmltopdf_options = settings.WKHTMLTOPDF_OPTIONS
     else:
-        wkhtmltopdf_options = merge_two_dicts(settings.WKHTMLTOPDF_OPTIONS,
-                                              wkhtmltopdf_options)
+        wkhtmltopdf_options = merge_two_dicts(
+            settings.WKHTMLTOPDF_OPTIONS, wkhtmltopdf_options
+        )
     # log.critical(f"{wkhtmltopdf_options!r}")
 
     return get_pdf_from_html(
@@ -105,15 +111,16 @@ def get_pdf_from_html_with_django_settings(
 
 
 def make_pdf_on_disk_from_html_with_django_settings(
-        html: str,
-        header_html: str = None,
-        footer_html: str = None,
-        wkhtmltopdf_filename: str = None,
-        wkhtmltopdf_options: Dict[str, Any] = None,
-        output_path: str = None,
-        debug_content: bool = False,
-        debug_options: bool = False,
-        fix_pdfkit_encoding_bug: bool = None) -> bool:
+    html: str,
+    header_html: str = None,
+    footer_html: str = None,
+    wkhtmltopdf_filename: str = None,
+    wkhtmltopdf_options: Dict[str, Any] = None,
+    output_path: str = None,
+    debug_content: bool = False,
+    debug_options: bool = False,
+    fix_pdfkit_encoding_bug: bool = None,
+) -> bool:
     """
     Applies our ``settings.WKHTMLTOPDF_OPTIONS`` and then makes a PDF from the
     supplied ``html`` and stores it in the file named by ``output_path``.
@@ -124,12 +131,15 @@ def make_pdf_on_disk_from_html_with_django_settings(
         success?
     """
     # Customized for this Django site
-    wkhtmltopdf_filename = wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME  # noqa
+    wkhtmltopdf_filename = (
+        wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME
+    )  # noqa
     if wkhtmltopdf_options is None:
         wkhtmltopdf_options = settings.WKHTMLTOPDF_OPTIONS
     else:
-        wkhtmltopdf_options = merge_two_dicts(settings.WKHTMLTOPDF_OPTIONS,
-                                              wkhtmltopdf_options)
+        wkhtmltopdf_options = merge_two_dicts(
+            settings.WKHTMLTOPDF_OPTIONS, wkhtmltopdf_options
+        )
 
     return make_pdf_on_disk_from_html(
         html=html,
@@ -148,9 +158,10 @@ def make_pdf_on_disk_from_html_with_django_settings(
 # Serve PDFs from HTML
 # =============================================================================
 
-def serve_pdf_from_html(html: str,
-                        offered_filename: str = "test.pdf",
-                        **kwargs) -> HttpResponse:
+
+def serve_pdf_from_html(
+    html: str, offered_filename: str = "test.pdf", **kwargs
+) -> HttpResponse:
     """
     Converts HTML into a PDF and serves it.
 
@@ -160,11 +171,13 @@ def serve_pdf_from_html(html: str,
         **kwargs: passed to :func:`get_pdf_from_html_with_django_settings`
     """
     pdf = get_pdf_from_html_with_django_settings(html, **kwargs)
-    return serve_buffer(pdf,
-                        offered_filename=offered_filename,
-                        content_type="application/pdf",
-                        as_attachment=False,
-                        as_inline=True)
+    return serve_buffer(
+        pdf,
+        offered_filename=offered_filename,
+        content_type="application/pdf",
+        as_attachment=False,
+        as_inline=True,
+    )
 
 
 def serve_html_or_pdf(html: str, viewtype: str) -> HttpResponse:
@@ -180,7 +193,8 @@ def serve_html_or_pdf(html: str, viewtype: str) -> HttpResponse:
         return serve_pdf_from_html(
             html,
             header_html=settings.PDF_LETTER_HEADER_HTML,
-            footer_html=settings.PDF_LETTER_FOOTER_HTML)
+            footer_html=settings.PDF_LETTER_FOOTER_HTML,
+        )
     elif viewtype == "html":
         return HttpResponse(html)
     else:

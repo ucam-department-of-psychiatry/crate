@@ -44,9 +44,9 @@ from crate_anon.crateweb.consent.models import (
 # =============================================================================
 
 # noinspection PyUnusedLocal
-def lookup_dummy_clinical(lookup: PatientLookup,
-                          decisions: List[str],
-                          secret_decisions: List[str]) -> None:
+def lookup_dummy_clinical(
+    lookup: PatientLookup, decisions: List[str], secret_decisions: List[str]
+) -> None:
     """
     Looks up a patient from the fictional dummy database.
 
@@ -58,7 +58,8 @@ def lookup_dummy_clinical(lookup: PatientLookup,
     """
     try:
         dummylookup = DummyPatientSourceInfo.objects.get(
-            nhs_number=lookup.nhs_number)
+            nhs_number=lookup.nhs_number
+        )
     except ObjectDoesNotExist:
         decisions.append("Patient not found in dummy lookup")
         return

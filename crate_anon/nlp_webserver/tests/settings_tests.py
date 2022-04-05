@@ -45,7 +45,12 @@ class NlprpDocgenSettingsTests(unittest.TestCase):
     def test_docgen_sqlite_settings():
         # Simulate doc building environment
         os.environ[EnvVar.GENERATING_CRATE_DOCS] = "True"
-        from crate_anon.nlp_webserver.settings import SETTINGS  # delayed import  # noqa
-        _ = engine_from_config(SETTINGS,
-                               NlpServerConfigKeys.SQLALCHEMY_PREFIX,
-                               **SQLALCHEMY_COMMON_OPTIONS)
+        from crate_anon.nlp_webserver.settings import (
+            SETTINGS,
+        )  # delayed import  # noqa
+
+        _ = engine_from_config(
+            SETTINGS,
+            NlpServerConfigKeys.SQLALCHEMY_PREFIX,
+            **SQLALCHEMY_COMMON_OPTIONS
+        )

@@ -35,6 +35,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
 
 from crate_anon.crateweb.consent.tasks import email_rdbm_task
+
 log = logging.getLogger(__name__)
 
 
@@ -42,28 +43,29 @@ class Command(BaseCommand):
     """
     Django management command to e-mail the RDBM.
     """
+
     help = "Email the RDBM"
 
     def add_arguments(self, parser: CommandParser) -> None:
         # docstring in superclass
+        parser.add_argument("--subject", type=str, help="Subject")
+        parser.add_argument("--text", type=str, help="Text body")
         parser.add_argument(
-            "--subject", type=str,
-            help="Subject")
-        parser.add_argument(
-            "--text", type=str,
-            help="Text body")
-        parser.add_argument(
-            "--queue", action="store_true",
-            help="E-mail via backend task queue (rather than immediately)")
+            "--queue",
+            action="store_true",
+            help="E-mail via backend task queue (rather than immediately)",
+        )
 
     def handle(self, *args: str, **options: Any) -> None:
         # docstring in superclass
-        subject = options['subject'] or ""
-        text = options['text'] or ""
-        queue = options['queue']
+        subject = options["subject"] or ""
+        text = options["text"] or ""
+        queue = options["queue"]
         if not subject and not text:
-            log.error("Neither text nor subject specified; "
-                      "ignoring request to e-mail RDBM")
+            log.error(
+                "Neither text nor subject specified; "
+                "ignoring request to e-mail RDBM"
+            )
             return
         log.info(f"RDBM is: {settings.RDBM_EMAIL}")
         if queue:

@@ -44,6 +44,7 @@ log = logging.getLogger(__name__)
 # Unit tests
 # =============================================================================
 
+
 class TestReadCodeRegexes(unittest.TestCase):
     def test_read_code_regexes(self) -> None:
         spacer = "    "
@@ -51,16 +52,16 @@ class TestReadCodeRegexes(unittest.TestCase):
             if name.startswith("_"):
                 continue
             assert isinstance(rc, ReadCode)
-            phrases = "\n".join(
-                f"{spacer}{x}" for x in rc.phrases
-            )
+            phrases = "\n".join(f"{spacer}{x}" for x in rc.phrases)
             regexes = "\n".join(
                 f"{spacer}{x}" for x in rc.component_regex_strings()
             )
             regex_str = rc.regex_str()
-            log.info(f"Name: {name!r}.\n"
-                     f"- Read code:\n{spacer}{rc.read_code}\n"
-                     f"- Phrases:\n{phrases}\n"
-                     f"- Regular expressions:\n{regexes}\n"
-                     f"- Single regex string:\n{spacer}{regex_str}")
+            log.info(
+                f"Name: {name!r}.\n"
+                f"- Read code:\n{spacer}{rc.read_code}\n"
+                f"- Phrases:\n{phrases}\n"
+                f"- Regular expressions:\n{regexes}\n"
+                f"- Single regex string:\n{spacer}{regex_str}"
+            )
         log.warning("No testing performed; just printed.")

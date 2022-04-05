@@ -40,6 +40,7 @@ class Command(BaseCommand):
     Django management command to test sending an e-mail to the RDBM (without
     saving it to the database).
     """
+
     help = "Test email to RDBM (without saving to database)"
 
     def handle(self, *args: str, **options: Any) -> None:
@@ -47,11 +48,12 @@ class Command(BaseCommand):
         sender = settings.EMAIL_SENDER
         recipient = settings.DEVELOPER_EMAIL
         send_mail(
-            'CRATE test e-mail',
-            'Message body',
+            "CRATE test e-mail",
+            "Message body",
             sender,
             [recipient],
             fail_silently=False,
         )
         self.stdout.write(
-            f"Successfully sent e-mail from {sender} to {recipient}")
+            f"Successfully sent e-mail from {sender} to {recipient}"
+        )

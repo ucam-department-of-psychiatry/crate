@@ -44,10 +44,12 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
+
 class DevPath:
     """
     Directories for development (including documentation), and some filenames.
     """
+
     # -------------------------------------------------------------------------
     # Directories
     # -------------------------------------------------------------------------
@@ -109,20 +111,19 @@ SKIP_GLOBS = [
     "**/compiled_nlp_classes/*",
 ]
 
-PYGMENTS_LANGUAGE_OVERRIDE = {
-    ".html": "html+django",
-    ".css": "css+django"
-}
+PYGMENTS_LANGUAGE_OVERRIDE = {".html": "html+django", ".css": "css+django"}
 
 
 # =============================================================================
 # Autodoc creation
 # =============================================================================
 
+
 def make_subindex(directory: str) -> AutodocIndex:
     return AutodocIndex(
         index_filename=os.path.join(
-            DevPath.DOCS_AUTODOC_DIR, directory, DevPath.INDEX_FILENAME),
+            DevPath.DOCS_AUTODOC_DIR, directory, DevPath.INDEX_FILENAME
+        ),
         project_root_dir=DevPath.PACKAGE_ROOT_DIR,
         autodoc_rst_root_dir=DevPath.DOCS_AUTODOC_DIR,
         highest_code_dir=CratePath.CRATE_ANON_DIR,
@@ -150,7 +151,8 @@ def make_autodoc(make: bool, destroy_first: bool) -> None:
         else:
             log.warning(
                 f"Would delete directory {DevPath.DOCS_AUTODOC_DIR!r} "
-                f"(not doing so as in mock mode)")
+                f"(not doing so as in mock mode)"
+            )
     top_idx = AutodocIndex(
         index_filename=DevPath.TOP_AUTODOC_INDEX,
         project_root_dir=DevPath.PACKAGE_ROOT_DIR,
@@ -159,16 +161,18 @@ def make_autodoc(make: bool, destroy_first: bool) -> None:
         toctree_maxdepth=2,
         rst_prefix=RST_COPYRIGHT_COMMENT,
     )
-    top_idx.add_indexes([
-        make_subindex("anonymise"),
-        make_subindex("common"),
-        make_subindex("crateweb"),
-        make_subindex("linkage"),
-        make_subindex("nlp_manager"),
-        make_subindex("nlp_webserver"),
-        make_subindex("preprocess"),
-        make_subindex("tools"),
-    ])
+    top_idx.add_indexes(
+        [
+            make_subindex("anonymise"),
+            make_subindex("common"),
+            make_subindex("crateweb"),
+            make_subindex("linkage"),
+            make_subindex("nlp_manager"),
+            make_subindex("nlp_webserver"),
+            make_subindex("preprocess"),
+            make_subindex("tools"),
+        ]
+    )
     top_idx.write_index_and_rst_files(overwrite=True, mock=not make)
     # print(top_idx.index_content())
 
@@ -177,24 +181,27 @@ def make_autodoc(make: bool, destroy_first: bool) -> None:
 # Command-line entry point
 # =============================================================================
 
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--make", action="store_true",
-        help="Do things! Otherwise will just show its intent.")
+        "--make",
+        action="store_true",
+        help="Do things! Otherwise will just show its intent.",
+    )
     parser.add_argument(
-        "--destroy_first", action="store_true",
-        help="Destroy all existing autodocs first")
-    parser.add_argument(
-        "--verbose", action="store_true",
-        help="Be verbose")
+        "--destroy_first",
+        action="store_true",
+        help="Destroy all existing autodocs first",
+    )
+    parser.add_argument("--verbose", action="store_true", help="Be verbose")
     args = parser.parse_args()
 
     main_only_quicksetup_rootlogger(
-        level=logging.DEBUG if args.verbose else logging.INFO)
+        level=logging.DEBUG if args.verbose else logging.INFO
+    )
 
-    make_autodoc(make=args.make,
-                 destroy_first=args.destroy_first)
+    make_autodoc(make=args.make, destroy_first=args.destroy_first)
 
 
 if __name__ == "__main__":

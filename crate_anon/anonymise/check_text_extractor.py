@@ -39,6 +39,7 @@ from crate_anon.version import CRATE_VERSION_PRETTY
 # Main
 # =============================================================================
 
+
 def main() -> None:
     """
     Command-line entry point
@@ -46,20 +47,23 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=f"Check availability of tools to extract text from "
-                    f"different document formats. ({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        f"different document formats. ({CRATE_VERSION_PRETTY})",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
 
     parser.add_argument(
-        "checkextractor", nargs='*',
+        "checkextractor",
+        nargs="*",
         help="File extensions to check for availability of a text extractor. "
-             "Try, for example, '.doc .docx .odt .pdf .rtf .txt None' "
-             "(use a '.' prefix for all extensions, and use the special "
-             "extension 'None' to check the fallback processor).")
+        "Try, for example, '.doc .docx .odt .pdf .rtf .txt None' "
+        "(use a '.' prefix for all extensions, and use the special "
+        "extension 'None' to check the fallback processor).",
+    )
 
     args = parser.parse_args()
 
     for ext in args.checkextractor:
-        if ext.lower() == 'none':
+        if ext.lower() == "none":
             ext = None
         available = is_text_extractor_available(ext)
         print(f"Text extractor for extension {ext} present: {available}")

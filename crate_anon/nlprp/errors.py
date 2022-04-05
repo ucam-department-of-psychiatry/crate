@@ -36,16 +36,16 @@ from cardinal_pythonlib.reprfunc import auto_repr
 # NlprpError
 # =============================================================================
 
+
 class NlprpError(Exception):
     """
     Represents an HTTP (and NLPRP) error. Is also an Exception, so can
     be raised.
     """
-    def __init__(self,
-                 http_status: int,
-                 code: int,
-                 message: str,
-                 description: str = "") -> None:
+
+    def __init__(
+        self, http_status: int, code: int, message: str, description: str = ""
+    ) -> None:
         self.http_status = http_status
         self.code = code
         self.message = message
@@ -68,29 +68,35 @@ class NlprpError(Exception):
 # =============================================================================
 
 BAD_REQUEST = NlprpError(
-    HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST,
-    "Bad request", "Request was malformed"
+    HttpStatus.BAD_REQUEST,
+    HttpStatus.BAD_REQUEST,
+    "Bad request",
+    "Request was malformed",
 )
 UNAUTHORIZED = NlprpError(
-    HttpStatus.UNAUTHORIZED, HttpStatus.UNAUTHORIZED,
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.UNAUTHORIZED,
     "Unauthorized",
-    "The username/password combination given is incorrect"
+    "The username/password combination given is incorrect",
 )
 NOT_FOUND = NlprpError(
-    HttpStatus.NOT_FOUND, HttpStatus.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
     "Not Found",
-    "The information requested was not found"
+    "The information requested was not found",
 )
 INTERNAL_SERVER_ERROR = NlprpError(
-    HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR,
+    HttpStatus.INTERNAL_SERVER_ERROR,
+    HttpStatus.INTERNAL_SERVER_ERROR,
     "Internal Server Error",
-    "An internal server error has occured"
+    "An internal server error has occured",
 )
 
 
 # =============================================================================
 # Helper functions
 # =============================================================================
+
 
 def mkerror(base_error: NlprpError, description: str = None) -> NlprpError:
     """
@@ -101,12 +107,11 @@ def mkerror(base_error: NlprpError, description: str = None) -> NlprpError:
         http_status=base_error.http_status,
         code=base_error.code,
         message=base_error.message,
-        description=description or base_error.description
+        description=description or base_error.description,
     )
 
 
-def key_missing_error(key: str = "",
-                      is_args: bool = False) -> NlprpError:
+def key_missing_error(key: str = "", is_args: bool = False) -> NlprpError:
     """
     Returns a '400: Bad Request' error response stating that a key is
     missing from 'args' in the request, or the key 'args' itself is missing
@@ -118,8 +123,7 @@ def key_missing_error(key: str = "",
     return mkerror(BAD_REQUEST, description)
 
 
-def no_such_proc_error(name: str,
-                       version: str = None) -> NlprpError:
+def no_such_proc_error(name: str, version: str = None) -> NlprpError:
     """
     "No such processor" error.
 
@@ -128,5 +132,5 @@ def no_such_proc_error(name: str,
         version: requested processor version
     """
     return mkerror(
-        BAD_REQUEST,
-        f"Processor {name!r}, version {version!r} does not exist")
+        BAD_REQUEST, f"Processor {name!r}, version {version!r} does not exist"
+    )

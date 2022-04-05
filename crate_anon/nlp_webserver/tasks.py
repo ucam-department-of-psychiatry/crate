@@ -39,6 +39,7 @@ from cardinal_pythonlib.json.typing_helpers import (
     JsonObjectType,
 )
 from celery import Celery
+
 # from celery.app.task import Task  # see "def delay", "def apply_async"
 from cryptography.fernet import Fernet
 import requests
@@ -74,16 +75,19 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 TaskSession = scoped_session(Session)
-engine = engine_from_config(SETTINGS,
-                            NlpServerConfigKeys.SQLALCHEMY_PREFIX,
-                            **SQLALCHEMY_COMMON_OPTIONS)
+engine = engine_from_config(
+    SETTINGS,
+    NlpServerConfigKeys.SQLALCHEMY_PREFIX,
+    **SQLALCHEMY_COMMON_OPTIONS,
+)
 TaskSession.configure(bind=engine)
 
 try:
     broker_url = SETTINGS[NlpServerConfigKeys.BROKER_URL]
 except KeyError:
-    log.error(f"{NlpServerConfigKeys.BROKER_URL} value "
-              f"missing from config file.")
+    log.error(
+        f"{NlpServerConfigKeys.BROKER_URL} value " f"missing from config file."
+    )
     raise
 backend_url = SETTINGS.get(NlpServerConfigKeys.BACKEND_URL) or None
 
@@ -94,10 +98,9 @@ CIPHER_SUITE = Fernet(key)
 
 # Set expiry time to 90 days in seconds
 expiry_time = 60 * 60 * 24 * 90
-celery_app = Celery('tasks',
-                    broker=broker_url,
-                    backend=backend_url,
-                    result_expires=expiry_time)
+celery_app = Celery(
+    "tasks", broker=broker_url, backend=backend_url, result_expires=expiry_time
+)
 celery_app.conf.database_engine_options = SQLALCHEMY_COMMON_OPTIONS
 
 
@@ -105,12 +108,14 @@ celery_app.conf.database_engine_options = SQLALCHEMY_COMMON_OPTIONS
 # Helper functions
 # =============================================================================
 
+
 def nlprp_processor_dict(
-        success: bool,
-        processor: ServerProcessor = None,
-        results: JsonArrayType = None,
-        errcode: int = None,
-        errmsg: str = None) -> JsonObjectType:
+    success: bool,
+    processor: ServerProcessor = None,
+    results: JsonArrayType = None,
+    errcode: int = None,
+    errmsg: str = None,
+) -> JsonObjectType:
     """
     Returns a dictionary suitable for use as one of the elements of the
     ``response["results"]["processors"]`` array; see :ref:`NLPRP <nlprp>`.
@@ -130,25 +135,25 @@ def nlprp_processor_dict(
     Returns:
         a JSON object in NLPRP format
     """
-    proc_dict = {
-        NlprpKeys.RESULTS: results or [],
-        NlprpKeys.SUCCESS: success
-    }
+    proc_dict = {NlprpKeys.RESULTS: results or [], NlprpKeys.SUCCESS: success}
     if processor:
         proc_dict[NlprpKeys.NAME] = processor.name
         proc_dict[NlprpKeys.TITLE] = processor.title
         proc_dict[NlprpKeys.VERSION] = processor.version
     if not success:
-        proc_dict[NlprpKeys.ERRORS] = [{
-            NlprpKeys.CODE: errcode,
-            NlprpKeys.MESSAGE: errmsg,
-            NlprpKeys.DESCRIPTION: errmsg,
-        }]
+        proc_dict[NlprpKeys.ERRORS] = [
+            {
+                NlprpKeys.CODE: errcode,
+                NlprpKeys.MESSAGE: errmsg,
+                NlprpKeys.DESCRIPTION: errmsg,
+            }
+        ]
     return proc_dict
 
 
-def internal_error(msg: str,
-                   processor: ServerProcessor = None) -> JsonObjectType:
+def internal_error(
+    msg: str, processor: ServerProcessor = None
+) -> JsonObjectType:
     """
     Log an error message, and raise a corresponding :exc:`NlprpError` for
     an internal server error.
@@ -162,12 +167,13 @@ def internal_error(msg: str,
         success=False,
         processor=processor,
         errcode=HttpStatus.INTERNAL_SERVER_ERROR,
-        errmsg=f"Internal Server Error: {msg}"
+        errmsg=f"Internal Server Error: {msg}",
     )
 
 
-def gate_api_error(msg: str,
-                   processor: ServerProcessor = None) -> JsonObjectType:
+def gate_api_error(
+    msg: str, processor: ServerProcessor = None
+) -> JsonObjectType:
     """
     Return a "GATE failed" error.
 
@@ -180,13 +186,14 @@ def gate_api_error(msg: str,
         success=False,
         processor=processor,
         errcode=HttpStatus.BAD_GATEWAY,
-        errmsg=f"Bad Gateway: {msg}"
+        errmsg=f"Bad Gateway: {msg}",
     )
 
 
 # =============================================================================
 # Convert GATE JSON results (from GATE's own API) to our internal format
 # =============================================================================
+
 
 def get_gate_results(results_dict: JsonObjectType) -> JsonArrayType:
     """
@@ -206,19 +213,22 @@ def get_gate_results(results_dict: JsonObjectType) -> JsonArrayType:
         for features in values:
             start, end = features[GateApiKeys.INDICES]
             del features[GateApiKeys.INDICES]
-            results.append({
-                GateResultKeys.TYPE: annottype,
-                GateResultKeys.START: start,
-                GateResultKeys.END: end,
-                GateResultKeys.SET: None,  # CHECK WHAT THIS SHOULD BE!!
-                GateResultKeys.FEATURES: features
-            })
+            results.append(
+                {
+                    GateResultKeys.TYPE: annottype,
+                    GateResultKeys.START: start,
+                    GateResultKeys.END: end,
+                    GateResultKeys.SET: None,  # CHECK WHAT THIS SHOULD BE!!
+                    GateResultKeys.FEATURES: features,
+                }
+            )
     return results
 
 
 # =============================================================================
 # Task session management
 # =============================================================================
+
 
 def start_task_session() -> None:
     """
@@ -232,12 +242,10 @@ def start_task_session() -> None:
 # =============================================================================
 
 # noinspection PyUnusedLocal
-@celery_app.task(bind=True, name='tasks.process_nlp_text')
+@celery_app.task(bind=True, name="tasks.process_nlp_text")
 def process_nlp_text(
-        self,
-        docprocrequest_id: str,
-        username: str = "",
-        crypt_pass: str = "") -> None:
+    self, docprocrequest_id: str, username: str = "", crypt_pass: str = ""
+) -> None:
     """
     Task to process a single ``DocProcRequest`` by sending text to the relevant
     processor.
@@ -254,8 +262,8 @@ def process_nlp_text(
     """
 
     # noinspection PyUnresolvedReferences
-    dpr = (
-        TaskSession.query(DocProcRequest).get(docprocrequest_id)
+    dpr = TaskSession.query(DocProcRequest).get(
+        docprocrequest_id
     )  # type: Optional[DocProcRequest]
     if not dpr:
         log.error(f"DocProcRequest {docprocrequest_id} does not exist")
@@ -276,15 +284,15 @@ def process_nlp_text(
             processor = ServerProcessor.processors[processor_id]  # may raise
             # Run the NLP
             results = process_nlp_text_immediate(
-                text, processor, username, password)
+                text, processor, username, password
+            )
 
         except KeyError:
             results = internal_error(f"No such processor: {processor_id!r}")
 
         dpr.done = True
         dpr.when_done_utc = datetime.datetime.utcnow()
-        dpr.results = json.dumps(results,
-                                 separators=JSON_SEPARATORS_COMPACT)
+        dpr.results = json.dumps(results, separators=JSON_SEPARATORS_COMPACT)
         transaction.commit()
     except SQLAlchemyError:
         # noinspection PyUnresolvedReferences
@@ -292,10 +300,11 @@ def process_nlp_text(
 
 
 def process_nlp_text_immediate(
-        text: str,
-        processor: ServerProcessor,
-        username: str = "",
-        password: str = "") -> JsonObjectType:
+    text: str,
+    processor: ServerProcessor,
+    username: str = "",
+    password: str = "",
+) -> JsonObjectType:
     """
     Function to send text immediately to the relevant processor.
 
@@ -320,10 +329,9 @@ def process_nlp_text_immediate(
         return process_nlp_internal(text=text, processor=processor)
 
 
-def process_nlp_gate(text: str,
-                     processor: ServerProcessor,
-                     username: str,
-                     password: str) -> JsonObjectType:
+def process_nlp_gate(
+    text: str, processor: ServerProcessor, username: str, password: str
+) -> JsonObjectType:
     """
     Send text to a chosen GATE processor (via an HTTP connection, using the
     GATE JSON API; see https://cloud.gate.ac.uk/info/help/online-api.html).
@@ -344,45 +352,48 @@ def process_nlp_gate(text: str,
     API failure is handled by returning a failure code/message to our client.
     """
     headers = {
-        'Content-Type': 'text/plain',
-        'Accept': 'application/gate+json',
+        "Content-Type": "text/plain",
+        "Accept": "application/gate+json",
         # Content-Encoding: gzip?,
-        'Expect': '100-continue',
+        "Expect": "100-continue",
         # ... see https://cloud.gate.ac.uk/info/help/online-api.html
-        'charset': 'utf8'
+        "charset": "utf8",
     }
     try:
-        response = requests.post(processor.base_url + '/' + processor.name,
-                                 data=text.encode('utf-8'),
-                                 headers=headers,
-                                 auth=(username, password))  # basic auth
+        response = requests.post(
+            processor.base_url + "/" + processor.name,
+            data=text.encode("utf-8"),
+            headers=headers,
+            auth=(username, password),
+        )  # basic auth
     except requests.exceptions.RequestException as e:
         return gate_api_error(
             f"The GATE processor returned the error: {e.response.reason} "
             f"(with status code {e.response.status_code})",
-            processor=processor
+            processor=processor,
         )
     if response.status_code != HttpStatus.OK:
         return gate_api_error(
             f"The GATE processor returned the error: {response.reason} "
             f"(with status code {response.status_code})",
-            processor=processor
+            processor=processor,
         )
     try:
         json_response = response.json()
     except json.decoder.JSONDecodeError:
         return gate_api_error(
             "Bad Gateway: The GATE processor did not return JSON",
-            processor=processor
+            processor=processor,
         )
     results = get_gate_results(json_response)
-    return nlprp_processor_dict(success=True,
-                                processor=processor,
-                                results=results)
+    return nlprp_processor_dict(
+        success=True, processor=processor, results=results
+    )
 
 
-def process_nlp_internal(text: str,
-                         processor: ServerProcessor) -> JsonObjectType:
+def process_nlp_internal(
+    text: str, processor: ServerProcessor
+) -> JsonObjectType:
     """
     Send text to a chosen CRATE Python NLP processor and return a
     :class:`NlpServerResult`.
@@ -392,11 +403,10 @@ def process_nlp_internal(text: str,
         tablename_valuedict_generator = parser.parse(text)
     except AttributeError:
         return internal_error(
-            f"parser is not a CRATE Python NLP parser; is {parser!r}")
+            f"parser is not a CRATE Python NLP parser; is {parser!r}"
+        )
     # Get second element of each element in parsed text as first is tablename
     # which will have no meaning here
     return nlprp_processor_dict(
-        True,
-        processor,
-        results=[x[1] for x in tablename_valuedict_generator]
+        True, processor, results=[x[1] for x in tablename_valuedict_generator]
     )

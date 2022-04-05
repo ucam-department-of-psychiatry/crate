@@ -36,18 +36,34 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('consent', '0006_auto_20170206_1617'),
+        ("consent", "0006_auto_20170206_1617"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='consentmode',
-            name='source',
-            field=models.CharField(default='crate_user_entry', max_length=20, verbose_name='Source database used for lookup, or crate_user_entry/crate_auto_created'),  # noqa
+            model_name="consentmode",
+            name="source",
+            field=models.CharField(
+                default="crate_user_entry",
+                max_length=20,
+                verbose_name="Source database used for lookup, or crate_user_entry/crate_auto_created",
+            ),  # noqa
         ),
         migrations.AlterField(
-            model_name='patientlookup',
-            name='source_db',
-            field=models.CharField(choices=[('dummy_clinical', 'Dummy clinical database for testing'), ('cpft_crs', 'CPFT Care Records System (CRS) 2005-2012'), ('cpft_rio_rcep', 'CPFT RiO 2013- (preprocessed by Servelec RCEP tool)'), ('cpft_rio_crate', 'CPFT RiO 2013- (raw)')], max_length=20, verbose_name='Source database used for lookup'),  # noqa
+            model_name="patientlookup",
+            name="source_db",
+            field=models.CharField(
+                choices=[
+                    ("dummy_clinical", "Dummy clinical database for testing"),
+                    ("cpft_crs", "CPFT Care Records System (CRS) 2005-2012"),
+                    (
+                        "cpft_rio_rcep",
+                        "CPFT RiO 2013- (preprocessed by Servelec RCEP tool)",
+                    ),
+                    ("cpft_rio_crate", "CPFT RiO 2013- (raw)"),
+                ],
+                max_length=20,
+                verbose_name="Source database used for lookup",
+            ),  # noqa
         ),
     ]

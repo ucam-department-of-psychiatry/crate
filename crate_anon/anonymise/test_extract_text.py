@@ -64,43 +64,65 @@ Exit codes:
 - {EXIT_NO_TEXT} for "no text found"
 - {EXIT_ERROR} for "error" (e.g. file not found)
         """,
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter)
-    parser.add_argument('filename', type=str,
-                        help="File from which to extract text")
-    parser.add_argument('--plain', action='store_true',
-                        help="Use plainest format (re e.g. table layouts)")
-    parser.add_argument('--semiplain', action='store_true',
-                        help="Use semi-plain format (re e.g. table layouts)")
-    parser.add_argument('--width', type=int, default=80,
-                        help="Width to word-wrap to")
-    parser.add_argument('--rstrip', action="store_true",
-                        help="Right-strip all lines")
-    parser.add_argument('--silent', action="store_true",
-                        help="Don't print the text, just exit with a code")
-    parser.add_argument('--outfile', type=str,
-                        help="Filename to which to write (rather than stdout)")
-    parser.add_argument('--encoding', type=str, default="utf-8",
-                        help="Encoding used for --outfile")
-    parser.add_argument('--verbose', action="store_true",
-                        help="Be verbose")
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "filename", type=str, help="File from which to extract text"
+    )
+    parser.add_argument(
+        "--plain",
+        action="store_true",
+        help="Use plainest format (re e.g. table layouts)",
+    )
+    parser.add_argument(
+        "--semiplain",
+        action="store_true",
+        help="Use semi-plain format (re e.g. table layouts)",
+    )
+    parser.add_argument(
+        "--width", type=int, default=80, help="Width to word-wrap to"
+    )
+    parser.add_argument(
+        "--rstrip", action="store_true", help="Right-strip all lines"
+    )
+    parser.add_argument(
+        "--silent",
+        action="store_true",
+        help="Don't print the text, just exit with a code",
+    )
+    parser.add_argument(
+        "--outfile",
+        type=str,
+        help="Filename to which to write (rather than stdout)",
+    )
+    parser.add_argument(
+        "--encoding",
+        type=str,
+        default="utf-8",
+        help="Encoding used for --outfile",
+    )
+    parser.add_argument("--verbose", action="store_true", help="Be verbose")
 
     args = parser.parse_args()
-    main_only_quicksetup_rootlogger(level=logging.DEBUG if args.verbose
-                                    else logging.INFO)
+    main_only_quicksetup_rootlogger(
+        level=logging.DEBUG if args.verbose else logging.INFO
+    )
 
     extension = os.path.splitext(args.filename)[1]
     config = TextProcessingConfig(
         plain=args.plain,
         semiplain=args.semiplain,
         width=args.width,
-        rstrip=args.rstrip
+        rstrip=args.rstrip,
     )
     # noinspection PyBroadException
     try:
-        result = document_to_text(filename=args.filename,
-                                  blob=None,
-                                  extension=extension,
-                                  config=config)
+        result = document_to_text(
+            filename=args.filename,
+            blob=None,
+            extension=extension,
+            config=config,
+        )
     except Exception:
         traceback.print_exc(file=sys.stderr)  # full details, please
         return EXIT_ERROR

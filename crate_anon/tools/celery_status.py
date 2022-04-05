@@ -45,7 +45,8 @@ def main() -> None:
 
     cmdargs = [
         "celery",
-        "--app", CRATEWEB_CELERY_APP_NAME,
+        "--app",
+        CRATEWEB_CELERY_APP_NAME,
         "status",
     ]
     subprocess.call(cmdargs)

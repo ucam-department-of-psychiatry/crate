@@ -35,7 +35,13 @@ crate_anon/nlp_manager/cloud_request_sender.py
 from enum import auto, Enum
 import logging
 from typing import (
-    Any, Dict, List, Optional, Tuple, Generator, TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Generator,
+    TYPE_CHECKING,
 )
 
 from crate_anon.nlp_manager.constants import (
@@ -69,6 +75,7 @@ log = logging.getLogger(__name__)
 # CloudRequestSender
 # =============================================================================
 
+
 class CloudRequestSender(object):
     """
     Class to encapsulate a NLP request outbound to a cloud NLP server.
@@ -78,18 +85,20 @@ class CloudRequestSender(object):
         """
         Request state.
         """
+
         BUILDING_REQUEST = auto()
         SENDING_REQUEST = auto()
         FINISHED = auto()
 
     def __init__(
-            self,
-            text_generator: Generator[Tuple[str, Dict[str, Any]], None, None],
-            crinfo: CloudRunInfo,
-            ifconfig: InputFieldConfig,
-            report_every: int = DEFAULT_REPORT_EVERY_NLP,
-            incremental: bool = False,
-            queue: bool = True) -> None:
+        self,
+        text_generator: Generator[Tuple[str, Dict[str, Any]], None, None],
+        crinfo: CloudRunInfo,
+        ifconfig: InputFieldConfig,
+        report_every: int = DEFAULT_REPORT_EVERY_NLP,
+        incremental: bool = False,
+        queue: bool = True,
+    ) -> None:
         """
         Initialise class
 
@@ -135,8 +144,8 @@ class CloudRequestSender(object):
         self._request = None  # type: Optional[CloudRequestProcess]
 
     def send_requests(
-            self,
-            global_recnum: int) -> Tuple[List[CloudRequestProcess], bool, int]:
+        self, global_recnum: int
+    ) -> Tuple[List[CloudRequestProcess], bool, int]:
         """
         Sends off a series of cloud requests and returns them as a list.
         ``self._queue`` determines whether these are queued requests or not.
@@ -172,7 +181,11 @@ class CloudRequestSender(object):
             if self._state == self.State.SENDING_REQUEST:
                 self._send_request()
 
-        return self._requests, self._num_recs_processed > 0, self._global_recnum  # noqa
+        return (
+            self._requests,
+            self._num_recs_processed > 0,
+            self._global_recnum,
+        )  # noqa
 
     def _build_request(self) -> None:
         """
@@ -204,9 +217,7 @@ class CloudRequestSender(object):
 
         # Add the text to the cloud request with the appropriate metadata
         try:
-            self._request.add_text(
-                self._text, self._other_values
-            )
+            self._request.add_text(self._text, self._other_values)
 
             # added OK, request now has some text
             self._request_is_empty = False
@@ -292,7 +303,10 @@ class CloudRequestSender(object):
         # empty
         if not pkstr:
             pkstr = None
-        if self._report_every and self._global_recnum % self._report_every == 0:  # noqa
+        if (
+            self._report_every
+            and self._global_recnum % self._report_every == 0
+        ):  # noqa
             # total number of records in table
             totalcount = self._ifconfig.get_count()
             log.info(
@@ -304,7 +318,7 @@ class CloudRequestSender(object):
                     pkf=self._other_values[FN_SRCPKFIELD],
                     pkv=pkstr if pkstr else pkval,
                     g_recnum=self._global_recnum,
-                    totalcount=totalcount
+                    totalcount=totalcount,
                 )
             )
 
@@ -316,7 +330,7 @@ class CloudRequestSender(object):
         self._request.send_process_request(
             queue=self._queue,
             cookies=self._cookies,
-            include_text_in_reply=self._crinfo.cloudcfg.has_gate_processors
+            include_text_in_reply=self._crinfo.cloudcfg.has_gate_processors,
         )
         # If there's a connection error, we only get this far if we
         # didn't choose to stop at failure
@@ -325,8 +339,10 @@ class CloudRequestSender(object):
         else:
             if self._request.cookies:
                 self._cookies = self._request.cookies
-            log.info(f"Sent request to be processed: #{self._request_count} "
-                     f"of this block")
+            log.info(
+                f"Sent request to be processed: #{self._request_count} "
+                f"of this block"
+            )
             self._request_count += 1
             self._requests.append(self._request)
 

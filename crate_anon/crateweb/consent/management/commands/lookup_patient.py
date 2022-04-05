@@ -50,6 +50,7 @@ class Command(BaseCommand):
     Django management command to test patient lookup from the clinical
     database.
     """
+
     help = (
         "Tests lookup of patient details from the relevant CLINICAL database."
     )
@@ -57,8 +58,12 @@ class Command(BaseCommand):
     def add_arguments(self, parser: ArgumentParser) -> None:
         # docstring in superclass
         parser.add_argument(
-            "--nhs_numbers", required=True, type=int, nargs="+",
-            help="NHS numbers to look up")
+            "--nhs_numbers",
+            required=True,
+            type=int,
+            nargs="+",
+            help="NHS numbers to look up",
+        )
 
     def handle(self, *args: str, **options: Any) -> None:
         # docstring in superclass
@@ -93,7 +98,7 @@ def cli_lookup_patient(nhs_numbers: List[int]) -> None:
             nhs_number=nhs_num,
             source_db=source_db,
             save=False,
-            existing_ok=False
+            existing_ok=False,
         )
         log.info(f"NHS number: {nhs_num}. Patient info: {patient_info}")
     log.info("Done.")

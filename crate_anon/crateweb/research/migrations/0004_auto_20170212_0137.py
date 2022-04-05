@@ -37,18 +37,22 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('research', '0003_patientexplorer_patientexploreraudit'),
+        ("research", "0003_patientexplorer_patientexploreraudit"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='patientexplorer',
-            name='patient_multiquery',
-            field=JsonClassField(null=True, verbose_name='PatientMultiQuery as JSON'),  # noqa
+            model_name="patientexplorer",
+            name="patient_multiquery",
+            field=JsonClassField(
+                null=True, verbose_name="PatientMultiQuery as JSON"
+            ),  # noqa
         ),
         migrations.AlterField(
-            model_name='query',
-            name='args',
-            field=JsonClassField(null=True, verbose_name='SQL arguments (as JSON)'),  # noqa
+            model_name="query",
+            name="args",
+            field=JsonClassField(
+                null=True, verbose_name="SQL arguments (as JSON)"
+            ),  # noqa
         ),
     ]

@@ -114,7 +114,6 @@ INSTALL_REQUIRES = [
     "SQLAlchemy==1.3.18",  # database access
     "sqlparse==0.4.2",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
-
     # Packages for cloud NLP:
     "bcrypt==3.1.7",  # bcrypt encryption
     "cryptography==3.3.2",  # cryptography library
@@ -129,17 +128,15 @@ INSTALL_REQUIRES = [
     "urllib3==1.26.5",  # used by requests
     "waitress==2.1.1",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
-
     # For development only:
+    "black==22.3.0",  # auto code formatter
     "flake8==3.8.4",  # code checks
     "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
-
     # Sphinx 4.4.0 gives "more than one target for cross-reference" warning
     # when resolving crate_anon.anonymise.patient.Patient in
     # crate_anon.anonymise.altermethod.py
     "sphinx==4.2.0",  # documentation
     "sphinx_rtd_theme==0.5.0",  # documentation
-
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------
@@ -156,7 +153,6 @@ INSTALL_REQUIRES = [
     #   "pymssql",
     # PostgreSQL:
     #   "psycopg2",  # has prerequisites (e.g. pg_config executable)
-
 ]
 
 if RUNNING_WINDOWS:
@@ -172,22 +168,16 @@ if RUNNING_WINDOWS:
 
 setup(
     name="crate-anon",  # "crate" is taken
-
     version=CRATE_VERSION,
-
     description="CRATE: clinical records anonymisation and text extraction",
     long_description=LONG_DESCRIPTION,
-
     # The project"s main homepage.
     url="https://crateanon.readthedocs.io",
-
     # Author details
     author="Rudolf Cardinal",
     author_email="rudolf@pobox.com",
-
     # Choose your license
     license="GNU General Public License v3 or later (GPLv3+)",
-
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         # How mature is this project? Common values are
@@ -195,62 +185,43 @@ setup(
         #   4 - Beta
         #   5 - Production/Stable
         "Development Status :: 4 - Beta",
-
         # Indicate who your project is intended for
         "Intended Audience :: Science/Research",
-
         # Pick your license as you wish (should match "license" above)
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",  # noqa
-
         "Natural Language :: English",
-
         "Operating System :: OS Independent",
-
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3 :: Only",
-
         "Topic :: System :: Hardware",
         "Topic :: System :: Networking",
     ],
-
     keywords="anonymisation",
-
     packages=find_packages(),
     # finds all the .py files in subdirectories, as long as there are
     # __init__.py files
-
     include_package_data=True,  # use MANIFEST.in during install?
     # https://stackoverflow.com/questions/7522250/how-to-include-package-data-with-setuptools-distribute  # noqa
-
     install_requires=INSTALL_REQUIRES,
-
     entry_points={
         "console_scripts": [
             # Format is "script=module:function".
-
             # Documentation
-
             "crate_help=crate_anon.tools.launch_docs:main",
-
             # Preprocessing
-
             "crate_fetch_wordlists=crate_anon.anonymise.fetch_wordlists:main",
             "crate_postcodes=crate_anon.preprocess.postcodes:main",
             "crate_preprocess_pcmis=crate_anon.preprocess.preprocess_pcmis:main",  # noqa
             "crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main",
             "crate_preprocess_systmone=crate_anon.preprocess.preprocess_systmone:main",  # noqa
-
             # Linkage
-
             "crate_bulk_hash=crate_anon.linkage.bulk_hash:main",
             "crate_fuzzy_id_match=crate_anon.linkage.fuzzy_id_match:main",
-
             # Anonymisation
-
             "crate_anon_check_text_extractor=crate_anon.anonymise.check_text_extractor:main",  # noqa
             "crate_anon_demo_config=crate_anon.anonymise.demo_config:main",
             "crate_anon_draft_dd=crate_anon.anonymise.draft_dd:main",
@@ -261,9 +232,7 @@ setup(
             "crate_make_demo_database=crate_anon.anonymise.make_demo_database:main",  # noqa
             "crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main",  # noqa
             "crate_test_extract_text=crate_anon.anonymise.test_extract_text:main",  # noqa
-
             # NLP
-
             "crate_nlp=crate_anon.nlp_manager.nlp_manager:main",
             "crate_nlp_build_gate_java_interface=crate_anon.nlp_manager.build_gate_java_interface:main",  # noqa
             "crate_nlp_build_medex_itself=crate_anon.nlp_manager.build_medex_itself:main",  # noqa
@@ -277,9 +246,7 @@ setup(
             "crate_run_gate_kcl_pharmacotherapy_demo=crate_anon.nlp_manager.run_gate_kcl_pharmacotherapy_demo:main",  # noqa
             "crate_show_crate_gate_pipeline_options=crate_anon.nlp_manager.show_crate_gate_pipeline_options:main",  # noqa
             "crate_show_crate_medex_pipeline_options=crate_anon.nlp_manager.show_crate_medex_pipeline_options:main",  # noqa
-
             # Web site
-
             "crate_celery_status=crate_anon.tools.celery_status:main",
             "crate_django_manage=crate_anon.crateweb.manage:main",  # will cope with argv  # noqa
             "crate_email_rdbm=crate_anon.tools.email_rdbm:main",
@@ -288,7 +255,6 @@ setup(
             "crate_launch_flower=crate_anon.tools.launch_flower:main",
             "crate_print_demo_crateweb_config=crate_anon.tools.print_crateweb_demo_config:main",  # noqa
             "crate_windows_service=crate_anon.tools.winservice:main",
-
             # Indirect shortcuts to "crate_django_manage" commands:
             "crate_launch_cherrypy_server=crate_anon.tools.launch_cherrypy_server:main",  # noqa
             # ... a separate script with ":main" rather than
@@ -296,9 +262,7 @@ setup(
             # the "runcpserver" function from our Windows service, and have it
             # deal with the CherryPy special environment variable
             "crate_launch_django_server=crate_anon.crateweb.manage:runserver",
-
             # NLP web server
-
             "crate_nlp_webserver_generate_encryption_key=crate_anon.nlp_webserver.security:generate_encryption_key",  # noqa
             "crate_nlp_webserver_initialize_db=crate_anon.nlp_webserver.initialize_db:main",  # noqa
             "crate_nlp_webserver_launch_celery=crate_anon.tools.launch_nlp_webserver_celery:main",  # noqa
@@ -307,7 +271,6 @@ setup(
             "crate_nlp_webserver_manage_users=crate_anon.nlp_webserver.manage_users:main",  # noqa
             "crate_nlp_webserver_print_demo=crate_anon.nlp_webserver.print_demos:main",  # noqa
             "crate_nlp_webserver_pserve=pyramid.scripts.pserve:main",  # noqa
-
         ],
         # Entry point for nlp webserver
         "paste.app_factory": [

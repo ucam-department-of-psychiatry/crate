@@ -64,15 +64,20 @@ def login_view(request: HttpRequest) -> HttpResponse:
         return HttpResponseRedirect(nextpage)
     # Otherwise, not authenticated. Offer an authentication form.
     form = AuthenticationForm(
-        None, request.POST if request.method == 'POST' else None)
+        None, request.POST if request.method == "POST" else None
+    )
     if form.is_valid():
         # ... the form handles a bunch of user validation
         login(request, form.get_user())
         return HttpResponseRedirect(nextpage)
-    return render(request, 'login.html', {
-        'form': form,
-        'next': nextpage_quoted,
-    })
+    return render(
+        request,
+        "login.html",
+        {
+            "form": form,
+            "next": nextpage_quoted,
+        },
+    )
 
 
 def logout_view(request: HttpRequest) -> HttpResponse:
@@ -80,7 +85,7 @@ def logout_view(request: HttpRequest) -> HttpResponse:
     "You have logged out" view.
     """
     logout(request)
-    return render(request, 'logged_out.html')
+    return render(request, "logged_out.html")
 
 
 def password_change(request: HttpRequest) -> HttpResponse:
@@ -89,14 +94,15 @@ def password_change(request: HttpRequest) -> HttpResponse:
     """
     # https://docs.djangoproject.com/en/1.8/topics/auth/default/#module-django.contrib.auth.forms  # noqa
     form = PasswordChangeForm(
-        data=request.POST if request.method == 'POST' else None,
-        user=request.user)
+        data=request.POST if request.method == "POST" else None,
+        user=request.user,
+    )
     if form.is_valid():
         form.save()
         update_session_auth_hash(request, form.user)
         # ... so the user isn't immediately logged out
         return redirect(UrlNames.HOME)
-    return render(request, 'password_change.html', {'form': form})
+    return render(request, "password_change.html", {"form": form})
 
 
 # No password_reset function yet (would use PasswordResetForm)

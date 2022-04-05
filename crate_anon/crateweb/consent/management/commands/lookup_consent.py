@@ -45,6 +45,7 @@ class Command(BaseCommand):
     """
     Django management command to test consent-mode lookup.
     """
+
     help = (
         "Tests lookup of the consent mode from the relevant CLINICAL database."
     )
@@ -52,8 +53,12 @@ class Command(BaseCommand):
     def add_arguments(self, parser: ArgumentParser) -> None:
         # docstring in superclass
         parser.add_argument(
-            "--nhs_numbers", required=True, type=int, nargs="+",
-            help="NHS numbers to look up")
+            "--nhs_numbers",
+            required=True,
+            type=int,
+            nargs="+",
+            help="NHS numbers to look up",
+        )
 
     def handle(self, *args: str, **options: Any) -> None:
         # docstring in superclass
@@ -80,9 +85,7 @@ def cli_lookup_consent(nhs_numbers: List[int]) -> None:
     for nhs_num in nhs_numbers:
         decisions = []  # type: List[str]
         consent_mode = lookup_consent(
-            nhs_number=nhs_num,
-            source_db=source_db,
-            decisions=decisions
+            nhs_number=nhs_num, source_db=source_db, decisions=decisions
         )
         log.info(f"NHS number: {nhs_num}. Consent mode: {consent_mode}")
         log.debug(f"Decisions: {' // '.join(decisions)}")

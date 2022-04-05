@@ -60,7 +60,7 @@ from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 log = logging.getLogger(__name__)
 
-NLP_MANAGER = 'crate_anon.nlp_manager.nlp_manager'
+NLP_MANAGER = "crate_anon.nlp_manager.nlp_manager"
 
 CPUCOUNT = multiprocessing.cpu_count()
 
@@ -68,6 +68,7 @@ CPUCOUNT = multiprocessing.cpu_count()
 # =============================================================================
 # Main
 # =============================================================================
+
 
 def main() -> None:
     """
@@ -77,19 +78,27 @@ def main() -> None:
     description = (
         f"Runs the CRATE NLP manager in parallel. {version}. Note that all "
         f"arguments not specified here are passed to the underlying script "
-        f"(see crate_nlp --help).")
+        f"(see crate_nlp --help)."
+    )
     parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument(
-        "--nlpdef", required=True,
-        help="NLP processing name, from the config file")
+        "--nlpdef",
+        required=True,
+        help="NLP processing name, from the config file",
+    )
     parser.add_argument(
-        "--nproc", "-n", nargs="?", type=int, default=CPUCOUNT,
+        "--nproc",
+        "-n",
+        nargs="?",
+        type=int,
+        default=CPUCOUNT,
         help="Number of processes "
-             "(default is the number of CPUs on this machine)")
+        "(default is the number of CPUs on this machine)",
+    )
     parser.add_argument(
-        '--verbose', '-v', action='store_true',
-        help="Be verbose")
+        "--verbose", "-v", action="store_true", help="Be verbose"
+    )
     args, unknownargs = parser.parse_known_args()
 
     loglevel = logging.DEBUG if args.verbose else logging.INFO
@@ -97,9 +106,9 @@ def main() -> None:
     configure_logger_for_colour(rootlogger, loglevel)
 
     common_options = (
-        ['--nlpdef', args.nlpdef] +
-        ["-v"] * (1 if args.verbose else 0) +
-        unknownargs
+        ["--nlpdef", args.nlpdef]
+        + ["-v"] * (1 if args.verbose else 0)
+        + unknownargs
     )
 
     log.debug(f"common_options: {common_options}")
@@ -124,9 +133,12 @@ def main() -> None:
     # it wouldn't normally do, because Python 3 uses absolute not relative
     # imports).
     procargs = [
-        sys.executable, '-m', NLP_MANAGER,
-        '--dropremake',
-        '--processcluster', 'STRUCTURE'
+        sys.executable,
+        "-m",
+        NLP_MANAGER,
+        "--dropremake",
+        "--processcluster",
+        "STRUCTURE",
     ] + common_options
     check_call_process(procargs)
 
@@ -137,11 +149,14 @@ def main() -> None:
     args_list = []  # type: List[List[str]]
     for procnum in range(nprocesses_main):
         procargs = [
-            sys.executable, '-m', NLP_MANAGER,
-            '--nlp',
-            '--processcluster', 'NLP',
-            f'--nprocesses={nprocesses_main}',
-            f'--process={procnum}'
+            sys.executable,
+            "-m",
+            NLP_MANAGER,
+            "--nlp",
+            "--processcluster",
+            "NLP",
+            f"--nprocesses={nprocesses_main}",
+            f"--process={procnum}",
         ] + common_options
         args_list.append(procargs)
     run_multiple_processes(args_list)  # Wait for them all to finish

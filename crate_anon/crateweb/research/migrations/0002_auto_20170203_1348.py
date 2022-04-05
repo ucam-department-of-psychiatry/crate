@@ -36,13 +36,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('research', '0001_initial'),
+        ("research", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='queryaudit',
-            name='n_records',
+            model_name="queryaudit",
+            name="n_records",
             field=models.IntegerField(default=0),
         ),
     ]

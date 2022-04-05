@@ -49,11 +49,12 @@ EXIT_FAILURE = 1
 if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     DEFAULT_MEDEX_DIR = "/path/to/Medex/installation"
 else:
-    DEFAULT_MEDEX_DIR = os.path.join(os.path.expanduser('~'), 'dev',
-                                     'Medex_UIMA_1.3.6')
+    DEFAULT_MEDEX_DIR = os.path.join(
+        os.path.expanduser("~"), "dev", "Medex_UIMA_1.3.6"
+    )
 
-DEFAULT_JAVA = 'java'
-DEFAULT_JAVAC = 'javac'
+DEFAULT_JAVA = "java"
+DEFAULT_JAVAC = "javac"
 
 EXTRA_ROUTES = [
     "i/m",
@@ -102,46 +103,35 @@ EXTRA_FREQUENCIES = [  # Tuples of (literal, TIMEX3)
     # http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations  # noqa
     # TIMEX3 codes:
     # http://www.timeml.org/tempeval2/tempeval2-trial/guidelines/timex3guidelines-072009.pdf
-
     # qqh, quarta quaque hora
     ("q.q.h.", "R1P4H"),
-
     # qds, quater die sumendum; MUST BE BEFORE COMPETING "qd" (= per day)
     # expression, e.g. in frequency_rules:
     # expression="[Qq]\.?[ ]?[Dd]\.?",val="R1P24H"
     ("q.d.s.", "R1P6H"),
-
     # tds, ter die sumendum
     ("t.d.s.", "R1P8H"),
-
     # bd, bis die
     ("b.d.", "R1P12H"),
-
     # od, omni die
     ("o.d.", "R1P24H"),
-
     # mane
     ("mane", "R1P24H"),
-
     # om, omni mane
     ("o.m.", "R1P24H"),
-
     # nocte
     ("nocte", "R1P24H"),
-
     # on, omni nocte -- beware also the word "on"...
     ("o.n.", "R1P24H"),
-
     # fortnightly and variants
     ("fortnightly", "R1P2W"),  # W: page 9 of TIMEX3 PDF above
     ("2 weekly", "R1P2W"),
     ("two weekly", "R1P2W"),
-
     # monthly
     ("monthly", "R1P1M"),  # M: page 8 of TIMEX3 PDF above
 ]
 DO_NOT_REMOVE_DOTS = [
-    'o.n.'
+    "o.n."
     # the word "on" is too confusing; e.g. "Start olanzapine 5mg nocte." is
     # fine; "Start olanzapine 5mg on." is tolerable, but too easily confused
     # with "Start olanzapine 5mg on Tuesday."
@@ -157,7 +147,7 @@ def terminate(x: str) -> str:
     """
     Terminates its input with a newline.
     """
-    return x + '\n'
+    return x + "\n"
 
 
 def lex_freq(x: str) -> str:
@@ -174,8 +164,9 @@ def lex_route(x: str) -> str:
     return f"{x}\tRUT"
 
 
-def semantic_rule_engine_line(frequency: str,
-                              dots_optional: bool = True) -> str:
+def semantic_rule_engine_line(
+    frequency: str, dots_optional: bool = True
+) -> str:
     """
     For MedEx: create a semantic rule engine line (a line of Java to be
     inserted).
@@ -191,22 +182,23 @@ def semantic_rule_engine_line(frequency: str,
     # NB case-insensitive regexes in SemanticRuleEngine.java, so ignore case
     # here
     # If you need to put in a \, double it to \\ for Java's benefit.
-    regex_str = ''
+    regex_str = ""
     for c in frequency:
-        if c == ' ':
-            regex_str += r'\\s+'
-        elif c == '.':
+        if c == " ":
+            regex_str += r"\\s+"
+        elif c == ".":
             if dots_optional:
-                regex_str += r'\\.?\\s*'
+                regex_str += r"\\.?\\s*"
             else:
-                regex_str += r'\\.\\s*'
+                regex_str += r"\\.\\s*"
         else:
             regex_str += c
-    return fr'        regexlist.put("^({regex_str})( |$)", "FREQ");  // RNC'
+    return rf'        regexlist.put("^({regex_str})( |$)", "FREQ");  // RNC'
 
 
-def frequency_rules_line(frequency: str, timex: str,
-                         dots_optional: bool) -> str:
+def frequency_rules_line(
+    frequency: str, timex: str, dots_optional: bool
+) -> str:
     """
     Creates a line for MedEx's ``frequency_rules`` file.
 
@@ -224,21 +216,21 @@ def frequency_rules_line(frequency: str, timex: str,
     # alternatives here.
     # No need for word boundaries with \b, since at this stage all words have
     # already been separated by the tokenization process.
-    regex_str = ''
+    regex_str = ""
     for c in frequency:
-        if c == ' ':
-            regex_str += r'\s+'
-        elif c == '.':
+        if c == " ":
+            regex_str += r"\s+"
+        elif c == ".":
             if dots_optional:
-                regex_str += r'\.?\s?'
+                regex_str += r"\.?\s?"
             else:
-                regex_str += r'\.\s?'
+                regex_str += r"\.\s?"
         elif c.isalpha():
             # Case-insensitive here.
-            regex_str += fr'[{c.upper()}{c.lower()}]'
+            regex_str += rf"[{c.upper()}{c.lower()}]"
         else:
             regex_str += c
-    return fr'expression="{regex_str}",val="{timex}"'
+    return rf'expression="{regex_str}",val="{timex}"'
 
 
 def add_lines_if_not_in(filename: str, lines: List[str]) -> None:
@@ -261,20 +253,24 @@ def add_lines_if_not_in(filename: str, lines: List[str]) -> None:
 
     log.info(f"Detected: {encoding}")
 
-    with open(filename, 'r', encoding=encoding) as f:
+    with open(filename, "r", encoding=encoding) as f:
         existing = f.readlines()  # will have trailing newlines
     log.info(f"Read {len(existing)} lines from {filename}")
     # print(existing[-5:])
-    with open(filename, 'a') as f:
+    with open(filename, "a") as f:
         for line in lines:
             if terminate(line) not in existing:
                 log.info(f"Adding {filename} line: {line!r}")
                 f.write(terminate(line))
 
 
-def add_lines_after_trigger(filename: str, trigger: str,
-                            start_marker: str, end_marker: str,
-                            lines: List[str]) -> None:
+def add_lines_after_trigger(
+    filename: str,
+    trigger: str,
+    start_marker: str,
+    end_marker: str,
+    lines: List[str],
+) -> None:
     r"""
     Adds lines to a file, after a triggering line.
 
@@ -299,10 +295,10 @@ def add_lines_after_trigger(filename: str, trigger: str,
 
     Elements of lines should not have their own ``\n`` characters.
     """
-    with open(filename, 'r') as f:
+    with open(filename, "r") as f:
         existing = f.readlines()
     log.info(f"Read {len(existing)} lines from {filename}")
-    with open(filename, 'w') as f:
+    with open(filename, "w") as f:
         index = 0
         for line in existing:
             f.write(line)
@@ -311,10 +307,12 @@ def add_lines_after_trigger(filename: str, trigger: str,
                 break
         # ... index now pointing to one after the trigger line
         # Excise an existing block of ours?
-        if (index < len(existing) and
-                existing[index] == terminate(start_marker)):
-            while (index < len(existing) and
-                   existing[index] != terminate(end_marker)):
+        if index < len(existing) and existing[index] == terminate(
+            start_marker
+        ):
+            while index < len(existing) and existing[index] != terminate(
+                end_marker
+            ):
                 index += 1
             index += 1  # line after end_marker
         # Add stuff
@@ -328,9 +326,13 @@ def add_lines_after_trigger(filename: str, trigger: str,
             f.write(line)
 
 
-def replace_in_file(filename: str, changes: List[Tuple[str, str]],
-                    count: int = -1, encoding: str = 'utf8',
-                    backup_suffix: str = "~") -> None:
+def replace_in_file(
+    filename: str,
+    changes: List[Tuple[str, str]],
+    count: int = -1,
+    encoding: str = "utf8",
+    backup_suffix: str = "~",
+) -> None:
     """
     Replaces content in a file.
 
@@ -366,7 +368,7 @@ def replace_in_file(filename: str, changes: List[Tuple[str, str]],
     os.rename(filename, backup_name)
     log.info(f"... backup is: {repr(backup_name)}")
     # Write out new
-    with open(filename, 'w', encoding=encoding) as output_file:
+    with open(filename, "w", encoding=encoding) as output_file:
         output_file.write(new_content)
 
 
@@ -380,18 +382,22 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Compile MedEx-UIMA itself (in Java)",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
-        '--medexdir', default=DEFAULT_MEDEX_DIR,
-        help="Root directory of MedEx installation")
+        "--medexdir",
+        default=DEFAULT_MEDEX_DIR,
+        help="Root directory of MedEx installation",
+    )
+    parser.add_argument("--javac", default=DEFAULT_JAVAC, help="Java compiler")
     parser.add_argument(
-        '--javac', default=DEFAULT_JAVAC,
-        help="Java compiler")
+        "--deletefirst",
+        action="store_true",
+        help="Delete existing .class files first (optional)",
+    )
     parser.add_argument(
-        '--deletefirst', action='store_true',
-        help="Delete existing .class files first (optional)")
-    parser.add_argument('--verbose', '-v', action='store_true',
-                        help="Be verbose")
+        "--verbose", "-v", action="store_true", help="Be verbose"
+    )
     args = parser.parse_args()
 
     # -------------------------------------------------------------------------
@@ -402,12 +408,14 @@ def main() -> None:
     configure_logger_for_colour(rootlogger, level=loglevel)
 
     if not os.path.exists(args.medexdir):
-        log.error(f"Could not find Medex installation at {args.medexdir}. "
-                  f"Is Medex installed? Have you set --medexdir correctly?")
+        log.error(
+            f"Could not find Medex installation at {args.medexdir}. "
+            f"Is Medex installed? Have you set --medexdir correctly?"
+        )
         sys.exit(EXIT_FAILURE)
 
     # Remove garbage Apple backup files
-    hidden_pattern = os.path.join(args.medexdir, '**', '._*')
+    hidden_pattern = os.path.join(args.medexdir, "**", "._*")
     for hidden in glob.glob(hidden_pattern, recursive=True):
         log.info(f"Removing file {hidden}")
         os.remove(hidden)
@@ -415,41 +423,61 @@ def main() -> None:
     # -------------------------------------------------------------------------
     # Add lexicon entries
     # -------------------------------------------------------------------------
-    lexfilename = os.path.join(args.medexdir, 'resources', 'lexicon.cfg')
-    lexlines = [lex_route(route)
-                for route in EXTRA_ROUTES]
+    lexfilename = os.path.join(args.medexdir, "resources", "lexicon.cfg")
+    lexlines = [lex_route(route) for route in EXTRA_ROUTES]
     for frequency, _ in EXTRA_FREQUENCIES:
         lexlines.append(lex_freq(frequency))
-        if '.' in frequency:
-            lexlines.append(lex_freq(frequency.replace('.', '. ')))
+        if "." in frequency:
+            lexlines.append(lex_freq(frequency.replace(".", ". ")))
             if frequency not in DO_NOT_REMOVE_DOTS:
-                lexlines.append(lex_freq(frequency.replace('.', '')))
+                lexlines.append(lex_freq(frequency.replace(".", "")))
     # Need to add variants, e.g. "om" for "o.m."?
     add_lines_if_not_in(lexfilename, lexlines)
 
     # -------------------------------------------------------------------------
     # Add frequency tags to SemanticRuleEngine.java
     # -------------------------------------------------------------------------
-    semengfilename = os.path.join(args.medexdir, 'src', 'org', 'apache',
-                                  'medex', 'SemanticRuleEngine.java')
-    semlines = [semantic_rule_engine_line(frequency,
-                                          frequency not in DO_NOT_REMOVE_DOTS)
-                for frequency, _ in EXTRA_FREQUENCIES]
-    add_lines_after_trigger(semengfilename, SEM_ENG_TRIGGER_LINE_TRIMMED,
-                            SOURCE_START_MARKER, SOURCE_END_MARKER,
-                            semlines)
+    semengfilename = os.path.join(
+        args.medexdir,
+        "src",
+        "org",
+        "apache",
+        "medex",
+        "SemanticRuleEngine.java",
+    )
+    semlines = [
+        semantic_rule_engine_line(
+            frequency, frequency not in DO_NOT_REMOVE_DOTS
+        )
+        for frequency, _ in EXTRA_FREQUENCIES
+    ]
+    add_lines_after_trigger(
+        semengfilename,
+        SEM_ENG_TRIGGER_LINE_TRIMMED,
+        SOURCE_START_MARKER,
+        SOURCE_END_MARKER,
+        semlines,
+    )
 
     # -------------------------------------------------------------------------
     # Add frequency tags to frequency_rules
     # -------------------------------------------------------------------------
-    freqrulefilename = os.path.join(args.medexdir, 'resources', 'TIMEX',
-                                    'rules', 'frequency_rules')
-    frlines = [frequency_rules_line(frequency, timex,
-                                    frequency not in DO_NOT_REMOVE_DOTS)
-               for frequency, timex in EXTRA_FREQUENCIES]
-    add_lines_after_trigger(freqrulefilename, FREQ_RULE_TRIGGER_LINE_TRIMMED,
-                            SOURCE_START_MARKER, SOURCE_END_MARKER,
-                            frlines)
+    freqrulefilename = os.path.join(
+        args.medexdir, "resources", "TIMEX", "rules", "frequency_rules"
+    )
+    frlines = [
+        frequency_rules_line(
+            frequency, timex, frequency not in DO_NOT_REMOVE_DOTS
+        )
+        for frequency, timex in EXTRA_FREQUENCIES
+    ]
+    add_lines_after_trigger(
+        freqrulefilename,
+        FREQ_RULE_TRIGGER_LINE_TRIMMED,
+        SOURCE_START_MARKER,
+        SOURCE_END_MARKER,
+        frlines,
+    )
 
     # -------------------------------------------------------------------------
     # Fix bugs! Argh.
@@ -460,8 +488,14 @@ def main() -> None:
     # first bug is fixed.
     bugfixes = [
         {
-            "filename": os.path.join(args.medexdir, 'src', 'org', 'apache',
-                                     'NLPTools', 'Document.java'),
+            "filename": os.path.join(
+                args.medexdir,
+                "src",
+                "org",
+                "apache",
+                "NLPTools",
+                "Document.java",
+            ),
             "changes": [
                 {
                     "comment": """
@@ -483,8 +517,14 @@ Exception in thread "main" java.lang.StringIndexOutOfBoundsException: String ind
         },
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         {
-            "filename": os.path.join(args.medexdir, 'src', 'org', 'apache',
-                                     'algorithms', 'SuffixArray.java'),
+            "filename": os.path.join(
+                args.medexdir,
+                "src",
+                "org",
+                "apache",
+                "algorithms",
+                "SuffixArray.java",
+            ),
             "changes": [
                 {
                     "comment": """
@@ -562,24 +602,27 @@ on.
     # Clean up first?
     # -------------------------------------------------------------------------
     if args.deletefirst:
-        purge(args.medexdir, '*.class')
+        purge(args.medexdir, "*.class")
 
     # -------------------------------------------------------------------------
     # Compile
     # -------------------------------------------------------------------------
-    bindir = os.path.join(args.medexdir, 'bin')
-    classpath = os.pathsep.join([
-        os.path.join(args.medexdir, 'src'),
-        os.path.join(args.medexdir, 'lib', '*'),  # jar files
-    ])
-    classpath_options = ['-classpath', classpath]
+    bindir = os.path.join(args.medexdir, "bin")
+    classpath = os.pathsep.join(
+        [
+            os.path.join(args.medexdir, "src"),
+            os.path.join(args.medexdir, "lib", "*"),  # jar files
+        ]
+    )
+    classpath_options = ["-classpath", classpath]
     os.chdir(args.medexdir)
     cmdargs = (
-        [args.javac] +
-        classpath_options +
-        ['src/org/apache/medex/Main.java'] +
+        [args.javac]
+        + classpath_options
+        + ["src/org/apache/medex/Main.java"]
+        +
         # ... compiling this compiles everything else necessary
-        ['-d', bindir]  # put the binaries here
+        ["-d", bindir]  # put the binaries here
     )
     log.info(f"Executing command: {cmdargs}")
     subprocess.check_call(cmdargs)

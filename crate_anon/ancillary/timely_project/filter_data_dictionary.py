@@ -75,7 +75,7 @@ log = logging.getLogger(__name__)
 FILTER_INFO_CHOICES = {
     # name, class
     "CPFT_RiO": TimelyCPFTRiOFilter,
-    "CPFT_GenericSystmOne": TimelyCPFTGenericSystmOneFilter
+    "CPFT_GenericSystmOne": TimelyCPFTGenericSystmOneFilter,
 }  # type: Dict[str, Type[TimelyDDFilter]]
 
 
@@ -102,12 +102,15 @@ def report(text: str) -> None:
 # Deciding what to keep
 # =============================================================================
 
-def keep(row: DataDictionaryRow,
-         inclusion_tables: List[TableCriterion],
-         exclusion_tables: List[TableCriterion],
-         exclusion_fields: List[FieldCriterion],
-         system_tables_lower: List[str],
-         scrub_src_tables_lower: List[str]) -> Optional[DataDictionaryRow]:
+
+def keep(
+    row: DataDictionaryRow,
+    inclusion_tables: List[TableCriterion],
+    exclusion_tables: List[TableCriterion],
+    exclusion_fields: List[FieldCriterion],
+    system_tables_lower: List[str],
+    scrub_src_tables_lower: List[str],
+) -> Optional[DataDictionaryRow]:
     """
     Filters each row. (Each row represents a source column/field.)
 
@@ -130,10 +133,9 @@ def keep(row: DataDictionaryRow,
         report(reason)
         if keep_:
             full_reason = f"[TIMELY autofilter: {reason}]"
-            row_modified.comment = " ".join((
-                row_modified.comment or "",
-                full_reason
-            ))
+            row_modified.comment = " ".join(
+                (row_modified.comment or "", full_reason)
+            )
             return row_modified
         else:
             return None
@@ -150,7 +152,7 @@ def keep(row: DataDictionaryRow,
             return decide(
                 False,
                 f"Excluding specifically: {tablename}.{row.src_field} "
-                f"(stage {ef.stage} rule)"
+                f"(stage {ef.stage} rule)",
             )
 
     for inc_table in inclusion_tables:
@@ -158,7 +160,7 @@ def keep(row: DataDictionaryRow,
             return decide(
                 True,
                 f"INCLUDING specifically: {tablename} "
-                f"(stage {inc_table.stage} rule)"
+                f"(stage {inc_table.stage} rule)",
             )
 
     if table_lower in system_tables_lower:
@@ -170,8 +172,9 @@ def keep(row: DataDictionaryRow,
         # in a previous step), in which case we include or omit depending on
         # the original data dictionary.
         row_modified.omit = True
-        log.debug(f"For {tablename}.{row.src_field}, "
-                  f"setting 'omit' flag to True")
+        log.debug(
+            f"For {tablename}.{row.src_field}, " f"setting 'omit' flag to True"
+        )
         return decide(True, f"INCLUDING FOR ANONYMISATION: {tablename}")
 
     # Default:
@@ -182,10 +185,13 @@ def keep(row: DataDictionaryRow,
 # File handling
 # =============================================================================
 
-def filter_dd(filter_info: TimelyDDFilter,
-              input_filename: str,
-              output_filename: str,
-              stage: int) -> None:
+
+def filter_dd(
+    filter_info: TimelyDDFilter,
+    input_filename: str,
+    output_filename: str,
+    stage: int,
+) -> None:
     """
     Reads a data dictionary, filters it, and writes the output.
     """
@@ -198,31 +204,31 @@ def filter_dd(filter_info: TimelyDDFilter,
         input_filename,
         config,
         check_valid=False,
-        override_dialect=mssql_server_dialect
+        override_dialect=mssql_server_dialect,
     )
 
     # Autodetect anonymisation (scrub-source) tables. We'll include them.
     scrub_src_tables_lower = [
-        table.lower()
-        for table in dd.get_tables_w_scrub_src()
+        table.lower() for table in dd.get_tables_w_scrub_src()
     ]
     log.debug(f"scrub_src_tables_lower: {scrub_src_tables_lower}")
 
     # Autodetect system tables (those with no patient). We'll include them.
     system_tables_lower = [
-        table.lower()
-        for table in dd.get_tables_w_no_pt_info()
+        table.lower() for table in dd.get_tables_w_no_pt_info()
     ]
     log.debug(f"system_tables_lower: {system_tables_lower}")
 
     # Exclusion and inclusion tables.
     inclusion_tables = [
-        t for t in filter_info.staged_include_tables
+        t
+        for t in filter_info.staged_include_tables
         if stage >= t.stage
         # "Include from t.stage or beyond."
     ]
     exclusion_fields = [
-        f for f in filter_info.staged_exclude_fields
+        f
+        for f in filter_info.staged_exclude_fields
         if stage <= f.stage
         # "Exclude before and up to/including t.stage."
     ]
@@ -234,7 +240,7 @@ def filter_dd(filter_info: TimelyDDFilter,
             exclusion_tables=filter_info.exclude_tables,
             exclusion_fields=exclusion_fields,
             system_tables_lower=system_tables_lower,
-            scrub_src_tables_lower=scrub_src_tables_lower
+            scrub_src_tables_lower=scrub_src_tables_lower,
         )
 
     log.info(f"Filtering. Starting with {dd.n_rows} rows...")
@@ -248,6 +254,7 @@ def filter_dd(filter_info: TimelyDDFilter,
 # Command-line handling
 # =============================================================================
 
+
 def main() -> None:
     """
     Command-line entry point.
@@ -256,31 +263,31 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "input", type=str,
+        "input",
+        type=str,
         help="Data dictionary file to read",
     )
     parser.add_argument(
-        "output", type=str,
-        help="Data dictionary file to write"
+        "output", type=str, help="Data dictionary file to write"
     )
     parser.add_argument(
-        "--system", type=str, required=True,
+        "--system",
+        type=str,
+        required=True,
         choices=sorted(FILTER_INFO_CHOICES.keys()),
-        help="EHR system for which to translate the data dictionary"
+        help="EHR system for which to translate the data dictionary",
     )
     parser.add_argument(
-        "--stage", type=int,
-        choices=list(range(1, N_STAGES + 1)), default=1,
-        help="Approval stage."
+        "--stage",
+        type=int,
+        choices=list(range(1, N_STAGES + 1)),
+        default=1,
+        help="Approval stage.",
     )
     parser.add_argument(
-        "--nocolour", action="store_true",
-        help="Disable colour in logs"
+        "--nocolour", action="store_true", help="Disable colour in logs"
     )
-    parser.add_argument(
-        "--verbose", action="store_true",
-        help="Be verbose"
-    )
+    parser.add_argument("--verbose", action="store_true", help="Be verbose")
     args = parser.parse_args()
 
     loglevel = logging.DEBUG if args.verbose else logging.INFO
@@ -297,7 +304,7 @@ def main() -> None:
         filter_info=filter_info,
         input_filename=args.input,
         output_filename=args.output,
-        stage=args.stage
+        stage=args.stage,
     )
 
 

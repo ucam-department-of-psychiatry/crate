@@ -72,6 +72,7 @@ class CustomFileSystemStorage(FileSystemStorage):
     change at runtime.
 
     """
+
     def url(self, name: str) -> str:
         """
         Returns the URL for a given filename.
@@ -79,8 +80,9 @@ class CustomFileSystemStorage(FileSystemStorage):
         if self.base_url is None:
             raise ValueError("This file is not accessible via a URL.")
         # log.debug("get_script_prefix(): %s" % get_script_prefix())
-        return urljoin(get_script_prefix() + self.base_url,
-                       filepath_to_uri(name))
+        return urljoin(
+            get_script_prefix() + self.base_url, filepath_to_uri(name)
+        )
 
 
 privatestorage = CustomFileSystemStorage(

@@ -41,21 +41,12 @@ from crate_anon.common.regex_helpers import first_n_characters_required
 # Unit tests
 # =============================================================================
 
+
 class RegexHelperTests(TestCase):
     def test_first_n_characters_required(self) -> None:
+        self.assertEqual(first_n_characters_required("abc", 3), "abc")
+        self.assertEqual(first_n_characters_required("abc", 4), "abc")
+        self.assertEqual(first_n_characters_required("abcd", 3), "abc(?:d)?")
         self.assertEqual(
-            first_n_characters_required("abc", 3),
-            "abc"
-        )
-        self.assertEqual(
-            first_n_characters_required("abc", 4),
-            "abc"
-        )
-        self.assertEqual(
-            first_n_characters_required("abcd", 3),
-            "abc(?:d)?"
-        )
-        self.assertEqual(
-            first_n_characters_required("abcde", 3),
-            "abc(?:d(?:e)?)?"
+            first_n_characters_required("abcde", 3), "abc(?:d(?:e)?)?"
         )

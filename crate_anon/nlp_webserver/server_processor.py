@@ -60,16 +60,18 @@ class ServerProcessor(NlprpServerProcessor):
     # Master list of all instances (processors)
     processors = {}  # type: Dict[str, "ServerProcessor"]
 
-    def __init__(self,
-                 name: str,
-                 title: str,
-                 version: str,
-                 is_default_version: bool,
-                 description: str,
-                 schema_type: str = NlprpValues.UNKNOWN,
-                 sql_dialect: Optional[str] = None,
-                 tabular_schema: Optional[Dict[str, Any]] = None,
-                 proctype: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        title: str,
+        version: str,
+        is_default_version: bool,
+        description: str,
+        schema_type: str = NlprpValues.UNKNOWN,
+        sql_dialect: Optional[str] = None,
+        tabular_schema: Optional[Dict[str, Any]] = None,
+        proctype: Optional[str] = None,
+    ) -> None:
         super().__init__(
             name=name,
             title=title,
@@ -78,11 +80,13 @@ class ServerProcessor(NlprpServerProcessor):
             description=description,
             schema_type=schema_type,
             sql_dialect=sql_dialect,
-            tabular_schema=tabular_schema
+            tabular_schema=tabular_schema,
         )
         if len(self.processor_id) > 100:
-            raise ValueError(f"Processor id {self.processor_id} is too "
-                             "long for database field")
+            raise ValueError(
+                f"Processor id {self.processor_id} is too "
+                "long for database field"
+            )
 
         self.base_url = None
         if proctype == PROCTYPE_GATE:
@@ -102,8 +106,7 @@ class ServerProcessor(NlprpServerProcessor):
         return f"{self.name}_{self.version}"
 
     @classmethod
-    def get_processor(cls, name: str,
-                      version: str = "") -> "ServerProcessor":
+    def get_processor(cls, name: str, version: str = "") -> "ServerProcessor":
         """
         Fetch a processor by name and (optionally) version.
 
@@ -135,8 +138,9 @@ class ServerProcessor(NlprpServerProcessor):
         raise no_such_proc_error(name, version)
 
     @classmethod
-    def get_processor_nlprp(cls, requested_processor_dict: JsonObjectType) \
-            -> "ServerProcessor":
+    def get_processor_nlprp(
+        cls, requested_processor_dict: JsonObjectType
+    ) -> "ServerProcessor":
         """
         Fetch a processor, from an NLPRP dictionary specifying it.
 
@@ -154,8 +158,9 @@ class ServerProcessor(NlprpServerProcessor):
         try:
             name = requested_processor_dict[NlprpKeys.NAME]  # may raise
         except KeyError:
-            raise mkerror(BAD_REQUEST,
-                          f"Processor request has no {NlprpKeys.NAME!r} key")
+            raise mkerror(
+                BAD_REQUEST, f"Processor request has no {NlprpKeys.NAME!r} key"
+            )
         return cls.get_processor(name=name, version=version)
 
     @classmethod

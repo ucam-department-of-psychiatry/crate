@@ -124,8 +124,10 @@ def nlprp_server(request: Request) -> Response:
     if client_accepts_gzip:
         response.encode_content("gzip")
     # Done
-    log.debug(f"Sending HTTP response: headers={response.headers}, "
-              f"body={response.body}")
+    log.debug(
+        f"Sending HTTP response: headers={response.headers}, "
+        f"body={response.body}"
+    )
     return response
 
 
@@ -135,19 +137,16 @@ def main() -> None:
     """
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "--host", default="0.0.0.0",
-        help="Hostname to serve on"
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
-        "--port", default=6543,
-        help="TCP port to serve on"
+        "--host", default="0.0.0.0", help="Hostname to serve on"
     )
+    parser.add_argument("--port", default=6543, help="TCP port to serve on")
     cmdargs = parser.parse_args()
     with Configurator() as config:
-        config.add_route('only_route', '/')
-        config.add_view(nlprp_server, route_name='only_route')
+        config.add_route("only_route", "/")
+        config.add_view(nlprp_server, route_name="only_route")
         app = config.make_wsgi_app()
     server = make_server(cmdargs.host, cmdargs.port, app)
     log.info(f"Starting server on {cmdargs.host}:{cmdargs.port}")

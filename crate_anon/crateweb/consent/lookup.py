@@ -61,10 +61,13 @@ log = BraceStyleAdapter(logging.getLogger(__name__))
 # Look up patient ID
 # =============================================================================
 
-def lookup_patient(nhs_number: int,
-                   source_db: str = None,
-                   save: bool = True,
-                   existing_ok: bool = False) -> PatientLookup:
+
+def lookup_patient(
+    nhs_number: int,
+    source_db: str = None,
+    save: bool = True,
+    existing_ok: bool = False,
+) -> PatientLookup:
     """
     Looks up details of a patient.
 
@@ -84,15 +87,15 @@ def lookup_patient(nhs_number: int,
     source_db = source_db or settings.CLINICAL_LOOKUP_DB
     if existing_ok:
         try:
-            lookup = PatientLookup.objects.filter(nhs_number=nhs_number)\
-                                          .latest('lookup_at')
+            lookup = PatientLookup.objects.filter(
+                nhs_number=nhs_number
+            ).latest("lookup_at")
             if lookup:
                 return lookup
         except PatientLookup.DoesNotExist:
             # No existing lookup, so proceed to do it properly (below).
             pass
-    lookup = PatientLookup(nhs_number=nhs_number,
-                           source_db=source_db)
+    lookup = PatientLookup(nhs_number=nhs_number, source_db=source_db)
     # ... this object will be modified by the subsequent calls
     decisions = []  # type: List[str]
     secret_decisions = []  # type: List[str]
@@ -108,8 +111,10 @@ def lookup_patient(nhs_number: int,
     elif source_db == ClinicalDatabaseType.CPFT_RIO_CRATE_PREPROCESSED:
         lookup_cpft_rio_crate_preprocessed(lookup, decisions, secret_decisions)
     elif source_db == ClinicalDatabaseType.CPFT_RIO_DATAMART:
-        raise AssertionError("Not enough information in RiO Data Warehouse "
-                             "copy yet to look up patient ID")
+        raise AssertionError(
+            "Not enough information in RiO Data Warehouse "
+            "copy yet to look up patient ID"
+        )
     else:
         raise ValueError(f"Bad source_db for ID lookup: {source_db}")
     lookup.decisions = " ".join(decisions)
@@ -123,9 +128,10 @@ def lookup_patient(nhs_number: int,
 # Look up research consent choices
 # =============================================================================
 
-def lookup_consent(nhs_number: int,
-                   decisions: List[str],
-                   source_db: str = None) -> Optional[ConsentMode]:
+
+def lookup_consent(
+    nhs_number: int, decisions: List[str], source_db: str = None
+) -> Optional[ConsentMode]:
     """
     Returns the latest :class:`crate_anon.crateweb.consent.models.ConsentMode`
     for this patient from the primary clinical source, or ``None``. Writes to
@@ -143,16 +149,14 @@ def lookup_consent(nhs_number: int,
     source_db = source_db or settings.CLINICAL_LOOKUP_CONSENT_DB
     if source_db == ClinicalDatabaseType.CPFT_RIO_DATAMART:
         return get_latest_consent_mode_from_rio_cpft_datamart(
-            nhs_number=nhs_number,
-            source_db=source_db,
-            decisions=decisions
+            nhs_number=nhs_number, source_db=source_db, decisions=decisions
         )
-    elif source_db in [ClinicalDatabaseType.CPFT_RIO_RAW,
-                       ClinicalDatabaseType.CPFT_RIO_CRATE_PREPROCESSED]:
+    elif source_db in [
+        ClinicalDatabaseType.CPFT_RIO_RAW,
+        ClinicalDatabaseType.CPFT_RIO_CRATE_PREPROCESSED,
+    ]:
         return get_latest_consent_mode_from_rio_raw(
-            nhs_number=nhs_number,
-            source_db=source_db,
-            decisions=decisions
+            nhs_number=nhs_number, source_db=source_db, decisions=decisions
         )
     else:
         # Don't know how to look up consent modes from other sources
@@ -162,9 +166,9 @@ def lookup_consent(nhs_number: int,
         return None
 
 
-def gen_opt_out_pids_mpids(source_db: str) -> Generator[
-        Tuple[Union[int, str], Union[int, str]],
-        None, None]:
+def gen_opt_out_pids_mpids(
+    source_db: str,
+) -> Generator[Tuple[Union[int, str], Union[int, str]], None, None]:
     """
     Generates PID/MPID information for all patients wishing to opt out of the
     anonymous database.
@@ -179,8 +183,10 @@ def gen_opt_out_pids_mpids(source_db: str) -> Generator[
     """
     if source_db == ClinicalDatabaseType.CPFT_RIO_DATAMART:
         generator = gen_opt_out_pids_mpids_rio_cpft_datamart(source_db)
-    elif source_db in [ClinicalDatabaseType.CPFT_RIO_RAW,
-                       ClinicalDatabaseType.CPFT_RIO_CRATE_PREPROCESSED]:
+    elif source_db in [
+        ClinicalDatabaseType.CPFT_RIO_RAW,
+        ClinicalDatabaseType.CPFT_RIO_CRATE_PREPROCESSED,
+    ]:
         generator = gen_opt_out_pids_mpids_rio_raw(source_db)
     else:
         # Don't know how to look up consent modes from other sources
