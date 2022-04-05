@@ -243,7 +243,7 @@ RESEARCH_DB_INFO = [
         RDIKeys.MRID_DESCRIPTION: "@@rdi1_mrid_description@@",
         # e.g. "Transient research ID (TRID) for database X",
         RDIKeys.TRID_DESCRIPTION: (
-            "@@rdi1_trid_description@@",
+            "@@rdi1_trid_description@@"
         ),
         # To look up PID/RID mappings, provide a key for "secret_lookup_db"
         # that is a database alias from DATABASES:
