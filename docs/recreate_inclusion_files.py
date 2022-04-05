@@ -298,9 +298,10 @@ def main():
     # -------------------------------------------------------------------------
     # Anonymisation API
     # -------------------------------------------------------------------------
-    run_cmd(["crate_anon_web_django_manage", "--help"],
-            join(DevPath.DOCS_ANON_DIR,
-                 "_crate_anon_web_django_manage_help.txt"))
+    run_cmd(
+        ["crate_anon_web_django_manage", "--help"],
+        join(DevPath.DOCS_ANON_DIR, "_crate_anon_web_django_manage_help.txt"),
+    )
     api_schema_file = join(DevPath.DOCS_ANON_DIR, "_crate_api_schema.yaml")
     run_cmd(["crate_anon_web_django_manage", "spectacular"], api_schema_file)
 
@@ -316,22 +317,28 @@ def main():
     # $ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash  # noqa: E501
     # $ source ~/.bashrc
     # $ nvm install lts/erbium
-    subprocess.run([
-        "npx", "redoc-cli@0.13.10",
-        "build", api_schema_file,
-        "-o", join(DevPath.DOCS_ANON_DIR, "_crate_api.html"),
-        # Don't display search box
-        "--options.disableSearch=true",
-        # Force single column layout
-        # https://boyter.org/static/books/CfYA-8BXEAAtz2k.jpg
-        "--options.theme.breakpoints.small=999999rem",
-        "--options.theme.breakpoints.medium=1000000rem",
-        "--options.theme.breakpoints.large=1000000rem",
-        # do not inject Authentication section automatically.
-        "--options.noAutoAuth=true",
-        # do not collapse response documentation
-        "--options.expandResponses=all",
-    ], check=True)
+    subprocess.run(
+        [
+            "npx",
+            "redoc-cli@0.13.10",
+            "build",
+            api_schema_file,
+            "-o",
+            join(DevPath.DOCS_ANON_DIR, "_crate_api.html"),
+            # Don't display search box
+            "--options.disableSearch=true",
+            # Force single column layout
+            # https://boyter.org/static/books/CfYA-8BXEAAtz2k.jpg
+            "--options.theme.breakpoints.small=999999rem",
+            "--options.theme.breakpoints.medium=1000000rem",
+            "--options.theme.breakpoints.large=1000000rem",
+            # do not inject Authentication section automatically.
+            "--options.noAutoAuth=true",
+            # do not collapse response documentation
+            "--options.expandResponses=all",
+        ],
+        check=True,
+    )
 
     # -------------------------------------------------------------------------
     # NLP

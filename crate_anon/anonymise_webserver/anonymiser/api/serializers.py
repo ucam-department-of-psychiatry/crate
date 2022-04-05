@@ -45,7 +45,7 @@ from rest_framework.serializers import (
 
 from crate_anon.anonymise.constants import (
     AnonymiseConfigDefaults as Defaults,
-    ScrubMethod
+    ScrubMethod,
 )
 from crate_anon.anonymise.scrub import (
     NonspecificScrubber,
@@ -55,47 +55,82 @@ from crate_anon.anonymise.scrub import (
 
 
 class SpecificSerializer(Serializer):
-    dates = ListField(child=CharField(), required=False,
-                      help_text="List of dates to be scrubbed.")
+    dates = ListField(
+        child=CharField(),
+        required=False,
+        help_text="List of dates to be scrubbed.",
+    )
     phrases = ListField(
-        child=CharField(), required=False,
-        help_text=("List of phrases (words appearing consecutively) to "
-                   "be scrubbed.")
+        child=CharField(),
+        required=False,
+        help_text=(
+            "List of phrases (words appearing consecutively) to "
+            "be scrubbed."
+        ),
     )
     non_numeric_phrases = ListField(
-        child=CharField(), required=False,
-        help_text=("List of phrases (words appearing consecutively) to "
-                   "be scrubbed. If a phrase is purely numeric it will be "
-                   "ignored.")
+        child=CharField(),
+        required=False,
+        help_text=(
+            "List of phrases (words appearing consecutively) to "
+            "be scrubbed. If a phrase is purely numeric it will be "
+            "ignored."
+        ),
     )
-    words = ListField(child=CharField(), required=False,
-                      help_text="List of words to be scrubbed.")
-    numbers = ListField(child=CharField(), required=False,
-                        help_text="List of numbers to be scrubbed.")
+    words = ListField(
+        child=CharField(),
+        required=False,
+        help_text="List of words to be scrubbed.",
+    )
+    numbers = ListField(
+        child=CharField(),
+        required=False,
+        help_text="List of numbers to be scrubbed.",
+    )
     codes = ListField(
-        child=CharField(), required=False,
-        help_text="List of codes (e.g. postcodes) to be scrubbed."
+        child=CharField(),
+        required=False,
+        help_text="List of codes (e.g. postcodes) to be scrubbed.",
     )
 
 
 class AllowlistSerializer(Serializer):
-    words = ListField(child=CharField(), required=False, write_only=True,
-                      help_text="Do not scrub these specific words.",
-                      default=[])
-    files = ListField(child=CharField(), required=False, write_only=True,
-                      help_text=("Do not scrub words from these files "
-                                 "(aliased from Django settings)."),
-                      default=[])
+    words = ListField(
+        child=CharField(),
+        required=False,
+        write_only=True,
+        help_text="Do not scrub these specific words.",
+        default=[],
+    )
+    files = ListField(
+        child=CharField(),
+        required=False,
+        write_only=True,
+        help_text=(
+            "Do not scrub words from these files "
+            "(aliased from Django settings)."
+        ),
+        default=[],
+    )
 
 
 class DenylistSerializer(Serializer):
-    words = ListField(child=CharField(), required=False, write_only=True,
-                      help_text="Scrub these specific words.",
-                      default=[])
-    files = ListField(child=CharField(), required=False, write_only=True,
-                      help_text=("Scrub words from these files "
-                                 "(aliased from Django settings)."),
-                      default=[])
+    words = ListField(
+        child=CharField(),
+        required=False,
+        write_only=True,
+        help_text="Scrub these specific words.",
+        default=[],
+    )
+    files = ListField(
+        child=CharField(),
+        required=False,
+        write_only=True,
+        help_text=(
+            "Scrub words from these files " "(aliased from Django settings)."
+        ),
+        default=[],
+    )
 
 
 class ScrubSerializer(Serializer):
@@ -103,116 +138,158 @@ class ScrubSerializer(Serializer):
     # write_only means they aren't returned in the response
     # default implies required=False
     text = DictField(
-        child=CharField(help_text=("Text to be scrubbed")), write_only=True,
-        help_text=("The lines of text to be scrubbed, each keyed on a unique "
-                   "ID supplied by the caller")
+        child=CharField(help_text=("Text to be scrubbed")),
+        write_only=True,
+        help_text=(
+            "The lines of text to be scrubbed, each keyed on a unique "
+            "ID supplied by the caller"
+        ),
     )
     patient = SpecificSerializer(
-        required=False, write_only=True,
-        help_text="Specific patient data to be scrubbed."
+        required=False,
+        write_only=True,
+        help_text="Specific patient data to be scrubbed.",
     )
     third_party = SpecificSerializer(
-        required=False, write_only=True,
-        help_text="Third party (e.g. family members') data to be scrubbed."
+        required=False,
+        write_only=True,
+        help_text="Third party (e.g. family members') data to be scrubbed.",
     )
     anonymise_codes_at_word_boundaries_only = BooleanField(
         write_only=True,
         default=Defaults.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,
-        help_text=("Ensure the codes to be scrubbed begin and end with a word "
-                   "boundary.")
+        help_text=(
+            "Ensure the codes to be scrubbed begin and end with a word "
+            "boundary."
+        ),
     )
     anonymise_dates_at_word_boundaries_only = BooleanField(
         write_only=True,
         default=Defaults.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,
-        help_text=("Ensure the codes to be scrubbed begin and end with a word "
-                   "boundary.")
+        help_text=(
+            "Ensure the codes to be scrubbed begin and end with a word "
+            "boundary."
+        ),
     )
     # TODO: These can't both be True (in fact this is the default for
     # PersonalizedScrubber but word boundaries take precedence).
     anonymise_numbers_at_word_boundaries_only = BooleanField(
         write_only=True,
         default=Defaults.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,
-        help_text=("Ensure the numbers to be scrubbed begin and end with a "
-                   "word boundary.")
+        help_text=(
+            "Ensure the numbers to be scrubbed begin and end with a "
+            "word boundary."
+        ),
     )
     anonymise_numbers_at_numeric_boundaries_only = BooleanField(
         write_only=True,
         default=Defaults.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY,
-        help_text=("Ensure the numbers to be scrubbed begin and end with a "
-                   "numeric boundary.")
+        help_text=(
+            "Ensure the numbers to be scrubbed begin and end with a "
+            "numeric boundary."
+        ),
     )
     anonymise_strings_at_word_boundaries_only = BooleanField(
         write_only=True,
         default=Defaults.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY,
-        help_text=("Ensure the numbers to be scrubbed begin and end with a "
-                   "word boundary.")
+        help_text=(
+            "Ensure the numbers to be scrubbed begin and end with a "
+            "word boundary."
+        ),
     )
     string_max_regex_errors = IntegerField(
-        write_only=True, default=Defaults.STRING_MAX_REGEX_ERRORS,
-        help_text=("The maximum number of typographical insertion / deletion / "
-                   "substitution errors to permit.")
+        write_only=True,
+        default=Defaults.STRING_MAX_REGEX_ERRORS,
+        help_text=(
+            "The maximum number of typographical insertion / deletion / "
+            "substitution errors to permit."
+        ),
     )
     min_string_length_for_errors = IntegerField(
-        write_only=True, default=Defaults.MIN_STRING_LENGTH_FOR_ERRORS,
-        help_text=("The minimum string length at which typographical "
-                   "errors will be permitted.")
+        write_only=True,
+        default=Defaults.MIN_STRING_LENGTH_FOR_ERRORS,
+        help_text=(
+            "The minimum string length at which typographical "
+            "errors will be permitted."
+        ),
     )
     min_string_length_to_scrub_with = IntegerField(
-        write_only=True, default=Defaults.MIN_STRING_LENGTH_TO_SCRUB_WITH,
-        help_text=("Do not scrub strings shorter than this length.")
+        write_only=True,
+        default=Defaults.MIN_STRING_LENGTH_TO_SCRUB_WITH,
+        help_text=("Do not scrub strings shorter than this length."),
     )
     scrub_string_suffixes = ListField(
-        child=CharField(), required=False,
+        child=CharField(),
+        required=False,
         write_only=True,
-        help_text=('A list of suffixes to permit on strings. e.g. ["s"] '
-                   'for plural forms.')
+        help_text=(
+            'A list of suffixes to permit on strings. e.g. ["s"] '
+            "for plural forms."
+        ),
     )
-    allowlist = AllowlistSerializer(required=False, write_only=True,
-                                    help_text="Allowlist options.")
-    denylist = DenylistSerializer(required=False, write_only=True,
-                                  help_text="Denylist options.")
+    allowlist = AllowlistSerializer(
+        required=False, write_only=True, help_text="Allowlist options."
+    )
+    denylist = DenylistSerializer(
+        required=False, write_only=True, help_text="Denylist options."
+    )
     replace_patient_info_with = CharField(
-        write_only=True, default=Defaults.REPLACE_PATIENT_INFO_WITH,
-        help_text=("Replace sensitive patient content with this.")
+        write_only=True,
+        default=Defaults.REPLACE_PATIENT_INFO_WITH,
+        help_text=("Replace sensitive patient content with this."),
     )
     replace_third_party_info_with = CharField(
-        write_only=True, default=Defaults.REPLACE_THIRD_PARTY_INFO_WITH,
-        help_text=("Replace sensitive third party (e.g. family members') "
-                   "content with this.")
+        write_only=True,
+        default=Defaults.REPLACE_THIRD_PARTY_INFO_WITH,
+        help_text=(
+            "Replace sensitive third party (e.g. family members') "
+            "content with this."
+        ),
     )
     replace_nonspecific_info_with = CharField(
-        write_only=True, default=Defaults.REPLACE_NONSPECIFIC_INFO_WITH,
-        help_text=("Replace any other sensitive content with this.")
+        write_only=True,
+        default=Defaults.REPLACE_NONSPECIFIC_INFO_WITH,
+        help_text=("Replace any other sensitive content with this."),
     )
     scrub_all_numbers_of_n_digits = ListField(
         child=IntegerField(),
-        required=False, write_only=True,
-        help_text=("Scrub all numbers with these lengths. "
-                   "e.g. [10] for all UK NHS numbers.")
+        required=False,
+        write_only=True,
+        help_text=(
+            "Scrub all numbers with these lengths. "
+            "e.g. [10] for all UK NHS numbers."
+        ),
     )
     scrub_all_uk_postcodes = BooleanField(
-        write_only=True, default=Defaults.SCRUB_ALL_UK_POSTCODES,
-        help_text=("Scrub all UK postcodes.")
+        write_only=True,
+        default=Defaults.SCRUB_ALL_UK_POSTCODES,
+        help_text=("Scrub all UK postcodes."),
     )
     scrub_all_dates = BooleanField(
-        write_only=True, default=Defaults.SCRUB_ALL_DATES,
-        help_text=("Scrub all dates. Currently assumes the default locale "
-                   "for month names and ordinal suffixes.")
+        write_only=True,
+        default=Defaults.SCRUB_ALL_DATES,
+        help_text=(
+            "Scrub all dates. Currently assumes the default locale "
+            "for month names and ordinal suffixes."
+        ),
     )
     alternatives = ListField(
         child=ListField(child=CharField()),
-        required=False, write_only=True,
+        required=False,
+        write_only=True,
         help_text=(
-            'List of alternative words to scrub. '
+            "List of alternative words to scrub. "
             'e.g.: [["Street", "St"], ["Road", "Rd"], ["Avenue", "Ave"]]'
-        )
+        ),
     )
 
     # Output fields
     # SerializerMethodField is read-only by default
     anonymised = SerializerMethodField(
-        help_text=("The anonymised text, keyed on the unique IDs supplied by "
-                   "the caller in the 'text' parameter of the request.")
+        help_text=(
+            "The anonymised text, keyed on the unique IDs supplied by "
+            "the caller in the 'text' parameter of the request."
+        )
     )
 
     def get_anonymised(self, data: OrderedDict) -> Dict[str, str]:
@@ -229,8 +306,9 @@ class ScrubSerializer(Serializer):
 
         return anonymised
 
-    def _get_personalized_scrubber(self,
-                                   data: OrderedDict) -> PersonalizedScrubber:
+    def _get_personalized_scrubber(
+        self, data: OrderedDict
+    ) -> PersonalizedScrubber:
         hasher = make_hasher("HMAC_MD5", settings.CRATE["HASH_KEY"])
 
         options = (
@@ -266,16 +344,20 @@ class ScrubSerializer(Serializer):
 
         return scrubber
 
-    def _get_alternatives(self, data: OrderedDict) -> Optional[List[List[str]]]:
+    def _get_alternatives(
+        self, data: OrderedDict
+    ) -> Optional[List[List[str]]]:
         try:
-            return [[word.upper() for word in words]
-                    for words in data["alternatives"]]
+            return [
+                [word.upper() for word in words]
+                for words in data["alternatives"]
+            ]
         except KeyError:
             return None
 
-    def _get_allowlist(self,
-                       data: OrderedDict,
-                       hasher: GenericHasher) -> Optional[WordList]:
+    def _get_allowlist(
+        self, data: OrderedDict, hasher: GenericHasher
+    ) -> Optional[WordList]:
 
         try:
             allowlist_data = data["allowlist"]
@@ -288,15 +370,18 @@ class ScrubSerializer(Serializer):
         files = allowlist_data["files"]
         filename_lookup = settings.CRATE.get("ALLOWLIST_FILENAMES", {})
 
-        filenames = [filename for label, filename in filename_lookup.items()
-                     if label in files]
+        filenames = [
+            filename
+            for label, filename in filename_lookup.items()
+            if label in files
+        ]
         kwargs.update(filenames=filenames)
 
         return WordList(hasher=hasher, **kwargs)
 
-    def _get_nonspecific_scrubber(self,
-                                  data: OrderedDict,
-                                  hasher: GenericHasher) -> NonspecificScrubber:
+    def _get_nonspecific_scrubber(
+        self, data: OrderedDict, hasher: GenericHasher
+    ) -> NonspecificScrubber:
         denylist = self._get_denylist(data, hasher)
         options = (
             "scrub_all_numbers_of_n_digits",
@@ -309,14 +394,13 @@ class ScrubSerializer(Serializer):
 
         # TODO: extra_regexes (might be a security no-no)
         replacement_text = data["replace_nonspecific_info_with"]
-        return NonspecificScrubber(replacement_text,
-                                   hasher,
-                                   denylist=denylist,
-                                   **kwargs)
+        return NonspecificScrubber(
+            replacement_text, hasher, denylist=denylist, **kwargs
+        )
 
-    def _get_denylist(self,
-                      data: OrderedDict,
-                      hasher: GenericHasher) -> Optional[WordList]:
+    def _get_denylist(
+        self, data: OrderedDict, hasher: GenericHasher
+    ) -> Optional[WordList]:
         try:
             denylist_data = data["denylist"]
         except KeyError:
@@ -330,8 +414,11 @@ class ScrubSerializer(Serializer):
         files = denylist_data["files"]
         filename_lookup = settings.CRATE.get("DENYLIST_FILENAMES", {})
 
-        filenames = [filename for label, filename in filename_lookup.items()
-                     if label in files]
+        filenames = [
+            filename
+            for label, filename in filename_lookup.items()
+            if label in files
+        ]
         kwargs.update(filenames=filenames)
 
         # TODO: None of these are currently configurable
@@ -343,10 +430,9 @@ class ScrubSerializer(Serializer):
         # regex_method: True
         return WordList(hasher=hasher, **kwargs)
 
-    def _add_values_to_scrubber(self,
-                                scrubber: PersonalizedScrubber,
-                                label: str,
-                                data: OrderedDict) -> None:
+    def _add_values_to_scrubber(
+        self, scrubber: PersonalizedScrubber, label: str, data: OrderedDict
+    ) -> None:
         method_lookup = {
             "dates": ScrubMethod.DATE,
             "phrases": ScrubMethod.PHRASE,

@@ -49,8 +49,10 @@ class AnonymisationTests(TestCase):
         address = self.fake.address()
         nhs_number = generate_random_nhs_number()
 
-        text = (f"{name} {self.fake.text()} {address} {self.fake.text()} "
-                f"{nhs_number} {self.fake.text()}")
+        text = (
+            f"{name} {self.fake.text()} {address} {self.fake.text()} "
+            f"{nhs_number} {self.fake.text()}"
+        )
 
         payload = {
             "denylist": {
@@ -76,9 +78,7 @@ class AnonymisationTests(TestCase):
 
     def test_denylist_files(self) -> None:
         payload = {
-            "denylist": {
-                "files": ["test"]
-            },
+            "denylist": {"files": ["test"]},
             "text": {"test": "secret private confidential"},
         }
 
@@ -88,12 +88,14 @@ class AnonymisationTests(TestCase):
             f.write("private\n")
             f.write("confidential\n")
 
-        with override_settings(CRATE={
-            "HASH_KEY": "swn4nio4uzV1iO6O",
-            "DENYLIST_FILENAMES": {
-                "test": filename,
+        with override_settings(
+            CRATE={
+                "HASH_KEY": "swn4nio4uzV1iO6O",
+                "DENYLIST_FILENAMES": {
+                    "test": filename,
+                },
             }
-        }):
+        ):
             response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
@@ -137,7 +139,7 @@ class AnonymisationTests(TestCase):
 
     def test_patient_date_replaced(self) -> None:
         date_of_birth = self.fake.date_of_birth().strftime("%d %b %Y")
-        text = (f"{date_of_birth} {self.fake.text()}")
+        text = f"{date_of_birth} {self.fake.text()}"
 
         payload = {
             "patient": {
@@ -355,7 +357,7 @@ class AnonymisationTests(TestCase):
 
     def test_anonymise_dates_ignoring_word_boundaries(self) -> None:
         date_of_birth = self.fake.date_of_birth().strftime("%d %b %Y")
-        text = (f"text{date_of_birth}text")
+        text = f"text{date_of_birth}text"
 
         payload = {
             "anonymise_dates_at_word_boundaries_only": False,
@@ -378,7 +380,7 @@ class AnonymisationTests(TestCase):
 
     def test_anonymise_numbers_ignoring_word_boundaries(self) -> None:
         phone = self.fake.phone_number()
-        text = (f"text{phone}text")
+        text = f"text{phone}text"
 
         payload = {
             "anonymise_numbers_at_numeric_boundaries_only": False,
@@ -401,7 +403,7 @@ class AnonymisationTests(TestCase):
 
     def test_anonymise_numbers_ignoring_numeric_boundaries(self) -> None:
         phone = self.fake.phone_number()
-        text = (f"1234{phone}5678")
+        text = f"1234{phone}5678"
 
         payload = {
             "anonymise_numbers_at_numeric_boundaries_only": False,
@@ -535,9 +537,7 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "words": ["secret", "private", "confidential"],
             },
-            "allowlist": {
-                "words": ["secret"]
-            },
+            "allowlist": {"words": ["secret"]},
             "text": {"test": "secret private confidential"},
         }
 
@@ -556,9 +556,7 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "words": ["secret", "private", "confidential"],
             },
-            "allowlist": {
-                "files": ["test"]
-            },
+            "allowlist": {"files": ["test"]},
             "text": {"test": "secret private confidential"},
         }
 
@@ -566,12 +564,12 @@ class AnonymisationTests(TestCase):
             filename = f.name
             f.write("secret\n")
 
-        with override_settings(CRATE={
-            "HASH_KEY": "swn4nio4uzV1iO6O",
-            "ALLOWLIST_FILENAMES": {
-                "test": filename
+        with override_settings(
+            CRATE={
+                "HASH_KEY": "swn4nio4uzV1iO6O",
+                "ALLOWLIST_FILENAMES": {"test": filename},
             }
-        }):
+        ):
             response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
@@ -587,9 +585,7 @@ class AnonymisationTests(TestCase):
             "third_party": {
                 "phrases": ["22 Acacia Avenue"],
             },
-            "alternatives": [
-                ["Avenue", "Ave"]
-            ],
+            "alternatives": [["Avenue", "Ave"]],
             "text": {"test": "22 Acacia Ave"},
         }
 
@@ -622,7 +618,8 @@ class AnonymisationTests(TestCase):
         self.assertEqual(anonymised.count("[~~~]"), 1)
 
     def test_scrub_all_numbers_of_n_digits_ignoring_word_boundaries(
-            self) -> None:
+        self,
+    ) -> None:
         nhs_number = str(generate_random_nhs_number())
 
         text = f"text{nhs_number}text"

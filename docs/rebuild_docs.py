@@ -92,12 +92,14 @@ if __name__ == "__main__":
     try:
         subprocess.check_call(cmdargs)
     except subprocess.CalledProcessError as e:
-        log.debug("\n\nTroubleshooting Sphinx/docutils errors:\n\n"
-                  "Document may not end with a transition\n"
-                  "--------------------------------------\n"
-                  "For auto-generated code docs, ensure there is a description "
-                  "beneath the row of '=' in the copyright block of the python "
-                  "file.\n")
+        log.debug(
+            "\n\nTroubleshooting Sphinx/docutils errors:\n\n"
+            "Document may not end with a transition\n"
+            "--------------------------------------\n"
+            "For auto-generated code docs, ensure there is a description "
+            "beneath the row of '=' in the copyright block of the python "
+            "file.\n"
+        )
 
         raise e
 

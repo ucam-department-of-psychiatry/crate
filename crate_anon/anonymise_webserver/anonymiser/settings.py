@@ -146,16 +146,16 @@ STATIC_URL = "/static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-REST_FRAMEWORK = {
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema"
-}
+REST_FRAMEWORK = {"DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema"}
 
 SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_DIST": "SIDECAR",  # shorthand to use the sidecar instead
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     "REDOC_DIST": "SIDECAR",
     "TITLE": "CRATE API",
-    "DESCRIPTION": "Clinical Records Anonymisation and Text Extraction (CRATE)",
+    "DESCRIPTION": (
+        "Clinical Records Anonymisation and Text Extraction (CRATE)"
+    ),
     "VERSION": "1.0.0",
 }
 

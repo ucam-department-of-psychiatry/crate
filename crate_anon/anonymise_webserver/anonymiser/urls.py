@@ -39,9 +39,13 @@ from crate_anon.anonymise_webserver.anonymiser.api.views import ScrubView
 urlpatterns = [
     path("scrub/", ScrubView.as_view()),
     path("admin/", admin.site.urls),
-    path("api-auth/",
-         include("rest_framework.urls", namespace="rest_framework")),
+    path(
+        "api-auth/", include("rest_framework.urls", namespace="rest_framework")
+    ),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("schema/doc/", SpectacularRedocView.as_view(url_name="schema"),
-         name="doc"),
+    path(
+        "schema/doc/",
+        SpectacularRedocView.as_view(url_name="schema"),
+        name="doc",
+    ),
 ]
