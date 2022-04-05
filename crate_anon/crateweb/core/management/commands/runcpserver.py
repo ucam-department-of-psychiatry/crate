@@ -47,6 +47,7 @@ from argparse import ArgumentParser, Namespace
 import logging
 import os
 from typing import Any
+
 # import errno
 # import os
 # import signal
@@ -67,6 +68,7 @@ from django.utils import translation
 
 from crate_anon.common.constants import EnvVar
 from crate_anon.crateweb.config.wsgi import application as wsgi_application
+
 # COULD ALSO USE:
 #   from django.core.handlers.wsgi import WSGIHandler
 #   wsgi_application = WSGIHandler()
@@ -74,7 +76,7 @@ from crate_anon.crateweb.config.wsgi import application as wsgi_application
 log = logging.getLogger(__name__)
 
 
-CRATE_STATIC_URL_PATH = settings.STATIC_URL.rstrip('/')
+CRATE_STATIC_URL_PATH = settings.STATIC_URL.rstrip("/")
 NEED_UNIX = "Need UNIX for group/user operations"
 
 if EnvVar.GENERATING_CRATE_DOCS in os.environ:
@@ -87,20 +89,32 @@ class Command(BaseCommand):
     """
     Django management command to run this project in a CherryPy web server.
     """
-    help = ("Run this project in a CherryPy webserver. To do this, "
-            "CherryPy is required (pip install cherrypy).")
+
+    help = (
+        "Run this project in a CherryPy webserver. To do this, "
+        "CherryPy is required (pip install cherrypy)."
+    )
 
     def add_arguments(self, parser: ArgumentParser) -> None:
         # docstring in superclass
         parser.add_argument(
-            '--host', type=str, default="127.0.0.1",
-            help="hostname to listen on (default: 127.0.0.1)")
+            "--host",
+            type=str,
+            default="127.0.0.1",
+            help="hostname to listen on (default: 127.0.0.1)",
+        )
         parser.add_argument(
-            '--port', type=int, default=8088,
-            help="port to listen on (default: 8088)")
+            "--port",
+            type=int,
+            default=8088,
+            help="port to listen on (default: 8088)",
+        )
         parser.add_argument(
-            "--server_name", type=str, default="localhost",
-            help="CherryPy's SERVER_NAME environ entry (default: localhost)")
+            "--server_name",
+            type=str,
+            default="localhost",
+            help="CherryPy's SERVER_NAME environ entry (default: localhost)",
+        )
         # parser.add_argument(
         #     "--daemonize", action="store_true",
         #     help="whether to detach from terminal (default: False)")
@@ -111,16 +125,23 @@ class Command(BaseCommand):
         #     "--workdir", type=str,
         #     help="change to this directory when daemonizing")
         parser.add_argument(
-            "--threads", type=int, default=10,
-            help="Number of threads for server to use (default: 10)")
+            "--threads",
+            type=int,
+            default=10,
+            help="Number of threads for server to use (default: 10)",
+        )
         parser.add_argument(
-            "--ssl_certificate", type=str,
+            "--ssl_certificate",
+            type=str,
             help="SSL certificate file "
-                 "(e.g. /etc/ssl/certs/ssl-cert-snakeoil.pem)")
+            "(e.g. /etc/ssl/certs/ssl-cert-snakeoil.pem)",
+        )
         parser.add_argument(
-            "--ssl_private_key", type=str,
+            "--ssl_private_key",
+            type=str,
             help="SSL private key file "
-                 "(e.g. /etc/ssl/private/ssl-cert-snakeoil.key)")
+            "(e.g. /etc/ssl/private/ssl-cert-snakeoil.key)",
+        )
         # parser.add_argument(
         #     "--server_user", type=str, default="www-data",
         #     help="user to run daemonized process (default: www-data)")
@@ -128,17 +149,28 @@ class Command(BaseCommand):
         #     "--server_group", type=str, default="www-data",
         #     help="group to run daemonized process (default: www-data)")
         parser.add_argument(
-            "--log_screen", dest="log_screen", action="store_true",
-            help="log access requests etc. to terminal (default)")
+            "--log_screen",
+            dest="log_screen",
+            action="store_true",
+            help="log access requests etc. to terminal (default)",
+        )
         parser.add_argument(
-            "--no_log_screen", dest="log_screen", action="store_false",
-            help="don't log access requests etc. to terminal")
+            "--no_log_screen",
+            dest="log_screen",
+            action="store_false",
+            help="don't log access requests etc. to terminal",
+        )
         parser.add_argument(
-            "--debug_static", action="store_true",
-            help="show debug info for static file requests")
+            "--debug_static",
+            action="store_true",
+            help="show debug info for static file requests",
+        )
         parser.add_argument(
-            "--root_path", type=str, default=DEFAULT_ROOT,
-            help=f"Root path to serve CRATE at. Default: {DEFAULT_ROOT}")
+            "--root_path",
+            type=str,
+            default=DEFAULT_ROOT,
+            help=f"Root path to serve CRATE at. Default: {DEFAULT_ROOT}",
+        )
         parser.set_defaults(log_screen=True)
         # parser.add_argument(
         #     "--stop", action="store_true",
@@ -236,10 +268,11 @@ class Missing(object):
     """
     CherryPy "application" that is a basic web interface to say "not here".
     """
+
     config = {
-        '/': {
+        "/": {
             # Anything so as to prevent complaints about an empty config.
-            'tools.sessions.on': False,
+            "tools.sessions.on": False,
         }
     }
 
@@ -254,15 +287,17 @@ class Missing(object):
 
 
 # noinspection PyUnresolvedReferences
-def start_server(host: str,
-                 port: int,
-                 threads: int,
-                 server_name: str,
-                 root_path: str,
-                 log_screen: bool,
-                 ssl_certificate: str,
-                 ssl_private_key: str,
-                 debug_static: bool) -> None:
+def start_server(
+    host: str,
+    port: int,
+    threads: int,
+    server_name: str,
+    root_path: str,
+    log_screen: bool,
+    ssl_certificate: str,
+    ssl_private_key: str,
+    debug_static: bool,
+) -> None:
     """
     Start CherryPy server.
 
@@ -283,40 +318,47 @@ def start_server(host: str,
     #     # ensure the that the daemon runs as specified user
     #     change_uid_gid(server_user, server_group)
 
-    cherrypy.config.update({
-        'server.socket_host': host,
-        'server.socket_port': port,
-        'server.thread_pool': threads,
-        'server.server_name': server_name,
-        'server.log_screen': log_screen,
-    })
+    cherrypy.config.update(
+        {
+            "server.socket_host": host,
+            "server.socket_port": port,
+            "server.thread_pool": threads,
+            "server.server_name": server_name,
+            "server.log_screen": log_screen,
+        }
+    )
     if ssl_certificate and ssl_private_key:
-        cherrypy.config.update({
-            'server.ssl_module': 'builtin',
-            'server.ssl_certificate': ssl_certificate,
-            'server.ssl_private_key': ssl_private_key,
-        })
+        cherrypy.config.update(
+            {
+                "server.ssl_module": "builtin",
+                "server.ssl_certificate": ssl_certificate,
+                "server.ssl_private_key": ssl_private_key,
+            }
+        )
 
     log.info(f"Starting on host: {host}")
     log.info(f"Starting on port: {port}")
-    log.info(f"Static files will be served from filesystem path: "
-             f"{settings.STATIC_ROOT}")
-    log.info(f"Static files will be served at URL path: "
-             f"{CRATE_STATIC_URL_PATH}")
+    log.info(
+        f"Static files will be served from filesystem path: "
+        f"{settings.STATIC_ROOT}"
+    )
+    log.info(
+        f"Static files will be served at URL path: " f"{CRATE_STATIC_URL_PATH}"
+    )
     log.info(f"CRATE will be at: {root_path}")
     log.info(f"Thread pool size: {threads}")
 
     static_config = {
-        '/': {
-            'tools.staticdir.root': settings.STATIC_ROOT,
-            'tools.staticdir.debug': debug_static,
+        "/": {
+            "tools.staticdir.root": settings.STATIC_ROOT,
+            "tools.staticdir.debug": debug_static,
         },
         CRATE_STATIC_URL_PATH: {
-            'tools.staticdir.on': True,
-            'tools.staticdir.dir': '',
+            "tools.staticdir.on": True,
+            "tools.staticdir.dir": "",
         },
     }
-    cherrypy.tree.mount(Missing(), '', config=static_config)
+    cherrypy.tree.mount(Missing(), "", config=static_config)
     cherrypy.tree.graft(wsgi_application, root_path)
 
     # noinspection PyBroadException,PyPep8
@@ -359,7 +401,7 @@ def runcpserver(opts: Namespace) -> None:
     #     fp.close()
 
     # Start the webserver
-    log.info(f'starting server with options {opts}')
+    log.info(f"starting server with options {opts}")
     start_server(
         host=opts.host,
         port=opts.port,

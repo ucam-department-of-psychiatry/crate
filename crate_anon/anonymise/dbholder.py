@@ -47,19 +47,23 @@ log = logging.getLogger(__name__)
 # Convenience object
 # =============================================================================
 
+
 class DatabaseHolder(object):
     """
     Object to represent a connection to a database.
     """
-    def __init__(self,
-                 name: str,
-                 url: str,
-                 srccfg: "DatabaseSafeConfig" = None,
-                 with_session: bool = False,
-                 with_conn: bool = True,
-                 reflect: bool = True,
-                 encoding: str = 'utf-8',
-                 echo: bool = False) -> None:
+
+    def __init__(
+        self,
+        name: str,
+        url: str,
+        srccfg: "DatabaseSafeConfig" = None,
+        with_session: bool = False,
+        with_conn: bool = True,
+        reflect: bool = True,
+        encoding: str = "utf-8",
+        echo: bool = False,
+    ) -> None:
         """
         Args:
             name: internal database name

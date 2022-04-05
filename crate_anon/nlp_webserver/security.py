@@ -34,6 +34,7 @@ import base64
 from typing import Optional
 
 from cryptography.fernet import Fernet
+
 # noinspection PyUnresolvedReferences
 from paste.httpheaders import AUTHORIZATION
 from pyramid.request import Request
@@ -87,8 +88,8 @@ def hash_password(pw: str) -> str:
     """
     Encrypts a password using bcrypt.
     """
-    pwhash = bcrypt.hashpw(pw.encode('utf8'), bcrypt.gensalt())
-    return pwhash.decode('utf8')
+    pwhash = bcrypt.hashpw(pw.encode("utf8"), bcrypt.gensalt())
+    return pwhash.decode("utf8")
 
 
 def check_password(pw: str, hashed_pw: str) -> bool:
@@ -103,14 +104,15 @@ def check_password(pw: str, hashed_pw: str) -> bool:
         do they match?
 
     """
-    expected_hash = hashed_pw.encode('utf8')
-    return bcrypt.checkpw(pw.encode('utf8'), expected_hash)
+    expected_hash = hashed_pw.encode("utf8")
+    return bcrypt.checkpw(pw.encode("utf8"), expected_hash)
 
 
 class Credentials(object):
     """
     Represents username/password credentials sent by the user to us.
     """
+
     def __init__(self, username: str, password: str) -> None:
         self.username = username
         self.password = password
@@ -123,10 +125,10 @@ def get_auth_credentials(request: Request) -> Optional[Credentials]:
     """
     authorization = AUTHORIZATION(request.environ)
     try:
-        authmeth, auth = authorization.split(' ', 1)
+        authmeth, auth = authorization.split(" ", 1)
     except ValueError:  # not enough values to unpack
         return None
-    if authmeth.lower() == 'basic':  # ensure rquest is using basicauth
+    if authmeth.lower() == "basic":  # ensure rquest is using basicauth
         try:
             # auth = auth.strip().decode('base64')
             auth = base64.b64decode(auth.strip())
@@ -135,7 +137,7 @@ def get_auth_credentials(request: Request) -> Optional[Credentials]:
         # Turn it back into a string
         auth = "".join(chr(x) for x in auth)
         try:
-            username, password = auth.split(':', 1)
+            username, password = auth.split(":", 1)
         except ValueError:  # not enough values to unpack
             return None
         return Credentials(username, password)

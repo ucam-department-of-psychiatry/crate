@@ -46,13 +46,15 @@ require_minimum_python_version()
 log = logging.getLogger(__name__)
 
 
-def get_response(url: str,
-                 command: str,
-                 command_args: Any = None,
-                 transmit_compressed: bool = False,
-                 receive_compressed: bool = True,
-                 username: str = "",
-                 password: str = "") -> NlprpResponse:
+def get_response(
+    url: str,
+    command: str,
+    command_args: Any = None,
+    transmit_compressed: bool = False,
+    receive_compressed: bool = True,
+    username: str = "",
+    password: str = "",
+) -> NlprpResponse:
     """
     Illustrate sending to/receiving from an NLPRP server, using HTTP basic
     authentication.
@@ -89,10 +91,16 @@ def get_response(url: str,
     if receive_compressed:
         headers["Accept-Encoding"] = "gzip, deflate"
         # As it turns out, the "requests" library adds this anyway!
-    log.debug(f"Sending to URL {url!r}: headers {headers!r}, "
-              f"data {request_data!r}")
-    r = requests.post(url, data=request_data, headers=headers,
-                      auth=HTTPBasicAuth(username, password))
+    log.debug(
+        f"Sending to URL {url!r}: headers {headers!r}, "
+        f"data {request_data!r}"
+    )
+    r = requests.post(
+        url,
+        data=request_data,
+        headers=headers,
+        auth=HTTPBasicAuth(username, password),
+    )
     # -------------------------------------------------------------------------
     # Process response
     # -------------------------------------------------------------------------
@@ -101,8 +109,10 @@ def get_response(url: str,
     #   http://docs.python-requests.org/en/master/user/quickstart/.
     # - The difference between gzip and deflate:
     #   https://stackoverflow.com/questions/388595/why-use-deflate-instead-of-gzip-for-text-files-served-by-apache  # noqa
-    log.debug(f"Reply has status_code={r.status_code}, headers={r.headers!r}, "
-              f"text={r.text!r}")
+    log.debug(
+        f"Reply has status_code={r.status_code}, headers={r.headers!r}, "
+        f"text={r.text!r}"
+    )
     try:
         response = NlprpResponse(data=r.text)
         # "r.text" automatically does gzip decode
@@ -123,26 +133,30 @@ def main() -> None:
     """
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "--url", default="http://0.0.0.0:6543",
-        help="URL of server"
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
-        "--transmit_compressed", action="store_true",
-        help="Send data compressed"
+        "--url", default="http://0.0.0.0:6543", help="URL of server"
     )
     parser.add_argument(
-        "--receive_compressed", action="store_true",
-        help="Accept compressed data from the server"
+        "--transmit_compressed",
+        action="store_true",
+        help="Send data compressed",
     )
     parser.add_argument(
-        "--username", default="",
-        help="Username for HTTP basic authentication on server"
+        "--receive_compressed",
+        action="store_true",
+        help="Accept compressed data from the server",
     )
     parser.add_argument(
-        "--password", default="",
-        help="Password for HTTP basic authentication on server"
+        "--username",
+        default="",
+        help="Username for HTTP basic authentication on server",
+    )
+    parser.add_argument(
+        "--password",
+        default="",
+        help="Password for HTTP basic authentication on server",
     )
     cmdargs = parser.parse_args()
     response = get_response(

@@ -51,6 +51,7 @@ MATCHES = "≛"
 # Deciding about rows
 # =============================================================================
 
+
 class TableCriterion:
     """
     Stores a regular expression so we can reuse it compiled for speed and view
@@ -64,11 +65,13 @@ class TableCriterion:
     - prefix with ``.*`` to allow matching in the middle of strings;
     - suffix with ``$`` to match the entire string only (not just the start).
     """
+
     def __init__(self, stage: Optional[int], table_regex_str: str) -> None:
         self.stage = stage
         self.table_regex_str = table_regex_str
-        self.table_regex_compiled = re.compile(table_regex_str,
-                                               flags=re.IGNORECASE)
+        self.table_regex_compiled = re.compile(
+            table_regex_str, flags=re.IGNORECASE
+        )
 
     def table_match(self, tablename: str) -> bool:
         """
@@ -85,11 +88,13 @@ class FieldCriterion(TableCriterion):
     As for :class:`TableCriterion`, but for both a table and a field (column)
     name.
     """
+
     def __init__(self, field_regex_str: str, **kwargs) -> None:
         super().__init__(**kwargs)
         self.field_regex_str = field_regex_str
-        self.field_regex_compiled = re.compile(field_regex_str,
-                                               flags=re.IGNORECASE)
+        self.field_regex_compiled = re.compile(
+            field_regex_str, flags=re.IGNORECASE
+        )
 
     def table_field_match(self, tablename: str, fieldname: str) -> bool:
         """
@@ -107,9 +112,11 @@ class FieldCriterion(TableCriterion):
         )
 
 
-def add_table_criteria(criteria: List[TableCriterion],
-                       stage: Optional[int],
-                       regex_strings: List[str]) -> None:
+def add_table_criteria(
+    criteria: List[TableCriterion],
+    stage: Optional[int],
+    regex_strings: List[str],
+) -> None:
     """
     Appends to ``criteria``.
     """
@@ -117,13 +124,19 @@ def add_table_criteria(criteria: List[TableCriterion],
         criteria.append(TableCriterion(stage=stage, table_regex_str=rs))
 
 
-def add_field_criteria(criteria: List[FieldCriterion],
-                       stage: Optional[int],
-                       regex_tuples: List[Tuple[str, str]]) -> None:
+def add_field_criteria(
+    criteria: List[FieldCriterion],
+    stage: Optional[int],
+    regex_tuples: List[Tuple[str, str]],
+) -> None:
     """
     Appends to ``criteria``.
     """
     for tablename, fieldname in regex_tuples:
-        criteria.append(FieldCriterion(stage=stage,
-                                       table_regex_str=tablename,
-                                       field_regex_str=fieldname))
+        criteria.append(
+            FieldCriterion(
+                stage=stage,
+                table_regex_str=tablename,
+                field_regex_str=fieldname,
+            )
+        )

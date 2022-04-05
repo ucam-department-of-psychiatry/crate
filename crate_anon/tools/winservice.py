@@ -43,17 +43,19 @@ from cardinal_pythonlib.winservice import (
 log = logging.getLogger(__name__)
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-ENVVAR = 'CRATE_WINSERVICE_LOGDIR'
+ENVVAR = "CRATE_WINSERVICE_LOGDIR"
 
 
 # =============================================================================
 # Windows service framework
 # =============================================================================
 
+
 class CratewebService(WindowsService):
     """
     Windows service class for CRATE.
     """
+
     # you can NET START/STOP the service by the following name
     _svc_name_ = "CRATE"
     # this text shows up as the service name in the Service
@@ -84,37 +86,38 @@ class CratewebService(WindowsService):
             logdir = os.environ[ENVVAR]
         except KeyError:
             raise ValueError(
-                f"Must specify {ENVVAR} system environment variable")
+                f"Must specify {ENVVAR} system environment variable"
+            )
 
         # Define processes
-        djangolog = os.path.join(logdir, 'crate_log_django.txt')
-        celerylog = os.path.join(logdir, 'crate_log_celery.txt')
-        celerybeatlog = os.path.join(logdir, 'crate_log_celerybeat.txt')
+        djangolog = os.path.join(logdir, "crate_log_django.txt")
+        celerylog = os.path.join(logdir, "crate_log_celery.txt")
+        celerybeatlog = os.path.join(logdir, "crate_log_celerybeat.txt")
         procdetails = [
             ProcessDetails(
-                name='Django/CherryPy',
+                name="Django/CherryPy",
                 procargs=[
                     sys.executable,
-                    os.path.join(CURRENT_DIR, 'launch_cherrypy_server.py'),
+                    os.path.join(CURRENT_DIR, "launch_cherrypy_server.py"),
                 ],
                 logfile_out=djangolog,
                 logfile_err=djangolog,
             ),
             ProcessDetails(
-                name='Celery',
+                name="Celery",
                 procargs=[
                     sys.executable,
-                    os.path.join(CURRENT_DIR, 'launch_celery.py'),
+                    os.path.join(CURRENT_DIR, "launch_celery.py"),
                 ],
                 logfile_out=celerylog,
                 logfile_err=celerylog,
             ),
             ProcessDetails(
-                name='Celery Beat',
+                name="Celery Beat",
                 procargs=[
                     sys.executable,
-                    os.path.join(CURRENT_DIR, 'launch_celery.py'),
-                    '--command=beat',
+                    os.path.join(CURRENT_DIR, "launch_celery.py"),
+                    "--command=beat",
                 ],
                 logfile_out=celerybeatlog,
                 logfile_err=celerybeatlog,
@@ -129,13 +132,14 @@ class CratewebService(WindowsService):
 # Main
 # =============================================================================
 
+
 def main() -> None:
     """
     Command-line entry point.
     """
     # Called as an entry point (see setup.py).
     logging.basicConfig(level=logging.DEBUG)
-    generic_service_main(CratewebService, 'CratewebService')
+    generic_service_main(CratewebService, "CratewebService")
 
 
 if __name__ == "__main__":

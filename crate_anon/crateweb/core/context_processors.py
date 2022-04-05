@@ -49,10 +49,10 @@ def common_context(request: HttpRequest) -> Dict[str, Any]:
 
     """
     return {
-        'CRATE_DOCS_URL': CRATE_DOCS_URL,
-        'HelpUrl': HelpUrl,
-        'nav_on_main_menu': False,
-        'RESEARCH_DB_TITLE': settings.RESEARCH_DB_TITLE,
+        "CRATE_DOCS_URL": CRATE_DOCS_URL,
+        "HelpUrl": HelpUrl,
+        "nav_on_main_menu": False,
+        "RESEARCH_DB_TITLE": settings.RESEARCH_DB_TITLE,
     }
     # Try to minimize SQL here (ideally none!), as these calls will be used for
     # EVERY request.

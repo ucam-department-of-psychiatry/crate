@@ -45,8 +45,8 @@ from crate_anon.version import CRATE_VERSION_PRETTY
 # Get a demo config, with placeholders replaced
 # =============================================================================
 
-def search_replace_text(text: str,
-                        replace_dict: Dict[str, str]) -> str:
+
+def search_replace_text(text: str, replace_dict: Dict[str, str]) -> str:
     for (search, replace) in replace_dict.items():
         if replace is None:
             print(f"Can't replace '{search}' with None")
@@ -82,7 +82,7 @@ def get_demo_config() -> str:
         "source_db1_name": "source_databasename",
         "source_db1_password": "password",
         "source_db1_port": "3306",
-        "source_db1_user": "username"
+        "source_db1_user": "username",
     }
 
     config = search_replace_text(DEMO_CONFIG, replace_dict)
@@ -94,8 +94,9 @@ def get_demo_config() -> str:
         missing_dict[f"{match.group(1)}"] = ""
 
     if missing_dict:
-        print("@@ Placeholders not substituted in DEMO_CONFIG:",
-              file=sys.stderr)
+        print(
+            "@@ Placeholders not substituted in DEMO_CONFIG:", file=sys.stderr
+        )
         pprint.pprint(missing_dict, stream=sys.stderr)
         sys.exit(EXIT_FAILURE)
 
@@ -106,6 +107,7 @@ def get_demo_config() -> str:
 # Main
 # =============================================================================
 
+
 def main() -> None:
     """
     Command-line entry point.
@@ -113,15 +115,18 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=f"Print a demo config file for the CRATE anonymiser. "
-                    f"({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        f"({CRATE_VERSION_PRETTY})",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
 
     parser.add_argument(
-        "--output", default="-",
-        help="File for output; use '-' for stdout.")
+        "--output", default="-", help="File for output; use '-' for stdout."
+    )
     parser.add_argument(
-        "--leave_placeholders", action="store_true",
-        help="Don't substitute @@ placeholders with examples")
+        "--leave_placeholders",
+        action="store_true",
+        help="Don't substitute @@ placeholders with examples",
+    )
 
     args = parser.parse_args()
 

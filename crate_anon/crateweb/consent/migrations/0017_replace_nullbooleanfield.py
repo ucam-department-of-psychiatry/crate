@@ -6,20 +6,22 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('consent', '0016_auto_20190212_1118'),
+        ("consent", "0016_auto_20190212_1118"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='dummypatientsourceinfo',
-            name='pt_discharged',
-            field=models.BooleanField(null=True,
-                                      verbose_name='Patient discharged'),
+            model_name="dummypatientsourceinfo",
+            name="pt_discharged",
+            field=models.BooleanField(
+                null=True, verbose_name="Patient discharged"
+            ),
         ),
         migrations.AlterField(
-            model_name='patientlookup',
-            name='pt_discharged',
-            field=models.BooleanField(null=True,
-                                      verbose_name='Patient discharged'),
+            model_name="patientlookup",
+            name="pt_discharged",
+            field=models.BooleanField(
+                null=True, verbose_name="Patient discharged"
+            ),
         ),
     ]

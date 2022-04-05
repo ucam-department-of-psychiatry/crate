@@ -343,3 +343,6 @@ You can test these built-in NLP tools quickly via the command line:
 
 ..  literalinclude:: _crate_run_crate_nlp_demo.txt
     :language: none
+
+Note also that you can test any NLP processor via a config file; see
+:ref:`testing NLP <testing_nlp>`.

@@ -35,8 +35,7 @@ import logging
 import os
 import shlex
 import subprocess
-import sys
-from typing import Any, Dict, Generator, List, TextIO, Tuple
+from typing import Any, Dict, Generator, List, Tuple
 
 from cardinal_pythonlib.cmdline import cmdline_quote
 from cardinal_pythonlib.dicts import (
@@ -76,15 +75,21 @@ log = logging.getLogger(__name__)
 #   http://www.tutorialspoint.com/java/java_networking.htm
 # OK, first one works; that's easier.
 
+
 class Gate(BaseNlpParser):
     """
-    Class controlling an external process, typically our Java interface to
-    GATE programs, ``CrateGatePipeline.java`` (but it could be any external
-    program).
+    [SPECIAL.] Abstract NLP processor controlling an external process,
+    typically our Java interface to GATE programs, ``CrateGatePipeline.java``
+    (but it could be any external program).
 
     We send text to it, it parses the text, and it sends us back results, which
     we return as dictionaries. The specific text sought depends on the
     configuration file and the specific GATE program used.
+
+    For details of GATE, see https://www.gate.ac.uk/.
+    """
+
+    _ = """
 
     Notes:
 
@@ -109,12 +114,15 @@ class Gate(BaseNlpParser):
         - Implemented and exposed as ``--suppress_gate_stdout``.
 
     """
+
     uses_external_tool = True
 
-    def __init__(self,
-                 nlpdef: NlpDefinition,
-                 cfg_processor_name: str,
-                 commit: bool = False) -> None:
+    def __init__(
+        self,
+        nlpdef: NlpDefinition,
+        cfg_processor_name: str,
+        commit: bool = False,
+    ) -> None:
         """
         Args:
             nlpdef:
@@ -130,39 +138,40 @@ class Gate(BaseNlpParser):
             nlpdef=nlpdef,
             cfg_processor_name=cfg_processor_name,
             commit=commit,
-            friendly_name="GATE"
+            friendly_name="GATE",
         )
 
         if not nlpdef and not cfg_processor_name:
             # Debugging only
             self._debug_mode = True
             self._max_external_prog_uses = 0
-            self._input_terminator = 'input_terminator'
-            self._output_terminator = 'output_terminator'
+            self._input_terminator = "input_terminator"
+            self._output_terminator = "output_terminator"
             typepairs = []  # type: List[str]
-            self._progenvsection = ''
-            progargs = ''
-            logtag = ''
+            self._progenvsection = ""
+            progargs = ""
+            logtag = ""
         else:
             self._debug_mode = False
             self._max_external_prog_uses = self._cfgsection.opt_int_positive(
-                ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES,
-                default=0)
+                ProcessorConfigKeys.MAX_EXTERNAL_PROG_USES, default=0
+            )
             self._input_terminator = self._cfgsection.opt_str(
-                ProcessorConfigKeys.INPUT_TERMINATOR,
-                required=True)
+                ProcessorConfigKeys.INPUT_TERMINATOR, required=True
+            )
             self._output_terminator = self._cfgsection.opt_str(
-                ProcessorConfigKeys.OUTPUT_TERMINATOR,
-                required=True)
+                ProcessorConfigKeys.OUTPUT_TERMINATOR, required=True
+            )
             typepairs = self._cfgsection.opt_strlist(
-                ProcessorConfigKeys.OUTPUTTYPEMAP,
-                required=True, lower=False)
+                ProcessorConfigKeys.OUTPUTTYPEMAP, required=True, lower=False
+            )
             self._progenvsection = self._cfgsection.opt_str(
-                ProcessorConfigKeys.PROGENVSECTION)
+                ProcessorConfigKeys.PROGENVSECTION
+            )
             progargs = self._cfgsection.opt_str(
-                ProcessorConfigKeys.PROGARGS,
-                required=True)
-            logtag = nlpdef.logtag or '.'
+                ProcessorConfigKeys.PROGARGS, required=True
+            )
+            logtag = nlpdef.logtag or "."
 
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
         self._type_to_tablename = {}  # type: Dict[str, str]
@@ -187,20 +196,15 @@ class Gate(BaseNlpParser):
         self._progargs = shlex.split(formatted_progargs)
 
         self._n_uses = 0
-        self._pipe_encoding = 'utf8'
+        self._pipe_encoding = "utf8"
         self._p = None  # the subprocess
         self._started = False
 
         # Sanity checks
         for ty, tn in self._type_to_tablename.items():
-            assert len(tn) <= MAX_SQL_FIELD_LEN, (
-                f"Table name too long (max {MAX_SQL_FIELD_LEN} characters)")
-
-    @classmethod
-    def print_info(cls, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print("NLP class to talk to GATE apps (https://www.gate.ac.uk/).",
-              file=file)
+            assert (
+                len(tn) <= MAX_SQL_FIELD_LEN
+            ), f"Table name too long (max {MAX_SQL_FIELD_LEN} characters)"
 
     # -------------------------------------------------------------------------
     # External process control
@@ -214,12 +218,14 @@ class Gate(BaseNlpParser):
             return
         args = self._progargs
         log.info(f"Launching command: {cmdline_quote(args)}")
-        self._p = subprocess.Popen(args,
-                                   stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE,
-                                   # stderr=subprocess.PIPE,
-                                   shell=False,
-                                   bufsize=1)
+        self._p = subprocess.Popen(
+            args,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            # stderr=subprocess.PIPE,
+            shell=False,
+            bufsize=1,
+        )
         # ... don't ask for stderr to be piped if you don't want it; firstly,
         # there's a risk that if you don't consume it, something hangs, and
         # secondly if you don't consume it, you see it on the console, which is
@@ -257,7 +263,8 @@ class Gate(BaseNlpParser):
         """
         if not self._started:
             return
-        self._p.communicate()  # close p.stdout, wait for the subprocess to exit
+        # close p.stdout, wait for the subprocess to exit
+        self._p.communicate()
         self._started = False
         self._n_uses = 0
 
@@ -272,8 +279,9 @@ class Gate(BaseNlpParser):
     # Input processing
     # -------------------------------------------------------------------------
 
-    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
-                                            None, None]:
+    def parse(
+        self, text: str
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         """
         - Send text to the external process, and receive the result.
         - Note that associated data is not passed into this function, and is
@@ -296,8 +304,10 @@ class Gate(BaseNlpParser):
             self._flush_subproc_stdin()  # required in the Python 3 system
 
             # Receive
-            for line in iter(self._decode_from_subproc_stdout,
-                             self._output_terminator + os.linesep):
+            for line in iter(
+                self._decode_from_subproc_stdout,
+                self._output_terminator + os.linesep,
+            ):
                 # ... iterate until the sentinel output_terminator is received
                 line = line.rstrip("\n")
                 # ... remove trailing newline, but NOT TABS
@@ -312,7 +322,8 @@ class Gate(BaseNlpParser):
                     raise ValueError("_type information not in data received")
                 if annottype not in self._type_to_tablename:
                     log.warning(
-                        f"Unknown annotation type, skipping: {annottype}")
+                        f"Unknown annotation type, skipping: {annottype}"
+                    )
                     continue
                 c = self._outputtypemap[annottype]
                 rename_keys_in_dict(d, c.renames)
@@ -340,10 +351,9 @@ class Gate(BaseNlpParser):
         """
         if self._debug_mode:
             return
-        self.test_parser([
-            "Bob Hope visited Seattle.",
-            "James Joyce wrote Ulysses."
-        ])
+        self.test_parser(
+            ["Bob Hope visited Seattle.", "James Joyce wrote Ulysses."]
+        )
 
     # -------------------------------------------------------------------------
     # Database structure
@@ -353,9 +363,10 @@ class Gate(BaseNlpParser):
         # docstring in superclass
         tables = {}  # type: Dict[str, List[Column]]
         for anottype, otconfig in self._outputtypemap.items():
-            tables[otconfig.dest_tablename] = (
-                self._standard_gate_columns() +
-                otconfig.get_columns(self.dest_engine)
+            tables[
+                otconfig.dest_tablename
+            ] = self._standard_gate_columns() + otconfig.get_columns(
+                self.dest_engine
             )
         return tables
 
@@ -364,8 +375,7 @@ class Gate(BaseNlpParser):
         tables = {}  # type: Dict[str, List[Index]]
         for anottype, otconfig in self._outputtypemap.items():
             tables[otconfig.dest_tablename] = (
-                self._standard_gate_indexes() +
-                otconfig.indexes
+                self._standard_gate_indexes() + otconfig.indexes
             )
         return tables
 

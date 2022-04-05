@@ -42,9 +42,9 @@ def to_float(s: str) -> Optional[float]:
     - replace Unicode minus and en dash with a hyphen (minus sign)
     """
     if s:
-        s = s.replace(',', '')  # comma as thousands separator
-        s = s.replace('−', '-')  # Unicode minus
-        s = s.replace('–', '-')  # en dash
+        s = s.replace(",", "")  # comma as thousands separator
+        s = s.replace("−", "-")  # Unicode minus
+        s = s.replace("–", "-")  # en dash
     try:
         return float(s)
     except (TypeError, ValueError):

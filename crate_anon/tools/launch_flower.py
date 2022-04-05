@@ -37,11 +37,7 @@ def main() -> None:
     """
     Command-line entry point.
     """
-    cmdargs = [
-        "celery",
-        "--app", CRATEWEB_CELERY_APP_NAME,
-        "flower"
-    ]
+    cmdargs = ["celery", "--app", CRATEWEB_CELERY_APP_NAME, "flower"]
     print(f"Launching Flower: {cmdargs}")
     subprocess.call(cmdargs)
 

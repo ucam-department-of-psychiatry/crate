@@ -39,7 +39,7 @@ from typing import List
 
 assert sys.version_info >= (3, 7), "Need Python 3.7+"
 
-LINUX = platform.system() == 'Linux'
+LINUX = platform.system() == "Linux"
 # LINUX_DIST = platform.linux_distribution()[0].lower()
 # DEB = LINUX_DIST in ['ubuntu', 'debian']
 # RPM = LINUX_DIST in ['fedora', 'rhel', 'centos']
@@ -53,7 +53,9 @@ created. For example, for a testing environment
 or for a production environment:
     sudo --user=www-data XDG_CACHE_HOME=/usr/share/crate/.cache \\
         {script} /usr/share/crate/virtualenv
-""".format(script=os.path.basename(__file__))  # noqa
+""".format(
+    script=os.path.basename(__file__)
+)  # noqa
 
 PYTHON = sys.executable  # Windows needs this before Python executables
 PYTHONBASE = os.path.basename(PYTHON)
@@ -104,21 +106,25 @@ def main() -> None:
         raise AssertionError("Installation requires Linux.")
     parser = argparse.ArgumentParser(
         description=DESCRIPTION,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("virtualenv", help="New virtual environment directory")
     parser.add_argument("package", help="New package directory/tgz")
-    parser.add_argument("--virtualenv_minimum_version", default="13.1.2",
-                        help="Minimum version of virtualenv tool")
+    parser.add_argument(
+        "--virtualenv_minimum_version",
+        default="13.1.2",
+        help="Minimum version of virtualenv tool",
+    )
     # parser.add_argument("--skippackagechecks", action="store_true",
-    #                     help="Skip verification of system packages (use this "
+    #                     help="Skip verification of system packages (use this "  # noqa: E501
     #                          "when calling script from a yum install, for "
     #                          "example).")
     args = parser.parse_args()
 
-    venv_tool = 'virtualenv'
-    venv_python = os.path.join(args.virtualenv, 'bin', 'python')
-    venv_pip = os.path.join(args.virtualenv, 'bin', 'pip')
-    activate = "source " + os.path.join(args.virtualenv, 'bin', 'activate')
+    venv_tool = "virtualenv"
+    venv_python = os.path.join(args.virtualenv, "bin", "python")
+    venv_pip = os.path.join(args.virtualenv, "bin", "pip")
+    activate = "source " + os.path.join(args.virtualenv, "bin", "activate")
 
     print(f"XDG_CACHE_HOME: {os.environ.get('XDG_CACHE_HOME', None)}")
     # if not args.skippackagechecks:
@@ -137,31 +143,39 @@ def main() -> None:
     #     print('OK')
 
     title(f"Ensuring virtualenv is installed for system Python ({PYTHON})")
-    check_call([PYTHON, '-m', 'pip', 'install',
-                f'virtualenv>={args.virtualenv_minimum_version}'])
-    print('OK')
+    check_call(
+        [
+            PYTHON,
+            "-m",
+            "pip",
+            "install",
+            f"virtualenv>={args.virtualenv_minimum_version}",
+        ]
+    )
+    print("OK")
 
-    title(f"Using system Python ({PYTHON}) and virtualenv ({venv_tool}) "
-          f"to make {args.virtualenv}")
-    check_call([PYTHON, '-m', venv_tool, args.virtualenv])
-    print('OK')
+    title(
+        f"Using system Python ({PYTHON}) and virtualenv ({venv_tool}) "
+        f"to make {args.virtualenv}"
+    )
+    check_call([PYTHON, "-m", venv_tool, args.virtualenv])
+    print("OK")
 
     title("Upgrading virtualenv pip, if required")
-    check_call([venv_pip, 'install', '--upgrade', 'pip'])
+    check_call([venv_pip, "install", "--upgrade", "pip"])
 
     title("Checking version of tools within new virtualenv")
     print(venv_python)
-    check_call([venv_python, '--version'])
+    check_call([venv_python, "--version"])
     print(venv_pip)
-    check_call([venv_pip, '--version'])
+    check_call([venv_pip, "--version"])
 
     title("Use pip within the new virtualenv to install package")
-    check_call([venv_pip, 'install', args.package])
-    print('OK')
-    print('--- Virtual environment installed successfully')
+    check_call([venv_pip, "install", args.package])
+    print("OK")
+    print("--- Virtual environment installed successfully")
 
-    print(f"To activate the virtual environment, use\n"
-          f"    {activate}\n\n")
+    print(f"To activate the virtual environment, use\n" f"    {activate}\n\n")
 
 
 if __name__ == "__main__":

@@ -59,7 +59,6 @@ crate_anon/nlp_manager
     regex_numbers.py.rst
     regex_parser.py.rst
     regex_read_codes.py.rst
-    regex_test.py.rst
     regex_units.py.rst
     run_crate_nlp_demo.py.rst
     run_gate_annie_demo.py.rst
@@ -68,8 +67,17 @@ crate_anon/nlp_manager
     run_gate_kcl_pharmacotherapy_demo.py.rst
     show_crate_gate_pipeline_options.py.rst
     show_crate_medex_pipeline_options.py.rst
-    test_all_regex.py.rst
+    tests/__init__.py.rst
+    tests/all_processors_tests.py.rst
     tests/cloud_request_process_tests.py.rst
     tests/cloud_request_sender_tests.py.rst
     tests/nlp_parser_tests.py.rst
+    tests/parse_biochemistry_tests.py.rst
+    tests/parse_clinical_tests.py.rst
+    tests/parse_cognitive_tests.py.rst
+    tests/parse_haematology_tests.py.rst
+    tests/regex_numbers_tests.py.rst
+    tests/regex_parser_tests.py.rst
     tests/regex_read_codes_tests.py.rst
+    tests/regex_test_helperfunc.py.rst
+    tests/regex_units_tests.py.rst

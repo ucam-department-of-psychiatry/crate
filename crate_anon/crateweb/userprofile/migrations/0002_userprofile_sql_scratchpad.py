@@ -37,14 +37,16 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('userprofile', '0001_initial'),
+        ("userprofile", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userprofile',
-            name='sql_scratchpad',
-            field=models.TextField(default='', verbose_name='SQL scratchpad for query builder'),  # noqa
+            model_name="userprofile",
+            name="sql_scratchpad",
+            field=models.TextField(
+                default="", verbose_name="SQL scratchpad for query builder"
+            ),  # noqa
             preserve_default=False,
         ),
     ]

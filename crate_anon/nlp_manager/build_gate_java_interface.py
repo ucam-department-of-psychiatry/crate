@@ -52,11 +52,11 @@ else:
     THIS_DIR = os.path.dirname(os.path.abspath(__file__))
     DEFAULT_GATE_DIR = os.environ.get("GATE_HOME", "/")
 
-DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, 'compiled_nlp_classes')
-SOURCE_FILE = os.path.join(THIS_DIR, GATE_PIPELINE_CLASSNAME + '.java')
+DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, "compiled_nlp_classes")
+SOURCE_FILE = os.path.join(THIS_DIR, GATE_PIPELINE_CLASSNAME + ".java")
 
-DEFAULT_JAVA = 'java'
-DEFAULT_JAVAC = 'javac'
+DEFAULT_JAVA = "java"
+DEFAULT_JAVAC = "javac"
 
 
 def main() -> None:
@@ -66,33 +66,40 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Compile Java classes for CRATE's interface to GATE",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        '--builddir', default=DEFAULT_BUILD_DIR,
-        help="Output directory for compiled .class files")
-    parser.add_argument(
-        '--gatedir', default=DEFAULT_GATE_DIR,
-        help="Root directory of GATE installation")
-    parser.add_argument(
-        '--gate_exec',
-        help="Path to GATE executable (JAR file). "
-             "Temporary (future releases may handle this differently). "
-             "If not specified, defaults to 'bin/gate.jar' "
-             "within the GATE directory."
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        '--java', default=DEFAULT_JAVA,
-        help="Java executable")
+        "--builddir",
+        default=DEFAULT_BUILD_DIR,
+        help="Output directory for compiled .class files",
+    )
     parser.add_argument(
-        '--javac', default=DEFAULT_JAVAC,
-        help="Java compiler")
+        "--gatedir",
+        default=DEFAULT_GATE_DIR,
+        help="Root directory of GATE installation",
+    )
     parser.add_argument(
-        '--verbose', '-v', action='count', default=0,
-        help="Be verbose (use twice for extra verbosity)")
+        "--gate_exec",
+        help="Path to GATE executable (JAR file). "
+        "Temporary (future releases may handle this differently). "
+        "If not specified, defaults to 'bin/gate.jar' "
+        "within the GATE directory.",
+    )
+    parser.add_argument("--java", default=DEFAULT_JAVA, help="Java executable")
+    parser.add_argument("--javac", default=DEFAULT_JAVAC, help="Java compiler")
     parser.add_argument(
-        '--launch', action='store_true',
+        "--verbose",
+        "-v",
+        action="count",
+        default=0,
+        help="Be verbose (use twice for extra verbosity)",
+    )
+    parser.add_argument(
+        "--launch",
+        action="store_true",
         help="Launch script in demonstration mode (having previously "
-             "compiled it)")
+        "compiled it)",
+    )
     args = parser.parse_args()
 
     loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
@@ -101,42 +108,44 @@ def main() -> None:
 
     if not args.gate_exec:
         if not os.path.exists(args.gatedir):
-            log.error(f"Could not find GATE installation at {args.gatedir}. "
-                      f"Is GATE installed? Have you set --gatedir correctly?")
+            log.error(
+                f"Could not find GATE installation at {args.gatedir}. "
+                f"Is GATE installed? Have you set --gatedir correctly?"
+            )
             sys.exit(EXIT_FAILURE)
 
-        gatejar = os.path.join(args.gatedir, 'bin', 'gate.jar')
+        gatejar = os.path.join(args.gatedir, "bin", "gate.jar")
     else:
         gatejar = args.gate_exec
 
-    gatelibjars = os.path.join(args.gatedir, 'lib', '*')
+    gatelibjars = os.path.join(args.gatedir, "lib", "*")
     classpath = os.pathsep.join([args.builddir, gatejar, gatelibjars])
-    classpath_options = ['-classpath', classpath]
+    classpath_options = ["-classpath", classpath]
 
     if args.launch:
-        features = ['-a', 'Person', '-a', 'Location']
-        eol_options = ['-it', 'END', '-ot', 'END']
-        prog_args = features + eol_options + ['--demo']
+        features = ["-a", "Person", "-a", "Location"]
+        eol_options = ["-it", "END", "-ot", "END"]
+        prog_args = features + eol_options + ["--demo"]
         if args.verbose > 0:
-            prog_args += ['-v', '-v']
+            prog_args += ["-v", "-v"]
         if args.verbose > 1:
-            prog_args += ['-wg', 'wholexml_', '-wa', 'annotxml_']
+            prog_args += ["-wg", "wholexml_", "-wa", "annotxml_"]
         cmdargs = (
-            [args.java] +
-            classpath_options +
-            [GATE_PIPELINE_CLASSNAME] +
-            prog_args
+            [args.java]
+            + classpath_options
+            + [GATE_PIPELINE_CLASSNAME]
+            + prog_args
         )
         log.info(f"Executing command: {cmdline_quote(cmdargs)}")
         subprocess.check_call(cmdargs)
     else:
         os.makedirs(args.builddir, exist_ok=True)
         cmdargs = (
-            [args.javac, '-Xlint:unchecked'] +
-            (['-verbose'] if args.verbose > 0 else []) +
-            classpath_options +
-            ['-d', args.builddir] +
-            [SOURCE_FILE]
+            [args.javac, "-Xlint:unchecked"]
+            + (["-verbose"] if args.verbose > 0 else [])
+            + classpath_options
+            + ["-d", args.builddir]
+            + [SOURCE_FILE]
         )
         log.info(f"Executing command: {cmdline_quote(cmdargs)}")
         subprocess.check_call(cmdargs)

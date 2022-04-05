@@ -70,6 +70,7 @@ from mako.exceptions import TemplateLookupException
 from pyparsing import ParseException
 
 from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
+
 # from crate_anon.common.profiling import do_cprofile
 from crate_anon.common.sql import (
     ColumnId,
@@ -168,23 +169,24 @@ MAX_LEN_SHOW = 20000
 
 
 # Prefix for inline pid and mpid conversion
-PID_PREFIX = '~pid'
-MPID_PREFIX = '~mpid'
+PID_PREFIX = "~pid"
+MPID_PREFIX = "~mpid"
 
 
 # Fieldnames for CRATE NLP table
-FN_NLPDEF = '_nlpdef'
-FN_SRCDB = '_srcdb'
-FN_SRCTABLE = '_srctable'
-FN_SRCFIELD = '_srcfield'
-FN_SRCPKFIELD = '_srcpkfield'
-FN_SRCPKVAL = '_srcpkval'
-FN_SRCPKSTR = '_srcpkstr'
+FN_NLPDEF = "_nlpdef"
+FN_SRCDB = "_srcdb"
+FN_SRCTABLE = "_srctable"
+FN_SRCFIELD = "_srcfield"
+FN_SRCPKFIELD = "_srcpkfield"
+FN_SRCPKVAL = "_srcpkval"
+FN_SRCPKSTR = "_srcpkstr"
 
 
 # =============================================================================
 # Helper functions
 # =============================================================================
+
 
 def validate_blank_form(request: HttpRequest) -> None:
     """
@@ -228,10 +230,10 @@ def query_context(request: HttpRequest) -> Dict[str, Any]:
     query_id = Query.get_active_query_id_or_none(request)
     pe_id = PatientExplorer.get_active_pe_id_or_none(request)
     return {
-        'query_selected': query_id is not None,
-        'current_query_id': query_id,
-        'pe_selected': pe_id is not None,
-        'current_pe_id': pe_id,
+        "query_selected": query_id is not None,
+        "current_query_id": query_id,
+        "pe_selected": pe_id is not None,
+        "current_pe_id": pe_id,
     }
 
 
@@ -247,6 +249,7 @@ def datetime_iso_for_filename() -> str:
 # Errors
 # =============================================================================
 
+
 def generic_error(request: HttpRequest, error: str) -> HttpResponse:
     """
     Returns a generic error response.
@@ -260,14 +263,15 @@ def generic_error(request: HttpRequest, error: str) -> HttpResponse:
 
     """
     context = {
-        'error': error,
+        "error": error,
     }
-    return render(request, 'generic_error.html', context)
+    return render(request, "generic_error.html", context)
 
 
 # =============================================================================
 # Queries
 # =============================================================================
+
 
 @django_cache_function(timeout=None)
 # @lru_cache(maxsize=None)
@@ -283,50 +287,69 @@ def get_db_structure_json() -> str:
     for dbinfo in research_database_info.dbinfolist:
         log.info(f"get_db_structure_json: schema {dbinfo.schema_identifier}")
         if not dbinfo.eligible_for_query_builder:
-            log.debug(f"Skipping schema={dbinfo.schema_identifier}: "
-                      f"not eligible for query builder")
+            log.debug(
+                f"Skipping schema={dbinfo.schema_identifier}: "
+                f"not eligible for query builder"
+            )
             continue
-        schema_cil = [x for x in colinfolist
-                      if x.table_catalog == dbinfo.database and
-                      x.table_schema == dbinfo.schema_name]
+        schema_cil = [
+            x
+            for x in colinfolist
+            if x.table_catalog == dbinfo.database
+            and x.table_schema == dbinfo.schema_name
+        ]
         table_info = []  # type: List[Dict[str, Any]]
         for table in sorted(set(x.table_name for x in schema_cil)):
             table_cil = [x for x in schema_cil if x.table_name == table]
-            if not any(x for x in table_cil
-                       if x.column_name == dbinfo.trid_field):
+            if not any(
+                x for x in table_cil if x.column_name == dbinfo.trid_field
+            ):
                 # This table doesn't contain a TRID, so we will skip it.
-                log.debug(f"... skipping table {table}: "
-                          f"no TRID [{dbinfo.trid_field}]")
+                log.debug(
+                    f"... skipping table {table}: "
+                    f"no TRID [{dbinfo.trid_field}]"
+                )
                 continue
-            if not any(x for x in table_cil
-                       if x.column_name == dbinfo.rid_field):
+            if not any(
+                x for x in table_cil if x.column_name == dbinfo.rid_field
+            ):
                 # This table doesn't contain a RID, so we will skip it.
-                log.debug(f"... skipping table {table}: "
-                          f"no RID [{dbinfo.rid_field}]")
+                log.debug(
+                    f"... skipping table {table}: "
+                    f"no RID [{dbinfo.rid_field}]"
+                )
                 continue
             column_info = []  # type: List[Dict[str, str]]
             for ci in sorted(table_cil, key=lambda x: x.column_name):
-                column_info.append({
-                    'colname': ci.column_name,
-                    'coltype': ci.querybuilder_type,
-                    'rawtype': ci.column_type,
-                    'comment': ci.column_comment or '',
-                })
+                column_info.append(
+                    {
+                        "colname": ci.column_name,
+                        "coltype": ci.querybuilder_type,
+                        "rawtype": ci.column_type,
+                        "comment": ci.column_comment or "",
+                    }
+                )
             if column_info:
-                table_info.append({
-                    'table': table,
-                    'columns': column_info,
-                })
+                table_info.append(
+                    {
+                        "table": table,
+                        "columns": column_info,
+                    }
+                )
             log.debug(f"... using table {table}: {len(column_info)} columns")
         if table_info:
-            info.append({
-                'database': dbinfo.database,
-                'schema': dbinfo.schema_name,
-                'tables': table_info,
-            })
+            info.append(
+                {
+                    "database": dbinfo.database,
+                    "schema": dbinfo.schema_name,
+                    "tables": table_info,
+                }
+            )
     json_result = json.dumps(info, separators=JSON_SEPARATORS_COMPACT)
-    log.debug(f"... get_db_structure_json returning string of size "
-              f"{len(json_result)}")
+    log.debug(
+        f"... get_db_structure_json returning string of size "
+        f"{len(json_result)}"
+    )
     return json_result
 
 
@@ -374,56 +397,62 @@ def query_build(request: HttpRequest) -> HttpResponse:
 
     # noinspection PyUnresolvedReferences
     profile = request.user.profile  # type: UserProfile
-    parse_error = ''
+    parse_error = ""
     default_database = research_database_info.get_default_database_name()
     default_schema = research_database_info.get_default_schema_name()
     with_database = research_database_info.uses_database_level()
     form = None
 
-    if request.method == 'POST':
+    if request.method == "POST":
         grammar = research_database_info.grammar
         try:
-            if 'global_clear' in request.POST:
-                profile.sql_scratchpad = ''
+            if "global_clear" in request.POST:
+                profile.sql_scratchpad = ""
                 profile.save()
 
-            elif 'global_toggle_distinct' in request.POST:
+            elif "global_toggle_distinct" in request.POST:
                 profile.sql_scratchpad = toggle_distinct(
-                    profile.sql_scratchpad, grammar=grammar)
+                    profile.sql_scratchpad, grammar=grammar
+                )
                 profile.save()
 
-            elif 'global_save' in request.POST:
+            elif "global_save" in request.POST:
                 return query_submit(request, profile.sql_scratchpad, run=False)
 
-            elif 'global_run' in request.POST:
+            elif "global_run" in request.POST:
                 return query_submit(request, profile.sql_scratchpad, run=True)
 
             else:
                 form = QueryBuilderForm(request.POST, request.FILES)
                 if form.is_valid():
-                    database = (form.cleaned_data['database'] if with_database
-                                else '')
-                    schema = form.cleaned_data['schema']
-                    table = form.cleaned_data['table']
-                    column = form.cleaned_data['column']
-                    column_id = ColumnId(db=database, schema=schema,
-                                         table=table, column=column)
+                    database = (
+                        form.cleaned_data["database"] if with_database else ""
+                    )
+                    schema = form.cleaned_data["schema"]
+                    table = form.cleaned_data["table"]
+                    column = form.cleaned_data["column"]
+                    column_id = ColumnId(
+                        db=database, schema=schema, table=table, column=column
+                    )
                     table_id = column_id.table_id
 
-                    if 'submit_select' in request.POST:
+                    if "submit_select" in request.POST:
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
                             select_elements=[
                                 SelectElement(column_id=column_id)
                             ],
                             magic_join=True,
-                            grammar=grammar
+                            grammar=grammar,
                         )
 
-                    elif 'submit_select_star' in request.POST:
+                    elif "submit_select_star" in request.POST:
                         select_elements = [
-                            SelectElement(column_id=c.column_id) for c in
-                            research_database_info.all_columns(table_id)]
+                            SelectElement(column_id=c.column_id)
+                            for c in research_database_info.all_columns(
+                                table_id
+                            )
+                        ]
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
                             select_elements=select_elements,
@@ -431,9 +460,9 @@ def query_build(request: HttpRequest) -> HttpResponse:
                             grammar=grammar,
                         )
 
-                    elif 'submit_where' in request.POST:
-                        datatype = form.cleaned_data['datatype']
-                        op = form.cleaned_data['where_op']
+                    elif "submit_where" in request.POST:
+                        datatype = form.cleaned_data["datatype"]
+                        op = form.cleaned_data["where_op"]
                         # Value
                         if op in SQL_OPS_MULTIPLE_VALUES:
                             value = form.file_values_list
@@ -442,16 +471,18 @@ def query_build(request: HttpRequest) -> HttpResponse:
                         else:
                             value = form.get_cleaned_where_value()
                         # WHERE fragment
-                        wherecond = WhereCondition(column_id=column_id,
-                                                   op=op,
-                                                   datatype=datatype,
-                                                   value_or_values=value)
+                        wherecond = WhereCondition(
+                            column_id=column_id,
+                            op=op,
+                            datatype=datatype,
+                            value_or_values=value,
+                        )
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
                             where_type="AND",
                             where_conditions=[wherecond],
                             magic_join=True,
-                            grammar=grammar
+                            grammar=grammar,
                         )
 
                     else:
@@ -468,37 +499,39 @@ def query_build(request: HttpRequest) -> HttpResponse:
         form = QueryBuilderForm()
 
     starting_values_dict = {
-        'database': form.data.get('database', '') if with_database else '',
-        'schema': form.data.get('schema', ''),
-        'table': form.data.get('table', ''),
-        'column': form.data.get('column', ''),
-        'op': form.data.get('where_op', ''),
-        'date_value': form.data.get('date_value', ''),
+        "database": form.data.get("database", "") if with_database else "",
+        "schema": form.data.get("schema", ""),
+        "table": form.data.get("table", ""),
+        "column": form.data.get("column", ""),
+        "op": form.data.get("where_op", ""),
+        "date_value": form.data.get("date_value", ""),
         # Impossible to set file_value programmatically. (See querybuilder.js.)
-        'float_value': form.data.get('float_value', ''),
-        'int_value': form.data.get('int_value', ''),
-        'string_value': form.data.get('string_value', ''),
-        'offer_where': bool(profile.sql_scratchpad),  # existing SELECT?
-        'form_errors': "<br>".join(f"{k}: {v}"
-                                   for k, v in form.errors.items()),
-        'default_database': default_database,
-        'default_schema': default_schema,
-        'with_database': with_database,
+        "float_value": form.data.get("float_value", ""),
+        "int_value": form.data.get("int_value", ""),
+        "string_value": form.data.get("string_value", ""),
+        "offer_where": bool(profile.sql_scratchpad),  # existing SELECT?
+        "form_errors": "<br>".join(
+            f"{k}: {v}" for k, v in form.errors.items()
+        ),
+        "default_database": default_database,
+        "default_schema": default_schema,
+        "with_database": with_database,
     }
     context = {
-        'nav_on_querybuilder': True,
-        'sql': prettify_sql_html(profile.sql_scratchpad),
-        'parse_error': parse_error,
-        'database_structure': get_db_structure_json(),
-        'starting_values': json.dumps(starting_values_dict,
-                                      separators=JSON_SEPARATORS_COMPACT),
-        'sql_dialect': settings.RESEARCH_DB_DIALECT,
-        'dialect_mysql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
-        'dialect_mssql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
-        'sql_highlight_css': prettify_sql_css(),
+        "nav_on_querybuilder": True,
+        "sql": prettify_sql_html(profile.sql_scratchpad),
+        "parse_error": parse_error,
+        "database_structure": get_db_structure_json(),
+        "starting_values": json.dumps(
+            starting_values_dict, separators=JSON_SEPARATORS_COMPACT
+        ),
+        "sql_dialect": settings.RESEARCH_DB_DIALECT,
+        "dialect_mysql": settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
+        "dialect_mssql": settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
+        "sql_highlight_css": prettify_sql_css(),
     }
     context.update(query_context(request))
-    return render(request, 'query_build.html', context)
+    return render(request, "query_build.html", context)
 
 
 def get_all_queries(request: HttpRequest) -> QuerySet:
@@ -513,8 +546,9 @@ def get_all_queries(request: HttpRequest) -> QuerySet:
         :class:`crate_anon.crateweb.research.models.Query` objects
 
     """
-    return Query.objects.filter(user=request.user, deleted=False)\
-                        .order_by('-active', '-created')
+    return Query.objects.filter(user=request.user, deleted=False).order_by(
+        "-active", "-created"
+    )
 
 
 def get_all_sitewide_queries() -> QuerySet:
@@ -526,12 +560,12 @@ def get_all_sitewide_queries() -> QuerySet:
         :class:`crate_anon.crateweb.research.models.SitewideQuery` objects
 
     """
-    return SitewideQuery.objects.filter(deleted=False)\
-                                .order_by('-created')
+    return SitewideQuery.objects.filter(deleted=False).order_by("-created")
 
 
-def get_identical_queries(request: HttpRequest, sql: str,
-                          sitewide: bool = False) -> List[Query]:
+def get_identical_queries(
+    request: HttpRequest, sql: str, sitewide: bool = False
+) -> List[Query]:
     """
     Returns all queries that are identical to the SQL provided.
 
@@ -657,8 +691,9 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
     while i < len(sql_components):
         split_component = sql_components[i].split(":")
         if len(split_component) == 2 and (
-                split_component[0] == PID_PREFIX
-                or split_component[0] == MPID_PREFIX):
+            split_component[0] == PID_PREFIX
+            or split_component[0] == MPID_PREFIX
+        ):
             id_type, dbname = split_component
             try:
                 dbinfo = research_database_info.get_dbinfo_by_name(dbname)
@@ -676,8 +711,11 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
                 i += 1
                 try:
                     if not sql_components[i].startswith("("):
-                        return [1, "When using the operator 'IN', values "
-                                "must be enclosed with brackets"]
+                        return [
+                            1,
+                            "When using the operator 'IN', values "
+                            "must be enclosed with brackets",
+                        ]
                 except IndexError:
                     return [1, "Missing values in clause"]
                 values = []
@@ -688,23 +726,29 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
                     except IndexError:
                         return [1, "Final bracket missing in list of values"]
                     values.extend(
-                        [x for x in
-                         current.replace("(", "").replace(")", "").split(",")
-                         if x]
+                        [
+                            x
+                            for x in current.replace("(", "")
+                            .replace(")", "")
+                            .split(",")
+                            if x
+                        ]
                     )
                     if ")" in current or i >= len(sql_components):
                         at_end = True
                     i += 1
                 if id_type == MPID_PREFIX:
                     lookups = PidLookup.objects.using(
-                        dbinfo.secret_lookup_db).filter(Q(mpid__in=values))
+                        dbinfo.secret_lookup_db
+                    ).filter(Q(mpid__in=values))
                 else:
                     lookups = PidLookup.objects.using(
-                        dbinfo.secret_lookup_db).filter(Q(pid__in=values))
+                        dbinfo.secret_lookup_db
+                    ).filter(Q(pid__in=values))
                 rids = [lk.rid for lk in lookups]
                 if rids:
                     rids = [f"'{rid}'" for rid in rids]
-                    extra_sql = ','.join(rids)
+                    extra_sql = ",".join(rids)
                     new_sql += f"{rid_field} IN ({extra_sql}) "
                 else:
                     new_sql += f"{rid_field} = ''"
@@ -716,17 +760,26 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
                     return [1, "Missing value in clause"]
                 i += 1
                 if id_type == MPID_PREFIX:
-                    lookup = PidLookup.objects.using(
-                        dbinfo.secret_lookup_db).filter(mpid=value).first()
+                    lookup = (
+                        PidLookup.objects.using(dbinfo.secret_lookup_db)
+                        .filter(mpid=value)
+                        .first()
+                    )
                 else:
-                    lookup = PidLookup.objects.using(
-                        dbinfo.secret_lookup_db).filter(pid=value).first()
+                    lookup = (
+                        PidLookup.objects.using(dbinfo.secret_lookup_db)
+                        .filter(pid=value)
+                        .first()
+                    )
                 rid = "" if not lookup else lookup.rid
                 new_sql += f"{rid_field} {operator} '{rid}' "
             else:
-                return [1, "pid and mpid conversion does not work with "
-                           f"operator '{operator}', only with operators '=' "
-                           "and 'IN'."]
+                return [
+                    1,
+                    "pid and mpid conversion does not work with "
+                    f"operator '{operator}', only with operators '=' "
+                    "and 'IN'.",
+                ]
         else:
             new_sql += f"{sql_components[i]} "
             i += 1
@@ -735,10 +788,12 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
     return [0, new_sql]
 
 
-def query_submit(request: HttpRequest,
-                 sql: str,
-                 run: bool = False,
-                 filter_display: bool = False) -> HttpResponse:
+def query_submit(
+    request: HttpRequest,
+    sql: str,
+    run: bool = False,
+    filter_display: bool = False,
+) -> HttpResponse:
     """
     Ancillary function to add a query, and redirect to the editing or
     run page.
@@ -760,15 +815,16 @@ def query_submit(request: HttpRequest,
         else:
             return generic_error(request, parsed_sql[1])
     elif PID_PREFIX in sql or MPID_PREFIX in sql:
-        return generic_error(request, "Only clinicians are authorised to use "
-                                      "pid to rid conversion")
+        return generic_error(
+            request,
+            "Only clinicians are authorised to use " "pid to rid conversion",
+        )
     identical_queries = get_identical_queries(request, sql)
     if identical_queries:
         identical_queries[0].activate()
         query_id = identical_queries[0].id
     else:
-        query = Query(sql=sql, raw=True, user=request.user,
-                      active=True)
+        query = Query(sql=sql, raw=True, user=request.user, active=True)
         query.save()
         query_id = query.id
     # redirect to a new URL:
@@ -783,10 +839,10 @@ def query_submit(request: HttpRequest,
 def show_query(request: HttpRequest, query_id: str) -> HttpResponse:
     query = get_object_or_404(Query, id=query_id)
     context = {
-        'query': query,
-        'sql_highlight_css': prettify_sql_css(),
+        "query": query,
+        "sql_highlight_css": prettify_sql_css(),
     }
-    return render(request, 'query_show.html', context)
+    return render(request, "query_show.html", context)
 
 
 # @do_cprofile
@@ -802,19 +858,19 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
     """
     # log.debug("query")
     # if this is a POST request we need to process the form data
-    if request.method == 'POST':
+    if request.method == "POST":
         # create a form instance and populate it with data from the request:
         form = AddQueryForm(request.POST)
         # check whether it's valid:
         if form.is_valid():
-            cmd_run = 'submit_run' in request.POST
-            cmd_add = 'submit_add' in request.POST
-            cmd_builder = 'submit_builder' in request.POST
-            cmd_filter = 'submit_filter' in request.POST
+            cmd_run = "submit_run" in request.POST
+            cmd_add = "submit_add" in request.POST
+            cmd_builder = "submit_builder" in request.POST
+            cmd_filter = "submit_filter" in request.POST
             # process the data in form.cleaned_data as required
-            sql = form.cleaned_data['sql']
+            sql = form.cleaned_data["sql"]
             if cmd_add or cmd_run:
-                run = 'submit_run' in request.POST
+                run = "submit_run" in request.POST
                 return query_submit(request, sql, run)
             elif cmd_builder:
                 # noinspection PyUnresolvedReferences
@@ -833,7 +889,7 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
     all_queries = get_all_queries(request)
     active_queries = all_queries.filter(active=True)
     if active_queries:
-        values['sql'] = active_queries[0].get_original_sql()
+        values["sql"] = active_queries[0].get_original_sql()
     form = AddQueryForm(values)
     queries = paginate(request, all_queries)
     # noinspection PyUnresolvedReferences
@@ -856,17 +912,20 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
             # off after an html start tag but before the end tag
             q.truncated_sql = sql[:50]
     context = {
-        'form': form,
-        'queries': queries,
-        'nav_on_query': True,
-        'dialect_mysql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
-        'dialect_mssql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
-        'sql_highlight_css': prettify_sql_css(),
-        'dbinfolist': (None if not is_clinician(request.user) else
-                       research_database_info.dbinfolist),
+        "form": form,
+        "queries": queries,
+        "nav_on_query": True,
+        "dialect_mysql": settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
+        "dialect_mssql": settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
+        "sql_highlight_css": prettify_sql_css(),
+        "dbinfolist": (
+            None
+            if not is_clinician(request.user)
+            else research_database_info.dbinfolist
+        ),
     }
     context.update(query_context(request))
-    return render(request, 'query_edit_select.html', context)
+    return render(request, "query_edit_select.html", context)
 
 
 @user_passes_test(is_superuser)
@@ -880,15 +939,14 @@ def query_add_sitewide(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
-    if 'submit_add' in request.POST:
-        sql = request.POST['sql']
-        description = request.POST['description']
+    if "submit_add" in request.POST:
+        sql = request.POST["sql"]
+        description = request.POST["description"]
         identical_queries = get_identical_queries(request, sql, sitewide=True)
         # noinspection PyUnresolvedReferences
         descriptions = [query.description for query in identical_queries]
         if not identical_queries:
-            query = SitewideQuery(sql=sql, description=description,
-                                  raw=True)
+            query = SitewideQuery(sql=sql, description=description, raw=True)
             query.save()
         elif description not in descriptions:
             # noinspection PyUnresolvedReferences
@@ -908,8 +966,8 @@ def query_add_sitewide(request: HttpRequest) -> HttpResponse:
             element_counter=element_counter,
             collapse_at_n_lines=profile.collapse_at_n_lines,
         )
-    if 'edit' in request.POST:
-        query_id = request.POST['query_id']
+    if "edit" in request.POST:
+        query_id = request.POST["query_id"]
         query = SitewideQuery.objects.get(id=query_id)
         selected_sql = query.sql
         selected_description = query.description
@@ -917,12 +975,12 @@ def query_add_sitewide(request: HttpRequest) -> HttpResponse:
         selected_sql = ""
         selected_description = ""
     context = {
-        'queries': queries,
-        'selected_sql': selected_sql,
-        'selected_description': selected_description,
-        'sql_highlight_css': prettify_sql_css(),
+        "queries": queries,
+        "selected_sql": selected_sql,
+        "selected_description": selected_description,
+        "sql_highlight_css": prettify_sql_css(),
     }
-    return render(request, 'query_add_sitewide.html', context)
+    return render(request, "query_add_sitewide.html", context)
 
 
 def show_sitewide_queries(request: HttpRequest) -> HttpResponse:
@@ -938,10 +996,10 @@ def show_sitewide_queries(request: HttpRequest) -> HttpResponse:
     """
     queries = get_all_sitewide_queries()
     context = {
-        'queries': queries,
-        'sql_highlight_css': prettify_sql_css(),
+        "queries": queries,
+        "sql_highlight_css": prettify_sql_css(),
     }
-    return render(request, 'show_sitewide_queries.html', context)
+    return render(request, "show_sitewide_queries.html", context)
 
 
 def query_activate(request: HttpRequest, query_id: str) -> HttpResponse:
@@ -1006,12 +1064,16 @@ def sitewide_query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
 
     """
     validate_blank_form(request)
-    query = get_object_or_404(SitewideQuery, id=query_id)  # type: SitewideQuery  # noqa
+    query = get_object_or_404(
+        SitewideQuery, id=query_id
+    )  # type: SitewideQuery  # noqa
     query.delete()
     return redirect(UrlNames.SITEWIDE_QUERIES)
 
 
-def sitewide_query_process(request: HttpRequest, query_id: str) -> HttpResponse:
+def sitewide_query_process(
+    request: HttpRequest, query_id: str
+) -> HttpResponse:
     """
     Takes a sitewide query ID and receives (through ``POST``) replacements for
     the placeholders. Then adds the code to user's personal library or adds and
@@ -1026,8 +1088,8 @@ def sitewide_query_process(request: HttpRequest, query_id: str) -> HttpResponse:
         a :class:`django.http.response.HttpResponse`
     """
     validate_blank_form(request)
-    cmd_add = 'submit_add' in request.POST
-    cmd_run = 'submit_run' in request.POST
+    cmd_add = "submit_add" in request.POST
+    cmd_run = "submit_run" in request.POST
     if cmd_add or cmd_run:
         query = get_object_or_404(SitewideQuery, id=query_id)
         sql = ""
@@ -1058,7 +1120,7 @@ def no_query_selected(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
-    return render(request, 'query_none_selected.html', query_context(request))
+    return render(request, "query_none_selected.html", query_context(request))
 
 
 def query_count(request: HttpRequest, query_id: str) -> HttpResponse:
@@ -1109,11 +1171,14 @@ class NlpSourceResult(object):
     """
     Serves as the return value for :func:`get_source_results`.
     """
-    def __init__(self,
-                 fieldnames: List[str] = None,
-                 results: Sequence[Sequence[Any]] = None,
-                 sql: str = None,
-                 error: str = None) -> None:
+
+    def __init__(
+        self,
+        fieldnames: List[str] = None,
+        results: Sequence[Sequence[Any]] = None,
+        sql: str = None,
+        error: str = None,
+    ) -> None:
         """
         Args:
             fieldnames: fieldnames in source record
@@ -1128,9 +1193,13 @@ class NlpSourceResult(object):
 
 
 @django_cache_function(timeout=None)
-def get_source_results(srcdb: str, srctable: str,
-                       srcfield: str, srcpkfield: str,
-                       srcpk: Union[str, int]) -> NlpSourceResult:
+def get_source_results(
+    srcdb: str,
+    srctable: str,
+    srcfield: str,
+    srcpkfield: str,
+    srcpk: Union[str, int],
+) -> NlpSourceResult:
     """
     Get source text for CRATE NLP table record.
 
@@ -1150,29 +1219,40 @@ def get_source_results(srcdb: str, srctable: str,
     except KeyError:
         return NlpSourceResult(
             error=f"No source database in settings.NLP_SOURCEDB_MAP "
-                  f"named {srcdb}")
+            f"named {srcdb}"
+        )
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
         return NlpSourceResult(
             error=f"No source database in settings.RESEARCH_DB_INFO "
-                  f"named {dbname}, for source database {srcdb}")
+            f"named {dbname}, for source database {srcdb}"
+        )
     full_tablename = dbinfo.schema_identifier + "." + srctable
     sql = f"SELECT {srcfield} FROM {full_tablename} WHERE {srcpkfield}={srcpk}"
     try:
         # noinspection PyTypeChecker
-        cursor = get_executed_researchdb_cursor(sql)  # type: Pep249DatabaseCursorType  # noqa
+        cursor = get_executed_researchdb_cursor(
+            sql
+        )  # type: Pep249DatabaseCursorType  # noqa
     except ProgrammingError:
         return NlpSourceResult(
-            error=f"Table or fieldname incorrect in: {srctable}.{srcfield}")
+            error=f"Table or fieldname incorrect in: {srctable}.{srcfield}"
+        )
     fieldnames = get_fieldnames_from_cursor(cursor)
     results = cursor.fetchall()
     return NlpSourceResult(fieldnames=fieldnames, results=results, sql=sql)
 
 
-def source_info(request: HttpRequest, srcdb: str, srctable: str,
-                srcfield: str, srcpkfield: str, srcpkval: Optional[str],
-                srcpkstr: Optional[str]) -> HttpResponse:
+def source_info(
+    request: HttpRequest,
+    srcdb: str,
+    srctable: str,
+    srcfield: str,
+    srcpkfield: str,
+    srcpkval: Optional[str],
+    srcpkstr: Optional[str],
+) -> HttpResponse:
     """
     Show source information for a record in a CRATE NLP table.
 
@@ -1192,32 +1272,37 @@ def source_info(request: HttpRequest, srcdb: str, srctable: str,
     Only one of srcpkval and srcpkstr should be 'None', and this will be given
     as a string because it's through a URL link.
     """
-    if srcpkstr == 'None':
+    if srcpkstr == "None":
         srcpkstr = None
     srcpk = srcpkstr if srcpkstr else srcpkval
     nlpsourceresult = get_source_results(
-        srcdb, srctable, srcfield, srcpkfield, srcpk)
+        srcdb, srctable, srcfield, srcpkfield, srcpk
+    )
     if nlpsourceresult.error:
         return generic_error(
-            request, f"Source info lookup failed: {nlpsourceresult.error}")
+            request, f"Source info lookup failed: {nlpsourceresult.error}"
+        )
     results = nlpsourceresult.results
     if not results:
         log.warning(f"No source data found. SQL: {nlpsourceresult.sql}")
     else:
         if len(results) > 1:
-            log.warning(f"More than one source record found. "
-                        f"SQL: {nlpsourceresult.sql}")
+            log.warning(
+                f"More than one source record found. "
+                f"SQL: {nlpsourceresult.sql}"
+            )
     table_html = resultset_html_table(
         fieldnames=nlpsourceresult.fieldnames,
         rows=results,
-        element_counter=HtmlElementCounter())
+        element_counter=HtmlElementCounter(),
+    )
     context = {
-        'table_html': table_html,
-        'sql': prettify_sql_html(nlpsourceresult.sql),
-        'sql_highlight_css': prettify_sql_css(),
+        "table_html": table_html,
+        "sql": prettify_sql_html(nlpsourceresult.sql),
+        "sql_highlight_css": prettify_sql_css(),
     }
     # context.update(query_context(request))
-    return render(request, 'source_information.html', context)
+    return render(request, "source_information.html", context)
 
 
 def query_results(request: HttpRequest, query_id: str) -> HttpResponse:
@@ -1242,14 +1327,19 @@ def query_results(request: HttpRequest, query_id: str) -> HttpResponse:
     # noinspection PyUnresolvedReferences
     profile = request.user.profile  # type: UserProfile
     highlights = Highlight.get_active_highlights(request)
-    return render_resultset(request, query, highlights,
-                            collapse_at_len=profile.collapse_at_len,
-                            collapse_at_n_lines=profile.collapse_at_n_lines,
-                            line_length=profile.line_length)
+    return render_resultset(
+        request,
+        query,
+        highlights,
+        collapse_at_len=profile.collapse_at_len,
+        collapse_at_n_lines=profile.collapse_at_n_lines,
+        line_length=profile.line_length,
+    )
 
 
-def query_results_recordwise(request: HttpRequest,
-                             query_id: str) -> HttpResponse:
+def query_results_recordwise(
+    request: HttpRequest, query_id: str
+) -> HttpResponse:
     """
     View results of chosen query, in recordwise tabular format.
 
@@ -1272,10 +1362,13 @@ def query_results_recordwise(request: HttpRequest,
     profile = request.user.profile  # type: UserProfile
     highlights = Highlight.get_active_highlights(request)
     return render_resultset_recordwise(
-        request, query, highlights,
+        request,
+        query,
+        highlights,
         collapse_at_len=profile.collapse_at_len,
         collapse_at_n_lines=profile.collapse_at_n_lines,
-        line_length=profile.line_length)
+        line_length=profile.line_length,
+    )
 
 
 def query_tsv(request: HttpRequest, query_id: str) -> HttpResponse:
@@ -1298,7 +1391,7 @@ def query_tsv(request: HttpRequest, query_id: str) -> HttpResponse:
             filename="crate_results_{num}_{datetime}.tsv".format(
                 num=query.id,
                 datetime=datetime_iso_for_filename(),
-            )
+            ),
         )
     except DatabaseError as exception:
         return render_bad_query(request, query, exception)
@@ -1322,7 +1415,8 @@ def query_excel(request: HttpRequest, query_id: str) -> HttpResponse:
             query.make_excel(),
             content_type=ContentType.XLSX,
             filename="crate_query_{}_{}.xlsx".format(
-                query_id, datetime_iso_for_filename())
+                query_id, datetime_iso_for_filename()
+            ),
         )
     except DatabaseError as exception:
         return render_bad_query(request, query, exception)
@@ -1341,11 +1435,11 @@ def edit_display(request: HttpRequest, query_id: str) -> HttpResponse:
         query.audit(failed=True, fail_msg=str(exception))
         return render_bad_query(request, query, exception)
     context = {
-        'query': query,
-        'display_fields': display_fields,
-        'fieldnames': fieldnames,
+        "query": query,
+        "display_fields": display_fields,
+        "fieldnames": fieldnames,
     }
-    return render(request, 'edit_display.html', context)
+    return render(request, "edit_display.html", context)
 
 
 def save_display(request: HttpRequest, query_id: str) -> HttpResponse:
@@ -1354,7 +1448,7 @@ def save_display(request: HttpRequest, query_id: str) -> HttpResponse:
     value of 'no_null'.
     """
     query = get_object_or_404(Query, user=request.user, id=query_id)
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
             fieldnames = query.get_column_names()
         except DatabaseError as exception:
@@ -1362,14 +1456,14 @@ def save_display(request: HttpRequest, query_id: str) -> HttpResponse:
             return render_bad_query(request, query, exception)
         display = []  # type: List[str]
         # noinspection PyArgumentList,PyCallByClass
-        display_fieldnames = request.POST.getlist('include_field')
+        display_fieldnames = request.POST.getlist("include_field")
         for display_fieldname in display_fieldnames:
             if display_fieldname in fieldnames:
                 display.append(display_fieldname)
         query.set_display_list(display)
         # If the user has selected 'no_null' set this attribute to True
         # noinspection PyArgumentList,PyCallByClass
-        query.no_null = (request.POST.get("no_null") == "true")
+        query.no_null = request.POST.get("no_null") == "true"
         query.save()
     return query_edit_select(request)
 
@@ -1431,31 +1525,32 @@ def render_resultcount(request: HttpRequest, query: Query) -> HttpResponse:
         rowcount = query.get_rowcount()
         query.audit(count_only=True, n_records=rowcount)
         context = {
-            'rowcount': rowcount,
-            'sql': query.get_original_sql(),
-            'nav_on_count': True,
+            "rowcount": rowcount,
+            "sql": query.get_original_sql(),
+            "nav_on_count": True,
         }
         context.update(query_context(request))
-        return render(request, 'query_count.html', context)
+        return render(request, "query_count.html", context)
     # See above re exception classes
     except DatabaseError as exception:
-        query.audit(count_only=True, failed=True,
-                    fail_msg=str(exception))
+        query.audit(count_only=True, failed=True, fail_msg=str(exception))
         return render_bad_query(request, query, exception)
 
 
-def resultset_html_table(fieldnames: List[str],
-                         rows: List[List[Any]],
-                         element_counter: HtmlElementCounter,
-                         start_index: int = 0,
-                         highlight_dict: Dict[int, List[Highlight]] = None,
-                         collapse_at_len: int = None,
-                         collapse_at_n_lines: int = None,
-                         line_length: int = None,
-                         ditto: bool = True,
-                         ditto_html: str = '″',
-                         no_ditto_cols: List[int] = None,
-                         null: str = '<i>NULL</i>') -> str:
+def resultset_html_table(
+    fieldnames: List[str],
+    rows: List[List[Any]],
+    element_counter: HtmlElementCounter,
+    start_index: int = 0,
+    highlight_dict: Dict[int, List[Highlight]] = None,
+    collapse_at_len: int = None,
+    collapse_at_n_lines: int = None,
+    line_length: int = None,
+    ditto: bool = True,
+    ditto_html: str = "″",
+    no_ditto_cols: List[int] = None,
+    null: str = "<i>NULL</i>",
+) -> str:
     """
     Returns an HTML table representing a set of results from a query. Its
     columns are the database columns; its rows are the database rows.
@@ -1522,31 +1617,44 @@ def resultset_html_table(fieldnames: List[str],
                 srcpkval_ind = i
             elif field == FN_SRCPKSTR:
                 srcpkstr_ind = i
-        if all((srcdb_ind, srctable_ind, srcfield_ind, srcpkfield_ind,
-               srcpkval_ind, srcpkstr_ind)):
+        if all(
+            (
+                srcdb_ind,
+                srctable_ind,
+                srcfield_ind,
+                srcpkfield_ind,
+                srcpkval_ind,
+                srcpkstr_ind,
+            )
+        ):
             nlptable = True
     no_ditto_cols = no_ditto_cols or []
     ditto_cell = f'    <td class="queryresult ditto">{ditto_html}</td>\n'
-    html = '<table>\n'
-    html += '  <tr>\n'
-    html += '    <th><i>#</i></th>\n'
+    html = "<table>\n"
+    html += "  <tr>\n"
+    html += "    <th><i>#</i></th>\n"
     for field in fieldnames:
-        html += f'    <th>{escape(field)}</th>\n'
+        html += f"    <th>{escape(field)}</th>\n"
     if nlptable:
-        html += '    <th>Link to source</th>\n'
-    html += '  </tr>\n'
+        html += "    <th>Link to source</th>\n"
+    html += "  </tr>\n"
     for row_index, row in enumerate(rows):
         # row_index is zero-based within this table
         html += '  <tr class="{}">\n'.format(
             "stripy_even" if row_index % 2 == 0 else "stripy_odd"
         )
         # Row number
-        html += '    <td><b><i>{}</i></b></td>\n'.format(
-            row_index + start_index + 1)
+        html += "    <td><b><i>{}</i></b></td>\n".format(
+            row_index + start_index + 1
+        )
         # Values
         for col_index, value in enumerate(row):
-            if (row_index > 0 and ditto and col_index not in no_ditto_cols and
-                    value == rows[row_index - 1][col_index]):
+            if (
+                row_index > 0
+                and ditto
+                and col_index not in no_ditto_cols
+                and value == rows[row_index - 1][col_index]
+            ):
                 html += ditto_cell
             else:
                 html += '    <td class="queryresult">{}</td>\n'.format(
@@ -1557,33 +1665,38 @@ def resultset_html_table(fieldnames: List[str],
                         collapse_at_len=collapse_at_len,
                         collapse_at_n_lines=collapse_at_n_lines,
                         line_length=line_length,
-                        null=null
+                        null=null,
                     )
                 )
         # If it's an NLP table, add link to source info
         if nlptable:
             # noinspection PyUnboundLocalVariable
-            source_url = reverse(UrlNames.SRCINFO, kwargs={
-                'srcdb': row[srcdb_ind],
-                'srctable': row[srctable_ind],
-                'srcfield': row[srcfield_ind],
-                'srcpkfield': row[srcpkfield_ind],
-                'srcpkval': row[srcpkval_ind],
-                'srcpkstr': row[srcpkstr_ind]
-            })
+            source_url = reverse(
+                UrlNames.SRCINFO,
+                kwargs={
+                    "srcdb": row[srcdb_ind],
+                    "srctable": row[srctable_ind],
+                    "srcfield": row[srcfield_ind],
+                    "srcpkfield": row[srcpkfield_ind],
+                    "srcpkval": row[srcpkval_ind],
+                    "srcpkstr": row[srcpkstr_ind],
+                },
+            )
             html += f'    <td><a href="{source_url}">Source info</a></td>\n'
-        html += '  </tr>\n'
-    html += '</table>\n'
+        html += "  </tr>\n"
+    html += "</table>\n"
     return html
 
 
-def single_record_html_table(fieldnames: List[str],
-                             record: List[Any],
-                             element_counter: HtmlElementCounter,
-                             highlight_dict: Dict[int, List[Highlight]] = None,
-                             collapse_at_len: int = None,
-                             collapse_at_n_lines: int = None,
-                             line_length: int = None) -> str:
+def single_record_html_table(
+    fieldnames: List[str],
+    record: List[Any],
+    element_counter: HtmlElementCounter,
+    highlight_dict: Dict[int, List[Highlight]] = None,
+    collapse_at_len: int = None,
+    collapse_at_n_lines: int = None,
+    line_length: int = None,
+) -> str:
     """
     Returns an HTML table representing a set of results from a query, in
     recordwise format. It has two columns, effectively "database column" and
@@ -1617,7 +1730,7 @@ def single_record_html_table(fieldnames: List[str],
         str: HTML
 
     """  # noqa
-    table_html = ''
+    table_html = ""
     if FN_NLPDEF in fieldnames:
         srcdb_ind = srctable_ind = srcfield_ind = None
         srcpkfield_ind = srcpkval_ind = srcpkstr_ind = None
@@ -1634,52 +1747,63 @@ def single_record_html_table(fieldnames: List[str],
                 srcpkval_ind = i
             elif field == FN_SRCPKSTR:
                 srcpkstr_ind = i
-        if all((srcdb_ind, srctable_ind, srcfield_ind, srcpkfield_ind,
-               srcpkval_ind, srcpkstr_ind)):
+        if all(
+            (
+                srcdb_ind,
+                srctable_ind,
+                srcfield_ind,
+                srcpkfield_ind,
+                srcpkval_ind,
+                srcpkstr_ind,
+            )
+        ):
             # If it's an NLP table, add link to source info above the results
             # noinspection PyUnboundLocalVariable
-            source_url = reverse(UrlNames.SRCINFO, kwargs={
-                'srcdb': record[srcdb_ind],
-                'srctable': record[srctable_ind],
-                'srcfield': record[srcfield_ind],
-                'srcpkfield': record[srcpkfield_ind],
-                'srcpkval': record[srcpkval_ind],
-                'srcpkstr': record[srcpkstr_ind]
-            })
+            source_url = reverse(
+                UrlNames.SRCINFO,
+                kwargs={
+                    "srcdb": record[srcdb_ind],
+                    "srctable": record[srctable_ind],
+                    "srcfield": record[srcfield_ind],
+                    "srcpkfield": record[srcpkfield_ind],
+                    "srcpkval": record[srcpkval_ind],
+                    "srcpkstr": record[srcpkstr_ind],
+                },
+            )
             table_html += f'<b><a href="{source_url}">See NLP source info</a></b>\n'  # noqa
-    table_html += '<table>\n'
+    table_html += "<table>\n"
     for col_index, value in enumerate(record):
         fieldname = fieldnames[col_index]
         table_html += '  <tr class="{}">\n'.format(
             "stripy_even" if col_index % 2 == 0 else "stripy_odd"
         )
-        table_html += f'    <th>{escape(fieldname)}</th>'
-        table_html += (
-            '    <td class="queryresult">{}</td>\n'.format(
-                make_result_element(
-                    value,
-                    element_counter=element_counter,
-                    highlight_dict=highlight_dict,
-                    collapse_at_len=collapse_at_len,
-                    collapse_at_n_lines=collapse_at_n_lines,
-                    line_length=line_length,
-                    collapsed=False,
-                )
+        table_html += f"    <th>{escape(fieldname)}</th>"
+        table_html += '    <td class="queryresult">{}</td>\n'.format(
+            make_result_element(
+                value,
+                element_counter=element_counter,
+                highlight_dict=highlight_dict,
+                collapse_at_len=collapse_at_len,
+                collapse_at_n_lines=collapse_at_n_lines,
+                line_length=line_length,
+                collapsed=False,
             )
         )
-        table_html += '  </tr>\n'
-    table_html += '</table>\n'
+        table_html += "  </tr>\n"
+    table_html += "</table>\n"
     return table_html
 
 
-def render_resultset(request: HttpRequest,
-                     query: Query,
-                     highlights: Iterable[Highlight],
-                     collapse_at_len: int = None,
-                     collapse_at_n_lines: int = None,
-                     line_length: int = None,
-                     ditto: bool = True,
-                     ditto_html: str = '″') -> HttpResponse:
+def render_resultset(
+    request: HttpRequest,
+    query: Query,
+    highlights: Iterable[Highlight],
+    collapse_at_len: int = None,
+    collapse_at_n_lines: int = None,
+    line_length: int = None,
+    ditto: bool = True,
+    ditto_html: str = "″",
+) -> HttpResponse:
     """
     Show the results of a user's query in paginated, tabular format.
 
@@ -1726,7 +1850,7 @@ def render_resultset(request: HttpRequest,
     page = paginate(request, row_indexes)
     start_index = page.start_index() - 1
     end_index = page.end_index() - 1
-    display_rows = rows[start_index:end_index + 1]
+    display_rows = rows[start_index : end_index + 1]
     # Highlights
     highlight_dict = Highlight.as_ordered_dict(highlights)
     # Table
@@ -1751,27 +1875,29 @@ def render_resultset(request: HttpRequest,
     query.update_last_run()
     # Render
     context = {
-        'table_html': table_html,
-        'page': page,
-        'rowcount': rowcount,
-        'sql': prettify_sql_html(query.get_original_sql()),
-        'nav_on_results': True,
-        'sql_highlight_css': prettify_sql_css(),
-        'display_columns': display_columns,
-        'omit_columns': omit_columns,
-        'no_null': query.no_null,
-        'query_id': query.id,
+        "table_html": table_html,
+        "page": page,
+        "rowcount": rowcount,
+        "sql": prettify_sql_html(query.get_original_sql()),
+        "nav_on_results": True,
+        "sql_highlight_css": prettify_sql_css(),
+        "display_columns": display_columns,
+        "omit_columns": omit_columns,
+        "no_null": query.no_null,
+        "query_id": query.id,
     }
     context.update(query_context(request))
-    return render(request, 'query_result.html', context)
+    return render(request, "query_result.html", context)
 
 
-def render_resultset_recordwise(request: HttpRequest,
-                                query: Query,
-                                highlights: Iterable[Highlight],
-                                collapse_at_len: int = None,
-                                collapse_at_n_lines: int = None,
-                                line_length: int = None) -> HttpResponse:
+def render_resultset_recordwise(
+    request: HttpRequest,
+    query: Query,
+    highlights: Iterable[Highlight],
+    collapse_at_len: int = None,
+    collapse_at_n_lines: int = None,
+    line_length: int = None,
+) -> HttpResponse:
     """
     Show the results of a user's query in recordwise format.
 
@@ -1818,7 +1944,7 @@ def render_resultset_recordwise(request: HttpRequest,
         record = rows[record_index]
         # Table
         element_counter = HtmlElementCounter()
-        table_html = f'<p><i>Record {page.start_index()}</i></p>\n'
+        table_html = f"<p><i>Record {page.start_index()}</i></p>\n"
         table_html += single_record_html_table(
             fieldnames=fieldnames,
             record=record,
@@ -1838,19 +1964,19 @@ def render_resultset_recordwise(request: HttpRequest,
     query.update_last_run()
     # Render
     context = {
-        'table_html': table_html,
-        'page': page,
-        'rowcount': rowcount,
-        'sql': prettify_sql_html(query.get_original_sql()),
-        'nav_on_results_recordwise': True,
-        'sql_highlight_css': prettify_sql_css(),
-        'display_columns': display_columns,
-        'omit_columns': omit_columns,
-        'no_null': query.no_null,
-        'query_id': query.id,
+        "table_html": table_html,
+        "page": page,
+        "rowcount": rowcount,
+        "sql": prettify_sql_html(query.get_original_sql()),
+        "nav_on_results_recordwise": True,
+        "sql_highlight_css": prettify_sql_css(),
+        "display_columns": display_columns,
+        "omit_columns": omit_columns,
+        "no_null": query.no_null,
+        "query_id": query.id,
     }
     context.update(query_context(request))
-    return render(request, 'query_result.html', context)
+    return render(request, "query_result.html", context)
 
 
 def render_missing_query(request: HttpRequest) -> HttpResponse:
@@ -1863,12 +1989,12 @@ def render_missing_query(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
-    return render(request, 'query_missing.html', query_context(request))
+    return render(request, "query_missing.html", query_context(request))
 
 
-def render_bad_query(request: HttpRequest,
-                     query: Query,
-                     exception: Exception) -> HttpResponse:
+def render_bad_query(
+    request: HttpRequest, query: Query, exception: Exception
+) -> HttpResponse:
     """
     A view saying "your query failed". This is the normal thing to see if the
     user has entered bad SQL.
@@ -1888,16 +2014,16 @@ def render_bad_query(request: HttpRequest,
         a :class:`django.http.response.HttpResponse`
     """
     info = recover_info_from_exception(exception)
-    final_sql = info.get('sql', '')
-    args = info.get('args', [])
+    final_sql = info.get("sql", "")
+    args = info.get("args", [])
     context = {
-        'original_sql': prettify_sql_html(query.get_original_sql()),
-        'final_sql': prettify_sql_and_args(final_sql, args),
-        'exception': repr(exception),
-        'sql_highlight_css': prettify_sql_css(),
+        "original_sql": prettify_sql_html(query.get_original_sql()),
+        "final_sql": prettify_sql_and_args(final_sql, args),
+        "exception": repr(exception),
+        "sql_highlight_css": prettify_sql_css(),
     }
     context.update(query_context(request))
-    return render(request, 'query_bad.html', context)
+    return render(request, "query_bad.html", context)
 
 
 def render_bad_query_id(request: HttpRequest, query_id: str) -> HttpResponse:
@@ -1911,14 +2037,15 @@ def render_bad_query_id(request: HttpRequest, query_id: str) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
-    context = {'query_id': query_id}
+    context = {"query_id": query_id}
     context.update(query_context(request))
-    return render(request, 'query_bad_id.html', context)
+    return render(request, "query_bad_id.html", context)
 
 
 # =============================================================================
 # Highlights
 # =============================================================================
+
 
 def highlight_edit_select(request: HttpRequest) -> HttpResponse:
     """
@@ -1931,42 +2058,45 @@ def highlight_edit_select(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
-    all_highlights = Highlight.objects.filter(user=request.user)\
-                                      .order_by('text', 'colour')
-    if request.method == 'POST':
+    all_highlights = Highlight.objects.filter(user=request.user).order_by(
+        "text", "colour"
+    )
+    if request.method == "POST":
         form = AddHighlightForm(request.POST)
         if form.is_valid():
-            colour = form.cleaned_data['colour']
-            text = form.cleaned_data['text']
+            colour = form.cleaned_data["colour"]
+            text = form.cleaned_data["text"]
             identicals = all_highlights.filter(colour=colour, text=text)
             if identicals:
                 identicals[0].activate()
             else:
-                highlight = Highlight(colour=colour, text=text,
-                                      user=request.user, active=True)
+                highlight = Highlight(
+                    colour=colour, text=text, user=request.user, active=True
+                )
                 highlight.save()
             return redirect(UrlNames.HIGHLIGHT)
 
-    values = {'colour': 0}
+    values = {"colour": 0}
     form = AddHighlightForm(values)
     active_highlights = all_highlights.filter(active=True)
     highlight_dict = Highlight.as_ordered_dict(active_highlights)
     highlight_descriptions = get_highlight_descriptions(highlight_dict)
     highlights = paginate(request, all_highlights)
     context = {
-        'form': form,
-        'highlights': highlights,
-        'nav_on_highlight': True,
-        'N_CSS_HIGHLIGHT_CLASSES': N_CSS_HIGHLIGHT_CLASSES,
-        'highlight_descriptions': highlight_descriptions,
-        'colourlist': list(range(N_CSS_HIGHLIGHT_CLASSES)),
+        "form": form,
+        "highlights": highlights,
+        "nav_on_highlight": True,
+        "N_CSS_HIGHLIGHT_CLASSES": N_CSS_HIGHLIGHT_CLASSES,
+        "highlight_descriptions": highlight_descriptions,
+        "colourlist": list(range(N_CSS_HIGHLIGHT_CLASSES)),
     }
     context.update(query_context(request))
-    return render(request, 'highlight_edit_select.html', context)
+    return render(request, "highlight_edit_select.html", context)
 
 
-def highlight_activate(request: HttpRequest,
-                       highlight_id: str) -> HttpResponse:
+def highlight_activate(
+    request: HttpRequest, highlight_id: str
+) -> HttpResponse:
     """
     Activate a highlight.
 
@@ -1979,13 +2109,16 @@ def highlight_activate(request: HttpRequest,
         a :class:`django.http.response.HttpResponse`
     """
     validate_blank_form(request)
-    highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
+    highlight = get_object_or_404(
+        Highlight, id=highlight_id
+    )  # type: Highlight
     highlight.activate()
     return redirect(UrlNames.HIGHLIGHT)
 
 
-def highlight_deactivate(request: HttpRequest,
-                         highlight_id: str) -> HttpResponse:
+def highlight_deactivate(
+    request: HttpRequest, highlight_id: str
+) -> HttpResponse:
     """
     Deactivate a highlight.
 
@@ -1998,13 +2131,14 @@ def highlight_deactivate(request: HttpRequest,
         a :class:`django.http.response.HttpResponse`
     """
     validate_blank_form(request)
-    highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
+    highlight = get_object_or_404(
+        Highlight, id=highlight_id
+    )  # type: Highlight
     highlight.deactivate()
     return redirect(UrlNames.HIGHLIGHT)
 
 
-def highlight_delete(request: HttpRequest,
-                     highlight_id: str) -> HttpResponse:
+def highlight_delete(request: HttpRequest, highlight_id: str) -> HttpResponse:
     """
     Delete a highlight.
 
@@ -2017,7 +2151,9 @@ def highlight_delete(request: HttpRequest,
         a :class:`django.http.response.HttpResponse`
     """
     validate_blank_form(request)
-    highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
+    highlight = get_object_or_404(
+        Highlight, id=highlight_id
+    )  # type: Highlight
     highlight.delete()
     return redirect(UrlNames.HIGHLIGHT)
 
@@ -2029,7 +2165,8 @@ def highlight_delete(request: HttpRequest,
 
 
 def get_highlight_descriptions(
-        highlight_dict: Dict[int, List[Highlight]]) -> List[str]:
+    highlight_dict: Dict[int, List[Highlight]]
+) -> List[str]:
     """
     Returns a list of length up to ``N_CSS_HIGHLIGHT_CLASSES`` of HTML
     elements illustrating the highlights.
@@ -2048,8 +2185,9 @@ def get_highlight_descriptions(
     for n in range(N_CSS_HIGHLIGHT_CLASSES):
         if n not in highlight_dict:
             continue
-        desc.append(", ".join([highlight_text(h.text, n)
-                               for h in highlight_dict[n]]))
+        desc.append(
+            ", ".join([highlight_text(h.text, n) for h in highlight_dict[n]])
+        )
     return desc
 
 
@@ -2062,9 +2200,10 @@ def get_highlight_descriptions(
 # populated and immutable). Use a dbname query parameter as well.
 # (That doesn't make it HTTP GET; it makes it HTTP POST with query parameters.)
 
-def pid_rid_lookup(request: HttpRequest,
-                   with_db_url_name: str,
-                   html_filename: str) -> HttpResponse:
+
+def pid_rid_lookup(
+    request: HttpRequest, with_db_url_name: str, html_filename: str
+) -> HttpResponse:
     """
     Common functionality for :func`pidlookup`, :func:`ridlookup`.
 
@@ -2087,25 +2226,24 @@ def pid_rid_lookup(request: HttpRequest,
         return generic_error(request, "No databases with lookup map!")
     elif n == 1:
         dbname = dbinfolist[0].name
-        return HttpResponseRedirect(
-            reverse(with_db_url_name, args=[dbname])
-        )
+        return HttpResponseRedirect(reverse(with_db_url_name, args=[dbname]))
     else:
         form = DatabasePickerForm(request.POST or None, dbinfolist=dbinfolist)
         if form.is_valid():
-            dbname = form.cleaned_data['database']
+            dbname = form.cleaned_data["database"]
             return HttpResponseRedirect(
                 reverse(with_db_url_name, args=[dbname])
             )
-        return render(request, html_filename, {'form': form})
+        return render(request, html_filename, {"form": form})
 
 
 def pid_rid_lookup_with_db(
-        request: HttpRequest,
-        dbname: str,
-        form_html_filename: str,
-        formclass: Any,
-        result_html_filename: str) -> HttpResponse:
+    request: HttpRequest,
+    dbname: str,
+    form_html_filename: str,
+    formclass: Any,
+    result_html_filename: str,
+) -> HttpResponse:
     """
     Common functionality for :func:`pidlookup_with_db`,
     :func:`ridlookup_with_db`.
@@ -2132,23 +2270,30 @@ def pid_rid_lookup_with_db(
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
-        return generic_error(request,
-                             f"No research database named {dbname!r}")
-    form = formclass(request.POST or None, dbinfo=dbinfo)  # type: Union[PidLookupForm, RidLookupForm]  # noqa
+        return generic_error(request, f"No research database named {dbname!r}")
+    form = formclass(
+        request.POST or None, dbinfo=dbinfo
+    )  # type: Union[PidLookupForm, RidLookupForm]  # noqa
     if form.is_valid():
-        pids = form.cleaned_data.get('pids') or []  # type: List[int]
-        mpids = form.cleaned_data.get('mpids') or []  # type: List[int]
-        trids = form.cleaned_data.get('trids') or []  # type: List[int]
-        rids = form.cleaned_data.get('rids') or []  # type: List[str]
-        mrids = form.cleaned_data.get('mrids') or []  # type: List[str]
-        return render_lookup(request=request, dbinfo=dbinfo,
-                             result_html_filename=result_html_filename,
-                             pids=pids, mpids=mpids,
-                             trids=trids, rids=rids, mrids=mrids)
+        pids = form.cleaned_data.get("pids") or []  # type: List[int]
+        mpids = form.cleaned_data.get("mpids") or []  # type: List[int]
+        trids = form.cleaned_data.get("trids") or []  # type: List[int]
+        rids = form.cleaned_data.get("rids") or []  # type: List[str]
+        mrids = form.cleaned_data.get("mrids") or []  # type: List[str]
+        return render_lookup(
+            request=request,
+            dbinfo=dbinfo,
+            result_html_filename=result_html_filename,
+            pids=pids,
+            mpids=mpids,
+            trids=trids,
+            rids=rids,
+            mrids=mrids,
+        )
     context = {
-        'db_name': dbinfo.name,
-        'db_description': dbinfo.description,
-        'form': form,
+        "db_name": dbinfo.name,
+        "db_description": dbinfo.description,
+        "form": form,
     }
     return render(request, form_html_filename, context)
 
@@ -2164,14 +2309,15 @@ def pidlookup(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
-    return pid_rid_lookup(request=request,
-                          with_db_url_name="pidlookup_with_db",
-                          html_filename="pid_lookup_choose_db.html")
+    return pid_rid_lookup(
+        request=request,
+        with_db_url_name="pidlookup_with_db",
+        html_filename="pid_lookup_choose_db.html",
+    )
 
 
 @user_passes_test(is_superuser)
-def pidlookup_with_db(request: HttpRequest,
-                      dbname: str) -> HttpResponse:
+def pidlookup_with_db(request: HttpRequest, dbname: str) -> HttpResponse:
     """
     Look up PID information from RID information, for a specific database.
 
@@ -2185,9 +2331,10 @@ def pidlookup_with_db(request: HttpRequest,
     return pid_rid_lookup_with_db(
         request=request,
         dbname=dbname,
-        form_html_filename='pid_lookup_form.html',
+        form_html_filename="pid_lookup_form.html",
         formclass=PidLookupForm,
-        result_html_filename='pid_lookup_result.html')
+        result_html_filename="pid_lookup_result.html",
+    )
 
 
 @user_passes_test(is_clinician)
@@ -2201,14 +2348,15 @@ def ridlookup(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
-    return pid_rid_lookup(request=request,
-                          with_db_url_name="ridlookup_with_db",
-                          html_filename="rid_lookup_choose_db.html")
+    return pid_rid_lookup(
+        request=request,
+        with_db_url_name="ridlookup_with_db",
+        html_filename="rid_lookup_choose_db.html",
+    )
 
 
 @user_passes_test(is_clinician)
-def ridlookup_with_db(request: HttpRequest,
-                      dbname: str) -> HttpResponse:
+def ridlookup_with_db(request: HttpRequest, dbname: str) -> HttpResponse:
     """
     Look up RID information from PID information, for a specific database.
 
@@ -2222,19 +2370,22 @@ def ridlookup_with_db(request: HttpRequest,
     return pid_rid_lookup_with_db(
         request=request,
         dbname=dbname,
-        form_html_filename='rid_lookup_form.html',
+        form_html_filename="rid_lookup_form.html",
         formclass=RidLookupForm,
-        result_html_filename='rid_lookup_result.html')
+        result_html_filename="rid_lookup_result.html",
+    )
 
 
-def render_lookup(request: HttpRequest,
-                  dbinfo: SingleResearchDatabase,
-                  result_html_filename: str,
-                  trids: List[int] = None,
-                  rids: List[str] = None,
-                  mrids: List[str] = None,
-                  pids: List[int] = None,
-                  mpids: List[int] = None) -> HttpResponse:
+def render_lookup(
+    request: HttpRequest,
+    dbinfo: SingleResearchDatabase,
+    result_html_filename: str,
+    trids: List[int] = None,
+    rids: List[str] = None,
+    mrids: List[str] = None,
+    pids: List[int] = None,
+    mpids: List[int] = None,
+) -> HttpResponse:
     """
     Shows the output of a PID/RID lookup.
 
@@ -2270,23 +2421,27 @@ def render_lookup(request: HttpRequest,
     mpids = [] if mpids is None else mpids
 
     assert dbinfo.secret_lookup_db
-    lookups = PidLookup.objects.using(dbinfo.secret_lookup_db).filter(
-        Q(trid__in=trids) |
-        Q(rid__in=rids) |
-        Q(mrid__in=mrids) |
-        Q(pid__in=pids) |
-        Q(mpid__in=mpids)
-    ).order_by('pid')
+    lookups = (
+        PidLookup.objects.using(dbinfo.secret_lookup_db)
+        .filter(
+            Q(trid__in=trids)
+            | Q(rid__in=rids)
+            | Q(mrid__in=mrids)
+            | Q(pid__in=pids)
+            | Q(mpid__in=mpids)
+        )
+        .order_by("pid")
+    )
     context = {
-        'lookups': lookups,
-        'trid_field': dbinfo.trid_field,
-        'trid_description': dbinfo.trid_description,
-        'rid_field': dbinfo.rid_field,
-        'rid_description': dbinfo.rid_description,
-        'mrid_field': dbinfo.mrid_field,
-        'mrid_description': dbinfo.mrid_description,
-        'pid_description': dbinfo.pid_description,
-        'mpid_description': dbinfo.mpid_description,
+        "lookups": lookups,
+        "trid_field": dbinfo.trid_field,
+        "trid_description": dbinfo.trid_description,
+        "rid_field": dbinfo.rid_field,
+        "rid_description": dbinfo.rid_description,
+        "mrid_field": dbinfo.mrid_field,
+        "mrid_description": dbinfo.mrid_description,
+        "pid_description": dbinfo.pid_description,
+        "mpid_description": dbinfo.mpid_description,
     }
     return render(request, result_html_filename, context)
 
@@ -2294,6 +2449,7 @@ def render_lookup(request: HttpRequest,
 # =============================================================================
 # Research database structure
 # =============================================================================
+
 
 def structure_table_long(request: HttpRequest) -> HttpResponse:
     """
@@ -2308,14 +2464,14 @@ def structure_table_long(request: HttpRequest) -> HttpResponse:
     colinfolist = research_database_info.get_colinfolist()
     rowcount = len(colinfolist)
     context = {
-        'paginated': False,
-        'colinfolist': colinfolist,
-        'rowcount': rowcount,
-        'default_database': research_database_info.get_default_database_name(),
-        'default_schema': research_database_info.get_default_schema_name(),
-        'with_database': research_database_info.uses_database_level(),
+        "paginated": False,
+        "colinfolist": colinfolist,
+        "rowcount": rowcount,
+        "default_database": research_database_info.get_default_database_name(),
+        "default_schema": research_database_info.get_default_schema_name(),
+        "with_database": research_database_info.uses_database_level(),
     }
-    return render(request, 'database_structure.html', context)
+    return render(request, "database_structure.html", context)
 
 
 def structure_table_paginated(request: HttpRequest) -> HttpResponse:
@@ -2332,14 +2488,14 @@ def structure_table_paginated(request: HttpRequest) -> HttpResponse:
     rowcount = len(colinfolist)
     colinfolist = paginate(request, colinfolist)
     context = {
-        'paginated': True,
-        'colinfolist': colinfolist,
-        'rowcount': rowcount,
-        'default_database': research_database_info.get_default_database_name(),
-        'default_schema': research_database_info.get_default_schema_name(),
-        'with_database': research_database_info.uses_database_level(),
+        "paginated": True,
+        "colinfolist": colinfolist,
+        "rowcount": rowcount,
+        "default_database": research_database_info.get_default_database_name(),
+        "default_schema": research_database_info.get_default_schema_name(),
+        "with_database": research_database_info.uses_database_level(),
     }
-    return render(request, 'database_structure.html', context)
+    return render(request, "database_structure.html", context)
 
 
 @django_cache_function(timeout=None)
@@ -2358,18 +2514,21 @@ def get_structure_tree_html() -> str:
     grammar = research_database_info.grammar
     for table_id, colinfolist in table_to_colinfolist.items():
         html_table = render_to_string(
-            'database_structure_table.html', {
-                'colinfolist': colinfolist,
-                'default_database': research_database_info.get_default_database_name(),  # noqa
-                'default_schema': research_database_info.get_default_schema_name(),  # noqa
-                'with_database': research_database_info.uses_database_level()
-            })
+            "database_structure_table.html",
+            {
+                "colinfolist": colinfolist,
+                "default_database": research_database_info.get_default_database_name(),  # noqa
+                "default_schema": research_database_info.get_default_schema_name(),  # noqa
+                "with_database": research_database_info.uses_database_level(),
+            },
+        )
         cd_button = element_counter.visibility_div_spanbutton()
         cd_content = element_counter.visibility_div_contentdiv(
-            contents=html_table)
+            contents=html_table
+        )
         content += (
             '<div class="titlecolour">{db_schema}.<b>{table}</b>{button}</div>'
-            '{cd}'.format(
+            "{cd}".format(
                 db_schema=table_id.database_schema_part(grammar),
                 table=table_id.table_part(grammar),
                 button=cd_button,
@@ -2391,11 +2550,11 @@ def structure_tree(request: HttpRequest) -> HttpResponse:
         a :class:`django.http.response.HttpResponse`
     """
     context = {
-        'content': get_structure_tree_html(),
-        'default_database': research_database_info.get_default_database_name(),
-        'default_schema': research_database_info.get_default_schema_name(),
+        "content": get_structure_tree_html(),
+        "default_database": research_database_info.get_default_database_name(),
+        "default_schema": research_database_info.get_default_schema_name(),
     }
-    return render(request, 'database_structure_tree.html', context)
+    return render(request, "database_structure_tree.html", context)
 
 
 # noinspection PyUnusedLocal
@@ -2412,7 +2571,7 @@ def structure_tsv(request: HttpRequest) -> HttpResponse:
     return file_response(
         research_database_info.get_tsv(),
         content_type=ContentType.TSV,
-        filename="structure.tsv"
+        filename="structure.tsv",
     )
 
 
@@ -2431,13 +2590,14 @@ def structure_excel(request: HttpRequest) -> HttpResponse:
     return file_response(
         research_database_info.get_excel(),
         content_type=ContentType.TSV,
-        filename="structure.xlsx"
+        filename="structure.xlsx",
     )
 
 
 # =============================================================================
 # Local help on structure
 # =============================================================================
+
 
 def local_structure_help(request: HttpRequest) -> HttpResponse:
     """
@@ -2450,23 +2610,23 @@ def local_structure_help(request: HttpRequest) -> HttpResponse:
         a :class:`django.http.response.HttpResponse`
     """
     if settings.DATABASE_HELP_HTML_FILENAME:
-        with open(settings.DATABASE_HELP_HTML_FILENAME, 'r') as infile:
+        with open(settings.DATABASE_HELP_HTML_FILENAME, "r") as infile:
             content = infile.read()
-            return HttpResponse(content.encode('utf8'))
+            return HttpResponse(content.encode("utf8"))
     else:
         content = "<p>No local help available.</p>"
-        context = {'content': content}
-        return render(request, 'local_structure_help.html', context)
+        context = {"content": content}
+        return render(request, "local_structure_help.html", context)
 
 
 # =============================================================================
 # SQL helpers
 # =============================================================================
 
-def textmatch(column_name: str,
-              fragment: str,
-              as_fulltext: bool,
-              dialect: str = 'mysql') -> str:
+
+def textmatch(
+    column_name: str, fragment: str, as_fulltext: bool, dialect: str = "mysql"
+) -> str:
     """
     Returns SQL to check for the presence of text anywhere in a field.
 
@@ -2484,9 +2644,9 @@ def textmatch(column_name: str,
         - ``CONTAINS(column, 'fragment')`` (Microsoft SQL Server full-text)
 
     """
-    if as_fulltext and dialect == 'mysql':
+    if as_fulltext and dialect == "mysql":
         return f"MATCH({column_name}) AGAINST ('{fragment}')"
-    elif as_fulltext and dialect == 'mssql':
+    elif as_fulltext and dialect == "mssql":
         return f"CONTAINS({column_name}, '{fragment}')"
     else:
         return f"{column_name} LIKE '%{fragment}%'"
@@ -2508,16 +2668,18 @@ def drugmatch(drug_type: str, colname: str) -> str:
     return drugs_sql
 
 
-def textfinder_sql(patient_id_fieldname: str,
-                   min_length: int,
-                   use_fulltext_index: bool,
-                   include_content: bool,
-                   include_datetime: bool,
-                   fragment: str = "",
-                   drug_type: str = "",
-                   patient_id_value: Union[int, str] = None,
-                   extra_fieldname: str = None,
-                   extra_value: Union[int, str] = None) -> str:
+def textfinder_sql(
+    patient_id_fieldname: str,
+    min_length: int,
+    use_fulltext_index: bool,
+    include_content: bool,
+    include_datetime: bool,
+    fragment: str = "",
+    drug_type: str = "",
+    patient_id_value: Union[int, str] = None,
+    extra_fieldname: str = None,
+    extra_value: Union[int, str] = None,
+) -> str:
     """
     Returns SQL to find the text in ``fragment`` across all tables that contain
     the field indicated by ``patient_id_fieldname``, where the length of the
@@ -2555,18 +2717,21 @@ def textfinder_sql(patient_id_fieldname: str,
     """  # noqa
     if not fragment and not drug_type:
         raise ValueError(
-            "Must supply either 'fragment' or 'drug_type' to 'textfinder_sql'")
+            "Must supply either 'fragment' or 'drug_type' to 'textfinder_sql'"
+        )
     grammar = research_database_info.grammar
     tables = research_database_info.tables_containing_field(
-        patient_id_fieldname)
+        patient_id_fieldname
+    )
     if not tables:
         raise ValueError(
-            f"No tables containing fieldname: {patient_id_fieldname}")
-    have_pid_value = patient_id_value is not None and patient_id_value != ''
+            f"No tables containing fieldname: {patient_id_fieldname}"
+        )
+    have_pid_value = patient_id_value is not None and patient_id_value != ""
     if have_pid_value:
         pidclause = "{patient_id_fieldname} = {value}".format(
             patient_id_fieldname=patient_id_fieldname,
-            value=escape_sql_string_or_int_literal(patient_id_value)
+            value=escape_sql_string_or_int_literal(patient_id_value),
         )
     else:
         pidclause = ""
@@ -2577,27 +2742,28 @@ def textfinder_sql(patient_id_fieldname: str,
 
     queries = []  # type: List[str]
 
-    def add_query(table_ident: str,
-                  extra_cols: List[str],
-                  date_value_select: str,
-                  extra_conditions: List[str]) -> None:
+    def add_query(
+        table_ident: str,
+        extra_cols: List[str],
+        date_value_select: str,
+        extra_conditions: List[str],
+    ) -> None:
         selectcols = []  # type: List[str]
         # Patient ID(s); date
         if using_extra:
-            selectcols.append('{lit} AS {ef}'.format(
-                lit=escape_sql_string_or_int_literal(extra_value),
-                ef=extra_fieldname
-            ))
+            selectcols.append(
+                "{lit} AS {ef}".format(
+                    lit=escape_sql_string_or_int_literal(extra_value),
+                    ef=extra_fieldname,
+                )
+            )
         selectcols.append(patient_id_fieldname)
         if include_datetime:
             selectcols.append(f"{date_value_select} AS {datetime_heading}")
         # +/- table/column/content
         selectcols += extra_cols
         # Build query
-        query = (
-            f"SELECT {', '.join(selectcols)}\n"
-            f"FROM {table_ident}"
-        )
+        query = f"SELECT {', '.join(selectcols)}\n" f"FROM {table_ident}"
         conditions = []  # type: List[str]
         if have_pid_value:
             conditions.append(pidclause)
@@ -2607,12 +2773,14 @@ def textfinder_sql(patient_id_fieldname: str,
 
     for table_id in tables:
         columns = research_database_info.text_columns(
-            table_id=table_id, min_length=min_length)
+            table_id=table_id, min_length=min_length
+        )
         if not columns:
             continue
         table_identifier = table_id.identifier(grammar)
         date_col = research_database_info.get_default_date_column(
-            table=table_id)
+            table=table_id
+        )
         if date_col:
             date_identifier = date_col.identifier(grammar)
         else:
@@ -2621,8 +2789,7 @@ def textfinder_sql(patient_id_fieldname: str,
         if include_content:
             # Content required; therefore, one query per text column.
             table_select = "'{}' AS {}".format(
-                escape_sql_string_literal(table_identifier),
-                table_heading
+                escape_sql_string_literal(table_identifier), table_heading
             )
             for columninfo in columns:
                 column_identifier = columninfo.column_id.identifier(grammar)
@@ -2632,24 +2799,29 @@ def textfinder_sql(patient_id_fieldname: str,
                     extra = textmatch(
                         column_name=column_identifier,
                         fragment=fragment,
-                        as_fulltext=(columninfo.indexed_fulltext and
-                                     use_fulltext_index),
-                        dialect=settings.RESEARCH_DB_DIALECT
+                        as_fulltext=(
+                            columninfo.indexed_fulltext and use_fulltext_index
+                        ),
+                        dialect=settings.RESEARCH_DB_DIALECT,
                     )
                 else:
                     extra = drugmatch(
-                        colname=column_identifier,
-                        drug_type=drug_type
+                        colname=column_identifier, drug_type=drug_type
                     )
                 contentcol_name_select = (
-                    f"'{column_identifier}' AS {contents_colname_heading}")
+                    f"'{column_identifier}' AS {contents_colname_heading}"
+                )
                 content_select = f"{column_identifier} AS _content"
-                add_query(table_ident=table_identifier,
-                          extra_cols=[table_select,
-                                      contentcol_name_select,
-                                      content_select],
-                          date_value_select=date_identifier,
-                          extra_conditions=[extra])
+                add_query(
+                    table_ident=table_identifier,
+                    extra_cols=[
+                        table_select,
+                        contentcol_name_select,
+                        content_select,
+                    ],
+                    date_value_select=date_identifier,
+                    extra_conditions=[extra],
+                )
 
         else:
             # Content not required; therefore, one query per table.
@@ -2659,22 +2831,25 @@ def textfinder_sql(patient_id_fieldname: str,
                     elmnt = textmatch(
                         column_name=columninfo.column_id.identifier(grammar),
                         fragment=fragment,
-                        as_fulltext=(columninfo.indexed_fulltext and
-                                     use_fulltext_index),
-                        dialect=settings.RESEARCH_DB_DIALECT
+                        as_fulltext=(
+                            columninfo.indexed_fulltext and use_fulltext_index
+                        ),
+                        dialect=settings.RESEARCH_DB_DIALECT,
                     )
                 else:
                     elmnt = drugmatch(
                         colname=columninfo.column_id.identifier(grammar),
-                        drug_type=drug_type
+                        drug_type=drug_type,
                     )
                 elements.append(elmnt)
-            add_query(table_ident=table_identifier,
-                      extra_cols=[],
-                      date_value_select=date_identifier,
-                      extra_conditions=[
-                          "(\n    {}\n)".format("\n    OR ".join(elements))
-                      ])
+            add_query(
+                table_ident=table_identifier,
+                extra_cols=[],
+                date_value_select=date_identifier,
+                extra_conditions=[
+                    "(\n    {}\n)".format("\n    OR ".join(elements))
+                ],
+            )
 
     sql = "\nUNION\n".join(queries)
     if sql:
@@ -2690,12 +2865,14 @@ def textfinder_sql(patient_id_fieldname: str,
     return sql
 
 
-def common_find_text(request: HttpRequest,
-                     dbinfo: SingleResearchDatabase,
-                     form_class: Type[SQLHelperFindAnywhereForm],
-                     default_values: Dict[str, Any],
-                     permit_pid_search: bool,
-                     html_filename: str) -> HttpResponse:
+def common_find_text(
+    request: HttpRequest,
+    dbinfo: SingleResearchDatabase,
+    form_class: Type[SQLHelperFindAnywhereForm],
+    default_values: Dict[str, Any],
+    permit_pid_search: bool,
+    html_filename: str,
+) -> HttpResponse:
     """
     Finds and displays text anywhere in the database(s), via a ``UNION`` query.
 
@@ -2728,26 +2905,35 @@ def common_find_text(request: HttpRequest,
     # -------------------------------------------------------------------------
     fk_options = []  # type: List[FieldPickerInfo]
     if permit_pid_search:
-        fk_options.append(FieldPickerInfo(
-            value=dbinfo.pid_pseudo_field,
-            description=f"{dbinfo.pid_pseudo_field}: {dbinfo.pid_description}",
-            type_=PatientFieldPythonTypes.PID,
-            permits_empty_id=False
-        ))
-        fk_options.append(FieldPickerInfo(
-            value=dbinfo.mpid_pseudo_field,
-            description=f"{dbinfo.mpid_pseudo_field}: {dbinfo.mpid_description}",  # noqa
-            type_=PatientFieldPythonTypes.MPID,
-            permits_empty_id=False
-        ))
+        fk_options.append(
+            FieldPickerInfo(
+                value=dbinfo.pid_pseudo_field,
+                description=(
+                    f"{dbinfo.pid_pseudo_field}: {dbinfo.pid_description}"
+                ),
+                type_=PatientFieldPythonTypes.PID,
+                permits_empty_id=False,
+            )
+        )
+        fk_options.append(
+            FieldPickerInfo(
+                value=dbinfo.mpid_pseudo_field,
+                description=(
+                    f"{dbinfo.mpid_pseudo_field}: {dbinfo.mpid_description}"
+                ),
+                type_=PatientFieldPythonTypes.MPID,
+                permits_empty_id=False,
+            )
+        )
         assert dbinfo.secret_lookup_db
-        default_values['fkname'] = dbinfo.pid_pseudo_field
+        default_values["fkname"] = dbinfo.pid_pseudo_field
     fk_options.append(
         FieldPickerInfo(
             value=dbinfo.rid_field,
             description=f"{dbinfo.rid_field}: {dbinfo.rid_description}",
             type_=PatientFieldPythonTypes.RID,
-            permits_empty_id=True),
+            permits_empty_id=True,
+        ),
     )
     if dbinfo.secret_lookup_db:
         fk_options.append(
@@ -2755,7 +2941,8 @@ def common_find_text(request: HttpRequest,
                 value=dbinfo.mrid_field,
                 description=f"{dbinfo.mrid_field}: {dbinfo.mrid_description}",
                 type_=PatientFieldPythonTypes.MRID,
-                permits_empty_id=False)
+                permits_empty_id=False,
+            )
         )
 
     # We don't want to make too much of the TRID. Let's not offer it as
@@ -2770,9 +2957,9 @@ def common_find_text(request: HttpRequest,
 
     form = form_class(request.POST or default_values, fk_options=fk_options)
     if form.is_valid():
-        patient_id_fieldname = form.cleaned_data['fkname']
-        pidvalue = form.cleaned_data['patient_id']
-        min_length = form.cleaned_data['min_length']
+        patient_id_fieldname = form.cleaned_data["fkname"]
+        pidvalue = form.cleaned_data["patient_id"]
+        min_length = form.cleaned_data["min_length"]
 
         # ---------------------------------------------------------------------
         # Whare are we going to use internally for the lookup?
@@ -2782,11 +2969,13 @@ def common_find_text(request: HttpRequest,
         if patient_id_fieldname == dbinfo.pid_pseudo_field:
             lookup = (
                 PidLookup.objects.using(dbinfo.secret_lookup_db)
-                .filter(pid=pidvalue).first()
+                .filter(pid=pidvalue)
+                .first()
             )  # type: PidLookup
             if lookup is None:
                 return generic_error(
-                    request, f"No patient with PID {pidvalue!r}")
+                    request, f"No patient with PID {pidvalue!r}"
+                )
             # Replace:
             extra_fieldname = patient_id_fieldname
             extra_value = pidvalue
@@ -2795,11 +2984,13 @@ def common_find_text(request: HttpRequest,
         elif patient_id_fieldname == dbinfo.mpid_pseudo_field:
             lookup = (
                 PidLookup.objects.using(dbinfo.secret_lookup_db)
-                .filter(mpid=pidvalue).first()
+                .filter(mpid=pidvalue)
+                .first()
             )  # type: PidLookup
             if lookup is None:
                 return generic_error(
-                    request, f"No patient with MPID {pidvalue!r}")
+                    request, f"No patient with MPID {pidvalue!r}"
+                )
             # Replace:
             extra_fieldname = patient_id_fieldname
             extra_value = pidvalue
@@ -2815,11 +3006,13 @@ def common_find_text(request: HttpRequest,
             # MRID lookup if we have a secret lookup table.
             lookup = (
                 PidLookup.objects.using(dbinfo.secret_lookup_db)
-                .filter(mrid=pidvalue).first()
+                .filter(mrid=pidvalue)
+                .first()
             )
             if lookup is None:
                 return generic_error(
-                    request, f"No patient with RID {pidvalue!r}")
+                    request, f"No patient with RID {pidvalue!r}"
+                )
             # Replace:
             extra_fieldname = patient_id_fieldname
             extra_value = pidvalue
@@ -2837,10 +3030,10 @@ def common_find_text(request: HttpRequest,
         if form_class == SQLHelperDrugTypeForm:
             fragment = ""
             drug_type = escape_sql_string_literal(
-                form.cleaned_data['drug_type'])
+                form.cleaned_data["drug_type"]
+            )
         else:
-            fragment = escape_sql_string_literal(
-                form.cleaned_data['fragment'])
+            fragment = escape_sql_string_literal(form.cleaned_data["fragment"])
             drug_type = ""
         try:
             sql = textfinder_sql(
@@ -2848,9 +3041,9 @@ def common_find_text(request: HttpRequest,
                 fragment=fragment,
                 drug_type=drug_type,
                 min_length=min_length,
-                use_fulltext_index=form.cleaned_data['use_fulltext_index'],
-                include_content=form.cleaned_data['include_content'],
-                include_datetime=form.cleaned_data['include_datetime'],
+                use_fulltext_index=form.cleaned_data["use_fulltext_index"],
+                include_content=form.cleaned_data["include_content"],
+                include_datetime=form.cleaned_data["include_datetime"],
                 patient_id_value=pidvalue,
                 extra_fieldname=extra_fieldname,
                 extra_value=extra_value,
@@ -2861,28 +3054,33 @@ def common_find_text(request: HttpRequest,
                 raise ValueError(
                     f"No fields matched your criteria (text columns of "
                     f"minimum length {min_length} in tables containing "
-                    f"field {patient_id_fieldname!r})")
+                    f"field {patient_id_fieldname!r})"
+                )
         except ValueError as e:
             return generic_error(request, str(e))
 
         # ---------------------------------------------------------------------
         # Run, save, or display the query
         # ---------------------------------------------------------------------
-        if 'submit_save' in request.POST:
+        if "submit_save" in request.POST:
             return query_submit(request, sql, run=False)
-        elif 'submit_run' in request.POST:
+        elif "submit_run" in request.POST:
             return query_submit(request, sql, run=True)
         else:
-            return render(request, 'sql_fragment.html', {'sql': sql})
+            return render(request, "sql_fragment.html", {"sql": sql})
 
     # -------------------------------------------------------------------------
     # Offer the starting choices
     # -------------------------------------------------------------------------
-    return render(request, html_filename, {
-        'db_name': dbinfo.name,
-        'db_description': dbinfo.description,
-        'form': form,
-    })
+    return render(
+        request,
+        html_filename,
+        {
+            "db_name": dbinfo.name,
+            "db_description": dbinfo.description,
+            "form": form,
+        },
+    )
 
 
 def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
@@ -2902,19 +3100,26 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
             reverse(UrlNames.SQLHELPER_TEXT_ANYWHERE_WITH_DB, args=[dbname])
         )
     else:
-        form = DatabasePickerForm(request.POST or None,
-                                  dbinfolist=research_database_info.dbinfolist)
+        form = DatabasePickerForm(
+            request.POST or None, dbinfolist=research_database_info.dbinfolist
+        )
         if form.is_valid():
-            dbname = form.cleaned_data['database']
+            dbname = form.cleaned_data["database"]
             return HttpResponseRedirect(
-                reverse(UrlNames.SQLHELPER_TEXT_ANYWHERE_WITH_DB, args=[dbname])
+                reverse(
+                    UrlNames.SQLHELPER_TEXT_ANYWHERE_WITH_DB, args=[dbname]
+                )
             )
-        return render(request, 'sqlhelper_form_text_anywhere_choose_db.html',
-                      {'form': form})
+        return render(
+            request,
+            "sqlhelper_form_text_anywhere_choose_db.html",
+            {"form": form},
+        )
 
 
-def sqlhelper_text_anywhere_with_db(request: HttpRequest,
-                                    dbname: str) -> HttpResponse:
+def sqlhelper_text_anywhere_with_db(
+    request: HttpRequest, dbname: str
+) -> HttpResponse:
     """
     Finds text anywhere in the database(s) via a ``UNION`` query.
 
@@ -2928,14 +3133,13 @@ def sqlhelper_text_anywhere_with_db(request: HttpRequest,
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
-        return generic_error(request,
-                             f"No research database named {dbname!r}")
+        return generic_error(request, f"No research database named {dbname!r}")
     default_values = {
-        'fkname': dbinfo.rid_field,
-        'min_length': DEFAULT_MIN_TEXT_FIELD_LENGTH,
-        'use_fulltext_index': True,
-        'include_content': False,
-        'include_datetime': False,
+        "fkname": dbinfo.rid_field,
+        "min_length": DEFAULT_MIN_TEXT_FIELD_LENGTH,
+        "use_fulltext_index": True,
+        "include_content": False,
+        "include_datetime": False,
     }
     return common_find_text(
         request=request,
@@ -2943,7 +3147,8 @@ def sqlhelper_text_anywhere_with_db(request: HttpRequest,
         form_class=SQLHelperTextAnywhereForm,
         default_values=default_values,
         permit_pid_search=False,
-        html_filename='sqlhelper_form_text_anywhere.html')
+        html_filename="sqlhelper_form_text_anywhere.html",
+    )
 
 
 def sqlhelper_drug_type(request: HttpRequest) -> HttpResponse:
@@ -2963,19 +3168,22 @@ def sqlhelper_drug_type(request: HttpRequest) -> HttpResponse:
             reverse(UrlNames.SQLHELPER_DRUG_TYPE_WITH_DB, args=[dbname])
         )
     else:
-        form = DatabasePickerForm(request.POST or None,
-                                  dbinfolist=research_database_info.dbinfolist)
+        form = DatabasePickerForm(
+            request.POST or None, dbinfolist=research_database_info.dbinfolist
+        )
         if form.is_valid():
-            dbname = form.cleaned_data['database']
+            dbname = form.cleaned_data["database"]
             return HttpResponseRedirect(
                 reverse(UrlNames.SQLHELPER_DRUG_TYPE_WITH_DB, args=[dbname])
             )
-        return render(request, 'sqlhelper_form_drug_type_choose_db.html',
-                      {'form': form})
+        return render(
+            request, "sqlhelper_form_drug_type_choose_db.html", {"form": form}
+        )
 
 
-def sqlhelper_drug_type_with_db(request: HttpRequest,
-                                dbname: str) -> HttpResponse:
+def sqlhelper_drug_type_with_db(
+    request: HttpRequest, dbname: str
+) -> HttpResponse:
     """
     Finds drugs of a given type anywhere in the database(s) via a ``UNION``
     query.
@@ -2990,14 +3198,13 @@ def sqlhelper_drug_type_with_db(request: HttpRequest,
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
-        return generic_error(request,
-                             f"No research database named {dbname!r}")
+        return generic_error(request, f"No research database named {dbname!r}")
     default_values = {
-        'fkname': dbinfo.rid_field,
-        'min_length': DEFAULT_MIN_TEXT_FIELD_LENGTH,
-        'use_fulltext_index': True,
-        'include_content': False,
-        'include_datetime': False,
+        "fkname": dbinfo.rid_field,
+        "min_length": DEFAULT_MIN_TEXT_FIELD_LENGTH,
+        "use_fulltext_index": True,
+        "include_content": False,
+        "include_datetime": False,
     }
     return common_find_text(
         request=request,
@@ -3005,7 +3212,8 @@ def sqlhelper_drug_type_with_db(request: HttpRequest,
         form_class=SQLHelperDrugTypeForm,
         default_values=default_values,
         permit_pid_search=False,
-        html_filename='sqlhelper_form_drugtype.html')
+        html_filename="sqlhelper_form_drugtype.html",
+    )
 
 
 @user_passes_test(is_clinician)
@@ -3031,18 +3239,21 @@ def all_text_from_pid(request: HttpRequest) -> HttpResponse:
     else:
         form = DatabasePickerForm(request.POST or None, dbinfolist=dbinfolist)
         if form.is_valid():
-            dbname = form.cleaned_data['database']
+            dbname = form.cleaned_data["database"]
             return HttpResponseRedirect(
                 reverse(UrlNames.ALL_TEXT_FROM_PID_WITH_DB, args=[dbname])
             )
-        return render(request,
-                      'clinician_form_all_text_from_pid_choose_db.html',
-                      {'form': form})
+        return render(
+            request,
+            "clinician_form_all_text_from_pid_choose_db.html",
+            {"form": form},
+        )
 
 
 @user_passes_test(is_clinician)
-def all_text_from_pid_with_db(request: HttpRequest,
-                              dbname: str) -> HttpResponse:
+def all_text_from_pid_with_db(
+    request: HttpRequest, dbname: str
+) -> HttpResponse:
     """
     Clinician view to look up a patient's RID from their PID and display
     text from any field.
@@ -3057,13 +3268,12 @@ def all_text_from_pid_with_db(request: HttpRequest,
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
-        return generic_error(request,
-                             f"No research database named {dbname!r}")
+        return generic_error(request, f"No research database named {dbname!r}")
     default_values = {
-        'min_length': DEFAULT_MIN_TEXT_FIELD_LENGTH,
-        'use_fulltext_index': True,
-        'include_content': True,
-        'include_datetime': True,
+        "min_length": DEFAULT_MIN_TEXT_FIELD_LENGTH,
+        "use_fulltext_index": True,
+        "include_content": True,
+        "include_datetime": True,
     }
     return common_find_text(
         request=request,
@@ -3071,12 +3281,14 @@ def all_text_from_pid_with_db(request: HttpRequest,
         form_class=ClinicianAllTextFromPidForm,
         default_values=default_values,
         permit_pid_search=True,
-        html_filename='clinician_form_all_text_from_pid.html')
+        html_filename="clinician_form_all_text_from_pid.html",
+    )
 
 
 # =============================================================================
 # Per-patient views: Patient Explorer
 # =============================================================================
+
 
 def pe_build(request: HttpRequest) -> HttpResponse:
     """
@@ -3102,65 +3314,68 @@ def pe_build(request: HttpRequest) -> HttpResponse:
         profile.patient_multiquery_scratchpad = PatientMultiQuery()
     pmq = profile.patient_multiquery_scratchpad
 
-    if request.method == 'POST':
-        if 'global_clear_select' in request.POST:
+    if request.method == "POST":
+        if "global_clear_select" in request.POST:
             pmq.clear_output_columns()
             profile.save()
 
-        elif 'global_clear_where' in request.POST:
+        elif "global_clear_where" in request.POST:
             pmq.clear_patient_conditions()
             profile.save()
 
-        elif 'global_clear_everything' in request.POST:
+        elif "global_clear_everything" in request.POST:
             pmq.clear_output_columns()
             pmq.clear_patient_conditions()
-            pmq.set_override_query('')
+            pmq.set_override_query("")
             profile.save()
 
-        elif 'global_save' in request.POST:
+        elif "global_save" in request.POST:
             if pmq.ok_to_run:
                 return pe_submit(request, pmq, run=False)
 
-        elif 'global_run' in request.POST:
+        elif "global_run" in request.POST:
             if pmq.ok_to_run:
                 return pe_submit(request, pmq, run=True)
 
-        elif 'global_manual_set' in request.POST:
+        elif "global_manual_set" in request.POST:
             manual_form = ManualPeQueryForm(request.POST)
             if manual_form.is_valid():
-                sql = manual_form.cleaned_data['sql']
+                sql = manual_form.cleaned_data["sql"]
                 pmq.set_override_query(sql)
                 profile.save()
 
-        elif 'global_manual_clear' in request.POST:
-            pmq.set_override_query('')
+        elif "global_manual_clear" in request.POST:
+            pmq.set_override_query("")
             profile.save()
 
         else:
             form = QueryBuilderForm(request.POST, request.FILES)
             if form.is_valid():
-                database = (form.cleaned_data['database'] if with_database
-                            else '')
-                schema = form.cleaned_data['schema']
-                table = form.cleaned_data['table']
-                column = form.cleaned_data['column']
-                column_id = ColumnId(db=database, schema=schema,
-                                     table=table, column=column)
+                database = (
+                    form.cleaned_data["database"] if with_database else ""
+                )
+                schema = form.cleaned_data["schema"]
+                table = form.cleaned_data["table"]
+                column = form.cleaned_data["column"]
+                column_id = ColumnId(
+                    db=database, schema=schema, table=table, column=column
+                )
 
-                if 'submit_select' in request.POST:
+                if "submit_select" in request.POST:
                     pmq.add_output_column(column_id)  # noqa
 
-                elif 'submit_select_star' in request.POST:
+                elif "submit_select_star" in request.POST:
                     table_id = column_id.table_id
                     all_column_ids = [
-                        c.column_id for c in
-                        research_database_info.all_columns(table_id)]
+                        c.column_id
+                        for c in research_database_info.all_columns(table_id)
+                    ]
                     for c in all_column_ids:
                         pmq.add_output_column(c)
 
-                elif 'submit_where' in request.POST:
-                    datatype = form.cleaned_data['datatype']
-                    op = form.cleaned_data['where_op']
+                elif "submit_where" in request.POST:
+                    datatype = form.cleaned_data["datatype"]
+                    op = form.cleaned_data["where_op"]
                     # Value
                     if op in SQL_OPS_MULTIPLE_VALUES:
                         value = form.file_values_list
@@ -3169,10 +3384,12 @@ def pe_build(request: HttpRequest) -> HttpResponse:
                     else:
                         value = form.get_cleaned_where_value()
                     # WHERE fragment
-                    wherecond = WhereCondition(column_id=column_id,
-                                               op=op,
-                                               datatype=datatype,
-                                               value_or_values=value)
+                    wherecond = WhereCondition(
+                        column_id=column_id,
+                        op=op,
+                        datatype=datatype,
+                        value_or_values=value,
+                    )
                     pmq.add_patient_condition(wherecond)
 
                 else:
@@ -3188,61 +3405,67 @@ def pe_build(request: HttpRequest) -> HttpResponse:
     if form is None:
         form = QueryBuilderForm()
     if manual_form is None:
-        manual_form = ManualPeQueryForm({'sql': manual_query})
+        manual_form = ManualPeQueryForm({"sql": manual_query})
 
     starting_values_dict = {
-        'database': form.data.get('database', '') if with_database else '',
-        'schema': form.data.get('schema', ''),
-        'table': form.data.get('table', ''),
-        'column': form.data.get('column', ''),
-        'op': form.data.get('where_op', ''),
-        'date_value': form.data.get('date_value', ''),
+        "database": form.data.get("database", "") if with_database else "",
+        "schema": form.data.get("schema", ""),
+        "table": form.data.get("table", ""),
+        "column": form.data.get("column", ""),
+        "op": form.data.get("where_op", ""),
+        "date_value": form.data.get("date_value", ""),
         # Impossible to set file_value programmatically. (See querybuilder.js.)
-        'float_value': form.data.get('float_value', ''),
-        'int_value': form.data.get('int_value', ''),
-        'string_value': form.data.get('string_value', ''),
-        'offer_where': bool(True),
-        'form_errors': "<br>".join(f"{k}: {v}"
-                                   for k, v in form.errors.items()),
-        'default_database': default_database,
-        'default_schema': default_schema,
-        'with_database': with_database,
+        "float_value": form.data.get("float_value", ""),
+        "int_value": form.data.get("int_value", ""),
+        "string_value": form.data.get("string_value", ""),
+        "offer_where": bool(True),
+        "form_errors": "<br>".join(
+            f"{k}: {v}" for k, v in form.errors.items()
+        ),
+        "default_database": default_database,
+        "default_schema": default_schema,
+        "with_database": with_database,
     }
 
     if manual_query:
-        pmq_patient_conditions = "<div><i>Overridden by manual query.</i></div>"  # noqa
+        pmq_patient_conditions = (
+            "<div><i>Overridden by manual query.</i></div>"  # noqa
+        )
         pmq_manual_patient_query = prettify_sql_html(
-            pmq.manual_patient_id_query)
+            pmq.manual_patient_id_query
+        )
     else:
         pmq_patient_conditions = pmq.pt_conditions_html
         pmq_manual_patient_query = "<div><i>None</i></div>"
-    pmq_final_patient_query = prettify_sql_html(pmq.patient_id_query(
-        with_order_by=True))
+    pmq_final_patient_query = prettify_sql_html(
+        pmq.patient_id_query(with_order_by=True)
+    )
 
-    warnings = ''
+    warnings = ""
     if not pmq.has_patient_id_query:
         warnings += '<div class="warning">No patient criteria yet</div>'
     if not pmq.has_output_columns:
         warnings += '<div class="warning">No output columns yet</div>'
 
     context = {
-        'nav_on_pe_build': True,
-        'pmq_output_columns': pmq.output_cols_html,
-        'pmq_patient_conditions': pmq_patient_conditions,
-        'pmq_manual_patient_query': pmq_manual_patient_query,
-        'pmq_final_patient_query': pmq_final_patient_query,
-        'warnings': warnings,
-        'database_structure': get_db_structure_json(),
-        'starting_values': json.dumps(starting_values_dict,
-                                      separators=JSON_SEPARATORS_COMPACT),
-        'sql_dialect': settings.RESEARCH_DB_DIALECT,
-        'dialect_mysql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
-        'dialect_mssql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
-        'sql_highlight_css': prettify_sql_css(),
-        'manual_form': manual_form,
+        "nav_on_pe_build": True,
+        "pmq_output_columns": pmq.output_cols_html,
+        "pmq_patient_conditions": pmq_patient_conditions,
+        "pmq_manual_patient_query": pmq_manual_patient_query,
+        "pmq_final_patient_query": pmq_final_patient_query,
+        "warnings": warnings,
+        "database_structure": get_db_structure_json(),
+        "starting_values": json.dumps(
+            starting_values_dict, separators=JSON_SEPARATORS_COMPACT
+        ),
+        "sql_dialect": settings.RESEARCH_DB_DIALECT,
+        "dialect_mysql": settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
+        "dialect_mssql": settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
+        "sql_highlight_css": prettify_sql_css(),
+        "manual_form": manual_form,
     }
     context.update(query_context(request))
-    return render(request, 'pe_build.html', context)
+    return render(request, "pe_build.html", context)
 
 
 def pe_choose(request: HttpRequest) -> HttpResponse:
@@ -3259,12 +3482,12 @@ def pe_choose(request: HttpRequest) -> HttpResponse:
     all_pes = get_all_pes(request)
     patient_explorers = paginate(request, all_pes)
     context = {
-        'nav_on_pe_choose': True,
-        'patient_explorers': patient_explorers,
-        'sql_highlight_css': prettify_sql_css(),
+        "nav_on_pe_choose": True,
+        "patient_explorers": patient_explorers,
+        "sql_highlight_css": prettify_sql_css(),
     }
     context.update(query_context(request))
-    return render(request, 'pe_choose.html', context)
+    return render(request, "pe_choose.html", context)
 
 
 def pe_activate(request: HttpRequest, pe_id: str) -> HttpResponse:
@@ -3369,25 +3592,28 @@ def pe_results(request: HttpRequest, pe_id: str) -> HttpResponse:
                     )
                     query_html = element_counter.visibility_div_with_divbutton(
                         contents=prettify_sql_and_args(sql, args),
-                        title_html="SQL")
-                    results.append({
-                        'tablename': table_id.identifier(grammar),
-                        'table_html': table_html,
-                        'query_html': query_html,
-                    })
+                        title_html="SQL",
+                    )
+                    results.append(
+                        {
+                            "tablename": table_id.identifier(grammar),
+                            "table_html": table_html,
+                            "query_html": query_html,
+                        }
+                    )
         n_records = len(mrids)
         context = {
-            'nav_on_pe_results': True,
-            'results': results,
-            'page': page,
-            'rowcount': n_records,
-            'patient_id_query_html': patient_id_query_html,
-            'patients_per_page': patients_per_page,
-            'sql_highlight_css': prettify_sql_css(),
+            "nav_on_pe_results": True,
+            "results": results,
+            "page": page,
+            "rowcount": n_records,
+            "patient_id_query_html": patient_id_query_html,
+            "patients_per_page": patients_per_page,
+            "sql_highlight_css": prettify_sql_css(),
         }
         context.update(query_context(request))
         pe.audit(n_records=n_records)
-        return render(request, 'pe_result.html', context)
+        return render(request, "pe_result.html", context)
 
     except DatabaseError as exception:
         pe.audit(failed=True, fail_msg=str(exception))
@@ -3405,13 +3631,13 @@ def render_missing_pe(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
-    return render(request, 'pe_missing.html', query_context(request))
+    return render(request, "pe_missing.html", query_context(request))
 
 
 # noinspection PyUnusedLocal
-def render_bad_pe(request: HttpRequest,
-                  pe: PatientExplorer,
-                  exception: Exception) -> HttpResponse:
+def render_bad_pe(
+    request: HttpRequest, pe: PatientExplorer, exception: Exception
+) -> HttpResponse:
     """
     A view saying "your Patient Explorer failed".
 
@@ -3430,15 +3656,15 @@ def render_bad_pe(request: HttpRequest,
         a :class:`django.http.response.HttpResponse`
     """
     info = recover_info_from_exception(exception)
-    final_sql = info.get('sql', '')
-    args = info.get('args', [])
+    final_sql = info.get("sql", "")
+    args = info.get("args", [])
     context = {
-        'exception': repr(exception),
-        'query': prettify_sql_and_args(final_sql, args),
-        'sql_highlight_css': prettify_sql_css(),
+        "exception": repr(exception),
+        "query": prettify_sql_and_args(final_sql, args),
+        "sql_highlight_css": prettify_sql_css(),
     }
     context.update(query_context(request))
-    return render(request, 'pe_bad.html', context)
+    return render(request, "pe_bad.html", context)
 
 
 # def render_bad_pe_id(request: HttpRequest, pe_id: int) -> HttpResponse:
@@ -3459,13 +3685,14 @@ def get_all_pes(request: HttpRequest) -> QuerySet:
         :class:`crate_anon.crateweb.research.models.PatientExplorer` objects
 
     """
-    return PatientExplorer.objects\
-        .filter(user=request.user, deleted=False)\
-        .order_by('-active', '-created')
+    return PatientExplorer.objects.filter(
+        user=request.user, deleted=False
+    ).order_by("-active", "-created")
 
 
-def get_identical_pes(request: HttpRequest,
-                      pmq: PatientMultiQuery) -> List[PatientExplorer]:
+def get_identical_pes(
+    request: HttpRequest, pmq: PatientMultiQuery
+) -> List[PatientExplorer]:
     """
     Return all Patient Explorers for the current user whose query is identical
     to the query specified.
@@ -3496,9 +3723,9 @@ def get_identical_pes(request: HttpRequest,
     return [pe for pe in identical_pes if pe.patient_multiquery == pmq]
 
 
-def pe_submit(request: HttpRequest,
-              pmq: PatientMultiQuery,
-              run: bool = False) -> HttpResponse:
+def pe_submit(
+    request: HttpRequest, pmq: PatientMultiQuery, run: bool = False
+) -> HttpResponse:
     """
     Save a :class:`crate_anon.crateweb.research.models.PatientMultiQuery` as a
     :class:`crate_anon.crateweb.research.models.PatientExplorer` for the
@@ -3507,7 +3734,8 @@ def pe_submit(request: HttpRequest,
     Args:
         request: the :class:`django.http.request.HttpRequest`
         pmq: a :class:`crate_anon.crateweb.research.models.PatientMultiQuery`
-        run: run and show results? Otherwise, save and return to the choice view
+        run: run and show results? Otherwise, save and return to the choice
+             view
 
     Returns:
         a :class:`django.http.response.HttpResponse`
@@ -3518,9 +3746,9 @@ def pe_submit(request: HttpRequest,
         identical_pes[0].activate()
         pe_id = identical_pes[0].id
     else:
-        pe = PatientExplorer(patient_multiquery=pmq,
-                             user=request.user,
-                             active=True)
+        pe = PatientExplorer(
+            patient_multiquery=pmq, user=request.user, active=True
+        )
         pe.save()
         pe_id = pe.id
     # log.critical(pprint.pformat(connection.queries))  # show all queries
@@ -3554,7 +3782,7 @@ def pe_tsv_zip(request: HttpRequest, pe_id: str) -> HttpResponse:
             filename="crate_pe_{num}_{datetime}.zip".format(
                 num=pe.id,
                 datetime=datetime_iso_for_filename(),
-            )
+            ),
         )
         pe.audit()
         return response
@@ -3585,7 +3813,7 @@ def pe_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
             filename="crate_pe_{num}_{datetime}.xlsx".format(
                 num=pe.id,
                 datetime=datetime_iso_for_filename(),
-            )
+            ),
         )
         pe.audit()
         return response
@@ -3621,13 +3849,14 @@ def pe_data_finder_results(request: HttpRequest, pe_id: str) -> HttpResponse:
         mrids = pe.get_patient_mrids()
         page = paginate(request, mrids, per_page=patients_per_page)
         active_mrids = list(page)  # type: List[str]
-        results_table_html = ''
-        query_html = ''
+        results_table_html = ""
+        query_html = ""
         if active_mrids:
             fieldnames = []  # type: List[str]
             rows = []  # type: List[List[Any]]
             for tsa in pe.patient_multiquery.gen_data_finder_queries(
-                        mrids=active_mrids):
+                mrids=active_mrids
+            ):
                 table_identifier = tsa.table_id
                 sql = tsa.sql
                 args = tsa.args
@@ -3635,9 +3864,12 @@ def pe_data_finder_results(request: HttpRequest, pe_id: str) -> HttpResponse:
                     if not fieldnames:
                         fieldnames = get_fieldnames_from_cursor(cursor)
                     rows = cursor.fetchall()
-                    query_html += element_counter.visibility_div_with_divbutton(  # noqa
-                        contents=prettify_sql_and_args(sql, args),
-                        title_html=f"SQL for {table_identifier}")
+                    query_html += (
+                        element_counter.visibility_div_with_divbutton(  # noqa
+                            contents=prettify_sql_and_args(sql, args),
+                            title_html=f"SQL for {table_identifier}",
+                        )
+                    )
             results_table_html = resultset_html_table(
                 fieldnames=fieldnames,
                 rows=rows,
@@ -3646,23 +3878,23 @@ def pe_data_finder_results(request: HttpRequest, pe_id: str) -> HttpResponse:
                 collapse_at_n_lines=profile.collapse_at_n_lines,
                 line_length=profile.line_length,
                 no_ditto_cols=[2, 3, 4],
-                null=''
+                null="",
             )
         n_records = len(mrids)
         context = {
-            'nav_on_pe_df_results': True,
-            'some_patients': len(active_mrids) > 0,
-            'results_table_html': results_table_html,
-            'query_html': query_html,
-            'page': page,
-            'rowcount': n_records,
-            'patient_id_query_html': patient_id_query_html,
-            'patients_per_page': patients_per_page,
-            'sql_highlight_css': prettify_sql_css(),
+            "nav_on_pe_df_results": True,
+            "some_patients": len(active_mrids) > 0,
+            "results_table_html": results_table_html,
+            "query_html": query_html,
+            "page": page,
+            "rowcount": n_records,
+            "patient_id_query_html": patient_id_query_html,
+            "patients_per_page": patients_per_page,
+            "sql_highlight_css": prettify_sql_css(),
         }
         context.update(query_context(request))
         pe.audit(count_only=True, n_records=n_records)
-        return render(request, 'pe_df_result.html', context)
+        return render(request, "pe_df_result.html", context)
 
     except DatabaseError as exception:
         pe.audit(failed=True, fail_msg=str(exception))
@@ -3692,7 +3924,7 @@ def pe_data_finder_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
             filename="crate_pe_df_{num}_{datetime}.xlsx".format(
                 num=pe.id,
                 datetime=datetime_iso_for_filename(),
-            )
+            ),
         )
     except DatabaseError as exception:
         return render_bad_pe(request, pe, exception)
@@ -3750,23 +3982,26 @@ def pe_monster_results(request: HttpRequest, pe_id: str) -> HttpResponse:
                         table_html = "<div><i>No data</i></div>"
                     query_html = element_counter.visibility_div_with_divbutton(
                         contents=prettify_sql_and_args(sql, args),
-                        title_html="SQL")
-                    results.append({
-                        'tablename': table_id.identifier(grammar),
-                        'table_html': table_html,
-                        'query_html': query_html,
-                    })
+                        title_html="SQL",
+                    )
+                    results.append(
+                        {
+                            "tablename": table_id.identifier(grammar),
+                            "table_html": table_html,
+                            "query_html": query_html,
+                        }
+                    )
         context = {
-            'nav_on_pe_monster_results': True,
-            'results': results,
-            'page': page,
-            'rowcount': len(rids),
-            'patient_id_query_html': patient_id_query_html,
-            'patients_per_page': patients_per_page,
-            'sql_highlight_css': prettify_sql_css(),
+            "nav_on_pe_monster_results": True,
+            "results": results,
+            "page": page,
+            "rowcount": len(rids),
+            "patient_id_query_html": patient_id_query_html,
+            "patients_per_page": patients_per_page,
+            "sql_highlight_css": prettify_sql_css(),
         }
         context.update(query_context(request))
-        return render(request, 'pe_monster_result.html', context)
+        return render(request, "pe_monster_result.html", context)
 
     except DatabaseError as exception:
         return render_bad_pe(request, pe, exception)
@@ -3793,20 +4028,21 @@ def pe_table_browser(request: HttpRequest, pe_id: str) -> HttpResponse:
     with_database = research_database_info.uses_database_level()
     try:
         context = {
-            'nav_on_pe_table_browser': True,
-            'pe_id': pe_id,
-            'tables': tables,
-            'with_database': with_database,
+            "nav_on_pe_table_browser": True,
+            "pe_id": pe_id,
+            "tables": tables,
+            "with_database": with_database,
         }
         context.update(query_context(request))
-        return render(request, 'pe_table_browser.html', context)
+        return render(request, "pe_table_browser.html", context)
 
     except DatabaseError as exception:
         return render_bad_pe(request, pe, exception)
 
 
-def pe_one_table(request: HttpRequest, pe_id: str,
-                 schema: str, table: str, db: str = '') -> HttpResponse:
+def pe_one_table(
+    request: HttpRequest, pe_id: str, schema: str, table: str, db: str = ""
+) -> HttpResponse:
     """
     Shows the **single table** view of a
     :class:`crate_anon.crateweb.research.models.PatientExplorer`. This shows
@@ -3851,25 +4087,30 @@ def pe_one_table(request: HttpRequest, pe_id: str,
         rowcount = 0
         if active_mrids:
             mrid_column = research_database_info.get_mrid_column_from_table(
-                table_id)
+                table_id
+            )
             where_clause = "{mrid} IN ({in_clause})".format(
                 mrid=mrid_column.identifier(grammar),
                 in_clause=",".join(["?"] * len(active_mrids)),
             )  # ... see notes for translate_sql_qmark_to_percent()
             args = active_mrids
             sql = add_to_select(
-                sql='',
-                select_elements=[SelectElement(
-                    raw_select='*',
-                    from_table_for_raw_select=table_id
-                )],
+                sql="",
+                select_elements=[
+                    SelectElement(
+                        raw_select="*", from_table_for_raw_select=table_id
+                    )
+                ],
                 grammar=grammar,
-                where_conditions=[WhereCondition(
-                    raw_sql=where_clause,
-                    from_table_for_raw_sql=mrid_column.table_id
-                )],
+                where_conditions=[
+                    WhereCondition(
+                        raw_sql=where_clause,
+                        from_table_for_raw_sql=mrid_column.table_id,
+                    )
+                ],
                 magic_join=True,
-                formatted=True)
+                formatted=True,
+            )
             with pe.get_executed_cursor(sql, args) as cursor:
                 fieldnames = get_fieldnames_from_cursor(cursor)
                 rows = cursor.fetchall()
@@ -3886,15 +4127,15 @@ def pe_one_table(request: HttpRequest, pe_id: str,
                     )
         # Render
         context = {
-            'table_html': table_html,
-            'page': page,
-            'query_id': None,
-            'rowcount': rowcount,
-            'sql': prettify_sql_and_args(sql=sql, args=args),
-            'sql_highlight_css': prettify_sql_css(),
+            "table_html": table_html,
+            "page": page,
+            "query_id": None,
+            "rowcount": rowcount,
+            "sql": prettify_sql_and_args(sql=sql, args=args),
+            "sql_highlight_css": prettify_sql_css(),
         }
         context.update(query_context(request))
-        return render(request, 'query_result.html', context)
+        return render(request, "query_result.html", context)
 
     except DatabaseError as exception:
         return render_bad_pe(request, pe, exception)
@@ -3907,6 +4148,7 @@ def pe_one_table(request: HttpRequest, pe_id: str,
 # -----------------------------------------------------------------------------
 # Archive views
 # -----------------------------------------------------------------------------
+
 
 def launch_archive(request: HttpRequest) -> HttpResponse:
     """
@@ -3971,7 +4213,8 @@ def archive_template(request: HttpRequest) -> HttpResponse:
     template_name = request.GET.get(UrlKeys.TEMPLATE)
     if not template_name:
         return HttpResponseBadRequest(
-            f"URL arguments must include the key {UrlKeys.TEMPLATE!r}")
+            f"URL arguments must include the key {UrlKeys.TEMPLATE!r}"
+        )
     # log.debug(f"Archive template request: {template_name!r}")
     # noinspection PyCallByClass,PyArgumentList
     patient_id = request.GET.get(UrlKeys.PATIENT_ID, "")
@@ -3995,17 +4238,19 @@ def archive_template(request: HttpRequest) -> HttpResponse:
     # Build context
     # -------------------------------------------------------------------------
     context = copy.copy(ARCHIVE_CONTEXT)
-    context.update({
-        ArchiveContextKeys.get_patient_template_url: same_patient_template_url,
-        ArchiveContextKeys.get_template_url: archive_template_url,
-        ArchiveContextKeys.get_attachment_url: same_patient_attachment_url,
-        ArchiveContextKeys.CRATE_HOME_URL: reverse("home"),
-        ArchiveContextKeys.execute: get_executed_researchdb_cursor_qmark_placeholders,  # noqa
-        ArchiveContextKeys.patient_id: patient_id,
-        ArchiveContextKeys.query_params: request.GET,
-        ArchiveContextKeys.request: request,
-        ArchiveContextKeys.get_static_url: archive_static_url,
-    })
+    context.update(
+        {
+            ArchiveContextKeys.get_patient_template_url: same_patient_template_url,  # noqa: E501
+            ArchiveContextKeys.get_template_url: archive_template_url,
+            ArchiveContextKeys.get_attachment_url: same_patient_attachment_url,
+            ArchiveContextKeys.CRATE_HOME_URL: reverse("home"),
+            ArchiveContextKeys.execute: get_executed_researchdb_cursor_qmark_placeholders,  # noqa: E501
+            ArchiveContextKeys.patient_id: patient_id,
+            ArchiveContextKeys.query_params: request.GET,
+            ArchiveContextKeys.request: request,
+            ArchiveContextKeys.get_static_url: archive_static_url,
+        }
+    )
     # log.debug("Archive template {!r} with context {!r}",
     #           template_name, context)
 
@@ -4016,7 +4261,8 @@ def archive_template(request: HttpRequest) -> HttpResponse:
         template = archive_mako_lookup.get_template(template_name)
     except TemplateLookupException:
         return HttpResponseBadRequest(
-            f"No such archive template: {template_name!r}")
+            f"No such archive template: {template_name!r}"
+        )
     html = template.render(**context)
 
     # noinspection PyArgumentList
@@ -4026,8 +4272,7 @@ def archive_template(request: HttpRequest) -> HttpResponse:
     return HttpResponse(html)
 
 
-@cache_control(private=True,
-               max_age=CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS)
+@cache_control(private=True, max_age=CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS)
 def archive_attachment(request: HttpRequest) -> HttpResponseBase:
     """
     Serve a binary file from the archive.
@@ -4048,19 +4293,22 @@ def archive_attachment(request: HttpRequest) -> HttpResponseBase:
     patient_id = request.GET.get(UrlKeys.PATIENT_ID)
     if not patient_id:
         return HttpResponseBadRequest(
-            f"URL arguments must include the key {UrlKeys.PATIENT_ID!r}")
+            f"URL arguments must include the key {UrlKeys.PATIENT_ID!r}"
+        )
     # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
     content_type = request.GET.get(UrlKeys.CONTENT_TYPE, None)
     # noinspection PyCallByClass,PyArgumentList
     filename = request.GET.get(UrlKeys.FILENAME)
     if not filename:
         return HttpResponseBadRequest(
-            f"URL arguments must include the key {UrlKeys.FILENAME!r}")
+            f"URL arguments must include the key {UrlKeys.FILENAME!r}"
+        )
     # log.debug(f"Archive attachment request: {filename!r}")
     try:
         # noinspection PyArgumentList,PyCallByClass
-        guess_content_type = bool(int(
-            request.GET.get(UrlKeys.GUESS_CONTENT_TYPE)))
+        guess_content_type = bool(
+            int(request.GET.get(UrlKeys.GUESS_CONTENT_TYPE))
+        )
     except (TypeError, ValueError):
         guess_content_type = DEFAULT_GUESS_CONTENT_TYPE
     # noinspection PyCallByClass,PyTypeChecker
@@ -4069,7 +4317,8 @@ def archive_attachment(request: HttpRequest) -> HttpResponseBase:
     full_filename = get_archive_attachment_filepath(filename)
     if not full_filename:
         return HttpResponseBadRequest(
-            f"Invalid archive attachment filename: {filename!r}")
+            f"Invalid archive attachment filename: {filename!r}"
+        )
 
     if content_type:
         final_content_type = content_type
@@ -4101,7 +4350,7 @@ def archive_attachment(request: HttpRequest) -> HttpResponseBase:
         offered_filename=offered_filename,
         content_type=final_content_type,
         as_attachment=not prefer_inline,
-        as_inline=prefer_inline
+        as_inline=prefer_inline,
     )
 
 
@@ -4123,11 +4372,12 @@ def archive_static(request: HttpRequest) -> HttpResponseBase:
     full_filename = get_archive_static_filepath(filename)
     if not full_filename:
         return HttpResponseBadRequest(
-            f"Invalid archive static filename: {filename!r}")
+            f"Invalid archive static filename: {filename!r}"
+        )
 
     return serve_file(
         path_to_file=full_filename,
         as_attachment=False,
         as_inline=False,
-        default_content_type=None
+        default_content_type=None,
     )

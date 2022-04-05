@@ -1,404 +1,318 @@
-+---------------------------+----------------------------------------------------------------------------------+
-| NLP name                  | Description                                                                      |
-+---------------------------+----------------------------------------------------------------------------------+
-| Ace                       |                                                                                  |
-|                           |     Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III) total score.       |
-|                           |                                                                                  |
-| AceValidator              |                                                                                  |
-|                           |     Validator for Ace                                                            |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Albumin                   |                                                                                  |
-|                           |     Albumin (Alb).                                                               |
-|                           |                                                                                  |
-| AlbuminValidator          |                                                                                  |
-|                           |     Validator for Albumin                                                        |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| AlkPhos                   |                                                                                  |
-|                           |     Alkaline phosphatase (ALP, AlkP, AlkPhos).                                   |
-|                           |                                                                                  |
-| AlkPhosValidator          |                                                                                  |
-|                           |     Validator for ALP                                                            |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| ALT                       |                                                                                  |
-|                           |     Alanine aminotransferase (ALT), a.k.a. alanine transaminase (ALT).           |
-|                           |                                                                                  |
-|                           |     A.k.a. serum glutamate-pyruvate transaminase (SGPT), or serum                |
-|                           |     glutamate-pyruvic transaminase (SGPT), but not a.k.a. those in recent        |
-|                           |     memory!                                                                      |
-|                           |                                                                                  |
-| ALTValidator              |                                                                                  |
-|                           |     Validator for ALT                                                            |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Basophils                 |                                                                                  |
-|                           |     Basophil count (absolute).                                                   |
-|                           |                                                                                  |
-| BasophilsValidator        |                                                                                  |
-|                           |     Validator for Basophils                                                      |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Bilirubin                 |                                                                                  |
-|                           |     Total bilirubin.                                                             |
-|                           |                                                                                  |
-| BilirubinValidator        |                                                                                  |
-|                           |     Validator for bilirubin.                                                     |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Bmi                       |                                                                                  |
-|                           |     Body mass index (BMI) (in kg / m^2).                                         |
-|                           |                                                                                  |
-| BmiValidator              |                                                                                  |
-|                           |     Validator for Bmi                                                            |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Bp                        |                                                                                  |
-|                           |     Blood pressure, in mmHg. (Systolic and diastolic.)                           |
-|                           |                                                                                  |
-|                           |     (Since we produce two variables, SBP and DBP, and we use something a little  |
-|                           |     more complex than                                                            |
-|                           | :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`;    |
-|                           |     we subclass :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`    |
-|                           |     directly.)                                                                   |
-|                           |                                                                                  |
-| BpValidator               |                                                                                  |
-|                           |     Validator for Bp                                                             |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Creatinine                |                                                                                  |
-|                           |     Creatinine. Default units are micromolar (SI).                               |
-|                           |                                                                                  |
-| CreatinineValidator       |                                                                                  |
-|                           |     Validator for Creatinine                                                     |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Crp                       |                                                                                  |
-|                           |     C-reactive protein (CRP).                                                    |
-|                           |                                                                                  |
-|                           |     CRP units:                                                                   |
-|                           |                                                                                  |
-|                           |     - mg/L is commonest in the UK (or at least standard at Addenbrooke's,        |
-|                           |       Hinchingbrooke, and Dundee);                                               |
-|                           |                                                                                  |
-|                           |     - values of <=6 mg/L or <10 mg/L are normal, and e.g. 70-250 mg/L in         |
-|                           |       pneumonia.                                                                 |
-|                           |                                                                                  |
-|                           |     - Refs include:                                                              |
-|                           |                                                                                  |
-|                           |       - https://www.ncbi.nlm.nih.gov/pubmed/7705110                              |
-|                           |       - https://emedicine.medscape.com/article/2086909-overview                  |
-|                           |                                                                                  |
-|                           |     - 1 mg/dL = 10 mg/L, so normal in mg/dL is <=1 roughly.                      |
-|                           |                                                                                  |
-|                           |                                                                                  |
-| CrpValidator              |                                                                                  |
-|                           |     Validator for CRP                                                            |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Eosinophils               |                                                                                  |
-|                           |     Eosinophil count (absolute).                                                 |
-|                           |                                                                                  |
-| EosinophilsValidator      |                                                                                  |
-|                           |     Validator for Eosinophils                                                    |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Esr                       |                                                                                  |
-|                           |     Erythrocyte sedimentation rate (ESR).                                        |
-|                           |                                                                                  |
-| EsrValidator              |                                                                                  |
-|                           |     Validator for Esr                                                            |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| GammaGT                   |                                                                                  |
-|                           |     Gamma-glutamyl transferase (gGT).                                            |
-|                           |                                                                                  |
-| GammaGTValidator          |                                                                                  |
-|                           |     Validator for gGT                                                            |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Gate                      |                                                                                  |
-|                           |     Class controlling an external process, typically our Java interface to       |
-|                           |     GATE programs, ``CrateGatePipeline.java`` (but it could be any external      |
-|                           |     program).                                                                    |
-|                           |                                                                                  |
-|                           |     We send text to it, it parses the text, and it sends us back results, which  |
-|                           |     we return as dictionaries. The specific text sought depends on the           |
-|                           |     configuration file and the specific GATE program used.                       |
-|                           |                                                                                  |
-|                           |     Notes:                                                                       |
-|                           |                                                                                  |
-|                           |     - PROBLEM when attempting to use KConnect (Bio-YODIE): its source code is    |
-|                           |       full of direct calls to ``System.out.println()``.                          |
-|                           |                                                                                  |
-|                           |       POTENTIAL SOLUTIONS:                                                       |
-|                           |                                                                                  |
-|                           |       - named pipes:                                                             |
-|                           |                                                                                  |
-|                           |         - ``os.mkfifo()`` - Unix only.                                           |
-|                           |         - ``win32pipe`` - https://stackoverflow.com/questions/286614             |
-|                           |                                                                                  |
-|                           |       - ZeroMQ with some sort of security                                        |
-|                           |                                                                                  |
-|                           |         - ``pip install zmq``                                                    |
-|                           |         - some sort of Java binding (``jzmq``, ``jeromq``...)                    |
-|                           |                                                                                  |
-|                           |       - redirect ``stdout`` in our Java handler                                  |
-|                           |                                                                                  |
-|                           |         - ``System.setOut()``... yes, that works.                                |
-|                           |         - Implemented and exposed as ``--suppress_gate_stdout``.                 |
-|                           |                                                                                  |
-|                           |                                                                                  |
-| Glucose                   |                                                                                  |
-|                           |     Glucose.                                                                     |
-|                           |                                                                                  |
-|                           |     - By Emanuele Osimo, Feb 2019.                                               |
-|                           |     - Some modifications by Rudolf Cardinal, Feb 2019.                           |
-|                           |                                                                                  |
-| GlucoseValidator          |                                                                                  |
-|                           |     Validator for glucose                                                        |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Haematocrit               |                                                                                  |
-|                           |     Haematocrit (Hct).                                                           |
-|                           |                                                                                  |
-| HaematocritValidator      |                                                                                  |
-|                           |     Validator for Haematocrit                                                    |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Haemoglobin               |                                                                                  |
-|                           |     Haemoglobin (Hb).                                                            |
-|                           |                                                                                  |
-|                           |     UK reporting for haemoglobin switched in 2013 from g/dL to g/L; see          |
-|                           |     e.g.                                                                         |
-|                           |                                                                                  |
-|                           |     - http://www.pathology.leedsth.nhs.uk/pathology/Portals/0/PDFs/BP-2013-02%20 |
-|                           | Hb%20units.pdf                                                                   |
-|                           |     - https://www.acb.org.uk/docs/default-                                       |
-|                           | source/committees/scientific/guidelines/acb/pathology-harmony-haematology.pdf    |
-|                           |                                                                                  |
-|                           |     The *DANGER* remains that "Hb 9" may have been from someone assuming         |
-|                           |     old-style units, 9 g/dL = 90 g/L, but this will be interpreted as 9 g/L.     |
-|                           |     This problem is hard to avoid.                                               |
-|                           |                                                                                  |
-|                           |                                                                                  |
-| HaemoglobinValidator      |                                                                                  |
-|                           |     Validator for Haemoglobin                                                    |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| HbA1c                     |                                                                                  |
-|                           |     Glycosylated (glycated) haemoglobin (HbA1c).                                 |
-|                           |                                                                                  |
-|                           |     - By Emanuele Osimo, Feb 2019.                                               |
-|                           |     - Some modifications by Rudolf Cardinal, Feb 2019.                           |
-|                           |                                                                                  |
-|                           |     Note: HbA1 is different                                                      |
-|                           |     (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2541274).                      |
-|                           |                                                                                  |
-| HbA1cValidator            |                                                                                  |
-|                           |     Validator for HbA1c                                                          |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| HDLCholesterol            |                                                                                  |
-|                           |     High-density lipoprotein (HDL) cholesterol.                                  |
-|                           |                                                                                  |
-|                           |     - By Emanuele Osimo, Feb 2019.                                               |
-|                           |     - Some modifications by Rudolf Cardinal, Feb 2019.                           |
-|                           |                                                                                  |
-| HDLCholesterolValidator   |                                                                                  |
-|                           |     Validator for HDL cholesterol                                                |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Height                    |                                                                                  |
-|                           |     Height. Handles metric (e.g. "1.8m") and imperial (e.g. "5 ft 2 in").        |
-|                           |                                                                                  |
-| HeightValidator           |                                                                                  |
-|                           |     Validator for Height                                                         |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| LDLCholesterol            |                                                                                  |
-|                           |     Low density lipoprotein (LDL) cholesterol.                                   |
-|                           |                                                                                  |
-|                           |     - By Emanuele Osimo, Feb 2019.                                               |
-|                           |     - Some modifications by Rudolf Cardinal, Feb 2019.                           |
-|                           |                                                                                  |
-| LDLCholesterolValidator   |                                                                                  |
-|                           |     Validator for LDL cholesterol                                                |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Lithium                   |                                                                                  |
-|                           |     Lithium (Li) levels (for blood tests, not doses).                            |
-|                           |                                                                                  |
-| LithiumValidator          |                                                                                  |
-|                           |     Validator for Lithium                                                        |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Lymphocytes               |                                                                                  |
-|                           |     Lymphocyte count (absolute).                                                 |
-|                           |                                                                                  |
-| LymphocytesValidator      |                                                                                  |
-|                           |     Validator for Lymphocytes                                                    |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Medex                     |                                                                                  |
-|                           |     Class controlling a Medex-UIMA external process, via our custom Java         |
-|                           |     interface, ``CrateMedexPipeline.java``.                                      |
-|                           |                                                                                  |
-| MiniAce                   |                                                                                  |
-|                           |     Mini-Addenbrooke's Cognitive Examination (M-ACE).                            |
-|                           |                                                                                  |
-| MiniAceValidator          |                                                                                  |
-|                           |     Validator for MiniAce                                                        |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Mmse                      |                                                                                  |
-|                           |     Mini-mental state examination (MMSE).                                        |
-|                           |                                                                                  |
-| MmseValidator             |                                                                                  |
-|                           |     Validator for Mmse                                                           |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Moca                      |                                                                                  |
-|                           |     Montreal Cognitive Assessment (MOCA).                                        |
-|                           |                                                                                  |
-| MocaValidator             |                                                                                  |
-|                           |     Validator for Moca                                                           |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Monocytes                 |                                                                                  |
-|                           |     Monocyte count (absolute).                                                   |
-|                           |                                                                                  |
-| MonocytesValidator        |                                                                                  |
-|                           |     Validator for Monocytes                                                      |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Neutrophils               |                                                                                  |
-|                           |     Neutrophil (polymorphonuclear leukoocte) count (absolute).                   |
-|                           |                                                                                  |
-| NeutrophilsValidator      |                                                                                  |
-|                           |     Validator for Neutrophils                                                    |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Platelets                 |                                                                                  |
-|                           |     Platelet count.                                                              |
-|                           |                                                                                  |
-|                           |     Not actually a white blood cell, of course, but can share the same base      |
-|                           |     class; platelets are expressed in the same units, of 10^9 / L.               |
-|                           |     Typical values 150–450 ×10^9 / L (or 150,000–450,000 per μL).                |
-|                           |                                                                                  |
-| PlateletsValidator        |                                                                                  |
-|                           |     Validator for Platelets                                                      |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Potassium                 |                                                                                  |
-|                           |     Potassium (K).                                                               |
-|                           |                                                                                  |
-| PotassiumValidator        |                                                                                  |
-|                           |     Validator for Potassium                                                      |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| RBC                       |                                                                                  |
-|                           |     Red blood cell count.                                                        |
-|                           |                                                                                  |
-|                           |     Typical:                                                                     |
-|                           |                                                                                  |
-|                           |     .. code-block:: none                                                         |
-|                           |                                                                                  |
-|                           |         RBC, POC    4.84            10*12/L                                      |
-|                           |         RBC, POC    9.99    (H)     10*12/L                                      |
-|                           |                                                                                  |
-| RBCValidator              |                                                                                  |
-|                           |     Validator for RBC                                                            |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Sodium                    |                                                                                  |
-|                           |     Sodium (Na).                                                                 |
-|                           |                                                                                  |
-| SodiumValidator           |                                                                                  |
-|                           |     Validator for Sodium                                                         |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| TotalCholesterol          |                                                                                  |
-|                           |     Total or undifferentiated cholesterol.                                       |
-|                           |                                                                                  |
-| TotalCholesterolValidator |                                                                                  |
-|                           |     Validator for total cholesterol                                              |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Triglycerides             |                                                                                  |
-|                           |     Triglycerides.                                                               |
-|                           |                                                                                  |
-|                           |     - By Emanuele Osimo, Feb 2019.                                               |
-|                           |     - Some modifications by Rudolf Cardinal, Feb 2019.                           |
-|                           |                                                                                  |
-| TriglyceridesValidator    |                                                                                  |
-|                           |     Validator for triglycerides                                                  |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Tsh                       |                                                                                  |
-|                           |     Thyroid-stimulating hormone (TSH).                                           |
-|                           |                                                                                  |
-| TshValidator              |                                                                                  |
-|                           |     Validator for TSH                                                            |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Urea                      |                                                                                  |
-|                           |     Urea.                                                                        |
-|                           |                                                                                  |
-| UreaValidator             |                                                                                  |
-|                           |     Validator for Urea                                                           |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Wbc                       |                                                                                  |
-|                           |     White cell count (WBC, WCC).                                                 |
-|                           |                                                                                  |
-| WbcValidator              |                                                                                  |
-|                           |     Validator for Wbc                                                            |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-| Weight                    |                                                                                  |
-|                           |     Weight. Handles metric (e.g. "57kg") and imperial (e.g. "10 st 2 lb").       |
-|                           |                                                                                  |
-| WeightValidator           |                                                                                  |
-|                           |     Validator for Weight                                                         |
-|                           |     (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for          |
-|                           |     explanation).                                                                |
-|                           |                                                                                  |
-+---------------------------+----------------------------------------------------------------------------------+
++---------------------------+-------------------------------------------------+
+| NLP name                  | Description                                     |
++---------------------------+-------------------------------------------------+
+| Ace                       | Addenbrooke's Cognitive Examination (ACE,       |
+|                           | ACE-R, ACE-III) total score.                    |
+|                           |                                                 |
+|                           | The default denominator is 100 but it supports  |
+|                           | other values if given                           |
+|                           | explicitly.                                     |
++---------------------------+-------------------------------------------------+
+| AceValidator              | Validator for Ace (see help for explanation).   |
++---------------------------+-------------------------------------------------+
+| Albumin                   | Albumin (Alb). Units are g/L.                   |
++---------------------------+-------------------------------------------------+
+| AlbuminValidator          | Validator for Albumin (see help for             |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| AlkPhos                   | Alkaline phosphatase (ALP, AlkP, AlkPhos).      |
+|                           | Units are U/L.                                  |
++---------------------------+-------------------------------------------------+
+| AlkPhosValidator          | Validator for AlkPhos (see help for             |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| ALT                       | Alanine aminotransferase (ALT), a.k.a. alanine  |
+|                           | transaminase (ALT).                             |
+|                           | Units are U/L.                                  |
+|                           |                                                 |
+|                           | A.k.a. serum glutamate-pyruvate transaminase    |
+|                           | (SGPT), or serum                                |
+|                           | glutamate-pyruvic transaminase (SGPT), but not  |
+|                           | a.k.a. those in recent                          |
+|                           | memory!                                         |
++---------------------------+-------------------------------------------------+
+| ALTValidator              | Validator for ALT (see help for explanation).   |
++---------------------------+-------------------------------------------------+
+| Basophils                 | Basophil count (absolute).                      |
+|                           | Default units are 10^9 / L; also supports       |
+|                           | cells/mm^3 = cells/μL.                          |
++---------------------------+-------------------------------------------------+
+| BasophilsValidator        | Validator for Basophils (see help for           |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Bilirubin                 | Total bilirubin. Units are μM.                  |
++---------------------------+-------------------------------------------------+
+| BilirubinValidator        | Validator for Bilirubin (see help for           |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Bmi                       | Body mass index (BMI), in kg / m^2.             |
++---------------------------+-------------------------------------------------+
+| BmiValidator              | Validator for Bmi (see help for explanation).   |
++---------------------------+-------------------------------------------------+
+| Bp                        | Blood pressure, in mmHg. (Systolic and          |
+|                           | diastolic.)                                     |
++---------------------------+-------------------------------------------------+
+| BpValidator               | Validator for Bp (see help for explanation).    |
++---------------------------+-------------------------------------------------+
+| Cloud                     | [SPECIAL.] Abstract NLP processor that passes   |
+|                           | information to a remote                         |
+|                           | (cloud-based) NLP system via the NLPRP          |
+|                           | protocol. The processor at the other            |
+|                           | end might be of any kind.                       |
++---------------------------+-------------------------------------------------+
+| Creatinine                | Creatinine. Default units are micromolar (SI);  |
+|                           | also supports mg/dL.                            |
++---------------------------+-------------------------------------------------+
+| CreatinineValidator       | Validator for Creatinine (see help for          |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Crp                       | C-reactive protein (CRP). Default units are     |
+|                           | mg/L; also supports mg/dL.                      |
+|                           |                                                 |
+|                           | CRP units:                                      |
+|                           |                                                 |
+|                           | - mg/L is commonest in the UK (or at least      |
+|                           | standard at Addenbrooke's,                      |
+|                           |   Hinchingbrooke, and Dundee);                  |
+|                           |                                                 |
+|                           | - values of <=6 mg/L or <10 mg/L are normal,    |
+|                           | and e.g. 70-250 mg/L in                         |
+|                           |   pneumonia.                                    |
+|                           |                                                 |
+|                           | - Refs include:                                 |
+|                           |                                                 |
+|                           |   - https://www.ncbi.nlm.nih.gov/pubmed/7705110 |
+|                           |   - https://emedicine.medscape.com/article/2086 |
+|                           | 909-overview                                    |
+|                           |                                                 |
+|                           | - 1 mg/dL = 10 mg/L, so normal in mg/dL is <=1  |
+|                           | roughly.                                        |
++---------------------------+-------------------------------------------------+
+| CrpValidator              | Validator for Crp (see help for explanation).   |
++---------------------------+-------------------------------------------------+
+| Eosinophils               | Eosinophil count (absolute).                    |
+|                           | Default units are 10^9 / L; also supports       |
+|                           | cells/mm^3 = cells/μL.                          |
++---------------------------+-------------------------------------------------+
+| EosinophilsValidator      | Validator for Eosinophils (see help for         |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Esr                       | Erythrocyte sedimentation rate (ESR), in mm/h.  |
++---------------------------+-------------------------------------------------+
+| EsrValidator              | Validator for Esr (see help for explanation).   |
++---------------------------+-------------------------------------------------+
+| GammaGT                   | Gamma-glutamyl transferase (gGT), in U/L.       |
++---------------------------+-------------------------------------------------+
+| GammaGTValidator          | Validator for GammaGT (see help for             |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Gate                      | [SPECIAL.] Abstract NLP processor controlling   |
+|                           | an external process,                            |
+|                           | typically our Java interface to GATE programs,  |
+|                           | ``CrateGatePipeline.java``                      |
+|                           | (but it could be any external program).         |
+|                           |                                                 |
+|                           | We send text to it, it parses the text, and it  |
+|                           | sends us back results, which                    |
+|                           | we return as dictionaries. The specific text    |
+|                           | sought depends on the                           |
+|                           | configuration file and the specific GATE        |
+|                           | program used.                                   |
+|                           |                                                 |
+|                           | For details of GATE, see                        |
+|                           | https://www.gate.ac.uk/.                        |
++---------------------------+-------------------------------------------------+
+| Glucose                   | Glucose. Default units are mM; also supports    |
+|                           | mg/dL.                                          |
++---------------------------+-------------------------------------------------+
+| GlucoseValidator          | Validator for Glucose (see help for             |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Haematocrit               | Haematocrit (Hct).                              |
+|                           | A dimensionless quantity (but supports L/L      |
+|                           | notation).                                      |
++---------------------------+-------------------------------------------------+
+| HaematocritValidator      | Validator for Haematocrit (see help for         |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Haemoglobin               | Haemoglobin (Hb). Default units are g/L; also   |
+|                           | supports g/dL.                                  |
+|                           |                                                 |
+|                           | UK reporting for haemoglobin switched in 2013   |
+|                           | from g/dL to g/L; see                           |
+|                           | e.g.                                            |
+|                           |                                                 |
+|                           | - http://www.pathology.leedsth.nhs.uk/pathology |
+|                           | /Portals/0/PDFs/BP-2013-02%20Hb%20units.pdf     |
+|                           | - https://www.acb.org.uk/docs/default-source/co |
+|                           | mmittees/scientific/guidelines/acb/pathology-   |
+|                           | harmony-haematology.pdf                         |
+|                           |                                                 |
+|                           | The *DANGER* remains that "Hb 9" may have been  |
+|                           | from someone assuming                           |
+|                           | old-style units, 9 g/dL = 90 g/L, but this will |
+|                           | be interpreted as 9 g/L.                        |
+|                           | This problem is hard to avoid.                  |
++---------------------------+-------------------------------------------------+
+| HaemoglobinValidator      | Validator for Haemoglobin (see help for         |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| HbA1c                     | Glycosylated (glycated) haemoglobin (HbA1c).    |
+|                           | Default units are mmol/mol; also supports %.    |
+|                           |                                                 |
+|                           | Note: HbA1 is different                         |
+|                           | (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2 |
+|                           | 541274).                                        |
++---------------------------+-------------------------------------------------+
+| HbA1cValidator            | Validator for HbA1c (see help for explanation). |
++---------------------------+-------------------------------------------------+
+| HDLCholesterol            | High-density lipoprotein (HDL) cholesterol.     |
+|                           | Default units are mM; also supports mg/dL.      |
++---------------------------+-------------------------------------------------+
+| HDLCholesterolValidator   | Validator for HDLCholesterol (see help for      |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Height                    | Height. Handles metric (e.g. "1.8m") and        |
+|                           | imperial (e.g. "5 ft 2 in").                    |
++---------------------------+-------------------------------------------------+
+| HeightValidator           | Validator for Height (see help for              |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| LDLCholesterol            | Low density lipoprotein (LDL) cholesterol.      |
+|                           | Default units are mM; also supports mg/dL.      |
++---------------------------+-------------------------------------------------+
+| LDLCholesterolValidator   | Validator for LDLCholesterol (see help for      |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Lithium                   | Lithium (Li) levels (for blood tests, not       |
+|                           | doses), in mM.                                  |
++---------------------------+-------------------------------------------------+
+| LithiumValidator          | Validator for Lithium (see help for             |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Lymphocytes               | Lymphocyte count (absolute).                    |
+|                           | Default units are 10^9 / L; also supports       |
+|                           | cells/mm^3 = cells/μL.                          |
++---------------------------+-------------------------------------------------+
+| LymphocytesValidator      | Validator for Lymphocytes (see help for         |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Medex                     | Class controlling a Medex-UIMA external         |
+|                           | process, via our custom Java                    |
+|                           | interface, ``CrateMedexPipeline.java``.         |
+|                           |                                                 |
+|                           | MedEx-UIMA is a medication-finding tool:        |
+|                           | https://www.ncbi.nlm.nih.gov/pubmed/25954575.   |
++---------------------------+-------------------------------------------------+
+| MiniAce                   | Mini-Addenbrooke's Cognitive Examination        |
+|                           | (M-ACE).                                        |
+|                           |                                                 |
+|                           | The default denominator is 30, but it supports  |
+|                           | other values if given                           |
+|                           | explicitly.                                     |
++---------------------------+-------------------------------------------------+
+| MiniAceValidator          | Validator for MiniAce (see help for             |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Mmse                      | Mini-mental state examination (MMSE).           |
+|                           |                                                 |
+|                           | The default denominator is 30, but it supports  |
+|                           | other values if given                           |
+|                           | explicitly.                                     |
++---------------------------+-------------------------------------------------+
+| MmseValidator             | Validator for Mmse (see help for explanation).  |
++---------------------------+-------------------------------------------------+
+| Moca                      | Montreal Cognitive Assessment (MOCA).           |
+|                           |                                                 |
+|                           | The default denominator is 30, but it supports  |
+|                           | other values if given                           |
+|                           | explicitly.                                     |
++---------------------------+-------------------------------------------------+
+| MocaValidator             | Validator for Moca (see help for explanation).  |
++---------------------------+-------------------------------------------------+
+| Monocytes                 | Monocyte count (absolute).                      |
+|                           | Default units are 10^9 / L; also supports       |
+|                           | cells/mm^3 = cells/μL.                          |
++---------------------------+-------------------------------------------------+
+| MonocytesValidator        | Validator for Monocytes (see help for           |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Neutrophils               | Neutrophil (polymorphonuclear leukoocte) count  |
+|                           | (absolute).                                     |
+|                           | Default units are 10^9 / L; also supports       |
+|                           | cells/mm^3 = cells/μL.                          |
++---------------------------+-------------------------------------------------+
+| NeutrophilsValidator      | Validator for Neutrophils (see help for         |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Platelets                 | Platelet count.                                 |
+|                           | Default units are 10^9 / L; also supports       |
+|                           | cells/mm^3 = cells/μL.                          |
+|                           |                                                 |
+|                           | Not actually a white blood cell, of course, but |
+|                           | can share the same base                         |
+|                           | class; platelets are expressed in the same      |
+|                           | units, of 10^9 / L.                             |
+|                           | Typical values 150–450 ×10^9 / L (or            |
+|                           | 150,000–450,000 per μL).                        |
++---------------------------+-------------------------------------------------+
+| PlateletsValidator        | Validator for Platelets (see help for           |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Potassium                 | Potassium (K), in mM.                           |
++---------------------------+-------------------------------------------------+
+| PotassiumValidator        | Validator for Potassium (see help for           |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| RBC                       | Red blood cell count.                           |
+|                           | Default units are 10^12/L; also supports        |
+|                           | cells/mm^3 = cells/μL.                          |
+|                           |                                                 |
+|                           | A typical excerpt from a FBC report:            |
+|                           |                                                 |
+|                           | .. code-block:: none                            |
+|                           |                                                 |
+|                           |     RBC, POC    4.84            10*12/L         |
+|                           |     RBC, POC    9.99    (H)     10*12/L         |
++---------------------------+-------------------------------------------------+
+| RBCValidator              | Validator for RBC (see help for explanation).   |
++---------------------------+-------------------------------------------------+
+| Sodium                    | Sodium (Na), in mM.                             |
++---------------------------+-------------------------------------------------+
+| SodiumValidator           | Validator for Sodium (see help for              |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| TotalCholesterol          | Total or undifferentiated cholesterol.          |
+|                           | Default units are mM; also supports mg/dL.      |
++---------------------------+-------------------------------------------------+
+| TotalCholesterolValidator | Validator for TotalCholesterol (see help for    |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Triglycerides             | Triglycerides.                                  |
+|                           | Default units are mM; also supports mg/dL.      |
++---------------------------+-------------------------------------------------+
+| TriglyceridesValidator    | Validator for Triglycerides (see help for       |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
+| Tsh                       | Thyroid-stimulating hormone (TSH), in mIU/L (or |
+|                           | μIU/mL).                                        |
++---------------------------+-------------------------------------------------+
+| TshValidator              | Validator for TSH (see help for explanation).   |
++---------------------------+-------------------------------------------------+
+| Urea                      | Urea, in mM.                                    |
++---------------------------+-------------------------------------------------+
+| UreaValidator             | Validator for Urea (see help for explanation).  |
++---------------------------+-------------------------------------------------+
+| Wbc                       | White cell count (WBC, WCC).                    |
+|                           | Default units are 10^9 / L; also supports       |
+|                           | cells/mm^3 = cells/μL.                          |
++---------------------------+-------------------------------------------------+
+| WbcValidator              | Validator for Wbc (see help for explanation).   |
++---------------------------+-------------------------------------------------+
+| Weight                    | Weight. Handles metric (e.g. "57kg") and        |
+|                           | imperial (e.g. "10 st 2 lb").                   |
+|                           | Requires units to be specified.                 |
++---------------------------+-------------------------------------------------+
+| WeightValidator           | Validator for Weight (see help for              |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/nlp_manager/regex_test.py
+crate_anon/nlp_manager/tests/regex_test_helperfunc.py
 
 ===============================================================================
 
@@ -24,7 +24,7 @@ crate_anon/nlp_manager/regex_test.py
 
 ===============================================================================
 
-**Regular expression testing.**
+**Functions for testing regular expressions.**
 
 """
 
@@ -51,14 +51,15 @@ def f_score(precision: float, recall: float, beta: float = 1) -> float:
         the F score
 
     """
-    beta_sq = beta ** 2
+    beta_sq = beta**2
     return (
         (1 + beta_sq) * precision * recall / ((beta_sq * precision) + recall)
     )
 
 
-def get_compiled_regex_results(compiled_regex: Pattern,
-                               text: str) -> List[str]:
+def get_compiled_regex_results(
+    compiled_regex: Pattern, text: str
+) -> List[str]:
     """
     Finds all the hits for a regex when applied to text.
 
@@ -76,8 +77,9 @@ def get_compiled_regex_results(compiled_regex: Pattern,
     return results
 
 
-def print_compiled_regex_results(compiled_regex: Pattern, text: str,
-                                 prefix_spaces: int = 4) -> None:
+def print_compiled_regex_results(
+    compiled_regex: Pattern, text: str, prefix_spaces: int = 4
+) -> None:
     """
     Applies a regex to text and prints (to stdout) all its hits.
 
@@ -90,10 +92,12 @@ def print_compiled_regex_results(compiled_regex: Pattern, text: str,
     print(f"{' ' * prefix_spaces}{text!r} -> {results!r}")
 
 
-def test_text_regex(name: str,
-                    regex_text: str,
-                    test_expected_list: List[Tuple[str, List[str]]],
-                    verbose: bool = False) -> None:
+def assert_text_regex(
+    name: str,
+    regex_text: str,
+    test_expected_list: List[Tuple[str, List[str]]],
+    verbose: bool = False,
+) -> None:
     """
     Test a regex upon some text.
 

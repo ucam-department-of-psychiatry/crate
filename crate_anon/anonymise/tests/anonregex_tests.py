@@ -65,6 +65,7 @@ log = logging.getLogger(__name__)
 # Test anonymisation regexes
 # =============================================================================
 
+
 class TestAnonRegexes(TestCase):
     """
     Unit tests.
@@ -148,64 +149,101 @@ class TestAnonRegexes(TestCase):
 
         regex_date = get_regex_from_elements(get_date_regex_elements(testdate))
         regex_number = get_regex_from_elements(
-            get_code_regex_elements(str(testnumber)))
+            get_code_regex_elements(str(testnumber))
+        )
         regex_number_as_text = get_regex_from_elements(
             get_code_regex_elements(
                 get_digit_string_from_vaguely_numeric_string(
-                    testnumber_as_text)))
+                    testnumber_as_text
+                )
+            )
+        )
         regex_string = get_regex_from_elements(
-            get_string_regex_elements(teststring))
+            get_string_regex_elements(teststring)
+        )
         regex_email = get_regex_from_elements(
-            get_string_regex_elements(testemail))
+            get_string_regex_elements(testemail)
+        )
         regex_phrase = get_regex_from_elements(
-            get_phrase_regex_elements(testphrase))
+            get_phrase_regex_elements(testphrase)
+        )
         regex_10digit = get_regex_from_elements(
-            get_number_of_length_n_regex_elements(10))
+            get_number_of_length_n_regex_elements(10)
+        )
         regex_postcode = get_regex_from_elements(
-            get_uk_postcode_regex_elements())
-        all_elements = (
-            get_date_regex_elements(testdate) +
-            get_code_regex_elements(str(testnumber)) +
-            get_code_regex_elements(
-                get_digit_string_from_vaguely_numeric_string(
-                    testnumber_as_text)) +
-            get_string_regex_elements(teststring) +
-            get_string_regex_elements(testemail) +
-            get_phrase_regex_elements(testphrase) +
-            get_number_of_length_n_regex_elements(10) +
             get_uk_postcode_regex_elements()
+        )
+        all_elements = (
+            get_date_regex_elements(testdate)
+            + get_code_regex_elements(str(testnumber))
+            + get_code_regex_elements(
+                get_digit_string_from_vaguely_numeric_string(
+                    testnumber_as_text
+                )
+            )
+            + get_string_regex_elements(teststring)
+            + get_string_regex_elements(testemail)
+            + get_phrase_regex_elements(testphrase)
+            + get_number_of_length_n_regex_elements(10)
+            + get_uk_postcode_regex_elements()
         )
         regex_all = get_regex_from_elements(all_elements)
 
-        self.report("Removing date: " + testdate_str,
-                    regex_date.sub("DATE_GONE", s))
-        self.report(f"Removing number: {testnumber}",
-                    regex_number.sub("NUMBER_GONE", s))
-        self.report("Removing numbers as text: " + testnumber_as_text,
-                    regex_number_as_text.sub("NUMBER_AS_TEXT_GONE", s))
-        self.report("Removing string: " + teststring,
-                    regex_string.sub("STRING_GONE", s))
-        self.report("Removing email: " + testemail,
-                    regex_email.sub("EMAIL_GONE", s))
-        self.report("Removing phrase: " + testphrase,
-                    regex_phrase.sub("PHRASE_GONE", s))
-        self.report("Removing 10-digit numbers",
-                    regex_10digit.sub("TEN_DIGIT_NUMBERS_GONE", s))
-        self.report("Removing postcodes",
-                    regex_postcode.sub("POSTCODES_GONE", s))
+        self.report(
+            "Removing date: " + testdate_str, regex_date.sub("DATE_GONE", s)
+        )
+        self.report(
+            f"Removing number: {testnumber}",
+            regex_number.sub("NUMBER_GONE", s),
+        )
+        self.report(
+            "Removing numbers as text: " + testnumber_as_text,
+            regex_number_as_text.sub("NUMBER_AS_TEXT_GONE", s),
+        )
+        self.report(
+            "Removing string: " + teststring,
+            regex_string.sub("STRING_GONE", s),
+        )
+        self.report(
+            "Removing email: " + testemail, regex_email.sub("EMAIL_GONE", s)
+        )
+        self.report(
+            "Removing phrase: " + testphrase,
+            regex_phrase.sub("PHRASE_GONE", s),
+        )
+        self.report(
+            "Removing 10-digit numbers",
+            regex_10digit.sub("TEN_DIGIT_NUMBERS_GONE", s),
+        )
+        self.report(
+            "Removing postcodes", regex_postcode.sub("POSTCODES_GONE", s)
+        )
         self.report("Removing everything", regex_all.sub("EVERYTHING_GONE", s))
-        self.report("All-elements regex",
-                    get_regex_string_from_elements(all_elements))
-        self.report("Date regex",
-                    get_regex_string_from_elements(
-                        get_date_regex_elements(testdate)))
-        self.report("Date regex for 19th century",
-                    get_regex_string_from_elements(
-                        get_date_regex_elements(old_testdate)))
-        self.report("Phrase regex", get_regex_string_from_elements(
-            get_phrase_regex_elements(testphrase)))
-        self.report("10-digit-number regex", get_regex_string_from_elements(
-            get_number_of_length_n_regex_elements(10)))
+        self.report(
+            "All-elements regex", get_regex_string_from_elements(all_elements)
+        )
+        self.report(
+            "Date regex",
+            get_regex_string_from_elements(get_date_regex_elements(testdate)),
+        )
+        self.report(
+            "Date regex for 19th century",
+            get_regex_string_from_elements(
+                get_date_regex_elements(old_testdate)
+            ),
+        )
+        self.report(
+            "Phrase regex",
+            get_regex_string_from_elements(
+                get_phrase_regex_elements(testphrase)
+            ),
+        )
+        self.report(
+            "10-digit-number regex",
+            get_regex_string_from_elements(
+                get_number_of_length_n_regex_elements(10)
+            ),
+        )
 
     def test_generic_date(self) -> None:
         # https://stackoverflow.com/questions/51224/regular-expression-to-match-valid-dates  # noqa
@@ -226,7 +264,6 @@ class TestAnonRegexes(TestCase):
             "29/02/1976",
             "03/06/2010",
             "12/6/90",
-
             # month, day, year
             "02/24/1975",
             "06/19/66",
@@ -241,13 +278,11 @@ class TestAnonRegexes(TestCase):
             "03/31/2001",
             "01/21/2001",
             "12/13/2001",
-
             # Match both DMY and MDY
             "12/12/1978",
             "6/6/78",
             "06/6/1978",
             "6/06/1978",
-
             # using whitespace as a delimiter
             "13 11 2001",
             "11 13 2001",
@@ -255,40 +290,32 @@ class TestAnonRegexes(TestCase):
             "13 11 01",
             "1 1 01",
             "1 1 2001",
-
             # Year Month Day order
             "76/02/02",
             "1976/02/29",
             "1976/2/13",
             "76/09/31",
-
             # YYYYMMDD sortable format
             "19741213",
             "19750101",
-
             # Valid dates before Epoch
             "12/1/10",
             "12/01/00",
             "12/01/0000",
-
             # Valid date after 2038
             "01/01/2039",
             "01/01/39",
-
             # Dates with leading or trailing characters (but still word
             # boundaries)
             "12/31/21/",
             "12/10/2016  8:26:00.39",
             "31/12/1921.10:55",
-
             # Dates that runs across two lines
             "1/12/19\n74",
             "01/12/19\n74/13/1946",
             "31/12/20\n08:13",
-
             # Odd but accepted
             "2/12-73",
-
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Extras with our system supporting month words/ordinals
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -309,7 +336,6 @@ class TestAnonRegexes(TestCase):
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Invalid, corrupted or nonsense dates
             "74/2/29",  # wasn't a leap year
-
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Extras with our system supporting month words/ordinals
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -336,12 +362,10 @@ class TestAnonRegexes(TestCase):
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Dates with leading or trailing characters that render it garbage
             "12321301/01/99",
-
             # Invalid, corrupted or nonsense dates
             "00/01/2100",
             "31/31/2001",
             "101/12/1974",
-
             # Invalid, corrupted or nonsense dates
             "0/1/2001",
             "1/0/2001",
@@ -355,34 +379,33 @@ class TestAnonRegexes(TestCase):
             "12/10/-100",
             "12/32/45",
             "20/12/194",
-
             # Times that look like dates
             "12:13:56",
             "13:12:01",
             "1:12:01PM",
             "1:12:01 AM",
-
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Extras with our system supporting month words/ordinals
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             "1xx Sep 2000",
             "1st Spt 2000",
-
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Irrelevant content
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             "The cat sat on the mat."
-            "He started haloperidol 5mg x7/week in 2009."
+            "He started haloperidol 5mg x7/week in 2009.",
         )
         working_valid = valid + suboptimal_but_accepted
         working_invalid = not_currently_valid_perhaps_should_be + invalid
 
         date_regex_wb_elements = get_generic_date_regex_elements(
-            at_word_boundaries_only=True)
+            at_word_boundaries_only=True
+        )
         date_regex_wb_elements_str = "\n".join(date_regex_wb_elements)
         date_regex_wb = get_regex_from_elements(date_regex_wb_elements)
         date_regex_no_wb_elements = get_generic_date_regex_elements(
-            at_word_boundaries_only=False)
+            at_word_boundaries_only=False
+        )
         date_regex_no_wb_elements_str = "\n".join(date_regex_no_wb_elements)
         date_regex_no_wb = get_regex_from_elements(date_regex_no_wb_elements)
 
@@ -393,39 +416,39 @@ class TestAnonRegexes(TestCase):
                 date_regex_wb.search(x),
                 f"[#1] Should be recognized as a date (with word "
                 f"boundaries) but isn't: {x!r}; "
-                f"regex elements =\n{date_regex_wb_elements_str}"
+                f"regex elements =\n{date_regex_wb_elements_str}",
             )
             self.assertTrue(
                 date_regex_no_wb.search(x),
                 f"[#2] Should be recognized as a date (without word "
                 f"boundaries) but isn't: {x!r}; "
-                f"regex elements =\n{date_regex_no_wb_elements_str}"
+                f"regex elements =\n{date_regex_no_wb_elements_str}",
             )
         for x in valid_only_without_word_boundaries:
             self.assertFalse(
                 date_regex_wb.search(x),
                 f"[#3] Should not be recognized as a date (with word "
                 f"boundaries) but is: {x!r}; "
-                f"regex elements =\n{date_regex_wb_elements_str}"
+                f"regex elements =\n{date_regex_wb_elements_str}",
             )
             self.assertTrue(
                 date_regex_no_wb.search(x),
                 f"[#4] Should be recognized as a date (without word "
                 f"boundaries) but isn't: {x!r}; "
-                f"regex elements =\n{date_regex_no_wb_elements_str}"
+                f"regex elements =\n{date_regex_no_wb_elements_str}",
             )
         for x in working_invalid:
             self.assertFalse(
                 date_regex_wb.search(x),
                 f"[#5] Should not be recognized as a date (with word "
                 f"boundaries) but is: {x!r}; "
-                f"regex elements =\n{date_regex_wb_elements_str}"
+                f"regex elements =\n{date_regex_wb_elements_str}",
             )
             self.assertFalse(
                 date_regex_no_wb.search(x),
                 f"[#6] Should not be recognized as a date (without word "
                 f"boundaries) but is: {x!r}; "
-                f"regex elements =\n{date_regex_no_wb_elements_str}"
+                f"regex elements =\n{date_regex_no_wb_elements_str}",
             )
 
 
@@ -444,12 +467,14 @@ def examples_for_paper() -> None:
         length = len(s)
         if length < min_string_length_to_scrub_with:
             continue
-        words_regexes.extend(get_string_regex_elements(
-            s,
-            suffixes=scrub_string_suffixes,
-            at_word_boundaries_only=at_word_boundaries_only,
-            max_errors=max_errors
-        ))
+        words_regexes.extend(
+            get_string_regex_elements(
+                s,
+                suffixes=scrub_string_suffixes,
+                at_word_boundaries_only=at_word_boundaries_only,
+                max_errors=max_errors,
+            )
+        )
     print(f"--- For words {testwords}:")
     for r in words_regexes:
         print(r)
@@ -458,7 +483,7 @@ def examples_for_paper() -> None:
     phrase_regexes = get_phrase_regex_elements(
         testphrase,
         max_errors=max_errors,
-        at_word_boundaries_only=at_word_boundaries_only
+        at_word_boundaries_only=at_word_boundaries_only,
     )
     print(f"--- For phrase {testphrase}:")
     for r in phrase_regexes:
@@ -470,7 +495,7 @@ def examples_for_paper() -> None:
     number_regexes = get_code_regex_elements(
         get_digit_string_from_vaguely_numeric_string(str(testnumber)),
         at_word_boundaries_only=anonymise_numbers_at_word_boundaries_only,
-        at_numeric_boundaries_only=anonymise_numbers_at_numeric_boundaries_only
+        at_numeric_boundaries_only=anonymise_numbers_at_numeric_boundaries_only,  # noqa: E501
     )
     print(f"--- For number {testnumber}:")
     for r in number_regexes:
@@ -480,7 +505,7 @@ def examples_for_paper() -> None:
     anonymise_codes_at_word_boundaries_only = True
     code_regexes = get_code_regex_elements(
         reduce_to_alphanumeric(str(testcode)),
-        at_word_boundaries_only=anonymise_codes_at_word_boundaries_only
+        at_word_boundaries_only=anonymise_codes_at_word_boundaries_only,
     )
     print(f"--- For code {testcode}:")
     for r in code_regexes:
@@ -489,7 +514,7 @@ def examples_for_paper() -> None:
     n_digits = 10
     nonspec_10_digit_number_regexes = get_number_of_length_n_regex_elements(
         n_digits,
-        at_word_boundaries_only=anonymise_numbers_at_word_boundaries_only
+        at_word_boundaries_only=anonymise_numbers_at_word_boundaries_only,
     )
     print(f"--- NONSPECIFIC: numbers of length {n_digits}:")
     for r in nonspec_10_digit_number_regexes:
@@ -521,10 +546,12 @@ class AnonRegexTests2(TestCase):
                 regex.search(pattern, string)
                 for pattern in regexes
             ),
-            f"Failed to match {string!r} against regexes {regexes}"
+            f"Failed to match {string!r} against regexes {regexes}",
         )
 
-    def _should_match_all(self, regexes: List[str], strings: List[str]) -> None:
+    def _should_match_all(
+        self, regexes: List[str], strings: List[str]
+    ) -> None:
         for s in strings:
             self._should_match(regexes, s)
 
@@ -535,26 +562,26 @@ class AnonRegexTests2(TestCase):
                 regex.search(pattern, string)
                 for pattern in regexes
             ),
-            f"Inappropriately matched {string!r} against regexes {regexes}"
+            f"Inappropriately matched {string!r} against regexes {regexes}",
         )
 
-    def _should_not_match_any(self, regexes: List[str],
-                              strings: List[str]) -> None:
+    def _should_not_match_any(
+        self, regexes: List[str], strings: List[str]
+    ) -> None:
         for s in strings:
             self._should_not_match(regexes, s)
 
     def test_fragments(self) -> None:
         self.assertEqual(
-            get_anon_fragments_from_string("John Smith"),
-            ["John", "Smith"]
+            get_anon_fragments_from_string("John Smith"), ["John", "Smith"]
         )
         self.assertEqual(
             get_anon_fragments_from_string("John D'Souza"),
-            ["John", "D", "Souza"]
+            ["John", "D", "Souza"],
         )
         self.assertEqual(
             get_anon_fragments_from_string("  42 West Street  "),
-            ["42", "West", "Street"]
+            ["42", "West", "Street"],
         )
 
     def test_date(self) -> None:
@@ -574,7 +601,7 @@ class AnonRegexTests2(TestCase):
                     "31 December, 2021",
                     "December 31 2021",
                     "December 31, 2021",
-                ]
+                ],
             ),
             (
                 date(1980, 5, 6),
@@ -588,7 +615,7 @@ class AnonRegexTests2(TestCase):
                     # Partly textual:
                     "6 May 1980",
                     "May 6, 80",
-                ]
+                ],
             ),
         ]  # type: List[Tuple[date, List[str]]]
         for testdate, text_versions in tests:
@@ -604,7 +631,7 @@ class AnonRegexTests2(TestCase):
                     "        PE123AB  ",
                     "PE12 3AB",
                     "PE 12 3 AB",
-                ]
+                ],
             ),
             (
                 "PE 12 3AB",
@@ -612,13 +639,11 @@ class AnonRegexTests2(TestCase):
                     "        PE123AB  ",
                     "PE12 3AB",
                     "PE 12 3 AB",
-                ]
+                ],
             ),
         ]  # type: List[Tuple[str, List[str]]]
         for testcode, text_versions in tests:
-            regexes = get_code_regex_elements(
-                reduce_to_alphanumeric(testcode)
-            )
+            regexes = get_code_regex_elements(reduce_to_alphanumeric(testcode))
             for text in text_versions:
                 self._should_match(regexes, text)
 
@@ -627,8 +652,9 @@ class AnonRegexTests2(TestCase):
 
         word_boundaries = get_code_regex_elements(
             code,
-            liberal=False, very_liberal=False,
-            at_word_boundaries_only=True
+            liberal=False,
+            very_liberal=False,
+            at_word_boundaries_only=True,
         )
         self._should_match_all(
             word_boundaries,
@@ -637,7 +663,7 @@ class AnonRegexTests2(TestCase):
                 f"pq,{code},xy",
                 f"12 {code} 34",
                 f"12,{code},34",
-            ]
+            ],
         )
         self._should_not_match_any(
             word_boundaries,
@@ -648,14 +674,15 @@ class AnonRegexTests2(TestCase):
                 f"12{code}34",
                 f"12{code} 34",
                 f"12 {code}34",
-            ]
+            ],
         )
 
         number_boundaries = get_code_regex_elements(
             code,
-            liberal=False, very_liberal=False,
+            liberal=False,
+            very_liberal=False,
             at_word_boundaries_only=False,
-            at_numeric_boundaries_only=True
+            at_numeric_boundaries_only=True,
         )
         self._should_match_all(
             number_boundaries,
@@ -667,7 +694,7 @@ class AnonRegexTests2(TestCase):
                 f"pq{code}xy",
                 f"pq{code} xy",
                 f"pq {code}xy",
-            ]
+            ],
         )
         self._should_not_match_any(
             number_boundaries,
@@ -675,14 +702,15 @@ class AnonRegexTests2(TestCase):
                 f"12{code}34",
                 f"12{code} 34",
                 f"12 {code}34",
-            ]
+            ],
         )
 
         anywhere = get_code_regex_elements(
             code,
-            liberal=False, very_liberal=False,
+            liberal=False,
+            very_liberal=False,
             at_word_boundaries_only=False,
-            at_numeric_boundaries_only=False
+            at_numeric_boundaries_only=False,
         )
         self._should_match_all(
             anywhere,
@@ -697,7 +725,7 @@ class AnonRegexTests2(TestCase):
                 f"12{code}34",
                 f"12{code} 34",
                 f"12 {code}34",
-            ]
+            ],
         )
 
 

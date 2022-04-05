@@ -81,25 +81,42 @@ SqlArgsTupleType = Tuple[str, List[Any]]
 
 TIMING_COMMIT = "commit"
 
-SQL_OPS_VALUE_UNNECESSARY = ['IS NULL', 'IS NOT NULL']
-SQL_OPS_MULTIPLE_VALUES = ['IN', 'NOT IN']
+SQL_OPS_VALUE_UNNECESSARY = ["IS NULL", "IS NOT NULL"]
+SQL_OPS_MULTIPLE_VALUES = ["IN", "NOT IN"]
 
 SQLTYPE_DATE = "DATE"
 
 SQLTYPES_INTEGER = [
-    "INT", "INTEGER",
-    "TINYINT", "SMALLINT", "MEDIUMINT", "BIGINT",
-    "BIT", "BOOL", "BOOLEAN",
+    "INT",
+    "INTEGER",
+    "TINYINT",
+    "SMALLINT",
+    "MEDIUMINT",
+    "BIGINT",
+    "BIT",
+    "BOOL",
+    "BOOLEAN",
 ]
 SQLTYPES_FLOAT = [
-    "DOUBLE", "FLOAT", "DEC", "DECIMAL",
+    "DOUBLE",
+    "FLOAT",
+    "DEC",
+    "DECIMAL",
 ]
 SQLTYPES_TEXT = [
-    "CHAR", "VARCHAR", "NVARCHAR",
-    "TINYTEXT", "TEXT", "NTEXT", "MEDIUMTEXT", "LONGTEXT",
+    "CHAR",
+    "VARCHAR",
+    "NVARCHAR",
+    "TINYTEXT",
+    "TEXT",
+    "NTEXT",
+    "MEDIUMTEXT",
+    "LONGTEXT",
 ]
 SQLTYPES_WITH_DATE = [
-    SQLTYPE_DATE, "DATETIME", "TIMESTAMP",
+    SQLTYPE_DATE,
+    "DATETIME",
+    "TIMESTAMP",
 ]
 # SQLTYPES_BINARY = [
 #     "BINARY", "BLOB", "IMAGE", "LONGBLOB", "VARBINARY",
@@ -135,15 +152,12 @@ MSSQL_COLTYPE_TO_LEN = {
     # https://docs.microsoft.com/en-us/sql/t-sql/data-types/char-and-varchar-transact-sql?view=sql-server-ver15  # noqa
     # https://docs.microsoft.com/en-us/sql/t-sql/data-types/nchar-and-nvarchar-transact-sql?view=sql-server-ver15  # noqa
     # https://docs.microsoft.com/en-us/sql/t-sql/data-types/ntext-text-and-image-transact-sql?view=sql-server-ver15  # noqa
-
-    "NVARCHAR_MAX": 2 ** 30 - 1,
+    "NVARCHAR_MAX": 2**30 - 1,
     # Can specify NVARCHAR(1) to NVARCHAR(4000), or NVARCHAR(MAX) for 2^30 - 1.
-
-    "VARCHAR_MAX": 2 ** 31 - 1,
+    "VARCHAR_MAX": 2**31 - 1,
     # Can specify VARCHAR(1) to VARCHAR(8000), or VARCHAR(MAX) for 2^31 - 1.
-
-    "TEXT": 2 ** 31 - 1,
-    "NTEXT": 2 ** 30 - 1,
+    "TEXT": 2**31 - 1,
+    "NTEXT": 2**30 - 1,
 }
 
 
@@ -160,6 +174,7 @@ MSSQL_COLTYPE_TO_LEN = {
 # =============================================================================
 # Helper classes
 # =============================================================================
+
 
 @dataclass
 class IndexCreationInfo:
@@ -180,6 +195,7 @@ class IndexCreationInfo:
 # =============================================================================
 # SQL elements: identifiers
 # =============================================================================
+
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
 @functools.total_ordering
@@ -205,18 +221,17 @@ class SchemaId(object):
       - https://stackoverflow.com/questions/11618277/difference-between-schema-database-in-mysql
 
     """  # noqa
-    def __init__(self, db: str = '', schema: str = '') -> None:
+
+    def __init__(self, db: str = "", schema: str = "") -> None:
         """
         Args:
             db: database name
             schema: schema name
         """
-        assert "." not in db, (
-            f"Bad database name ({db!r}); can't include '.'"
-        )
-        assert "." not in schema, (
-            f"Bad schema name ({schema!r}); can't include '.'"
-        )
+        assert "." not in db, f"Bad database name ({db!r}); can't include '.'"
+        assert (
+            "." not in schema
+        ), f"Bad schema name ({schema!r}); can't include '.'"
         self._db = db
         self._schema = schema
 
@@ -232,7 +247,7 @@ class SchemaId(object):
         return f"{self._db}.{self._schema}"
 
     @classmethod
-    def from_schema_tag(cls, tag: str) -> 'SchemaId':
+    def from_schema_tag(cls, tag: str) -> "SchemaId":
         """
         Returns a :class:`SchemaId` from a tag of the form ``db.schema``.
         """
@@ -248,17 +263,13 @@ class SchemaId(object):
         """
         return bool(self._schema)
 
-    def __eq__(self, other: 'SchemaId') -> bool:
+    def __eq__(self, other: "SchemaId") -> bool:
         return (  # ordering is for speed
-            self._schema == other._schema and
-            self._db == other._db
+            self._schema == other._schema and self._db == other._db
         )
 
-    def __lt__(self, other: 'SchemaId') -> bool:
-        return (
-            (self._db, self._schema) <
-            (other._db, other._schema)
-        )
+    def __lt__(self, other: "SchemaId") -> bool:
+        return (self._db, self._schema) < (other._db, other._schema)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -271,11 +282,9 @@ class SchemaId(object):
         Args:
             grammar: :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar`
         """
-        return make_identifier(grammar,
-                               database=self._db,
-                               schema=self._schema)
+        return make_identifier(grammar, database=self._db, schema=self._schema)
 
-    def table_id(self, table: str) -> 'TableId':
+    def table_id(self, table: str) -> "TableId":
         """
         Returns a :class:`TableId` combining this schema and the specified
         table.
@@ -285,7 +294,7 @@ class SchemaId(object):
         """
         return TableId(db=self._db, schema=self._schema, table=table)
 
-    def column_id(self, table: str, column: str) -> 'ColumnId':
+    def column_id(self, table: str, column: str) -> "ColumnId":
         """
         Returns a :class:`ColumnId` combining this schema and the specified
         table/column.
@@ -294,8 +303,9 @@ class SchemaId(object):
             table: name of the table
             column: name of the column
         """
-        return ColumnId(db=self._db, schema=self._schema,
-                        table=table, column=column)
+        return ColumnId(
+            db=self._db, schema=self._schema, table=table, column=column
+        )
 
     @property
     def db(self) -> str:
@@ -315,8 +325,7 @@ class SchemaId(object):
         return self.identifier(mysql_grammar)  # specific one unimportant
 
     def __repr__(self) -> str:
-        return mapped_repr_stripping_underscores(
-            self, ['_db', '_schema'])
+        return mapped_repr_stripping_underscores(self, ["_db", "_schema"])
 
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
@@ -325,8 +334,10 @@ class TableId(object):
     """
     Represents a database table.
     """
-    def __init__(self, db: str = '', schema: str = '',
-                 table: str = '') -> None:
+
+    def __init__(
+        self, db: str = "", schema: str = "", table: str = ""
+    ) -> None:
         """
         Args:
             db: database name
@@ -340,17 +351,18 @@ class TableId(object):
     def __bool__(self) -> bool:
         return bool(self._table)
 
-    def __eq__(self, other: 'TableId') -> bool:
+    def __eq__(self, other: "TableId") -> bool:
         return (  # ordering is for speed
-            self._table == other._table and
-            self._schema == other._schema and
-            self._db == other._db
+            self._table == other._table
+            and self._schema == other._schema
+            and self._db == other._db
         )
 
-    def __lt__(self, other: 'TableId') -> bool:
-        return (
-            (self._db, self._schema, self._table) <
-            (other._db, other._schema, other._table)
+    def __lt__(self, other: "TableId") -> bool:
+        return (self._db, self._schema, self._table) < (
+            other._db,
+            other._schema,
+            other._table,
         )
 
     def __hash__(self) -> int:
@@ -364,10 +376,9 @@ class TableId(object):
         Args:
             grammar: :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar`
         """
-        return make_identifier(grammar,
-                               database=self._db,
-                               schema=self._schema,
-                               table=self._table)
+        return make_identifier(
+            grammar, database=self._db, schema=self._schema, table=self._table
+        )
 
     @property
     def schema_id(self) -> SchemaId:
@@ -376,7 +387,7 @@ class TableId(object):
         """
         return SchemaId(db=self._db, schema=self._schema)
 
-    def column_id(self, column: str) -> 'ColumnId':
+    def column_id(self, column: str) -> "ColumnId":
         """
         Returns a :class:`ColumnId` combining this table and the specified
         column.
@@ -384,8 +395,9 @@ class TableId(object):
         Args:
             column: name of the column
         """
-        return ColumnId(db=self._db, schema=self._schema,
-                        table=self._table, column=column)
+        return ColumnId(
+            db=self._db, schema=self._schema, table=self._table, column=column
+        )
 
     def database_schema_part(self, grammar: SqlGrammar) -> str:
         """
@@ -395,9 +407,7 @@ class TableId(object):
         Args:
             grammar: :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar`
         """
-        return make_identifier(grammar,
-                               database=self._db,
-                               schema=self._schema)
+        return make_identifier(grammar, database=self._db, schema=self._schema)
 
     def table_part(self, grammar: SqlGrammar) -> str:
         """
@@ -435,7 +445,8 @@ class TableId(object):
 
     def __repr__(self) -> str:
         return mapped_repr_stripping_underscores(
-            self, ['_db', '_schema', '_table'])
+            self, ["_db", "_schema", "_table"]
+        )
 
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
@@ -444,8 +455,10 @@ class ColumnId(object):
     """
     Represents a database column.
     """
-    def __init__(self, db: str = '', schema: str = '',
-                 table: str = '', column: str = '') -> None:
+
+    def __init__(
+        self, db: str = "", schema: str = "", table: str = "", column: str = ""
+    ) -> None:
         """
         Args:
             db: database name
@@ -461,18 +474,20 @@ class ColumnId(object):
     def __bool__(self) -> bool:
         return bool(self._column)
 
-    def __eq__(self, other: 'ColumnId') -> bool:
+    def __eq__(self, other: "ColumnId") -> bool:
         return (
-            self._column == other._column and
-            self._table == other._table and
-            self._schema == other._schema and
-            self._db == other._db
+            self._column == other._column
+            and self._table == other._table
+            and self._schema == other._schema
+            and self._db == other._db
         )
 
-    def __lt__(self, other: 'ColumnId') -> bool:
-        return (
-            (self._db, self._schema, self._table, self._column) <
-            (other._db, other._schema, other._table, other._column)
+    def __lt__(self, other: "ColumnId") -> bool:
+        return (self._db, self._schema, self._table, self._column) < (
+            other._db,
+            other._schema,
+            other._table,
+            other._column,
         )
 
     @property
@@ -483,11 +498,13 @@ class ColumnId(object):
         return bool(self._table and self._column)  # the minimum
 
     def identifier(self, grammar: SqlGrammar) -> str:
-        return make_identifier(grammar,
-                               database=self._db,
-                               schema=self._schema,
-                               table=self._table,
-                               column=self._column)
+        return make_identifier(
+            grammar,
+            database=self._db,
+            schema=self._schema,
+            table=self._table,
+            column=self._column,
+        )
 
     @property
     def db(self) -> str:
@@ -543,7 +560,8 @@ class ColumnId(object):
 
     def __repr__(self) -> str:
         return mapped_repr_stripping_underscores(
-            self, ['_db', '_schema', '_table', '_column'])
+            self, ["_db", "_schema", "_table", "_column"]
+        )
 
     # def html(self, grammar: SqlGrammar, bold_column: bool = True) -> str:
     #     components = [
@@ -572,13 +590,13 @@ def split_db_schema_table(db_schema_table: str) -> TableId:
         :exc:`ValueError` if the input is bad
 
     """
-    components = db_schema_table.split('.')
+    components = db_schema_table.split(".")
     if len(components) == 3:  # db.schema.table
         d, s, t = components[0], components[1], components[2]
     elif len(components) == 2:  # schema.table
-        d, s, t = '', components[0], components[1]
+        d, s, t = "", components[0], components[1]
     elif len(components) == 1:  # table
-        d, s, t = '', '', components[0]
+        d, s, t = "", "", components[0]
     else:
         raise ValueError(f"Bad db_schema_table: {db_schema_table}")
     return TableId(db=d, schema=s, table=t)
@@ -600,23 +618,23 @@ def split_db_schema_table_column(db_schema_table_col: str) -> ColumnId:
         :exc:`ValueError` if the input is bad
 
     """
-    components = db_schema_table_col.split('.')
+    components = db_schema_table_col.split(".")
     if len(components) == 4:  # db.schema.table.column
         d, s, t, c = components[0], components[1], components[2], components[3]
     elif len(components) == 3:  # schema.table.column
-        d, s, t, c = '', components[0], components[1], components[2]
+        d, s, t, c = "", components[0], components[1], components[2]
     elif len(components) == 2:  # table.column
-        d, s, t, c = '', '', components[0], components[1]
+        d, s, t, c = "", "", components[0], components[1]
     elif len(components) == 1:  # column
-        d, s, t, c = '', '', '', components[0]
+        d, s, t, c = "", "", "", components[0]
     else:
         raise ValueError(f"Bad db_schema_table_col: {db_schema_table_col}")
     return ColumnId(db=d, schema=s, table=t, column=c)
 
 
 def columns_to_table_column_hierarchy(
-        columns: List[ColumnId],
-        sort: bool = True) -> List[Tuple[TableId, List[ColumnId]]]:
+    columns: List[ColumnId], sort: bool = True
+) -> List[Tuple[TableId, List[ColumnId]]]:
     """
     Converts a list of column IDs
     Args:
@@ -644,11 +662,14 @@ def columns_to_table_column_hierarchy(
 # Using SQL grammars (but without reference to Django models, for testing)
 # =============================================================================
 
-def make_identifier(grammar: SqlGrammar,
-                    database: str = None,
-                    schema: str = None,
-                    table: str = None,
-                    column: str = None) -> str:
+
+def make_identifier(
+    grammar: SqlGrammar,
+    database: str = None,
+    schema: str = None,
+    table: str = None,
+    column: str = None,
+) -> str:
     """
     Makes an SQL identifier by quoting its elements according to the style of
     the specific SQL grammar, and then joining them with ``.``.
@@ -665,16 +686,21 @@ def make_identifier(grammar: SqlGrammar,
         omitting any missing parts
 
     """
-    elements = [grammar.quote_identifier_if_required(x)
-                for x in (database, schema, table, column) if x]
+    elements = [
+        grammar.quote_identifier_if_required(x)
+        for x in (database, schema, table, column)
+        if x
+    ]
     assert elements, "make_identifier(): No elements passed!"
     return ".".join(elements)
 
 
-def dumb_make_identifier(database: str = None,
-                         schema: str = None,
-                         table: str = None,
-                         column: str = None) -> str:
+def dumb_make_identifier(
+    database: str = None,
+    schema: str = None,
+    table: str = None,
+    column: str = None,
+) -> str:
     """
     Makes an SQL-style identifier by joining all the parts with ``.``, without
     bothering to quote them.
@@ -695,9 +721,9 @@ def dumb_make_identifier(database: str = None,
     return ".".join(elements)
 
 
-def parser_add_result_column(parsed: ParseResults,
-                             column: str,
-                             grammar: SqlGrammar) -> ParseResults:
+def parser_add_result_column(
+    parsed: ParseResults, column: str, grammar: SqlGrammar
+) -> ParseResults:
     """
     Takes a parsed SQL statement of the form
 
@@ -734,8 +760,7 @@ def parser_add_result_column(parsed: ParseResults,
     # log.critical(f"adding column: {column}")
     if column not in existing_columns:
         # log.critical("... doesn't exist; adding")
-        newcol = grammar.get_result_column().parseString(column,
-                                                         parseAll=True)
+        newcol = grammar.get_result_column().parseString(column, parseAll=True)
         # log.critical("... " + repr(newcol))
         parsed.select_expression.extend([",", newcol])
     # else:
@@ -748,10 +773,13 @@ class JoinInfo(object):
     """
     Object to represent a SQL join condition in a simple way.
     """
-    def __init__(self,
-                 table: str,
-                 join_type: str = 'INNER JOIN',
-                 join_condition: str = '') -> None:  # e.g. "ON x = y"
+
+    def __init__(
+        self,
+        table: str,
+        join_type: str = "INNER JOIN",
+        join_condition: str = "",
+    ) -> None:  # e.g. "ON x = y"
         """
         Args:
             table: table to be joined in
@@ -763,9 +791,9 @@ class JoinInfo(object):
         self.join_condition = join_condition
 
 
-def parser_add_from_tables(parsed: ParseResults,
-                           join_info_list: List[JoinInfo],
-                           grammar: SqlGrammar) -> ParseResults:
+def parser_add_from_tables(
+    parsed: ParseResults, join_info_list: List[JoinInfo], grammar: SqlGrammar
+) -> ParseResults:
     """
     Takes a parsed SQL statement of the form
 
@@ -804,24 +832,32 @@ def parser_add_from_tables(parsed: ParseResults,
         if ji.table in existing_tables:  # already there
             # log.critical("field already present")
             continue
-        parsed_join = grammar.get_join_op().parseString(ji.join_type,
-                                                        parseAll=True)[0]  # e.g. INNER JOIN  # noqa
-        parsed_table = grammar.get_table_spec().parseString(ji.table,
-                                                            parseAll=True)[0]
+        parsed_join = grammar.get_join_op().parseString(
+            ji.join_type, parseAll=True
+        )[
+            0
+        ]  # e.g. INNER JOIN  # noqa
+        parsed_table = grammar.get_table_spec().parseString(
+            ji.table, parseAll=True
+        )[0]
         extrabits = [parsed_join, parsed_table]
         if ji.join_condition:  # e.g. ON x = y
             extrabits.append(
-                grammar.get_join_constraint().parseString(ji.join_condition,
-                                                          parseAll=True)[0])
+                grammar.get_join_constraint().parseString(
+                    ji.join_condition, parseAll=True
+                )[0]
+            )
         parsed.join_source.extend(extrabits)
     # log.critical(parsed.dump())
     return parsed
 
 
-def get_first_from_table(parsed: ParseResults,
-                         match_db: str = '',
-                         match_schema: str = '',
-                         match_table: str = '') -> TableId:
+def get_first_from_table(
+    parsed: ParseResults,
+    match_db: str = "",
+    match_schema: str = "",
+    match_table: str = "",
+) -> TableId:
     """
     Given a set of parsed results from a SELECT statement, returns the ``db,
     schema, table`` tuple representing the first table in the FROM clause.
@@ -853,7 +889,7 @@ def get_first_from_table(parsed: ParseResults,
     return TableId()
 
 
-def set_distinct_within_parsed(p: ParseResults, action: str = 'set') -> None:
+def set_distinct_within_parsed(p: ParseResults, action: str = "set") -> None:
     """
     Modifies (in place) the DISTINCT status of a parsed SQL statement.
 
@@ -863,27 +899,29 @@ def set_distinct_within_parsed(p: ParseResults, action: str = 'set') -> None:
             or ``"toggle"`` to toggle it.
     """
     ss = p.select_specifier  # type: ParseResults
-    if action == 'set':
-        if 'DISTINCT' not in ss.asList():
-            ss.append('DISTINCT')
-    elif action == 'clear':
-        if 'DISTINCT' in ss.asList():
+    if action == "set":
+        if "DISTINCT" not in ss.asList():
+            ss.append("DISTINCT")
+    elif action == "clear":
+        if "DISTINCT" in ss.asList():
             del ss[:]
-    elif action == 'toggle':
-        if 'DISTINCT' in ss.asList():
+    elif action == "toggle":
+        if "DISTINCT" in ss.asList():
             del ss[:]
         else:
-            ss.append('DISTINCT')
+            ss.append("DISTINCT")
     else:
         raise ValueError("action must be one of set/clear/toggle")
 
 
-def set_distinct(sql: str,
-                 grammar: SqlGrammar,
-                 action: str = 'set',
-                 formatted: bool = True,
-                 debug: bool = False,
-                 debug_verbose: bool = False) -> str:
+def set_distinct(
+    sql: str,
+    grammar: SqlGrammar,
+    action: str = "set",
+    formatted: bool = True,
+    debug: bool = False,
+    debug_verbose: bool = False,
+) -> str:
     """
     Takes an SQL statement (as a string) and modifies its DISTINCT status.
 
@@ -914,11 +952,13 @@ def set_distinct(sql: str,
     return result
 
 
-def toggle_distinct(sql: str,
-                    grammar: SqlGrammar,
-                    formatted: bool = True,
-                    debug: bool = False,
-                    debug_verbose: bool = False) -> str:
+def toggle_distinct(
+    sql: str,
+    grammar: SqlGrammar,
+    formatted: bool = True,
+    debug: bool = False,
+    debug_verbose: bool = False,
+) -> str:
     """
     Takes an SQL statement and toggles its DISTINCT status.
 
@@ -933,12 +973,14 @@ def toggle_distinct(sql: str,
         the modified SQL statment, as a string
 
     """
-    return set_distinct(sql=sql,
-                        grammar=grammar,
-                        action='toggle',
-                        formatted=formatted,
-                        debug=debug,
-                        debug_verbose=debug_verbose)
+    return set_distinct(
+        sql=sql,
+        grammar=grammar,
+        action="toggle",
+        formatted=formatted,
+        debug=debug,
+        debug_verbose=debug_verbose,
+    )
 
 
 # =============================================================================
@@ -1015,23 +1057,27 @@ def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
     SQLAlchemy doesn't provide a shortcut for this.
 
     """
-    existing_column_names = get_column_names(engine, tablename=table.name,
-                                             to_lower=True)
+    existing_column_names = get_column_names(
+        engine, tablename=table.name, to_lower=True
+    )
     column_defs = []  # type: List[str]
     for column in columns:
         if column.name.lower() not in existing_column_names:
             column_defs.append(column_creation_ddl(column, engine.dialect))
         else:
-            log.debug(f"Table {table.name!r}: column {column.name!r} "
-                      f"already exists; not adding")
+            log.debug(
+                f"Table {table.name!r}: column {column.name!r} "
+                f"already exists; not adding"
+            )
     for column_def in column_defs:
         log.info(f"Table {repr(table.name)}: adding column {repr(column_def)}")
         sql = f"ALTER TABLE {table.name} ADD {column_def}"
         execute(engine, sql)
 
 
-def drop_columns(engine: Engine, table: Table,
-                 column_names: Iterable[str]) -> None:
+def drop_columns(
+    engine: Engine, table: Table, column_names: Iterable[str]
+) -> None:
     """
     Drops columns from a table.
 
@@ -1046,12 +1092,15 @@ def drop_columns(engine: Engine, table: Table,
     Columns are dropped one by one.
 
     """
-    existing_column_names = get_column_names(engine, tablename=table.name,
-                                             to_lower=True)
+    existing_column_names = get_column_names(
+        engine, tablename=table.name, to_lower=True
+    )
     for name in column_names:
         if name.lower() not in existing_column_names:
-            log.debug(f"Table {table.name!r}: column {name!r} "
-                      f"does not exist; not dropping")
+            log.debug(
+                f"Table {table.name!r}: column {name!r} "
+                f"does not exist; not dropping"
+            )
         else:
             log.info(f"Table {table.name!r}: dropping column {name!r}")
             sql = f"ALTER TABLE {table.name} DROP COLUMN {name}"
@@ -1062,9 +1111,9 @@ def drop_columns(engine: Engine, table: Table,
             execute(engine, sql)
 
 
-def add_indexes(engine: Engine,
-                table: Table,
-                index_info_list: Iterable[IndexCreationInfo]) -> None:
+def add_indexes(
+    engine: Engine, table: Table, index_info_list: Iterable[IndexCreationInfo]
+) -> None:
     """
     Adds indexes to a table.
 
@@ -1079,25 +1128,34 @@ def add_indexes(engine: Engine,
         index_info_list:
             Index(es) to create: list of :class:`IndexCreationInfo` objects.
     """
-    existing_index_names = get_index_names(engine, tablename=table.name,
-                                           to_lower=True)
+    existing_index_names = get_index_names(
+        engine, tablename=table.name, to_lower=True
+    )
     for i in index_info_list:
         index_name = i.index_name
         column = i.column_names
         if index_name.lower() not in existing_index_names:
-            log.info(f"Table {table.name!r}: adding index {index_name!r} on "
-                     f"column {column!r}")
-            execute(engine, f"""
+            log.info(
+                f"Table {table.name!r}: adding index {index_name!r} on "
+                f"column {column!r}"
+            )
+            execute(
+                engine,
+                f"""
                 CREATE{" UNIQUE" if i.unique else ""} INDEX {index_name}
                     ON {table.name} ({column})
-            """)
+            """,
+            )
         else:
-            log.debug(f"Table {table.name!r}: index {index_name!r} "
-                      f"already exists; not adding")
+            log.debug(
+                f"Table {table.name!r}: index {index_name!r} "
+                f"already exists; not adding"
+            )
 
 
-def drop_indexes(engine: Engine, table: Table,
-                 index_names: Iterable[str]) -> None:
+def drop_indexes(
+    engine: Engine, table: Table, index_names: Iterable[str]
+) -> None:
     """
     Drops indexes from a table.
 
@@ -1109,26 +1167,29 @@ def drop_indexes(engine: Engine, table: Table,
         table: SQLAlchemy Table object
         index_names: names of indexes to drop
     """
-    existing_index_names = get_index_names(engine, tablename=table.name,
-                                           to_lower=True)
+    existing_index_names = get_index_names(
+        engine, tablename=table.name, to_lower=True
+    )
     for index_name in index_names:
         if index_name.lower() not in existing_index_names:
-            log.debug(f"Table {table.name!r}: index {index_name!r} "
-                      f"does not exist; not dropping")
+            log.debug(
+                f"Table {table.name!r}: index {index_name!r} "
+                f"does not exist; not dropping"
+            )
         else:
             log.info(f"Table {table.name!r}: dropping index {index_name!r}")
-            if engine.dialect.name == 'mysql':
+            if engine.dialect.name == "mysql":
                 sql = f"ALTER TABLE {table.name} DROP INDEX {index_name}"
-            elif engine.dialect.name == 'mssql':
+            elif engine.dialect.name == "mssql":
                 sql = f"DROP INDEX {table.name}.{index_name}"
             else:
                 assert False, f"Unknown dialect: {engine.dialect.name}"
             execute(engine, sql)
 
 
-def get_table_names(engine: Engine,
-                    to_lower: bool = False,
-                    sort: bool = False) -> List[str]:
+def get_table_names(
+    engine: Engine, to_lower: bool = False, sort: bool = False
+) -> List[str]:
     """
     Returns all table names for the database.
 
@@ -1150,9 +1211,9 @@ def get_table_names(engine: Engine,
     return table_names
 
 
-def get_view_names(engine: Engine,
-                   to_lower: bool = False,
-                   sort: bool = False) -> List[str]:
+def get_view_names(
+    engine: Engine, to_lower: bool = False, sort: bool = False
+) -> List[str]:
     """
     Returns all view names for the database.
 
@@ -1174,10 +1235,9 @@ def get_view_names(engine: Engine,
     return view_names
 
 
-def get_column_names(engine: Engine,
-                     tablename: str,
-                     to_lower: bool = False,
-                     sort: bool = False) -> List[str]:
+def get_column_names(
+    engine: Engine, tablename: str, to_lower: bool = False, sort: bool = False
+) -> List[str]:
     """
     Reads columns names afresh from the database, for a specific table (in case
     metadata is out of date).
@@ -1194,7 +1254,7 @@ def get_column_names(engine: Engine,
     """
     inspector = inspect(engine)
     columns = inspector.get_columns(tablename)
-    column_names = [x['name'] for x in columns]
+    column_names = [x["name"] for x in columns]
     if to_lower:
         column_names = [x.lower() for x in column_names]
     if sort:
@@ -1202,10 +1262,9 @@ def get_column_names(engine: Engine,
     return column_names
 
 
-def get_index_names(engine: Engine,
-                    tablename: str,
-                    to_lower: bool = False,
-                    sort: bool = False) -> List[str]:
+def get_index_names(
+    engine: Engine, tablename: str, to_lower: bool = False, sort: bool = False
+) -> List[str]:
     """
     Reads index names from the database, for a specific table.
 
@@ -1222,7 +1281,7 @@ def get_index_names(engine: Engine,
     # http://docs.sqlalchemy.org/en/latest/core/reflection.html
     inspector = inspect(engine)
     indexes = inspector.get_indexes(tablename)
-    index_names = [x['name'] for x in indexes if x['name']]
+    index_names = [x["name"] for x in indexes if x["name"]]
     # ... at least for SQL Server, there always seems to be a blank one
     # with {'name': None, ...}.
     if to_lower:
@@ -1232,9 +1291,9 @@ def get_index_names(engine: Engine,
     return index_names
 
 
-def ensure_columns_present(engine: Engine,
-                           tablename: str,
-                           column_names: Iterable[str]) -> None:
+def ensure_columns_present(
+    engine: Engine, tablename: str, column_names: Iterable[str]
+) -> None:
     """
     Ensure all these columns are present in a table, or raise an exception.
 
@@ -1249,20 +1308,20 @@ def ensure_columns_present(engine: Engine,
         :exc:`ValueError` if any are missing
 
     """
-    existing_column_names = get_column_names(engine, tablename=tablename,
-                                             to_lower=True)
+    existing_column_names = get_column_names(
+        engine, tablename=tablename, to_lower=True
+    )
     if not column_names:
         return
     for col in column_names:
         if col.lower() not in existing_column_names:
             raise ValueError(
                 f"Column {col!r} missing from table {tablename!r}, "
-                f"whose columns are {existing_column_names!r}")
+                f"whose columns are {existing_column_names!r}"
+            )
 
 
-def create_view(engine: Engine,
-                viewname: str,
-                select_sql: str) -> None:
+def create_view(engine: Engine, viewname: str, select_sql: str) -> None:
     """
     Creates a view.
 
@@ -1274,7 +1333,7 @@ def create_view(engine: Engine,
         viewname: view name
         select_sql: SQL SELECT statement for this view
     """
-    if engine.dialect.name == 'mysql':
+    if engine.dialect.name == "mysql":
         # MySQL has CREATE OR REPLACE VIEW.
         sql = f"CREATE OR REPLACE VIEW {viewname} AS {select_sql}"
     else:
@@ -1285,9 +1344,9 @@ def create_view(engine: Engine,
     execute(engine, sql)
 
 
-def assert_view_has_same_num_rows(engine: Engine,
-                                  basetable: str,
-                                  viewname: str) -> None:
+def assert_view_has_same_num_rows(
+    engine: Engine, basetable: str, viewname: str
+) -> None:
     """
     Ensures that a view gives the same number of rows as a table. (For use in
     situations where this should hold; views don't have to do this in general!)
@@ -1308,12 +1367,11 @@ def assert_view_has_same_num_rows(engine: Engine,
     n_view = count_star(engine, viewname)
     assert n_view == n_base, (
         f"View bug: view {viewname} has {n_view} records but its base table "
-        f"{basetable} has {n_base}; they should be equal")
+        f"{basetable} has {n_base}; they should be equal"
+    )
 
 
-def drop_view(engine: Engine,
-              viewname: str,
-              quiet: bool = False) -> None:
+def drop_view(engine: Engine, viewname: str, quiet: bool = False) -> None:
     """
     Drops a view.
 
@@ -1344,19 +1402,23 @@ def drop_view(engine: Engine,
 # ViewMaker
 # =============================================================================
 
+
 class ViewMaker(object):
     """
     View-building assistance class.
     """
-    def __init__(self,
-                 viewname: str,
-                 engine: Engine,
-                 basetable: str,
-                 existing_to_lower: bool = False,
-                 rename: Dict[str, str] = None,
-                 userobj: Any = None,
-                 enforce_same_n_rows_as_base: bool = True,
-                 insert_basetable_columns: bool = True) -> None:
+
+    def __init__(
+        self,
+        viewname: str,
+        engine: Engine,
+        basetable: str,
+        existing_to_lower: bool = False,
+        rename: Dict[str, str] = None,
+        userobj: Any = None,
+        enforce_same_n_rows_as_base: bool = True,
+        insert_basetable_columns: bool = True,
+    ) -> None:
         """
         Args:
             viewname: name of the view
@@ -1393,8 +1455,9 @@ class ViewMaker(object):
             def q(identifier: str) -> str:
                 return grammar.quote_identifier_if_required(identifier)
 
-            for colname in get_column_names(engine, tablename=basetable,
-                                            to_lower=existing_to_lower):
+            for colname in get_column_names(
+                engine, tablename=basetable, to_lower=existing_to_lower
+            ):
                 if colname in rename:
                     rename_to = rename[colname]
                     if not rename_to:
@@ -1403,9 +1466,11 @@ class ViewMaker(object):
                 else:
                     as_clause = ""
                 self.select_elements.append(
-                    f"{q(basetable)}.{q(colname)}{as_clause}")
-            assert self.select_elements, "Must have some active SELECT " \
-                                         "elements from base table"
+                    f"{q(basetable)}.{q(colname)}{as_clause}"
+                )
+            assert self.select_elements, (
+                "Must have some active SELECT " "elements from base table"
+            )
 
     def add_select(self, element: str) -> None:
         """
@@ -1433,7 +1498,8 @@ class ViewMaker(object):
         assert self.select_elements, "ViewMaker: no SELECT elements!"
         if self.where_elements:
             where = "\n    WHERE {}".format(
-                "\n        AND ".join(self.where_elements))
+                "\n        AND ".join(self.where_elements)
+            )
         else:
             where = ""
         return (
@@ -1441,7 +1507,9 @@ class ViewMaker(object):
             "\n    FROM {from_elements}{where}".format(
                 select_elements=",\n        ".join(self.select_elements),
                 from_elements="\n        ".join(self.from_elements),
-                where=where))
+                where=where,
+            )
+        )
 
     def create_view(self, engine: Engine) -> None:
         """
@@ -1458,8 +1526,9 @@ class ViewMaker(object):
         """
         create_view(engine, self.viewname, self.get_sql())
         if self.enforce_same_n_rows_as_base:
-            assert_view_has_same_num_rows(engine, self.basetable,
-                                          self.viewname)
+            assert_view_has_same_num_rows(
+                engine, self.basetable, self.viewname
+            )
 
     def drop_view(self, engine: Engine) -> None:
         """
@@ -1518,9 +1587,8 @@ class ViewMaker(object):
         return self.index_requests
 
     def record_lookup_table_keyfield(
-            self,
-            table: str,
-            keyfield: Union[str, Iterable[str]]) -> None:
+        self, table: str, keyfield: Union[str, Iterable[str]]
+    ) -> None:
         """
         Makes a note that a table is a lookup table, and its key field(s)
         should be indexed. See :func:`get_lookup_tables`,
@@ -1537,10 +1605,9 @@ class ViewMaker(object):
             self.request_index(table, kf)
 
     def record_lookup_table_keyfields(
-            self,
-            table_keyfield_tuples: Iterable[
-                Tuple[str, Union[str, Iterable[str]]]
-            ]) -> None:
+        self,
+        table_keyfield_tuples: Iterable[Tuple[str, Union[str, Iterable[str]]]],
+    ) -> None:
         """
         Make a note of a whole set of lookup table / key field groups. See
         :func:`record_lookup_table_keyfield`.
@@ -1559,13 +1626,18 @@ class ViewMaker(object):
 # TransactionSizeLimiter
 # =============================================================================
 
+
 class TransactionSizeLimiter(object):
     """
     Class to allow us to limit the size of database transactions.
     """
-    def __init__(self, session: Session,
-                 max_rows_before_commit: int = None,
-                 max_bytes_before_commit: int = None) -> None:
+
+    def __init__(
+        self,
+        session: Session,
+        max_rows_before_commit: int = None,
+        max_bytes_before_commit: int = None,
+    ) -> None:
         """
         Args:
             session: SQLAlchemy database Session
@@ -1591,8 +1663,9 @@ class TransactionSizeLimiter(object):
         self._bytes_in_transaction = 0
         self._rows_in_transaction = 0
 
-    def notify(self, n_rows: int, n_bytes: int,
-               force_commit: bool = False) -> None:
+    def notify(
+        self, n_rows: int, n_bytes: int, force_commit: bool = False
+    ) -> None:
         """
         Use this function to notify the limiter of data that you've inserted
         into the database. If the total number of rows or bytes exceeds a limit
@@ -1608,25 +1681,32 @@ class TransactionSizeLimiter(object):
             return
         self._bytes_in_transaction += n_bytes
         self._rows_in_transaction += n_rows
-        if (self._max_bytes_before_commit is not None and
-                self._bytes_in_transaction >= self._max_bytes_before_commit):
+        if (
+            self._max_bytes_before_commit is not None
+            and self._bytes_in_transaction >= self._max_bytes_before_commit
+        ):
             log.debug(
                 f"Triggering early commit based on byte count "
                 f"(reached {sizeof_fmt(self._bytes_in_transaction)}, "
-                f"limit is {sizeof_fmt(self._max_bytes_before_commit)})")
+                f"limit is {sizeof_fmt(self._max_bytes_before_commit)})"
+            )
             self.commit()
-        elif (self._max_rows_before_commit is not None and
-                self._rows_in_transaction >= self._max_rows_before_commit):
+        elif (
+            self._max_rows_before_commit is not None
+            and self._rows_in_transaction >= self._max_rows_before_commit
+        ):
             log.debug(
                 f"Triggering early commit based on row count "
                 f"(reached {self._rows_in_transaction} rows, "
-                f"limit is {self._max_rows_before_commit})")
+                f"limit is {self._max_rows_before_commit})"
+            )
             self.commit()
 
 
 # =============================================================================
 # Specification matching
 # =============================================================================
+
 
 def _matches_tabledef(table: str, tabledef: str) -> bool:
     """
@@ -1680,8 +1760,9 @@ def _matches_fielddef(table: str, field: str, fielddef: str) -> bool:
     return bool(tr.match(table)) and bool(cr.match(field))
 
 
-def matches_fielddef(table: str, field: str,
-                     fielddef: Union[str, List[str]]) -> bool:
+def matches_fielddef(
+    table: str, field: str, fielddef: Union[str, List[str]]
+) -> bool:
     """
     Does the table/field name match the wildcard-based field definition?
 
@@ -1703,10 +1784,13 @@ def matches_fielddef(table: str, field: str,
 # More SQL
 # =============================================================================
 
-def sql_fragment_cast_to_int(expr: str,
-                             big: bool = True,
-                             dialect: Dialect = None,
-                             viewmaker: ViewMaker = None) -> str:
+
+def sql_fragment_cast_to_int(
+    expr: str,
+    big: bool = True,
+    dialect: Dialect = None,
+    viewmaker: ViewMaker = None,
+) -> str:
     """
     Takes an SQL expression and coerces it to an integer. For Microsoft SQL
     Server.
@@ -1805,10 +1889,11 @@ def sql_fragment_cast_to_int(expr: str,
         supports_try_cast = False
     else:
         # noinspection PyUnresolvedReferences
-        sql_server = dialect.name == 'mssql'
+        sql_server = dialect.name == "mssql"
         # noinspection PyUnresolvedReferences
-        supports_try_cast = (sql_server and
-                             dialect.server_version_info >= MS_2012_VERSION)
+        supports_try_cast = (
+            sql_server and dialect.server_version_info >= MS_2012_VERSION
+        )
     if supports_try_cast:
         return f"TRY_CAST({expr} AS {inttype})"
     elif sql_server:
@@ -1819,13 +1904,16 @@ def sql_fragment_cast_to_int(expr: str,
         # Doesn't support negative integers.
     else:
         # noinspection PyUnresolvedReferences
-        raise ValueError(f"Code not yet written for convert-to-int for "
-                         f"dialect {dialect.name}")
+        raise ValueError(
+            f"Code not yet written for convert-to-int for "
+            f"dialect {dialect.name}"
+        )
 
 
 # =============================================================================
 # Abstracted SQL WHERE condition
 # =============================================================================
+
 
 @register_for_json(method=METHOD_PROVIDES_INIT_KWARGS)
 @functools.total_ordering
@@ -1835,13 +1923,16 @@ class WhereCondition(object):
 
     The essence of it is ``WHERE column op value_or_values``.
     """
-    def __init__(self,
-                 column_id: ColumnId = None,
-                 op: str = '',
-                 datatype: str = '',
-                 value_or_values: Any = None,
-                 raw_sql: str = '',
-                 from_table_for_raw_sql: TableId = None) -> None:
+
+    def __init__(
+        self,
+        column_id: ColumnId = None,
+        op: str = "",
+        datatype: str = "",
+        value_or_values: Any = None,
+        raw_sql: str = "",
+        from_table_for_raw_sql: TableId = None,
+    ) -> None:
         """
         Args:
             column_id:
@@ -1883,16 +1974,18 @@ class WhereCondition(object):
                 self._multivalue = True
                 assert isinstance(value_or_values, list), "Need list"
             else:
-                assert not isinstance(value_or_values, list), "Need single value"  # noqa
+                assert not isinstance(
+                    value_or_values, list
+                ), "Need single value"  # noqa
 
     def init_kwargs(self) -> Dict:
         return {
-            'column_id': self._column_id,
-            'op': self._op,
-            'datatype': self._datatype,
-            'value_or_values': self._value,
-            'raw_sql': self._raw_sql,
-            'from_table_for_raw_sql': self._from_table_for_raw_sql,
+            "column_id": self._column_id,
+            "op": self._op,
+            "datatype": self._datatype,
+            "value_or_values": self._value,
+            "raw_sql": self._raw_sql,
+            "from_table_for_raw_sql": self._from_table_for_raw_sql,
         }
 
     def __repr__(self) -> str:
@@ -1915,18 +2008,20 @@ class WhereCondition(object):
             )
         )
 
-    def __eq__(self, other: 'WhereCondition') -> bool:
+    def __eq__(self, other: "WhereCondition") -> bool:
         return (
-            self._raw_sql == other._raw_sql and
-            self._column_id == other._column_id and
-            self._op == other._op and
-            self._value == other._value
+            self._raw_sql == other._raw_sql
+            and self._column_id == other._column_id
+            and self._op == other._op
+            and self._value == other._value
         )
 
-    def __lt__(self, other: 'WhereCondition') -> bool:
-        return (
-            (self._raw_sql, self._column_id, self._op, self._value) <
-            (other._raw_sql, other._column_id, other._op, other._value)
+    def __lt__(self, other: "WhereCondition") -> bool:
+        return (self._raw_sql, self._column_id, self._op, self._value) < (
+            other._raw_sql,
+            other._column_id,
+            other._op,
+            other._value,
         )
 
     @property
@@ -1994,14 +2089,15 @@ class WhereCondition(object):
             element_converter = sql_string_literal
 
         if self._multivalue:
-            literal = "({})".format(", ".join(element_converter(v)
-                                              for v in self._value))
+            literal = "({})".format(
+                ", ".join(element_converter(v) for v in self._value)
+            )
         else:
             literal = element_converter(self._value)
 
-        if self._op == 'MATCH':  # MySQL
+        if self._op == "MATCH":  # MySQL
             return f"MATCH ({col}) AGAINST ({literal})"
-        elif self._op == 'CONTAINS':  # SQL Server
+        elif self._op == "CONTAINS":  # SQL Server
             return f"CONTAINS({col}, {literal})"
         else:
             return f"{col} {op} {literal}"
@@ -2011,6 +2107,7 @@ class WhereCondition(object):
 # SQL formatting
 # =============================================================================
 
+
 def format_sql_for_print(sql: str) -> str:
     """
     Very simple SQL formatting.
@@ -2018,10 +2115,13 @@ def format_sql_for_print(sql: str) -> str:
     Remove blank lines and trailing spaces from an SQL statement.
     Converts tabs to spaces.
     """
-    lines = list(filter(None, [x.replace("\t", "    ").rstrip()
-                               for x in sql.splitlines()]))
+    lines = list(
+        filter(
+            None, [x.replace("\t", "    ").rstrip() for x in sql.splitlines()]
+        )
+    )
     # Shift all lines left if they're left-padded
-    firstleftpos = float('inf')
+    firstleftpos = float("inf")
     for line in lines:
         leftpos = len(line) - len(line.lstrip())
         firstleftpos = min(firstleftpos, leftpos)
@@ -2034,8 +2134,8 @@ def format_sql_for_print(sql: str) -> str:
 # Plain SQL types
 # =============================================================================
 
-def is_sql_column_type_textual(column_type: str,
-                               min_length: int = 1) -> bool:
+
+def is_sql_column_type_textual(column_type: str, min_length: int = 1) -> bool:
     """
     Does an SQL column type look textual?
 
@@ -2088,12 +2188,15 @@ def coltype_length_if_text(column_type: str, dialect: str) -> Optional[int]:
             elif dialect == SqlaDialectName.MSSQL:
                 return MSSQL_COLTYPE_TO_LEN[column_type]
             else:
-                raise ValueError(f"{dialect} is not a valid SQL dialect. Must "
-                                 f"be one of: {SqlaDialectName.MYSQL!r}, "
-                                 f"{SqlaDialectName.MSSQL!r}")
+                raise ValueError(
+                    f"{dialect} is not a valid SQL dialect. Must "
+                    f"be one of: {SqlaDialectName.MYSQL!r}, "
+                    f"{SqlaDialectName.MSSQL!r}"
+                )
         except KeyError:
-            log.error(f"SQL dialect {dialect} has no data type "
-                      f"{column_type}")
+            log.error(
+                f"SQL dialect {dialect} has no data type " f"{column_type}"
+            )
             raise
     else:
         # Length specified - get it from the column type
@@ -2134,7 +2237,7 @@ def escape_percent_in_literal(sql: str) -> str:
 
     - https://dev.mysql.com/doc/refman/5.7/en/string-literals.html
     """
-    return sql.replace('%', r'\%')
+    return sql.replace("%", r"\%")
 
 
 def escape_percent_for_python_dbapi(sql: str) -> str:
@@ -2143,7 +2246,7 @@ def escape_percent_for_python_dbapi(sql: str) -> str:
     Use this for SQL within Python where ``%`` characters are used for argument
     placeholders.
     """
-    return sql.replace('%', '%%')
+    return sql.replace("%", "%%")
 
 
 def escape_sql_string_literal(s: str) -> str:
@@ -2222,8 +2325,8 @@ def translate_sql_qmark_to_percent(sql: str) -> str:
     for c in sql:
         if c == "'":
             in_quotes = not in_quotes
-        if c == '?' and not in_quotes:
-            newsql += '%s'
+        if c == "?" and not in_quotes:
+            newsql += "%s"
         else:
             newsql += c
     return newsql

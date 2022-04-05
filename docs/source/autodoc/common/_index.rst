@@ -35,6 +35,7 @@ crate_anon/common
     extendedconfigparser.py.rst
     file_io.py.rst
     formatting.py.rst
+    inputfunc.py.rst
     memsize.py.rst
     parallel.py.rst
     profiling.py.rst
@@ -45,3 +46,4 @@ crate_anon/common
     tests/regex_helper_tests.py.rst
     tests/spreadsheet_tests.py.rst
     tests/sql_tests.py.rst
+    tests/stringfunc_tests.py.rst

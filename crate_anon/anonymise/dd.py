@@ -42,8 +42,15 @@ from itertools import zip_longest
 import logging
 import operator
 from typing import (
-    AbstractSet, Any, Callable, Dict, List, Optional,
-    Tuple, TYPE_CHECKING, Union
+    AbstractSet,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
 )
 
 from cardinal_pythonlib.sql.validation import is_sqltype_integer
@@ -89,13 +96,14 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-STRING_LENGTH_FOR_BIGINT = len(str(-2 ** 63))
+STRING_LENGTH_FOR_BIGINT = len(str(-(2**63)))
 # = -2^63: https://dev.mysql.com/doc/refman/8.0/en/integer-types.html
 
 
 # =============================================================================
 # Helper classes
 # =============================================================================
+
 
 @dataclass
 class ScrubSourceFieldInfo:
@@ -138,9 +146,12 @@ class DDTableSummary:
 # Helper functions
 # =============================================================================
 
-def ensure_no_source_type_mismatch(ddr: DataDictionaryRow,
-                                   config_sqlatype: Union[TypeEngine, String],
-                                   primary_pid: bool = True) -> None:
+
+def ensure_no_source_type_mismatch(
+    ddr: DataDictionaryRow,
+    config_sqlatype: Union[TypeEngine, String],
+    primary_pid: bool = True,
+) -> None:
     """
     Ensure that the source column type of a data dictionary row is compatible
     with what's expected from the config. We check this only for specific type
@@ -235,6 +246,7 @@ def ensure_no_source_type_mismatch(ddr: DataDictionaryRow,
 # DataDictionary
 # =============================================================================
 
+
 class DataDictionary(object):
     """
     Class representing an entire data dictionary.
@@ -282,10 +294,12 @@ class DataDictionary(object):
     # Loading
     # -------------------------------------------------------------------------
 
-    def read_from_file(self,
-                       filename: str,
-                       check_valid: bool = True,
-                       override_dialect: Dialect = None) -> None:
+    def read_from_file(
+        self,
+        filename: str,
+        check_valid: bool = True,
+        override_dialect: Dialect = None,
+    ) -> None:
         """
         Read DD from file.
 
@@ -301,14 +315,16 @@ class DataDictionary(object):
         """
         log.debug(f"Loading data dictionary: {filename}")
         row_gen = gen_rows_from_spreadsheet(filename)
-        self._read_from_rows(row_gen,
-                             check_valid=check_valid,
-                             override_dialect=override_dialect)
+        self._read_from_rows(
+            row_gen, check_valid=check_valid, override_dialect=override_dialect
+        )
 
-    def _read_from_rows(self,
-                        rows: SINGLE_SPREADSHEET_TYPE,
-                        check_valid: bool = True,
-                        override_dialect: Dialect = None) -> None:
+    def _read_from_rows(
+        self,
+        rows: SINGLE_SPREADSHEET_TYPE,
+        check_valid: bool = True,
+        override_dialect: Dialect = None,
+    ) -> None:
         """
         Internal function to read from a set of rows, whatever the underlying
         format.
@@ -332,8 +348,7 @@ class DataDictionary(object):
         headers = next(rows)
         if not all(x in headers for x in DataDictionaryRow.ROWNAMES):
             actual = "\n".join(
-                f"{i}. {h}"
-                for i, h in enumerate(headers, start=1)
+                f"{i}. {h}" for i, h in enumerate(headers, start=1)
             )
             desired = "\n".join(
                 f"{i}. {h}"
@@ -369,18 +384,22 @@ class DataDictionary(object):
         self.clear_caches()
 
     @classmethod
-    def create_from_file(cls,
-                         filename: str,
-                         config: "Config",
-                         check_valid: bool = True,
-                         override_dialect: Dialect = None) -> "DataDictionary":
+    def create_from_file(
+        cls,
+        filename: str,
+        config: "Config",
+        check_valid: bool = True,
+        override_dialect: Dialect = None,
+    ) -> "DataDictionary":
         """
         Creates a new data dictionary by reading a file.
         """
         dd = DataDictionary(config)
-        dd.read_from_file(filename,
-                          check_valid=check_valid,
-                          override_dialect=override_dialect)
+        dd.read_from_file(
+            filename,
+            check_valid=check_valid,
+            override_dialect=override_dialect,
+        )
         return dd
 
     def draft_from_source_databases(self, report_every: int = 100) -> None:
@@ -417,8 +436,10 @@ class DataDictionary(object):
                     continue
                 all_col_names = [c.name for c in t.columns]
                 if cfg.does_table_fail_minimum_fields(all_col_names):
-                    log.debug(f"Skipping table {t} because it fails "
-                              f"minimum field requirements")
+                    log.debug(
+                        f"Skipping table {t} because it fails "
+                        f"minimum field requirements"
+                    )
                     continue
 
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -436,8 +457,10 @@ class DataDictionary(object):
 
                     # Skip column?
                     if cfg.is_field_denied(columnname):
-                        log.debug(f"Skipping denied column: "
-                                  f"{tablename}.{columnname}")
+                        log.debug(
+                            f"Skipping denied column: "
+                            f"{tablename}.{columnname}"
+                        )
                         continue
                     # Other attributes
                     sqla_coltype = c.type
@@ -454,7 +477,9 @@ class DataDictionary(object):
                     # Create row
                     ddr = DataDictionaryRow(self.config)
                     ddr.set_from_src_db_info(
-                        pretty_dbname, tablename, columnname,
+                        pretty_dbname,
+                        tablename,
+                        columnname,
                         datatype_sqltext,
                         sqla_coltype,
                         dbconf=cfg,
@@ -469,8 +494,10 @@ class DataDictionary(object):
                     # ---------------------------------------------------------
                     sig = ddr.src_signature
                     if sig in existing_signatures:
-                        log.debug(f"Skipping duplicated column: "
-                                  f"{tablename}.{columnname}")
+                        log.debug(
+                            f"Skipping duplicated column: "
+                            f"{tablename}.{columnname}"
+                        )
                         continue
                     existing_signatures.add(sig)
 
@@ -514,7 +541,7 @@ class DataDictionary(object):
             CREATE TABLE rubbish (a INT NOT NULL, b VARCHAR(MAX));
             CREATE UNIQUE INDEX rubbish_a ON rubbish (a);
             CREATE FULLTEXT INDEX ON rubbish (b) KEY INDEX rubbish_a;
-            
+
             -- .. that works, but if you remove the "NOT NULL" from the table
             -- definition, it fails with:
             --
@@ -533,7 +560,7 @@ class DataDictionary(object):
             CREATE TABLE junk (intthing INT PRIMARY KEY, text1 LONGTEXT, text2 LONGTEXT);
             ALTER TABLE junk ADD FULLTEXT INDEX ftidx1 (text1);
             ALTER TABLE junk ADD FULLTEXT INDEX ftidx2 (text2);  -- OK
-        """   # noqa
+        """  # noqa
         log.info("Tidying/correcting draft data dictionary")
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -546,7 +573,8 @@ class DataDictionary(object):
                         f"Removing {AlterMethodType.SCRUBIN.value} from "
                         f"{DataDictionaryRow.ALTER_METHOD} setting of "
                         f"destination {ddr.dest_signature}, since that is not "
-                        f"a patient table")
+                        f"a patient table"
+                    )
                     ddr.remove_scrub_from_alter_methods()
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -566,9 +594,11 @@ class DataDictionary(object):
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 table_ok_for_fulltext = False
                 for ddr in rows:
-                    if (ddr.include
-                            and ddr.not_null
-                            and ddr.index == IndexType.UNIQUE):
+                    if (
+                        ddr.include
+                        and ddr.not_null
+                        and ddr.index == IndexType.UNIQUE
+                    ):
                         table_ok_for_fulltext = True
                 if not table_ok_for_fulltext:
                     for ddr in rows:
@@ -630,9 +660,12 @@ class DataDictionary(object):
         log.info("Sorting data dictionary")
         self.rows = sorted(
             self.rows,
-            key=operator.attrgetter("src_db_lowercase",
-                                    "src_table_lowercase",
-                                    "src_field_lowercase"))
+            key=operator.attrgetter(
+                "src_db_lowercase",
+                "src_table_lowercase",
+                "src_field_lowercase",
+            ),
+        )
         log.info("... done")
 
     # -------------------------------------------------------------------------
@@ -657,16 +690,19 @@ class DataDictionary(object):
                 if len(dt) > 1:
                     raise ValueError(
                         f"Source table {d}.{t} maps to >1 destination "
-                        f"table: {', '.join(dt)}")
+                        f"table: {', '.join(dt)}"
+                    )
 
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Ensure source table is in database
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 if t not in db.table_names:
                     log.debug(
-                        f"Source database {d!r} has tables: {db.table_names}")
+                        f"Source database {d!r} has tables: {db.table_names}"
+                    )
                     raise ValueError(
-                        f"Table {t!r} missing from source database {d!r}")
+                        f"Table {t!r} missing from source database {d!r}"
+                    )
 
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Row checks: preamble
@@ -678,7 +714,8 @@ class DataDictionary(object):
                     if r.src_field not in db.metadata.tables[t].columns:
                         raise ValueError(
                             f"Column {r.src_field!r} missing from table {t!r} "
-                            f"in source database {d!r}")
+                            f"in source database {d!r}"
+                        )
                     sqla_coltype = (
                         db.metadata.tables[t].columns[r.src_field].type
                     )
@@ -705,11 +742,13 @@ class DataDictionary(object):
                     # Data types for special rows
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     if r.primary_pid:
-                        ensure_no_source_type_mismatch(r, self.config.pidtype,
-                                                       primary_pid=True)
+                        ensure_no_source_type_mismatch(
+                            r, self.config.pidtype, primary_pid=True
+                        )
                     if r.master_pid:
-                        ensure_no_source_type_mismatch(r, self.config.mpidtype,
-                                                       primary_pid=False)
+                        ensure_no_source_type_mismatch(
+                            r, self.config.mpidtype, primary_pid=False
+                        )
 
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     # Too many PKs?
@@ -719,7 +758,8 @@ class DataDictionary(object):
                             raise ValueError(
                                 f"Table {d}.{t} has >1 source PK set "
                                 f"(previously {pk_colname!r}, "
-                                f"now {r.src_field!r}).")
+                                f"now {r.src_field!r})."
+                            )
                         pk_colname = r.src_field
 
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -728,26 +768,34 @@ class DataDictionary(object):
                     for am in r.alter_methods:
                         if am.extract_from_blob:
                             extrow = next(
-                                (r2 for r2 in rows
-                                    if r2.src_field == am.extract_ext_field),
-                                None
+                                (
+                                    r2
+                                    for r2 in rows
+                                    if r2.src_field == am.extract_ext_field
+                                ),
+                                None,
                             )
                             if extrow is None:
                                 raise ValueError(
                                     f"alter_method = {r.alter_method}, "
                                     f"but field {am.extract_ext_field} "
-                                    f"not found in the same table")
+                                    f"not found in the same table"
+                                )
                             if not is_sqlatype_text_over_one_char(
-                                    extrow.src_sqla_coltype):
+                                extrow.src_sqla_coltype
+                            ):
                                 raise ValueError(
                                     f"alter_method = {r.alter_method}, but "
                                     f"field {am.extract_ext_field}, which "
                                     f"should contain an extension or "
-                                    f"filename, is not text of >1 character")
+                                    f"filename, is not text of >1 character"
+                                )
 
-    def check_valid(self,
-                    prohibited_fieldnames: List[str] = None,
-                    check_against_source_db: bool = True) -> None:
+    def check_valid(
+        self,
+        prohibited_fieldnames: List[str] = None,
+        check_against_source_db: bool = True,
+    ) -> None:
         """
         Check DD validity, internally ± against the source database(s).
 
@@ -766,8 +814,9 @@ class DataDictionary(object):
         if not self.rows:
             raise ValueError("Empty data dictionary")
         if not self.get_dest_tables_included():
-            raise ValueError("Empty data dictionary after removing "
-                             "redundant tables")
+            raise ValueError(
+                "Empty data dictionary after removing " "redundant tables"
+            )
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check (or re-check) individual rows
@@ -795,13 +844,15 @@ class DataDictionary(object):
                             f"Do not set {Decision.OMIT.value} on "
                             f"{DataDictionaryRow.SRC_FLAGS}="
                             f"{SrcFlag.ADD_SRC_HASH} fields -- "
-                            f"currently set for {r.src_signature}")
+                            f"currently set for {r.src_signature}"
+                        )
                     if r.constant and r.omit:
                         raise ValueError(
                             f"Do not set {Decision.OMIT.value} on "
                             f"{DataDictionaryRow.SRC_FLAGS}="
                             f"{SrcFlag.CONSTANT} fields -- "
-                            f"currently set for {r.src_signature}")
+                            f"currently set for {r.src_signature}"
+                        )
 
         log.debug("Checking DD: table consistency...")
         for d, t in self.get_scrub_from_db_table_pairs():
@@ -825,7 +876,8 @@ class DataDictionary(object):
                     f"Field {src_db}.{src_table}.{optout_colname} has "
                     f"{DataDictionaryRow.SRC_FLAGS}={SrcFlag.OPT_OUT} set, "
                     f"but that table does not have a primary patient ID field "
-                    f"or a master patient ID field")
+                    f"or a master patient ID field"
+                )
 
         log.debug("Checking DD: destination tables...")
         for t in self.get_dest_tables_included():
@@ -836,13 +888,13 @@ class DataDictionary(object):
                     "databases: {s}".format(
                         t=t,
                         s=", ".join(["{}.{}".format(s[0], s[1]) for s in sdt]),
-                    ))
+                    )
+                )
 
         log.debug("Checking DD: duplicate source rows?")
         src_sigs = [r.src_signature for r in self.rows]
         src_duplicates = [
-            item for item, count in Counter(src_sigs).items()
-            if count > 1
+            item for item, count in Counter(src_sigs).items() if count > 1
         ]
         if src_duplicates:
             raise ValueError(f"Duplicate source rows: {src_duplicates}")
@@ -850,8 +902,7 @@ class DataDictionary(object):
         log.debug("Checking DD: duplicate destination rows?")
         dst_sigs = [r.dest_signature for r in self.rows if not r.omit]
         dst_duplicates = [
-            item for item, count in Counter(dst_sigs).items()
-            if count > 1
+            item for item, count in Counter(dst_sigs).items() if count > 1
         ]
         if dst_duplicates:
             raise ValueError(f"Duplicate destination rows: {dst_duplicates}")
@@ -864,8 +915,10 @@ class DataDictionary(object):
         n_definers = self.n_definers
         if n_definers == 0:
             if self.config.allow_no_patient_info:
-                log.warning("NO PATIENT-DEFINING FIELD! DATABASE(S) WILL "
-                            "BE COPIED, NOT ANONYMISED.")
+                log.warning(
+                    "NO PATIENT-DEFINING FIELD! DATABASE(S) WILL "
+                    "BE COPIED, NOT ANONYMISED."
+                )
             else:
                 raise ValueError(
                     f"No patient-defining field! (And "
@@ -875,7 +928,8 @@ class DataDictionary(object):
             log.warning(
                 f"Unusual: >1 field with "
                 f"{DataDictionaryRow.SRC_FLAGS}="
-                f"{SrcFlag.DEFINES_PRIMARY_PIDS} set.")
+                f"{SrcFlag.DEFINES_PRIMARY_PIDS} set."
+            )
 
         log.debug("... DD checked.")
 
@@ -906,9 +960,7 @@ class DataDictionary(object):
         spreadsheets.
         """
         sheetname = "data_dictionary"
-        rows = [
-            DataDictionaryRow.header_row()
-        ] + [
+        rows = [DataDictionaryRow.header_row()] + [
             ddr.as_row() for ddr in self.rows
         ]
         data = OrderedDict()
@@ -924,19 +976,14 @@ class DataDictionary(object):
         """
         The number of patient-defining columns.
         """
-        return sum([1 if x.defines_primary_pids else 0
-                    for x in self.rows])
+        return sum([1 if x.defines_primary_pids else 0 for x in self.rows])
 
     @lru_cache(maxsize=None)
     def get_source_databases(self) -> AbstractSet[str]:
         """
         Return a SortedSet of source database names.
         """
-        return SortedSet([
-             ddr.src_db
-             for ddr in self.rows
-             if ddr.required
-         ])
+        return SortedSet([ddr.src_db for ddr in self.rows if ddr.required])
 
     @lru_cache(maxsize=None)
     def get_scrub_from_db_table_pairs(self) -> AbstractSet[Tuple[str, str]]:
@@ -944,11 +991,9 @@ class DataDictionary(object):
         Return a SortedSet of ``source_database_name, source_table`` tuples
         where those fields contain ``scrub_src`` (scrub-from) information.
         """
-        return SortedSet([
-            (ddr.src_db, ddr.src_table)
-            for ddr in self.rows
-            if ddr.scrub_src
-        ])
+        return SortedSet(
+            [(ddr.src_db, ddr.src_table) for ddr in self.rows if ddr.scrub_src]
+        )
         # even if omit flag set
 
     @lru_cache(maxsize=None)
@@ -957,10 +1002,7 @@ class DataDictionary(object):
         Return a SortedSet of all ``source_database_name, source_table``
         tuples.
         """
-        return SortedSet([
-            (ddr.src_db, ddr.src_table)
-            for ddr in self.rows
-        ])
+        return SortedSet([(ddr.src_db, ddr.src_table) for ddr in self.rows])
 
     @lru_cache(maxsize=None)
     def get_src_db_tablepairs_w_pt_info(self) -> AbstractSet[Tuple[str, str]]:
@@ -968,14 +1010,17 @@ class DataDictionary(object):
         Return a SortedSet of ``source_database_name, source_table`` tuples
         for tables that contain patient information.
         """
-        return SortedSet([
-            (ddr.src_db, ddr.src_table)
-            for ddr in self.rows
-            if ddr.contains_patient_info
-        ])
+        return SortedSet(
+            [
+                (ddr.src_db, ddr.src_table)
+                for ddr in self.rows
+                if ddr.contains_patient_info
+            ]
+        )
 
-    def get_src_db_tablepairs_w_no_pt_info(self) \
-            -> AbstractSet[Tuple[str, str]]:
+    def get_src_db_tablepairs_w_no_pt_info(
+        self,
+    ) -> AbstractSet[Tuple[str, str]]:
         """
         Return a SortedSet of ``source_database_name, source_table`` tuples
         for tables that contain no patient information.
@@ -990,11 +1035,9 @@ class DataDictionary(object):
         Return a SortedSet of ``source_table`` names for tables that contain no
         patient information.
         """
-        tables_with_pt_info = SortedSet([
-            ddr.src_table
-            for ddr in self.rows
-            if ddr.contains_patient_info
-        ])
+        tables_with_pt_info = SortedSet(
+            [ddr.src_table for ddr in self.rows if ddr.contains_patient_info]
+        )
         all_tables = SortedSet([ddr.src_table for ddr in self.rows])
         return all_tables - tables_with_pt_info
 
@@ -1003,11 +1046,9 @@ class DataDictionary(object):
         Return a SortedSet of ``source_table`` names for tables that contain
         ``scrub_src`` information, i.e. that contribute to anonymisation.
         """
-        return SortedSet([
-            ddr.src_table
-            for ddr in self.rows
-            if ddr.contains_scrub_src
-        ])
+        return SortedSet(
+            [ddr.src_table for ddr in self.rows if ddr.contains_scrub_src]
+        )
 
     @lru_cache(maxsize=None)
     def get_src_db_tablepairs_w_int_pk(self) -> AbstractSet[Tuple[str, str]]:
@@ -1015,37 +1056,40 @@ class DataDictionary(object):
         Return a SortedSet of ``source_database_name, source_table`` tuples
         for tables that have an integer PK.
         """
-        return SortedSet([
-            (ddr.src_db, ddr.src_table)
-            for ddr in self.rows
-            if self.get_int_pk_ddr(ddr.src_db, ddr.src_table) is not None
-        ])
+        return SortedSet(
+            [
+                (ddr.src_db, ddr.src_table)
+                for ddr in self.rows
+                if self.get_int_pk_ddr(ddr.src_db, ddr.src_table) is not None
+            ]
+        )
 
     @lru_cache(maxsize=None)
-    def get_src_dbs_tables_with_no_pt_info_no_pk(self) \
-            -> AbstractSet[Tuple[str, str]]:
+    def get_src_dbs_tables_with_no_pt_info_no_pk(
+        self,
+    ) -> AbstractSet[Tuple[str, str]]:
         """
         Return a SortedSet of ``source_database_name, source_table`` tuples
         where the table has no patient information and no integer PK.
         """
         return (
-            self.get_src_db_tablepairs() -
-            self.get_src_db_tablepairs_w_pt_info() -
-            self.get_src_db_tablepairs_w_int_pk()
+            self.get_src_db_tablepairs()
+            - self.get_src_db_tablepairs_w_pt_info()
+            - self.get_src_db_tablepairs_w_int_pk()
         )
 
     @lru_cache(maxsize=None)
-    def get_src_dbs_tables_with_no_pt_info_int_pk(self) \
-            -> AbstractSet[Tuple[str, str]]:
+    def get_src_dbs_tables_with_no_pt_info_int_pk(
+        self,
+    ) -> AbstractSet[Tuple[str, str]]:
         """
         Return a SortedSet of ``source_database_name, source_table`` tuples
         where the table has no patient information and has an integer PK.
         """
         return (
-            (self.get_src_db_tablepairs() -
-                self.get_src_db_tablepairs_w_pt_info()) &  # & is intersection
-            self.get_src_db_tablepairs_w_int_pk()
-        )
+            self.get_src_db_tablepairs()
+            - self.get_src_db_tablepairs_w_pt_info()
+        ) & self.get_src_db_tablepairs_w_int_pk()  # & is intersection
 
     @lru_cache(maxsize=None)
     def get_dest_tables_all(self) -> AbstractSet[str]:
@@ -1053,10 +1097,7 @@ class DataDictionary(object):
         Return a SortedSet of all destination table names (including tables
         that will receive no contents).
         """
-        return SortedSet([
-            ddr.dest_table
-            for ddr in self.rows
-        ])
+        return SortedSet([ddr.dest_table for ddr in self.rows])
 
     @lru_cache(maxsize=None)
     def get_dest_tables_included(self) -> AbstractSet[str]:
@@ -1064,11 +1105,7 @@ class DataDictionary(object):
         Return a SortedSet of all destination table names (tables with at least
         some columns that are included).
         """
-        return SortedSet([
-            ddr.dest_table
-            for ddr in self.rows
-            if not ddr.omit
-        ])
+        return SortedSet([ddr.dest_table for ddr in self.rows if not ddr.omit])
 
     @lru_cache(maxsize=None)
     def get_dest_tables_with_patient_info(self) -> AbstractSet[str]:
@@ -1076,26 +1113,35 @@ class DataDictionary(object):
         Return a SortedSet of destination table names that have patient
         information.
         """
-        return SortedSet([
-            ddr.dest_table
-            for ddr in self.rows
-            if ddr.contains_patient_info and not ddr.omit
-        ])
+        return SortedSet(
+            [
+                ddr.dest_table
+                for ddr in self.rows
+                if ddr.contains_patient_info and not ddr.omit
+            ]
+        )
 
     @lru_cache(maxsize=None)
-    def get_optout_defining_fields(self) \
-            -> AbstractSet[Tuple[str, str, str, str, str]]:
+    def get_optout_defining_fields(
+        self,
+    ) -> AbstractSet[Tuple[str, str, str, str, str]]:
         """
         Return a SortedSet of ``src_db, src_table, src_field, pidfield,
         mpidfield`` tuples for rows that define opt-out information.
         """
-        return SortedSet([
-            (ddr.src_db, ddr.src_table, ddr.src_field,
-                self.get_pid_name(ddr.src_db, ddr.src_table),
-                self.get_mpid_name(ddr.src_db, ddr.src_table))
-            for ddr in self.rows
-            if ddr.opt_out_info
-        ])
+        return SortedSet(
+            [
+                (
+                    ddr.src_db,
+                    ddr.src_table,
+                    ddr.src_field,
+                    self.get_pid_name(ddr.src_db, ddr.src_table),
+                    self.get_mpid_name(ddr.src_db, ddr.src_table),
+                )
+                for ddr in self.rows
+                if ddr.opt_out_info
+            ]
+        )
 
     @lru_cache(maxsize=None)
     def get_mandatory_scrubber_sigs(self) -> AbstractSet[str]:
@@ -1105,12 +1151,13 @@ class DataDictionary(object):
         fields -- that is, rows that must have at least one non-NULL value for
         each patient, or the patient won't get processed.
         """
-        return set([ddr.src_signature for ddr in self.rows
-                    if ddr.required_scrubber])
+        return set(
+            [ddr.src_signature for ddr in self.rows if ddr.required_scrubber]
+        )
 
-    def get_summary_info_for_table(self,
-                                   src_db: str,
-                                   src_table: str) -> DDTableSummary:
+    def get_summary_info_for_table(
+        self, src_db: str, src_table: str
+    ) -> DDTableSummary:
         """
         Returns summary information for a specific table.
         """
@@ -1150,12 +1197,10 @@ class DataDictionary(object):
                 or ddr.contains_patient_scrub_src_info
             )
             src_has_third_party_scrub_info = (
-                src_has_third_party_scrub_info
-                or ddr.contains_third_party_info
+                src_has_third_party_scrub_info or ddr.contains_third_party_info
             )
             src_has_required_scrub_info = (
-                src_has_required_scrub_info
-                or ddr.required_scrubber
+                src_has_required_scrub_info or ddr.required_scrubber
             )
             # Destination
             dest_table = dest_table or ddr.dest_table
@@ -1206,11 +1251,13 @@ class DataDictionary(object):
         tables that are required (that is, ones being copied and ones providing
         vital patient information).
         """
-        return SortedSet([
-            ddr.src_table
-            for ddr in self.rows
-            if ddr.src_db == src_db and ddr.required
-        ])
+        return SortedSet(
+            [
+                ddr.src_table
+                for ddr in self.rows
+                if ddr.src_db == src_db and ddr.required
+            ]
+        )
 
     @lru_cache(maxsize=None)
     def get_src_tables_with_active_dest(self, src_db: str) -> AbstractSet[str]:
@@ -1218,35 +1265,41 @@ class DataDictionary(object):
         For a given source database name, return a SortedSet of its source
         tables that have an active destination.
         """
-        return SortedSet([
-            ddr.src_table
-            for ddr in self.rows
-            if ddr.src_db == src_db and not ddr.omit
-        ])
+        return SortedSet(
+            [
+                ddr.src_table
+                for ddr in self.rows
+                if ddr.src_db == src_db and not ddr.omit
+            ]
+        )
 
     @lru_cache(maxsize=None)
-    def get_src_tables_with_patient_info(self, src_db: str) -> AbstractSet[str]:
+    def get_src_tables_with_patient_info(
+        self, src_db: str
+    ) -> AbstractSet[str]:
         """
         For a given source database name, return a SortedSet of source tables
         that have patient information.
         """
-        return SortedSet([
-            ddr.src_table
-            for ddr in self.rows
-            if ddr.src_db == src_db and ddr.contains_patient_info
-        ])
+        return SortedSet(
+            [
+                ddr.src_table
+                for ddr in self.rows
+                if ddr.src_db == src_db and ddr.contains_patient_info
+            ]
+        )
 
     @lru_cache(maxsize=None)
-    def get_patient_src_tables_with_active_dest(self, src_db: str) \
-            -> AbstractSet[str]:
+    def get_patient_src_tables_with_active_dest(
+        self, src_db: str
+    ) -> AbstractSet[str]:
         """
         For a given source database name, return a SortedSet of source tables
         that contain patient information and have an active destination table.
         """
-        return (
-            self.get_src_tables_with_active_dest(src_db) &
-            self.get_src_tables_with_patient_info(src_db)
-        )
+        return self.get_src_tables_with_active_dest(
+            src_db
+        ) & self.get_src_tables_with_patient_info(src_db)
 
     # -------------------------------------------------------------------------
     # Queries by source DB/table
@@ -1254,76 +1307,91 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_dest_tables_for_src_db_table(
-            self, src_db: str, src_table: str) -> AbstractSet[str]:
+        self, src_db: str, src_table: str
+    ) -> AbstractSet[str]:
         """
         For a given source database/table, return a SortedSet of destination
         tables.
         """
-        return SortedSet([
-            ddr.dest_table
-            for ddr in self.rows
-            if (ddr.src_db == src_db and
-                ddr.src_table == src_table and
-                not ddr.omit)
-        ])
+        return SortedSet(
+            [
+                ddr.dest_table
+                for ddr in self.rows
+                if (
+                    ddr.src_db == src_db
+                    and ddr.src_table == src_table
+                    and not ddr.omit
+                )
+            ]
+        )
 
     @lru_cache(maxsize=None)
     def get_dest_table_for_src_db_table(
-            self, src_db: str, src_table: str) -> str:
+        self, src_db: str, src_table: str
+    ) -> str:
         """
         For a given source database/table, return the single or the first
         destination table.
         """
-        return list(
-            self.get_dest_tables_for_src_db_table(src_db, src_table))[0]
+        return list(self.get_dest_tables_for_src_db_table(src_db, src_table))[
+            0
+        ]
 
     @lru_cache(maxsize=None)
-    def get_rows_for_src_table(self, src_db: str, src_table: str) \
-            -> AbstractSet[DataDictionaryRow]:
+    def get_rows_for_src_table(
+        self, src_db: str, src_table: str
+    ) -> AbstractSet[DataDictionaryRow]:
         """
         For a given source database name/table, return a SortedSet of DD rows.
         """
-        return SortedSet([
-            ddr
-            for ddr in self.rows
-            if ddr.src_db == src_db and ddr.src_table == src_table
-        ])
+        return SortedSet(
+            [
+                ddr
+                for ddr in self.rows
+                if ddr.src_db == src_db and ddr.src_table == src_table
+            ]
+        )
 
     @lru_cache(maxsize=None)
-    def get_fieldnames_for_src_table(self, src_db: str, src_table: str) \
-            -> AbstractSet[DataDictionaryRow]:
+    def get_fieldnames_for_src_table(
+        self, src_db: str, src_table: str
+    ) -> AbstractSet[DataDictionaryRow]:
         """
         For a given source database name/table, return a SortedSet of source
         fields.
         """
-        return SortedSet([
-            ddr.src_field
-            for ddr in self.rows
-            if ddr.src_db == src_db and ddr.src_table == src_table
-        ])
+        return SortedSet(
+            [
+                ddr.src_field
+                for ddr in self.rows
+                if ddr.src_db == src_db and ddr.src_table == src_table
+            ]
+        )
 
     @lru_cache(maxsize=None)
-    def get_scrub_from_rows(self, src_db: str, src_table: str) \
-            -> AbstractSet[DataDictionaryRow]:
+    def get_scrub_from_rows(
+        self, src_db: str, src_table: str
+    ) -> AbstractSet[DataDictionaryRow]:
         """
         Return a SortedSet of DD rows for all fields containing ``scrub_src``
         (scrub-from) information.
         """
-        return SortedSet([
-            ddr
-            for ddr in self.rows
-            if (ddr.scrub_src and
-                ddr.src_db == src_db and
-                ddr.src_table == src_table)
-        ])
+        return SortedSet(
+            [
+                ddr
+                for ddr in self.rows
+                if (
+                    ddr.scrub_src
+                    and ddr.src_db == src_db
+                    and ddr.src_table == src_table
+                )
+            ]
+        )
         # even if omit flag set
 
     def get_scrub_from_rows_as_fieldinfo(
-            self,
-            src_db: str,
-            src_table: str,
-            depth: int,
-            max_depth: int) -> List[ScrubSourceFieldInfo]:
+        self, src_db: str, src_table: str, depth: int, max_depth: int
+    ) -> List[ScrubSourceFieldInfo]:
         """
         Using :meth:`get_scrub_from_rows`, as a list of
         :class:`ScrubSourceFieldInfo` objects, which is more convenient for
@@ -1345,21 +1413,19 @@ class DataDictionary(object):
         for ddr in ddrows:
             info = ScrubSourceFieldInfo(
                 is_mpid=(
-                    depth == 0 and ddr.master_pid
+                    depth == 0
+                    and ddr.master_pid
                     # The check for "depth == 0" means that third-party
                     # information is never marked as patient-related.
                 ),
-                is_patient=(
-                    depth == 0 and ddr.scrub_src is ScrubSrc.PATIENT
-                ),
+                is_patient=(depth == 0 and ddr.scrub_src is ScrubSrc.PATIENT),
                 recurse=(
                     depth < max_depth
                     and ddr.scrub_src is ScrubSrc.THIRDPARTY_XREF_PID
                 ),
                 required_scrubber=ddr.required_scrubber,
                 scrub_method=PersonalizedScrubber.get_scrub_method(
-                    ddr.src_datatype,
-                    ddr.scrub_method
+                    ddr.src_datatype, ddr.scrub_method
                 ),
                 signature=ddr.src_signature,
                 value_fieldname=ddr.src_field,
@@ -1368,8 +1434,9 @@ class DataDictionary(object):
         return infolist
 
     @lru_cache(maxsize=None)
-    def get_pk_ddr(self, src_db: str, src_table: str) \
-            -> Optional[DataDictionaryRow]:
+    def get_pk_ddr(
+        self, src_db: str, src_table: str
+    ) -> Optional[DataDictionaryRow]:
         """
         For a given source database name and table, return the DD row for the
         PK for that table, whether integer or not.
@@ -1377,15 +1444,14 @@ class DataDictionary(object):
         Will return ``None`` if no such data dictionary row exists.
         """
         for ddr in self.rows:
-            if (ddr.src_db == src_db and
-                    ddr.src_table == src_table and
-                    ddr.pk):
+            if ddr.src_db == src_db and ddr.src_table == src_table and ddr.pk:
                 return ddr
         return None
 
     @lru_cache(maxsize=None)
-    def get_int_pk_ddr(self, src_db: str, src_table: str) \
-            -> Optional[DataDictionaryRow]:
+    def get_int_pk_ddr(
+        self, src_db: str, src_table: str
+    ) -> Optional[DataDictionaryRow]:
         """
         For a given source database name and table, return the DD row for the
         integer PK for that table.
@@ -1393,10 +1459,12 @@ class DataDictionary(object):
         Will return ``None`` if no such data dictionary row exists.
         """
         for ddr in self.rows:
-            if (ddr.src_db == src_db and
-                    ddr.src_table == src_table and
-                    ddr.pk and
-                    is_sqltype_integer(ddr.src_datatype)):
+            if (
+                ddr.src_db == src_db
+                and ddr.src_table == src_table
+                and ddr.pk
+                and is_sqltype_integer(ddr.src_datatype)
+            ):
                 return ddr
         return None
 
@@ -1418,9 +1486,11 @@ class DataDictionary(object):
         destination?
         """
         for ddr in self.rows:
-            if (ddr.src_db == src_db and
-                    ddr.src_table == src_table and
-                    not ddr.omit):
+            if (
+                ddr.src_db == src_db
+                and ddr.src_table == src_table
+                and not ddr.omit
+            ):
                 return True
         return False
 
@@ -1432,9 +1502,11 @@ class DataDictionary(object):
         one).
         """
         for ddr in self.rows:
-            if (ddr.src_db == src_db and
-                    ddr.src_table == src_table and
-                    ddr.primary_pid):
+            if (
+                ddr.src_db == src_db
+                and ddr.src_table == src_table
+                and ddr.primary_pid
+            ):
                 return ddr.src_field
         return None
 
@@ -1446,9 +1518,11 @@ class DataDictionary(object):
         isn't one).
         """
         for ddr in self.rows:
-            if (ddr.src_db == src_db and
-                    ddr.src_table == src_table and
-                    ddr.master_pid):
+            if (
+                ddr.src_db == src_db
+                and ddr.src_table == src_table
+                and ddr.master_pid
+            ):
                 return ddr.src_field
         return None
 
@@ -1458,28 +1532,34 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_src_dbs_tables_for_dest_table(
-            self, dest_table: str) -> AbstractSet[Tuple[str, str]]:
+        self, dest_table: str
+    ) -> AbstractSet[Tuple[str, str]]:
         """
         For a given destination table, return a SortedSet of ``dbname, table``
         tuples.
         """
-        return SortedSet([
-            (ddr.src_db, ddr.src_table)
-            for ddr in self.rows
-            if ddr.dest_table == dest_table
-        ])
+        return SortedSet(
+            [
+                (ddr.src_db, ddr.src_table)
+                for ddr in self.rows
+                if ddr.dest_table == dest_table
+            ]
+        )
 
     @lru_cache(maxsize=None)
     def get_rows_for_dest_table(
-            self, dest_table: str) -> AbstractSet[DataDictionaryRow]:
+        self, dest_table: str
+    ) -> AbstractSet[DataDictionaryRow]:
         """
         For a given destination table, return a SortedSet of DD rows.
         """
-        return SortedSet([
-            ddr
-            for ddr in self.rows
-            if ddr.dest_table == dest_table and not ddr.omit
-        ])
+        return SortedSet(
+            [
+                ddr
+                for ddr in self.rows
+                if ddr.dest_table == dest_table and not ddr.omit
+            ]
+        )
 
     # -------------------------------------------------------------------------
     # SQLAlchemy Table objects
@@ -1506,15 +1586,19 @@ class DataDictionary(object):
             if ddr.primary_pid:
                 columns.append(self._get_trid_sqla_column())
                 pid_found = True
-            if (ddr.master_pid and
-                    ddr.dest_field == config.master_research_id_fieldname):
+            if (
+                ddr.master_pid
+                and ddr.dest_field == config.master_research_id_fieldname
+            ):
                 # This table has an explicit MRID field with the expected name;
                 # we make a note, because if we're being asked to add MRIDs
                 # automatically along with RIDs, we need not to do it twice.
                 rows_include_mrid_with_expected_name = True
-        if (pid_found
-                and add_mrid_wherever_rid_added
-                and not rows_include_mrid_with_expected_name):
+        if (
+            pid_found
+            and add_mrid_wherever_rid_added
+            and not rows_include_mrid_with_expected_name
+        ):
             columns.append(self._get_mrid_sqla_column())
         if timefield:
             timecol = Column(timefield, DateTime)
@@ -1530,7 +1614,7 @@ class DataDictionary(object):
         return Column(
             self.config.source_hash_fieldname,
             self.config.sqltype_encrypted_pid,
-            comment='Hashed amalgamation of all source fields'
+            comment="Hashed amalgamation of all source fields",
         )
 
     def _get_trid_sqla_column(self) -> Column:
@@ -1544,7 +1628,7 @@ class DataDictionary(object):
             self.config.trid_fieldname,
             TridType,
             nullable=False,
-            comment='Transient integer research ID (TRID)'
+            comment="Transient integer research ID (TRID)",
         )
 
     def _get_mrid_sqla_column(self) -> Column:
@@ -1557,7 +1641,7 @@ class DataDictionary(object):
             self.config.master_research_id_fieldname,
             self.config.sqltype_encrypted_pid,
             nullable=True,
-            comment='Master research ID (MRID)'
+            comment="Master research ID (MRID)",
         )
 
     # -------------------------------------------------------------------------
@@ -1582,12 +1666,10 @@ class DataDictionary(object):
             self.get_dest_tables_with_patient_info,
             self.get_optout_defining_fields,
             self.get_mandatory_scrubber_sigs,
-
             self.get_src_tables,
             self.get_src_tables_with_active_dest,
             self.get_src_tables_with_patient_info,
             self.get_patient_src_tables_with_active_dest,
-
             self.get_dest_tables_for_src_db_table,
             self.get_dest_table_for_src_db_table,
             self.get_rows_for_src_table,
@@ -1599,10 +1681,8 @@ class DataDictionary(object):
             self.has_active_destination,
             self.get_pid_name,
             self.get_mpid_name,
-
             self.get_src_dbs_tables_for_dest_table,
             self.get_rows_for_dest_table,
-
             self.get_dest_sqla_table,
         ]
 
@@ -1636,9 +1716,7 @@ class DataDictionary(object):
                 Function taking a data dictionary row as an argument, and
                 returning a boolean of whether to keep the row.
         """
-        self.rows = [
-            row for row in self.rows if keep(row)
-        ]
+        self.rows = [row for row in self.rows if keep(row)]
 
     def omit_rows_by_filter(self, keep: KEEP_FUNCTION_TYPE) -> None:
         """
@@ -1654,12 +1732,14 @@ class DataDictionary(object):
             if not row.omit:
                 row.omit = not keep(row)
 
-    MODIFYING_KEEP_FUNCTION_TYPE = Callable[[DataDictionaryRow],
-                                            Optional[DataDictionaryRow]]
+    MODIFYING_KEEP_FUNCTION_TYPE = Callable[
+        [DataDictionaryRow], Optional[DataDictionaryRow]
+    ]
     # returns the row (perhaps modified) to keep, or None to reject
 
     def remove_rows_by_modifying_filter(
-            self, keep_modify: MODIFYING_KEEP_FUNCTION_TYPE) -> None:
+        self, keep_modify: MODIFYING_KEEP_FUNCTION_TYPE
+    ) -> None:
         """
         Removes any rows that do not pass a filter function; allows the filter
         function to modify rows that are kept.

@@ -28,8 +28,8 @@ Representation of NLP processors used by CRATE's NLPRP server.
 
 """
 
-import importlib.util
 import logging
+import importlib.util
 import os
 
 from crate_anon.common.constants import EnvVar
@@ -54,17 +54,20 @@ if EnvVar.GENERATING_CRATE_DOCS not in os.environ:
     _spec.loader.exec_module(_processors)
 
     # noinspection PyUnresolvedReferences
-    for proc in _processors.PROCESSORS:
-        x = ServerProcessor(
-            name=proc[NlprpKeys.NAME],
-            title=proc[NlprpKeys.TITLE],
-            version=proc[NlprpKeys.VERSION],
-            is_default_version=proc[NlprpKeys.IS_DEFAULT_VERSION],
-            description=proc[NlprpKeys.DESCRIPTION],
-            proctype=proc.get(KEY_PROCTYPE),  # may be None
-            schema_type=proc[NlprpKeys.SCHEMA_TYPE],  # 'unknown' or 'tabular'
-            sql_dialect=proc.get(NlprpKeys.SQL_DIALECT),
-            tabular_schema=proc.get(NlprpKeys.TABULAR_SCHEMA)
-        )
+    for _proc in _processors.PROCESSORS:
+        _name = _proc[NlprpKeys.NAME]
+        _version = _proc[NlprpKeys.VERSION]
+        log.info(f"Registering NLPRP processor {_name!r} (v{_version})")
+        _x = ServerProcessor(
+            name=_name,
+            title=_proc[NlprpKeys.TITLE],
+            version=_version,
+            is_default_version=_proc[NlprpKeys.IS_DEFAULT_VERSION],
+            description=_proc[NlprpKeys.DESCRIPTION],
+            proctype=_proc.get(KEY_PROCTYPE),  # may be None
+            schema_type=_proc[NlprpKeys.SCHEMA_TYPE],  # 'unknown' or 'tabular'
+            sql_dialect=_proc.get(NlprpKeys.SQL_DIALECT),
+            tabular_schema=_proc.get(NlprpKeys.TABULAR_SCHEMA),
+        )  # registers with the ServerProcessor class
         # Doing this here saves time per request
-        x.set_parser()
+        _x.set_parser()

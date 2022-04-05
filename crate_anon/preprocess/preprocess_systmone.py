@@ -88,11 +88,14 @@ log = logging.getLogger(__name__)
 # Preprocessing
 # =============================================================================
 
-def add_postcode_geography_view(engine: Engine,
-                                address_table: str,
-                                postcode_db: str,
-                                geog_cols: List[str],
-                                view_name: str) -> None:
+
+def add_postcode_geography_view(
+    engine: Engine,
+    address_table: str,
+    postcode_db: str,
+    geog_cols: List[str],
+    view_name: str,
+) -> None:
     """
     Creates a source view to add geography columns to an address table
     including postcodes, linking in e.g. LSOA/IMD information from an ONS
@@ -136,12 +139,14 @@ def add_postcode_geography_view(engine: Engine,
     """
     a = "A"  # alias for address table
     p = "P"  # alias for postcode table
-    geog_col_specs = [f"{p}.{col}"
-                      for col in sorted(geog_cols, key=lambda x: x.lower())]
+    geog_col_specs = [
+        f"{p}.{col}" for col in sorted(geog_cols, key=lambda x: x.lower())
+    ]
     s1_postcode_col = S1AddressCol.POSTCODE
     ons_postcode_col = COL_POSTCODE_VARIABLE_LENGTH_SPACE
-    ensure_columns_present(engine, tablename=address_table,
-                           column_names=[s1_postcode_col])
+    ensure_columns_present(
+        engine, tablename=address_table, column_names=[s1_postcode_col]
+    )
     colsep = ",\n            "
     select_sql = f"""
         SELECT
@@ -180,9 +185,9 @@ def add_postcode_geography_view(engine: Engine,
     create_view(engine, view_name, select_sql)
 
 
-def add_testpatient_view(engine: Engine,
-                         patient_table: str,
-                         view_name: str) -> None:
+def add_testpatient_view(
+    engine: Engine, patient_table: str, view_name: str
+) -> None:
     """
     Creates a source view to find extra test patients, where they have not been
     correctly identified by the "official" method or caught by additional local
@@ -220,12 +225,14 @@ def add_testpatient_view(engine: Engine,
     create_view(engine, view_name, select_sql)
 
 
-def preprocess_systmone(engine: Engine,
-                        context: SystmOneContext,
-                        allow_unprefixed_tables: bool = False,
-                        drop_danger_drop: bool = False,
-                        postcode_db_name: str = None,
-                        geog_cols: List[str] = None) -> None:
+def preprocess_systmone(
+    engine: Engine,
+    context: SystmOneContext,
+    allow_unprefixed_tables: bool = False,
+    drop_danger_drop: bool = False,
+    postcode_db_name: str = None,
+    geog_cols: List[str] = None,
+) -> None:
     """
     Add indexes to a SystmOne source database. Without this, anonymisation is
     very slow. Also adds pseudo-PK columns to selected tables.
@@ -239,8 +246,9 @@ def preprocess_systmone(engine: Engine,
     log.info("... inspection complete")
 
     # Tables
-    for table in sorted(metadata.tables.values(),
-                        key=lambda t: t.name.lower()):  # type: Table
+    for table in sorted(
+        metadata.tables.values(), key=lambda t: t.name.lower()
+    ):  # type: Table
         ct = core_tablename(
             table.name,
             from_context=context,
@@ -258,7 +266,8 @@ def preprocess_systmone(engine: Engine,
         # Create step #1
         if not drop_danger_drop and table_needs_pk:
             crate_pk_col = make_bigint_autoincrement_column(
-                CRATE_COL_PK, engine.dialect)
+                CRATE_COL_PK, engine.dialect
+            )
             # SQL Server requires Table-bound columns in order to generate DDL:
             table.append_column(crate_pk_col)
             add_columns(engine, table, [crate_pk_col])
@@ -268,10 +277,12 @@ def preprocess_systmone(engine: Engine,
         for column in table.columns:  # type: Column
             colname = column.name
             idxname = f"{CRATE_IDX_PREFIX}_{colname}"
-            if (column.primary_key
-                    or is_pk(ct, colname, context)
-                    or is_pid(colname, context)
-                    or is_mpid(colname, context)):
+            if (
+                column.primary_key
+                or is_pk(ct, colname, context)
+                or is_pid(colname, context)
+                or is_mpid(colname, context)
+            ):
                 # It's too much faff to work out reliably if the source table
                 # should have a UNIQUE index, particularly when local (CPFT)
                 # tables use the "RowIdentifier" column name in a non-unique
@@ -281,11 +292,17 @@ def preprocess_systmone(engine: Engine,
                 if drop_danger_drop:
                     drop_indexes(engine, table, [idxname])
                 else:
-                    add_indexes(engine, table, [IndexCreationInfo(
-                        index_name=idxname,
-                        column=colname,
-                        unique=False
-                    )])
+                    add_indexes(
+                        engine,
+                        table,
+                        [
+                            IndexCreationInfo(
+                                index_name=idxname,
+                                column=colname,
+                                unique=False,
+                            )
+                        ],
+                    )
 
         # Drop step #2
         if drop_danger_drop and table_needs_pk:
@@ -300,14 +317,15 @@ def preprocess_systmone(engine: Engine,
         add_testpatient_view(
             engine=engine,
             patient_table=contextual_tablename(S1Table.PATIENT, context),
-            view_name=CrateView.TESTPATIENT_VIEW
+            view_name=CrateView.TESTPATIENT_VIEW,
         )
         if postcode_db_name:
             add_postcode_geography_view(
                 engine=engine,
                 postcode_db=postcode_db_name,
-                address_table=contextual_tablename(S1Table.ADDRESS_HISTORY,
-                                                   context),
+                address_table=contextual_tablename(
+                    S1Table.ADDRESS_HISTORY, context
+                ),
                 view_name=CrateView.GEOGRAPHY_VIEW,
                 geog_cols=geog_cols,
             )
@@ -317,57 +335,71 @@ def preprocess_systmone(engine: Engine,
 # Main
 # =============================================================================
 
+
 def main() -> None:
     """
     Command-line parser. See command-line help.
     """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=r"Indexes a SystmOne database to be suitable for CRATE."
+        description=r"Indexes a SystmOne database to be suitable for CRATE.",
     )
     parser.add_argument("--url", required=True, help="SQLAlchemy database URL")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
     parser.add_argument(
-        "--print", action="store_true",
+        "--print",
+        action="store_true",
         help="Print SQL but do not execute it. (You can redirect the printed "
-             "output to create an SQL script.)")
+        "output to create an SQL script.)",
+    )
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
     context_k, context_d = keys_descriptions_from_enum(
-        SystmOneContext, keys_to_lower=True)
-    parser.add_argument(
-        "--systmone_context", type=str, choices=context_k,
-        default=DEFAULT_SYSTMONE_CONTEXT.name.lower(),
-        help="Context of the SystmOne database that you are reading. "
-             f"[{context_d}]"
+        SystmOneContext, keys_to_lower=True
     )
     parser.add_argument(
-        "--systmone_allow_unprefixed_tables", action="store_true",
+        "--systmone_context",
+        type=str,
+        choices=context_k,
+        default=DEFAULT_SYSTMONE_CONTEXT.name.lower(),
+        help="Context of the SystmOne database that you are reading. "
+        f"[{context_d}]",
+    )
+    parser.add_argument(
+        "--systmone_allow_unprefixed_tables",
+        action="store_true",
         help="Permit tables that don't start with the expected prefix "
-             "(which is e.g. 'SR' for the TPP SRE context, 'S1_' for the CPFT "
-             "Data Warehouse context). May add helpful content, but you may "
-             "get odd tables and views."
+        "(which is e.g. 'SR' for the TPP SRE context, 'S1_' for the CPFT "
+        "Data Warehouse context). May add helpful content, but you may "
+        "get odd tables and views.",
     )
     parser.add_argument(
         "--postcodedb",
-        help='Specify database (schema) name for ONS Postcode Database (as '
-             'imported by CRATE) to link to addresses as a view. With SQL '
-             'Server, you will have to specify the schema as well as the '
-             'database; e.g. "--postcodedb ONS_PD.dbo"')
+        help="Specify database (schema) name for ONS Postcode Database (as "
+        "imported by CRATE) to link to addresses as a view. With SQL "
+        "Server, you will have to specify the schema as well as the "
+        'database; e.g. "--postcodedb ONS_PD.dbo"',
+    )
     parser.add_argument(
-        "--geogcols", nargs="*", default=DEFAULT_GEOG_COLS,
+        "--geogcols",
+        nargs="*",
+        default=DEFAULT_GEOG_COLS,
         help=f"List of geographical information columns to link in from ONS "
-             f"Postcode Database. BEWARE that you do not specify anything too "
-             f"identifying. Default: {' '.join(DEFAULT_GEOG_COLS)}")
+        f"Postcode Database. BEWARE that you do not specify anything too "
+        f"identifying. Default: {' '.join(DEFAULT_GEOG_COLS)}",
+    )
     parser.add_argument(
-        "--drop_danger_drop", action="store_true",
+        "--drop_danger_drop",
+        action="store_true",
         help="REMOVES new columns and indexes, rather than creating them. "
-             "(There's not very much danger; no real information is lost, but "
-             "it might take a while to recalculate it.)")
+        "(There's not very much danger; no real information is lost, but "
+        "it might take a while to recalculate it.)",
+    )
 
     args = parser.parse_args()
 
-    main_only_quicksetup_rootlogger(level=logging.DEBUG if args.verbose
-                                    else logging.INFO)
+    main_only_quicksetup_rootlogger(
+        level=logging.DEBUG if args.verbose else logging.INFO
+    )
 
     set_print_not_execute(args.print)
 

@@ -174,7 +174,9 @@ import argparse
 import logging
 from typing import List
 
-from cardinal_pythonlib.argparse_func import RawDescriptionArgumentDefaultsHelpFormatter  # noqa
+from cardinal_pythonlib.argparse_func import (
+    RawDescriptionArgumentDefaultsHelpFormatter,
+)  # noqa
 from cardinal_pythonlib.debugging import pdb_run
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.sql.sql_grammar_factory import make_grammar
@@ -239,7 +241,9 @@ PCMIS_TABLE_CASE_CONTACT_DETAILS = "CaseContactDetails"
 PCMIS_TABLE_REFERRAL_DETAILS = "ReferralDetails"  # cases -> patients
 PCMIS_TABLE_MASTER_PATIENT = "PatientDetails"
 
-VIEW_CASE_CONTACT_DETAILS_W_GEOG = PCMIS_TABLE_CASE_CONTACT_DETAILS + CRATE_VIEW_SUFFIX  # noqa
+VIEW_CASE_CONTACT_DETAILS_W_GEOG = (
+    PCMIS_TABLE_CASE_CONTACT_DETAILS + CRATE_VIEW_SUFFIX
+)  # noqa
 VIEW_PT_DETAIL_W_GEOG = PCMIS_TABLE_MASTER_PATIENT + CRATE_VIEW_SUFFIX
 
 
@@ -247,15 +251,19 @@ VIEW_PT_DETAIL_W_GEOG = PCMIS_TABLE_MASTER_PATIENT + CRATE_VIEW_SUFFIX
 # Config class
 # =============================================================================
 
+
 class PcmisConfigOptions(object):
     """
     Hold configuration options for this program.
     """
-    def __init__(self,
-                 postcodedb: str,
-                 geogcols: List[str],
-                 print_sql_only: bool,
-                 drop_not_create: bool) -> None:
+
+    def __init__(
+        self,
+        postcodedb: str,
+        geogcols: List[str],
+        print_sql_only: bool,
+        drop_not_create: bool,
+    ) -> None:
         """
         Args:
             postcodedb:
@@ -284,6 +292,7 @@ class PcmisConfigOptions(object):
 # Typical instructions with which to draft a PCMIS data dictionary
 # automatically
 # =============================================================================
+
 
 def get_pcmis_dd_settings(ddhint: DDHint) -> str:
     """
@@ -566,10 +575,13 @@ def get_pcmis_dd_settings(ddhint: DDHint) -> str:
 # Geography views
 # =============================================================================
 
-def add_geography_to_view(columns: List[str],
-                          viewmaker: ViewMaker,
-                          engine: Engine,
-                          configoptions: PcmisConfigOptions) -> None:
+
+def add_geography_to_view(
+    columns: List[str],
+    viewmaker: ViewMaker,
+    engine: Engine,
+    configoptions: PcmisConfigOptions,
+) -> None:
     """
     Modifies a viewmaker to add geography columns to views on PCMIS tables. For
     example, if you start with an address table including postcodes, and you're
@@ -593,21 +605,19 @@ def add_geography_to_view(columns: List[str],
     columns_lower = [c.lower() for c in columns]
     basetable = viewmaker.basetable
 
-    ensure_columns_present(engine,
-                           tablename=basetable,
-                           column_names=[PCMIS_COL_POSTCODE,
-                                         PCMIS_COL_PREV_POSTCODE])
+    ensure_columns_present(
+        engine,
+        tablename=basetable,
+        column_names=[PCMIS_COL_POSTCODE, PCMIS_COL_PREV_POSTCODE],
+    )
 
     for gc in sorted(configoptions.geogcols, key=lambda x: x.lower()):
         if gc in columns_lower:
-            raise ValueError(f"Geography column {gc!r} "
-                             f"clashes with an existing column")
-        viewmaker.add_select(
-            f"{postcode_alias_1}.{gc} AS {gc}"
-        )
-        viewmaker.add_select(
-            f"{postcode_alias_2}.{gc} AS {prev_prefix}{gc}"
-        )
+            raise ValueError(
+                f"Geography column {gc!r} " f"clashes with an existing column"
+            )
+        viewmaker.add_select(f"{postcode_alias_1}.{gc} AS {gc}")
+        viewmaker.add_select(f"{postcode_alias_2}.{gc} AS {prev_prefix}{gc}")
 
     # PCMIS can have either 'XX99 9XX' or 'XX999XX' format:
     viewmaker.add_from(
@@ -628,9 +638,10 @@ def add_geography_to_view(columns: List[str],
 # PCMIS views
 # =============================================================================
 
-def get_pcmis_views(engine: Engine,
-                    configoptions: PcmisConfigOptions,
-                    ddhint: DDHint) -> List[ViewMaker]:
+
+def get_pcmis_views(
+    engine: Engine, configoptions: PcmisConfigOptions, ddhint: DDHint
+) -> List[ViewMaker]:
     """
     Gets all PCMIS view definitions.
 
@@ -645,6 +656,7 @@ def get_pcmis_views(engine: Engine,
         a list of :class:`crate_anon.common.sql.ViewMaker` objects
 
     """
+
     def q(identifier: str) -> str:
         return grammar.quote_identifier(identifier)
 
@@ -661,7 +673,8 @@ def get_pcmis_views(engine: Engine,
             basetable=tablename,
             rename=None,
             userobj=None,
-            enforce_same_n_rows_as_base=True)
+            enforce_same_n_rows_as_base=True,
+        )
 
         # 1. SELECT all the table's own columns
         # ... done automatically by the viewmaker
@@ -673,20 +686,26 @@ def get_pcmis_views(engine: Engine,
 
             # Not specifically for this, but we'll need it everywhere:
             viewmaker.record_lookup_table_keyfield(
-                PCMIS_TABLE_MASTER_PATIENT, PCMIS_COL_PATIENT_ID)
+                PCMIS_TABLE_MASTER_PATIENT, PCMIS_COL_PATIENT_ID
+            )
 
             if PCMIS_COL_CASE_NUMBER in columns:
                 viewmaker.add_select(
                     "{referrals}.{pid} AS {pid}".format(
                         referrals=PCMIS_TABLE_REFERRAL_DETAILS,
-                        pid=PCMIS_COL_PATIENT_ID))
+                        pid=PCMIS_COL_PATIENT_ID,
+                    )
+                )
                 viewmaker.add_from(
                     "LEFT JOIN {referrals} ON {t}.{case} = {referrals}.{case}".format(  # noqa
                         referrals=PCMIS_TABLE_REFERRAL_DETAILS,
                         t=q(tablename),
-                        case=PCMIS_COL_CASE_NUMBER))
+                        case=PCMIS_COL_CASE_NUMBER,
+                    )
+                )
                 viewmaker.record_lookup_table_keyfield(
-                    PCMIS_TABLE_REFERRAL_DETAILS, PCMIS_COL_CASE_NUMBER)
+                    PCMIS_TABLE_REFERRAL_DETAILS, PCMIS_COL_CASE_NUMBER
+                )
                 viewmaker.request_index(tablename, PCMIS_COL_CASE_NUMBER)
 
             elif PCMIS_COL_CONTACT_NUMBER in columns:
@@ -694,25 +713,35 @@ def get_pcmis_views(engine: Engine,
                 viewmaker.add_select(
                     "{contacts}.{case} AS {case}".format(
                         contacts=PCMIS_TABLE_CASE_CONTACTS,
-                        case=PCMIS_COL_CASE_NUMBER))
+                        case=PCMIS_COL_CASE_NUMBER,
+                    )
+                )
                 viewmaker.add_from(
                     "LEFT JOIN {contacts} ON {t}.{contact} = {contacts}.{contact}".format(  # noqa
                         contacts=PCMIS_TABLE_CASE_CONTACTS,
                         t=tablename,
-                        contact=PCMIS_COL_CONTACT_NUMBER))
+                        contact=PCMIS_COL_CONTACT_NUMBER,
+                    )
+                )
                 viewmaker.record_lookup_table_keyfield(
-                    PCMIS_TABLE_CASE_CONTACTS, PCMIS_COL_CONTACT_NUMBER)
+                    PCMIS_TABLE_CASE_CONTACTS, PCMIS_COL_CONTACT_NUMBER
+                )
                 viewmaker.add_select(
                     "{referrals}.{pid} AS {pid}".format(
                         referrals=PCMIS_TABLE_REFERRAL_DETAILS,
-                        pid=PCMIS_COL_PATIENT_ID))
+                        pid=PCMIS_COL_PATIENT_ID,
+                    )
+                )
                 viewmaker.add_from(
                     "LEFT JOIN {referrals} ON {contacts}.{case} = {referrals}.{case}".format(  # noqa
                         referrals=PCMIS_TABLE_REFERRAL_DETAILS,
                         contacts=PCMIS_TABLE_CASE_CONTACTS,
-                        case=PCMIS_COL_CASE_NUMBER))
+                        case=PCMIS_COL_CASE_NUMBER,
+                    )
+                )
                 viewmaker.record_lookup_table_keyfield(
-                    PCMIS_TABLE_REFERRAL_DETAILS, PCMIS_COL_CASE_NUMBER)
+                    PCMIS_TABLE_REFERRAL_DETAILS, PCMIS_COL_CASE_NUMBER
+                )
                 viewmaker.request_index(tablename, PCMIS_COL_CONTACT_NUMBER)
 
             else:
@@ -720,9 +749,10 @@ def get_pcmis_views(engine: Engine,
                 continue
 
         # 3. Add geography?
-        if (configoptions.postcodedb and
-                tablename in [PCMIS_TABLE_MASTER_PATIENT,
-                              PCMIS_TABLE_CASE_CONTACT_DETAILS]):
+        if configoptions.postcodedb and tablename in [
+            PCMIS_TABLE_MASTER_PATIENT,
+            PCMIS_TABLE_CASE_CONTACT_DETAILS,
+        ]:
             need_view = True
             add_geography_to_view(
                 viewmaker=viewmaker,
@@ -737,15 +767,18 @@ def get_pcmis_views(engine: Engine,
             continue
         ddhint.suppress_table(tablename)
         ddhint.add_bulk_source_index_request(
-            viewmaker.get_index_request_dict())
+            viewmaker.get_index_request_dict()
+        )
         views.append(viewmaker)
     return views
 
 
-def create_pcmis_views(engine: Engine,
-                       metadata: MetaData,
-                       configoptions: PcmisConfigOptions,
-                       ddhint: DDHint) -> None:
+def create_pcmis_views(
+    engine: Engine,
+    metadata: MetaData,
+    configoptions: PcmisConfigOptions,
+    ddhint: DDHint,
+) -> None:
     """
     Creates all PCMIS views.
 
@@ -762,10 +795,12 @@ def create_pcmis_views(engine: Engine,
     ddhint.create_indexes(engine, metadata)
 
 
-def drop_pcmis_views(engine: Engine,
-                     metadata: MetaData,
-                     configoptions: PcmisConfigOptions,
-                     ddhint: DDHint) -> None:  # ddhint modified
+def drop_pcmis_views(
+    engine: Engine,
+    metadata: MetaData,
+    configoptions: PcmisConfigOptions,
+    ddhint: DDHint,
+) -> None:  # ddhint modified
     """
     Drops all PCMIS views.
 
@@ -786,8 +821,10 @@ def drop_pcmis_views(engine: Engine,
 # Generic table processors
 # =============================================================================
 
-def process_table(table: Table, engine: Engine,
-                  configoptions: PcmisConfigOptions) -> None:
+
+def process_table(
+    table: Table, engine: Engine, configoptions: PcmisConfigOptions
+) -> None:
     """
     Processes a PCMIS table by checking it has appropriate columns, perhaps
     adding a CRATE integer PK, and indexing it.
@@ -802,8 +839,9 @@ def process_table(table: Table, engine: Engine,
     log.debug(f"TABLE: {tablename}; COLUMNS: {column_names}")
 
     existing_pk_cols = get_pk_colnames(table)
-    assert len(existing_pk_cols) < 2, (
-        f"Table {tablename} has >1 PK column; don't know what to do")
+    assert (
+        len(existing_pk_cols) < 2
+    ), f"Table {tablename} has >1 PK column; don't know what to do"
     if existing_pk_cols and not get_effective_int_pk_col(table):
         raise ValueError(f"Table {table!r} has a non-integer PK")
     adding_crate_pk = not existing_pk_cols
@@ -822,24 +860,28 @@ def process_table(table: Table, engine: Engine,
         # ---------------------------------------------------------------------
         # SQL Server requires Table-bound columns in order to generate DDL:
         if adding_crate_pk:
-            crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK,
-                                                            engine.dialect)
+            crate_pk_col = make_bigint_autoincrement_column(
+                CRATE_COL_PK, engine.dialect
+            )
             table.append_column(crate_pk_col)
             add_columns(engine, table, [crate_pk_col])
-        ensure_columns_present(engine, tablename=table.name,
-                               column_names=required_cols)
-        add_indexes(engine, table, [
-            IndexCreationInfo(
-                index_name=CRATE_IDX_PK,
-                column=CRATE_COL_PK,
-                unique=True
-            )
-        ])
+        ensure_columns_present(
+            engine, tablename=table.name, column_names=required_cols
+        )
+        add_indexes(
+            engine,
+            table,
+            [
+                IndexCreationInfo(
+                    index_name=CRATE_IDX_PK, column=CRATE_COL_PK, unique=True
+                )
+            ],
+        )
 
 
-def process_all_tables(engine: Engine,
-                       metadata: MetaData,
-                       configoptions: PcmisConfigOptions) -> None:
+def process_all_tables(
+    engine: Engine, metadata: MetaData, configoptions: PcmisConfigOptions
+) -> None:
     """
     Process all PCMIS tables; see :func:`process_table`.
 
@@ -848,14 +890,16 @@ def process_all_tables(engine: Engine,
         metadata: SQLAlchemy MetaData containing reflected details of database
         configoptions: an instance of :class:`PcmisConfigOptions`
     """
-    for table in sorted(metadata.tables.values(),
-                        key=lambda t: t.name.lower()):
+    for table in sorted(
+        metadata.tables.values(), key=lambda t: t.name.lower()
+    ):
         process_table(table, engine, configoptions)
 
 
 # =============================================================================
 # Main
 # =============================================================================
+
 
 def main() -> None:
     """
@@ -864,55 +908,69 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
-        description="Alters a PCMIS database to be suitable for CRATE.")
+        description="Alters a PCMIS database to be suitable for CRATE.",
+    )
     parser.add_argument("--url", required=True, help="SQLAlchemy database URL")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
     parser.add_argument(
-        "--print", action="store_true",
+        "--print",
+        action="store_true",
         help="Print SQL but do not execute it. (You can redirect the printed "
-             "output to create an SQL script.)")
+        "output to create an SQL script.)",
+    )
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
 
     parser.add_argument(
-        "--drop_danger_drop", action="store_true",
+        "--drop_danger_drop",
+        action="store_true",
         help="REMOVES new columns and indexes, rather than creating them. "
-             "(There's not very much danger; no real information is lost, but "
-             "it might take a while to recalculate it.)")
+        "(There's not very much danger; no real information is lost, but "
+        "it might take a while to recalculate it.)",
+    )
 
     parser.add_argument(
-        "--debug_skiptables", action="store_true",
-        help="DEBUG-ONLY OPTION. Skip tables (view creation only)")
+        "--debug_skiptables",
+        action="store_true",
+        help="DEBUG-ONLY OPTION. Skip tables (view creation only)",
+    )
 
     parser.add_argument(
         "--postcodedb",
-        help='Specify database (schema) name for ONS Postcode Database (as '
-             'imported by CRATE) to link to addresses as a view. With SQL '
-             'Server, you will have to specify the schema as well as the '
-             'database; e.g. "--postcodedb ONS_PD.dbo"')
+        help="Specify database (schema) name for ONS Postcode Database (as "
+        "imported by CRATE) to link to addresses as a view. With SQL "
+        "Server, you will have to specify the schema as well as the "
+        'database; e.g. "--postcodedb ONS_PD.dbo"',
+    )
     parser.add_argument(
-        "--geogcols", nargs="*", default=DEFAULT_GEOG_COLS,
+        "--geogcols",
+        nargs="*",
+        default=DEFAULT_GEOG_COLS,
         help="List of geographical information columns to link in from ONS "
-             "Postcode Database. BEWARE that you do not specify anything too "
-             "identifying.")
+        "Postcode Database. BEWARE that you do not specify anything too "
+        "identifying.",
+    )
 
     parser.add_argument(
         "--settings_filename",
         help="Specify filename to write draft ddgen_* settings to, for use in "
-             "a CRATE anonymiser configuration file.")
+        "a CRATE anonymiser configuration file.",
+    )
 
     progargs = parser.parse_args()
 
     rootlogger = logging.getLogger()
     configure_logger_for_colour(
-        rootlogger, level=logging.DEBUG if progargs.verbose else logging.INFO)
+        rootlogger, level=logging.DEBUG if progargs.verbose else logging.INFO
+    )
 
     log.info("CRATE in-place preprocessor for PCMIS databases")
-    safeargs = {k: v for k, v in vars(progargs).items() if k != 'url'}
+    safeargs = {k: v for k, v in vars(progargs).items() if k != "url"}
     log.debug(f"args (except url): {repr(safeargs)}")
 
     if progargs.postcodedb and not progargs.geogcols:
         raise ValueError(
-            "If you specify postcodedb, you must specify some geogcols")
+            "If you specify postcodedb, you must specify some geogcols"
+        )
 
     set_print_not_execute(progargs.print)
 
@@ -948,7 +1006,7 @@ def main() -> None:
         create_pcmis_views(engine, metadata, configoptions, ddhint)
 
     if progargs.settings_filename:
-        with open(progargs.settings_filename, 'w') as f:
+        with open(progargs.settings_filename, "w") as f:
             print(get_pcmis_dd_settings(ddhint), file=f)
 
 

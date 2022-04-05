@@ -36,14 +36,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('research', '0004_auto_20170212_0137'),
+        ("research", "0004_auto_20170212_0137"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='query',
-            name='sql_hash',
-            field=models.BigIntegerField(default=0, verbose_name='64-bit non-cryptographic hash of SQL query'),  # noqa
+            model_name="query",
+            name="sql_hash",
+            field=models.BigIntegerField(
+                default=0,
+                verbose_name="64-bit non-cryptographic hash of SQL query",
+            ),  # noqa
             preserve_default=False,
         ),
     ]

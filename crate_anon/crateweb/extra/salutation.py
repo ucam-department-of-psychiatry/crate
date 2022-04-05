@@ -35,12 +35,15 @@ from typing import Optional, Tuple
 # Salutation and other forms of name/title generation
 # =============================================================================
 
-def title_forename_surname(title: Optional[str],
-                           forename: Optional[str],
-                           surname: Optional[str],
-                           always_title: bool = False,
-                           sex: str = '',
-                           assume_dr: bool = False) -> str:
+
+def title_forename_surname(
+    title: Optional[str],
+    forename: Optional[str],
+    surname: Optional[str],
+    always_title: bool = False,
+    sex: str = "",
+    assume_dr: bool = False,
+) -> str:
     """
     Used when reporting names. Returns a string of the format ``Title Forename
     Surname``, as far as we can work it out.
@@ -85,7 +88,7 @@ def forename_surname(forename: Optional[str], surname: Optional[str]) -> str:
     return " ".join(filter(None, [forename, surname]))
 
 
-def salutation_default_title(sex: str = '', assume_dr: bool = False) -> str:
+def salutation_default_title(sex: str = "", assume_dr: bool = False) -> str:
     """
     Returns a guess as to someone's title.
 
@@ -99,20 +102,22 @@ def salutation_default_title(sex: str = '', assume_dr: bool = False) -> str:
     """
     if assume_dr:
         return "Dr"
-    if sex.upper() == 'M':
+    if sex.upper() == "M":
         return "Mr"
-    if sex.upper() == 'F':
+    if sex.upper() == "F":
         return "Ms"
     # really stuck now
     # https://en.wikipedia.org/wiki/Gender_neutral_title
     return "Mx"
 
 
-def salutation(title: Optional[str],
-               forename: Optional[str],
-               surname: Optional[str],
-               sex: str = '',
-               assume_dr: bool = False) -> str:
+def salutation(
+    title: Optional[str],
+    forename: Optional[str],
+    surname: Optional[str],
+    sex: str = "",
+    assume_dr: bool = False,
+) -> str:
     """
     For salutations: "Dear ..."
 
@@ -137,6 +142,7 @@ def salutation(title: Optional[str],
 # =============================================================================
 # String parsing
 # =============================================================================
+
 
 def get_initial_surname_tuple_from_string(s: str) -> Tuple[str, str]:
     """

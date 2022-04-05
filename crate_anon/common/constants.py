@@ -43,27 +43,33 @@ DEMO_NLP_OUTPUT_TERMINATOR = "END_OF_NLP_OUTPUT_RECORD"
 EXIT_FAILURE = 1
 EXIT_SUCCESS = 0
 
-JSON_SEPARATORS_COMPACT = (',', ':')
+JSON_INDENT = 4
+
+JSON_SEPARATORS_COMPACT = (",", ":")
 # ... see https://docs.python.org/3/library/json.html
 
-LOWER_CASE_STRINGS_MEANING_TRUE = ['true', '1', 't', 'y', 'yes']
+LOWER_CASE_STRINGS_MEANING_TRUE = ["true", "1", "t", "y", "yes"]
 
 # Is this program running on readthedocs.org?
-ON_READTHEDOCS = os.environ.get('READTHEDOCS') == 'True'
+ON_READTHEDOCS = os.environ.get("READTHEDOCS") == "True"
 
 
 # =============================================================================
 # Directories within CRATE
 # =============================================================================
 
+
 class CratePath(object):
     """
     Directories within the CRATE Python package.
     """
+
     CRATE_ANON_DIR = os.path.abspath(
         os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),  # this directory, common  # noqa
-            os.pardir  # parent, crate_anon
+            os.path.dirname(
+                os.path.abspath(__file__)
+            ),  # this directory, common  # noqa
+            os.pardir,  # parent, crate_anon
         )
     )
     NLP_MANAGER_DIR = os.path.join(CRATE_ANON_DIR, "nlp_manager")
@@ -75,10 +81,12 @@ class CratePath(object):
 # DockerConstants
 # =============================================================================
 
+
 class DockerConstants(object):
     """
     Constants for the Docker environment.
     """
+
     # Directories
     DOCKER_CRATE_ROOT_DIR = "/crate"
     CONFIG_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "cfg")
@@ -94,13 +102,16 @@ class DockerConstants(object):
 # Environment variables
 # =============================================================================
 
+
 class EnvVar(object):
     """
     Environment variable names.
     """
+
     CRATE_GATE_PLUGIN_FILE = "CRATE_GATE_PLUGIN_FILE"
+    # ... environment variable whose presence shows that we are generating
+    # docs.
     GENERATING_CRATE_DOCS = "GENERATING_CRATE_DOCS"
-    # ... environment variable whose presence shows that we are generating docs.
     GATE_HOME = "GATE_HOME"
     JAVA_HOME = "JAVA_HOME"
     KCL_LEWY_BODY_DIAGNOSIS_DIR = "KCL_LEWY_BODY_DIAGNOSIS_DIR"
@@ -114,6 +125,7 @@ class EnvVar(object):
 # =============================================================================
 # HelpUrl
 # =============================================================================
+
 
 class HelpUrl(object):
     """
@@ -142,8 +154,9 @@ class HelpUrl(object):
     """  # noqa
 
     @staticmethod
-    def make_url(location: str, language: str = "en",
-                 version: str = "latest") -> str:
+    def make_url(
+        location: str, language: str = "en", version: str = "latest"
+    ) -> str:
         """
         Make a CRATE help URL.
 
@@ -164,31 +177,45 @@ class HelpUrl(object):
 
     @classmethod
     def find_text_anywhere(cls) -> str:
-        return cls.make_url("website_using/clinician_privileged.html#clinician-privileged-find-text-anywhere")  # noqa
+        return cls.make_url(
+            "website_using/clinician_privileged.html#clinician-privileged-find-text-anywhere"  # noqa: E501
+        )
 
     @classmethod
     def clinician_lookup_rid(cls) -> str:
-        return cls.make_url("website_using/clinician_privileged.html#look-up-research-id-from-patient-id")  # noqa
+        return cls.make_url(
+            "website_using/clinician_privileged.html#look-up-research-id-from-patient-id"  # noqa: E501
+        )
 
     @classmethod
     def clinician_submit_contact_request(cls) -> str:
-        return cls.make_url("website_using/clinician_privileged.html#submit-patient-contact-request")  # noqa
+        return cls.make_url(
+            "website_using/clinician_privileged.html#submit-patient-contact-request"  # noqa: E501
+        )
 
     @classmethod
     def querybuilder(cls) -> str:
-        return cls.make_url("website_using/research_queries.html#query-builder")  # noqa
+        return cls.make_url(
+            "website_using/research_queries.html#query-builder"
+        )
 
     @classmethod
     def sql(cls) -> str:
-        return cls.make_url("website_using/research_queries.html#research-query-sql")  # noqa
+        return cls.make_url(
+            "website_using/research_queries.html#research-query-sql"
+        )
 
     @classmethod
     def highlighting(cls) -> str:
-        return cls.make_url("website_using/research_queries.html#highlighting-text-in-results")  # noqa
+        return cls.make_url(
+            "website_using/research_queries.html#highlighting-text-in-results"
+        )
 
     @classmethod
     def results(cls) -> str:
-        return cls.make_url("website_using/research_queries.html#results-table-view")  # noqa
+        return cls.make_url(
+            "website_using/research_queries.html#results-table-view"
+        )
 
     @classmethod
     def patient_explorer(cls) -> str:
@@ -196,11 +223,15 @@ class HelpUrl(object):
 
     @classmethod
     def sqlhelper_find_text_anywhere(cls) -> str:
-        return cls.make_url("website_using/sql_helpers.html#find-text-anywhere")  # noqa
+        return cls.make_url(
+            "website_using/sql_helpers.html#find-text-anywhere"
+        )
 
     @classmethod
     def sqlhelper_find_drugs_anywhere(cls) -> str:
-        return cls.make_url("website_using/sql_helpers.html#find-drugs-of-a-given-type-anywhere")  # noqa
+        return cls.make_url(
+            "website_using/sql_helpers.html#find-drugs-of-a-given-type-anywhere"  # noqa: E501
+        )
 
     @classmethod
     def sitewide_queries(cls) -> str:
@@ -212,7 +243,9 @@ class HelpUrl(object):
 
     @classmethod
     def submit_contact_request(cls) -> str:
-        return cls.make_url("website_using/contact_patients.html#submit-a-contact-request")  # noqa
+        return cls.make_url(
+            "website_using/contact_patients.html#submit-a-contact-request"
+        )
 
     @classmethod
     def rdbm(cls) -> str:
@@ -224,11 +257,15 @@ class HelpUrl(object):
 
     @classmethod
     def user_settings(cls) -> str:
-        return cls.make_url("website_using/clinician_researcher_overview.html#your-settings")  # noqa
+        return cls.make_url(
+            "website_using/clinician_researcher_overview.html#your-settings"
+        )
 
     @classmethod
     def about_crate(cls) -> str:
-        return cls.make_url("website_using/clinician_researcher_overview.html#about-crate")  # noqa
+        return cls.make_url(
+            "website_using/clinician_researcher_overview.html#about-crate"
+        )
 
     @classmethod
     def archive(cls) -> str:
@@ -240,11 +277,8 @@ class HelpUrl(object):
 # =============================================================================
 
 # Will we run without a config file?
-RUNNING_WITHOUT_CONFIG = (
-    ON_READTHEDOCS or
-    (
-        EnvVar.RUN_WITHOUT_CONFIG in os.environ
-        and os.environ[EnvVar.RUN_WITHOUT_CONFIG].lower() in
-        LOWER_CASE_STRINGS_MEANING_TRUE
-    )
+RUNNING_WITHOUT_CONFIG = ON_READTHEDOCS or (
+    EnvVar.RUN_WITHOUT_CONFIG in os.environ
+    and os.environ[EnvVar.RUN_WITHOUT_CONFIG].lower()
+    in LOWER_CASE_STRINGS_MEANING_TRUE
 )

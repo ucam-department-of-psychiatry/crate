@@ -47,10 +47,8 @@ debug:
 """
 
 import logging
-import sys
-from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy import Column, Integer, Float, String, Text
 
 from crate_anon.common.regex_helpers import WORD_BOUNDARY
@@ -125,11 +123,13 @@ log = logging.getLogger(__name__)
 # Height
 # -----------------------------------------------------------------------------
 
+
 class Height(NumericalResultParser):
     """
     Height. Handles metric (e.g. "1.8m") and imperial (e.g. "5 ft 2 in").
     """
-    METRIC_HEIGHT = fr"""
+
+    METRIC_HEIGHT = rf"""
         (                           # capture group 4
             (?:
                 ( {SIGNED_FLOAT} )          # capture group 5
@@ -152,7 +152,7 @@ class Height(NumericalResultParser):
             )
         )
     """
-    IMPERIAL_HEIGHT = fr"""
+    IMPERIAL_HEIGHT = rf"""
         (                           # capture group 13
             (?:
                 ( {SIGNED_FLOAT} )      # capture group 14
@@ -176,7 +176,7 @@ class Height(NumericalResultParser):
         )
     """
     HEIGHT = r"(?: \b height \b)"
-    REGEX = fr"""
+    REGEX = rf"""
         ( {HEIGHT} )                       # group 1 for "height" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group 2 for tense
@@ -193,11 +193,13 @@ class Height(NumericalResultParser):
     NAME = "Height"
     PREFERRED_UNIT_COLUMN = "value_m"
 
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfg_processor_name: Optional[str],
-                 commit: bool = False,
-                 debug: bool = False) -> None:
+    def __init__(
+        self,
+        nlpdef: Optional[NlpDefinition],
+        cfg_processor_name: Optional[str],
+        commit: bool = False,
+        debug: bool = False,
+    ) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
@@ -205,14 +207,14 @@ class Height(NumericalResultParser):
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             regex_str_for_debugging=self.REGEX,
-            commit=commit
+            commit=commit,
         )
         if debug:
             print(f"Regex for {self.classname()}: {self.REGEX}")
 
-    def parse(self, text: str,
-              debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
-                                                None, None]:
+    def parse(
+        self, text: str, debug: bool = False
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         """
         Parser for Height. Specialized for complex unit conversion.
         """
@@ -254,8 +256,9 @@ class Height(NumericalResultParser):
                     # ... beware: 'm' above
                     cm = to_pos_float(metric_m_and_cm_cm)
                     value_m = m_from_m_cm(metres=metres, centimetres=cm)
-                    units = assemble_units([metric_m_and_cm_m_units,
-                                            metric_m_and_cm_cm_units])
+                    units = assemble_units(
+                        [metric_m_and_cm_m_units, metric_m_and_cm_cm_units]
+                    )
                 elif metric_m_only_m:
                     value_m = to_pos_float(metric_m_only_m)
                     units = metric_m_only_m_units
@@ -269,8 +272,12 @@ class Height(NumericalResultParser):
                     ft = to_pos_float(imperial_ft_and_in_ft)
                     inches = to_pos_float(imperial_ft_and_in_in)
                     value_m = m_from_ft_in(feet=ft, inches=inches)
-                    units = assemble_units([imperial_ft_and_in_ft_units,
-                                            imperial_ft_and_in_in_units])
+                    units = assemble_units(
+                        [
+                            imperial_ft_and_in_ft_units,
+                            imperial_ft_and_in_in_units,
+                        ]
+                    )
                 elif imperial_ft_only_ft:
                     ft = to_pos_float(imperial_ft_only_ft)
                     value_m = m_from_ft_in(feet=ft)
@@ -287,7 +294,6 @@ class Height(NumericalResultParser):
                 FN_CONTENT: matching_text,
                 FN_START: startpos,
                 FN_END: endpos,
-
                 FN_VARIABLE_TEXT: variable_text,
                 FN_RELATION_TEXT: relation_text,
                 FN_RELATION: relation,
@@ -302,29 +308,37 @@ class Height(NumericalResultParser):
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass
-        self.test_numerical_parser([
-            ("Height", []),  # should fail; no values
-            ("her height was 1.6m", [1.6]),
-            ("Height = 1.23 m", [1.23]),
-            ("her height is 1.5m", [1.5]),
-            ('''Height 5'8" ''', [m_from_ft_in(feet=5, inches=8)]),
-            ("Height 5 ft 8 in", [m_from_ft_in(feet=5, inches=8)]),
-            ("Height 5 feet 8 inches", [m_from_ft_in(feet=5, inches=8)]),
-        ], verbose=verbose)
-        self.detailed_test("Height 5 ft 11 in", [{
-            self.target_unit: m_from_ft_in(feet=5, inches=11),
-            FN_UNITS: "ft in",
-        }], verbose=verbose)
+        self.test_numerical_parser(
+            [
+                ("Height", []),  # should fail; no values
+                ("her height was 1.6m", [1.6]),
+                ("Height = 1.23 m", [1.23]),
+                ("her height is 1.5m", [1.5]),
+                ("""Height 5'8" """, [m_from_ft_in(feet=5, inches=8)]),
+                ("Height 5 ft 8 in", [m_from_ft_in(feet=5, inches=8)]),
+                ("Height 5 feet 8 inches", [m_from_ft_in(feet=5, inches=8)]),
+            ],
+            verbose=verbose,
+        )
+        self.detailed_test(
+            "Height 5 ft 11 in",
+            [
+                {
+                    self.target_unit: m_from_ft_in(feet=5, inches=11),
+                    FN_UNITS: "ft in",
+                }
+            ],
+            verbose=verbose,
+        )
         # todo: Height NLP: deal with "tall" and plain "is", e.g.
         # she is 6'2"; she is 1.5m tall
 
 
 class HeightValidator(ValidatorBase):
     """
-    Validator for Height
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Height (see help for explanation).
     """
+
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Height.NAME, [Height.HEIGHT]
@@ -334,18 +348,21 @@ class HeightValidator(ValidatorBase):
 # Weight (mass)
 # -----------------------------------------------------------------------------
 
+
 class Weight(NumericalResultParser):
     """
     Weight. Handles metric (e.g. "57kg") and imperial (e.g. "10 st 2 lb").
+    Requires units to be specified.
     """
-    METRIC_WEIGHT = fr"""
+
+    METRIC_WEIGHT = rf"""
         (                           # capture group 4
             ( {SIGNED_FLOAT} )          # capture group 5
             {OPTIONAL_RESULTS_IGNORABLES}
             ( {KG} )                    # capture group 6
         )
     """
-    IMPERIAL_WEIGHT = fr"""
+    IMPERIAL_WEIGHT = rf"""
         (                           # capture group 7
             (?:
                 ( {SIGNED_FLOAT} )      # capture group 8
@@ -369,7 +386,7 @@ class Weight(NumericalResultParser):
         )
     """
     WEIGHT = r"(?: \b weigh[ts] \b )"  # weight, weighs
-    REGEX = fr"""
+    REGEX = rf"""
         ( {WEIGHT} )                       # group 1 for "weight" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group 2 for tense
@@ -386,11 +403,13 @@ class Weight(NumericalResultParser):
     NAME = "Weight"
     PREFERRED_UNIT_COLUMN = "value_kg"
 
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfg_processor_name: Optional[str],
-                 commit: bool = False,
-                 debug: bool = False) -> None:
+    def __init__(
+        self,
+        nlpdef: Optional[NlpDefinition],
+        cfg_processor_name: Optional[str],
+        commit: bool = False,
+        debug: bool = False,
+    ) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
@@ -398,14 +417,14 @@ class Weight(NumericalResultParser):
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             regex_str_for_debugging=self.REGEX,
-            commit=commit
+            commit=commit,
         )
         if debug:
             print(f"Regex for {self.classname()}: {self.REGEX}")
 
-    def parse(self, text: str,
-              debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
-                                                None, None]:
+    def parse(
+        self, text: str, debug: bool = False
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         """
         Parser for Weight. Specialized for complex unit conversion.
         """
@@ -444,8 +463,12 @@ class Weight(NumericalResultParser):
                     st = to_float(imperial_st_and_lb_st)
                     lb = to_float(imperial_st_and_lb_lb)
                     value_kg = kg_from_st_lb_oz(stones=st, pounds=lb)
-                    units = assemble_units([imperial_st_and_lb_st_units,
-                                            imperial_st_and_lb_lb_units])
+                    units = assemble_units(
+                        [
+                            imperial_st_and_lb_st_units,
+                            imperial_st_and_lb_lb_units,
+                        ]
+                    )
                 elif imperial_st_only_st:
                     st = to_float(imperial_st_only_st)
                     value_kg = kg_from_st_lb_oz(stones=st)
@@ -465,7 +488,6 @@ class Weight(NumericalResultParser):
                 FN_CONTENT: matching_text,
                 FN_START: startpos,
                 FN_END: endpos,
-
                 FN_VARIABLE_TEXT: variable_text,
                 FN_RELATION_TEXT: relation_text,
                 FN_RELATION: relation,
@@ -480,40 +502,55 @@ class Weight(NumericalResultParser):
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass
-        self.test_numerical_parser([
-            ("Weight", []),  # should fail; no values
-            ("her weight was 60.2kg", [60.2]),
-            ("Weight = 52.3kg", [52.3]),
-            ("Weight: 80.8kgs", [80.8]),
-            ("she weighs 61kg", [61]),
-            ("she weighs 61 kg", [61]),
-            ("she weighs 61 kgs", [61]),
-            ("she weighs 61 kilo", [61]),
-            ("she weighs 61 kilos", [61]),
-            ("she weighs 8 stones ", [kg_from_st_lb_oz(stones=8)]),
-            ("she weighs 200 lb", [kg_from_st_lb_oz(pounds=200)]),
-            ("she weighs 200 pounds", [kg_from_st_lb_oz(pounds=200)]),
-            ("she weighs 6 st 12 lb", [kg_from_st_lb_oz(stones=6, pounds=12)]),
-            ("change in weight -0.4kg", [-0.4]),
-            ("change in weight - 0.4kg", [0.4]),  # ASCII hyphen (hyphen-minus)
-            ("change in weight ‐ 0.4kg", [0.4]),  # Unicode hyphen
-            # ("failme", [999]),
-            ("change in weight −0.4kg", [-0.4]),  # Unicode minus
-            ("change in weight –0.4kg", [-0.4]),  # en dash
-            ("change in weight —0.4kg", [0.4]),  # em dash
-        ], verbose=verbose)
-        self.detailed_test("Weight: 80.8kgs", [{
-            self.target_unit: 80.8,
-            FN_UNITS: "kgs",
-        }], verbose=verbose)
+        self.test_numerical_parser(
+            [
+                ("Weight", []),  # should fail; no values
+                ("her weight was 60.2kg", [60.2]),
+                ("her weight was 60.2", []),  # needs units
+                ("Weight = 52.3kg", [52.3]),
+                ("Weight: 80.8kgs", [80.8]),
+                ("she weighs 61kg", [61]),
+                ("she weighs 61 kg", [61]),
+                ("she weighs 61 kgs", [61]),
+                ("she weighs 61 kilo", [61]),
+                ("she weighs 61 kilos", [61]),
+                ("she weighs 8 stones ", [kg_from_st_lb_oz(stones=8)]),
+                ("she weighs 200 lb", [kg_from_st_lb_oz(pounds=200)]),
+                ("she weighs 200 pounds", [kg_from_st_lb_oz(pounds=200)]),
+                (
+                    "she weighs 6 st 12 lb",
+                    [kg_from_st_lb_oz(stones=6, pounds=12)],
+                ),
+                ("change in weight -0.4kg", [-0.4]),
+                (
+                    "change in weight - 0.4kg",
+                    [0.4],
+                ),  # ASCII hyphen (hyphen-minus)
+                ("change in weight ‐ 0.4kg", [0.4]),  # Unicode hyphen
+                # ("failme", [999]),
+                ("change in weight −0.4kg", [-0.4]),  # Unicode minus
+                ("change in weight –0.4kg", [-0.4]),  # en dash
+                ("change in weight —0.4kg", [0.4]),  # em dash
+            ],
+            verbose=verbose,
+        )
+        self.detailed_test(
+            "Weight: 80.8kgs",
+            [
+                {
+                    self.target_unit: 80.8,
+                    FN_UNITS: "kgs",
+                }
+            ],
+            verbose=verbose,
+        )
 
 
 class WeightValidator(ValidatorBase):
     """
-    Validator for Weight
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Weight (see help for explanation).
     """
+
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Weight.NAME, [Weight.WEIGHT]
@@ -523,30 +560,31 @@ class WeightValidator(ValidatorBase):
 # Body mass index (BMI)
 # -----------------------------------------------------------------------------
 
+
 class Bmi(SimpleNumericalResultParser):
     """
-    Body mass index (BMI) (in kg / m^2).
+    Body mass index (BMI), in kg / m^2.
     """
-    BMI = fr"""
+
+    BMI = rf"""
         {WORD_BOUNDARY}
         (?: BMI | body \s+ mass \s+ index )
         {WORD_BOUNDARY}
     """
-    REGEX = make_simple_numeric_regex(
-        quantity=BMI,
-        units=KG_PER_SQ_M
-    )
+    REGEX = make_simple_numeric_regex(quantity=BMI, units=KG_PER_SQ_M)
     NAME = "BMI"
     PREFERRED_UNIT_COLUMN = "value_kg_per_sq_m"
     UNIT_MAPPING = {
-        KG_PER_SQ_M: 1,       # preferred unit
+        KG_PER_SQ_M: 1,  # preferred unit
     }
     # deal with "a BMI of 30"?
 
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfg_processor_name: Optional[str],
-                 commit: bool = False) -> None:
+    def __init__(
+        self,
+        nlpdef: Optional[NlpDefinition],
+        cfg_processor_name: Optional[str],
+        commit: bool = False,
+    ) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
@@ -556,28 +594,30 @@ class Bmi(SimpleNumericalResultParser):
             target_unit=self.PREFERRED_UNIT_COLUMN,
             units_to_factor=self.UNIT_MAPPING,
             commit=commit,
-            take_absolute=True
+            take_absolute=True,
         )
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass
-        self.test_numerical_parser([
-            ("BMI", []),  # should fail; no values
-            ("body mass index was 30", [30]),
-            ("his BMI (30) is too high", [30]),
-            ("BMI 25 kg/sq m", [25]),
-            ("BMI was 18.4 kg/m^-2", [18.4]),
-            ("ACE 79", []),
-            ("BMI-23", [23]),
-        ], verbose=verbose)
+        self.test_numerical_parser(
+            [
+                ("BMI", []),  # should fail; no values
+                ("body mass index was 30", [30]),
+                ("his BMI (30) is too high", [30]),
+                ("BMI 25 kg/sq m", [25]),
+                ("BMI was 18.4 kg/m^-2", [18.4]),
+                ("ACE 79", []),
+                ("BMI-23", [23]),
+            ],
+            verbose=verbose,
+        )
 
 
 class BmiValidator(ValidatorBase):
     """
-    Validator for Bmi
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Bmi (see help for explanation).
     """
+
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Bmi.NAME, [Bmi.BMI]
@@ -587,21 +627,23 @@ class BmiValidator(ValidatorBase):
 # Bedside investigations: BP
 # =============================================================================
 
+
 class Bp(BaseNlpParser):
     """
     Blood pressure, in mmHg. (Systolic and diastolic.)
+    """
 
-    (Since we produce two variables, SBP and DBP, and we use something a little
-    more complex than
-    :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`;
-    we subclass :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
-    directly.)
-    """  # noqa
+    # Since we produce two variables, SBP and DBP, and we use something a
+    # little more complex than
+    # :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`,  # noqa
+    # we subclass :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
+    # directly.)
+
     BP = r"(?: \b blood \s+ pressure \b | \b B\.?P\.? \b )"
-    SYSTOLIC_BP = fr"(?: \b systolic \s+ {BP} | \b S\.?B\.?P\.? \b )"
-    DIASTOLIC_BP = fr"(?: \b diastolic \s+ {BP} | \b D\.?B\.?P\.? \b )"
+    SYSTOLIC_BP = rf"(?: \b systolic \s+ {BP} | \b S\.?B\.?P\.? \b )"
+    DIASTOLIC_BP = rf"(?: \b diastolic \s+ {BP} | \b D\.?B\.?P\.? \b )"
 
-    TWO_NUMBER_BP = fr"""
+    TWO_NUMBER_BP = rf"""
         ( {SIGNED_FLOAT} )
         \s* (?: \b over \b | \/ ) \s*
         ( {SIGNED_FLOAT} )
@@ -613,7 +655,7 @@ class Bp(BaseNlpParser):
     COMPILED_DBP = compile_regex(DIASTOLIC_BP)
     COMPILED_ONE_NUMBER_BP = compile_regex(ONE_NUMBER_BP)
     COMPILED_TWO_NUMBER_BP = compile_regex(TWO_NUMBER_BP)
-    REGEX = fr"""
+    REGEX = rf"""
         (                               # group for "BP" or equivalent
             {SYSTOLIC_BP}               # ... from more to less specific
             | {DIASTOLIC_BP}
@@ -638,64 +680,80 @@ class Bp(BaseNlpParser):
     """
     COMPILED_REGEX = compile_regex(REGEX)
 
-    FN_SYSTOLIC_BP_MMHG = 'systolic_bp_mmhg'
-    FN_DIASTOLIC_BP_MMHG = 'diastolic_bp_mmhg'
+    FN_SYSTOLIC_BP_MMHG = "systolic_bp_mmhg"
+    FN_DIASTOLIC_BP_MMHG = "diastolic_bp_mmhg"
 
     NAME = "BP"
     UNIT_MAPPING = {
-        MM_HG: 1,       # preferred unit
+        MM_HG: 1,  # preferred unit
     }
 
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfg_processor_name: Optional[str],
-                 commit: bool = False) -> None:
+    def __init__(
+        self,
+        nlpdef: Optional[NlpDefinition],
+        cfg_processor_name: Optional[str],
+        commit: bool = False,
+    ) -> None:
         # see documentation above
         super().__init__(
             nlpdef=nlpdef,
             cfg_processor_name=cfg_processor_name,
             commit=commit,
-            friendly_name=self.NAME
+            friendly_name=self.NAME,
         )
         if nlpdef is None:  # only None for debugging!
             self.tablename = self.classname().lower()
         else:
             self.tablename = self._cfgsection.opt_str(
-                ProcessorConfigKeys.DESTTABLE,
-                required=True)
-
-    @classmethod
-    def print_info(cls, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print(f"Blood pressure finder. Regular expression: \n{cls.REGEX}",
-              file=file)
+                ProcessorConfigKeys.DESTTABLE, required=True
+            )
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass
-        return {self.tablename: [
-            Column(FN_CONTENT, Text, comment=HELP_CONTENT),
-            Column(FN_START, Integer, comment=HELP_START),
-            Column(FN_END, Integer, comment=HELP_END),
-            Column(FN_VARIABLE_TEXT, Text, comment=HELP_VARIABLE_TEXT),
-            Column(FN_RELATION_TEXT, String(MAX_RELATION_TEXT_LENGTH),
-                   comment=HELP_RELATION_TEXT),
-            Column(FN_RELATION, String(MAX_RELATION_LENGTH),
-                   comment=HELP_RELATION),
-            Column(FN_VALUE_TEXT, String(MAX_VALUE_TEXT_LENGTH),
-                   comment=HELP_VALUE_TEXT),
-            Column(FN_UNITS, String(MAX_UNITS_LENGTH), comment=HELP_UNITS),
-            Column(self.FN_SYSTOLIC_BP_MMHG, Float,
-                   comment="Systolic blood pressure in mmHg"),
-            Column(self.FN_DIASTOLIC_BP_MMHG, Float,
-                   comment="Diastolic blood pressure in mmHg"),
-            Column(FN_TENSE_TEXT, String(MAX_TENSE_TEXT_LENGTH),
-                   comment=HELP_TENSE_TEXT),
-            Column(FN_TENSE, String(MAX_TENSE_LENGTH), comment=HELP_TENSE),
-        ]}
+        return {
+            self.tablename: [
+                Column(FN_CONTENT, Text, comment=HELP_CONTENT),
+                Column(FN_START, Integer, comment=HELP_START),
+                Column(FN_END, Integer, comment=HELP_END),
+                Column(FN_VARIABLE_TEXT, Text, comment=HELP_VARIABLE_TEXT),
+                Column(
+                    FN_RELATION_TEXT,
+                    String(MAX_RELATION_TEXT_LENGTH),
+                    comment=HELP_RELATION_TEXT,
+                ),
+                Column(
+                    FN_RELATION,
+                    String(MAX_RELATION_LENGTH),
+                    comment=HELP_RELATION,
+                ),
+                Column(
+                    FN_VALUE_TEXT,
+                    String(MAX_VALUE_TEXT_LENGTH),
+                    comment=HELP_VALUE_TEXT,
+                ),
+                Column(FN_UNITS, String(MAX_UNITS_LENGTH), comment=HELP_UNITS),
+                Column(
+                    self.FN_SYSTOLIC_BP_MMHG,
+                    Float,
+                    comment="Systolic blood pressure in mmHg",
+                ),
+                Column(
+                    self.FN_DIASTOLIC_BP_MMHG,
+                    Float,
+                    comment="Diastolic blood pressure in mmHg",
+                ),
+                Column(
+                    FN_TENSE_TEXT,
+                    String(MAX_TENSE_TEXT_LENGTH),
+                    comment=HELP_TENSE_TEXT,
+                ),
+                Column(FN_TENSE, String(MAX_TENSE_LENGTH), comment=HELP_TENSE),
+            ]
+        }
 
-    def parse(self, text: str,
-              debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
-                                                None, None]:
+    def parse(
+        self, text: str, debug: bool = False
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         """
         Parser for BP. Specialized because we're fetching two numbers.
         """
@@ -761,11 +819,10 @@ class Bp(BaseNlpParser):
             }
 
     def test_bp_parser(
-            self,
-            test_expected_list: List[
-                Tuple[str, List[Tuple[float, float]]]
-            ],
-            verbose: bool = False) -> None:
+        self,
+        test_expected_list: List[Tuple[str, List[Tuple[float, float]]]],
+        verbose: bool = False,
+    ) -> None:
         """
         Called by :func:`test`.
 
@@ -798,19 +855,22 @@ class Bp(BaseNlpParser):
 
     def test(self, verbose: bool = False) -> None:
         # docstring in superclass
-        self.test_bp_parser([
-            ("BP", []),  # should fail; no values
-            ("his blood pressure was 120/80", [(120, 80)]),
-            ("BP 120/80 mmhg", [(120, 80)]),
-            ("systolic BP 120", [(120, None)]),
-            ("diastolic BP 80", [(None, 80)]),
-            ("BP-130/70", [(130, 70)]),
-            ("BP 110 /80", [(110, 80)]),
-            ("BP 110 /80 -", [(110, 80)]),  # real example
-            ("BP 120 / 70 -", [(120, 70)]),  # real example
-            ("BP :115 / 70 -", [(115, 70)]),  # real example
-            ("B.P 110", []),  # real example
-        ], verbose=verbose)
+        self.test_bp_parser(
+            [
+                ("BP", []),  # should fail; no values
+                ("his blood pressure was 120/80", [(120, 80)]),
+                ("BP 120/80 mmhg", [(120, 80)]),
+                ("systolic BP 120", [(120, None)]),
+                ("diastolic BP 80", [(None, 80)]),
+                ("BP-130/70", [(130, 70)]),
+                ("BP 110 /80", [(110, 80)]),
+                ("BP 110 /80 -", [(110, 80)]),  # real example
+                ("BP 120 / 70 -", [(120, 70)]),  # real example
+                ("BP :115 / 70 -", [(115, 70)]),  # real example
+                ("B.P 110", []),  # real example
+            ],
+            verbose=verbose,
+        )
         # 1. Unsure if best to take abs value.
         #    One reason not to might be if people express changes, e.g.
         #    "BP change -40/-10", but I very much doubt it.
@@ -820,10 +880,9 @@ class Bp(BaseNlpParser):
 
 class BpValidator(ValidatorBase):
     """
-    Validator for Bp
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Bp (see help for explanation).
     """
+
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
         return Bp.NAME, [Bp.REGEX]
@@ -839,21 +898,6 @@ ALL_CLINICAL_NLP_AND_VALIDATORS = [
     (Height, HeightValidator),
     (Weight, WeightValidator),
 ]
-ALL_CLINICAL_NLP, ALL_CLINICAL_VALIDATORS = zip(*ALL_CLINICAL_NLP_AND_VALIDATORS)  # noqa
-
-
-# =============================================================================
-# Command-line entry point
-# =============================================================================
-
-def test_all(verbose: bool = False) -> None:
-    """
-    Test all parsers in this module.
-    """
-    for cls in ALL_CLINICAL_NLP:
-        cls(None, None).test(verbose=verbose)
-
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    test_all(verbose=True)
+ALL_CLINICAL_NLP, ALL_CLINICAL_VALIDATORS = zip(
+    *ALL_CLINICAL_NLP_AND_VALIDATORS
+)  # noqa

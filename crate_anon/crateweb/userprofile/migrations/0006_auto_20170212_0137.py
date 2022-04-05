@@ -37,13 +37,16 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('userprofile', '0005_userprofile_patient_multiquery_scratchpad'),
+        ("userprofile", "0005_userprofile_patient_multiquery_scratchpad"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='userprofile',
-            name='patient_multiquery_scratchpad',
-            field=JsonClassField(null=True, verbose_name='PatientMultiQuery scratchpad (in JSON) for builder'),  # noqa
+            model_name="userprofile",
+            name="patient_multiquery_scratchpad",
+            field=JsonClassField(
+                null=True,
+                verbose_name="PatientMultiQuery scratchpad (in JSON) for builder",
+            ),  # noqa
         ),
     ]

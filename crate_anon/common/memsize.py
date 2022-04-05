@@ -56,8 +56,9 @@ def getsize(obj: Any, assume_none_denied: bool = False) -> int:
     """  # noqa
     if not assume_none_denied:
         if isinstance(obj, DENYLIST):
-            raise TypeError(f"getsize() does not take argument of type: "
-                            f"{type(obj)}")
+            raise TypeError(
+                f"getsize() does not take argument of type: " f"{type(obj)}"
+            )
     seen_ids = set()  # type: Set[int]
     size = 0
     objects = [obj]  # type: List[Any]

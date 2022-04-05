@@ -29,6 +29,7 @@ crate_anon/crateweb/consent/utils.py
 """
 
 import datetime
+
 # from functools import lru_cache
 import os
 import re
@@ -43,6 +44,7 @@ from django.template.loader import render_to_string
 # =============================================================================
 # Read files
 # =============================================================================
+
 
 def read_static_file_contents(filename: str) -> str:
     """
@@ -61,6 +63,7 @@ def read_static_file_contents(filename: str) -> str:
 # CSS, plus assistance for PDF/e-mail rendering to HTML
 # =============================================================================
 
+
 def pdf_css(patient: bool = True) -> str:
     """
     Returns CSS for use in PDF letters etc.
@@ -70,12 +73,15 @@ def pdf_css(patient: bool = True) -> str:
             patient settings (e.g. "large print"), rather than researcher
             settings ("cram it in")?
     """
-    contents = read_static_file_contents('base.css')
+    contents = read_static_file_contents("base.css")
     context = {
-        'fontsize': (settings.PATIENT_FONTSIZE
-                     if patient else settings.RESEARCHER_FONTSIZE),
+        "fontsize": (
+            settings.PATIENT_FONTSIZE
+            if patient
+            else settings.RESEARCHER_FONTSIZE
+        ),
     }
-    contents += render_to_string('pdf.css', context)
+    contents += render_to_string("pdf.css", context)
     return contents
 
 
@@ -91,18 +97,18 @@ def pdf_template_dict(patient: bool = True) -> Dict[str, str]:
             CSS settings ("cram it in")?
     """
     return {
-        'css': pdf_css(patient),
-        'PDF_LOGO_ABS_URL': settings.PDF_LOGO_ABS_URL,
-        'PDF_LOGO_WIDTH': settings.PDF_LOGO_WIDTH,
-        'TRAFFIC_LIGHT_RED_ABS_URL': settings.TRAFFIC_LIGHT_RED_ABS_URL,
-        'TRAFFIC_LIGHT_YELLOW_ABS_URL': settings.TRAFFIC_LIGHT_YELLOW_ABS_URL,
-        'TRAFFIC_LIGHT_GREEN_ABS_URL': settings.TRAFFIC_LIGHT_GREEN_ABS_URL,
+        "css": pdf_css(patient),
+        "PDF_LOGO_ABS_URL": settings.PDF_LOGO_ABS_URL,
+        "PDF_LOGO_WIDTH": settings.PDF_LOGO_WIDTH,
+        "TRAFFIC_LIGHT_RED_ABS_URL": settings.TRAFFIC_LIGHT_RED_ABS_URL,
+        "TRAFFIC_LIGHT_YELLOW_ABS_URL": settings.TRAFFIC_LIGHT_YELLOW_ABS_URL,
+        "TRAFFIC_LIGHT_GREEN_ABS_URL": settings.TRAFFIC_LIGHT_GREEN_ABS_URL,
     }
 
 
-def render_pdf_html_to_string(template: str,
-                              context: Dict[str, Any] = None,
-                              patient: bool = True) -> str:
+def render_pdf_html_to_string(
+    template: str, context: Dict[str, Any] = None, patient: bool = True
+) -> str:
     """
     Renders a template into HTML that can be used for making PDFs.
 
@@ -128,8 +134,8 @@ def email_css() -> str:
     """
     Returns CSS for use in e-mails to clinicians.
     """
-    contents = read_static_file_contents('base.css')
-    contents += render_to_string('email.css')
+    contents = read_static_file_contents("base.css")
+    contents += render_to_string("email.css")
     return contents
 
 
@@ -140,12 +146,13 @@ def email_template_dict() -> Dict[str, str]:
     Returns a template dictionary for use in generating e-mails.
     """
     return {
-        'css': email_css(),
+        "css": email_css(),
     }
 
 
-def render_email_html_to_string(template: str,
-                                context: Dict[str, Any] = None) -> str:
+def render_email_html_to_string(
+    template: str, context: Dict[str, Any] = None
+) -> str:
     """
     Renders a template into HTML that can be used for making PDFs.
 
@@ -168,6 +175,7 @@ def render_email_html_to_string(template: str,
 # E-mail addresses
 # =============================================================================
 
+
 def get_domain_from_email(email: str) -> str:
     """
     Extracts the domain part from an e-mail address.
@@ -181,7 +189,7 @@ def get_domain_from_email(email: str) -> str:
     Very simple algorithm...
     """
     try:
-        return email.split('@')[1]
+        return email.split("@")[1]
     except (AttributeError, IndexError):
         raise ValidationError("Bad e-mail address: no domain")
 
@@ -214,13 +222,13 @@ def validate_researcher_email_domain(email: str) -> None:
 
 
 APPROX_EMAIL_REGEX = re.compile(  # http://emailregex.com/
-    r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
+    r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+)
 
 
-def make_forename_surname_email_address(forename: str,
-                                        surname: str,
-                                        domain: str,
-                                        default: str = '') -> str:
+def make_forename_surname_email_address(
+    forename: str, surname: str, domain: str, default: str = ""
+) -> str:
     """
     Converts a forename and surname into an e-mail address of the form
     ``forename.surname@domain``. Not guaranteed to work.
@@ -257,8 +265,9 @@ def make_forename_surname_email_address(forename: str,
         return default
 
 
-def make_cpft_email_address(forename: str, surname: str,
-                            default: str = '') -> str:
+def make_cpft_email_address(
+    forename: str, surname: str, default: str = ""
+) -> str:
     """
     Make a CPFT e-mail address. Not guaranteed to work.
 
@@ -271,13 +280,15 @@ def make_cpft_email_address(forename: str, surname: str,
         e-mail address: ``forename.surname@cpft.nhs.uk``, or ``default``
 
     """
-    return make_forename_surname_email_address(forename, surname,
-                                               "cpft.nhs.uk", default)
+    return make_forename_surname_email_address(
+        forename, surname, "cpft.nhs.uk", default
+    )
 
 
 # =============================================================================
 # Date/time
 # =============================================================================
+
 
 def days_to_years(days: int, dp: int = 1) -> str:
     """
@@ -319,8 +330,9 @@ def latest_date(*args) -> Optional[datetime.date]:
     return latest
 
 
-def to_date(d: Optional[Union[datetime.date,
-                              datetime.datetime]]) -> Optional[datetime.date]:
+def to_date(
+    d: Optional[Union[datetime.date, datetime.datetime]]
+) -> Optional[datetime.date]:
     """
     Converts any of various date-like things to ``datetime.date`` objects.
     """

@@ -40,10 +40,7 @@ from sqlalchemy import types as sqlatypes
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.constants import ProcessorConfigKeys, NlpDefValues
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
-from crate_anon.nlprp.constants import (
-    NlprpKeys as NKeys,
-    NlprpValues,
-)
+from crate_anon.nlprp.constants import NlprpKeys as NKeys, NlprpValues
 from crate_anon.nlp_manager.base_nlp_parser import TableMaker
 from crate_anon.nlp_webserver.server_processor import ServerProcessor
 
@@ -54,18 +51,22 @@ log = logging.getLogger(__name__)
 # Cloud class for cloud-based processsors
 # =============================================================================
 
+
 class Cloud(TableMaker):
     """
-    Class to hold information on remote processors and create the relavant
-    tables.
+    [SPECIAL.] Abstract NLP processor that passes information to a remote
+    (cloud-based) NLP system via the NLPRP protocol. The processor at the other
+    end might be of any kind.
     """
-    # Index for anonymous tables
-    i = 0
 
-    def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
-                 cfg_processor_name: Optional[str],
-                 commit: bool = False) -> None:
+    _is_cloud_processor = True
+
+    def __init__(
+        self,
+        nlpdef: Optional[NlpDefinition],
+        cfg_processor_name: Optional[str],
+        commit: bool = False,
+    ) -> None:
         """
         Args:
             nlpdef:
@@ -76,41 +77,50 @@ class Cloud(TableMaker):
                 force a COMMIT whenever we insert data? You should specify this
                 in multiprocess mode, or you may get database deadlocks.
         """
-        assert nlpdef is not None  # not yet supported (does it need to be?)
-        super().__init__(nlpdef, cfg_processor_name, commit,
-                         friendly_name="Cloud")
+        super().__init__(
+            nlpdef, cfg_processor_name, commit, friendly_name="Cloud"
+        )
         self.remote_processor_info = None  # type: Optional[ServerProcessor]
-        self.procname = self._cfgsection.opt_str(
-            ProcessorConfigKeys.PROCESSOR_NAME,
-            required=True)
-        self.procversion = self._cfgsection.opt_str(
-            ProcessorConfigKeys.PROCESSOR_VERSION,
-            default=None)
-        # Made format required so people are less likely to make mistakes
-        self.format = self._cfgsection.opt_str(
-            ProcessorConfigKeys.PROCESSOR_FORMAT,
-            required=True)
         self.schema_type = None
         self.sql_dialect = None
         self.schema = None  # type: Optional[Dict[str, Any]]
         self.available_remotely = False  # update later if available
-
         # Output section - bit of repetition from the 'Gate' parser
-        typepairs = self._cfgsection.opt_strlist(
-            ProcessorConfigKeys.OUTPUTTYPEMAP,
-            required=True, lower=False)
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
         self._type_to_tablename = {}  # type: Dict[str, str]
         self.tablename = None
-        # If typepairs is empty the following block won't execute
-        for output_type, outputsection in chunks(typepairs, 2):
-            output_type = output_type.lower()
-            c = OutputUserConfig(nlpdef.parser, outputsection,
-                                 schema_required=False)
-            self._outputtypemap[output_type] = c
-            self._type_to_tablename[output_type] = c.dest_tablename
-            if output_type == '""':
-                self.tablename = c.dest_tablename
+
+        if not nlpdef and not cfg_processor_name:
+            # Debugging only
+            self.procname = ""
+            self.procversion = ""
+            self.format = ""
+        else:
+            self.procname = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROCESSOR_NAME, required=True
+            )
+            self.procversion = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROCESSOR_VERSION, default=None
+            )
+            # Made format required so people are less likely to make mistakes
+            self.format = self._cfgsection.opt_str(
+                ProcessorConfigKeys.PROCESSOR_FORMAT, required=True
+            )
+
+            # Output section - bit of repetition from the 'Gate' parser
+            typepairs = self._cfgsection.opt_strlist(
+                ProcessorConfigKeys.OUTPUTTYPEMAP, required=True, lower=False
+            )
+            # If typepairs is empty the following block won't execute
+            for output_type, outputsection in chunks(typepairs, 2):
+                output_type = output_type.lower()
+                c = OutputUserConfig(
+                    nlpdef.parser, outputsection, schema_required=False
+                )
+                self._outputtypemap[output_type] = c
+                self._type_to_tablename[output_type] = c.dest_tablename
+                if output_type == '""':
+                    self.tablename = c.dest_tablename
 
     @staticmethod
     def get_coltype_parts(coltype_str: str) -> List[str]:
@@ -136,8 +146,7 @@ class Cloud(TableMaker):
         return [col_str, parameter]
 
     @staticmethod
-    def str_to_coltype_general(
-            coltype_str: str) -> Type[sqlatypes.TypeEngine]:
+    def str_to_coltype_general(coltype_str: str) -> Type[sqlatypes.TypeEngine]:
         """
         Get the sqlalchemy column type class which fits with the column type.
         """
@@ -145,16 +154,6 @@ class Cloud(TableMaker):
         # Check if 'coltype' is really an sqlalchemy column type
         if issubclass(coltype, sqlatypes.TypeEngine):
             return coltype
-
-    @classmethod
-    def unique_identifier(cls) -> str:
-        """
-        Create a unique (for this run) identifier for the output table. Only
-        used if the remote processor has an empty string for the tablename,
-        and no name is specified by the user.
-        """
-        cls.i += 1
-        return f"anon_table{cls.i}"
 
     def is_tabular(self) -> bool:
         """
@@ -194,8 +193,9 @@ class Cloud(TableMaker):
         """
         self.available_remotely = available
 
-    def set_procinfo_if_correct(self,
-                                remote_processor: ServerProcessor) -> None:
+    def set_procinfo_if_correct(
+        self, remote_processor: ServerProcessor
+    ) -> None:
         """
         Checks if a processor dictionary, with all the nlprp specified info
         a processor should have, belongs to this processor. If it does, then
@@ -205,9 +205,9 @@ class Cloud(TableMaker):
             return
         # if ((self.procversion is None and
         #         processor_dict[NKeys.IS_DEFAULT_VERSION]) or
-        if ((self.procversion is None and
-                remote_processor.is_default_version) or
-                (self.procversion == remote_processor.version)):
+        if (
+            self.procversion is None and remote_processor.is_default_version
+        ) or (self.procversion == remote_processor.version):
             self._set_processor_info(remote_processor)
 
     def _set_processor_info(self, remote_processor: ServerProcessor) -> None:
@@ -226,10 +226,12 @@ class Cloud(TableMaker):
             self.sql_dialect = remote_processor.sql_dialect
         # Check that, by this stage, we either have a tabular schema from
         # the processor, or we have user-specified destfields
-        assert self.is_tabular or all(x.destfields for
-                                      x in self._outputtypemap.values()), (
+        assert self.is_tabular or all(
+            x.destfields for x in self._outputtypemap.values()
+        ), (
             "You haven't specified a table structure and the processor hasn't "
-            "provided one.")
+            "provided one."
+        )
 
     def _str_to_coltype(self, data_type_str: str) -> sqlatypes.TypeEngine:
         """
@@ -251,13 +253,13 @@ class Cloud(TableMaker):
         #     pass
 
     def _dest_tables_columns_user(self) -> Dict[str, List[Column]]:
-
         tables = {}  # type: Dict[str, List[Column]]
 
         for output_type, otconfig in self._outputtypemap.items():
-            tables[otconfig.dest_tablename] = (
-                self._standard_columns_if_gate() +
-                otconfig.get_columns(self.dest_engine)
+            tables[
+                otconfig.dest_tablename
+            ] = self._standard_columns_if_gate() + otconfig.get_columns(
+                self.dest_engine
             )
         return tables
 
@@ -265,8 +267,7 @@ class Cloud(TableMaker):
         tables = {}  # type: Dict[str, List[Index]]
         for output_type, otconfig in self._outputtypemap.items():
             tables[otconfig.dest_tablename] = (
-                self._standard_indexes_if_gate() +
-                otconfig.indexes
+                self._standard_indexes_if_gate() + otconfig.indexes
             )
         return tables
 
@@ -277,9 +278,9 @@ class Cloud(TableMaker):
         """
         tables = {}
         for table, columns in self.schema.items():
-            # identifier = table if table else self.unique_identifier()
-            # self.tablename = self.tablename if self.tablename else identifier
-            column_objects = self._standard_columns_if_gate()  # type: List[Column]  # noqa
+            column_objects = (
+                self._standard_columns_if_gate()
+            )  # type: List[Column]  # noqa
             if self.tablename:
                 tablename = self.tablename
             else:
@@ -287,15 +288,18 @@ class Cloud(TableMaker):
             # ... might be empty list
             for column in columns:
                 col_str, parameter = self.get_coltype_parts(
-                    column[NKeys.COLUMN_TYPE])
+                    column[NKeys.COLUMN_TYPE]
+                )
                 data_type_str = column[NKeys.DATA_TYPE]
                 coltype = self.str_to_coltype_general(data_type_str)
-                column_objects.append(Column(
-                    column[NKeys.COLUMN_NAME],
-                    coltype if not parameter else coltype(parameter),
-                    comment=column[NKeys.COLUMN_COMMENT],
-                    nullable=column[NKeys.IS_NULLABLE]
-                ))
+                column_objects.append(
+                    Column(
+                        column[NKeys.COLUMN_NAME],
+                        coltype if not parameter else coltype(parameter),
+                        comment=column[NKeys.COLUMN_COMMENT],
+                        nullable=column[NKeys.IS_NULLABLE],
+                    )
+                )
             tables[tablename] = column_objects
         return tables
 
@@ -309,24 +313,30 @@ class Cloud(TableMaker):
 
     def dest_tables_indexes(self) -> Dict[str, List[Index]]:
         # Docstring in superclass
-        if self._outputtypemap and all(x.destfields for
-                                       x in self._outputtypemap.values()):
+        if self._outputtypemap and all(
+            x.destfields for x in self._outputtypemap.values()
+        ):
             return self._dest_tables_indexes_user()
         elif self.is_tabular():
             return self._dest_tables_indexes_auto()
         else:
-            raise ValueError("You haven't specified a table structure and "
-                             "the processor hasn't provided one.")
+            raise ValueError(
+                "You haven't specified a table structure and "
+                "the processor hasn't provided one."
+            )
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # Docstring in superclass
-        if self._outputtypemap and all(x.destfields for
-                                       x in self._outputtypemap.values()):
+        if self._outputtypemap and all(
+            x.destfields for x in self._outputtypemap.values()
+        ):
             return self._dest_tables_columns_user()
         elif self.is_tabular():
             # Must have processor-defined schema because we already checked
             # for it
             return self._dest_tables_columns_auto()
         else:
-            raise ValueError("You haven't specified a table structure and "
-                             "the processor hasn't provided one.")
+            raise ValueError(
+                "You haven't specified a table structure and "
+                "the processor hasn't provided one."
+            )

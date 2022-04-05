@@ -48,10 +48,12 @@ log = logging.getLogger(__name__)
 # DDHint class
 # =============================================================================
 
+
 class DDHint(object):
     """
     Represents a hint for creating data dictionaries.
     """
+
     def __init__(self) -> None:
         self._suppressed_tables = set()  # type: Set[str]
         self._index_requests = {}  # type: Dict[str, List[IndexCreationInfo]]
@@ -87,9 +89,9 @@ class DDHint(object):
         """
         return sorted(self._suppressed_tables)
 
-    def add_source_index_request(self,
-                                 table: str,
-                                 columns: Union[str, Iterable[str]]) -> None:
+    def add_source_index_request(
+        self, table: str, columns: Union[str, Iterable[str]]
+    ) -> None:
         """
         Adds a request to index tables on the **source** database.
 
@@ -102,20 +104,23 @@ class DDHint(object):
             columns = [columns]
         assert table, f"Bad table: {repr(table)}"
         assert columns, f"Bad columns: {repr(columns)}"
-        assert len(columns) == len(set(columns)), (
-            f"Duplicate columns in: {columns!r}")
-        index_name = 'crate_idx_' + '_'.join(columns)
+        assert len(columns) == len(
+            set(columns)
+        ), f"Duplicate columns in: {columns!r}"
+        index_name = "crate_idx_" + "_".join(columns)
         index_requests_for_table = self._index_requests.setdefault(table, [])
         if index_name not in index_requests_for_table:
-            index_requests_for_table.append(IndexCreationInfo(
-                index_name=index_name,
-                column=columns,
-                unique=False,
-            ))
+            index_requests_for_table.append(
+                IndexCreationInfo(
+                    index_name=index_name,
+                    column=columns,
+                    unique=False,
+                )
+            )
 
     def add_bulk_source_index_request(
-            self,
-            table_columns_dict: Dict[str, List[str]]) -> None:
+        self, table_columns_dict: Dict[str, List[str]]
+    ) -> None:
         """
         Adds multiple index requests for the **source** database. (See
         :func:`add_source_index_request`.)
@@ -127,10 +132,14 @@ class DDHint(object):
                 as a string or an iterable of multiple column names
         """
         for table, columns in table_columns_dict.items():
-            assert table, (f"Bad table; table={table!r}, "
-                           f"table_columns_dict={table_columns_dict!r}")
-            assert columns, (f"Bad table; columns={columns!r}, "
-                             f"table_columns_dict={table_columns_dict!r}")
+            assert table, (
+                f"Bad table; table={table!r}, "
+                f"table_columns_dict={table_columns_dict!r}"
+            )
+            assert columns, (
+                f"Bad table; columns={columns!r}, "
+                f"table_columns_dict={table_columns_dict!r}"
+            )
             self.add_source_index_request(table, columns)
 
     def create_indexes(self, engine: Engine, metadata: MetaData) -> None:
@@ -145,10 +154,12 @@ class DDHint(object):
         """
         for tablename, index_info_list in self._index_requests.items():
             tablename_casematch = get_case_insensitive_dict_key(
-                metadata.tables, tablename)
+                metadata.tables, tablename
+            )
             if not tablename_casematch:
                 log.warning(
-                    f"add_indexes: Skipping index as table {tablename} absent")
+                    f"add_indexes: Skipping index as table {tablename} absent"
+                )
                 continue
             table = metadata.tables[tablename_casematch]
             add_indexes(engine, table, index_info_list)
@@ -165,10 +176,12 @@ class DDHint(object):
         for tablename, index_info_list in self._index_requests.items():
             index_names = [i.index_name for i in index_info_list]
             tablename_casematch = get_case_insensitive_dict_key(
-                metadata.tables, tablename)
+                metadata.tables, tablename
+            )
             if not tablename_casematch:
                 log.warning(
-                    f"add_indexes: Skipping index as table {tablename} absent")
+                    f"add_indexes: Skipping index as table {tablename} absent"
+                )
                 continue
             table = metadata.tables[tablename_casematch]
             drop_indexes(engine, table, index_names)

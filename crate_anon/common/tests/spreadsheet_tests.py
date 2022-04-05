@@ -44,6 +44,7 @@ from crate_anon.common.spreadsheet import write_spreadsheet
 # Unit tests
 # =============================================================================
 
+
 class SpreadsheetTests(TestCase):
     # noinspection PyMethodMayBeStatic
     def test_write_values(self) -> None:
@@ -61,7 +62,7 @@ class SpreadsheetTests(TestCase):
                 ["Q_heading1", "Q_heading2", "Q_heading3"],
                 ["a", 5, None],
                 [3.2, datetime.datetime.now(), "b"],
-            ]
+            ],
         }
         with tempfile.TemporaryDirectory() as dirname:
             ods_filename = os.path.join(dirname, "test.ods")

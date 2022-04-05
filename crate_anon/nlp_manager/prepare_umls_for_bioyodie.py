@@ -347,7 +347,8 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 DEFAULT_JAVA_HOME = os.path.abspath(
-    join(shutil.which("java"), os.pardir, os.pardir))
+    join(shutil.which("java"), os.pardir, os.pardir)
+)
 KVP_REGEX = regex.compile(r"^\s*(\S+)\s*=\s*(\S+)\s*$")
 
 LOG4J_PROPERTIES_TEXT = """
@@ -417,6 +418,7 @@ gov.nih.nlm.umls.mmsys.filter.SourceListFilter.enforce_dep_source_selection=true
 # Helper functions
 # =============================================================================
 
+
 def require_external_tool(tool: str) -> str:
     """
     Checks that we have an external tool available, or raises.
@@ -456,8 +458,9 @@ def get_default_gate_home() -> str:
     return os.environ.get(EnvVar.GATE_HOME, "")
 
 
-def read_config_and_replace_values(filename: str,
-                                   new_values: Dict[str, str]) -> str:
+def read_config_and_replace_values(
+    filename: str, new_values: Dict[str, str]
+) -> str:
     """
     - Reads a config file of the Java "key=value" style.
     - Replaces any keys required.
@@ -491,9 +494,9 @@ def read_config_and_replace_values(filename: str,
     return "\n".join(new_lines) + "\n"
 
 
-def get_mmsys_configfile_text(metadir: str,
-                              mmsys_home: str,
-                              release: str) -> str:
+def get_mmsys_configfile_text(
+    metadir: str, mmsys_home: str, release: str
+) -> str:
     r"""
     Returns a config file suitable for use with the UMLS MetamorphoSys tool.
 
@@ -540,20 +543,24 @@ def get_mmsys_configfile_text(metadir: str,
 # Main UMLS-to-BioYODIE functions
 # =============================================================================
 
+
 class UmlsBioyodieConversionConfig(object):
     """
     Simple config object to pass stuff around.
     """
-    def __init__(self,
-                 umls_zip: str,
-                 dest_dir: str,
-                 tmp_dir: str,
-                 java_home: str,
-                 gate_home: str,
-                 groovy_executable: str,
-                 bioyodie_prep_repo_url: str,
-                 scala_url: str,
-                 keep_temp_dir: bool) -> None:
+
+    def __init__(
+        self,
+        umls_zip: str,
+        dest_dir: str,
+        tmp_dir: str,
+        java_home: str,
+        gate_home: str,
+        groovy_executable: str,
+        bioyodie_prep_repo_url: str,
+        scala_url: str,
+        keep_temp_dir: bool,
+    ) -> None:
         """
         Prepare downloaded UMLS data for Bio-YODIE, according to the
         instructions at https://github.com/GateNLP/bio-yodie-resource-prep.
@@ -610,8 +617,10 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
         release = release_regex.match(umls_zip_basename).group(1)
     except AttributeError:  # 'NoneType' object has no attribute 'group'
         release = None  # for type-checker only (below)
-        die(f"Unable to work out UMLS release from filename: "
-            f"{umls_zip_basename!r}")
+        die(
+            f"Unable to work out UMLS release from filename: "
+            f"{umls_zip_basename!r}"
+        )
 
     # -------------------------------------------------------------------------
     # Directory names
@@ -636,9 +645,11 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
     bioyodie_scala_dir = join(bioyodie_repo_dir, "scala")
     bioyodie_tmpdata_dir = join(bioyodie_repo_dir, "tmpdata")
     bioyodie_umls_dir_containing_symlink = join(
-        bioyodie_repo_dir, "srcs", "umls", "2015AB")  # hard-coded "2015AB"
+        bioyodie_repo_dir, "srcs", "umls", "2015AB"
+    )  # hard-coded "2015AB"
     bioyodie_umls_input_dir = join(
-        bioyodie_umls_dir_containing_symlink, "META")  # hard-coded "META"
+        bioyodie_umls_dir_containing_symlink, "META"
+    )  # hard-coded "META"
     bioyodie_output_dir = join(bioyodie_repo_dir, "output")
 
     # -------------------------------------------------------------------------
@@ -649,7 +660,9 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
     mmsys_zip = join(umls_root_dir, "mmsys.zip")
     config_file = join(umls_metadir, "config.properties")
     boot_config = join(umls_mmsys_home, "etc", "subset.boot.properties")
-    log4j_config = join(umls_mmsys_home, "etc", "rudolf.log4j.properties")  # new  # noqa
+    log4j_config = join(
+        umls_mmsys_home, "etc", "rudolf.log4j.properties"
+    )  # new  # noqa
 
     system_java_home = cfg.java_home
     umls_java_home = join(umls_mmsys_home, "jre", "linux")  # it brings its own
@@ -661,7 +674,9 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
         die(f"Directory already exists: {cfg.dest_dir}")
     system_unzip = require_external_tool("unzip")
     # These are required by the Bio-YODIE preprocessor:
-    groovy_executable = cfg.groovy_executable or require_external_tool("groovy")  # noqa
+    groovy_executable = cfg.groovy_executable or require_external_tool(
+        "groovy"
+    )  # noqa
     require_external_tool("gzip")
     require_external_tool("zcat")
 
@@ -678,14 +693,16 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
     groovy_dir = os.path.dirname(os.path.abspath(groovy_executable))
     old_path = bioyodie_env.get(EnvVar.PATH, "")
     new_path_with_groovy = os.pathsep.join(
-        x for x in [groovy_dir, old_path] if x)
+        x for x in [groovy_dir, old_path] if x
+    )
     bioyodie_env[EnvVar.PATH] = new_path_with_groovy
 
     # -------------------------------------------------------------------------
     log.info("Cloning Bio-YODIE resource prep repository...")
     # -------------------------------------------------------------------------
-    check_call_verbose(["git", "clone", cfg.bioyodie_prep_repo_url,
-                        bioyodie_repo_dir])
+    check_call_verbose(
+        ["git", "clone", cfg.bioyodie_prep_repo_url, bioyodie_repo_dir]
+    )
 
     # -------------------------------------------------------------------------
     log.info("Making directories...")
@@ -726,57 +743,78 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
     log.info("Running MetamorphoSys in batch mode...")
     # -------------------------------------------------------------------------
     # https://www.nlm.nih.gov/research/umls/implementation_resources/community/mmsys/BatchMetaMorphoSys.html  # noqa
-    classpath = ":".join([
-        umls_mmsys_home,
-        umls_plugins_dir,  # RNC extra
-        join(umls_lib_dir, "jpf-boot.jar"),
-        join(umls_lib_dir, "jpf.jar"),  # RNC extra
-        # You can use "dir/*" to mean "all JAR files in a directory":
-        # https://en.wikipedia.org/wiki/Classpath
-        join(umls_plugins_dir, "gov.nih.nlm.umls.meta", "lib", "*"),  # RNC extra  # noqa
-        join(umls_plugins_dir, "gov.nih.nlm.umls.mmsys", "lib", "*"),  # RNC extra  # noqa
-        join(umls_plugins_dir, "gov.nih.nlm.umls.mmsys.gui", "lib", "*"),  # RNC extra  # noqa
-        join(umls_plugins_dir, "gov.nih.nlm.umls.mmsys.io", "lib", "*"),  # RNC extra  # noqa
-        join(umls_plugins_dir, "gov.nih.nlm.umls.util", "lib", "*"),  # RNC extra  # noqa
-    ])
-    write_text(config_file,
-               get_mmsys_configfile_text(metadir=umls_metadir,
-                                         mmsys_home=umls_mmsys_home,
-                                         release=release))
+    classpath = ":".join(
+        [
+            umls_mmsys_home,
+            umls_plugins_dir,  # RNC extra
+            join(umls_lib_dir, "jpf-boot.jar"),
+            join(umls_lib_dir, "jpf.jar"),  # RNC extra
+            # You can use "dir/*" to mean "all JAR files in a directory":
+            # https://en.wikipedia.org/wiki/Classpath
+            join(
+                umls_plugins_dir, "gov.nih.nlm.umls.meta", "lib", "*"
+            ),  # RNC extra  # noqa
+            join(
+                umls_plugins_dir, "gov.nih.nlm.umls.mmsys", "lib", "*"
+            ),  # RNC extra  # noqa
+            join(
+                umls_plugins_dir, "gov.nih.nlm.umls.mmsys.gui", "lib", "*"
+            ),  # RNC extra  # noqa
+            join(
+                umls_plugins_dir, "gov.nih.nlm.umls.mmsys.io", "lib", "*"
+            ),  # RNC extra  # noqa
+            join(
+                umls_plugins_dir, "gov.nih.nlm.umls.util", "lib", "*"
+            ),  # RNC extra  # noqa
+        ]
+    )
+    write_text(
+        config_file,
+        get_mmsys_configfile_text(
+            metadir=umls_metadir, mmsys_home=umls_mmsys_home, release=release
+        ),
+    )
     write_text(log4j_config, LOG4J_PROPERTIES_TEXT)
     with pushd(umls_mmsys_home):
         log.warning(
             f"The next step is slow, and doesn't say much. "
             f"It produces roughly 29 Gb at peak. "
             f"Watch progress with: "
-            f"watch 'du -bc {cfg.tmp_dir} | tail -1'")
-        check_call_verbose([
-            join(cfg.java_home, "bin", "java"),
-            "-classpath", classpath,
-            "-Djava.awt.headless=true",
-            f"-Djpf.boot.config={boot_config}",
-            f"-Dlog4j.configurationFile={log4j_config}",
-            # not "log4j.configuration" as in the original! Argh.
-            # http://logging.apache.org/log4j/2.x/manual/configuration.html
-            f"-Dinput.uri={umls_metadir}",
-            f"-Doutput.uri={umls_output_dir}",
-            f"-Dmmsys.config.uri={config_file}",
-            # Additional from run_linux.sh:
-            "-client",  # JVM option: client rather than server mode
-            "-Dunzip.native=true",
-            f"-Dunzip.path={system_unzip}",
-            "-Dfile.encoding=UTF-8",
-            "-Xms1000M",  # was 300M, but it's 1000M in run_linux.sh
-            "-Xmx2000M",  # was 1000M, but it's 2000M in run_linux.sh
-
-            "org.java.plugin.boot.Boot"
-        ], env=umls_env)
+            f"watch 'du -bc {cfg.tmp_dir} | tail -1'"
+        )
+        check_call_verbose(
+            [
+                join(cfg.java_home, "bin", "java"),
+                "-classpath",
+                classpath,
+                "-Djava.awt.headless=true",
+                f"-Djpf.boot.config={boot_config}",
+                f"-Dlog4j.configurationFile={log4j_config}",
+                # not "log4j.configuration" as in the original! Argh.
+                # http://logging.apache.org/log4j/2.x/manual/configuration.html
+                f"-Dinput.uri={umls_metadir}",
+                f"-Doutput.uri={umls_output_dir}",
+                f"-Dmmsys.config.uri={config_file}",
+                # Additional from run_linux.sh:
+                "-client",  # JVM option: client rather than server mode
+                "-Dunzip.native=true",
+                f"-Dunzip.path={system_unzip}",
+                "-Dfile.encoding=UTF-8",
+                "-Xms1000M",  # was 300M, but it's 1000M in run_linux.sh
+                "-Xmx2000M",  # was 1000M, but it's 2000M in run_linux.sh
+                "org.java.plugin.boot.Boot",
+            ],
+            env=umls_env,
+        )
 
     # -------------------------------------------------------------------------
     log.info("Converting UMLS data to Bio-YODIE format...")
     # -------------------------------------------------------------------------
-    os.symlink(src=umls_output_dir, dst=bioyodie_umls_input_dir,
-               target_is_directory=True)
+    os.symlink(
+        src=umls_output_dir,
+        dst=bioyodie_umls_input_dir,
+        target_is_directory=True,
+    )
     with pushd(bioyodie_repo_dir):
         log.warning("The next step is also slow.")
         check_call_verbose([builder_script], env=bioyodie_env)
@@ -790,8 +828,10 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
         # ... destination should not already exist
         # ... it will make intermediate directories happily
     else:
-        log.error(f"No output files in {bioyodie_output_dir}! "
-                  f"Did the Bio-YODIE preprocessor partly crash?")
+        log.error(
+            f"No output files in {bioyodie_output_dir}! "
+            f"Did the Bio-YODIE preprocessor partly crash?"
+        )
 
 
 def prepare_umls_for_bioyodie_meta(cfg: UmlsBioyodieConversionConfig) -> None:
@@ -815,6 +855,7 @@ def prepare_umls_for_bioyodie_meta(cfg: UmlsBioyodieConversionConfig) -> None:
 # main
 # =============================================================================
 
+
 def main() -> NoReturn:
     """
     Command-line entry point.
@@ -822,54 +863,54 @@ def main() -> NoReturn:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Prepare UMLS data for BioYodie.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "umls_zip",
         help="Filename of ZIP file downloaded from "
-             "https://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html, "  # noqa
-             "e.g. /path/to/umls-2017AA-full.zip . This can't be "
-             "autodownloaded, as it requires a license/login."
+        "https://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html, "  # noqa
+        "e.g. /path/to/umls-2017AA-full.zip . This can't be "
+        "autodownloaded, as it requires a license/login.",
     )
+    parser.add_argument("dest_dir", help="Destination directory to write.")
     parser.add_argument(
-        "dest_dir",
-        help="Destination directory to write."
-    )
-    parser.add_argument(
-        "--keeptemp", action="store_true",
-        help="Keep temporary directory on exit."
+        "--keeptemp",
+        action="store_true",
+        help="Keep temporary directory on exit.",
     )
     parser.add_argument(
         "--java_home",
         help=f"Value for {EnvVar.JAVA_HOME} environment variable. "
-             f"Should be a directory that contains 'bin/java'. "
-             f"Default is (a) existing {EnvVar.JAVA_HOME} variable; "
-             f"(b) location based on 'which java'.",
-        default=get_default_java_home()
+        f"Should be a directory that contains 'bin/java'. "
+        f"Default is (a) existing {EnvVar.JAVA_HOME} variable; "
+        f"(b) location based on 'which java'.",
+        default=get_default_java_home(),
     )
     parser.add_argument(
         "--gate_home",
         help=f"Value for {EnvVar.GATE_HOME} environment variable. "
-             f"Should be a directory that contains 'bin/gate.*'. "
-             f"Default is existing {EnvVar.GATE_HOME} environment variable.",
-        default=get_default_gate_home()
+        f"Should be a directory that contains 'bin/gate.*'. "
+        f"Default is existing {EnvVar.GATE_HOME} environment variable.",
+        default=get_default_gate_home(),
     )
     parser.add_argument(
         "--groovy",
         help="Path to groovy binary (ideally v3.0+). "
-             "Default is the system copy, if there is one.",
-        default=shutil.which("groovy")
+        "Default is the system copy, if there is one.",
+        default=shutil.which("groovy"),
     )
     parser.add_argument(
         "--bioyodie_prep_repo_url",
         help="URL of Bio-YODIE preprocessor Git repository",
         # default="https://github.com/GateNLP/bio-yodie-resource-prep"
-        default="https://github.com/RudolfCardinal/bio-yodie-resource-prep"
+        default="https://github.com/RudolfCardinal/bio-yodie-resource-prep",
     )
     parser.add_argument(
         "--scala_url",
         help="URL for Scala .tgz file",
-        default="https://downloads.lightbend.com/scala/2.11.7/scala-2.11.7.tgz"
+        default=(
+            "https://downloads.lightbend.com/scala/2.11.7/scala-2.11.7.tgz"
+        ),
     )
 
     args = parser.parse_args()
@@ -882,12 +923,14 @@ def main() -> NoReturn:
         groovy_executable=args.groovy,
         bioyodie_prep_repo_url=args.bioyodie_prep_repo_url,
         scala_url=args.scala_url,
-        tmp_dir=""  # will be changed
+        tmp_dir="",  # will be changed
     )
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
     if not cfg.gate_home:
-        die("Must specify environment variable GATE_HOME or --gate_home "
-            "parameter.")
+        die(
+            "Must specify environment variable GATE_HOME or --gate_home "
+            "parameter."
+        )
     prepare_umls_for_bioyodie_meta(cfg)
     log.info("Done.")
     sys.exit(EXIT_SUCCESS)

@@ -63,16 +63,23 @@ if __name__ == "__main__":
     # download and build Medex automatically, so we just skip this
     # step.
     parser = argparse.ArgumentParser()
-    parser.add_argument("--skip_medex", action="store_true",
-                        help="Don't try to build Medex help files",
-                        default=False)
-    parser.add_argument("--warnings_as_errors", action="store_true",
-                        help="Treat warnings as errors")
+    parser.add_argument(
+        "--skip_medex",
+        action="store_true",
+        help="Don't try to build Medex help files",
+        default=False,
+    )
+    parser.add_argument(
+        "--warnings_as_errors",
+        action="store_true",
+        help="Treat warnings as errors",
+    )
     args = parser.parse_args()
 
-    recreate_args = ["python",
-                     os.path.join(THIS_DIR,
-                                  "recreate_inclusion_files.py")]
+    recreate_args = [
+        "python",
+        os.path.join(THIS_DIR, "recreate_inclusion_files.py"),
+    ]
 
     if args.skip_medex:
         recreate_args.append("--skip_medex")

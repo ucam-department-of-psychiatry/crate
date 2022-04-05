@@ -62,6 +62,7 @@ else:
 # Main
 # =============================================================================
 
+
 def inner_main() -> None:
     """
     Indirect command-line entry point. See command-line help.
@@ -71,133 +72,184 @@ def inner_main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=f"Database anonymiser. ({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
 
     parser.add_argument(
         "--config",
         help=f"Config file (overriding environment variable "
-             f"{ANON_CONFIG_ENV_VAR}).")
-    parser.add_argument(
-        "--version", action="version", version=CRATE_VERSION_PRETTY)
-    parser.add_argument(
-        '--verbose', '-v', action="store_true",
-        help="Be verbose")
-
-    mode_options = parser.add_argument_group(
-        "Mode options"
+        f"{ANON_CONFIG_ENV_VAR}).",
     )
+    parser.add_argument(
+        "--version", action="version", version=CRATE_VERSION_PRETTY
+    )
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Be verbose"
+    )
+
+    mode_options = parser.add_argument_group("Mode options")
     mode_group = mode_options.add_mutually_exclusive_group()
     mode_group.add_argument(
-        "-i", "--incremental", dest="incremental", action="store_true",
+        "-i",
+        "--incremental",
+        dest="incremental",
+        action="store_true",
         help="Process only new/changed information, where possible.",
-        default=True)
+        default=True,
+    )
     mode_group.add_argument(
-        "-f", "--full", dest="incremental", action="store_false",
+        "-f",
+        "--full",
+        dest="incremental",
+        action="store_false",
         help="Drop and remake everything.",
-        default=False)
+        default=False,
+    )
     mode_options.add_argument(
-        "--skipdelete", dest="skipdelete", action="store_true",
+        "--skipdelete",
+        dest="skipdelete",
+        action="store_true",
         help="For incremental updates, skip deletion of rows present in the "
-             "destination but not the source.")
+        "destination but not the source.",
+    )
 
     action_options = parser.add_argument_group(
         "Action options (default is to do all, but if any are specified, "
         "only those are done)"
     )
     action_options.add_argument(
-        "--dropremake", action="store_true",
+        "--dropremake",
+        action="store_true",
         help="Drop/remake destination tables, and admin tables except "
-             "opt-out tables.")
-    action_options.add_argument(
-        "--drop_all", action="store_true",
-        help="Drop all destination tables known to the data dictionary, and "
-             "all admin tables, then stop. (May also be helpful in revealing "
-             "leftover tables in the destination database, e.g. if the data "
-             "dictionary has changed.)")
-    action_options.add_argument(
-        "--optout", action="store_true",
-        help="Update opt-out list in administrative database.")
-    action_options.add_argument(
-        "--nonpatienttables", action="store_true",
-        help="Process non-patient tables only.")
-    action_options.add_argument(
-        "--patienttables", action="store_true",
-        help="Process patient tables only.")
-    action_options.add_argument(
-        "--index", action="store_true",
-        help="Create indexes only.")
-
-    restrict_options = parser.add_argument_group(
-        "Restriction options"
+        "opt-out tables.",
     )
+    action_options.add_argument(
+        "--drop_all",
+        action="store_true",
+        help="Drop all destination tables known to the data dictionary, and "
+        "all admin tables, then stop. (May also be helpful in revealing "
+        "leftover tables in the destination database, e.g. if the data "
+        "dictionary has changed.)",
+    )
+    action_options.add_argument(
+        "--optout",
+        action="store_true",
+        help="Update opt-out list in administrative database.",
+    )
+    action_options.add_argument(
+        "--nonpatienttables",
+        action="store_true",
+        help="Process non-patient tables only.",
+    )
+    action_options.add_argument(
+        "--patienttables",
+        action="store_true",
+        help="Process patient tables only.",
+    )
+    action_options.add_argument(
+        "--index", action="store_true", help="Create indexes only."
+    )
+
+    restrict_options = parser.add_argument_group("Restriction options")
     restrict_options.add_argument(
         "--restrict",
         help="Restrict which patients are processed. Specify which field to "
-             "base the restriction on or 'pid' for patient ids.")
+        "base the restriction on or 'pid' for patient ids.",
+    )
     restrict_options.add_argument(
-        "--limits", nargs=2,
+        "--limits",
+        nargs=2,
         help="Specify lower and upper limits of the field "
-             "specified in '--restrict'.")
+        "specified in '--restrict'.",
+    )
     restrict_options.add_argument(
         "--file",
         help="Specify a file with a list of values for the field "
-             "specified in '--restrict'.")
+        "specified in '--restrict'.",
+    )
     restrict_options.add_argument(
-        "--list", nargs="+",
+        "--list",
+        nargs="+",
         help="Specify a list of values for the field "
-             "specified in '--restrict'.")
+        "specified in '--restrict'.",
+    )
     restrict_options.add_argument(
-        "--free_text_limit", type=int,
+        "--free_text_limit",
+        type=int,
         help="Filter out all free text fields over the specified length. "
-             "For example, if you specify 200, then VARCHAR(200) fields will "
-             "be permitted, but VARCHAR(200), or VARCHAR(MAX), or TEXT "
-             "(etc., etc.) fields will be excluded.")
+        "For example, if you specify 200, then VARCHAR(200) fields will "
+        "be permitted, but VARCHAR(200), or VARCHAR(MAX), or TEXT "
+        "(etc., etc.) fields will be excluded.",
+    )
     restrict_options.add_argument(
-        "--excludescrubbed", action="store_true",
-        help="Exclude all text fields which are being scrubbed.")
+        "--excludescrubbed",
+        action="store_true",
+        help="Exclude all text fields which are being scrubbed.",
+    )
 
-    processing_options = parser.add_argument_group(
-        "Processing options"
+    processing_options = parser.add_argument_group("Processing options")
+    processing_options.add_argument(
+        "--process",
+        nargs="?",
+        type=int,
+        default=0,
+        help="For multiprocess mode: specify process number.",
     )
     processing_options.add_argument(
-        "--process", nargs="?", type=int, default=0,
-        help="For multiprocess mode: specify process number.")
-    processing_options.add_argument(
-        "--nprocesses", nargs="?", type=int, default=1,
+        "--nprocesses",
+        nargs="?",
+        type=int,
+        default=1,
         help="For multiprocess mode: specify total number of processes "
-             "(launched somehow, of which this is to be one).")
+        "(launched somehow, of which this is to be one).",
+    )
     processing_options.add_argument(
-        "--processcluster", default="",
-        help="Process cluster name (used as part of log name).")
+        "--processcluster",
+        default="",
+        help="Process cluster name (used as part of log name).",
+    )
     processing_options.add_argument(
-        "--skip_dd_check", action="store_true",
-        help="Skip data dictionary validity check.")
+        "--skip_dd_check",
+        action="store_true",
+        help="Skip data dictionary validity check.",
+    )
     processing_options.add_argument(
         "--seed",
         help="String to use as the basis of the seed for the random number "
-             "generator used for the transient integer RID (TRID). Leave "
-             "blank to use the default seed (system time).")
+        "generator used for the transient integer RID (TRID). Leave "
+        "blank to use the default seed (system time).",
+    )
     processing_options.add_argument(
-        '--chunksize', nargs="?", type=int,
+        "--chunksize",
+        nargs="?",
+        type=int,
         default=DEFAULT_CHUNKSIZE,
         help="Number of records copied in a chunk when copying PKs from one "
-             "database to another.")
+        "database to another.",
+    )
 
-    debugging_options = parser.add_argument_group(
-        "Reporting and debugging"
+    debugging_options = parser.add_argument_group("Reporting and debugging")
+    debugging_options.add_argument(
+        "--reportevery",
+        nargs="?",
+        type=int,
+        default=DEFAULT_REPORT_EVERY,
+        help="Report insert progress every n rows in verbose mode.",
     )
     debugging_options.add_argument(
-        '--reportevery', nargs="?", type=int, default=DEFAULT_REPORT_EVERY,
-        help="Report insert progress every n rows in verbose mode.")
+        "--debugscrubbers",
+        action="store_true",
+        help="Report sensitive scrubbing information, for debugging.",
+    )
     debugging_options.add_argument(
-        "--debugscrubbers", action="store_true",
-        help="Report sensitive scrubbing information, for debugging.")
-    debugging_options.add_argument(
-        "--savescrubbers", action="store_true",
+        "--savescrubbers",
+        action="store_true",
         help="Saves sensitive scrubbing information in admin database, "
-             "for debugging.")
+        "for debugging.",
+    )
     debugging_options.add_argument(
-        "--echo", action="store_true", help="Echo SQL.")
+        "--echo", action="store_true", help="Echo SQL."
+    )
 
     args = parser.parse_args()
 
@@ -223,30 +275,27 @@ def inner_main() -> None:
 
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import
+
     anonymise(
         incremental=args.incremental,
         skipdelete=args.skipdelete,
-
         dropremake=args.dropremake,
         full_drop_only=args.drop_all,
         optout=args.optout,
         patienttables=args.patienttables,
         nonpatienttables=args.nonpatienttables,
         index=args.index,
-
         restrict=args.restrict,
         restrict_file=args.file,
         restrict_limits=args.limits,
         restrict_list=args.list,
         free_text_limit=args.free_text_limit,
         exclude_scrubbed_fields=args.excludescrubbed,
-
         nprocesses=args.nprocesses,
         process=args.process,
         skip_dd_check=args.skip_dd_check,
         seed=args.seed,
         chunksize=args.chunksize,
-
         reportevery=args.reportevery,
         echo=args.echo,
         debugscrubbers=args.debugscrubbers,

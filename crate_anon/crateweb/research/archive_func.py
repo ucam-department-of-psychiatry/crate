@@ -75,10 +75,13 @@ SILENT_NLP_XREF_COLS = [
 # context; templates can import them as required).
 # =============================================================================
 
-def embedded_attachment_html(filename: str,
-                             context: Dict[str, Any],
-                             object_class: str = "embedded_attachment",
-                             alt_div_class: str = "obscure_spinner") -> str:
+
+def embedded_attachment_html(
+    filename: str,
+    context: Dict[str, Any],
+    object_class: str = "embedded_attachment",
+    alt_div_class: str = "obscure_spinner",
+) -> str:
     """
     HTML element to show an attachment (such as a PDF) inline.
 
@@ -98,17 +101,19 @@ def embedded_attachment_html(filename: str,
     return (
         f'<object class="{object_class}" data="{url}" type="{content_type}">'
         f'<div class="{alt_div_class}">'
-        f'The attachment couldn’t be displayed inline. Download it as '
+        f"The attachment couldn’t be displayed inline. Download it as "
         f'<a href="{url}">{filename}</a>'
-        f'</div>'
-        f'</object>'
+        f"</div>"
+        f"</object>"
     )
 
 
-def patient_template_html(template_name: str,
-                          context: Dict[str, Any],
-                          iframe_class: str = "embedded_attachment",
-                          **qparams) -> str:
+def patient_template_html(
+    template_name: str,
+    context: Dict[str, Any],
+    iframe_class: str = "embedded_attachment",
+    **qparams,
+) -> str:
     """
     HTML element to show aonther archive patient template inline.
 
@@ -118,15 +123,17 @@ def patient_template_html(template_name: str,
         iframe_class: CSS class for the <iframe>
         qparams: query parameters to pass to the template
     """
-    get_patient_template_url = context[ArchiveContextKeys.get_patient_template_url]  # noqa
+    get_patient_template_url = context[
+        ArchiveContextKeys.get_patient_template_url
+    ]  # noqa
     url = get_patient_template_url(template_name)
     final_url = url_with_querystring(url, **qparams)
     return f'<iframe class="{iframe_class}" src="{final_url}"></iframe>'
 
 
-def template_html(template_name: str,
-                  iframe_class: str = "embedded_attachment",
-                  **qparams) -> str:
+def template_html(
+    template_name: str, iframe_class: str = "embedded_attachment", **qparams
+) -> str:
     """
     HTML element to show aonther archive template inline (not necessarily for
     a specific patient).
@@ -145,7 +152,9 @@ def delimit_sql_identifier(identifer: str) -> str:
     """
     Delimits (quotes) an SQL identifier, if required.
     """
-    return research_database_info.grammar.quote_identifier_if_required(identifer)  # noqa
+    return research_database_info.grammar.quote_identifier_if_required(
+        identifer
+    )  # noqa
 
 
 def nlp_source_url(row: List[Any]) -> str:
@@ -156,14 +165,17 @@ def nlp_source_url(row: List[Any]) -> str:
     Args:
         row: result row
     """
-    return reverse(UrlNames.SRCINFO, kwargs={
-        'srcdb': row[-6],
-        'srctable': row[-5],
-        'srcfield': row[-4],
-        'srcpkfield': row[-3],
-        'srcpkval': row[-2],
-        'srcpkstr': row[-1]
-    })
+    return reverse(
+        UrlNames.SRCINFO,
+        kwargs={
+            "srcdb": row[-6],
+            "srctable": row[-5],
+            "srcfield": row[-4],
+            "srcpkfield": row[-3],
+            "srcpkval": row[-2],
+            "srcpkstr": row[-1],
+        },
+    )
 
 
 def json_compact(x: Any) -> str:
