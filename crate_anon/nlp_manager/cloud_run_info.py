@@ -47,7 +47,12 @@ class CloudRunInfo(object):
     details of the server and our chosen processors and config.
     """
 
-    def __init__(self, nlpdef: NlpDefinition) -> None:
+    def __init__(
+        self,
+        nlpdef: NlpDefinition,
+        debug_post_request: bool = False,
+        debug_post_response: bool = False,
+    ) -> None:
         """
         Args:
             nlpdef:
@@ -58,6 +63,9 @@ class CloudRunInfo(object):
         self.cloudcfg = nlpdef.get_cloud_config_or_raise()
         self._remote_processors = None  # type: Optional[List[ServerProcessor]]
         self._local_processors = None  # type: Optional[List[Cloud]]
+        self._debug_post_request = debug_post_request
+        self._debug_post_response = debug_post_response
+
         self._configure_local_processors()
 
     def get_remote_processors(self) -> List[ServerProcessor]:
@@ -66,7 +74,11 @@ class CloudRunInfo(object):
         """
         if self._remote_processors is None:
             # Fetch from server
-            req = CloudRequestListProcessors(nlpdef=self.nlpdef)
+            req = CloudRequestListProcessors(
+                nlpdef=self.nlpdef,
+                debug_post_request=self._debug_post_request,
+                debug_post_response=self._debug_post_response,
+            )
             self._remote_processors = req.get_remote_processors()
         return self._remote_processors
 

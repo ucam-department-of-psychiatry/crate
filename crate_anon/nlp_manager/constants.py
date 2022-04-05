@@ -68,7 +68,7 @@ MAX_STRING_PK_LENGTH = 64  # trade-off; space versus capability
 MAX_SQL_FIELD_LEN = 64
 # ... http://dev.mysql.com/doc/refman/5.0/en/identifiers.html
 MAX_SEMANTIC_VERSION_STRING_LENGTH = (
-    147  # https://github.com/mojombo/semver/issues/79  # noqa
+    147  # https://github.com/mojombo/semver/issues/79
 )
 MEDEX_PIPELINE_CLASSNAME = "CrateMedexPipeline"
 MEDEX_DATA_READY_SIGNAL = "data_ready"
@@ -122,7 +122,6 @@ class NlpDefValues(object):
     Config file values for NLP definitions
     """
 
-    PROCTYPE_CLOUD = "Cloud"
     # Since any server with the same output format as CRATE's is compatible,
     # we call this format standard
     FORMAT_STANDARD = "Standard"

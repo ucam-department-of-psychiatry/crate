@@ -75,6 +75,7 @@ from cardinal_pythonlib.typing_helpers import CSVWriterType
 
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.patient import Patient
+from crate_anon.common.constants import JSON_INDENT
 
 log = logging.getLogger(__name__)
 
@@ -442,7 +443,7 @@ def test_anon(
             first = False
             pidset.add(pid)
     with open(scrubfile, "w") as f:
-        f.write(json.dumps(scrubdict, indent=4))
+        f.write(json.dumps(scrubdict, indent=JSON_INDENT))
     log.info(f"Finished. See {resultsfile} for a summary.")
     log.info(f"Use meld to compare directories {rawdir} and {anondir}")
     log.info("To install meld on Debian/Ubuntu: sudo apt-get install meld")

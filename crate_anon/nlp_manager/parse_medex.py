@@ -395,9 +395,8 @@ import logging
 import os
 import shlex
 import subprocess
-import sys
 import tempfile
-from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from cardinal_pythonlib.cmdline import cmdline_quote
 from cardinal_pythonlib.fileops import mkdir_p
@@ -493,6 +492,9 @@ class Medex(BaseNlpParser):
     """
     Class controlling a Medex-UIMA external process, via our custom Java
     interface, ``CrateMedexPipeline.java``.
+
+    MedEx-UIMA is a medication-finding tool:
+    https://www.ncbi.nlm.nih.gov/pubmed/25954575.
     """
 
     uses_external_tool = True
@@ -600,15 +602,6 @@ class Medex(BaseNlpParser):
         self._file_encoding = "utf8"
         self._p = None  # the subprocess
         self._started = False
-
-    @classmethod
-    def print_info(cls, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print(
-            "NLP class to talk to MedEx-UIMA, a medication-finding tool "
-            "(https://www.ncbi.nlm.nih.gov/pubmed/25954575).",
-            file=file,
-        )
 
     # -------------------------------------------------------------------------
     # External process control

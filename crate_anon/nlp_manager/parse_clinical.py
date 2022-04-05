@@ -47,10 +47,8 @@ debug:
 """
 
 import logging
-import sys
-from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy import Column, Integer, Float, String, Text
 
 from crate_anon.common.regex_helpers import WORD_BOUNDARY
@@ -338,9 +336,7 @@ class Height(NumericalResultParser):
 
 class HeightValidator(ValidatorBase):
     """
-    Validator for Height
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Height (see help for explanation).
     """
 
     @classmethod
@@ -356,6 +352,7 @@ class HeightValidator(ValidatorBase):
 class Weight(NumericalResultParser):
     """
     Weight. Handles metric (e.g. "57kg") and imperial (e.g. "10 st 2 lb").
+    Requires units to be specified.
     """
 
     METRIC_WEIGHT = rf"""
@@ -509,6 +506,7 @@ class Weight(NumericalResultParser):
             [
                 ("Weight", []),  # should fail; no values
                 ("her weight was 60.2kg", [60.2]),
+                ("her weight was 60.2", []),  # needs units
                 ("Weight = 52.3kg", [52.3]),
                 ("Weight: 80.8kgs", [80.8]),
                 ("she weighs 61kg", [61]),
@@ -550,9 +548,7 @@ class Weight(NumericalResultParser):
 
 class WeightValidator(ValidatorBase):
     """
-    Validator for Weight
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Weight (see help for explanation).
     """
 
     @classmethod
@@ -567,7 +563,7 @@ class WeightValidator(ValidatorBase):
 
 class Bmi(SimpleNumericalResultParser):
     """
-    Body mass index (BMI) (in kg / m^2).
+    Body mass index (BMI), in kg / m^2.
     """
 
     BMI = rf"""
@@ -619,9 +615,7 @@ class Bmi(SimpleNumericalResultParser):
 
 class BmiValidator(ValidatorBase):
     """
-    Validator for Bmi
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Bmi (see help for explanation).
     """
 
     @classmethod
@@ -637,13 +631,13 @@ class BmiValidator(ValidatorBase):
 class Bp(BaseNlpParser):
     """
     Blood pressure, in mmHg. (Systolic and diastolic.)
+    """
 
-    (Since we produce two variables, SBP and DBP, and we use something a little
-    more complex than
-    :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`;
-    we subclass :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
-    directly.)
-    """  # noqa
+    # Since we produce two variables, SBP and DBP, and we use something a
+    # little more complex than
+    # :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`,  # noqa
+    # we subclass :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
+    # directly.)
 
     BP = r"(?: \b blood \s+ pressure \b | \b B\.?P\.? \b )"
     SYSTOLIC_BP = rf"(?: \b systolic \s+ {BP} | \b S\.?B\.?P\.? \b )"
@@ -713,14 +707,6 @@ class Bp(BaseNlpParser):
             self.tablename = self._cfgsection.opt_str(
                 ProcessorConfigKeys.DESTTABLE, required=True
             )
-
-    @classmethod
-    def print_info(cls, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print(
-            f"Blood pressure finder. Regular expression: \n{cls.REGEX}",
-            file=file,
-        )
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass
@@ -894,9 +880,7 @@ class Bp(BaseNlpParser):
 
 class BpValidator(ValidatorBase):
     """
-    Validator for Bp
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Bp (see help for explanation).
     """
 
     @classmethod
@@ -917,21 +901,3 @@ ALL_CLINICAL_NLP_AND_VALIDATORS = [
 ALL_CLINICAL_NLP, ALL_CLINICAL_VALIDATORS = zip(
     *ALL_CLINICAL_NLP_AND_VALIDATORS
 )  # noqa
-
-
-# =============================================================================
-# Command-line entry point
-# =============================================================================
-
-
-def test_all(verbose: bool = False) -> None:
-    """
-    Test all parsers in this module.
-    """
-    for cls in ALL_CLINICAL_NLP:
-        cls(None, None).test(verbose=verbose)
-
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    test_all(verbose=True)

@@ -53,7 +53,7 @@ def cherrypy(
         raise
 
     args_to_int = [  # Parameters that must be integer, not string
-        "server.socket_port",
+        "server.socket_port"
     ]
     for a in args_to_int:
         if a in kwargs:

@@ -34,14 +34,15 @@ one of the following ways:
 
 .. code-block:: bash
 
-    crate_nlp --nlpdef NLP_NAME --incremental
-    crate_nlp --nlpdef NLP_NAME --full
-    crate_nlp_multiprocess --nlpdef NLP_NAME --incremental
-    crate_nlp_multiprocess --nlpdef NLP_NAME --full
+    crate_nlp [--config CONFIG] --nlpdef NLP_NAME --incremental
+    crate_nlp [--config CONFIG] --nlpdef NLP_NAME --full
+    crate_nlp_multiprocess [--config CONFIG] --nlpdef NLP_NAME --incremental
+    crate_nlp_multiprocess [--config CONFIG] --nlpdef NLP_NAME --full
 
 where `NLP_NAME` is something you’ve configured in the :ref:`NLP config file
 <nlp_config>` (e.g. a drug-parsing NLP program or the GATE demonstration
-name/location NLP app). Use
+name/location NLP app). You can specify the config file explicitly or default
+to one selected by an environment variable (see below).
 
 The ‘multiprocess’ versions are faster (if you have a multi-core/-CPU
 computer). The ‘full’ option destroys the destination database and starts

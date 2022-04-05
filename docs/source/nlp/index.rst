@@ -25,10 +25,10 @@ Natural language processing (NLP)
 
     overview.rst
     nlp_config.rst
+    test_nlp.rst
     run_nlp.rst
     crate_python_regex.rst
     gate.rst
     medex.rst
     nlprp.rst
     nlp_webserver.rst
-

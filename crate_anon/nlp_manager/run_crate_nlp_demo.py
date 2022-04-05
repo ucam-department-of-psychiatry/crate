@@ -31,64 +31,19 @@ crate_anon/nlp_manager/run_crate_nlp_demo.py
 import argparse
 import logging
 from pprint import pformat
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, List
 
-from cardinal_pythonlib.file_io import smart_open
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.common.constants import DEMO_NLP_INPUT_TERMINATOR
+from crate_anon.common.inputfunc import gen_chunks_from_files
 from crate_anon.nlp_manager.all_processors import (
     get_nlp_parser_class,
-    possible_processor_names_without_external_tools,
+    possible_local_processor_names_without_external_tools,
 )
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 
 log = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Input
-# =============================================================================
-
-
-def gen_chunks_from_files(
-    filenames: List[str], chunk_terminator_line: str
-) -> Iterable[str]:
-    """
-    Iterates through filenames (also permitting '-' for stdin).
-    Generates multi-line chunks, separated by a terminator.
-
-    Args:
-        filenames:
-            Filenames (or '-' for stdin).
-        chunk_terminator_line:
-            Single-line string used to separate chunks within a file.
-
-    Yields:
-        str:
-            Each chunk.
-
-    """
-    current_lines = []  # type: List[str]
-
-    def thing_to_yield() -> str:
-        nonlocal current_lines
-        chunk = "\n".join(current_lines)
-        current_lines.clear()
-        return chunk
-
-    for filename in filenames:
-        log.info(f"Reading from: {filename}")
-        with smart_open(filename) as f:
-            for line in f:
-                line = line.rstrip("\n")  # remove trailing newline
-                if line == chunk_terminator_line:
-                    yield thing_to_yield()
-                else:
-                    current_lines.append(line)
-            # End of file: yield any leftovers
-            yield thing_to_yield()
-        log.debug(f"Finished file: {filename}")
 
 
 # =============================================================================
@@ -149,7 +104,9 @@ def main() -> None:
     Command-line entry point.
     """
     all_processors = "all"
-    possible_proc_names = possible_processor_names_without_external_tools()
+    possible_proc_names = (
+        possible_local_processor_names_without_external_tools()
+    )  # noqa
     possible_processor_options = [all_processors] + possible_proc_names
 
     # noinspection PyTypeChecker

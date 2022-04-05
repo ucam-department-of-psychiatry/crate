@@ -65,12 +65,19 @@ Speed testing:
 
 import argparse
 import csv
-import fileinput
 import json
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TYPE_CHECKING,
+)
 
 from cardinal_pythonlib.argparse_func import (
     RawDescriptionArgumentDefaultsHelpFormatter,
@@ -92,11 +99,13 @@ from crate_anon.anonymise.constants import (
     SEP,
 )
 from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.common.constants import JSON_INDENT
 from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.common.formatting import print_record_counts
+from crate_anon.common.inputfunc import gen_chunks_from_files
+from crate_anon.common.stringfunc import relevant_for_nlp
 from crate_anon.nlp_manager.all_processors import (
-    make_nlp_parser_unconfigured,
-    possible_processor_names,
+    possible_processor_names_including_cloud,
     possible_processor_table,
 )
 from crate_anon.nlp_manager.base_nlp_parser import (
@@ -108,6 +117,7 @@ from crate_anon.nlp_manager.constants import (
     DEFAULT_REPORT_EVERY_NLP,
     MAX_STRING_PK_LENGTH,
     NLP_CONFIG_ENV_VAR,
+    NlpDefConfigKeys,
 )
 from crate_anon.nlp_manager.input_field_config import (
     InputFieldConfig,
@@ -498,10 +508,13 @@ def process_nlp(
         nlpdef:
             :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
         incremental:
-            incremental processing (skip previously processed records)
-        report_every: report to the log every *n* source rows
-        tasknum: which task number am I?
-        ntasks: how many tasks are there in total?
+            Incremental processing (skip previously processed records).
+        report_every:
+            Report to the log every *n* source rows.
+        tasknum:
+            Which task number am I?
+        ntasks:
+            How many tasks are there in total?
     """
     log.info(SEP + "NLP")
     session = nlpdef.progressdb_session
@@ -757,7 +770,8 @@ def retrieve_nlp_data(crinfo: CloudRunInfo, incremental: bool = False) -> None:
                 records_exist = True
                 uncommitted_data = True
                 # 'metadata' is just 'other_values' from before
-                metadata = result[NKeys.METADATA]
+                metadata = result[NKeys.METADATA]  # type: Dict[str, Any]
+                # ... expected type because that's what we sent; see add_text()
                 pkval = metadata[FN_SRCPKVAL]
                 pkstr = metadata[FN_SRCPKSTR]
                 srchash = metadata[FN_SRCHASH]
@@ -1034,27 +1048,52 @@ def test_nlp_stdin(nlpdef: NlpDefinition) -> None:
         p.friendly_name_with_section for p in processors
     )
     log.info(f"Testing NLP processors: {processor_names}")
-    for p in processors:
-        assert isinstance(p, BaseNlpParser), (
-            "Testing only supported for local (non-cloud) NLP processors "
-            "for now."
+    if nlpdef.uses_cloud_processors:
+        crinfo = CloudRunInfo(
+            nlpdef, debug_post_request=True, debug_post_response=True
         )
-    prompt = "Please type a line of text to be processed."
-    log.warning(prompt)
-    for text in fileinput.input(files=["-"]):
-        text = text.strip()
-        if text:
+    else:
+        crinfo = None
+    for text in gen_chunks_from_files(
+        filenames=["-"],
+        stdin_prompt="Please type lines of text to be processed. "
+        "End with a blank line.",
+        chunk_terminator_line="",
+    ):
+        if relevant_for_nlp(text):
             log.info(f"INPUT: {text!r}")
             result_found = False
             for p in processors:  # type: BaseNlpParser
-                for tablename, valuedict in p.parse(text):
+
+                if p.is_cloud_processor():
+                    # Cloud processor.
+                    assert crinfo is not None
+                    assert isinstance(p, Cloud)
+                    procreq = CloudRequestProcess(
+                        crinfo=crinfo,
+                        nlpdef=nlpdef,
+                        debug_post_request=True,
+                        debug_post_response=True,
+                    )
+                    procreq.add_text(text, metadata={})
+                    procreq.send_process_request(queue=False)
+                    results = procreq.nlp_data[NKeys.RESULTS]
                     result_found = True
-                    log.info(f"RESULT: {tablename}: {valuedict}")
+                    # ... may not really be true, but we have something to show
+                    formatted_results = json.dumps(results, indent=JSON_INDENT)
+                    log.info(f"RESULTS:\n{formatted_results}")
+
+                else:
+                    # Local (non-cloud) NLP processor.
+                    assert isinstance(p, BaseNlpParser)
+                    for tablename, valuedict in p.parse(text):
+                        result_found = True
+                        log.info(f"RESULT: {tablename}: {valuedict}")
+
             if not result_found:
                 log.info("[No results.]")
         else:
-            log.info("Ignoring blank line.")
-        log.warning(prompt)
+            log.info("Ignoring irrelevant line.")
 
 
 # =============================================================================
@@ -1182,12 +1221,12 @@ def inner_main() -> None:
     info_actions.add_argument(
         "--listprocessors",
         action="store_true",
-        help="Show possible built-in NLP processor names",
+        help="Show all possible built-in NLP processor names",
     )
     info_actions.add_argument(
         "--describeprocessors",
         action="store_true",
-        help="Show details of built-in NLP processors",
+        help="Show details of all built-in NLP processors",
     )
     info_actions.add_argument(
         "--test_nlp",
@@ -1198,19 +1237,19 @@ def inner_main() -> None:
     info_actions.add_argument(
         "--print_local_processors",
         action="store_true",
-        help="Show NLPRP JSON for local processors that are part of the "
-        "chosen NLP definition, then stop",
+        help="For the chosen NLP definition, establish which local NLP "
+        "processors are involved (if any). Show detailed information "
+        "about these processors (as NLPRP JSON), then stop",
     )
     info_actions.add_argument(
         "--print_cloud_processors",
         action="store_true",
-        help="Show NLPRP JSON for cloud (remote) processors that are part of "
-        "the chosen NLP definition, then stop",
-    )
-    info_actions.add_argument(
-        "--showinfo",
-        metavar="NLP_CLASS_NAME",
-        help="Show detailed information for a parser",
+        help=f"For the chosen NLP definition, establish the relevant cloud "
+        f"server, if applicable (from the "
+        f"{NlpDefConfigKeys.CLOUD_CONFIG!r} parameter). Ask that remote "
+        f"server about its available NLP processors. Show detailed "
+        f"information about these remote processors (as NLPRP JSON), "
+        f"then stop",
     )
     info_actions.add_argument(
         "--count",
@@ -1285,20 +1324,10 @@ def inner_main() -> None:
 
     # List or describe processors?
     if args.listprocessors:
-        print("\n".join(possible_processor_names()))
+        print("\n".join(possible_processor_names_including_cloud()))
         return
     if args.describeprocessors:
         print(possible_processor_table())
-        return
-    if args.showinfo:
-        parser = make_nlp_parser_unconfigured(
-            args.showinfo, raise_if_absent=False
-        )
-        if parser:
-            print(f"Info for class {args.showinfo}:\n")
-            parser.print_info()
-        else:
-            print(f"No such processor class: {args.showinfo}")
         return
 
     # Otherwise, we need a valid NLP definition.

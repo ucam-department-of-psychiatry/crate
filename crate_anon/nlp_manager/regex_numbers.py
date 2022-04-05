@@ -31,7 +31,28 @@ numbers (e.g. integers, floating-point, scientific notation...).**
 
 
 # =============================================================================
-# Mathematical operations and quantities
+# Helper functions
+# =============================================================================
+
+
+def _negative_lookahead(x: str) -> str:
+    """
+    Regex for: x does not occur here.
+    """
+    # (?! something ) is a negative lookahead assertion
+    return rf"(?! {x} )"
+
+
+def _negative_lookbehind(x: str) -> str:
+    """
+    Regex for: x does not immediately precede what's here.
+    """
+    # (?<! something ) is a negative lookbehind assertion
+    return rf"(?<! {x} )"
+
+
+# =============================================================================
+# Mathematical operations
 # =============================================================================
 
 MULTIPLY = r"[x\*×⋅]"  # x, *, ×, ⋅
@@ -40,6 +61,22 @@ POWER = r"(?: \^ | \*\* )"  # ^, **
 POWER_INC_E = r"(?: e | \^ | \*\* )"  # e, ^, **
 POWER_INC_E_ASTERISK = r"(?: e | \^ | \*\* | \*)"  # e, ^, **, *
 # ... e.g. in CUH: "10*9/L" for "×10^9/L"
+
+PLUS_SIGN = r"\+"  # don't forget to escape it
+MINUS_SIGN = r"[-−–]"  # any of: ASCII hyphen-minus, Unicode minus, en dash
+SIGN = rf"(?: {PLUS_SIGN} | {MINUS_SIGN} )"
+
+# NO_MINUS_SIGN = _negative_lookahead(MINUS_SIGN)
+# NO_PRECEDING_MINUS_SIGN = _negative_lookbehind(MINUS_SIGN)
+# NO_PRECEDING_MINUS_SIGN_OR_DIGIT = _negative_lookbehind(fr"{MINUS_SIGN} | \d")  # noqa: E501
+NO_PRECEDING_MINUS_SIGN_OR_DIGITCOMMA_OR_DOT = _negative_lookbehind(
+    rf"{MINUS_SIGN} | \d,? | \."
+)
+
+
+# =============================================================================
+# Quantities
+# =============================================================================
 
 
 def times_ten_to_power(n: int) -> str:
@@ -57,14 +94,6 @@ TRILLION = times_ten_to_power(12)
 # Number components
 # =============================================================================
 # Don't create components that are entirely optional; they're hard to test!
-
-PLUS_SIGN = r"\+"  # don't forget to escape it
-MINUS_SIGN = r"[-−–]"  # any of: ASCII hyphen-minus, Unicode minus, en dash
-SIGN = rf"(?: {PLUS_SIGN} | {MINUS_SIGN} )"
-
-NO_MINUS_SIGN_LOOKAHEAD = rf"(?!{MINUS_SIGN})"
-# ... (?! something ) is a negative lookahead assertion
-# ... (?<! something ) is a negative lookbehind assertion
 
 PLAIN_INTEGER = r"\d+"
 # Numbers with commas: https://stackoverflow.com/questions/5917082
@@ -86,6 +115,9 @@ SCIENTIFIC_NOTATION_EXPONENT = rf"(?: E {SIGN}? \d+ )"
 # ... Scientific notation does NOT offer non-integer exponents.
 # Specifically, float("-3.4e-27") is fine, but float("-3.4e-27.1") isn't.
 
+# NO_FOLLOWING_SCIENTIFIC_NOTATION_EXPONENT = _negative_lookahead(
+#     SCIENTIFIC_NOTATION_EXPONENT)
+
 
 # =============================================================================
 # Number types
@@ -93,14 +125,20 @@ SCIENTIFIC_NOTATION_EXPONENT = rf"(?: E {SIGN}? \d+ )"
 # Beware of unsigned types. You may not want a sign, but if you use an
 # unsigned type, "-3" will be read as "3".
 
-UNSIGNED_INTEGER = PLAIN_INTEGER_W_THOUSAND_COMMAS
+# Beware this one. You may not want a sign, but if you use this, "-3" will be
+# read as "3".
+IGNORESIGN_INTEGER = PLAIN_INTEGER_W_THOUSAND_COMMAS
 SIGNED_INTEGER = r"(?: {sign}? {integer} )".format(
     sign=SIGN,  # optional
     integer=PLAIN_INTEGER_W_THOUSAND_COMMAS,
 )
-UNSIGNED_FLOAT = r"(?: {nominus} {plus}? {integer} {fp}? )".format(
-    nominus=NO_MINUS_SIGN_LOOKAHEAD,
+UNSIGNED_INTEGER = r"(?: {nominus} {plus}? {integer} )".format(
+    nominus=NO_PRECEDING_MINUS_SIGN_OR_DIGITCOMMA_OR_DOT,
     plus=PLUS_SIGN,  # optional
+    integer=PLAIN_INTEGER_W_THOUSAND_COMMAS,
+)
+
+IGNORESIGN_FLOAT = r"(?: {integer} {fp}? )".format(
     integer=PLAIN_INTEGER_W_THOUSAND_COMMAS,
     fp=FLOATING_POINT_GROUP,  # optional
 )
@@ -109,6 +147,13 @@ SIGNED_FLOAT = r"(?: {sign}? {integer} {fp}? )".format(
     integer=PLAIN_INTEGER_W_THOUSAND_COMMAS,
     fp=FLOATING_POINT_GROUP,  # optional
 )
+UNSIGNED_FLOAT = r"(?: {nominus} {plus}? {integer} {fp}? )".format(
+    nominus=NO_PRECEDING_MINUS_SIGN_OR_DIGITCOMMA_OR_DOT,
+    plus=PLUS_SIGN,  # optional
+    integer=PLAIN_INTEGER_W_THOUSAND_COMMAS,
+    fp=FLOATING_POINT_GROUP,  # optional
+)
+
 LIBERAL_NUMBER = r"(?: {sign}? {integer} {fp}? {exp}? )".format(
     sign=SIGN,  # optional
     integer=PLAIN_INTEGER_W_THOUSAND_COMMAS,

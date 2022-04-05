@@ -114,16 +114,16 @@ def demo_nlp_config() -> str:
 
     from crate_anon.nlp_manager.parse_biochemistry import (
         ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS,
-    )  # delayed import  # noqa
+    )  # delayed import
     from crate_anon.nlp_manager.parse_clinical import (
         ALL_CLINICAL_NLP_AND_VALIDATORS,
-    )  # delayed import  # noqa
+    )  # delayed import
     from crate_anon.nlp_manager.parse_cognitive import (
         ALL_COGNITIVE_NLP_AND_VALIDATORS,
-    )  # delayed import  # noqa
+    )  # delayed import
     from crate_anon.nlp_manager.parse_haematology import (
         ALL_HAEMATOLOGY_NLP_AND_VALIDATORS,
-    )  # delayed import  # noqa
+    )  # delayed import
 
     # -------------------------------------------------------------------------
     # Helper functions
@@ -185,16 +185,16 @@ def demo_nlp_config() -> str:
 
     procdefs_biochemistry = _make_module_procdef_block(
         ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS
-    )  # noqa
+    )
     procdefs_clinical = _make_module_procdef_block(
         ALL_CLINICAL_NLP_AND_VALIDATORS
-    )  # noqa
+    )
     procdefs_cognitive = _make_module_procdef_block(
         ALL_COGNITIVE_NLP_AND_VALIDATORS
-    )  # noqa
+    )
     procdefs_haematology = _make_module_procdef_block(
         ALL_HAEMATOLOGY_NLP_AND_VALIDATORS
-    )  # noqa
+    )
 
     proclist_biochemistry = _make_proclist(ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS)
     proclist_clinical = _make_proclist(ALL_CLINICAL_NLP_AND_VALIDATORS)
@@ -206,7 +206,7 @@ def demo_nlp_config() -> str:
     else:
         this_dir = os.path.abspath(
             os.path.dirname(__file__)
-        )  # crate_anon/nlp_manager  # noqa
+        )  # crate_anon/nlp_manager
         nlp_prog_dir = os.path.join(this_dir, "compiled_nlp_classes")
 
     if for_docker:
@@ -214,7 +214,9 @@ def demo_nlp_config() -> str:
         gate_home = "/crate/gate"
         kcl_pharmacotherapy_dir = "/crate/brc-gate-pharmacotherapy"
         cloud_request_data_dir = "/crate/tmp/clouddata"
-        gate_plugin_file = "/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini"  # noqa
+        gate_plugin_file = (
+            "/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini"
+        )
     else:
         gate_home = "/path/to/GATE_Developer_8.6.1"
         kcl_pharmacotherapy_dir = "/path/to/brc-gate-pharmacotherapy"
@@ -950,7 +952,7 @@ class NlpDefinition(object):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self._transaction_limiters = (
             {}
-        )  # type: Dict[Session, TransactionSizeLimiter]  # noqa
+        )  # type: Dict[Session, TransactionSizeLimiter]
         # dictionary of session -> TransactionSizeLimiter
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1246,12 +1248,16 @@ class NlpDefinition(object):
             :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
 
         """
-        # noinspection PyTypeChecker
         return [
-            x
-            for x in self._processors
-            if x.classname() != NlpDefValues.PROCTYPE_CLOUD
-        ]
+            x for x in self._processors if not x.is_cloud_processor()
+        ]  # type: List["BaseNlpParser"]
+
+    @property
+    def uses_cloud_processors(self) -> bool:
+        """
+        Are any of our processors cloud-based?
+        """
+        return any(x.is_cloud_processor() for x in self._processors)
 
     # -------------------------------------------------------------------------
     # NLPRP info
@@ -1267,9 +1273,7 @@ class NlpDefinition(object):
         processors = []  # type: List[Dict, str, Any]
         for proc in self.noncloud_processors:
             processors.append(proc.nlprp_processor_info(sql_dialect))
-        return {
-            NlprpKeys.PROCESSORS: processors,
-        }
+        return {NlprpKeys.PROCESSORS: processors}
 
     def nlprp_local_processors_json(
         self, indent: int = 4, sort_keys: bool = True, sql_dialect: str = None
@@ -1306,8 +1310,8 @@ class NlpDefinition(object):
                 )
             if not self._cloud_request_data_dir:
                 raise ValueError(
-                    f"No {NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR!r} parameter "  # noqa
-                    f"specified for NLP definition {our_name!r}"
+                    f"No {NlpDefConfigKeys.CLOUD_REQUEST_DATA_DIR!r} "
+                    f"parameter specified for NLP definition {our_name!r}"
                 )
             req_root_dir = os.path.abspath(self._cloud_request_data_dir)
             if not os.path.isdir(req_root_dir):

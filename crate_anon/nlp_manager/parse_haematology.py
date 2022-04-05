@@ -45,8 +45,6 @@ from abc import ABC
 import logging
 from typing import List, Optional, Tuple
 
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-
 from crate_anon.common.regex_helpers import (
     regex_or,
     WORD_BOUNDARY,
@@ -85,7 +83,7 @@ log = logging.getLogger(__name__)
 
 class Haemoglobin(SimpleNumericalResultParser):
     """
-    Haemoglobin (Hb).
+    Haemoglobin (Hb). Default units are g/L; also supports g/dL.
 
     UK reporting for haemoglobin switched in 2013 from g/dL to g/L; see
     e.g.
@@ -165,9 +163,7 @@ class Haemoglobin(SimpleNumericalResultParser):
 
 class HaemoglobinValidator(ValidatorBase):
     """
-    Validator for Haemoglobin
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Haemoglobin (see help for explanation).
     """
 
     @classmethod
@@ -183,6 +179,7 @@ class HaemoglobinValidator(ValidatorBase):
 class Haematocrit(SimpleNumericalResultParser):
     """
     Haematocrit (Hct).
+    A dimensionless quantity (but supports L/L notation).
     """
 
     HAEMATOCRIT_BASE = rf"""
@@ -248,9 +245,7 @@ class Haematocrit(SimpleNumericalResultParser):
 
 class HaematocritValidator(ValidatorBase):
     """
-    Validator for Haematocrit
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Haematocrit (see help for explanation).
     """
 
     @classmethod
@@ -266,8 +261,9 @@ class HaematocritValidator(ValidatorBase):
 class RBC(SimpleNumericalResultParser):
     """
     Red blood cell count.
+    Default units are 10^12/L; also supports cells/mm^3 = cells/μL.
 
-    Typical:
+    A typical excerpt from a FBC report:
 
     .. code-block:: none
 
@@ -375,9 +371,7 @@ class RBC(SimpleNumericalResultParser):
 
 class RBCValidator(ValidatorBase):
     """
-    Validator for RBC
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for RBC (see help for explanation).
     """
 
     @classmethod
@@ -392,7 +386,7 @@ class RBCValidator(ValidatorBase):
 
 class Esr(SimpleNumericalResultParser):
     """
-    Erythrocyte sedimentation rate (ESR).
+    Erythrocyte sedimentation rate (ESR), in mm/h.
     """
 
     ESR_BASE = rf"""
@@ -473,9 +467,7 @@ class Esr(SimpleNumericalResultParser):
 
 class EsrValidator(ValidatorBase):
     """
-    Validator for Esr
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Esr (see help for explanation).
     """
 
     @classmethod
@@ -500,6 +492,7 @@ class EsrValidator(ValidatorBase):
 class WbcBase(SimpleNumericalResultParser, ABC):
     """
     DO NOT USE DIRECTLY. White cell count base class.
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
 
     PREFERRED_UNIT_COLUMN = "value_billion_per_l"
@@ -573,6 +566,7 @@ class WbcBase(SimpleNumericalResultParser, ABC):
 class Wbc(WbcBase):
     """
     White cell count (WBC, WCC).
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
 
     WBC_BASE = r"""
@@ -648,9 +642,7 @@ class Wbc(WbcBase):
 
 class WbcValidator(ValidatorBase):
     """
-    Validator for Wbc
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Wbc (see help for explanation).
     """
 
     @classmethod
@@ -666,6 +658,7 @@ class WbcValidator(ValidatorBase):
 class Neutrophils(WbcBase):
     """
     Neutrophil (polymorphonuclear leukoocte) count (absolute).
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
 
     NEUTROPHILS_BASE = r"""
@@ -727,9 +720,7 @@ class Neutrophils(WbcBase):
 
 class NeutrophilsValidator(ValidatorBase):
     """
-    Validator for Neutrophils
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Neutrophils (see help for explanation).
     """
 
     @classmethod
@@ -745,6 +736,7 @@ class NeutrophilsValidator(ValidatorBase):
 class Lymphocytes(WbcBase):
     """
     Lymphocyte count (absolute).
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
 
     LYMPHOCYTES_BASE = r"""
@@ -806,9 +798,7 @@ class Lymphocytes(WbcBase):
 
 class LymphocytesValidator(ValidatorBase):
     """
-    Validator for Lymphocytes
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Lymphocytes (see help for explanation).
     """
 
     @classmethod
@@ -824,6 +814,7 @@ class LymphocytesValidator(ValidatorBase):
 class Monocytes(WbcBase):
     """
     Monocyte count (absolute).
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
 
     MONOCYTES_BASE = r"""
@@ -883,9 +874,7 @@ class Monocytes(WbcBase):
 
 class MonocytesValidator(ValidatorBase):
     """
-    Validator for Monocytes
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Monocytes (see help for explanation).
     """
 
     @classmethod
@@ -901,6 +890,7 @@ class MonocytesValidator(ValidatorBase):
 class Basophils(WbcBase):
     """
     Basophil count (absolute).
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
 
     BASOPHILS_BASE = r"""
@@ -960,9 +950,7 @@ class Basophils(WbcBase):
 
 class BasophilsValidator(ValidatorBase):
     """
-    Validator for Basophils
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Basophils (see help for explanation).
     """
 
     @classmethod
@@ -978,6 +966,7 @@ class BasophilsValidator(ValidatorBase):
 class Eosinophils(WbcBase):
     """
     Eosinophil count (absolute).
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
 
     EOSINOPHILS_BASE = r"""
@@ -1038,9 +1027,7 @@ class Eosinophils(WbcBase):
 
 class EosinophilsValidator(ValidatorBase):
     """
-    Validator for Eosinophils
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Eosinophils (see help for explanation).
     """
 
     @classmethod
@@ -1056,6 +1043,7 @@ class EosinophilsValidator(ValidatorBase):
 class Platelets(WbcBase):
     """
     Platelet count.
+    Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
 
     Not actually a white blood cell, of course, but can share the same base
     class; platelets are expressed in the same units, of 10^9 / L.
@@ -1113,9 +1101,7 @@ class Platelets(WbcBase):
 
 class PlateletsValidator(ValidatorBase):
     """
-    Validator for Platelets
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Platelets (see help for explanation).
     """
 
     @classmethod
@@ -1143,21 +1129,3 @@ ALL_HAEMATOLOGY_NLP_AND_VALIDATORS = [
 ALL_HAEMATOLOGY_NLP, ALL_HAEMATOLOGY_VALIDATORS = zip(
     *ALL_HAEMATOLOGY_NLP_AND_VALIDATORS
 )  # noqa
-
-
-# =============================================================================
-# Command-line entry point
-# =============================================================================
-
-
-def test_all(verbose: bool = False) -> None:
-    """
-    Test all parsers in this module.
-    """
-    for cls in ALL_HAEMATOLOGY_NLP:
-        cls(None, None).test(verbose=verbose)
-
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    test_all(verbose=True)

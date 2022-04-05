@@ -70,7 +70,6 @@ import logging
 import os
 import sys
 
-# import textwrap
 from typing import (
     Any,
     Dict,
@@ -86,12 +85,10 @@ from cardinal_pythonlib.argparse_func import (
     RawDescriptionArgumentDefaultsHelpFormatter,
 )  # noqa
 from cardinal_pythonlib.dicts import rename_key
-from cardinal_pythonlib.extract_text import wordwrap
 from cardinal_pythonlib.fileops import find_first
 from cardinal_pythonlib.logs import configure_logger_for_colour
 import openpyxl
 from openpyxl.cell.cell import Cell
-import prettytable
 from sqlalchemy import (
     Column,
     create_engine,
@@ -105,12 +102,12 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.schema import MetaData, Table
 
-# import xlrd
-
 from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
 from crate_anon.common.constants import EnvVar
+from crate_anon.common.stringfunc import make_twocol_table
 
 log = logging.getLogger(__name__)
+
 
 # =============================================================================
 # Constants
@@ -1373,25 +1370,15 @@ def show_docs() -> None:
     Print the column ``doc`` attributes from the :class:`Postcode` class, in
     tabular form, to stdout.
     """
+    colnames = ["Postcode field", "Description"]
     # noinspection PyUnresolvedReferences
     table = Postcode.__table__
     columns = sorted(table.columns.keys())
-    pt = prettytable.PrettyTable(
-        ["postcode field", "Description"],
-        # header=False,
-        border=True,
-        hrules=prettytable.ALL,
-        vrules=prettytable.NONE,
-    )
-    pt.align = "l"
-    pt.valign = "t"
-    pt.max_width = 80
+    rows = []  # type: List[List[str]]
     for col in columns:
-        doc = getattr(Postcode, col).doc
-        doc = wordwrap(doc, width=70)
-        ptrow = [col, doc]
-        pt.add_row(ptrow)
-    print(pt.get_string())
+        rows.append([col, getattr(Postcode, col).comment])
+    tabletext = make_twocol_table(colnames, rows, vertical_lines=False)
+    print(tabletext)
 
 
 # =============================================================================

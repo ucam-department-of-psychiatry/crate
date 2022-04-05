@@ -9,6 +9,7 @@ NLPRP web server. The PROCESSORS variable is the one of interest.
 # Imports
 # =============================================================================
 
+from crate_anon.common.constants import JSON_INDENT
 from crate_anon.nlp_manager.all_processors import (
     all_crate_python_processors_nlprp_processor_info,
 )
@@ -163,4 +164,4 @@ PROCESSORS = all_crate_python_processors_nlprp_processor_info() + [
 if __name__ == "__main__":
     import json  # delayed import
 
-    print(json.dumps(PROCESSORS, indent=4, sort_keys=True))
+    print(json.dumps(PROCESSORS, indent=JSON_INDENT, sort_keys=True))

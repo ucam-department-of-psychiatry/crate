@@ -44,11 +44,9 @@ commit:
 import logging
 from typing import List, Optional, Tuple
 
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-
 from crate_anon.common.regex_helpers import WORD_BOUNDARY
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
-from crate_anon.nlp_manager.regex_numbers import UNSIGNED_INTEGER
+from crate_anon.nlp_manager.regex_numbers import IGNORESIGN_INTEGER
 from crate_anon.nlp_manager.regex_parser import (
     APOSTROPHE,
     NumeratorOutOfDenominatorParser,
@@ -67,6 +65,9 @@ log = logging.getLogger(__name__)
 class Mmse(NumeratorOutOfDenominatorParser):
     """
     Mini-mental state examination (MMSE).
+
+    The default denominator is 30, but it supports other values if given
+    explicitly.
     """
 
     MMSE = rf"""
@@ -116,9 +117,7 @@ class Mmse(NumeratorOutOfDenominatorParser):
 
 class MmseValidator(ValidatorBase):
     """
-    Validator for Mmse
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Mmse (see help for explanation).
     """
 
     @classmethod
@@ -134,6 +133,9 @@ class MmseValidator(ValidatorBase):
 class Ace(NumeratorOutOfDenominatorParser):
     """
     Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III) total score.
+
+    The default denominator is 100 but it supports other values if given
+    explicitly.
     """
 
     NAME = "ACE"
@@ -144,11 +146,11 @@ class Ace(NumeratorOutOfDenominatorParser):
             (?: \s* -? \s*
                 (?: R | III | 111
                     # or: 3 when not followed by an "out of X" expression
-                    | (?: 3 (?! \s* {OUT_OF_SEPARATOR} \s* {UNSIGNED_INTEGER}))
+                    | (?: 3 (?! \s* {OUT_OF_SEPARATOR} \s* {IGNORESIGN_INTEGER}))
                 ) \b
             )?+
         {WORD_BOUNDARY} )
-    """
+    """  # noqa
     # ... note the possessive "?+" above; see tests below.
 
     def __init__(
@@ -229,9 +231,7 @@ class Ace(NumeratorOutOfDenominatorParser):
 
 class AceValidator(ValidatorBase):
     """
-    Validator for Ace
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Ace (see help for explanation).
     """
 
     @classmethod
@@ -266,6 +266,9 @@ class AceValidator(ValidatorBase):
 class MiniAce(NumeratorOutOfDenominatorParser):
     """
     Mini-Addenbrooke's Cognitive Examination (M-ACE).
+
+    The default denominator is 30, but it supports other values if given
+    explicitly.
     """
 
     MACE = rf"""
@@ -320,9 +323,7 @@ class MiniAce(NumeratorOutOfDenominatorParser):
 
 class MiniAceValidator(ValidatorBase):
     """
-    Validator for MiniAce
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for MiniAce (see help for explanation).
     """
 
     @classmethod
@@ -338,6 +339,9 @@ class MiniAceValidator(ValidatorBase):
 class Moca(NumeratorOutOfDenominatorParser):
     """
     Montreal Cognitive Assessment (MOCA).
+
+    The default denominator is 30, but it supports other values if given
+    explicitly.
     """
 
     # todo:: MOCA NLP parser: support also "scored X on the MOCA"?
@@ -382,9 +386,7 @@ class Moca(NumeratorOutOfDenominatorParser):
 
 class MocaValidator(ValidatorBase):
     """
-    Validator for Moca
-    (see :class:`crate_anon.nlp_manager.regex_parser.ValidatorBase` for
-    explanation).
+    Validator for Moca (see help for explanation).
     """
 
     @classmethod
@@ -405,27 +407,3 @@ ALL_COGNITIVE_NLP_AND_VALIDATORS = [
 ALL_COGNITIVE_NLP, ALL_COGNITIVE_VALIDATORS = zip(
     *ALL_COGNITIVE_NLP_AND_VALIDATORS
 )  # noqa
-
-
-# =============================================================================
-# Command-line entry point
-# =============================================================================
-
-
-def test_all(verbose: bool = False) -> None:
-    """
-    Test all parsers in this module.
-    """
-    for cls in ALL_COGNITIVE_NLP:
-        cls(None, None).test(verbose=verbose)
-    for (
-        cls
-    ) in (
-        ALL_COGNITIVE_VALIDATORS
-    ):  # we want the ACE validator in particular  # noqa
-        cls(None, None).test(verbose=verbose)
-
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    test_all(verbose=True)

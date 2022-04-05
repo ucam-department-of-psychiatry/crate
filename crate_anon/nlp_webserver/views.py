@@ -598,10 +598,7 @@ class NlpWebViews(object):
                 # then the Celery task ID is the same as the DocProcRequest
                 # ID.
                 args=(dpr_id,),  # docprocrequest_id
-                kwargs=dict(
-                    username=self.username,
-                    crypt_pass=crypt_pass,
-                ),
+                kwargs=dict(username=self.username, crypt_pass=crypt_pass),
                 task_id=dpr_id,  # for Celery
             )
 

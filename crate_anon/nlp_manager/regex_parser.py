@@ -30,10 +30,8 @@ crate_anon/nlp_manager/regex_parser.py
 
 from abc import abstractmethod, ABC
 import logging
-import sys
-from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy import Column, Integer, Float, String, Text
 
 from crate_anon.common.regex_helpers import (
@@ -54,29 +52,11 @@ from crate_anon.nlp_manager.regex_func import (
     get_regex_dict_match,
 )
 from crate_anon.nlp_manager.regex_numbers import (
-    BILLION,
-    LIBERAL_NUMBER,
-    MINUS_SIGN,
-    MULTIPLY,
-    PLAIN_INTEGER,
-    PLAIN_INTEGER_W_THOUSAND_COMMAS,
-    PLUS_SIGN,
-    POWER,
-    POWER_INC_E,
-    SCIENTIFIC_NOTATION_EXPONENT,
-    SIGN,
     SIGNED_FLOAT,
-    SIGNED_INTEGER,
-    UNSIGNED_FLOAT,
-    UNSIGNED_INTEGER,
+    IGNORESIGN_INTEGER,
 )
-from crate_anon.nlp_manager.regex_test import test_text_regex
 from crate_anon.nlp_manager.regex_units import (
-    CELLS,
-    CELLS_PER_CUBIC_MM,
-    CUBIC_MM,
     OUT_OF_SEPARATOR,
-    PER_CUBIC_MM,
     SCORE,
 )
 
@@ -351,14 +331,6 @@ class NumericalResultParser(BaseNlpParser):
         assert (
             len(self.variable) <= MAX_SQL_FIELD_LEN
         ), f"Variable name too long (max {MAX_SQL_FIELD_LEN} characters)"
-
-    def print_info(self, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print(
-            f"NLP class to find numerical results. Regular expression: "
-            f"\n\n{self.regex_str_for_debugging}",
-            file=file,
-        )
 
     def get_regex_str_for_debugging(self) -> str:
         """
@@ -947,21 +919,13 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
             ( {SIGNED_FLOAT} )                 # 4. group for numerator
             (?:                                # optional "/ denominator"
                 \s* {OUT_OF_SEPARATOR} \s*
-                ( {UNSIGNED_INTEGER} )         # 5. group for denominator
+                ( {IGNORESIGN_INTEGER} )         # 5. group for denominator
             )?
         """  # noqa
         if debug:
             log.debug(f"Regex for {self.classname()}: {regex_str}")
         self.regex_str = regex_str
         self.compiled_regex = compile_regex(regex_str)
-
-    def print_info(self, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print(
-            f"NLP class to find X-out-of-Y results. Regular expression: "
-            f"\n\n{self.regex_str}",
-            file=file,
-        )
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         # docstring in superclass
@@ -1304,17 +1268,10 @@ class ValidatorBase(BaseNlpParser):
         """
         raise NotImplementedError
 
-    def print_info(self, file: TextIO = sys.stdout) -> None:
-        # docstring in superclass
-        print(
-            "NLP class to validate other NLP processors. Regular "
-            "expressions:\n\n",
-            file=file,
-        )
-        print("\n\n".join(self.regex_str_list), file=file)
-
     def set_tablename(self, tablename: str) -> None:
-        """In case a friend class wants to override."""
+        """
+        In case a friend class wants to override.
+        """
         self.tablename = tablename
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
@@ -1417,350 +1374,3 @@ def learning_alternative_regex_groups() -> None:
         - groups are ordered by their opening bracket
         - matches are filled in neatly
     """
-
-
-def test_base_regexes(verbose: bool = False) -> None:
-    """
-    Test all the base regular expressions.
-    """
-    # -------------------------------------------------------------------------
-    # Operators, etc.
-    # -------------------------------------------------------------------------
-    test_text_regex(
-        "MULTIPLY",
-        MULTIPLY,
-        [
-            ("a * b", ["*"]),
-            ("a x b", ["x"]),
-            ("a × b", ["×"]),
-            ("a ⋅ b", ["⋅"]),
-            ("a blah b", []),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "POWER",
-        POWER,
-        [
-            ("a ^ b", ["^"]),
-            ("a ** b", ["**"]),
-            ("10e5", []),
-            ("10E5", []),
-            ("a blah b", []),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "POWER_INC_E",
-        POWER_INC_E,
-        [
-            ("a ^ b", ["^"]),
-            ("a ** b", ["**"]),
-            ("10e5", ["e"]),
-            ("10E5", ["E"]),
-            ("a blah b", []),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "BILLION",
-        BILLION,
-        [
-            ("10 x 10^9/l", ["x 10^9"]),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "PLUS_SIGN",
-        PLUS_SIGN,
-        [
-            ("a + b", ["+"]),
-            ("a blah b", []),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "MINUS_SIGN",
-        MINUS_SIGN,
-        [
-            # good:
-            ("a - b", ["-"]),  # ASCII hyphen-minus
-            ("a − b", ["−"]),  # Unicode minus
-            ("a – b", ["–"]),  # en dash
-            # bad:
-            ("a — b", []),  # em dash
-            ("a ‐ b", []),  # Unicode formal hyphen
-            ("a blah b", []),
-        ],
-        verbose=verbose,
-    )
-    # Can't test optional regexes very easily! They match nothing.
-    test_text_regex(
-        "SIGN",
-        SIGN,
-        [
-            # good:
-            ("a + b", ["+"]),
-            ("a - b", ["-"]),  # ASCII hyphen-minus
-            ("a − b", ["−"]),  # Unicode minus
-            ("a – b", ["–"]),  # en dash
-            # bad:
-            ("a — b", []),  # em dash
-            ("a ‐ b", []),  # Unicode formal hyphen
-            ("a blah b", []),
-        ],
-        verbose=verbose,
-    )
-
-    # -------------------------------------------------------------------------
-    # Number elements
-    # -------------------------------------------------------------------------
-    test_text_regex(
-        "PLAIN_INTEGER",
-        PLAIN_INTEGER,
-        [
-            ("a 1234 b", ["1234"]),
-            ("a 1234.5 b", ["1234", "5"]),
-            ("a 12,000 b", ["12", "000"]),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "PLAIN_INTEGER_W_THOUSAND_COMMAS",
-        PLAIN_INTEGER_W_THOUSAND_COMMAS,
-        [
-            ("a 1234 b", ["1234"]),
-            ("a 1234.5 b", ["1234", "5"]),
-            ("a 12,000 b", ["12,000"]),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "SCIENTIFIC_NOTATION_EXPONENT",
-        SCIENTIFIC_NOTATION_EXPONENT,
-        [
-            ("a 1234 b", []),
-            ("E-4", ["E-4"]),
-            ("e15", ["e15"]),
-            ("e15.3", ["e15"]),
-        ],
-        verbose=verbose,
-    )
-
-    # -------------------------------------------------------------------------
-    # Number types
-    # -------------------------------------------------------------------------
-
-    test_text_regex(
-        "UNSIGNED_INTEGER",
-        UNSIGNED_INTEGER,
-        [
-            ("1", ["1"]),
-            ("12345", ["12345"]),
-            ("-1", ["1"]),  # will drop sign
-            ("1.2", ["1", "2"]),
-            ("-3.4", ["3", "4"]),
-            ("+3.4", ["3", "4"]),
-            ("-3.4e27.3", ["3", "4", "27", "3"]),
-            ("3.4e-27", ["3", "4", "27"]),
-            ("9,800", ["9,800"]),
-            ("17,600.34", ["17,600", "34"]),
-            ("-17,300.6588", ["17,300", "6588"]),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "SIGNED_INTEGER",
-        SIGNED_INTEGER,
-        [
-            ("1", ["1"]),
-            ("12345", ["12345"]),
-            ("-1", ["-1"]),
-            ("1.2", ["1", "2"]),
-            ("-3.4", ["-3", "4"]),
-            ("+3.4", ["+3", "4"]),
-            ("-3.4e27.3", ["-3", "4", "27", "3"]),
-            ("3.4e-27", ["3", "4", "-27"]),
-            ("9,800", ["9,800"]),
-            ("17,600.34", ["17,600", "34"]),
-            ("-17,300.6588", ["-17,300", "6588"]),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "UNSIGNED_FLOAT",
-        UNSIGNED_FLOAT,
-        [
-            ("1", ["1"]),
-            ("12345", ["12345"]),
-            ("-1", ["1"]),
-            ("1.2", ["1.2"]),
-            ("-3.4", ["3.4"]),
-            ("+3.4", ["+3.4"]),
-            ("-3.4e27.3", ["3.4", "27.3"]),
-            ("3.4e-27", ["3.4", "27"]),
-            ("9,800", ["9,800"]),
-            ("17,600.34", ["17,600.34"]),
-            ("-17,300.6588", ["17,300.6588"]),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "SIGNED_FLOAT",
-        SIGNED_FLOAT,
-        [
-            ("1", ["1"]),
-            ("12345", ["12345"]),
-            ("-1", ["-1"]),
-            ("1.2", ["1.2"]),
-            ("-3.4", ["-3.4"]),
-            ("+3.4", ["+3.4"]),
-            ("-3.4e27.3", ["-3.4", "27.3"]),
-            ("3.4e-27", ["3.4", "-27"]),
-            ("9,800", ["9,800"]),
-            ("17,600.34", ["17,600.34"]),
-            ("-17,300.6588", ["-17,300.6588"]),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "LIBERAL_NUMBER",
-        LIBERAL_NUMBER,
-        [
-            ("1", ["1"]),
-            ("12345", ["12345"]),
-            ("-1", ["-1"]),
-            ("1.2", ["1.2"]),
-            ("-3.4", ["-3.4"]),
-            ("+3.4", ["+3.4"]),
-            ("-3.4e27.3", ["-3.4e27", "3"]),  # not valid scientific notation
-            ("3.4e-27", ["3.4e-27"]),
-            ("9,800", ["9,800"]),
-            ("17,600.34", ["17,600.34"]),
-            ("-17,300.6588", ["-17,300.6588"]),
-        ],
-        verbose=verbose,
-    )
-
-    # -------------------------------------------------------------------------
-    # Units
-    # -------------------------------------------------------------------------
-
-    test_text_regex(
-        "CELLS",
-        CELLS,
-        [
-            ("cells", ["cells"]),
-            ("blibble", []),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "CUBIC_MM",
-        CUBIC_MM,
-        [
-            ("mm3", ["mm3"]),
-            ("blibble", []),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "PER_CUBIC_MM",
-        PER_CUBIC_MM,
-        [
-            ("per cubic mm", ["per cubic mm"]),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "CELLS_PER_CUBIC_MM",
-        CELLS_PER_CUBIC_MM,
-        [
-            ("cells/mm3", ["cells/mm3"]),
-            ("blibble", []),
-        ],
-        verbose=verbose,
-    )
-
-    # -------------------------------------------------------------------------
-    # Things to ignore
-    # -------------------------------------------------------------------------
-
-    test_text_regex(
-        "OPTIONAL_RESULTS_IGNORABLES",
-        OPTIONAL_RESULTS_IGNORABLES,
-        [
-            ("(H)", ["(H)", ""]),
-            (" (H) ", [" (H) ", ""]),
-            (" (H) mg/L", [" (H) ", "", "", "", "L", ""]),
-            ("(HH)", ["(HH)", ""]),
-            ("(L)", ["(L)", ""]),
-            ("(LL)", ["(LL)", ""]),
-            ("(*)", ["(*)", ""]),
-            ("  |  (H)  |  ", ["  |  (H)  |  ", ""]),
-        ],
-        verbose=verbose,
-    )
-    test_text_regex(
-        "OPTIONAL_POC",
-        OPTIONAL_POC,
-        [
-            (", POC", [", POC", ""]),
-        ],
-    )
-
-    # -------------------------------------------------------------------------
-    # Tense indicators
-    # -------------------------------------------------------------------------
-
-    test_text_regex(
-        "TENSE_INDICATOR",
-        TENSE_INDICATOR,
-        [
-            ("a is b", ["is"]),
-            ("a was b", ["was"]),
-            ("a blah b", []),
-        ],
-        verbose=verbose,
-    )
-
-    # -------------------------------------------------------------------------
-    # Mathematical relations
-    # -------------------------------------------------------------------------
-
-    test_text_regex(
-        "RELATION",
-        RELATION,
-        [
-            ("a < b", ["<"]),
-            ("a less than b", ["less than"]),
-            ("a <= b", ["<="]),
-            ("a = b", ["="]),
-            ("a equals b", ["equals"]),
-            ("a equal to b", ["equal to"]),
-            ("a >= b", [">="]),
-            ("a > b", [">"]),
-            ("a more than b", ["more than"]),
-            ("a greater than b", ["greater than"]),
-            ("a blah b", []),
-        ],
-        verbose=verbose,
-    )
-
-
-# =============================================================================
-# Command-line entry point
-# =============================================================================
-
-
-def test_all(verbose: bool = False) -> None:
-    """
-    Test all regexes in this module.
-    """
-    test_base_regexes(verbose=verbose)
-    # learning_alternative_regex_groups()
-
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    test_all()

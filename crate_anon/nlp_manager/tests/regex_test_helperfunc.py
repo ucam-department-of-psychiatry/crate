@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/nlp_manager/regex_test.py
+crate_anon/nlp_manager/tests/regex_test_helperfunc.py
 
 ===============================================================================
 
@@ -24,7 +24,7 @@ crate_anon/nlp_manager/regex_test.py
 
 ===============================================================================
 
-**Regular expression testing.**
+**Functions for testing regular expressions.**
 
 """
 
@@ -92,7 +92,7 @@ def print_compiled_regex_results(
     print(f"{' ' * prefix_spaces}{text!r} -> {results!r}")
 
 
-def test_text_regex(
+def assert_text_regex(
     name: str,
     regex_text: str,
     test_expected_list: List[Tuple[str, List[str]]],

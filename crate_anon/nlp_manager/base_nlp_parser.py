@@ -40,7 +40,6 @@ from typing import (
     Iterable,
     List,
     Optional,
-    TextIO,
     Tuple,
     TYPE_CHECKING,
 )
@@ -65,7 +64,11 @@ from sqlalchemy.sql.schema import MetaData
 from sqlalchemy.types import Integer, Text
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
-from crate_anon.common.stringfunc import does_text_contain_word_chars
+from crate_anon.common.stringfunc import (
+    compress_docstring,
+    does_text_contain_word_chars,
+    get_docstring,
+)
 from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
     FN_SRCPKVAL,
@@ -78,9 +81,7 @@ from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
 )
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
-from crate_anon.nlp_manager.nlp_definition import (
-    NlpDefinition,
-)
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlprp.api import NlprpServerProcessor
 from crate_anon.nlprp.constants import (
     ALL_SQL_DIALECTS,
@@ -122,8 +123,9 @@ class TableMaker(ABC):
     Base class for all CRATE NLP processors, local and cloud, including those
     that talk to third-party software. Manages the interface to databases for
     results storage, etc.
-
     """
+
+    _is_cloud_processor = False  # overridden by cloud-based classes
 
     def __init__(
         self,
@@ -198,14 +200,11 @@ class TableMaker(ABC):
         return ".".join([cls.__module__, cls.__qualname__])
 
     @classmethod
-    def print_info(cls, file: TextIO = sys.stdout) -> None:
+    def is_cloud_processor(cls) -> bool:
         """
-        Print general information about this NLP processor.
-
-        Args:
-            file: file to print to (default: stdout)
+        Is this class a cloud-based (remote) NLP processor?
         """
-        print("Base class for all CRATE NLP parsers", file=file)
+        return cls._is_cloud_processor
 
     @abstractmethod
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
@@ -430,9 +429,7 @@ class TableMaker(ABC):
         """
         Returns standard indexes for GATE output.
         """
-        return [
-            Index("_idx__set", GateFN.SET, mysql_length=MAX_SQL_FIELD_LEN),
-        ]
+        return [Index("_idx__set", GateFN.SET, mysql_length=MAX_SQL_FIELD_LEN)]
 
     @lru_cache(maxsize=None)
     def tables(self) -> Dict[str, Table]:
@@ -936,11 +933,7 @@ class BaseNlpParser(TableMaker):
 
         Uses each processor's docstring, and reformats it slightly.
         """
-        # PyCharm thinks that __doc__ is bytes, but it's str!
-        docstring = str(cls.__doc__)
-        docstring = docstring.replace("\n", " ")
-        # https://stackoverflow.com/questions/2077897/substitute-multiple-whitespace-with-single-whitespace-in-python
-        return " ".join(docstring.split())
+        return compress_docstring(get_docstring(cls))
 
     def nlprp_server_processor(
         self, sql_dialect: str = None

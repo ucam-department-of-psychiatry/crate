@@ -34,21 +34,9 @@ import uuid
 
 from cardinal_pythonlib.datetimefunc import coerce_to_pendulum
 from pendulum import DateTime as Pendulum
-from sqlalchemy import (
-    Column,
-    Text,
-    VARCHAR,
-    Boolean,
-    DateTime,
-    # Integer,
-)
+from sqlalchemy import Column, Text, VARCHAR, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import (
-    deferred,
-    relationship,
-    scoped_session,
-    sessionmaker,
-)
+from sqlalchemy.orm import deferred, relationship, scoped_session, sessionmaker
 from sqlalchemy.sql.schema import ForeignKey
 
 # noinspection PyPackageRequirements
@@ -229,9 +217,7 @@ class DocProcRequest(Base):
     )  # type: Optional[str]
 
     document = relationship(
-        "Document",
-        back_populates="docprocrequests",
-        lazy="select",
+        "Document", back_populates="docprocrequests", lazy="select"
     )  # type: Document
 
     @property

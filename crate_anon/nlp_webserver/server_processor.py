@@ -34,15 +34,8 @@ from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.all_processors import make_nlp_parser_unconfigured
 from crate_anon.nlprp.api import JsonObjectType, NlprpServerProcessor
 from crate_anon.nlprp.constants import NlprpKeys, NlprpValues
-from crate_anon.nlprp.errors import (
-    BAD_REQUEST,
-    mkerror,
-    no_such_proc_error,
-)
-from crate_anon.nlp_webserver.constants import (
-    PROCTYPE_GATE,
-    GATE_BASE_URL,
-)
+from crate_anon.nlprp.errors import BAD_REQUEST, mkerror, no_such_proc_error
+from crate_anon.nlp_webserver.constants import PROCTYPE_GATE, GATE_BASE_URL
 
 
 class ServerProcessor(NlprpServerProcessor):

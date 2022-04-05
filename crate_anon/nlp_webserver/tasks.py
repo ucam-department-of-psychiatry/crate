@@ -49,10 +49,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import transaction
 
 from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
-from crate_anon.nlp_manager.constants import (
-    GateApiKeys,
-    GateResultKeys,
-)
+from crate_anon.nlp_manager.constants import GateApiKeys, GateResultKeys
 from crate_anon.nlp_webserver.models import Session, DocProcRequest
 from crate_anon.nlp_webserver.server_processor import ServerProcessor
 from crate_anon.nlp_webserver.constants import (

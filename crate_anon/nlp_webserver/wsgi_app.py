@@ -51,16 +51,35 @@ log = logging.getLogger(__name__)
 
 # noinspection PyUnusedLocal
 def make_wsgi_app(global_config: Dict[Any, Any], **settings) -> Router:
+    """
+    Creates the WSGI application used for the CRATE NLPRP web server.
+    """
+    # This function is typically called from:
+    #
+    # - pyramid/scripts/pserve.py
+    # - to paste/deploy/loadwsgi.py
+    # - to paste/deploy/util.py
+    # - to here.
+
+    # -------------------------------------------------------------------------
     # Logging
-    main_only_quicksetup_rootlogger()
+    # -------------------------------------------------------------------------
+    main_only_quicksetup_rootlogger(level=logging.DEBUG)
+    # ... necessary given our route in, as above.
     logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
 
     # log.debug(f"global_config: {global_config!r}")
-    # log.debug(f"settings: {settings!r}")
+    # ... just contains e.g. 'here' (current directory) and '__file__' (config
+    # filename)
 
+    # log.debug(f"settings: {settings!r}")
+    # ... contains the "[app:main]" section of the config file, as a dict.
+
+    # -------------------------------------------------------------------------
     # Database
+    # -------------------------------------------------------------------------
     engine = engine_from_config(
-        settings,
+        settings,  # eventually reads e.g. "sqlalchemy.url"
         NlpServerConfigKeys.SQLALCHEMY_PREFIX,
         **SQLALCHEMY_COMMON_OPTIONS,
     )
@@ -70,7 +89,9 @@ def make_wsgi_app(global_config: Dict[Any, Any], **settings) -> Router:
     dbsession.configure(bind=engine)
     Base.metadata.bind = engine
 
-    # Pyramid
+    # -------------------------------------------------------------------------
+    # Pyramid setup
+    # -------------------------------------------------------------------------
     config = Configurator(settings=settings)
 
     # Security policies
@@ -89,8 +110,17 @@ def make_wsgi_app(global_config: Dict[Any, Any], **settings) -> Router:
     )  # noqa
 
     # Routes
-    config.add_route("index", "/")
-    config.scan(".views")
+    config.add_route("index", "/")  # route URL path / to a view named "index"
+    config.scan(".views")  # scan views.py in this directory for @view...
 
+    # -------------------------------------------------------------------------
     # Create WSGI app
-    return config.make_wsgi_app()
+    # -------------------------------------------------------------------------
+    app = config.make_wsgi_app()
+
+    # -------------------------------------------------------------------------
+    # Register processors
+    # -------------------------------------------------------------------------
+    from crate_anon.nlp_webserver.procs import ServerProcessor  # noqa
+
+    return app
